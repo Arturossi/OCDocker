@@ -1,0 +1,2 @@
+Cavities	center_x  center_y  center_z  size_x  size_y  size_z  cavity_size
+1	9.160  -29.901  -9.448  29  20  13  820

@@ -1,0 +1,15 @@
+###################### INSTALLATION OF CB-DOCK #################################
+# 1, install AutoDock Vina and MGL-Tools 
+# 2, install Open Babel:
+#      sudo apt-get install openbabel
+# 3, run: 
+#      ./setup.sh [path of python] [path of vina]
+
+# example: 
+	   sudo ./setup.sh MGLPATH/bin/python VINAPATH/bin/vina
+
+# 4, run:
+	   ./prog/AutoBlindDock.pl [Receptor] [Ligand] [PocketNum] [UserDir]
+
+# example: 
+ 	   ./prog/AutoBlindDock.pl ./example/receptor.pdb ./example/ligand.mol2 5 mytest

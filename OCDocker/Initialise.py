@@ -1,0 +1,210 @@
+#!/usr/lib/python3
+
+# Imports
+###############################################################################
+import os
+import argparse
+import textwrap as tw
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Torres, P.H.M.;
+[The Federal University of Rio de Janeiro]
+Contact info:
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+Av. Carlos Chagas Filho 373 - CCS - bloco G1-19,
+Cidade Universitária - Rio de Janeiro, RJ, CEP: 21941-902
+E-mail address: arturossi10@gmail.com
+This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
+'''
+
+# Description
+###############################################################################
+# Dictionary for the output colors
+clrs = {'r': "\033[1;91m",  # red
+        'g': "\033[1;92m",  # green
+        'y': "\033[1;93m",  # yellow
+        'b': "\033[1;94m",  # blue
+        'p': "\033[1;95m",  # purple
+        'c': "\033[1;96m",  # cyan
+        'n': "\033[1;0m"}   # default
+
+description = tw.dedent("""
+    \033[1;93m+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+   \033[1;95mOCDocker  \033[1;93m+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    \033[1;0m
+      Copyright (C) 2021  Rossi, A.D; Torres, P.H.M.
+    \033[1;93m
+                      [The Federal University of Rio de Janeiro]
+    \033[1;0m
+          This program comes with ABSOLUTELY NO WARRANTY
+      Add a description Here
+     Please cite:
+     Ainda não tem\033[1;0m
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+          """)
+
+# Functions
+###############################################################################
+def create_ocdocker_conf():
+    conf_file = "OCDocker.cfg"
+    with open(conf_file, 'w') as cf:
+        cf.write(tw.dedent("""
+        # Root directory for the OCDocker Database
+        ocdb = /mnt/d/Documents/OCDocker/OCDocker/data/ocdb
+
+        # dock6 path
+        dock6 = /mnt/d/Documents/OCDocker/software/docking/dock6/bin/dock6
+
+        # PLANTS path
+        plants = /mnt/d/Documents/OCDocker/software/docking/plants/PLANTS1.2_64bit
+
+        # Smina path
+        smina = /mnt/d/Documents/OCDocker/software/docking/smina/build/smina
+
+        # Vina path
+        vina = /usr/bin/vina
+
+        # prepare_ligand4 path
+        prepare_ligand = /home/ligmol/MGLTools-1.5.7/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_ligand4.py
+
+        # prepare_receptor4 path
+        prepare_receptor = /home/ligmol/MGLTools-1.5.7/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_receptor4.py
+
+        # Open Babel path
+        obabel = /usr/bin/obabel"""))
+
+    print(f"{clrs['g']}Configuration file created!{clrs['n']} Please{clrs['y']} EDIT ITS CONTENTS {clrs['n']}to match your environment and run OCDocker again.")
+
+# Define Global Variables
+###############################################################################
+global args
+global aa3to1
+global ocdb
+global widgets
+global workdir
+
+# Parse command line arguments
+###############################################################################
+def argument_parsing():
+    parser = argparse.ArgumentParser(prog='OCDocker',
+                                     formatter_class=argparse.RawDescriptionHelpFormatter,
+                                     description=description)
+
+    parser.add_argument('--version', action='version',
+                    version='%(prog)s 0.0.1')
+
+    parser.add_argument('-f', '--file',
+                        dest='input_file',
+                        type=str,
+                        metavar='',
+                        help='Pdb file to input')
+
+    parser.add_argument('--multiprocess',
+                        dest='multiprocess',
+                        action='store_true',
+                        default=False,
+                        help='Defines whether python multiprocessing should be enabled for compatible lenghty tasks')
+
+    parser.add_argument('--single-core',
+                        dest='force_single_core',
+                        action='store_true',
+                        default=False,
+                        help='Forces all individual tasks and programs to run in a single core. Disables multiprocessing.')
+
+    parser.add_argument('--generate-report',
+                        dest='generate_report',
+                        action='store_true',
+                        default=False,
+                        help='Creates a final HTML report for each generated model (forces -a MIG and --plot-topologies)')
+
+    parser.add_argument('-z', '--zip-output',
+                        dest='zip_output',
+                        type=int,
+                        default=0,
+                        metavar='',
+                        help='Defines the compression level. [0] No compression, [1] partial compression, [2] full compression')
+
+    parser.add_argument('-u', '--update-databases',
+                        dest='update',
+                        action='store_true',
+                        default=False,
+                        help='Updates databases')
+
+    parser.add_argument('-v', '--verbose',
+                        dest='verbosity',
+                        action='count',
+                        default=0,
+                        help='Controls verbosity')
+
+    parser.add_argument('--conf',
+                        dest='config_file',
+                        type=str,
+                        metavar='',
+                        help='Configuration file containing external executable paths')
+
+    initial_args = parser.parse_args()
+
+    return initial_args
+
+initial_args = argument_parsing()
+
+aa3to1 = {'CYS': 'C', 'ASP': 'D', 'GLN': 'Q', 'ILE': 'I',
+          'ALA': 'A', 'TYR': 'Y', 'TRP': 'W', 'HIS': 'H',
+          'LEU': 'L', 'ARG': 'R', 'VAL': 'V', 'GLU': 'E',
+          'PHE': 'F', 'GLY': 'G', 'MET': 'M', 'ASN': 'N',
+          'PRO': 'P', 'SER': 'S', 'LYS': 'K', 'THR': 'T',
+          'MSE': 'M', 'CSE': 'U', 'GLH': 'E', 'HID': 'H',
+          'HIE': 'H', 'HIP': 'H', 'HYP': 'P', 'ASX': 'B',
+          'GLX': 'Z', 'MME': 'M', 'LYZ': 'K'}
+
+# Initialise
+###############################################################################
+print(description)
+
+# Retrieve the paths from provided configuration file
+if (not initial_args.config_file or not os.path.isfile(initial_args.config_file)) and not os.path.isfile('OCDocker.cfg'):
+    print('OCDocker configuration file not found in the provided path')
+    create_config = input('Do you wish to create it? (y/n)')
+    if create_config.lower()  in ['y', 'ye', 'yes']:
+        create_ocdocker_conf()
+        quit()
+    else:
+        print('\n\nNo positive confirmation, please provide a valid configuration file.\n')
+        quit()
+
+elif not initial_args.config_file and os.path.isfile('OCDocker.cfg'):
+    config_file = 'OCDocker.cfg'
+
+elif initial_args.config_file:
+    assert os.path.isfile(initial_args.config_file), f"{clrs['r']}\n\n Not able to find configuration file.\n\n Does \"{initial_args.config_file}\" exist?{clrs['n']}"
+    config_file = initial_args.config_file
+
+for line in open(config_file, 'r'):
+    if line.startswith('ocdb'):
+        ocdb = line.split('=')[1].strip()
+    elif line.startswith('dock6'):
+        dock6 = line.split('=')[1].strip()
+    elif line.startswith('plants'):
+        plants = line.split('=')[1].strip()
+    elif line.startswith('smina'):
+        smina = line.split('=')[1].strip()
+    elif line.startswith('vina'):
+        vina = line.split('=')[1].strip()
+    elif line.startswith('prepare_ligand'):
+        prepare_ligand = line.split('=')[1].strip()
+    elif line.startswith('prepare_receptor'):
+        prepare_receptor = line.split('=')[1].strip()
+    elif line.startswith('obabel'):
+        obabel = line.split('=')[1].strip()
+
+
+# Root directory for OCDocker module
+ocdocker_path = os.path.dirname(os.path.abspath( __file__ ))
+
+# Directory containing the pdb mirror in "divided" scheme
+pdbbind_archive = os.path.join(ocdb, 'pdbBind')
