@@ -162,3 +162,7 @@ BLinDPyPr
 
 # Base File is only for faster file creation, no need to upload it
 BaseFile.py
+
+# We don't want the inDev folders
+inDev/
+inDev2/
