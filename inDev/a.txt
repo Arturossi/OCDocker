@@ -1,4 +1,0 @@
-This is a text file.
-We use Perl filehandle to read its content.
-we should always close the filehandle after processing it.
-1
