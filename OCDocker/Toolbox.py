@@ -47,6 +47,18 @@ def printv(text, verbosity):
     if verbosity == 1:
         print(text)
 
+def print_warning(text):
+    '''
+    Function to print warnings.
+    '''
+    print(f"{clrs['y']}WARNING{clrs['n']}: {text}")
+
+def print_error(text):
+    '''
+    Function to print warnings.
+    '''
+    print(f"{clrs['r']}ERROR{clrs['n']}: {text}")
+
 def print_section(n, name):
     '''
     Function to print section header.

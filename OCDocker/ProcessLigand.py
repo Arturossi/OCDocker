@@ -5,6 +5,7 @@
 import os
 import rdkit
 from Initialise import *
+import OCDocker.Toolbox as octools
 
 # License
 ###############################################################################
@@ -72,7 +73,13 @@ class Ligand:
             if extension == ".pdb":
                 return rdkit.Chem.rdmolfiles.MolFromPDBFile(molecule)
             elif extension == ".sdf":
-                return rdkit.Chem.rdmolfiles.SDMolSupplier(molecule)[0]
+                # Since the sdf file can hold more than one molecule...
+                mols = rdkit.Chem.rdmolfiles.SDMolSupplier(molecule)
+                # If has multiple molecules, indicate the user to use the right function
+                if len(mols) > 1:
+                    octools.print_warning("This sdf has more than one molecule!! If you want to parse all the molecules within this file use the function multipleMoleculesSDF instead, otherwise just the first molecule will be processed.")
+                # Return just the first molecule
+                return mols[0]
             elif extension == ".mol":
                 return rdkit.Chem.rdmolfiles.MolFromMolFile(molecule)
             elif extension == ".mol2":
@@ -80,12 +87,11 @@ class Ligand:
             else:
                 # The file extension is not supported, print data
                 supportedExtensions = ['.pdb', '.sdf', '.mol', '.mol2']
-                print(f"The molecule {molecule} has a unsupported extension.")
-                print(f"Currently the supported extensions are {', '.join(supportedExtensions)}.")
+                octools.print_error(f"The molecule {molecule} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supportedExtensions)}.")
                 return None
         else:
             # The variable is not in a supported data format
-            print("Unsupported molecule data. Please support either a molecule path (string) or a rdkit.Chem.rdchem.Mol object.")
+            octools.print_error("Unsupported molecule data. Please support either a molecule path (string) or a rdkit.Chem.rdchem.Mol object.")
             return None
 
     def __findExactMolWt(self):
@@ -186,3 +192,12 @@ class Ligand:
 
 # Functions
 ###############################################################################
+
+def multipleMoleculesSDF(molecule):
+    # Check if the path is a string (it is assumed that the provided path is already a sdf)
+    if type(molecule) == str:
+        # Get the molecules
+        return rdkit.Chem.rdmolfiles.SDMolSupplier(molecule)
+    else:
+        octools.print_error("The molecule file path MUST be a string")
+    return None

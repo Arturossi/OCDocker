@@ -202,7 +202,6 @@ for line in open(config_file, 'r'):
     elif line.startswith('obabel'):
         obabel = line.split('=')[1].strip()
 
-
 # Root directory for OCDocker module
 ocdocker_path = os.path.dirname(os.path.abspath( __file__ ))
 
