@@ -6,7 +6,6 @@ import sys
 import shutil
 import tarfile
 import datetime
-from Initialise import *
 
 # License
 ###############################################################################
@@ -80,10 +79,10 @@ def print_section(n, name):
 
     if name == "Runtime Arguments":
         with open('OCDocker_Progress.out', 'w') as f:
-            f.write(f"{datetime.now().strftime("%H:%M:%S")}: Starting new OCDocker run\n")
+            f.write(f"{datetime.now().strftime('%H:%M:%S')}: Starting new OCDocker run\n")
     else:
         with open('OCDocker_Progress.out', 'a') as f:
-            f.write(f"\n{datetime.now().strftime("%H:%M:%S")}: {str(name)}...\n")
+            f.write(f"\n{datetime.now().strftime('%H:%M:%S')}: {str(name)}...\n")
 
 def section(n, name):
     '''

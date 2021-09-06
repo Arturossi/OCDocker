@@ -4,8 +4,7 @@
 ###############################################################################
 import os
 import rdkit
-from Initialise import *
-import OCDocker.Toolbox as octools
+import Toolbox as octools
 
 # License
 ###############################################################################
@@ -38,10 +37,11 @@ import OCDocker.ProcessLigand as ocpl
 class Ligand:
     """
     Load and compute ligand descriptors. You can provide either a molecule file
-    (pdb/sdf/mol/mol2) or a rdkit.Chem.rdchem.Mol object.
+    (pdb/sdf/mol/mol2) or a rdkit.Chem.rdchem.Mol object. A name to indentify
+    the molecule can be provided aswell.
     """
 
-    def __init__(self, name, molecule):
+    def __init__(self, molecule, name=""):
         self.name = name
         self.molecule = self.__loadMol(molecule)
         self.ExactMolWt = self.__findExactMolWt()
@@ -192,12 +192,17 @@ class Ligand:
 
 # Functions
 ###############################################################################
-
 def multipleMoleculesSDF(molecule):
+    ligands = []
     # Check if the path is a string (it is assumed that the provided path is already a sdf)
     if type(molecule) == str:
         # Get the molecules
-        return rdkit.Chem.rdmolfiles.SDMolSupplier(molecule)
+        suppl = rdkit.Chem.rdmolfiles.SDMolSupplier(molecule)
+        # For each molecule
+        for mol in suppl:
+            # Append an instance of the class of the molecule
+            ligands.append(Ligand(mol))
+        return ligands
     else:
         octools.print_error("The molecule file path MUST be a string")
     return None
