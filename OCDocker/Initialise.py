@@ -25,15 +25,6 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 
 # Description
 ###############################################################################
-# Dictionary for the output colors
-clrs = {'r': "\033[1;91m",  # red
-        'g': "\033[1;92m",  # green
-        'y': "\033[1;93m",  # yellow
-        'b': "\033[1;94m",  # blue
-        'p': "\033[1;95m",  # purple
-        'c': "\033[1;96m",  # cyan
-        'n': "\033[1;0m"}   # default
-
 description = tw.dedent("""\033[1;93m
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     +-+-+-+-+-+-+-+-+-+- \033[1;96m┏━┓┏━╸╺┳━┓┏━┓┏━╸╻┏ ┏━╸┏━┓ \033[1;93m-+-+-+-+-+-+-+-+-+-+
@@ -88,6 +79,17 @@ def create_ocdocker_conf():
 
         # DUDEz download link
         DUDEz = https://dudez.docking.org/DOCKING_GRIDS_AND_POSES.tgz
+
+        ################## VINA PARAMETERS ##################
+
+        # Maximum energy difference between the best binding mode and the worst one displayed (kcal/mol)
+        energy_range = 10
+
+        # Exhaustiveness of the global search
+        exhaustiveness = 3
+
+        # Maximum number of binding modes to generate
+        num_modes = 3
         """))
 
     print(f"{clrs['g']}Configuration file created!{clrs['n']} Please{clrs['y']} EDIT ITS CONTENTS {clrs['n']}to match your environment and run OCDocker again.")
@@ -96,6 +98,7 @@ def create_ocdocker_conf():
 ###############################################################################
 # General variables
 global args
+global clrs
 global aa3to1
 global widgets
 global workdir
@@ -113,10 +116,27 @@ global dudez_download
 global prepare_ligand
 global prepare_receptor
 
+# Vina parameters
+global num_modes
+global energy_range
+global exhaustiveness
+
 # Database + OCDocker variables
 global dudez_archive
 global ocdocker_path
 global pdbbind_archive
+
+# Aditional Variables
+###############################################################################
+
+# Dictionary for the output colors
+clrs = {'r': "\033[1;91m",  # red
+        'g': "\033[1;92m",  # green
+        'y': "\033[1;93m",  # yellow
+        'b': "\033[1;94m",  # blue
+        'p': "\033[1;95m",  # purple
+        'c': "\033[1;96m",  # cyan
+        'n': "\033[1;0m"}   # default
 
 # Parse command line arguments
 ###############################################################################
@@ -230,6 +250,12 @@ for line in open(config_file, 'r'):
         dudez_download = line.split('=')[1].strip()
     elif line.startswith('prank'):
         prank = line.split('=')[1].strip()
+    elif line.startswith('energy_range'):
+        energy_range = line.split('=')[1].strip()
+    elif line.startswith('exhaustiveness'):
+        exhaustiveness = line.split('=')[1].strip()
+    elif line.startswith('num_modes'):
+        num_modes = line.split('=')[1].strip()
 
 # Root directory for OCDocker module
 ocdocker_path = os.path.dirname(os.path.abspath( __file__ ))

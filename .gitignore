@@ -166,3 +166,6 @@ BaseFile.py
 # We don't want the inDev folders
 inDev/
 inDev2/
+
+# tmp folder is temporary, so... IGNORE IT
+tmp/

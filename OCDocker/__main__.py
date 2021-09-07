@@ -50,7 +50,7 @@ def main():
     if args.update is True:
         print(tw.dedent(f"""
                                          !WARNING!
-                      You have chosen to updtate the local databases.
+                      You have chosen to update the local databases.
               ** The root directory for the database files is: """+clrs['y']+ocdb+clrs['n']+"""
               ** The path to local pdb bind mirror is: """+clrs['y']+pdbbind_archive+clrs['n']+"""
               This could take a long time.

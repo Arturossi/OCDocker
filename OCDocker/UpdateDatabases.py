@@ -3,13 +3,16 @@
 # Imports
 ###############################################################################
 import os
-import glob
 import shutil
 import urllib.request
 import textwrap as tw
 
-import OCDocker.Tools.runprank
+from glob import glob
+from tqdm import tqdm
+
+import OCDocker.DUDEZ as ocdudez
 import OCDocker.Toolbox as octools
+import OCDocker.Tools.runprank as runprank
 
 # License
 ###############################################################################
@@ -44,8 +47,9 @@ def create_directories():
     '''
     Create dirs
     '''
-    octools.safe_create_dir(ocdb)
-    octools.safe_create_dir(pdbbind_archive)
+    _ = octools.safe_create_dir(ocdb)
+    _ = octools.safe_create_dir(pdbbind_archive)
+    _ = octools.safe_create_dir(dudez_archive)
 
 def update_DUDEZ(verbosity):
     '''
@@ -54,7 +58,7 @@ def update_DUDEZ(verbosity):
     '''
 
     # Create tmp dir for download
-    octools.safe_create_dir("./tmp")
+    _ = octools.safe_create_dir("./tmp")
 
     print("Downloading the DUDEZ database")
 
@@ -66,6 +70,9 @@ def update_DUDEZ(verbosity):
 
     # Move the folders (and subfolders) to right database folders
     shutil.move("./tmp/DOCKING_GRIDS_AND_POSES", dudez_archive)
+
+    # Delete the temporary folder
+    shutil.rmtree("./tmp")
 
     # THIS SECTION MIGHT CHANGE TO THE USE OF BLinDPyPr IN THE FUTURE
 
@@ -90,7 +97,7 @@ def update_DUDEZ(verbosity):
     dirs = glob(f"{dudez_archive}/*")
 
     # For each directory in the database folder
-    for d in dirs:
+    for d in tqdm(iterable=dirs, total=len(dirs)):
         # Set the input file name path
         fin = f"{d}/rec.crg.pdb"
 
@@ -100,8 +107,14 @@ def update_DUDEZ(verbosity):
         # Set the output path
         fout = f"{d}/p2rank"
 
+        # Create the p2rank output dir
+        _ = octools.safe_create_dir(fout)
+
         # Run p2rank
         runprank.run_prank(fin, fout, algorithms, prank = prank, threads = cpu_cores, debug = False, boxMaxCutoff = 0.5, pocketCutoff = 0.1, verbose = verbosity)
+
+        # Create the vina inputs from the boxes
+        ocdudez.generate_vina_files(d)
 
     return
 

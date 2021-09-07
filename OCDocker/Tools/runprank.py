@@ -165,7 +165,7 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
         # Set the folder variable
         folder = f"/{suffix}"
         # Create the folder
-        __safe_create_dir(f"{fout}{folder}")
+        createDir = __safe_create_dir(f"{fout}{folder}")
         # Change the suffix (to concatenate in box filename)
         suffix = f"_{suffix}"
     else:
@@ -280,10 +280,10 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
         subprocess.run([prank, 'predict','-threads', str(threads),  '-f', filein, '-o', outpath], stdout=subprocess.DEVNULL)
 
     # Get the input file name (which will be used to read the output from P2Rank)
-    fname = os.path.basename(os.path.splitext(filein)[0])
+    fname = os.path.basename(filein)
 
     # Read the output
-    data = pd.read_csv(f"{outpath}/{fname}.pdb_predictions.csv")
+    data = pd.read_csv(f"{outpath}/{fname}_predictions.csv")
 
     # Remove spaces from the column names
     data.columns = data.columns.str.replace(' ', '')
@@ -355,16 +355,18 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
     ############################################################################
 
     # No Cluster
-    if algoritms["NoCluster"]:
+    if algorithms["NoCluster"]:
         start_time = time.time()
+        suffix = ""
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
                 f.write(f"na\t0\n")
+            suffix = "na"
         if verbose:
             print(f"Como não existe algoritmo, a execução é de 0 segundos.")
 
-        __process_cluster(None, coordinates, outpath, suffix="na", coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
+        __process_cluster(None, coordinates, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
@@ -376,17 +378,22 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
     if algorithms["AffinityPropagation"]:
         from sklearn.cluster import AffinityPropagation
 
-        print("Running Affinity Propagation")
+        if verbose:
+            print("Running Affinity Propagation")
+
         start_time = time.time()
+        suffix = ""
+
         clustering = AffinityPropagation(random_state=0).fit(coordinates)
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
                 f.write(f"ap\t{round(time.time() - start_time, 2)}\n")
+            suffix = "ap"
         if verbose:
             print(f"Tempo de execução do Affinity Propagation sozinho: {round(time.time() - start_time, 2)} segundos.")
 
-        __process_cluster(clustering, coordinatesFull, outpath, suffix = "ap", coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
+        __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
@@ -398,17 +405,22 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
     if algorithms["AgglomerativeClustering"]:
         from sklearn.cluster import AgglomerativeClustering
 
-        print("Running Agglomerative Clustering")
+        if verbose:
+            print("Running Agglomerative Clustering")
+
         start_time = time.time()
+        suffix = ""
+
         clustering = AgglomerativeClustering().fit(coordinates)
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
                 f.write(f"ac\t{round(time.time() - start_time, 2)}\n")
+            suffix = "ac"
         if verbose:
             print(f"Tempo de execução do Agglomerative Clustering sozinho: {round(time.time() - start_time, 2)} segundos.")
 
-        __process_cluster(clustering, coordinatesFull, outpath, suffix = "ac", coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
+        __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
@@ -420,17 +432,22 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
     if algorithms["Birch"]:
         from sklearn.cluster import Birch
 
-        print("Running Birch")
+        if verbose:
+            print("Running Birch")
+
         start_time = time.time()
+        suffix = ""
+
         clustering = Birch().fit(coordinates)
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
                 f.write(f"bi\t{round(time.time() - start_time, 2)}\n")
+            suffix = "bi"
         if verbose:
             print(f"Tempo de execução do Birch sozinho: {round(time.time() - start_time, 2)} segundos.")
 
-        __process_cluster(clustering, coordinatesFull, outpath, suffix = "bi", coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
+        __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
@@ -442,17 +459,22 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
     if algorithms["DBSCAN"]:
         from sklearn.cluster import DBSCAN
 
-        print("Running DBSCAN")
+        if verbose:
+            print("Running DBSCAN")
+
         start_time = time.time()
+        suffix = ""
+
         clustering = DBSCAN(eps=5, min_samples=5).fit(coordinates)
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
                 f.write(f"db\t{round(time.time() - start_time, 2)}\n")
+            suffix = "db"
         if verbose:
             print(f"Tempo de execução do DBSCAN sozinho: {round(time.time() - start_time, 2)} segundos.")
 
-        __process_cluster(clustering, coordinatesFull, outpath, suffix = "db", coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
+        __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
@@ -464,17 +486,22 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
     if algorithms["KMeans"]:
         from sklearn.cluster import KMeans
 
-        print("Running KMeans")
+        if verbose:
+            print("Running KMeans")
+
         start_time = time.time()
+        suffix = ""
+
         clustering = KMeans(n_clusters=2, random_state=0).fit(coordinates)
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
                 f.write(f"km\t{round(time.time() - start_time, 2)}\n")
+            suffix = "km"
         if verbose:
             print(f"Tempo de execução do KMeans sozinho: {round(time.time() - start_time, 2)} segundos.")
 
-        __process_cluster(clustering, coordinatesFull, outpath, suffix = "km", coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
+        __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
@@ -486,18 +513,23 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
     if algorithms["MeanShift"]:
         from sklearn.cluster import MeanShift, estimate_bandwidth
 
-        print("Running Mean Shift")
+        if verbose:
+            print("Running Mean Shift")
+
         start_time = time.time()
+        suffix = ""
+
         bandwidth = estimate_bandwidth(coordinates, quantile=0.2, n_samples=len(coordinates))
         clustering = MeanShift(bandwidth=bandwidth).fit(coordinates)
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
                 f.write(f"ms\t{round(time.time() - start_time, 2)}\n")
+            suffix = "ms"
         if verbose:
             print(f"Tempo de execução do Mean Shift sozinho: {round(time.time() - start_time, 2)} segundos.")
 
-        __process_cluster(clustering, coordinatesFull, outpath, suffix = "ms", coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
+        __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
@@ -509,17 +541,22 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
     if algorithms["MiniBatchKMeans"]:
         from sklearn.cluster import MiniBatchKMeans
 
-        print("Running Mini Batch KMeans")
+        if verbose:
+            print("Running Mini Batch KMeans")
+
         start_time = time.time()
+        suffix = ""
+
         clustering = MiniBatchKMeans(n_clusters=2).fit(coordinates)
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
                 f.write(f"mb\t{round(time.time() - start_time, 2)}\n")
+            suffix = "mb"
         if verbose:
             print(f"Tempo de execução do Mini Batch KMeans sozinho: {round(time.time() - start_time, 2)} segundos.")
 
-        __process_cluster(clustering, coordinatesFull, outpath, suffix = "mb", coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
+        __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
@@ -531,17 +568,22 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
     if algorithms["OPTICS"]:
         from sklearn.cluster import OPTICS
 
-        print("Running OPTICS")
+        if verbose:
+            print("Running OPTICS")
+
         start_time = time.time()
+        suffix = ""
+
         clustering = OPTICS(min_samples=5).fit(coordinates)
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
                 f.write(f"op\t{round(time.time() - start_time, 2)}\n")
+            suffix = "op"
         if verbose:
             print(f"Tempo de execução do OPTICS sozinho: {round(time.time() - start_time, 2)} segundos.")
 
-        __process_cluster(clustering, coordinatesFull, outpath, suffix = "op", coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
+        __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
@@ -553,17 +595,22 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
     if algorithms["SpectralClustering"]:
         from sklearn.cluster import SpectralClustering
 
-        print("Running Spectral Clustering")
+        if verbose:
+            print("Running Spectral Clustering")
+
         start_time = time.time()
+        suffix = ""
+
         clustering = SpectralClustering(n_clusters=2, random_state=0).fit(coordinates)
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
                 f.write(f"sc\t{round(time.time() - start_time, 2)}\n")
+            suffix = "sc"
         if verbose:
             print(f"Tempo de execução do Spectral Clustering sozinho: {round(time.time() - start_time, 2)} segundos.")
 
-        __process_cluster(clustering, coordinatesFull, outpath, suffix = "sc", coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
+        __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
