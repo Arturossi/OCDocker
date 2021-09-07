@@ -4,6 +4,8 @@
 ###############################################################################
 import os
 import argparse
+import multiprocessing
+
 import textwrap as tw
 
 # License
@@ -32,21 +34,24 @@ clrs = {'r': "\033[1;91m",  # red
         'c': "\033[1;96m",  # cyan
         'n': "\033[1;0m"}   # default
 
-description = tw.dedent("""
-    \033[1;93m+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+   \033[1;95mOCDocker  \033[1;93m+-+-+-+-+-+-+-+-+-+-+-+-+-+
+description = tw.dedent("""\033[1;93m
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    \033[1;0m
+    +-+-+-+-+-+-+-+-+-+- \033[1;96m┏━┓┏━╸╺┳━┓┏━┓┏━╸╻┏ ┏━╸┏━┓ \033[1;93m-+-+-+-+-+-+-+-+-+-+
+    +-+-+-+-+-+-+-+-+-+- \033[1;96m┃ ┃┃   ┃ ┃┃ ┃┃  ┣┻┓┣╸ ┣┳┛ \033[1;93m-+-+-+-+-+-+-+-+-+-+
+    +-+-+-+-+-+-+-+-+-+- \033[1;96m┗━┛┗━╸╺┻━┛┗━┛┗━╸╹ ╹┗━╸╹┗╸ \033[1;93m-+-+-+-+-+-+-+-+-+-+
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+\033[1;0m
       Copyright (C) 2021  Rossi, A.D; Torres, P.H.M.
-    \033[1;93m
-                      [The Federal University of Rio de Janeiro]
-    \033[1;0m
+\033[1;95m
+                  [The Federal University of Rio de Janeiro]
+\033[1;0m
           This program comes with ABSOLUTELY NO WARRANTY
       Add a description Here
      Please cite:
-     Ainda não tem\033[1;0m
-     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-          """)
+     Ainda não tem
+\033[1;93m
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+\033[1;0m""")
 
 # Functions
 ###############################################################################
@@ -76,17 +81,42 @@ def create_ocdocker_conf():
         prepare_receptor = /home/ligmol/MGLTools-1.5.7/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_receptor4.py
 
         # Open Babel path
-        obabel = /usr/bin/obabel"""))
+        obabel = /usr/bin/obabel
+
+        # P2Rank path
+        prank = /mnt/d/Documents/OCDocker/software/search/p2rank_2.3/prank
+
+        # DUDEz download link
+        DUDEz = https://dudez.docking.org/DOCKING_GRIDS_AND_POSES.tgz
+        """))
 
     print(f"{clrs['g']}Configuration file created!{clrs['n']} Please{clrs['y']} EDIT ITS CONTENTS {clrs['n']}to match your environment and run OCDocker again.")
 
 # Define Global Variables
 ###############################################################################
+# General variables
 global args
 global aa3to1
-global ocdb
 global widgets
 global workdir
+global cpu_cores
+
+# Data from .cfg
+global ocdb
+global vina
+global dock6
+global prank
+global smina
+global obabel
+global plants
+global dudez_download
+global prepare_ligand
+global prepare_receptor
+
+# Database + OCDocker variables
+global dudez_archive
+global ocdocker_path
+global pdbbind_archive
 
 # Parse command line arguments
 ###############################################################################
@@ -95,8 +125,9 @@ def argument_parsing():
                                      formatter_class=argparse.RawDescriptionHelpFormatter,
                                      description=description)
 
-    parser.add_argument('--version', action='version',
-                    version='%(prog)s 0.0.1')
+    parser.add_argument('--version',
+                        action='version',
+                        version='%(prog)s 0.0.1')
 
     parser.add_argument('-f', '--file',
                         dest='input_file',
@@ -109,12 +140,6 @@ def argument_parsing():
                         action='store_true',
                         default=False,
                         help='Defines whether python multiprocessing should be enabled for compatible lenghty tasks')
-
-    parser.add_argument('--single-core',
-                        dest='force_single_core',
-                        action='store_true',
-                        default=False,
-                        help='Forces all individual tasks and programs to run in a single core. Disables multiprocessing.')
 
     parser.add_argument('--generate-report',
                         dest='generate_report',
@@ -201,9 +226,23 @@ for line in open(config_file, 'r'):
         prepare_receptor = line.split('=')[1].strip()
     elif line.startswith('obabel'):
         obabel = line.split('=')[1].strip()
+    elif line.startswith('DUDEz'):
+        dudez_download = line.split('=')[1].strip()
+    elif line.startswith('prank'):
+        prank = line.split('=')[1].strip()
 
 # Root directory for OCDocker module
 ocdocker_path = os.path.dirname(os.path.abspath( __file__ ))
 
 # Directory containing the pdb mirror in "divided" scheme
 pdbbind_archive = os.path.join(ocdb, 'pdbBind')
+
+# Directory containing the pdb mirror in "divided" scheme
+dudez_archive = os.path.join(ocdb, 'DUDEZ')
+
+# Get number of CPUs (minus one) with a minimum of one
+if initial_args.multiprocess:
+    n_cpu = multiprocessing.cpu_count() - 1
+    cpu_cores = n_cpu if n_cpu > 1 else 1
+else:
+    cpu_cores = 1

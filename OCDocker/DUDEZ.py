@@ -6,7 +6,6 @@ import sys
 import shutil
 import tarfile
 import datetime
-from Initialise import *
 
 # License
 ###############################################################################

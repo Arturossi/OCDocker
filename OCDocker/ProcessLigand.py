@@ -195,6 +195,7 @@ class Ligand:
 # Functions
 ###############################################################################
 def multipleMoleculesSDF(molecule):
+    # List to hold multiple Ligand objects
     ligands = []
     # Check if the path is a string (it is assumed that the provided path is already a sdf)
     if type(molecule) == str:

@@ -6,9 +6,8 @@ import os
 import glob
 from multiprocessing import cpu_count
 
-from Initialise import *
-import Toolbox as octools
-from UpdateDatabases import update_databases
+from OCDocker.Initialise import *
+from OCDocker.UpdateDatabases import update_databases
 
 # License
 ###############################################################################
