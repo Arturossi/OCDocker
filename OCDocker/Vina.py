@@ -40,14 +40,26 @@ import OCDocker.Vina as ocvina
 # Functions
 ###############################################################################
 def box_to_vina(path):
-    """
+    '''
     Convert a box (DUDE like format) to vina input.
     Input:
      path     [string] - Path to the box file
     Return:
       -
-    """
+    '''
     return
-    
+
+def prepare_ligand():
+    '''
+    '''
+    return
+
+def prepare_receptor():
+    '''
+    '''
+    return
+
 def run_vina():
+    '''
+    '''
     return
