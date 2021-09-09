@@ -6,6 +6,7 @@ import os
 
 from OCDocker.Initialise import *
 import OCDocker.Toolbox as octools
+import OCDocker.ExternalTools.runprank as runprank
 
 # License
 ###############################################################################
@@ -209,7 +210,7 @@ def runprank(args):
                            debug = False, boxMaxCutoff = 0.5, pocketCutoff = 0.1, verbose = args.verbosity)
 
         # Create the vina inputs from the boxes
-        ocdudez.generate_vina_files(d)
+        generate_vina_files(d)
 
         return
 

@@ -88,7 +88,7 @@ class Ligand:
             else:
                 # The file extension is not supported, print data
                 supportedExtensions = ['.pdb', '.sdf', '.mol', '.mol2']
-                octools.print_error(f"The molecule {molecule} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supportedExtensions)}.")
+                octools.print_error(f"The ligand {molecule} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supportedExtensions)}.")
                 return None
         else:
             # The variable is not in a supported data format
@@ -195,7 +195,7 @@ class Ligand:
 ###############################################################################
 def multipleMoleculesSDF(molecule):
     '''
-    
+
     '''
     # List to hold multiple Ligand objects
     ligands = []

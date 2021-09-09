@@ -52,11 +52,15 @@ def box_to_vina(path):
 def prepare_ligand():
     '''
     '''
+    #subprocess.run([f"{progPath}/ADT_scripts/prepare_ligand4.py", "-l", f"{outf}/ligand.mol2", "-C", "-o", f"{outf}/ligand.pdbqt"]) #change /home/ocean/Softwares/mgltools/bin/python automatic script
+
     return
 
 def prepare_receptor():
     '''
     '''
+    #subprocess.run([f"{progPath}/ADT_scripts/prepare_receptor4.py", "-r", f"{outf}/receptor.pdb", "-o", f"{outf}/receptor.pdbqt", "-A", "hydrogens", "-U", "nphs_lps_waters"])
+
     return
 
 def run_vina():

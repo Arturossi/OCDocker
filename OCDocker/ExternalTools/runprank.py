@@ -185,6 +185,9 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
             # Next iteration
             continue
 
+        # Get the residues in the pocket
+        residues = ','.join(map(str, list(clusteringdf[clusteringdf['label'] == labels_unique[0]].index)))
+
         # Get min/max of the x/y/z coordinates (round to 3 decimals)
         min_x = round(clusteringdf[clusteringdf['label'] == label_unique]['x'].min() - spacing, 3)
         max_x = round(clusteringdf[clusteringdf['label'] == label_unique]['x'].max() + spacing, 3)
@@ -222,6 +225,7 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
             f.write(f"HEADER    CORNERS OF BOX      {min_x}{min_y}{min_z}{min_y}{max_y}{max_z}\n")
             f.write(f"REMARK    CENTER (X Y Z)      {center_x}{center_y}{center_z}\n")
             f.write(f"REMARK    DIMENSIONS (X Y Z)  {dim_x}{dim_y}{dim_z}\n")
+            f.write(f"REMARK    RESIDUES            {residues}\n")
             f.write(f"ATOM      1  DUA BOX     1    {min_x}{min_y}{min_z}\n")
             f.write(f"ATOM      2  DUB BOX     1    {max_x}{min_y}{min_z}\n")
             f.write(f"ATOM      3  DUC BOX     1    {max_x}{min_y}{max_z}\n")

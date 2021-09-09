@@ -12,7 +12,6 @@ from tqdm import tqdm
 
 import OCDocker.DUDEZ as ocdudez
 import OCDocker.Toolbox as octools
-import OCDocker.ExternalTools.runprank as runprank
 
 # License
 ###############################################################################

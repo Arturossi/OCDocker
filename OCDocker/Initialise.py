@@ -100,6 +100,7 @@ def create_ocdocker_conf():
 global args
 global clrs
 global aa3to1
+global aa1to3
 global widgets
 global workdir
 
@@ -197,6 +198,7 @@ def argument_parsing():
 
 initial_args = argument_parsing()
 
+# Conversion AA 3 char code to 1 char code
 aa3to1 = {'CYS': 'C', 'ASP': 'D', 'GLN': 'Q', 'ILE': 'I',
           'ALA': 'A', 'TYR': 'Y', 'TRP': 'W', 'HIS': 'H',
           'LEU': 'L', 'ARG': 'R', 'VAL': 'V', 'GLU': 'E',
@@ -205,6 +207,9 @@ aa3to1 = {'CYS': 'C', 'ASP': 'D', 'GLN': 'Q', 'ILE': 'I',
           'MSE': 'M', 'CSE': 'U', 'GLH': 'E', 'HID': 'H',
           'HIE': 'H', 'HIP': 'H', 'HYP': 'P', 'ASX': 'B',
           'GLX': 'Z', 'MME': 'M', 'LYZ': 'K'}
+
+# Conversion AA 1 char code to 3 char code
+aa1to3 = dict((v,k) for k,v in aa3to1.items())
 
 # Initialise
 ###############################################################################
