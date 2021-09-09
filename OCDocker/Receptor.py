@@ -43,20 +43,7 @@ class Receptor:
     def __init__(self, molecule, name=""):
         self.name = name
         self.molecule = self.__loadMol(molecule)
-        self.ExactMolWt = self.__findExactMolWt()
-        self.FpDensityMorgan1 = self.__findFpDensityMorgan1()
-        self.FpDensityMorgan2 = self.__findFpDensityMorgan2()
-        self.FpDensityMorgan3 = self.__findFpDensityMorgan3()
-        self.HeavyAtomMolWt = self.__findHeavyAtomMolWt()
-        self.MaxAbsPartialCharge = self.__findMaxAbsPartialCharge()
-        self.MaxPartialCharge = self.__findMaxPartialCharge()
-        self.MaxAbsPartialCharge = self.__findMaxAbsPartialCharge()
-        self.MaxPartialCharge = self.__findMaxPartialCharge()
-        self.MinAbsPartialCharge = self.__findMinAbsPartialCharge()
-        self.MinPartialCharge = self.__findMinPartialCharge()
-        self.MolWt = self.__findMolWt()
-        self.NumRadicalElectrons = self.__findNumRadicalElectrons()
-        self.NumValenceElectrons = self.__findNumValenceElectrons()
+        self.residues = self.__getRes()
 
     def __loadMol(self, molecule):
         """
@@ -84,6 +71,9 @@ class Receptor:
             # The variable is not in a supported data format
             octools.print_error("Unsupported molecule data. Please support either a molecule path (string) or a rdkit.Chem.rdchem.Mol object.")
             return None
+
+    def __getres(self):
+        return
 
 # Functions
 ###############################################################################
