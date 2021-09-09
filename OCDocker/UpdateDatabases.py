@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 import OCDocker.DUDEZ as ocdudez
 import OCDocker.Toolbox as octools
-import OCDocker.Tools.runprank as runprank
+import OCDocker.ExternalTools.runprank as runprank
 
 # License
 ###############################################################################
@@ -56,7 +56,6 @@ def update_DUDEZ(args):
     Function to update the DUDEZ database
     Called by: update_databases()
     '''
-
     # Create tmp dir for download
     _ = octools.safe_create_dir("./tmp")
 
@@ -76,45 +75,8 @@ def update_DUDEZ(args):
 
     # THIS SECTION MIGHT CHANGE TO THE USE OF BLinDPyPr IN THE FUTURE
 
-    # Algorithms to be analyzed (Only Agglomerative Clustering)
-    algorithms = {
-        "AffinityPropagation": False,
-        "AgglomerativeClustering": True,
-        "Birch": False,
-        "DBSCAN": False,
-        "KMeans": False,
-        "MeanShift": False,
-        "MiniBatchKMeans": False,
-        "NoCluster": False,
-        "OPTICS": False,
-        "SpectralClustering": False
-    }
-
-    # Generate boxes for all receptors
-    print("Generating information regarding possible ligand site.")
-
-    # Get all dirs paths in the DUDEZ database
-    dirs = glob(f"{dudez_archive}/*")
-
-    # For each directory in the database folder
-    for d in tqdm(iterable=dirs, total=len(dirs)):
-        # Set the input file name path
-        fin = f"{d}/rec.crg.pdb"
-
-        # Find the protein name
-        ptn = d.split("/")[-1]
-
-        # Set the output path
-        fout = f"{d}/p2rank"
-
-        # Create the p2rank output dir
-        _ = octools.safe_create_dir(fout)
-
-        # Run p2rank
-        runprank.run_prank(fin, fout, algorithms, prank = prank, threads = cpu_cores, debug = False, boxMaxCutoff = 0.5, pocketCutoff = 0.1, verbose = args.verbosity)
-
-        # Create the vina inputs from the boxes
-        ocdudez.generate_vina_files(d)
+    # Run p2rank in the DUDEZ database
+    ocdudez.runprank(args)
 
     return
 

@@ -37,12 +37,11 @@ import OCDocker.ProcessLigand as ocpl
 # Classes
 ###############################################################################
 class Ligand:
-    """
+    '''
     Load and compute ligand descriptors. You can provide either a molecule file
     (pdb/sdf/mol/mol2) or a rdkit.Chem.rdchem.Mol object. A name to indentify
     the molecule can be provided aswell.
-    """
-
+    '''
     def __init__(self, molecule, name=""):
         self.name = name
         self.molecule = self.__loadMol(molecule)
@@ -62,9 +61,9 @@ class Ligand:
         self.NumValenceElectrons = self.__findNumValenceElectrons()
 
     def __loadMol(self, molecule):
-        """
+        '''
         Load a molecule pdb/sdf/mol/mol2 if a path is provided or just assign the Mol object to the molecule
-        """
+        '''
         # Check if the type of the variable molecule is a string or a rdkit.Chem.rdchem.Mol
         if type(molecule) == rdkit.Chem.rdchem.Mol:
             # Since is already a molecule, assign it to the class
@@ -97,97 +96,97 @@ class Ligand:
             return None
 
     def __findExactMolWt(self):
-        """
+        '''
         Compute the exact molecular weight of the molecule
-        """
+        '''
         if self.molecule:
             return rdkit.Chem.Descriptors.ExactMolWt(self.molecule)
         return None
 
     def __findFpDensityMorgan1(self):
-        """
+        '''
         Compute the Morgan fingerprint, radius 1 descriptor of the molecule
-        """
+        '''
         if self.molecule:
             return rdkit.Chem.Descriptors.FpDensityMorgan1(self.molecule)
         return None
 
     def __findFpDensityMorgan2(self):
-        """
+        '''
         Compute the Morgan fingerprint, radius 2 descriptor of the molecule
-        """
+        '''
         if self.molecule:
             return rdkit.Chem.Descriptors.FpDensityMorgan2(self.molecule)
         return None
 
     def __findFpDensityMorgan3(self):
-        """
+        '''
         Compute the Morgan fingerprint, radius 3 descriptor of the molecule
-        """
+        '''
         if self.molecule:
             return rdkit.Chem.Descriptors.FpDensityMorgan3(self.molecule)
         return None
 
     def __findHeavyAtomMolWt(self):
-        """
+        '''
         Compute the heavy atom molecular weight of the molecule
-        """
+        '''
         if self.molecule:
             return rdkit.Chem.Descriptors.HeavyAtomMolWt(self.molecule)
         return None
 
     def __findMaxAbsPartialCharge(self):
-        """
+        '''
         Compute the maximum absolute partial charge of the molecule
-        """
+        '''
         if self.molecule:
             return rdkit.Chem.Descriptors.MaxAbsPartialCharge(self.molecule)
         return None
 
     def __findMaxPartialCharge(self):
-        """
+        '''
         Compute the absolute partial charge of the molecule
-        """
+        '''
         if self.molecule:
             return rdkit.Chem.Descriptors.MaxPartialCharge(self.molecule)
         return None
 
     def __findMinAbsPartialCharge(self):
-        """
+        '''
         Compute the minimum absolute partial charge of the molecule
-        """
+        '''
         if self.molecule:
             return rdkit.Chem.Descriptors.MinAbsPartialCharge(self.molecule)
         return None
 
     def __findMinPartialCharge(self):
-        """
+        '''
         Compute the minimum partial charge of the molecule
-        """
+        '''
         if self.molecule:
             return rdkit.Chem.Descriptors.MinPartialCharge(self.molecule)
         return None
 
     def __findMolWt(self):
-        """
+        '''
         Compute the molecular weight of the molecule
-        """
+        '''
         if self.molecule:
             return rdkit.Chem.Descriptors.MolWt(self.molecule)
         return None
 
     def __findNumRadicalElectrons(self):
-        """
+        '''
         Compute the number of radical electrons in the molecule
-        """
+        '''
         if self.molecule:
             return rdkit.Chem.Descriptors.NumRadicalElectrons(self.molecule)
         return None
 
     def __findNumValenceElectrons(self):
-        """
+        '''
         Compute the number of valence electrons in the molecule
-        """
+        '''
         if self.molecule:
             return rdkit.Chem.Descriptors.NumValenceElectrons(self.molecule)
         return None
@@ -195,6 +194,9 @@ class Ligand:
 # Functions
 ###############################################################################
 def multipleMoleculesSDF(molecule):
+    '''
+    
+    '''
     # List to hold multiple Ligand objects
     ligands = []
     # Check if the path is a string (it is assumed that the provided path is already a sdf)

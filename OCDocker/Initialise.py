@@ -86,7 +86,7 @@ def create_ocdocker_conf():
         energy_range = 10
 
         # Exhaustiveness of the global search
-        exhaustiveness = 3
+        exhaustiveness = 5
 
         # Maximum number of binding modes to generate
         num_modes = 3
@@ -102,7 +102,6 @@ global clrs
 global aa3to1
 global widgets
 global workdir
-global cpu_cores
 
 # Data from .cfg
 global ocdb
@@ -272,3 +271,5 @@ if initial_args.multiprocess:
     initial_args.available_cores = n_cpu if n_cpu > 1 else 1
 else:
     initial_args.available_cores = 1
+
+#TODO: Colocar uma lista de parâmetros do OCDocker

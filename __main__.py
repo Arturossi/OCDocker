@@ -36,7 +36,6 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 # Main Function
 ###############################################################################
 def main():
-
     args = initial_args
 
     if args.update is True:
