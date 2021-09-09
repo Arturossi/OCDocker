@@ -269,6 +269,6 @@ dudez_archive = os.path.join(ocdb, 'DUDEZ')
 # Get number of CPUs (minus one) with a minimum of one
 if initial_args.multiprocess:
     n_cpu = multiprocessing.cpu_count() - 1
-    cpu_cores = n_cpu if n_cpu > 1 else 1
+    initial_args.available_cores = n_cpu if n_cpu > 1 else 1
 else:
-    cpu_cores = 1
+    initial_args.available_cores = 1

@@ -51,7 +51,7 @@ def create_directories():
     _ = octools.safe_create_dir(pdbbind_archive)
     _ = octools.safe_create_dir(dudez_archive)
 
-def update_DUDEZ(verbosity):
+def update_DUDEZ(args):
     '''
     Function to update the DUDEZ database
     Called by: update_databases()
@@ -111,14 +111,14 @@ def update_DUDEZ(verbosity):
         _ = octools.safe_create_dir(fout)
 
         # Run p2rank
-        runprank.run_prank(fin, fout, algorithms, prank = prank, threads = cpu_cores, debug = False, boxMaxCutoff = 0.5, pocketCutoff = 0.1, verbose = verbosity)
+        runprank.run_prank(fin, fout, algorithms, prank = prank, threads = cpu_cores, debug = False, boxMaxCutoff = 0.5, pocketCutoff = 0.1, verbose = args.verbosity)
 
         # Create the vina inputs from the boxes
         ocdudez.generate_vina_files(d)
 
     return
 
-def update_pdbbind(verbosity):
+def update_pdbbind(args):
     '''
     Function to update the pdbbind database
     Called by: update_databases()
@@ -165,7 +165,7 @@ def update_pdbbind(verbosity):
         print(f'Trying to untar file {f}')
         octools.untar(f, out_path=pdbbind_archive)"""
 
-def update_databases(verbosity):
+def update_databases(args):
     '''
     Calls all the database update functions sequentially (PDBbind)
     Called by: RunOCDocker.py:main()
@@ -173,8 +173,8 @@ def update_databases(verbosity):
     print('\n\nUpdating ALL databases.\n')
     create_directories()
     #print('Updating PDBbind database...')
-    #update_pdbbind(verbosity)
+    #update_pdbbind(args)
     #print('\n\nDone updating PDBbind!\n')
     print('Updating DUDEZ database...')
-    update_DUDEZ(verbosity)
+    update_DUDEZ(args)
     print('\n\nDone updating DUDEZ!\n')

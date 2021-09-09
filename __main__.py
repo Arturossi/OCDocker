@@ -39,14 +39,6 @@ def main():
 
     args = initial_args
 
-    # Define multiprocessing options
-    args.available_cores = cpu_count()
-
-    if args.force_single_core is True:
-        args.multiprocess = False
-    else:
-        pass
-
     if args.update is True:
         print(tw.dedent(f"""
                                          !WARNING!
