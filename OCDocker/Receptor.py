@@ -73,7 +73,10 @@ class Receptor:
             return None
 
     def __getres(self):
-        return
+        rescodes = []
+        for residue in self.residues:
+            rescodes.append(aa3to1[self.molecule[(int(residue) - 1)].get_resname()])
+        return rescodes.join()
 
 # Functions
 ###############################################################################

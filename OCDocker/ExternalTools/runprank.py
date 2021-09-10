@@ -186,7 +186,9 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
             continue
 
         # Get the residues in the pocket
-        residues = ','.join(map(str, list(clusteringdf[clusteringdf['label'] == labels_unique[0]].index)))
+        residues = list(clusteringdf[clusteringdf['label'] == labels_unique[0]].index)
+        residues.sort()
+        residues = ','.join(map(str, residues))
 
         # Get min/max of the x/y/z coordinates (round to 3 decimals)
         min_x = round(clusteringdf[clusteringdf['label'] == label_unique]['x'].min() - spacing, 3)
