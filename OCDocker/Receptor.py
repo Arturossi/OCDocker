@@ -44,6 +44,7 @@ class Receptor:
         self.name = name
         self.molecule = self.__loadMol(molecule)
         self.residues = self.__getRes()
+        self
 
     def __loadMol(self, molecule):
         """
