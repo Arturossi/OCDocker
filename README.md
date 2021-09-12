@@ -1,6 +1,8 @@
 OCDocker installation instructions Step-by-step
 ===============================================
 
+![OCDocker](./OCDocker.png "OCDocker")
+
 Download and install MGLTools
 -----------------------------
 
