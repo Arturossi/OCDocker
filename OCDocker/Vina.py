@@ -121,8 +121,7 @@ def prepare_receptor(inputReceptor, outputReceptor):
     # Create the command list
     cmd = [prepare_receptor, "-r", inputReceptor, "-o", outputReceptor, "-A", "hydrogens", "-U", "nphs_lps_waters"]
 
-    
-
+    # Open the log and output script text to it
     with open("./prepare_receptor.log", "w") as outfile:
         subprocess.run(cmd, stdout=outfile)
     return
@@ -134,12 +133,14 @@ def run_vina(config, ligand, outpath, logpath):
      config   [string]  - Path to the config file
      ligand   [string]  - Path to the ligand file
      outpath  [string]  - Path to the receptor file
-     logpath  [string]  - Path to the receptor file
+     logpath  [string]  - Path to the log file
     Return:
      -
     '''
+    # Create the command list
     command = ['vina', '--config', config, '--ligand', ligand, '--out', outpath, '--log', logpath, "--cpu", "1"]
 
+    # Open the log and output script text to it
     with open("./run_vina.log", "w") as outfile:
         subprocess.run(command, stdout=outfile)
     return
