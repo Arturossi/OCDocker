@@ -77,6 +77,8 @@ def create_ocdocker_conf():
         # P2Rank path
         prank = /mnt/d/Documents/OCDocker/software/search/p2rank_2.3/prank
 
+        ############# DATABASE FETCH PARAMETERS #############
+
         # DUDEz download link
         DUDEz = https://dudez.docking.org/DOCKING_GRIDS_AND_POSES.tgz
 

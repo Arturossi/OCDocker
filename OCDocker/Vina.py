@@ -92,20 +92,54 @@ def box_to_vina(boxFile, confFile, receptor = "receptor_noH"):
         octools.print_warning(f"Found a problem while opening conf file: {e}")
     return
 
-def prepare_ligand():
+def prepare_ligand(inputLigand, outputLigand):
     '''
+    Prepares the ligand using prepare_ligand using MGLTools suite
+    Input:
+     inputLigand  [string]  - Path to the input ligand file
+     outputLigand [string]  - Path to the output ligand file
+    Return:
+     -
     '''
-    #subprocess.run([f"{progPath}/ADT_scripts/prepare_ligand4.py", "-l", f"{outf}/ligand.mol2", "-C", "-o", f"{outf}/ligand.pdbqt"]) #change /home/ocean/Softwares/mgltools/bin/python automatic script
+    # Create the command list
+    cmd = [prepare_ligand, "-l", inputLigand, "-C", "-o", outputLigand]
 
+    # Open the output file
+    with open("./prepare_ligand.log", "w") as outfile:
+        subprocess.run(cmd, stdout=outfile)
     return
 
-def prepare_receptor():
+def prepare_receptor(inputReceptor, outputReceptor):
     '''
+    Convert a box (DUDE like format) to vina input.
+    Input:
+     inputReceptor  [string]  - Path to the input receptor file
+     outputReceptor [string]  - Path to the output receptor file
+    Return:
+     -
     '''
-    #subprocess.run([f"{progPath}/ADT_scripts/prepare_receptor4.py", "-r", f"{outf}/receptor.pdb", "-o", f"{outf}/receptor.pdbqt", "-A", "hydrogens", "-U", "nphs_lps_waters"])
+    # Create the command list
+    cmd = [prepare_receptor, "-r", inputReceptor, "-o", outputReceptor, "-A", "hydrogens", "-U", "nphs_lps_waters"]
+
+    
+
+    with open("./prepare_receptor.log", "w") as outfile:
+        subprocess.run(cmd, stdout=outfile)
     return
 
-def run_vina():
+def run_vina(config, ligand, outpath, logpath):
     '''
+    Convert a box (DUDE like format) to vina input.
+    Input:
+     config   [string]  - Path to the config file
+     ligand   [string]  - Path to the ligand file
+     outpath  [string]  - Path to the receptor file
+     logpath  [string]  - Path to the receptor file
+    Return:
+     -
     '''
+    command = ['vina', '--config', config, '--ligand', ligand, '--out', outpath, '--log', logpath, "--cpu", "1"]
+
+    with open("./run_vina.log", "w") as outfile:
+        subprocess.run(command, stdout=outfile)
     return
