@@ -55,7 +55,7 @@ class Receptor:
             # Since is already a molecule, assign it to the class
             return molecule
         elif type(molecule) == str:
-            # Now its a file path, check which is its extension to use the correct function
+            # Now we know that it is a file path, check which is its extension to use the correct function
             extension = os.path.splitext(molecule)[1]
             if extension == ".pdb":
                 parser = PDBParser()
