@@ -69,10 +69,10 @@ def create_ocdocker_conf():
         pythonsh = /mnt/d/Documents/OCDocker/OCDocker/mgltools/bin/pythonsh
 
         # prepare_ligand4 path
-        prepare_ligand = /home/ligmol/MGLTools-1.5.7/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_ligand4.py
+        prepare_ligand = /mnt/d/Documents/OCDocker/OCDocker/mgltools/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_ligand4.py
 
         # prepare_receptor4 path
-        prepare_receptor = /home/ligmol/MGLTools-1.5.7/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_receptor4.py
+        prepare_receptor = /mnt/d/Documents/OCDocker/OCDocker/mgltools/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_receptor4.py
 
         # Open Babel path
         obabel = /usr/bin/obabel
