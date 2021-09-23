@@ -65,6 +65,9 @@ def create_ocdocker_conf():
         # Vina path
         vina = /usr/bin/vina
 
+        # MGLTools's pythonsh path
+        pythonsh = /mnt/d/Documents/OCDocker/OCDocker/mgltools/bin/pythonsh
+
         # prepare_ligand4 path
         prepare_ligand = /home/ligmol/MGLTools-1.5.7/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_ligand4.py
 
@@ -115,6 +118,7 @@ global smina
 global obabel
 global plants
 global dudez_download
+global pythonsh
 global prepare_ligand
 global prepare_receptor
 
@@ -248,6 +252,8 @@ for line in open(config_file, 'r'):
         vina = line.split('=')[1].strip()
     elif line.startswith('prepare_ligand'):
         prepare_ligand = line.split('=')[1].strip()
+    elif line.startswith('pythonsh'):
+        pythonsh = line.split('=')[1].strip()
     elif line.startswith('prepare_receptor'):
         prepare_receptor = line.split('=')[1].strip()
     elif line.startswith('obabel'):

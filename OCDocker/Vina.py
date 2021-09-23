@@ -102,7 +102,7 @@ def prepare_ligand(inputLigand, outputLigand):
      -
     '''
     # Create the command list
-    cmd = [prepare_ligand, "-l", inputLigand, "-C", "-o", outputLigand]
+    cmd = [pythonsh, prepare_ligand, "-l", inputLigand, "-C", "-o", outputLigand]
 
     # Open the output file
     with open("./prepare_ligand.log", "w") as outfile:
@@ -119,7 +119,7 @@ def prepare_receptor(inputReceptor, outputReceptor):
      -
     '''
     # Create the command list
-    cmd = [prepare_receptor, "-r", inputReceptor, "-o", outputReceptor, "-A", "hydrogens", "-U", "nphs_lps_waters"]
+    cmd = [pythonsh, prepare_receptor, "-r", inputReceptor, "-o", outputReceptor, "-A", "hydrogens", "-U", "nphs_lps_waters"]
 
     # Open the log and output script text to it
     with open("./prepare_receptor.log", "w") as outfile:
