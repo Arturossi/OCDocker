@@ -104,9 +104,9 @@ def update_pdbbind(args):
 
     """ + t3 + """
 
-    """
+    """))
 
-    while(True):
+    while True:
         option = input('Once these steps are done, type "continue" (without the double quotes) and press enter to continue. To cancel just press enter without typing nothing.\n')
         if option.lower() == 'continue':
             print('Continuing the update proces...')

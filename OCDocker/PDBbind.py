@@ -6,7 +6,7 @@ import sys
 import shutil
 import tarfile
 import datetime
-from Initialise import *
+from OCDocker.Initialise import *
 
 # License
 ###############################################################################

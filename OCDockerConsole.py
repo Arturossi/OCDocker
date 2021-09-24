@@ -1,0 +1,65 @@
+#!/usr/lib/python3
+
+# Imports
+###############################################################################
+import textwrap as tw
+from pprint import pprint
+
+from OCDocker.Initialise import *
+import OCDocker.Toolbox as octools
+
+import OCDocker.Vina as ocvina
+import OCDocker.Database as ocdb
+import OCDocker.Astex as ocastex
+import OCDocker.PDBbind as ocpdbbind
+import OCDocker.Ligand as ocpl
+import OCDocker.Complex as ocpc
+import OCDocker.Receptor as ocpr
+import OCDocker.ExternalTools.runprank as runprank
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Torres, P.H.M.;
+[The Federal University of Rio de Janeiro]
+Contact info:
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+Av. Carlos Chagas Filho 373 - CCS - bloco G1-19,
+Cidade Universitária - Rio de Janeiro, RJ, CEP: 21941-902
+E-mail address: arturossi10@gmail.com
+This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
+'''
+
+# Description
+###############################################################################
+'''
+This script is used for fast import of all funcionalities in the OCDocker suite
+making easier to debug and possibly allowing a future OCDocker console to enable
+the user to perform the steps step by step.
+'''
+
+# Classes
+###############################################################################
+
+
+# Functions
+###############################################################################
+message = tw.dedent("""\033[1;93m
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\033[1;96m
+                                CONSOLE MODE\033[1;93m
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\033[1;0m
+            This mode is intended to make debug easier and allow the
+        user to interact with the OCDocker pipeline step by step.
+
+        \033[1;91mWARNING\033[1;0m: This mode is still experimental, some unexpected
+        behaviour might occur while using it.\033[1;93m
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+\033[1;0m""")
+
+print(message)
+
+args = initial_args
+
+testeVina = ocvina.Vina("./test/conf.txt", "./test/box.pdb", './test/rec.crg.pdb', './test/rec.crg.pdbqt', './test/xtal-lig.pdb', './test/xtal-lig.pdbqt', './test/vina.log', './test/vina.pdbqt')

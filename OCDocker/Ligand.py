@@ -6,7 +6,7 @@ import os
 import rdkit
 from rdkit import Chem
 from rdkit.Chem import Descriptors
-import Toolbox as octools
+import OCDocker.Toolbox as octools
 
 # License
 ###############################################################################
@@ -31,7 +31,7 @@ the ligand.
 
 They are imported as:
 
-import OCDocker.ProcessLigand as ocpl
+import OCDocker.Ligand as ocpl
 '''
 
 # Classes

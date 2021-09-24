@@ -272,3 +272,51 @@ def download_url(url, out_path):
                              miniters=1,
                              desc=url.split('/')[-1]) as t:
         urllib.request.urlretrieve(url, filename=out_path, reporthook=t.update_to)
+
+def convert2mol2(input, output, logFile = ""):
+    '''
+    Convert a pdb/sdf/mol/smi file to .mol2
+    Input:
+      input   [string]                   - Input path
+      output  [string]                   - Output path
+      logfile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
+    Return:
+      0 - No problem found in execution
+      1 - Not supported extension in input
+      2 - Error while running command
+    '''
+    # Allowed extensions
+    allowed = ["pdb", "sdf", "mol", "smi"]
+
+    # Get input and output extensions
+    inputExtension = os.path.splitext(input)[1]
+    outputExtension = os.path.splitext(output)[1]
+
+    # Check if the input extension is supported
+    if inputExtension not in allowed:
+        print_warning(f"The file {input} has not a supported extension. Found {inputExtension} and expected one of the following: {', '.join(allowed)}")
+        return 1
+
+    # If the output has no extension
+    if outputExtension == "":
+        # Add a mol2 extension to it
+        output += ".mol2"
+
+    if inputExtension == ".pdb":
+        cmd = ['babel', '-ipdb', input, '-omol2', output]
+    elif inputExtension == ".mol":
+        cmd = ['babel', input, '-omol2', output]
+    elif inputExtension == ".sdf":
+        cmd = ['babel', '-isdf', input, '-omol2', output]
+    elif inputExtension == ".smi":
+        cmd = ['babel', '-osmi', input, '-omol2', output]
+    else:
+        print_error("What are you expecting to see here? This code should NEVER execute!")
+        return -1
+
+    try:
+        with open(logFile, "w") as outfile:
+            subprocess.run(cmd, stdout=outfile)
+    except Exception as e:
+        octools.print_error(f"Found a problem while executing the command '{' '.join(cmd)}': {e}")
+        return 3

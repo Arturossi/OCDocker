@@ -7,7 +7,9 @@ import sys
 import shutil
 import tarfile
 import datetime
-from Initialise import *
+import subprocess
+
+from OCDocker.Initialise import *
 import OCDocker.Toolbox as octools
 
 # License
@@ -48,15 +50,17 @@ class Vina:
         # Receptor
         self.inputReceptor = receptorPath
         self.preparedReceptor = preparedReceptorPath
-        self.prepareReceptorCmd = __prepare_receptor_cmd()
+        self.prepareReceptorCmd = self.__prepare_receptor_cmd()
         # Ligand
         self.inputLigand = ligandPath
         self.preparedLigand = preparedLigandPath
-        self.prepareLigandCmd = __prepare_ligand_cmd()
+        self.prepareLigandCmd = self.__prepare_ligand_cmd()
         # Vina
         self.vinaLog = vinaLog
         self.outputVina = outputVina
-        self.vinaCmd = __vina_cmd()
+        self.vinaCmd = self.__vina_cmd()
+        # Create the box
+        self.__box_to_vina()
 
     def __vina_cmd(self):
         '''
@@ -66,7 +70,7 @@ class Vina:
         Return:
           -
         '''
-        cmd = ['vina', '--config', self.config, '--ligand', self.inputLigand, '--out', outpath, '--log', self.vinaLog, "--cpu", "1"]
+        cmd = ['vina', '--config', self.config, '--ligand', self.inputLigand, '--out', self.outputVina, '--log', self.vinaLog, "--cpu", "1"]
         return cmd
 
     def __prepare_ligand_cmd(self):
@@ -88,8 +92,21 @@ class Vina:
         Return:
           -
         '''
-        cmd = [pythonsh, prepare_receptor, "-r", self.inputReceptor, "-o", self.inputReceptor, "-A", "hydrogens", "-U", "nphs_lps_waters"]
+        cmd = [pythonsh, prepare_receptor, "-r", self.inputReceptor, "-o", self.preparedReceptor, "-A", "hydrogens", "-U", "nphs_lps_waters"]
         return cmd
+
+    def __box_to_vina(self):
+        '''
+        Warper for box_to_vina function
+        Input:
+          -
+        Return:
+          0 - No problems were found
+          1 - Box file does not exists
+          2 - Problems while working with the box file
+          3 - Problems while working with the conf file
+        '''
+        return box_to_vina(self.boxFile, self.config, self.inputReceptor)
 
     def run_vina(self, logFile = ""):
         '''
@@ -102,7 +119,7 @@ class Vina:
           2 - self.vinaCommand has wrong type
           3 - Problems while running the self.vinaCommand
         '''
-        return run(self.vinaCommand, logFile=logFile)
+        return run(self.vinaCmd, logFile=logFile)
 
     def run_prepare_ligand(self, logFile = ""):
         '''
@@ -115,7 +132,7 @@ class Vina:
           2 - self.prepareLigand has wrong type
           3 - Problems while running the self.prepareLigand
         '''
-        return run(self.prepareLigand, logFile=logFile)
+        return run(self.prepareLigandCmd, logFile=logFile)
 
     def run_prepare_receptor(self, logFile = ""):
         '''
@@ -128,57 +145,7 @@ class Vina:
           2 - self.prepareLigand has wrong type
           3 - Problems while running the self.prepareLigand
         '''
-        return run(self.prepareReceptor, logFile=logFile)
-
-    def box_to_vina(self):
-        '''
-        Convert a box (DUDE like format) to vina input.
-        Input:
-          -
-        Return:
-          0 - No problems were found
-          1 - Problems while working with the box file
-          2 - Problems while working with the conf file
-        '''
-        try:
-            # Open the box file
-            with open(str(self.boxFile), "r") as box_file:
-                # List to hold all the data
-                lines = []
-
-                # For each line in the file
-                for line in box_file:
-                    # If it starts with REMARK
-                    if line.startswith("REMARK"):
-                        # Split the line (using spaces as delimiters)
-                        l = line.split()
-                        # Append the last 3 elements as a tuple to the list
-                        lines.append((l[-3], l[-2], l[-1]))
-
-                        # If the length of the lines element is 2 or greater
-                        if len(lines) >= 2:
-                            # Break the loop (optimization)
-                            break
-        except Exception as e:
-            octools.print_error(f"Found a problem while opening box file: {e}")
-            return
-
-        try:
-            # Now open the conf file to write
-            with open(self.confFile, 'w') as conf_file:
-                conf_file.write(f"receptor = {self.preparedReceptor}.pdbqt\n\n");
-                conf_file.write(f"center_x = {lines[0][0]}\n")
-                conf_file.write(f"center_y = {lines[0][1]}\n")
-                conf_file.write(f"center_z = {lines[0][2]}\n\n")
-                conf_file.write(f"size_x = {lines[1][0]}\n")
-                conf_file.write(f"size_y = {lines[1][1]}\n")
-                conf_file.write(f"size_z = {lines[1][2]}\n\n")
-                conf_file.write(f"energy_range = {energy_range}\n")
-                conf_file.write(f"exhaustiveness = {exhaustiveness}\n")
-                conf_file.write(f"num_modes = {num_modes}\n")
-        except Exception as e:
-            octools.print_error(f"Found a problem while opening conf file: {e}")
-        return
+        return run(self.prepareReceptorCmd, logFile=logFile)
 
 # Functions
 ###############################################################################
@@ -198,7 +165,7 @@ def run(cmd, logFile = ""):
         octools.print_error(f"The variable cmd is not set or is an empty list!")
         return 1
 
-    if type(cmd) == list:
+    if type(cmd) != list:
         octools.print_error(f"The argument cmd has to be a list! Found {type(cmd)} instead...")
         return 2
 
@@ -213,19 +180,24 @@ def run(cmd, logFile = ""):
         return 3
     return 0
 
-
 def box_to_vina(boxFile, confFile, receptor = "receptor_noH"):
     '''
     Convert a box (DUDE like format) to vina input.
     Input:
-      boxFile   [string]                       - Path to the box file
-      confFile  [string]                       - Path to the conf file
-      receptor  [string] Default: receptor_noH - Receptor name to be used in conf file
+      boxFile   [string]                         - Path to the box file
+      confFile  [string]                         - Path to the conf file
+      receptor  [string] Default: "receptor_noH" - Receptor name to be used in conf file
     Return:
       0 - No problems were found
-      1 - Problems while working with the box file
-      2 - Problems while working with the conf file
+      1 - Box file does not exists
+      2 - Problems while working with the box file
+      3 - Problems while working with the conf file
     '''
+    # Test if the file boxFile exists
+    if not os.path.exists(boxFile):
+        octools.print_error(f"The box file in the path {boxFile} does not exists! Please ensure that the file exsits and the path is correct. If you have no box file, try to run the function 'runprank' from the 'runprank' library to create it before calling this function or creating a Vina class object.")
+        return 1
+
     try:
         # Open the box file
         with open(str(boxFile), "r") as box_file:
@@ -247,7 +219,7 @@ def box_to_vina(boxFile, confFile, receptor = "receptor_noH"):
                         break
     except Exception as e:
         octools.print_error(f"Found a problem while opening box file: {e}")
-        return
+        return 2
 
     try:
         # Now open the conf file to write
@@ -264,9 +236,10 @@ def box_to_vina(boxFile, confFile, receptor = "receptor_noH"):
             conf_file.write(f"num_modes = {num_modes}\n")
     except Exception as e:
         octools.print_error(f"Found a problem while opening conf file: {e}")
-    return
+        return 3
+    return 0
 
-def prepare_ligand(inputLigand, outputLigand):
+def run_prepare_ligand(inputLigand, outputLigand):
     '''
     Prepares the ligand using prepare_ligand using MGLTools suite
     Input:
@@ -283,7 +256,7 @@ def prepare_ligand(inputLigand, outputLigand):
         subprocess.run(cmd, stdout=outfile)
     return
 
-def prepare_receptor(inputReceptor, outputReceptor):
+def run_prepare_receptor(inputReceptor, outputReceptor):
     '''
     Convert a box (DUDE like format) to vina input.
     Input:

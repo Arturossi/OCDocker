@@ -286,3 +286,9 @@ else:
     initial_args.available_cores = 1
 
 #TODO: Colocar uma lista de parâmetros do OCDocker
+
+# Error list (This makes the OCDocker error codes the same in every function)
+###############################################################################
+global ok
+
+ok = 0

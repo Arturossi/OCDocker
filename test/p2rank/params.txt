@@ -1,5 +1,5 @@
 version: 2.3
-git head: 19a8f0a
+git head: 1374d4b
 
 Params[
   atom_table_feat_keep_sgn = false
@@ -88,7 +88,7 @@ Params[
   pair_hist_radius = 6.0
   pair_hist_smooth = false
   pair_hist_subsample_limit = 0
-  parallel = true
+  parallel = false
   plb_rescorer_atomic = false
   ploop_delete_runs = false
   ploop_zip_runs = false
@@ -145,7 +145,7 @@ Params[
   target_class_ratio = 0.1
   target_class_weight_ratio = 0.1
   tessellation = 2
-  threads = 11
+  threads = 1
   train_lig_cutoff = 0.0
   train_pockets = 9
   train_protein_limit = 0

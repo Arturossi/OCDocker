@@ -5,7 +5,7 @@
 import os
 from Bio.PDB import *
 
-import Toolbox as octools
+import OCDocker.Toolbox as octools
 
 # License
 ###############################################################################
@@ -30,7 +30,7 @@ the ligand.
 
 They are imported as:
 
-import OCDocker.ProcessReceptor as ocpr
+import OCDocker.Receptor as ocpr
 '''
 
 # Classes
