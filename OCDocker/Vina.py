@@ -44,23 +44,48 @@ class Vina:
     Vina object with methods for easy run
     """
     def __init__(self, configPath, boxFile, receptorPath, preparedReceptorPath, ligandPath, preparedLigandPath, vinaLog, outputVina, name=""):
-        self.name = name
-        self.config = configPath
-        self.boxFile = boxFile
+        self.name = str(name)
+        self.config = str(configPath)
+        self.boxFile = str(boxFile)
         # Receptor
-        self.inputReceptor = receptorPath
-        self.preparedReceptor = preparedReceptorPath
+        self.inputReceptor = str(receptorPath)
+        self.preparedReceptor = str(preparedReceptorPath)
         self.prepareReceptorCmd = self.__prepare_receptor_cmd()
         # Ligand
-        self.inputLigand = ligandPath
-        self.preparedLigand = preparedLigandPath
+        self.preparedLigand = str(preparedLigandPath)
+        self.convert2mol2log = "./convert2mol2.log"
+        self.inputLigand = self.__process_ligand(ligandPath)
         self.prepareLigandCmd = self.__prepare_ligand_cmd()
         # Vina
-        self.vinaLog = vinaLog
-        self.outputVina = outputVina
+        self.vinaLog = str(vinaLog)
+        self.outputVina = str(outputVina)
         self.vinaCmd = self.__vina_cmd()
         # Create the box
         self.__box_to_vina()
+
+    def __process_ligand(self, ligandPath):
+        '''
+        Process the ligand to output to mol2 if needed.
+        Input:
+          ligandPath [list(string)] - The path for the ligand
+        Return:
+          The Path of the ligand
+        '''
+        # Get the extension
+        ligandExtension = os.path.splitext(ligandPath)[1]
+
+        # If its mol2 we do not need to convert it
+        if ligandExtension == "mol2":
+            # So return the ligandPath
+            return ligandPath
+
+        # Create the output path
+        outputLigandPath = f"{os.path.dirname(ligandPath)}/{os.path.splitext(os.path.basename(ligandPath))[0]}.mol2"
+
+        # Process the ligand
+        octools.convert2mol2(ligandPath, outputLigandPath, logFile = self.convert2mol2log)
+
+        return outputLigandPath
 
     def __vina_cmd(self):
         '''
@@ -106,7 +131,7 @@ class Vina:
           2 - Problems while working with the box file
           3 - Problems while working with the conf file
         '''
-        return box_to_vina(self.boxFile, self.config, self.inputReceptor)
+        return box_to_vina(self.boxFile, self.config, self.preparedReceptor)
 
     def run_vina(self, logFile = ""):
         '''
@@ -170,7 +195,7 @@ def run(cmd, logFile = ""):
         return 2
 
     if logFile == "":
-        logFile = open(os.devnull, 'w')
+        logFile = os.devnull
 
     try:
         with open(logFile, "w") as outfile:
@@ -224,7 +249,7 @@ def box_to_vina(boxFile, confFile, receptor = "receptor_noH"):
     try:
         # Now open the conf file to write
         with open(confFile, 'w') as conf_file:
-            conf_file.write(f"receptor = {receptor}.pdbqt\n\n");
+            conf_file.write(f"receptor = {receptor}\n\n");
             conf_file.write(f"center_x = {lines[0][0]}\n")
             conf_file.write(f"center_y = {lines[0][1]}\n")
             conf_file.write(f"center_z = {lines[0][2]}\n\n")

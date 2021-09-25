@@ -7,6 +7,7 @@ import sys
 import shutil
 import tarfile
 import datetime
+import subprocess
 import urllib.request
 from tqdm import tqdm
 from OCDocker.Initialise import *
@@ -281,19 +282,20 @@ def convert2mol2(input, output, logFile = ""):
       output  [string]                   - Output path
       logfile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
     Return:
-      0 - No problem found in execution
-      1 - Not supported extension in input
-      2 - Error while running command
+      0  - No problem found in execution
+      1  - Not supported extension in input
+      2  - Error while running command
+      -1 - You should NEVER see this error, but its when no exception is thrown
     '''
     # Allowed extensions
-    allowed = ["pdb", "sdf", "mol", "smi"]
+    allowed = [".pdb", ".sdf", ".mol", ".smi"]
 
     # Get input and output extensions
     inputExtension = os.path.splitext(input)[1]
     outputExtension = os.path.splitext(output)[1]
 
     # Check if the input extension is supported
-    if inputExtension not in allowed:
+    if not inputExtension in allowed:
         print_warning(f"The file {input} has not a supported extension. Found {inputExtension} and expected one of the following: {', '.join(allowed)}")
         return 1
 
@@ -302,14 +304,15 @@ def convert2mol2(input, output, logFile = ""):
         # Add a mol2 extension to it
         output += ".mol2"
 
+    # Execute the obabel command
     if inputExtension == ".pdb":
-        cmd = ['babel', '-ipdb', input, '-omol2', output]
+        cmd = ['obabel', '-ipdb', str(input), '-omol2', '-O', str(output)]
     elif inputExtension == ".mol":
-        cmd = ['babel', input, '-omol2', output]
+        cmd = ['obabel', str(input), '-omol2', '-O', str(output)]
     elif inputExtension == ".sdf":
-        cmd = ['babel', '-isdf', input, '-omol2', output]
+        cmd = ['obabel', '-isdf', str(input), '-omol2', '-O', str(output)]
     elif inputExtension == ".smi":
-        cmd = ['babel', '-osmi', input, '-omol2', output]
+        cmd = ['obabel', '-ismi', str(input), '-omol2', '-O', str(output)]
     else:
         print_error("What are you expecting to see here? This code should NEVER execute!")
         return -1
@@ -318,5 +321,5 @@ def convert2mol2(input, output, logFile = ""):
         with open(logFile, "w") as outfile:
             subprocess.run(cmd, stdout=outfile)
     except Exception as e:
-        octools.print_error(f"Found a problem while executing the command '{' '.join(cmd)}': {e}")
+        print_error(f"Found a problem while executing the command '{' '.join(cmd)}': {e}")
         return 3

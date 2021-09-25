@@ -62,4 +62,6 @@ print(message)
 
 args = initial_args
 
-testeVina = ocvina.Vina("./test/conf.txt", "./test/box.pdb", './test/rec.crg.pdb', './test/rec.crg.pdbqt', './test/xtal-lig.pdb', './test/xtal-lig.pdbqt', './test/vina.log', './test/vina.pdbqt')
+basePath = '/mnt/d/Documents/OCDocker/OCDocker'
+
+testeVina = ocvina.Vina(f"{basePath}/test/conf.txt", f"{basePath}/test/box.pdb", f"{basePath}/test/rec.crg.pdb", f"{basePath}/test/rec.crg.pdbqt", f"{basePath}/test/xtal-lig.pdb", f"{basePath}/test/xtal-lig.pdbqt", f"{basePath}/test/vina.log", f"{basePath}/test/vina.pdbqt")
