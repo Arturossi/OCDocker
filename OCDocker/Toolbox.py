@@ -283,10 +283,17 @@ def convert2mol2(input, output, logFile = ""):
       logfile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
     Return:
       0  - No problem found in execution
-      1  - Not supported extension in input
-      2  - Error while running command
+      1  - The output file already exists
+      2  - Not supported extension in input
+      3  - Error while running command
       -1 - You should NEVER see this error, but its when no exception is thrown
     '''
+
+    if os.path.isfile(output):
+        print_warning(f"The file {output} already exists, aborting conversion.")
+        return 1
+
+
     # Allowed extensions
     allowed = [".pdb", ".sdf", ".mol", ".smi"]
 
@@ -297,7 +304,7 @@ def convert2mol2(input, output, logFile = ""):
     # Check if the input extension is supported
     if not inputExtension in allowed:
         print_warning(f"The file {input} has not a supported extension. Found {inputExtension} and expected one of the following: {', '.join(allowed)}")
-        return 1
+        return 2
 
     # If the output has no extension
     if outputExtension == "":
@@ -316,6 +323,9 @@ def convert2mol2(input, output, logFile = ""):
     else:
         print_error("What are you expecting to see here? This code should NEVER execute!")
         return -1
+
+    if logFile == "":
+        logFile = os.devnull
 
     try:
         with open(logFile, "w") as outfile:

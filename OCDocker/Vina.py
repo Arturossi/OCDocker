@@ -53,7 +53,7 @@ class Vina:
         self.prepareReceptorCmd = self.__prepare_receptor_cmd()
         # Ligand
         self.preparedLigand = str(preparedLigandPath)
-        self.convert2mol2log = "./convert2mol2.log"
+        self.convert2mol2log = ""
         self.inputLigand = self.__process_ligand(ligandPath)
         self.prepareLigandCmd = self.__prepare_ligand_cmd()
         # Vina
@@ -95,7 +95,7 @@ class Vina:
         Return:
           -
         '''
-        cmd = ['vina', '--config', self.config, '--ligand', self.inputLigand, '--out', self.outputVina, '--log', self.vinaLog, "--cpu", "1"]
+        cmd = ['vina', '--config', self.config, '--ligand', self.preparedLigand, '--out', self.outputVina, '--log', self.vinaLog, "--cpu", "1"]
         return cmd
 
     def __prepare_ligand_cmd(self):
@@ -172,6 +172,21 @@ class Vina:
         '''
         return run(self.prepareReceptorCmd, logFile=logFile)
 
+    def print_attributes(self):
+        print(f"Name:                        '{self.name if self.name else '-' }'")
+        print(f"Box path:                    '{self.boxFile if self.boxFile else '-' }'")
+        print(f"Config path:                 '{self.config if self.config else '-' }'")
+        print(f"Input receptor path:         '{self.inputReceptor if self.inputReceptor else '-' }'")
+        print(f"Prepared receptor path:      '{self.preparedReceptor if self.preparedReceptor else '-' }'")
+        print(f"Prepared receptor command:   '{' '.join(self.prepareReceptorCmd) if self.prepareReceptorCmd else '-' }'")
+        print(f"Input ligand path:           '{self.inputLigand if self.inputLigand else '-' }'")
+        print(f"Prepared ligand path:        '{self.preparedLigand if self.preparedLigand else '-' }'")
+        print(f"Prepared ligand command:     '{' '.join(self.prepareLigandCmd) if self.prepareLigandCmd else '-' }'")
+        print(f"Conversion to mol2 log path: '{self.convert2mol2log if self.convert2mol2log else '-' }'")
+        print(f"Vina execution log path:     '{self.vinaLog if self.vinaLog else '-' }'")
+        print(f"Vina output path:            '{self.outputVina if self.outputVina else '-' }'")
+        print(f"Vina command:                '{' '.join(self.vinaCmd) if self.vinaCmd else '-' }'")
+        return
 # Functions
 ###############################################################################
 def run(cmd, logFile = ""):
