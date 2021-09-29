@@ -30,7 +30,7 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 # Description
 ###############################################################################
 '''
-Sets of classes and functions that are used .
+Sets of classes and functions that are used to prepare vina files and run it.
 
 They are imported as:
 
@@ -41,7 +41,7 @@ import OCDocker.Vina as ocvina
 ###############################################################################
 class Vina:
     """
-    Vina object with methods for easy run
+    Vina object with methods for easy run.
     """
     def __init__(self, configPath, boxFile, receptorPath, preparedReceptorPath, ligandPath, preparedLigandPath, vinaLog, outputVina, name=""):
         self.name = str(name)
@@ -67,7 +67,7 @@ class Vina:
         '''
         Process the ligand to output to mol2 if needed.
         Input:
-          ligandPath [list(string)] - The path for the ligand
+          ligandPath [list(string)] - The path for the ligand.
         Return:
           The Path of the ligand
         '''
@@ -89,18 +89,18 @@ class Vina:
 
     def __vina_cmd(self):
         '''
-        Generate the vina command
+        Generate the vina command.
         Input:
           -
         Return:
           -
         '''
-        cmd = ['vina', '--config', self.config, '--ligand', self.preparedLigand, '--out', self.outputVina, '--log', self.vinaLog, "--cpu", "1"]
+        cmd = ["vina", "--config", self.config, "--ligand", self.preparedLigand, "--out", self.outputVina, "--log", self.vinaLog, "--cpu", "1"]
         return cmd
 
     def __prepare_ligand_cmd(self):
         '''
-        Generate the prepare ligand command
+        Generate the prepare ligand command.
         Input:
           -
         Return:
@@ -111,7 +111,7 @@ class Vina:
 
     def __prepare_receptor_cmd(self):
         '''
-        Generate the prepare ligand command
+        Generate the prepare receptor command.
         Input:
           -
         Return:
@@ -122,57 +122,64 @@ class Vina:
 
     def __box_to_vina(self):
         '''
-        Warper for box_to_vina function
+        Warper for box_to_vina function.
         Input:
           -
         Return:
           0 - No problems were found
-          1 - Box file does not exists
-          2 - Problems while working with the box file
-          3 - Problems while working with the conf file
+          1 - Box file does not exists.
+          2 - Problems while working with the box file.
+          3 - Problems while working with the conf file.
         '''
         return box_to_vina(self.boxFile, self.config, self.preparedReceptor)
 
     def run_vina(self, logFile = ""):
         '''
-        Run vina (warper for run)
+        Run vina.
         Input:
-          logfile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output
+          logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
         Return:
-          0 - No problems were found
-          1 - self.vinaCommand is not set or is empty list
-          2 - self.vinaCommand has wrong type
-          3 - Problems while running the self.vinaCommand
+          0 - No problems were found.
+          1 - self.vinaCommand is not set or is empty list.
+          2 - self.vinaCommand has wrong type.
+          3 - Problems while running the 'self.vinaCommand'.
         '''
-        return run(self.vinaCmd, logFile=logFile)
+        return octools.run(self.vinaCmd, logFile=logFile)
 
     def run_prepare_ligand(self, logFile = ""):
         '''
-        Run prepare_ligand4 (warper for run)
+        Run 'prepare_ligand4'.
         Input:
-          logfile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output
+          logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
         Return:
-          0 - No problems were found
-          1 - self.prepareLigand is not set or is empty list
-          2 - self.prepareLigand has wrong type
-          3 - Problems while running the self.prepareLigand
+          0 - No problems were found.
+          1 - self.preparedLigand is not set or is empty list.
+          2 - self.preparedLigand has wrong type.
+          3 - Problems while running the 'self.preparedLigand'.
         '''
-        return run(self.prepareLigandCmd, logFile=logFile)
+        return octools.run(self.prepareLigandCmd, logFile=logFile)
 
     def run_prepare_receptor(self, logFile = ""):
         '''
-        Run prepare_receptor4 (warper for run)
+        Run 'prepare_receptor4'.
         Input:
-          logfile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output
+          logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
         Return:
-          0 - No problems were found
-          1 - self.prepareLigand is not set or is empty list
-          2 - self.prepareLigand has wrong type
-          3 - Problems while running the self.prepareLigand
+          0 - No problems were found.
+          1 - self.prepareLigand is not set or is empty list.
+          2 - self.prepareLigand has wrong type.
+          3 - Problems while running the 'self.prepareLigand'.
         '''
-        return run(self.prepareReceptorCmd, logFile=logFile)
+        return octools.run(self.prepareReceptorCmd, logFile=logFile)
 
     def print_attributes(self):
+        '''
+        Run 'prepare_receptor4'.
+        Input:
+          -
+        Return:
+          -
+        '''
         print(f"Name:                        '{self.name if self.name else '-' }'")
         print(f"Box path:                    '{self.boxFile if self.boxFile else '-' }'")
         print(f"Config path:                 '{self.config if self.config else '-' }'")
@@ -187,51 +194,21 @@ class Vina:
         print(f"Vina output path:            '{self.outputVina if self.outputVina else '-' }'")
         print(f"Vina command:                '{' '.join(self.vinaCmd) if self.vinaCmd else '-' }'")
         return
+
 # Functions
 ###############################################################################
-def run(cmd, logFile = ""):
-    '''
-    Run the command (generic)
-    Input:
-      cmd     [list(string)]             - List containing the strings of the command
-      logfile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output
-    Return:
-      0 - No problems were found
-      1 - The var cmd is not set or is empty list
-      2 - The command list has wrong type
-      3 - Problems while running the command
-    '''
-    if not cmd:
-        octools.print_error(f"The variable cmd is not set or is an empty list!")
-        return 1
-
-    if type(cmd) != list:
-        octools.print_error(f"The argument cmd has to be a list! Found {type(cmd)} instead...")
-        return 2
-
-    if logFile == "":
-        logFile = os.devnull
-
-    try:
-        with open(logFile, "w") as outfile:
-            subprocess.run(cmd, stdout=outfile)
-    except Exception as e:
-        octools.print_error(f"Found a problem while executing the command '{' '.join(cmd)}': {e}")
-        return 3
-    return 0
-
 def box_to_vina(boxFile, confFile, receptor = "receptor_noH"):
     '''
     Convert a box (DUDE like format) to vina input.
     Input:
-      boxFile   [string]                         - Path to the box file
-      confFile  [string]                         - Path to the conf file
-      receptor  [string] Default: "receptor_noH" - Receptor name to be used in conf file
+      boxFile   [string]                         - Path to the box file.
+      confFile  [string]                         - Path to the conf file.
+      receptor  [string] Default: "receptor_noH" - Receptor name to be used in conf file.
     Return:
-      0 - No problems were found
-      1 - Box file does not exists
-      2 - Problems while working with the box file
-      3 - Problems while working with the conf file
+      0 - No problems were found.
+      1 - Box file does not exists.
+      2 - Problems while working with the box file.
+      3 - Problems while working with the conf file.
     '''
     # Test if the file boxFile exists
     if not os.path.exists(boxFile):
@@ -271,63 +248,63 @@ def box_to_vina(boxFile, confFile, receptor = "receptor_noH"):
             conf_file.write(f"size_x = {lines[1][0]}\n")
             conf_file.write(f"size_y = {lines[1][1]}\n")
             conf_file.write(f"size_z = {lines[1][2]}\n\n")
-            conf_file.write(f"energy_range = {energy_range}\n")
-            conf_file.write(f"exhaustiveness = {exhaustiveness}\n")
-            conf_file.write(f"num_modes = {num_modes}\n")
+            conf_file.write(f"energy_range = {vina_energy_range}\n")
+            conf_file.write(f"exhaustiveness = {vina_exhaustiveness}\n")
+            conf_file.write(f"num_modes = {vina_num_modes}\n")
     except Exception as e:
         octools.print_error(f"Found a problem while opening conf file: {e}")
         return 3
     return 0
 
-def run_prepare_ligand(inputLigand, outputLigand):
+def run_prepare_ligand(inputLigand, outputLigand, logFile=""):
     '''
-    Prepares the ligand using prepare_ligand using MGLTools suite
+    Prepares the ligand using 'prepare_ligand' from MGLTools suite.
     Input:
-      inputLigand  [string]  - Path to the input ligand file
-      outputLigand [string]  - Path to the output ligand file
+      inputLigand  [string]              - Path to the input ligand file.
+      outputLigand [string]              - Path to the output ligand file.
+      logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
     Return:
-      -
+      0 - No problems were found.
+      1 - self.prepareLigand is not set or is empty list.
+      2 - self.prepareLigand has wrong type.
+      3 - Problems while running the 'self.prepareLigand'.
     '''
     # Create the command list
     cmd = [pythonsh, prepare_ligand, "-l", inputLigand, "-C", "-o", outputLigand]
 
-    # Open the output file
-    with open("./prepare_ligand.log", "w") as outfile:
-        subprocess.run(cmd, stdout=outfile)
-    return
+    # Run the command
+    return octools.run(cmd, logFile=logFile)
 
-def run_prepare_receptor(inputReceptor, outputReceptor):
+def run_prepare_receptor(inputReceptor, outputReceptor, logFile=""):
     '''
     Convert a box (DUDE like format) to vina input.
     Input:
-      inputReceptor  [string]  - Path to the input receptor file
-      outputReceptor [string]  - Path to the output receptor file
+      inputReceptor  [string]            - Path to the input receptor file.
+      outputReceptor [string]            - Path to the output receptor file.
+      logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
     Return:
       -
     '''
     # Create the command list
     cmd = [pythonsh, prepare_receptor, "-r", inputReceptor, "-o", outputReceptor, "-A", "hydrogens", "-U", "nphs_lps_waters"]
 
-    # Open the log and output script text to it
-    with open("./prepare_receptor.log", "w") as outfile:
-        subprocess.run(cmd, stdout=outfile)
-    return
+    # Run the command
+    return octools.run(cmd, logFile=logFile)
 
-def run_vina(config, ligand, outpath, logpath):
+def run_vina(config, ligand, outpath, logpath, logFile=""):
     '''
-    Convert a box (DUDE like format) to vina input.
+    Run vina.
     Input:
-      config   [string]  - Path to the config file
-      ligand   [string]  - Path to the ligand file
-      outpath  [string]  - Path to the receptor file
-      logpath  [string]  - Path to the log file
+      config  [string]                   - Path to the config file.
+      ligand  [string]                   - Path to the ligand file.
+      outpath [string]                   - Path to the receptor file.
+      logpath [string]                   - Path to the log file.
+      logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
     Return:
       -
     '''
     # Create the command list
-    command = ['vina', '--config', config, '--ligand', ligand, '--out', outpath, '--log', logpath, "--cpu", "1"]
+    command = [vina, "--config", config, "--ligand", ligand, "--out", outpath, "--log", logpath, "--cpu", "1"]
 
-    # Open the log and output script text to it
-    with open("./run_vina.log", "w") as outfile:
-        subprocess.run(command, stdout=outfile)
-    return
+    # Run the command
+    return octools.run(cmd, logFile=logFile)

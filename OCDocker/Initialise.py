@@ -88,14 +88,56 @@ def create_ocdocker_conf():
         ################## VINA PARAMETERS ##################
 
         # Maximum energy difference between the best binding mode and the worst one displayed (kcal/mol)
-        energy_range = 10
+        vina_energy_range = 10
 
         # Exhaustiveness of the global search
-        exhaustiveness = 5
+        vina_exhaustiveness = 5
 
         # Maximum number of binding modes to generate
-        num_modes = 3
+        vina_num_modes = 3
+
+        ################# SMINA PARAMETERS ##################
+
+        # Maximum energy difference between the best binding mode and the worst one displayed (kcal/mol)
+        smina_energy_range = 10
+
+        # Exhaustiveness of the global search
+        smina_exhaustiveness = 5
+
+        # Maximum number of binding modes to generate
+        smina_num_modes = 3
+
+        # 
+
         """))
+
+Scoring and minimization options:
+  --scoring arg                specify alternative builtin scoring function [e.g. vinardo]
+  --custom_scoring arg         custom scoring function file
+  --custom_atoms arg           custom atom type parameters file
+  --score_only                 score provided ligand pose
+  --local_only                 local search only using autobox (you probably
+                               want to use --minimize)
+  --minimize                   energy minimization
+  --randomize_only             generate random poses, attempting to avoid
+                               clashes
+  --minimize_iters arg (=0)    number iterations of steepest descent; default
+                               scales with rotors and usually isn't sufficient
+                               for convergence
+  --accurate_line              use accurate line search
+  --minimize_early_term        Stop minimization before convergence conditions
+                               are fully met.
+  --approximation arg          approximation (linear, spline, or exact) to use
+  --factor arg                 approximation factor: higher results in a
+                               finer-grained approximation
+  --force_cap arg              max allowed force; lower values more gently
+                               minimize clashing structures
+  --user_grid arg              Autodock map file for user grid data based
+                               calculations
+  --user_grid_lambda arg (=-1) Scales user_grid and functional scoring
+  --print_terms                Print all available terms with default
+                               parameterizations
+  --print_atom_types           Print all available atom types
 
     print(f"{clrs['g']}Configuration file created!{clrs['n']} Please{clrs['y']} EDIT ITS CONTENTS {clrs['n']}to match your environment and run OCDocker again.")
 
@@ -123,9 +165,14 @@ global prepare_ligand
 global prepare_receptor
 
 # Vina parameters
-global num_modes
-global energy_range
-global exhaustiveness
+global vina_num_modes
+global vina_energy_range
+global vina_exhaustiveness
+
+# Vina parameters
+global smina_num_modes
+global smina_energy_range
+global smina_exhaustiveness
 
 # Database + OCDocker variables
 global dudez_archive
@@ -262,12 +309,18 @@ for line in open(config_file, 'r'):
         dudez_download = line.split('=')[1].strip()
     elif line.startswith('prank'):
         prank = line.split('=')[1].strip()
-    elif line.startswith('energy_range'):
-        energy_range = line.split('=')[1].strip()
-    elif line.startswith('exhaustiveness'):
-        exhaustiveness = line.split('=')[1].strip()
-    elif line.startswith('num_modes'):
-        num_modes = line.split('=')[1].strip()
+    elif line.startswith('vina_energy_range'):
+        vina_energy_range = line.split('=')[1].strip()
+    elif line.startswith('vina_exhaustiveness'):
+        vina_exhaustiveness = line.split('=')[1].strip()
+    elif line.startswith('vina_num_modes'):
+        vina_num_modes = line.split('=')[1].strip()
+    elif line.startswith('smina_energy_range'):
+        smina_energy_range = line.split('=')[1].strip()
+    elif line.startswith('smina_exhaustiveness'):
+        smina_exhaustiveness = line.split('=')[1].strip()
+    elif line.startswith('smina_num_modes'):
+        smina_num_modes = line.split('=')[1].strip()
 
 # Root directory for OCDocker module
 ocdocker_path = os.path.dirname(os.path.abspath( __file__ ))

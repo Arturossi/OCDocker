@@ -274,6 +274,37 @@ def download_url(url, out_path):
                              desc=url.split('/')[-1]) as t:
         urllib.request.urlretrieve(url, filename=out_path, reporthook=t.update_to)
 
+def run(cmd, logFile = ""):
+    '''
+    Run the command (generic)
+    Input:
+      cmd     [list(string)]             - List containing the strings of the command
+      logfile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output
+    Return:
+      0 - No problems were found
+      1 - The var cmd is not set or is empty list
+      2 - The command list has wrong type
+      3 - Problems while running the command
+    '''
+    if not cmd:
+        print_error(f"The variable cmd is not set or is an empty list!")
+        return 1
+
+    if type(cmd) != list:
+        print_error(f"The argument cmd has to be a list! Found {type(cmd)} instead...")
+        return 2
+
+    if logFile == "":
+        logFile = os.devnull
+
+    try:
+        with open(logFile, "w") as outfile:
+            subprocess.run(cmd, stdout=outfile)
+    except Exception as e:
+        print_error(f"Found a problem while executing the command '{' '.join(cmd)}': {e}")
+        return 3
+    return 0
+
 def convert2mol2(input, output, logFile = ""):
     '''
     Convert a pdb/sdf/mol/smi file to .mol2
@@ -292,7 +323,6 @@ def convert2mol2(input, output, logFile = ""):
     if os.path.isfile(output):
         print_warning(f"The file {output} already exists, aborting conversion.")
         return 1
-
 
     # Allowed extensions
     allowed = [".pdb", ".sdf", ".mol", ".smi"]
@@ -324,12 +354,4 @@ def convert2mol2(input, output, logFile = ""):
         print_error("What are you expecting to see here? This code should NEVER execute!")
         return -1
 
-    if logFile == "":
-        logFile = os.devnull
-
-    try:
-        with open(logFile, "w") as outfile:
-            subprocess.run(cmd, stdout=outfile)
-    except Exception as e:
-        print_error(f"Found a problem while executing the command '{' '.join(cmd)}': {e}")
-        return 3
+    run(cmd, logFile=logFile)
