@@ -381,7 +381,7 @@ def convert2mol2(input, output, logFile = ""):
     # Execute the obabel command according to the extension
     if inputExtension == ".pdb":
         cmd = ["obabel", "-ipdb", str(input), "-omol2", "-O", str(output)]
-""    elif inputExtension == ".mol":
+    elif inputExtension == ".mol":
         cmd = ["obabel", str(input), "-omol2", "-O", str(output)]
     elif inputExtension == ".sdf":
         cmd = ["obabel", "-isdf", str(input), "-omol2", "-O", str(output)]
