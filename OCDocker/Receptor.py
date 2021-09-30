@@ -93,7 +93,7 @@ def loadMol(molecule):
     Return:
       [Bio.PDB.Structure.Structure]
       [object] - If the object has been correctly parsed.
-      None     - If the object has not been correctly parsed.
+      [None]   - If the object has not been correctly parsed.
     '''
     # Check if the type of the variable molecule is a string or a Bio.PDB.Structure.Structure
     if type(molecule) == Bio.PDB.Structure.Structure:
