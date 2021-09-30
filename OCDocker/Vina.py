@@ -69,7 +69,7 @@ class Vina:
         Input:
           ligandPath [list(string)] - The path for the ligand.
         Return:
-          The Path of the ligand
+          [string] The Path of the ligand with mol2 extension.
         '''
         # Get the extension
         ligandExtension = os.path.splitext(ligandPath)[1]
@@ -93,7 +93,7 @@ class Vina:
         Input:
           -
         Return:
-          -
+          list[string] - List of strings of the command.
         '''
         cmd = ["vina", "--config", self.config, "--ligand", self.preparedLigand, "--out", self.outputVina, "--log", self.vinaLog, "--cpu", "1"]
         return cmd
@@ -104,7 +104,7 @@ class Vina:
         Input:
           -
         Return:
-          -
+          list[string] - List of strings of the command.
         '''
         cmd = [pythonsh, prepare_ligand, "-l", self.inputLigand, "-C", "-o", self.preparedLigand]
         return cmd
@@ -115,7 +115,7 @@ class Vina:
         Input:
           -
         Return:
-          -
+          list[string] - List of strings of the command.
         '''
         cmd = [pythonsh, prepare_receptor, "-r", self.inputReceptor, "-o", self.preparedReceptor, "-A", "hydrogens", "-U", "nphs_lps_waters"]
         return cmd
@@ -126,7 +126,8 @@ class Vina:
         Input:
           -
         Return:
-          0 - No problems were found
+          [int]
+          0 - No problems were found.
           1 - Box file does not exists.
           2 - Problems while working with the box file.
           3 - Problems while working with the conf file.
@@ -139,6 +140,7 @@ class Vina:
         Input:
           logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
         Return:
+          [int]
           0 - No problems were found.
           1 - self.vinaCommand is not set or is empty list.
           2 - self.vinaCommand has wrong type.
@@ -152,10 +154,11 @@ class Vina:
         Input:
           logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
         Return:
+          [int]
           0 - No problems were found.
-          1 - self.preparedLigand is not set or is empty list.
-          2 - self.preparedLigand has wrong type.
-          3 - Problems while running the 'self.preparedLigand'.
+          1 - self.prepareLigandCmd is not set or is empty list.
+          2 - self.prepareLigandCmd has wrong type.
+          3 - Problems while running the 'self.prepareLigandCmd'.
         '''
         return octools.run(self.prepareLigandCmd, logFile=logFile)
 
@@ -165,16 +168,17 @@ class Vina:
         Input:
           logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
         Return:
+          [int]
           0 - No problems were found.
-          1 - self.prepareLigand is not set or is empty list.
-          2 - self.prepareLigand has wrong type.
-          3 - Problems while running the 'self.prepareLigand'.
+          1 - self.prepareReceptorCmd is not set or is empty list.
+          2 - self.prepareReceptorCmd has wrong type.
+          3 - Problems while running the 'self.prepareReceptorCmd'.
         '''
         return octools.run(self.prepareReceptorCmd, logFile=logFile)
 
     def print_attributes(self):
         '''
-        Run 'prepare_receptor4'.
+        Print the class attributes.
         Input:
           -
         Return:
@@ -205,6 +209,7 @@ def box_to_vina(boxFile, confFile, receptor = "receptor_noH"):
       confFile  [string]                         - Path to the conf file.
       receptor  [string] Default: "receptor_noH" - Receptor name to be used in conf file.
     Return:
+      [int]
       0 - No problems were found.
       1 - Box file does not exists.
       2 - Problems while working with the box file.
@@ -260,14 +265,15 @@ def run_prepare_ligand(inputLigand, outputLigand, logFile=""):
     '''
     Prepares the ligand using 'prepare_ligand' from MGLTools suite.
     Input:
-      inputLigand  [string]              - Path to the input ligand file.
-      outputLigand [string]              - Path to the output ligand file.
-      logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
+      inputLigand  [string]                   - Path to the input ligand file.
+      outputLigand [string]                   - Path to the output ligand file.
+      logFile      [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
     Return:
+      [int]
       0 - No problems were found.
-      1 - self.prepareLigand is not set or is empty list.
-      2 - self.prepareLigand has wrong type.
-      3 - Problems while running the 'self.prepareLigand'.
+      1 - The var cmd is not set or is empty list.
+      2 - The command list has wrong type.
+      3 - Problems while running the command.
     '''
     # Create the command list
     cmd = [pythonsh, prepare_ligand, "-l", inputLigand, "-C", "-o", outputLigand]
@@ -279,11 +285,14 @@ def run_prepare_receptor(inputReceptor, outputReceptor, logFile=""):
     '''
     Convert a box (DUDE like format) to vina input.
     Input:
-      inputReceptor  [string]            - Path to the input receptor file.
-      outputReceptor [string]            - Path to the output receptor file.
-      logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
+      inputReceptor  [string]                   - Path to the input receptor file.
+      outputReceptor [string]                   - Path to the output receptor file.
+      logFile        [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
     Return:
-      -
+      0 - No problems were found.
+      1 - The var cmd is not set or is empty list.
+      2 - The command list has wrong type.
+      3 - Problems while running the command.
     '''
     # Create the command list
     cmd = [pythonsh, prepare_receptor, "-r", inputReceptor, "-o", outputReceptor, "-A", "hydrogens", "-U", "nphs_lps_waters"]
@@ -301,10 +310,14 @@ def run_vina(config, ligand, outpath, logpath, logFile=""):
       logpath [string]                   - Path to the log file.
       logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
     Return:
-      -
+      [int]
+      0 - No problems were found.
+      1 - The var cmd is not set or is empty list.
+      2 - The command list has wrong type.
+      3 - Problems while running the command.
     '''
     # Create the command list
-    command = [vina, "--config", config, "--ligand", ligand, "--out", outpath, "--log", logpath, "--cpu", "1"]
+    cmd = [vina, "--config", config, "--ligand", ligand, "--out", outpath, "--log", logpath, "--cpu", "1"]
 
     # Run the command
     return octools.run(cmd, logFile=logFile)

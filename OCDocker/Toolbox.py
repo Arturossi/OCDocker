@@ -40,7 +40,15 @@ import OCDocker.Toolbox as octools
 # Classes
 ###############################################################################
 class DownloadProgressBar(tqdm):
+    """
+    Deal with the progress bar to track download. Extends the tqdm class.
+    """
     def update_to(self, b=1, bsize=1, tsize=None):
+        '''
+        b     [int] - Byte
+        bsize [int] - Byte size
+        tsize [int] - Current progress
+        '''
         if tsize is not None:
             self.total = tsize
         self.update(b * bsize - self.n)
@@ -51,45 +59,49 @@ def printv(message, verbosity):
     '''
     Function to print if verbosity is invoked.
     Input:
-     message   [string] - Message to be printed
-     verbosity [int]    - Flag for verbosity (0 - off; 1 - on)
+      message   [string] - Message to be printed.
+      verbosity [int]    - Flag for verbosity (0 - off; 1 - on).
     Return:
-     -
+      -
     '''
     if verbosity == 1:
         print(message)
+    return
 
 def print_warning(message):
     '''
     Function to print warning.
     Input:
-     message [string] - Message to be printed
+      message [string] - Message to be printed.
     Return:
-     -
+      -
     '''
     print(f"{clrs['y']}WARNING{clrs['n']}: {message}")
+    return
 
 def print_error(message):
     '''
     Print error.
     Input:
-     message [string] - Message to be printed
+      message [string] - Message to be printed.
     Return:
-     -
+      -
     '''
     print(f"{clrs['r']}ERROR{clrs['n']}: {message}")
+    return
 
 def print_section(n, name):
     '''
-    Print the section header.
+    Print the section header and write progress to the progress file.
     Input:
-     n [int] - Number of the section
-     name [string] - Name of the
+      n    [int]    - Number of the section.
+      name [string] - Name of the section (Empty string for no log).
     Return:
-     -
+      -
     '''
+    # Print a nice section header
     print(f"\n{clrs['y']}+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n" +
-          f"{clrs['r']}|" +
+          f"{clrs['r']}| " +
           f"{clrs['y']}S{clrs['r']}|" +
           f"{clrs['y']}E{clrs['r']}|" +
           f"{clrs['y']}C{clrs['r']}|" +
@@ -101,23 +113,27 @@ def print_section(n, name):
           f"{clrs['c']}{str(name)}\n" +
           f"{clrs['y']}+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n" +
           clrs['n'])
-
-    if name == "Runtime Arguments":
-        with open('OCDocker_Progress.out', 'w') as f:
-            f.write(f"{datetime.now().strftime('%H:%M:%S')}: Starting new OCDocker run\n")
-    else:
-        with open('OCDocker_Progress.out', 'a') as f:
-            f.write(f"\n{datetime.now().strftime('%H:%M:%S')}: {str(name)}...\n")
+    # Check if the section should be logged
+    if name:
+        # Check if is the Runtime Arguments section
+        if name == "Runtime Arguments":
+            with open("OCDocker_Progress.out", "w") as f:
+                f.write(f"{datetime.now().strftime('%H:%M:%S')}: Starting new OCDocker run\n")
+        else:
+            with open("OCDocker_Progress.out", "a") as f:
+                f.write(f"\n{datetime.now().strftime('%H:%M:%S')}: {str(name)}...\n")
+    return
 
 def section(n, name):
     '''
     Return the section header.
     Input:
-     n    [int]    - Number of the section
-     name [string] - Name of the section
+      n    [int]    - Number of the section.
+      name [string] - Name of the section.
     Return:
-     section_string [string] - The subsection composed string
+      [string] - The subsection composed string.
     '''
+    # Create a nice section header to return
     section_string = str(f"\n{clrs['y']}+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n" +
                          f"{clrs['r']}| "+
                          f"{clrs['y']}S{clrs['r']}|" +
@@ -138,11 +154,12 @@ def print_subsection(n, name):
     '''
     Print the subsection header in progress file.
     Input:
-     n    [int]    - Number of the subsection
-     name [string] - Name of the subsection
+      n    [int]    - Number of the subsection.
+      name [string] - Name of the subsection (Empty string for no log).
     Return:
-     -
+      -
     '''
+    # Print a nice subsection header
     print(f"\n{clrs['r']}|" +
           f"{clrs['y']}S" +
           f"{clrs['y']}u" +
@@ -159,18 +176,21 @@ def print_subsection(n, name):
           f"{clrs['y']}+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n" +
           clrs['n'])
 
-    with open('OCDocker_Progress.out', 'a') as f:
-        f.write(datetime.now().strftime("%H:%M:%S")+": "+str(name)+"...\n")
+    if name:
+        with open("OCDocker_Progress.out", "a") as f:
+            f.write(f"{datetime.now().strftime('%H:%M:%S')}: {str(name)}...\n")
+    return
 
 def subsection(n, name):
     '''
     Return the subsection header.
     Input:
-     n    [int]    - Number of the subsection
-     name [string] - Name of the subsection
+      n    [int]    - Number of the subsection.
+      name [string] - Name of the subsection.
     Return:
-     subsection_string [string] - The subsection composed string
+      [string] - The subsection composed string.
     '''
+    # Create a nice subsection header to return
     subsection_string = str(f"\n{clrs['r']}|" +
                             f"{clrs['y']}S" +
                             f"{clrs['y']}u" +
@@ -191,29 +211,33 @@ def subsection(n, name):
 
 def print_sorry():
     '''
-    Function to print sorry message
+    Function to print sorry message.
     Input:
-     -
+      -
     Return:
-     -
+      -
     '''
+    # Print a nice looking sorry message :/
     print(f"**We are {clrs['y']}t{clrs['r']}e"+
           f"{clrs['y']}r{clrs['r']}r{clrs['y']}i"+
           f"{clrs['r']}b{clrs['y']}l{clrs['r']}y"+
           f"{clrs['n']} sorry... =(\n")
+    return
 
 def untar(fname, out_path=".", delete=False):
     '''
-    Untar a file
+    Untar a file.
     Input:
-     fname     [string]  - File path to be untarred
-     out_path  [string]  - Output path
-     delete    [boolean] - Flag to denote if the tar file should be deleted (True) or not (False)
+      fname    [string]  - File path to be untarred.
+      out_path [string]  - Output path.
+      delete   [boolean] - Flag to denote if the tar file should be deleted (True) or not (False).
     Return:
-     0 if success
-     1 if problems while opening file
-     2 if file is not tar.gz
+      [int]
+      0 if success.
+      1 if problems while opening file.
+      2 if file is not tar.gz.
     '''
+    # Check if the file has the right extensions
     if (fname.endswith("tar.gz") or fname.endswith(".tgz")):
         try:
             print("Preparing to untar the file...")
@@ -235,56 +259,68 @@ def untar(fname, out_path=".", delete=False):
             print(f"{clrs['r']}Failed{clrs['n']} to untar the file {fname}.\n\n{clrs['r']}Error{clrs['n']}: {e}")
             return 1
     else:
+        # No supported extension has been provided
         print(f"The file {fname} is not a tar.gz file. {clrs['y']}Aborting execution{clrs['n']}")
         return 2
 
 def safe_create_dir(dirname):
     '''
-    Create a dir if not exists
+    Create a dir if not exists.
     Input:
-     dirname [string] - File path to be untarred
+      dirname [string] - File path to be created.
     Return:
-      0 if success
-      1 if folder exists
-     -1 if any problem has occurred
-     -2 should not appear
+      [int]
+       0 if success.
+       1 if folder exists.
+      -1 if any problem has occurred.
+      -2 should not appear.
     '''
+    # Try to create
     try:
+        # If file does not exists
         if not os.path.isdir(dirname):
+            # Create it
             os.mkdir(dirname)
             return 0
         else:
+            # It exists
             return 1
-    except:
+    except Exception as e:
+        # Some error has occurred
+        print_error(f"Problem found while creating the dir {dirname}: {e}")
         return -1
+    # This should never appear since all the other paths ends in some kind of return
     return -2
 
 def download_url(url, out_path):
     '''
-    Download a file from given url
+    Download a file from given url.
     Input:
-     url      [string] - Url to be downloaded
-     out_path [string] - Output path
+      url      [string] - Url to be downloaded.
+      out_path [string] - Output path.
     Return:
       -
     '''
-    with DownloadProgressBar(unit='B',
+    # Create the progress bar object
+    with DownloadProgressBar(unit="B",
                              unit_scale=True,
                              miniters=1,
-                             desc=url.split('/')[-1]) as t:
+                             desc=url.split("/")[-1]) as t:
         urllib.request.urlretrieve(url, filename=out_path, reporthook=t.update_to)
+    return
 
 def run(cmd, logFile = ""):
     '''
-    Run the command (generic)
+    Run the given command (generic).
     Input:
-      cmd     [list(string)]             - List containing the strings of the command
-      logfile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output
+      cmd     [list(string)]             - List containing the strings of the command.
+      logfile [list(string)] DEFAULT: "" - Path to the logFile (empty string to suppress the output).
     Return:
-      0 - No problems were found
-      1 - The var cmd is not set or is empty list
-      2 - The command list has wrong type
-      3 - Problems while running the command
+      [int]
+      0 - No problems were found.
+      1 - The var cmd is not set or is empty list.
+      2 - The command list has wrong type.
+      3 - Problems while running the command.
     '''
     if not cmd:
         print_error(f"The variable cmd is not set or is an empty list!")
@@ -307,17 +343,18 @@ def run(cmd, logFile = ""):
 
 def convert2mol2(input, output, logFile = ""):
     '''
-    Convert a pdb/sdf/mol/smi file to .mol2
+    Convert a pdb/sdf/mol/smi file to '.mol2'.
     Input:
-      input   [string]                   - Input path
-      output  [string]                   - Output path
-      logfile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
+      input   [string]                   - Input path.
+      output  [string]                   - Output path.
+      logfile [list(string)] DEFAULT: "" - Path to the logFile (empty string to suppress the output).
     Return:
-      0  - No problem found in execution
-      1  - The output file already exists
-      2  - Not supported extension in input
-      3  - Error while running command
-      -1 - You should NEVER see this error, but its when no exception is thrown
+      [int]
+       0 - No problem found in execution.
+       1 - The output file already exists.
+       2 - Not supported extension in input.
+       3 - Error while running command.
+      -1 - You should NEVER see this error, but its when no exception is thrown.
     '''
 
     if os.path.isfile(output):
@@ -341,17 +378,18 @@ def convert2mol2(input, output, logFile = ""):
         # Add a mol2 extension to it
         output += ".mol2"
 
-    # Execute the obabel command
+    # Execute the obabel command according to the extension
     if inputExtension == ".pdb":
-        cmd = ['obabel', '-ipdb', str(input), '-omol2', '-O', str(output)]
-    elif inputExtension == ".mol":
-        cmd = ['obabel', str(input), '-omol2', '-O', str(output)]
+        cmd = ["obabel", "-ipdb", str(input), "-omol2", "-O", str(output)]
+""    elif inputExtension == ".mol":
+        cmd = ["obabel", str(input), "-omol2", "-O", str(output)]
     elif inputExtension == ".sdf":
-        cmd = ['obabel', '-isdf', str(input), '-omol2', '-O', str(output)]
+        cmd = ["obabel", "-isdf", str(input), "-omol2", "-O", str(output)]
     elif inputExtension == ".smi":
-        cmd = ['obabel', '-ismi', str(input), '-omol2', '-O', str(output)]
+        cmd = ["obabel", "-ismi", str(input), "-omol2", "-O", str(output)]
     else:
-        print_error("What are you expecting to see here? This code should NEVER execute!")
+        print_error("What are you expecting to see here? This code should NEVER execute! (BTW, this is from unsupported file extension...)")
         return -1
 
-    run(cmd, logFile=logFile)
+    # Return the execution code from the correct extension
+    return run(cmd, logFile=logFile)

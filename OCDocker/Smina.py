@@ -41,7 +41,7 @@ import OCDocker.Smina as ocsmina
 ###############################################################################
 class Smina:
     """
-    Smina object with methods for easy run
+    Smina object with methods for easy run.
     """
     def __init__(self, configPath, boxFile, receptorPath, preparedReceptorPath, ligandPath, preparedLigandPath, sminaLog, outputSmina, name=""):
         self.name = str(name)
@@ -62,35 +62,35 @@ class Smina:
 
     def __smina_cmd(self):
         '''
-        Generate the vina command
+        Generate the vina command.
         Input:
           -
         Return:
-          -
+          cmd [list[string]] - List of strings of the command.
         '''
-        cmd = [smina, '--config', self.config, '--ligand', self.preparedLigand, '--autobox_ligand', self.preparedLigand, '--out', self.outputSmina, '--log', self.sminaLog, "--cpu", "1"]
+        cmd = [smina, "--config", self.config, "--ligand", self.preparedLigand, "--autobox_ligand", self.preparedLigand, "--out", self.outputSmina, "--log", self.sminaLog, "--cpu", "1"]
         return cmd
 
     def __prepare_ligand_cmd(self):
         '''
-        Generate the prepare ligand command
+        Generate the prepare ligand command.
         Input:
           -
         Return:
-          The Path of the ligand
+          cmd [list[string]] - List of strings of the command.
         '''
 
-        cmd = ['obabel', self.inputLigand, '-O', self.preparedLigand]
+        cmd = ["obabel", self.inputLigand, "-O", self.preparedLigand]
 
         return cmd
 
     def __prepare_receptor_cmd(self):
         '''
-        Generate the prepare receptor command
+        Generate the prepare receptor command.
         Input:
           -
         Return:
-          -
+          cmd [list[string]] - List of strings of the command.
         '''
 
         cmd = ["obabel", self.inputReceptor, "-xr", "-O", self.preparedReceptor]
@@ -98,46 +98,46 @@ class Smina:
 
     def run_smina(self, logFile = ""):
         '''
-        Run vina
+        Run smina.
         Input:
-          logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output
+          logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
         Return:
-          0 - No problems were found
-          1 - self.sminaCommand is not set or is empty list
-          2 - self.sminaCommand has wrong type
-          3 - Problems while running the self.vinaCommand
+          0 - No problems were found.
+          1 - self.sminaCmd is not set or is empty list.
+          2 - self.sminaCmd has wrong type.
+          3 - Problems while running the self.sminaCmd.
         '''
         return octools.run(self.sminaCmd, logFile=logFile)
 
     def run_prepare_ligand(self, logFile = ""):
         '''
-        Run prepare_ligand4
+        Run the obabel convert ligand to pdbqt script.
         Input:
-          logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output
+          logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
         Return:
-          0 - No problems were found
-          1 - self.prepareLigand is not set or is empty list
-          2 - self.prepareLigand has wrong type
-          3 - Problems while running the self.prepareLigand
+          0 - No problems were found.
+          1 - self.prepareLigandCmd is not set or is empty list.
+          2 - self.prepareLigandCmd has wrong type.
+          3 - Problems while running the self.prepareLigandCmd.
         '''
         return octools.run(self.prepareLigandCmd, logFile=logFile)
 
     def run_prepare_receptor(self, logFile = ""):
         '''
-        Run prepare_receptor4
+        Run the obabel convert receptor to pdbqt script.
         Input:
-          logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output
+          logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
         Return:
-          0 - No problems were found
-          1 - self.prepareLigand is not set or is empty list
-          2 - self.prepareLigand has wrong type
-          3 - Problems while running the self.prepareLigand
+          0 - No problems were found.
+          1 - self.prepareReceptorCmd is not set or is empty list.
+          2 - self.prepareReceptorCmd has wrong type.
+          3 - Problems while running the self.prepareReceptorCmd.
         '''
         return octools.run(self.prepareReceptorCmd, logFile=logFile)
 
     def print_attributes(self):
         '''
-        Run prepare_receptor4 (warper for run)
+        Print the class attributes.
         Input:
           -
         Return:
@@ -161,29 +161,37 @@ class Smina:
 ###############################################################################
 def run_prepare_ligand(inputLigand, preparedLigand, logFile = ""):
     '''
-    Prepares the ligand using prepare_ligand using MGLTools suite.
+    Converts the ligand to .pdbqt using obabel.
     Input:
-      inputLigand  [string]              - Path to the input ligand file.
-      preparedLigand [string]            - Path to the output ligand file.
-      logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
+      inputLigand    [string]                   - Path to the input ligand file.
+      preparedLigand [string]                   - Path to the output ligand file.
+      logFile        [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
     Return:
-      -
+      [int]
+      0 - No problems were found.
+      1 - The var cmd is not set or is empty list.
+      2 - The command list has wrong type.
+      3 - Problems while running the command.
     '''
     # Create the command list
-    cmd = ['obabel', inputLigand, '-O', preparedLigand]
+    cmd = ["obabel", inputLigand, "-O", preparedLigand]
 
     # Run the command
     return octools.run(cmd, logFile=logFile)
 
 def run_prepare_receptor(inputReceptor, outputReceptor, logFile=""):
     '''
-    Convert a box (DUDE like format) to vina input.
+    Converts the receptor to .pdbqt using obabel.
     Input:
-      inputReceptor    [string]          - Path to the input receptor file.
-      preparedReceptor [string]          - Path to the output receptor file.
-      logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
+      inputReceptor    [string]                   - Path to the input receptor file.
+      preparedReceptor [string]                   - Path to the output receptor file.
+      logFile          [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
     Return:
-      -
+      [int]
+      0 - No problems were found.
+      1 - The var cmd is not set or is empty list.
+      2 - The command list has wrong type.
+      3 - Problems while running the command.
     '''
     # Create the command list
     cmd = ["obabel", inputReceptor, "-xr", "-O", preparedReceptor]
@@ -195,16 +203,20 @@ def run_smina(config, ligand, outpath, logpath):
     '''
     Convert a box (DUDE like format) to vina input.
     Input:
-      config  [string]  - Path to the config file.
-      ligand  [string]  - Path to the ligand file.
-      outpath [string]  - Path to the receptor file.
-      logpath [string]  - Path to the log file.
+      config  [string]                   - Path to the config file.
+      ligand  [string]                   - Path to the ligand file.
+      outpath [string]                   - Path to the receptor file.
+      logpath [string]                   - Path to the log file.
       logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output
     Return:
-      -
+      [int]
+      0 - No problems were found.
+      1 - The var cmd is not set or is empty list.
+      2 - The command list has wrong type.
+      3 - Problems while running the command.
     '''
     # Create the command list
-    command = ['vina', '--config', config, '--ligand', ligand, '--out', outpath, '--log', logpath, "--cpu", "1"]
+    cmd = ["vina", "--config", config, "--ligand", ligand, "--out", outpath, "--log", logpath, "--cpu", "1"]
 
     # Run the command
     return octools.run(cmd, logFile=logFile)
