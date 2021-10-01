@@ -8,6 +8,8 @@ import multiprocessing
 
 import textwrap as tw
 
+import OCDocker.Error as ocerror
+
 # License
 ###############################################################################
 '''
@@ -47,8 +49,15 @@ description = tw.dedent("""\033[1;93m
 # Functions
 ###############################################################################
 def create_ocdocker_conf():
+    '''
+    Creates the 'ocdocker.conf' file.
+    Input:
+      -
+    Return:
+      -
+    '''
     conf_file = "OCDocker.cfg"
-    with open(conf_file, 'w') as cf:
+    with open(conf_file, "w") as cf:
         cf.write(tw.dedent("""
         # Root directory for the OCDocker Database
         ocdb = /mnt/d/Documents/OCDocker/OCDocker/data/ocdb
@@ -107,49 +116,49 @@ def create_ocdocker_conf():
         # Maximum number of binding modes to generate
         smina_num_modes = 3
 
-        # 
+        #
 
         """))
 
-Scoring and minimization options:
-  --scoring arg                specify alternative builtin scoring function [e.g. vinardo]
-  --custom_scoring arg         custom scoring function file
-  --custom_atoms arg           custom atom type parameters file
-  --score_only                 score provided ligand pose
-  --local_only                 local search only using autobox (you probably
-                               want to use --minimize)
-  --minimize                   energy minimization
-  --randomize_only             generate random poses, attempting to avoid
-                               clashes
-  --minimize_iters arg (=0)    number iterations of steepest descent; default
-                               scales with rotors and usually isn't sufficient
-                               for convergence
-  --accurate_line              use accurate line search
-  --minimize_early_term        Stop minimization before convergence conditions
-                               are fully met.
-  --approximation arg          approximation (linear, spline, or exact) to use
-  --factor arg                 approximation factor: higher results in a
-                               finer-grained approximation
-  --force_cap arg              max allowed force; lower values more gently
-                               minimize clashing structures
-  --user_grid arg              Autodock map file for user grid data based
-                               calculations
-  --user_grid_lambda arg (=-1) Scales user_grid and functional scoring
-  --print_terms                Print all available terms with default
-                               parameterizations
-  --print_atom_types           Print all available atom types
+    '''Scoring and minimization options:
+      --scoring arg                specify alternative builtin scoring function [e.g. vinardo]
+      --custom_scoring arg         custom scoring function file
+      --custom_atoms arg           custom atom type parameters file
+      --score_only                 score provided ligand pose
+      --local_only                 local search only using autobox (you probably
+                                   want to use --minimize)
+      --minimize                   energy minimization
+      --randomize_only             generate random poses, attempting to avoid
+                                   clashes
+      --minimize_iters arg (=0)    number iterations of steepest descent; default
+                                   scales with rotors and usually isn't sufficient
+                                   for convergence
+      --accurate_line              use accurate line search
+      --minimize_early_term        Stop minimization before convergence conditions
+                                   are fully met.
+      --approximation arg          approximation (linear, spline, or exact) to use
+      --factor arg                 approximation factor: higher results in a
+                                   finer-grained approximation
+      --force_cap arg              max allowed force; lower values more gently
+                                   minimize clashing structures
+      --user_grid arg              Autodock map file for user grid data based
+                                   calculations
+      --user_grid_lambda arg (=-1) Scales user_grid and functional scoring
+      --print_terms                Print all available terms with default
+                                   parameterizations
+      --print_atom_types           Print all available atom types'''
 
     print(f"{clrs['g']}Configuration file created!{clrs['n']} Please{clrs['y']} EDIT ITS CONTENTS {clrs['n']}to match your environment and run OCDocker again.")
+    return
 
 # Define Global Variables
 ###############################################################################
 # General variables
 global args
 global clrs
-global aa3to1
-global aa1to3
 global widgets
 global workdir
+global errors
 
 # Data from .cfg
 global ocdb
@@ -183,153 +192,153 @@ global pdbbind_archive
 ###############################################################################
 
 # Dictionary for the output colors
-clrs = {'r': "\033[1;91m",  # red
-        'g': "\033[1;92m",  # green
-        'y': "\033[1;93m",  # yellow
-        'b': "\033[1;94m",  # blue
-        'p': "\033[1;95m",  # purple
-        'c': "\033[1;96m",  # cyan
-        'n': "\033[1;0m"}   # default
+clrs = {"r": "\033[1;91m",  # red
+        "g": "\033[1;92m",  # green
+        "y": "\033[1;93m",  # yellow
+        "b": "\033[1;94m",  # blue
+        "p": "\033[1;95m",  # purple
+        "c": "\033[1;96m",  # cyan
+        "n": "\033[1;0m"}   # default
+
+# Create error class object (making all errors standard)
+errors = ocerror.Error()
 
 # Parse command line arguments
 ###############################################################################
 def argument_parsing():
-    parser = argparse.ArgumentParser(prog='OCDocker',
+    '''
+    Get data to generate vina conf file from box file.
+    Input:
+      -
+    Return:
+     [argparse.ArgumentParser] - 'argparse' object with all arguments.
+    '''
+    # Create the parser
+    parser = argparse.ArgumentParser(prog="OCDocker",
                                      formatter_class=argparse.RawDescriptionHelpFormatter,
                                      description=description)
+    # Add the arguments
+    parser.add_argument("--version",
+                        action="version",
+                        version="%(prog)s 0.1.1")
 
-    parser.add_argument('--version',
-                        action='version',
-                        version='%(prog)s 0.0.1')
-
-    parser.add_argument('-f', '--file',
-                        dest='input_file',
+    parser.add_argument("-f", "--file",
+                        dest="input_file",
                         type=str,
-                        metavar='',
-                        help='Pdb file to input')
+                        metavar="",
+                        help=".pdb file to input")
 
-    parser.add_argument('--multiprocess',
-                        dest='multiprocess',
-                        action='store_true',
+    parser.add_argument("--multiprocess",
+                        dest="multiprocess",
+                        action="store_true",
                         default=False,
-                        help='Defines whether python multiprocessing should be enabled for compatible lenghty tasks')
+                        help="Defines whether python multiprocessing should be enabled for compatible lenghty tasks")
 
-    parser.add_argument('--generate-report',
-                        dest='generate_report',
-                        action='store_true',
+    parser.add_argument("--generate-report",
+                        dest="generate_report",
+                        action="store_true",
                         default=False,
-                        help='Creates a final HTML report for each generated model (forces -a MIG and --plot-topologies)')
+                        help="Creates a final HTML report for each generated model (forces -a MIG and --plot-topologies)")
 
-    parser.add_argument('-z', '--zip-output',
-                        dest='zip_output',
+    parser.add_argument("-z", "--zip-output",
+                        dest="zip_output",
                         type=int,
                         default=0,
-                        metavar='',
-                        help='Defines the compression level. [0] No compression, [1] partial compression, [2] full compression')
+                        metavar="",
+                        help="Defines the compression level. [0] No compression, [1] partial compression, [2] full compression")
 
-    parser.add_argument('-u', '--update-databases',
-                        dest='update',
-                        action='store_true',
+    parser.add_argument("-u", "--update-databases",
+                        dest="update",
+                        action="store_true",
                         default=False,
-                        help='Updates databases')
+                        help="Updates databases")
 
-    parser.add_argument('-v', '--verbose',
-                        dest='verbosity',
-                        action='count',
+    parser.add_argument("-v", "--verbose",
+                        dest="verbosity",
+                        action="count",
                         default=0,
-                        help='Controls verbosity')
+                        help="Controls verbosity")
 
-    parser.add_argument('--conf',
-                        dest='config_file',
+    parser.add_argument("--conf",
+                        dest="config_file",
                         type=str,
-                        metavar='',
-                        help='Configuration file containing external executable paths')
+                        metavar="",
+                        help="Configuration file containing external executable paths")
 
-    initial_args = parser.parse_args()
+    # Return the parser
+    return parser.parse_args()
 
-    return initial_args
-
+# Set the initial_args as the args from the argument_parsing function
 initial_args = argument_parsing()
 
-# Conversion AA 3 char code to 1 char code
-aa3to1 = {'CYS': 'C', 'ASP': 'D', 'GLN': 'Q', 'ILE': 'I',
-          'ALA': 'A', 'TYR': 'Y', 'TRP': 'W', 'HIS': 'H',
-          'LEU': 'L', 'ARG': 'R', 'VAL': 'V', 'GLU': 'E',
-          'PHE': 'F', 'GLY': 'G', 'MET': 'M', 'ASN': 'N',
-          'PRO': 'P', 'SER': 'S', 'LYS': 'K', 'THR': 'T',
-          'MSE': 'M', 'CSE': 'U', 'GLH': 'E', 'HID': 'H',
-          'HIE': 'H', 'HIP': 'H', 'HYP': 'P', 'ASX': 'B',
-          'GLX': 'Z', 'MME': 'M', 'LYZ': 'K'}
-
-# Conversion AA 1 char code to 3 char code
-aa1to3 = dict((v,k) for k,v in aa3to1.items())
 
 # Initialise
 ###############################################################################
 print(description)
 
 # Retrieve the paths from provided configuration file
-if (not initial_args.config_file or not os.path.isfile(initial_args.config_file)) and not os.path.isfile('OCDocker.cfg'):
-    print('OCDocker configuration file not found in the provided path')
-    create_config = input('Do you wish to create it? (y/n)')
-    if create_config.lower()  in ['y', 'ye', 'yes']:
+if (not initial_args.config_file or not os.path.isfile(initial_args.config_file)) and not os.path.isfile("OCDocker.cfg"):
+    print("OCDocker configuration file has not been found in the provided path")
+    create_config = input("Do you wish to create it? (y/n) ")
+    if create_config.lower() in ["y", "ye", "yes"]:
         create_ocdocker_conf()
         quit()
     else:
-        print('\n\nNo positive confirmation, please provide a valid configuration file.\n')
+        print("\n\nNo positive confirmation, please provide a valid configuration file.\n")
         quit()
 
-elif not initial_args.config_file and os.path.isfile('OCDocker.cfg'):
-    config_file = 'OCDocker.cfg'
+elif not initial_args.config_file and os.path.isfile("OCDocker.cfg"):
+    config_file = "OCDocker.cfg"
 
 elif initial_args.config_file:
     assert os.path.isfile(initial_args.config_file), f"{clrs['r']}\n\n Not able to find configuration file.\n\n Does \"{initial_args.config_file}\" exist?{clrs['n']}"
     config_file = initial_args.config_file
 
-for line in open(config_file, 'r'):
-    if line.startswith('ocdb'):
-        ocdb = line.split('=')[1].strip()
-    elif line.startswith('dock6'):
-        dock6 = line.split('=')[1].strip()
-    elif line.startswith('plants'):
-        plants = line.split('=')[1].strip()
-    elif line.startswith('smina'):
-        smina = line.split('=')[1].strip()
-    elif line.startswith('vina'):
-        vina = line.split('=')[1].strip()
-    elif line.startswith('prepare_ligand'):
-        prepare_ligand = line.split('=')[1].strip()
-    elif line.startswith('pythonsh'):
-        pythonsh = line.split('=')[1].strip()
-    elif line.startswith('prepare_receptor'):
-        prepare_receptor = line.split('=')[1].strip()
-    elif line.startswith('obabel'):
-        obabel = line.split('=')[1].strip()
-    elif line.startswith('DUDEz'):
-        dudez_download = line.split('=')[1].strip()
-    elif line.startswith('prank'):
-        prank = line.split('=')[1].strip()
-    elif line.startswith('vina_energy_range'):
-        vina_energy_range = line.split('=')[1].strip()
-    elif line.startswith('vina_exhaustiveness'):
-        vina_exhaustiveness = line.split('=')[1].strip()
-    elif line.startswith('vina_num_modes'):
-        vina_num_modes = line.split('=')[1].strip()
-    elif line.startswith('smina_energy_range'):
-        smina_energy_range = line.split('=')[1].strip()
-    elif line.startswith('smina_exhaustiveness'):
-        smina_exhaustiveness = line.split('=')[1].strip()
-    elif line.startswith('smina_num_modes'):
-        smina_num_modes = line.split('=')[1].strip()
+# Read the conf file and assign its data to its variables
+for line in open(config_file, "r"):
+    if line.startswith("ocdb ="):
+        ocdb = line.split("=")[1].strip()
+    elif line.startswith("dock6 ="):
+        dock6 = line.split("=")[1].strip()
+    elif line.startswith("plants ="):
+        plants = line.split("=")[1].strip()
+    elif line.startswith("smina ="):
+        smina = line.split("=")[1].strip()
+    elif line.startswith("vina ="):
+        vina = line.split("=")[1].strip()
+    elif line.startswith("prepare_ligand ="):
+        prepare_ligand = line.split("=")[1].strip()
+    elif line.startswith("pythonsh ="):
+        pythonsh = line.split("=")[1].strip()
+    elif line.startswith("prepare_receptor ="):
+        prepare_receptor = line.split("=")[1].strip()
+    elif line.startswith("obabel ="):
+        obabel = line.split("=")[1].strip()
+    elif line.startswith("DUDEz ="):
+        dudez_download = line.split("=")[1].strip()
+    elif line.startswith("prank ="):
+        prank = line.split("=")[1].strip()
+    elif line.startswith("vina_energy_range ="):
+        vina_energy_range = line.split("=")[1].strip()
+    elif line.startswith("vina_exhaustiveness ="):
+        vina_exhaustiveness = line.split("=")[1].strip()
+    elif line.startswith("vina_num_modes ="):
+        vina_num_modes = line.split("=")[1].strip()
+    elif line.startswith("smina_energy_range ="):
+        smina_energy_range = line.split("=")[1].strip()
+    elif line.startswith("smina_exhaustiveness ="):
+        smina_exhaustiveness = line.split("=")[1].strip()
+    elif line.startswith("smina_num_modes ="):
+        smina_num_modes = line.split("=")[1].strip()
 
 # Root directory for OCDocker module
 ocdocker_path = os.path.dirname(os.path.abspath( __file__ ))
 
 # Directory containing the pdb mirror in "divided" scheme
-pdbbind_archive = os.path.join(ocdb, 'pdbBind')
+pdbbind_archive = os.path.join(ocdb, "pdbBind")
 
 # Directory containing the pdb mirror in "divided" scheme
-dudez_archive = os.path.join(ocdb, 'DUDEZ')
+dudez_archive = os.path.join(ocdb, "DUDEZ")
 
 # Get number of CPUs (minus one) with a minimum of one
 if initial_args.multiprocess:
@@ -339,9 +348,3 @@ else:
     initial_args.available_cores = 1
 
 #TODO: Colocar uma lista de parâmetros do OCDocker
-
-# Error list (This makes the OCDocker error codes the same in every function)
-###############################################################################
-global ok
-
-ok = 0

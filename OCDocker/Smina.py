@@ -80,7 +80,7 @@ class Smina:
           cmd [list[string]] - List of strings of the command.
         '''
 
-        cmd = ["obabel", self.inputLigand, "-O", self.preparedLigand]
+        cmd = [obabel, self.inputLigand, "-O", self.preparedLigand]
 
         return cmd
 
@@ -93,7 +93,7 @@ class Smina:
           cmd [list[string]] - List of strings of the command.
         '''
 
-        cmd = ["obabel", self.inputReceptor, "-xr", "-O", self.preparedReceptor]
+        cmd = [obabel, self.inputReceptor, "-xr", "-O", self.preparedReceptor]
         return cmd
 
     def run_smina(self, logFile = ""):
@@ -111,7 +111,7 @@ class Smina:
 
     def run_prepare_ligand(self, logFile = ""):
         '''
-        Run the obabel convert ligand to pdbqt script.
+        Run obabel convert ligand to pdbqt script.
         Input:
           logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
         Return:
@@ -124,7 +124,7 @@ class Smina:
 
     def run_prepare_receptor(self, logFile = ""):
         '''
-        Run the obabel convert receptor to pdbqt script.
+        Run obabel convert receptor to pdbqt script.
         Input:
           logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
         Return:
@@ -174,7 +174,7 @@ def run_prepare_ligand(inputLigand, preparedLigand, logFile = ""):
       3 - Problems while running the command.
     '''
     # Create the command list
-    cmd = ["obabel", inputLigand, "-O", preparedLigand]
+    cmd = [obabel, inputLigand, "-O", preparedLigand]
 
     # Run the command
     return octools.run(cmd, logFile=logFile)
@@ -194,7 +194,7 @@ def run_prepare_receptor(inputReceptor, outputReceptor, logFile=""):
       3 - Problems while running the command.
     '''
     # Create the command list
-    cmd = ["obabel", inputReceptor, "-xr", "-O", preparedReceptor]
+    cmd = [obabel, inputReceptor, "-xr", "-O", preparedReceptor]
 
     # Run the command
     return octools.run(cmd, logFile=logFile)
@@ -216,7 +216,7 @@ def run_smina(config, ligand, outpath, logpath):
       3 - Problems while running the command.
     '''
     # Create the command list
-    cmd = ["vina", "--config", config, "--ligand", ligand, "--out", outpath, "--log", logpath, "--cpu", "1"]
+    cmd = [vina, "--config", config, "--ligand", ligand, "--out", outpath, "--log", logpath, "--cpu", "1"]
 
     # Run the command
     return octools.run(cmd, logFile=logFile)

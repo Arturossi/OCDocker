@@ -12,9 +12,9 @@ import OCDocker.Vina as ocvina
 import OCDocker.Database as ocdb
 import OCDocker.Astex as ocastex
 import OCDocker.PDBbind as ocpdbbind
-import OCDocker.Ligand as ocpl
-import OCDocker.Complex as ocpc
-import OCDocker.Receptor as ocpr
+import OCDocker.Ligand as ocl
+import OCDocker.Complex as occ
+import OCDocker.Receptor as ocr
 import OCDocker.ExternalTools.runprank as runprank
 
 # License
@@ -65,3 +65,7 @@ args = initial_args
 basePath = '/mnt/d/Documents/OCDocker/OCDocker'
 
 testeVina = ocvina.Vina(f"{basePath}/test/conf.txt", f"{basePath}/test/box.pdb", f"{basePath}/test/rec.crg.pdb", f"{basePath}/test/rec.crg.pdbqt", f"{basePath}/test/xtal-lig.pdb", f"{basePath}/test/xtal-lig.pdbqt", f"{basePath}/test/vina.log", f"{basePath}/test/vina.pdbqt")
+
+testeLigante = ocl.Ligand(f"{basePath}/test/xtal-lig.pdb", name="Ligante teste")
+
+testeReceptor = ocr.Receptor(f"{basePath}/test/rec.crg.pdb", name="Receptor teste")

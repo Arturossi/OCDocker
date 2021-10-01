@@ -5,6 +5,7 @@
 import os
 import sys
 import shutil
+import inspect
 import tarfile
 import datetime
 import subprocess
@@ -76,7 +77,7 @@ def print_warning(message):
     Return:
       -
     '''
-    print(f"{clrs['y']}WARNING{clrs['n']}: {message}")
+    print(f"{clrs['y']}WARNING{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
     return
 
 def print_error(message):
@@ -87,7 +88,7 @@ def print_error(message):
     Return:
       -
     '''
-    print(f"{clrs['r']}ERROR{clrs['n']}: {message}")
+    print(f"{clrs['r']}ERROR{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
     return
 
 def print_section(n, name):
@@ -327,7 +328,7 @@ def run(cmd, logFile = ""):
         return 1
 
     if type(cmd) != list:
-        print_error(f"The argument cmd has to be a list! Found {type(cmd)} instead...")
+        print_error(f"The argument cmd has to be a list! Found '{type(cmd)}' instead...")
         return 2
 
     if logFile == "":
@@ -358,7 +359,7 @@ def convert2mol2(input, output, logFile = ""):
     '''
 
     if os.path.isfile(output):
-        print_warning(f"The file {output} already exists, aborting conversion.")
+        print_warning(f"The file '{output}' already exists, aborting conversion.")
         return 1
 
     # Allowed extensions
@@ -370,7 +371,7 @@ def convert2mol2(input, output, logFile = ""):
 
     # Check if the input extension is supported
     if not inputExtension in allowed:
-        print_warning(f"The file {input} has not a supported extension. Found {inputExtension} and expected one of the following: {', '.join(allowed)}")
+        print_warning(f"The file '{input}' has not a supported extension. Found '{inputExtension}' and expected one of the following: {', '.join(allowed)}")
         return 2
 
     # If the output has no extension

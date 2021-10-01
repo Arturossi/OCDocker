@@ -31,17 +31,17 @@ the ligand.
 
 They are imported as:
 
-import OCDocker.Ligand as ocpl
+import OCDocker.Ligand as ocl
 '''
 
 # Classes
 ###############################################################################
 class Ligand:
-    '''
+    """
     Load and compute ligand descriptors. You can provide either a molecule file
     (pdb/sdf/mol/mol2) or a rdkit.Chem.rdchem.Mol object. A name to indentify
     the molecule can be provided aswell.
-    '''
+    """
     def __init__(self, molecule, name=""):
         self.name = name
         self.molecule = self.__loadMol(molecule)
@@ -52,8 +52,6 @@ class Ligand:
         self.HeavyAtomMolWt = self.__findHeavyAtomMolWt()
         self.MaxAbsPartialCharge = self.__findMaxAbsPartialCharge()
         self.MaxPartialCharge = self.__findMaxPartialCharge()
-        self.MaxAbsPartialCharge = self.__findMaxAbsPartialCharge()
-        self.MaxPartialCharge = self.__findMaxPartialCharge()
         self.MinAbsPartialCharge = self.__findMinAbsPartialCharge()
         self.MinPartialCharge = self.__findMinPartialCharge()
         self.MolWt = self.__findMolWt()
@@ -62,152 +60,370 @@ class Ligand:
 
     def __loadMol(self, molecule):
         '''
-        Load a molecule pdb/sdf/mol/mol2 if a path is provided or just assign the Mol object to the molecule
+        Load a molecule pdb/sdf/mol/mol2 if a path is provided or just assign the Mol object to the molecule.
+        Input:
+          molecule [string/rdkit.Chem.rdchem.Mol] - If a path is provided, parse the molecule (only for single) and return the rdkit.Chem.rdchem.Mol object. If the molecule is a rdkit.Chem.rdchem.Mol object, return itself.
+        Return:
+          [rdkit.Chem.rdchem.Mol] - The molecule object.
         '''
-        # Check if the type of the variable molecule is a string or a rdkit.Chem.rdchem.Mol
-        if type(molecule) == rdkit.Chem.rdchem.Mol:
-            # Since is already a molecule, assign it to the class
-            return molecule
-        elif type(molecule) == str:
-            # Now its a file path, check which is its extension to use the correct function
-            extension = os.path.splitext(molecule)[1]
-            if extension == ".pdb":
-                return rdkit.Chem.rdmolfiles.MolFromPDBFile(molecule)
-            elif extension == ".sdf":
-                # Since the sdf file can hold more than one molecule...
-                mols = rdkit.Chem.rdmolfiles.SDMolSupplier(molecule)
-                # If has multiple molecules, indicate the user to use the right function
-                if len(mols) > 1:
-                    octools.print_warning("This sdf has more than one molecule!! If you want to parse all the molecules within this file use the function multipleMoleculesSDF instead, otherwise just the first molecule will be processed.")
-                # Return just the first molecule
-                return mols[0]
-            elif extension == ".mol":
-                return rdkit.Chem.rdmolfiles.MolFromMolFile(molecule)
-            elif extension == ".mol2":
-                return rdkit.Chem.rdmolfiles.MolFromMol2File(molecule)
-            else:
-                # The file extension is not supported, print data
-                supportedExtensions = ['.pdb', '.sdf', '.mol', '.mol2']
-                octools.print_error(f"The ligand {molecule} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supportedExtensions)}.")
-                return None
-        else:
-            # The variable is not in a supported data format
-            octools.print_error("Unsupported molecule data. Please support either a molecule path (string) or a rdkit.Chem.rdchem.Mol object.")
-            return None
+        return loadMol(molecule)
 
     def __findExactMolWt(self):
         '''
-        Compute the exact molecular weight of the molecule
+        Compute the exact molecular weight of the molecule.
+        Input:
+          -
+        Return:
+          [double] - The exact molecular weight.
         '''
-        if self.molecule:
-            return rdkit.Chem.Descriptors.ExactMolWt(self.molecule)
-        return None
+        return findExactMolWt(self.molecule)
 
     def __findFpDensityMorgan1(self):
         '''
-        Compute the Morgan fingerprint, radius 1 descriptor of the molecule
+        Compute the Morgan fingerprint, radius 1 descriptor of the molecule.
+        Input:
+          -
+        Return:
+          [double] - The Morgan fingerprint, radius 1.
         '''
-        if self.molecule:
-            return rdkit.Chem.Descriptors.FpDensityMorgan1(self.molecule)
-        return None
+        return findFpDensityMorgan1(self.molecule)
 
     def __findFpDensityMorgan2(self):
         '''
-        Compute the Morgan fingerprint, radius 2 descriptor of the molecule
+        Compute the Morgan fingerprint, radius 2 descriptor of the molecule.
+        Input:
+          -
+        Return:
+          [double] - The Morgan fingerprint, radius 2.
         '''
-        if self.molecule:
-            return rdkit.Chem.Descriptors.FpDensityMorgan2(self.molecule)
-        return None
+        return findFpDensityMorgan2(self.molecule)
 
     def __findFpDensityMorgan3(self):
         '''
-        Compute the Morgan fingerprint, radius 3 descriptor of the molecule
+        Compute the Morgan fingerprint, radius 3 descriptor of the molecule.
+        Input:
+          -
+        Return:
+          [double] - The Morgan fingerprint, radius 3.
         '''
-        if self.molecule:
-            return rdkit.Chem.Descriptors.FpDensityMorgan3(self.molecule)
-        return None
+        return findFpDensityMorgan3(self.molecule)
 
     def __findHeavyAtomMolWt(self):
         '''
-        Compute the heavy atom molecular weight of the molecule
+        Compute the heavy atom molecular weight of the molecule.
+        Input:
+          -
+        Return:
+          [double] - The heavy atom molecular weight.
         '''
-        if self.molecule:
-            return rdkit.Chem.Descriptors.HeavyAtomMolWt(self.molecule)
-        return None
+        return findHeavyAtomMolWt(self.molecule)
 
     def __findMaxAbsPartialCharge(self):
         '''
-        Compute the maximum absolute partial charge of the molecule
+        Compute the maximum absolute partial charge of the molecule.
+        Input:
+          -
+        Return:
+          [double] - The maximum absolute partial charge.
         '''
-        if self.molecule:
-            return rdkit.Chem.Descriptors.MaxAbsPartialCharge(self.molecule)
-        return None
+        return findMaxAbsPartialCharge(self.molecule)
 
     def __findMaxPartialCharge(self):
         '''
-        Compute the absolute partial charge of the molecule
+        Compute the absolute partial charge of the molecule.
+        Input:
+          -
+        Return:
+          [double] - The absolute partial partial charge.
         '''
-        if self.molecule:
-            return rdkit.Chem.Descriptors.MaxPartialCharge(self.molecule)
-        return None
+        return findMaxPartialCharge(self.molecule)
 
     def __findMinAbsPartialCharge(self):
         '''
-        Compute the minimum absolute partial charge of the molecule
+        Compute the minimum absolute partial charge of the molecule.
+        Input:
+          -
+        Return:
+          [double] - The minimum absolute partial partial charge.
         '''
-        if self.molecule:
-            return rdkit.Chem.Descriptors.MinAbsPartialCharge(self.molecule)
-        return None
+        return findMinAbsPartialCharge(self.molecule)
 
     def __findMinPartialCharge(self):
         '''
-        Compute the minimum partial charge of the molecule
+        Compute the minimum partial charge of the molecule.
+        Input:
+          -
+        Return:
+          [double] - The minimum partial partial charge.
         '''
-        if self.molecule:
-            return rdkit.Chem.Descriptors.MinPartialCharge(self.molecule)
-        return None
+        return findMinPartialCharge(self.molecule)
 
     def __findMolWt(self):
         '''
-        Compute the molecular weight of the molecule
+        Compute the molecular weight of the molecule.
+        Input:
+          -
+        Return:
+          [double] - The molecular weight.
         '''
-        if self.molecule:
-            return rdkit.Chem.Descriptors.MolWt(self.molecule)
-        return None
+        return findMolWt(self.molecule)
 
     def __findNumRadicalElectrons(self):
         '''
-        Compute the number of radical electrons in the molecule
+        Compute the number of radical electrons in the molecule.
+        Input:
+          -
+        Return:
+          [int] - The number of radical electrons.
         '''
-        if self.molecule:
-            return rdkit.Chem.Descriptors.NumRadicalElectrons(self.molecule)
-        return None
+        return findNumRadicalElectrons(self.molecule)
 
     def __findNumValenceElectrons(self):
         '''
-        Compute the number of valence electrons in the molecule
+        Compute the number of valence electrons in the molecule.
+        Input:
+          -
+        Return:
+          [int] - The number of valence electrons.
         '''
-        if self.molecule:
-            return rdkit.Chem.Descriptors.NumValenceElectrons(self.molecule)
-        return None
+        return findNumValenceElectrons(self.molecule)
+
+    def print_attributes(self):
+        '''
+        Print the class attributes.
+        Input:
+          -
+        Return:
+          -
+        '''
+        print(f"Name:                            '{self.name if self.name else '-' }'")
+        print(f"Molecule:                        '{self.molecule if self.molecule else '-' }'")
+        print(f"Molecular weight:                '{self.MolWt if self.MolWt else '-' }'")
+        print(f"Exact molecular weight:          '{self.ExactMolWt if self.ExactMolWt else '-' }'")
+        print(f"Morgan fingerprint radius 1:     '{self.FpDensityMorgan1 if self.FpDensityMorgan1 else '-' }'")
+        print(f"Morgan fingerprint radius 2:     '{self.FpDensityMorgan2 if self.FpDensityMorgan2 else '-' }'")
+        print(f"Morgan fingerprint radius 3:     '{self.FpDensityMorgan3 if self.FpDensityMorgan3 else '-' }'")
+        print(f"Heavy atoms molecular weight:    '{self.HeavyAtomMolWt if self.HeavyAtomMolWt else '-' }'")
+        print(f"Maximum absolute partial charge: '{self.MaxAbsPartialCharge if self.MaxAbsPartialCharge else '-' }'")
+        print(f"Maximum partial charge:          '{self.MaxPartialCharge if self.MaxPartialCharge else '-' }'")
+        print(f"Minimum absolute partial charge: '{self.MinAbsPartialCharge if self.MinAbsPartialCharge else '-' }'")
+        print(f"Minimum partial charge:          '{self.MinPartialCharge if self.MinPartialCharge else '-' }'")
+        print(f"Number of radical electrons:     '{self.NumRadicalElectrons if self.NumRadicalElectrons else '0' }'")
+        print(f"Number of valence electrons:     '{self.NumValenceElectrons if self.NumValenceElectrons else '0' }'")
+
+        return
 
 # Functions
 ###############################################################################
 def multipleMoleculesSDF(molecule):
     '''
-
+    Parse a .sdf file with multiple molecules returning a list of ligands.
+    Input:
+      molecule [string/rdkit.Chem.rdchem.Mol] - If a path is provided, parse the molecule (only for single) and return the rdkit.Chem.rdchem.Mol object. If the molecule is a rdkit.Chem.rdchem.Mol object, return itself.
+    Return:
+      [list(Ligand)] - A list of Ligand objects.
+      [None]         - If any problem occurs.
     '''
     # List to hold multiple Ligand objects
     ligands = []
     # Check if the path is a string (it is assumed that the provided path is already a sdf)
     if type(molecule) == str:
-        # Get the molecules
-        suppl = rdkit.Chem.rdmolfiles.SDMolSupplier(molecule)
-        # For each molecule
-        for mol in suppl:
-            # Append an instance of the class of the molecule
-            ligands.append(Ligand(mol))
-        return ligands
+        # Check if the extension of the file is .sdf
+        if os.path.splitext(molecule)[1] == ".sdf":
+            # Get the molecules
+            suppl = rdkit.Chem.rdmolfiles.SDMolSupplier(molecule)
+            # For each molecule
+            for mol in suppl:
+                # Append an instance of the class of the molecule
+                ligands.append(Ligand(mol))
+            return ligands
+        else:
+            octools.print_error("The molecule file MUST be the .sdf format!")
+            return None
     else:
-        octools.print_error("The molecule file path MUST be a string")
+        octools.print_error("The molecule file path MUST be a string!")
+    return None
+
+def loadMol(molecule):
+    '''
+    Load a molecule pdb/sdf/mol/mol2 if a path is provided or just assign the Mol object to the molecule.
+    Input:
+      molecule [string/rdkit.Chem.rdchem.Mol] - If a path is provided, parse the molecule (only for single) and return the rdkit.Chem.rdchem.Mol object. If the molecule is a rdkit.Chem.rdchem.Mol object, return itself.
+    Return:
+      [rdkit.Chem.rdchem.Mol] - The molecule object.
+    '''
+    # Check if the type of the variable molecule is a string or a rdkit.Chem.rdchem.Mol
+    if type(molecule) == rdkit.Chem.rdchem.Mol:
+        # Since is already a molecule, assign it to the class
+        return molecule
+    elif type(molecule) == str:
+        # Now its a file path, check which is its extension to use the correct function
+        extension = os.path.splitext(molecule)[1]
+        # Check the extension to use the right parser
+        if extension == ".pdb":
+            return rdkit.Chem.rdmolfiles.MolFromPDBFile(molecule)
+        elif extension == ".sdf":
+            # Since the sdf file can hold more than one molecule...
+            mols = rdkit.Chem.rdmolfiles.SDMolSupplier(molecule)
+            # If has multiple molecules, indicate the user to use the right function
+            if len(mols) > 1:
+                octools.print_warning("This sdf has more than one molecule!! If you want to parse all the molecules within this file use the function multipleMoleculesSDF instead, otherwise just the first molecule will be processed.")
+            # Return just the first molecule
+            return mols[0]
+        elif extension == ".mol":
+            return rdkit.Chem.rdmolfiles.MolFromMolFile(molecule)
+        elif extension == ".mol2":
+            return rdkit.Chem.rdmolfiles.MolFromMol2File(molecule)
+        else:
+            # The file extension is not supported, print data
+            supportedExtensions = ['.pdb', '.sdf', '.mol', '.mol2']
+            octools.print_error(f"The ligand {molecule} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supportedExtensions)}.")
+            return None
+    else:
+        # The variable is not in a supported data format
+        octools.print_error("Unsupported molecule data. Please support either a molecule path (string) or a rdkit.Chem.rdchem.Mol object.")
+        return None
+
+def findExactMolWt(molecule):
+    '''
+    Compute the exact molecular weight of the molecule.
+    Input:
+      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
+    Return:
+      [double] - The exact molecular weight.
+    '''
+    if molecule:
+        return rdkit.Chem.Descriptors.ExactMolWt(molecule)
+    return None
+
+def findFpDensityMorgan1(molecule):
+    '''
+    Compute the Morgan fingerprint, radius 1 descriptor of the molecule.
+    Input:
+      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
+    Return:
+      [double] - The Morgan fingerprint, radius 1.
+    '''
+    if molecule:
+        return rdkit.Chem.Descriptors.FpDensityMorgan1(molecule)
+    return None
+
+def findFpDensityMorgan2(molecule):
+    '''
+    Compute the Morgan fingerprint, radius 2 descriptor of the molecule.
+    Input:
+      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
+    Return:
+      [double] - The Morgan fingerprint, radius 2.
+    '''
+    if molecule:
+        return rdkit.Chem.Descriptors.FpDensityMorgan2(molecule)
+    return None
+
+def findFpDensityMorgan3(molecule):
+    '''
+    Compute the Morgan fingerprint, radius 3 descriptor of the molecule.
+    Input:
+      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
+    Return:
+      [double] - The Morgan fingerprint, radius 3.
+    '''
+    if molecule:
+        return rdkit.Chem.Descriptors.FpDensityMorgan3(molecule)
+    return None
+
+def findHeavyAtomMolWt(molecule):
+    '''
+    Compute the heavy atom molecular weight of the molecule.
+    Input:
+      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
+    Return:
+      [double] - The heavy atom molecular weight.
+    '''
+    if molecule:
+        return rdkit.Chem.Descriptors.HeavyAtomMolWt(molecule)
+    return None
+
+def findMaxAbsPartialCharge(molecule):
+    '''
+    Compute the maximum absolute partial charge of the molecule.
+    Input:
+      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
+    Return:
+      [double] - The maximum absolute partial charge.
+    '''
+    if molecule:
+        return rdkit.Chem.Descriptors.MaxAbsPartialCharge(molecule)
+    return None
+
+def findMaxPartialCharge(molecule):
+    '''
+    Compute the absolute partial charge of the molecule.
+    Input:
+      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
+    Return:
+      [double] - The absolute partial partial charge.
+    '''
+    if molecule:
+        return rdkit.Chem.Descriptors.MaxPartialCharge(molecule)
+    return None
+
+def findMinAbsPartialCharge(molecule):
+    '''
+    Compute the minimum absolute partial charge of the molecule.
+    Input:
+      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
+    Return:
+      [double] - The minimum absolute partial partial charge.
+    '''
+    if molecule:
+        return rdkit.Chem.Descriptors.MinAbsPartialCharge(molecule)
+    return None
+
+def findMinPartialCharge(molecule):
+    '''
+    Compute the minimum partial charge of the molecule.
+    Input:
+      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
+    Return:
+      [double] - The minimum partial partial charge.
+    '''
+    if molecule:
+        return rdkit.Chem.Descriptors.MinPartialCharge(molecule)
+    return None
+
+def findMolWt(molecule):
+    '''
+    Compute the molecular weight of the molecule.
+    Input:
+      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
+    Return:
+      [double] - The molecular weight.
+    '''
+    if molecule:
+        return rdkit.Chem.Descriptors.MolWt(molecule)
+    return None
+
+def findNumRadicalElectrons(molecule):
+    '''
+    Compute the number of radical electrons in the molecule.
+    Input:
+      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
+    Return:
+      [int] - The number of radical electrons.
+    '''
+    if molecule:
+        return rdkit.Chem.Descriptors.NumRadicalElectrons(molecule)
+    return None
+
+def findNumValenceElectrons(molecule):
+    '''
+    Compute the number of valence electrons in the molecule.
+    Input:
+      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
+    Return:
+      [int] - The number of valence electrons.
+    '''
+    if molecule:
+        return rdkit.Chem.Descriptors.NumValenceElectrons(molecule)
     return None

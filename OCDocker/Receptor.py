@@ -4,7 +4,9 @@
 ###############################################################################
 import os
 from Bio.PDB import *
+from Bio.SeqUtils import seq1
 
+from OCDocker.Initialise import *
 import OCDocker.Toolbox as octools
 
 # License
@@ -30,7 +32,7 @@ the ligand.
 
 They are imported as:
 
-import OCDocker.Receptor as ocpr
+import OCDocker.Receptor as ocr
 '''
 
 # Classes
@@ -40,22 +42,22 @@ class Receptor:
     Load and compute receptor descriptors.
     """
 
-    def __init__(self, molecule, name=""):
+    def __init__(self, structure, name=""):
         self.name = name
-        self.molecule = self.__loadMol(molecule)
+        self.structure = self.__loadMol(structure)
         self.residues = self.__getRes()
 
-    def __loadMol(self, molecule):
+    def __loadMol(self, structure):
         '''
-        Load a molecule pdb/cif if a path is provided or just assign the Bio.PDB.Structure.Structure object to the molecule.
+        Load a structure pdb/cif if a path is provided or just assign the Bio.PDB.Structure.Structure object to the structure.
         Input:
-          molecule [string/Bio.PDB.Structure.Structure] - Path to the molecule file OR Bio.PDB.Structure.Structure object.
+          structure [string/Bio.PDB.Structure.Structure] - Path to the structure file OR Bio.PDB.Structure.Structure object.
         Return:
           [Bio.PDB.Structure.Structure]
           [object] - If the object has been correctly parsed.
-          None     - If the object has not been correctly parsed.
+          [None]   - If the object has not been correctly parsed.
         '''
-        return loadMol(self, molecule)
+        return loadMol(structure, name=self.name)
 
     def __getRes(self):
         '''
@@ -65,7 +67,19 @@ class Receptor:
         Return:
           [string] The amino acid one letter sequence.
         '''
-        return getRes(self.molecule)
+        return getRes(self.structure)
+
+    def print_attributes(self):
+        '''
+        Print the class attributes.
+        Input:
+          -
+        Return:
+          -
+        '''
+        print(f"Name:        '{self.name if self.name else '-' }'")
+        print(f"Structure:   '{self.structure if self.structure else '-' }'")
+        print(f"AA residues: '{self.residues if self.residues else '-' }'")
 
 # Functions
 ###############################################################################
@@ -73,35 +87,40 @@ def getRes(model):
     '''
     Get the amino acid one letter sequence for the receptor (Ignore chains).
     Input:
-      model [Bio.PDB.Structure.Structure] - The molecule structure.
+      model [Bio.PDB.Structure.Structure] - The structure structure.
     Return:
       [string] The amino acid one letter sequence.
     '''
     # Empty list to hold the residues
     residues = []
     # For each residue in the structure
-    for residue in self.residues:
+    for residue in model.get_residues():
         # Append to the residue list the one letter residue (using the conversion list from Initialise.py)
-        residues.append(aa3to1[self.molecule[(int(residue) - 1)].get_resname()])
-    return residues.join()
+        residues.append(seq1(residue.get_resname()))
+    return ''.join(residues)
 
-def loadMol(molecule):
+def loadMol(structure, name=""):
     '''
-    Load a molecule pdb/cif if a path is provided or just assign the Bio.PDB.Structure.Structure object to the molecule.
+    Load a structure pdb/cif if a path is provided or just assign the Bio.PDB.Structure.Structure object to the structure.
     Input:
-      molecule   [string/Bio.PDB.Structure.Structure] - Path to the molecule file OR Bio.PDB.Structure.Structure object.
+      name      [string] DEFAULT: ""                 - Name of the structure (if empty the structure's name will be 'Generic structure').
+      structure [string/Bio.PDB.Structure.Structure] - Path to the structure file OR Bio.PDB.Structure.Structure object.
     Return:
       [Bio.PDB.Structure.Structure]
       [object] - If the object has been correctly parsed.
       [None]   - If the object has not been correctly parsed.
     '''
-    # Check if the type of the variable molecule is a string or a Bio.PDB.Structure.Structure
-    if type(molecule) == Bio.PDB.Structure.Structure:
-        # Since is already a molecule, assign it to the class
-        return molecule
-    elif type(molecule) == str:
+    # Check if the type of the variable structure is a string or a Bio.PDB.Structure.Structure
+    if type(structure) == Structure.Structure:
+        # Since is already a structure, assign it to the class
+        return structure
+    elif type(structure) == str:
+        # Check if the structure has no name
+        if name == "":
+            # If its true, set its name as 'Generic structure'
+            name = "Generic structure"
         # Now we know that it is a file path, check which is its extension to use the correct function
-        extension = os.path.splitext(molecule)[1]
+        extension = os.path.splitext(structure)[1]
         # Choose the parser based on extension
         if extension == ".pdb":
             parser = PDBParser()
@@ -110,11 +129,11 @@ def loadMol(molecule):
         else:
             # The file extension is not supported, print data
             supportedExtensions = [".pdb", ".cif"]
-            octools.print_error(f"The receptor {molecule} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supportedExtensions)}.")
+            octools.print_error(f"The receptor {structure} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supportedExtensions)}.")
             return None
-        # Return the molecule using selected parser
-        return parser.get_structure("PHA-L", molecule)
+        # Return the structure using selected parser
+        return parser.get_structure(name, structure)
     else:
         # The variable is not in a supported data format
-        octools.print_error("Unsupported molecule data. Please support either a molecule path (string) or a rdkit.Chem.rdchem.Mol object.")
+        octools.print_error("Unsupported molecule data. Please support either a molecule path (string) or an 'rdkit.Chem.rdchem.Mol' object.")
         return None

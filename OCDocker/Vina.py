@@ -95,7 +95,7 @@ class Vina:
         Return:
           list[string] - List of strings of the command.
         '''
-        cmd = ["vina", "--config", self.config, "--ligand", self.preparedLigand, "--out", self.outputVina, "--log", self.vinaLog, "--cpu", "1"]
+        cmd = [vina, "--config", self.config, "--ligand", self.preparedLigand, "--out", self.outputVina, "--log", self.vinaLog, "--cpu", "1"]
         return cmd
 
     def __prepare_ligand_cmd(self):
@@ -122,7 +122,7 @@ class Vina:
 
     def __box_to_vina(self):
         '''
-        Warper for box_to_vina function.
+        Convert a box (DUDE like format) to vina input.
         Input:
           -
         Return:
@@ -257,7 +257,7 @@ def box_to_vina(boxFile, confFile, receptor = "receptor_noH"):
             conf_file.write(f"exhaustiveness = {vina_exhaustiveness}\n")
             conf_file.write(f"num_modes = {vina_num_modes}\n")
     except Exception as e:
-        octools.print_error(f"Found a problem while opening conf file: {e}")
+        octools.print_error(f"Found a problem while opening conf file: {e}.")
         return 3
     return 0
 

@@ -42,16 +42,16 @@ import OCDocker.DUDEZ as ocdudez
 ## Private
 def __get_vina_data_from_box(file):
     '''
-    Get data to generate vina conf file from box file
+    Get data to generate vina conf file from box file.
     Input:
-     path [string] - Input path
+     path [string] - Input path.
     Return:
-     center_x [string] - The center in the x axis
-     center_y [string] - The center in the y axis
-     center_z [string] - The center in the z axis
-     size_x   [string] - The size for the x axis
-     size_y   [string] - The size for the y axis
-     size_z   [string] - The size for the z axis
+     [string] - The center in the x axis.
+     [string] - The center in the y axis.
+     [string] - The center in the z axis.
+     [string] - The size for the x axis.
+     [string] - The size for the y axis.
+     [string] - The size for the z axis.
     '''
     # Initialise variables with 0
     center_x = 0
@@ -62,11 +62,11 @@ def __get_vina_data_from_box(file):
     size_z = 0
 
     # Open file in read mode
-    with open(file, 'r') as fp:
+    with open(file, "r") as fp:
         # For each line in file
         for line in fp:
             # If is a remark line with center data
-            if line.startswith('REMARK') and 'CENTER' in line:
+            if line.startswith("REMARK") and "CENTER" in line:
                 # Split each line in file using spaces
                 splited = line.split()
 
@@ -75,7 +75,7 @@ def __get_vina_data_from_box(file):
                 center_y = splited[-2].strip()
                 center_z = splited[-1].strip()
             # If is a remark line with dimensions data
-            elif line.startswith('REMARK') and 'DIMENSIONS' in line:
+            elif line.startswith("REMARK") and "DIMENSIONS" in line:
                 # Split each line in file using spaces
                 splited = line.split()
 
@@ -91,11 +91,11 @@ def __get_vina_data_from_box(file):
 
 def __generate_vina_conf_file_dudez(receptorPath, box, boxFolder):
     '''
-    Generate the conf file required by vina to run
+    Generate the conf file required by vina to run.
     Input:
-     receptorPath [string] - Receptor folder path
-     box          [string] - Box path
-     boxFolder    [string] - The folder to put files concerning current box
+     receptorPath [string] - Receptor folder path.
+     box          [string] - Box path.
+     boxFolder    [string] - The folder to put files concerning current box.
     Return:
       -
     '''
@@ -112,7 +112,7 @@ def __generate_vina_conf_file_dudez(receptorPath, box, boxFolder):
     # x,y,z center and size to create the conf.txt file
     center_x, center_y, center_z, size_x, size_y, size_z = __get_vina_data_from_box(box)
 
-    with open(vinaConf, 'w') as conf_file:
+    with open(vinaConf, "w") as conf_file:
         conf_file.write(f"receptor = {receptor}\n\n")
         conf_file.write(f"center_x = {center_x}\n")
         conf_file.write(f"center_y = {center_y}\n")
@@ -129,9 +129,9 @@ def __generate_vina_conf_file_dudez(receptorPath, box, boxFolder):
 ## Public
 def generate_vina_files(path):
     '''
-    Generate all vina required files for provided protein
+    Generate all vina required files for provided protein.
     Input:
-     path [string] - Input path
+     path [string] - Input path.
     Return:
       -
     '''
@@ -153,7 +153,7 @@ def generate_vina_files(path):
         boxName = os.path.basename(box)
 
         # Get box id
-        boxId = boxName.split('.')[0].replace('box','')
+        boxId = boxName.split(".")[0].replace("box","")
 
         # Parameterize the box folder
         boxFolder = f"{vinaPath}/{boxId}"
@@ -163,11 +163,13 @@ def generate_vina_files(path):
 
         __generate_vina_conf_file_dudez(path, box, boxFolder)
 
+    return
+
 def runprank(args):
     '''
     Generate all vina required files for provided protein.
     Input:
-     path [string] - Input path
+     path [string] - Input path.
     Return:
       -
     '''
@@ -213,6 +215,3 @@ def runprank(args):
         generate_vina_files(d)
 
         return
-
-def prepare():
-    return

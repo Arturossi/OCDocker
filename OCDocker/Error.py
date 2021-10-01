@@ -2,11 +2,11 @@
 
 # Imports
 ###############################################################################
-import os
-import rdkit
-from rdkit import Chem
-from rdkit.Chem import Descriptors
-import OCDocker.Toolbox as octools
+import sys
+import shutil
+import tarfile
+import datetime
+from OCDocker.Initialise import *
 
 # License
 ###############################################################################
@@ -26,30 +26,19 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 # Description
 ###############################################################################
 '''
-Sets of classes and functions that are used to process all content related to
-the ligand.
+Sets of classes and functions that are used to make all return codes in OCDocker
+standard.
 
 They are imported as:
 
-import OCDocker.Complex as occ
+import OCDocker.Error as ocerror
 '''
 
 # Classes
 ###############################################################################
-class Complex:
-    """
-    Load and compute Complex descriptors.
-    """
-
-    def __init__(self, molecule, name=""):
-        self.name = name
-        self.molecule = self.__loadMol(molecule)
-
-    def __loadMol(self, molecule):
-        '''
-        Load a molecule pdb if a path is provided or just assign the Mol object to the molecule.
-        '''
-        return loadMol(molecule)
+class Error:
+    def __init__(self):
+        self.ok = 0
 
     def print_attributes(self):
         '''
@@ -59,14 +48,12 @@ class Complex:
         Return:
           -
         '''
-        print(f"Name:     '{self.name if self.name else '-' }'")
-        print(f"Molecule: '{self.molecule if self.molecule else '-' }'")
-
+        print(f"\t+--------------------+")
+        print(f"\t|    Return codes    |")
+        print(f"\t+--------------------+")
+        print(f"\t - No error: {self.ok}")
         return
+
+
 # Functions
 ###############################################################################
-def loadMol(molecule):
-    '''
-    Load a molecule pdb if a path is provided or just assign the Mol object to the molecule.
-    '''
-    return molecule
