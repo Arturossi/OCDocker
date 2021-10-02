@@ -102,10 +102,8 @@ class Smina:
         Input:
           logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
         Return:
-          0 - No problems were found.
-          1 - self.sminaCmd is not set or is empty list.
-          2 - self.sminaCmd has wrong type.
-          3 - Problems while running the self.sminaCmd.
+          [int]
+          See Error.py for all return codes.
         '''
         return octools.run(self.sminaCmd, logFile=logFile)
 
@@ -115,10 +113,8 @@ class Smina:
         Input:
           logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
         Return:
-          0 - No problems were found.
-          1 - self.prepareLigandCmd is not set or is empty list.
-          2 - self.prepareLigandCmd has wrong type.
-          3 - Problems while running the self.prepareLigandCmd.
+          [int]
+          See Error.py for all return codes.
         '''
         return octools.run(self.prepareLigandCmd, logFile=logFile)
 
@@ -128,10 +124,8 @@ class Smina:
         Input:
           logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
         Return:
-          0 - No problems were found.
-          1 - self.prepareReceptorCmd is not set or is empty list.
-          2 - self.prepareReceptorCmd has wrong type.
-          3 - Problems while running the self.prepareReceptorCmd.
+          [int]
+          See Error.py for all return codes.
         '''
         return octools.run(self.prepareReceptorCmd, logFile=logFile)
 
@@ -168,10 +162,7 @@ def run_prepare_ligand(inputLigand, preparedLigand, logFile = ""):
       logFile        [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
     Return:
       [int]
-      0 - No problems were found.
-      1 - The var cmd is not set or is empty list.
-      2 - The command list has wrong type.
-      3 - Problems while running the command.
+      See Error.py for all return codes.
     '''
     # Create the command list
     cmd = [obabel, inputLigand, "-O", preparedLigand]
@@ -188,10 +179,7 @@ def run_prepare_receptor(inputReceptor, outputReceptor, logFile=""):
       logFile          [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
     Return:
       [int]
-      0 - No problems were found.
-      1 - The var cmd is not set or is empty list.
-      2 - The command list has wrong type.
-      3 - Problems while running the command.
+      See Error.py for all return codes.
     '''
     # Create the command list
     cmd = [obabel, inputReceptor, "-xr", "-O", preparedReceptor]
@@ -210,10 +198,7 @@ def run_smina(config, ligand, outpath, logpath):
       logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output
     Return:
       [int]
-      0 - No problems were found.
-      1 - The var cmd is not set or is empty list.
-      2 - The command list has wrong type.
-      3 - Problems while running the command.
+      See Error.py for all return codes.
     '''
     # Create the command list
     cmd = [vina, "--config", config, "--ligand", ligand, "--out", outpath, "--log", logpath, "--cpu", "1"]

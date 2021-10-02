@@ -107,8 +107,6 @@ def __generate_vina_conf_file_dudez(receptorPath, box, boxFolder):
     # The receptor name
     receptor =f"{receptorPath}/rec.crg.pdb"
 
-    # TODO:Prepare the receptor
-
     # x,y,z center and size to create the conf.txt file
     center_x, center_y, center_z, size_x, size_y, size_z = __get_vina_data_from_box(box)
 
@@ -144,8 +142,6 @@ def generate_vina_files(path):
 
     # Find all boxes
     boxes = glob(f"{prankPath}/box*")
-
-    # TODO:Prepare the ligands
 
     # For each box
     for box in boxes:

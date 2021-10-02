@@ -127,10 +127,7 @@ class Vina:
           -
         Return:
           [int]
-          0 - No problems were found.
-          1 - Box file does not exists.
-          2 - Problems while working with the box file.
-          3 - Problems while working with the conf file.
+          See Error.py for all return codes.
         '''
         return box_to_vina(self.boxFile, self.config, self.preparedReceptor)
 
@@ -141,10 +138,7 @@ class Vina:
           logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
         Return:
           [int]
-          0 - No problems were found.
-          1 - self.vinaCommand is not set or is empty list.
-          2 - self.vinaCommand has wrong type.
-          3 - Problems while running the 'self.vinaCommand'.
+          See Error.py for all return codes.
         '''
         return octools.run(self.vinaCmd, logFile=logFile)
 
@@ -155,10 +149,7 @@ class Vina:
           logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
         Return:
           [int]
-          0 - No problems were found.
-          1 - self.prepareLigandCmd is not set or is empty list.
-          2 - self.prepareLigandCmd has wrong type.
-          3 - Problems while running the 'self.prepareLigandCmd'.
+          See Error.py for all return codes.
         '''
         return octools.run(self.prepareLigandCmd, logFile=logFile)
 
@@ -169,10 +160,7 @@ class Vina:
           logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
         Return:
           [int]
-          0 - No problems were found.
-          1 - self.prepareReceptorCmd is not set or is empty list.
-          2 - self.prepareReceptorCmd has wrong type.
-          3 - Problems while running the 'self.prepareReceptorCmd'.
+          See Error.py for all return codes.
         '''
         return octools.run(self.prepareReceptorCmd, logFile=logFile)
 
@@ -207,19 +195,14 @@ def box_to_vina(boxFile, confFile, receptor = "receptor_noH"):
     Input:
       boxFile   [string]                         - Path to the box file.
       confFile  [string]                         - Path to the conf file.
-      receptor  [string] Default: "receptor_noH" - Receptor name to be used in conf file.
+      receptor  [string] DEFAULT: "receptor_noH" - Receptor name to be used in conf file.
     Return:
       [int]
-      0 - No problems were found.
-      1 - Box file does not exists.
-      2 - Problems while working with the box file.
-      3 - Problems while working with the conf file.
+      See Error.py for all return codes.
     '''
     # Test if the file boxFile exists
     if not os.path.exists(boxFile):
-        octools.print_error(f"The box file in the path {boxFile} does not exists! Please ensure that the file exsits and the path is correct. If you have no box file, try to run the function 'runprank' from the 'runprank' library to create it before calling this function or creating a Vina class object.")
-        return 1
-
+        return errors.file_do_not_exist(message=f"The box file in the path {boxFile} does not exists! Please ensure that the file exsits and the path is correct. If you have no box file, try to run the function 'runprank' from the 'runprank' library to create it before calling this function or creating a Vina class object.", level="error")
     try:
         # Open the box file
         with open(str(boxFile), "r") as box_file:
@@ -240,8 +223,7 @@ def box_to_vina(boxFile, confFile, receptor = "receptor_noH"):
                         # Break the loop (optimization)
                         break
     except Exception as e:
-        octools.print_error(f"Found a problem while opening box file: {e}")
-        return 2
+        return errors.read_file(message=f"Found a problem while reading the box file: {e}", level="error")
 
     try:
         # Now open the conf file to write
@@ -257,9 +239,8 @@ def box_to_vina(boxFile, confFile, receptor = "receptor_noH"):
             conf_file.write(f"exhaustiveness = {vina_exhaustiveness}\n")
             conf_file.write(f"num_modes = {vina_num_modes}\n")
     except Exception as e:
-        octools.print_error(f"Found a problem while opening conf file: {e}.")
-        return 3
-    return 0
+        return errors.write_file(message=f"Found a problem while opening conf file: {e}.", level="error")
+    return errors.ok()
 
 def run_prepare_ligand(inputLigand, outputLigand, logFile=""):
     '''
@@ -270,10 +251,7 @@ def run_prepare_ligand(inputLigand, outputLigand, logFile=""):
       logFile      [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
     Return:
       [int]
-      0 - No problems were found.
-      1 - The var cmd is not set or is empty list.
-      2 - The command list has wrong type.
-      3 - Problems while running the command.
+      See Error.py for all return codes.
     '''
     # Create the command list
     cmd = [pythonsh, prepare_ligand, "-l", inputLigand, "-C", "-o", outputLigand]
@@ -289,10 +267,7 @@ def run_prepare_receptor(inputReceptor, outputReceptor, logFile=""):
       outputReceptor [string]                   - Path to the output receptor file.
       logFile        [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
     Return:
-      0 - No problems were found.
-      1 - The var cmd is not set or is empty list.
-      2 - The command list has wrong type.
-      3 - Problems while running the command.
+      See Error.py for all return codes.
     '''
     # Create the command list
     cmd = [pythonsh, prepare_receptor, "-r", inputReceptor, "-o", outputReceptor, "-A", "hydrogens", "-U", "nphs_lps_waters"]
@@ -311,10 +286,7 @@ def run_vina(config, ligand, outpath, logpath, logFile=""):
       logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
     Return:
       [int]
-      0 - No problems were found.
-      1 - The var cmd is not set or is empty list.
-      2 - The command list has wrong type.
-      3 - Problems while running the command.
+      See Error.py for all return codes.
     '''
     # Create the command list
     cmd = [vina, "--config", config, "--ligand", ligand, "--out", outpath, "--log", logpath, "--cpu", "1"]

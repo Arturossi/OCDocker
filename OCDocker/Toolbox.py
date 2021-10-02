@@ -80,6 +80,17 @@ def print_warning(message):
     print(f"{clrs['y']}WARNING{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
     return
 
+def print_success(message):
+    '''
+    Print success.
+    Input:
+      message [string] - Message to be printed.
+    Return:
+      -
+    '''
+    print(f"{clrs['g']}SUCCSESS{clrs['n']}: {message}")
+    return
+
 def print_error(message):
     '''
     Print error.
@@ -89,9 +100,7 @@ def print_error(message):
       -
     '''
     print(f"{clrs['r']}ERROR{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
-    return
-
-def print_section(n, name):
+    returndef print_section(n, name):
     '''
     Print the section header and write progress to the progress file.
     Input:
@@ -234,9 +243,7 @@ def untar(fname, out_path=".", delete=False):
       delete   [boolean] - Flag to denote if the tar file should be deleted (True) or not (False).
     Return:
       [int]
-      0 if success.
-      1 if problems while opening file.
-      2 if file is not tar.gz.
+      See Error.py for all return codes.
     '''
     # Check if the file has the right extensions
     if (fname.endswith("tar.gz") or fname.endswith(".tgz")):
@@ -249,20 +256,18 @@ def untar(fname, out_path=".", delete=False):
                     # Extract member
                     tar.extract(member=member, path=out_path)
             # Report success on untarring the file
-            print(f"The file {fname} has been {clrs['g']}successfully{clrs['n']} untarred to the dir {out_path}!")
+            print_success(f"The file {fname} has been {clrs['g']}successfully{clrs['n']} untarred to the dir {out_path}!")
             # If delete flag is set, delete file
             if(delete):
                 #shutil.rmtree(fname) # remove the files
                 os.remove(fname) # remove the files
-                print(f"The file {fname} has been {clrs['y']}deleted!{clrs['n']}") # Report success on deleting the file
-            return 0
+                print_success(f"The file {fname} has been {clrs['y']}deleted!{clrs['n']}") # Report success on deleting the file
+            return errors.ok()
         except Exception as e:
-            print(f"{clrs['r']}Failed{clrs['n']} to untar the file {fname}.\n\n{clrs['r']}Error{clrs['n']}: {e}")
-            return 1
+            return errors.untar_file(message=f"{clrs['r']}Failed{clrs['n']} to untar the file {fname}.\n\n{clrs['r']}Error{clrs['n']}: {e}", level="error")
     else:
         # No supported extension has been provided
-        print(f"The file {fname} is not a tar.gz file. {clrs['y']}Aborting execution{clrs['n']}")
-        return 2
+        return errors.unsupported_extension(message=f"The file {fname} is not a tar.gz file. {clrs['y']}Aborting execution{clrs['n']}", level="error")
 
 def safe_create_dir(dirname):
     '''
@@ -271,10 +276,7 @@ def safe_create_dir(dirname):
       dirname [string] - File path to be created.
     Return:
       [int]
-       0 if success.
-       1 if folder exists.
-      -1 if any problem has occurred.
-      -2 should not appear.
+      See Error.py for all return codes.
     '''
     # Try to create
     try:
@@ -282,16 +284,15 @@ def safe_create_dir(dirname):
         if not os.path.isdir(dirname):
             # Create it
             os.mkdir(dirname)
-            return 0
+            return errors.ok()
         else:
             # It exists
-            return 1
+            return errors.file_exists(message="File 'dirname' already exists!", level="warn")
     except Exception as e:
         # Some error has occurred
-        print_error(f"Problem found while creating the dir {dirname}: {e}")
-        return -1
+        return errors.create_dir(message=f"Problem found while creating the dir {dirname}: {e}", level="error")
     # This should never appear since all the other paths ends in some kind of return
-    return -2
+    return errors.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!!", level="error")
 
 def download_url(url, out_path):
     '''
@@ -318,10 +319,7 @@ def run(cmd, logFile = ""):
       logfile [list(string)] DEFAULT: "" - Path to the logFile (empty string to suppress the output).
     Return:
       [int]
-      0 - No problems were found.
-      1 - The var cmd is not set or is empty list.
-      2 - The command list has wrong type.
-      3 - Problems while running the command.
+      See Error.py for all return codes.
     '''
     if not cmd:
         print_error(f"The variable cmd is not set or is an empty list!")
