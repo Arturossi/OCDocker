@@ -56,28 +56,17 @@ class DownloadProgressBar(tqdm):
 
 # Functions
 ###############################################################################
-def printv(message, verbosity):
+def printv(message):
     '''
     Function to print if verbosity is invoked.
     Input:
       message   [string] - Message to be printed.
-      verbosity [int]    - Flag for verbosity (0 - off; 1 - on).
     Return:
       -
     '''
-    if verbosity == 1:
-        print(message)
-    return
-
-def print_warning(message):
-    '''
-    Function to print warning.
-    Input:
-      message [string] - Message to be printed.
-    Return:
-      -
-    '''
-    print(f"{clrs['y']}WARNING{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
+    if args.verbosity == 1:
+        today = datetime.datetime.now()
+        print(f"[{today.strftime('%d-%m-%Y|%H:%M:%S')}] {message}")
     return
 
 def print_success(message):
@@ -88,7 +77,27 @@ def print_success(message):
     Return:
       -
     '''
-    print(f"{clrs['g']}SUCCSESS{clrs['n']}: {message}")
+    today = datetime.datetime.now()
+    if args.debug == 1:
+        print(f"[{today.strftime('%d-%m-%Y|%H:%M:%S')}] {clrs['y']}SUCCSESS{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
+    else:
+        print(f"[{today.strftime('%d-%m-%Y|%H:%M:%S')}] {clrs['g']}SUCCSESS{clrs['n']}: {message}")
+    return
+
+
+def print_warning(message):
+    '''
+    Function to print warning.
+    Input:
+      message [string] - Message to be printed.
+    Return:
+      -
+    '''
+    today = datetime.datetime.now()
+    if args.debug == 1 or args.verboity == 1:
+        print(f"[{today.strftime('%d-%m-%Y|%H:%M:%S')}] {clrs['y']}WARNING{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
+    else:
+        print(f"[{today.strftime('%d-%m-%Y|%H:%M:%S')}] {clrs['y']}WARNING{clrs['n']}: {message}")
     return
 
 def print_error(message):
@@ -99,8 +108,14 @@ def print_error(message):
     Return:
       -
     '''
-    print(f"{clrs['r']}ERROR{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
-    returndef print_section(n, name):
+    today = datetime.datetime.now()
+    if args.debug == 1 or args.verboity == 1:
+        print(f"[{today.strftime('%d-%m-%Y|%H:%M:%S')}] {clrs['r']}ERROR{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
+    else:
+        print(f"[{today.strftime('%d-%m-%Y|%H:%M:%S')}] {clrs['r']}ERROR{clrs['n']}: {message}")
+    return
+
+def print_section(n, name):
     '''
     Print the section header and write progress to the progress file.
     Input:
@@ -245,10 +260,12 @@ def untar(fname, out_path=".", delete=False):
       [int]
       See Error.py for all return codes.
     '''
+    # Print verboosity
+    printv(f"Untarring file '{fname}' to the output '{outpath}'")
     # Check if the file has the right extensions
     if (fname.endswith("tar.gz") or fname.endswith(".tgz")):
         try:
-            print("Preparing to untar the file...")
+            printv("Preparing to untar the file...")
             # open your tar.gz file
             with tarfile.open(name=fname) as tar:
                 # Go over each member
@@ -284,6 +301,9 @@ def safe_create_dir(dirname):
         if not os.path.isdir(dirname):
             # Create it
             os.mkdir(dirname)
+            # Print verbosity
+            if args.verbosity:
+                print_success(f"Successfully created the directory {dirname}")
             return errors.ok()
         else:
             # It exists
@@ -292,7 +312,7 @@ def safe_create_dir(dirname):
         # Some error has occurred
         return errors.create_dir(message=f"Problem found while creating the dir {dirname}: {e}", level="error")
     # This should never appear since all the other paths ends in some kind of return
-    return errors.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!!", level="error")
+    return errors.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while creating a dir safetly.", level="error")
 
 def download_url(url, out_path):
     '''
@@ -303,6 +323,8 @@ def download_url(url, out_path):
     Return:
       -
     '''
+    # Print verboosity
+    printv(f"Downloading a file from '{url}' and saving to {out_path}.")
     # Create the progress bar object
     with DownloadProgressBar(unit="B",
                              unit_scale=True,
@@ -322,23 +344,27 @@ def run(cmd, logFile = ""):
       See Error.py for all return codes.
     '''
     if not cmd:
-        print_error(f"The variable cmd is not set or is an empty list!")
-        return 1
+        return errors.not_set(message=f"The variable cmd is not set or is an empty list!", type="error")
 
     if type(cmd) != list:
-        print_error(f"The argument cmd has to be a list! Found '{type(cmd)}' instead...")
-        return 2
+        return errors.wrong_type(message=f"The argument cmd has to be a list! Found '{type(cmd)}' instead...", type="error")
+
+    # Print verboosity
+    printv(f"Running the command '{' '.join(cmd)}'.")
 
     if logFile == "":
+        printv(f"No log will be made")
         logFile = os.devnull
+    else:
+        printv(f"Logging into '{logFile}'")
 
     try:
         with open(logFile, "w") as outfile:
             subprocess.run(cmd, stdout=outfile)
     except Exception as e:
-        print_error(f"Found a problem while executing the command '{' '.join(cmd)}': {e}")
-        return 3
-    return 0
+        return errors.subprocess(message=f"Found a problem while executing the command '{' '.join(cmd)}': {e}", level="error")
+
+    return errors.ok()
 
 def convert2mol2(input, output, logFile = ""):
     '''
@@ -349,16 +375,13 @@ def convert2mol2(input, output, logFile = ""):
       logfile [list(string)] DEFAULT: "" - Path to the logFile (empty string to suppress the output).
     Return:
       [int]
-       0 - No problem found in execution.
-       1 - The output file already exists.
-       2 - Not supported extension in input.
-       3 - Error while running command.
-      -1 - You should NEVER see this error, but its when no exception is thrown.
+      See Error.py for all return codes.
     '''
+    # Print verboosity
+    printv(f"Converting '{input}' to '.mol2'.")
 
     if os.path.isfile(output):
-        print_warning(f"The file '{output}' already exists, aborting conversion.")
-        return 1
+        return errors.file_exists(message=f"The file '{output}' already exists, aborting conversion.", level="warn")
 
     # Allowed extensions
     allowed = [".pdb", ".sdf", ".mol", ".smi"]
@@ -369,8 +392,7 @@ def convert2mol2(input, output, logFile = ""):
 
     # Check if the input extension is supported
     if not inputExtension in allowed:
-        print_warning(f"The file '{input}' has not a supported extension. Found '{inputExtension}' and expected one of the following: {', '.join(allowed)}")
-        return 2
+        return errors.wrong_type(type=f"The file '{input}' has not a supported extension. Found '{inputExtension}' and expected one of the following: {', '.join(allowed)}", level="warn")
 
     # If the output has no extension
     if outputExtension == "":
@@ -387,8 +409,7 @@ def convert2mol2(input, output, logFile = ""):
     elif inputExtension == ".smi":
         cmd = ["obabel", "-ismi", str(input), "-omol2", "-O", str(output)]
     else:
-        print_error("What are you expecting to see here? This code should NEVER execute! (BTW, this is from unsupported file extension...)")
-        return -1
+        return errors.unknown(message="What are you expecting to see here? This code should NEVER execute! (BTW, this is from unsupported file extension...)", level="error")
 
     # Return the execution code from the correct extension
     return run(cmd, logFile=logFile)

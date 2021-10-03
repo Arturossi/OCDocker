@@ -140,6 +140,8 @@ class Vina:
           [int]
           See Error.py for all return codes.
         '''
+        # Print verboosity
+        octools.printv(f"Running vina using the '{self.confFile}' configurations.")
         return octools.run(self.vinaCmd, logFile=logFile)
 
     def run_prepare_ligand(self, logFile = ""):
@@ -151,6 +153,8 @@ class Vina:
           [int]
           See Error.py for all return codes.
         '''
+        # Print verboosity
+        octools.printv(f"Running '{prepare_ligand}' for '{self.inputLigand}'.")
         return octools.run(self.prepareLigandCmd, logFile=logFile)
 
     def run_prepare_receptor(self, logFile = ""):
@@ -162,6 +166,8 @@ class Vina:
           [int]
           See Error.py for all return codes.
         '''
+        # Print verboosity
+        octools.printv(f"Running '{prepare_receptor}' for '{self.inputReceptor}'.")
         return octools.run(self.prepareReceptorCmd, logFile=logFile)
 
     def print_attributes(self):
@@ -200,6 +206,7 @@ def box_to_vina(boxFile, confFile, receptor = "receptor_noH"):
       [int]
       See Error.py for all return codes.
     '''
+    octools.printv(f"Converting the box file '{boxFile}' to vina conf file as '{confFile}' file.")
     # Test if the file boxFile exists
     if not os.path.exists(boxFile):
         return errors.file_do_not_exist(message=f"The box file in the path {boxFile} does not exists! Please ensure that the file exsits and the path is correct. If you have no box file, try to run the function 'runprank' from the 'runprank' library to create it before calling this function or creating a Vina class object.", level="error")
@@ -255,7 +262,8 @@ def run_prepare_ligand(inputLigand, outputLigand, logFile=""):
     '''
     # Create the command list
     cmd = [pythonsh, prepare_ligand, "-l", inputLigand, "-C", "-o", outputLigand]
-
+    # Print verboosity
+    octools.printv(f"Running '{prepare_ligand}' for '{inputLigand}'.")
     # Run the command
     return octools.run(cmd, logFile=logFile)
 
@@ -271,25 +279,27 @@ def run_prepare_receptor(inputReceptor, outputReceptor, logFile=""):
     '''
     # Create the command list
     cmd = [pythonsh, prepare_receptor, "-r", inputReceptor, "-o", outputReceptor, "-A", "hydrogens", "-U", "nphs_lps_waters"]
-
+    # Print verboosity
+    octools.printv(f"Running '{prepare_receptor}' for '{inputReceptor}'.")
     # Run the command
     return octools.run(cmd, logFile=logFile)
 
-def run_vina(config, ligand, outpath, logpath, logFile=""):
+def run_vina(confFile, ligand, outpath, logpath, logFile=""):
     '''
     Run vina.
     Input:
-      config  [string]                   - Path to the config file.
-      ligand  [string]                   - Path to the ligand file.
-      outpath [string]                   - Path to the receptor file.
-      logpath [string]                   - Path to the log file.
-      logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
+      confFile [string]                   - Path to the config file.
+      ligand   [string]                   - Path to the ligand file.
+      outpath  [string]                   - Path to the receptor file.
+      logpath  [string]                   - Path to the log file.
+      logFile  [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
     Return:
       [int]
       See Error.py for all return codes.
     '''
     # Create the command list
-    cmd = [vina, "--config", config, "--ligand", ligand, "--out", outpath, "--log", logpath, "--cpu", "1"]
-
+    cmd = [vina, "--config", confFile, "--ligand", ligand, "--out", outpath, "--log", logpath, "--cpu", "1"]
+    # Print verboosity
+    octools.printv(f"Running vina using the '{confFile}' configurations.")
     # Run the command
     return octools.run(cmd, logFile=logFile)

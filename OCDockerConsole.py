@@ -60,7 +60,8 @@ message = tw.dedent("""\033[1;93m
 
 print(message)
 
-args = initial_args
+args.debug = 1
+args.verbosity = 1
 
 basePath = '/mnt/d/Documents/OCDocker/OCDocker'
 

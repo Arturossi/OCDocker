@@ -100,7 +100,7 @@ def __generate_vina_conf_file_dudez(receptorPath, box, boxFolder):
       -
     '''
     # Parameterize conf files
-    vinaConf = f"{boxFolder}/{conf.txt}"
+    vinaConf = f"{boxFolder}/conf.txt"
 
     ## Gather required info
 
@@ -161,7 +161,7 @@ def generate_vina_files(path):
 
     return
 
-def runprank(args):
+def runprank():
     '''
     Generate all vina required files for provided protein.
     Input:
@@ -184,7 +184,7 @@ def runprank(args):
     }
 
     # Generate boxes for all receptors
-    print("Generating information regarding possible ligand site.")
+    octools.printv("Generating information regarding possible ligand site.")
 
     # Get all dirs paths in the DUDEZ database
     dirs = glob(f"{dudez_archive}/*")

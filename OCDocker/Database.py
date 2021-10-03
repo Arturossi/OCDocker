@@ -50,7 +50,7 @@ def create_directories():
     _ = octools.safe_create_dir(pdbbind_archive)
     _ = octools.safe_create_dir(dudez_archive)
 
-def update_DUDEZ(args):
+def update_DUDEZ():
     '''
     Function to update the DUDEZ database
     Called by: update_databases()
@@ -75,11 +75,11 @@ def update_DUDEZ(args):
     # THIS SECTION MIGHT CHANGE TO THE USE OF BLinDPyPr IN THE FUTURE
 
     # Run p2rank in the DUDEZ database
-    ocdudez.runprank(args)
+    ocdudez.runprank()
 
     return
 
-def update_pdbbind(args):
+def update_pdbbind():
     '''
     Function to update the pdbbind database
     Called by: update_databases()
@@ -126,7 +126,7 @@ def update_pdbbind(args):
         print(f'Trying to untar file {f}')
         octools.untar(f, out_path=pdbbind_archive)"""
 
-def update_databases(args):
+def update_databases():
     '''
     Calls all the database update functions sequentially (PDBbind)
     Called by: RunOCDocker.py:main()
@@ -137,5 +137,5 @@ def update_databases(args):
     #update_pdbbind(args)
     #print('\n\nDone updating PDBbind!\n')
     print('Updating DUDEZ database...')
-    update_DUDEZ(args)
+    update_DUDEZ()
     print('\n\nDone updating DUDEZ!\n')

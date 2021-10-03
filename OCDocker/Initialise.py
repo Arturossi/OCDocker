@@ -200,9 +200,6 @@ clrs = {"r": "\033[1;91m",  # red
         "c": "\033[1;96m",  # cyan
         "n": "\033[1;0m"}   # default
 
-# Create error class object (making all errors standard)
-errors = ocerror.Error()
-
 # Parse command line arguments
 ###############################################################################
 def argument_parsing():
@@ -259,6 +256,12 @@ def argument_parsing():
                         default=0,
                         help="Controls verbosity")
 
+    parser.add_argument("-d", "--debug",
+                        dest="debug",
+                        action="count",
+                        default=0,
+                        help="Controls debug mode")
+
     parser.add_argument("--conf",
                         dest="config_file",
                         type=str,
@@ -268,16 +271,18 @@ def argument_parsing():
     # Return the parser
     return parser.parse_args()
 
-# Set the initial_args as the args from the argument_parsing function
-initial_args = argument_parsing()
+# Set the args variable as the args from the argument_parsing function
+args = argument_parsing()
 
+# Create error class object (making all errors standard)
+errors = ocerror.Error(args)
 
 # Initialise
 ###############################################################################
 print(description)
 
 # Retrieve the paths from provided configuration file
-if (not initial_args.config_file or not os.path.isfile(initial_args.config_file)) and not os.path.isfile("OCDocker.cfg"):
+if (not args.config_file or not os.path.isfile(args.config_file)) and not os.path.isfile("OCDocker.cfg"):
     print("OCDocker configuration file has not been found in the provided path")
     create_config = input("Do you wish to create it? (y/n) ")
     if create_config.lower() in ["y", "ye", "yes"]:
@@ -287,12 +292,12 @@ if (not initial_args.config_file or not os.path.isfile(initial_args.config_file)
         print("\n\nNo positive confirmation, please provide a valid configuration file.\n")
         quit()
 
-elif not initial_args.config_file and os.path.isfile("OCDocker.cfg"):
+elif not args.config_file and os.path.isfile("OCDocker.cfg"):
     config_file = "OCDocker.cfg"
 
-elif initial_args.config_file:
-    assert os.path.isfile(initial_args.config_file), f"{clrs['r']}\n\n Not able to find configuration file.\n\n Does \"{initial_args.config_file}\" exist?{clrs['n']}"
-    config_file = initial_args.config_file
+elif args.config_file:
+    assert os.path.isfile(args.config_file), f"{clrs['r']}\n\n Not able to find configuration file.\n\n Does \"{args.config_file}\" exist?{clrs['n']}"
+    config_file = args.config_file
 
 # Read the conf file and assign its data to its variables
 for line in open(config_file, "r"):
@@ -341,10 +346,10 @@ pdbbind_archive = os.path.join(ocdb, "pdbBind")
 dudez_archive = os.path.join(ocdb, "DUDEZ")
 
 # Get number of CPUs (minus one) with a minimum of one
-if initial_args.multiprocess:
+if args.multiprocess:
     n_cpu = multiprocessing.cpu_count() - 1
-    initial_args.available_cores = n_cpu if n_cpu > 1 else 1
+    args.available_cores = n_cpu if n_cpu > 1 else 1
 else:
-    initial_args.available_cores = 1
+    args.available_cores = 1
 
 #TODO: Colocar uma lista de parâmetros do OCDocker

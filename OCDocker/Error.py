@@ -2,11 +2,8 @@
 
 # Imports
 ###############################################################################
-import sys
-import shutil
-import tarfile
+import inspect
 import datetime
-from OCDocker.Initialise import *
 
 # License
 ###############################################################################
@@ -41,27 +38,77 @@ class Error:
     Class to handle errors and standarize them across the whole code.
     If any error needs special treatment
     """
-    def __init__(self):
+    def __init__(self, args):
+        # OCDocker arguments
+        self.args = args
+
         # Common errors
-        self.ok                   = 0
-        self.unkown               = -666
+        self.okCode                   = 0
+        self.unkownCode               = -666
 
         # File errors
-        self.fileExists           = 100
-        self.fileDoNotExist       = 101
-        self.readFile             = 102
-        self.writeFile            = 103
-        self.untarFile            = 104
-        self.unsupportedExtension = 105
+        self.fileExistsCode           = 100
+        self.fileDoNotExistCode       = 101
+        self.readFileCode             = 102
+        self.writeFileCode            = 103
+        self.untarFileCode            = 104
+        self.unsupportedExtensionCode = 105
 
         # Directory errors
-        self.createDirError       = 150
+        self.createDirCode       = 150
 
-        # Errors with Variables
-        self.wrongType            = 200
+        # Variable errors
+        self.wrongTypeCode            = 200
+        self.notSetCode               = 201
 
         # Subprocess errors
-        self.
+        self.subprocessCode      = 300
+
+    # Internal functions
+    def __print_success(self, message):
+        '''
+        Print success.
+        Input:
+          message [string] - Message to be printed.
+        Return:
+          -
+        '''
+        today = datetime.datetime.now()
+        if self.args.debug:
+            print(f"\033[1;92mSUCCSESS\033[1;0m: {message} In function '{inspect.currentframe().f_back.f_back.f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_back.f_back.f_lineno} from file '{inspect.currentframe().f_back.f_back.f_back.f_code.co_filename}'.")
+        else:
+            print(f"[{today.strftime('%d-%m-%Y|%H:%M:%S')}] \033[1;92mSUCCSESS\033[1;0m: {message}")
+        return
+
+    def __print_warning(self, message):
+        '''
+        Function to print warning.
+        Input:
+          message [string] - Message to be printed.
+        Return:
+          -
+        '''
+        today = datetime.datetime.now()
+        if self.args.debug or self.args.verbosity:
+            print(f"\033[1;93mWARNING\033[1;0m: {message} In function '{inspect.currentframe().f_back.f_back.f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_back.f_back.f_lineno} from file '{inspect.currentframe().f_back.f_back.f_back.f_code.co_filename}'.")
+        else:
+            print(f"[{today.strftime('%d-%m-%Y|%H:%M:%S')}] \033[1;93mWARNING\033[1;0m: {message}")
+        return
+
+    def __print_error(self, message):
+        '''
+        Print error.
+        Input:
+          message [string] - Message to be printed.
+        Return:
+          -
+        '''
+        today = datetime.datetime.now()
+        if self.args.debug or self.args.verbosity:
+            print(f"[{today.strftime('%d-%m-%Y|%H:%M:%S')}] \033[1;91mERROR\033[1;0m: {message} In function '{inspect.currentframe().f_back.f_back.f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_back.f_back.f_lineno} from file '{inspect.currentframe().f_back.f_back.f_back.f_code.co_filename}'.")
+        else:
+            print(f"\033[1;91mERROR\033[1;0m")
+        return
 
     def __print_msg(self, message, level):
         '''
@@ -74,11 +121,12 @@ class Error:
         '''
         if message:
             if level == "warn":
-                octools.print_error(message)
+                self.__print_warning(message)
             else:
-                octools.print_error(message)
+                self.__print_error(message)
         return
 
+    # Common errors
     def ok(self):
         '''
         Return this when no error appears.
@@ -87,7 +135,7 @@ class Error:
         Return:
           -
         '''
-        return self.ok
+        return self.okCode
 
     def unkown(self, message="", level="warn"):
         '''
@@ -98,9 +146,10 @@ class Error:
         Return:
           -
         '''
-        __print_msg(message, level)
-        return self.fileExists
+        self.__print_msg(message, level)
+        return self.fileExistsCode
 
+    # File errors
     def file_exists(self, message="", level="warn"):
         '''
         Return when the file already exists.
@@ -110,8 +159,8 @@ class Error:
         Return:
           -
         '''
-        __print_msg(message, level)
-        return self.fileExists
+        self.__print_msg(message, level)
+        return self.fileExistsCode
 
     def file_do_not_exist(self, message="", level="warn"):
         '''
@@ -122,8 +171,8 @@ class Error:
         Return:
           -
         '''
-        __print_msg(message, level)
-        return self.fileDoNotExist
+        self.__print_msg(message, level)
+        return self.fileDoNotExistCode
 
     def read_file(self, message="", level="warn"):
         '''
@@ -134,8 +183,8 @@ class Error:
         Return:
           -
         '''
-        __print_msg(message, level)
-        return self.readFile
+        self.__print_msg(message, level)
+        return self.readFileCode
 
     def write_file(self, message="", level="warn"):
         '''
@@ -146,8 +195,8 @@ class Error:
         Return:
           -
         '''
-        __print_msg(message, level)
-        return self.writeFile
+        self.__print_msg(message, level)
+        return self.writeFileCode
 
     def untar_file(self, message="", level="warn"):
         '''
@@ -158,8 +207,8 @@ class Error:
         Return:
           -
         '''
-        __print_msg(message, level)
-        return self.untarFile
+        self.__print_msg(message, level)
+        return self.untarFileCode
 
     def unsupported_extension(self, message="", level="warn"):
         '''
@@ -170,9 +219,10 @@ class Error:
         Return:
           -
         '''
-        __print_msg(message, level)
-        return self.unsupportedExtension
+        self.__print_msg(message, level)
+        return self.unsupportedExtensionCode
 
+    # Directory errors
     def create_dir(self, message="", level="warn"):
         '''
         Return this when the directory creation fails.
@@ -182,9 +232,48 @@ class Error:
         Return:
           -
         '''
-        __print_msg(message, level)
-        return self.createDirError
+        self.__print_msg(message, level)
+        return self.createDirCode
 
+    # Variable errors
+    def wrong_type(self, message="", level="warn"):
+        '''
+        Return this when the variable has wrong type.
+        Input:
+          message [string] DEFAULT: ""     - Message to be shown.
+          level   [string] DEFAULT: "warn" - Type of message "warn" or "error".
+        Return:
+          -
+        '''
+        self.__print_msg(message, level)
+        return self.wrongTypeCode
+
+    def not_set(self, message="", level="warn"):
+        '''
+        Return this when the variable is not set.
+        Input:
+          message [string] DEFAULT: ""     - Message to be shown.
+          level   [string] DEFAULT: "warn" - Type of message "warn" or "error".
+        Return:
+          -
+        '''
+        self.__print_msg(message, level)
+        return self.notSetCode
+
+    # Subprocess errors
+    def subprocess(self, message="", level="warn"):
+        '''
+        Return this when the variable is not set.
+        Input:
+          message [string] DEFAULT: ""     - Message to be shown.
+          level   [string] DEFAULT: "warn" - Type of message "warn" or "error".
+        Return:
+          -
+        '''
+        self.__print_msg(message, level)
+        return self.subprocessCode
+
+    # Debug functions
     def print_attributes(self):
         '''
         Print the class attributes.
@@ -194,28 +283,29 @@ class Error:
           -
         '''
         print(f"\t+------------------------------------------+")
-        print(f"\t|        OCDocker Return codes         |")
+        print(f"\t|          OCDocker Return codes           |")
         print(f"\t+------------------------------------------+")
 
         print(f"\n\t~~~~~~~~~~~~~~ GENERAL ERRORS ~~~~~~~~~~~~~~")
-        print(f"\t - No error:                    {self.ok}")
-        print(f"\t - Unknown error:               {self.unkown}")
+        print(f"\t - No error:                    {self.okCode}")
+        print(f"\t - Unknown error:               {self.unkownCode}")
 
         print(f"\n\t~~~~~~~~~~~~~~~~ FILE ERRORS ~~~~~~~~~~~~~~~")
-        print(f"\t - File exists:                 {self.fileExists}")
-        print(f"\t - File does not exists:        {self.fileDoNotExist}")
-        print(f"\t - Read file error:             {self.readFileError}")
-        print(f"\t - Write file error:            {self.writeFileError}")
-        print(f"\t - Untar error:                 {self.untarFile}")
-        print(f"\t - Unsupported extension error: {self.unsupportedExtension}")
+        print(f"\t - File exists:                 {self.fileExistsCode}")
+        print(f"\t - File does not exists:        {self.fileDoNotExistCode}")
+        print(f"\t - Read file error:             {self.readFileCode}")
+        print(f"\t - Write file error:            {self.writeFileCode}")
+        print(f"\t - Untar error:                 {self.untarFileCode}")
+        print(f"\t - Unsupported extension error: {self.unsupportedExtensionCode}")
 
         print(f"\n\t~~~~~~~~~~~~~ DIRECTORY ERRORS ~~~~~~~~~~~~~")
-        print(f"\t - Directory creation error:    {self.createDirError}")
+        print(f"\t - Directory creation error:    {self.createDirCode}")
 
-        print(f"\n\t~~~~~~~~~~ ERRORS WITH VARIABLES ~~~~~~~~~~~")
-        print(f"\t - Wrong type:                  {self.wrongType}")
+        print(f"\n\t~~~~~~~~~~~~~ VARIABLE ERRORS ~~~~~~~~~~~~~~")
+        print(f"\t - Wrong type:                  {self.wrongTypeCode}")
 
         print(f"\n\t~~~~~~~~~~~~~~ PROCESS ERRORS ~~~~~~~~~~~~~~")
+        print(f"\t - Subprocess error:            {self.subprocessCode}")
 
         return
 

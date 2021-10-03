@@ -238,10 +238,12 @@ def multipleMoleculesSDF(molecule):
                 ligands.append(Ligand(mol))
             return ligands
         else:
-            octools.print_error("The molecule file MUST be the .sdf format!")
+            # This case the return code is suppressed because it is needed to return None in case of failure
+            _ = errors.wrong_type(message=f"The molecule file MUST be the .sdf format!", level="error")
             return None
     else:
-        octools.print_error("The molecule file path MUST be a string!")
+        # This case the return code is suppressed because it is needed to return None in case of failure
+        _ = errors.wrong_type(message=f"The molecule file path MUST be a string!", level="error")
     return None
 
 def loadMol(molecule):
@@ -277,11 +279,12 @@ def loadMol(molecule):
         else:
             # The file extension is not supported, print data
             supportedExtensions = ['.pdb', '.sdf', '.mol', '.mol2']
-            octools.print_error(f"The ligand {molecule} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supportedExtensions)}.")
+            # This case the return code is suppressed because it is needed to return None in case of failure
+            _ = errors.unsupported_extension(message=f"The ligand {molecule} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supportedExtensions)}.", level="error")
             return None
     else:
         # The variable is not in a supported data format
-        octools.print_error("Unsupported molecule data. Please support either a molecule path (string) or a rdkit.Chem.rdchem.Mol object.")
+        _ = errors.unsupported_extension(message=f"Unsupported molecule data. Please support either a molecule path (string) or a rdkit.Chem.rdchem.Mol object.", level="error")
         return None
 
 def findExactMolWt(molecule):
@@ -291,6 +294,7 @@ def findExactMolWt(molecule):
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
       [double] - The exact molecular weight.
+      [None]   - If parsing the descriptor fails.
     '''
     if molecule:
         return rdkit.Chem.Descriptors.ExactMolWt(molecule)
@@ -303,6 +307,7 @@ def findFpDensityMorgan1(molecule):
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
       [double] - The Morgan fingerprint, radius 1.
+      [None]   - If parsing the descriptor fails.
     '''
     if molecule:
         return rdkit.Chem.Descriptors.FpDensityMorgan1(molecule)
@@ -315,6 +320,7 @@ def findFpDensityMorgan2(molecule):
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
       [double] - The Morgan fingerprint, radius 2.
+      [None]   - If parsing the descriptor fails.
     '''
     if molecule:
         return rdkit.Chem.Descriptors.FpDensityMorgan2(molecule)
@@ -327,6 +333,7 @@ def findFpDensityMorgan3(molecule):
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
       [double] - The Morgan fingerprint, radius 3.
+      [None]   - If parsing the descriptor fails.
     '''
     if molecule:
         return rdkit.Chem.Descriptors.FpDensityMorgan3(molecule)
@@ -339,6 +346,7 @@ def findHeavyAtomMolWt(molecule):
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
       [double] - The heavy atom molecular weight.
+      [None]   - If parsing the descriptor fails.
     '''
     if molecule:
         return rdkit.Chem.Descriptors.HeavyAtomMolWt(molecule)
@@ -351,6 +359,7 @@ def findMaxAbsPartialCharge(molecule):
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
       [double] - The maximum absolute partial charge.
+      [None]   - If parsing the descriptor fails.
     '''
     if molecule:
         return rdkit.Chem.Descriptors.MaxAbsPartialCharge(molecule)
@@ -363,6 +372,7 @@ def findMaxPartialCharge(molecule):
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
       [double] - The absolute partial partial charge.
+      [None]   - If parsing the descriptor fails.
     '''
     if molecule:
         return rdkit.Chem.Descriptors.MaxPartialCharge(molecule)
@@ -375,6 +385,7 @@ def findMinAbsPartialCharge(molecule):
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
       [double] - The minimum absolute partial partial charge.
+      [None]   - If parsing the descriptor fails.
     '''
     if molecule:
         return rdkit.Chem.Descriptors.MinAbsPartialCharge(molecule)
@@ -387,6 +398,7 @@ def findMinPartialCharge(molecule):
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
       [double] - The minimum partial partial charge.
+      [None]   - If parsing the descriptor fails.
     '''
     if molecule:
         return rdkit.Chem.Descriptors.MinPartialCharge(molecule)
@@ -399,6 +411,7 @@ def findMolWt(molecule):
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
       [double] - The molecular weight.
+      [None]   - If parsing the descriptor fails.
     '''
     if molecule:
         return rdkit.Chem.Descriptors.MolWt(molecule)
@@ -411,6 +424,7 @@ def findNumRadicalElectrons(molecule):
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
       [int] - The number of radical electrons.
+      [None]   - If parsing the descriptor fails.
     '''
     if molecule:
         return rdkit.Chem.Descriptors.NumRadicalElectrons(molecule)
@@ -423,6 +437,7 @@ def findNumValenceElectrons(molecule):
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
       [int] - The number of valence electrons.
+      [None]   - If parsing the descriptor fails.
     '''
     if molecule:
         return rdkit.Chem.Descriptors.NumValenceElectrons(molecule)
