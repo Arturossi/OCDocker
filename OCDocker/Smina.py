@@ -43,22 +43,22 @@ class Smina:
     """
     Smina object with methods for easy run.
     """
-    def __init__(self, configPath, boxFile, receptorPath, preparedReceptorPath, ligandPath, preparedLigandPath, sminaLog, outputSmina, name=""):
+    def __init__(self, configPath, receptorPath, preparedReceptorPath, ligandPath, preparedLigandPath, sminaLog, outputSmina, name=""):
         self.name = str(name)
         self.config = str(configPath)
-        self.boxFile = str(boxFile)
         # Receptor
         self.inputReceptor = str(receptorPath)
         self.preparedReceptor = str(preparedReceptorPath)
         self.prepareReceptorCmd = self.__prepare_receptor_cmd()
         # Ligand
         self.preparedLigand = str(preparedLigandPath)
-        self.inputLigand = self.ligandPath
+        self.inputLigand = ligandPath
         self.prepareLigandCmd = self.__prepare_ligand_cmd()
         # Vina
         self.sminaLog = str(sminaLog)
         self.outputSmina = str(outputSmina)
         self.sminaCmd = self.__smina_cmd()
+        self.__gen_smina_conf()
 
     def __smina_cmd(self):
         '''
@@ -68,7 +68,20 @@ class Smina:
         Return:
           cmd [list[string]] - List of strings of the command.
         '''
-        cmd = [smina, "--config", self.config, "--ligand", self.preparedLigand, "--autobox_ligand", self.preparedLigand, "--out", self.outputSmina, "--log", self.sminaLog, "--cpu", "1"]
+        cmd = [smina, "--config", self.config, "--ligand", self.preparedLigand, "--autobox_ligand", self.preparedLigand]
+
+        if smina_local_only.lower() in ["y", "ye", "yes"]:
+            cmd.append("--score_only")
+        if smina_minimize.lower() in ["y", "ye", "yes"]:
+            cmd.append("--minimize")
+        if smina_randomize_only.lower() in ["y", "ye", "yes"]:
+            cmd.append("--randomize_only")
+        if smina_accurate_line.lower() in ["y", "ye", "yes"]:
+            cmd.append("--accurate_line")
+        if smina_minimize_early_term.lower() in ["y", "ye", "yes"]:
+            cmd.append("--minimize_early_term")
+
+        cmd.extend(["--out", self.outputSmina, "--log", self.sminaLog, "--cpu", "1"])
         return cmd
 
     def __prepare_ligand_cmd(self):
@@ -129,6 +142,17 @@ class Smina:
         '''
         return octools.run(self.prepareReceptorCmd, logFile=logFile)
 
+    def __gen_smina_conf(self):
+        '''
+        Creates a conf file for smina.
+        Input:
+          -
+        Return:
+          [int]
+          See Error.py for all return codes.
+        '''
+        return gen_smina_conf(self.config, self.preparedReceptor)
+
     def print_attributes(self):
         '''
         Print the class attributes.
@@ -138,7 +162,6 @@ class Smina:
           -
         '''
         print(f"Name:                        '{self.name if self.name else '-' }'")
-        print(f"Box path:                    '{self.boxFile if self.boxFile else '-' }'")
         print(f"Config path:                 '{self.config if self.config else '-' }'")
         print(f"Input receptor path:         '{self.inputReceptor if self.inputReceptor else '-' }'")
         print(f"Prepared receptor path:      '{self.preparedReceptor if self.preparedReceptor else '-' }'")
@@ -153,6 +176,43 @@ class Smina:
 
 # Functions
 ###############################################################################
+def gen_smina_conf(confFile, receptor = "receptor_noH"):
+    '''
+    Convert a box (DUDE like format) to vina input.
+    Input:
+      boxFile   [string]                         - Path to the box file.
+      confFile  [string]                         - Path to the conf file.
+      receptor  [string] DEFAULT: "receptor_noH" - Receptor name to be used in conf file.
+    Return:
+      [int]
+      See Error.py for all return codes.
+    '''
+    octools.printv(f"Creating smina conf file in the path '{confFile}'.")
+    try:
+        # Now open the conf file to write
+        with open(confFile, 'w') as conf_file:
+            conf_file.write(f"receptor = {receptor}\n\n");
+            if smina_custom_scoring.lower() != "no":
+                conf_file.write(f"custom_scoring = {smina_custom_scoring}\n")
+            if smina_custom_atoms.lower() != "no":
+                conf_file.write(f"custom_atoms = {smina_custom_atoms}\n")
+
+            conf_file.write(f"minimize_iters = {smina_minimize_iters}\n")
+            conf_file.write(f"approximation = {smina_approximation}\n")
+            conf_file.write(f"factor = {smina_factor}\n")
+            conf_file.write(f"force_cap = {smina_force_cap}\n")
+
+            if smina_user_grid.lower() != "no":
+                conf_file.write(f"user_grid = {smina_custom_scoring}\n")
+                conf_file.write(f"user_grid_lambda = {smina_user_grid_lambda}\n")
+
+            conf_file.write(f"energy_range = {smina_energy_range}\n")
+            conf_file.write(f"exhaustiveness = {smina_exhaustiveness}\n")
+            conf_file.write(f"num_modes = {smina_num_modes}\n")
+    except Exception as e:
+        return errors.write_file(message=f"Found a problem while opening conf file: {e}.", level="error")
+    return errors.ok()
+
 def run_prepare_ligand(inputLigand, preparedLigand, logFile = ""):
     '''
     Converts the ligand to .pdbqt using obabel.
@@ -187,21 +247,33 @@ def run_prepare_receptor(inputReceptor, outputReceptor, logFile=""):
     # Run the command
     return octools.run(cmd, logFile=logFile)
 
-def run_smina(config, ligand, outpath, logpath):
+def run_smina(config, preparedLigand, outputSmina, sminaLog, logpath):
     '''
     Convert a box (DUDE like format) to vina input.
     Input:
-      config  [string]                   - Path to the config file.
-      ligand  [string]                   - Path to the ligand file.
-      outpath [string]                   - Path to the receptor file.
-      logpath [string]                   - Path to the log file.
-      logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output
+      config          [string]                   - Path to the config file.
+      preparedLigand  [string]                   - Path to the ligand file.
+      outputSmina     [string]                   - Path to the receptor file.
+      sminaLog        [string]                   - Path to the smina log file.
+      logFile         [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output
     Return:
       [int]
       See Error.py for all return codes.
     '''
     # Create the command list
-    cmd = [vina, "--config", config, "--ligand", ligand, "--out", outpath, "--log", logpath, "--cpu", "1"]
+    cmd = [smina, "--config", config, "--ligand", preparedLigand, "--autobox_ligand", preparedLigand]
 
+    if smina_local_only.lower() in ["y", "ye", "yes"]:
+        cmd.append("--score_only")
+    if smina_minimize.lower() in ["y", "ye", "yes"]:
+        cmd.append("--minimize")
+    if smina_randomize_only.lower() in ["y", "ye", "yes"]:
+        cmd.append("--randomize_only")
+    if smina_accurate_line.lower() in ["y", "ye", "yes"]:
+        cmd.append("--accurate_line")
+    if smina_minimize_early_term.lower() in ["y", "ye", "yes"]:
+        cmd.append("--minimize_early_term")
+
+    cmd.extend(["--out", outputSmina, "--log", sminaLog, "--cpu", "1"])
     # Run the command
     return octools.run(cmd, logFile=logFile)

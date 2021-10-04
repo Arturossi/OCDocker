@@ -1,0 +1,147 @@
+MODEL 1
+REMARK minimizedAffinity -8.59194183
+REMARK minimizedRMSD -1
+REMARK  Name = /mnt/d/Documents/OCDocker/OCDocker/test/xtal-lig.pdb
+REMARK  4 active torsions:
+REMARK  status: ('A' for Active; 'I' for Inactive)
+REMARK    1  A    between atoms: C7_7  and  C8_8
+REMARK    2  A    between atoms: C8_8  and  C9_9
+REMARK    3  A    between atoms: C9_9  and  N10_10
+REMARK    4  A    between atoms: C20_20  and  C21_21
+REMARK                            x       y       z     vdW  Elec       q    Type
+REMARK                         _______ _______ _______ _____ _____    ______ ____
+ROOT
+ATOM      1  N10 ZMA B 401      32.867  33.846  58.259  0.00  0.00    +0.000 NA
+ATOM      2  C11 ZMA B 401      32.217  34.273  59.336  0.00  0.00    +0.000 C 
+ATOM      3  N12 ZMA B 401      32.582  33.897  60.573  0.00  0.00    +0.000 NA
+ATOM      4  N13 ZMA B 401      31.157  35.073  59.137  0.00  0.00    +0.000 NA
+ATOM      5  C14 ZMA B 401      30.439  35.544  60.162  0.00  0.00    +0.000 C 
+ATOM      6  N15 ZMA B 401      29.399  36.344  59.940  0.00  0.00    +0.000 NA
+ATOM      7  N16 ZMA B 401      30.795  35.177  61.458  0.00  0.00    +0.000 N 
+ATOM      8  N17 ZMA B 401      30.324  35.453  62.562  0.00  0.00    +0.000 NA
+ATOM      9  C18 ZMA B 401      31.893  34.336  61.638  0.00  0.00    +0.000 C 
+ATOM     10  N19 ZMA B 401      32.015  34.146  62.946  0.00  0.00    +0.000 NA
+ATOM     11  C20 ZMA B 401      31.030  34.844  63.516  0.00  0.00    +0.000 C 
+ENDROOT
+BRANCH  11  12
+ATOM     12  C21 ZMA B 401      30.775  34.942  64.878  0.00  0.00    +0.000 A 
+ATOM     13  C22 ZMA B 401      31.296  35.781  65.768  0.00  0.00    +0.000 A 
+ATOM     14  C23 ZMA B 401      30.757  35.509  66.955  0.00  0.00    +0.000 A 
+ATOM     15  C24 ZMA B 401      29.894  34.501  66.825  0.00  0.00    +0.000 A 
+ATOM     16  O25 ZMA B 401      29.890  34.123  65.510  0.00  0.00    +0.000 OA
+ENDBRANCH  11  12
+BRANCH   1  17
+ATOM     17  C9  ZMA B 401      32.326  34.318  56.978  0.00  0.00    +0.000 C 
+BRANCH  17  18
+ATOM     18  C8  ZMA B 401      33.452  34.629  55.997  0.00  0.00    +0.000 C 
+BRANCH  18  25
+ATOM     19  C1  ZMA B 401      33.130  36.975  56.884  0.00  0.00    +0.000 A 
+ATOM     20  C2  ZMA B 401      33.303  38.350  56.791  0.00  0.00    +0.000 A 
+ATOM     21  C3  ZMA B 401      33.985  38.892  55.708  0.00  0.00    +0.000 A 
+ATOM     22  O4  ZMA B 401      34.160  40.236  55.611  0.00  0.00    +0.000 OA
+ATOM     23  C5  ZMA B 401      34.493  38.058  54.719  0.00  0.00    +0.000 A 
+ATOM     24  C6  ZMA B 401      34.317  36.684  54.810  0.00  0.00    +0.000 A 
+ATOM     25  C7  ZMA B 401      33.632  36.142  55.889  0.00  0.00    +0.000 A 
+ENDBRANCH  18  25
+ENDBRANCH  17  18
+ENDBRANCH   1  17
+TORSDOF 4
+ENDMDL
+MODEL 2
+REMARK minimizedAffinity -8.44447899
+REMARK minimizedRMSD -1
+REMARK  Name = /mnt/d/Documents/OCDocker/OCDocker/test/xtal-lig.pdb
+REMARK  4 active torsions:
+REMARK  status: ('A' for Active; 'I' for Inactive)
+REMARK    1  A    between atoms: C7_7  and  C8_8
+REMARK    2  A    between atoms: C8_8  and  C9_9
+REMARK    3  A    between atoms: C9_9  and  N10_10
+REMARK    4  A    between atoms: C20_20  and  C21_21
+REMARK                            x       y       z     vdW  Elec       q    Type
+REMARK                         _______ _______ _______ _____ _____    ______ ____
+ROOT
+ATOM      1  N10 ZMA B 401      31.038  36.981  59.617  0.00  0.00    +0.000 NA
+ATOM      2  C11 ZMA B 401      31.088  36.476  60.845  0.00  0.00    +0.000 C 
+ATOM      3  N12 ZMA B 401      30.065  35.774  61.359  0.00  0.00    +0.000 NA
+ATOM      4  N13 ZMA B 401      32.192  36.724  61.567  0.00  0.00    +0.000 NA
+ATOM      5  C14 ZMA B 401      32.325  36.263  62.816  0.00  0.00    +0.000 C 
+ATOM      6  N15 ZMA B 401      33.435  36.513  63.507  0.00  0.00    +0.000 NA
+ATOM      7  N16 ZMA B 401      31.284  35.526  63.375  0.00  0.00    +0.000 N 
+ATOM      8  N17 ZMA B 401      31.138  34.994  64.476  0.00  0.00    +0.000 NA
+ATOM      9  C18 ZMA B 401      30.143  35.292  62.610  0.00  0.00    +0.000 C 
+ATOM     10  N19 ZMA B 401      29.319  34.577  63.366  0.00  0.00    +0.000 NA
+ATOM     11  C20 ZMA B 401      29.945  34.397  64.531  0.00  0.00    +0.000 C 
+ENDROOT
+BRANCH  11  12
+ATOM     12  C21 ZMA B 401      29.457  33.697  65.626  0.00  0.00    +0.000 A 
+ATOM     13  C22 ZMA B 401      29.902  33.686  66.878  0.00  0.00    +0.000 A 
+ATOM     14  C23 ZMA B 401      29.123  32.869  67.586  0.00  0.00    +0.000 A 
+ATOM     15  C24 ZMA B 401      28.183  32.360  66.788  0.00  0.00    +0.000 A 
+ATOM     16  O25 ZMA B 401      28.377  32.874  65.535  0.00  0.00    +0.000 OA
+ENDBRANCH  11  12
+BRANCH   1  17
+ATOM     17  C9  ZMA B 401      32.220  37.752  59.214  0.00  0.00    +0.000 C 
+BRANCH  17  18
+ATOM     18  C8  ZMA B 401      31.868  38.745  58.110  0.00  0.00    +0.000 C 
+BRANCH  18  25
+ATOM     19  C1  ZMA B 401      33.544  39.679  56.464  0.00  0.00    +0.000 A 
+ATOM     20  C2  ZMA B 401      34.436  39.525  55.410  0.00  0.00    +0.000 A 
+ATOM     21  C3  ZMA B 401      34.629  38.272  54.841  0.00  0.00    +0.000 A 
+ATOM     22  O4  ZMA B 401      35.501  38.114  53.811  0.00  0.00    +0.000 OA
+ATOM     23  C5  ZMA B 401      33.931  37.173  55.327  0.00  0.00    +0.000 A 
+ATOM     24  C6  ZMA B 401      33.038  37.327  56.378  0.00  0.00    +0.000 A 
+ATOM     25  C7  ZMA B 401      32.840  38.579  56.944  0.00  0.00    +0.000 A 
+ENDBRANCH  18  25
+ENDBRANCH  17  18
+ENDBRANCH   1  17
+TORSDOF 4
+ENDMDL
+MODEL 3
+REMARK minimizedAffinity -8.43693066
+REMARK minimizedRMSD -1
+REMARK  Name = /mnt/d/Documents/OCDocker/OCDocker/test/xtal-lig.pdb
+REMARK  4 active torsions:
+REMARK  status: ('A' for Active; 'I' for Inactive)
+REMARK    1  A    between atoms: C7_7  and  C8_8
+REMARK    2  A    between atoms: C8_8  and  C9_9
+REMARK    3  A    between atoms: C9_9  and  N10_10
+REMARK    4  A    between atoms: C20_20  and  C21_21
+REMARK                            x       y       z     vdW  Elec       q    Type
+REMARK                         _______ _______ _______ _____ _____    ______ ____
+ROOT
+ATOM      1  N10 ZMA B 401      31.709  38.693  59.757  0.00  0.00    +0.000 NA
+ATOM      2  C11 ZMA B 401      31.376  37.620  60.466  0.00  0.00    +0.000 C 
+ATOM      3  N12 ZMA B 401      31.229  37.676  61.800  0.00  0.00    +0.000 NA
+ATOM      4  N13 ZMA B 401      31.222  36.466  59.798  0.00  0.00    +0.000 NA
+ATOM      5  C14 ZMA B 401      30.895  35.334  60.432  0.00  0.00    +0.000 C 
+ATOM      6  N15 ZMA B 401      30.738  34.204  59.745  0.00  0.00    +0.000 NA
+ATOM      7  N16 ZMA B 401      30.730  35.360  61.814  0.00  0.00    +0.000 N 
+ATOM      8  N17 ZMA B 401      30.439  34.490  62.635  0.00  0.00    +0.000 NA
+ATOM      9  C18 ZMA B 401      30.906  36.568  62.487  0.00  0.00    +0.000 C 
+ATOM     10  N19 ZMA B 401      30.693  36.321  63.774  0.00  0.00    +0.000 NA
+ATOM     11  C20 ZMA B 401      30.405  35.021  63.859  0.00  0.00    +0.000 C 
+ENDROOT
+BRANCH  11  12
+ATOM     12  C21 ZMA B 401      30.104  34.322  65.021  0.00  0.00    +0.000 A 
+ATOM     13  C22 ZMA B 401      30.324  34.667  66.285  0.00  0.00    +0.000 A 
+ATOM     14  C23 ZMA B 401      29.869  33.688  67.065  0.00  0.00    +0.000 A 
+ATOM     15  C24 ZMA B 401      29.360  32.720  66.302  0.00  0.00    +0.000 A 
+ATOM     16  O25 ZMA B 401      29.500  33.103  64.996  0.00  0.00    +0.000 OA
+ENDBRANCH  11  12
+BRANCH   1  17
+ATOM     17  C9  ZMA B 401      31.864  38.462  58.316  0.00  0.00    +0.000 C 
+BRANCH  17  18
+ATOM     18  C8  ZMA B 401      32.827  39.477  57.705  0.00  0.00    +0.000 C 
+BRANCH  18  25
+ATOM     19  C1  ZMA B 401      34.259  39.661  55.630  0.00  0.00    +0.000 A 
+ATOM     20  C2  ZMA B 401      34.897  39.097  54.532  0.00  0.00    +0.000 A 
+ATOM     21  C3  ZMA B 401      34.800  37.730  54.300  0.00  0.00    +0.000 A 
+ATOM     22  O4  ZMA B 401      35.422  37.171  53.229  0.00  0.00    +0.000 OA
+ATOM     23  C5  ZMA B 401      34.066  36.929  55.166  0.00  0.00    +0.000 A 
+ATOM     24  C6  ZMA B 401      33.426  37.493  56.261  0.00  0.00    +0.000 A 
+ATOM     25  C7  ZMA B 401      33.518  38.859  56.492  0.00  0.00    +0.000 A 
+ENDBRANCH  18  25
+ENDBRANCH  17  18
+ENDBRANCH   1  17
+TORSDOF 4
+ENDMDL

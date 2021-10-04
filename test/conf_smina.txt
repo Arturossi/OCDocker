@@ -1,0 +1,9 @@
+receptor = /mnt/d/Documents/OCDocker/OCDocker/test/rec.crg2.pdbqt
+
+minimize_iters = 0
+approximation = spline
+factor = 32
+force_cap = 10
+energy_range = 10
+exhaustiveness = 5
+num_modes = 3

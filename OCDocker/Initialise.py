@@ -59,22 +59,39 @@ def create_ocdocker_conf():
     confOcdb = "/mnt/d/Documents/OCDocker/OCDocker/data/ocdb"
     confDock6 = "/mnt/d/Documents/OCDocker/software/docking/dock6/bin/dock6"
     confPlants = "/mnt/d/Documents/OCDocker/software/docking/plants/PLANTS1.2_64bit"
-    confSmina = "/mnt/d/Documents/OCDocker/software/docking/smina/build/smina"
-    confVina = "/usr/bin/vina"
     confPythonsh = "/mnt/d/Documents/OCDocker/OCDocker/mgltools/bin/pythonsh"
     confPrepare_ligand = "/mnt/d/Documents/OCDocker/OCDocker/mgltools/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_ligand4.py"
     confPrepare_receptor = "/mnt/d/Documents/OCDocker/OCDocker/mgltools/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_receptor4.py"
+
     confObabel = "/usr/bin/obabel"
     confPrank = "/mnt/d/Documents/OCDocker/software/search/p2rank_2.3/prank"
     confDUDEz = "https://dudez.docking.org/DOCKING_GRIDS_AND_POSES.tgz"
+
+    confVina = "/usr/bin/vina"
     confVina_energy_range = "10"
     confVina_exhaustiveness = "5"
     confVina_num_modes = "3"
+
+    confSmina = "/mnt/d/Documents/OCDocker/software/docking/smina/build/smina"
     confSmina_energy_range = "10"
     confSmina_exhaustiveness = "5"
     confSmina_num_modes = "3"
+    confSmina_scoring = "vinardo"
+    confSmina_custom_scoring_file = "no"
+    confSmina_custom_atoms = "no"
+    confSmina_local_only = "no"
+    confSmine_minimize = "no"
+    confSmina_randomize_only = "no"
+    confSmina_minimize_iters = "0"
+    confSmina_accurate_line = "yes"
+    confSmina_minimize_early_term = "no"
+    confSmina_approximation = "spline"
+    confSmina_factor = "32"
+    confSmina_force_cap = "10"
+    confSmina_user_grid = "no"
+    confSmina_user_grid_lambda = "-1"
 
-
+    # General variables
     answer = input(f"Path to the OCDB. Default [{confOcdb}] (press enter to keep default): ")
     confOcdb = confOcdb if not answer else answer
 
@@ -83,21 +100,6 @@ def create_ocdocker_conf():
 
     answer = input(f"Path to the Plants software. Default [{confPlants}] (press enter to keep default): ")
     confPlants = confPlants if not answer else answer
-
-    answer = input(f"Path to the Smina software. Default [{confSmina}] (press enter to keep default): ")
-    confSmina = confSmina if not answer else answer
-
-    answer = input(f"Path to the Vina software. Default [{confVina}] (press enter to keep default): ")
-    confVina = confVina if not answer else answer
-
-    answer = input(f"Path to the pythonsh env from MGLTools. Default [{confPythonsh}] (press enter to keep default): ")
-    confPythonsh = confPythonsh if not answer else answer
-
-    answer = input(f"Path to the prepare_ligand4.py script from MGLTools. Default [{confPrepare_ligand}] (press enter to keep default): ")
-    confPrepare_ligand = confPrepare_ligand if not answer else answer
-
-    answer = input(f"Path to the prepare_receptor4.py script from MGLTools. Default [{confPrepare_receptor}] (press enter to keep default): ")
-    confPrepare_receptor = confPrepare_receptor if not answer else answer
 
     answer = input(f"Path to the obabel software. Default [{confObabel}] (press enter to keep default): ")
     confObabel = confObabel if not answer else answer
@@ -108,14 +110,10 @@ def create_ocdocker_conf():
     answer = input(f"Link to the DUDEz database where you can download data. Default [{confDUDEz}] (press enter to keep default): ")
     confDUDEz = confDUDEz if not answer else answer
 
-    answer = input(f"Vina energy parameter. Default [{confVina_energy_range}] (press enter to keep default): ")
-    confVina_energy_range = confVina_energy_range if not answer else answer
-
-    answer = input(f"Vina exhaustiveness parameter. Default [{confVina_exhaustiveness}] (press enter to keep default): ")
-    confVina_exhaustiveness = confVina_exhaustiveness if not answer else answer
-
-    answer = input(f"Vina num modes parameter. Default [{confVina_num_modes}] (press enter to keep default): ")
-    confVina_num_modes = confVina_num_modes if not answer else answer
+    # Smina variables
+    print("\nSmina configuration")
+    answer = input(f"Path to the Smina software. Default [{confSmina}] (press enter to keep default): ")
+    confSmina = confSmina if not answer else answer
 
     answer = input(f"Smina energy range parameter. Default [{confSmina_energy_range}] (press enter to keep default): ")
     confSmina_energy_range = confSmina_energy_range if not answer else answer
@@ -126,7 +124,76 @@ def create_ocdocker_conf():
     answer = input(f"Smina num modes parameter. Default [{confSmina_num_modes}] (press enter to keep default): ")
     confSmina_num_modes = confSmina_num_modes if not answer else answer
 
+    answer = input(f"Smina scoring function parameter. Default [{confSmina_scoring}] (press enter to keep default): ")
+    confSmina_scoring = confSmina_scoring if not answer else answer
+
+    answer = input(f"Smina custom scoring file parameter ('no' to ignore this parameter, otherwise provide the path). Default [{confSmina_custom_scoring_file}] (press enter to keep default): ")
+    confSmina_custom_scoring_file = confSmina_custom_scoring_file if not answer else answer
+
+    answer = input(f"Smina custom atoms file parameter ('no' to ignore this parameter, otherwise provide the path). Default [{confSmina_custom_atoms}] (press enter to keep default): ")
+    confSmina_custom_atoms = confSmina_custom_atoms if not answer else answer
+
+    answer = input(f"Smina local only parameter [yes/no]. Default [{confSmina_local_only}] (press enter to keep default): ")
+    confSmina_local_only = confSmina_local_only if not answer else answer.lower()
+
+    answer = input(f"Smina minimize parameter [yes/no]. Default [{confSmine_minimize}] (press enter to keep default): ")
+    confSmine_minimize = confSmine_minimize if not answer else answer.lower()
+
+    answer = input(f"Smina randomize only parameter [yes/no]. Default [{confSmina_randomize_only}] (press enter to keep default): ")
+    confSmina_randomize_only = confSmina_randomize_only if not answer else answer.lower()
+
+    answer = input(f"Smina scoring function parameter. Default [{confSmina_minimize_iters}] (press enter to keep default): ")
+    confSmina_minimize_iters = confSmina_minimize_iters if not answer else answer
+
+    answer = input(f"Smina scoring function parameter [yes/no]. Default [{confSmina_accurate_line}] (press enter to keep default): ")
+    confSmina_accurate_line = confSmina_accurate_line if not answer else answer.lower()
+
+    answer = input(f"Smina minimize early parameter [yes/no]. Default [{confSmina_minimize_early_term}] (press enter to keep default): ")
+    confSmina_minimize_early_term = confSmina_minimize_early_term if not answer else answer.lower()
+
+    answer = input(f"Smina scoring function parameter. Default [{confSmina_approximation}] (press enter to keep default): ")
+    confSmina_approximation = confSmina_approximation if not answer else answer
+
+    answer = input(f"Smina factor parameter. Default [{confSmina_factor}] (press enter to keep default): ")
+    confSmina_factor = confSmina_factor if not answer else answer
+
+    answer = input(f"Smina force cap parameter. Default [{confSmina_force_cap}] (press enter to keep default): ")
+    confSmina_force_cap = confSmina_force_cap if not answer else answer
+
+    answer = input(f"Smina user grid parameter ('no' to ignore this parameter, otherwise provide the path). Default [{confSmina_user_grid}] (press enter to keep default): ")
+    confSmina_user_grid = confSmina_user_grid if not answer else answer
+
+    answer = input(f"Smina user grid lambda parameter. Default [{confSmina_user_grid_lambda}] (press enter to keep default): ")
+    confSmina_user_grid_lambda = confSmina_user_grid_lambda if not answer else answer
+
+    # Vina variables
+    print("\nVina configuration")
+    answer = input(f"Path to the Vina software. Default [{confVina}] (press enter to keep default): ")
+    confVina = confVina if not answer else answer
+
+    answer = input(f"Vina energy parameter. Default [{confVina_energy_range}] (press enter to keep default): ")
+    confVina_energy_range = confVina_energy_range if not answer else answer
+
+    answer = input(f"Vina exhaustiveness parameter. Default [{confVina_exhaustiveness}] (press enter to keep default): ")
+    confVina_exhaustiveness = confVina_exhaustiveness if not answer else answer
+
+    answer = input(f"Vina num modes parameter. Default [{confVina_num_modes}] (press enter to keep default): ")
+    confVina_num_modes = confVina_num_modes if not answer else answer
+
+    # MGLTools variables
+    print("\nMGLTools configuration")
+    answer = input(f"Path to the pythonsh env from MGLTools. Default [{confPythonsh}] (press enter to keep default): ")
+    confPythonsh = confPythonsh if not answer else answer
+
+    answer = input(f"Path to the prepare_ligand4.py script from MGLTools. Default [{confPrepare_ligand}] (press enter to keep default): ")
+    confPrepare_ligand = confPrepare_ligand if not answer else answer
+
+    answer = input(f"Path to the prepare_receptor4.py script from MGLTools. Default [{confPrepare_receptor}] (press enter to keep default): ")
+    confPrepare_receptor = confPrepare_receptor if not answer else answer
+
     conf_file = "OCDocker.cfg"
+
+    # Create the conf file
     with open(conf_file, "w") as cf:
         cf.write(tw.dedent("""
         # Root directory for the OCDocker Database
@@ -186,37 +253,49 @@ def create_ocdocker_conf():
         # Maximum number of binding modes to generate
         smina_num_modes = """ + confSmina_num_modes + """
 
-        #
+        # Alternativa scoring function
+        smina_scoring = """ + confSmina_scoring + """
+
+        # Custom scoring file
+        smina_custom_scoring = """ + confSmina_custom_scoring_file + """
+
+        # Custom atoms
+        smina_custom_atoms = """ + confSmina_custom_atoms + """
+
+        # Local search only using autobox (you probably want to use --minimize)
+        smina_local_only = """ + confSmina_local_only + """
+
+        # Energy minimization
+        smina_minimize = """ + confSmine_minimize + """
+
+        # Generate random poses, attempting to avoid clashes
+        smina_randomize_only = """ + confSmina_randomize_only + """
+
+        # Number iterations of steepest descent; default scales with rotors and usually isn't sufficient for convergence
+        smina_minimize_iters = """ + confSmina_minimize_iters + """
+
+        # Stop minimization before convergence conditions are fully met
+        smina_minimize_early_term = """ + confSmina_minimize_early_term + """
+
+        # Use accurate line search
+        smina_accurate_line = """ + confSmina_accurate_line + """
+
+        # Approximation (linear, spline, or exact) to use
+        smina_approximation = """ + confSmina_approximation + """
+
+        # Approximation factor: higher results in a finer-grained approximation
+        smina_factor = """ + confSmina_factor + """
+
+        # Max allowed force; lower values more gently minimize clashing structures
+        smina_force_cap = """ + confSmina_force_cap + """
+
+        # Autodock map file for user grid data based calculations
+        smina_user_grid = """ + confSmina_user_grid + """
+
+        # Scales user_grid and functional scoring
+        smina_user_grid_lambda = """ + confSmina_user_grid_lambda + """
 
         """))
-
-    '''Scoring and minimization options:
-      --scoring arg                specify alternative builtin scoring function [e.g. vinardo]
-      --custom_scoring arg         custom scoring function file
-      --custom_atoms arg           custom atom type parameters file
-      --score_only                 score provided ligand pose
-      --local_only                 local search only using autobox (you probably
-                                   want to use --minimize)
-      --minimize                   energy minimization
-      --randomize_only             generate random poses, attempting to avoid
-                                   clashes
-      --minimize_iters arg (=0)    number iterations of steepest descent; default
-                                   scales with rotors and usually isn't sufficient
-                                   for convergence
-      --accurate_line              use accurate line search
-      --minimize_early_term        Stop minimization before convergence conditions
-                                   are fully met.
-      --approximation arg          approximation (linear, spline, or exact) to use
-      --factor arg                 approximation factor: higher results in a
-                                   finer-grained approximation
-      --force_cap arg              max allowed force; lower values more gently
-                                   minimize clashing structures
-      --user_grid arg              Autodock map file for user grid data based
-                                   calculations
-      --user_grid_lambda arg (=-1) Scales user_grid and functional scoring
-      --print_terms                Print all available terms with default
-                                   parameterizations
-      --print_atom_types           Print all available atom types'''
 
     print(f"{clrs['g']}Configuration file created!{clrs['n']} If you need to change the paths you might want to {clrs['y']}EDIT ITS CONTENTS{clrs['n']} or delete the file and execute this routine again so that your environment variables are correctly set. To ensure that all variables are correctly set, please restart OCDocker.")
     return
@@ -248,10 +327,24 @@ global vina_num_modes
 global vina_energy_range
 global vina_exhaustiveness
 
-# Vina parameters
+# Smina parameters
 global smina_num_modes
 global smina_energy_range
 global smina_exhaustiveness
+global smina_scoring
+global smina_custom_scoring
+global smina_custom_atoms
+global smina_local_only
+global smina_minimize
+global smina_randomize_only
+global smina_minimize_iters
+global smina_accurate_line
+global smina_minimize_early_term
+global smina_approximation
+global smina_factor
+global smina_force_cap
+global smina_user_grid
+global smina_user_grid_lambda
 
 # Database + OCDocker variables
 global dudez_archive
@@ -405,6 +498,34 @@ for line in open(config_file, "r"):
         smina_exhaustiveness = line.split("=")[1].strip()
     elif line.startswith("smina_num_modes ="):
         smina_num_modes = line.split("=")[1].strip()
+    elif line.startswith("smina_scoring ="):
+        smina_scoring = line.split("=")[1].strip()
+    elif line.startswith("smina_custom_scoring ="):
+        smina_custom_scoring = line.split("=")[1].strip()
+    elif line.startswith("smina_custom_atoms ="):
+        smina_custom_atoms = line.split("=")[1].strip()
+    elif line.startswith("smina_local_only ="):
+        smina_local_only = line.split("=")[1].strip()
+    elif line.startswith("smina_minimize ="):
+        smina_minimize = line.split("=")[1].strip()
+    elif line.startswith("smina_randomize_only ="):
+        smina_randomize_only = line.split("=")[1].strip()
+    elif line.startswith("smina_minimize_iters ="):
+        smina_minimize_iters = line.split("=")[1].strip()
+    elif line.startswith("smina_accurate_line ="):
+        smina_accurate_line = line.split("=")[1].strip()
+    elif line.startswith("smina_minimize_early_term ="):
+        smina_minimize_early_term = line.split("=")[1].strip()
+    elif line.startswith("smina_approximation ="):
+        smina_approximation = line.split("=")[1].strip()
+    elif line.startswith("smina_factor ="):
+        smina_factor = line.split("=")[1].strip()
+    elif line.startswith("smina_force_cap ="):
+        smina_force_cap = line.split("=")[1].strip()
+    elif line.startswith("smina_user_grid ="):
+        smina_user_grid = line.split("=")[1].strip()
+    elif line.startswith("smina_user_grid_lambda ="):
+        smina_user_grid_lambda = line.split("=")[1].strip()
 
 # Root directory for OCDocker module
 ocdocker_path = os.path.dirname(os.path.abspath( __file__ ))

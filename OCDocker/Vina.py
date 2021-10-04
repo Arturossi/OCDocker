@@ -206,7 +206,7 @@ def box_to_vina(boxFile, confFile, receptor = "receptor_noH"):
       [int]
       See Error.py for all return codes.
     '''
-    octools.printv(f"Converting the box file '{boxFile}' to vina conf file as '{confFile}' file.")
+    octools.printv(f"Converting the box file '{boxFile}' to Vina conf file as '{confFile}' file.")
     # Test if the file boxFile exists
     if not os.path.exists(boxFile):
         return errors.file_do_not_exist(message=f"The box file in the path {boxFile} does not exists! Please ensure that the file exsits and the path is correct. If you have no box file, try to run the function 'runprank' from the 'runprank' library to create it before calling this function or creating a Vina class object.", level="error")

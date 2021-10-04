@@ -104,7 +104,7 @@ def __safe_create_dir(dirname):
         exit(-1)
     return -2
 
-def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = "cartesian", spacing = 3.0, boxMaxCutoff = 0.5):
+def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = "cartesian", spacing = 4.0, boxMaxCutoff = 0.5):
     '''
     Function to process the cluster object and print a box file
     Input:
@@ -113,7 +113,7 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
      fout         [string]                      - The path to output box files
      suffix       [string] DEFAULT: ""          - The suffix to append to box files and to create containing folders
      coordSystem  [string] DEFAULT: "cartesian" - The coordinate system to be used. The options are cartesian, polar, spherical
-     spacing      [float]  DEFAULT: 3.0         - Expansion size of the box in angstroms
+     spacing      [float]  DEFAULT: 4.0         - Expansion size of the box in angstroms
      boxMaxCutoff [float]  DEFAULT: 0.5         - If the probability value from p2rank is above this value, the pocket WILL be considered as valid, even if its value is below the cutoff (use 1.0 to disable this feature)
     Return:
         Nothing
@@ -245,7 +245,7 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
             f.write("CONECT    7    3    6    8\n")
             f.write("CONECT    8    4    5    7\n")
 
-def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "AgglomerativeClustering": True, "Birch": False, "DBSCAN": False, "KMeans": False, "MeanShift": False, "MiniBatchKMeans": False, "NoCluster": False, "OPTICS": False, "SpectralClustering": False}, prank = "", threads = 1, coordSystem = "cartesian", spacing = 3.0, boxMaxCutoff = 0.5, pocketCutoff = 0.1, verbose=False, debug=False):
+def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "AgglomerativeClustering": True, "Birch": False, "DBSCAN": False, "KMeans": False, "MeanShift": False, "MiniBatchKMeans": False, "NoCluster": False, "OPTICS": False, "SpectralClustering": False}, prank = "", threads = 1, coordSystem = "cartesian", spacing = 4.0, boxMaxCutoff = 0.5, pocketCutoff = 0.1, verbose=False, debug=False):
     '''
     Function to run p2rank and process its results, converting to a box space to be used in Vina
     Input:
@@ -267,7 +267,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
      prank        [string]  DEFAULT: ""          - p2rank file
      threads      [int]     DEFAULT: 1           - Number of threads that the p2rank should use
      coordSystem  [string]  DEFAULT: "cartesian" - The coordinate system to be used. The options are cartesian, polar, spherical
-     spacing      [float]   DEFAULT: 3.0         - Expansion size of the box in angstroms
+     spacing      [float]   DEFAULT: 4.0         - Expansion size of the box in angstroms
      boxMaxCutoff [float]   DEFAULT: 0.5         - Value to be used as the maximum value as probability cutoff to consider a box as valid (use 1.0 to disable this feature)
      pocketCutoff [float]   DEFAULT: 0.5         - Value to consider (use 0.0 to disable this feature)
      verbose      [bool]    DEFAULT: False       - Verbose mode on/off
@@ -635,7 +635,7 @@ if __name__ == "__main__":
     fout = f"{basePath}/prank"
     threads = 8
     coordSystem = "cartesian"
-    spacing = 3.0
+    spacing = 4.0
     boxMaxCutoff = 0.5
     pocketCutoff = 0.1
     debug = True
