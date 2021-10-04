@@ -55,14 +55,14 @@ class Error:
         self.unsupportedExtensionCode = 105
 
         # Directory errors
-        self.createDirCode       = 150
+        self.createDirCode            = 150
 
         # Variable errors
         self.wrongTypeCode            = 200
         self.notSetCode               = 201
 
         # Subprocess errors
-        self.subprocessCode      = 300
+        self.subprocessCode           = 300
 
     # Internal functions
     def __print_success(self, message):
@@ -75,9 +75,9 @@ class Error:
         '''
         today = datetime.datetime.now()
         if self.args.debug:
-            print(f"\033[1;92mSUCCSESS\033[1;0m: {message} In function '{inspect.currentframe().f_back.f_back.f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_back.f_back.f_lineno} from file '{inspect.currentframe().f_back.f_back.f_back.f_code.co_filename}'.")
+            print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;92mSUCCSESS\033[1;0m: {message} In function '{inspect.currentframe().f_back.f_back.f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_back.f_back.f_lineno} from file '{inspect.currentframe().f_back.f_back.f_back.f_code.co_filename}'.")
         else:
-            print(f"[{today.strftime('%d-%m-%Y|%H:%M:%S')}] \033[1;92mSUCCSESS\033[1;0m: {message}")
+            print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033 [1;92mSUCCSESS\033[1;0m: {message}")
         return
 
     def __print_warning(self, message):
@@ -90,9 +90,9 @@ class Error:
         '''
         today = datetime.datetime.now()
         if self.args.debug or self.args.verbosity:
-            print(f"\033[1;93mWARNING\033[1;0m: {message} In function '{inspect.currentframe().f_back.f_back.f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_back.f_back.f_lineno} from file '{inspect.currentframe().f_back.f_back.f_back.f_code.co_filename}'.")
+            print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;93mWARNING\033[1;0m: {message} In function '{inspect.currentframe().f_back.f_back.f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_back.f_back.f_lineno} from file '{inspect.currentframe().f_back.f_back.f_back.f_code.co_filename}'.")
         else:
-            print(f"[{today.strftime('%d-%m-%Y|%H:%M:%S')}] \033[1;93mWARNING\033[1;0m: {message}")
+            print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;93mWARNING\033[1;0m: {message}")
         return
 
     def __print_error(self, message):
@@ -105,9 +105,9 @@ class Error:
         '''
         today = datetime.datetime.now()
         if self.args.debug or self.args.verbosity:
-            print(f"[{today.strftime('%d-%m-%Y|%H:%M:%S')}] \033[1;91mERROR\033[1;0m: {message} In function '{inspect.currentframe().f_back.f_back.f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_back.f_back.f_lineno} from file '{inspect.currentframe().f_back.f_back.f_back.f_code.co_filename}'.")
+            print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;91mERROR\033[1;0m: {message} In function '{inspect.currentframe().f_back.f_back.f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_back.f_back.f_lineno} from file '{inspect.currentframe().f_back.f_back.f_back.f_code.co_filename}'.")
         else:
-            print(f"\033[1;91mERROR\033[1;0m")
+            print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;91mERROR\033[1;0m")
         return
 
     def __print_msg(self, message, level):

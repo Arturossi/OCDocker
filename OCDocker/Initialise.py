@@ -56,65 +56,135 @@ def create_ocdocker_conf():
     Return:
       -
     '''
+    confOcdb = "/mnt/d/Documents/OCDocker/OCDocker/data/ocdb"
+    confDock6 = "/mnt/d/Documents/OCDocker/software/docking/dock6/bin/dock6"
+    confPlants = "/mnt/d/Documents/OCDocker/software/docking/plants/PLANTS1.2_64bit"
+    confSmina = "/mnt/d/Documents/OCDocker/software/docking/smina/build/smina"
+    confVina = "/usr/bin/vina"
+    confPythonsh = "/mnt/d/Documents/OCDocker/OCDocker/mgltools/bin/pythonsh"
+    confPrepare_ligand = "/mnt/d/Documents/OCDocker/OCDocker/mgltools/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_ligand4.py"
+    confPrepare_receptor = "/mnt/d/Documents/OCDocker/OCDocker/mgltools/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_receptor4.py"
+    confObabel = "/usr/bin/obabel"
+    confPrank = "/mnt/d/Documents/OCDocker/software/search/p2rank_2.3/prank"
+    confDUDEz = "https://dudez.docking.org/DOCKING_GRIDS_AND_POSES.tgz"
+    confVina_energy_range = "10"
+    confVina_exhaustiveness = "5"
+    confVina_num_modes = "3"
+    confSmina_energy_range = "10"
+    confSmina_exhaustiveness = "5"
+    confSmina_num_modes = "3"
+
+
+    answer = input(f"Path to the OCDB. Default [{confOcdb}] (press enter to keep default): ")
+    confOcdb = confOcdb if not answer else answer
+
+    answer = input(f"Path to the Dock6 software. Default [{confDock6}] (press enter to keep default): ")
+    confDock6 = confDock6 if not answer else answer
+
+    answer = input(f"Path to the Plants software. Default [{confPlants}] (press enter to keep default): ")
+    confPlants = confPlants if not answer else answer
+
+    answer = input(f"Path to the Smina software. Default [{confSmina}] (press enter to keep default): ")
+    confSmina = confSmina if not answer else answer
+
+    answer = input(f"Path to the Vina software. Default [{confVina}] (press enter to keep default): ")
+    confVina = confVina if not answer else answer
+
+    answer = input(f"Path to the pythonsh env from MGLTools. Default [{confPythonsh}] (press enter to keep default): ")
+    confPythonsh = confPythonsh if not answer else answer
+
+    answer = input(f"Path to the prepare_ligand4.py script from MGLTools. Default [{confPrepare_ligand}] (press enter to keep default): ")
+    confPrepare_ligand = confPrepare_ligand if not answer else answer
+
+    answer = input(f"Path to the prepare_receptor4.py script from MGLTools. Default [{confPrepare_receptor}] (press enter to keep default): ")
+    confPrepare_receptor = confPrepare_receptor if not answer else answer
+
+    answer = input(f"Path to the obabel software. Default [{confObabel}] (press enter to keep default): ")
+    confObabel = confObabel if not answer else answer
+
+    answer = input(f"Path to the p2rank software. Default [{confPrank}] (press enter to keep default): ")
+    confPrank = confPrank if not answer else answer
+
+    answer = input(f"Link to the DUDEz database where you can download data. Default [{confDUDEz}] (press enter to keep default): ")
+    confDUDEz = confDUDEz if not answer else answer
+
+    answer = input(f"Vina energy parameter. Default [{confVina_energy_range}] (press enter to keep default): ")
+    confVina_energy_range = confVina_energy_range if not answer else answer
+
+    answer = input(f"Vina exhaustiveness parameter. Default [{confVina_exhaustiveness}] (press enter to keep default): ")
+    confVina_exhaustiveness = confVina_exhaustiveness if not answer else answer
+
+    answer = input(f"Vina num modes parameter. Default [{confVina_num_modes}] (press enter to keep default): ")
+    confVina_num_modes = confVina_num_modes if not answer else answer
+
+    answer = input(f"Smina energy range parameter. Default [{confSmina_energy_range}] (press enter to keep default): ")
+    confSmina_energy_range = confSmina_energy_range if not answer else answer
+
+    answer = input(f"Smina exhaustiveness parameter. Default [{confSmina_exhaustiveness}] (press enter to keep default): ")
+    confSmina_exhaustiveness = confSmina_exhaustiveness if not answer else answer
+
+    answer = input(f"Smina num modes parameter. Default [{confSmina_num_modes}] (press enter to keep default): ")
+    confSmina_num_modes = confSmina_num_modes if not answer else answer
+
     conf_file = "OCDocker.cfg"
     with open(conf_file, "w") as cf:
         cf.write(tw.dedent("""
         # Root directory for the OCDocker Database
-        ocdb = /mnt/d/Documents/OCDocker/OCDocker/data/ocdb
+        ocdb = """ + confOcdb + """
 
         # dock6 path
-        dock6 = /mnt/d/Documents/OCDocker/software/docking/dock6/bin/dock6
+        dock6 = """ + confDock6 + """
 
         # PLANTS path
-        plants = /mnt/d/Documents/OCDocker/software/docking/plants/PLANTS1.2_64bit
+        plants = """ + confPlants + """
 
         # Smina path
-        smina = /mnt/d/Documents/OCDocker/software/docking/smina/build/smina
+        smina = """ + confSmina + """
 
         # Vina path
-        vina = /usr/bin/vina
+        vina = """ + confVina + """
 
         # MGLTools's pythonsh path
-        pythonsh = /mnt/d/Documents/OCDocker/OCDocker/mgltools/bin/pythonsh
+        pythonsh = """ + confPythonsh + """
 
         # prepare_ligand4 path
-        prepare_ligand = /mnt/d/Documents/OCDocker/OCDocker/mgltools/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_ligand4.py
+        prepare_ligand = """ + confPrepare_ligand + """
 
         # prepare_receptor4 path
-        prepare_receptor = /mnt/d/Documents/OCDocker/OCDocker/mgltools/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_receptor4.py
+        prepare_receptor = """ + confPrepare_receptor + """
 
         # Open Babel path
-        obabel = /usr/bin/obabel
+        obabel = """ + confObabel + """
 
         # P2Rank path
-        prank = /mnt/d/Documents/OCDocker/software/search/p2rank_2.3/prank
+        prank = """ + confPrank + """
 
         ############# DATABASE FETCH PARAMETERS #############
 
         # DUDEz download link
-        DUDEz = https://dudez.docking.org/DOCKING_GRIDS_AND_POSES.tgz
+        DUDEz = """ + confDUDEz + """
 
         ################## VINA PARAMETERS ##################
 
         # Maximum energy difference between the best binding mode and the worst one displayed (kcal/mol)
-        vina_energy_range = 10
+        vina_energy_range = """ + confVina_energy_range + """
 
         # Exhaustiveness of the global search
-        vina_exhaustiveness = 5
+        vina_exhaustiveness = """ + confVina_exhaustiveness + """
 
         # Maximum number of binding modes to generate
-        vina_num_modes = 3
+        vina_num_modes = """ + confVina_num_modes + """
 
         ################# SMINA PARAMETERS ##################
 
         # Maximum energy difference between the best binding mode and the worst one displayed (kcal/mol)
-        smina_energy_range = 10
+        smina_energy_range = """ + confSmina_energy_range + """
 
         # Exhaustiveness of the global search
-        smina_exhaustiveness = 5
+        smina_exhaustiveness = """ + confSmina_exhaustiveness + """
 
         # Maximum number of binding modes to generate
-        smina_num_modes = 3
+        smina_num_modes = """ + confSmina_num_modes + """
 
         #
 
@@ -148,7 +218,7 @@ def create_ocdocker_conf():
                                    parameterizations
       --print_atom_types           Print all available atom types'''
 
-    print(f"{clrs['g']}Configuration file created!{clrs['n']} Please{clrs['y']} EDIT ITS CONTENTS {clrs['n']}to match your environment and run OCDocker again.")
+    print(f"{clrs['g']}Configuration file created!{clrs['n']} If you need to change the paths you might want to {clrs['y']}EDIT ITS CONTENTS{clrs['n']} or delete the file and execute this routine again so that your environment variables are correctly set. To ensure that all variables are correctly set, please restart OCDocker.")
     return
 
 # Define Global Variables

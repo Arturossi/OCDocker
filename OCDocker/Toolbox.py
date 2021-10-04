@@ -66,7 +66,7 @@ def printv(message):
     '''
     if args.verbosity == 1:
         today = datetime.datetime.now()
-        print(f"[{today.strftime('%d-%m-%Y|%H:%M:%S')}] {message}")
+        print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {message}")
     return
 
 def print_success(message):
@@ -79,9 +79,9 @@ def print_success(message):
     '''
     today = datetime.datetime.now()
     if args.debug == 1:
-        print(f"[{today.strftime('%d-%m-%Y|%H:%M:%S')}] {clrs['y']}SUCCSESS{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
+        print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['y']}SUCCSESS{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
     else:
-        print(f"[{today.strftime('%d-%m-%Y|%H:%M:%S')}] {clrs['g']}SUCCSESS{clrs['n']}: {message}")
+        print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['g']}SUCCSESS{clrs['n']}: {message}")
     return
 
 
@@ -95,9 +95,9 @@ def print_warning(message):
     '''
     today = datetime.datetime.now()
     if args.debug == 1 or args.verboity == 1:
-        print(f"[{today.strftime('%d-%m-%Y|%H:%M:%S')}] {clrs['y']}WARNING{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
+        print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['y']}WARNING{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
     else:
-        print(f"[{today.strftime('%d-%m-%Y|%H:%M:%S')}] {clrs['y']}WARNING{clrs['n']}: {message}")
+        print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['y']}WARNING{clrs['n']}: {message}")
     return
 
 def print_error(message):
@@ -110,9 +110,9 @@ def print_error(message):
     '''
     today = datetime.datetime.now()
     if args.debug == 1 or args.verboity == 1:
-        print(f"[{today.strftime('%d-%m-%Y|%H:%M:%S')}] {clrs['r']}ERROR{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
+        print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] {clrs['r']}ERROR{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
     else:
-        print(f"[{today.strftime('%d-%m-%Y|%H:%M:%S')}] {clrs['r']}ERROR{clrs['n']}: {message}")
+        print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] {clrs['r']}ERROR{clrs['n']}: {message}")
     return
 
 def print_section(n, name):
