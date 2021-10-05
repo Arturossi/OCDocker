@@ -141,7 +141,7 @@ class Vina:
           See Error.py for all return codes.
         '''
         # Print verboosity
-        octools.printv(f"Running vina using the '{self.confFile}' configurations.")
+        octools.printv(f"Running vina using the '{self.config}' configurations.")
         return octools.run(self.vinaCmd, logFile=logFile)
 
     def run_prepare_ligand(self, logFile = ""):
