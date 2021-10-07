@@ -67,8 +67,8 @@ args.verbosity = 1
 basePath = '/mnt/d/Documents/OCDocker/OCDocker'
 
 # Testing the classes and objects
-vinaTest = ocvina.Vina(f"{basePath}/test/conf_vina.txt", f"{basePath}/test/box.pdb", f"{basePath}/test/rec.crg.pdb", f"{basePath}/test/rec.crg.pdbqt", f"{basePath}/test/xtal-lig.pdb", f"{basePath}/test/xtal-lig.pdbqt", f"{basePath}/test/vina.log", f"{basePath}/test/vina.pdbqt", name="Vina Test")
-sminaTest = ocsmina.Smina(f"{basePath}/test/conf_smina.txt", f"{basePath}/test/rec.crg.pdb", f"{basePath}/test/rec.crg2.pdbqt", f"{basePath}/test/xtal-lig.pdb", f"{basePath}/test/xtal-lig2.pdbqt", f"{basePath}/test/smina.log", f"{basePath}/test/smina.pdbqt", name="Smina Test")
-
-ligandTest = ocl.Ligand(f"{basePath}/test/xtal-lig.pdb", name="Ligante teste")
 receptorTest = ocr.Receptor(f"{basePath}/test/rec.crg.pdb", name="Receptor teste")
+ligandTest = ocl.Ligand(f"{basePath}/test/xtal-lig.pdb", name="Ligante teste")
+
+vinaTest = ocvina.Vina(f"{basePath}/test/conf_vina.txt", f"{basePath}/test/box.pdb", receptorTest, f"{basePath}/test/rec.crg.pdbqt", ligandTest, f"{basePath}/test/xtal-lig.pdbqt", f"{basePath}/test/vina.log", f"{basePath}/test/vina.pdbqt", name="Vina Test")
+sminaTest = ocsmina.Smina(f"{basePath}/test/conf_smina.txt", receptorTest, f"{basePath}/test/rec.crg2.pdbqt", ligandTest, f"{basePath}/test/xtal-lig2.pdbqt", f"{basePath}/test/smina.log", f"{basePath}/test/smina.pdbqt", name="Smina Test")

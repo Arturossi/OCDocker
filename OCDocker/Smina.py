@@ -9,6 +9,8 @@ import tarfile
 import datetime
 import subprocess
 
+import OCDocker.Ligand as ocl
+import OCDocker.Receptor as ocr
 from OCDocker.Initialise import *
 import OCDocker.Toolbox as octools
 
@@ -47,18 +49,102 @@ class Smina:
         self.name = str(name)
         self.config = str(configPath)
         # Receptor
-        self.inputReceptor = str(receptorPath)
+        self.inputReceptor = self.__parse_receptor(receptorPath)
+        self.inputReceptorPath = self.__parse_receptor_path(receptorPath)
         self.preparedReceptor = str(preparedReceptorPath)
         self.prepareReceptorCmd = self.__prepare_receptor_cmd()
         # Ligand
+        self.inputLigand = self.__parse_ligand(ligandPath)
+        self.inputLigandPath = self.__parse_ligand_path(ligandPath)
         self.preparedLigand = str(preparedLigandPath)
-        self.inputLigand = ligandPath
         self.prepareLigandCmd = self.__prepare_ligand_cmd()
         # Vina
         self.sminaLog = str(sminaLog)
         self.outputSmina = str(outputSmina)
         self.sminaCmd = self.__smina_cmd()
         self.__gen_smina_conf()
+
+    def __parse_receptor(self, receptor):
+        '''
+        Parse the receptor as input, handling its type.
+        Input:
+          receptor [ocr.Receptor] - The path for the receptor or its ocr.Receptor object.
+        Return:
+          [ocr.Receptor]
+           [object] The ocr.Receptor object.
+           [None]   If is a path, returns None (no linkage to Receptor object) NOT RECOMENDED.
+        '''
+        # Check the type of the receptor
+        if type(receptor) == ocr.Receptor:
+            octools.printv(f"The receptor '{receptor}' has been loaded.")
+            return receptor
+
+        octools.print_warning(f"The receptor '{receptor}' is not the type 'ocr.Receptor'. It is STRONGLY recomended that you provide an 'ocr.Receptor' object.")
+        return None
+
+    def __parse_receptor_path(self, receptor):
+        '''
+        Parse the receptor path, handling its type.
+        Input:
+          receptor [string/ocr.Receptor] - The path for the receptor or its receptor object.
+        Return:
+          [string] The receptor path.
+        '''
+        # Check the type of receptor variable
+        if type(receptor) == ocr.Receptor:
+            return receptor.path
+        elif type(receptor) == str:
+            # Since is a string, check if the file exists
+            if os.path.isfile(receptor):
+                # Exists! Return it!
+                return receptor
+            else:
+                _ = errors.file_do_not_exist(message=f"The receptor '{receptor}' has not a valid path.", level="error")
+                return ""
+
+        _ = errors.wrong_type(message=f"The receptor '{receptor}' has not a supported type. Expected 'string' or 'ocr.Receptor' but got {type(receptor)} instead.", level="error")
+        return ""
+
+    def __parse_ligand(self, ligand):
+        '''
+        Parse the ligand as input, handling its type.
+        Input:
+          receptor [ocl.Ligand] - The path for the receptor or its receptor object.
+        Return:
+          [ocl.Ligand]
+           [object] The ocr.Ligand object.
+           [None]   If is a path, returns None (no linkage to Ligand object) NOT RECOMENDED.
+        '''
+        # Check the type of the ligand
+        if type(ligand) == ocl.Ligand:
+            octools.printv(f"The ligand '{ligand}' has been loaded.")
+            return ligand
+
+        octools.print_warning(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.")
+        return None
+
+    def __parse_ligand_path(self, ligand):
+        '''
+        Parse the ligand path, handling its type.
+        Input:
+          ;igand [string/ocl.Ligand] - The path for the ligand or its ocl.Ligand object.
+        Return:
+          [string] The ligand object.
+        '''
+        # Check the type of ligand variable
+        if type(ligand) == ocl.Ligand:
+            return ligand.path
+        elif type(ligand) == str:
+            # Since is a string, check if the file exists
+            if os.path.isfile(ligand):
+                # Exists! Process it then!
+                return __process_ligand(ligand)
+            else:
+                _ = errors.file_do_not_exist(message=f"The ligand '{ligand}' has not a valid path.", level="error")
+                return ""
+
+        _ = errors.wrong_type(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.", level="error")
+        return ""
 
     def __smina_cmd(self):
         '''
@@ -93,7 +179,7 @@ class Smina:
           cmd [list[string]] - List of strings of the command.
         '''
 
-        cmd = [obabel, self.inputLigand, "-O", self.preparedLigand]
+        cmd = [obabel, self.inputLigandPath, "-O", self.preparedLigand]
 
         return cmd
 
@@ -106,7 +192,7 @@ class Smina:
           cmd [list[string]] - List of strings of the command.
         '''
 
-        cmd = [obabel, self.inputReceptor, "-xr", "-O", self.preparedReceptor]
+        cmd = [obabel, self.inputReceptorPath, "-xr", "-O", self.preparedReceptor]
         return cmd
 
     def run_smina(self, logFile = ""):
@@ -163,10 +249,12 @@ class Smina:
         '''
         print(f"Name:                        '{self.name if self.name else '-' }'")
         print(f"Config path:                 '{self.config if self.config else '-' }'")
-        print(f"Input receptor path:         '{self.inputReceptor if self.inputReceptor else '-' }'")
+        print(f"Input receptor:              '{self.inputReceptor if self.inputReceptor else '-' }'")
+        print(f"Input receptor path:         '{self.inputReceptorPath if self.inputReceptorPath else '-' }'")
         print(f"Prepared receptor path:      '{self.preparedReceptor if self.preparedReceptor else '-' }'")
         print(f"Prepared receptor command:   '{' '.join(self.prepareReceptorCmd) if self.prepareReceptorCmd else '-' }'")
-        print(f"Input ligand path:           '{self.inputLigand if self.inputLigand else '-' }'")
+        print(f"Input ligand:                '{self.inputLigand if self.inputLigand else '-' }'")
+        print(f"Input ligand path:           '{self.inputLigandPath if self.inputLigandPath else '-' }'")
         print(f"Prepared ligand path:        '{self.preparedLigand if self.preparedLigand else '-' }'")
         print(f"Prepared ligand command:     '{' '.join(self.prepareLigandCmd) if self.prepareLigandCmd else '-' }'")
         print(f"Smina execution log path:    '{self.sminaLog if self.sminaLog else '-' }'")
@@ -213,36 +301,36 @@ def gen_smina_conf(confFile, receptor = "receptor_noH"):
         return errors.write_file(message=f"Found a problem while opening conf file: {e}.", level="error")
     return errors.ok()
 
-def run_prepare_ligand(inputLigand, preparedLigand, logFile = ""):
+def run_prepare_ligand(inputLigandPath, preparedLigand, logFile = ""):
     '''
     Converts the ligand to .pdbqt using obabel.
     Input:
-      inputLigand    [string]                   - Path to the input ligand file.
-      preparedLigand [string]                   - Path to the output ligand file.
-      logFile        [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
+      inputLigandPath    [string]                   - Path to the input ligand file.
+      preparedLigand     [string]                   - Path to the output ligand file.
+      logFile            [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
     Return:
       [int]
       See Error.py for all return codes.
     '''
     # Create the command list
-    cmd = [obabel, inputLigand, "-O", preparedLigand]
+    cmd = [obabel, inputLigandPath, "-O", preparedLigand]
 
     # Run the command
     return octools.run(cmd, logFile=logFile)
 
-def run_prepare_receptor(inputReceptor, outputReceptor, logFile=""):
+def run_prepare_receptor(inputReceptorPath, outputReceptor, logFile=""):
     '''
     Converts the receptor to .pdbqt using obabel.
     Input:
-      inputReceptor    [string]                   - Path to the input receptor file.
-      preparedReceptor [string]                   - Path to the output receptor file.
-      logFile          [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
+      inputReceptorPath    [string]                   - Path to the input receptor file.
+      preparedReceptor     [string]                   - Path to the output receptor file.
+      logFile              [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
     Return:
       [int]
       See Error.py for all return codes.
     '''
     # Create the command list
-    cmd = [obabel, inputReceptor, "-xr", "-O", preparedReceptor]
+    cmd = [obabel, inputReceptorPath, "-xr", "-O", preparedReceptor]
 
     # Run the command
     return octools.run(cmd, logFile=logFile)

@@ -9,8 +9,13 @@ import tarfile
 import datetime
 import subprocess
 
+import OCDocker.Ligand as ocl
+import OCDocker.Receptor as ocr
 from OCDocker.Initialise import *
 import OCDocker.Toolbox as octools
+
+from Bio.PDB import *
+from rdkit import Chem
 
 # License
 ###############################################################################
@@ -43,18 +48,20 @@ class Vina:
     """
     Vina object with methods for easy run.
     """
-    def __init__(self, configPath, boxFile, receptorPath, preparedReceptorPath, ligandPath, preparedLigandPath, vinaLog, outputVina, name=""):
+    def __init__(self, configPath, boxFile, receptor, preparedReceptorPath, ligand, preparedLigandPath, vinaLog, outputVina, name=""):
         self.name = str(name)
         self.config = str(configPath)
         self.boxFile = str(boxFile)
         # Receptor
-        self.inputReceptor = str(receptorPath)
+        self.inputReceptor = self.__parse_receptor(receptor)
+        self.inputReceptorPath = self.__parse_receptor_path(receptor)
         self.preparedReceptor = str(preparedReceptorPath)
         self.prepareReceptorCmd = self.__prepare_receptor_cmd()
         # Ligand
         self.preparedLigand = str(preparedLigandPath)
         self.convert2mol2log = ""
-        self.inputLigand = self.__process_ligand(ligandPath)
+        self.inputLigand = self.__parse_ligand(ligand)
+        self.inputLigandPath = self.__parse_ligand_path(ligand)
         self.prepareLigandCmd = self.__prepare_ligand_cmd()
         # Vina
         self.vinaLog = str(vinaLog)
@@ -62,6 +69,88 @@ class Vina:
         self.vinaCmd = self.__vina_cmd()
         # Create the box
         self.__box_to_vina()
+
+    def __parse_receptor(self, receptor):
+        '''
+        Parse the receptor as input, handling its type.
+        Input:
+          receptor [ocr.Receptor] - The path for the receptor or its ocr.Receptor object.
+        Return:
+          [ocr.Receptor]
+           [object] The ocr.Receptor object.
+           [None]   If is a path, returns None (no linkage to Receptor object) NOT RECOMENDED.
+        '''
+        # Check the type of the receptor
+        if type(receptor) == ocr.Receptor:
+            octools.printv(f"The receptor '{receptor}' has been loaded.")
+            return receptor
+
+        octools.print_warning(f"The receptor '{receptor}' is not the type 'ocr.Receptor'. It is STRONGLY recomended that you provide an 'ocr.Receptor' object.")
+        return None
+
+    def __parse_receptor_path(self, receptor):
+        '''
+        Parse the receptor path, handling its type.
+        Input:
+          receptor [string/ocr.Receptor] - The path for the receptor or its receptor object.
+        Return:
+          [string] The receptor path.
+        '''
+        # Check the type of receptor variable
+        if type(receptor) == ocr.Receptor:
+            return receptor.path
+        elif type(receptor) == str:
+            # Since is a string, check if the file exists
+            if os.path.isfile(receptor):
+                # Exists! Return it!
+                return receptor
+            else:
+                _ = errors.file_do_not_exist(message=f"The receptor '{receptor}' has not a valid path.", level="error")
+                return ""
+
+        _ = errors.wrong_type(message=f"The receptor '{receptor}' has not a supported type. Expected 'string' or 'ocr.Receptor' but got {type(receptor)} instead.", level="error")
+        return ""
+
+    def __parse_ligand(self, ligand):
+        '''
+        Parse the ligand as input, handling its type.
+        Input:
+          receptor [ocl.Ligand] - The path for the receptor or its receptor object.
+        Return:
+          [ocl.Ligand]
+           [object] The ocr.Ligand object.
+           [None]   If is a path, returns None (no linkage to Ligand object) NOT RECOMENDED.
+        '''
+        # Check the type of the ligand
+        if type(ligand) == ocl.Ligand:
+            octools.printv(f"The ligand '{ligand}' has been loaded.")
+            return ligand
+
+        octools.print_warning(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.")
+        return None
+
+    def __parse_ligand_path(self, ligand):
+        '''
+        Parse the ligand path, handling its type.
+        Input:
+          ;igand [string/ocl.Ligand] - The path for the ligand or its ocl.Ligand object.
+        Return:
+          [string] The ligand object.
+        '''
+        # Check the type of ligand variable
+        if type(ligand) == ocl.Ligand:
+            return ligand.path
+        elif type(ligand) == str:
+            # Since is a string, check if the file exists
+            if os.path.isfile(ligand):
+                # Exists! Process it then!
+                return __process_ligand(ligand)
+            else:
+                _ = errors.file_do_not_exist(message=f"The ligand '{ligand}' has not a valid path.", level="error")
+                return ""
+
+        _ = errors.wrong_type(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.", level="error")
+        return ""
 
     def __process_ligand(self, ligandPath):
         '''
@@ -106,7 +195,7 @@ class Vina:
         Return:
           list[string] - List of strings of the command.
         '''
-        cmd = [pythonsh, prepare_ligand, "-l", self.inputLigand, "-C", "-o", self.preparedLigand]
+        cmd = [pythonsh, prepare_ligand, "-l", self.inputLigandPath, "-C", "-o", self.preparedLigand]
         return cmd
 
     def __prepare_receptor_cmd(self):
@@ -117,7 +206,7 @@ class Vina:
         Return:
           list[string] - List of strings of the command.
         '''
-        cmd = [pythonsh, prepare_receptor, "-r", self.inputReceptor, "-o", self.preparedReceptor, "-A", "hydrogens", "-U", "nphs_lps_waters"]
+        cmd = [pythonsh, prepare_receptor, "-r", self.inputReceptorPath, "-o", self.preparedReceptor, "-A", "hydrogens", "-U", "nphs_lps_waters"]
         return cmd
 
     def __box_to_vina(self):
@@ -127,7 +216,7 @@ class Vina:
           -
         Return:
           [int]
-          See Error.py for all return codes.
+           See Error.py for all return codes.
         '''
         return box_to_vina(self.boxFile, self.config, self.preparedReceptor)
 
@@ -138,7 +227,7 @@ class Vina:
           logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
         Return:
           [int]
-          See Error.py for all return codes.
+           See Error.py for all return codes.
         '''
         # Print verboosity
         octools.printv(f"Running vina using the '{self.config}' configurations.")
@@ -151,10 +240,10 @@ class Vina:
           logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
         Return:
           [int]
-          See Error.py for all return codes.
+           See Error.py for all return codes.
         '''
         # Print verboosity
-        octools.printv(f"Running '{prepare_ligand}' for '{self.inputLigand}'.")
+        octools.printv(f"Running '{prepare_ligand}' for '{self.inputLigandPath}'.")
         return octools.run(self.prepareLigandCmd, logFile=logFile)
 
     def run_prepare_receptor(self, logFile = ""):
@@ -164,10 +253,10 @@ class Vina:
           logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
         Return:
           [int]
-          See Error.py for all return codes.
+           See Error.py for all return codes.
         '''
         # Print verboosity
-        octools.printv(f"Running '{prepare_receptor}' for '{self.inputReceptor}'.")
+        octools.printv(f"Running '{prepare_receptor}' for '{self.inputReceptorPath}'.")
         return octools.run(self.prepareReceptorCmd, logFile=logFile)
 
     def print_attributes(self):
@@ -181,10 +270,12 @@ class Vina:
         print(f"Name:                        '{self.name if self.name else '-' }'")
         print(f"Box path:                    '{self.boxFile if self.boxFile else '-' }'")
         print(f"Config path:                 '{self.config if self.config else '-' }'")
-        print(f"Input receptor path:         '{self.inputReceptor if self.inputReceptor else '-' }'")
+        print(f"Input receptor:              '{self.inputReceptor if self.inputReceptor else '-' }'")
+        print(f"Input receptor path:         '{self.inputReceptorPath if self.inputReceptorPath else '-' }'")
         print(f"Prepared receptor path:      '{self.preparedReceptor if self.preparedReceptor else '-' }'")
         print(f"Prepared receptor command:   '{' '.join(self.prepareReceptorCmd) if self.prepareReceptorCmd else '-' }'")
-        print(f"Input ligand path:           '{self.inputLigand if self.inputLigand else '-' }'")
+        print(f"Input ligand:                '{self.inputLigand if self.inputLigand else '-' }'")
+        print(f"Input ligand path:           '{self.inputLigandPath if self.inputLigandPath else '-' }'")
         print(f"Prepared ligand path:        '{self.preparedLigand if self.preparedLigand else '-' }'")
         print(f"Prepared ligand command:     '{' '.join(self.prepareLigandCmd) if self.prepareLigandCmd else '-' }'")
         print(f"Conversion to mol2 log path: '{self.convert2mol2log if self.convert2mol2log else '-' }'")
@@ -204,7 +295,7 @@ def box_to_vina(boxFile, confFile, receptor = "receptor_noH"):
       receptor  [string] DEFAULT: "receptor_noH" - Receptor name to be used in conf file.
     Return:
       [int]
-      See Error.py for all return codes.
+       See Error.py for all return codes.
     '''
     octools.printv(f"Converting the box file '{boxFile}' to Vina conf file as '{confFile}' file.")
     # Test if the file boxFile exists
@@ -249,38 +340,39 @@ def box_to_vina(boxFile, confFile, receptor = "receptor_noH"):
         return errors.write_file(message=f"Found a problem while opening conf file: {e}.", level="error")
     return errors.ok()
 
-def run_prepare_ligand(inputLigand, outputLigand, logFile=""):
+def run_prepare_ligand(inputLigandPath, outputLigand, logFile=""):
     '''
     Prepares the ligand using 'prepare_ligand' from MGLTools suite.
     Input:
-      inputLigand  [string]                   - Path to the input ligand file.
-      outputLigand [string]                   - Path to the output ligand file.
-      logFile      [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
+      inputLigandPath  [string]                   - Path to the input ligand file.
+      outputLigand     [string]                   - Path to the output ligand file.
+      logFile          [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
     Return:
       [int]
-      See Error.py for all return codes.
+       See Error.py for all return codes.
     '''
     # Create the command list
-    cmd = [pythonsh, prepare_ligand, "-l", inputLigand, "-C", "-o", outputLigand]
+    cmd = [pythonsh, prepare_ligand, "-l", inputLigandPath, "-C", "-o", outputLigand]
     # Print verboosity
-    octools.printv(f"Running '{prepare_ligand}' for '{inputLigand}'.")
+    octools.printv(f"Running '{prepare_ligand}' for '{inputLigandPath}'.")
     # Run the command
     return octools.run(cmd, logFile=logFile)
 
-def run_prepare_receptor(inputReceptor, outputReceptor, logFile=""):
+def run_prepare_receptor(inputReceptorPath, outputReceptor, logFile=""):
     '''
     Convert a box (DUDE like format) to vina input.
     Input:
-      inputReceptor  [string]                   - Path to the input receptor file.
-      outputReceptor [string]                   - Path to the output receptor file.
-      logFile        [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
+      inputReceptorPath  [string]                   - Path to the input receptor file.
+      outputReceptor     [string]                   - Path to the output receptor file.
+      logFile            [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
     Return:
-      See Error.py for all return codes.
+      [int]
+       See Error.py for all return codes.
     '''
     # Create the command list
-    cmd = [pythonsh, prepare_receptor, "-r", inputReceptor, "-o", outputReceptor, "-A", "hydrogens", "-U", "nphs_lps_waters"]
+    cmd = [pythonsh, prepare_receptor, "-r", inputReceptorPath, "-o", outputReceptor, "-A", "hydrogens", "-U", "nphs_lps_waters"]
     # Print verboosity
-    octools.printv(f"Running '{prepare_receptor}' for '{inputReceptor}'.")
+    octools.printv(f"Running '{prepare_receptor}' for '{inputReceptorPath}'.")
     # Run the command
     return octools.run(cmd, logFile=logFile)
 
@@ -295,7 +387,7 @@ def run_vina(confFile, ligand, outpath, logpath, logFile=""):
       logFile  [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
     Return:
       [int]
-      See Error.py for all return codes.
+       See Error.py for all return codes.
     '''
     # Create the command list
     cmd = [vina, "--config", confFile, "--ligand", ligand, "--out", outpath, "--log", logpath, "--cpu", "1"]

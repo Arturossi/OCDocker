@@ -44,7 +44,7 @@ class Receptor:
 
     def __init__(self, structure, name=""):
         self.name = name
-        self.structure = self.__loadMol(structure)
+        self.path, self.structure = self.__loadMol(structure)
         self.residues = self.__getRes()
 
     def __loadMol(self, structure):
@@ -53,9 +53,8 @@ class Receptor:
         Input:
           structure [string/Bio.PDB.Structure.Structure] - Path to the structure file OR Bio.PDB.Structure.Structure object.
         Return:
-          [Bio.PDB.Structure.Structure]
-          [object] - If the object has been correctly parsed.
-          [None]   - If the object has not been correctly parsed.
+          [Bio.PDB.Structure.Structure] - If the object has been correctly parsed.
+          [None]                        - If the object has not been correctly parsed.
         '''
         return loadMol(structure, name=self.name)
 
@@ -77,9 +76,10 @@ class Receptor:
         Return:
           -
         '''
-        print(f"Name:        '{self.name if self.name else '-' }'")
-        print(f"Structure:   '{self.structure if self.structure else '-' }'")
-        print(f"AA residues: '{self.residues if self.residues else '-' }'")
+        print(f"Name:           '{self.name if self.name else '-' }'")
+        print(f"Structure path: '{self.path if self.path else '-' }'")
+        print(f"Structure:      '{self.structure if self.structure else '-' }'")
+        print(f"AA residues:    '{self.residues if self.residues else '-' }'")
 
 # Functions
 ###############################################################################
@@ -101,39 +101,44 @@ def getRes(model):
 
 def loadMol(structure, name=""):
     '''
-    Load a structure pdb/cif if a path is provided or just assign the Bio.PDB.Structure.Structure object to the structure.
+    Load a structure pdb/cif if a path is provided or just assign the Bio.PDB.Structure.Structure object to the structure. Also returns the path as a tuple (path, structure).
     Input:
       name      [string] DEFAULT: ""                 - Name of the structure (if empty the structure's name will be 'Generic structure').
       structure [string/Bio.PDB.Structure.Structure] - Path to the structure file OR Bio.PDB.Structure.Structure object.
     Return:
-      [Bio.PDB.Structure.Structure]
-      [object] - If the object has been correctly parsed.
-      [None]   - If the object has not been correctly parsed.
+      [string, Bio.PDB.Structure.Structure]
+      [string, object] - If the object has been correctly parsed.
+      [string, None]   - If the object has not been correctly parsed.
     '''
     # Check if the type of the variable structure is a string or a Bio.PDB.Structure.Structure
     if type(structure) == Structure.Structure:
         # Since is already a structure, assign it to the class
         return structure
     elif type(structure) == str:
-        # Check if the structure has no name
-        if name == "":
-            # If its true, set its name as 'Generic structure'
-            name = "Generic structure"
-        # Now we know that it is a file path, check which is its extension to use the correct function
-        extension = os.path.splitext(structure)[1]
-        # Choose the parser based on extension
-        if extension == ".pdb":
-            parser = PDBParser()
-        elif extension == ".cif":
-            parser = MMCIFParser()
+        if os.path.isfile(structure):
+            # Check if the structure has no name
+            if name == "":
+                # If its true, set its name as 'Generic structure'
+                name = "Generic structure"
+            # Now we know that it is a file path, check which is its extension to use the correct function
+            extension = os.path.splitext(structure)[1]
+            # Choose the parser based on extension
+            if extension == ".pdb":
+                parser = PDBParser()
+            elif extension == ".cif":
+                parser = MMCIFParser()
+            else:
+                # The file extension is not supported, print data
+                supportedExtensions = [".pdb", ".cif"]
+                octools.print_error(f"The receptor {structure} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supportedExtensions)}.")
+                return "", None
+            # Return the structure using selected parser
+            return structure, parser.get_structure(name, structure)
         else:
-            # The file extension is not supported, print data
-            supportedExtensions = [".pdb", ".cif"]
-            octools.print_error(f"The receptor {structure} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supportedExtensions)}.")
-            return None
-        # Return the structure using selected parser
-        return parser.get_structure(name, structure)
+            # File does not exist
+            _ = errors.file_do_not_exist(message=f"The file '{structure}' does not exist!", level="error")
+            return "", None
     else:
         # The variable is not in a supported data format
         octools.print_error("Unsupported molecule data. Please support either a molecule path (string) or an 'rdkit.Chem.rdchem.Mol' object.")
-        return None
+        return "", None

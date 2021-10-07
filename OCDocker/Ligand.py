@@ -44,7 +44,7 @@ class Ligand:
     """
     def __init__(self, molecule, name=""):
         self.name = name
-        self.molecule = self.__loadMol(molecule)
+        self.path, self.molecule = self.__loadMol(molecule)
         self.ExactMolWt = self.__findExactMolWt()
         self.FpDensityMorgan1 = self.__findFpDensityMorgan1()
         self.FpDensityMorgan2 = self.__findFpDensityMorgan2()
@@ -62,9 +62,9 @@ class Ligand:
         '''
         Load a molecule pdb/sdf/mol/mol2 if a path is provided or just assign the Mol object to the molecule.
         Input:
-          molecule [string/rdkit.Chem.rdchem.Mol] - If a path is provided, parse the molecule (only for single) and return the rdkit.Chem.rdchem.Mol object. If the molecule is a rdkit.Chem.rdchem.Mol object, return itself.
+          molecule [string/rdkit.Chem.rdchem.Mol] - If a path is provided, parse the molecule (only for single) and return a tuple path, rdkit.Chem.rdchem.Mol object. If the molecule is a rdkit.Chem.rdchem.Mol object, return an empty string and the object itself.
         Return:
-          [rdkit.Chem.rdchem.Mol] - The molecule object.
+          [string, rdkit.Chem.rdchem.Mol] - The molecule object.
         '''
         return loadMol(molecule)
 
@@ -198,6 +198,7 @@ class Ligand:
         '''
         print(f"Name:                            '{self.name if self.name else '-' }'")
         print(f"Molecule:                        '{self.molecule if self.molecule else '-' }'")
+        print(f"Molecule path:                   '{self.path if self.path else '-' }'")
         print(f"Molecular weight:                '{self.MolWt if self.MolWt else '-' }'")
         print(f"Exact molecular weight:          '{self.ExactMolWt if self.ExactMolWt else '-' }'")
         print(f"Morgan fingerprint radius 1:     '{self.FpDensityMorgan1 if self.FpDensityMorgan1 else '-' }'")
@@ -228,18 +229,28 @@ def multipleMoleculesSDF(molecule):
     ligands = []
     # Check if the path is a string (it is assumed that the provided path is already a sdf)
     if type(molecule) == str:
-        # Check if the extension of the file is .sdf
-        if os.path.splitext(molecule)[1] == ".sdf":
-            # Get the molecules
-            suppl = rdkit.Chem.rdmolfiles.SDMolSupplier(molecule)
-            # For each molecule
-            for mol in suppl:
-                # Append an instance of the class of the molecule
-                ligands.append(Ligand(mol))
-            return ligands
+        # Check if file exists
+        if os.path.isfile(molecule):
+            # Check if the extension of the file is .sdf
+            if os.path.splitext(molecule)[1] == ".sdf":
+                # Get the molecules
+                suppl = rdkit.Chem.rdmolfiles.SDMolSupplier(molecule)
+                # For each molecule
+                for mol in suppl:
+                    # Append an instance of the class of the molecule
+                    temporaryLigand = Ligand(mol)
+                    # Set the path
+                    temporaryLigand.path = molecule
+                    # Append to the list
+                    ligands.append(temporaryLigand)
+                return ligands
+            else:
+                # This case the return code is suppressed because it is needed to return None in case of failure
+                _ = errors.wrong_type(message=f"The molecule file MUST be the .sdf format!", level="error")
+                return None
         else:
-            # This case the return code is suppressed because it is needed to return None in case of failure
-            _ = errors.wrong_type(message=f"The molecule file MUST be the .sdf format!", level="error")
+            # File does not exist
+            _ = errors.file_do_not_exist(message=f"The file '{molecule}' does not exist!", level="error")
             return None
     else:
         # This case the return code is suppressed because it is needed to return None in case of failure
@@ -250,42 +261,59 @@ def loadMol(molecule):
     '''
     Load a molecule pdb/sdf/mol/mol2 if a path is provided or just assign the Mol object to the molecule.
     Input:
-      molecule [string/rdkit.Chem.rdchem.Mol] - If a path is provided, parse the molecule (only for single) and return the rdkit.Chem.rdchem.Mol object. If the molecule is a rdkit.Chem.rdchem.Mol object, return itself.
+      molecule [string/rdkit.Chem.rdchem.Mol] - If a path is provided, parse the molecule (only for single) and return a tuple path, rdkit.Chem.rdchem.Mol object. If the molecule is a rdkit.Chem.rdchem.Mol object, return an empty string and the object itself.
     Return:
-      [rdkit.Chem.rdchem.Mol] - The molecule object.
+      [string, rdkit.Chem.rdchem.Mol]
+       [string, object] - The molecule object.
+       [string, None]   - If fails to parse the molecule file.
     '''
     # Check if the type of the variable molecule is a string or a rdkit.Chem.rdchem.Mol
     if type(molecule) == rdkit.Chem.rdchem.Mol:
         # Since is already a molecule, assign it to the class
-        return molecule
+        return "", molecule
     elif type(molecule) == str:
-        # Now its a file path, check which is its extension to use the correct function
-        extension = os.path.splitext(molecule)[1]
-        # Check the extension to use the right parser
-        if extension == ".pdb":
-            return rdkit.Chem.rdmolfiles.MolFromPDBFile(molecule)
-        elif extension == ".sdf":
-            # Since the sdf file can hold more than one molecule...
-            mols = rdkit.Chem.rdmolfiles.SDMolSupplier(molecule)
-            # If has multiple molecules, indicate the user to use the right function
-            if len(mols) > 1:
-                octools.print_warning("This sdf has more than one molecule!! If you want to parse all the molecules within this file use the function multipleMoleculesSDF instead, otherwise just the first molecule will be processed.")
-            # Return just the first molecule
-            return mols[0]
-        elif extension == ".mol":
-            return rdkit.Chem.rdmolfiles.MolFromMolFile(molecule)
-        elif extension == ".mol2":
-            return rdkit.Chem.rdmolfiles.MolFromMol2File(molecule)
+        # Check if file exists
+        if os.path.isfile(molecule):
+            # Now its a file path, check which is its extension to use the correct function
+            extension = os.path.splitext(molecule)[1]
+
+            # Check the extension to see if its needed to convert to mol2
+            if extension == ".mol2":
+                return molecule, rdkit.Chem.rdmolfiles.MolFromMol2File(molecule)
+            else:
+                # Since is needed to convert the ligand, create the output path
+                outputMoleculePath = f"{os.path.dirname(molecule)}/{os.path.splitext(os.path.basename(molecule))[0]}.mol2"
+                print(outputMoleculePath)
+
+                # Process the ligand
+                octools.convert2mol2(molecule, outputMoleculePath, logFile = "")
+
+                if extension == ".pdb":
+                    return outputMoleculePath, rdkit.Chem.rdmolfiles.MolFromPDBFile(molecule)
+                elif extension == ".sdf":
+                    # Since the sdf file can hold more than one molecule...
+                    mols = molecule, rdkit.Chem.rdmolfiles.SDMolSupplier(molecule)
+                    # If has multiple molecules, indicate the user to use the right function
+                    if len(mols) > 1:
+                        octools.print_warning("This sdf has more than one molecule!! If you want to parse all the molecules within this file use the function multipleMoleculesSDF instead, otherwise just the first molecule will be processed.")
+                    # Return just the first molecule
+                    return outputMoleculePath, mols[0]
+                elif extension == ".mol":
+                    return outputMoleculePath, rdkit.Chem.rdmolfiles.MolFromMolFile(molecule)
+                else:
+                    # The file extension is not supported, print data
+                    supportedExtensions = ['.pdb', '.sdf', '.mol', '.mol2']
+                    # This case the return code is suppressed because it is needed to return None in case of failure
+                    _ = errors.unsupported_extension(message=f"The ligand {molecule} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supportedExtensions)}.", level="error")
+                    return "", None
         else:
-            # The file extension is not supported, print data
-            supportedExtensions = ['.pdb', '.sdf', '.mol', '.mol2']
-            # This case the return code is suppressed because it is needed to return None in case of failure
-            _ = errors.unsupported_extension(message=f"The ligand {molecule} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supportedExtensions)}.", level="error")
-            return None
+            # File does not exist
+            _ = errors.file_do_not_exist(message=f"The file '{molecule}' does not exist!", level="error")
+            return "", None
     else:
         # The variable is not in a supported data format
         _ = errors.unsupported_extension(message=f"Unsupported molecule data. Please support either a molecule path (string) or a rdkit.Chem.rdchem.Mol object.", level="error")
-        return None
+        return "", None
 
 def findExactMolWt(molecule):
     '''
@@ -423,8 +451,8 @@ def findNumRadicalElectrons(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [int] - The number of radical electrons.
-      [None]   - If parsing the descriptor fails.
+      [int]  - The number of radical electrons.
+      [None] - If parsing the descriptor fails.
     '''
     if molecule:
         return rdkit.Chem.Descriptors.NumRadicalElectrons(molecule)
@@ -436,8 +464,8 @@ def findNumValenceElectrons(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [int] - The number of valence electrons.
-      [None]   - If parsing the descriptor fails.
+      [int]  - The number of valence electrons.
+      [None] - If parsing the descriptor fails.
     '''
     if molecule:
         return rdkit.Chem.Descriptors.NumValenceElectrons(molecule)
