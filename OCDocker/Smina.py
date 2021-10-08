@@ -152,7 +152,7 @@ class Smina:
         Input:
           -
         Return:
-          cmd [list[string]] - List of strings of the command.
+          [list[string]] - List of strings of the command.
         '''
         cmd = [smina, "--config", self.config, "--ligand", self.preparedLigand, "--autobox_ligand", self.preparedLigand]
 

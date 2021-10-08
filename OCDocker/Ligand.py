@@ -4,8 +4,11 @@
 ###############################################################################
 import os
 import rdkit
+from glob import glob
 from rdkit import Chem
 from rdkit.Chem import Descriptors
+
+from OCDocker.Initialise import *
 import OCDocker.Toolbox as octools
 
 # License
@@ -216,6 +219,56 @@ class Ligand:
 
 # Functions
 ###############################################################################
+def splitMolecules(molecule, outputDir="", prefix="ligand"):
+    '''
+    Given a molecule file, checks if it has more than one ligand, if positive, splits the file into multiple single molecule files.
+    Input:
+      molecule  [string]                   - Path to the molecule.
+      outputDir [string] DEFAULT: ""       - The output directory. If it is empty the outputDir will be the input dir plus an extra dir called ligand.
+      prefix    [string] DEFAULT: "ligand" - The output prefix for ligand file name.
+    Return:
+      [list(string)] - A list of paths to the new files.
+    '''
+    # Grab the extension and path
+    extension = os.path.splitext(molecule)[1]
+    path = os.path.split(os.path.abspath(molecule))[0]
+    if not outputDir:
+        outputDir = f"{path}/ligands"
+    # Initialise an empty list to hold all files paths
+    ligand_files = []
+
+    # Check the extension
+    if extension == ".sdf":
+        # Create the dir if does not exist
+        octools.safe_create_dir(outputDir)
+        # Create the command
+        cmd = [obabel, "-isdf", molecule, "-omol2", "-O", f"{outputDir}/{prefix}.mol2", "-m"]
+        # Convert it
+        octools.run(cmd, logFile="")
+        # Get all mol2 files
+        ligand_files = glob(f"{path}/{prefix}*.mol2")
+        # Remove the molecule from the list (if it is included)
+        if molecule in ligand_files:
+            ligand_files(molecule)
+    elif extension == ".mol2":
+        # Create the dir if does not exist
+        octools.safe_create_dir(outputDir)
+        # Create the command
+        cmd = [obabel, "-imol2", molecule, "-omol2", "-O", f"{outputDir}/{prefix}.mol2", "-m"]
+         # Convert it
+        octools.run(cmd, logFile="")
+        # Get all mol2 files
+        ligand_files = glob(f"{path}/{prefix}*.mol2")
+        # Remove the molecule from the list (if it is included)
+        if molecule in ligand_files:
+            ligand_files.remove(molecule)
+    else:
+        # Since no supported extension has been found, throw the exception
+        supportedExtensions = [".sdf", ".mol2"]
+        _ = errors.unsupported_extension(message=f"The ligand {molecule} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supportedExtensions)}.", level="error")
+
+    return ligand_files
+
 def multipleMoleculesSDF(molecule):
     '''
     Parse a .sdf file with multiple molecules returning a list of ligands.
@@ -225,6 +278,48 @@ def multipleMoleculesSDF(molecule):
       [list(Ligand)] - A list of Ligand objects.
       [None]         - If any problem occurs.
     '''
+    # List to hold multiple Ligand objects
+    ligands = []
+    # Check if the path is a string (it is assumed that the provided path is already a sdf)
+    if type(molecule) == str:
+        # Check if file exists
+        if os.path.isfile(molecule):
+            # Check if the extension of the file is .sdf
+            extension = os.path.splitext(molecule)[1]
+            if extension in [".sdf", ".mol2"]:
+                # Split the mol file
+                molsPaths = splitMolecules(molecule)
+                # For each molecule
+                for molPath in molsPaths:
+                    # Get molecule name
+                    name = os.path.splitext(os.path.basename(molecule))[0]
+                    # Append to the list
+                    ligands.append(Ligand(molPath, name=name))
+                return ligands
+            else:
+                # This case the return code is suppressed because it is needed to return None in case of failure
+                _ = errors.wrong_type(message=f"The molecule file MUST be the .sdf format!", level="error")
+                return None
+        else:
+            # File does not exist
+            _ = errors.file_do_not_exist(message=f"The file '{molecule}' does not exist!", level="error")
+            return None
+    else:
+        # This case the return code is suppressed because it is needed to return None in case of failure
+        _ = errors.wrong_type(message=f"The molecule file path MUST be a string!", level="error")
+    return None
+
+def multipleMoleculesSDF_legacy(molecule):
+    '''
+    [DEPRECATED]
+    Parse a .sdf file with multiple molecules returning a list of ligands.
+    Input:
+      molecule [string/rdkit.Chem.rdchem.Mol] - If a path is provided, parse the molecule (only for single) and return the rdkit.Chem.rdchem.Mol object. If the molecule is a rdkit.Chem.rdchem.Mol object, return itself.
+    Return:
+      [list(Ligand)] - A list of Ligand objects.
+      [None]         - If any problem occurs.
+    '''
+    octools.print_warning("This function is deprecated since the add of the path attribute in Ligand class. Please use the multipleMoleculesSDF function instead.")
     # List to hold multiple Ligand objects
     ligands = []
     # Check if the path is a string (it is assumed that the provided path is already a sdf)
@@ -295,7 +390,7 @@ def loadMol(molecule):
                     mols = molecule, rdkit.Chem.rdmolfiles.SDMolSupplier(molecule)
                     # If has multiple molecules, indicate the user to use the right function
                     if len(mols) > 1:
-                        octools.print_warning("This sdf has more than one molecule!! If you want to parse all the molecules within this file use the function multipleMoleculesSDF instead, otherwise just the first molecule will be processed.")
+                        octools.print_warning("This sdf has more than one molecule!! If you want to parse all the molecules within this file use the function splitMolecules to split the ligand into multiple ligand files. Otherwise just the first molecule will be processed.")
                     # Return just the first molecule
                     return outputMoleculePath, mols[0]
                 elif extension == ".mol":

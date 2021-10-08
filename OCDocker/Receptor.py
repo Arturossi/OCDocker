@@ -46,6 +46,12 @@ class Receptor:
         self.name = name
         self.path, self.structure = self.__loadMol(structure)
         self.residues = self.__getRes()
+        self.sasa = self.structure.sasa
+        # caraccterísticas dos resíduos da superfície
+        #TODO Verificar os links abaixo
+        # https://biopython.org/docs/dev/api/Bio.PDB.HSExposure.html
+        # https://biopython.org/docs/dev/api/Bio.PDB.NACCESS.html
+
 
     def __loadMol(self, structure):
         '''
@@ -80,9 +86,23 @@ class Receptor:
         print(f"Structure path: '{self.path if self.path else '-' }'")
         print(f"Structure:      '{self.structure if self.structure else '-' }'")
         print(f"AA residues:    '{self.residues if self.residues else '-' }'")
+        print(f"SASA:           '{self.sasa if self.sasa else '-' }'")
 
 # Functions
 ###############################################################################
+def compute_sasa(model):
+    '''
+    Computes the Solvent Accessible Surface Area of the molecule.
+        NOTE: The sasa value is added to the structure and can be called like model.sasa
+    Input:
+      structure [Bio.PDB.Structure.Structure] - The Bio.PDB.Structure.Structure object to compute the SASA value.
+    Return:
+      -
+    '''
+    sr = SASA.ShrakeRupley(n_points=1000)
+    sr.compute(model, level="S")
+    return
+
 def getRes(model):
     '''
     Get the amino acid one letter sequence for the receptor (Ignore chains).
@@ -112,6 +132,7 @@ def loadMol(structure, name=""):
     '''
     # Check if the type of the variable structure is a string or a Bio.PDB.Structure.Structure
     if type(structure) == Structure.Structure:
+        compute_sasa(structure)
         # Since is already a structure, assign it to the class
         return structure
     elif type(structure) == str:
@@ -132,8 +153,11 @@ def loadMol(structure, name=""):
                 supportedExtensions = [".pdb", ".cif"]
                 octools.print_error(f"The receptor {structure} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supportedExtensions)}.")
                 return "", None
+            # Compute the SASA value of the structure
+            tmpStructure = parser.get_structure(name, structure)
+            compute_sasa(tmpStructure)
             # Return the structure using selected parser
-            return structure, parser.get_structure(name, structure)
+            return structure, tmpStructure
         else:
             # File does not exist
             _ = errors.file_do_not_exist(message=f"The file '{structure}' does not exist!", level="error")
