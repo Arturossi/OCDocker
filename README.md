@@ -38,6 +38,17 @@ To install it, you have 3 options:
 OBS: The scripts used to prepare ligand/receptor will be in the following dir: ``installation_dir/mgltools/MGLToolsPckgs/AutoDockTools``
 
 
+Install DSSP
+=========================
+
+To install DSSP in Ubuntu 18.04+:
+
+  .. code-block:: bash
+
+		$ sudo apt install dssp
+
+As default, the dssp path will be '/usr/bin/dssp'.
+
 Download and install Autodock VINA
 ==================================
 

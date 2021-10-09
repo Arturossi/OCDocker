@@ -67,7 +67,7 @@ args.verbosity = 1
 basePath = '/mnt/d/Documents/OCDocker/OCDocker'
 
 # Testing the classes and objects
-receptorTest = ocr.Receptor(f"{basePath}/test/rec.crg.pdb", name="Receptor teste")
+receptorTest = ocr.Receptor(f"{basePath}/test/rec.crg.pdb", relativeASAcutoff=0.3, name="Receptor teste")
 ligandTest = ocl.Ligand(f"{basePath}/test/xtal-lig.pdb", name="Ligante teste")
 
 vinaTest = ocvina.Vina(f"{basePath}/test/conf_vina.txt", f"{basePath}/test/box.pdb", receptorTest, f"{basePath}/test/rec.crg.pdbqt", ligandTest, f"{basePath}/test/xtal-lig.pdbqt", f"{basePath}/test/vina.log", f"{basePath}/test/vina.pdbqt", name="Vina Test")

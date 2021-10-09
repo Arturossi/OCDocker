@@ -5,6 +5,7 @@
 import os
 from Bio.PDB import *
 from Bio.SeqUtils import seq1
+from Bio.PDB.DSSP import DSSP
 
 from OCDocker.Initialise import *
 import OCDocker.Toolbox as octools
@@ -42,16 +43,49 @@ class Receptor:
     Load and compute receptor descriptors.
     """
 
-    def __init__(self, structure, name=""):
+    def __init__(self, structure, relativeASAcutoff=0.7, name=""):
         self.name = name
         self.path, self.structure = self.__loadMol(structure)
         self.residues = self.__getRes()
         self.sasa = self.structure.sasa
-        # caraccterísticas dos resíduos da superfície
-        #TODO Verificar os links abaixo
-        # https://biopython.org/docs/dev/api/Bio.PDB.HSExposure.html
-        # https://biopython.org/docs/dev/api/Bio.PDB.NACCESS.html
 
+        self.__relativeASAcutoff = relativeASAcutoff
+        self.__countAA = self.__count_surface_AA()
+
+        self.countA = self.__countAA["A"]
+        self.countR = self.__countAA["R"]
+        self.countN = self.__countAA["N"]
+        self.countD = self.__countAA["D"]
+        self.countC = self.__countAA["C"]
+        self.countQ = self.__countAA["Q"]
+        self.countE = self.__countAA["E"]
+        self.countG = self.__countAA["G"]
+        self.countH = self.__countAA["H"]
+        self.countI = self.__countAA["I"]
+        self.countL = self.__countAA["L"]
+        self.countK = self.__countAA["K"]
+        self.countM = self.__countAA["M"]
+        self.countF = self.__countAA["F"]
+        self.countP = self.__countAA["P"]
+        self.countS = self.__countAA["S"]
+        self.countT = self.__countAA["T"]
+        self.countW = self.__countAA["W"]
+        self.countY = self.__countAA["Y"]
+        self.countV = self.__countAA["V"]
+
+    def __count_surface_AA(self):
+        '''
+        Counts how many of each of the 20 standard AAs has a relative ASA value above a given cutoff.
+        Input:
+          -
+        Return:
+          [dict(string)] - A dict containing the number of each AA with a relative ASA value greater than the cutoff.
+          [None]         - If the model path is not set.
+        '''
+        if not self.path:
+            _ = errors.not_set(message=f"The model path is not set!", level="error")
+            return None
+        return count_surface_AA(self.structure, self.path, self.__relativeASAcutoff)
 
     def __loadMol(self, structure):
         '''
@@ -82,14 +116,174 @@ class Receptor:
         Return:
           -
         '''
-        print(f"Name:           '{self.name if self.name else '-' }'")
-        print(f"Structure path: '{self.path if self.path else '-' }'")
-        print(f"Structure:      '{self.structure if self.structure else '-' }'")
-        print(f"AA residues:    '{self.residues if self.residues else '-' }'")
-        print(f"SASA:           '{self.sasa if self.sasa else '-' }'")
+        print(f"Name:              '{self.name if self.name else '-' }'")
+        print(f"Structure path:    '{self.path if self.path else '-' }'")
+        print(f"Structure:         '{self.structure if self.structure else '-' }'")
+        print(f"AA residues:       '{self.residues if self.residues else '-' }'")
+        print(f"SASA:              '{self.sasa if self.sasa else '0.0' }'")
+        print(f"# of accessible A: '{self.countA if self.countA else '0' }'")
+        print(f"# of accessible R: '{self.countR if self.countR else '0' }'")
+        print(f"# of accessible N: '{self.countN if self.countN else '0' }'")
+        print(f"# of accessible D: '{self.countD if self.countD else '0' }'")
+        print(f"# of accessible C: '{self.countC if self.countC else '0' }'")
+        print(f"# of accessible Q: '{self.countQ if self.countQ else '0' }'")
+        print(f"# of accessible E: '{self.countE if self.countE else '0' }'")
+        print(f"# of accessible G: '{self.countG if self.countG else '0' }'")
+        print(f"# of accessible H: '{self.countH if self.countH else '0' }'")
+        print(f"# of accessible I: '{self.countI if self.countI else '0' }'")
+        print(f"# of accessible L: '{self.countL if self.countL else '0' }'")
+        print(f"# of accessible K: '{self.countK if self.countK else '0' }'")
+        print(f"# of accessible M: '{self.countM if self.countM else '0' }'")
+        print(f"# of accessible F: '{self.countF if self.countF else '0' }'")
+        print(f"# of accessible P: '{self.countP if self.countP else '0' }'")
+        print(f"# of accessible S: '{self.countS if self.countS else '0' }'")
+        print(f"# of accessible T: '{self.countT if self.countT else '0' }'")
+        print(f"# of accessible W: '{self.countW if self.countW else '0' }'")
+        print(f"# of accessible Y: '{self.countY if self.countY else '0' }'")
+        print(f"# of accessible V: '{self.countV if self.countV else '0' }'")
+
+    def get_descriptors(self):
+        '''
+        Return the descriptors for the Receptor object.
+        Input:
+          -
+        Return:
+          [dict] - Dictionary of descriptors for the recpetor.
+        '''
+        descriptors = {
+          "SASA": self.sasa if self.sasa else 0.0,
+          "countA": self.countA if self.countA else 0,
+          "countR": self.countR if self.countR else 0,
+          "countN": self.countN if self.countN else 0,
+          "countD": self.countD if self.countD else 0,
+          "countC": self.countC if self.countC else 0,
+          "countQ": self.countQ if self.countQ else 0,
+          "countE": self.countE if self.countE else 0,
+          "countG": self.countG if self.countG else 0,
+          "countH": self.countH if self.countH else 0,
+          "countI": self.countI if self.countI else 0,
+          "countL": self.countL if self.countL else 0,
+          "countK": self.countK if self.countK else 0,
+          "countM": self.countM if self.countM else 0,
+          "countF": self.countF if self.countF else 0,
+          "countP": self.countP if self.countP else 0,
+          "countS": self.countS if self.countS else 0,
+          "countT": self.countT if self.countT else 0,
+          "countW": self.countW if self.countW else 0,
+          "countY": self.countY if self.countY else 0,
+          "countV": self.countV if self.countV else 0
+        }
+        return descriptors
+
+    def to_dict(self):
+        '''
+        Return all the properties for the Receptor object.
+        Input:
+          -
+        Return:
+          -
+        '''
+        properties = {
+          "Name": self.name if self.name else "-",
+          "Path": self.path if self.path else "-",
+          "Structure": self.structure if self.structure else "-",
+          "Residues": self.residues if self.residues else "-",
+          "SASA": self.sasa if self.sasa else 0.0,
+          "countA": self.countA if self.countA else 0,
+          "countR": self.countR if self.countR else 0,
+          "countN": self.countN if self.countN else 0,
+          "countD": self.countD if self.countD else 0,
+          "countC": self.countC if self.countC else 0,
+          "countQ": self.countQ if self.countQ else 0,
+          "countE": self.countE if self.countE else 0,
+          "countG": self.countG if self.countG else 0,
+          "countH": self.countH if self.countH else 0,
+          "countI": self.countI if self.countI else 0,
+          "countL": self.countL if self.countL else 0,
+          "countK": self.countK if self.countK else 0,
+          "countM": self.countM if self.countM else 0,
+          "countF": self.countF if self.countF else 0,
+          "countP": self.countP if self.countP else 0,
+          "countS": self.countS if self.countS else 0,
+          "countT": self.countT if self.countT else 0,
+          "countW": self.countW if self.countW else 0,
+          "countY": self.countY if self.countY else 0,
+          "countV": self.countV if self.countV else 0
+        }
+        return properties
 
 # Functions
 ###############################################################################
+def count_surface_AA(model, modelPath, cutoff=0.7):
+    '''
+    Counts how many of each of the 20 standard AAs has a relative ASA value above a given cutoff.
+    Input:
+      model     [Bio.PDB.Structure.Structure] - The model to be evaluated.
+      modelPath [string]                      - The path to the model which will be evaluated.
+      cutoff    [float] Default: 0.7          - Relative ASA cutoff value (Ranges from 0 to 1).
+    Return:
+      [dict(string)] - A dict containing the number of each AA with a relative ASA value greater than the cutoff.
+      [None]         - If the model path is not set.
+    '''
+    if not modelPath:
+        _ = errors.not_set(message=f"The model path is not set!", level="error")
+        return None
+
+    aas = {
+        "A": 0,
+        "R": 0,
+        "N": 0,
+        "D": 0,
+        "C": 0,
+        "Q": 0,
+        "E": 0,
+        "G": 0,
+        "H": 0,
+        "I": 0,
+        "L": 0,
+        "K": 0,
+        "M": 0,
+        "F": 0,
+        "P": 0,
+        "S": 0,
+        "T": 0,
+        "W": 0,
+        "Y": 0,
+        "V": 0,
+        "X": 0
+    }
+
+    # Force the cutoff to be between 0 and 1
+    if cutoff > 1:
+        octools.print_warning(f"Cutoff maximum value is 1 but the value {cutoff} has been provided instead. The value of 1 will be used!")
+        cutoff = 1
+    elif cutoff < 0:
+        octools.print_warning(f"Cutoff minimum value is 0 but the value {cutoff} has been provided instead. The value of 0 will be used!")
+        cutoff = 0
+
+    # Column header to dsspData object will be
+    # (dssp index, amino acid, secondary structure, relative ASA, phi, psi,
+    # NH_O_1_relidx, NH_O_1_energy, O_NH_1_relidx, O_NH_1_energy,
+    # NH_O_2_relidx, NH_O_2_energy, O_NH_2_relidx, O_NH_2_energy)
+
+    # Run the DSSP
+    dsspData = DSSP(model[0], modelPath, dssp=dssp)
+
+    # For each result in the DSSP object
+    for key, value in dsspData.property_dict.items():
+        # Check if the relative ASA is valid and is above the cutoff
+        if value[3] != "NA" and float(value[3]) >= cutoff:
+            # If so, check if the amino acid is one of the 20 standard ones
+            if value[1] in ["A", "R", "N", "D", "C", "Q", "E", "G", "H", "I", "L", "K", "M", "F", "P", "S", "T", "W", "Y", "V"]:
+                # Add 1 to its count
+                aas[value[1]] += 1
+            # If not, add to an 'others' (X) position
+            else:
+                # Add 1 to its count
+                aas["X"] += 1
+
+    return aas
+
 def compute_sasa(model):
     '''
     Computes the Solvent Accessible Surface Area of the molecule.
@@ -99,6 +293,7 @@ def compute_sasa(model):
     Return:
       -
     '''
+    octools.printv(f"Computing SASA for protein '{model.id}'.")
     sr = SASA.ShrakeRupley(n_points=1000)
     sr.compute(model, level="S")
     return
@@ -117,7 +312,7 @@ def getRes(model):
     for residue in model.get_residues():
         # Append to the residue list the one letter residue (using the conversion list from Initialise.py)
         residues.append(seq1(residue.get_resname()))
-    return ''.join(residues)
+    return "".join(residues)
 
 def loadMol(structure, name=""):
     '''

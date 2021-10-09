@@ -91,6 +91,8 @@ def create_ocdocker_conf():
     confSmina_user_grid = "no"
     confSmina_user_grid_lambda = "-1"
 
+    confDssp = "/usr/bin/dssp"
+
     # General variables
     answer = input(f"Path to the OCDB. Default [{confOcdb}] (press enter to keep default): ")
     confOcdb = confOcdb if not answer else answer
@@ -190,6 +192,11 @@ def create_ocdocker_conf():
 
     answer = input(f"Path to the prepare_receptor4.py script from MGLTools. Default [{confPrepare_receptor}] (press enter to keep default): ")
     confPrepare_receptor = confPrepare_receptor if not answer else answer
+
+    # Other software
+    print("\nOther software configuration")
+    answer = input(f"Path to the dssp file/command. Default [{confDssp}] (press enter to keep default): ")
+    confDssp = confDssp if not answer else answer
 
     conf_file = "OCDocker.cfg"
 
@@ -295,6 +302,11 @@ def create_ocdocker_conf():
         # Scales user_grid and functional scoring
         smina_user_grid_lambda = """ + confSmina_user_grid_lambda + """
 
+        ################## OTHER SOFTWARE ###################
+
+        # MSMS program for the surface calculation
+        dssp = """ + confDssp + """
+
         """))
 
     print(f"{clrs['g']}Configuration file created!{clrs['n']} If you need to change the paths you might want to {clrs['y']}EDIT ITS CONTENTS{clrs['n']} or delete the file and execute this routine again so that your environment variables are correctly set. To ensure that all variables are correctly set, please restart OCDocker.")
@@ -350,6 +362,9 @@ global smina_user_grid_lambda
 global dudez_archive
 global ocdocker_path
 global pdbbind_archive
+
+# Other software
+global dssp
 
 # Aditional Variables
 ###############################################################################
@@ -526,6 +541,8 @@ for line in open(config_file, "r"):
         smina_user_grid = line.split("=")[1].strip()
     elif line.startswith("smina_user_grid_lambda ="):
         smina_user_grid_lambda = line.split("=")[1].strip()
+    elif line.startswith("dssp ="):
+        dssp = line.split("=")[1].strip()
 
 # Root directory for OCDocker module
 ocdocker_path = os.path.dirname(os.path.abspath( __file__ ))

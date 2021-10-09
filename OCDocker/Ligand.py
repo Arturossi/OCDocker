@@ -217,6 +217,57 @@ class Ligand:
 
         return
 
+    def get_descriptors(self):
+        '''
+        Return the descriptors for the Ligand object.
+        Input:
+          -
+        Return:
+          [dict] - Dictionary of descriptors for the recpetor.
+        '''
+        descriptors = {
+          "ExactMolWt": self.ExactMolWt if self.ExactMolWt else 0.0,
+          "FpDensityMorgan1": self.FpDensityMorgan1 if self.FpDensityMorgan1 else 0,
+          "FpDensityMorgan2": self.FpDensityMorgan2 if self.FpDensityMorgan2 else 0,
+          "FpDensityMorgan3": self.FpDensityMorgan3 if self.FpDensityMorgan3 else 0,
+          "HeavyAtomMolWt": self.HeavyAtomMolWt if self.HeavyAtomMolWt else 0,
+          "MaxAbsPartialCharge": self.MaxAbsPartialCharge if self.MaxAbsPartialCharge else 0,
+          "MaxPartialCharge": self.MaxPartialCharge if self.MaxPartialCharge else 0,
+          "MinAbsPartialCharge": self.MinAbsPartialCharge if self.MinAbsPartialCharge else 0,
+          "MinPartialCharge": self.MinPartialCharge if self.MinPartialCharge else 0,
+          "MolWt": self.MolWt if self.MolWt else 0,
+          "NumRadicalElectrons": self.NumRadicalElectrons if self.NumRadicalElectrons else 0,
+          "NumValenceElectrons": self.NumValenceElectrons if self.NumValenceElectrons else 0,
+        }
+        return descriptors
+
+    def to_dict(self):
+        '''
+        Return all the properties for the Ligand object.
+        Input:
+          -
+        Return:
+          -
+        '''
+        properties = {
+          "Name": self.name if self.name else "-",
+          "Path": self.path if self.path else "-",
+          "Molecule": self.molecule if self.molecule else "-",
+          "ExactMolWt": self.ExactMolWt if self.ExactMolWt else 0.0,
+          "FpDensityMorgan1": self.FpDensityMorgan1 if self.FpDensityMorgan1 else 0,
+          "FpDensityMorgan2": self.FpDensityMorgan2 if self.FpDensityMorgan2 else 0,
+          "FpDensityMorgan3": self.FpDensityMorgan3 if self.FpDensityMorgan3 else 0,
+          "HeavyAtomMolWt": self.HeavyAtomMolWt if self.HeavyAtomMolWt else 0,
+          "MaxAbsPartialCharge": self.MaxAbsPartialCharge if self.MaxAbsPartialCharge else 0,
+          "MaxPartialCharge": self.MaxPartialCharge if self.MaxPartialCharge else 0,
+          "MinAbsPartialCharge": self.MinAbsPartialCharge if self.MinAbsPartialCharge else 0,
+          "MinPartialCharge": self.MinPartialCharge if self.MinPartialCharge else 0,
+          "MolWt": self.MolWt if self.MolWt else 0,
+          "NumRadicalElectrons": self.NumRadicalElectrons if self.NumRadicalElectrons else 0,
+          "NumValenceElectrons": self.NumValenceElectrons if self.NumValenceElectrons else 0,
+        }
+        return properties
+
 # Functions
 ###############################################################################
 def splitMolecules(molecule, outputDir="", prefix="ligand"):
@@ -378,7 +429,6 @@ def loadMol(molecule):
             else:
                 # Since is needed to convert the ligand, create the output path
                 outputMoleculePath = f"{os.path.dirname(molecule)}/{os.path.splitext(os.path.basename(molecule))[0]}.mol2"
-                print(outputMoleculePath)
 
                 # Process the ligand
                 octools.convert2mol2(molecule, outputMoleculePath, logFile = "")
