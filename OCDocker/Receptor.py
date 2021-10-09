@@ -75,7 +75,7 @@ class Receptor:
 
     def __count_surface_AA(self):
         '''
-        Counts how many of each of the 20 standard AAs has a relative ASA value above a given cutoff.
+        Counts how many of each of the 20 standard AAs has a relative Accessible surface area (ASA) value above a given cutoff.
         Input:
           -
         Return:
