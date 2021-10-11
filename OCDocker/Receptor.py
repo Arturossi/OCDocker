@@ -3,9 +3,12 @@
 # Imports
 ###############################################################################
 import os
+import math
+
 from Bio.PDB import *
 from Bio.SeqUtils import seq1
 from Bio.PDB.DSSP import DSSP
+from openbabel import openbabel
 
 from OCDocker.Initialise import *
 import OCDocker.Toolbox as octools
@@ -43,11 +46,13 @@ class Receptor:
     Load and compute receptor descriptors.
     """
 
-    def __init__(self, structure, relativeASAcutoff=0.7, name=""):
+    def __init__(self, structure, cModel='gasteiger', relativeASAcutoff=0.7, name=""):
         self.name = name
         self.path, self.structure = self.__loadMol(structure)
         self.residues = self.__getRes()
         self.sasa = self.structure.sasa
+        self.__cModel = cModel # The options are 'mmff94', 'gasteiger' or 'eem2015bm'
+        self.dipoleMoment = self.__computeDipoleMoment()
 
         self.__relativeASAcutoff = relativeASAcutoff
         self.__countAA = self.__count_surface_AA()
@@ -108,6 +113,17 @@ class Receptor:
         '''
         return getRes(self.structure)
 
+    def __computeDipoleMoment(self):
+        '''
+        Computes the receptor's dipole moment.
+        Input:
+          -
+        Return:
+          [float] - The dipole moment value.
+          [None]  - If the model path is not set.
+        '''
+        return computeDipoleMoment(self.path, self.__cModel)
+
     def print_attributes(self):
         '''
         Print the class attributes.
@@ -121,6 +137,7 @@ class Receptor:
         print(f"Structure:         '{self.structure if self.structure else '-' }'")
         print(f"AA residues:       '{self.residues if self.residues else '-' }'")
         print(f"SASA:              '{self.sasa if self.sasa else '0.0' }'")
+        print(f"Dipole Moment:     '{self.dipoleMoment if self.dipoleMoment else '-' }'")
         print(f"# of accessible A: '{self.countA if self.countA else '0' }'")
         print(f"# of accessible R: '{self.countR if self.countR else '0' }'")
         print(f"# of accessible N: '{self.countN if self.countN else '0' }'")
@@ -152,6 +169,7 @@ class Receptor:
         '''
         descriptors = {
           "SASA": self.sasa if self.sasa else 0.0,
+          "DipoleMoment": self.dipoleMoment if self.dipoleMoment else None,
           "countA": self.countA if self.countA else 0,
           "countR": self.countR if self.countR else 0,
           "countN": self.countN if self.countN else 0,
@@ -189,6 +207,7 @@ class Receptor:
           "Structure": self.structure if self.structure else "-",
           "Residues": self.residues if self.residues else "-",
           "SASA": self.sasa if self.sasa else 0.0,
+          "DipoleMoment": self.dipoleMoment if self.dipoleMoment else "-",
           "countA": self.countA if self.countA else 0,
           "countR": self.countR if self.countR else 0,
           "countN": self.countN if self.countN else 0,
@@ -329,7 +348,7 @@ def loadMol(structure, name=""):
     if type(structure) == Structure.Structure:
         compute_sasa(structure)
         # Since is already a structure, assign it to the class
-        return structure
+        return structure, None
     elif type(structure) == str:
         if os.path.isfile(structure):
             # Check if the structure has no name
@@ -361,3 +380,40 @@ def loadMol(structure, name=""):
         # The variable is not in a supported data format
         octools.print_error("Unsupported molecule data. Please support either a molecule path (string) or an 'rdkit.Chem.rdchem.Mol' object.")
         return "", None
+
+def computeDipoleMoment(structure, cModel='gasteiger'):
+    '''
+    Computes the receptor's dipole moment.
+    Input:
+      structure [string]                      - Path to the structure to be evaluated.
+      cModel    [string] DEFAULT: 'gasteiger' - Charge model to be used. The options are 'mmff94', 'gasteiger' or 'eem2015bm'
+    Return:
+      [float] - The dipole moment value.
+      [None]  - If the model path is not set.
+    '''
+    # Grab the extension and path
+    extension = octools.validate_obabel_extension(structure)
+    # Set the moment as None
+    moment = None
+    # Check if the extension is valid
+    if type(extension) != str:
+        octools.print_error(f"Problems while reading the ligand file '{inputLigandPath}'.")
+    else:
+        # Create the conversion object
+        obConversion = openbabel.OBConversion()
+        # Set the input format
+        obConversion.SetInFormat(extension)
+        # Create the OBMol object
+        mol = openbabel.OBMol()
+        # Load the input file to the previously loaded OBMol object
+        obConversion.ReadFile(mol, structure)
+        # Create the charge model object
+        chargeModel = openbabel.OBChargeModel_FindType(cModel)
+        # Compute the mol object charges using the charge model
+        chargeModel.ComputeCharges(mol)
+        # Get the dipile moment from the molecule
+        dipole = chargeModel.GetDipoleMoment(mol)
+        # Calcule the dipole moment from the vector with the root of the sum of squares of the coordinates
+        moment = math.sqrt(dipole.GetX()**2+dipole.GetY()**2+dipole.GetZ()**2)
+
+    return moment

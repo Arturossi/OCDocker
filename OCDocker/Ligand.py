@@ -5,8 +5,10 @@
 import os
 import rdkit
 from glob import glob
+
 from rdkit import Chem
 from rdkit.Chem import Descriptors
+from openbabel import openbabel
 
 from OCDocker.Initialise import *
 import OCDocker.Toolbox as octools
@@ -270,9 +272,9 @@ class Ligand:
 
 # Functions
 ###############################################################################
-def splitMolecules(molecule, outputDir="", prefix="ligand"):
+def splitMolecules_legacy(molecule, outputDir="", prefix="ligand"):
     '''
-    Given a molecule file, checks if it has more than one ligand, if positive, splits the file into multiple single molecule files.
+    Given a molecule file, checks if it has more than one ligand, if positive, splits the file into multiple single molecule files. Uses external obabel. [DEPRECATED]
     Input:
       molecule  [string]                   - Path to the molecule.
       outputDir [string] DEFAULT: ""       - The output directory. If it is empty the outputDir will be the input dir plus an extra dir called ligand.
@@ -318,6 +320,53 @@ def splitMolecules(molecule, outputDir="", prefix="ligand"):
         supportedExtensions = [".sdf", ".mol2"]
         _ = errors.unsupported_extension(message=f"The ligand {molecule} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supportedExtensions)}.", level="error")
 
+    return ligand_files
+
+def splitMolecules(molecule, outputDir="", prefix="ligand"):
+    '''
+    Given a molecule file, checks if it has more than one ligand, if positive, splits the file into multiple single molecule files. Uses openbabel python library.
+    Input:
+      molecule  [string]                   - Path to the molecule.
+      outputDir [string] DEFAULT: ""       - The output directory. If it is empty the outputDir will be the input dir plus an extra dir called ligand.
+      prefix    [string] DEFAULT: "ligand" - The output prefix for ligand file name.
+    Return:
+      [list(string)] - A list of paths to the new files.
+    '''
+    # Initialise an empty list to hold all files paths
+    ligand_files = []
+    # Grab the extension and path
+    extension = octools.validate_obabel_extension(molecule)
+    path = os.path.split(os.path.abspath(molecule))[0]
+    # Check if the extension is valid
+    if type(extension) != str:
+        octools.print_error(f"Problems while reading the ligand file '{inputLigandPath}'.")
+    else:
+        # Check if outputDir is not set
+        if not outputDir:
+            outputDir = f"{path}/ligands"
+        # Create the conversion object
+        obConversion = openbabel.OBConversion()
+        # Set the input/output format
+        obConversion.SetInAndOutFormats(extension, "mol2")
+        # Create the OBMol object
+        mol = openbabel.OBMol()
+        # Read the first molecule
+        molecules = obConversion.ReadFile(mol, molecule)
+        # Counter for files
+        molNum = 1
+        # For each molecule in the file
+        while molecules:
+            out_path = f"{outputDir}/{prefix}_{molNum}.mol2"
+            # Write the mol object to the output performing the conversion
+            obConversion.WriteFile(mol, out_path)
+            # Recreate mol object
+            mol = openbabel.OBMol()
+            # Read it again
+            molecules = obConversion.Read(mol)
+            # Increase the counter
+            molNum += 1
+            # Add the path to the ligand_files list
+            ligand_files.append(out_path)
     return ligand_files
 
 def multipleMoleculesSDF(molecule):
@@ -431,7 +480,7 @@ def loadMol(molecule):
                 outputMoleculePath = f"{os.path.dirname(molecule)}/{os.path.splitext(os.path.basename(molecule))[0]}.mol2"
 
                 # Process the ligand
-                octools.convert2mol2(molecule, outputMoleculePath, logFile = "")
+                octools.convert2mol2(molecule, outputMoleculePath)
 
                 if extension == ".pdb":
                     return outputMoleculePath, rdkit.Chem.rdmolfiles.MolFromPDBFile(molecule)

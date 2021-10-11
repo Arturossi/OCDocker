@@ -10,7 +10,10 @@ import tarfile
 import datetime
 import subprocess
 import urllib.request
+
 from tqdm import tqdm
+from openbabel import openbabel
+
 from OCDocker.Initialise import *
 
 # License
@@ -366,9 +369,9 @@ def run(cmd, logFile = ""):
 
     return errors.ok()
 
-def convert2mol2(input, output, logFile = ""):
+def convert2mol2_legacy(input, output, logFile = ""):
     '''
-    Convert a pdb/sdf/mol/smi file to '.mol2'.
+    Convert a pdb/sdf/mol/smi file to '.mol2'. Uses external obabel software. [DEPRECATED]
     Input:
       input   [string]                   - Input path.
       output  [string]                   - Output path.
@@ -413,3 +416,73 @@ def convert2mol2(input, output, logFile = ""):
 
     # Return the execution code from the correct extension
     return run(cmd, logFile=logFile)
+
+def convert2mol2(input, output):
+    '''
+    Convert a pdb/sdf/mol/smi file to '.mol2'.
+    Input:
+      input  [string] - Input path.
+      output [string] - Output path.
+    Return:
+      [int]
+      See Error.py for all return codes.
+    '''
+    # Print verboosity
+    printv(f"Converting '{input}' to '.mol2'.")
+    # Find the extension for input and output
+    extension = validate_obabel_extension(input)
+    outExtension = os.path.splitext(output)[1]
+    # Check if the extension is valid
+    if type(extension) != str:
+        print_error(f"Problems while reading the molecule from file '{input}'.")
+        return extension
+    # Discover if the output extension is pdbqt (to warn user if it is not)
+    if outExtension != ".mol2":
+        print_warn(f"The output extension is not '.mol2', is {outExtension}. This function converts {clrs['r']}ONLY{clrs['n']} to '.mol2'. Please pay attention, since this might be a problem in the future for you!")
+    # Check if the output exists, if so, no need to convert
+    if os.path.isfile(output):
+        return errors.file_exists(message=f"The file '{output}' already exists, aborting conversion.", level="warn")
+    # Try to convert (if fails, throw exception for subprocess failing)
+    try:
+        # Create a conversor object
+        obConversion = openbabel.OBConversion()
+        # Set the conversion from the extension to pdbqt
+        obConversion.SetInAndOutFormats(extension, "mol2")
+        # Create an empty OBMol object
+        mol = openbabel.OBMol()
+        # Load the input file to the prebiusly loaded OBMol object
+        obConversion.ReadFile(mol, input)
+        # Write the mol object to the output performing the conversion
+        obConversion.WriteFile(mol, output)
+    except Exception as e:
+        return errors.subprocess(message=f"Error while running molecule conversion using obabel python lib. Error: {e}", level="error")
+    return errors.ok()
+
+def validate_obabel_extension(path):
+    '''
+    Validate the input file extension to ensure the compability with obabel lib.
+    Input:
+      path [string] - Path to the file which will be tested.
+    Return:
+      [string/int] The extension if success, otherwise see Error.py for all return codes.
+    '''
+    supportedExtensions = [
+                            'acesin', 'adf', 'alc', 'ascii', 'bgf', 'box', 'bs', 'c3d1', 'c3d2', 'cac',
+                            'caccrt', 'cache', 'cacint', 'can', 'cdjson', 'cdxml', 'cht', 'cif', 'ck', 'cml',
+                            'cmlr', 'cof', 'com', 'confabreport', 'CONFIG', 'CONTCAR', 'CONTFF', 'copy', 'crk2d', 'crk3d',
+                            'csr', 'cssr', 'ct', 'cub', 'cube', 'dalmol', 'dmol', 'dx', 'ent', 'exyz',
+                            'fa', 'fasta', 'feat', 'fh', 'fhiaims', 'fix', 'fps', 'fpt', 'fract', 'fs',
+                            'fsa', 'gamin', 'gau', 'gjc', 'gjf', 'gpr', 'gr96', 'gro', 'gukin', 'gukout',
+                            'gzmat', 'hin', 'inchi', 'inchikey', 'inp', 'jin', 'k', 'lmpdat', 'lpmd', 'mcdl',
+                            'mcif', 'MDFF', 'mdl', 'ml2', 'mmcif', 'mmd', 'mmod', 'mna', 'mol', 'mol2',
+                            'mold', 'molden', 'molf', 'molreport', 'mop', 'mopcrt', 'mopin', 'mp', 'mpc',
+                            'mpd', 'mpqcin', 'mrv', 'msms', 'nul', 'nw', 'orcainp', 'outmol', 'paint',
+                            'pcjson', 'pcm', 'pdb', 'pdbqt', 'png', 'pointcloud', 'POSCAR', 'POSFF', 'pov',
+                            'pqr', 'pqs', 'qcin', 'report', 'rinchi', 'rsmi', 'rxn', 'sd', 'sdf',
+                            'smi', 'smiles', 'stl', 'svg', 'sy2', 'tdd', 'text', 'therm', 'tmol',
+                            'txt', 'txyz', 'unixyz', 'VASP', 'vmol', 'xed', 'xyz', 'yob', 'zin'
+                          ]
+    extension = os.path.splitext(path)[1][1:]
+    if extension in supportedExtensions:
+        return extension
+    return errors.unsupported_extension(message=f"Unsupported extension for input molecule file! Supported extensions are '{' '.join(supportedExtensions)}' and got '{extension}'.")

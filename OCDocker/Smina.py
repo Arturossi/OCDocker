@@ -9,6 +9,8 @@ import tarfile
 import datetime
 import subprocess
 
+from openbabel import openbabel
+
 import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
 from OCDocker.Initialise import *
@@ -178,7 +180,6 @@ class Smina:
         Return:
           cmd [list[string]] - List of strings of the command.
         '''
-
         cmd = [obabel, self.inputLigandPath, "-O", self.preparedLigand]
 
         return cmd
@@ -206,9 +207,9 @@ class Smina:
         '''
         return octools.run(self.sminaCmd, logFile=logFile)
 
-    def run_prepare_ligand(self, logFile = ""):
+    def run_prepare_ligand_from_cmd(self, logFile = ""):
         '''
-        Run obabel convert ligand to pdbqt script.
+        Run obabel convert ligand to pdbqt using the 'self.inputLigandPath' attribute. [DEPRECATED]
         Input:
           logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
         Return:
@@ -217,9 +218,20 @@ class Smina:
         '''
         return octools.run(self.prepareLigandCmd, logFile=logFile)
 
-    def run_prepare_receptor(self, logFile = ""):
+    def run_prepare_ligand(self):
         '''
-        Run obabel convert receptor to pdbqt script.
+        Run obabel convert ligand to pdbqt using the openbabel python library.
+        Input:
+          -
+        Return:
+          [int]
+          See Error.py for all return codes.
+        '''
+        return run_prepare_ligand(self.inputLigandPath, self.preparedLigand)
+
+    def run_prepare_receptor_from_cmd(self, logFile = ""):
+        '''
+        Run obabel convert receptor to pdbqt script using the 'self.prepareReceptorCmd' attribute. [DEPRECATED]
         Input:
           logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
         Return:
@@ -227,6 +239,17 @@ class Smina:
           See Error.py for all return codes.
         '''
         return octools.run(self.prepareReceptorCmd, logFile=logFile)
+
+    def run_prepare_receptor(self):
+        '''
+        Run obabel convert receptor to pdbqt using the openbabel python library.
+        Input:
+          -
+        Return:
+          [int]
+          See Error.py for all return codes.
+        '''
+        return run_prepare_receptor(self.inputReceptorPath, self.preparedReceptor)
 
     def __gen_smina_conf(self):
         '''
@@ -301,9 +324,9 @@ def gen_smina_conf(confFile, receptor = "receptor_noH"):
         return errors.write_file(message=f"Found a problem while opening conf file: {e}.", level="error")
     return errors.ok()
 
-def run_prepare_ligand(inputLigandPath, preparedLigand, logFile = ""):
+def run_prepare_ligand_from_cmd(inputLigandPath, preparedLigand, logFile = ""):
     '''
-    Converts the ligand to .pdbqt using obabel.
+    Converts the ligand to .pdbqt using obabel. [DEPRECATED]
     Input:
       inputLigandPath    [string]                   - Path to the input ligand file.
       preparedLigand     [string]                   - Path to the output ligand file.
@@ -318,9 +341,44 @@ def run_prepare_ligand(inputLigandPath, preparedLigand, logFile = ""):
     # Run the command
     return octools.run(cmd, logFile=logFile)
 
-def run_prepare_receptor(inputReceptorPath, outputReceptor, logFile=""):
+def run_prepare_ligand(inputLigandPath, preparedLigand):
     '''
-    Converts the receptor to .pdbqt using obabel.
+    Run obabel convert ligand to pdbqt using the openbabel python library.
+    Input:
+      inputLigandPath [string] - Path to the input ligand file.
+      preparedLigand  [string] - Path to the output ligand file.
+    Return:
+      [int]
+      See Error.py for all return codes.
+    '''
+    # Find the extension for input and output
+    extension = octools.validate_obabel_extension(inputLigandPath)
+    outExtension = os.path.splitext(preparedLigand)[1]
+    # Check if the extension is valid
+    if type(extension) != str:
+        octools.print_error(f"Problems while reading the ligand file '{inputLigandPath}'.")
+        return extension
+    # Discover if the output extension is pdbqt (to warn user if it is not)
+    if outExtension != ".pdbqt":
+        octools.print_warn(f"The output extension is not '.pdbqt', is {outExtension}. This function converts {clrs['r']}ONLY{clrs['n']} to '.pdbqt'. Please pay attention, since this might be a problem in the future for you!")
+    try:
+        # Create a conversor object
+        obConversion = openbabel.OBConversion()
+        # Set the conversion from the extension to pdbqt
+        obConversion.SetInAndOutFormats(extension, "pdbqt")
+        # Create an empty OBMol object
+        mol = openbabel.OBMol()
+        # Load the input file to the prebiusly loaded OBMol object
+        obConversion.ReadFile(mol, inputLigandPath)
+        # Write the mol object to the output performing the conversion
+        obConversion.WriteFile(mol, preparedLigand)
+    except Exception as e:
+        return errors.subprocess(message=f"Error while running ligand conversion using obabel python lib. Error: {e}", level="error")
+    return errors.ok()
+
+def run_prepare_receptor_from_cmd(inputReceptorPath, outputReceptor, logFile=""):
+    '''
+    Converts the receptor to .pdbqt using obabel. [DEPRECATED]
     Input:
       inputReceptorPath    [string]                   - Path to the input receptor file.
       preparedReceptor     [string]                   - Path to the output receptor file.
@@ -334,6 +392,42 @@ def run_prepare_receptor(inputReceptorPath, outputReceptor, logFile=""):
 
     # Run the command
     return octools.run(cmd, logFile=logFile)
+
+def run_prepare_receptor(inputReceptorPath, preparedReceptor):
+    '''
+    Run obabel convert receptor to pdbqt using the openbabel python library.
+    Input:
+      inputReceptorPath [string] - Path to the input receptor file.
+      preparedReceptor  [string] - Path to the output receptor file.
+    Return:
+      [int]
+      See Error.py for all return codes.
+    '''
+    # Find the extension for input and output
+    extension = octools.validate_obabel_extension(inputReceptorPath)
+    outExtension = os.path.splitext(preparedReceptor)[1]
+    # Check if the extension is valid
+    if type(extension) != str:
+        octools.print_error(f"Problems while reading the receptor file '{inputReceptorPath}'.")
+        return extension
+    # Discover if the output extension is pdbqt (to warn user if it is not)
+    if outExtension != ".pdbqt":
+        octools.print_warn(f"The output extension is not '.pdbqt', is {outExtension}. This function converts {clrs['r']}ONLY{clrs['n']} to '.pdbqt'. Please pay attention, since this might be a problem in the future for you!")
+    # Try to convert (if fails, throw exception for subprocess failing)
+    try:
+        # Create a conversor object
+        obConversion = openbabel.OBConversion()
+        # Set the conversion from the extension to pdbqt
+        obConversion.SetInAndOutFormats(extension, "pdbqt")
+        # Create an empty OBMol object
+        mol = openbabel.OBMol()
+        # Load the input file to the previously loaded OBMol object
+        obConversion.ReadFile(mol, inputReceptorPath)
+        # Write the mol object to the output performing the conversion
+        obConversion.WriteFile(mol, preparedReceptor)
+    except Exception as e:
+        return errors.subprocess(message=f"Error while running receptor conversion using obabel python lib. Error: {e}", level="error")
+    return errors.ok()
 
 def run_smina(config, preparedLigand, outputSmina, sminaLog, logpath):
     '''
