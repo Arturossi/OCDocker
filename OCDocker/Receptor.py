@@ -6,8 +6,9 @@ import os
 import math
 
 from Bio.PDB import *
-from Bio.SeqUtils import seq1
 from Bio.PDB.DSSP import DSSP
+from Bio.SeqUtils import seq1
+from Bio.SeqUtils.ProtParam import ProteinAnalysis
 from openbabel import openbabel
 
 from OCDocker.Initialise import *
@@ -53,6 +54,9 @@ class Receptor:
         self.sasa = self.structure.sasa
         self.__cModel = cModel # The options are 'mmff94', 'gasteiger' or 'eem2015bm'
         self.dipoleMoment = self.__computeDipoleMoment()
+        self.isoelectricPoint = self.__computeIsoelectricPoint()
+
+        # Será que seria interessante? secondary_structure_fraction(self) https://biopython.org/docs/1.76/api/Bio.SeqUtils.ProtParam.html
 
         self.__relativeASAcutoff = relativeASAcutoff
         self.__countAA = self.__count_surface_AA()
@@ -124,6 +128,16 @@ class Receptor:
         '''
         return computeDipoleMoment(self.path, self.__cModel)
 
+    def __computeIsoelectricPoint(self):
+        '''
+        Computes protein's isoelectric point.
+        Input:
+          -
+        Return:
+          [float] - Isoelectric point.
+        '''
+        return computeIsoelectricPoint(self.residues)
+
     def print_attributes(self):
         '''
         Print the class attributes.
@@ -138,6 +152,7 @@ class Receptor:
         print(f"AA residues:       '{self.residues if self.residues else '-' }'")
         print(f"SASA:              '{self.sasa if self.sasa else '0.0' }'")
         print(f"Dipole Moment:     '{self.dipoleMoment if self.dipoleMoment else '-' }'")
+        print(f"IsoelectricPoint:  '{self.isoelectricPoint if self.isoelectricPoint else '-' }'")
         print(f"# of accessible A: '{self.countA if self.countA else '0' }'")
         print(f"# of accessible R: '{self.countR if self.countR else '0' }'")
         print(f"# of accessible N: '{self.countN if self.countN else '0' }'")
@@ -170,6 +185,7 @@ class Receptor:
         descriptors = {
           "SASA": self.sasa if self.sasa else 0.0,
           "DipoleMoment": self.dipoleMoment if self.dipoleMoment else None,
+          "IsoelectricPoint": self.isoelectricPoint if self.isoelectricPoint else None,
           "countA": self.countA if self.countA else 0,
           "countR": self.countR if self.countR else 0,
           "countN": self.countN if self.countN else 0,
@@ -208,6 +224,7 @@ class Receptor:
           "Residues": self.residues if self.residues else "-",
           "SASA": self.sasa if self.sasa else 0.0,
           "DipoleMoment": self.dipoleMoment if self.dipoleMoment else "-",
+          "IsoelectricPoint": self.isoelectricPoint if self.isoelectricPoint else "-",
           "countA": self.countA if self.countA else 0,
           "countR": self.countR if self.countR else 0,
           "countN": self.countN if self.countN else 0,
@@ -244,6 +261,7 @@ def count_surface_AA(model, modelPath, cutoff=0.7):
       [dict(string)] - A dict containing the number of each AA with a relative ASA value greater than the cutoff.
       [None]         - If the model path is not set.
     '''
+    octools.printv(f"Counting how many of each of the 20 standard AAs from the model '{model.id}' are in the surface. Exposure cutoff is {cutoff}.")
     if not modelPath:
         _ = errors.not_set(message=f"The model path is not set!", level="error")
         return None
@@ -325,6 +343,7 @@ def getRes(model):
     Return:
       [string] The amino acid one letter sequence.
     '''
+    octools.printv(f"Converting the protein '{model.id}' to single letter amino acid sequence.")
     # Empty list to hold the residues
     residues = []
     # For each residue in the structure
@@ -344,6 +363,7 @@ def loadMol(structure, name=""):
       [string, object] - If the object has been correctly parsed.
       [string, None]   - If the object has not been correctly parsed.
     '''
+    octools.printv(f"Trying to load protein '{structure}'.")
     # Check if the type of the variable structure is a string or a Bio.PDB.Structure.Structure
     if type(structure) == Structure.Structure:
         compute_sasa(structure)
@@ -370,6 +390,7 @@ def loadMol(structure, name=""):
             # Compute the SASA value of the structure
             tmpStructure = parser.get_structure(name, structure)
             compute_sasa(tmpStructure)
+            octools.print_success(f"Successfully loaded the molecule '{structure}'")
             # Return the structure using selected parser
             return structure, tmpStructure
         else:
@@ -391,6 +412,7 @@ def computeDipoleMoment(structure, cModel='gasteiger'):
       [float] - The dipole moment value.
       [None]  - If the model path is not set.
     '''
+    octools.printv(f"Computing Dipole moment for protein '{structure}'.")
     # Grab the extension and path
     extension = octools.validate_obabel_extension(structure)
     # Set the moment as None
@@ -417,3 +439,27 @@ def computeDipoleMoment(structure, cModel='gasteiger'):
         moment = math.sqrt(dipole.GetX()**2+dipole.GetY()**2+dipole.GetZ()**2)
 
     return moment
+
+def computeIsoelectricPoint(residues):
+    '''
+    Computes protein's isoelectric point.
+    Input:
+      residues [string] - The one letter amino acid sequence for the protein.
+    Return:
+      [float] - Isoelectric point.
+    '''
+    octools.printv(f"Computing the isoelectric point for protein with amino acid sequence of '{residues}'.")
+    protein = ProteinAnalysis(residues)
+    return protein.isoelectric_point()
+
+def computeIsoelectricPoint(residues):
+    '''
+    Computes protein's isoelectric point.
+    Input:
+      residues [string] - The one letter amino acid sequence for the protein.
+    Return:
+      [float] - Isoelectric point.
+    '''
+    octools.printv(f"Computing Isoelectric for protein with amino acid sequence of '{residues}'.")
+    protein = ProteinAnalysis(residues)
+    return protein.isoelectric_point()

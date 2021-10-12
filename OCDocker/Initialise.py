@@ -395,7 +395,7 @@ def argument_parsing():
     # Add the arguments
     parser.add_argument("--version",
                         action="version",
-                        version="%(prog)s 0.1.5")
+                        version="%(prog)s 0.1.8")
 
     parser.add_argument("-f", "--file",
                         dest="input_file",
