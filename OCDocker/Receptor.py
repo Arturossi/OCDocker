@@ -47,7 +47,7 @@ class Receptor:
     Load and compute receptor descriptors.
     """
 
-    def __init__(self, structure, cModel='gasteiger', relativeASAcutoff=0.7, name=""):
+    def __init__(self, structure, cModel='gasteiger', gravyScale="KyteDoolitle", relativeASAcutoff=0.7, name=""):
         self.name = name
         self.path, self.structure = self.__loadMol(structure)
         self.residues = self.__getRes()
@@ -55,6 +55,10 @@ class Receptor:
         self.__cModel = cModel # The options are 'mmff94', 'gasteiger' or 'eem2015bm'
         self.dipoleMoment = self.__computeDipoleMoment()
         self.isoelectricPoint = self.__computeIsoelectricPoint()
+
+        self.gravyScale = gravyScale
+        self.GRAVY = self.__computeGravy()
+
 
         # Será que seria interessante? secondary_structure_fraction(self) https://biopython.org/docs/1.76/api/Bio.SeqUtils.ProtParam.html
 
@@ -138,6 +142,22 @@ class Receptor:
         '''
         return computeIsoelectricPoint(self.residues)
 
+    def __computeGravy(self):
+        '''
+        Computes the GRAVY (Grand Average of Hydropathy) according to Kyte and Doolitle, 1982.
+            Utilizes the given Hydrophobicity scale, by default uses the original
+            proposed by Kyte and Doolittle (KyteDoolitle). Other options are:
+            Aboderin, AbrahamLeo, Argos, BlackMould, BullBreese, Casari, Cid,
+            Cowan3.4, Cowan7.5, Eisenberg, Engelman, Fasman, Fauchere, GoldSack,
+            Guy, Jones, Juretic, Kidera, Miyazawa, Parker,Ponnuswamy, Rose,
+            Roseman, Sweet, Tanford, Wilson and Zimmerman.
+        Input:
+          -
+        Return:
+          [float] - GRAVY value.
+        '''
+        return computeGravy(self.residues, scale=self.gravyScale)
+
     def print_attributes(self):
         '''
         Print the class attributes.
@@ -153,6 +173,7 @@ class Receptor:
         print(f"SASA:              '{self.sasa if self.sasa else '0.0' }'")
         print(f"Dipole Moment:     '{self.dipoleMoment if self.dipoleMoment else '-' }'")
         print(f"IsoelectricPoint:  '{self.isoelectricPoint if self.isoelectricPoint else '-' }'")
+        print(f"GRAVY:             '{self.GRAVY if self.GRAVY else '-' }'")
         print(f"# of accessible A: '{self.countA if self.countA else '0' }'")
         print(f"# of accessible R: '{self.countR if self.countR else '0' }'")
         print(f"# of accessible N: '{self.countN if self.countN else '0' }'")
@@ -186,6 +207,7 @@ class Receptor:
           "SASA": self.sasa if self.sasa else 0.0,
           "DipoleMoment": self.dipoleMoment if self.dipoleMoment else None,
           "IsoelectricPoint": self.isoelectricPoint if self.isoelectricPoint else None,
+          "GRAVY": self.GRAVY if self.GRAVY else None,
           "countA": self.countA if self.countA else 0,
           "countR": self.countR if self.countR else 0,
           "countN": self.countN if self.countN else 0,
@@ -225,6 +247,7 @@ class Receptor:
           "SASA": self.sasa if self.sasa else 0.0,
           "DipoleMoment": self.dipoleMoment if self.dipoleMoment else "-",
           "IsoelectricPoint": self.isoelectricPoint if self.isoelectricPoint else "-",
+          "GRAVY": self.GRAVY if self.GRAVY else "-",
           "countA": self.countA if self.countA else 0,
           "countR": self.countR if self.countR else 0,
           "countN": self.countN if self.countN else 0,
@@ -460,6 +483,29 @@ def computeIsoelectricPoint(residues):
     Return:
       [float] - Isoelectric point.
     '''
-    octools.printv(f"Computing Isoelectric for protein with amino acid sequence of '{residues}'.")
+    octools.printv(f"Computing Isoelectric Point for protein with amino acid sequence of '{residues}'.")
     protein = ProteinAnalysis(residues)
     return protein.isoelectric_point()
+
+def computeGravy(residues, scale="KyteDoolitle"):
+    '''
+    Computes the GRAVY (Grand Average of Hydropathy) according to Kyte and Doolitle, 1982.
+        Utilizes the given Hydrophobicity scale, by default uses the original
+        proposed by Kyte and Doolittle (KyteDoolitle). Other options are:
+        Aboderin, AbrahamLeo, Argos, BlackMould, BullBreese, Casari, Cid,
+        Cowan3.4, Cowan7.5, Eisenberg, Engelman, Fasman, Fauchere, GoldSack,
+        Guy, Jones, Juretic, Kidera, Miyazawa, Parker,Ponnuswamy, Rose,
+        Roseman, Sweet, Tanford, Wilson and Zimmerman.
+    Input:
+      residues [string]                         - The one letter amino acid sequence for the protein.
+      scale    [string] DEFAULT: "KyteDoolitle" - Scale to be used.
+    Return:
+      [float] - GRAVY value.
+    '''
+    octools.printv(f"Computing the GRAVY (Grand Average of Hydropathy) for protein with amino acid sequence of '{residues}'.")
+    residues = residues.upper()
+    if 'X' in residues.upper():
+        octools.print_warning(f"The gravy function does not supports the 'X' (unknown) amino acid. Stripping it to compute the GRAVY descriptor ({residues.count('X')} occurrences of {len(residues)} AAs).")
+        residues = residues.replace('X', '')
+    protein = ProteinAnalysis(residues)
+    return protein.gravy()
