@@ -57,7 +57,7 @@ class Receptor:
         self.isoelectricPoint = self.__computeIsoelectricPoint()
         self.instabilityIndex = self.__computeInstabilityIndex()
 
-        self.gravyScale = gravyScale
+        self.__gravyScale = gravyScale
         self.GRAVY = self.__computeGravy()
 
         self.aromaticity = self.__computeAromaticity()
@@ -159,7 +159,7 @@ class Receptor:
         Return:
           [float] - GRAVY value.
         '''
-        return computeGravy(self.residues, scale=self.gravyScale)
+        return computeGravy(self.residues, scale=self.__gravyScale)
 
     def __computeAromaticity(self):
         '''
