@@ -63,6 +63,7 @@ class Ligand:
         self.NumRadicalElectrons = self.__findNumRadicalElectrons()
         self.NumValenceElectrons = self.__findNumValenceElectrons()
 
+    ## Private ##
     def __loadMol(self, molecule):
         '''
         Load a molecule pdb/sdf/mol/mol2 if a path is provided or just assign the Mol object to the molecule.
@@ -193,6 +194,7 @@ class Ligand:
         '''
         return findNumValenceElectrons(self.molecule)
 
+    ## Public ##
     def print_attributes(self):
         '''
         Print the class attributes.
@@ -272,6 +274,9 @@ class Ligand:
 
 # Functions
 ###############################################################################
+## Private ##
+
+## Public ##
 def splitMolecules_legacy(molecule, outputDir="", prefix="ligand"):
     '''
     Given a molecule file, checks if it has more than one ligand, if positive, splits the file into multiple single molecule files. Uses external obabel. [DEPRECATED]

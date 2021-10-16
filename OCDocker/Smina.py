@@ -66,6 +66,8 @@ class Smina:
         self.sminaCmd = self.__smina_cmd()
         self.__gen_smina_conf()
 
+    ## Private ##
+
     def __parse_receptor(self, receptor):
         '''
         Parse the receptor as input, handling its type.
@@ -196,6 +198,17 @@ class Smina:
         cmd = [obabel, self.inputReceptorPath, "-xr", "-O", self.preparedReceptor]
         return cmd
 
+    def __gen_smina_conf(self):
+        '''
+        Creates a conf file for smina.
+        Input:
+          -
+        Return:
+          [int]
+          See Error.py for all return codes.
+        '''
+        return gen_smina_conf(self.config, self.preparedReceptor)
+
     def run_smina(self, logFile = ""):
         '''
         Run smina.
@@ -251,16 +264,7 @@ class Smina:
         '''
         return run_prepare_receptor(self.inputReceptorPath, self.preparedReceptor)
 
-    def __gen_smina_conf(self):
-        '''
-        Creates a conf file for smina.
-        Input:
-          -
-        Return:
-          [int]
-          See Error.py for all return codes.
-        '''
-        return gen_smina_conf(self.config, self.preparedReceptor)
+    ## Public ##
 
     def print_attributes(self):
         '''
@@ -287,6 +291,9 @@ class Smina:
 
 # Functions
 ###############################################################################
+## Private ##
+
+## Public ##
 def gen_smina_conf(confFile, receptor = "receptor_noH"):
     '''
     Convert a box (DUDE like format) to vina input.

@@ -42,6 +42,9 @@ import OCDocker.Database as ocdb
 
 # Functions
 ###############################################################################
+## Private ##
+
+## Public ##
 def create_directories():
     '''
     Create dirs

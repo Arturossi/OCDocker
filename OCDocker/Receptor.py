@@ -308,6 +308,7 @@ class Receptor:
 
 # Functions
 ###############################################################################
+## Private ##
 def __filterSequence(residues):
     '''
     Filter the given sequence to avoid unsupported amino acid residues. (Currently: X)
@@ -323,6 +324,7 @@ def __filterSequence(residues):
         return residues.replace('X', '')
     return residues
 
+## Public ##
 def count_surface_AA(model, modelPath, cutoff=0.7):
     '''
     Counts how many of each of the 20 standard AAs has a relative ASA value above a given cutoff.

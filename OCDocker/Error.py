@@ -64,7 +64,7 @@ class Error:
         # Subprocess errors
         self.subprocessCode           = 300
 
-    # Internal functions
+    ## Private ##
     def __print_success(self, message):
         '''
         Print success.
@@ -126,6 +126,7 @@ class Error:
                 self.__print_error(message)
         return
 
+    ## Public ##
     # Common errors
     def ok(self):
         '''
@@ -311,3 +312,6 @@ class Error:
 
 # Functions
 ###############################################################################
+## Private ##
+
+## Public ##

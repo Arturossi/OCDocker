@@ -70,6 +70,8 @@ class Vina:
         # Create the box
         self.__box_to_vina()
 
+    ## Private ##
+
     def __parse_receptor(self, receptor):
         '''
         Parse the receptor as input, handling its type.
@@ -220,6 +222,8 @@ class Vina:
         '''
         return box_to_vina(self.boxFile, self.config, self.preparedReceptor)
 
+    ## Public ##
+
     def run_vina(self, logFile = ""):
         '''
         Run vina.
@@ -286,6 +290,9 @@ class Vina:
 
 # Functions
 ###############################################################################
+## Private ##
+
+## Public ##
 def box_to_vina(boxFile, confFile, receptor = "receptor_noH"):
     '''
     Convert a box (DUDE like format) to vina input.

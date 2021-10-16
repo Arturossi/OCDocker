@@ -39,7 +39,7 @@ import OCDocker.DUDEZ as ocdudez
 
 # Functions
 ###############################################################################
-## Private
+## Private ##
 def __get_vina_data_from_box(file):
     '''
     Get data to generate vina conf file from box file.
@@ -124,7 +124,7 @@ def __generate_vina_conf_file_dudez(receptorPath, box, boxFolder):
 
     return
 
-## Public
+## Public ##
 def generate_vina_files(path):
     '''
     Generate all vina required files for provided protein.

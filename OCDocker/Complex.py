@@ -45,12 +45,14 @@ class Complex:
         self.name = name
         self.molecule = self.__loadMol(molecule)
 
+    ## Private ##
     def __loadMol(self, molecule):
         '''
         Load a molecule pdb if a path is provided or just assign the Mol object to the molecule.
         '''
         return loadMol(molecule)
 
+    ## Public ##
     def print_attributes(self):
         '''
         Print the class attributes.
@@ -63,8 +65,12 @@ class Complex:
         print(f"Molecule: '{self.molecule if self.molecule else '-' }'")
 
         return
+
 # Functions
 ###############################################################################
+## Private ##
+
+## Public ##
 def loadMol(molecule):
     '''
     Load a molecule pdb if a path is provided or just assign the Mol object to the molecule.

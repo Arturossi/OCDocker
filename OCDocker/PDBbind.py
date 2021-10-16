@@ -39,5 +39,8 @@ import OCDocker.PDBbind as ocpdbbind
 
 # Functions
 ###############################################################################
+## Private ##
+
+## Public ##
 def prepare():
     return

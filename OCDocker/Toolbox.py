@@ -59,6 +59,9 @@ class DownloadProgressBar(tqdm):
 
 # Functions
 ###############################################################################
+## Private ##
+
+## Public ##
 def printv(message):
     '''
     Function to print if verbosity is invoked.
@@ -86,7 +89,6 @@ def print_success(message):
     else:
         print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['g']}SUCCSESS{clrs['n']}: {message}")
     return
-
 
 def print_warning(message):
     '''

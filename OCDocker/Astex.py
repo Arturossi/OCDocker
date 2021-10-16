@@ -40,5 +40,8 @@ import OCDocker.Astex as ocastex
 
 # Functions
 ###############################################################################
+## Private ##
+
+## Public ##
 def prepare():
     return
