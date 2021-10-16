@@ -55,10 +55,12 @@ class Receptor:
         self.__cModel = cModel # The options are 'mmff94', 'gasteiger' or 'eem2015bm'
         self.dipoleMoment = self.__computeDipoleMoment()
         self.isoelectricPoint = self.__computeIsoelectricPoint()
+        self.instabilityIndex = self.__computeInstabilityIndex()
 
         self.gravyScale = gravyScale
         self.GRAVY = self.__computeGravy()
 
+        self.aromaticity = self.__computeAromaticity()
 
         # Será que seria interessante? secondary_structure_fraction(self) https://biopython.org/docs/1.76/api/Bio.SeqUtils.ProtParam.html
 
@@ -86,6 +88,7 @@ class Receptor:
         self.countY = self.__countAA["Y"]
         self.countV = self.__countAA["V"]
 
+    ## Private ##
     def __count_surface_AA(self):
         '''
         Counts how many of each of the 20 standard AAs has a relative Accessible surface area (ASA) value above a given cutoff.
@@ -158,6 +161,32 @@ class Receptor:
         '''
         return computeGravy(self.residues, scale=self.gravyScale)
 
+    def __computeAromaticity(self):
+        '''
+        Compute the aromaticity according to Lobry, 1994.
+        Input:
+          -
+        Return:
+          [float] - Aromaticity value.
+        '''
+        return computeAromaticity(self.residues)
+
+    def __computeInstabilityIndex(self):
+        '''
+        Calculate the instability index according to Guruprasad et al 1990.
+            Implementation of the method of Guruprasad et al. 1990 to test a
+            protein for stability. Any value above 40 means the protein is unstable
+            (has a short half life).
+            See: Guruprasad K., Reddy B.V.B., Pandit M.W.
+            Protein Engineering 4:155-161(1990).
+        Input:
+          -
+        Return:
+          [float] - Instability Index value.
+        '''
+        return computeInstabilityIndex(self.residues)
+
+    ## Public ##
     def print_attributes(self):
         '''
         Print the class attributes.
@@ -172,8 +201,10 @@ class Receptor:
         print(f"AA residues:       '{self.residues if self.residues else '-' }'")
         print(f"SASA:              '{self.sasa if self.sasa else '0.0' }'")
         print(f"Dipole Moment:     '{self.dipoleMoment if self.dipoleMoment else '-' }'")
-        print(f"IsoelectricPoint:  '{self.isoelectricPoint if self.isoelectricPoint else '-' }'")
+        print(f"Isoelectric Point: '{self.isoelectricPoint if self.isoelectricPoint else '-' }'")
         print(f"GRAVY:             '{self.GRAVY if self.GRAVY else '-' }'")
+        print(f"Aromaticity:       '{self.aromaticity if self.aromaticity else '-' }'")
+        print(f"Instability Index: '{self.instabilityIndex if self.instabilityIndex else '-' }'")
         print(f"# of accessible A: '{self.countA if self.countA else '0' }'")
         print(f"# of accessible R: '{self.countR if self.countR else '0' }'")
         print(f"# of accessible N: '{self.countN if self.countN else '0' }'")
@@ -208,6 +239,8 @@ class Receptor:
           "DipoleMoment": self.dipoleMoment if self.dipoleMoment else None,
           "IsoelectricPoint": self.isoelectricPoint if self.isoelectricPoint else None,
           "GRAVY": self.GRAVY if self.GRAVY else None,
+          "Aromaticity": self.aromaticity if self.aromaticity else None,
+          "InstabilityIndex": self.instabilityIndex if self.instabilityIndex else None,
           "countA": self.countA if self.countA else 0,
           "countR": self.countR if self.countR else 0,
           "countN": self.countN if self.countN else 0,
@@ -248,6 +281,8 @@ class Receptor:
           "DipoleMoment": self.dipoleMoment if self.dipoleMoment else "-",
           "IsoelectricPoint": self.isoelectricPoint if self.isoelectricPoint else "-",
           "GRAVY": self.GRAVY if self.GRAVY else "-",
+          "Aromaticity": self.aromaticity if self.aromaticity else "-",
+          "InstabilityIndex": self.instabilityIndex if self.instabilityIndex else "-",
           "countA": self.countA if self.countA else 0,
           "countR": self.countR if self.countR else 0,
           "countN": self.countN if self.countN else 0,
@@ -273,6 +308,21 @@ class Receptor:
 
 # Functions
 ###############################################################################
+def __filterSequence(residues):
+    '''
+    Filter the given sequence to avoid unsupported amino acid residues. (Currently: X)
+    Input:
+      residues [string]                         - The one letter amino acid sequence for the protein.
+      scale    [string] DEFAULT: "KyteDoolitle" - Scale to be used.
+    Return:
+      [float] - GRAVY value.
+    '''
+    residues = residues.upper()
+    if 'X' in residues:
+        octools.print_warning(f"The gravy function does not supports the 'X' (unknown) amino acid. Stripping it to compute the GRAVY descriptor ({residues.count('X')} occurrences of {len(residues)} AAs).")
+        return residues.replace('X', '')
+    return residues
+
 def count_surface_AA(model, modelPath, cutoff=0.7):
     '''
     Counts how many of each of the 20 standard AAs has a relative ASA value above a given cutoff.
@@ -475,18 +525,6 @@ def computeIsoelectricPoint(residues):
     protein = ProteinAnalysis(residues)
     return protein.isoelectric_point()
 
-def computeIsoelectricPoint(residues):
-    '''
-    Computes protein's isoelectric point.
-    Input:
-      residues [string] - The one letter amino acid sequence for the protein.
-    Return:
-      [float] - Isoelectric point.
-    '''
-    octools.printv(f"Computing Isoelectric Point for protein with amino acid sequence of '{residues}'.")
-    protein = ProteinAnalysis(residues)
-    return protein.isoelectric_point()
-
 def computeGravy(residues, scale="KyteDoolitle"):
     '''
     Computes the GRAVY (Grand Average of Hydropathy) according to Kyte and Doolitle, 1982.
@@ -503,9 +541,34 @@ def computeGravy(residues, scale="KyteDoolitle"):
       [float] - GRAVY value.
     '''
     octools.printv(f"Computing the GRAVY (Grand Average of Hydropathy) for protein with amino acid sequence of '{residues}'.")
-    residues = residues.upper()
-    if 'X' in residues.upper():
-        octools.print_warning(f"The gravy function does not supports the 'X' (unknown) amino acid. Stripping it to compute the GRAVY descriptor ({residues.count('X')} occurrences of {len(residues)} AAs).")
-        residues = residues.replace('X', '')
-    protein = ProteinAnalysis(residues)
+    protein = ProteinAnalysis(__filterSequence(residues))
     return protein.gravy()
+
+def computeAromaticity(residues):
+    '''
+    Compute the aromaticity according to Lobry, 1994.
+    Input:
+      residues [string] - The one letter amino acid sequence for the protein.
+    Return:
+      [float] - Aromaticity value.
+    '''
+    octools.printv(f"Computing the Aromaticity for protein with amino acid sequence of '{residues}'.")
+    protein = ProteinAnalysis(residues.upper())
+    return protein.aromaticity()
+
+def computeInstabilityIndex(residues):
+    '''
+    Calculate the instability index according to Guruprasad et al 1990.
+        Implementation of the method of Guruprasad et al. 1990 to test a
+        protein for stability. Any value above 40 means the protein is unstable
+        (has a short half life).
+        See: Guruprasad K., Reddy B.V.B., Pandit M.W.
+        Protein Engineering 4:155-161(1990).
+    Input:
+      residues [string] - The one letter amino acid sequence for the protein.
+    Return:
+      [float] - Instability Index value.
+    '''
+    octools.printv(f"Computing the Instability Index for protein with amino acid sequence of '{residues}'.")
+    protein = ProteinAnalysis(__filterSequence(residues))
+    return protein.instability_index()
