@@ -19,19 +19,19 @@ To install it, you have 3 options:
 	- Untar it:
 
 	```bash
-$ tar -xvzf mgltools_x86_64Linux2_1.5.X.tar_.gz
+	$ tar -xvzf mgltools_x86_64Linux2_1.5.X.tar_.gz
 	```
 
 	- cd into created dir
 
 	```bash
-$ cd mgltools_x86_64Linux2_1.5.X
+	$ cd mgltools_x86_64Linux2_1.5.X
 	```
 
 	- source the install.sh
 
 	```bash
-$ source ./install.sh
+	$ source ./install.sh
 	```
 
 * Option 3 (Use this all-in-one command. It seems to be more complicated, but its easier than option 2 and its easy to automate-it)
@@ -65,13 +65,13 @@ To install it, you have 2 options:
 	- Untar it:
 
 	```bash
-$ tar -xvzf autodock_vina_1_1_2_linux_x86.tgz
+	$ tar -xvzf autodock_vina_1_1_2_linux_x86.tgz
 	```
 
 * Option 2 (Use this all-in-one command. It seems to be more complicated, but its easier than option 2 and its easy to automate-it)
 
 	```bash
-$ mkdir vina && wget https://github.com/ccsb-scripps/AutoDock-Vina/releases/download/v1.2.3/vina_1.2.3_linux_x86_64 -O vina/vina && sudo cp vina/vina /usr/bin/vina
+	$ mkdir vina && wget https://github.com/ccsb-scripps/AutoDock-Vina/releases/download/v1.2.3/vina_1.2.3_linux_x86_64 -O vina/vina && sudo cp vina/vina /usr/bin/vina
 	```
 
 OBS: The vina executable will be in the following dir: ``installation_dir/vina/bin``
