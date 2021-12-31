@@ -57,7 +57,7 @@ To install it, you have 2 options:
 * Option 2 (Use this all-in-one command. It seems to be more complicated, but its easier than option 2 and its easy to automate-it)
 	.. code-block:: bash
 
-		$ wget http://vina.scripps.edu/download/autodock_vina_1_1_2_linux_x86.tgz -O vina.tgz && mkdir -p vina && tar -xvzf vina.tgz -C vina --strip-components=1 && rm vina.tgz
+		$ mkdir vina && wget https://github.com/ccsb-scripps/AutoDock-Vina/releases/download/v1.2.3/vina_1.2.3_linux_x86_64 -O vina/vina && sudo cp vina/vina /usr/bin/vina
 
 OBS: The vina executable will be in the following dir: ``installation_dir/vina/bin``
 
