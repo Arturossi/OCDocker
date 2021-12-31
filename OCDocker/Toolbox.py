@@ -266,7 +266,7 @@ def untar(fname, out_path=".", delete=False):
       See Error.py for all return codes.
     '''
     # Print verboosity
-    printv(f"Untarring file '{fname}' to the output '{outpath}'")
+    printv(f"Untarring file '{fname}' to the output '{out_path}'")
     # Check if the file has the right extensions
     if (fname.endswith("tar.gz") or fname.endswith(".tgz")):
         try:

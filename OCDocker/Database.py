@@ -4,6 +4,7 @@
 ###############################################################################
 import os
 import shutil
+import mimetypes
 import urllib.request
 import textwrap as tw
 
@@ -88,47 +89,108 @@ def update_pdbbind():
     Function to update the pdbbind database
     Called by: update_databases()
     '''
-
     # Parameterizing the topics (this sounds strange but one large string concatenation was bugging the IDE)
-    t1 = f"- Go to the PDBbind website ({clrs['c']}http://www.pdbbind.org.cn/download.php{clrs['n']})"
+    t1 = f"- Go to the PDBbind website ({clrs['c']}http://www.pdbbind.org.cn/download.php{clrs['n']});"
 
-    t2 = f"- Download the{clrs['c']} Protein-ligand complexes: The general set minus refined set{clrs['n']}, untar it and put all the protein folders folder inside the{clrs['y']} {pdbbind_archive}/complexes{clrs['n']} folder and the{clrs['y']} index{clrs['n']} folder should be put in the{clrs['y']} {pdbbind_archive}{clrs['n']} folder."
-    t2 += f" The{clrs['y']} readme{clrs['n']} folder should be{clrs['r']} deleted{clrs['n']}."
-
-    t3 = f"- Download the{clrs['c']} Protein-ligand complexes: The refined set{clrs['n']}, untar it and put all the protein folders folder inside the{clrs['y']} {pdbbind_archive}/complexes{clrs['n']} folder. The{clrs['y']} readme{clrs['n']} and{clrs['y']} index{clrs['n']} folders should be{clrs['r']} deleted{clrs['n']}."
+    t2 = f"- Download the{clrs['c']} Protein-ligand complexes: The refined set{clrs['n']} and provide the full path to it or put the file inside the {clrs['y']} {pdbbind_archive}{clrs['n']} folder and type continue (please, make sure that the downloaded file is the{clrs['c']} ONLY{clrs['n']} file inside the {clrs['y']} {pdbbind_archive}{clrs['n']} folder). If you want to skip the PDBBind update, type 'skip' (without quotes) and press enter."
 
     # Since no rsync option to update pdbbind database has been found you have to manually download/untar the files and put them inside the database folder
     print(tw.dedent("""
-                 Unfortunately this step has not been able to be automatized... (yet) :(
-    Please we kindly ask you to perform the following steps to update the PDBbind database
+                 Unfortunately this step has not been able to be 100% automatized... :(
+    Please, we kindly ask you to perform the following steps to update the PDBbind database
 
     """ + t1 + """
 
     """ + t2 + """
 
-    """ + t3 + """
-
     """))
 
+    # Infinite loop (user can break it by sending an empty answer)
     while True:
-        option = input('Once these steps are done, type "continue" (without the double quotes) and press enter to continue. To cancel just press enter without typing nothing.\n')
-        if option.lower() == 'continue':
-            print('Continuing the update proces...')
+        # Check the options
+        option = input("Once these steps are done, type 'continue' (without the quotes) and press enter to continue. To cancel just press enter without typing nothing.\n")
+
+        if option.lower() == "continue":
+            octools.printv("Continuing the update proces...")
+            pdbbindTar = glob(f"{pdbbind_archive}/*.tar.gz")[0]
+
+            # Since everything is right, start to untar it and delete source .tar.gz file
+            _ = octools.untar(pdbbindTar, out_path=pdbbind_archive, delete=True)
+
+            # Check if there is a refined-set folder
+            if os.path.isdir(f"{pdbbind_archive}/refined-set"):
+                # For each file inside the refined-set folder
+                for filename in os.listdir(os.path.join(pdbbind_archive, "refined-set")):
+                    # Move it to the parent folder
+                    shutil.move(f"{pdbbind_archive}/refined-set/{filename}", f"{pdbbind_archive}/{filename}")
+
+                # Remove the refined-set folder
+                os.rmdir(f"{pdbbind_archive}/refined-set")
+
+            # Check if there is a readme folder
+            if os.path.isdir(f"{pdbbind_archive}/readme"):
+                # Delete it
+                shutil.rmtree(f"{pdbbind_archive}/readme")
+
+            # Check if there is a index folder
+            if os.path.isdir(f"{pdbbind_archive}/index"):
+                # Delete it
+                shutil.rmtree(f"{pdbbind_archive}/index")
+
+            # Exit the loop
             break;
+
+        elif option.lower() == "skip":
+            octools.printv(f"The user decided to skip this update. Skipping!!!")
+            return
+
         elif option == "":
-            print('User aborted the update.')
+            octools.print_warning("User aborted the update.")
             quit();
+
         else:
-            print('Unknown option!')
+            octools.printv(f"Verifying if '{option}' is a valid path.")
 
-    # The following code is awaiting a better opportunity to show some work
-    """pdbbind_files = glob.glob(f"{pdbbind_archive}/*.tar.gz")
+            # Check if the .tar.gz file exists
+            if os.path.isfile(option):
+                octools.printv(f"The '{option}' is a valid file path. Checking if its MIME type and encoding are correct.")
 
-    for pdbbind_file in pdbbind_files:
-        f = os.path.join(pdbbind_archive, pdbbind_file)
+                # Check its MIME type and encoding
+                mime_type, enc = mimetypes.guess_type(option)
+                if mime_type == "application/x-tar" and enc == "gzip":
+                    octools.printv("The MIME type and encoding are correct! Following with the installation.")
 
-        print(f'Trying to untar file {f}')
-        octools.untar(f, out_path=pdbbind_archive)"""
+                    # Since everything is right, start to untar it and delete source .tar.gz file
+                    _ = octools.untar(option, out_path=pdbbind_archive, delete=True)
+
+                    # Check if there is a refined-set folder
+                    if os.path.isdir(f"{pdbbind_archive}/refined-set"):
+                        # For each file inside the refined-set folder
+                        for filename in os.listdir(os.path.join(pdbbind_archive, "refined-set")):
+                            # Move it to the parent folder
+                            shutil.move(f"{pdbbind_archive}/refined-set/{filename}", f"{pdbbind_archive}/{filename}")
+
+                        # Remove the refined-set folder (which is empty)
+                        os.rmdir(f"{pdbbind_archive}/refined-set")
+
+                    # Check if there is a readme folder (not empty)
+                    if os.path.isdir(f"{pdbbind_archive}/readme"):
+                        # Delete it
+                        shutil.rmtree(f"{pdbbind_archive}/readme")
+
+                    # Check if there is a index folder (not empty)
+                    if os.path.isdir(f"{pdbbind_archive}/index"):
+                        # Delete it
+                        shutil.rmtree(f"{pdbbind_archive}/index")
+
+                    # Exit the loop
+                    break
+
+                else:
+                    octools.print_warning(f"Wrong file type! The mime type must be 'application/x-tar' and its encoding must be 'gzip', however mime type '{mime_type}' and encoding '{enc}' have been found.")
+            else:
+                octools.print_warning(f"The string '{option}' is not a valid path!")
+    return
 
 def update_astex():
     '''
@@ -142,10 +204,12 @@ def update_astex():
     t2 = f"- Download the{clrs['c']} Astex Diverse Set{clrs['n']} located under the 'Validation Test Sets' section, untar it and put all the protein folders folder inside the{clrs['y']} {astex_archive}{clrs['n']} folder."
     t2 += f" The{clrs['y']} readme.txt{clrs['n']} file should be{clrs['r']} deleted{clrs['n']}."
 
+    t2 = f"- Download the{clrs['c']} Astex Diverse Set{clrs['n']} located under the 'Validation Test Sets' section, and provide the full path to it or put the file inside the {clrs['y']} {astex_archive}{clrs['n']} folder and type continue (please, make sure that the downloaded file is the{clrs['c']} ONLY{clrs['n']} file inside the {clrs['y']} {astex_archive}{clrs['n']} folder). If you want to skip the Astex update, type 'skip' (without quotes) and press enter."
+
     # Since no rsync option to update pdbbind database has been found you have to manually download/untar the files and put them inside the database folder
     print(tw.dedent("""
-                 Unfortunately this step has not been able to be automatized... (yet) :(
-    Please we kindly ask you to perform the following steps to update the PDBbind database
+                 Unfortunately this step has not been able to be automatized... :(
+    Please, we kindly ask you to perform the following steps to update the PDBbind database
 
     """ + t1 + """
 
@@ -153,36 +217,108 @@ def update_astex():
 
     """))
 
+    # Infinite loop (user can break it by sending an empty answer)
     while True:
-        option = input('Once these steps are done, type "continue" (without the double quotes) and press enter to continue. To cancel just press enter without typing nothing.\n')
-        if option.lower() == 'continue':
-            print('Continuing the update proces...')
+        # Check the options
+        option = input("Once these steps are done, type 'continue' (without the quotes) and press enter to continue. To cancel just press enter without typing nothing.\n")
+
+        if option.lower() == "continue":
+            octools.printv("Continuing the update proces...")
+            astexTar = glob(f"{astex_archive}/*.tar.gz")[0]
+
+            # Since everything is right, start to untar it and delete source .tar.gz file
+            _ = octools.untar(astexTar, out_path=astex_archive, delete=True)
+
+            # Check if there is a refined-set folder
+            if os.path.isdir(f"{astex_archive}/astex_diverse_set"):
+                # For each file inside the refined-set folder
+                for filename in os.listdir(os.path.join(astex_archive, "astex_diverse_set")):
+                    # Move it to the parent folder
+                    shutil.move(f"{astex_archive}/astex_diverse_set/{filename}", f"{astex_archive}/{filename}")
+
+                # Remove the refined-set folder
+                os.rmdir(f"{astex_archive}/astex_diverse_set")
+
+            # Check if there is a readme file
+            if os.path.isfile(f"{astex_archive}/README.txt"):
+                # Delete it
+                os.remove(f"{astex_archive}/README.txt")
+
+            # Exit the loop
             break;
+
+        elif option.lower() == "skip":
+            octools.printv(f"The user decided to skip this update. Skipping!!!")
+            return
+
         elif option == "":
-            print('User aborted the update.')
+            octools.print_warning("User aborted the update.")
             quit();
+
         else:
-            print('Unknown option!')
+            octools.printv(f"Verifying if '{option}' is a valid path.")
 
-    # The following code is awaiting a better opportunity to show some work
-    """astex_files = glob.glob(f"{astex_archive}/*.tar.gz")
+            # Check if the .tar.gz file exists
+            if os.path.isfile(option):
+                octools.printv(f"The '{option}' is a valid file path. Checking if its MIME type and encoding are correct.")
 
-    for astex_file in astex_files:
-        f = os.path.join(astex_archive, astex_file)
+                # Check its MIME type and encoding
+                mime_type, enc = mimetypes.guess_type(option)
+                if mime_type == "application/x-tar" and enc == "gzip":
+                    octools.printv("The MIME type and encoding are correct! Following with the installation.")
 
-        print(f'Trying to untar file {f}')
-        octools.untar(f, out_path=astex_archive)"""
+                    # Since everything is right, start to untar it and delete source .tar.gz file
+                    _ = octools.untar(option, out_path=astex_archive, delete=True)
+
+                    # Check if there is a refined-set folder
+                    if os.path.isdir(f"{astex_archive}/astex_diverse_set"):
+                        # For each file inside the refined-set folder
+                        for filename in os.listdir(os.path.join(astex_archive, "astex_diverse_set")):
+                            # Move it to the parent folder
+                            shutil.move(f"{astex_archive}/astex_diverse_set/{filename}", f"{astex_archive}/{filename}")
+
+                        # Remove the refined-set folder (which is empty)
+                        os.rmdir(f"{astex_archive}/astex_diverse_set")
+
+                    # Check if there is a readme file
+                    if os.path.isfile(f"{astex_archive}/README.txt"):
+                        # Delete it
+                        os.remove(f"{astex_archive}/README.txt")
+
+                    # Exit the loop
+                    break
+
+                else:
+                    octools.print_warning(f"Wrong file type! The mime type must be 'application/x-tar' and its encoding must be 'gzip', however mime type '{mime_type}' and encoding '{enc}' have been found.")
+            else:
+                octools.print_warning(f"The string '{option}' is not a valid path!")
+    return
 
 def update_databases():
     '''
-    Calls all the database update functions sequentially (PDBbind)
+     (PDBbind)
     Called by: RunOCDocker.py:main()
     '''
+    '''
+    Calls all the database update functions sequentially.
+    Input:
+      -
+    Return:
+      -
+    '''
+    # Start the mimetypes
+    mimetypes.init()
+
     print('\n\nUpdating ALL databases.\n')
     create_directories()
-    #print('Updating PDBbind database...')
-    #update_pdbbind(args)
-    #print('\n\nDone updating PDBbind!\n')
+    print('Updating PDBbind database...')
+    update_pdbbind()
+    print('\n\nDone updating PDBbind!\n')
+    #print('Updating Astex database...')
+    #update_astex()
+    #print('\n\nDone updating Astex!\n')
     print('Updating DUDEZ database...')
     update_DUDEZ()
     print('\n\nDone updating DUDEZ!\n')
+
+    return
