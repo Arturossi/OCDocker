@@ -10,16 +10,22 @@ To install it, you have 3 options:
 
 * Option 1 (For those who loves GUI)
 
-	- Go to the website and download MGLTools Linux GUI installer https://ccsb.scripps.edu/download/
-	- Install it
+	```bash
+	$ wget https://ccsb.scripps.edu/download/292/ --no-check-certificate -O mgltools_install
+	```
 
 * Option 2 (For those who love to follow each step)
 
-	- Go to the website and download MGLTools Linux tarball installer https://ccsb.scripps.edu/download/
+	- Download the file
+
+	```bash
+	$ wget https://ccsb.scripps.edu/download/532/ --no-check-certificate -O mgltools_install.tar.gz
+	```
+
 	- Untar it:
 
 	```bash
-	$ tar -xvzf mgltools_x86_64Linux2_1.5.X.tar_.gz
+	$ tar -xvzf mgltools_install.tar.gz
 	```
 
 	- cd into created dir
@@ -37,10 +43,12 @@ To install it, you have 3 options:
 * Option 3 (Use this all-in-one command. It seems to be more complicated, but its easier than option 2 and its easy to automate-it)
 
 ```bash
-$ wget https://ccsb.scripps.edu/download/532/ -O mgltools.tar.gz && mkdir -p mgltools && tar -xvzf mgltools.tar.gz -C mgltools --strip-components=1 && rm mgltools.tar.gz && cd mgltools && source ./install.sh
+$ wget https://ccsb.scripps.edu/download/532/ -O mgltools_install.tar.gz --no-check-certificate && mkdir -p mgltools && tar -xvzf mgltools_install.tar.gz -C mgltools --strip-components=1 && rm mgltools_install.tar.gz && cd mgltools && source ./install.sh
 ```
 
-OBS: The scripts used to prepare ligand/receptor will be in the following dir: ``installation_dir/mgltools/MGLToolsPckgs/AutoDockTools``
+OBS: The scripts used to prepare ligand/receptor will be in the following dir: ``<installation_dir>/mgltools/MGLToolsPckgs/AutoDockTools``
+
+> :warning: **Still cannot run MGLTools?**: If you are facing some shady problems such as the numpy one, you might have to compile MGLTools from source. You can download it at https://github.com/genome-vendor/MGLtools (Still not sure about its version... I do not know if it is 1.5.6 or 1.5.4)
 
 
 Install DSSP
@@ -53,6 +61,7 @@ $ sudo apt install dssp
 ```
 
 As default, the dssp path will be '/usr/bin/dssp'.
+
 
 Download and install Autodock VINA
 ==================================
@@ -76,6 +85,7 @@ To install it, you have 2 options:
 
 OBS: The vina executable will be in the following dir: ``installation_dir/vina/bin``
 
+
 Download and install SMINA
 ==========================
 
@@ -90,6 +100,7 @@ Now clone the smina repo then enter it, create a build folder, enter the build f
 ```bash
 $ git clone https://git.code.sf.net/p/smina/code smina-code && cd smina-code && mkdir build && cd build && cmake .. && make -j12
 ```
+
 
 Download and install PLANTS
 ===========================
