@@ -19,17 +19,17 @@ To install it, you have 3 options:
 	- Untar it:
 		.. code-block:: bash
 
-		$ tar -xvzf mgltools_x86_64Linux2_1.5.X.tar_.gz
+	$ tar -xvzf mgltools_x86_64Linux2_1.5.X.tar_.gz
 
 	- cd into created dir
 		.. code-block:: bash
 
-		$ cd mgltools_x86_64Linux2_1.5.X
+	$ cd mgltools_x86_64Linux2_1.5.X
 
 	- source the install.sh
 		.. code-block:: bash
 
-		$ source ./install.sh
+	$ source ./install.sh
 
 * Option 3 (Use this all-in-one command. It seems to be more complicated, but its easier than option 2 and its easy to automate-it)
 
