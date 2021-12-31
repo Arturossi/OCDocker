@@ -17,16 +17,19 @@ To install it, you have 3 options:
 
 	- Go to the website and download MGLTools Linux tarball installer https://ccsb.scripps.edu/download/
 	- Untar it:
+
 		.. code-block:: bash
 
 			$ tar -xvzf mgltools_x86_64Linux2_1.5.X.tar_.gz
 
 	- cd into created dir
+
 		.. code-block:: bash
 
 			$ cd mgltools_x86_64Linux2_1.5.X
 
 	- source the install.sh
+
 		.. code-block:: bash
 
 			$ source ./install.sh
