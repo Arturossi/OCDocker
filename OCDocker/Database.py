@@ -49,21 +49,29 @@ import OCDocker.Database as ocdb
 ## Public ##
 def create_directories():
     '''
-    Create dirs
+    Create necessary dirs.
+    Input:
+      -
+    Return:
+      -
     '''
     _ = octools.safe_create_dir(ocdb)
     _ = octools.safe_create_dir(pdbbind_archive)
     _ = octools.safe_create_dir(dudez_archive)
+    _ = octools.safe_create_dir(astex_archive)
 
 def update_DUDEZ():
     '''
-    Function to update the DUDEZ database
-    Called by: update_databases()
+    Updates the DUDE-Z database.
+    Input:
+      -
+    Return:
+      -
     '''
     # Create tmp dir for download
     _ = octools.safe_create_dir("./tmp")
 
-    print("Downloading the DUDEZ database")
+    octools.printv("Downloading the DUDE-Z database")
 
     # Download file (with progress bar!!!)
     octools.download_url(dudez_download, "./tmp/DUDEZ.tgz")
@@ -86,13 +94,16 @@ def update_DUDEZ():
 
 def update_pdbbind():
     '''
-    Function to update the pdbbind database
-    Called by: update_databases()
+    Updates the PDBbind database from the Protein-ligand complexes: The refined set.
+    Input:
+      -
+    Return:
+      -
     '''
     # Parameterizing the topics (this sounds strange but one large string concatenation was bugging the IDE)
     t1 = f"- Go to the PDBbind website ({clrs['c']}http://www.pdbbind.org.cn/download.php{clrs['n']});"
 
-    t2 = f"- Download the{clrs['c']} Protein-ligand complexes: The refined set{clrs['n']} and provide the full path to it or put the file inside the {clrs['y']} {pdbbind_archive}{clrs['n']} folder and type continue (please, make sure that the downloaded file is the{clrs['c']} ONLY{clrs['n']} file inside the {clrs['y']} {pdbbind_archive}{clrs['n']} folder). If you want to skip the PDBBind update, type 'skip' (without quotes) and press enter."
+    t2 = f"- Download the{clrs['c']} Protein-ligand complexes: The refined set{clrs['n']} and provide the full path to it or put the file inside the {clrs['y']} {pdbbind_archive}{clrs['n']} folder and type continue (please, make sure that the downloaded file is the{clrs['c']} ONLY{clrs['n']} file inside the {clrs['y']} {pdbbind_archive}{clrs['n']} folder). If you want to skip the PDBbind update, type 'skip' (without quotes) and press enter."
 
     # Since no rsync option to update pdbbind database has been found you have to manually download/untar the files and put them inside the database folder
     print(tw.dedent("""
@@ -194,8 +205,11 @@ def update_pdbbind():
 
 def update_astex():
     '''
-    Function to update the astex database
-    Called by: update_databases()
+    Updates the Astex database from the Astex Diverse Set.
+    Input:
+      -
+    Return:
+      -
     '''
 
     # Parameterizing the topics (this sounds strange but one large string concatenation was bugging the IDE)
@@ -295,10 +309,6 @@ def update_astex():
     return
 
 def update_databases():
-    '''
-     (PDBbind)
-    Called by: RunOCDocker.py:main()
-    '''
     '''
     Calls all the database update functions sequentially.
     Input:
