@@ -1,4 +1,4 @@
-receptor = /mnt/d/Documents/OCDocker/OCDocker/test/rec.crg2.pdbqt
+receptor = /mnt/e/Documents/OCDocker/OCDocker/test/rec.crg2.pdbqt
 
 minimize_iters = 0
 approximation = spline

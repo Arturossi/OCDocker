@@ -1,4 +1,4 @@
-receptor = /mnt/d/Documents/OCDocker/OCDocker/test/rec.crg.pdbqt
+receptor = /mnt/e/Documents/OCDocker/OCDocker/test/rec.crg.pdbqt
 
 center_x = 36.552
 center_y = 39.252

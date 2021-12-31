@@ -64,7 +64,7 @@ print(message)
 args.debug = 1
 args.verbosity = 1
 
-basePath = '/mnt/d/Documents/OCDocker/OCDocker'
+basePath = '/mnt/e/Documents/OCDocker/OCDocker'
 
 # Testing the classes and objects
 receptorTest = ocr.Receptor(f"{basePath}/test/rec.crg.pdb", relativeASAcutoff=0.7, name="Receptor teste")
