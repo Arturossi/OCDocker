@@ -69,7 +69,7 @@ First of all make sure that you have all required libs installed (openbabel must
 
 .. code-block:: bash
 
-		$ sudo apt install git libboost-all-dev libopenbabel-dev build-essential libeigen3-dev openbabel
+	$ sudo apt install git libboost-all-dev libopenbabel-dev build-essential libeigen3-dev openbabel
 
 Now clone the smina repo then enter it, create a build folder, enter the build folder, perform the cmake using the parent folder as the source and finally use the make with 12 jobs (you can increase/decrease the number of jobs if you want, but 12 is what is written in smina's doc).
 
