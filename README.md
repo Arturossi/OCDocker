@@ -45,9 +45,9 @@ Install DSSP
 
 To install DSSP in Ubuntu 18.04+:
 
-  .. code-block:: bash
+.. code-block:: bash
 
-		$ sudo apt install dssp
+	$ sudo apt install dssp
 
 As default, the dssp path will be '/usr/bin/dssp'.
 
