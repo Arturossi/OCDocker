@@ -73,7 +73,17 @@ OBS: The vina executable will be in the following dir: ``installation_dir/vina/b
 Download and install SMINA
 ==========================
 
-nothing here but us
+First of all make sure that you have all required libs installed (openbabel must be v3+).
+
+.. code-block:: bash
+
+		$ sudo apt install git libboost-all-dev libopenbabel-dev build-essential libeigen3-dev openbabel
+
+Now clone the smina repo then enter it, create a build folder, enter the build folder, perform the cmake using the parent folder as the source and finally use the make with 12 jobs (you can increase/decrease the number of jobs if you want, but 12 is what is written in smina's doc).
+
+.. code-block:: bash
+
+	$ git clone https://git.code.sf.net/p/smina/code smina-code && cd smina-code && mkdir build && cd build && cmake .. && make -j12
 
 
 Download and install PLANTS
