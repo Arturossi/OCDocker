@@ -19,25 +19,25 @@ To install it, you have 3 options:
 	- Untar it:
 
 	```bash
-		$ tar -xvzf mgltools_x86_64Linux2_1.5.X.tar_.gz
+$ tar -xvzf mgltools_x86_64Linux2_1.5.X.tar_.gz
 	```
 
 	- cd into created dir
 
 	```bash
-		$ cd mgltools_x86_64Linux2_1.5.X
+$ cd mgltools_x86_64Linux2_1.5.X
 	```
 
 	- source the install.sh
 
 	```bash
-		$ source ./install.sh
+$ source ./install.sh
 	```
 
 * Option 3 (Use this all-in-one command. It seems to be more complicated, but its easier than option 2 and its easy to automate-it)
 
 ```bash
-	$ wget https://ccsb.scripps.edu/download/532/ -O mgltools.tar.gz && mkdir -p mgltools && tar -xvzf mgltools.tar.gz -C mgltools --strip-components=1 && rm mgltools.tar.gz && cd mgltools && source ./install.sh
+$ wget https://ccsb.scripps.edu/download/532/ -O mgltools.tar.gz && mkdir -p mgltools && tar -xvzf mgltools.tar.gz -C mgltools --strip-components=1 && rm mgltools.tar.gz && cd mgltools && source ./install.sh
 ```
 
 OBS: The scripts used to prepare ligand/receptor will be in the following dir: ``installation_dir/mgltools/MGLToolsPckgs/AutoDockTools``
@@ -49,7 +49,7 @@ Install DSSP
 To install DSSP in Ubuntu 18.04+:
 
 ```bash
-	$ sudo apt install dssp
+$ sudo apt install dssp
 ```
 
 As default, the dssp path will be '/usr/bin/dssp'.
@@ -65,13 +65,13 @@ To install it, you have 2 options:
 	- Untar it:
 
 	```bash
-		$ tar -xvzf autodock_vina_1_1_2_linux_x86.tgz
+$ tar -xvzf autodock_vina_1_1_2_linux_x86.tgz
 	```
 
 * Option 2 (Use this all-in-one command. It seems to be more complicated, but its easier than option 2 and its easy to automate-it)
 
 	```bash
-		$ mkdir vina && wget https://github.com/ccsb-scripps/AutoDock-Vina/releases/download/v1.2.3/vina_1.2.3_linux_x86_64 -O vina/vina && sudo cp vina/vina /usr/bin/vina
+$ mkdir vina && wget https://github.com/ccsb-scripps/AutoDock-Vina/releases/download/v1.2.3/vina_1.2.3_linux_x86_64 -O vina/vina && sudo cp vina/vina /usr/bin/vina
 	```
 
 OBS: The vina executable will be in the following dir: ``installation_dir/vina/bin``
@@ -82,13 +82,13 @@ Download and install SMINA
 First of all make sure that you have all required libs installed (openbabel must be v3+).
 
 ```bash
-	$ sudo apt install git libboost-all-dev libopenbabel-dev build-essential libeigen3-dev openbabel
+$ sudo apt install git libboost-all-dev libopenbabel-dev build-essential libeigen3-dev openbabel
 ```
 
 Now clone the smina repo then enter it, create a build folder, enter the build folder, perform the cmake using the parent folder as the source and finally use the make with 12 jobs (you can increase/decrease the number of jobs if you want, but 12 is what is written in smina's doc).
 
 ```bash
-	$ git clone https://git.code.sf.net/p/smina/code smina-code && cd smina-code && mkdir build && cd build && cmake .. && make -j12
+$ git clone https://git.code.sf.net/p/smina/code smina-code && cd smina-code && mkdir build && cd build && cmake .. && make -j12
 ```
 
 Download and install PLANTS
