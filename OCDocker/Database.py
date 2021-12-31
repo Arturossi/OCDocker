@@ -10,6 +10,7 @@ import textwrap as tw
 from glob import glob
 from tqdm import tqdm
 
+from OCDocker.Initialise import *
 import OCDocker.DUDEZ as ocdudez
 import OCDocker.Toolbox as octools
 
@@ -91,10 +92,10 @@ def update_pdbbind():
     # Parameterizing the topics (this sounds strange but one large string concatenation was bugging the IDE)
     t1 = f"- Go to the PDBbind website ({clrs['c']}http://www.pdbbind.org.cn/download.php{clrs['n']})"
 
-    t2 = f"- Download the {clrs['c']}Protein-ligand complexes: The general set minus refined set{clrs['n']}, untar it and put all the protein folders folder inside the{clrs['y']} {pdbbind_archive}/complexes{clrs['n']} folder and the{clrs['y']} index {clrs['n']} folder should be put in the{clrs['y']} {pdbbind_archive}{clrs['n']} folder."
-    t2 += f" The{clrs['y']} readme{clrs['n']} folder should be {clrs['r']} deleted{clrs['n']}."
+    t2 = f"- Download the{clrs['c']} Protein-ligand complexes: The general set minus refined set{clrs['n']}, untar it and put all the protein folders folder inside the{clrs['y']} {pdbbind_archive}/complexes{clrs['n']} folder and the{clrs['y']} index{clrs['n']} folder should be put in the{clrs['y']} {pdbbind_archive}{clrs['n']} folder."
+    t2 += f" The{clrs['y']} readme{clrs['n']} folder should be{clrs['r']} deleted{clrs['n']}."
 
-    t3 = f"- Download the{clrs['c']} Protein-ligand complexes: The refined set{clrs['n']}, untar it and put all the protein folders folder inside the{clrs['y']} {pdbbind_archive}/complexes{clrs['n']} folder. The {clrs['y']} readme{clrs['n']} and {clrs['y']} index {clrs['n']} folders should be{clrs['r']} deleted{clrs['n']}."
+    t3 = f"- Download the{clrs['c']} Protein-ligand complexes: The refined set{clrs['n']}, untar it and put all the protein folders folder inside the{clrs['y']} {pdbbind_archive}/complexes{clrs['n']} folder. The{clrs['y']} readme{clrs['n']} and{clrs['y']} index{clrs['n']} folders should be{clrs['r']} deleted{clrs['n']}."
 
     # Since no rsync option to update pdbbind database has been found you have to manually download/untar the files and put them inside the database folder
     print(tw.dedent("""
@@ -128,6 +129,49 @@ def update_pdbbind():
 
         print(f'Trying to untar file {f}')
         octools.untar(f, out_path=pdbbind_archive)"""
+
+def update_astex():
+    '''
+    Function to update the astex database
+    Called by: update_databases()
+    '''
+
+    # Parameterizing the topics (this sounds strange but one large string concatenation was bugging the IDE)
+    t1 = f"- Go to the CCDC website ({clrs['c']}https://www.ccdc.cam.ac.uk/support-and-resources/downloads{clrs['n']})."
+
+    t2 = f"- Download the{clrs['c']} Astex Diverse Set{clrs['n']} located under the 'Validation Test Sets' section, untar it and put all the protein folders folder inside the{clrs['y']} {astex_archive}{clrs['n']} folder."
+    t2 += f" The{clrs['y']} readme.txt{clrs['n']} file should be{clrs['r']} deleted{clrs['n']}."
+
+    # Since no rsync option to update pdbbind database has been found you have to manually download/untar the files and put them inside the database folder
+    print(tw.dedent("""
+                 Unfortunately this step has not been able to be automatized... (yet) :(
+    Please we kindly ask you to perform the following steps to update the PDBbind database
+
+    """ + t1 + """
+
+    """ + t2 + """
+
+    """))
+
+    while True:
+        option = input('Once these steps are done, type "continue" (without the double quotes) and press enter to continue. To cancel just press enter without typing nothing.\n')
+        if option.lower() == 'continue':
+            print('Continuing the update proces...')
+            break;
+        elif option == "":
+            print('User aborted the update.')
+            quit();
+        else:
+            print('Unknown option!')
+
+    # The following code is awaiting a better opportunity to show some work
+    """astex_files = glob.glob(f"{astex_archive}/*.tar.gz")
+
+    for astex_file in astex_files:
+        f = os.path.join(astex_archive, astex_file)
+
+        print(f'Trying to untar file {f}')
+        octools.untar(f, out_path=astex_archive)"""
 
 def update_databases():
     '''

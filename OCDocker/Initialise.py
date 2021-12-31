@@ -359,6 +359,7 @@ global smina_user_grid
 global smina_user_grid_lambda
 
 # Database + OCDocker variables
+global astex_archive
 global dudez_archive
 global ocdocker_path
 global pdbbind_archive
@@ -547,11 +548,14 @@ for line in open(config_file, "r"):
 # Root directory for OCDocker module
 ocdocker_path = os.path.dirname(os.path.abspath( __file__ ))
 
-# Directory containing the pdb mirror in "divided" scheme
-pdbbind_archive = os.path.join(ocdb, "pdbBind")
+# Directory containing the astex archive
+astex_archive = os.path.join(ocdb, "Astex")
 
-# Directory containing the pdb mirror in "divided" scheme
+# Directory containing the dudez archive
 dudez_archive = os.path.join(ocdb, "DUDEZ")
+
+# Directory containing the pdbbind archive
+pdbbind_archive = os.path.join(ocdb, "pdbBind")
 
 # Get number of CPUs (minus one) with a minimum of one
 if args.multiprocess:
