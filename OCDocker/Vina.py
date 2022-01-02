@@ -174,7 +174,8 @@ class Vina:
         outputLigandPath = f"{os.path.dirname(ligandPath)}/{os.path.splitext(os.path.basename(ligandPath))[0]}.mol2"
 
         # Process the ligand
-        octools.convert2mol2(ligandPath, outputLigandPath, logFile = self.convert2mol2log)
+        #octools.convert2mol2(ligandPath, outputLigandPath, logFile = self.convert2mol2log)
+        octools.convertMols(ligandPath, outputLigandPath, logFile = self.convert2mol2log)
 
         return outputLigandPath
 

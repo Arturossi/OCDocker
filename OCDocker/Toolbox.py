@@ -431,16 +431,20 @@ def convert2mol2(input, output):
     '''
     # Print verboosity
     printv(f"Converting '{input}' to '.mol2'.")
+
     # Find the extension for input and output
     extension = validate_obabel_extension(input)
     outExtension = os.path.splitext(output)[1]
+
     # Check if the extension is valid
     if type(extension) != str:
         print_error(f"Problems while reading the molecule from file '{input}'.")
         return extension
+
     # Discover if the output extension is pdbqt (to warn user if it is not)
     if outExtension != ".mol2":
         print_warn(f"The output extension is not '.mol2', is {outExtension}. This function converts {clrs['r']}ONLY{clrs['n']} to '.mol2'. Please pay attention, since this might be a problem in the future for you!")
+
     # Check if the output exists, if so, no need to convert
     if os.path.isfile(output):
         return errors.file_exists(message=f"The file '{output}' already exists, aborting conversion.", level="warn")
@@ -458,6 +462,101 @@ def convert2mol2(input, output):
         obConversion.WriteFile(mol, output)
     except Exception as e:
         return errors.subprocess(message=f"Error while running molecule conversion using obabel python lib. Error: {e}", level="error")
+    return errors.ok()
+
+def convert2pdb(input, output):
+    '''
+    Convert a mol2/sdf/mol/smi file to '.pdb'.
+    Input:
+      input  [string] - Input path.
+      output [string] - Output path.
+    Return:
+      [int]
+      See Error.py for all return codes.
+    '''
+    # Print verboosity
+    printv(f"Converting '{input}' to '.pdb'.")
+
+    # Find the extension for input and output
+    extension = validate_obabel_extension(input)
+    outExtension = os.path.splitext(output)[1]
+
+    # Check if the extension is valid
+    if type(extension) != str:
+        print_error(f"Problems while reading the molecule from file '{input}'.")
+        return extension
+
+    # Discover if the output extension is pdbqt (to warn user if it is not)
+    if outExtension != ".pdb":
+        print_warn(f"The output extension is not '.pdb', is {outExtension}. This function converts {clrs['r']}ONLY{clrs['n']} to '.pdb'. Please pay attention, since this might be a problem in the future for you!")
+
+    # Check if the output exists, if so, no need to convert
+    if os.path.isfile(output):
+        return errors.file_exists(message=f"The file '{output}' already exists, aborting conversion.", level="warn")
+
+    # Try to convert (if fails, throw exception for subprocess failing)
+    try:
+        # Create a conversor object
+        obConversion = openbabel.OBConversion()
+        # Set the conversion from the extension to pdbqt
+        obConversion.SetInAndOutFormats(extension, "pdb")
+        # Create an empty OBMol object
+        mol = openbabel.OBMol()
+        # Load the input file to the prebiusly loaded OBMol object
+        obConversion.ReadFile(mol, input)
+        # Write the mol object to the output performing the conversion
+        obConversion.WriteFile(mol, output)
+    except Exception as e:
+        return errors.subprocess(message=f"Error while running molecule conversion using obabel python lib. Error: {e}", level="error")
+
+    return errors.ok()
+
+def convertMols(input, output):
+    '''
+    Convert a molecule file between two extensions which obabel supports.
+    Input:
+      input  [string] - Input path.
+      output [string] - Output path.
+    Return:
+      [int]
+      See Error.py for all return codes.
+    '''
+    # Find the extension for input and output
+    inExtension = validate_obabel_extension(input)
+    outExtension = validate_obabel_extension(output)
+
+    # Print verboosity
+    printv(f"Converting '{input}' to '.{outExtension}'.")
+
+    # Check if the input extension is valid
+    if type(inExtension) != str:
+        print_error(f"Problems while reading the molecule from input file '{input}'.")
+        return inExtension
+
+    # Check if the output extension is valid
+    if type(outExtension) != str:
+        print_error(f"Problems while reading the molecule from output file '{output}'.")
+        return outExtension
+
+    # Check if the output exists, if so, no need to convert
+    if os.path.isfile(output):
+        return errors.file_exists(message=f"The file '{output}' already exists, aborting conversion.", level="warn")
+
+    # Try to convert (if fails, throw exception for subprocess failing)
+    try:
+        # Create a conversor object
+        obConversion = openbabel.OBConversion()
+        # Set the conversion from the extension to pdbqt
+        obConversion.SetInAndOutFormats(inExtension, outExtension)
+        # Create an empty OBMol object
+        mol = openbabel.OBMol()
+        # Load the input file to the prebiusly loaded OBMol object
+        obConversion.ReadFile(mol, input)
+        # Write the mol object to the output performing the conversion
+        obConversion.WriteFile(mol, output)
+    except Exception as e:
+        return errors.subprocess(message=f"Error while running molecule conversion from {inExtension} to {outExtension} using obabel python lib. Error: {e}", level="error")
+
     return errors.ok()
 
 def validate_obabel_extension(path):

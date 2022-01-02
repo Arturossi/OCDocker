@@ -160,6 +160,8 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
         # Find which labels exists removing repeated elements
         labels_unique = np.unique(labels)
 
+    clusteringdf.to_csv('/mnt/e/Documents/OCDocker/OCDocker/data/ocdb/Astex/1g9v/teste.csv',index=False)
+
     # If the variable suffix is set
     if suffix:
         # Set the folder variable
@@ -178,6 +180,9 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
     # Force the cutoff to be at maximum the boxMaxCutoff variable
     cutoff = cutoff if cutoff < boxMaxCutoff else boxMaxCutoff
 
+    # List to hold the boxes
+    boxes = []
+
     # For each unique label (after removing repeated labels)
     for label_unique in labels_unique:
         # If the label is -1 (means that its an outlier) or if no probability of the set is above the cutoff
@@ -187,32 +192,105 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
 
         # Get the residues in the pocket
         residues = list(clusteringdf[clusteringdf['label'] == labels_unique[0]].index)
+        from pprint import pprint
+        pprint(clusteringdf)
         residues.sort()
-        residues = ','.join(map(str, residues))
+
+        tmpbox = {}
 
         # Get min/max of the x/y/z coordinates (round to 3 decimals)
-        min_x = round(clusteringdf[clusteringdf['label'] == label_unique]['x'].min() - spacing, 3)
-        max_x = round(clusteringdf[clusteringdf['label'] == label_unique]['x'].max() + spacing, 3)
-        min_y = round(clusteringdf[clusteringdf['label'] == label_unique]['y'].min() - spacing, 3)
-        max_y = round(clusteringdf[clusteringdf['label'] == label_unique]['y'].max() + spacing, 3)
-        min_z = round(clusteringdf[clusteringdf['label'] == label_unique]['z'].min() - spacing, 3)
-        max_z = round(clusteringdf[clusteringdf['label'] == label_unique]['z'].max() + spacing, 3)
+        tmpbox['min_x'] = round(clusteringdf[clusteringdf['label'] == label_unique]['x'].min() - spacing, 3)
+        tmpbox['max_x'] = round(clusteringdf[clusteringdf['label'] == label_unique]['x'].max() + spacing, 3)
+        tmpbox['min_y'] = round(clusteringdf[clusteringdf['label'] == label_unique]['y'].min() - spacing, 3)
+        tmpbox['max_y'] = round(clusteringdf[clusteringdf['label'] == label_unique]['y'].max() + spacing, 3)
+        tmpbox['min_z'] = round(clusteringdf[clusteringdf['label'] == label_unique]['z'].min() - spacing, 3)
+        tmpbox['max_z'] = round(clusteringdf[clusteringdf['label'] == label_unique]['z'].max() + spacing, 3)
+        tmpbox['residues'] = residues
 
+        boxes.append(tmpbox)
+
+    restart = True
+
+    while restart:
+        # Make sure that the restart flag is False
+        restart = False
+        # For each box
+        for index, preBox in enumerate(boxes[:-1]):
+            # For each box not counting the previous ones
+            for moreBox in boxes[index+1:]:
+                # Start the percentages
+                percentX = 0
+                percentY = 0
+                percentZ = 0
+
+                # Check if X overlaps and find the percentage of overlap area which is compared to the size of both lines (remember, this is 1D) minus the size of the intersection (it is accounted twice).
+                if preBox['max_x'] <= moreBox['max_x'] and preBox['max_x'] >= moreBox['min_x']:
+                    percentX = (preBox['max_x'] - moreBox['min_x']) / ((preBox['max_x'] - preBox['min_x']) + (moreBox['max_x'] - moreBox['min_x']) - (moreBox['max_x'] - preBox['min_x']))
+                elif preBox['min_x'] <= moreBox['max_x'] and preBox['min_x'] >= moreBox['min_x']:
+                    percentX = (moreBox['max_x'] - preBox['min_x']) / ((preBox['max_x'] - preBox['min_x']) + (moreBox['max_x'] - moreBox['min_x']) - (preBox['max_x'] - moreBox['min_x']))
+                # Check if percentX is 0 (means no overlap)
+                if percentX == 0:
+                    continue
+                # Check if Y overlaps and find the percentage of overlap area which is compared to the size of both lines (remember, this is 1D) minus the size of the intersection (it is accounted twice).
+                if preBox['max_y'] <= moreBox['max_y'] and preBox['max_y'] >= moreBox['min_y']:
+                    percentY = (preBox['max_y'] - moreBox['min_y']) / ((preBox['max_y'] - preBox['min_y']) + (moreBox['max_y'] - moreBox['min_y']) - (moreBox['max_y'] - preBox['min_y']))
+                elif preBox['min_y'] <= moreBox['max_y'] and preBox['min_y'] >= moreBox['min_y']:
+                    percentY = (moreBox['max_y'] - preBox['min_y']) / ((preBox['max_y'] - preBox['min_y']) + (moreBox['max_y'] - moreBox['min_y']) - (preBox['max_y'] - moreBox['min_y']))
+                # Check if percentY is 0 (means no overlap)
+                if percentY == 0:
+                    continue
+                # Check if Z overlaps and find the percentage of overlap area which is compared to the size of both lines (remember, this is 1D) minus the size of the intersection (it is accounted twice).
+                if preBox['max_z'] <= moreBox['max_z'] and preBox['max_z'] >= moreBox['min_z']:
+                    percentZ = (preBox['max_z'] - moreBox['min_z']) / ((preBox['max_z'] - preBox['min_z']) + (moreBox['max_z'] - moreBox['min_z']) - (moreBox['max_z'] - preBox['min_z']))
+                elif preBox['min_z'] <= moreBox['max_z'] and preBox['min_z'] >= moreBox['min_z']:
+                    percentZ = (moreBox['max_z'] - preBox['min_z']) / ((preBox['max_z'] - preBox['min_z']) + (moreBox['max_z'] - moreBox['min_z']) - (moreBox['max_z'] - preBox['min_z']))
+                # Check if percentZ is 0 (means no overlap)
+                if percentZ == 0:
+                    continue
+
+                # If boxes overlap, merge them
+                if (percentX * percentY * percentZ) > percentCutoff:
+                    print(percentX * percentY * percentZ)
+                    # Start a new empty dict
+                    tmpBox = {}
+                    # Get the smallest and biggest value in each coordinates
+                    tmpBox['min_x'] = preBox['min_x'] if preBox['min_x'] < moreBox['min_x'] else moreBox['min_x']
+                    tmpBox['max_x'] = preBox['max_x'] if preBox['max_x'] > moreBox['max_x'] else moreBox['max_x']
+                    tmpBox['min_y'] = preBox['min_y'] if preBox['min_y'] < moreBox['min_y'] else moreBox['min_y']
+                    tmpBox['max_y'] = preBox['max_y'] if preBox['max_y'] > moreBox['max_y'] else moreBox['max_y']
+                    tmpBox['min_z'] = preBox['min_z'] if preBox['min_z'] < moreBox['min_z'] else moreBox['min_z']
+                    tmpBox['max_z'] = preBox['max_z'] if preBox['max_z'] > moreBox['max_z'] else moreBox['max_z']
+                    # Merge and sort the residues of the box removing repeated values
+                    tmpBox['residues'] = list(dict.fromkeys(preBox['residues'] + moreBox['residues']))
+                    tmpBox['residues'].sort()
+
+                    # Add the new box to the end of the list
+                    boxes.append(tmpBox)
+                    # Remove the boxes used to generate the new one
+                    boxes.pop(index + 1)
+                    boxes.pop(index)
+                    restart = True
+                    break
+            if restart:
+                break
+
+    # For each box in boxes
+    for index, box in enumerate(boxes):
         # Get dimensions for each axis and its center (round to 3 decimals)
-        dim_x = round(abs(min_x)+abs(max_x), 3)
-        dim_y = round(abs(min_y)+abs(max_y), 3)
-        dim_z = round(abs(min_z)+abs(max_z), 3)
+        dim_x = round(abs(box['min_x']) + abs(box['max_x']), 3)
+        dim_y = round(abs(box['min_y']) + abs(box['max_y']), 3)
+        dim_z = round(abs(box['min_z']) + abs(box['max_z']), 3)
         center_x = round(dim_x/2, 3)
         center_y = round(dim_y/2, 3)
         center_z = round(dim_z/2, 3)
 
         # Convert the values found above to string with 8 chars (complete with spaces to the left) as the .pdb file model
-        min_x = " "*(8-len(str(min_x))) + str(min_x)
-        max_x = " "*(8-len(str(max_x))) + str(max_x)
-        min_y = " "*(8-len(str(min_y))) + str(min_y)
-        max_y = " "*(8-len(str(max_y))) + str(max_y)
-        min_z = " "*(8-len(str(min_z))) + str(min_z)
-        max_z = " "*(8-len(str(max_z))) + str(max_z)
+        min_x = " "*(8-len(str(box['min_x']))) + str(box['min_x'])
+        max_x = " "*(8-len(str(box['max_x']))) + str(box['max_x'])
+        min_y = " "*(8-len(str(box['min_y']))) + str(box['min_y'])
+        max_y = " "*(8-len(str(box['max_y']))) + str(box['max_y'])
+        min_z = " "*(8-len(str(box['min_z']))) + str(box['min_z'])
+        max_z = " "*(8-len(str(box['max_z']))) + str(box['max_z'])
 
         dim_x = " "*(8-len(str(dim_x))) + str(dim_x)
         dim_y = " "*(8-len(str(dim_y))) + str(dim_y)
@@ -223,11 +301,11 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
         center_z = " "*(8-len(str(center_z))) + str(center_z)
 
         # Write out the box file (following the one given in the DUD-E database)
-        with open(f'{fout}{folder}/box{label_unique}{suffix}.pdb', 'w') as f:
-            f.write(f"HEADER    CORNERS OF BOX      {min_x}{min_y}{min_z}{min_y}{max_y}{max_z}\n")
+        with open(f'{fout}{folder}/box{index}{suffix}.pdb', 'w') as f:
+            f.write(f"HEADER    CORNERS OF BOX      {min_x}{min_y}{min_z}{max_x}{max_y}{max_z}\n")
             f.write(f"REMARK    CENTER (X Y Z)      {center_x}{center_y}{center_z}\n")
             f.write(f"REMARK    DIMENSIONS (X Y Z)  {dim_x}{dim_y}{dim_z}\n")
-            f.write(f"REMARK    RESIDUES            {residues}\n")
+            f.write(f"REMARK    RESIDUES            {','.join(map(str, box['residues']))}\n")
             f.write(f"ATOM      1  DUA BOX     1    {min_x}{min_y}{min_z}\n")
             f.write(f"ATOM      2  DUB BOX     1    {max_x}{min_y}{min_z}\n")
             f.write(f"ATOM      3  DUC BOX     1    {max_x}{min_y}{max_z}\n")
@@ -283,7 +361,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
             # Show the command
             print(f"P2Rank execution command: {' '.join([prank, 'predict','-threads', str(threads),  '-f', filein, '-o', outpath])}")
         # Execute the P2Rank
-        subprocess.run([prank, 'predict','-threads', str(threads),  '-f', filein, '-o', outpath], stdout=subprocess.DEVNULL)
+        subprocess.run([prank, 'predict','-threads', str(threads), '-f', filein, '-o', outpath], stdout=subprocess.DEVNULL)
 
     # Get the input file name (which will be used to read the output from P2Rank)
     fname = os.path.basename(filein)
@@ -321,33 +399,35 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
     with open(filein, 'r') as f:
         # For each line in the file
         for line in f:
-            # If the atom ID is in the atom list
-            if line[7:11].strip() in atoms:
-                # Finds if the atom index is in the atom list (again to ensure that the right probability is assigned to the right atom)
-                idx = atoms.index(line[7:11].strip())
+            # If line start with the ATOM label
+            if line.startswith("ATOM"):
+                # If the atom ID is in the atom list
+                if line[7:11].strip() in atoms:
+                    # Finds if the atom index is in the atom list (again to ensure that the right probability is assigned to the right atom)
+                    idx = atoms.index(line[7:11].strip())
 
-                # Check and convert (if needed) the coordinates cartesian/polar/spherical
-                if coordSystem.lower() == "cartesian": # if is cartesian, just read the values
-                    v1 = line[31:38]
-                    v2 = line[39:46]
-                    v3 = line[47:54]
-                elif coordSystem.lower() == "polar": # if is polar, convert x and y, but keep z
-                    v1, v2 = __cart2pol(line[31:38], line[39:46])
-                    v3 = line[47:54]
-                elif coordSystem.lower() == "spherical": # if is spherical, convert x, y and z
-                    v1, v2, v3 = __cart2sph(line[31:38], line[39:46], line[47:54])
-                else: # if the user has typed something wrong, show a warning message and use cartesian
-                    print("WARNING: Unknown, coordinate system, using cartesian!")
-                    v1 = line[31:38]
-                    v2 = line[39:46]
-                    v3 = line[47:54]
+                    # Check and convert (if needed) the coordinates cartesian/polar/spherical
+                    if coordSystem.lower() == "cartesian": # if is cartesian, just read the values
+                        v1 = line[31:38]
+                        v2 = line[39:46]
+                        v3 = line[47:54]
+                    elif coordSystem.lower() == "polar": # if is polar, convert x and y, but keep z
+                        v1, v2 = __cart2pol(line[31:38], line[39:46])
+                        v3 = line[47:54]
+                    elif coordSystem.lower() == "spherical": # if is spherical, convert x, y and z
+                        v1, v2, v3 = __cart2sph(line[31:38], line[39:46], line[47:54])
+                    else: # if the user has typed something wrong, show a warning message and use cartesian
+                        print("WARNING: Unknown, coordinate system, using cartesian!")
+                        v1 = line[31:38]
+                        v2 = line[39:46]
+                        v3 = line[47:54]
 
-                if probabilities[idx] >= pocketCutoff:
-                    # Add the data to the numpy array as a list containing the coordinates + extra data  [X, Y, Z]/[therta, rho, z]/[az, el, r]
-                    coordinates = np.append(coordinates, np.array([[v1, v2, v3, rank[idx]]], float), axis=0)
-                    coordinatesFull = np.append(coordinatesFull, np.array([[v1, v2, v3, probabilities[idx], rank[idx]]], float), axis=0)
-                    #coordinates = np.append(coordinates, np.array([[line[31:38], line[39:46], line[47:54], rank[idx]]], float), axis=0)
-                    #coordinatesFull = np.append(coordinatesFull, np.array([[line[31:38], line[39:46], line[47:54], probabilities[idx], rank[idx]]], float), axis=0)
+                    if probabilities[idx] >= pocketCutoff:
+                        # Add the data to the numpy array as a list containing the coordinates + extra data  [X, Y, Z]/[therta, rho, z]/[az, el, r]
+                        coordinates = np.append(coordinates, np.array([[v1, v2, v3, rank[idx]]], float), axis=0)
+                        coordinatesFull = np.append(coordinatesFull, np.array([[v1, v2, v3, probabilities[idx], rank[idx]]], float), axis=0)
+                        #coordinates = np.append(coordinates, np.array([[line[31:38], line[39:46], line[47:54], rank[idx]]], float), axis=0)
+                        #coordinatesFull = np.append(coordinatesFull, np.array([[line[31:38], line[39:46], line[47:54], probabilities[idx], rank[idx]]], float), axis=0)
 
     ############################################################################
     # Now the code will have the samme pattern:                                #
