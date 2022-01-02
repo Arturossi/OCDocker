@@ -104,17 +104,19 @@ def __safe_create_dir(dirname):
         exit(-1)
     return -2
 
-def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = "cartesian", spacing = 4.0, boxMaxCutoff = 0.5):
+def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = "cartesian", spacing = 4.0, boxMaxCutoff = 0.5, boxMinCutoff = 0.1, percentCutoff = 0.5):
     '''
     Function to process the cluster object and print a box file
     Input:
-     clustering   [cluster result object]       - SciKit clustering object resulted from any clustering function after fitting
-     coordinates  [np.array(np.array(float))]   - NumPy array of numpy arrays of 3 floats containg the X Y Z coordinates
-     fout         [string]                      - The path to output box files
-     suffix       [string] DEFAULT: ""          - The suffix to append to box files and to create containing folders
-     coordSystem  [string] DEFAULT: "cartesian" - The coordinate system to be used. The options are cartesian, polar, spherical
-     spacing      [float]  DEFAULT: 4.0         - Expansion size of the box in angstroms
-     boxMaxCutoff [float]  DEFAULT: 0.5         - If the probability value from p2rank is above this value, the pocket WILL be considered as valid, even if its value is below the cutoff (use 1.0 to disable this feature)
+     clustering    [cluster result object]       - SciKit clustering object resulted from any clustering function after fitting
+     coordinates   [np.array(np.array(float))]   - NumPy array of numpy arrays of 3 floats containg the X Y Z coordinates
+     fout          [string]                      - The path to output box files
+     suffix        [string] DEFAULT: ""          - The suffix to append to box files and to create containing folders
+     coordSystem   [string] DEFAULT: "cartesian" - The coordinate system to be used. The options are cartesian, polar, spherical
+     spacing       [float]  DEFAULT: 4.0         - Expansion size of the box in angstroms
+     boxMaxCutoff  [float]  DEFAULT: 0.5         - If the probability value from p2rank is above this value, the pocket WILL be considered as valid, even if its value is below the cutoff (use 1.0 to disable this feature)
+     boxMinCutoff  [float]  DEFAULT: 0.1         - If the probability value from p2rank is below this value, the pocket WILL be considered as valid, even if its value is above the cutoff (use 0.0 to disable this feature)
+     percentCutoff [float]  DEFAULT: 0.5         - Cutoff to consider how much percentage of box overlapping will determine if two boxes should be merged
     Return:
         Nothing
     '''
@@ -140,13 +142,13 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
                 coordinates[i][0], coordinates[i][1], coordinates[i][2] = __sph2cart(coordinates[i][0], coordinates[i][1], coordinates[i][2])
 
         # Create a dataframe containing x, y, z coordinates and the probability and the rank from P2Rank
-        clusteringdf = pd.DataFrame(coordinates,  columns=['x', 'y', 'z', 'probability', 'rank'])
+        clusteringdf = pd.DataFrame(coordinates,  columns=['x', 'y', 'z', 'probability', 'rank', 'residue'])
 
         # Add label column to the clusteringdf dataframe
         clusteringdf['label'] = labels
     else:
         # Set the cluster as the raw coordinates
-        clusteringdf = pd.DataFrame(coordinates,  columns=['x', 'y', 'z', 'rank'])
+        clusteringdf = pd.DataFrame(coordinates,  columns=['x', 'y', 'z', 'rank', 'residue'])
 
         # Set the probability as 1 (every box should be used)
         clusteringdf['probability'] = 1.0
@@ -160,7 +162,7 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
         # Find which labels exists removing repeated elements
         labels_unique = np.unique(labels)
 
-    clusteringdf.to_csv('/mnt/e/Documents/OCDocker/OCDocker/data/ocdb/Astex/1g9v/teste.csv',index=False)
+    clusteringdf.to_csv('/mnt/e/Documents/OCDocker/OCDocker/data/ocdb/Astex/1g9v/teste.csv', index=False)
 
     # If the variable suffix is set
     if suffix:
@@ -177,8 +179,8 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
     # Set the cutoff as the mean of the probabilities (from P2Rank)
     cutoff = clusteringdf['probability'].mean()
 
-    # Force the cutoff to be at maximum the boxMaxCutoff variable
-    cutoff = cutoff if cutoff < boxMaxCutoff else boxMaxCutoff
+    # Force the cutoff to be at maximum the boxMaxCutoff variable and at minimum boxMinCutoff
+    cutoff = boxMinCutoff if cutoff < boxMinCutoff else cutoff if cutoff < boxMaxCutoff else boxMaxCutoff
 
     # List to hold the boxes
     boxes = []
@@ -191,9 +193,8 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
             continue
 
         # Get the residues in the pocket
-        residues = list(clusteringdf[clusteringdf['label'] == labels_unique[0]].index)
-        from pprint import pprint
-        pprint(clusteringdf)
+        residues = list(clusteringdf[clusteringdf['label'] == label_unique]['residue'])
+        residues = [int(residue) for residue in residues]
         residues.sort()
 
         tmpbox = {}
@@ -323,7 +324,7 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
             f.write("CONECT    7    3    6    8\n")
             f.write("CONECT    8    4    5    7\n")
 
-def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "AgglomerativeClustering": True, "Birch": False, "DBSCAN": False, "KMeans": False, "MeanShift": False, "MiniBatchKMeans": False, "NoCluster": False, "OPTICS": False, "SpectralClustering": False}, prank = "", threads = 1, coordSystem = "cartesian", spacing = 4.0, boxMaxCutoff = 0.5, pocketCutoff = 0.1, verbose=False, debug=False):
+def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "AgglomerativeClustering": True, "Birch": False, "DBSCAN": False, "KMeans": False, "MeanShift": False, "MiniBatchKMeans": False, "NoCluster": False, "OPTICS": False, "SpectralClustering": False}, prank = "", threads = 1, coordSystem = "cartesian", spacing = 4.0, boxMaxCutoff = 0.5, boxMinCutoff = 0.1, percentCutoff = 0.5, pocketCutoff = 0.1, verbose = False, debug = False):
     '''
     Function to run p2rank and process its results, converting to a box space to be used in Vina
     Input:
@@ -347,6 +348,8 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
      coordSystem  [string]  DEFAULT: "cartesian" - The coordinate system to be used. The options are cartesian, polar, spherical
      spacing      [float]   DEFAULT: 4.0         - Expansion size of the box in angstroms
      boxMaxCutoff [float]   DEFAULT: 0.5         - Value to be used as the maximum value as probability cutoff to consider a box as valid (use 1.0 to disable this feature)
+     boxMinCutoff [float]   DEFAULT: 0.5         - Value to be used as the minimum value as probability cutoff to consider a box as valid (use 0.0 to disable this feature)
+     percentCutoff [float]  DEFAULT: 0.5         - Cutoff to consider how much percentage of box overlapping will determine if two boxes should be merged
      pocketCutoff [float]   DEFAULT: 0.5         - Value to consider (use 0.0 to disable this feature)
      verbose      [bool]    DEFAULT: False       - Verbose mode on/off
      debug        [bool]    DEFAULT: False       - Debug on/off
@@ -385,7 +388,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
 
     # Create two empty numpy arrays (one will be used to input to the clustering algorithms and the other will be passed to the analysis. Don't worry, the order of the array elements is the same in both!)
     coordinates = np.empty((0,4), float)
-    coordinatesFull = np.empty((0,5), float)
+    coordinatesFull = np.empty((0,6), float)
 
     # Initialize the statistics list
     statistics = []
@@ -423,11 +426,9 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
                         v3 = line[47:54]
 
                     if probabilities[idx] >= pocketCutoff:
-                        # Add the data to the numpy array as a list containing the coordinates + extra data  [X, Y, Z]/[therta, rho, z]/[az, el, r]
+                        # Add the data to the numpy array as a list containing the coordinates + extra data [X, Y, Z]/[therta, rho, z]/[az, el, r]
                         coordinates = np.append(coordinates, np.array([[v1, v2, v3, rank[idx]]], float), axis=0)
-                        coordinatesFull = np.append(coordinatesFull, np.array([[v1, v2, v3, probabilities[idx], rank[idx]]], float), axis=0)
-                        #coordinates = np.append(coordinates, np.array([[line[31:38], line[39:46], line[47:54], rank[idx]]], float), axis=0)
-                        #coordinatesFull = np.append(coordinatesFull, np.array([[line[31:38], line[39:46], line[47:54], probabilities[idx], rank[idx]]], float), axis=0)
+                        coordinatesFull = np.append(coordinatesFull, np.array([[v1, v2, v3, probabilities[idx], rank[idx], line[23:26]]], float), axis=0)
 
     ############################################################################
     # Now the code will have the samme pattern:                                #
@@ -437,7 +438,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
     # 3) Execute the algoritm                                                  #
     # 4) Check the execution time                                              #
     # 5) Process the output (all files have the same final processing)         #
-    # 6) Check the total execution time (algoeithm + file processing)          #
+    # 6) Check the total execution time (algorithm + file processing)          #
     ############################################################################
 
     # No Cluster
@@ -446,19 +447,19 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
         suffix = ""
 
         if debug:
-            with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"na\t0\n")
             suffix = "na"
+            with open(f"{outpath}/statistics.txt", "a") as f:
+                f.write(f"{suffix}\t0\n")
         if verbose:
-            print(f"Como não existe algoritmo, a execução é de 0 segundos.")
+            print(f"No processing, the execution time is 0s.")
 
-        __process_cluster(None, coordinates, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
+        __process_cluster(None, coordinates, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff, boxMinCutoff = boxMinCutoff, percentCutoff = percentCutoff)
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"na+pa\t{round(time.time() - start_time, 2)}\n")
+                f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
         if verbose:
-            print(f"Tempo do processamento de arquivos: {round(time.time() - start_time, 2)} segundos.\n")
+            print(f"File processing time: {round(time.time() - start_time, 2)}s.\n")
 
     # Affinity Propagation
     if algorithms["AffinityPropagation"]:
@@ -473,19 +474,19 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
         clustering = AffinityPropagation(random_state=0).fit(coordinates)
 
         if debug:
-            with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"ap\t{round(time.time() - start_time, 2)}\n")
             suffix = "ap"
+            with open(f"{outpath}/statistics.txt", "a") as f:
+                f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
         if verbose:
-            print(f"Tempo de execução do Affinity Propagation sozinho: {round(time.time() - start_time, 2)} segundos.")
+            print(f"Affinity Propagation execution time: {round(time.time() - start_time, 2)}s.")
 
         __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"ap+pa\t{round(time.time() - start_time, 2)}\n")
+                f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
         if verbose:
-            print(f"Tempo de execução do Affinity Propagation + processamento de arquivos: {round(time.time() - start_time, 2)} segundos.\n")
+            print(f"Total execution time for Affinity Propagation: {round(time.time() - start_time, 2)}s.\n")
 
     # Agglomerative clustering
     if algorithms["AgglomerativeClustering"]:
@@ -500,19 +501,19 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
         clustering = AgglomerativeClustering().fit(coordinates)
 
         if debug:
-            with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"ac\t{round(time.time() - start_time, 2)}\n")
             suffix = "ac"
+            with open(f"{outpath}/statistics.txt", "a") as f:
+                f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
         if verbose:
-            print(f"Tempo de execução do Agglomerative Clustering sozinho: {round(time.time() - start_time, 2)} segundos.")
+            print(f" Agglomerative Clustering execution time: {round(time.time() - start_time, 2)}s.")
 
         __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"ac+pa\t{round(time.time() - start_time, 2)}\n")
+                f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
         if verbose:
-            print(f"Tempo de execução do Agglomerative Clustering + processamento de arquivos: {round(time.time() - start_time, 2)} segundos.\n")
+            print(f"Total execution time for Agglomerative Clustering: {round(time.time() - start_time, 2)}s.\n")
 
     # Birch
     if algorithms["Birch"]:
@@ -527,19 +528,19 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
         clustering = Birch().fit(coordinates)
 
         if debug:
-            with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"bi\t{round(time.time() - start_time, 2)}\n")
             suffix = "bi"
+            with open(f"{outpath}/statistics.txt", "a") as f:
+                f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
         if verbose:
-            print(f"Tempo de execução do Birch sozinho: {round(time.time() - start_time, 2)} segundos.")
+            print(f"Birch execution time: {round(time.time() - start_time, 2)}s.")
 
         __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"bi+pa\t{round(time.time() - start_time, 2)}\n")
+                f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
         if verbose:
-            print(f"Tempo de execução do Birch + processamento de arquivos: {round(time.time() - start_time, 2)} segundos.\n")
+            print(f"Total execution time for Birch: {round(time.time() - start_time, 2)}s.\n")
 
     # DBSCAN
     if algorithms["DBSCAN"]:
@@ -554,19 +555,19 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
         clustering = DBSCAN(eps=5, min_samples=5).fit(coordinates)
 
         if debug:
-            with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"db\t{round(time.time() - start_time, 2)}\n")
             suffix = "db"
+            with open(f"{outpath}/statistics.txt", "a") as f:
+                f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
         if verbose:
-            print(f"Tempo de execução do DBSCAN sozinho: {round(time.time() - start_time, 2)} segundos.")
+            print(f"DBSCAN execution time: {round(time.time() - start_time, 2)}s.")
 
         __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"db+pa\t{round(time.time() - start_time, 2)}\n")
+                f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
         if verbose:
-            print(f"Tempo de execução do DBSCAN + processamento de arquivos: {round(time.time() - start_time, 2)} segundos.\n")
+            print(f"Total execution time for DBSCAN: {round(time.time() - start_time, 2)}s.\n")
 
     # KMeans
     if algorithms["KMeans"]:
@@ -581,19 +582,19 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
         clustering = KMeans(n_clusters=2, random_state=0).fit(coordinates)
 
         if debug:
-            with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"km\t{round(time.time() - start_time, 2)}\n")
             suffix = "km"
+            with open(f"{outpath}/statistics.txt", "a") as f:
+                f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
         if verbose:
-            print(f"Tempo de execução do KMeans sozinho: {round(time.time() - start_time, 2)} segundos.")
+            print(f"KMeans execution time: {round(time.time() - start_time, 2)}s.")
 
         __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"km+pa\t{round(time.time() - start_time, 2)}\n")
+                f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
         if verbose:
-            print(f"Tempo de execução do KMeans + processamento de arquivos: {round(time.time() - start_time, 2)} segundos.\n")
+            print(f"Total execution time for KMeans: {round(time.time() - start_time, 2)}s.\n")
 
     # Meanshift
     if algorithms["MeanShift"]:
@@ -609,19 +610,19 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
         clustering = MeanShift(bandwidth=bandwidth).fit(coordinates)
 
         if debug:
-            with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"ms\t{round(time.time() - start_time, 2)}\n")
             suffix = "ms"
+            with open(f"{outpath}/statistics.txt", "a") as f:
+                f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
         if verbose:
-            print(f"Tempo de execução do Mean Shift sozinho: {round(time.time() - start_time, 2)} segundos.")
+            print(f"Mean Shift execution time: {round(time.time() - start_time, 2)}s.")
 
         __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"ms+pa\t{round(time.time() - start_time, 2)}\n")
+                f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
         if verbose:
-            print(f"Tempo de execução do Mean Shift + processamento de arquivos: {round(time.time() - start_time, 2)} segundos.\n")
+            print(f"Total execution time for Mean Shift: {round(time.time() - start_time, 2)}s.\n")
 
     # Mini Batch KMeans
     if algorithms["MiniBatchKMeans"]:
@@ -636,19 +637,19 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
         clustering = MiniBatchKMeans(n_clusters=2).fit(coordinates)
 
         if debug:
-            with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"mb\t{round(time.time() - start_time, 2)}\n")
             suffix = "mb"
+            with open(f"{outpath}/statistics.txt", "a") as f:
+                f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
         if verbose:
-            print(f"Tempo de execução do Mini Batch KMeans sozinho: {round(time.time() - start_time, 2)} segundos.")
+            print(f"Mini Batch KMeans execution time: {round(time.time() - start_time, 2)}s.")
 
         __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"mb+pa\t{round(time.time() - start_time, 2)}\n")
+                f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
         if verbose:
-            print(f"Tempo de execução do Mini Batch KMeans + processamento de arquivos: {round(time.time() - start_time, 2)} segundos.\n")
+            print(f"Total execution time for Mini Batch KMeans: {round(time.time() - start_time, 2)}s.\n")
 
     # OPTICS
     if algorithms["OPTICS"]:
@@ -663,19 +664,19 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
         clustering = OPTICS(min_samples=5).fit(coordinates)
 
         if debug:
-            with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"op\t{round(time.time() - start_time, 2)}\n")
             suffix = "op"
+            with open(f"{outpath}/statistics.txt", "a") as f:
+                f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
         if verbose:
-            print(f"Tempo de execução do OPTICS sozinho: {round(time.time() - start_time, 2)} segundos.")
+            print(f"OPTICS execution time: {round(time.time() - start_time, 2)}s.")
 
         __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"op+pa\t{round(time.time() - start_time, 2)}\n")
+                f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
         if verbose:
-            print(f"Tempo de execução do OPTICS + processamento de arquivos: {round(time.time() - start_time, 2)} segundos.\n")
+            print(f"Total execution time for OPTICS: {round(time.time() - start_time, 2)}s.\n")
 
     # Spectral Clustering
     if algorithms["SpectralClustering"]:
@@ -690,24 +691,23 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
         clustering = SpectralClustering(n_clusters=2, random_state=0).fit(coordinates)
 
         if debug:
-            with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"sc\t{round(time.time() - start_time, 2)}\n")
             suffix = "sc"
+            with open(f"{outpath}/statistics.txt", "a") as f:
+                f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
         if verbose:
-            print(f"Tempo de execução do Spectral Clustering sozinho: {round(time.time() - start_time, 2)} segundos.")
+            print(f"Spectral Clustering execution time: {round(time.time() - start_time, 2)}s.")
 
         __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"sc+pa\t{round(time.time() - start_time, 2)}\n")
+                f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
         if verbose:
-            print(f"Tempo de execução do Spectral Clustering + processamento de arquivos: {round(time.time() - start_time, 2)} segundos.\n")
+            print(f"Total execution time for Spectral Clustering: {round(time.time() - start_time, 2)}s.\n")
 
 # Execute the script
 if __name__ == "__main__":
     # Variables to be manually adjusted to run the script from prompt
-    #prank = "/mnt/d/Documents/OCDocker/software/search/p2rank_2.3/prank"
     prank = ""
     fname = "receptor"
     basePath = "/mnt/d/Documents/OCDocker/docking"
@@ -717,6 +717,8 @@ if __name__ == "__main__":
     coordSystem = "cartesian"
     spacing = 4.0
     boxMaxCutoff = 0.5
+    boxMinCutoff = 0.1
+    percentCutoff = 0.5
     pocketCutoff = 0.1
     debug = True
     verbose = True
@@ -735,4 +737,4 @@ if __name__ == "__main__":
         "SpectralClustering": True
     }
 
-    run_prank(fin, fout, algorithms = algorithms, prank = prank, threads = threads, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff, pocketCutoff = pocketCutoff, verbose = verbose, debug = debug)
+    run_prank(fin, fout, algorithms = algorithms, prank = prank, threads = threads, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff, boxMinCutoff = boxMinCutoff, percentCutoff = percentCutoff, pocketCutoff = pocketCutoff, verbose = verbose, debug = debug)
