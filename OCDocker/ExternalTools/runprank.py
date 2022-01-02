@@ -224,34 +224,49 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
                 percentY = 0
                 percentZ = 0
 
-                # Check if X overlaps and find the percentage of overlap area which is compared to the size of both lines (remember, this is 1D) minus the size of the intersection (it is accounted twice).
-                if preBox['max_x'] <= moreBox['max_x'] and preBox['max_x'] >= moreBox['min_x']:
-                    percentX = (preBox['max_x'] - moreBox['min_x']) / ((preBox['max_x'] - preBox['min_x']) + (moreBox['max_x'] - moreBox['min_x']) - (moreBox['max_x'] - preBox['min_x']))
-                elif preBox['min_x'] <= moreBox['max_x'] and preBox['min_x'] >= moreBox['min_x']:
-                    percentX = (moreBox['max_x'] - preBox['min_x']) / ((preBox['max_x'] - preBox['min_x']) + (moreBox['max_x'] - moreBox['min_x']) - (preBox['max_x'] - moreBox['min_x']))
+                # Check if X overlaps and find the percentage of overlap area
+                if preBox['max_x'] <= moreBox['max_x'] and preBox['max_x'] >= moreBox['min_x']: # box1 starts before box1 starts and box1 ends before box2 ends |--!--|--! (| = box1; != box2).
+                    percentX = (preBox['max_x'] - moreBox['min_x']) / ((preBox['max_x'] - preBox['min_x']) + (moreBox['max_x'] - moreBox['min_x']) - (moreBox['max_x'] - preBox['min_x'])) # Size of both lines minus the size of the intersection (it is accounted twice).
+                elif preBox['min_x'] <= moreBox['max_x'] and preBox['min_x'] >= moreBox['min_x']: # box2 starts before box1 starts and box2 ends before box1 ends !--|--!--| (| = box1; != box2).
+                    percentX = (moreBox['max_x'] - preBox['min_x']) / ((preBox['max_x'] - preBox['min_x']) + (moreBox['max_x'] - moreBox['min_x']) - (preBox['max_x'] - moreBox['min_x'])) # Size of both lines minus the size of the intersection (it is accounted twice).
+                elif preBox['min_x'] >= moreBox['min_x'] and preBox['max_x'] <= moreBox['max_x']: # box1 is contained by box2 !--|--|--!  (| = box1; != box2).
+                    percentX = (preBox['max_x'] - preBox['min_x'])/(moreBox['max_x'] - moreBox['min_x']) # Size of box1.
+                elif moreBox['min_x'] >= preBox['min_x'] and moreBox['max_x'] <= preBox['max_x']: # box2 is contained by box1 |--!--!--|  (| = box1; != box2).
+                    percentX = (moreBox['max_x'] - moreBox['min_x'])/(preBox['max_x'] - preBox['min_x']) # Size of box2.
                 # Check if percentX is 0 (means no overlap)
                 if percentX == 0:
+                    print("x does not overlaps.")
                     continue
                 # Check if Y overlaps and find the percentage of overlap area which is compared to the size of both lines (remember, this is 1D) minus the size of the intersection (it is accounted twice).
-                if preBox['max_y'] <= moreBox['max_y'] and preBox['max_y'] >= moreBox['min_y']:
-                    percentY = (preBox['max_y'] - moreBox['min_y']) / ((preBox['max_y'] - preBox['min_y']) + (moreBox['max_y'] - moreBox['min_y']) - (moreBox['max_y'] - preBox['min_y']))
-                elif preBox['min_y'] <= moreBox['max_y'] and preBox['min_y'] >= moreBox['min_y']:
-                    percentY = (moreBox['max_y'] - preBox['min_y']) / ((preBox['max_y'] - preBox['min_y']) + (moreBox['max_y'] - moreBox['min_y']) - (preBox['max_y'] - moreBox['min_y']))
+                if preBox['max_y'] <= moreBox['max_y'] and preBox['max_y'] >= moreBox['min_y']: # box1 starts before box1 starts and box1 ends before box2 ends |--!--|--! (| = box1; != box2).
+                    percentY = (preBox['max_y'] - moreBox['min_y']) / ((preBox['max_y'] - preBox['min_y']) + (moreBox['max_y'] - moreBox['min_y']) - (moreBox['max_y'] - preBox['min_y'])) # Size of both lines minus the size of the intersection (it is accounted twice).
+                elif preBox['min_y'] <= moreBox['max_y'] and preBox['min_y'] >= moreBox['min_y']: # box2 starts before box1 starts and box2 ends before box1 ends !--|--!--| (| = box1; != box2).
+                    percentY = (moreBox['max_y'] - preBox['min_y']) / ((preBox['max_y'] - preBox['min_y']) + (moreBox['max_y'] - moreBox['min_y']) - (preBox['max_y'] - moreBox['min_y'])) # Size of both lines minus the size of the intersection (it is accounted twice).
+                elif preBox['min_y'] >= moreBox['min_y'] and preBox['max_y'] <= moreBox['max_y']: # box1 is contained by box2 !--|--|--!  (| = box1; != box2).
+                    percentY = (preBox['max_y'] - preBox['min_y'])/(moreBox['max_y'] - moreBox['min_y']) # Size of box1.
+                elif moreBox['min_y'] >= preBox['min_y'] and moreBox['max_y'] <= preBox['max_y']: # box2 is contained by box1 |--!--!--|  (| = box1; != box2).
+                    percentY = (moreBox['max_y'] - moreBox['min_y'])/(preBox['max_y'] - preBox['min_y']) # Size of box2.
                 # Check if percentY is 0 (means no overlap)
                 if percentY == 0:
+                    print("y does not overlaps.")
                     continue
                 # Check if Z overlaps and find the percentage of overlap area which is compared to the size of both lines (remember, this is 1D) minus the size of the intersection (it is accounted twice).
-                if preBox['max_z'] <= moreBox['max_z'] and preBox['max_z'] >= moreBox['min_z']:
-                    percentZ = (preBox['max_z'] - moreBox['min_z']) / ((preBox['max_z'] - preBox['min_z']) + (moreBox['max_z'] - moreBox['min_z']) - (moreBox['max_z'] - preBox['min_z']))
-                elif preBox['min_z'] <= moreBox['max_z'] and preBox['min_z'] >= moreBox['min_z']:
-                    percentZ = (moreBox['max_z'] - preBox['min_z']) / ((preBox['max_z'] - preBox['min_z']) + (moreBox['max_z'] - moreBox['min_z']) - (moreBox['max_z'] - preBox['min_z']))
+                if preBox['max_z'] <= moreBox['max_z'] and preBox['max_z'] >= moreBox['min_z']: # box1 starts before box1 starts and box1 ends before box2 ends |--!--|--! (| = box1; != box2).
+                    percentZ = (preBox['max_z'] - moreBox['min_z']) / ((preBox['max_z'] - preBox['min_z']) + (moreBox['max_z'] - moreBox['min_z']) - (moreBox['max_z'] - preBox['min_z'])) # Size of both lines minus the size of the intersection (it is accounted twice).
+                elif preBox['min_z'] <= moreBox['max_z'] and preBox['min_z'] >= moreBox['min_z']: # box2 starts before box1 starts and box2 ends before box1 ends !--|--!--| (| = box1; != box2).
+                    percentZ = (moreBox['max_z'] - preBox['min_z']) / ((preBox['max_z'] - preBox['min_z']) + (moreBox['max_z'] - moreBox['min_z']) - (moreBox['max_z'] - preBox['min_z'])) # Size of both lines minus the size of the intersection (it is accounted twice).
+                elif preBox['min_z'] >= moreBox['min_z'] and preBox['max_z'] <= moreBox['max_z']: # box1 is contained by box2 !--|--|--!  (| = box1; != box2).
+                    percentZ = (preBox['max_z'] - preBox['min_z'])/(moreBox['max_z'] - moreBox['min_z']) # Size of box1.
+                elif moreBox['min_z'] >= preBox['min_z'] and moreBox['max_z'] <= preBox['max_z']: # box2 is contained by box1 |--!--!--|  (| = box1; != box2).
+                    percentZ = (moreBox['max_z'] - moreBox['min_z'])/(preBox['max_z'] - preBox['min_z']) # Size of box2.
                 # Check if percentZ is 0 (means no overlap)
                 if percentZ == 0:
+                    print("z does not overlaps.")
                     continue
 
+                print(percentX * percentY * percentZ)
                 # If boxes overlap, merge them
                 if (percentX * percentY * percentZ) > percentCutoff:
-                    print(percentX * percentY * percentZ)
                     # Start a new empty dict
                     tmpBox = {}
                     # Get the smallest and biggest value in each coordinates
