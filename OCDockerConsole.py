@@ -12,6 +12,7 @@ import OCDocker.Vina as ocvina
 import OCDocker.Smina as ocsmina
 import OCDocker.Database as ocdb
 import OCDocker.Astex as ocastex
+import OCDocker.DUDEZ as ocdudez
 import OCDocker.PDBbind as ocpdbbind
 import OCDocker.Ligand as ocl
 import OCDocker.Complex as occ
@@ -63,6 +64,7 @@ print(message)
 
 args.debug = 1
 args.verbosity = 1
+args.cpu_cores = 20
 
 basePath = '/mnt/e/Documents/OCDocker/OCDocker'
 '''

@@ -11,6 +11,7 @@ Version: 0.4
 '''
 
 import os
+import math
 import time
 import subprocess
 import numpy as np
@@ -162,8 +163,6 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
         # Find which labels exists removing repeated elements
         labels_unique = np.unique(labels)
 
-    clusteringdf.to_csv('/mnt/e/Documents/OCDocker/OCDocker/data/ocdb/Astex/1g9v/teste.csv', index=False)
-
     # If the variable suffix is set
     if suffix:
         # Set the folder variable
@@ -177,11 +176,15 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
         folder = ""
 
     # Set the cutoff as the mean of the probabilities (from P2Rank)
+    stepper = 10 ** 3
     cutoff = clusteringdf['probability'].mean()
 
     # Force the cutoff to be at maximum the boxMaxCutoff variable and at minimum boxMinCutoff
     cutoff = boxMinCutoff if cutoff < boxMinCutoff else cutoff if cutoff < boxMaxCutoff else boxMaxCutoff
 
+    # Truncate the cutoff to 3 decimals
+    cutoff = math.trunc(stepper * cutoff) / stepper
+    print(cutoff)
     # List to hold the boxes
     boxes = []
 
@@ -413,6 +416,9 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
     probabilities = [i[1] for i in preatoms]
     rank = [i[2] for i in preatoms]
 
+    # First pocket will always be accounted
+    first = True
+
     # Read the .pdb file to capture the x/y/z coordinates
     with open(filein, 'r') as f:
         # For each line in the file
@@ -440,7 +446,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
                         v2 = line[39:46]
                         v3 = line[47:54]
 
-                    if probabilities[idx] >= pocketCutoff:
+                    if probabilities[idx] >= pocketCutoff or first:
                         # Add the data to the numpy array as a list containing the coordinates + extra data [X, Y, Z]/[therta, rho, z]/[az, el, r]
                         coordinates = np.append(coordinates, np.array([[v1, v2, v3, rank[idx]]], float), axis=0)
                         coordinatesFull = np.append(coordinatesFull, np.array([[v1, v2, v3, probabilities[idx], rank[idx], line[23:26]]], float), axis=0)

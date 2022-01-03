@@ -15,6 +15,7 @@ from OCDocker.Initialise import *
 import OCDocker.Toolbox as octools
 
 from Bio.PDB import *
+from glob import glob
 from rdkit import Chem
 
 # License
@@ -294,13 +295,13 @@ class Vina:
 ## Private ##
 
 ## Public ##
-def box_to_vina(boxFile, confFile, receptor = "receptor_noH"):
+def box_to_vina(boxFile, confFile, receptor):
     '''
     Convert a box (DUDE like format) to vina input.
     Input:
-      boxFile   [string]                         - Path to the box file.
-      confFile  [string]                         - Path to the conf file.
-      receptor  [string] DEFAULT: "receptor_noH" - Receptor name to be used in conf file.
+      boxFile   [string] - Path to the box file.
+      confFile  [string] - Path to the conf file.
+      receptor  [string] - Receptor name to be used in conf file.
     Return:
       [int]
        See Error.py for all return codes.
@@ -309,11 +310,12 @@ def box_to_vina(boxFile, confFile, receptor = "receptor_noH"):
     # Test if the file boxFile exists
     if not os.path.exists(boxFile):
         return errors.file_do_not_exist(message=f"The box file in the path {boxFile} does not exists! Please ensure that the file exsits and the path is correct. If you have no box file, try to run the function 'runprank' from the 'runprank' library to create it before calling this function or creating a Vina class object.", level="error")
+    # List to hold all the data
+    lines = []
+
     try:
         # Open the box file
         with open(str(boxFile), "r") as box_file:
-            # List to hold all the data
-            lines = []
 
             # For each line in the file
             for line in box_file:
@@ -403,3 +405,42 @@ def run_vina(confFile, ligand, outpath, logpath, logFile=""):
     octools.printv(f"Running vina using the '{confFile}' configurations.")
     # Run the command
     return octools.run(cmd, logFile=logFile)
+
+def generate_vina_files_database(path, protein):
+    '''
+    Generate all vina required files for provided protein.
+    Input:
+     path    [string] - Input path.
+     protein [string] - Protein path.
+    Return:
+      -
+    '''
+    # Parameterize the vina and p2rank paths
+    vinaPath = f"{path}/vinaFiles"
+    prankPath = f"{path}/p2rank"
+
+    # Create the vina folder inside protein's directory
+    _ = octools.safe_create_dir(vinaPath)
+
+    # Find all boxes
+    boxes = glob(f"{prankPath}/box*.pdb")
+
+    # For each box
+    for box in boxes:
+        # Get box name
+        boxName = os.path.basename(box)
+
+        # Get box id
+        boxId = boxName.split(".")[0].replace("box", "").replace(".pdb", "")
+
+        # Parameterize the box folder
+        boxFolder = f"{vinaPath}/{boxId}"
+
+        # Create vina execution folder
+        _ = octools.safe_create_dir(boxFolder)
+
+        confPath = f"{boxFolder}/conf_vina.txt"
+
+        box_to_vina(box, confPath, protein)
+
+    return

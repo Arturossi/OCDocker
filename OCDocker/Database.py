@@ -85,10 +85,8 @@ def update_DUDEZ():
     # Delete the temporary folder
     shutil.rmtree("./tmp")
 
-    # THIS SECTION MIGHT CHANGE TO THE USE OF BLinDPyPr IN THE FUTURE
-
     # Run p2rank in the DUDEZ database
-    ocdudez.runprank()
+    ocdudez.runprankDUDEZ()
 
     return
 
@@ -306,6 +304,10 @@ def update_astex():
                     octools.print_warning(f"Wrong file type! The mime type must be 'application/x-tar' and its encoding must be 'gzip', however mime type '{mime_type}' and encoding '{enc}' have been found.")
             else:
                 octools.print_warning(f"The string '{option}' is not a valid path!")
+
+    # Run p2rank in the Astex database
+    ocastex.runprankAstex()
+
     return
 
 def update_databases():
