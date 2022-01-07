@@ -143,7 +143,7 @@ def verify_integrity():
                 octools.print_error_log(f"Unable to generate the vinaFiles dir for '{dir}'... Error code {errorCode}.", f"{logdir}/PDBbind_integrity_report.log")
                 continue
 
-        octools.printv("Checking files")
+        octools.printv(f"Checking files for the protein '{dis}'")
 
         # Check how many boxes are in the p2rankDir
         boxCount = len(glob(f"{p2rankDir}/box*.pdb"))
@@ -166,14 +166,14 @@ def verify_integrity():
                 continue
 
         # If there is not the same amount of box files as folders in vinaFiles folder
-        if len(glob(f"{dir}/vinaFiles/*")) == boxCount:
+        if len(glob(f"{dir}/vinaFiles/*")) < boxCount:
             octools.print_warning(f"The protein '{dir}' has not the same amount of vina conf files as the amount of box files. Trying to fix...")
 
             # Run the vina conf creation from box
             __run_create_vina_conf_from_box(dir)
 
             # If there is not the same amount of box files as folders in vinaFiles folder (again)
-            if len(glob(f"{dir}/vinaFiles/*")) == boxCount:
+            if len(glob(f"{dir}/vinaFiles/*")) < boxCount:
                 octools.print_success(f"Conf files generated for '{dir}'.")
             else:
                 octools.print_error(f"Unable to generate the conf files for '{dir}'...")
