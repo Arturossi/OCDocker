@@ -555,7 +555,7 @@ astex_archive = os.path.join(ocdb, "Astex")
 dudez_archive = os.path.join(ocdb, "DUDEZ")
 
 # Directory containing the pdbbind archive
-pdbbind_archive = os.path.join(ocdb, "pdbBind")
+pdbbind_archive = os.path.join(ocdb, "PDBbind")
 
 # Get number of CPUs (minus one) with a minimum of one
 if args.multiprocess:

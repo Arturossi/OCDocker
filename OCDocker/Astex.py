@@ -45,11 +45,11 @@ import OCDocker.Astex as ocastex
 ## Private ##
 
 ## Public ##
-def runprankAstex():
+def prepare():
     '''
-    Generate all vina required files for provided protein.
+    Prepares the Astex database.
     Input:
-     path [string] - Input path.
+      -
     Return:
       -
     '''

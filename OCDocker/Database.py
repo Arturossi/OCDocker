@@ -13,6 +13,8 @@ from tqdm import tqdm
 
 from OCDocker.Initialise import *
 import OCDocker.DUDEZ as ocdudez
+import OCDocker.Astex as ocastex
+import OCDocker.PDBbind as ocpdbbind
 import OCDocker.Toolbox as octools
 
 # License
@@ -86,7 +88,7 @@ def update_DUDEZ():
     shutil.rmtree("./tmp")
 
     # Run p2rank in the DUDEZ database
-    ocdudez.runprankDUDEZ()
+    ocdudez.prepare()
 
     return
 
@@ -99,13 +101,16 @@ def update_pdbbind():
       -
     '''
     # Parameterizing the topics (this sounds strange but one large string concatenation was bugging the IDE)
-    t1 = f"- Go to the PDBbind website ({clrs['c']}http://www.pdbbind.org.cn/download.php{clrs['n']});"
+    t1 = f"- Go to the PDBbind website ({clrs['c']}http://www.pdbbind.org.cn/download.php{clrs['n']})."
 
-    t2 = f"- Download the{clrs['c']} Protein-ligand complexes: The refined set{clrs['n']} and provide the full path to it or put the file inside the {clrs['y']} {pdbbind_archive}{clrs['n']} folder and type continue (please, make sure that the downloaded file is the{clrs['c']} ONLY{clrs['n']} file inside the {clrs['y']} {pdbbind_archive}{clrs['n']} folder). If you want to skip the PDBbind update, type 'skip' (without quotes) and press enter."
+    t2 = f"- Download the{clrs['c']} Protein-ligand complexes: The refined set{clrs['n']} (it may have the number 3 as its index), untar it and put all the protein folders folder inside the{clrs['y']} {pdbbind_archive}{clrs['n']} folder."
+    t2 += f" The folders{clrs['y']} readme{clrs['n']} and{clrs['y']} index{clrs['n']} should be{clrs['r']} deleted{clrs['n']}."
+
+    t2 = f"- Download the{clrs['c']} Protein-ligand complexes: The refined set{clrs['n']} (it may have the number 3 as its index), and provide the full path to it or put the file inside the {clrs['y']} {pdbbind_archive}{clrs['n']} folder and type continue (please, make sure that the downloaded file is the{clrs['c']} ONLY{clrs['n']} file inside the {clrs['y']} {pdbbind_archive}{clrs['n']} folder). If you want to skip the PDBbind update, type 'skip' (without quotes) and press enter."
 
     # Since no rsync option to update pdbbind database has been found you have to manually download/untar the files and put them inside the database folder
     print(tw.dedent("""
-                 Unfortunately this step has not been able to be 100% automatized... :(
+                 Unfortunately this step has not been able to be automatized... :(
     Please, we kindly ask you to perform the following steps to update the PDBbind database
 
     """ + t1 + """
@@ -117,7 +122,10 @@ def update_pdbbind():
     # Infinite loop (user can break it by sending an empty answer)
     while True:
         # Check the options
-        option = input("Once these steps are done, type 'continue' (without the quotes) and press enter to continue. To cancel just press enter without typing nothing.\n")
+        option = input("Once these steps are done, type 'continue' and press enter to continue. To cancel just press enter without typing nothing.\n")
+
+        if "'" in option or '"' in option:
+            option = option.replace('"', "").replace("'", "")
 
         if option.lower() == "continue":
             octools.printv("Continuing the update proces...")
@@ -136,15 +144,10 @@ def update_pdbbind():
                 # Remove the refined-set folder
                 os.rmdir(f"{pdbbind_archive}/refined-set")
 
-            # Check if there is a readme folder
-            if os.path.isdir(f"{pdbbind_archive}/readme"):
+            # Check if there is a readme file
+            if os.path.isfile(f"{pdbbind_archive}/README.txt"):
                 # Delete it
-                shutil.rmtree(f"{pdbbind_archive}/readme")
-
-            # Check if there is a index folder
-            if os.path.isdir(f"{pdbbind_archive}/index"):
-                # Delete it
-                shutil.rmtree(f"{pdbbind_archive}/index")
+                os.remove(f"{pdbbind_archive}/README.txt")
 
             # Exit the loop
             break;
@@ -182,15 +185,15 @@ def update_pdbbind():
                         # Remove the refined-set folder (which is empty)
                         os.rmdir(f"{pdbbind_archive}/refined-set")
 
-                    # Check if there is a readme folder (not empty)
+                    # Check if there is a readme folder
                     if os.path.isdir(f"{pdbbind_archive}/readme"):
                         # Delete it
-                        shutil.rmtree(f"{pdbbind_archive}/readme")
+                        shutin.rmtree(f"{pdbbind_archive}/readme")
 
-                    # Check if there is a index folder (not empty)
+                    # Check if there is a index folder
                     if os.path.isdir(f"{pdbbind_archive}/index"):
                         # Delete it
-                        shutil.rmtree(f"{pdbbind_archive}/index")
+                        shutin.rmtree(f"{pdbbind_archive}/index")
 
                     # Exit the loop
                     break
@@ -199,6 +202,10 @@ def update_pdbbind():
                     octools.print_warning(f"Wrong file type! The mime type must be 'application/x-tar' and its encoding must be 'gzip', however mime type '{mime_type}' and encoding '{enc}' have been found.")
             else:
                 octools.print_warning(f"The string '{option}' is not a valid path!")
+
+    # Run p2rank in the Astex database
+    ocpdbbind.prepare()
+
     return
 
 def update_astex():
@@ -209,7 +216,6 @@ def update_astex():
     Return:
       -
     '''
-
     # Parameterizing the topics (this sounds strange but one large string concatenation was bugging the IDE)
     t1 = f"- Go to the CCDC website ({clrs['c']}https://www.ccdc.cam.ac.uk/support-and-resources/downloads{clrs['n']})."
 
@@ -232,7 +238,10 @@ def update_astex():
     # Infinite loop (user can break it by sending an empty answer)
     while True:
         # Check the options
-        option = input("Once these steps are done, type 'continue' (without the quotes) and press enter to continue. To cancel just press enter without typing nothing.\n")
+        option = input("Once these steps are done, type 'continue' and press enter to continue. To cancel just press enter without typing nothing.\n")
+
+        if "'" in option or '"' in option:
+            option = option.replace('"', "").replace("'", "")
 
         if option.lower() == "continue":
             octools.printv("Continuing the update proces...")
@@ -306,7 +315,7 @@ def update_astex():
                 octools.print_warning(f"The string '{option}' is not a valid path!")
 
     # Run p2rank in the Astex database
-    ocastex.runprankAstex()
+    ocastex.prepare()
 
     return
 
@@ -321,16 +330,21 @@ def update_databases():
     # Start the mimetypes
     mimetypes.init()
 
-    print('\n\nUpdating ALL databases.\n')
+    print('\n\nUpdating ALL databases.\')
     create_directories()
+
     print('Updating PDBbind database...')
     update_pdbbind()
     print('\n\nDone updating PDBbind!\n')
-    #print('Updating Astex database...')
-    #update_astex()
-    #print('\n\nDone updating Astex!\n')
+
+    print('Updating Astex database...')
+    update_astex()
+    print('\n\nDone updating Astex!\n')
+
     print('Updating DUDEZ database...')
     update_DUDEZ()
     print('\n\nDone updating DUDEZ!\n')
+
+    print('\n\nDone updating ALL databases.\')
 
     return

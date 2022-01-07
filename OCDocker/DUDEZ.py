@@ -44,11 +44,11 @@ import OCDocker.DUDEZ as ocdudez
 ## Private ##
 
 ## Public ##
-def runprankDUDEZ():
+def prepare():
     '''
-    Generate all vina required files for provided protein.
+    Prepares the DUDEZ database.
     Input:
-     path [string] - Input path.
+      -
     Return:
       -
     '''

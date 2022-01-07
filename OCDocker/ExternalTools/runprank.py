@@ -121,47 +121,39 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
     Return:
         Nothing
     '''
+    # Convert coordinates (if necessary)
+    if coordSystem.lower() == "polar": # if is polar
+        # For each element in coordinates array
+        for i, coordinate in enumerate(coordinates):
+            # Convert the first two elements (theta, ro) to cartesian (x, y). There is no need to convert z
+            coordinates[i][0], coordinates[i][1] = __pol2cart(coordinates[i][0], coordinates[i][1]) #
+
+    elif coordSystem.lower() == "spherical": # if is spherical
+        # For each element in coordinates array
+        for i, coordinate in enumerate(coordinates):
+            # Convert the first three elements (azimuth, elevation, radial coordinate) to cartesian (x, y, z)
+            coordinates[i][0], coordinates[i][1], coordinates[i][2] = __sph2cart(coordinates[i][0], coordinates[i][1], coordinates[i][2])
+
+    # Create a dataframe containing x, y, z coordinates and the probability and the rank from P2Rank
+    clusteringdf = pd.DataFrame(coordinates,  columns=["x", "y", "z", "probability", "rank", "residue"])
+
     # If any clustering has been done
     if clustering:
         # Fetch each element label
         labels = clustering.labels_
 
-        # Find which labels exists removing repeated elements
-        labels_unique = np.unique(labels)
-
-        # Convert coordinates (if necessary)
-        if coordSystem.lower() == "polar": # if is polar
-            # For each element in coordinates array
-            for i, coordinate in enumerate(coordinates):
-                # Convert the first two elements (theta, ro) to cartesian (x, y). There is no need to convert z
-                coordinates[i][0], coordinates[i][1] = __pol2cart(coordinates[i][0], coordinates[i][1]) #
-
-        elif coordSystem.lower() == "spherical": # if is spherical
-            # For each element in coordinates array
-            for i, coordinate in enumerate(coordinates):
-                # Convert the first three elements (azimuth, elevation, radial coordinate) to cartesian (x, y, z)
-                coordinates[i][0], coordinates[i][1], coordinates[i][2] = __sph2cart(coordinates[i][0], coordinates[i][1], coordinates[i][2])
-
-        # Create a dataframe containing x, y, z coordinates and the probability and the rank from P2Rank
-        clusteringdf = pd.DataFrame(coordinates,  columns=['x', 'y', 'z', 'probability', 'rank', 'residue'])
-
-        # Add label column to the clusteringdf dataframe
-        clusteringdf['label'] = labels
     else:
-        # Set the cluster as the raw coordinates
-        clusteringdf = pd.DataFrame(coordinates,  columns=['x', 'y', 'z', 'rank', 'residue'])
-
         # Set the probability as 1 (every box should be used)
-        clusteringdf['probability'] = 1.0
+        clusteringdf["probability"] = 1.0
 
         # Set the labels as the rank
-        labels = clusteringdf['rank']
+        labels = clusteringdf["rank"]
 
-        # Add label column to the clusteringdf dataframe
-        clusteringdf['label'] = labels
+    # Find which labels exists removing repeated elements
+    labels_unique = np.unique(labels)
 
-        # Find which labels exists removing repeated elements
-        labels_unique = np.unique(labels)
+    # Add label column to the clusteringdf dataframe
+    clusteringdf["label"] = labels
 
     # If the variable suffix is set
     if suffix:
@@ -176,40 +168,40 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
         folder = ""
 
     # Set the cutoff as the mean of the probabilities (from P2Rank)
-    stepper = 10 ** 3
-    cutoff = clusteringdf['probability'].mean()
+    cutoff = clusteringdf["probability"].mean()
 
     # Force the cutoff to be at maximum the boxMaxCutoff variable and at minimum boxMinCutoff
     cutoff = boxMinCutoff if cutoff < boxMinCutoff else cutoff if cutoff < boxMaxCutoff else boxMaxCutoff
 
-    # Truncate the cutoff to 3 decimals
+    # Truncate the cutoff to 3 decimals (IMPORTANT: this fixes floating point error)
+    stepper = 10 ** 3 # change the number here if you want more/less precision
     cutoff = math.trunc(stepper * cutoff) / stepper
-    print(cutoff)
+
     # List to hold the boxes
     boxes = []
 
     # For each unique label (after removing repeated labels)
     for label_unique in labels_unique:
         # If the label is -1 (means that its an outlier) or if no probability of the set is above the cutoff
-        if str(label_unique) == "-1" or not (clusteringdf[clusteringdf['label'] == label_unique]['probability'] >= cutoff).any():
+        if str(label_unique) == "-1" or not (clusteringdf[clusteringdf["label"] == label_unique]["probability"] >= cutoff).any():
             # Next iteration
             continue
 
         # Get the residues in the pocket
-        residues = list(clusteringdf[clusteringdf['label'] == label_unique]['residue'])
+        residues = list(clusteringdf[clusteringdf["label"] == label_unique]["residue"])
         residues = [int(residue) for residue in residues]
         residues.sort()
 
         tmpbox = {}
 
         # Get min/max of the x/y/z coordinates (round to 3 decimals)
-        tmpbox['min_x'] = round(clusteringdf[clusteringdf['label'] == label_unique]['x'].min() - spacing, 3)
-        tmpbox['max_x'] = round(clusteringdf[clusteringdf['label'] == label_unique]['x'].max() + spacing, 3)
-        tmpbox['min_y'] = round(clusteringdf[clusteringdf['label'] == label_unique]['y'].min() - spacing, 3)
-        tmpbox['max_y'] = round(clusteringdf[clusteringdf['label'] == label_unique]['y'].max() + spacing, 3)
-        tmpbox['min_z'] = round(clusteringdf[clusteringdf['label'] == label_unique]['z'].min() - spacing, 3)
-        tmpbox['max_z'] = round(clusteringdf[clusteringdf['label'] == label_unique]['z'].max() + spacing, 3)
-        tmpbox['residues'] = residues
+        tmpbox["min_x"] = round(clusteringdf[clusteringdf["label"] == label_unique]["x"].min() - spacing, 3)
+        tmpbox["max_x"] = round(clusteringdf[clusteringdf["label"] == label_unique]["x"].max() + spacing, 3)
+        tmpbox["min_y"] = round(clusteringdf[clusteringdf["label"] == label_unique]["y"].min() - spacing, 3)
+        tmpbox["max_y"] = round(clusteringdf[clusteringdf["label"] == label_unique]["y"].max() + spacing, 3)
+        tmpbox["min_z"] = round(clusteringdf[clusteringdf["label"] == label_unique]["z"].min() - spacing, 3)
+        tmpbox["max_z"] = round(clusteringdf[clusteringdf["label"] == label_unique]["z"].max() + spacing, 3)
+        tmpbox["residues"] = residues
 
         boxes.append(tmpbox)
 
@@ -228,43 +220,46 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
                 percentZ = 0
 
                 # Check if X overlaps and find the percentage of overlap area
-                if preBox['max_x'] <= moreBox['max_x'] and preBox['max_x'] >= moreBox['min_x']: # box1 starts before box1 starts and box1 ends before box2 ends |--!--|--! (| = box1; ! = box2).
-                    percentX = (preBox['max_x'] - moreBox['min_x']) / ((preBox['max_x'] - preBox['min_x']) + (moreBox['max_x'] - moreBox['min_x']) - (moreBox['max_x'] - preBox['min_x'])) # Size of both lines minus the size of the intersection (it is accounted twice).
-                elif preBox['min_x'] <= moreBox['max_x'] and preBox['min_x'] >= moreBox['min_x']: # box2 starts before box1 starts and box2 ends before box1 ends !--|--!--| (| = box1; ! = box2).
-                    percentX = (moreBox['max_x'] - preBox['min_x']) / ((preBox['max_x'] - preBox['min_x']) + (moreBox['max_x'] - moreBox['min_x']) - (preBox['max_x'] - moreBox['min_x'])) # Size of both lines minus the size of the intersection (it is accounted twice).
-                elif preBox['min_x'] >= moreBox['min_x'] and preBox['max_x'] <= moreBox['max_x']: # box1 is contained by box2 !--|--|--!  (| = box1; ! = box2).
-                    percentX = (preBox['max_x'] - preBox['min_x']) / (moreBox['max_x'] - moreBox['min_x']) # Size of box1.
-                elif moreBox['min_x'] >= preBox['min_x'] and moreBox['max_x'] <= preBox['max_x']: # box2 is contained by box1 |--!--!--|  (| = box1; ! = box2).
-                    percentX = (moreBox['max_x'] - moreBox['min_x']) / (preBox['max_x'] - preBox['min_x']) # Size of box2.
+                if preBox["max_x"] <= moreBox["max_x"] and preBox["max_x"] >= moreBox["min_x"]: # box1 starts before box1 starts and box1 ends before box2 ends |--!--|--! (| = box1; ! = box2).
+                    percentX = (preBox["max_x"] - moreBox["min_x"]) / ((preBox["max_x"] - preBox["min_x"]) + (moreBox["max_x"] - moreBox["min_x"]) - (moreBox["max_x"] - preBox["min_x"])) # Size of both lines minus the size of the intersection (it is accounted twice).
+                elif preBox["min_x"] <= moreBox["max_x"] and preBox["min_x"] >= moreBox["min_x"]: # box2 starts before box1 starts and box2 ends before box1 ends !--|--!--| (| = box1; ! = box2).
+                    percentX = (moreBox["max_x"] - preBox["min_x"]) / ((preBox["max_x"] - preBox["min_x"]) + (moreBox["max_x"] - moreBox["min_x"]) - (preBox["max_x"] - moreBox["min_x"])) # Size of both lines minus the size of the intersection (it is accounted twice).
+                elif preBox["min_x"] >= moreBox["min_x"] and preBox["max_x"] <= moreBox["max_x"]: # box1 is contained by box2 !--|--|--!  (| = box1; ! = box2).
+                    percentX = (preBox["max_x"] - preBox["min_x"]) / (moreBox["max_x"] - moreBox["min_x"]) # Size of box1.
+                elif moreBox["min_x"] >= preBox["min_x"] and moreBox["max_x"] <= preBox["max_x"]: # box2 is contained by box1 |--!--!--|  (| = box1; ! = box2).
+                    percentX = (moreBox["max_x"] - moreBox["min_x"]) / (preBox["max_x"] - preBox["min_x"]) # Size of box2.
                 # Check if percentX is 0 (means no overlap)
                 if percentX == 0:
-                    print("x does not overlaps.")
+                    if verbose:
+                        print("x does not overlaps.")
                     continue
                 # Check if Y overlaps and find the percentage of overlap area which is compared to the size of both lines (remember, this is 1D) minus the size of the intersection (it is accounted twice).
-                if preBox['max_y'] <= moreBox['max_y'] and preBox['max_y'] >= moreBox['min_y']: # box1 starts before box1 starts and box1 ends before box2 ends |--!--|--! (| = box1; ! = box2).
-                    percentY = (preBox['max_y'] - moreBox['min_y']) / ((preBox['max_y'] - preBox['min_y']) + (moreBox['max_y'] - moreBox['min_y']) - (moreBox['max_y'] - preBox['min_y'])) # Size of both lines minus the size of the intersection (it is accounted twice).
-                elif preBox['min_y'] <= moreBox['max_y'] and preBox['min_y'] >= moreBox['min_y']: # box2 starts before box1 starts and box2 ends before box1 ends !--|--!--| (| = box1; ! = box2).
-                    percentY = (moreBox['max_y'] - preBox['min_y']) / ((preBox['max_y'] - preBox['min_y']) + (moreBox['max_y'] - moreBox['min_y']) - (preBox['max_y'] - moreBox['min_y'])) # Size of both lines minus the size of the intersection (it is accounted twice).
-                elif preBox['min_y'] >= moreBox['min_y'] and preBox['max_y'] <= moreBox['max_y']: # box1 is contained by box2 !--|--|--!  (| = box1; ! = box2).
-                    percentY = (preBox['max_y'] - preBox['min_y']) / (moreBox['max_y'] - moreBox['min_y']) # Size of box1.
-                elif moreBox['min_y'] >= preBox['min_y'] and moreBox['max_y'] <= preBox['max_y']: # box2 is contained by box1 |--!--!--|  (| = box1; ! = box2).
-                    percentY = (moreBox['max_y'] - moreBox['min_y']) / (preBox['max_y'] - preBox['min_y']) # Size of box2.
+                if preBox["max_y"] <= moreBox["max_y"] and preBox["max_y"] >= moreBox["min_y"]: # box1 starts before box1 starts and box1 ends before box2 ends |--!--|--! (| = box1; ! = box2).
+                    percentY = (preBox["max_y"] - moreBox["min_y"]) / ((preBox["max_y"] - preBox["min_y"]) + (moreBox["max_y"] - moreBox["min_y"]) - (moreBox["max_y"] - preBox["min_y"])) # Size of both lines minus the size of the intersection (it is accounted twice).
+                elif preBox["min_y"] <= moreBox["max_y"] and preBox["min_y"] >= moreBox["min_y"]: # box2 starts before box1 starts and box2 ends before box1 ends !--|--!--| (| = box1; ! = box2).
+                    percentY = (moreBox["max_y"] - preBox["min_y"]) / ((preBox["max_y"] - preBox["min_y"]) + (moreBox["max_y"] - moreBox["min_y"]) - (preBox["max_y"] - moreBox["min_y"])) # Size of both lines minus the size of the intersection (it is accounted twice).
+                elif preBox["min_y"] >= moreBox["min_y"] and preBox["max_y"] <= moreBox["max_y"]: # box1 is contained by box2 !--|--|--!  (| = box1; ! = box2).
+                    percentY = (preBox["max_y"] - preBox["min_y"]) / (moreBox["max_y"] - moreBox["min_y"]) # Size of box1.
+                elif moreBox["min_y"] >= preBox["min_y"] and moreBox["max_y"] <= preBox["max_y"]: # box2 is contained by box1 |--!--!--|  (| = box1; ! = box2).
+                    percentY = (moreBox["max_y"] - moreBox["min_y"]) / (preBox["max_y"] - preBox["min_y"]) # Size of box2.
                 # Check if percentY is 0 (means no overlap)
                 if percentY == 0:
-                    print("y does not overlaps.")
+                    if verbose:
+                        print("y does not overlaps.")
                     continue
                 # Check if Z overlaps and find the percentage of overlap area which is compared to the size of both lines (remember, this is 1D) minus the size of the intersection (it is accounted twice).
-                if preBox['max_z'] <= moreBox['max_z'] and preBox['max_z'] >= moreBox['min_z']: # box1 starts before box1 starts and box1 ends before box2 ends |--!--|--! (| = box1; ! = box2).
-                    percentZ = (preBox['max_z'] - moreBox['min_z']) / ((preBox['max_z'] - preBox['min_z']) + (moreBox['max_z'] - moreBox['min_z']) - (moreBox['max_z'] - preBox['min_z'])) # Size of both lines minus the size of the intersection (it is accounted twice).
-                elif preBox['min_z'] <= moreBox['max_z'] and preBox['min_z'] >= moreBox['min_z']: # box2 starts before box1 starts and box2 ends before box1 ends !--|--!--| (| = box1; ! = box2).
-                    percentZ = (moreBox['max_z'] - preBox['min_z']) / ((preBox['max_z'] - preBox['min_z']) + (moreBox['max_z'] - moreBox['min_z']) - (moreBox['max_z'] - preBox['min_z'])) # Size of both lines minus the size of the intersection (it is accounted twice).
-                elif preBox['min_z'] >= moreBox['min_z'] and preBox['max_z'] <= moreBox['max_z']: # box1 is contained by box2 !--|--|--!  (| = box1; ! = box2).
-                    percentZ = (preBox['max_z'] - preBox['min_z']) / (moreBox['max_z'] - moreBox['min_z']) # Size of box1.
-                elif moreBox['min_z'] >= preBox['min_z'] and moreBox['max_z'] <= preBox['max_z']: # box2 is contained by box1 |--!--!--|  (| = box1; ! = box2).
-                    percentZ = (moreBox['max_z'] - moreBox['min_z']) / (preBox['max_z'] - preBox['min_z']) # Size of box2.
+                if preBox["max_z"] <= moreBox["max_z"] and preBox["max_z"] >= moreBox["min_z"]: # box1 starts before box1 starts and box1 ends before box2 ends |--!--|--! (| = box1; ! = box2).
+                    percentZ = (preBox["max_z"] - moreBox["min_z"]) / ((preBox["max_z"] - preBox["min_z"]) + (moreBox["max_z"] - moreBox["min_z"]) - (moreBox["max_z"] - preBox["min_z"])) # Size of both lines minus the size of the intersection (it is accounted twice).
+                elif preBox["min_z"] <= moreBox["max_z"] and preBox["min_z"] >= moreBox["min_z"]: # box2 starts before box1 starts and box2 ends before box1 ends !--|--!--| (| = box1; ! = box2).
+                    percentZ = (moreBox["max_z"] - preBox["min_z"]) / ((preBox["max_z"] - preBox["min_z"]) + (moreBox["max_z"] - moreBox["min_z"]) - (moreBox["max_z"] - preBox["min_z"])) # Size of both lines minus the size of the intersection (it is accounted twice).
+                elif preBox["min_z"] >= moreBox["min_z"] and preBox["max_z"] <= moreBox["max_z"]: # box1 is contained by box2 !--|--|--!  (| = box1; ! = box2).
+                    percentZ = (preBox["max_z"] - preBox["min_z"]) / (moreBox["max_z"] - moreBox["min_z"]) # Size of box1.
+                elif moreBox["min_z"] >= preBox["min_z"] and moreBox["max_z"] <= preBox["max_z"]: # box2 is contained by box1 |--!--!--|  (| = box1; ! = box2).
+                    percentZ = (moreBox["max_z"] - moreBox["min_z"]) / (preBox["max_z"] - preBox["min_z"]) # Size of box2.
                 # Check if percentZ is 0 (means no overlap)
                 if percentZ == 0:
-                    print("z does not overlaps.")
+                    if verbose:
+                        print("z does not overlaps.")
                     continue
 
                 print(percentX * percentY * percentZ)
@@ -273,15 +268,15 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
                     # Start a new empty dict
                     tmpBox = {}
                     # Get the smallest and biggest value in each coordinates
-                    tmpBox['min_x'] = preBox['min_x'] if preBox['min_x'] < moreBox['min_x'] else moreBox['min_x']
-                    tmpBox['max_x'] = preBox['max_x'] if preBox['max_x'] > moreBox['max_x'] else moreBox['max_x']
-                    tmpBox['min_y'] = preBox['min_y'] if preBox['min_y'] < moreBox['min_y'] else moreBox['min_y']
-                    tmpBox['max_y'] = preBox['max_y'] if preBox['max_y'] > moreBox['max_y'] else moreBox['max_y']
-                    tmpBox['min_z'] = preBox['min_z'] if preBox['min_z'] < moreBox['min_z'] else moreBox['min_z']
-                    tmpBox['max_z'] = preBox['max_z'] if preBox['max_z'] > moreBox['max_z'] else moreBox['max_z']
+                    tmpBox["min_x"] = preBox["min_x"] if preBox["min_x"] < moreBox["min_x"] else moreBox["min_x"]
+                    tmpBox["max_x"] = preBox["max_x"] if preBox["max_x"] > moreBox["max_x"] else moreBox["max_x"]
+                    tmpBox["min_y"] = preBox["min_y"] if preBox["min_y"] < moreBox["min_y"] else moreBox["min_y"]
+                    tmpBox["max_y"] = preBox["max_y"] if preBox["max_y"] > moreBox["max_y"] else moreBox["max_y"]
+                    tmpBox["min_z"] = preBox["min_z"] if preBox["min_z"] < moreBox["min_z"] else moreBox["min_z"]
+                    tmpBox["max_z"] = preBox["max_z"] if preBox["max_z"] > moreBox["max_z"] else moreBox["max_z"]
                     # Merge and sort the residues of the box removing repeated values
-                    tmpBox['residues'] = list(dict.fromkeys(preBox['residues'] + moreBox['residues']))
-                    tmpBox['residues'].sort()
+                    tmpBox["residues"] = list(dict.fromkeys(preBox["residues"] + moreBox["residues"]))
+                    tmpBox["residues"].sort()
 
                     # Add the new box to the end of the list
                     boxes.append(tmpBox)
@@ -293,23 +288,25 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
             if restart:
                 break
 
+    from pprint import pprint
+    pprint(boxes)
     # For each box in boxes
     for index, box in enumerate(boxes):
         # Get dimensions for each axis and its center (round to 3 decimals)
-        dim_x = round(abs(box['min_x']) + abs(box['max_x']), 3)
-        dim_y = round(abs(box['min_y']) + abs(box['max_y']), 3)
-        dim_z = round(abs(box['min_z']) + abs(box['max_z']), 3)
+        dim_x = round(abs(box["min_x"]) + abs(box["max_x"]), 3)
+        dim_y = round(abs(box["min_y"]) + abs(box["max_y"]), 3)
+        dim_z = round(abs(box["min_z"]) + abs(box["max_z"]), 3)
         center_x = round(dim_x/2, 3)
         center_y = round(dim_y/2, 3)
         center_z = round(dim_z/2, 3)
 
         # Convert the values found above to string with 8 chars (complete with spaces to the left) as the .pdb file model
-        min_x = " "*(8-len(str(box['min_x']))) + str(box['min_x'])
-        max_x = " "*(8-len(str(box['max_x']))) + str(box['max_x'])
-        min_y = " "*(8-len(str(box['min_y']))) + str(box['min_y'])
-        max_y = " "*(8-len(str(box['max_y']))) + str(box['max_y'])
-        min_z = " "*(8-len(str(box['min_z']))) + str(box['min_z'])
-        max_z = " "*(8-len(str(box['max_z']))) + str(box['max_z'])
+        min_x = " "*(8-len(str(box["min_x"]))) + str(box["min_x"])
+        max_x = " "*(8-len(str(box["max_x"]))) + str(box["max_x"])
+        min_y = " "*(8-len(str(box["min_y"]))) + str(box["min_y"])
+        max_y = " "*(8-len(str(box["max_y"]))) + str(box["max_y"])
+        min_z = " "*(8-len(str(box["min_z"]))) + str(box["min_z"])
+        max_z = " "*(8-len(str(box["max_z"]))) + str(box["max_z"])
 
         dim_x = " "*(8-len(str(dim_x))) + str(dim_x)
         dim_y = " "*(8-len(str(dim_y))) + str(dim_y)
@@ -320,7 +317,7 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
         center_z = " "*(8-len(str(center_z))) + str(center_z)
 
         # Write out the box file (following the one given in the DUD-E database)
-        with open(f'{fout}{folder}/box{index}{suffix}.pdb', 'w') as f:
+        with open(f"{fout}{folder}/box{index}{suffix}.pdb", "w") as f:
             f.write(f"HEADER    CORNERS OF BOX      {min_x}{min_y}{min_z}{max_x}{max_y}{max_z}\n")
             f.write(f"REMARK    CENTER (X Y Z)      {center_x}{center_y}{center_z}\n")
             f.write(f"REMARK    DIMENSIONS (X Y Z)  {dim_x}{dim_y}{dim_z}\n")
@@ -342,9 +339,36 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
             f.write("CONECT    7    3    6    8\n")
             f.write("CONECT    8    4    5    7\n")
 
+def __gen_connectivity_matrix(coordinates):
+    '''
+    Generate a connectivity matrix based on the coordinates strucutre object
+    IMPORTANT: Matrices generated with this method WILL ALWAYS BE SYMMETRIC!
+    Input:
+     coordinates [np.array(float)] - Coordinates array
+    Return:
+        np.array(float) - Connectivity matrix
+    '''
+    # Initialize an empty list (will be the matrix in the future)
+    coordMatrix = []
+    # For each element in coordinate
+    for i, element in enumerate(coordinates):
+        # Initialize an empty list (will be a line of the matrix in the future)
+        innerMatrix = []
+        # For each element in coordinate (again)
+        for j, element2 in enumerate(coordinates):
+            # If the elements are the same
+            if element[3] == element2[3]:
+                # Say that they are connected
+                innerMatrix.append(1.0)
+            else:
+                # Say that they are not connected
+                innerMatrix.append(0.0)
+        coordMatrix.append(innerMatrix)
+    return np.array(coordMatrix)
+
 def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "AgglomerativeClustering": True, "Birch": False, "DBSCAN": False, "KMeans": False, "MeanShift": False, "MiniBatchKMeans": False, "NoCluster": False, "OPTICS": False, "SpectralClustering": False}, prank = "", threads = 1, coordSystem = "cartesian", spacing = 4.0, boxMaxCutoff = 0.5, boxMinCutoff = 0.1, percentCutoff = 0.5, pocketCutoff = 0.1, verbose = False, debug = False):
     '''
-    Function to run p2rank and process its results, converting to a box space to be used in Vina
+    Run p2rank and process its results, converting to a box space to be used in Vina
     Input:
      filein       [string]                    - Input pdb file
      outpath      [string]                    - Output dir (a new folder will be created)
@@ -382,7 +406,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
             # Show the command
             print(f"P2Rank execution command: {' '.join([prank, 'predict','-threads', str(threads),  '-f', filein, '-o', outpath])}")
         # Execute the P2Rank
-        subprocess.run([prank, 'predict','-threads', str(threads), '-f', filein, '-o', outpath], stdout=subprocess.DEVNULL)
+        subprocess.run([prank, "predict", "-threads", str(threads), "-f", filein, "-o", outpath], stdout=subprocess.DEVNULL)
 
     # Get the input file name (which will be used to read the output from P2Rank)
     fname = os.path.basename(filein)
@@ -391,7 +415,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
     data = pd.read_csv(f"{outpath}/{fname}_predictions.csv")
 
     # Remove spaces from the column names
-    data.columns = data.columns.str.replace(' ', '')
+    data.columns = data.columns.str.replace(" ", "")
 
     # Initialize the atom/probabilities list
     preatoms = []
@@ -399,10 +423,10 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
     # For each line in the surf_atom_ids column
     for index, row in data.iterrows():
         # Split the elements using space and strip each element
-        innerAtoms = [s.strip() for s in row['surf_atom_ids'].split()]
+        innerAtoms = [s.strip() for s in row["surf_atom_ids"].split()]
 
         # Add them to the preatoms list with the probability and the rank relative to the atom
-        preatoms += list(((innerAtom, row['probability'], row['rank']) for innerAtom in innerAtoms))
+        preatoms += list(((innerAtom, row["probability"], row["rank"]) for innerAtom in innerAtoms))
 
     # Create two empty numpy arrays (one will be used to input to the clustering algorithms and the other will be passed to the analysis. Don't worry, the order of the array elements is the same in both!)
     coordinates = np.empty((0,4), float)
@@ -416,11 +440,11 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
     probabilities = [i[1] for i in preatoms]
     rank = [i[2] for i in preatoms]
 
-    # First pocket will always be accounted
-    first = True
+    # Get the first probability
+    firstProbability = preatoms[0][1]
 
     # Read the .pdb file to capture the x/y/z coordinates
-    with open(filein, 'r') as f:
+    with open(filein, "r") as f:
         # For each line in the file
         for line in f:
             # If line start with the ATOM label
@@ -446,11 +470,23 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
                         v2 = line[39:46]
                         v3 = line[47:54]
 
-                    if probabilities[idx] >= pocketCutoff or first:
+                    # If the probability is above the pocketCutoff value or the probability is the same as the probability of the first pocket in file (this is possibile due to the fact that the first line of p2rank result file will always have the highest probability.)
+                    if probabilities[idx] >= pocketCutoff or probabilities[idx] >= float(firstProbability):
                         # Add the data to the numpy array as a list containing the coordinates + extra data [X, Y, Z]/[therta, rho, z]/[az, el, r]
                         coordinates = np.append(coordinates, np.array([[v1, v2, v3, rank[idx]]], float), axis=0)
                         coordinatesFull = np.append(coordinatesFull, np.array([[v1, v2, v3, probabilities[idx], rank[idx], line[23:26]]], float), axis=0)
 
+    lastCoord = coordinates[0][3]
+
+    allSame = True
+    for i in range(0, len(coordinates)):
+        if coordinates[i][3] != lastCoord:
+            allSame = False
+            break
+        lastCoord = coordinates[i][3]
+    from pprint import pprint
+    pprint(coordinates)
+    print(allSame)
     ############################################################################
     # Now the code will have the samme pattern:                                #
     ############################################################################
@@ -462,8 +498,19 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
     # 6) Check the total execution time (algorithm + file processing)          #
     ############################################################################
 
-    # No Cluster
-    if algorithms["NoCluster"]:
+    # If ever
+    if allSame:
+        if verbose:
+            print(coordinates.shape[0])
+            if coordinates.shape[0] < 2:
+                changer = 5
+                spacing = changer * spacing
+                print(f"\033[1;93mWARNING\033[1;0m: There is just one pocket and ATOM (this sounds VERY STRANGE). There is no need to cluster... Relaxing the spacing from {spacing / changer} to {spacing} so the generated box will be bigger")
+            else:
+                changer = 2
+                spacing = changer * spacing
+                print(f"There is just one pocket. There is no need to cluster... Relaxing the spacing from {spacing / changer} to {spacing} so the generated box will be bigger")
+
         start_time = time.time()
         suffix = ""
 
@@ -474,257 +521,278 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
         if verbose:
             print(f"No processing, the execution time is 0s.")
 
-        __process_cluster(None, coordinates, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff, boxMinCutoff = boxMinCutoff, percentCutoff = percentCutoff)
+        __process_cluster(None, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = 3 * spacing, boxMaxCutoff = boxMaxCutoff, boxMinCutoff = boxMinCutoff, percentCutoff = percentCutoff)
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
                 f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
         if verbose:
             print(f"File processing time: {round(time.time() - start_time, 2)}s.\n")
+    else:
+        # No Cluster or the array has only one element
+        if algorithms["NoCluster"]:
+            start_time = time.time()
+            suffix = ""
 
-    # Affinity Propagation
-    if algorithms["AffinityPropagation"]:
-        from sklearn.cluster import AffinityPropagation
+            if debug:
+                suffix = "na"
+                with open(f"{outpath}/statistics.txt", "a") as f:
+                    f.write(f"{suffix}\t0\n")
+            if verbose:
+                print(f"No processing, the execution time is 0s.")
 
-        if verbose:
-            print("Running Affinity Propagation")
+            __process_cluster(None, coordinates, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff, boxMinCutoff = boxMinCutoff, percentCutoff = percentCutoff)
 
-        start_time = time.time()
-        suffix = ""
+            if debug:
+                with open(f"{outpath}/statistics.txt", "a") as f:
+                    f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
+            if verbose:
+                print(f"File processing time: {round(time.time() - start_time, 2)}s.\n")
 
-        clustering = AffinityPropagation(random_state=0).fit(coordinates)
+        # Affinity Propagation
+        if algorithms["AffinityPropagation"]:
+            from sklearn.cluster import AffinityPropagation
 
-        if debug:
-            suffix = "ap"
-            with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
-        if verbose:
-            print(f"Affinity Propagation execution time: {round(time.time() - start_time, 2)}s.")
+            if verbose:
+                print("Running Affinity Propagation")
 
-        __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
+            start_time = time.time()
+            suffix = ""
 
-        if debug:
-            with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
-        if verbose:
-            print(f"Total execution time for Affinity Propagation: {round(time.time() - start_time, 2)}s.\n")
+            clustering = AffinityPropagation(random_state=0).fit(coordinates)
 
-    # Agglomerative clustering
-    if algorithms["AgglomerativeClustering"]:
-        from sklearn.cluster import AgglomerativeClustering
+            if debug:
+                suffix = "ap"
+                with open(f"{outpath}/statistics.txt", "a") as f:
+                    f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
+            if verbose:
+                print(f"Affinity Propagation execution time: {round(time.time() - start_time, 2)}s.")
 
-        if verbose:
-            print("Running Agglomerative Clustering")
+            __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
 
-        start_time = time.time()
-        suffix = ""
+            if debug:
+                with open(f"{outpath}/statistics.txt", "a") as f:
+                    f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
+            if verbose:
+                print(f"Total execution time for Affinity Propagation: {round(time.time() - start_time, 2)}s.\n")
 
-        clustering = AgglomerativeClustering().fit(coordinates)
+        # Agglomerative clustering
+        if algorithms["AgglomerativeClustering"]:
+            from sklearn.cluster import AgglomerativeClustering
 
-        if debug:
-            suffix = "ac"
-            with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
-        if verbose:
-            print(f" Agglomerative Clustering execution time: {round(time.time() - start_time, 2)}s.")
+            if verbose:
+                print("Running Agglomerative Clustering")
 
-        __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
+            start_time = time.time()
+            suffix = ""
 
-        if debug:
-            with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
-        if verbose:
-            print(f"Total execution time for Agglomerative Clustering: {round(time.time() - start_time, 2)}s.\n")
+            connectivity = __gen_connectivity_matrix(coordinates)
+            clustering = AgglomerativeClustering(connectivity=connectivity, linkage="single").fit(coordinates)
 
-    # Birch
-    if algorithms["Birch"]:
-        from sklearn.cluster import Birch
+            if debug:
+                suffix = "ac"
+                with open(f"{outpath}/statistics.txt", "a") as f:
+                    f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
+            if verbose:
+                print(f" Agglomerative Clustering execution time: {round(time.time() - start_time, 2)}s.")
 
-        if verbose:
-            print("Running Birch")
+            __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
 
-        start_time = time.time()
-        suffix = ""
+            if debug:
+                with open(f"{outpath}/statistics.txt", "a") as f:
+                    f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
+            if verbose:
+                print(f"Total execution time for Agglomerative Clustering: {round(time.time() - start_time, 2)}s.\n")
 
-        clustering = Birch().fit(coordinates)
+        # Birch
+        if algorithms["Birch"]:
+            from sklearn.cluster import Birch
 
-        if debug:
-            suffix = "bi"
-            with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
-        if verbose:
-            print(f"Birch execution time: {round(time.time() - start_time, 2)}s.")
+            if verbose:
+                print("Running Birch")
 
-        __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
+            start_time = time.time()
+            suffix = ""
 
-        if debug:
-            with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
-        if verbose:
-            print(f"Total execution time for Birch: {round(time.time() - start_time, 2)}s.\n")
+            clustering = Birch().fit(coordinates)
 
-    # DBSCAN
-    if algorithms["DBSCAN"]:
-        from sklearn.cluster import DBSCAN
+            if debug:
+                suffix = "bi"
+                with open(f"{outpath}/statistics.txt", "a") as f:
+                    f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
+            if verbose:
+                print(f"Birch execution time: {round(time.time() - start_time, 2)}s.")
 
-        if verbose:
-            print("Running DBSCAN")
+            __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
 
-        start_time = time.time()
-        suffix = ""
+            if debug:
+                with open(f"{outpath}/statistics.txt", "a") as f:
+                    f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
+            if verbose:
+                print(f"Total execution time for Birch: {round(time.time() - start_time, 2)}s.\n")
 
-        clustering = DBSCAN(eps=5, min_samples=5).fit(coordinates)
+        # DBSCAN
+        if algorithms["DBSCAN"]:
+            from sklearn.cluster import DBSCAN
 
-        if debug:
-            suffix = "db"
-            with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
-        if verbose:
-            print(f"DBSCAN execution time: {round(time.time() - start_time, 2)}s.")
+            if verbose:
+                print("Running DBSCAN")
 
-        __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
+            start_time = time.time()
+            suffix = ""
 
-        if debug:
-            with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
-        if verbose:
-            print(f"Total execution time for DBSCAN: {round(time.time() - start_time, 2)}s.\n")
+            clustering = DBSCAN(eps=5, min_samples=5).fit(coordinates)
 
-    # KMeans
-    if algorithms["KMeans"]:
-        from sklearn.cluster import KMeans
+            if debug:
+                suffix = "db"
+                with open(f"{outpath}/statistics.txt", "a") as f:
+                    f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
+            if verbose:
+                print(f"DBSCAN execution time: {round(time.time() - start_time, 2)}s.")
 
-        if verbose:
-            print("Running KMeans")
+            __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
 
-        start_time = time.time()
-        suffix = ""
+            if debug:
+                with open(f"{outpath}/statistics.txt", "a") as f:
+                    f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
+            if verbose:
+                print(f"Total execution time for DBSCAN: {round(time.time() - start_time, 2)}s.\n")
 
-        clustering = KMeans(n_clusters=2, random_state=0).fit(coordinates)
+        # KMeans
+        if algorithms["KMeans"]:
+            from sklearn.cluster import KMeans
 
-        if debug:
-            suffix = "km"
-            with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
-        if verbose:
-            print(f"KMeans execution time: {round(time.time() - start_time, 2)}s.")
+            if verbose:
+                print("Running KMeans")
 
-        __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
+            start_time = time.time()
+            suffix = ""
 
-        if debug:
-            with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
-        if verbose:
-            print(f"Total execution time for KMeans: {round(time.time() - start_time, 2)}s.\n")
+            clustering = KMeans(n_clusters=2, random_state=0).fit(coordinates)
 
-    # Meanshift
-    if algorithms["MeanShift"]:
-        from sklearn.cluster import MeanShift, estimate_bandwidth
+            if debug:
+                suffix = "km"
+                with open(f"{outpath}/statistics.txt", "a") as f:
+                    f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
+            if verbose:
+                print(f"KMeans execution time: {round(time.time() - start_time, 2)}s.")
 
-        if verbose:
-            print("Running Mean Shift")
+            __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
 
-        start_time = time.time()
-        suffix = ""
+            if debug:
+                with open(f"{outpath}/statistics.txt", "a") as f:
+                    f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
+            if verbose:
+                print(f"Total execution time for KMeans: {round(time.time() - start_time, 2)}s.\n")
 
-        bandwidth = estimate_bandwidth(coordinates, quantile=0.2, n_samples=len(coordinates))
-        clustering = MeanShift(bandwidth=bandwidth).fit(coordinates)
+        # Meanshift
+        if algorithms["MeanShift"]:
+            from sklearn.cluster import MeanShift, estimate_bandwidth
 
-        if debug:
-            suffix = "ms"
-            with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
-        if verbose:
-            print(f"Mean Shift execution time: {round(time.time() - start_time, 2)}s.")
+            if verbose:
+                print("Running Mean Shift")
 
-        __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
+            start_time = time.time()
+            suffix = ""
 
-        if debug:
-            with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
-        if verbose:
-            print(f"Total execution time for Mean Shift: {round(time.time() - start_time, 2)}s.\n")
+            bandwidth = estimate_bandwidth(coordinates, quantile=0.2, n_samples=len(coordinates))
+            clustering = MeanShift(bandwidth=bandwidth).fit(coordinates)
 
-    # Mini Batch KMeans
-    if algorithms["MiniBatchKMeans"]:
-        from sklearn.cluster import MiniBatchKMeans
+            if debug:
+                suffix = "ms"
+                with open(f"{outpath}/statistics.txt", "a") as f:
+                    f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
+            if verbose:
+                print(f"Mean Shift execution time: {round(time.time() - start_time, 2)}s.")
 
-        if verbose:
-            print("Running Mini Batch KMeans")
+            __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
 
-        start_time = time.time()
-        suffix = ""
+            if debug:
+                with open(f"{outpath}/statistics.txt", "a") as f:
+                    f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
+            if verbose:
+                print(f"Total execution time for Mean Shift: {round(time.time() - start_time, 2)}s.\n")
 
-        clustering = MiniBatchKMeans(n_clusters=2).fit(coordinates)
+        # Mini Batch KMeans
+        if algorithms["MiniBatchKMeans"]:
+            from sklearn.cluster import MiniBatchKMeans
 
-        if debug:
-            suffix = "mb"
-            with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
-        if verbose:
-            print(f"Mini Batch KMeans execution time: {round(time.time() - start_time, 2)}s.")
+            if verbose:
+                print("Running Mini Batch KMeans")
 
-        __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
+            start_time = time.time()
+            suffix = ""
 
-        if debug:
-            with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
-        if verbose:
-            print(f"Total execution time for Mini Batch KMeans: {round(time.time() - start_time, 2)}s.\n")
+            clustering = MiniBatchKMeans(n_clusters=2).fit(coordinates)
 
-    # OPTICS
-    if algorithms["OPTICS"]:
-        from sklearn.cluster import OPTICS
+            if debug:
+                suffix = "mb"
+                with open(f"{outpath}/statistics.txt", "a") as f:
+                    f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
+            if verbose:
+                print(f"Mini Batch KMeans execution time: {round(time.time() - start_time, 2)}s.")
 
-        if verbose:
-            print("Running OPTICS")
+            __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
 
-        start_time = time.time()
-        suffix = ""
+            if debug:
+                with open(f"{outpath}/statistics.txt", "a") as f:
+                    f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
+            if verbose:
+                print(f"Total execution time for Mini Batch KMeans: {round(time.time() - start_time, 2)}s.\n")
 
-        clustering = OPTICS(min_samples=5).fit(coordinates)
+        # OPTICS
+        if algorithms["OPTICS"]:
+            from sklearn.cluster import OPTICS
 
-        if debug:
-            suffix = "op"
-            with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
-        if verbose:
-            print(f"OPTICS execution time: {round(time.time() - start_time, 2)}s.")
+            if verbose:
+                print("Running OPTICS")
 
-        __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
+            start_time = time.time()
+            suffix = ""
 
-        if debug:
-            with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
-        if verbose:
-            print(f"Total execution time for OPTICS: {round(time.time() - start_time, 2)}s.\n")
+            clustering = OPTICS(min_samples=5).fit(coordinates)
 
-    # Spectral Clustering
-    if algorithms["SpectralClustering"]:
-        from sklearn.cluster import SpectralClustering
+            if debug:
+                suffix = "op"
+                with open(f"{outpath}/statistics.txt", "a") as f:
+                    f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
+            if verbose:
+                print(f"OPTICS execution time: {round(time.time() - start_time, 2)}s.")
 
-        if verbose:
-            print("Running Spectral Clustering")
+            __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
 
-        start_time = time.time()
-        suffix = ""
+            if debug:
+                with open(f"{outpath}/statistics.txt", "a") as f:
+                    f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
+            if verbose:
+                print(f"Total execution time for OPTICS: {round(time.time() - start_time, 2)}s.\n")
 
-        clustering = SpectralClustering(n_clusters=2, random_state=0).fit(coordinates)
+        # Spectral Clustering
+        if algorithms["SpectralClustering"]:
+            from sklearn.cluster import SpectralClustering
 
-        if debug:
-            suffix = "sc"
-            with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
-        if verbose:
-            print(f"Spectral Clustering execution time: {round(time.time() - start_time, 2)}s.")
+            if verbose:
+                print("Running Spectral Clustering")
 
-        __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
+            start_time = time.time()
+            suffix = ""
 
-        if debug:
-            with open(f"{outpath}/statistics.txt", "a") as f:
-                f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
-        if verbose:
-            print(f"Total execution time for Spectral Clustering: {round(time.time() - start_time, 2)}s.\n")
+            clustering = SpectralClustering(n_clusters=2, random_state=0).fit(coordinates)
+
+            if debug:
+                suffix = "sc"
+                with open(f"{outpath}/statistics.txt", "a") as f:
+                    f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
+            if verbose:
+                print(f"Spectral Clustering execution time: {round(time.time() - start_time, 2)}s.")
+
+            __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
+
+            if debug:
+                with open(f"{outpath}/statistics.txt", "a") as f:
+                    f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
+            if verbose:
+                print(f"Total execution time for Spectral Clustering: {round(time.time() - start_time, 2)}s.\n")
 
 # Execute the script
 if __name__ == "__main__":
