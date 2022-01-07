@@ -334,15 +334,15 @@ def update_databases():
     create_directories()
 
     print("Updating PDBbind database...")
-    update_pdbbind()
+    update_pdbbind(overwrite = args.overwrite)
     print("\n\nDone updating PDBbind!\n")
 
     print("Updating Astex database...")
-    update_astex()
+    update_astex(overwrite = args.overwrite)
     print("\n\nDone updating Astex!\n")
 
     print("Updating DUDEZ database...")
-    update_DUDEZ()
+    update_DUDEZ(overwrite = args.overwrite)
     print("\n\nDone updating DUDEZ!\n")
 
     print("\n\nDone updating ALL databases.\n")

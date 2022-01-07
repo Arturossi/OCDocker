@@ -42,17 +42,23 @@ def main():
         print(tw.dedent(f"""
                                          !WARNING!
                       You have chosen to update the local databases.
-              ** The root directory for the database files is: """+clrs['y']+ocdb+clrs['n']+"""
-              ** The path to local pdb bind mirror is: """+clrs['y']+pdbbind_archive+clrs['n']+"""
+              ** The root directory for the database files is: """+clrs["y"]+ocdb+clrs["n"]+"""
+              ** The path to local pdb bind mirror is: """+clrs["y"]+pdbbind_archive+clrs["n"]+"""
               This could take a long time.
               <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
               """))
-        option = input('Do you confirm the information above? (y/n)')
-        if option.lower()  in ['y', 'ye', 'yes']:
-            update_databases(args.verbosity)
-            print('\n\nDone updating all databases. Exiting.\n')
+        option = input("Do you confirm the information above? (y/n)")
+        if option.lower()  in ["y", "ye", "yes"]:
+            if os.path.isdir(astex_archive) or os.path.isdir(dudez_archive) or os.path.isdir(pdbbind_archive):
+                option = input("It has been detected that you might have have one or more databases already installed. Do you want to overwrite generated files? (y/n)")
+                if option.lower()  in ["y", "ye", "yes"]:
+                    args.overwrite = True
+                else:
+                    args.overwrite = False
+            update_databases()
+            print("\n\nDone updating all databases. Exiting.\n")
         else:
-            print('\n\nNo positive confirmation, will not update databases.\n')
+            print("\n\nNo positive confirmation, will not update databases.\n")
             exit()
     else:
         pass
