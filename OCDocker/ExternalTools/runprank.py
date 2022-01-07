@@ -263,7 +263,6 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
                         print("z does not overlaps.")
                     continue
 
-                print(percentX * percentY * percentZ)
                 # If boxes overlap, merge them
                 if (percentX * percentY * percentZ) > percentCutoff:
                     # Start a new empty dict

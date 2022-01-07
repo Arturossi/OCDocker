@@ -320,6 +320,7 @@ global clrs
 global widgets
 global workdir
 global errors
+global logdir
 
 # Data from .cfg
 global ocdb
@@ -556,6 +557,9 @@ dudez_archive = os.path.join(ocdb, "DUDEZ")
 
 # Directory containing the pdbbind archive
 pdbbind_archive = os.path.join(ocdb, "PDBbind")
+
+# Set the log directory
+logdir = f"{os.path.abspath(os.path.join(os.path.dirname(ocerror.__file__), os.pardir))}/logs"
 
 # Get number of CPUs (minus one) with a minimum of one
 if args.multiprocess:

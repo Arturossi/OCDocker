@@ -135,6 +135,68 @@ def print_error(message):
         print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] {clrs['r']}ERROR{clrs['n']}: {message}")
     return
 
+
+def print_info_log(message, logfile, mode="a"):
+    '''
+    Function to print info into log.
+    Input:
+      message [string]            - Message to be printed.
+      logfile [string]            - Log file path.
+      mode    [string] DEFAULT: a - Open file mode.
+    Return:
+      -
+    '''
+    today = datetime.datetime.now()
+    with open(logfile, mode) as f:
+        f.write(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['c']}INFO{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
+    return
+
+def print_success_log(message, logfile, mode="a"):
+    '''
+    Function to print success into log.
+    Input:
+      message [string]            - Message to be printed.
+      logfile [string]            - Log file path.
+      mode    [string] DEFAULT: a - Open file mode.
+    Return:
+      -
+    '''
+    today = datetime.datetime.now()
+    with open(logfile, mode) as f:
+        f.write(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['g']}SUCCSESS{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
+    return
+
+def print_warning_log(message, logfile, mode="a"):
+    '''
+    Function to print warning into log.
+    Input:
+      message [string]            - Message to be printed.
+      logfile [string]            - Log file path.
+      mode    [string] DEFAULT: a - Open file mode.
+    Return:
+      -
+    '''
+    today = datetime.datetime.now()
+    with open(logfile, mode) as f:
+        f.write(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['y']}WARNING{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
+    return
+
+def print_error_log(message, logfile, mode="a"):
+    '''
+    Function to print error into log.
+    Input:
+      message [string]            - Message to be printed.
+      logfile [string]            - Log file path.
+      mode    [string] DEFAULT: a - Open file mode.
+    Return:
+      -
+    '''
+    today = datetime.datetime.now()
+    with open(logfile, mode) as f:
+        f.write(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] {clrs['r']}ERROR{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
+    return
+
+
 def print_section(n, name):
     '''
     Print the section header and write progress to the progress file.

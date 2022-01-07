@@ -44,6 +44,146 @@ import OCDocker.PDBbind as ocpdbbind
 ## Private ##
 
 ## Public ##
+def __run_p2rank(dir):
+    '''
+    Runs p2rank for a given directory.
+    Input:
+      dir [string] - Directory of the protein to run p2rank.
+    Return:
+      -
+    '''
+    # Set the input file name path
+    fin = glob(f"{dir}/*_protein.pdb")[0]
+
+    # Set the output path
+    fout = f"{dir}/p2rank"
+
+    # Algorithms to be analyzed (Only Agglomerative Clustering)
+    algorithms = {
+        "AffinityPropagation": False,
+        "AgglomerativeClustering": True,
+        "Birch": False,
+        "DBSCAN": False,
+        "KMeans": False,
+        "MeanShift": False,
+        "MiniBatchKMeans": False,
+        "NoCluster": False,
+        "OPTICS": False,
+        "SpectralClustering": False
+    }
+
+    # Run p2rank
+    runprank.run_prank(fin, p2rankDir, algorithms, prank = prank, threads = args.cpu_cores, debug = False, boxMaxCutoff = 0.5, pocketCutoff = 0.1, verbose = args.verbosity)
+
+    return
+
+def __run_create_vina_conf_from_box(dir):
+    '''
+    Creates vina conf file from box
+    Input:
+      dir [string] - Directory of the protein to run p2rank.
+    Return:
+      -
+    '''
+    # Set the input file name path
+    fin = glob(f"{dir}/*_protein.pdb")[0]
+
+    # Run vina
+    ocvina.generate_vina_files_database(dir, fin)
+
+    return
+
+def verify_integrity():
+    '''
+    Verifies the integrity of the DUDEZ database
+    Input:
+      -
+    Return:
+      -
+    '''
+    # Verify the integrity of the database
+    octools.printv("Verifiying the integrity of the DUDEZ database")
+
+    # Get all dirs paths in the DUDEZ database
+    dirs = glob(f"{pdbbind_archive}/*")
+
+    # For each directory in the database folder
+    for dir in tqdm(iterable=dirs, total=len(dirs)):
+        # Parameterizing paths
+        p2rankDir = f"{dir}/p2rank"
+        vinaDir = f"{dir}/vinaFiles"
+
+        octools.printv(f"Checking directories for the protein '{dirs}'.")
+
+        # If has no p2rank dir
+        if not os.path.isdir(p2rankDir):
+            octools.print_warning(f"The protein '{dir}' has no p2rank folder. Trying to fix...")
+
+            # Create the p2rank output dir
+            errorCode = octools.safe_create_dir(p2rankDir)
+
+            if os.path.isdir(p2rankDir):
+                octools.print_success(f"The p2rank dir has been generated for '{dir}'.")
+            else:
+                octools.print_error(f"Unable to generate the p2rank dir for '{dir}'... Error code {errorCode}.")
+                octools.print_error_log(f"Unable to generate the p2rank dir for '{dir}'... Error code {errorCode}.", f"{logdir}/PDBbind_integrity_report.log")
+                continue
+
+        # If has no vinaFiles dir
+        if not os.path.isdir(vinaDir):
+            octools.print_warning(f"The protein '{dir}' has no vinaFiles folder. Trying to fix...")
+
+            # Create the p2rank output dir
+            errorCode = octools.safe_create_dir(vinaDir)
+
+            if os.path.isdir(vinaDir):
+                octools.print_success(f"The vinaFiles dir has been generated for '{dir}'.")
+            else:
+                octools.print_error(f"Unable to generate the vinaFiles dir for '{dir}'... Error code {errorCode}.")
+                octools.print_error_log(f"Unable to generate the vinaFiles dir for '{dir}'... Error code {errorCode}.", f"{logdir}/PDBbind_integrity_report.log")
+                continue
+
+        octools.printv("Checking files")
+
+        # Check how many boxes are in the p2rankDir
+        boxCount = len(glob(f"{p2rankDir}/box*.pdb"))
+
+        # If there is no box in the p2rank output, p2rank will run
+        if boxCount == 0:
+            octools.print_warning(f"The protein '{dir}' has no box file. Trying to fix...")
+
+            # Run p2rank
+            __run_p2rank(dir)
+
+            # Check how many boxes are in the p2rankDir (again)
+            boxCount = len(glob(f"{p2rankDir}/box*.pdb"))
+
+            if boxCount > 0:
+                octools.print_success(f"Box files generated for '{dir}'.")
+            else:
+                octools.print_error(f"The protein '{dir}' still has no box file.")
+                octools.print_error_log(f"The protein '{dir}' still has no box file.", f"{logdir}/PDBbind_integrity_report.log")
+                continue
+
+        # If there is not the same amount of box files as folders in vinaFiles folder
+        if len(glob(f"{dir}/vinaFiles/*")) == boxCount:
+            octools.print_warning(f"The protein '{dir}' has not the same amount of vina conf files as the amount of box files. Trying to fix...")
+
+            # Run the vina conf creation from box
+            __run_create_vina_conf_from_box(dir)
+
+            # If there is not the same amount of box files as folders in vinaFiles folder (again)
+            if len(glob(f"{dir}/vinaFiles/*")) == boxCount:
+                octools.print_success(f"Conf files generated for '{dir}'.")
+            else:
+                octools.print_error(f"Unable to generate the conf files for '{dir}'...")
+                octools.print_error_log(f"Unable to generate the conf files dir for '{dir}'...", f"{logdir}/PDBbind_integrity_report.log")
+                continue
+
+    octools.printv("Integrity check of the PDBbind database accomplished.")
+
+    return
+
 def prepare(overwrite = False):
     '''
     Prepares the PDBbind database.
@@ -96,7 +236,7 @@ def prepare(overwrite = False):
         else:
             octools.print_info(f"The protein '{d}' already has its p2rank output generated, skipping its execution.")
 
-        # If overwrite mode is on or there is not the same ammount of box files as folders in vinaFiles folder
+        # If overwrite mode is on or there is not the same amount of box files as folders in vinaFiles folder
         if len(glob(f"{d}/vinaFiles/*")) == boxCount or overwrite:
             # Create the vina inputs from the boxes
             ocvina.generate_vina_files_database(d, fin)
