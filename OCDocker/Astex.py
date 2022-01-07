@@ -45,11 +45,11 @@ import OCDocker.Astex as ocastex
 ## Private ##
 
 ## Public ##
-def prepare():
+def prepare(overwrite = False):
     '''
     Prepares the Astex database.
     Input:
-      -
+     overwrite [bool] DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated.
     Return:
       -
     '''
@@ -99,11 +99,21 @@ def prepare():
         # Reset the input file variable
         fin = f"{fin}.pdb"
 
-        # Run p2rank
-        runprank.run_prank(fin, fout, algorithms, prank = prank, threads = args.cpu_cores,
-                           debug = False, boxMaxCutoff = 0.5, pocketCutoff = 0.1, verbose = args.verbosity)
+        # Parameterizing box count
+        boxCount = len(glob(f"{fout}/box*.pdb"))
 
-        # Create the vina inputs from the boxes
-        ocvina.generate_vina_files_database(d, fin)
+        # If overwrite mode is on or there is no box in the p2rank output, p2rank will run
+        if boxCount == 0 or overwrite:
+            # Run p2rank
+            runprank.run_prank(fin, fout, algorithms, prank = prank, threads = args.cpu_cores, debug = False, boxMaxCutoff = 0.5, pocketCutoff = 0.1, verbose = args.verbosity)
+        else:
+            octools.print_info(f"The protein '{d}' already has its p2rank output generated, skipping its execution.")
+
+        # If overwrite mode is on or there is not the same ammount of box files as folders in vinaFiles folder
+        if len(glob(f"{d}/vinaFiles/*")) == boxCount or overwrite:
+            # Create the vina inputs from the boxes
+            ocvina.generate_vina_files_database(d, fin)
+        else:
+            octools.print_info(f"The protein '{d}' already has its vina file generated, skipping its execution.")
 
     return

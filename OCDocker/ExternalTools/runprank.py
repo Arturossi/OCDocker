@@ -105,7 +105,7 @@ def __safe_create_dir(dirname):
         exit(-1)
     return -2
 
-def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = "cartesian", spacing = 4.0, boxMaxCutoff = 0.5, boxMinCutoff = 0.1, percentCutoff = 0.5):
+def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = "cartesian", spacing = 4.0, boxMaxCutoff = 0.5, boxMinCutoff = 0.1, percentCutoff = 0.5, verbose = False):
     '''
     Function to process the cluster object and print a box file
     Input:
@@ -118,6 +118,7 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
      boxMaxCutoff  [float]  DEFAULT: 0.5         - If the probability value from p2rank is above this value, the pocket WILL be considered as valid, even if its value is below the cutoff (use 1.0 to disable this feature)
      boxMinCutoff  [float]  DEFAULT: 0.1         - If the probability value from p2rank is below this value, the pocket WILL be considered as valid, even if its value is above the cutoff (use 0.0 to disable this feature)
      percentCutoff [float]  DEFAULT: 0.5         - Cutoff to consider how much percentage of box overlapping will determine if two boxes should be merged
+     verbose       [bool]    DEFAULT: False       - Verbose mode on/off
     Return:
         Nothing
     '''
@@ -288,8 +289,6 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
             if restart:
                 break
 
-    from pprint import pprint
-    pprint(boxes)
     # For each box in boxes
     for index, box in enumerate(boxes):
         # Get dimensions for each axis and its center (round to 3 decimals)
@@ -348,11 +347,11 @@ def __gen_connectivity_matrix(coordinates):
     Return:
         np.array(float) - Connectivity matrix
     '''
-    # Initialize an empty list (will be the matrix in the future)
+    # Initalise an empty list (will be the matrix in the future)
     coordMatrix = []
     # For each element in coordinate
     for i, element in enumerate(coordinates):
-        # Initialize an empty list (will be a line of the matrix in the future)
+        # Initalise an empty list (will be a line of the matrix in the future)
         innerMatrix = []
         # For each element in coordinate (again)
         for j, element2 in enumerate(coordinates):
@@ -417,7 +416,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
     # Remove spaces from the column names
     data.columns = data.columns.str.replace(" ", "")
 
-    # Initialize the atom/probabilities list
+    # Initalise the atom/probabilities list
     preatoms = []
 
     # For each line in the surf_atom_ids column
@@ -432,10 +431,10 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
     coordinates = np.empty((0,4), float)
     coordinatesFull = np.empty((0,6), float)
 
-    # Initialize the statistics list
+    # Initalise the statistics list
     statistics = []
 
-    # Initialize the atoms, probabilities and rank (to ensure that the data is in the same order)
+    # Initalise the atoms, probabilities and rank (to ensure that the data is in the same order)
     atoms = [i[0] for i in preatoms]
     probabilities = [i[1] for i in preatoms]
     rank = [i[2] for i in preatoms]
@@ -476,17 +475,20 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
                         coordinates = np.append(coordinates, np.array([[v1, v2, v3, rank[idx]]], float), axis=0)
                         coordinatesFull = np.append(coordinatesFull, np.array([[v1, v2, v3, probabilities[idx], rank[idx], line[23:26]]], float), axis=0)
 
-    lastCoord = coordinates[0][3]
+    # Set the first rank as the first in the list
+    lastRank = coordinates[0][3]
 
+    # Initialise the flag which denotes if the coordinates array is made of only one pocket or not
     allSame = True
-    for i in range(0, len(coordinates)):
-        if coordinates[i][3] != lastCoord:
+    # For each element in coordinates list (except the first one)
+    for i in range(1, len(coordinates)):
+        # If the current rank is not the same as the last one
+        if coordinates[i][3] != lastRank:
+            # The array is not homogeneous
             allSame = False
+            # Break the loop, since it is not necessary to keep looping
             break
-        lastCoord = coordinates[i][3]
-    from pprint import pprint
-    pprint(coordinates)
-    print(allSame)
+
     ############################################################################
     # Now the code will have the samme pattern:                                #
     ############################################################################
@@ -498,18 +500,24 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
     # 6) Check the total execution time (algorithm + file processing)          #
     ############################################################################
 
-    # If ever
+    # If every element in the coordinates array have the same rank treat them as one single pocket
     if allSame:
         if verbose:
-            print(coordinates.shape[0])
+            # If the coordinates array is made of only one line (one single atom) THIS SHOULD NEVER APPEAR!!!!!!!! But it is coded just in case...
             if coordinates.shape[0] < 2:
-                changer = 5
-                spacing = changer * spacing
-                print(f"\033[1;93mWARNING\033[1;0m: There is just one pocket and ATOM (this sounds VERY STRANGE). There is no need to cluster... Relaxing the spacing from {spacing / changer} to {spacing} so the generated box will be bigger")
+                # Set the multiplier to 5 (one single atom is small, so the box should be expanded and the atom should be the center of the box)
+                multiplier = 5
+                # Change the spacing
+                spacing = multiplier * spacing
+                # Warn the user, because this is a very strange behaviour
+                print(f"\033[1;93mWARNING\033[1;0m: There is just one pocket and ATOM (this sounds VERY STRANGE). There is no need to cluster... Relaxing the spacing from {spacing / multiplier} to {spacing} so the generated box will be bigger")
             else:
-                changer = 2
-                spacing = changer * spacing
-                print(f"There is just one pocket. There is no need to cluster... Relaxing the spacing from {spacing / changer} to {spacing} so the generated box will be bigger")
+                # Set the multiplier to 2 (since it is not a single atom, expand less)
+                multiplier = 2
+                # Change the spacing
+                spacing = multiplier * spacing
+                # Inform the user because changes were made in the input value
+                print(f"\033[1;96mINFO\033[1;0m: There is just one pocket. There is no need to cluster... Relaxing the spacing from {spacing / multiplier} to {spacing} so the generated box will be bigger")
 
         start_time = time.time()
         suffix = ""
@@ -586,8 +594,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
             start_time = time.time()
             suffix = ""
 
-            connectivity = __gen_connectivity_matrix(coordinates)
-            clustering = AgglomerativeClustering(connectivity=connectivity, linkage="single").fit(coordinates)
+            clustering = AgglomerativeClustering(linkage="single").fit(coordinates)
 
             if debug:
                 suffix = "ac"

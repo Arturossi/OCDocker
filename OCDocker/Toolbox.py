@@ -75,6 +75,21 @@ def printv(message):
         print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {message}")
     return
 
+def print_info(message):
+    '''
+    Function to print warning.
+    Input:
+      message [string] - Message to be printed.
+    Return:
+      -
+    '''
+    today = datetime.datetime.now()
+    if args.debug == 1 or args.verboity == 1:
+        print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['c']}INFO{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
+    else:
+        print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['c']}INFO{clrs['n']}: {message}")
+    return
+
 def print_success(message):
     '''
     Print success.

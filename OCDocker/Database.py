@@ -330,21 +330,21 @@ def update_databases():
     # Start the mimetypes
     mimetypes.init()
 
-    print('\n\nUpdating ALL databases.\')
+    print("\n\nUpdating ALL databases.\n")
     create_directories()
 
-    print('Updating PDBbind database...')
+    print("Updating PDBbind database...")
     update_pdbbind()
-    print('\n\nDone updating PDBbind!\n')
+    print("\n\nDone updating PDBbind!\n")
 
-    print('Updating Astex database...')
+    print("Updating Astex database...")
     update_astex()
-    print('\n\nDone updating Astex!\n')
+    print("\n\nDone updating Astex!\n")
 
-    print('Updating DUDEZ database...')
+    print("Updating DUDEZ database...")
     update_DUDEZ()
-    print('\n\nDone updating DUDEZ!\n')
+    print("\n\nDone updating DUDEZ!\n")
 
-    print('\n\nDone updating ALL databases.\')
+    print("\n\nDone updating ALL databases.\n")
 
     return
