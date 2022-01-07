@@ -431,16 +431,21 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
     coordinates = np.empty((0,4), float)
     coordinatesFull = np.empty((0,6), float)
 
-    # Initalise the statistics list
-    statistics = []
+    # Set the
+    wholeProt = False
 
-    # Initalise the atoms, probabilities and rank (to ensure that the data is in the same order)
-    atoms = [i[0] for i in preatoms]
-    probabilities = [i[1] for i in preatoms]
-    rank = [i[2] for i in preatoms]
+    # If p2rank has not found any pocket, create one using the whole protein
+    if not preatoms:
+        print("p2rank has returned no pockets, using the whole protein!")
+        wholeProt = True
+    else:
+        # Initalise the atoms, probabilities and rank (to ensure that the data is in the same order)
+        atoms = [i[0] for i in preatoms]
+        probabilities = [i[1] for i in preatoms]
+        rank = [i[2] for i in preatoms]
 
-    # Get the first probability
-    firstProbability = preatoms[0][1]
+        # Get the first probability
+        firstProbability = preatoms[0][1]
 
     # Read the .pdb file to capture the x/y/z coordinates
     with open(filein, "r") as f:
@@ -448,10 +453,12 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
         for line in f:
             # If line start with the ATOM label
             if line.startswith("ATOM"):
-                # If the atom ID is in the atom list
-                if line[7:11].strip() in atoms:
-                    # Finds if the atom index is in the atom list (again to ensure that the right probability is assigned to the right atom)
-                    idx = atoms.index(line[7:11].strip())
+                # If the atom ID is in the atom list or if the whole protein is included
+                if wholeProt or line[7:11].strip() in atoms:
+                    # If the whole protein is not being processed, the index in the atom list must be accounted
+                    if not wholeProt:
+                        # Finds if the atom index is in the atom list (again to ensure that the right probability is assigned to the right atom)
+                        idx = atoms.index(line[7:11].strip())
 
                     # Check and convert (if needed) the coordinates cartesian/polar/spherical
                     if coordSystem.lower() == "cartesian": # if is cartesian, just read the values
@@ -469,10 +476,17 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
                         v2 = line[39:46]
                         v3 = line[47:54]
 
+                    # If the whole protein is included
+                    if wholeProt:
+                        # Add the data to the numpy array as a list containing the coordinates + extra data [X, Y, Z]/[therta, rho, z]/[az, el, r]
+                        coordinates = np.append(coordinates, np.array([[v1, v2, v3, 1.0]], float), axis=0)
+                        # Add the same data to a bigger array containing also the probabilities (fixed at 1.0) and residue (6th index)
+                        coordinatesFull = np.append(coordinatesFull, np.array([[v1, v2, v3, 1.0, 1.0, line[23:26]]], float), axis=0)
                     # If the probability is above the pocketCutoff value or the probability is the same as the probability of the first pocket in file (this is possibile due to the fact that the first line of p2rank result file will always have the highest probability.)
-                    if probabilities[idx] >= pocketCutoff or probabilities[idx] >= float(firstProbability):
+                    elif probabilities[idx] >= pocketCutoff or probabilities[idx] >= float(firstProbability):
                         # Add the data to the numpy array as a list containing the coordinates + extra data [X, Y, Z]/[therta, rho, z]/[az, el, r]
                         coordinates = np.append(coordinates, np.array([[v1, v2, v3, rank[idx]]], float), axis=0)
+                        # Add the same data to a bigger array containing also the probabilities (4th index) and residue (6th index)
                         coordinatesFull = np.append(coordinatesFull, np.array([[v1, v2, v3, probabilities[idx], rank[idx], line[23:26]]], float), axis=0)
 
     # Set the first rank as the first in the list
@@ -512,12 +526,14 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
                 # Warn the user, because this is a very strange behaviour
                 print(f"\033[1;93mWARNING\033[1;0m: There is just one pocket and ATOM (this sounds VERY STRANGE). There is no need to cluster... Relaxing the spacing from {spacing / multiplier} to {spacing} so the generated box will be bigger")
             else:
-                # Set the multiplier to 2 (since it is not a single atom, expand less)
-                multiplier = 2
-                # Change the spacing
-                spacing = multiplier * spacing
-                # Inform the user because changes were made in the input value
-                print(f"\033[1;96mINFO\033[1;0m: There is just one pocket. There is no need to cluster... Relaxing the spacing from {spacing / multiplier} to {spacing} so the generated box will be bigger")
+                # If the whole protein is not being used
+                if not wholeProt:
+                    # Set the multiplier to 2 (since it is not a single atom, expand less)
+                    multiplier = 2
+                    # Change the spacing
+                    spacing = multiplier * spacing
+                    # Inform the user because changes were made in the input value
+                    print(f"\033[1;96mINFO\033[1;0m: There is just one pocket. There is no need to cluster... Relaxing the spacing from {spacing / multiplier} to {spacing} so the generated box will be bigger")
 
         start_time = time.time()
         suffix = ""
