@@ -524,7 +524,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
                 # Change the spacing
                 spacing = multiplier * spacing
                 # Warn the user, because this is a very strange behaviour
-                print(f"\033[1;93mWARNING\033[1;0m: There is just one pocket and ATOM (this sounds VERY STRANGE). There is no need to cluster... Relaxing the spacing from {spacing / multiplier} to {spacing} so the generated box will be bigger")
+                print(f"\033[1;93mWARNING\033[1;0m: There is just one pocket and ATOM (this sounds VERY STRANGE). There is no need to cluster... Relaxing the spacing from {spacing / multiplier} to {spacing} so the generated box will be bigger.")
             # If the whole protein is not being used
             elif not wholeProt:
                 # Set the multiplier to 2 (since it is not a single atom, expand less)
@@ -532,7 +532,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
                 # Change the spacing
                 spacing = multiplier * spacing
                 # Inform the user because changes were made in the input value
-                print(f"\033[1;96mINFO\033[1;0m: There is just one pocket. There is no need to cluster... Relaxing the spacing from {spacing / multiplier} to {spacing} so the generated box will be bigger")
+                print(f"\033[1;96mINFO\033[1;0m: There is just one pocket. There is no need to cluster... Relaxing the spacing from {spacing / multiplier} to {spacing} so the generated box will be bigger.")
 
         start_time = time.time()
         suffix = ""
