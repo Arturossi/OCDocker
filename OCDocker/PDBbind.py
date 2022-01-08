@@ -113,7 +113,7 @@ def verify_integrity():
         p2rankDir = f"{dir}/p2rank"
         vinaDir = f"{dir}/vinaFiles"
 
-        octools.printv(f"Checking directories for the protein '{dirs}'.")
+        octools.printv(f"Checking directories for the protein '{dir}'.")
 
         # If has no p2rank dir
         if not os.path.isdir(p2rankDir):
@@ -143,7 +143,7 @@ def verify_integrity():
                 octools.print_error_log(f"Unable to generate the vinaFiles dir for '{dir}'... Error code {errorCode}.", f"{logdir}/PDBbind_integrity_report.log")
                 continue
 
-        octools.printv(f"Checking files for the protein '{dis}'")
+        octools.printv(f"Checking files for the protein '{dir}'")
 
         # Check how many boxes are in the p2rankDir
         boxCount = len(glob(f"{p2rankDir}/box*.pdb"))
