@@ -78,7 +78,7 @@ def __run_p2rank(dir):
         # Run p2rank
         runprank.run_prank(fin, fout, algorithms, prank = prank, threads = args.cpu_cores, debug = args.debug, boxMaxCutoff = p2rank_boxMaxCutoff, pocketCutoff = p2rank_pocketCutoff, verbose = args.verbosity)
     except Exception as e:
-        octools.print_warn(f"The protein '{dir}' had a problem while running p2rank. Retrying to run p2rank. Exception: {e}  ")
+        octools.print_warning(f"The protein '{dir}' had a problem while running p2rank. Retrying to run p2rank. Exception: {e}  ")
         runprank.run_prank(fin, fout, algorithms, prank = prank, threads = args.cpu_cores, debug = args.debug, boxMaxCutoff = p2rank_boxMaxCutoff, pocketCutoff = p2rank_pocketCutoff, verbose = args.verbosity)
 
     return
