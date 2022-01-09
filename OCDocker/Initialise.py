@@ -56,18 +56,18 @@ def create_ocdocker_conf():
     Return:
       -
     '''
-    confOcdb = "/mnt/d/Documents/OCDocker/OCDocker/data/ocdb"
-    confDock6 = "/mnt/d/Documents/OCDocker/software/docking/dock6/bin/dock6"
-    confPlants = "/mnt/d/Documents/OCDocker/software/docking/plants/PLANTS1.2_64bit"
-    confPythonsh = "/mnt/d/Documents/OCDocker/OCDocker/mgltools/bin/pythonsh"
-    confPrepare_ligand = "/mnt/d/Documents/OCDocker/OCDocker/mgltools/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_ligand4.py"
-    confPrepare_receptor = "/mnt/d/Documents/OCDocker/OCDocker/mgltools/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_receptor4.py"
+    confOcdb = "/mnt/e/Documents/OCDocker/OCDocker/data/ocdb"
+    confDock6 = "/mnt/e/Documents/OCDocker/software/docking/dock6/bin/dock6"
+    confPlants = "/mnt/e/Documents/OCDocker/software/docking/plants/PLANTS1.2_64bit"
+    confPythonsh = "/mnt/e/Documents/OCDocker/OCDocker/mgltools/bin/pythonsh"
+    confPrepare_ligand = "/mnt/e/Documents/OCDocker/OCDocker/mgltools/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_ligand4.py"
+    confPrepare_receptor = "/mnt/e/Documents/OCDocker/OCDocker/mgltools/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_receptor4.py"
 
     confP2rankBoxMaxCutoff = "0.5"
     confP2RankPocketCutoff = "0.1"
 
     confObabel = "/usr/bin/obabel"
-    confPrank = "/mnt/d/Documents/OCDocker/software/search/p2rank_2.3/prank"
+    confPrank = "/mnt/e/Documents/OCDocker/software/search/p2rank_2.3/prank"
     confDUDEz = "https://dudez.docking.org/DOCKING_GRIDS_AND_POSES.tgz"
 
     confVina = "/usr/bin/vina"
@@ -75,7 +75,7 @@ def create_ocdocker_conf():
     confVina_exhaustiveness = "5"
     confVina_num_modes = "3"
 
-    confSmina = "/mnt/d/Documents/OCDocker/software/docking/smina/build/smina"
+    confSmina = "/mnt/e/Documents/OCDocker/software/docking/smina/build/smina"
     confSmina_energy_range = "10"
     confSmina_exhaustiveness = "5"
     confSmina_num_modes = "3"
@@ -247,10 +247,10 @@ def create_ocdocker_conf():
         ################# P2RANK PARAMETERS #################
 
         # p2rank box cutoff
-        boxMaxCutoff = """ + boxMaxCutoff + """
+        boxMaxCutoff = """ + confP2rankBoxMaxCutoff + """
 
         # p2rank pocket cutoff
-        pocketCutoff = """ + pocketCutoff + """
+        pocketCutoff = """ + confP2RankPocketCutoff + """
 
         ############# DATABASE FETCH PARAMETERS #############
 
@@ -527,9 +527,9 @@ for line in open(config_file, "r"):
     elif line.startswith("prank ="):
         prank = line.split("=")[1].strip()
     elif line.startswith("boxMaxCutoff ="):
-        p2rank_boxMaxCutoff = line.split("=")[1].strip()
+        p2rank_boxMaxCutoff = float(line.split("=")[1].strip())
     elif line.startswith("pocketCutoff ="):
-        p2rank_pocketCutoff = line.split("=")[1].strip()
+        p2rank_pocketCutoff = float(line.split("=")[1].strip())
     elif line.startswith("vina_energy_range ="):
         vina_energy_range = line.split("=")[1].strip()
     elif line.startswith("vina_exhaustiveness ="):
