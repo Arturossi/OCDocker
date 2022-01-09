@@ -227,7 +227,7 @@ def prepare(overwrite = False):
             octools.print_info(f"The protein '{dir}' already has its p2rank output generated, skipping its execution.")
 
         # If overwrite mode is on or there is not the same amount of box files as folders in vinaFiles folder
-        if len(glob(f"{d}/vinaFiles/*")) == boxCount or overwrite:
+        if len(glob(f"{dir}/vinaFiles/*")) == boxCount or overwrite:
             # Create the vina inputs from the boxes
             ocvina.generate_vina_files_database(dir, fin)
         else:
