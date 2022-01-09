@@ -74,8 +74,12 @@ def __run_p2rank(dir):
         "SpectralClustering": False
     }
 
-    # Run p2rank
-    runprank.run_prank(fin, p2rankDir, algorithms, prank = prank, threads = args.cpu_cores, debug = False, boxMaxCutoff = 0.5, pocketCutoff = 0.1, verbose = args.verbosity)
+    try:
+        # Run p2rank
+        runprank.run_prank(fin, fout, algorithms, prank = prank, threads = args.cpu_cores, debug = args.debug, boxMaxCutoff = p2rank_boxMaxCutoff, pocketCutoff = p2rank_pocketCutoff, verbose = args.verbosity)
+    except Exception as e:
+        octools.print_warn(f"The protein '{dir}' had a problem while running p2rank. Retrying to run p2rank. Exception: {e}  ")
+        runprank.run_prank(fin, fout, algorithms, prank = prank, threads = args.cpu_cores, debug = args.debug, boxMaxCutoff = p2rank_boxMaxCutoff, pocketCutoff = p2rank_pocketCutoff, verbose = args.verbosity)
 
     return
 
@@ -194,20 +198,6 @@ def prepare(overwrite = False):
     Return:
       -
     '''
-    # Algorithms to be analyzed (Only Agglomerative Clustering)
-    algorithms = {
-        "AffinityPropagation": False,
-        "AgglomerativeClustering": True,
-        "Birch": False,
-        "DBSCAN": False,
-        "KMeans": False,
-        "MeanShift": False,
-        "MiniBatchKMeans": False,
-        "NoCluster": False,
-        "OPTICS": False,
-        "SpectralClustering": False
-    }
-
     # Generate boxes for all receptors
     octools.printv("Generating information regarding possible ligand site.")
 
@@ -246,7 +236,8 @@ def prepare(overwrite = False):
         # If overwrite mode is on or there is no box in the p2rank output, p2rank will run
         if boxCount == 0 or overwrite:
             # Run p2rank
-            runprank.run_prank(fin, fout, algorithms, prank = prank, threads = args.cpu_cores, debug = False, boxMaxCutoff = 0.5, pocketCutoff = 0.1, verbose = args.verbosity)
+            __run_p2rank(dir)
+
         else:
             octools.print_info(f"The protein '{dir}' already has its p2rank output generated, skipping its execution.")
 

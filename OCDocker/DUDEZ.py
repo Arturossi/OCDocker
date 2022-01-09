@@ -72,8 +72,12 @@ def __run_p2rank(dir):
         "SpectralClustering": False
     }
 
-    # Run p2rank
-    runprank.run_prank(fin, p2rankDir, algorithms, prank = prank, threads = args.cpu_cores, debug = False, boxMaxCutoff = 0.5, pocketCutoff = 0.1, verbose = args.verbosity)
+    try:
+        # Run p2rank
+        runprank.run_prank(fin, fout, algorithms, prank = prank, threads = args.cpu_cores, debug = args.debug, boxMaxCutoff = p2rank_boxMaxCutoff, pocketCutoff = p2rank_pocketCutoff, verbose = args.verbosity)
+    except Exception as e:
+        octools.print_warn(f"The protein '{dir}' had a problem while running p2rank. Retrying to run p2rank. Exception: {e}  ")
+        runprank.run_prank(fin, fout, algorithms, prank = prank, threads = args.cpu_cores, debug = args.debug, boxMaxCutoff = p2rank_boxMaxCutoff, pocketCutoff = p2rank_pocketCutoff, verbose = args.verbosity)
 
     return
 
@@ -106,8 +110,6 @@ def verify_integrity():
 
     # Get all dirs paths in the DUDEZ database
     dirs = glob(f"{dudez_archive}/*")
-
-    from pprint import pprint
 
     # For each directory in the database folder
     for dir in tqdm(iterable=dirs, total=len(dirs)):
@@ -194,20 +196,6 @@ def prepare(overwrite = False):
     Return:
       -
     '''
-    # Algorithms to be analyzed (Only Agglomerative Clustering)
-    algorithms = {
-        "AffinityPropagation": False,
-        "AgglomerativeClustering": True,
-        "Birch": False,
-        "DBSCAN": False,
-        "KMeans": False,
-        "MeanShift": False,
-        "MiniBatchKMeans": False,
-        "NoCluster": False,
-        "OPTICS": False,
-        "SpectralClustering": False
-    }
-
     # Generate boxes for all receptors
     octools.printv("Generating information regarding possible ligand site.")
 
@@ -215,15 +203,15 @@ def prepare(overwrite = False):
     dirs = glob(f"{dudez_archive}/*")
 
     # For each directory in the database folder
-    for d in tqdm(iterable=dirs, total=len(dirs)):
+    for dir in tqdm(iterable=dirs, total=len(dirs)):
         # Set the input file name path
-        fin = f"{d}/rec.crg.pdb"
+        fin = f"{dir}/rec.crg.pdb"
 
         # Find the protein name
-        ptn = d.split("/")[-1]
+        ptn = dir.split("/")[-1]
 
         # Set the output path
-        fout = f"{d}/p2rank"
+        fout = f"{dir}/p2rank"
 
         # Create the p2rank output dir
         _ = octools.safe_create_dir(fout)
@@ -234,15 +222,15 @@ def prepare(overwrite = False):
         # If overwrite mode is on or there is no box in the p2rank output, p2rank will run
         if boxCount == 0 or overwrite:
             # Run p2rank
-            runprank.run_prank(fin, fout, algorithms, prank = prank, threads = args.cpu_cores, debug = False, boxMaxCutoff = 0.5, pocketCutoff = 0.1, verbose = args.verbosity)
+            __run_p2rank(dir)
         else:
-            octools.print_info(f"The protein '{d}' already has its p2rank output generated, skipping its execution.")
+            octools.print_info(f"The protein '{dir}' already has its p2rank output generated, skipping its execution.")
 
         # If overwrite mode is on or there is not the same amount of box files as folders in vinaFiles folder
         if len(glob(f"{d}/vinaFiles/*")) == boxCount or overwrite:
             # Create the vina inputs from the boxes
-            ocvina.generate_vina_files_database(d, fin)
+            ocvina.generate_vina_files_database(dir, fin)
         else:
-            octools.print_info(f"The protein '{d}' already has its vina file generated, skipping its execution.")
+            octools.print_info(f"The protein '{dir}' already has its vina file generated, skipping its execution.")
 
     return

@@ -63,6 +63,9 @@ def create_ocdocker_conf():
     confPrepare_ligand = "/mnt/d/Documents/OCDocker/OCDocker/mgltools/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_ligand4.py"
     confPrepare_receptor = "/mnt/d/Documents/OCDocker/OCDocker/mgltools/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_receptor4.py"
 
+    confP2rankBoxMaxCutoff = "0.5"
+    confP2RankPocketCutoff = "0.1"
+
     confObabel = "/usr/bin/obabel"
     confPrank = "/mnt/d/Documents/OCDocker/software/search/p2rank_2.3/prank"
     confDUDEz = "https://dudez.docking.org/DOCKING_GRIDS_AND_POSES.tgz"
@@ -111,6 +114,14 @@ def create_ocdocker_conf():
 
     answer = input(f"Link to the DUDEz database where you can download data. Default [{confDUDEz}] (press enter to keep default): ")
     confDUDEz = confDUDEz if not answer else answer
+
+    # p2rank variables
+    print("\np2rank configuration")
+    answer = input(f"p2rank box max cutoff. Default [{confP2rankBoxMaxCutoff}] (press enter to keep default): ")
+    confP2rankBoxMaxCutoff = confP2rankBoxMaxCutoff if not answer else answer
+
+    answer = input(f"p2rank pocket cutoff. Default [{confP2RankPocketCutoff}] (press enter to keep default): ")
+    confP2RankPocketCutoff = confP2RankPocketCutoff if not answer else answer
 
     # Smina variables
     print("\nSmina configuration")
@@ -233,6 +244,14 @@ def create_ocdocker_conf():
         # P2Rank path
         prank = """ + confPrank + """
 
+        ################# P2RANK PARAMETERS #################
+
+        # p2rank box cutoff
+        boxMaxCutoff = """ + boxMaxCutoff + """
+
+        # p2rank pocket cutoff
+        pocketCutoff = """ + pocketCutoff + """
+
         ############# DATABASE FETCH PARAMETERS #############
 
         # DUDEz download link
@@ -334,6 +353,10 @@ global dudez_download
 global pythonsh
 global prepare_ligand
 global prepare_receptor
+
+# p2rank parameters
+global p2rank_boxMaxCutoff
+global p2rank_pocketCutoff
 
 # Vina parameters
 global vina_num_modes
@@ -503,6 +526,10 @@ for line in open(config_file, "r"):
         dudez_download = line.split("=")[1].strip()
     elif line.startswith("prank ="):
         prank = line.split("=")[1].strip()
+    elif line.startswith("boxMaxCutoff ="):
+        p2rank_boxMaxCutoff = line.split("=")[1].strip()
+    elif line.startswith("pocketCutoff ="):
+        p2rank_pocketCutoff = line.split("=")[1].strip()
     elif line.startswith("vina_energy_range ="):
         vina_energy_range = line.split("=")[1].strip()
     elif line.startswith("vina_exhaustiveness ="):
