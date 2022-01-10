@@ -148,7 +148,7 @@ def print_info_log(message, logfile, mode="a"):
     '''
     today = datetime.datetime.now()
     with open(logfile, mode) as f:
-        f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] INFO: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
+        f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] INFO: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.\n")
     return
 
 def print_success_log(message, logfile, mode="a"):
@@ -163,7 +163,7 @@ def print_success_log(message, logfile, mode="a"):
     '''
     today = datetime.datetime.now()
     with open(logfile, mode) as f:
-        f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] SUCCSESS: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
+        f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] SUCCSESS: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.\n")
     return
 
 def print_warning_log(message, logfile, mode="a"):
@@ -178,7 +178,7 @@ def print_warning_log(message, logfile, mode="a"):
     '''
     today = datetime.datetime.now()
     with open(logfile, mode) as f:
-        f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] WARNING: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
+        f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] WARNING: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.\n")
     return
 
 def print_error_log(message, logfile, mode="a"):
@@ -193,7 +193,7 @@ def print_error_log(message, logfile, mode="a"):
     '''
     today = datetime.datetime.now()
     with open(logfile, mode) as f:
-        f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] ERROR: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
+        f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] ERROR: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.\n")
     return
 
 
@@ -411,7 +411,7 @@ def download_url(url, out_path):
     with DownloadProgressBar(unit="B",
                              unit_scale=True,
                              miniters=1,
-                             desc=url.split("/")[-1]) as t:
+                             desc=url.split(os.path.sep)[-1]) as t:
         urllib.request.urlretrieve(url, filename=out_path, reporthook=t.update_to)
     return
 
@@ -664,3 +664,26 @@ def validate_obabel_extension(path):
     if extension in supportedExtensions:
         return extension
     return errors.unsupported_extension(message=f"Unsupported extension for input molecule file! Supported extensions are '{' '.join(supportedExtensions)}' and got '{extension}'.")
+
+def is_algorithm_allowed(path):
+    '''
+    Finds if the given dir is a folder from an allowed algorithm.
+    Input:
+      path [string] - Path to the directory which will be tested.
+                      The algorithm list and their shortcodes:
+                          AffinityPropagation: ap
+                          AgglomerativeClustering: ac
+                          Birch: bi
+                          DBSCAN: db
+                          KMeans:  km
+                          MeanShift: ms
+                          MiniBatchKMeans: mb
+                          NoCluster: na
+                          OPTICS: op
+                          SpectralClustering: sc
+    Return:
+      [bool] True if is allowed / False if is not allowed
+    '''
+    # Allowed algorithms
+    allowed = ["ap", "ac", "bi", "db", "km", "ms", "mb", "na", "op", "sc"]
+    return path.split(os.path.sep).pop() in allowed
