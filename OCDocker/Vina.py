@@ -188,7 +188,7 @@ class Vina:
         Return:
           list[string] - List of strings of the command.
         '''
-        cmd = [vina, "--config", self.config, "--ligand", self.preparedLigand, "--out", self.outputVina, "--log", self.vinaLog, "--cpu", "1"]
+        cmd = [vina, "--config", self.config, "--ligand", self.preparedLigand, "--out", self.outputVina, "--cpu", "1"]
         return cmd
 
     def __prepare_ligand_cmd(self):
@@ -237,7 +237,7 @@ class Vina:
         '''
         # Print verboosity
         octools.printv(f"Running vina using the '{self.config}' configurations.")
-        return octools.run(self.vinaCmd, logFile=logFile)
+        return octools.run(self.vinaCmd, logFile=self.vinaLog)
 
     def run_prepare_ligand(self, logFile = ""):
         '''
@@ -386,21 +386,20 @@ def run_prepare_receptor(inputReceptorPath, outputReceptor, logFile=""):
     # Run the command
     return octools.run(cmd, logFile=logFile)
 
-def run_vina(confFile, ligand, outpath, logpath, logFile=""):
+def run_vina(confFile, ligand, outpath, logFile=""):
     '''
     Run vina.
     Input:
       confFile [string]                   - Path to the config file.
       ligand   [string]                   - Path to the ligand file.
       outpath  [string]                   - Path to the receptor file.
-      logpath  [string]                   - Path to the log file.
       logFile  [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
     Return:
       [int]
        See Error.py for all return codes.
     '''
     # Create the command list
-    cmd = [vina, "--config", confFile, "--ligand", ligand, "--out", outpath, "--log", logpath, "--cpu", "1"]
+    cmd = [vina, "--config", confFile, "--ligand", ligand, "--out", outpath, "--cpu", "1"]
     # Print verboosity
     octools.printv(f"Running vina using the '{confFile}' configurations.")
     # Run the command
