@@ -25,8 +25,10 @@ E-mail address: arturossi10@gmail.com
 This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 '''
 
-# Description
+# Description & version
 ###############################################################################
+ocVersion = "0.2.8"
+
 description = tw.dedent("""\033[1;93m
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     +-+-+-+-+-+-+-+-+-+- \033[1;96m┏━┓┏━╸╺┳━┓┏━┓┏━╸╻┏ ┏━╸┏━┓ \033[1;93m-+-+-+-+-+-+-+-+-+-+
@@ -39,9 +41,11 @@ description = tw.dedent("""\033[1;93m
                   [The Federal University of Rio de Janeiro]
 \033[1;0m
           This program comes with ABSOLUTELY NO WARRANTY
-      Add a description Here
+
+      OCDocker version: """ + ocVersion + """
+
      Please cite:
-     Ainda não tem
+         -
 \033[1;93m
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 \033[1;0m""")
@@ -420,7 +424,7 @@ def argument_parsing():
     # Add the arguments
     parser.add_argument("--version",
                         action="version",
-                        version="%(prog)s 0.1.8")
+                        version=f"%(prog)s {ocVersion}")
 
     parser.add_argument("-f", "--file",
                         dest="input_file",
