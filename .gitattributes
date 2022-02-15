@@ -1,2 +1,4 @@
 test/* linguist-vendored
 *.cfg
+*.png
+*.yml
