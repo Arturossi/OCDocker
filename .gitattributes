@@ -1,4 +1,2 @@
-test/* linguist-vendored
-*.cfg linguist-vendored
-*.png linguist-vendored
-*.yml linguist-vendored
+*.py linguist-language=Python
+*.sh linguist-language=Shell
