@@ -1,4 +1,4 @@
 test/* linguist-vendored
 *.cfg linguist-vendored
-*.png
-*.yml
+*.png linguist-vendored
+*.yml linguist-vendored
