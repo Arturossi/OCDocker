@@ -12,6 +12,7 @@ import subprocess
 import urllib.request
 
 from tqdm import tqdm
+from openbabel import pybel
 from openbabel import openbabel
 
 from OCDocker.Initialise import *
@@ -498,7 +499,7 @@ def convert2mol2_legacy(input, output, logFile = ""):
 
 def convert2mol2(input, output):
     '''
-    Convert a pdb/sdf/mol/smi file to '.mol2'.
+    Convert a pdb/sdf/mol/smi file to '.mol2'. [DEPRECATED]
     Input:
       input  [string] - Input path.
       output [string] - Output path.
@@ -543,7 +544,7 @@ def convert2mol2(input, output):
 
 def convert2pdb(input, output):
     '''
-    Convert a mol2/sdf/mol/smi file to '.pdb'.
+    Convert a mol2/sdf/mol/smi file to '.pdb'. [DEPRECATED]
     Input:
       input  [string] - Input path.
       output [string] - Output path.
@@ -634,6 +635,41 @@ def convertMols(input, output):
     except Exception as e:
         return errors.subprocess(message=f"Error while running molecule conversion from {inExtension} to {outExtension} using obabel python lib. Error: {e}", level="error")
 
+    return errors.ok()
+
+def split_and_convert(path, out_path, extension):
+    '''
+    Splits a multi-molecule file then save the output in multiple single-molecule file with the desired extension. (Supported by openbabel)
+    Input:
+      path      [string] - Path to the file which will be tested.
+      extension [string] - Output desired extension.
+    Return:
+      [int]
+      See Error.py for all return codes.
+    '''
+    # Finds the input extension
+    extensionIn = validate_obabel_extension(path)
+
+    # If input extension is not valid
+    if type(extension) != str:
+        # Return the unsupported_extension
+        return errors.unsupported_extension(f"Unsupported extension provided while spliting '{path}' file. Supported extensions are the one supported by OpenBabel.", "error")
+
+    # For each molecule in input file
+    for mol in pybel.readfile(extensionIn, path):
+        # Get its name and remove the "none string", strip blank spaces and then replace the remaining blank spaces for underscores
+        molName = mol.title.replace("none", "").strip().replace(" ", "_")
+        # Set the output file name
+        outfile = f"{out_path}/{molName}.{extension}"
+        # Try to convert
+        try:
+            # Write the file with the right extension
+            mol.write(extension, outfile)
+        # If fails
+        except Exception as e:
+            # Return write file error
+            return errors.write_file(f"Problems while writing the file '{outfile}'.")
+    # Since everything gone ok, return the ok code
     return errors.ok()
 
 def validate_obabel_extension(path):

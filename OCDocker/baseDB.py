@@ -8,6 +8,7 @@ from glob import glob
 from tqdm import tqdm
 
 from OCDocker.Initialise import *
+import OCDocker.Ligand as ocl
 import OCDocker.Vina as ocvina
 import OCDocker.Toolbox as octools
 import OCDocker.ExternalTools.runprank as runprank
@@ -312,7 +313,7 @@ def convert_debug_to_production(chosenArchive, chosenAlgorithm = "ac", strict = 
 
 def prepare(archive, overwrite = False):
     '''
-    Prepares the PDBbind database.
+    Prepares the database.
     Input:
      archive   [string]                - Which archive will be processed. [dudez, pdbbind, astex]
      overwrite [bool]   DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated.
@@ -352,17 +353,81 @@ def prepare(archive, overwrite = False):
             # Set the ligand input file name path
             lfin = f"{dir}/ligand"
 
-            # Convert the protein file from mol2 to pdb
-            _ = octools.convertMols(f"{fin}.mol2", f"{fin}.pdb")
+            # If the overwrite flag is true or the receptor pdb file already exists
+            if overwrite or not os.path.isfile(f"{fin}.pdb"):
+                # Convert the protein file from mol2 to pdb
+                _ = octools.convertMols(f"{fin}.mol2", f"{fin}.pdb")
 
-            # Convert the ligand file from mol to mol2
-            _ = octools.convertMols(f"{lfin}.mol", f"{lfin}.mol2")
+            # If the overwrite flag is true or the ligand mol2 file already exists
+            if overwrite or not os.path.isfile(f"{lfin}.mol2"):
+                # Convert the ligand file from mol to mol2
+                _ = octools.convertMols(f"{lfin}.mol", f"{lfin}.mol2")
 
             # Reset the input file variable
             fin = f"{fin}.pdb"
         elif archive == "dudez":
             # Set the input file name path
             fin = f"{dir}/rec.crg.pdb"
+
+            # Set the 3 dirs containing ligand/decoys
+            dudezDir = f"{dir}/DUDE_Z"
+            extremaDir = f"{dir}/Extrema"
+            goldilocksDir = f"{dir}/Goldilocks"
+
+            # Parameterize paths
+            dudezDirLigand = f"{dudezDir}_ligands"
+            dudezDirDecoy = f"{dudezDir}_decoys"
+            extremaDirDecoy = f"{extremaDir}_decoys"
+            goldilocksDirDecoy = f"{goldilocksDir}_decoys"
+
+            # Create the dirs for data from the 3 dirs above
+            _ = octools.safe_create_dir(dudezDirLigand)
+            _ = octools.safe_create_dir(dudezDirDecoy)
+            _ = octools.safe_create_dir(extremaDirDecoy)
+            _ = octools.safe_create_dir(goldilocksDirDecoy)
+
+            # Split the file
+            _ = octools.split_and_convert(f"{dudezDir}/dudez_0pt5LD_ligand_poses.mol2", dudezDirLigand, "mol2")
+            _ = octools.split_and_convert(f"{dudezDir}/dudez_0pt5LD_decoy_poses.mol2", dudezDirDecoy, "mol2")
+            _ = octools.split_and_convert(f"{extremaDir}/extrema_0pt5LD_decoy_poses.mol2", extremaDirDecoy, "mol2")
+            _ = octools.split_and_convert(f"{goldilocksDir}/goldilocks_0pt5LD_decoy_poses.mol2", goldilocksDirDecoy, "mol2")
+
+            # For each molecule in dudez ligand dir
+            for mol in glob(f"{dudezDirLigand}/*.mol2"):
+                # Find its name
+                molName = ".".join(os.path.basename(mol).split(".")[:-1])
+                # Create the ligand object
+                l = ocl.Ligand(mol, molName)
+                # Export its descriptors
+                _ = l.to_json(overwrite)
+
+            # For each molecule in dudez decoy dir
+            for mol in glob(f"{dudezDirDecoy}/*.mol2"):
+                # Find its name
+                molName = ".".join(os.path.basename(mol).split(".")[:-1])
+                # Create the ligand object
+                l = ocl.Ligand(mol, molName)
+                # Export its descriptors
+                _ = l.to_json(overwrite)
+
+            # For each molecule in extrema decoy dir
+            for mol in glob(f"{extremaDirDecoy}/*.mol2"):
+                # Find its name
+                molName = ".".join(os.path.basename(mol).split(".")[:-1])
+                # Create the ligand object
+                l = ocl.Ligand(mol, molName, False)
+                # Export its descriptors
+                _ = l.to_json(overwrite)
+                #see https://www.rdkit.org/docs/Cookbook.html
+
+            # For each molecule in goldilocks decoy dir
+            for mol in glob(f"{goldilocksDirDecoy}/*.mol2"):
+                # Find its name
+                molName = ".".join(os.path.basename(mol).split(".")[:-1])
+                # Create the ligand object
+                l = ocl.Ligand(mol, molName)
+                # Export its descriptors
+                _ = l.to_json(overwrite)
 
         elif archive == "pdbbind":
             # Set the input file name path
