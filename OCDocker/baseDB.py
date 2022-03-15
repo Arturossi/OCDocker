@@ -387,26 +387,26 @@ def prepare(archive, overwrite = False):
             _ = octools.safe_create_dir(goldilocksDirDecoy)
 
             # Split the file
-            _ = octools.split_and_convert(f"{dudezDir}/dudez_0pt5LD_ligand_poses.mol2", dudezDirLigand, "mol2")
-            _ = octools.split_and_convert(f"{dudezDir}/dudez_0pt5LD_decoy_poses.mol2", dudezDirDecoy, "mol2")
+            _ = octools.split_and_convert(f"{dudezDir}/dudez_0pt5LD_ligand_poses.mol2", dudezDirLigand, "sdf")
+            _ = octools.split_and_convert(f"{dudezDir}/dudez_0pt5LD_decoy_poses.mol2", dudezDirDecoy, "sdf")
             _ = octools.split_and_convert(f"{extremaDir}/extrema_0pt5LD_decoy_poses.mol2", extremaDirDecoy, "mol2")
             _ = octools.split_and_convert(f"{goldilocksDir}/goldilocks_0pt5LD_decoy_poses.mol2", goldilocksDirDecoy, "mol2")
 
             # For each molecule in dudez ligand dir
-            for mol in glob(f"{dudezDirLigand}/*.mol2"):
+            for mol in glob(f"{dudezDirLigand}/*.sdf"):
                 # Find its name
                 molName = ".".join(os.path.basename(mol).split(".")[:-1])
                 # Create the ligand object
-                l = ocl.Ligand(mol, molName)
+                l = ocl.Ligand(mol, molName, False)
                 # Export its descriptors
                 _ = l.to_json(overwrite)
 
             # For each molecule in dudez decoy dir
-            for mol in glob(f"{dudezDirDecoy}/*.mol2"):
+            for mol in glob(f"{dudezDirDecoy}/*.sdf"):
                 # Find its name
                 molName = ".".join(os.path.basename(mol).split(".")[:-1])
                 # Create the ligand object
-                l = ocl.Ligand(mol, molName)
+                l = ocl.Ligand(mol, molName, False)
                 # Export its descriptors
                 _ = l.to_json(overwrite)
 
@@ -425,7 +425,7 @@ def prepare(archive, overwrite = False):
                 # Find its name
                 molName = ".".join(os.path.basename(mol).split(".")[:-1])
                 # Create the ligand object
-                l = ocl.Ligand(mol, molName)
+                l = ocl.Ligand(mol, molName, False)
                 # Export its descriptors
                 _ = l.to_json(overwrite)
 

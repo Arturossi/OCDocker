@@ -73,7 +73,7 @@ class Ligand:
         Return:
           [string, rdkit.Chem.rdchem.Mol] - The molecule object.
         '''
-        return loadMol(molecule)
+        return loadMol(molecule, sanitize)
 
     def __findExactMolWt(self):
         '''
@@ -512,7 +512,11 @@ def loadMol(molecule, sanitize = True):
     '''
     Load a molecule pdb/sdf/mol/mol2 if a path is provided or just assign the Mol object to the molecule.
     Input:
-      molecule [string/rdkit.Chem.rdchem.Mol] - If a path is provided, parse the molecule (only for single) and return a tuple path, rdkit.Chem.rdchem.Mol object. If the molecule is a rdkit.Chem.rdchem.Mol object, return an empty string and the object itself.
+      molecule [string/rdkit.Chem.rdchem.Mol]               - If a path is provided, parse the molecule (only for single) and return
+      a tuple path, rdkit.Chem.rdchem.Mol object. If the molecule is a rdkit.Chem.rdchem.Mol object, return an empty string and the
+      object itself.
+      sanitize [bool]                         DEFAULT: True - Flag to control if the molecule should be sanitized. (Turn to False only
+      if you need and know what you are doing)
     Return:
       [string, rdkit.Chem.rdchem.Mol]
        [string, object] - The molecule object.
@@ -530,7 +534,18 @@ def loadMol(molecule, sanitize = True):
 
             # Check the extension to see if its needed to convert to mol2
             if extension == ".mol2":
-                return molecule, rdkit.Chem.rdmolfiles.MolFromMol2File(molecule, sanitize=sanitize)
+                # If sanitize is off
+                if not sanitize:
+                    # Load the molecule
+                    m = rdkit.Chem.rdmolfiles.MolFromMol2File(molecule, sanitize = False)
+                    # Turn off the property cache
+                    m.UpdatePropertyCache(strict = False)
+                    # Perform a partial sanitization (THIS IS VERY IMPORTANT!!!!)
+                    Chem.SanitizeMol(m,Chem.SanitizeFlags.SANITIZE_FINDRADICALS|Chem.SanitizeFlags.SANITIZE_KEKULIZE|Chem.SanitizeFlags.SANITIZE_SETAROMATICITY|Chem.SanitizeFlags.SANITIZE_SETCONJUGATION|Chem.SanitizeFlags.SANITIZE_SETHYBRIDIZATION|Chem.SanitizeFlags.SANITIZE_SYMMRINGS, catchErrors=True)
+                    # Return the sanitized molecule
+                    return molecule, m
+
+                return molecule, rdkit.Chem.rdmolfiles.MolFromMol2File(molecule, sanitize = True)
             else:
                 # Since is needed to convert the ligand, create the output path
                 outputMoleculePath = f"{os.path.dirname(molecule)}/{os.path.splitext(os.path.basename(molecule))[0]}.mol2"
@@ -539,17 +554,55 @@ def loadMol(molecule, sanitize = True):
                 octools.convert2mol2(molecule, outputMoleculePath)
 
                 if extension == ".pdb":
-                    return outputMoleculePath, rdkit.Chem.rdmolfiles.MolFromPDBFile(molecule)
+                    # If sanitize is off
+                    if not sanitize:
+                        # Load the molecule
+                        m = rdkit.Chem.rdmolfiles.MolFromPDBFile(molecule, sanitize = False)
+                        # Turn off the property cache
+                        m.UpdatePropertyCache(strict = False)
+                        # Perform a partial sanitization (THIS IS VERY IMPORTANT!!!!)
+                        Chem.SanitizeMol(m,Chem.SanitizeFlags.SANITIZE_FINDRADICALS|Chem.SanitizeFlags.SANITIZE_KEKULIZE|Chem.SanitizeFlags.SANITIZE_SETAROMATICITY|Chem.SanitizeFlags.SANITIZE_SETCONJUGATION|Chem.SanitizeFlags.SANITIZE_SETHYBRIDIZATION|Chem.SanitizeFlags.SANITIZE_SYMMRINGS, catchErrors=True)
+                        # Return the sanitized molecule
+                        return molecule, m
+
+                    return outputMoleculePath, rdkit.Chem.rdmolfiles.MolFromPDBFile(molecule, sanitize = True)
                 elif extension == ".sdf":
+                    # If sanitize is off
+                    if not sanitize:
+                        # Load the molecule (Since the sdf file can hold more than one molecule...)
+                        mol = rdkit.Chem.rdmolfiles.SDMolSupplier(molecule, sanitize = False)
+                        if len(mol) > 1:
+                            octools.print_warning("This sdf has more than one molecule!! If you want to parse all the molecules within this file use the function splitMolecules to split the ligand into multiple ligand files. Otherwise just the first molecule will be processed.")
+                        # Get the first molecule
+                        m = mol[0]
+                        # Turn off the property cache
+                        m.UpdatePropertyCache(strict = False)
+                        # Perform a partial sanitization (THIS IS VERY IMPORTANT!!!!)
+                        Chem.SanitizeMol(m,Chem.SanitizeFlags.SANITIZE_FINDRADICALS|Chem.SanitizeFlags.SANITIZE_KEKULIZE|Chem.SanitizeFlags.SANITIZE_SETAROMATICITY|Chem.SanitizeFlags.SANITIZE_SETCONJUGATION|Chem.SanitizeFlags.SANITIZE_SETHYBRIDIZATION|Chem.SanitizeFlags.SANITIZE_SYMMRINGS, catchErrors=True)
+                        # Return the sanitized molecule
+                        return molecule, m
+
                     # Since the sdf file can hold more than one molecule...
-                    mols = molecule, rdkit.Chem.rdmolfiles.SDMolSupplier(molecule, sanitize=sanitize)
+                    mols = molecule, rdkit.Chem.rdmolfiles.SDMolSupplier(molecule, sanitize = True)
                     # If has multiple molecules, indicate the user to use the right function
                     if len(mols) > 1:
                         octools.print_warning("This sdf has more than one molecule!! If you want to parse all the molecules within this file use the function splitMolecules to split the ligand into multiple ligand files. Otherwise just the first molecule will be processed.")
+
                     # Return just the first molecule
                     return outputMoleculePath, mols[0]
                 elif extension == ".mol":
-                    return outputMoleculePath, rdkit.Chem.rdmolfiles.MolFromMolFile(molecule, sanitize=sanitize)
+                    # If sanitize is off
+                    if not sanitize:
+                        # Load the molecule
+                        m = rdkit.Chem.rdmolfiles.MolFromMolFile(molecule, sanitize = False)
+                        # Turn off the property cache
+                        m.UpdatePropertyCache(strict = False)
+                        # Perform a partial sanitization (THIS IS VERY IMPORTANT!!!!)
+                        Chem.SanitizeMol(m,Chem.SanitizeFlags.SANITIZE_FINDRADICALS|Chem.SanitizeFlags.SANITIZE_KEKULIZE|Chem.SanitizeFlags.SANITIZE_SETAROMATICITY|Chem.SanitizeFlags.SANITIZE_SETCONJUGATION|Chem.SanitizeFlags.SANITIZE_SETHYBRIDIZATION|Chem.SanitizeFlags.SANITIZE_SYMMRINGS, catchErrors=True)
+                        # Return the sanitized molecule
+                        return molecule, m
+
+                    return outputMoleculePath, rdkit.Chem.rdmolfiles.MolFromMolFile(molecule, sanitize = True)
                 else:
                     # The file extension is not supported, print data
                     supportedExtensions = ['.pdb', '.sdf', '.mol', '.mol2']
