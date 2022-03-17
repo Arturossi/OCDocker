@@ -637,12 +637,14 @@ def convertMols(input, output):
 
     return errors.ok()
 
-def split_and_convert(path, out_path, extension):
+def split_and_convert(path, out_path, extension, overwrite = False):
     '''
     Splits a multi-molecule file then save the output in multiple single-molecule file with the desired extension. (Supported by openbabel)
     Input:
-      path      [string] - Path to the file which will be tested.
-      extension [string] - Output desired extension.
+      path      [string]                - Path to the file which will be read.
+      out_path  [string]                - Path to the file which will be written.
+      extension [string]                - Output desired extension.
+      overwrite [bool]   DEFAULT: False - Flag to denote if the file will be overwritten.
     Return:
       [int]
       See Error.py for all return codes.
@@ -664,11 +666,11 @@ def split_and_convert(path, out_path, extension):
         # Try to convert
         try:
             # Write the file with the right extension
-            mol.write(extension, outfile)
+            mol.write(extension, outfile, overwrite=overwrite)
         # If fails
         except Exception as e:
             # Return write file error
-            return errors.write_file(f"Problems while writing the file '{outfile}'.")
+            return errors.write_file(f"Problems while writing the file '{outfile}'. Error: {e}")
     # Since everything gone ok, return the ok code
     return errors.ok()
 

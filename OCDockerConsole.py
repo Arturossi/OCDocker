@@ -65,12 +65,16 @@ print(message)
 args.debug = 1
 args.verbosity = 1
 args.cpu_cores = 20
+args.available_cores = args.cpu_cores - 1
 
-basePath = '/mnt/e/Documents/OCDocker/OCDocker'
+basePath = "/mnt/e/Documents/OCDocker/OCDocker"
 
-# Testing the classes and objects
+dbsampledir = f"{basePath}/data/ocdb/DUDEZ/AA2AR"
+
+'''# Testing the classes and objects
 receptorTest = ocr.Receptor(f"{basePath}/test/rec.crg.pdb", relativeASAcutoff=0.7, name="Receptor teste")
 ligandTest = ocl.Ligand(f"{basePath}/test/xtal-lig.pdb", name="Ligante teste")
 
 vinaTest = ocvina.Vina(f"{basePath}/test/conf_vina.txt", f"{basePath}/test/box.pdb", receptorTest, f"{basePath}/test/rec.crg.pdbqt", ligandTest, f"{basePath}/test/xtal-lig.pdbqt", f"{basePath}/test/vina.log", f"{basePath}/test/vina.pdbqt", name="Vina Test")
 sminaTest = ocsmina.Smina(f"{basePath}/test/conf_smina.txt", receptorTest, f"{basePath}/test/rec.crg2.pdbqt", ligandTest, f"{basePath}/test/xtal-lig2.pdbqt", f"{basePath}/test/smina.log", f"{basePath}/test/smina.pdbqt", name="Smina Test")
+'''

@@ -6,6 +6,7 @@ import os
 import shutil
 from glob import glob
 from tqdm import tqdm
+from multiprocessing import Pool
 
 from OCDocker.Initialise import *
 import OCDocker.Ligand as ocl
@@ -94,6 +95,68 @@ def __run_create_vina_conf_from_box(dir, fin):
     ocvina.generate_vina_files_database(dir, fin)
 
     return
+
+def __thread_prepare(arguments):
+    '''
+    Prepares the molecule.
+    Input:
+     arguments [tuple(string, bool, string)] - Tuple containing, in this order:
+        - [string] The molecule path
+        - [bool]   Flag to tell if files should be overwritten
+        - [string] The type of the molecule (ligant or receptor)
+    Return:
+      -
+    '''
+    # Renaming arguments to what they are (making this just more readable)
+    mol = arguments[0]
+    overwrite = arguments[1]
+    moltype = arguments[2]
+    # Find its name
+    molName = ".".join(os.path.basename(mol).split(".")[:-1])
+    if moltype == "ligand":
+        # Create the ligand object
+        m = ocl.Ligand(mol, molName, sanitize = False)
+    elif moltype == "receptor":
+        pass
+    else:
+        octools.print_error("Unknown molecule type")
+        return None
+    # Test if the ligand is valid
+    if not m.is_valid():
+        octools.print_error(f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!")
+        octools.print_error_log(f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!", f"{logdir}/DUDEz_Parse.log")
+    # Export its descriptors
+    _ = m.to_json(overwrite)
+    # Return
+    return None
+
+def __prepare_parallel(dirList, overwrite, moltype):
+    '''
+    Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
+    Input:
+     dirList   [string] - List of molecule paths
+     overwrite [bool]   - Flag to tell if files should be overwritten
+     moltype   [string] - The type of the molecule (ligant or receptor)
+    Return:
+      -
+    '''
+    # Arguments to pass to each Thread in the Thread Pool
+    arguments = []
+    # For each file in the glob
+    for filename in dirList:
+        # Append a tuple containing the file name and ovewrite flag to the arguments list
+        arguments.append((filename, overwrite, moltype))
+    # Create a Thread pool with the maximum available_cores
+    p = Pool(args.available_cores)
+    # Perform the multi process
+    for _ in tqdm(p.imap_unordered(__thread_prepare, arguments), total = len(arguments), desc = 'Molecules processed'):
+        pass
+    # Close the pool
+    p.close()
+    # Wait the pool to join
+    p.join()
+    # Return
+    return None
 
 ## Public ##
 def verify_integrity(chosenArchive):
@@ -341,7 +404,7 @@ def prepare(archive, overwrite = False):
     dirs = glob(f"{chosenArchive}/*")
 
     # For each directory in the database folder
-    for dir in tqdm(iterable=dirs, total=len(dirs)):
+    for dir in dirs:
         # Find the protein name
         ptn = dir.split(os.path.sep)[-1]
 
@@ -387,47 +450,22 @@ def prepare(archive, overwrite = False):
             _ = octools.safe_create_dir(goldilocksDirDecoy)
 
             # Split the file
-            _ = octools.split_and_convert(f"{dudezDir}/dudez_0pt5LD_ligand_poses.mol2", dudezDirLigand, "sdf")
-            _ = octools.split_and_convert(f"{dudezDir}/dudez_0pt5LD_decoy_poses.mol2", dudezDirDecoy, "sdf")
-            _ = octools.split_and_convert(f"{extremaDir}/extrema_0pt5LD_decoy_poses.mol2", extremaDirDecoy, "mol2")
-            _ = octools.split_and_convert(f"{goldilocksDir}/goldilocks_0pt5LD_decoy_poses.mol2", goldilocksDirDecoy, "mol2")
+            _ = octools.split_and_convert(f"{dudezDir}/dudez_0pt5LD_ligand_poses.mol2", dudezDirLigand, "mol2", overwrite)
+            _ = octools.split_and_convert(f"{dudezDir}/dudez_0pt5LD_decoy_poses.mol2", dudezDirDecoy, "mol2", overwrite)
+            _ = octools.split_and_convert(f"{extremaDir}/extrema_0pt5LD_decoy_poses.mol2", extremaDirDecoy, "mol2", overwrite)
+            _ = octools.split_and_convert(f"{goldilocksDir}/goldilocks_0pt5LD_decoy_poses.mol2", goldilocksDirDecoy, "mol2", overwrite)
+
+            # Defining the moltype
+            moltype = "ligand"
 
             # For each molecule in dudez ligand dir
-            for mol in glob(f"{dudezDirLigand}/*.sdf"):
-                # Find its name
-                molName = ".".join(os.path.basename(mol).split(".")[:-1])
-                # Create the ligand object
-                l = ocl.Ligand(mol, molName, False)
-                # Export its descriptors
-                _ = l.to_json(overwrite)
-
+            __prepare_parallel(glob(f"{dudezDirLigand}/*.mol2"), overwrite, moltype)
             # For each molecule in dudez decoy dir
-            for mol in glob(f"{dudezDirDecoy}/*.sdf"):
-                # Find its name
-                molName = ".".join(os.path.basename(mol).split(".")[:-1])
-                # Create the ligand object
-                l = ocl.Ligand(mol, molName, False)
-                # Export its descriptors
-                _ = l.to_json(overwrite)
-
+            __prepare_parallel(glob(f"{dudezDirDecoy}/*.mol2"), overwrite, moltype)
             # For each molecule in extrema decoy dir
-            for mol in glob(f"{extremaDirDecoy}/*.mol2"):
-                # Find its name
-                molName = ".".join(os.path.basename(mol).split(".")[:-1])
-                # Create the ligand object
-                l = ocl.Ligand(mol, molName, False)
-                # Export its descriptors
-                _ = l.to_json(overwrite)
-                #see https://www.rdkit.org/docs/Cookbook.html
-
+            __prepare_parallel(glob(f"{extremaDirDecoy}/*.mol2"), overwrite, moltype)
             # For each molecule in goldilocks decoy dir
-            for mol in glob(f"{goldilocksDirDecoy}/*.mol2"):
-                # Find its name
-                molName = ".".join(os.path.basename(mol).split(".")[:-1])
-                # Create the ligand object
-                l = ocl.Ligand(mol, molName, False)
-                # Export its descriptors
-                _ = l.to_json(overwrite)
+            __prepare_parallel(glob(f"{goldilocksDirDecoy}/*.mol2"), overwrite, moltype)
 
         elif archive == "pdbbind":
             # Set the input file name path

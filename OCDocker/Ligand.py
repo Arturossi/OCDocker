@@ -3,8 +3,8 @@
 # Imports
 ###############################################################################
 import os
-import rdkit
 import json
+import rdkit
 from glob import glob
 
 from rdkit import Chem
@@ -48,21 +48,49 @@ class Ligand:
     (pdb/sdf/mol/mol2) or a rdkit.Chem.rdchem.Mol object. A name to indentify
     the molecule can be provided aswell.
     """
-    def __init__(self, molecule, name, sanitize = True):
-        self.name = name.replace(" ", "_")
+    def __init__(self, molecule, name, sanitize = True, from_json_descriptors = ""):
         self.path, self.molecule = self.__loadMol(molecule, sanitize)
-        self.ExactMolWt = self.__findExactMolWt()
-        self.FpDensityMorgan1 = self.__findFpDensityMorgan1()
-        self.FpDensityMorgan2 = self.__findFpDensityMorgan2()
-        self.FpDensityMorgan3 = self.__findFpDensityMorgan3()
-        self.HeavyAtomMolWt = self.__findHeavyAtomMolWt()
-        self.MaxAbsPartialCharge = self.__findMaxAbsPartialCharge()
-        self.MaxPartialCharge = self.__findMaxPartialCharge()
-        self.MinAbsPartialCharge = self.__findMinAbsPartialCharge()
-        self.MinPartialCharge = self.__findMinPartialCharge()
-        self.MolWt = self.__findMolWt()
-        self.NumRadicalElectrons = self.__findNumRadicalElectrons()
-        self.NumValenceElectrons = self.__findNumValenceElectrons()
+        # Define everything as None
+        self.name = None
+        self.ExactMolWt = None
+        self.FpDensityMorgan1 = None
+        self.FpDensityMorgan2 = None
+        self.FpDensityMorgan3 = None
+        self.HeavyAtomMolWt = None
+        self.MaxAbsPartialCharge = None
+        self.MaxPartialCharge = None
+        self.MinAbsPartialCharge = None
+        self.MinPartialCharge = None
+        self.MolWt = None
+        self.NumRadicalElectrons = None
+        self.NumValenceElectrons = None
+        # If user pass a json
+        if from_json_descriptors:
+            # Read the descriptors from it
+            data = self.__read_descriptors_from_json(from_json_descriptors)
+            # If data is None, a problem occurred while reading the json file
+            if not data:
+                octools.print_error(f"Problems while parsin json file: '{from_json_descriptors}'")
+                return None
+            self.name, self.ExactMolWt, self.FpDensityMorgan1, self.FpDensityMorgan2, self.FpDensityMorgan3, self.HeavyAtomMolWt, self.MaxAbsPartialCharge, self.MaxPartialCharge, self.MinAbsPartialCharge, self.MinPartialCharge, self.MolWt, self.NumRadicalElectrons, self.NumValenceElectrons = data
+        else:
+            # Check if the name is empty
+            if not name:
+                octools.print_error("The Ligand name should not be empty!")
+                return None
+            self.name = name.replace(" ", "_")
+            self.ExactMolWt = self.__findExactMolWt()
+            self.FpDensityMorgan1 = self.__findFpDensityMorgan1()
+            self.FpDensityMorgan2 = self.__findFpDensityMorgan2()
+            self.FpDensityMorgan3 = self.__findFpDensityMorgan3()
+            self.HeavyAtomMolWt = self.__findHeavyAtomMolWt()
+            self.MaxAbsPartialCharge = self.__findMaxAbsPartialCharge()
+            self.MaxPartialCharge = self.__findMaxPartialCharge()
+            self.MinAbsPartialCharge = self.__findMinAbsPartialCharge()
+            self.MinPartialCharge = self.__findMinPartialCharge()
+            self.MolWt = self.__findMolWt()
+            self.NumRadicalElectrons = self.__findNumRadicalElectrons()
+            self.NumValenceElectrons = self.__findNumValenceElectrons()
 
     ## Private ##
     def __loadMol(self, molecule, sanitize):
@@ -74,6 +102,16 @@ class Ligand:
           [string, rdkit.Chem.rdchem.Mol] - The molecule object.
         '''
         return loadMol(molecule, sanitize)
+
+    def __read_descriptors_from_json(self, path):
+        '''
+        Read the descriptors from a json file.
+        Input:
+          -
+        Return:
+          [list(mixed)] - Descriptors read from the json file. If fails, returns null.
+        '''
+        return read_descriptors_from_json(path)
 
     def __findExactMolWt(self):
         '''
@@ -323,6 +361,19 @@ class Ligand:
         except Exception as e:
             return errors.unknown(f"Unknown error while converting the ligand {self.name} to json.\nError: {e}", "error")
 
+    def is_valid(self):
+        '''
+        Check if a Ligand object is valid.
+        Input:
+          -
+        Return:
+          [bool]
+            True  - if valid
+            False - if not valid
+        '''
+        if self.path is None or self.molecule is None or self.name is None or self.ExactMolWt is None or self.FpDensityMorgan1 is None or self.FpDensityMorgan2 is None or self.FpDensityMorgan3 is None or self.HeavyAtomMolWt is None or self.MaxAbsPartialCharge is None or self.MaxPartialCharge is None or self.MinAbsPartialCharge is None or self.MinPartialCharge is None or self.MolWt is None or self.NumRadicalElectrons is None or self.NumValenceElectrons is None:
+            return False
+        return True
 # Functions
 ###############################################################################
 ## Private ##
@@ -583,7 +634,7 @@ def loadMol(molecule, sanitize = True):
                         return molecule, m
 
                     # Since the sdf file can hold more than one molecule...
-                    mols = molecule, rdkit.Chem.rdmolfiles.SDMolSupplier(molecule, sanitize = True)
+                    mols = rdkit.Chem.rdmolfiles.SDMolSupplier(molecule, sanitize = True)
                     # If has multiple molecules, indicate the user to use the right function
                     if len(mols) > 1:
                         octools.print_warning("This sdf has more than one molecule!! If you want to parse all the molecules within this file use the function splitMolecules to split the ligand into multiple ligand files. Otherwise just the first molecule will be processed.")
@@ -617,6 +668,44 @@ def loadMol(molecule, sanitize = True):
         # The variable is not in a supported data format
         _ = errors.unsupported_extension(message=f"Unsupported molecule data. Please support either a molecule path (string) or a rdkit.Chem.rdchem.Mol object.", level="error")
         return "", None
+
+def read_descriptors_from_json(path):
+    '''
+    Read the descriptors from a json file.
+    Input:
+      -
+    Return:
+      [list(mixed)] - Descriptors read from the json file. If fails, returns null.
+    '''
+    # Try to read the file
+    try:
+        # Open the json file in read mode
+        with open(path, "r") as f:
+            # Load the data
+            data = json.load(f)
+        # Missing keys list
+        missing = []
+        # Expected keys to have in the json file
+        keys = ["Name", "ExactMolWt", "FpDensityMorgan1", "FpDensityMorgan2", "FpDensityMorgan3", "HeavyAtomMolWt", "MaxAbsPartialCharge", "MaxPartialCharge", "MinAbsPartialCharge", "MinPartialCharge", "MolWt", "NumRadicalElectrons", "NumValenceElectrons"]
+        # Validate the data
+        for key in keys:
+            # If key is lacking in data read from json (means malformed json!)
+            if not key in data:
+                # Add the missing key to the missing list
+                missing.Append(key)
+        # If missing list is not empty
+        if missing:
+            # Raise a Key error passing the file and the missing keys joined with ', '
+            raise KeyError((path, ", ".join(missing)))
+        # Since we have all keys, read them and return their values
+        return data["Name"], data["ExactMolWt"], data["FpDensityMorgan1"], data["FpDensityMorgan2"], data["FpDensityMorgan3"], data["HeavyAtomMolWt"], data["MaxAbsPartialCharge"], data["MaxPartialCharge"], data["MinAbsPartialCharge"], data["MinPartialCharge"], data["MolWt"], data["NumRadicalElectrons"], data["NumValenceElectrons"]
+    # Key error (when there is a missing key)
+    except KeyError as k:
+        octools.print_error(f"The following keys were not found in the json file '{k[0]}': {k[1]}.")
+    # General error (call it as problem to read file)
+    except Exception as e:
+        octools.print_error(f"Could not read the file '{path}'. Error: {e}")
+    return None
 
 # Descriptors functions #
 
