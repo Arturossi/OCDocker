@@ -66,6 +66,7 @@ args.debug = 1
 args.verbosity = 1
 args.cpu_cores = 20
 args.available_cores = args.cpu_cores - 1
+args.log_level = 2
 
 basePath = "/mnt/e/Documents/OCDocker/OCDocker"
 

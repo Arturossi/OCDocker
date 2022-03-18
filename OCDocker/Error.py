@@ -120,9 +120,9 @@ class Error:
           -
         '''
         if message:
-            if level == "warn":
+            if level == "warn" and args.log_level < 2:
                 self.__print_warning(message)
-            else:
+            elif args.log_level < 3:
                 self.__print_error(message)
         return
 

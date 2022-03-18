@@ -449,11 +449,27 @@ def prepare(archive, overwrite = False):
             _ = octools.safe_create_dir(extremaDirDecoy)
             _ = octools.safe_create_dir(goldilocksDirDecoy)
 
-            # Split the file
-            _ = octools.split_and_convert(f"{dudezDir}/dudez_0pt5LD_ligand_poses.mol2", dudezDirLigand, "mol2", overwrite)
-            _ = octools.split_and_convert(f"{dudezDir}/dudez_0pt5LD_decoy_poses.mol2", dudezDirDecoy, "mol2", overwrite)
-            _ = octools.split_and_convert(f"{extremaDir}/extrema_0pt5LD_decoy_poses.mol2", extremaDirDecoy, "mol2", overwrite)
-            _ = octools.split_and_convert(f"{goldilocksDir}/goldilocks_0pt5LD_decoy_poses.mol2", goldilocksDirDecoy, "mol2", overwrite)
+            # Get all mol2 files in dudezDir
+            mol2Files = glob(f"{dudezDir}/*.mol2")
+            # Separate ligands and decoys
+            for mol2File in mol2Files:
+                # If there is the string ligand_poses in the link (means that is ligand)
+                if "ligand_poses" in mol2File:
+                    _ = octools.split_and_convert(mol2File, dudezDirLigand, "mol2", overwrite)
+                else:
+                    _ = octools.split_and_convert(mol2File, dudezDirDecoy, "mol2", overwrite)
+
+            # Get all mol2 files in extremaDir
+            mol2Files = glob(f"{extremaDir}/extrema_0pt5LD_decoy_poses.mol2")
+            # Separate ligands and decoys
+            for mol2File in mol2Files:
+                _ = octools.split_and_convert(mol2File, extremaDirDecoy, "mol2", overwrite)
+
+            # Get all mol2 files in goldilocksDir
+            mol2Files = glob(f"{goldilocksDir}/goldilocks_0pt5LD_decoy_poses.mol2")
+            # Separate ligands and decoys
+            for mol2File in mol2Files:
+                _ = octools.split_and_convert(mol2File, goldilocksDirDecoy, "mol2", overwrite)
 
             # Defining the moltype
             moltype = "ligand"

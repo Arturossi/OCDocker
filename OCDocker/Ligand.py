@@ -374,6 +374,52 @@ class Ligand:
         if self.path is None or self.molecule is None or self.name is None or self.ExactMolWt is None or self.FpDensityMorgan1 is None or self.FpDensityMorgan2 is None or self.FpDensityMorgan3 is None or self.HeavyAtomMolWt is None or self.MaxAbsPartialCharge is None or self.MaxPartialCharge is None or self.MinAbsPartialCharge is None or self.MinPartialCharge is None or self.MolWt is None or self.NumRadicalElectrons is None or self.NumValenceElectrons is None:
             return False
         return True
+
+    def to_smiles(self):
+        '''
+        Return the smiles of the molecule
+        Input:
+          -
+        Return:
+          [string] The smiles of given molecule
+        '''
+        return get_smiles(self.molecule)
+
+    def is_same_molecule(self, molecule):
+        '''
+        Compare two molecules to check if they are the same using their SMILES.
+        Input:
+          [rdkit.Chem.rdchem.Mol/ocl.Ligand] molecule - The molecule to compare to.
+        Return:
+          [bool]
+            True  - If both molecules are the same.
+            False - If both molecules are not the same.
+          [int] If fails
+            Check Error.py for error codes
+        '''
+        # Get the smiles for the ligand object
+        molSmiles = self.to_smiles()
+        # Check if the type of the molecule is a Ligand
+        if type(molecule) == ocl.Ligand:
+            # If yes, use the to_smiles Ligand method
+            targetMolSmiles = molecule.to_smiles()
+        # Otherwise check if it is a Chem.rdchem.Mol object
+        elif type(molecule) == Chem.rdchem.Mol:
+            # If it is, get its smiles using the Ligand public function, get_smiles()
+            targetMolSmiles = get_smiles(molecule)
+        # If is neither both types above
+        else:
+            # Return an error
+            return errors.wrong_type(f"The provided variable is a '{type(molecule)}' and was expected a 'rdkit.Chem.rdchem.Mol' or 'ocl.Ligand'.")
+        # Check if both smiles are the same
+        if molSmiles == targetMolSmiles:
+            # If they are the same, return True
+            return True
+        # Otherwise (they are not the same)
+        else:
+            # Return False
+            return False
+
 # Functions
 ###############################################################################
 ## Private ##
@@ -706,6 +752,16 @@ def read_descriptors_from_json(path):
     except Exception as e:
         octools.print_error(f"Could not read the file '{path}'. Error: {e}")
     return None
+
+def get_smiles(molecule):
+    '''
+    Return the smiles of the molecule
+    Input:
+      [rdkit.Chem.rdchem.Mol] molecule - The molecule to retrive the smiles
+    Return:
+      [string] The smiles of given molecule
+    '''
+    return Chem.MolToSmiles(molecule)
 
 # Descriptors functions #
 

@@ -475,6 +475,13 @@ def argument_parsing():
                         metavar="",
                         help="Configuration file containing external executable paths")
 
+    parser.add_argument("--log-level",
+                        dest="log_level",
+                        type=int,
+                        default=0,
+                        metavar="",
+                        help="Define the log level:\n\t0 - Show everything\n\t1 - Suppress Infos\n\t2 - Suppress Infos\Warnings\n\t3 - Suppress Everything")
+
     # Return the parser
     return parser.parse_args()
 
