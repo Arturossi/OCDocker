@@ -349,9 +349,9 @@ class Ligand:
         try:
             outputJson = f"{os.path.dirname(self.path)}/{self.name}_descriptors.json"
             if not overwrite and os.path.isfile(outputJson):
-                return errors.file_exists(f"The file {outputJson} already exists and the overwrite flag is set to False, no file will be generated or overwrited.")
+                return errors.file_exists(f"The file {outputJson} already exists and the overwrite flag is set to False, no file will be generated or overwrited.", "warn")
             if os.path.isfile(outputJson):
-                octools.print_warning(f"The file '{outputJson}' already exists. It will be OVERWRITED!!!")
+                _ = errors.file_exists(f"The file '{outputJson}' already exists. It will be OVERWRITED!!!")
             try:
                 with open(outputJson, "w") as outfile:
                     json.dump(self.__safe_to_dict(), outfile)
@@ -635,12 +635,16 @@ def loadMol(molecule, sanitize = True):
                 if not sanitize:
                     # Load the molecule
                     m = rdkit.Chem.rdmolfiles.MolFromMol2File(molecule, sanitize = False)
-                    # Turn off the property cache
-                    m.UpdatePropertyCache(strict = False)
-                    # Perform a partial sanitization (THIS IS VERY IMPORTANT!!!!)
-                    Chem.SanitizeMol(m,Chem.SanitizeFlags.SANITIZE_FINDRADICALS|Chem.SanitizeFlags.SANITIZE_KEKULIZE|Chem.SanitizeFlags.SANITIZE_SETAROMATICITY|Chem.SanitizeFlags.SANITIZE_SETCONJUGATION|Chem.SanitizeFlags.SANITIZE_SETHYBRIDIZATION|Chem.SanitizeFlags.SANITIZE_SYMMRINGS, catchErrors=True)
-                    # Return the sanitized molecule
-                    return molecule, m
+                    try:
+                        # Turn off the property cache
+                        m.UpdatePropertyCache(strict = False)
+                        # Perform a partial sanitization (THIS IS VERY IMPORTANT!!!!)
+                        Chem.SanitizeMol(m,Chem.SanitizeFlags.SANITIZE_FINDRADICALS|Chem.SanitizeFlags.SANITIZE_KEKULIZE|Chem.SanitizeFlags.SANITIZE_SETAROMATICITY|Chem.SanitizeFlags.SANITIZE_SETCONJUGATION|Chem.SanitizeFlags.SANITIZE_SETHYBRIDIZATION|Chem.SanitizeFlags.SANITIZE_SYMMRINGS, catchErrors=True)
+                        # Return the sanitized molecule
+                        return molecule, m
+                    except Exception as e:
+                        _ = errors.parseMolecule(f"The molecule '{molecule}' could not be parsed.", "error")
+                        return molecule, None
 
                 return molecule, rdkit.Chem.rdmolfiles.MolFromMol2File(molecule, sanitize = True)
             else:

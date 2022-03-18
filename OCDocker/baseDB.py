@@ -75,10 +75,10 @@ def __run_p2rank(dir, fin):
 
     try:
         # Run p2rank
-        runprank.run_prank(fin, fout, algorithms, prank = prank, threads = args.cpu_cores, debug = False, boxMaxCutoff = p2rank_boxMaxCutoff, pocketCutoff = p2rank_pocketCutoff, verbose = args.verbosity)
+        runprank.run_prank(fin, fout, algorithms, prank = prank, threads = args.cpu_cores, debug = False, boxMaxCutoff = p2rank_boxMaxCutoff, pocketCutoff = p2rank_pocketCutoff, verbose = 1 if args.output_level >= 3 else 0)
     except Exception as e:
         octools.print_warning(f"The protein '{dir}' had a problem while running p2rank. Retrying to run p2rank. Exception: {e}  ")
-        runprank.run_prank(fin, fout, algorithms, prank = prank, threads = args.cpu_cores, debug = False, boxMaxCutoff = p2rank_boxMaxCutoff, pocketCutoff = p2rank_pocketCutoff, verbose = args.verbosity)
+        runprank.run_prank(fin, fout, algorithms, prank = prank, threads = args.cpu_cores, debug = False, boxMaxCutoff = p2rank_boxMaxCutoff, pocketCutoff = p2rank_pocketCutoff, verbose = 1 if args.output_level >= 3 else 0)
 
     return
 
@@ -111,22 +111,24 @@ def __thread_prepare(arguments):
     mol = arguments[0]
     overwrite = arguments[1]
     moltype = arguments[2]
+
     # Find its name
     molName = ".".join(os.path.basename(mol).split(".")[:-1])
-    if moltype == "ligand":
-        # Create the ligand object
-        m = ocl.Ligand(mol, molName, sanitize = False)
-    elif moltype == "receptor":
-        pass
-    else:
-        octools.print_error("Unknown molecule type")
-        return None
-    # Test if the ligand is valid
-    if not m.is_valid():
-        octools.print_error(f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!")
-        octools.print_error_log(f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!", f"{logdir}/DUDEz_Parse.log")
-    # Export its descriptors
-    _ = m.to_json(overwrite)
+    if overwrite or not os.path.isfile(f"{mol}/{molName}_descriptors.json"):
+        if moltype == "ligand":
+            # Create the ligand object
+            m = ocl.Ligand(mol, molName, sanitize = False)
+        elif moltype == "receptor":
+            pass
+        else:
+            _ = errors.unkown("Unknown molecule type", "error")
+            return None
+        # Test if the ligand is valid
+        if not m.is_valid():
+            _ = errors.malformedMolecule(f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!", "error")
+            octools.print_error_log(f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!", f"{logdir}/DUDEz_Parse.log")
+        # Export its descriptors
+        _ = m.to_json(overwrite)
     # Return
     return None
 

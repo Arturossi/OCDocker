@@ -6,6 +6,9 @@ import textwrap as tw
 from pprint import pprint
 
 from OCDocker.Initialise import *
+
+args.output_level = 0
+
 import OCDocker.Toolbox as octools
 
 import OCDocker.Vina as ocvina
@@ -62,11 +65,8 @@ message = tw.dedent("""\033[1;93m
 
 print(message)
 
-args.debug = 1
-args.verbosity = 1
 args.cpu_cores = 20
 args.available_cores = args.cpu_cores - 1
-args.log_level = 2
 
 basePath = "/mnt/e/Documents/OCDocker/OCDocker"
 

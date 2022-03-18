@@ -17,6 +17,12 @@ from openbabel import openbabel
 
 from OCDocker.Initialise import *
 
+# Set output levels for openbabel
+pb_log_handler = pybel.ob.OBMessageHandler()
+ob_log_handler = openbabel.OBMessageHandler()
+pb_log_handler.SetOutputLevel(args.output_level)
+ob_log_handler.SetOutputLevel(args.output_level)
+
 # License
 ###############################################################################
 '''
@@ -65,28 +71,28 @@ class DownloadProgressBar(tqdm):
 ## Public ##
 def printv(message):
     '''
-    Function to print if verbosity is invoked.
+    Function to print if verbosity mode is set.
     Input:
       message   [string] - Message to be printed.
     Return:
       -
     '''
-    if args.verbosity == 1 and args.log_level < 3:
+    if args.output_level >= 3:
         today = datetime.datetime.now()
         print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {message}")
     return
 
 def print_info(message):
     '''
-    Function to print warning.
+    Function to print warning. [DEPRECATED]
     Input:
       message [string] - Message to be printed.
     Return:
       -
     '''
-    if args.log_level < 1:
+    if args.output_level >= 2:
         today = datetime.datetime.now()
-        if args.debug == 1 or args.verboity == 1:
+        if args.output_level >= 3:
             print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['c']}INFO{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
         else:
             print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['c']}INFO{clrs['n']}: {message}")
@@ -94,15 +100,15 @@ def print_info(message):
 
 def print_success(message):
     '''
-    Print success.
+    Print success. [DEPRECATED]
     Input:
       message [string] - Message to be printed.
     Return:
       -
     '''
-    if args.log_level < 3:
+    if args.output_level >= 3:
         today = datetime.datetime.now()
-        if args.debug == 1:
+        if args.output_level >= 4:
             print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['g']}SUCCSESS{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
         else:
             print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['g']}SUCCSESS{clrs['n']}: {message}")
@@ -110,15 +116,15 @@ def print_success(message):
 
 def print_warning(message):
     '''
-    Function to print warning.
+    Function to print warning. [DEPRECATED]
     Input:
       message [string] - Message to be printed.
     Return:
       -
     '''
-    if args.log_level < 2:
+    if args.output_level >= 1:
         today = datetime.datetime.now()
-        if args.debug == 1 or args.verboity == 1:
+        if args.output_level == 4 or args.verboity == 1:
             print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['y']}WARNING{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
         else:
             print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['y']}WARNING{clrs['n']}: {message}")
@@ -126,15 +132,15 @@ def print_warning(message):
 
 def print_error(message):
     '''
-    Print error.
+    Print error. [DEPRECATED]
     Input:
       message [string] - Message to be printed.
     Return:
       -
     '''
-    if args.log_level < 3:
+    if args.output_level > 0:
         today = datetime.datetime.now()
-        if args.debug == 1 or args.verboity == 1:
+        if args.output_level == 4 or args.verboity == 1:
             print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] {clrs['r']}ERROR{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
         else:
             print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] {clrs['r']}ERROR{clrs['n']}: {message}")
@@ -359,12 +365,12 @@ def untar(fname, out_path=".", delete=False):
                     # Extract member
                     tar.extract(member=member, path=out_path)
             # Report success on untarring the file
-            print_success(f"The file {fname} has been {clrs['g']}successfully{clrs['n']} untarred to the dir {out_path}!")
+            _ = errors.ok(f"The file {fname} has been {clrs['g']}successfully{clrs['n']} untarred to the dir {out_path}!")
             # If delete flag is set, delete file
-            if(delete):
+            if delete:
                 #shutil.rmtree(fname) # remove the files
                 os.remove(fname) # remove the files
-                print_success(f"The file {fname} has been {clrs['y']}deleted!{clrs['n']}") # Report success on deleting the file
+                return errors.ok(f"The file {fname} has been {clrs['y']}deleted!{clrs['n']}") # Report success on deleting the file
             return errors.ok()
         except Exception as e:
             return errors.untar_file(message=f"{clrs['r']}Failed{clrs['n']} to untar the file {fname}.\n\n{clrs['r']}Error{clrs['n']}: {e}", level="error")
@@ -388,8 +394,8 @@ def safe_create_dir(dirname):
             # Create it
             os.mkdir(dirname)
             # Print verbosity
-            if args.verbosity:
-                print_success(f"Successfully created the directory {dirname}")
+            if args.output_level >= 3:
+                return errors.ok(f"Successfully created the directory {dirname}")
             return errors.ok()
         else:
             # It exists

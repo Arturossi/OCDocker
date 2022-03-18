@@ -64,6 +64,10 @@ class Error:
         # Subprocess errors
         self.subprocessCode           = 300
 
+        # Molecule error
+        self.parseMoleculeCode        = 400
+        self.malformedMoleculeCode    = 401
+
     ## Private ##
     def __print_success(self, message):
         '''
@@ -74,7 +78,7 @@ class Error:
           -
         '''
         today = datetime.datetime.now()
-        if self.args.debug:
+        if self.args.output_level >= 4:
             print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;92mSUCCSESS\033[1;0m: {message} In function '{inspect.currentframe().f_back.f_back.f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_back.f_back.f_lineno} from file '{inspect.currentframe().f_back.f_back.f_back.f_code.co_filename}'.")
         else:
             print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033 [1;92mSUCCSESS\033[1;0m: {message}")
@@ -89,7 +93,7 @@ class Error:
           -
         '''
         today = datetime.datetime.now()
-        if self.args.debug or self.args.verbosity:
+        if self.args.output_level >= 3:
             print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;93mWARNING\033[1;0m: {message} In function '{inspect.currentframe().f_back.f_back.f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_back.f_back.f_lineno} from file '{inspect.currentframe().f_back.f_back.f_back.f_code.co_filename}'.")
         else:
             print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;93mWARNING\033[1;0m: {message}")
@@ -104,7 +108,7 @@ class Error:
           -
         '''
         today = datetime.datetime.now()
-        if self.args.debug or self.args.verbosity:
+        if self.args.output_level >= 3:
             print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;91mERROR\033[1;0m: {message} In function '{inspect.currentframe().f_back.f_back.f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_back.f_back.f_lineno} from file '{inspect.currentframe().f_back.f_back.f_back.f_code.co_filename}'.")
         else:
             print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;91mERROR\033[1;0m")
@@ -120,22 +124,25 @@ class Error:
           -
         '''
         if message:
-            if level == "warn" and args.log_level < 2:
+            if level == "warn" and self.args.output_level >= 1:
                 self.__print_warning(message)
-            elif args.log_level < 3:
+            elif level == "error" and self.args.output_level >= 0:
                 self.__print_error(message)
+            elif level == "success" and self.args.output_level >= 3:
+                self.__print_success(message)
         return
 
     ## Public ##
     # Common errors
-    def ok(self):
+    def ok(self, message=""):
         '''
         Return this when no error appears.
         Input:
-          -
+          message [string] DEFAULT: ""     - Message to be shown.
         Return:
           -
         '''
+        self.__print_msg(message, "success")
         return self.okCode
 
     def unkown(self, message="", level="warn"):
@@ -264,7 +271,7 @@ class Error:
     # Subprocess errors
     def subprocess(self, message="", level="warn"):
         '''
-        Return this when the variable is not set.
+        Return this when there is a problem runing a subprocess.
         Input:
           message [string] DEFAULT: ""     - Message to be shown.
           level   [string] DEFAULT: "warn" - Type of message "warn" or "error".
@@ -273,6 +280,31 @@ class Error:
         '''
         self.__print_msg(message, level)
         return self.subprocessCode
+
+    # Molecules errors
+    def parseMolecule(self, message="", level="warn"):
+        '''
+        Return this when a molecule could not be parsed.
+        Input:
+          message [string] DEFAULT: ""     - Message to be shown.
+          level   [string] DEFAULT: "warn" - Type of message "warn" or "error".
+        Return:
+          -
+        '''
+        self.__print_msg(message, level)
+        return self.parseMoleculeCode
+
+    def malformedMolecule(self, message="", level="warn"):
+        '''
+        Return this when a molecule is malformed.
+        Input:
+          message [string] DEFAULT: ""     - Message to be shown.
+          level   [string] DEFAULT: "warn" - Type of message "warn" or "error".
+        Return:
+          -
+        '''
+        self.__print_msg(message, level)
+        return self.malformedMoleculeCode
 
     # Debug functions
     def print_attributes(self):
@@ -307,6 +339,9 @@ class Error:
 
         print(f"\n\t~~~~~~~~~~~~~~ PROCESS ERRORS ~~~~~~~~~~~~~~")
         print(f"\t - Subprocess error:            {self.subprocessCode}")
+
+        print(f"\n\t~~~~~~~~~~~~~ MOLECULE ERRORS ~~~~~~~~~~~~~~")
+        print(f"\t - Molecule error:              {self.moleculeParseCode}")
 
         return
 

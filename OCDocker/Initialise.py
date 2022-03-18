@@ -457,31 +457,18 @@ def argument_parsing():
                         default=False,
                         help="Updates databases")
 
-    parser.add_argument("-v", "--verbose",
-                        dest="verbosity",
-                        action="count",
-                        default=0,
-                        help="Controls verbosity")
-
-    parser.add_argument("-d", "--debug",
-                        dest="debug",
-                        action="count",
-                        default=0,
-                        help="Controls debug mode")
-
     parser.add_argument("--conf",
                         dest="config_file",
                         type=str,
                         metavar="",
                         help="Configuration file containing external executable paths")
 
-    parser.add_argument("--log-level",
-                        dest="log_level",
+    parser.add_argument("--output-level",
+                        dest="output_level",
                         type=int,
-                        default=0,
+                        default=1,
                         metavar="",
-                        help="Define the log level:\n\t0 - Show everything\n\t1 - Suppress Infos\n\t2 - Suppress Infos\Warnings\n\t3 - Suppress Everything")
-
+                        help="Define the log level:\n\t0: Critical\n\t1: Warning (default)\n\t2: Info\n\t3: Verbose mode\n\t4: Debug")
     # Return the parser
     return parser.parse_args()
 
@@ -606,4 +593,9 @@ if args.multiprocess:
 else:
     args.available_cores = 1
 
+# Limit the output_level between acceptable values
+if args.output_level > 4:
+    args.output_level = 4
+elif args.output_level < 0:
+    args.output_level = 0
 #TODO: Colocar uma lista de parâmetros do OCDocker
