@@ -5,6 +5,7 @@
 import os
 from glob import glob
 from tqdm import tqdm
+from multiprocessing import Pool
 
 from OCDocker.Initialise import *
 import OCDocker.Ligand as ocl
@@ -43,11 +44,40 @@ import OCDocker.DUDEZ as ocdudez
 # Functions
 ###############################################################################
 ## Private ##
+def __thread_validation(arguments):
+    '''
+    Function to
+    Input:
+     arguments [tuple(string, string)] - Tuple containing, in this order:
+        - [string] The molecule path
+        - [string] The database dir
+    Return:
+      [int]
+        1 - If a problem has been found
+        0 - If no problem has been found
+    '''
+    # Unwarping arguments
+    mol = arguments[0]
+    database = arguments[1]
+    # Get its name
+    molName = os.path.splitext(os.path.basename(mol))[0]
+    # Create a ligand object of it
+    l = ocl.Ligand(mol, molName, sanitize = False, from_json_descriptors = f"{database}/{molName}_descriptors.json")
+    # Check its validity
+    if not l.is_valid():
+        # If not valid, throw an error
+        _ = errors.malformedMolecule(f"The molecule '{mol}' has some problems on it. One or more its descriptors are lacking!")
+        # Print problems to log
+        octools.print_error_log(f"The molecule '{mol}' has some problems on it. One or more its descriptors are lacking!", f"{logdir}/DUDEz_molecule_validation_report.log")
+        # Add one more problematic molecule to the counter
+        return 1
+    return 0
+
 def __inner_validate_database_molecules(database, subset):
     '''
     Validates all the molecules in the DUDEZ database.
     Input:
-      database [string] - The database dir.
+      database [string] - The database dir
       subset   [string] - The database subset (DUDE_Z_ligands, DUDE_Z_decoys, extrema_decoys, goldilocks_decoys)
     Return:
       -
@@ -58,22 +88,24 @@ def __inner_validate_database_molecules(database, subset):
     else:
         # Get all the molecules
         mols = glob(f"{database}/*.mol2")
+        # Arguments to pass to each Thread in the Thread Pool
+        arguments = []
+        # For each file in the glob
+        for mol in mols:
+            # Append a tuple containing the file name and ovewrite flag to the arguments list
+            arguments.append((mol, database))
         # Count the number of molecules
         lenMols = len(mols)
-        # For each molecule in dudezDirLigand
-        for mol in tqdm(iterable=mols, total=lenMols, desc = subset):
-            # Get its name
-            molName = os.path.splitext(os.path.basename(mol))[0]
-            # Create a ligand object of it
-            l = ocl.Ligand(mol, molName, sanitize = False, from_json_descriptors = f"{database}/{molName}_descriptors.json")
-            # Check its validity
-            if not l.is_valid():
-                # If not valid, throw an error
-                _ = errors.malformedMolecule(f"The molecule '{mol}' has some problems on it. One or more its descriptors are lacking!")
-                # Print problems to log
-                octools.print_error_log(f"The molecule '{mol}' has some problems on it. One or more its descriptors are lacking!\nCommand: l = ocl.Ligand({mol}, {molName}, sanitize = False, from_json_descriptors = f'{database}/{molName}_descriptors.json'", f"{logdir}/DUDEz_molecule_validation_report.log")
-                # Add one more problematic molecule to the counter
-                problematicMolsNum += 1
+        # Create a Thread pool with the maximum available_cores
+        p = Pool(args.available_cores)
+        # For each molecule in dudezDirLigand (multiThreaded)
+        for hasProblem in tqdm(p.imap_unordered(__thread_validation, arguments), total=lenMols, desc = subset):
+            # Add the problem num, it can be 0 for no problem and 1 for some problem
+            problematicMolsNum += hasProblem
+        # Close the pool
+        p.close()
+        # Wait the pool to join
+        p.join()
         # Parameterize error string
         problematicMolsError = f"In dudez database there are {problematicMolsNum} problematic molecules."
         # If there is any problematic molecule
@@ -84,11 +116,10 @@ def __inner_validate_database_molecules(database, subset):
             # Cheer the user up
             problematicMolsError = f"{problematicMolsError} Phew!"
         # Print the error (or be happy with no error!)
-        octools.print_info(problematicMolsError)
+        octools.print_info(problematicMolsError, force = True)
 
     return
 
-## Public ##
 def __validate_database_molecules():
     '''
     Validates all the molecules in the DUDEZ database.
@@ -126,6 +157,7 @@ def __validate_database_molecules():
 
     return
 
+## Public ##
 def verify_integrity():
     '''
     Verifies the integrity of the DUDEZ database
