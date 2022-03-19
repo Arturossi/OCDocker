@@ -56,6 +56,7 @@ class Error:
 
         # Directory errors
         self.createDirCode            = 150
+        self.dirDoesNotExistsCode     = 151
 
         # Variable errors
         self.wrongTypeCode            = 200
@@ -243,6 +244,18 @@ class Error:
         self.__print_msg(message, level)
         return self.createDirCode
 
+    def dir_does_not_exists(self, message="", level="warn"):
+        '''
+        Return this when the directory does not exists.
+        Input:
+          message [string] DEFAULT: ""     - Message to be shown.
+          level   [string] DEFAULT: "warn" - Type of message "warn" or "error".
+        Return:
+          -
+        '''
+        self.__print_msg(message, level)
+        return self.dirDoesNotExistsCode
+
     # Variable errors
     def wrong_type(self, message="", level="warn"):
         '''
@@ -333,6 +346,7 @@ class Error:
 
         print(f"\n\t~~~~~~~~~~~~~ DIRECTORY ERRORS ~~~~~~~~~~~~~")
         print(f"\t - Directory creation error:    {self.createDirCode}")
+        print(f"\t - Directory does not exist:    {self.dirDoesNotExistsCode}")
 
         print(f"\n\t~~~~~~~~~~~~~ VARIABLE ERRORS ~~~~~~~~~~~~~~")
         print(f"\t - Wrong type:                  {self.wrongTypeCode}")
@@ -341,7 +355,8 @@ class Error:
         print(f"\t - Subprocess error:            {self.subprocessCode}")
 
         print(f"\n\t~~~~~~~~~~~~~ MOLECULE ERRORS ~~~~~~~~~~~~~~")
-        print(f"\t - Molecule error:              {self.moleculeParseCode}")
+        print(f"\t - Molecule parse error:        {self.moleculeParseCode}")
+        print(f"\t - Malformed molecule error:    {self.malformedMoleculeCode}")
 
         return
 

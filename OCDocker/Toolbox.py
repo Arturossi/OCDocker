@@ -82,15 +82,16 @@ def printv(message):
         print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {message}")
     return
 
-def print_info(message):
+def print_info(message, force=False):
     '''
-    Function to print warning. [DEPRECATED]
+    Function to print warning.
     Input:
-      message [string] - Message to be printed.
+      message [string]                - Message to be printed.
+      force   [bool]   DEFAULT: False - Forces the system to print the message, even if output_level is turning it off (AVOID TO SET THIS TO TRUE!).
     Return:
       -
     '''
-    if args.output_level >= 2:
+    if args.output_level >= 2 or force:
         today = datetime.datetime.now()
         if args.output_level >= 3:
             print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['c']}INFO{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
@@ -98,15 +99,16 @@ def print_info(message):
             print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['c']}INFO{clrs['n']}: {message}")
     return
 
-def print_success(message):
+def print_success(message, force=False):
     '''
     Print success. [DEPRECATED]
     Input:
-      message [string] - Message to be printed.
+      message [string]                - Message to be printed.
+      force   [bool]   DEFAULT: False - Forces the system to print the message, even if output_level is turning it off (AVOID TO SET THIS TO TRUE!).
     Return:
       -
     '''
-    if args.output_level >= 3:
+    if args.output_level >= 3 or force:
         today = datetime.datetime.now()
         if args.output_level >= 4:
             print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['g']}SUCCSESS{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
@@ -114,15 +116,16 @@ def print_success(message):
             print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['g']}SUCCSESS{clrs['n']}: {message}")
     return
 
-def print_warning(message):
+def print_warning(message, force=False):
     '''
     Function to print warning. [DEPRECATED]
     Input:
-      message [string] - Message to be printed.
+      message [string]                - Message to be printed.
+      force   [bool]   DEFAULT: False - Forces the system to print the message, even if output_level is turning it off (AVOID TO SET THIS TO TRUE!).
     Return:
       -
     '''
-    if args.output_level >= 1:
+    if args.output_level >= 1 or force:
         today = datetime.datetime.now()
         if args.output_level == 4 or args.verboity == 1:
             print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['y']}WARNING{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
@@ -130,15 +133,16 @@ def print_warning(message):
             print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['y']}WARNING{clrs['n']}: {message}")
     return
 
-def print_error(message):
+def print_error(message, force=False):
     '''
     Print error. [DEPRECATED]
     Input:
-      message [string] - Message to be printed.
+      message [string]                - Message to be printed.
+      force   [bool]   DEFAULT: False - Forces the system to print the message, even if output_level is turning it off (AVOID TO SET THIS TO TRUE!).
     Return:
       -
     '''
-    if args.output_level > 0:
+    if args.output_level > 0 or force:
         today = datetime.datetime.now()
         if args.output_level == 4 or args.verboity == 1:
             print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] {clrs['r']}ERROR{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
@@ -205,7 +209,6 @@ def print_error_log(message, logfile, mode="a"):
     with open(logfile, mode) as f:
         f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] ERROR: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.\n")
     return
-
 
 def print_section(n, name):
     '''

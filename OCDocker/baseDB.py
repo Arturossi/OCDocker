@@ -132,7 +132,7 @@ def __thread_prepare(arguments):
     # Return
     return None
 
-def __prepare_parallel(dirList, overwrite, moltype):
+def __prepare_parallel(dirList, overwrite, moltype, subdir):
     '''
     Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
     Input:
@@ -151,7 +151,7 @@ def __prepare_parallel(dirList, overwrite, moltype):
     # Create a Thread pool with the maximum available_cores
     p = Pool(args.available_cores)
     # Perform the multi process
-    for _ in tqdm(p.imap_unordered(__thread_prepare, arguments), total = len(arguments), desc = 'Molecules processed'):
+    for _ in tqdm(p.imap_unordered(__thread_prepare, arguments), total = len(arguments), desc = subdir):
         pass
     # Close the pool
     p.close()
@@ -170,7 +170,7 @@ def verify_integrity(chosenArchive):
       -
     '''
     # Verify the integrity of the database
-    octools.printv("Verifiying the integrity of the DUDEZ database")
+    octools.printv(f"Verifiying the integrity of the {chosenArchive} database")
 
     # Get all dirs paths in the database
     dirs = glob(f"{chosenArchive}/*")
@@ -402,7 +402,7 @@ def prepare(archive, overwrite = False):
     # Generate boxes for all receptors
     octools.printv("Generating information regarding possible ligand site.")
 
-    # Get all dirs paths in the DUDEZ database
+    # Get all dirs paths in the database
     dirs = glob(f"{chosenArchive}/*")
 
     # For each directory in the database folder
@@ -462,13 +462,13 @@ def prepare(archive, overwrite = False):
                     _ = octools.split_and_convert(mol2File, dudezDirDecoy, "mol2", overwrite)
 
             # Get all mol2 files in extremaDir
-            mol2Files = glob(f"{extremaDir}/extrema_0pt5LD_decoy_poses.mol2")
+            mol2Files = glob(f"{extremaDir}/*.mol2")
             # Separate ligands and decoys
             for mol2File in mol2Files:
                 _ = octools.split_and_convert(mol2File, extremaDirDecoy, "mol2", overwrite)
 
             # Get all mol2 files in goldilocksDir
-            mol2Files = glob(f"{goldilocksDir}/goldilocks_0pt5LD_decoy_poses.mol2")
+            mol2Files = glob(f"{goldilocksDir}/*.mol2")
             # Separate ligands and decoys
             for mol2File in mol2Files:
                 _ = octools.split_and_convert(mol2File, goldilocksDirDecoy, "mol2", overwrite)
@@ -477,13 +477,14 @@ def prepare(archive, overwrite = False):
             moltype = "ligand"
 
             # For each molecule in dudez ligand dir
-            __prepare_parallel(glob(f"{dudezDirLigand}/*.mol2"), overwrite, moltype)
+            mols = glob(f"{dudezDirLigand}/*.mol2")
+            __prepare_parallel(mols, overwrite, moltype, f"{ptn} DUDEz ligand")
             # For each molecule in dudez decoy dir
-            __prepare_parallel(glob(f"{dudezDirDecoy}/*.mol2"), overwrite, moltype)
+            __prepare_parallel(glob(f"{dudezDirDecoy}/*.mol2"), overwrite, moltype, f"{ptn} DUDEz decoy")
             # For each molecule in extrema decoy dir
-            __prepare_parallel(glob(f"{extremaDirDecoy}/*.mol2"), overwrite, moltype)
+            __prepare_parallel(glob(f"{extremaDirDecoy}/*.mol2"), overwrite, moltype, f"{ptn} extrema decoy")
             # For each molecule in goldilocks decoy dir
-            __prepare_parallel(glob(f"{goldilocksDirDecoy}/*.mol2"), overwrite, moltype)
+            __prepare_parallel(glob(f"{goldilocksDirDecoy}/*.mol2"), overwrite, moltype, f"{ptn} goldilocks decoy")
 
         elif archive == "pdbbind":
             # Set the input file name path

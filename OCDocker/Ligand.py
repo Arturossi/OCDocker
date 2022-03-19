@@ -10,9 +10,16 @@ from glob import glob
 from rdkit import Chem
 from rdkit.Chem import Descriptors
 from openbabel import openbabel
+from rdkit import RDLogger
 
 from OCDocker.Initialise import *
 import OCDocker.Toolbox as octools
+
+# Set output levels for openbabel
+ob_log_handler = openbabel.OBMessageHandler()
+ob_log_handler.SetOutputLevel(args.output_level)
+if args.output_level == 0:
+    RDLogger.DisableLog('rdApp.*')
 
 # License
 ###############################################################################

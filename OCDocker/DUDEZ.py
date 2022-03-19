@@ -2,8 +2,14 @@
 
 # Imports
 ###############################################################################
+import os
+from glob import glob
+from tqdm import tqdm
+
 from OCDocker.Initialise import *
+import OCDocker.Ligand as ocl
 import OCDocker.baseDB as ocbdb
+import OCDocker.Toolbox as octools
 
 # License
 ###############################################################################
@@ -37,8 +43,89 @@ import OCDocker.DUDEZ as ocdudez
 # Functions
 ###############################################################################
 ## Private ##
+def __inner_validate_database_molecules(database, subset):
+    '''
+    Validates all the molecules in the DUDEZ database.
+    Input:
+      database [string] - The database dir.
+      subset   [string] - The database subset (DUDE_Z_ligands, DUDE_Z_decoys, extrema_decoys, goldilocks_decoys)
+    Return:
+      -
+    '''
+    problematicMolsNum = 0
+    if not os.path.isdir(database):
+        _ = errors.dir_does_not_exists(f"The directory '{database}' does not exist. {clrs['p']}PLEASE{clrs['n']}, review this!")
+    else:
+        # Get all the molecules
+        mols = glob(f"{database}/*.mol2")
+        # Count the number of molecules
+        lenMols = len(mols)
+        # For each molecule in dudezDirLigand
+        for mol in tqdm(iterable=mols, total=lenMols, desc = subset):
+            # Get its name
+            molName = os.path.splitext(os.path.basename(mol))[0]
+            # Create a ligand object of it
+            l = ocl.Ligand(mol, molName, sanitize = False, from_json_descriptors = f"{database}/{molName}_descriptors.json")
+            # Check its validity
+            if not l.is_valid():
+                # If not valid, throw an error
+                _ = errors.malformedMolecule(f"The molecule '{mol}' has some problems on it. One or more its descriptors are lacking!")
+                # Print problems to log
+                octools.print_error_log(f"The molecule '{mol}' has some problems on it. One or more its descriptors are lacking!\nCommand: l = ocl.Ligand({mol}, {molName}, sanitize = False, from_json_descriptors = f'{database}/{molName}_descriptors.json'", f"{logdir}/DUDEz_molecule_validation_report.log")
+                # Add one more problematic molecule to the counter
+                problematicMolsNum += 1
+        # Parameterize error string
+        problematicMolsError = f"In dudez database there are {problematicMolsNum} problematic molecules."
+        # If there is any problematic molecule
+        if problematicMolsNum > 0:
+            # Tell the user to look in the log
+            problematicMolsError = f"{problematicMolsError} Find more info in the log stored at '{logdir}/DUDEz_molecule_validation_report.log'."
+        else:
+            # Cheer the user up
+            problematicMolsError = f"{problematicMolsError} Phew!"
+        # Print the error (or be happy with no error!)
+        octools.print_info(problematicMolsError)
+
+    return
 
 ## Public ##
+def __validate_database_molecules():
+    '''
+    Validates all the molecules in the DUDEZ database.
+    Input:
+      -
+    Return:
+      -
+    '''
+    # Get all dirs paths in the database
+    dirs = glob(f"{dudez_archive}/*")
+    # For each directory
+    for dir in dirs:
+        # Get target Name
+        targetName = dir.split(os.path.sep)[-1]
+
+        # Set the 3 dirs containing ligand/decoys
+        dudezDir = f"{dir}/DUDE_Z"
+        extremaDir = f"{dir}/Extrema"
+        goldilocksDir = f"{dir}/Goldilocks"
+
+        # Parameterize paths
+        dudezDirLigand = f"{dudezDir}_ligands"
+        dudezDirDecoy = f"{dudezDir}_decoys"
+        extremaDirDecoy = f"{extremaDir}_decoys"
+        goldilocksDirDecoy = f"{goldilocksDir}_decoys"
+
+        # Check if dudezDirLigand exists
+        __inner_validate_database_molecules(dudezDirLigand, f"{targetName} DUDEz ligands")
+        # Check if dudezDirDecoy exists
+        __inner_validate_database_molecules(dudezDirDecoy, f"{targetName} DUDEz decoys")
+        # Check if extremaDirDecoy exists
+        __inner_validate_database_molecules(extremaDirDecoy, f"{targetName} extrema decoys")
+        # Check if goldilocksDirDecoy exists
+        __inner_validate_database_molecules(goldilocksDirDecoy, f"{targetName} goldilocks decoys")
+
+    return
+
 def verify_integrity():
     '''
     Verifies the integrity of the DUDEZ database
@@ -47,7 +134,12 @@ def verify_integrity():
     Return:
       -
     '''
+    octools.print_info("Verifiying the integrity of the DUDEZ database.", force = True)
     ocbdb.verify_integrity(dudez_archive)
+    octools.print_info("Verifiying the integrity of the DUDEZ ligand candidates.", force = True)
+    __validate_database_molecules()
+
+    return
 
 def convert_debug_to_production(chosenAlgorithm = "ac", strict = False, removeDebug = False):
     '''
