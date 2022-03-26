@@ -15,7 +15,7 @@ import OCDocker.Vina as ocvina
 import OCDocker.Smina as ocsmina
 import OCDocker.Database as ocdb
 import OCDocker.Astex as ocastex
-import OCDocker.DUDEZ as ocdudez
+import OCDocker.DUDEz as ocdudez
 import OCDocker.PDBbind as ocpdbbind
 import OCDocker.Ligand as ocl
 import OCDocker.Complex as occ
@@ -70,7 +70,7 @@ args.available_cores = args.cpu_cores - 1
 
 basePath = "/mnt/e/Documents/OCDocker/OCDocker"
 
-dbsampledir = f"{basePath}/data/ocdb/DUDEZ/AA2AR"
+dbsampledir = f"{basePath}/data/ocdb/DUDEz/AA2AR"
 
 '''# Testing the classes and objects
 receptorTest = ocr.Receptor(f"{basePath}/test/rec.crg.pdb", relativeASAcutoff=0.7, name="Receptor teste")

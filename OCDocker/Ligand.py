@@ -407,7 +407,7 @@ class Ligand:
         # Get the smiles for the ligand object
         molSmiles = self.to_smiles()
         # Check if the type of the molecule is a Ligand
-        if type(molecule) == ocl.Ligand:
+        if type(molecule) == Ligand:
             # If yes, use the to_smiles Ligand method
             targetMolSmiles = molecule.to_smiles()
         # Otherwise check if it is a Chem.rdchem.Mol object

@@ -163,7 +163,7 @@ def __prepare_parallel(dirList, overwrite, moltype, subdir):
 ## Public ##
 def verify_integrity(chosenArchive):
     '''
-    Verifies the integrity of the DUDEZ database
+    Verifies the integrity of the DUDEz database
     Input:
      chosenArchive [string] - Which archive will be processed. [dudez, pdbbind, astex]
     Return:
@@ -297,7 +297,7 @@ def convert_debug_to_production(chosenArchive, chosenAlgorithm = "ac", strict = 
     # Generate boxes for all receptors
     octools.printv("Converting p2rank debug to production file tree.")
 
-    # Get all dirs paths in the DUDEZ database
+    # Get all dirs paths in the DUDEz database
     dirs = glob(f"{chosenArchive}/*")
 
     # Set the allowed values

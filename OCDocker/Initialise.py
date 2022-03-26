@@ -578,7 +578,7 @@ ocdocker_path = os.path.dirname(os.path.abspath( __file__ ))
 astex_archive = os.path.join(ocdb, "Astex")
 
 # Directory containing the dudez archive
-dudez_archive = os.path.join(ocdb, "DUDEZ")
+dudez_archive = os.path.join(ocdb, "DUDEz")
 
 # Directory containing the pdbbind archive
 pdbbind_archive = os.path.join(ocdb, "PDBbind")

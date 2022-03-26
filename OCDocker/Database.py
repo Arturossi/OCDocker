@@ -12,7 +12,7 @@ from glob import glob
 from tqdm import tqdm
 
 from OCDocker.Initialise import *
-import OCDocker.DUDEZ as ocdudez
+import OCDocker.DUDEz as ocdudez
 import OCDocker.Astex as ocastex
 import OCDocker.PDBbind as ocpdbbind
 import OCDocker.Toolbox as octools
@@ -62,7 +62,7 @@ def create_directories():
     _ = octools.safe_create_dir(dudez_archive)
     _ = octools.safe_create_dir(astex_archive)
 
-def update_DUDEZ():
+def update_DUDEz():
     '''
     Updates the DUDE-Z database.
     Input:
@@ -76,10 +76,10 @@ def update_DUDEZ():
     octools.printv("Downloading the DUDE-Z database")
 
     # Download file (with progress bar!!!)
-    octools.download_url(dudez_download, "./tmp/DUDEZ.tgz")
+    octools.download_url(dudez_download, "./tmp/DUDEz.tgz")
 
     # Untar it (deleting the downloaded .tgz)
-    octools.untar("./tmp/DUDEZ.tgz", out_path="./tmp", delete=True)
+    octools.untar("./tmp/DUDEz.tgz", out_path="./tmp", delete=True)
 
     # Move the folders (and subfolders) to right database folders
     shutil.move("./tmp/DOCKING_GRIDS_AND_POSES", dudez_archive)
@@ -87,7 +87,7 @@ def update_DUDEZ():
     # Delete the temporary folder
     shutil.rmtree("./tmp")
 
-    # Run p2rank in the DUDEZ database
+    # Run p2rank in the DUDEz database
     ocdudez.prepare()
 
     return
@@ -341,9 +341,9 @@ def update_databases():
     update_astex(overwrite = args.overwrite)
     print("\n\nDone updating Astex!\n")
 
-    print("Updating DUDEZ database...")
-    update_DUDEZ(overwrite = args.overwrite)
-    print("\n\nDone updating DUDEZ!\n")
+    print("Updating DUDEz database...")
+    update_DUDEz(overwrite = args.overwrite)
+    print("\n\nDone updating DUDEz!\n")
 
     print("\n\nDone updating ALL databases.\n")
 
