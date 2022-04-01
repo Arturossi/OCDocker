@@ -72,6 +72,22 @@ basePath = "/mnt/e/Documents/OCDocker/OCDocker"
 
 dbsampledir = f"{basePath}/data/ocdb/DUDEz/AA2AR"
 
+import pickle
+ligands = []
+with (open("ligands.pickle", "rb")) as openfile:
+    while True:
+        try:
+            ligands = pickle.load(openfile)
+        except EOFError:
+            break
+arguments = []
+for i in range(len(ligands)):
+    innerToCompare = []
+        for j in range(i + 1, len(ligands)):
+            innerToCompare.append(ligands[j])
+        if innerToCompare:
+            arguments.append((ligands[i], innerToCompare))
+            
 '''# Testing the classes and objects
 receptorTest = ocr.Receptor(f"{basePath}/test/rec.crg.pdb", relativeASAcutoff=0.7, name="Receptor teste")
 ligandTest = ocl.Ligand(f"{basePath}/test/xtal-lig.pdb", name="Ligante teste")

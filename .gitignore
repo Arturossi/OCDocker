@@ -169,3 +169,6 @@ inDev2/
 
 # tmp folder is temporary, so... IGNORE IT
 tmp/
+
+# Ignore pickle files... (for now)
+*.pickle

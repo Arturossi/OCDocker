@@ -149,14 +149,10 @@ def __prepare_parallel(dirList, overwrite, moltype, subdir):
         # Append a tuple containing the file name and ovewrite flag to the arguments list
         arguments.append((filename, overwrite, moltype))
     # Create a Thread pool with the maximum available_cores
-    p = Pool(args.available_cores)
-    # Perform the multi process
-    for _ in tqdm(p.imap_unordered(__thread_prepare, arguments), total = len(arguments), desc = subdir):
-        pass
-    # Close the pool
-    p.close()
-    # Wait the pool to join
-    p.join()
+    with Pool(args.available_cores) as p:
+        # Perform the multi process
+        for _ in tqdm(p.imap_unordered(__thread_prepare, arguments), total = len(arguments), desc = subdir):
+            pass
     # Return
     return None
 

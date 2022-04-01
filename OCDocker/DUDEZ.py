@@ -97,15 +97,11 @@ def __inner_validate_database_molecules(database, subset):
         # Count the number of molecules
         lenMols = len(mols)
         # Create a Thread pool with the maximum available_cores
-        p = Pool(args.available_cores)
-        # For each molecule in dudezDirLigand (multiThreaded)
-        for hasProblem in tqdm(p.imap_unordered(__thread_validation, arguments), total=lenMols, desc = subset):
-            # Add the problem num, it can be 0 for no problem and 1 for some problem
-            problematicMolsNum += hasProblem
-        # Close the pool
-        p.close()
-        # Wait the pool to join
-        p.join()
+        with Pool(args.available_cores) as p:
+            # For each molecule in dudezDirLigand (multiThreaded)
+            for hasProblem in tqdm(p.imap_unordered(__thread_validation, arguments), total=lenMols, desc = subset):
+                # Add the problem num, it can be 0 for no problem and 1 for some problem
+                problematicMolsNum += hasProblem
         # Parameterize error string
         problematicMolsError = f"In dudez database there are {problematicMolsNum} problematic molecules."
         # If there is any problematic molecule
@@ -157,6 +153,90 @@ def __validate_database_molecules():
 
     return
 
+def __paralel_check_repeated_ligands(arguments):
+    '''
+    Runs the ligand simmilarity check in parallel.
+    Input:
+      arguments [tuple(Ligand,list(Ligand))] - A tuple with 2 positions, the first is the reference ligand and the list of ligands to be compared.
+    Return:
+      -
+    '''
+    # Change the ligand name to a more readable one
+    ligand = arguments[0]
+    # Change the ligand list to a more readable one
+    ligandsToCompare = arguments[1]
+    # Check if ligandsToCompare is valid
+    if not ligandsToCompare:
+        _ = errors.empty(f"The ligand list to the ligand {ligand.path} is empty.", force = True)
+        octools.print_error_log(f"The ligand list to the ligand {ligand.path} is empty.", f"{logdir}/DUDEz_database_redundant_residues.log")
+        # Skip
+        return None
+    # Get the ligand path
+    ligandPath = os.path.dirname(ligand.path)
+    # Create the unique and not unique reference files names
+    ligandFileName = f"{ligandPath}/{ligand.name}"
+    uniqueFile = f"{ligandFileName}_unique"
+    notUniqueReferenceFile = f"{ligandPath}/{ligand.name}_NOTunique"
+    # List of not unique files
+    notUniqueFiles = []
+    # If there is no uniqueFile means that this file has not been checked
+    if not os.path.isfile(uniqueFile) and not os.path.isfile(notUniqueReferenceFile):
+        # For each ligand in ligand list
+        for l in ligandsToCompare:
+            # Find the l.path
+            lPath = os.path.dirname(l.path)
+            # If no target ligand file for uniqueness or not uniquness exists
+            if not os.path.isfile(f"{lPath}/{l.name}_unique") and not os.path.isfile(f"{lPath}/{l.name}_NOTunique"):
+                # Check if the molecules are the same
+                if ligand.is_same_molecule(l, sanitize = False):
+                    # If they are the same, print the error to the user
+                    octools.print_error(f"The ligand {ligand.path} and the ligand {l.path} might be the same. It is advised to check them manually.", force = True)
+                    octools.print_error_log(f"The ligand {ligand.path} and the ligand {l.path} might be the same. It is advised to check them manually.", f"{logdir}/DUDEz_database_redundant_residues.log")
+                    # Append the l.path and l.name to notUniqueFilesLit
+                    notUniqueFiles.append(f"{lPath}/{l.name}")
+        # If the ligand is unique
+        if not notUniqueFiles:
+            # Write the file
+            with open(uniqueFile, "w") as f:
+                # Whatever if file was already existing
+                try:
+                    # Set current time anyway
+                    os.utime(uniqueFile, None)
+                except OSError:
+                    # File deleted between open() and os.utime() calls
+                    pass
+        else:
+            # Write the file
+            with open(notUniqueReferenceFile, "w") as f:
+                # Whatever if file was already existing
+                try:
+                    # Write the ligand file name to the list
+                    f.write(f"{ligandFileName}\n")
+                    # For each element in the not unique path list
+                    for notUnique in notUniqueFiles:
+                        # Join the paths for future checks and write them to the file
+                        f.write(f"{notUnique}\n")
+                except OSError:
+                    # File deleted between open() and os.utime() calls
+                    pass
+            # For each other file (since they are the same, write the not unique file will save time)
+            for notUnique in notUniqueFiles:
+                notUniqueFile = f"{notUnique}_NOTunique"
+                # Write the file
+                with open(notUniqueFile, "w") as f:
+                    # Whatever if file was already existing
+                    try:
+                        # Write the ligand file name to the list
+                        f.write(f"{ligandFileName}\n")
+                        # For each element in the not unique path list
+                        for notUnique2 in notUniqueFiles:
+                            # Join the paths for future checks and write them to the file
+                            f.write(f"{notUnique2}\n")
+                    except OSError:
+                        # File deleted between open() and os.utime() calls
+                        pass
+    return None
+
 def __check_for_repeated_ligands():
     '''
     Checks if there is any repeated ligand in the DUDEz database.
@@ -167,19 +247,29 @@ def __check_for_repeated_ligands():
     '''
     # Get all dirs paths in the database
     dirs = glob(f"{dudez_archive}/*")
+    # List to hold all comparisons
+    arguments = []
     # For each directory
     for dir in dirs:
         # Create a ligand list for the currend molecule and fill it with all its ligands
         ligands = get_ligands_from_molecule(dir)
         # For each ligand in the list, get its index
         for i in range(len(ligands)):
+            # List of ligands to compare
+            innerToCompare = []
             # Get the index of all next elements in the list
             for j in range(i + 1, len(ligands)):
-                # Check if the molecules are the same
-                if ligands[i].is_same_molecule(ligands[j]):
-                    # If they are the same, print the error to the user
-                    octools.print_error(f"The ligand {ligands[i]} and the ligand {ligands[j]} might be the same. It is advised to check them manually.", force = True)
-                    octools.print_error_log(f"The ligand {ligands[i]} and the ligand {ligands[j]} might be the same. It is advised to check them manually.", f"{logdir}/DUDEz_database_redundant_residues.log")
+                # Add the element to the ligand list
+                innerToCompare.append(ligands[j])
+            # If there is a list to compare
+            if innerToCompare:
+                # Add the tuple to the list
+                arguments.append((ligands[i], innerToCompare))
+    # Create the pool with available_cores
+    with Pool(args.available_cores) as p:
+        # For each molecule in dudezDirLigand (multiThreaded)
+        for _ in tqdm(p.imap_unordered(__paralel_check_repeated_ligands, arguments), total = len(arguments), desc = "DUDEz checking"):
+            pass
 
     return
 
@@ -234,12 +324,14 @@ def get_ligands_from_molecule(molecule):
 
     # For each database in the list
     for db in databases:
+        # Get a list of .mol2 molecules
+        mols = glob(f"{db}/*.mol2")
         # For each .mol2 file in dudezDirLigand directory
-        for l in glob(f"{db}/*.mol2"):
+        for l in tqdm(iterable = mols, total = len(mols), desc = f"Molecules processed for '{targetName}'."):
             # Find the ligand name in the DUDEz ligand database
             ligandName = os.path.splitext(os.path.basename(l))[0]
-            # Append to the ligands list its ligand
-            ligands.append(ocl.Ligand(l, ligandName, from_json_descriptors = f"{db}/{ligandName}_descriptors.json"))
+            # Append to the ligands list its ligand (without sanitization, because it return errors when there is a N in a cyclic strucuture, my guess)
+            ligands.append(ocl.Ligand(l, ligandName, sanitize = False, from_json_descriptors = f"{db}/{ligandName}_descriptors.json"))
 
     return ligands
 

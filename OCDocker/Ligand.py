@@ -348,7 +348,7 @@ class Ligand:
         '''
         Stores the descriptors as json to avoid the necessity of evaluate them many times.
         Input:
-          ligand [ocl.Ligand] - The ligand to has its descriptors stored as json.
+          overwrite [bool] DEFAULT: False - Flag to allow overwriting the target file.
         Return:
           [int]
           See Error.py for all return codes.
@@ -392,11 +392,12 @@ class Ligand:
         '''
         return get_smiles(self.molecule)
 
-    def is_same_molecule(self, molecule):
+    def is_same_molecule(self, molecule, sanitize = False):
         '''
         Compare two molecules to check if they are the same using their SMILES.
         Input:
-          [rdkit.Chem.rdchem.Mol/ocl.Ligand] molecule - The molecule to compare to.
+          [rdkit.Chem.rdchem.Mol/ocl.Ligand] molecule               - The molecule to compare with.
+          [bool]                             sanitize DEFAULT: True - Flag to allow, or not, molecules sanitization.
         Return:
           [bool]
             True  - If both molecules are the same.
@@ -410,16 +411,25 @@ class Ligand:
         if type(molecule) == Ligand:
             # If yes, use the to_smiles Ligand method
             targetMolSmiles = molecule.to_smiles()
+            targetMolMorganFp1 = molecule.FpDensityMorgan1
+            targetMolMorganFp2 = molecule.FpDensityMorgan2
+            targetMolMorganFp3 = molecule.FpDensityMorgan3
+
         # Otherwise check if it is a Chem.rdchem.Mol object
         elif type(molecule) == Chem.rdchem.Mol:
             # If it is, get its smiles using the Ligand public function, get_smiles()
-            targetMolSmiles = get_smiles(molecule)
+            mol = loadMol(molecule, sanitize = sanitize)
+            targetMolSmiles = get_smiles(mol)
+            targetMolMorganFp1 = findFpDensityMorgan1(mol)
+            targetMolMorganFp2 = findFpDensityMorgan2(mol)
+            targetMolMorganFp3 = findFpDensityMorgan3(mol)
+
         # If is neither both types above
         else:
             # Return an error
             return errors.wrong_type(f"The provided variable is a '{type(molecule)}' and was expected a 'rdkit.Chem.rdchem.Mol' or 'ocl.Ligand'.")
-        # Check if both smiles are the same
-        if molSmiles == targetMolSmiles:
+        # Check if both smiles and MorganFp 1, 2 and 3 are the same
+        if molSmiles == targetMolSmiles and self.FpDensityMorgan1 == targetMolMorganFp1 and self.FpDensityMorgan2 == targetMolMorganFp2 and self.FpDensityMorgan3 == targetMolMorganFp3:
             # If they are the same, return True
             return True
         # Otherwise (they are not the same)
@@ -646,7 +656,7 @@ def loadMol(molecule, sanitize = True):
                         # Turn off the property cache
                         m.UpdatePropertyCache(strict = False)
                         # Perform a partial sanitization (THIS IS VERY IMPORTANT!!!!)
-                        Chem.SanitizeMol(m,Chem.SanitizeFlags.SANITIZE_FINDRADICALS|Chem.SanitizeFlags.SANITIZE_KEKULIZE|Chem.SanitizeFlags.SANITIZE_SETAROMATICITY|Chem.SanitizeFlags.SANITIZE_SETCONJUGATION|Chem.SanitizeFlags.SANITIZE_SETHYBRIDIZATION|Chem.SanitizeFlags.SANITIZE_SYMMRINGS, catchErrors=True)
+                        Chem.SanitizeMol(m, Chem.SanitizeFlags.SANITIZE_FINDRADICALS|Chem.SanitizeFlags.SANITIZE_KEKULIZE|Chem.SanitizeFlags.SANITIZE_SETAROMATICITY|Chem.SanitizeFlags.SANITIZE_SETCONJUGATION|Chem.SanitizeFlags.SANITIZE_SETHYBRIDIZATION|Chem.SanitizeFlags.SANITIZE_SYMMRINGS, catchErrors=True)
                         # Return the sanitized molecule
                         return molecule, m
                     except Exception as e:
@@ -772,7 +782,11 @@ def get_smiles(molecule):
     Return:
       [string] The smiles of given molecule
     '''
-    return Chem.MolToSmiles(molecule)
+    if molecule:
+        if type(molecule) == rdkit.Chem.rdchem.Mol:
+            return Chem.MolToSmiles(molecule)
+        return Errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
+    return Errors.not_set(f"The variable is not set.")
 
 # Descriptors functions #
 
@@ -786,7 +800,11 @@ def findExactMolWt(molecule):
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
-        return rdkit.Chem.Descriptors.ExactMolWt(molecule)
+        if type(molecule) == Chem.rdchem.Mol:
+            return rdkit.Chem.Descriptors.ExactMolWt(molecule)
+        _ = Errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
+        return None
+    _ = Errors.not_set(f"The variable is not set.")
     return None
 
 def findFpDensityMorgan1(molecule):
@@ -799,7 +817,11 @@ def findFpDensityMorgan1(molecule):
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
-        return rdkit.Chem.Descriptors.FpDensityMorgan1(molecule)
+        if type(molecule) == Chem.rdchem.Mol:
+            return rdkit.Chem.Descriptors.FpDensityMorgan1(molecule)
+        _ = Errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
+        return None
+    _ = Errors.not_set(f"The variable is not set.")
     return None
 
 def findFpDensityMorgan2(molecule):
@@ -812,7 +834,11 @@ def findFpDensityMorgan2(molecule):
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
-        return rdkit.Chem.Descriptors.FpDensityMorgan2(molecule)
+        if type(molecule) == Chem.rdchem.Mol:
+            return rdkit.Chem.Descriptors.FpDensityMorgan2(molecule)
+        _ = Errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
+        return None
+    _ = Errors.not_set(f"The variable is not set.")
     return None
 
 def findFpDensityMorgan3(molecule):
@@ -825,7 +851,11 @@ def findFpDensityMorgan3(molecule):
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
-        return rdkit.Chem.Descriptors.FpDensityMorgan3(molecule)
+        if type(molecule) == Chem.rdchem.Mol:
+            return rdkit.Chem.Descriptors.FpDensityMorgan3(molecule)
+        _ = Errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
+        return None
+    _ = Errors.not_set(f"The variable is not set.")
     return None
 
 def findHeavyAtomMolWt(molecule):
@@ -838,7 +868,11 @@ def findHeavyAtomMolWt(molecule):
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
-        return rdkit.Chem.Descriptors.HeavyAtomMolWt(molecule)
+        if type(molecule) == Chem.rdchem.Mol:
+            return rdkit.Chem.Descriptors.HeavyAtomMolWt(molecule)
+        _ = Errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
+        return None
+    _ = Errors.not_set(f"The variable is not set.")
     return None
 
 def findMaxAbsPartialCharge(molecule):
@@ -851,7 +885,11 @@ def findMaxAbsPartialCharge(molecule):
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
-        return rdkit.Chem.Descriptors.MaxAbsPartialCharge(molecule)
+        if type(molecule) == Chem.rdchem.Mol:
+            return rdkit.Chem.Descriptors.MaxAbsPartialCharge(molecule)
+        _ = Errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
+        return None
+    _ = Errors.not_set(f"The variable is not set.")
     return None
 
 def findMaxPartialCharge(molecule):
@@ -864,7 +902,11 @@ def findMaxPartialCharge(molecule):
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
-        return rdkit.Chem.Descriptors.MaxPartialCharge(molecule)
+        if type(molecule) == Chem.rdchem.Mol:
+            return rdkit.Chem.Descriptors.MaxPartialCharge(molecule)
+        _ = Errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
+        return None
+    _ = Errors.not_set(f"The variable is not set.")
     return None
 
 def findMinAbsPartialCharge(molecule):
@@ -877,7 +919,11 @@ def findMinAbsPartialCharge(molecule):
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
-        return rdkit.Chem.Descriptors.MinAbsPartialCharge(molecule)
+        if type(molecule) == Chem.rdchem.Mol:
+            return rdkit.Chem.Descriptors.MinAbsPartialCharge(molecule)
+        _ = Errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
+        return None
+    _ = Errors.not_set(f"The variable is not set.")
     return None
 
 def findMinPartialCharge(molecule):
@@ -890,7 +936,11 @@ def findMinPartialCharge(molecule):
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
-        return rdkit.Chem.Descriptors.MinPartialCharge(molecule)
+        if type(molecule) == Chem.rdchem.Mol:
+            return rdkit.Chem.Descriptors.MinPartialCharge(molecule)
+        _ = Errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
+        return None
+    _ = Errors.not_set(f"The variable is not set.")
     return None
 
 def findMolWt(molecule):
@@ -903,7 +953,11 @@ def findMolWt(molecule):
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
-        return rdkit.Chem.Descriptors.MolWt(molecule)
+        if type(molecule) == Chem.rdchem.Mol:
+            return rdkit.Chem.Descriptors.MolWt(molecule)
+        _ = Errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
+        return None
+    _ = Errors.not_set(f"The variable is not set.")
     return None
 
 def findNumRadicalElectrons(molecule):
@@ -916,7 +970,11 @@ def findNumRadicalElectrons(molecule):
       [None] - If parsing the descriptor fails.
     '''
     if molecule:
-        return rdkit.Chem.Descriptors.NumRadicalElectrons(molecule)
+        if type(molecule) == Chem.rdchem.Mol:
+            return rdkit.Chem.Descriptors.NumRadicalElectrons(molecule)
+        _ = Errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
+        return None
+    _ = Errors.not_set(f"The variable is not set.")
     return None
 
 def findNumValenceElectrons(molecule):
@@ -929,5 +987,9 @@ def findNumValenceElectrons(molecule):
       [None] - If parsing the descriptor fails.
     '''
     if molecule:
-        return rdkit.Chem.Descriptors.NumValenceElectrons(molecule)
+        if type(molecule) == Chem.rdchem.Mol:
+            return rdkit.Chem.Descriptors.NumValenceElectrons(molecule)
+        _ = Errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
+        return None
+    _ = Errors.not_set(f"The variable is not set.")
     return None

@@ -61,6 +61,7 @@ class Error:
         # Variable errors
         self.wrongTypeCode            = 200
         self.notSetCode               = 201
+        self.emptyCode                = 202
 
         # Subprocess errors
         self.subprocessCode           = 300
@@ -281,6 +282,18 @@ class Error:
         self.__print_msg(message, level)
         return self.notSetCode
 
+    def empty(self, message="", level="warn"):
+        '''
+        Return this when the variable is empty.
+        Input:
+          message [string] DEFAULT: ""     - Message to be shown.
+          level   [string] DEFAULT: "warn" - Type of message "warn" or "error".
+        Return:
+          -
+        '''
+        self.__print_msg(message, level)
+        return self.emptyCode
+
     # Subprocess errors
     def subprocess(self, message="", level="warn"):
         '''
@@ -350,6 +363,8 @@ class Error:
 
         print(f"\n\t~~~~~~~~~~~~~ VARIABLE ERRORS ~~~~~~~~~~~~~~")
         print(f"\t - Wrong type:                  {self.wrongTypeCode}")
+        print(f"\t - Not set:                     {self.notSetCode}")
+        print(f"\t - Empty:                       {self.emptyCode}")
 
         print(f"\n\t~~~~~~~~~~~~~~ PROCESS ERRORS ~~~~~~~~~~~~~~")
         print(f"\t - Subprocess error:            {self.subprocessCode}")
