@@ -185,7 +185,7 @@ def __paralel_check_repeated_ligands(arguments):
         for l in ligandsToCompare:
             # Find the l.path
             lPath = os.path.dirname(l.path)
-            # If no target ligand file for uniqueness or not uniquness exists
+            # If no target ligand file for uniqueness or not uniquness exists means that this file has not been checked
             if not os.path.isfile(f"{lPath}/{l.name}_unique") and not os.path.isfile(f"{lPath}/{l.name}_NOTunique"):
                 # Check if the molecules are the same
                 if ligand.is_same_molecule(l, sanitize = False):
