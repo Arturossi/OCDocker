@@ -9,7 +9,6 @@ import urllib.request
 import textwrap as tw
 
 from glob import glob
-from tqdm import tqdm
 
 from OCDocker.Initialise import *
 import OCDocker.DUDEz as ocdudez

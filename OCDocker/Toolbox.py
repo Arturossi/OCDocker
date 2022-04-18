@@ -8,6 +8,7 @@ import shutil
 import inspect
 import tarfile
 import datetime
+import contextlib
 import subprocess
 import urllib.request
 
@@ -363,10 +364,12 @@ def untar(fname, out_path=".", delete=False):
             printv("Preparing to untar the file...")
             # open your tar.gz file
             with tarfile.open(name=fname) as tar:
-                # Go over each member
-                for member in tqdm(iterable=tar.getmembers(), total=len(tar.getmembers())):
-                    # Extract member
-                    tar.extract(member=member, path=out_path)
+                # Redirect output to tqdm.write
+                with redirect_to_tqdm():
+                    # Go over each member
+                    for member in tqdm(iterable=tar.getmembers(), total=len(tar.getmembers())):
+                        # Extract member
+                        tar.extract(member=member, path=out_path)
             # Report success on untarring the file
             _ = errors.ok(f"The file {fname} has been {clrs['g']}successfully{clrs['n']} untarred to the dir {out_path}!")
             # If delete flag is set, delete file
@@ -737,3 +740,27 @@ def is_algorithm_allowed(path):
     # Allowed algorithms
     allowed = ["ap", "ac", "bi", "db", "km", "ms", "mb", "na", "op", "sc"]
     return path.split(os.path.sep).pop() in allowed
+
+@contextlib.contextmanager
+def redirect_to_tqdm():
+    '''
+    Redirects the stdout to tqdm.write()
+    Input:
+      -
+    Return:
+      -
+    '''
+    # Store builtin print
+    old_print = print
+    def new_print(*args, **kwargs):
+        # If tqdm.write raises error, use builtin print
+        try:
+            tqdm.write(*args, **kwargs)
+        except:
+            old_print(*args, ** kwargs)
+    try:
+        # Globaly replace print with new_print
+        inspect.builtins.print = new_print
+        yield
+    finally:
+        inspect.builtins.print = old_print

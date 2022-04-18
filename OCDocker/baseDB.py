@@ -107,28 +107,30 @@ def __thread_prepare(arguments):
     Return:
       -
     '''
-    # Renaming arguments to what they are (making this just more readable)
-    mol = arguments[0]
-    overwrite = arguments[1]
-    moltype = arguments[2]
+    # Redirect all prints to tqdm.write
+    with redirect_to_tqdm():
+        # Renaming arguments to what they are (making this just more readable)
+        mol = arguments[0]
+        overwrite = arguments[1]
+        moltype = arguments[2]
 
-    # Find its name
-    molName = ".".join(os.path.basename(mol).split(".")[:-1])
-    if overwrite or not os.path.isfile(f"{mol}/{molName}_descriptors.json"):
-        if moltype == "ligand":
-            # Create the ligand object
-            m = ocl.Ligand(mol, molName, sanitize = False)
-        elif moltype == "receptor":
-            pass
-        else:
-            _ = errors.unkown("Unknown molecule type", "error")
-            return None
-        # Test if the ligand is valid
-        if not m.is_valid():
-            _ = errors.malformedMolecule(f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!", "error")
-            octools.print_error_log(f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!", f"{logdir}/DUDEz_Parse.log")
-        # Export its descriptors
-        _ = m.to_json(overwrite)
+        # Find its name
+        molName = ".".join(os.path.basename(mol).split(".")[:-1])
+        if overwrite or not os.path.isfile(f"{mol}/{molName}_descriptors.json"):
+            if moltype == "ligand":
+                # Create the ligand object
+                m = ocl.Ligand(mol, molName, sanitize = False)
+            elif moltype == "receptor":
+                pass
+            else:
+                _ = errors.unkown("Unknown molecule type", "error")
+                return None
+            # Test if the ligand is valid
+            if not m.is_valid():
+                _ = errors.malformedMolecule(f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!", "error")
+                octools.print_error_log(f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!", f"{logdir}/DUDEz_Parse.log")
+            # Export its descriptors
+            _ = m.to_json(overwrite)
     # Return
     return None
 
@@ -180,90 +182,92 @@ def verify_integrity(chosenArchive):
     # Find the archive type
     archive = chosenArchive.split(os.path.sep)[-1].lower()
 
-    # For each directory in the database folder
-    for dir in tqdm(iterable=dirs, total=lenDirs):
-        # Parameterizing paths
-        p2rankDir = f"{dir}/p2rank"
-        vinaDir = f"{dir}/vinaFiles"
+    # Redirect output to tqdm.write
+    with redirect_to_tqdm():
+        # For each directory in the database folder
+        for dir in tqdm(iterable=dirs, total=lenDirs):
+            # Parameterizing paths
+            p2rankDir = f"{dir}/p2rank"
+            vinaDir = f"{dir}/vinaFiles"
 
-        octools.printv(f"Checking directories for the protein '{dir}'.")
+            octools.printv(f"Checking directories for the protein '{dir}'.")
 
-        # If has no p2rank dir
-        if not os.path.isdir(p2rankDir):
-            octools.print_warning(f"The protein '{dir}' has no p2rank folder. Trying to fix...")
+            # If has no p2rank dir
+            if not os.path.isdir(p2rankDir):
+                octools.print_warning(f"The protein '{dir}' has no p2rank folder. Trying to fix...")
 
-            # Create the p2rank output dir
-            errorCode = octools.safe_create_dir(p2rankDir)
+                # Create the p2rank output dir
+                errorCode = octools.safe_create_dir(p2rankDir)
 
-            if os.path.isdir(p2rankDir):
-                octools.print_success(f"The p2rank dir has been generated for '{dir}'.")
-            else:
-                octools.print_error(f"Unable to generate the p2rank dir for '{dir}'... Error code {errorCode}.")
-                octools.print_error_log(f"Unable to generate the p2rank dir for '{dir}'... Error code {errorCode}.", f"{logdir}/PDBbind_integrity_report.log")
-                failed = failed + 1
-                continue
+                if os.path.isdir(p2rankDir):
+                    octools.print_success(f"The p2rank dir has been generated for '{dir}'.")
+                else:
+                    octools.print_error(f"Unable to generate the p2rank dir for '{dir}'... Error code {errorCode}.")
+                    octools.print_error_log(f"Unable to generate the p2rank dir for '{dir}'... Error code {errorCode}.", f"{logdir}/PDBbind_integrity_report.log")
+                    failed = failed + 1
+                    continue
 
-        # If has no vinaFiles dir
-        if not os.path.isdir(vinaDir):
-            octools.print_warning(f"The protein '{dir}' has no vinaFiles folder. Trying to fix...")
+            # If has no vinaFiles dir
+            if not os.path.isdir(vinaDir):
+                octools.print_warning(f"The protein '{dir}' has no vinaFiles folder. Trying to fix...")
 
-            # Create the p2rank output dir
-            errorCode = octools.safe_create_dir(vinaDir)
+                # Create the p2rank output dir
+                errorCode = octools.safe_create_dir(vinaDir)
 
-            if os.path.isdir(vinaDir):
-                octools.print_success(f"The vinaFiles dir has been generated for '{dir}'.")
-            else:
-                octools.print_error(f"Unable to generate the vinaFiles dir for '{dir}'... Error code {errorCode}.")
-                octools.print_error_log(f"Unable to generate the vinaFiles dir for '{dir}'... Error code {errorCode}.", f"{logdir}/PDBbind_integrity_report.log")
-                failed = failed + 1
-                continue
+                if os.path.isdir(vinaDir):
+                    octools.print_success(f"The vinaFiles dir has been generated for '{dir}'.")
+                else:
+                    octools.print_error(f"Unable to generate the vinaFiles dir for '{dir}'... Error code {errorCode}.")
+                    octools.print_error_log(f"Unable to generate the vinaFiles dir for '{dir}'... Error code {errorCode}.", f"{logdir}/PDBbind_integrity_report.log")
+                    failed = failed + 1
+                    continue
 
-        octools.printv(f"Checking files for the protein '{dir}'")
+            octools.printv(f"Checking files for the protein '{dir}'")
 
-        # Check how many boxes are in the p2rankDir
-        boxCount = len(glob(f"{p2rankDir}/box*.pdb"))
-
-        # If there is no box in the p2rank output, p2rank will run
-        if boxCount == 0:
-            octools.print_warning(f"The protein '{dir}' has no box file. Trying to fix...")
-
-            # Run p2rank
-            __run_p2rank(dir)
-
-            # Check how many boxes are in the p2rankDir (again)
+            # Check how many boxes are in the p2rankDir
             boxCount = len(glob(f"{p2rankDir}/box*.pdb"))
 
-            if boxCount > 0:
-                octools.print_success(f"Box files generated for '{dir}'.")
-            else:
-                octools.print_error(f"The protein '{dir}' still has no box file.")
-                octools.print_error_log(f"The protein '{dir}' still has no box file.", f"{logdir}/PDBbind_integrity_report.log")
-                failed = failed + 1
-                continue
+            # If there is no box in the p2rank output, p2rank will run
+            if boxCount == 0:
+                octools.print_warning(f"The protein '{dir}' has no box file. Trying to fix...")
 
-        # If there is not the same amount of box files as folders in vinaFiles folder
-        if len(glob(f"{dir}/vinaFiles/*")) < boxCount:
-            octools.print_warning(f"The protein '{dir}' has not the same amount of vina conf files as the amount of box files. Trying to fix...")
+                # Run p2rank
+                __run_p2rank(dir)
 
-            # Set the input file name path and set the input file name path
-            if archive == "astex":
-                fin = f"{dir}/protein.pdb"
-            elif archive == "dudez":
-                fin = f"{dir}/rec.crg.pdb"
-            elif archive == "pdbbind":
-                fin = f"{dir}/{dir.split(os.path.sep)[-1]}_protein.pdb"
+                # Check how many boxes are in the p2rankDir (again)
+                boxCount = len(glob(f"{p2rankDir}/box*.pdb"))
 
-            # Run the vina conf creation from box
-            __run_create_vina_conf_from_box(dir, fin)
+                if boxCount > 0:
+                    octools.print_success(f"Box files generated for '{dir}'.")
+                else:
+                    octools.print_error(f"The protein '{dir}' still has no box file.")
+                    octools.print_error_log(f"The protein '{dir}' still has no box file.", f"{logdir}/PDBbind_integrity_report.log")
+                    failed = failed + 1
+                    continue
 
-            # If there is not the same amount of box files as folders in vinaFiles folder (again)
-            if len(glob(f"{dir}/vinaFiles/*")) == boxCount:
-                octools.print_success(f"Conf files generated for '{dir}'.")
-            else:
-                octools.print_error(f"Unable to generate the conf files for '{dir}'...")
-                octools.print_error_log(f"Unable to generate the conf files dir for '{dir}'...", f"{logdir}/PDBbind_integrity_report.log")
-                failed = failed + 1
-                continue
+            # If there is not the same amount of box files as folders in vinaFiles folder
+            if len(glob(f"{dir}/vinaFiles/*")) < boxCount:
+                octools.print_warning(f"The protein '{dir}' has not the same amount of vina conf files as the amount of box files. Trying to fix...")
+
+                # Set the input file name path and set the input file name path
+                if archive == "astex":
+                    fin = f"{dir}/protein.pdb"
+                elif archive == "dudez":
+                    fin = f"{dir}/rec.crg.pdb"
+                elif archive == "pdbbind":
+                    fin = f"{dir}/{dir.split(os.path.sep)[-1]}_protein.pdb"
+
+                # Run the vina conf creation from box
+                __run_create_vina_conf_from_box(dir, fin)
+
+                # If there is not the same amount of box files as folders in vinaFiles folder (again)
+                if len(glob(f"{dir}/vinaFiles/*")) == boxCount:
+                    octools.print_success(f"Conf files generated for '{dir}'.")
+                else:
+                    octools.print_error(f"Unable to generate the conf files for '{dir}'...")
+                    octools.print_error_log(f"Unable to generate the conf files dir for '{dir}'...", f"{logdir}/PDBbind_integrity_report.log")
+                    failed = failed + 1
+                    continue
 
     octools.printv(f"Integrity check of the PDBbind database accomplished. Success rate: {((lenDirs - failed) / lenDirs) * 100}% ({(lenDirs - failed)}/{lenDirs})")
 
@@ -299,77 +303,79 @@ def convert_debug_to_production(chosenArchive, chosenAlgorithm = "ac", strict = 
     # Set the allowed values
     allowed = ["ap", "ac", "bi", "db", "km", "ms", "mb", "na", "op", "sc"]
 
-    # For each directory in the database folder
-    for dir in tqdm(iterable=dirs, total=len(dirs)):
-        # Print text
-        octools.printv(f"Processing '{dir}'.")
+    # Redirect output to tqdm.write
+    with redirect_to_tqdm():
+        # For each directory in the database folder
+        for dir in tqdm(iterable=dirs, total=len(dirs)):
+            # Print text
+            octools.printv(f"Processing '{dir}'.")
 
-        # Parameterize the p2rank dir
-        p2rankDir = f"{dir}/p2rank"
+            # Parameterize the p2rank dir
+            p2rankDir = f"{dir}/p2rank"
 
-        # Flag to check if the algorithm folder has been found
-        hasDir = False
+            # Flag to check if the algorithm folder has been found
+            hasDir = False
 
-        # Get all the dirs which are in the allowed values
-        p2rankFiles = [d for d in glob(f"{p2rankDir}/*") if octools.is_algorithm_allowed(d) and os.path.isdir(d)]
+            # Get all the dirs which are in the allowed values
+            p2rankFiles = [d for d in glob(f"{p2rankDir}/*") if octools.is_algorithm_allowed(d) and os.path.isdir(d)]
 
-        # Parameterize the amount of dirs
-        p2rankFilesLen = len(p2rankFiles)
+            # Parameterize the amount of dirs
+            p2rankFilesLen = len(p2rankFiles)
 
-        # If there is any dir
-        if p2rankFilesLen > 0:
-            # If there is only one file
-            if p2rankFilesLen == 1 and not strict:
-                octools.print_info(f"There is only one file.")
-                # Set the hasDir as true
-                hasDir = True
-                # Get the boxes
-                boxes = glob(f"{p2rankFiles[0]}/*")
-                # If no box is found (folders WILL NOT BE REMOVED)
-                if len(boxes) < 1:
-                    octools.print_error(f"The protein '{dir}' has no box!!!!!")
-                    octools.print_error_log(f"The protein '{dir}' has no box!!!!!", f"{logdir}/PDBbind_conversion_report.log")
-                    continue
-                # Get the algorithm name
-                algorithm = p2rankFiles[0].split(os.path.sep)[-1]
-                # For each box found
-                for box in boxes:
-                    # Create the destination box name
-                    boxDest = os.path.basename(box).replace(f"_{algorithm}","")
-                    # Copy the box to the parent directory
-                    shutil.copyfile(box, f"{p2rankDir}/{boxDest}")
-            else:
-                for p2rankFile in p2rankFiles:
+            # If there is any dir
+            if p2rankFilesLen > 0:
+                # If there is only one file
+                if p2rankFilesLen == 1 and not strict:
+                    octools.print_info(f"There is only one file.")
+                    # Set the hasDir as true
+                    hasDir = True
+                    # Get the boxes
+                    boxes = glob(f"{p2rankFiles[0]}/*")
+                    # If no box is found (folders WILL NOT BE REMOVED)
+                    if len(boxes) < 1:
+                        octools.print_error(f"The protein '{dir}' has no box!!!!!")
+                        octools.print_error_log(f"The protein '{dir}' has no box!!!!!", f"{logdir}/PDBbind_conversion_report.log")
+                        continue
                     # Get the algorithm name
-                    algorithm = p2rankFile.split(os.path.sep)[-1]
-                    if algoritm == chosenAlgorithm:
-                        # Set the hasDir as true
-                        hasDir = True
-                        # Get the boxes
-                        boxes = glob(f"{p2rankFile}/*")
-                        # If no box is found (folders WILL NOT BE REMOVED)
-                        if len(boxes) < 1:
-                            octools.print_error(f"The protein '{dir}' has no box!!!!!")
-                            octools.print_error_log(f"The protein '{dir}' has no box!!!!!", f"{logdir}/PDBbind_conversion_report.log")
-                            continue
+                    algorithm = p2rankFiles[0].split(os.path.sep)[-1]
+                    # For each box found
+                    for box in boxes:
+                        # Create the destination box name
+                        boxDest = os.path.basename(box).replace(f"_{algorithm}","")
+                        # Copy the box to the parent directory
+                        shutil.copyfile(box, f"{p2rankDir}/{boxDest}")
+                else:
+                    for p2rankFile in p2rankFiles:
                         # Get the algorithm name
                         algorithm = p2rankFile.split(os.path.sep)[-1]
-            # If the algorithm folder has been found
-            if hasDir:
-                # Check if remove is set
-                if removeDebug:
-                    # Print to the user the information
-                    octools.print_info(f"Removing files for '{dir}'")
-                    # For each file
-                    for p2rankFile in p2rankFiles:
-                        # Remove the folder and its contets
-                        shutil.rmtree(p2rankFile)
+                        if algoritm == chosenAlgorithm:
+                            # Set the hasDir as true
+                            hasDir = True
+                            # Get the boxes
+                            boxes = glob(f"{p2rankFile}/*")
+                            # If no box is found (folders WILL NOT BE REMOVED)
+                            if len(boxes) < 1:
+                                octools.print_error(f"The protein '{dir}' has no box!!!!!")
+                                octools.print_error_log(f"The protein '{dir}' has no box!!!!!", f"{logdir}/PDBbind_conversion_report.log")
+                                continue
+                            # Get the algorithm name
+                            algorithm = p2rankFile.split(os.path.sep)[-1]
+                # If the algorithm folder has been found
+                if hasDir:
+                    # Check if remove is set
+                    if removeDebug:
+                        # Print to the user the information
+                        octools.print_info(f"Removing files for '{dir}'")
+                        # For each file
+                        for p2rankFile in p2rankFiles:
+                            # Remove the folder and its contets
+                            shutil.rmtree(p2rankFile)
+                else:
+                    octools.print_error(f"The algorithm '{chosenAlgorithm}' has not been found for the protein '{dir}'.")
+                    octools.print_error_log(f"The algorithm '{chosenAlgorithm}' has not been found for the protein '{dir}'.")
             else:
-                octools.print_error(f"The algorithm '{chosenAlgorithm}' has not been found for the protein '{dir}'.")
-                octools.print_error_log(f"The algorithm '{chosenAlgorithm}' has not been found for the protein '{dir}'.")
-        else:
-            octools.printv(f"Nothing to convert for '{dir}'. Skipping...")
-            continue
+                octools.printv(f"Nothing to convert for '{dir}'. Skipping...")
+                continue
     return
 
 def prepare(archive, overwrite = False):

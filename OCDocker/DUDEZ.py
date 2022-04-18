@@ -98,10 +98,12 @@ def __inner_validate_database_molecules(database, subset):
         lenMols = len(mols)
         # Create a Thread pool with the maximum available_cores
         with Pool(args.available_cores) as p:
-            # For each molecule in dudezDirLigand (multiThreaded)
-            for hasProblem in tqdm(p.imap_unordered(__thread_validation, arguments), total=lenMols, desc = subset):
-                # Add the problem num, it can be 0 for no problem and 1 for some problem
-                problematicMolsNum += hasProblem
+            # Redirect output to tqdm.write
+            with redirect_to_tqdm():
+                # For each molecule in dudezDirLigand (multiThreaded)
+                for hasProblem in tqdm(p.imap_unordered(__thread_validation, arguments), total=lenMols, desc = subset):
+                    # Add the problem num, it can be 0 for no problem and 1 for some problem
+                    problematicMolsNum += hasProblem
         # Parameterize error string
         problematicMolsError = f"In dudez database there are {problematicMolsNum} problematic molecules."
         # If there is any problematic molecule
@@ -219,7 +221,7 @@ def __paralel_check_repeated_ligands(arguments):
                 except OSError:
                     # File deleted between open() and os.utime() calls
                     pass
-            # For each other file (since they are the same, write the not unique file will save time)
+            # For each other file (since they are the same, write the not unique file will save time and avoid errors)
             for notUnique in notUniqueFiles:
                 notUniqueFile = f"{notUnique}_NOTunique"
                 # Write the file
@@ -267,9 +269,11 @@ def __check_for_repeated_ligands():
                 arguments.append((ligands[i], innerToCompare))
     # Create the pool with available_cores
     with Pool(args.available_cores) as p:
-        # For each molecule in dudezDirLigand (multiThreaded)
-        for _ in tqdm(p.imap_unordered(__paralel_check_repeated_ligands, arguments), total = len(arguments), desc = "DUDEz checking"):
-            pass
+        # Redirect output to tqdm.write
+        with redirect_to_tqdm():
+            # For each molecule in dudezDirLigand (multiThreaded)
+            for _ in tqdm(p.imap_unordered(__paralel_check_repeated_ligands, arguments), total = len(arguments), desc = "DUDEz checking"):
+                pass
 
     return
 
@@ -326,12 +330,14 @@ def get_ligands_from_molecule(molecule):
     for db in databases:
         # Get a list of .mol2 molecules
         mols = glob(f"{db}/*.mol2")
-        # For each .mol2 file in dudezDirLigand directory
-        for l in tqdm(iterable = mols, total = len(mols), desc = f"Molecules processed for '{targetName}'."):
-            # Find the ligand name in the DUDEz ligand database
-            ligandName = os.path.splitext(os.path.basename(l))[0]
-            # Append to the ligands list its ligand (without sanitization, because it return errors when there is a N in a cyclic strucuture, my guess)
-            ligands.append(ocl.Ligand(l, ligandName, sanitize = False, from_json_descriptors = f"{db}/{ligandName}_descriptors.json"))
+        # Redirect output to tqdm.write
+        with redirect_to_tqdm():
+            # For each .mol2 file in dudezDirLigand directory
+            for l in tqdm(iterable = mols, total = len(mols), desc = f"Molecules processed for '{targetName}'."):
+                # Find the ligand name in the DUDEz ligand database
+                ligandName = os.path.splitext(os.path.basename(l))[0]
+                # Append to the ligands list its ligand (without sanitization, because it return errors when there is a N in a cyclic strucuture, my guess)
+                ligands.append(ocl.Ligand(l, ligandName, sanitize = False, from_json_descriptors = f"{db}/{ligandName}_descriptors.json"))
 
     return ligands
 
@@ -382,4 +388,7 @@ def prepare(overwrite = False):
     Return:
       -
     '''
+    # Prepare the databse
     ocbdb.prepare(dudez_archive, overwrite = overwrite)
+    # Verify its integrity
+    verify_integrity()
