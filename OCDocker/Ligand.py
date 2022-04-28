@@ -286,8 +286,6 @@ class Ligand:
 
         # <editor-fold> EState descriptors
         self.EState_VSA1 = None
-        self.EState_VSA10 = None
-        self.EState_VSA11 = None
         self.EState_VSA2 = None
         self.EState_VSA3 = None
         self.EState_VSA4 = None
@@ -296,6 +294,8 @@ class Ligand:
         self.EState_VSA7 = None
         self.EState_VSA8 = None
         self.EState_VSA9 = None
+        self.EState_VSA10 = None
+        self.EState_VSA11 = None
 
         self.MaxAbsEStateIndex = None
         self.MaxEStateIndex = None
@@ -518,246 +518,246 @@ class Ligand:
             self.name = name.replace(" ", "_")
 
             # <editor-fold> AUTOCORR descriptors
-            self.AUTOCORR2D_1 = self._findAUTOCORR2D_1()
-            self.AUTOCORR2D_2 = self._findAUTOCORR2D_2()
-            self.AUTOCORR2D_3 = self._findAUTOCORR2D_3()
-            self.AUTOCORR2D_4 = self._findAUTOCORR2D_4()
-            self.AUTOCORR2D_5 = self._findAUTOCORR2D_5()
-            self.AUTOCORR2D_6 = self._findAUTOCORR2D_6()
-            self.AUTOCORR2D_7 = self._findAUTOCORR2D_7()
-            self.AUTOCORR2D_8 = self._findAUTOCORR2D_8()
-            self.AUTOCORR2D_9 = self._findAUTOCORR2D_9()
-            self.AUTOCORR2D_10 = self._findAUTOCORR2D_10()
-            self.AUTOCORR2D_11 = self._findAUTOCORR2D_11()
-            self.AUTOCORR2D_12 = self._findAUTOCORR2D_12()
-            self.AUTOCORR2D_13 = self._findAUTOCORR2D_13()
-            self.AUTOCORR2D_14 = self._findAUTOCORR2D_14()
-            self.AUTOCORR2D_15 = self._findAUTOCORR2D_15()
-            self.AUTOCORR2D_16 = self._findAUTOCORR2D_16()
-            self.AUTOCORR2D_17 = self._findAUTOCORR2D_17()
-            self.AUTOCORR2D_18 = self._findAUTOCORR2D_18()
-            self.AUTOCORR2D_19 = self._findAUTOCORR2D_19()
-            self.AUTOCORR2D_20 = self._findAUTOCORR2D_20()
-            self.AUTOCORR2D_21 = self._findAUTOCORR2D_21()
-            self.AUTOCORR2D_22 = self._findAUTOCORR2D_22()
-            self.AUTOCORR2D_23 = self._findAUTOCORR2D_23()
-            self.AUTOCORR2D_24 = self._findAUTOCORR2D_24()
-            self.AUTOCORR2D_25 = self._findAUTOCORR2D_25()
-            self.AUTOCORR2D_26 = self._findAUTOCORR2D_26()
-            self.AUTOCORR2D_27 = self._findAUTOCORR2D_27()
-            self.AUTOCORR2D_28 = self._findAUTOCORR2D_28()
-            self.AUTOCORR2D_29 = self._findAUTOCORR2D_29()
-            self.AUTOCORR2D_30 = self._findAUTOCORR2D_30()
-            self.AUTOCORR2D_31 = self._findAUTOCORR2D_31()
-            self.AUTOCORR2D_32 = self._findAUTOCORR2D_32()
-            self.AUTOCORR2D_33 = self._findAUTOCORR2D_33()
-            self.AUTOCORR2D_34 = self._findAUTOCORR2D_34()
-            self.AUTOCORR2D_35 = self._findAUTOCORR2D_35()
-            self.AUTOCORR2D_36 = self._findAUTOCORR2D_36()
-            self.AUTOCORR2D_37 = self._findAUTOCORR2D_37()
-            self.AUTOCORR2D_38 = self._findAUTOCORR2D_38()
-            self.AUTOCORR2D_39 = self._findAUTOCORR2D_39()
-            self.AUTOCORR2D_40 = self._findAUTOCORR2D_40()
-            self.AUTOCORR2D_41 = self._findAUTOCORR2D_41()
-            self.AUTOCORR2D_42 = self._findAUTOCORR2D_42()
-            self.AUTOCORR2D_43 = self._findAUTOCORR2D_43()
-            self.AUTOCORR2D_44 = self._findAUTOCORR2D_44()
-            self.AUTOCORR2D_45 = self._findAUTOCORR2D_45()
-            self.AUTOCORR2D_46 = self._findAUTOCORR2D_46()
-            self.AUTOCORR2D_47 = self._findAUTOCORR2D_47()
-            self.AUTOCORR2D_48 = self._findAUTOCORR2D_48()
-            self.AUTOCORR2D_49 = self._findAUTOCORR2D_49()
-            self.AUTOCORR2D_50 = self._findAUTOCORR2D_50()
-            self.AUTOCORR2D_51 = self._findAUTOCORR2D_51()
-            self.AUTOCORR2D_52 = self._findAUTOCORR2D_52()
-            self.AUTOCORR2D_53 = self._findAUTOCORR2D_53()
-            self.AUTOCORR2D_54 = self._findAUTOCORR2D_54()
-            self.AUTOCORR2D_55 = self._findAUTOCORR2D_55()
-            self.AUTOCORR2D_56 = self._findAUTOCORR2D_56()
-            self.AUTOCORR2D_57 = self._findAUTOCORR2D_57()
-            self.AUTOCORR2D_58 = self._findAUTOCORR2D_58()
-            self.AUTOCORR2D_59 = self._findAUTOCORR2D_59()
-            self.AUTOCORR2D_60 = self._findAUTOCORR2D_60()
-            self.AUTOCORR2D_61 = self._findAUTOCORR2D_61()
-            self.AUTOCORR2D_62 = self._findAUTOCORR2D_62()
-            self.AUTOCORR2D_63 = self._findAUTOCORR2D_63()
-            self.AUTOCORR2D_64 = self._findAUTOCORR2D_64()
-            self.AUTOCORR2D_65 = self._findAUTOCORR2D_65()
-            self.AUTOCORR2D_66 = self._findAUTOCORR2D_66()
-            self.AUTOCORR2D_67 = self._findAUTOCORR2D_67()
-            self.AUTOCORR2D_68 = self._findAUTOCORR2D_68()
-            self.AUTOCORR2D_69 = self._findAUTOCORR2D_69()
-            self.AUTOCORR2D_70 = self._findAUTOCORR2D_70()
-            self.AUTOCORR2D_71 = self._findAUTOCORR2D_71()
-            self.AUTOCORR2D_72 = self._findAUTOCORR2D_72()
-            self.AUTOCORR2D_73 = self._findAUTOCORR2D_73()
-            self.AUTOCORR2D_74 = self._findAUTOCORR2D_74()
-            self.AUTOCORR2D_75 = self._findAUTOCORR2D_75()
-            self.AUTOCORR2D_76 = self._findAUTOCORR2D_76()
-            self.AUTOCORR2D_77 = self._findAUTOCORR2D_77()
-            self.AUTOCORR2D_78 = self._findAUTOCORR2D_78()
-            self.AUTOCORR2D_79 = self._findAUTOCORR2D_79()
-            self.AUTOCORR2D_80 = self._findAUTOCORR2D_80()
-            self.AUTOCORR2D_81 = self._findAUTOCORR2D_81()
-            self.AUTOCORR2D_82 = self._findAUTOCORR2D_82()
-            self.AUTOCORR2D_83 = self._findAUTOCORR2D_83()
-            self.AUTOCORR2D_84 = self._findAUTOCORR2D_84()
-            self.AUTOCORR2D_85 = self._findAUTOCORR2D_85()
-            self.AUTOCORR2D_86 = self._findAUTOCORR2D_86()
-            self.AUTOCORR2D_87 = self._findAUTOCORR2D_87()
-            self.AUTOCORR2D_88 = self._findAUTOCORR2D_88()
-            self.AUTOCORR2D_89 = self._findAUTOCORR2D_89()
-            self.AUTOCORR2D_90 = self._findAUTOCORR2D_90()
-            self.AUTOCORR2D_91 = self._findAUTOCORR2D_91()
-            self.AUTOCORR2D_92 = self._findAUTOCORR2D_92()
-            self.AUTOCORR2D_93 = self._findAUTOCORR2D_93()
-            self.AUTOCORR2D_94 = self._findAUTOCORR2D_94()
-            self.AUTOCORR2D_95 = self._findAUTOCORR2D_95()
-            self.AUTOCORR2D_96 = self._findAUTOCORR2D_96()
-            self.AUTOCORR2D_97 = self._findAUTOCORR2D_97()
-            self.AUTOCORR2D_98 = self._findAUTOCORR2D_98()
-            self.AUTOCORR2D_99 = self._findAUTOCORR2D_99()
-            self.AUTOCORR2D_100 = self._findAUTOCORR2D_100()
-            self.AUTOCORR2D_101 = self._findAUTOCORR2D_101()
-            self.AUTOCORR2D_102 = self._findAUTOCORR2D_102()
-            self.AUTOCORR2D_103 = self._findAUTOCORR2D_103()
-            self.AUTOCORR2D_104 = self._findAUTOCORR2D_104()
-            self.AUTOCORR2D_105 = self._findAUTOCORR2D_105()
-            self.AUTOCORR2D_106 = self._findAUTOCORR2D_106()
-            self.AUTOCORR2D_107 = self._findAUTOCORR2D_107()
-            self.AUTOCORR2D_108 = self._findAUTOCORR2D_108()
-            self.AUTOCORR2D_109 = self._findAUTOCORR2D_109()
-            self.AUTOCORR2D_110 = self._findAUTOCORR2D_110()
-            self.AUTOCORR2D_111 = self._findAUTOCORR2D_111()
-            self.AUTOCORR2D_112 = self._findAUTOCORR2D_112()
-            self.AUTOCORR2D_113 = self._findAUTOCORR2D_113()
-            self.AUTOCORR2D_114 = self._findAUTOCORR2D_114()
-            self.AUTOCORR2D_115 = self._findAUTOCORR2D_115()
-            self.AUTOCORR2D_116 = self._findAUTOCORR2D_116()
-            self.AUTOCORR2D_117 = self._findAUTOCORR2D_117()
-            self.AUTOCORR2D_118 = self._findAUTOCORR2D_118()
-            self.AUTOCORR2D_119 = self._findAUTOCORR2D_119()
-            self.AUTOCORR2D_120 = self._findAUTOCORR2D_120()
-            self.AUTOCORR2D_121 = self._findAUTOCORR2D_121()
-            self.AUTOCORR2D_122 = self._findAUTOCORR2D_122()
-            self.AUTOCORR2D_123 = self._findAUTOCORR2D_123()
-            self.AUTOCORR2D_124 = self._findAUTOCORR2D_124()
-            self.AUTOCORR2D_125 = self._findAUTOCORR2D_125()
-            self.AUTOCORR2D_126 = self._findAUTOCORR2D_126()
-            self.AUTOCORR2D_127 = self._findAUTOCORR2D_127()
-            self.AUTOCORR2D_128 = self._findAUTOCORR2D_128()
-            self.AUTOCORR2D_129 = self._findAUTOCORR2D_129()
-            self.AUTOCORR2D_130 = self._findAUTOCORR2D_130()
-            self.AUTOCORR2D_131 = self._findAUTOCORR2D_131()
-            self.AUTOCORR2D_132 = self._findAUTOCORR2D_132()
-            self.AUTOCORR2D_133 = self._findAUTOCORR2D_133()
-            self.AUTOCORR2D_134 = self._findAUTOCORR2D_134()
-            self.AUTOCORR2D_135 = self._findAUTOCORR2D_135()
-            self.AUTOCORR2D_136 = self._findAUTOCORR2D_136()
-            self.AUTOCORR2D_137 = self._findAUTOCORR2D_137()
-            self.AUTOCORR2D_138 = self._findAUTOCORR2D_138()
-            self.AUTOCORR2D_139 = self._findAUTOCORR2D_139()
-            self.AUTOCORR2D_140 = self._findAUTOCORR2D_140()
-            self.AUTOCORR2D_141 = self._findAUTOCORR2D_141()
-            self.AUTOCORR2D_142 = self._findAUTOCORR2D_142()
-            self.AUTOCORR2D_143 = self._findAUTOCORR2D_143()
-            self.AUTOCORR2D_144 = self._findAUTOCORR2D_144()
-            self.AUTOCORR2D_145 = self._findAUTOCORR2D_145()
-            self.AUTOCORR2D_146 = self._findAUTOCORR2D_146()
-            self.AUTOCORR2D_147 = self._findAUTOCORR2D_147()
-            self.AUTOCORR2D_148 = self._findAUTOCORR2D_148()
-            self.AUTOCORR2D_149 = self._findAUTOCORR2D_149()
-            self.AUTOCORR2D_150 = self._findAUTOCORR2D_150()
-            self.AUTOCORR2D_151 = self._findAUTOCORR2D_151()
-            self.AUTOCORR2D_152 = self._findAUTOCORR2D_152()
-            self.AUTOCORR2D_153 = self._findAUTOCORR2D_153()
-            self.AUTOCORR2D_154 = self._findAUTOCORR2D_154()
-            self.AUTOCORR2D_155 = self._findAUTOCORR2D_155()
-            self.AUTOCORR2D_156 = self._findAUTOCORR2D_156()
-            self.AUTOCORR2D_157 = self._findAUTOCORR2D_157()
-            self.AUTOCORR2D_158 = self._findAUTOCORR2D_158()
-            self.AUTOCORR2D_159 = self._findAUTOCORR2D_159()
-            self.AUTOCORR2D_160 = self._findAUTOCORR2D_160()
-            self.AUTOCORR2D_161 = self._findAUTOCORR2D_161()
-            self.AUTOCORR2D_162 = self._findAUTOCORR2D_162()
-            self.AUTOCORR2D_163 = self._findAUTOCORR2D_163()
-            self.AUTOCORR2D_164 = self._findAUTOCORR2D_164()
-            self.AUTOCORR2D_165 = self._findAUTOCORR2D_165()
-            self.AUTOCORR2D_166 = self._findAUTOCORR2D_166()
-            self.AUTOCORR2D_167 = self._findAUTOCORR2D_167()
-            self.AUTOCORR2D_168 = self._findAUTOCORR2D_168()
-            self.AUTOCORR2D_169 = self._findAUTOCORR2D_169()
-            self.AUTOCORR2D_170 = self._findAUTOCORR2D_170()
-            self.AUTOCORR2D_171 = self._findAUTOCORR2D_171()
-            self.AUTOCORR2D_172 = self._findAUTOCORR2D_172()
-            self.AUTOCORR2D_173 = self._findAUTOCORR2D_173()
-            self.AUTOCORR2D_174 = self._findAUTOCORR2D_174()
-            self.AUTOCORR2D_175 = self._findAUTOCORR2D_175()
-            self.AUTOCORR2D_176 = self._findAUTOCORR2D_176()
-            self.AUTOCORR2D_177 = self._findAUTOCORR2D_177()
-            self.AUTOCORR2D_178 = self._findAUTOCORR2D_178()
-            self.AUTOCORR2D_179 = self._findAUTOCORR2D_179()
-            self.AUTOCORR2D_180 = self._findAUTOCORR2D_180()
-            self.AUTOCORR2D_181 = self._findAUTOCORR2D_181()
-            self.AUTOCORR2D_182 = self._findAUTOCORR2D_182()
-            self.AUTOCORR2D_183 = self._findAUTOCORR2D_183()
-            self.AUTOCORR2D_184 = self._findAUTOCORR2D_184()
-            self.AUTOCORR2D_185 = self._findAUTOCORR2D_185()
-            self.AUTOCORR2D_186 = self._findAUTOCORR2D_186()
-            self.AUTOCORR2D_187 = self._findAUTOCORR2D_187()
-            self.AUTOCORR2D_188 = self._findAUTOCORR2D_188()
-            self.AUTOCORR2D_189 = self._findAUTOCORR2D_189()
-            self.AUTOCORR2D_190 = self._findAUTOCORR2D_190()
-            self.AUTOCORR2D_191 = self._findAUTOCORR2D_191()
-            self.AUTOCORR2D_192 = self._findAUTOCORR2D_192()
+            self.AUTOCORR2D_1 = self.__findAUTOCORR2D_1()
+            self.AUTOCORR2D_2 = self.__findAUTOCORR2D_2()
+            self.AUTOCORR2D_3 = self.__findAUTOCORR2D_3()
+            self.AUTOCORR2D_4 = self.__findAUTOCORR2D_4()
+            self.AUTOCORR2D_5 = self.__findAUTOCORR2D_5()
+            self.AUTOCORR2D_6 = self.__findAUTOCORR2D_6()
+            self.AUTOCORR2D_7 = self.__findAUTOCORR2D_7()
+            self.AUTOCORR2D_8 = self.__findAUTOCORR2D_8()
+            self.AUTOCORR2D_9 = self.__findAUTOCORR2D_9()
+            self.AUTOCORR2D_10 = self.__findAUTOCORR2D_10()
+            self.AUTOCORR2D_11 = self.__findAUTOCORR2D_11()
+            self.AUTOCORR2D_12 = self.__findAUTOCORR2D_12()
+            self.AUTOCORR2D_13 = self.__findAUTOCORR2D_13()
+            self.AUTOCORR2D_14 = self.__findAUTOCORR2D_14()
+            self.AUTOCORR2D_15 = self.__findAUTOCORR2D_15()
+            self.AUTOCORR2D_16 = self.__findAUTOCORR2D_16()
+            self.AUTOCORR2D_17 = self.__findAUTOCORR2D_17()
+            self.AUTOCORR2D_18 = self.__findAUTOCORR2D_18()
+            self.AUTOCORR2D_19 = self.__findAUTOCORR2D_19()
+            self.AUTOCORR2D_20 = self.__findAUTOCORR2D_20()
+            self.AUTOCORR2D_21 = self.__findAUTOCORR2D_21()
+            self.AUTOCORR2D_22 = self.__findAUTOCORR2D_22()
+            self.AUTOCORR2D_23 = self.__findAUTOCORR2D_23()
+            self.AUTOCORR2D_24 = self.__findAUTOCORR2D_24()
+            self.AUTOCORR2D_25 = self.__findAUTOCORR2D_25()
+            self.AUTOCORR2D_26 = self.__findAUTOCORR2D_26()
+            self.AUTOCORR2D_27 = self.__findAUTOCORR2D_27()
+            self.AUTOCORR2D_28 = self.__findAUTOCORR2D_28()
+            self.AUTOCORR2D_29 = self.__findAUTOCORR2D_29()
+            self.AUTOCORR2D_30 = self.__findAUTOCORR2D_30()
+            self.AUTOCORR2D_31 = self.__findAUTOCORR2D_31()
+            self.AUTOCORR2D_32 = self.__findAUTOCORR2D_32()
+            self.AUTOCORR2D_33 = self.__findAUTOCORR2D_33()
+            self.AUTOCORR2D_34 = self.__findAUTOCORR2D_34()
+            self.AUTOCORR2D_35 = self.__findAUTOCORR2D_35()
+            self.AUTOCORR2D_36 = self.__findAUTOCORR2D_36()
+            self.AUTOCORR2D_37 = self.__findAUTOCORR2D_37()
+            self.AUTOCORR2D_38 = self.__findAUTOCORR2D_38()
+            self.AUTOCORR2D_39 = self.__findAUTOCORR2D_39()
+            self.AUTOCORR2D_40 = self.__findAUTOCORR2D_40()
+            self.AUTOCORR2D_41 = self.__findAUTOCORR2D_41()
+            self.AUTOCORR2D_42 = self.__findAUTOCORR2D_42()
+            self.AUTOCORR2D_43 = self.__findAUTOCORR2D_43()
+            self.AUTOCORR2D_44 = self.__findAUTOCORR2D_44()
+            self.AUTOCORR2D_45 = self.__findAUTOCORR2D_45()
+            self.AUTOCORR2D_46 = self.__findAUTOCORR2D_46()
+            self.AUTOCORR2D_47 = self.__findAUTOCORR2D_47()
+            self.AUTOCORR2D_48 = self.__findAUTOCORR2D_48()
+            self.AUTOCORR2D_49 = self.__findAUTOCORR2D_49()
+            self.AUTOCORR2D_50 = self.__findAUTOCORR2D_50()
+            self.AUTOCORR2D_51 = self.__findAUTOCORR2D_51()
+            self.AUTOCORR2D_52 = self.__findAUTOCORR2D_52()
+            self.AUTOCORR2D_53 = self.__findAUTOCORR2D_53()
+            self.AUTOCORR2D_54 = self.__findAUTOCORR2D_54()
+            self.AUTOCORR2D_55 = self.__findAUTOCORR2D_55()
+            self.AUTOCORR2D_56 = self.__findAUTOCORR2D_56()
+            self.AUTOCORR2D_57 = self.__findAUTOCORR2D_57()
+            self.AUTOCORR2D_58 = self.__findAUTOCORR2D_58()
+            self.AUTOCORR2D_59 = self.__findAUTOCORR2D_59()
+            self.AUTOCORR2D_60 = self.__findAUTOCORR2D_60()
+            self.AUTOCORR2D_61 = self.__findAUTOCORR2D_61()
+            self.AUTOCORR2D_62 = self.__findAUTOCORR2D_62()
+            self.AUTOCORR2D_63 = self.__findAUTOCORR2D_63()
+            self.AUTOCORR2D_64 = self.__findAUTOCORR2D_64()
+            self.AUTOCORR2D_65 = self.__findAUTOCORR2D_65()
+            self.AUTOCORR2D_66 = self.__findAUTOCORR2D_66()
+            self.AUTOCORR2D_67 = self.__findAUTOCORR2D_67()
+            self.AUTOCORR2D_68 = self.__findAUTOCORR2D_68()
+            self.AUTOCORR2D_69 = self.__findAUTOCORR2D_69()
+            self.AUTOCORR2D_70 = self.__findAUTOCORR2D_70()
+            self.AUTOCORR2D_71 = self.__findAUTOCORR2D_71()
+            self.AUTOCORR2D_72 = self.__findAUTOCORR2D_72()
+            self.AUTOCORR2D_73 = self.__findAUTOCORR2D_73()
+            self.AUTOCORR2D_74 = self.__findAUTOCORR2D_74()
+            self.AUTOCORR2D_75 = self.__findAUTOCORR2D_75()
+            self.AUTOCORR2D_76 = self.__findAUTOCORR2D_76()
+            self.AUTOCORR2D_77 = self.__findAUTOCORR2D_77()
+            self.AUTOCORR2D_78 = self.__findAUTOCORR2D_78()
+            self.AUTOCORR2D_79 = self.__findAUTOCORR2D_79()
+            self.AUTOCORR2D_80 = self.__findAUTOCORR2D_80()
+            self.AUTOCORR2D_81 = self.__findAUTOCORR2D_81()
+            self.AUTOCORR2D_82 = self.__findAUTOCORR2D_82()
+            self.AUTOCORR2D_83 = self.__findAUTOCORR2D_83()
+            self.AUTOCORR2D_84 = self.__findAUTOCORR2D_84()
+            self.AUTOCORR2D_85 = self.__findAUTOCORR2D_85()
+            self.AUTOCORR2D_86 = self.__findAUTOCORR2D_86()
+            self.AUTOCORR2D_87 = self.__findAUTOCORR2D_87()
+            self.AUTOCORR2D_88 = self.__findAUTOCORR2D_88()
+            self.AUTOCORR2D_89 = self.__findAUTOCORR2D_89()
+            self.AUTOCORR2D_90 = self.__findAUTOCORR2D_90()
+            self.AUTOCORR2D_91 = self.__findAUTOCORR2D_91()
+            self.AUTOCORR2D_92 = self.__findAUTOCORR2D_92()
+            self.AUTOCORR2D_93 = self.__findAUTOCORR2D_93()
+            self.AUTOCORR2D_94 = self.__findAUTOCORR2D_94()
+            self.AUTOCORR2D_95 = self.__findAUTOCORR2D_95()
+            self.AUTOCORR2D_96 = self.__findAUTOCORR2D_96()
+            self.AUTOCORR2D_97 = self.__findAUTOCORR2D_97()
+            self.AUTOCORR2D_98 = self.__findAUTOCORR2D_98()
+            self.AUTOCORR2D_99 = self.__findAUTOCORR2D_99()
+            self.AUTOCORR2D_100 = self.__findAUTOCORR2D_100()
+            self.AUTOCORR2D_101 = self.__findAUTOCORR2D_101()
+            self.AUTOCORR2D_102 = self.__findAUTOCORR2D_102()
+            self.AUTOCORR2D_103 = self.__findAUTOCORR2D_103()
+            self.AUTOCORR2D_104 = self.__findAUTOCORR2D_104()
+            self.AUTOCORR2D_105 = self.__findAUTOCORR2D_105()
+            self.AUTOCORR2D_106 = self.__findAUTOCORR2D_106()
+            self.AUTOCORR2D_107 = self.__findAUTOCORR2D_107()
+            self.AUTOCORR2D_108 = self.__findAUTOCORR2D_108()
+            self.AUTOCORR2D_109 = self.__findAUTOCORR2D_109()
+            self.AUTOCORR2D_110 = self.__findAUTOCORR2D_110()
+            self.AUTOCORR2D_111 = self.__findAUTOCORR2D_111()
+            self.AUTOCORR2D_112 = self.__findAUTOCORR2D_112()
+            self.AUTOCORR2D_113 = self.__findAUTOCORR2D_113()
+            self.AUTOCORR2D_114 = self.__findAUTOCORR2D_114()
+            self.AUTOCORR2D_115 = self.__findAUTOCORR2D_115()
+            self.AUTOCORR2D_116 = self.__findAUTOCORR2D_116()
+            self.AUTOCORR2D_117 = self.__findAUTOCORR2D_117()
+            self.AUTOCORR2D_118 = self.__findAUTOCORR2D_118()
+            self.AUTOCORR2D_119 = self.__findAUTOCORR2D_119()
+            self.AUTOCORR2D_120 = self.__findAUTOCORR2D_120()
+            self.AUTOCORR2D_121 = self.__findAUTOCORR2D_121()
+            self.AUTOCORR2D_122 = self.__findAUTOCORR2D_122()
+            self.AUTOCORR2D_123 = self.__findAUTOCORR2D_123()
+            self.AUTOCORR2D_124 = self.__findAUTOCORR2D_124()
+            self.AUTOCORR2D_125 = self.__findAUTOCORR2D_125()
+            self.AUTOCORR2D_126 = self.__findAUTOCORR2D_126()
+            self.AUTOCORR2D_127 = self.__findAUTOCORR2D_127()
+            self.AUTOCORR2D_128 = self.__findAUTOCORR2D_128()
+            self.AUTOCORR2D_129 = self.__findAUTOCORR2D_129()
+            self.AUTOCORR2D_130 = self.__findAUTOCORR2D_130()
+            self.AUTOCORR2D_131 = self.__findAUTOCORR2D_131()
+            self.AUTOCORR2D_132 = self.__findAUTOCORR2D_132()
+            self.AUTOCORR2D_133 = self.__findAUTOCORR2D_133()
+            self.AUTOCORR2D_134 = self.__findAUTOCORR2D_134()
+            self.AUTOCORR2D_135 = self.__findAUTOCORR2D_135()
+            self.AUTOCORR2D_136 = self.__findAUTOCORR2D_136()
+            self.AUTOCORR2D_137 = self.__findAUTOCORR2D_137()
+            self.AUTOCORR2D_138 = self.__findAUTOCORR2D_138()
+            self.AUTOCORR2D_139 = self.__findAUTOCORR2D_139()
+            self.AUTOCORR2D_140 = self.__findAUTOCORR2D_140()
+            self.AUTOCORR2D_141 = self.__findAUTOCORR2D_141()
+            self.AUTOCORR2D_142 = self.__findAUTOCORR2D_142()
+            self.AUTOCORR2D_143 = self.__findAUTOCORR2D_143()
+            self.AUTOCORR2D_144 = self.__findAUTOCORR2D_144()
+            self.AUTOCORR2D_145 = self.__findAUTOCORR2D_145()
+            self.AUTOCORR2D_146 = self.__findAUTOCORR2D_146()
+            self.AUTOCORR2D_147 = self.__findAUTOCORR2D_147()
+            self.AUTOCORR2D_148 = self.__findAUTOCORR2D_148()
+            self.AUTOCORR2D_149 = self.__findAUTOCORR2D_149()
+            self.AUTOCORR2D_150 = self.__findAUTOCORR2D_150()
+            self.AUTOCORR2D_151 = self.__findAUTOCORR2D_151()
+            self.AUTOCORR2D_152 = self.__findAUTOCORR2D_152()
+            self.AUTOCORR2D_153 = self.__findAUTOCORR2D_153()
+            self.AUTOCORR2D_154 = self.__findAUTOCORR2D_154()
+            self.AUTOCORR2D_155 = self.__findAUTOCORR2D_155()
+            self.AUTOCORR2D_156 = self.__findAUTOCORR2D_156()
+            self.AUTOCORR2D_157 = self.__findAUTOCORR2D_157()
+            self.AUTOCORR2D_158 = self.__findAUTOCORR2D_158()
+            self.AUTOCORR2D_159 = self.__findAUTOCORR2D_159()
+            self.AUTOCORR2D_160 = self.__findAUTOCORR2D_160()
+            self.AUTOCORR2D_161 = self.__findAUTOCORR2D_161()
+            self.AUTOCORR2D_162 = self.__findAUTOCORR2D_162()
+            self.AUTOCORR2D_163 = self.__findAUTOCORR2D_163()
+            self.AUTOCORR2D_164 = self.__findAUTOCORR2D_164()
+            self.AUTOCORR2D_165 = self.__findAUTOCORR2D_165()
+            self.AUTOCORR2D_166 = self.__findAUTOCORR2D_166()
+            self.AUTOCORR2D_167 = self.__findAUTOCORR2D_167()
+            self.AUTOCORR2D_168 = self.__findAUTOCORR2D_168()
+            self.AUTOCORR2D_169 = self.__findAUTOCORR2D_169()
+            self.AUTOCORR2D_170 = self.__findAUTOCORR2D_170()
+            self.AUTOCORR2D_171 = self.__findAUTOCORR2D_171()
+            self.AUTOCORR2D_172 = self.__findAUTOCORR2D_172()
+            self.AUTOCORR2D_173 = self.__findAUTOCORR2D_173()
+            self.AUTOCORR2D_174 = self.__findAUTOCORR2D_174()
+            self.AUTOCORR2D_175 = self.__findAUTOCORR2D_175()
+            self.AUTOCORR2D_176 = self.__findAUTOCORR2D_176()
+            self.AUTOCORR2D_177 = self.__findAUTOCORR2D_177()
+            self.AUTOCORR2D_178 = self.__findAUTOCORR2D_178()
+            self.AUTOCORR2D_179 = self.__findAUTOCORR2D_179()
+            self.AUTOCORR2D_180 = self.__findAUTOCORR2D_180()
+            self.AUTOCORR2D_181 = self.__findAUTOCORR2D_181()
+            self.AUTOCORR2D_182 = self.__findAUTOCORR2D_182()
+            self.AUTOCORR2D_183 = self.__findAUTOCORR2D_183()
+            self.AUTOCORR2D_184 = self.__findAUTOCORR2D_184()
+            self.AUTOCORR2D_185 = self.__findAUTOCORR2D_185()
+            self.AUTOCORR2D_186 = self.__findAUTOCORR2D_186()
+            self.AUTOCORR2D_187 = self.__findAUTOCORR2D_187()
+            self.AUTOCORR2D_188 = self.__findAUTOCORR2D_188()
+            self.AUTOCORR2D_189 = self.__findAUTOCORR2D_189()
+            self.AUTOCORR2D_190 = self.__findAUTOCORR2D_190()
+            self.AUTOCORR2D_191 = self.__findAUTOCORR2D_191()
+            self.AUTOCORR2D_192 = self.__findAUTOCORR2D_192()
             # </editor-fold>
 
             # <editor-fold> BCUT2D descriptors
-            self.BCUT2D_CHGHI = self._findBCUT2D_CHGHI()
-            self.BCUT2D_CHGLO = self._findBCUT2D_CHGLO()
-            self.BCUT2D_LOGPHI = self._findBCUT2D_LOGPHI()
-            self.BCUT2D_LOGPLOW = self._findBCUT2D_LOGPLOW()
-            self.BCUT2D_MRHI = self._findBCUT2D_MRHI()
-            self.BCUT2D_MRLOW = self._findBCUT2D_MRLOW()
-            self.BCUT2D_MWHI = self._findBCUT2D_MWHI()
-            self.BCUT2D_MWLOW = self._findBCUT2D_MWLOW()
+            self.BCUT2D_CHGHI = self.__findBCUT2D_CHGHI()
+            self.BCUT2D_CHGLO = self.__findBCUT2D_CHGLO()
+            self.BCUT2D_LOGPHI = self.__findBCUT2D_LOGPHI()
+            self.BCUT2D_LOGPLOW = self.__findBCUT2D_LOGPLOW()
+            self.BCUT2D_MRHI = self.__findBCUT2D_MRHI()
+            self.BCUT2D_MRLOW = self.__findBCUT2D_MRLOW()
+            self.BCUT2D_MWHI = self.__findBCUT2D_MWHI()
+            self.BCUT2D_MWLOW = self.__findBCUT2D_MWLOW()
             # </editor-fold>
 
-            self.BalabanJ = None
-            self.BertzCT = None
+            self.BalabanJ = self.__findBalabanJ()
+            self.BertzCT = self.__findBertzCT()
 
             # <editor-fold> Chi descriptors
-            self.Chi0 = None
-            self.Chi0n = None
-            self.Chi0v = None
-            self.Chi1 = None
-            self.Chi1n = None
-            self.Chi1v = None
-            self.Chi2n = None
-            self.Chi2v = None
-            self.Chi3n = None
-            self.Chi3v = None
-            self.Chi4n = None
-            self.Chi4v = None
+            self.Chi0 = self.__findChi0()
+            self.Chi0n = self.__findChi0n()
+            self.Chi0v = self.__findChi0v()
+            self.Chi1 = self.__findChi1()
+            self.Chi1n = self.__findChi1n()
+            self.Chi1v = self.__findChi1v()
+            self.Chi2n = self.__findChi2n()
+            self.Chi2v = self.__findChi2v()
+            self.Chi3n = self.__findChi3n()
+            self.Chi3v = self.__findChi3v()
+            self.Chi4n = self.__findChi4n()
+            self.Chi4v = self.__findChi4v()
             # </editor-fold>
 
             # <editor-fold> EState descriptors
-            self.EState_VSA1 = None
-            self.EState_VSA10 = None
-            self.EState_VSA11 = None
-            self.EState_VSA2 = None
-            self.EState_VSA3 = None
-            self.EState_VSA4 = None
-            self.EState_VSA5 = None
-            self.EState_VSA6 = None
-            self.EState_VSA7 = None
-            self.EState_VSA8 = None
-            self.EState_VSA9 = None
+            self.EState_VSA1 = self.__findEState_VSA1()
+            self.EState_VSA2 = self.__findEState_VSA2()
+            self.EState_VSA3 = self.__findEState_VSA3()
+            self.EState_VSA4 = self.__findEState_VSA4()
+            self.EState_VSA5 = self.__findEState_VSA5()
+            self.EState_VSA6 = self.__findEState_VSA6()
+            self.EState_VSA7 = self.__findEState_VSA7()
+            self.EState_VSA8 = self.__findEState_VSA8()
+            self.EState_VSA9 = self.__findEState_VSA9()
+            self.EState_VSA10 = self.__findEState_VSA10()
+            self.EState_VSA11 = self.__findEState_VSA11()
 
-            self.MaxAbsEStateIndex = None
-            self.MaxEStateIndex = None
-            self.MinAbsEStateIndex = None
-            self.MinEStateIndex = None
+            self.MaxAbsEStateIndex = self.__findMaxAbsEStateIndex()
+            self.MaxEStateIndex = self.__findMaxEStateIndex()
+            self.MinAbsEStateIndex = self.__findMinAbsEStateIndex()
+            self.MinEStateIndex = self.__findMinEStateIndex()
             # </editor-fold>
 
             self.ExactMolWt = self.__findExactMolWt()
@@ -980,7 +980,7 @@ class Ligand:
         return read_descriptors_from_json(path)
 
     # <editor-fold> AUTOCORR descriptors
-    def _findAUTOCORR2D_1(self):
+    def __findAUTOCORR2D_1(self):
         '''
         Compute the autocorrelation2D_1 descriptor.
         Input:
@@ -991,7 +991,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_1(self.molecule)
 
-    def _findAUTOCORR2D_2(self):
+    def __findAUTOCORR2D_2(self):
         '''
         Compute the autocorrelation2D_2 descriptor.
         Input:
@@ -1002,7 +1002,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_2(self.molecule)
 
-    def _findAUTOCORR2D_3(self):
+    def __findAUTOCORR2D_3(self):
         '''
         Compute the autocorrelation2D_3 descriptor.
         Input:
@@ -1013,7 +1013,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_3(self.molecule)
 
-    def _findAUTOCORR2D_4(self):
+    def __findAUTOCORR2D_4(self):
         '''
         Compute the autocorrelation2D_4 descriptor.
         Input:
@@ -1024,7 +1024,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_4(self.molecule)
 
-    def _findAUTOCORR2D_5(self):
+    def __findAUTOCORR2D_5(self):
         '''
         Compute the autocorrelation2D_5 descriptor.
         Input:
@@ -1035,7 +1035,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_5(self.molecule)
 
-    def _findAUTOCORR2D_6(self):
+    def __findAUTOCORR2D_6(self):
         '''
         Compute the autocorrelation2D_6 descriptor.
         Input:
@@ -1046,7 +1046,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_6(self.molecule)
 
-    def _findAUTOCORR2D_7(self):
+    def __findAUTOCORR2D_7(self):
         '''
         Compute the autocorrelation2D_7 descriptor.
         Input:
@@ -1057,7 +1057,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_7(self.molecule)
 
-    def _findAUTOCORR2D_8(self):
+    def __findAUTOCORR2D_8(self):
         '''
         Compute the autocorrelation2D_8 descriptor.
         Input:
@@ -1068,7 +1068,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_8(self.molecule)
 
-    def _findAUTOCORR2D_9(self):
+    def __findAUTOCORR2D_9(self):
         '''
         Compute the autocorrelation2D_9 descriptor.
         Input:
@@ -1079,7 +1079,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_9(self.molecule)
 
-    def _findAUTOCORR2D_10(self):
+    def __findAUTOCORR2D_10(self):
         '''
         Compute the autocorrelation2D_10 descriptor.
         Input:
@@ -1090,7 +1090,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_10(self.molecule)
 
-    def _findAUTOCORR2D_11(self):
+    def __findAUTOCORR2D_11(self):
         '''
         Compute the autocorrelation2D_11 descriptor.
         Input:
@@ -1101,7 +1101,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_11(self.molecule)
 
-    def _findAUTOCORR2D_12(self):
+    def __findAUTOCORR2D_12(self):
         '''
         Compute the autocorrelation2D_12 descriptor.
         Input:
@@ -1112,7 +1112,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_12(self.molecule)
 
-    def _findAUTOCORR2D_13(self):
+    def __findAUTOCORR2D_13(self):
         '''
         Compute the autocorrelation2D_13 descriptor.
         Input:
@@ -1123,7 +1123,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_13(self.molecule)
 
-    def _findAUTOCORR2D_14(self):
+    def __findAUTOCORR2D_14(self):
         '''
         Compute the autocorrelation2D_14 descriptor.
         Input:
@@ -1134,7 +1134,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_14(self.molecule)
 
-    def _findAUTOCORR2D_15(self):
+    def __findAUTOCORR2D_15(self):
         '''
         Compute the autocorrelation2D_15 descriptor.
         Input:
@@ -1145,7 +1145,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_15(self.molecule)
 
-    def _findAUTOCORR2D_16(self):
+    def __findAUTOCORR2D_16(self):
         '''
         Compute the autocorrelation2D_16 descriptor.
         Input:
@@ -1156,7 +1156,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_16(self.molecule)
 
-    def _findAUTOCORR2D_17(self):
+    def __findAUTOCORR2D_17(self):
         '''
         Compute the autocorrelation2D_17 descriptor.
         Input:
@@ -1167,7 +1167,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_17(self.molecule)
 
-    def _findAUTOCORR2D_18(self):
+    def __findAUTOCORR2D_18(self):
         '''
         Compute the autocorrelation2D_18 descriptor.
         Input:
@@ -1178,7 +1178,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_18(self.molecule)
 
-    def _findAUTOCORR2D_19(self):
+    def __findAUTOCORR2D_19(self):
         '''
         Compute the autocorrelation2D_19 descriptor.
         Input:
@@ -1189,7 +1189,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_19(self.molecule)
 
-    def _findAUTOCORR2D_20(self):
+    def __findAUTOCORR2D_20(self):
         '''
         Compute the autocorrelation2D_20 descriptor.
         Input:
@@ -1200,7 +1200,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_20(self.molecule)
 
-    def _findAUTOCORR2D_21(self):
+    def __findAUTOCORR2D_21(self):
         '''
         Compute the autocorrelation2D_21 descriptor.
         Input:
@@ -1211,7 +1211,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_21(self.molecule)
 
-    def _findAUTOCORR2D_22(self):
+    def __findAUTOCORR2D_22(self):
         '''
         Compute the autocorrelation2D_22 descriptor.
         Input:
@@ -1222,7 +1222,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_22(self.molecule)
 
-    def _findAUTOCORR2D_23(self):
+    def __findAUTOCORR2D_23(self):
         '''
         Compute the autocorrelation2D_23 descriptor.
         Input:
@@ -1233,7 +1233,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_23(self.molecule)
 
-    def _findAUTOCORR2D_24(self):
+    def __findAUTOCORR2D_24(self):
         '''
         Compute the autocorrelation2D_24 descriptor.
         Input:
@@ -1244,7 +1244,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_24(self.molecule)
 
-    def _findAUTOCORR2D_25(self):
+    def __findAUTOCORR2D_25(self):
         '''
         Compute the autocorrelation2D_25 descriptor.
         Input:
@@ -1255,7 +1255,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_25(self.molecule)
 
-    def _findAUTOCORR2D_26(self):
+    def __findAUTOCORR2D_26(self):
         '''
         Compute the autocorrelation2D_26 descriptor.
         Input:
@@ -1266,7 +1266,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_26(self.molecule)
 
-    def _findAUTOCORR2D_27(self):
+    def __findAUTOCORR2D_27(self):
         '''
         Compute the autocorrelation2D_27 descriptor.
         Input:
@@ -1277,7 +1277,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_27(self.molecule)
 
-    def _findAUTOCORR2D_28(self):
+    def __findAUTOCORR2D_28(self):
         '''
         Compute the autocorrelation2D_28 descriptor.
         Input:
@@ -1288,7 +1288,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_28(self.molecule)
 
-    def _findAUTOCORR2D_29(self):
+    def __findAUTOCORR2D_29(self):
         '''
         Compute the autocorrelation2D_29 descriptor.
         Input:
@@ -1299,7 +1299,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_29(self.molecule)
 
-    def _findAUTOCORR2D_30(self):
+    def __findAUTOCORR2D_30(self):
         '''
         Compute the autocorrelation2D_30 descriptor.
         Input:
@@ -1310,7 +1310,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_30(self.molecule)
 
-    def _findAUTOCORR2D_31(self):
+    def __findAUTOCORR2D_31(self):
         '''
         Compute the autocorrelation2D_31 descriptor.
         Input:
@@ -1321,7 +1321,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_31(self.molecule)
 
-    def _findAUTOCORR2D_32(self):
+    def __findAUTOCORR2D_32(self):
         '''
         Compute the autocorrelation2D_32 descriptor.
         Input:
@@ -1332,7 +1332,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_32(self.molecule)
 
-    def _findAUTOCORR2D_33(self):
+    def __findAUTOCORR2D_33(self):
         '''
         Compute the autocorrelation2D_33 descriptor.
         Input:
@@ -1343,7 +1343,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_33(self.molecule)
 
-    def _findAUTOCORR2D_34(self):
+    def __findAUTOCORR2D_34(self):
         '''
         Compute the autocorrelation2D_34 descriptor.
         Input:
@@ -1354,7 +1354,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_34(self.molecule)
 
-    def _findAUTOCORR2D_35(self):
+    def __findAUTOCORR2D_35(self):
         '''
         Compute the autocorrelation2D_35 descriptor.
         Input:
@@ -1365,7 +1365,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_35(self.molecule)
 
-    def _findAUTOCORR2D_36(self):
+    def __findAUTOCORR2D_36(self):
         '''
         Compute the autocorrelation2D_36 descriptor.
         Input:
@@ -1376,7 +1376,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_36(self.molecule)
 
-    def _findAUTOCORR2D_37(self):
+    def __findAUTOCORR2D_37(self):
         '''
         Compute the autocorrelation2D_37 descriptor.
         Input:
@@ -1387,7 +1387,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_37(self.molecule)
 
-    def _findAUTOCORR2D_38(self):
+    def __findAUTOCORR2D_38(self):
         '''
         Compute the autocorrelation2D_38 descriptor.
         Input:
@@ -1398,7 +1398,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_38(self.molecule)
 
-    def _findAUTOCORR2D_39(self):
+    def __findAUTOCORR2D_39(self):
         '''
         Compute the autocorrelation2D_39 descriptor.
         Input:
@@ -1409,7 +1409,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_39(self.molecule)
 
-    def _findAUTOCORR2D_40(self):
+    def __findAUTOCORR2D_40(self):
         '''
         Compute the autocorrelation2D_40 descriptor.
         Input:
@@ -1420,7 +1420,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_40(self.molecule)
 
-    def _findAUTOCORR2D_41(self):
+    def __findAUTOCORR2D_41(self):
         '''
         Compute the autocorrelation2D_41 descriptor.
         Input:
@@ -1431,7 +1431,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_41(self.molecule)
 
-    def _findAUTOCORR2D_42(self):
+    def __findAUTOCORR2D_42(self):
         '''
         Compute the autocorrelation2D_42 descriptor.
         Input:
@@ -1442,7 +1442,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_42(self.molecule)
 
-    def _findAUTOCORR2D_43(self):
+    def __findAUTOCORR2D_43(self):
         '''
         Compute the autocorrelation2D_43 descriptor.
         Input:
@@ -1453,7 +1453,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_43(self.molecule)
 
-    def _findAUTOCORR2D_44(self):
+    def __findAUTOCORR2D_44(self):
         '''
         Compute the autocorrelation2D_44 descriptor.
         Input:
@@ -1464,7 +1464,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_44(self.molecule)
 
-    def _findAUTOCORR2D_45(self):
+    def __findAUTOCORR2D_45(self):
         '''
         Compute the autocorrelation2D_45 descriptor.
         Input:
@@ -1475,7 +1475,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_45(self.molecule)
 
-    def _findAUTOCORR2D_46(self):
+    def __findAUTOCORR2D_46(self):
         '''
         Compute the autocorrelation2D_46 descriptor.
         Input:
@@ -1486,7 +1486,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_46(self.molecule)
 
-    def _findAUTOCORR2D_47(self):
+    def __findAUTOCORR2D_47(self):
         '''
         Compute the autocorrelation2D_47 descriptor.
         Input:
@@ -1497,7 +1497,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_47(self.molecule)
 
-    def _findAUTOCORR2D_48(self):
+    def __findAUTOCORR2D_48(self):
         '''
         Compute the autocorrelation2D_48 descriptor.
         Input:
@@ -1508,7 +1508,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_48(self.molecule)
 
-    def _findAUTOCORR2D_49(self):
+    def __findAUTOCORR2D_49(self):
         '''
         Compute the autocorrelation2D_49 descriptor.
         Input:
@@ -1519,7 +1519,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_49(self.molecule)
 
-    def _findAUTOCORR2D_50(self):
+    def __findAUTOCORR2D_50(self):
         '''
         Compute the autocorrelation2D_50 descriptor.
         Input:
@@ -1530,7 +1530,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_50(self.molecule)
 
-    def _findAUTOCORR2D_51(self):
+    def __findAUTOCORR2D_51(self):
         '''
         Compute the autocorrelation2D_51 descriptor.
         Input:
@@ -1541,7 +1541,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_51(self.molecule)
 
-    def _findAUTOCORR2D_52(self):
+    def __findAUTOCORR2D_52(self):
         '''
         Compute the autocorrelation2D_52 descriptor.
         Input:
@@ -1552,7 +1552,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_52(self.molecule)
 
-    def _findAUTOCORR2D_53(self):
+    def __findAUTOCORR2D_53(self):
         '''
         Compute the autocorrelation2D_53 descriptor.
         Input:
@@ -1563,7 +1563,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_53(self.molecule)
 
-    def _findAUTOCORR2D_54(self):
+    def __findAUTOCORR2D_54(self):
         '''
         Compute the autocorrelation2D_54 descriptor.
         Input:
@@ -1574,7 +1574,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_54(self.molecule)
 
-    def _findAUTOCORR2D_55(self):
+    def __findAUTOCORR2D_55(self):
         '''
         Compute the autocorrelation2D_55 descriptor.
         Input:
@@ -1585,7 +1585,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_55(self.molecule)
 
-    def _findAUTOCORR2D_56(self):
+    def __findAUTOCORR2D_56(self):
         '''
         Compute the autocorrelation2D_56 descriptor.
         Input:
@@ -1596,7 +1596,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_56(self.molecule)
 
-    def _findAUTOCORR2D_57(self):
+    def __findAUTOCORR2D_57(self):
         '''
         Compute the autocorrelation2D_57 descriptor.
         Input:
@@ -1607,7 +1607,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_57(self.molecule)
 
-    def _findAUTOCORR2D_58(self):
+    def __findAUTOCORR2D_58(self):
         '''
         Compute the autocorrelation2D_58 descriptor.
         Input:
@@ -1618,7 +1618,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_58(self.molecule)
 
-    def _findAUTOCORR2D_59(self):
+    def __findAUTOCORR2D_59(self):
         '''
         Compute the autocorrelation2D_59 descriptor.
         Input:
@@ -1629,7 +1629,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_59(self.molecule)
 
-    def _findAUTOCORR2D_60(self):
+    def __findAUTOCORR2D_60(self):
         '''
         Compute the autocorrelation2D_60 descriptor.
         Input:
@@ -1640,7 +1640,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_60(self.molecule)
 
-    def _findAUTOCORR2D_61(self):
+    def __findAUTOCORR2D_61(self):
         '''
         Compute the autocorrelation2D_61 descriptor.
         Input:
@@ -1651,7 +1651,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_61(self.molecule)
 
-    def _findAUTOCORR2D_62(self):
+    def __findAUTOCORR2D_62(self):
         '''
         Compute the autocorrelation2D_62 descriptor.
         Input:
@@ -1662,7 +1662,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_62(self.molecule)
 
-    def _findAUTOCORR2D_63(self):
+    def __findAUTOCORR2D_63(self):
         '''
         Compute the autocorrelation2D_63 descriptor.
         Input:
@@ -1673,7 +1673,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_63(self.molecule)
 
-    def _findAUTOCORR2D_64(self):
+    def __findAUTOCORR2D_64(self):
         '''
         Compute the autocorrelation2D_64 descriptor.
         Input:
@@ -1684,7 +1684,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_64(self.molecule)
 
-    def _findAUTOCORR2D_65(self):
+    def __findAUTOCORR2D_65(self):
         '''
         Compute the autocorrelation2D_65 descriptor.
         Input:
@@ -1695,7 +1695,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_65(self.molecule)
 
-    def _findAUTOCORR2D_66(self):
+    def __findAUTOCORR2D_66(self):
         '''
         Compute the autocorrelation2D_66 descriptor.
         Input:
@@ -1706,7 +1706,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_66(self.molecule)
 
-    def _findAUTOCORR2D_67(self):
+    def __findAUTOCORR2D_67(self):
         '''
         Compute the autocorrelation2D_67 descriptor.
         Input:
@@ -1717,7 +1717,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_67(self.molecule)
 
-    def _findAUTOCORR2D_68(self):
+    def __findAUTOCORR2D_68(self):
         '''
         Compute the autocorrelation2D_68 descriptor.
         Input:
@@ -1728,7 +1728,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_68(self.molecule)
 
-    def _findAUTOCORR2D_69(self):
+    def __findAUTOCORR2D_69(self):
         '''
         Compute the autocorrelation2D_69 descriptor.
         Input:
@@ -1739,7 +1739,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_69(self.molecule)
 
-    def _findAUTOCORR2D_70(self):
+    def __findAUTOCORR2D_70(self):
         '''
         Compute the autocorrelation2D_70 descriptor.
         Input:
@@ -1750,7 +1750,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_70(self.molecule)
 
-    def _findAUTOCORR2D_71(self):
+    def __findAUTOCORR2D_71(self):
         '''
         Compute the autocorrelation2D_71 descriptor.
         Input:
@@ -1761,7 +1761,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_71(self.molecule)
 
-    def _findAUTOCORR2D_72(self):
+    def __findAUTOCORR2D_72(self):
         '''
         Compute the autocorrelation2D_72 descriptor.
         Input:
@@ -1772,7 +1772,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_72(self.molecule)
 
-    def _findAUTOCORR2D_73(self):
+    def __findAUTOCORR2D_73(self):
         '''
         Compute the autocorrelation2D_73 descriptor.
         Input:
@@ -1783,7 +1783,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_73(self.molecule)
 
-    def _findAUTOCORR2D_74(self):
+    def __findAUTOCORR2D_74(self):
         '''
         Compute the autocorrelation2D_74 descriptor.
         Input:
@@ -1794,7 +1794,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_74(self.molecule)
 
-    def _findAUTOCORR2D_75(self):
+    def __findAUTOCORR2D_75(self):
         '''
         Compute the autocorrelation2D_75 descriptor.
         Input:
@@ -1805,7 +1805,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_75(self.molecule)
 
-    def _findAUTOCORR2D_76(self):
+    def __findAUTOCORR2D_76(self):
         '''
         Compute the autocorrelation2D_76 descriptor.
         Input:
@@ -1816,7 +1816,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_76(self.molecule)
 
-    def _findAUTOCORR2D_77(self):
+    def __findAUTOCORR2D_77(self):
         '''
         Compute the autocorrelation2D_77 descriptor.
         Input:
@@ -1827,7 +1827,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_77(self.molecule)
 
-    def _findAUTOCORR2D_78(self):
+    def __findAUTOCORR2D_78(self):
         '''
         Compute the autocorrelation2D_78 descriptor.
         Input:
@@ -1838,7 +1838,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_78(self.molecule)
 
-    def _findAUTOCORR2D_79(self):
+    def __findAUTOCORR2D_79(self):
         '''
         Compute the autocorrelation2D_79 descriptor.
         Input:
@@ -1849,7 +1849,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_79(self.molecule)
 
-    def _findAUTOCORR2D_80(self):
+    def __findAUTOCORR2D_80(self):
         '''
         Compute the autocorrelation2D_80 descriptor.
         Input:
@@ -1860,7 +1860,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_80(self.molecule)
 
-    def _findAUTOCORR2D_81(self):
+    def __findAUTOCORR2D_81(self):
         '''
         Compute the autocorrelation2D_81 descriptor.
         Input:
@@ -1871,7 +1871,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_81(self.molecule)
 
-    def _findAUTOCORR2D_82(self):
+    def __findAUTOCORR2D_82(self):
         '''
         Compute the autocorrelation2D_82 descriptor.
         Input:
@@ -1882,7 +1882,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_82(self.molecule)
 
-    def _findAUTOCORR2D_83(self):
+    def __findAUTOCORR2D_83(self):
         '''
         Compute the autocorrelation2D_83 descriptor.
         Input:
@@ -1893,7 +1893,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_83(self.molecule)
 
-    def _findAUTOCORR2D_84(self):
+    def __findAUTOCORR2D_84(self):
         '''
         Compute the autocorrelation2D_84 descriptor.
         Input:
@@ -1904,7 +1904,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_84(self.molecule)
 
-    def _findAUTOCORR2D_85(self):
+    def __findAUTOCORR2D_85(self):
         '''
         Compute the autocorrelation2D_85 descriptor.
         Input:
@@ -1915,7 +1915,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_85(self.molecule)
 
-    def _findAUTOCORR2D_86(self):
+    def __findAUTOCORR2D_86(self):
         '''
         Compute the autocorrelation2D_86 descriptor.
         Input:
@@ -1926,7 +1926,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_86(self.molecule)
 
-    def _findAUTOCORR2D_87(self):
+    def __findAUTOCORR2D_87(self):
         '''
         Compute the autocorrelation2D_87 descriptor.
         Input:
@@ -1937,7 +1937,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_87(self.molecule)
 
-    def _findAUTOCORR2D_88(self):
+    def __findAUTOCORR2D_88(self):
         '''
         Compute the autocorrelation2D_88 descriptor.
         Input:
@@ -1948,7 +1948,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_88(self.molecule)
 
-    def _findAUTOCORR2D_89(self):
+    def __findAUTOCORR2D_89(self):
         '''
         Compute the autocorrelation2D_89 descriptor.
         Input:
@@ -1959,7 +1959,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_89(self.molecule)
 
-    def _findAUTOCORR2D_90(self):
+    def __findAUTOCORR2D_90(self):
         '''
         Compute the autocorrelation2D_90 descriptor.
         Input:
@@ -1970,7 +1970,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_90(self.molecule)
 
-    def _findAUTOCORR2D_91(self):
+    def __findAUTOCORR2D_91(self):
         '''
         Compute the autocorrelation2D_91 descriptor.
         Input:
@@ -1981,7 +1981,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_91(self.molecule)
 
-    def _findAUTOCORR2D_92(self):
+    def __findAUTOCORR2D_92(self):
         '''
         Compute the autocorrelation2D_92 descriptor.
         Input:
@@ -1992,7 +1992,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_92(self.molecule)
 
-    def _findAUTOCORR2D_93(self):
+    def __findAUTOCORR2D_93(self):
         '''
         Compute the autocorrelation2D_93 descriptor.
         Input:
@@ -2003,7 +2003,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_93(self.molecule)
 
-    def _findAUTOCORR2D_94(self):
+    def __findAUTOCORR2D_94(self):
         '''
         Compute the autocorrelation2D_94 descriptor.
         Input:
@@ -2014,7 +2014,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_94(self.molecule)
 
-    def _findAUTOCORR2D_95(self):
+    def __findAUTOCORR2D_95(self):
         '''
         Compute the autocorrelation2D_95 descriptor.
         Input:
@@ -2025,7 +2025,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_95(self.molecule)
 
-    def _findAUTOCORR2D_96(self):
+    def __findAUTOCORR2D_96(self):
         '''
         Compute the autocorrelation2D_96 descriptor.
         Input:
@@ -2036,7 +2036,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_96(self.molecule)
 
-    def _findAUTOCORR2D_97(self):
+    def __findAUTOCORR2D_97(self):
         '''
         Compute the autocorrelation2D_97 descriptor.
         Input:
@@ -2047,7 +2047,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_97(self.molecule)
 
-    def _findAUTOCORR2D_98(self):
+    def __findAUTOCORR2D_98(self):
         '''
         Compute the autocorrelation2D_98 descriptor.
         Input:
@@ -2058,7 +2058,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_98(self.molecule)
 
-    def _findAUTOCORR2D_99(self):
+    def __findAUTOCORR2D_99(self):
         '''
         Compute the autocorrelation2D_99 descriptor.
         Input:
@@ -2069,7 +2069,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_99(self.molecule)
 
-    def _findAUTOCORR2D_100(self):
+    def __findAUTOCORR2D_100(self):
         '''
         Compute the autocorrelation2D_100 descriptor.
         Input:
@@ -2080,7 +2080,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_100(self.molecule)
 
-    def _findAUTOCORR2D_101(self):
+    def __findAUTOCORR2D_101(self):
         '''
         Compute the autocorrelation2D_101 descriptor.
         Input:
@@ -2091,7 +2091,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_101(self.molecule)
 
-    def _findAUTOCORR2D_102(self):
+    def __findAUTOCORR2D_102(self):
         '''
         Compute the autocorrelation2D_102 descriptor.
         Input:
@@ -2102,7 +2102,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_102(self.molecule)
 
-    def _findAUTOCORR2D_103(self):
+    def __findAUTOCORR2D_103(self):
         '''
         Compute the autocorrelation2D_103 descriptor.
         Input:
@@ -2113,7 +2113,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_103(self.molecule)
 
-    def _findAUTOCORR2D_104(self):
+    def __findAUTOCORR2D_104(self):
         '''
         Compute the autocorrelation2D_104 descriptor.
         Input:
@@ -2124,7 +2124,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_104(self.molecule)
 
-    def _findAUTOCORR2D_105(self):
+    def __findAUTOCORR2D_105(self):
         '''
         Compute the autocorrelation2D_105 descriptor.
         Input:
@@ -2135,7 +2135,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_105(self.molecule)
 
-    def _findAUTOCORR2D_106(self):
+    def __findAUTOCORR2D_106(self):
         '''
         Compute the autocorrelation2D_106 descriptor.
         Input:
@@ -2146,7 +2146,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_106(self.molecule)
 
-    def _findAUTOCORR2D_107(self):
+    def __findAUTOCORR2D_107(self):
         '''
         Compute the autocorrelation2D_107 descriptor.
         Input:
@@ -2157,7 +2157,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_107(self.molecule)
 
-    def _findAUTOCORR2D_108(self):
+    def __findAUTOCORR2D_108(self):
         '''
         Compute the autocorrelation2D_108 descriptor.
         Input:
@@ -2168,7 +2168,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_108(self.molecule)
 
-    def _findAUTOCORR2D_109(self):
+    def __findAUTOCORR2D_109(self):
         '''
         Compute the autocorrelation2D_109 descriptor.
         Input:
@@ -2179,7 +2179,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_109(self.molecule)
 
-    def _findAUTOCORR2D_110(self):
+    def __findAUTOCORR2D_110(self):
         '''
         Compute the autocorrelation2D_110 descriptor.
         Input:
@@ -2190,7 +2190,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_110(self.molecule)
 
-    def _findAUTOCORR2D_111(self):
+    def __findAUTOCORR2D_111(self):
         '''
         Compute the autocorrelation2D_111 descriptor.
         Input:
@@ -2201,7 +2201,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_111(self.molecule)
 
-    def _findAUTOCORR2D_112(self):
+    def __findAUTOCORR2D_112(self):
         '''
         Compute the autocorrelation2D_112 descriptor.
         Input:
@@ -2212,7 +2212,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_112(self.molecule)
 
-    def _findAUTOCORR2D_113(self):
+    def __findAUTOCORR2D_113(self):
         '''
         Compute the autocorrelation2D_113 descriptor.
         Input:
@@ -2223,7 +2223,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_113(self.molecule)
 
-    def _findAUTOCORR2D_114(self):
+    def __findAUTOCORR2D_114(self):
         '''
         Compute the autocorrelation2D_114 descriptor.
         Input:
@@ -2234,7 +2234,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_114(self.molecule)
 
-    def _findAUTOCORR2D_115(self):
+    def __findAUTOCORR2D_115(self):
         '''
         Compute the autocorrelation2D_115 descriptor.
         Input:
@@ -2245,7 +2245,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_115(self.molecule)
 
-    def _findAUTOCORR2D_116(self):
+    def __findAUTOCORR2D_116(self):
         '''
         Compute the autocorrelation2D_116 descriptor.
         Input:
@@ -2256,7 +2256,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_116(self.molecule)
 
-    def _findAUTOCORR2D_117(self):
+    def __findAUTOCORR2D_117(self):
         '''
         Compute the autocorrelation2D_117 descriptor.
         Input:
@@ -2267,7 +2267,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_117(self.molecule)
 
-    def _findAUTOCORR2D_118(self):
+    def __findAUTOCORR2D_118(self):
         '''
         Compute the autocorrelation2D_118 descriptor.
         Input:
@@ -2278,7 +2278,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_118(self.molecule)
 
-    def _findAUTOCORR2D_119(self):
+    def __findAUTOCORR2D_119(self):
         '''
         Compute the autocorrelation2D_119 descriptor.
         Input:
@@ -2289,7 +2289,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_119(self.molecule)
 
-    def _findAUTOCORR2D_120(self):
+    def __findAUTOCORR2D_120(self):
         '''
         Compute the autocorrelation2D_120 descriptor.
         Input:
@@ -2300,7 +2300,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_120(self.molecule)
 
-    def _findAUTOCORR2D_121(self):
+    def __findAUTOCORR2D_121(self):
         '''
         Compute the autocorrelation2D_121 descriptor.
         Input:
@@ -2311,7 +2311,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_121(self.molecule)
 
-    def _findAUTOCORR2D_122(self):
+    def __findAUTOCORR2D_122(self):
         '''
         Compute the autocorrelation2D_122 descriptor.
         Input:
@@ -2322,7 +2322,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_122(self.molecule)
 
-    def _findAUTOCORR2D_123(self):
+    def __findAUTOCORR2D_123(self):
         '''
         Compute the autocorrelation2D_123 descriptor.
         Input:
@@ -2333,7 +2333,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_123(self.molecule)
 
-    def _findAUTOCORR2D_124(self):
+    def __findAUTOCORR2D_124(self):
         '''
         Compute the autocorrelation2D_124 descriptor.
         Input:
@@ -2344,7 +2344,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_124(self.molecule)
 
-    def _findAUTOCORR2D_125(self):
+    def __findAUTOCORR2D_125(self):
         '''
         Compute the autocorrelation2D_125 descriptor.
         Input:
@@ -2355,7 +2355,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_125(self.molecule)
 
-    def _findAUTOCORR2D_126(self):
+    def __findAUTOCORR2D_126(self):
         '''
         Compute the autocorrelation2D_126 descriptor.
         Input:
@@ -2366,7 +2366,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_126(self.molecule)
 
-    def _findAUTOCORR2D_127(self):
+    def __findAUTOCORR2D_127(self):
         '''
         Compute the autocorrelation2D_127 descriptor.
         Input:
@@ -2377,7 +2377,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_127(self.molecule)
 
-    def _findAUTOCORR2D_128(self):
+    def __findAUTOCORR2D_128(self):
         '''
         Compute the autocorrelation2D_128 descriptor.
         Input:
@@ -2388,7 +2388,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_128(self.molecule)
 
-    def _findAUTOCORR2D_129(self):
+    def __findAUTOCORR2D_129(self):
         '''
         Compute the autocorrelation2D_129 descriptor.
         Input:
@@ -2399,7 +2399,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_129(self.molecule)
 
-    def _findAUTOCORR2D_130(self):
+    def __findAUTOCORR2D_130(self):
         '''
         Compute the autocorrelation2D_130 descriptor.
         Input:
@@ -2410,7 +2410,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_130(self.molecule)
 
-    def _findAUTOCORR2D_131(self):
+    def __findAUTOCORR2D_131(self):
         '''
         Compute the autocorrelation2D_131 descriptor.
         Input:
@@ -2421,7 +2421,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_131(self.molecule)
 
-    def _findAUTOCORR2D_132(self):
+    def __findAUTOCORR2D_132(self):
         '''
         Compute the autocorrelation2D_132 descriptor.
         Input:
@@ -2432,7 +2432,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_132(self.molecule)
 
-    def _findAUTOCORR2D_133(self):
+    def __findAUTOCORR2D_133(self):
         '''
         Compute the autocorrelation2D_133 descriptor.
         Input:
@@ -2443,7 +2443,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_133(self.molecule)
 
-    def _findAUTOCORR2D_134(self):
+    def __findAUTOCORR2D_134(self):
         '''
         Compute the autocorrelation2D_134 descriptor.
         Input:
@@ -2454,7 +2454,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_134(self.molecule)
 
-    def _findAUTOCORR2D_135(self):
+    def __findAUTOCORR2D_135(self):
         '''
         Compute the autocorrelation2D_135 descriptor.
         Input:
@@ -2465,7 +2465,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_135(self.molecule)
 
-    def _findAUTOCORR2D_136(self):
+    def __findAUTOCORR2D_136(self):
         '''
         Compute the autocorrelation2D_136 descriptor.
         Input:
@@ -2476,7 +2476,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_136(self.molecule)
 
-    def _findAUTOCORR2D_137(self):
+    def __findAUTOCORR2D_137(self):
         '''
         Compute the autocorrelation2D_137 descriptor.
         Input:
@@ -2487,7 +2487,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_137(self.molecule)
 
-    def _findAUTOCORR2D_138(self):
+    def __findAUTOCORR2D_138(self):
         '''
         Compute the autocorrelation2D_138 descriptor.
         Input:
@@ -2498,7 +2498,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_138(self.molecule)
 
-    def _findAUTOCORR2D_139(self):
+    def __findAUTOCORR2D_139(self):
         '''
         Compute the autocorrelation2D_139 descriptor.
         Input:
@@ -2509,7 +2509,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_139(self.molecule)
 
-    def _findAUTOCORR2D_140(self):
+    def __findAUTOCORR2D_140(self):
         '''
         Compute the autocorrelation2D_140 descriptor.
         Input:
@@ -2520,7 +2520,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_140(self.molecule)
 
-    def _findAUTOCORR2D_141(self):
+    def __findAUTOCORR2D_141(self):
         '''
         Compute the autocorrelation2D_141 descriptor.
         Input:
@@ -2531,7 +2531,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_141(self.molecule)
 
-    def _findAUTOCORR2D_142(self):
+    def __findAUTOCORR2D_142(self):
         '''
         Compute the autocorrelation2D_142 descriptor.
         Input:
@@ -2542,7 +2542,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_142(self.molecule)
 
-    def _findAUTOCORR2D_143(self):
+    def __findAUTOCORR2D_143(self):
         '''
         Compute the autocorrelation2D_143 descriptor.
         Input:
@@ -2553,7 +2553,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_143(self.molecule)
 
-    def _findAUTOCORR2D_144(self):
+    def __findAUTOCORR2D_144(self):
         '''
         Compute the autocorrelation2D_144 descriptor.
         Input:
@@ -2564,7 +2564,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_144(self.molecule)
 
-    def _findAUTOCORR2D_145(self):
+    def __findAUTOCORR2D_145(self):
         '''
         Compute the autocorrelation2D_145 descriptor.
         Input:
@@ -2575,7 +2575,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_145(self.molecule)
 
-    def _findAUTOCORR2D_146(self):
+    def __findAUTOCORR2D_146(self):
         '''
         Compute the autocorrelation2D_146 descriptor.
         Input:
@@ -2586,7 +2586,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_146(self.molecule)
 
-    def _findAUTOCORR2D_147(self):
+    def __findAUTOCORR2D_147(self):
         '''
         Compute the autocorrelation2D_147 descriptor.
         Input:
@@ -2597,7 +2597,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_147(self.molecule)
 
-    def _findAUTOCORR2D_148(self):
+    def __findAUTOCORR2D_148(self):
         '''
         Compute the autocorrelation2D_148 descriptor.
         Input:
@@ -2608,7 +2608,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_148(self.molecule)
 
-    def _findAUTOCORR2D_149(self):
+    def __findAUTOCORR2D_149(self):
         '''
         Compute the autocorrelation2D_149 descriptor.
         Input:
@@ -2619,7 +2619,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_149(self.molecule)
 
-    def _findAUTOCORR2D_150(self):
+    def __findAUTOCORR2D_150(self):
         '''
         Compute the autocorrelation2D_150 descriptor.
         Input:
@@ -2630,7 +2630,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_150(self.molecule)
 
-    def _findAUTOCORR2D_151(self):
+    def __findAUTOCORR2D_151(self):
         '''
         Compute the autocorrelation2D_151 descriptor.
         Input:
@@ -2641,7 +2641,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_151(self.molecule)
 
-    def _findAUTOCORR2D_152(self):
+    def __findAUTOCORR2D_152(self):
         '''
         Compute the autocorrelation2D_152 descriptor.
         Input:
@@ -2652,7 +2652,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_152(self.molecule)
 
-    def _findAUTOCORR2D_153(self):
+    def __findAUTOCORR2D_153(self):
         '''
         Compute the autocorrelation2D_153 descriptor.
         Input:
@@ -2663,7 +2663,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_153(self.molecule)
 
-    def _findAUTOCORR2D_154(self):
+    def __findAUTOCORR2D_154(self):
         '''
         Compute the autocorrelation2D_154 descriptor.
         Input:
@@ -2674,7 +2674,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_154(self.molecule)
 
-    def _findAUTOCORR2D_155(self):
+    def __findAUTOCORR2D_155(self):
         '''
         Compute the autocorrelation2D_155 descriptor.
         Input:
@@ -2685,7 +2685,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_155(self.molecule)
 
-    def _findAUTOCORR2D_156(self):
+    def __findAUTOCORR2D_156(self):
         '''
         Compute the autocorrelation2D_156 descriptor.
         Input:
@@ -2696,7 +2696,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_156(self.molecule)
 
-    def _findAUTOCORR2D_157(self):
+    def __findAUTOCORR2D_157(self):
         '''
         Compute the autocorrelation2D_157 descriptor.
         Input:
@@ -2707,7 +2707,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_157(self.molecule)
 
-    def _findAUTOCORR2D_158(self):
+    def __findAUTOCORR2D_158(self):
         '''
         Compute the autocorrelation2D_158 descriptor.
         Input:
@@ -2718,7 +2718,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_158(self.molecule)
 
-    def _findAUTOCORR2D_159(self):
+    def __findAUTOCORR2D_159(self):
         '''
         Compute the autocorrelation2D_159 descriptor.
         Input:
@@ -2729,7 +2729,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_159(self.molecule)
 
-    def _findAUTOCORR2D_160(self):
+    def __findAUTOCORR2D_160(self):
         '''
         Compute the autocorrelation2D_160 descriptor.
         Input:
@@ -2740,7 +2740,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_160(self.molecule)
 
-    def _findAUTOCORR2D_161(self):
+    def __findAUTOCORR2D_161(self):
         '''
         Compute the autocorrelation2D_161 descriptor.
         Input:
@@ -2751,7 +2751,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_161(self.molecule)
 
-    def _findAUTOCORR2D_162(self):
+    def __findAUTOCORR2D_162(self):
         '''
         Compute the autocorrelation2D_162 descriptor.
         Input:
@@ -2762,7 +2762,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_162(self.molecule)
 
-    def _findAUTOCORR2D_163(self):
+    def __findAUTOCORR2D_163(self):
         '''
         Compute the autocorrelation2D_163 descriptor.
         Input:
@@ -2773,7 +2773,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_163(self.molecule)
 
-    def _findAUTOCORR2D_164(self):
+    def __findAUTOCORR2D_164(self):
         '''
         Compute the autocorrelation2D_164 descriptor.
         Input:
@@ -2784,7 +2784,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_164(self.molecule)
 
-    def _findAUTOCORR2D_165(self):
+    def __findAUTOCORR2D_165(self):
         '''
         Compute the autocorrelation2D_165 descriptor.
         Input:
@@ -2795,7 +2795,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_165(self.molecule)
 
-    def _findAUTOCORR2D_166(self):
+    def __findAUTOCORR2D_166(self):
         '''
         Compute the autocorrelation2D_166 descriptor.
         Input:
@@ -2806,7 +2806,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_166(self.molecule)
 
-    def _findAUTOCORR2D_167(self):
+    def __findAUTOCORR2D_167(self):
         '''
         Compute the autocorrelation2D_167 descriptor.
         Input:
@@ -2817,7 +2817,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_167(self.molecule)
 
-    def _findAUTOCORR2D_168(self):
+    def __findAUTOCORR2D_168(self):
         '''
         Compute the autocorrelation2D_168 descriptor.
         Input:
@@ -2828,7 +2828,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_168(self.molecule)
 
-    def _findAUTOCORR2D_169(self):
+    def __findAUTOCORR2D_169(self):
         '''
         Compute the autocorrelation2D_169 descriptor.
         Input:
@@ -2839,7 +2839,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_169(self.molecule)
 
-    def _findAUTOCORR2D_170(self):
+    def __findAUTOCORR2D_170(self):
         '''
         Compute the autocorrelation2D_170 descriptor.
         Input:
@@ -2850,7 +2850,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_170(self.molecule)
 
-    def _findAUTOCORR2D_171(self):
+    def __findAUTOCORR2D_171(self):
         '''
         Compute the autocorrelation2D_171 descriptor.
         Input:
@@ -2861,7 +2861,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_171(self.molecule)
 
-    def _findAUTOCORR2D_172(self):
+    def __findAUTOCORR2D_172(self):
         '''
         Compute the autocorrelation2D_172 descriptor.
         Input:
@@ -2872,7 +2872,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_172(self.molecule)
 
-    def _findAUTOCORR2D_173(self):
+    def __findAUTOCORR2D_173(self):
         '''
         Compute the autocorrelation2D_173 descriptor.
         Input:
@@ -2883,7 +2883,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_173(self.molecule)
 
-    def _findAUTOCORR2D_174(self):
+    def __findAUTOCORR2D_174(self):
         '''
         Compute the autocorrelation2D_174 descriptor.
         Input:
@@ -2894,7 +2894,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_174(self.molecule)
 
-    def _findAUTOCORR2D_175(self):
+    def __findAUTOCORR2D_175(self):
         '''
         Compute the autocorrelation2D_175 descriptor.
         Input:
@@ -2905,7 +2905,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_175(self.molecule)
 
-    def _findAUTOCORR2D_176(self):
+    def __findAUTOCORR2D_176(self):
         '''
         Compute the autocorrelation2D_176 descriptor.
         Input:
@@ -2916,7 +2916,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_176(self.molecule)
 
-    def _findAUTOCORR2D_177(self):
+    def __findAUTOCORR2D_177(self):
         '''
         Compute the autocorrelation2D_177 descriptor.
         Input:
@@ -2927,7 +2927,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_177(self.molecule)
 
-    def _findAUTOCORR2D_178(self):
+    def __findAUTOCORR2D_178(self):
         '''
         Compute the autocorrelation2D_178 descriptor.
         Input:
@@ -2938,7 +2938,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_178(self.molecule)
 
-    def _findAUTOCORR2D_179(self):
+    def __findAUTOCORR2D_179(self):
         '''
         Compute the autocorrelation2D_179 descriptor.
         Input:
@@ -2949,7 +2949,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_179(self.molecule)
 
-    def _findAUTOCORR2D_180(self):
+    def __findAUTOCORR2D_180(self):
         '''
         Compute the autocorrelation2D_180 descriptor.
         Input:
@@ -2960,7 +2960,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_180(self.molecule)
 
-    def _findAUTOCORR2D_181(self):
+    def __findAUTOCORR2D_181(self):
         '''
         Compute the autocorrelation2D_181 descriptor.
         Input:
@@ -2971,7 +2971,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_181(self.molecule)
 
-    def _findAUTOCORR2D_182(self):
+    def __findAUTOCORR2D_182(self):
         '''
         Compute the autocorrelation2D_182 descriptor.
         Input:
@@ -2982,7 +2982,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_182(self.molecule)
 
-    def _findAUTOCORR2D_183(self):
+    def __findAUTOCORR2D_183(self):
         '''
         Compute the autocorrelation2D_183 descriptor.
         Input:
@@ -2993,7 +2993,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_183(self.molecule)
 
-    def _findAUTOCORR2D_184(self):
+    def __findAUTOCORR2D_184(self):
         '''
         Compute the autocorrelation2D_184 descriptor.
         Input:
@@ -3004,7 +3004,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_184(self.molecule)
 
-    def _findAUTOCORR2D_185(self):
+    def __findAUTOCORR2D_185(self):
         '''
         Compute the autocorrelation2D_185 descriptor.
         Input:
@@ -3015,7 +3015,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_185(self.molecule)
 
-    def _findAUTOCORR2D_186(self):
+    def __findAUTOCORR2D_186(self):
         '''
         Compute the autocorrelation2D_186 descriptor.
         Input:
@@ -3026,7 +3026,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_186(self.molecule)
 
-    def _findAUTOCORR2D_187(self):
+    def __findAUTOCORR2D_187(self):
         '''
         Compute the autocorrelation2D_187 descriptor.
         Input:
@@ -3037,7 +3037,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_187(self.molecule)
 
-    def _findAUTOCORR2D_188(self):
+    def __findAUTOCORR2D_188(self):
         '''
         Compute the autocorrelation2D_188 descriptor.
         Input:
@@ -3048,7 +3048,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_188(self.molecule)
 
-    def _findAUTOCORR2D_189(self):
+    def __findAUTOCORR2D_189(self):
         '''
         Compute the autocorrelation2D_189 descriptor.
         Input:
@@ -3059,7 +3059,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_189(self.molecule)
 
-    def _findAUTOCORR2D_190(self):
+    def __findAUTOCORR2D_190(self):
         '''
         Compute the autocorrelation2D_190 descriptor.
         Input:
@@ -3070,7 +3070,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_190(self.molecule)
 
-    def _findAUTOCORR2D_191(self):
+    def __findAUTOCORR2D_191(self):
         '''
         Compute the autocorrelation2D_191 descriptor.
         Input:
@@ -3081,7 +3081,7 @@ class Ligand:
         '''
         return findAUTOCORR2D_191(self.molecule)
 
-    def _findAUTOCORR2D_192(self):
+    def __findAUTOCORR2D_192(self):
         '''
         Compute the autocorrelation2D_192 descriptor.
         Input:
@@ -3095,7 +3095,7 @@ class Ligand:
     # </editor-fold>
 
     # <editor-fold> BCUT2D descriptors
-    def _findBCUT2D_CHGHI(self):
+    def __findBCUT2D_CHGHI(self):
         '''
         Compute the BCUT2D_CHGHI descriptor.
         Input:
@@ -3105,7 +3105,7 @@ class Ligand:
         '''
         return findBCUT2D_CHGHI(self.molecule)
 
-    def _findBCUT2D_CHGLO(self):
+    def __findBCUT2D_CHGLO(self):
         '''
         Compute the BCUT2D_CHGLO descriptor.
         Input:
@@ -3115,7 +3115,7 @@ class Ligand:
         '''
         return findBCUT2D_CHGLO(self.molecule)
 
-    def _findBCUT2D_LOGPHI(self):
+    def __findBCUT2D_LOGPHI(self):
         '''
         Compute the BCUT2D_LOGPHI descriptor.
         Input:
@@ -3125,7 +3125,7 @@ class Ligand:
         '''
         return findBCUT2D_LOGPHI(self.molecule)
 
-    def _findBCUT2D_LOGPLOW(self):
+    def __findBCUT2D_LOGPLOW(self):
         '''
         Compute the BCUT2D_LOGPLOW descriptor.
         Input:
@@ -3135,7 +3135,7 @@ class Ligand:
         '''
         return findBCUT2D_LOGPLOW(self.molecule)
 
-    def _findBCUT2D_MRHI(self):
+    def __findBCUT2D_MRHI(self):
         '''
         Compute the BCUT2D_MRHI descriptor.
         Input:
@@ -3145,7 +3145,7 @@ class Ligand:
         '''
         return findBCUT2D_MRHI(self.molecule)
 
-    def _findBCUT2D_MRLOW(self):
+    def __findBCUT2D_MRLOW(self):
         '''
         Compute the BCUT2D_MRLOW descriptor.
         Input:
@@ -3155,7 +3155,7 @@ class Ligand:
         '''
         return findBCUT2D_MRLOW(self.molecule)
 
-    def _findBCUT2D_MWHI(self):
+    def __findBCUT2D_MWHI(self):
         '''
         Compute the BCUT2D_MWHI descriptor.
         Input:
@@ -3165,7 +3165,7 @@ class Ligand:
         '''
         return findBCUT2D_MWHI(self.molecule)
 
-    def _findBCUT2D_MWLOW(self):
+    def __findBCUT2D_MWLOW(self):
         '''
         Compute the BCUT2D_MWLOW descriptor.
         Input:
@@ -3174,6 +3174,149 @@ class Ligand:
           [double] - The BCUT2D_MWLOW descriptor.
         '''
         return findBCUT2D_MWLOW(self.molecule)
+
+    # </editor-fold>
+
+    def __findBalabanJ(self):
+        '''
+        Compute the BalabanJ descriptor.
+        Input:
+          -
+        Return:
+          [double] - The BalabanJ descriptor.
+        '''
+        return findBalabanJ(self.molecule)
+
+    def __findBertzCT(self):
+        '''
+        Compute the BertzCT descriptor.
+        Input:
+          -
+        Return:
+          [double] - The BertzCT descriptor.
+        '''
+        return findBertzCT(self.molecule)
+
+    # <editor-fold> Chi descriptors
+    def __findChi0(self):
+        '''
+        Compute the Chi0 descriptor.
+        Input:
+          -
+        Return:
+          [double] - The Chi0 descriptor.
+        '''
+        return findChi0(self.molecule)
+
+    def __findChi0n(self):
+        '''
+        Compute the Chi0n descriptor.
+        Input:
+          -
+        Return:
+          [double] - The Chi0n descriptor.
+        '''
+        return findChi0n(self.molecule)
+
+    def __findChi0v(self):
+        '''
+        Compute the Chi0v descriptor.
+        Input:
+          -
+        Return:
+          [double] - The Chi0v descriptor.
+        '''
+        return findChi0v(self.molecule)
+
+    def __findChi1(self):
+        '''
+        Compute the Chi1 descriptor.
+        Input:
+          -
+        Return:
+          [double] - The Chi1 descriptor.
+        '''
+        return findChi1(self.molecule)
+
+    def __findChi1n(self):
+        '''
+        Compute the Chi1n descriptor.
+        Input:
+          -
+        Return:
+          [double] - The Chi1n descriptor.
+        '''
+        return findChi1n(self.molecule)
+
+    def __findChi1v(self):
+        '''
+        Compute the Chi1v descriptor.
+        Input:
+          -
+        Return:
+          [double] - The Chi1v descriptor.
+        '''
+        return findChi1v(self.molecule)
+
+    def __findChi2n(self):
+        '''
+        Compute the Chi2n descriptor.
+        Input:
+          -
+        Return:
+          [double] - The Chi2n descriptor.
+        '''
+        return findChi2n(self.molecule)
+
+    def __findChi2v(self):
+        '''
+        Compute the Chi2v descriptor.
+        Input:
+          -
+        Return:
+          [double] - The Chi2v descriptor.
+        '''
+        return findChi2v(self.molecule)
+
+    def __findChi3n(self):
+        '''
+        Compute the Chi3n descriptor.
+        Input:
+          -
+        Return:
+          [double] - The Chi3n descriptor.
+        '''
+        return findChi3n(self.molecule)
+
+    def __findChi3v(self):
+        '''
+        Compute the Chi3v descriptor.
+        Input:
+          -
+        Return:
+          [double] - The Chi3v descriptor.
+        '''
+        return findChi3v(self.molecule)
+
+    def __findChi4n(self):
+        '''
+        Compute the Chi4n descriptor.
+        Input:
+          -
+        Return:
+          [double] - The Chi4n descriptor.
+        '''
+        return findChi4n(self.molecule)
+
+    def __findChi4v(self):
+        '''
+        Compute the Chi4v descriptor.
+        Input:
+          -
+        Return:
+          [double] - The Chi4v descriptor.
+        '''
+        return findChi4v(self.molecule)
 
     # </editor-fold>
 
@@ -7122,6 +7265,7 @@ def findBCUT2D_CHGHI(molecule):
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
       [double] - The BCUT2D_CHGHI descriptor.
+      [None]   - If parsing the descriptor fails.
     '''
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
@@ -7138,6 +7282,7 @@ def findBCUT2D_CHGLO(molecule):
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
       [double] - The the BCUT2D_CHGLO descriptor.
+      [None]   - If parsing the descriptor fails.
     '''
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
@@ -7154,6 +7299,7 @@ def findBCUT2D_LOGPHI(molecule):
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
       [double] - The BCUT2D_LOGPHI descriptor.
+      [None]   - If parsing the descriptor fails.
     '''
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
@@ -7170,6 +7316,7 @@ def findBCUT2D_LOGPLOW(molecule):
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
       [double] - The BCUT2D_LOGPLOW descriptor.
+      [None]   - If parsing the descriptor fails.
     '''
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
@@ -7186,6 +7333,7 @@ def findBCUT2D_MRHI(molecule):
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
       [double] - The BCUT2D_MRHI descriptor.
+      [None]   - If parsing the descriptor fails.
     '''
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
@@ -7202,6 +7350,7 @@ def findBCUT2D_MRLOW(molecule):
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
       [double] - The BCUT2D_MRLOW descriptor.
+      [None]   - If parsing the descriptor fails.
     '''
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
@@ -7218,6 +7367,7 @@ def findBCUT2D_MWHI(molecule):
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
       [double] - The BCUT2D_MWHI descriptor.
+      [None]   - If parsing the descriptor fails.
     '''
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
@@ -7234,10 +7384,252 @@ def findBCUT2D_MWLOW(molecule):
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
       [double] - The BCUT2D_MWLOW descriptor.
+      [None]   - If parsing the descriptor fails.
     '''
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.BCUT2D_MWLOW(molecule)
+        _ = Errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
+        return None
+    _ = Errors.not_set(f"The variable is not set.")
+    return None
+
+# </editor-fold>
+
+def findBalabanJ(molecule):
+    '''
+    Compute the BalabanJ descriptor.
+    Input:
+      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
+    Return:
+      [double] - The BalabanJ descriptor.
+      [None]   - If parsing the descriptor fails.
+    '''
+    if molecule:
+        if type(molecule) == Chem.rdchem.Mol:
+            return rdkit.Chem.Descriptors.BalabanJ(molecule)
+        _ = Errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
+        return None
+    _ = Errors.not_set(f"The variable is not set.")
+    return None
+
+def findBertzCT(molecule):
+    '''
+    Compute the BertzCT descriptor.
+    Input:
+      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
+    Return:
+      [double] - The BertzCT descriptor.
+      [None]   - If parsing the descriptor fails.
+    '''
+    if molecule:
+        if type(molecule) == Chem.rdchem.Mol:
+            return rdkit.Chem.Descriptors.BertzCT(molecule)
+        _ = Errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
+        return None
+    _ = Errors.not_set(f"The variable is not set.")
+    return None
+
+# <editor-fold> Chi descriptors
+def findChi0(molecule):
+    '''
+    Compute the Chi0 descriptor.
+    Input:
+      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
+    Return:
+      [double] - The Chi0 descriptor.
+      [None]   - If parsing the descriptor fails.
+    '''
+    if molecule:
+        if type(molecule) == Chem.rdchem.Mol:
+            return rdkit.Chem.Descriptors.Chi0(molecule)
+        _ = Errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
+        return None
+    _ = Errors.not_set(f"The variable is not set.")
+    return None
+
+def findChi0n(molecule):
+    '''
+    Compute the Chi0n descriptor.
+    Input:
+      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
+    Return:
+      [double] - The Chi0n descriptor.
+      [None]   - If parsing the descriptor fails.
+    '''
+    if molecule:
+        if type(molecule) == Chem.rdchem.Mol:
+            return rdkit.Chem.Descriptors.Chi0n(molecule)
+        _ = Errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
+        return None
+    _ = Errors.not_set(f"The variable is not set.")
+    return None
+
+def findChi0v(molecule):
+    '''
+    Compute the Chi0v descriptor.
+    Input:
+      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
+    Return:
+      [double] - The Chi0v descriptor.
+      [None]   - If parsing the descriptor fails.
+    '''
+    if molecule:
+        if type(molecule) == Chem.rdchem.Mol:
+            return rdkit.Chem.Descriptors.Chi0v(molecule)
+        _ = Errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
+        return None
+    _ = Errors.not_set(f"The variable is not set.")
+    return None
+
+def findChi1(molecule):
+    '''
+    Compute the Chi1 descriptor.
+    Input:
+      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
+    Return:
+      [double] - The Chi1 descriptor.
+      [None]   - If parsing the descriptor fails.
+    '''
+    if molecule:
+        if type(molecule) == Chem.rdchem.Mol:
+            return rdkit.Chem.Descriptors.Chi1(molecule)
+        _ = Errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
+        return None
+    _ = Errors.not_set(f"The variable is not set.")
+    return None
+
+def findChi1n(molecule):
+    '''
+    Compute the Chi1n descriptor.
+    Input:
+      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
+    Return:
+      [double] - The Chi1n descriptor.
+      [None]   - If parsing the descriptor fails.
+    '''
+    if molecule:
+        if type(molecule) == Chem.rdchem.Mol:
+            return rdkit.Chem.Descriptors.Chi1n(molecule)
+        _ = Errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
+        return None
+    _ = Errors.not_set(f"The variable is not set.")
+    return None
+
+def findChi1v(molecule):
+    '''
+    Compute the Chi1v descriptor.
+    Input:
+      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
+    Return:
+      [double] - The Chi1v descriptor.
+      [None]   - If parsing the descriptor fails.
+    '''
+    if molecule:
+        if type(molecule) == Chem.rdchem.Mol:
+            return rdkit.Chem.Descriptors.Chi1v(molecule)
+        _ = Errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
+        return None
+    _ = Errors.not_set(f"The variable is not set.")
+    return None
+
+def findChi2n(molecule):
+    '''
+    Compute the Chi2n descriptor.
+    Input:
+      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
+    Return:
+      [double] - The Chi2n descriptor.
+      [None]   - If parsing the descriptor fails.
+    '''
+    if molecule:
+        if type(molecule) == Chem.rdchem.Mol:
+            return rdkit.Chem.Descriptors.Chi2n(molecule)
+        _ = Errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
+        return None
+    _ = Errors.not_set(f"The variable is not set.")
+    return None
+
+def findChi2v(molecule):
+    '''
+    Compute the Chi2v descriptor.
+    Input:
+      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
+    Return:
+      [double] - The Chi2v descriptor.
+      [None]   - If parsing the descriptor fails.
+    '''
+    if molecule:
+        if type(molecule) == Chem.rdchem.Mol:
+            return rdkit.Chem.Descriptors.Chi2v(molecule)
+        _ = Errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
+        return None
+    _ = Errors.not_set(f"The variable is not set.")
+    return None
+
+def findChi3n(molecule):
+    '''
+    Compute the Chi3n descriptor.
+    Input:
+      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
+    Return:
+      [double] - The Chi3n descriptor.
+      [None]   - If parsing the descriptor fails.
+    '''
+    if molecule:
+        if type(molecule) == Chem.rdchem.Mol:
+            return rdkit.Chem.Descriptors.Chi3n(molecule)
+        _ = Errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
+        return None
+    _ = Errors.not_set(f"The variable is not set.")
+    return None
+
+def findChi3v(molecule):
+    '''
+    Compute the Chi3v descriptor.
+    Input:
+      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
+    Return:
+      [double] - The Chi3v descriptor.
+      [None]   - If parsing the descriptor fails.
+    '''
+    if molecule:
+        if type(molecule) == Chem.rdchem.Mol:
+            return rdkit.Chem.Descriptors.Chi3v(molecule)
+        _ = Errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
+        return None
+    _ = Errors.not_set(f"The variable is not set.")
+    return None
+
+def findChi4n(molecule):
+    '''
+    Compute the Chi4n descriptor.
+    Input:
+      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
+    Return:
+      [double] - The Chi4n descriptor.
+      [None]   - If parsing the descriptor fails.
+    '''
+    if molecule:
+        if type(molecule) == Chem.rdchem.Mol:
+            return rdkit.Chem.Descriptors.Chi4n(molecule)
+        _ = Errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
+        return None
+    _ = Errors.not_set(f"The variable is not set.")
+    return None
+
+def findChi4v(molecule):
+    '''
+    Compute the Chi4v descriptor.
+    Input:
+      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
+    Return:
+      [double] - The Chi4v descriptor.
+      [None]   - If parsing the descriptor fails.
+    '''
+    if molecule:
+        if type(molecule) == Chem.rdchem.Mol:
+            return rdkit.Chem.Descriptors.Chi4v(molecule)
         _ = Errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
         return None
     _ = Errors.not_set(f"The variable is not set.")
