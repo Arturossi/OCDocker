@@ -66,7 +66,7 @@ def __thread_validation(arguments):
     # Check its validity
     if not l.is_valid():
         # If not valid, throw an error
-        _ = errors.malformedMolecule(f"The molecule '{mol}' has some problems on it. One or more its descriptors are lacking!")
+        _ = errors.malformed_molecule(f"The molecule '{mol}' has some problems on it. One or more its descriptors are lacking!")
         # Print problems to log
         octools.print_error_log(f"The molecule '{mol}' has some problems on it. One or more its descriptors are lacking!", f"{logdir}/DUDEz_molecule_validation_report.log")
         # Add one more problematic molecule to the counter
@@ -384,7 +384,7 @@ def prepare(overwrite = False):
     '''
     Prepares the DUDEz database.
     Input:
-     overwrite [bool] DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated.
+     overwrite [bool] DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with the output already generated.
     Return:
       -
     '''

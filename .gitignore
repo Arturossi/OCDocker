@@ -172,3 +172,6 @@ tmp/
 
 # Ignore pickle files... (for now)
 *.pickle
+
+# Ignore python backup files
+*.py.bak

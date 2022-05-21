@@ -386,6 +386,16 @@ global smina_force_cap
 global smina_user_grid
 global smina_user_grid_lambda
 
+# PLANTS parameters
+global plants_cluster_structures
+global plants_cluster_rmsd
+global plants_search_speed
+
+# Dock6 parameters
+global dock6_vdw_defn_file
+global dock6_flex_defn_file
+global dock6_flex_drive_file
+
 # Database + OCDocker variables
 global astex_archive
 global dudez_archive
@@ -508,6 +518,8 @@ for line in open(config_file, "r"):
         dock6 = line.split("=")[1].strip()
     elif line.startswith("plants ="):
         plants = line.split("=")[1].strip()
+    elif line.startswith("spores ="):
+        spores = line.split("=")[1].strip()
     elif line.startswith("smina ="):
         smina = line.split("=")[1].strip()
     elif line.startswith("vina ="):
@@ -568,6 +580,18 @@ for line in open(config_file, "r"):
         smina_user_grid = line.split("=")[1].strip()
     elif line.startswith("smina_user_grid_lambda ="):
         smina_user_grid_lambda = line.split("=")[1].strip()
+    elif line.startswith("plants_cluster_structures ="):
+        plants_cluster_structures = line.split("=")[1].strip()
+    elif line.startswith("plants_cluster_rmsd ="):
+        plants_cluster_rmsd = line.split("=")[1].strip()
+    elif line.startswith("plants_search_speed ="):
+        plants_search_speed = line.split("=")[1].strip()
+    elif line.startswith("dock6_vdw_defn_file ="):
+        dock6_vdw_defn_file = line.split("=")[1].strip()
+    elif line.startswith("dock6_flex_defn_file ="):
+        dock6_flex_defn_file = line.split("=")[1].strip()
+    elif line.startswith("dock6_flex_drive_file ="):
+        dock6_flex_drive_file = line.split("=")[1].strip()
     elif line.startswith("dssp ="):
         dssp = line.split("=")[1].strip()
 

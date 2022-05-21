@@ -83,7 +83,7 @@ def printv(message):
         print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {message}")
     return
 
-def print_info(message, force=False):
+def print_info(message, force = False):
     '''
     Function to print warning.
     Input:
@@ -100,7 +100,7 @@ def print_info(message, force=False):
             print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['c']}INFO{clrs['n']}: {message}")
     return
 
-def print_success(message, force=False):
+def print_success(message, force = False):
     '''
     Print success. [DEPRECATED]
     Input:
@@ -117,7 +117,7 @@ def print_success(message, force=False):
             print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['g']}SUCCSESS{clrs['n']}: {message}")
     return
 
-def print_warning(message, force=False):
+def print_warning(message, force = False):
     '''
     Function to print warning. [DEPRECATED]
     Input:
@@ -134,7 +134,7 @@ def print_warning(message, force=False):
             print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['y']}WARNING{clrs['n']}: {message}")
     return
 
-def print_error(message, force=False):
+def print_error(message, force = False):
     '''
     Print error. [DEPRECATED]
     Input:
@@ -151,7 +151,7 @@ def print_error(message, force=False):
             print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] {clrs['r']}ERROR{clrs['n']}: {message}")
     return
 
-def print_info_log(message, logfile, mode="a"):
+def print_info_log(message, logfile, mode = "a"):
     '''
     Function to print info into log.
     Input:
@@ -166,7 +166,7 @@ def print_info_log(message, logfile, mode="a"):
         f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] INFO: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.\n")
     return
 
-def print_success_log(message, logfile, mode="a"):
+def print_success_log(message, logfile, mode = "a"):
     '''
     Function to print success into log.
     Input:
@@ -181,7 +181,7 @@ def print_success_log(message, logfile, mode="a"):
         f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] SUCCSESS: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.\n")
     return
 
-def print_warning_log(message, logfile, mode="a"):
+def print_warning_log(message, logfile, mode = "a"):
     '''
     Function to print warning into log.
     Input:
@@ -196,7 +196,7 @@ def print_warning_log(message, logfile, mode="a"):
         f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] WARNING: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.\n")
     return
 
-def print_error_log(message, logfile, mode="a"):
+def print_error_log(message, logfile, mode = "a"):
     '''
     Function to print error into log.
     Input:
@@ -345,7 +345,7 @@ def print_sorry():
           f"{clrs['n']} sorry... =(\n")
     return
 
-def untar(fname, out_path=".", delete=False):
+def untar(fname, out_path = ".", delete = False):
     '''
     Untar a file.
     Input:
@@ -359,7 +359,7 @@ def untar(fname, out_path=".", delete=False):
     # Print verboosity
     printv(f"Untarring file '{fname}' to the output '{out_path}'")
     # Check if the file has the right extensions
-    if (fname.endswith("tar.gz") or fname.endswith(".tgz")):
+    if fname.endswith("tar.gz") or fname.endswith(".tgz") or fname.endswith(".gz"):
         try:
             printv("Preparing to untar the file...")
             # open your tar.gz file

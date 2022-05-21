@@ -108,39 +108,74 @@ def __thread_prepare(arguments):
       -
     '''
     # Redirect all prints to tqdm.write
-    with redirect_to_tqdm():
+    with octools.redirect_to_tqdm():
         # Renaming arguments to what they are (making this just more readable)
         mol = arguments[0]
         overwrite = arguments[1]
         moltype = arguments[2]
-
-        # Find its name
-        molName = ".".join(os.path.basename(mol).split(".")[:-1])
-        if overwrite or not os.path.isfile(f"{mol}/{molName}_descriptors.json"):
+        dbName = arguments[3]
+        # Parameterize the sanitize flag
+        sanitize = True
+        # Find its name and path
+        #molName = ".".join(os.path.basename(mol).split(".")[:-1])
+        molPath, molName = os.path.split(mol)
+        if overwrite or not os.path.isfile(f"{molPath}/{molName}_descriptors.json"):
             if moltype == "ligand":
-                # Create the ligand object
-                m = ocl.Ligand(mol, molName, sanitize = False)
+                try:
+                    # Create the ligand object
+                    m = ocl.Ligand(mol, molName, sanitize = sanitize)
+                # If m is not valid
+                except Exception as e:
+                    # Let's check its extension
+                    filename, file_extension = os.path.splitext(mol)
+                    # Check if the extension is .mol2
+                    if file_extension == ".mol2":
+                        # Tell the user the search for another extension (.sdf)
+                        _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.mol2' to '.sdf'.", "warning")
+                        octools.print_warning_log(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.mol2' to '.sdf'.", f"{logdir}/{dbName}_Parse.log")
+                        try:
+                            # Parse the .sdf file
+                            m = ocl.Ligand(f"{filename}.sdf", molName, sanitize = sanitize)
+                        except:
+                            _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed!", "error")
+                            octools.print_error_log(f"The molecule '{mol}' could not be parsed! .", f"{logdir}/{dbName}_error_Parse.log")
+                            return None
+                    # Check if the extension is .sdf
+                    elif file_extension == ".sdf":
+                        # Tell the user the search for another extension (.mol2)
+                        _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.sdf' to '.mol2'.", "warning")
+                        octools.print_warning_log(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.sdf' to '.mol2'.", f"{logdir}/{dbName}_warn_Parse.log")
+                        try:
+                            # Parse the .mol2 file
+                            m = ocl.Ligand(f"{filename}.sdf", molName, sanitize = sanitize)
+                        except:
+                            _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed!", "error")
+                            octools.print_error_log(f"The molecule '{mol}' could not be parsed! .", f"{logdir}/{dbName}_error_Parse.log")
+                            return None
             elif moltype == "receptor":
                 pass
             else:
                 _ = errors.unkown("Unknown molecule type", "error")
                 return None
             # Test if the ligand is valid
-            if not m.is_valid():
-                _ = errors.malformedMolecule(f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!", "error")
-                octools.print_error_log(f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!", f"{logdir}/DUDEz_Parse.log")
-            # Export its descriptors
-            _ = m.to_json(overwrite)
+            if not m or not m.is_valid():
+                _ = errors.malformed_molecule(f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!", "error")
+                octools.print_error_log(f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!", f"{logdir}/{dbName}_Parse.log")
+            else:
+                # Export its descriptors
+                _ = m.to_json(overwrite)
     # Return
     return None
 
-def __prepare_parallel(dirList, overwrite, moltype, subdir):
+def __prepare_parallel(dirList, overwrite, moltype, dbName, desc):
     '''
     Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
     Input:
      dirList   [string] - List of molecule paths
      overwrite [bool]   - Flag to tell if files should be overwritten
      moltype   [string] - The type of the molecule (ligant or receptor)
+     dbName    [string] - The database name (for proper logging)
+     desc      [string] - The description
     Return:
       -
     '''
@@ -149,11 +184,11 @@ def __prepare_parallel(dirList, overwrite, moltype, subdir):
     # For each file in the glob
     for filename in dirList:
         # Append a tuple containing the file name and ovewrite flag to the arguments list
-        arguments.append((filename, overwrite, moltype))
+        arguments.append((filename, overwrite, moltype, dbName))
     # Create a Thread pool with the maximum available_cores
     with Pool(args.available_cores) as p:
         # Perform the multi process
-        for _ in tqdm(p.imap_unordered(__thread_prepare, arguments), total = len(arguments), desc = subdir):
+        for _ in tqdm(p.imap_unordered(__thread_prepare, arguments), total = len(arguments), desc = desc):
             pass
     # Return
     return None
@@ -161,7 +196,7 @@ def __prepare_parallel(dirList, overwrite, moltype, subdir):
 ## Public ##
 def verify_integrity(chosenArchive):
     '''
-    Verifies the integrity of the DUDEz database
+    Verifies the integrity of the desired database
     Input:
      chosenArchive [string] - Which archive will be processed. [dudez, pdbbind, astex]
     Return:
@@ -388,7 +423,7 @@ def prepare(archive, overwrite = False):
       -
     '''
     # Make archive lowercase
-    archive = archive.lower()
+    archive = os.path.basename(archive).lower()
 
     # Find which kind of archive it will be
     if archive == "astex":
@@ -409,6 +444,10 @@ def prepare(archive, overwrite = False):
 
     # For each directory in the database folder
     for dir in dirs:
+        # If is the index path
+        if os.path.basename(dir) == 'index':
+            # Skip it
+            continue
         # Find the protein name
         ptn = dir.split(os.path.sep)[-1]
 
@@ -487,10 +526,18 @@ def prepare(archive, overwrite = False):
             __prepare_parallel(glob(f"{extremaDirDecoy}/*.mol2"), overwrite, moltype, f"{ptn} extrema decoy")
             # For each molecule in goldilocks decoy dir
             __prepare_parallel(glob(f"{goldilocksDirDecoy}/*.mol2"), overwrite, moltype, f"{ptn} goldilocks decoy")
-
         elif archive == "pdbbind":
-            # Set the input file name path
+            # Set the input file name path (to generate the box and data about the protein)
             fin = f"{dir}/{ptn}_protein.pdb"
+            fout = f"{dir}/{ptn}_protein.mol2"
+            # Convert the .pdb to .mol2 (for dock6 use)
+            _ = octools.convertMols(fin, fout)
+            # Set the ligand file name path (to generate data about the ligand)
+            fligand = f"{dir}/{ptn}_ligand.mol2"
+            # Defining the moltype
+            moltype = "ligand"
+            # For each molecule in dudez decoy dir
+            __prepare_parallel([fligand], overwrite, moltype, archive, f"{ptn} PDBbind ligand")
 
         # Set the output path
         fout = f"{dir}/p2rank"

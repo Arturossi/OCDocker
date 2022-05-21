@@ -44,6 +44,7 @@ class Complex:
     def __init__(self, molecule, name=""):
         self.name = name
         self.molecule = self.__loadMol(molecule)
+        #self.real_energy = self.__read_real_energy()
 
     ## Private ##
     def __loadMol(self, molecule):

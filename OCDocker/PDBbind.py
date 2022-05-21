@@ -79,4 +79,4 @@ def prepare(overwrite = False):
     Return:
       -
     '''
-    ocbdb.prepare(pdbbind_archive, overwrite = overwrite)
+    ocbdb.prepare(f"{pdbbind_archive}", overwrite = overwrite)

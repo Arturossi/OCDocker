@@ -308,7 +308,7 @@ class Error:
         return self.subprocessCode
 
     # Molecules errors
-    def parseMolecule(self, message="", level="warn"):
+    def parse_molecule(self, message="", level="warn"):
         '''
         Return this when a molecule could not be parsed.
         Input:
@@ -320,7 +320,7 @@ class Error:
         self.__print_msg(message, level)
         return self.parseMoleculeCode
 
-    def malformedMolecule(self, message="", level="warn"):
+    def malformed_molecule(self, message="", level="warn"):
         '''
         Return this when a molecule is malformed.
         Input:

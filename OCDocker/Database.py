@@ -56,9 +56,13 @@ def create_directories():
     Return:
       -
     '''
+    # Create the base dir
     _ = octools.safe_create_dir(ocdb)
+    # Create the pdbbind dir
     _ = octools.safe_create_dir(pdbbind_archive)
+    # Create the dudez dir
     _ = octools.safe_create_dir(dudez_archive)
+    # Create the Astex dir
     _ = octools.safe_create_dir(astex_archive)
 
 def update_DUDEz():
@@ -102,19 +106,23 @@ def update_pdbbind():
     # Parameterizing the topics (this sounds strange but one large string concatenation was bugging the IDE)
     t1 = f"- Go to the PDBbind website ({clrs['c']}http://www.pdbbind.org.cn/download.php{clrs['n']})."
 
-    t2 = f"- Download the{clrs['c']} Protein-ligand complexes: The refined set{clrs['n']} (it may have the number 3 as its index), untar it and put all the protein folders folder inside the{clrs['y']} {pdbbind_archive}{clrs['n']} folder."
-    t2 += f" The folders{clrs['y']} readme{clrs['n']} and{clrs['y']} index{clrs['n']} should be{clrs['r']} deleted{clrs['n']}."
+    #t2 = f"- Download the{clrs['c']} Protein-ligand complexes: The refined set{clrs['n']} (it may have the number 3 as its index), untar it and put all the protein folders folder inside the{clrs['y']} {pdbbind_archive}{clrs['n']} folder."
+    #t2 += f" The folders{clrs['y']} readme{clrs['n']} and{clrs['y']} index{clrs['n']} should be{clrs['r']} deleted{clrs['n']}."
 
-    t2 = f"- Download the{clrs['c']} Protein-ligand complexes: The refined set{clrs['n']} (it may have the number 3 as its index), and provide the full path to it or put the file inside the {clrs['y']} {pdbbind_archive}{clrs['n']} folder and type continue (please, make sure that the downloaded file is the{clrs['c']} ONLY{clrs['n']} file inside the {clrs['y']} {pdbbind_archive}{clrs['n']} folder). If you want to skip the PDBbind update, type 'skip' (without quotes) and press enter."
+    t2 = f"- Download the{clrs['c']} Protein-ligand complexes: The refined set{clrs['n']} (it may have the number 3 as its index)."
+
+    t3 = f"- Then provide the full path to it or put the file inside the{clrs['y']} {pdbbind_archive}{clrs['n']} folder and type continue (please, make sure that the downloaded file is the{clrs['c']} ONLY{clrs['n']} file inside the{clrs['y']} {pdbbind_archive}{clrs['n']} folder). If you want to skip the PDBbind update, type 'skip' (without quotes) and press enter. "
 
     # Since no rsync option to update pdbbind database has been found you have to manually download/untar the files and put them inside the database folder
     print(tw.dedent("""
-                 Unfortunately this step has not been able to be automatized... :(
+            Unfortunately this step has not been able to be completely automatized... :(
     Please, we kindly ask you to perform the following steps to update the PDBbind database
 
     """ + t1 + """
 
     """ + t2 + """
+
+    """ + t3 + """
 
     """))
 
@@ -123,15 +131,19 @@ def update_pdbbind():
         # Check the options
         option = input("Once these steps are done, type 'continue' and press enter to continue. To cancel just press enter without typing nothing.\n")
 
+        # If there is quotes or double quotes in the path
         if "'" in option or '"' in option:
+            # Remove them
             option = option.replace('"', "").replace("'", "")
 
-        if option.lower() == "continue":
+        # If the option in lowercase is in the continue list (traductions may enter here)
+        if option.lower() in ["continue", "continuar"]:
             octools.printv("Continuing the update proces...")
+            # Find the pdbbindTar file
             pdbbindTar = glob(f"{pdbbind_archive}/*.tar.gz")[0]
 
-            # Since everything is right, start to untar it and delete source .tar.gz file
-            _ = octools.untar(pdbbindTar, out_path=pdbbind_archive, delete=True)
+            # Since everything is right, start to untar/ungz them and delete source .tar.gz file
+            _ = octools.untar(pdbbindTar, out_path=f"{pdbbind_archive}/complex", delete=True)
 
             # Check if there is a refined-set folder
             if os.path.isdir(f"{pdbbind_archive}/refined-set"):
@@ -151,7 +163,7 @@ def update_pdbbind():
             # Exit the loop
             break;
 
-        elif option.lower() == "skip":
+        elif option.lower() in ["skip", "pular"]:
             octools.printv(f"The user decided to skip this update. Skipping!!!")
             return
 
@@ -160,6 +172,9 @@ def update_pdbbind():
             quit();
 
         else:
+            octools.printv(f"Still not validated, please use the other way.")
+            continue
+            # Will not run the code below
             octools.printv(f"Verifying if '{option}' is a valid path.")
 
             # Check if the .tar.gz file exists
@@ -188,11 +203,6 @@ def update_pdbbind():
                     if os.path.isdir(f"{pdbbind_archive}/readme"):
                         # Delete it
                         shutin.rmtree(f"{pdbbind_archive}/readme")
-
-                    # Check if there is a index folder
-                    if os.path.isdir(f"{pdbbind_archive}/index"):
-                        # Delete it
-                        shutin.rmtree(f"{pdbbind_archive}/index")
 
                     # Exit the loop
                     break
