@@ -3,6 +3,7 @@
 # Imports
 ###############################################################################
 import os
+import time
 import shutil
 from glob import glob
 from tqdm import tqdm
@@ -11,6 +12,7 @@ from multiprocessing import Pool
 from OCDocker.Initialise import *
 import OCDocker.Ligand as ocl
 import OCDocker.Vina as ocvina
+import OCDocker.Receptor as ocr
 import OCDocker.Toolbox as octools
 import OCDocker.ExternalTools.runprank as runprank
 
@@ -122,6 +124,7 @@ def __thread_prepare(arguments):
             molPath, molName = os.path.split(mol[0])
         else:
             molPath, molName = os.path.split(mol)
+        molName, ext = os.path.splitext(molName)
         if overwrite or not os.path.isfile(f"{molPath}/{molName}_descriptors.json"):
             if moltype == "ligand":
                 try:
@@ -135,7 +138,7 @@ def __thread_prepare(arguments):
                     if file_extension == ".mol2":
                         # Tell the user the search for another extension (.sdf)
                         _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.mol2' to '.sdf'.", "warning")
-                        octools.print_warning_log(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.mol2' to '.sdf'.", f"{logdir}/{dbName}_Parse.log")
+                        octools.print_warning_log(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.mol2' to '.sdf'.", f"{logdir}/{dbName}_warn_Parse.log")
                         try:
                             # Parse the .sdf file
                             m = ocl.Ligand(f"{filename}.sdf", molName, sanitize = sanitize)
@@ -175,7 +178,7 @@ def __thread_prepare(arguments):
             # Test if the ligand is valid
             if not m or not m.is_valid():
                 _ = errors.malformed_molecule(f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!", "error")
-                octools.print_error_log(f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!", f"{logdir}/{dbName}_Parse.log")
+                octools.print_error_log(f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!", f"{logdir}/{dbName}_error_Parse.log")
             else:
                 # Export its descriptors
                 _ = m.to_json(overwrite)
@@ -227,7 +230,7 @@ def __prepare_no_parallel(mol, overwrite, moltype, dbName, sanitize = True):
                 if file_extension == ".mol2":
                     # Tell the user the search for another extension (.sdf)
                     _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.mol2' to '.sdf'.", "warning")
-                    octools.print_warning_log(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.mol2' to '.sdf'.", f"{logdir}/{dbName}_Parse.log")
+                    octools.print_warning_log(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.mol2' to '.sdf'.", f"{logdir}/{dbName}_warn_Parse.log")
                     try:
                         # Parse the .sdf file
                         m = ocl.Ligand(f"{filename}.sdf", molName, sanitize = sanitize)
@@ -267,7 +270,7 @@ def __prepare_no_parallel(mol, overwrite, moltype, dbName, sanitize = True):
         # Test if the ligand is valid
         if not m or not m.is_valid():
             _ = errors.malformed_molecule(f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!", "error")
-            octools.print_error_log(f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!", f"{logdir}/{dbName}_Parse.log")
+            octools.print_error_log(f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!", f"{logdir}/{dbName}_error_Parse.log")
         else:
             # Export its descriptors
             _ = m.to_json(overwrite)
@@ -280,6 +283,7 @@ def __thread_prepare_pdbbind(arguments):
         # Renaming arguments to what they are (making this just more readable)
         dir = arguments[0]
         overwrite = arguments[1]
+        archive = arguments[2]
         # If is the index path
         if os.path.basename(dir) == 'index':
             # Skip it
@@ -323,7 +327,7 @@ def __prepare_parallel_pdbbind(dirList, overwrite, desc):
     # For each file in the glob
     for dir in dirList:
         # Append a tuple containing the file name and ovewrite flag to the arguments list
-        arguments.append((dir, overwrite))
+        arguments.append((dir, overwrite, "pdbbind"))
     # Create a Thread pool with the maximum available_cores
     with Pool(args.available_cores) as p:
         # Perform the multi process
@@ -331,6 +335,80 @@ def __prepare_parallel_pdbbind(dirList, overwrite, desc):
             pass
     # Return
     return None
+
+def __thread_get_parallel(arguments):
+    # Redirect all prints to tqdm.write
+    with octools.redirect_to_tqdm():
+        # Renaming arguments to what they are (making this just more readable)
+        dir = arguments[0]
+        archive = arguments[1]
+        # If is the index directory, ignore
+        if dir == "index":
+            return
+        # Find which kind of archive it will be
+        if archive == "astex":
+            chosenArchive = astex_archive
+        elif archive == "dudez":
+            chosenArchive = dudez_archive
+        elif archive == "pdbbind":
+            ptn = dir.split(os.path.sep)[-1]
+            # Set the input file name path (to generate the box and data about the protein)
+            receptorPath = f"{dir}/{ptn}_protein.pdb"
+            # Set the ligand file name path (to generate data about the ligand)
+            ligandPath = f"{dir}/{ptn}_ligand.mol2"
+            # If the complex has all descriptors for protein AND ligand
+            if os.path.isfile(f"{dir}/{ptn}_protein_descriptors.json") and os.path.isfile(f"{dir}/{ptn}_ligand_descriptors.json"):
+                # Read the receptor and the ligand
+                receptor = ocr.Receptor(receptorPath, from_json_descriptors = f"{dir}/{ptn}_protein_descriptors.json", name = f"{ptn}_receptor")
+                ligand = ocl.Ligand(ligandPath, from_json_descriptors = f"{dir}/{ptn}_ligand_descriptors.json", name = f"{ptn}_ligand")
+                # Return them
+                return (ptn, receptor, ligand)
+        return None
+
+def __get_parallel(dirList, chosenArchive, desc):
+    # Arguments to pass to each Thread in the Thread Pool
+    arguments = []
+    # For each file in the glob
+    for dir in dirList:
+        # Append a tuple containing the file name and ovewrite flag to the arguments list
+        arguments.append((dir, chosenArchive))
+    # Dict of elements
+    databaseDict = dict()
+    # Create a Thread pool with the maximum available_cores
+    with Pool(args.available_cores) as p:
+        # Perform the multi process
+        for complexData in tqdm(p.imap_unordered(__thread_get_parallel, arguments), total = len(arguments), desc = desc):
+            if complexData:
+                databaseDict[complexData[0]] = (complexData[1], complexData[2])
+    # Return
+    return databaseDict
+
+def __get_no_parallel(dirs, archive):
+    # Dict of elements
+    databaseDict = dict()
+    for dir in dirs:
+        # If is the index directory, ignore
+        if dir == "index":
+            return
+        # Find which kind of archive it will be
+        if archive == "astex":
+            chosenArchive = astex_archive
+        elif archive == "dudez":
+            chosenArchive = dudez_archive
+        elif archive == "pdbbind":
+            ptn = dir.split(os.path.sep)[-1]
+            # Set the input file name path (to generate the box and data about the protein)
+            receptorPath = f"{dir}/{ptn}_protein.pdb"
+            # Set the ligand file name path (to generate data about the ligand)
+            ligandPath = f"{dir}/{ptn}_ligand.mol2"
+            # If the complex has all descriptors for protein AND ligand
+            if os.path.isfile(f"{dir}/{ptn}_protein_descriptors.json") and os.path.isfile(f"{dir}/{ptn}_ligand_descriptors.json"):
+                # Read the receptor and the ligand
+                receptor = ocr.Receptor(receptorPath, from_json_descriptors = f"{dir}/{ptn}_protein_descriptors.json", name = f"{ptn}_receptor")
+                ligand = ocl.Ligand(ligandPath, from_json_descriptors = f"{dir}/{ptn}_ligand_descriptors.json", name = f"{ptn}_ligand")
+            # Add them to the dict using the protein as the key
+            databaseDict[ptn] = (receptor, ligand)
+    return databaseDict
 
 ## Public ##
 def verify_integrity(chosenArchive):
@@ -356,13 +434,35 @@ def verify_integrity(chosenArchive):
     # Find the archive type
     archive = chosenArchive.split(os.path.sep)[-1].lower()
 
+    # If logfile exists, backup it
+    if os.path.isfile(f"{logdir}/PDBbind_integrity_report.log"):
+        if not os.path.isdir(f"{logdir}/pdbbind_past"):
+            octools.safe_create_dir(f"{logdir}/pdbbind_past")
+        os.rename(f"{logdir}/PDBbind_integrity_report.log", f"{logdir}/pdbbind_past/PDBbind_integrity_report_{time.strftime('%d%m%Y-%H%M%S')}.log")
+
     # Redirect output to tqdm.write
-    with redirect_to_tqdm():
+    with octools.redirect_to_tqdm():
         # For each directory in the database folder
         for dir in tqdm(iterable=dirs, total=lenDirs):
+            # If is the index path
+            if os.path.basename(dir) == 'index':
+                # Skip it
+                continue
+
             # Parameterizing paths
             p2rankDir = f"{dir}/p2rank"
             vinaDir = f"{dir}/vinaFiles"
+
+            # Find protein name
+            ptn = dir.split(os.path.sep)[-1]
+
+            # Set the input file name path and set the input file name path
+            if archive == "astex":
+                fin = f"{dir}/protein.pdb"
+            elif archive == "dudez":
+                fin = f"{dir}/rec.crg.pdb"
+            elif archive == "pdbbind":
+                fin = f"{dir}/{dir.split(os.path.sep)[-1]}_protein.pdb"
 
             octools.printv(f"Checking directories for the protein '{dir}'.")
 
@@ -405,8 +505,10 @@ def verify_integrity(chosenArchive):
             if boxCount == 0:
                 octools.print_warning(f"The protein '{dir}' has no box file. Trying to fix...")
 
+                print(dir)
+
                 # Run p2rank
-                __run_p2rank(dir)
+                __run_p2rank(dir, fin)
 
                 # Check how many boxes are in the p2rankDir (again)
                 boxCount = len(glob(f"{p2rankDir}/box*.pdb"))
@@ -423,14 +525,6 @@ def verify_integrity(chosenArchive):
             if len(glob(f"{dir}/vinaFiles/*")) < boxCount:
                 octools.print_warning(f"The protein '{dir}' has not the same amount of vina conf files as the amount of box files. Trying to fix...")
 
-                # Set the input file name path and set the input file name path
-                if archive == "astex":
-                    fin = f"{dir}/protein.pdb"
-                elif archive == "dudez":
-                    fin = f"{dir}/rec.crg.pdb"
-                elif archive == "pdbbind":
-                    fin = f"{dir}/{dir.split(os.path.sep)[-1]}_protein.pdb"
-
                 # Run the vina conf creation from box
                 __run_create_vina_conf_from_box(dir, fin)
 
@@ -442,6 +536,32 @@ def verify_integrity(chosenArchive):
                     octools.print_error_log(f"Unable to generate the conf files dir for '{dir}'...", f"{logdir}/PDBbind_integrity_report.log")
                     failed = failed + 1
                     continue
+
+            # If is the pdbbind files
+            if archive == "pdbbind":
+                # If there is no descriptor file for the ligand or its size is 0
+                if not os.path.isfile(f"{dir}/{ptn}_ligand_descriptors.json") or os.path.getsize(f"{dir}/{ptn}_ligand_descriptors.json") == 0:
+                    # Generate it
+                    __prepare_no_parallel(f"{dir}/{ptn}_ligand.mol2", False, "ligand", archive, sanitize = True)
+                    # If the file still does not exists...
+                    if not os.path.isfile(f"{dir}/{ptn}_ligand_descriptors.json") or os.path.getsize(f"{dir}/{ptn}_ligand_descriptors.json") == 0:
+                        # REPORT
+                        octools.print_error(f"Unable to generate the ligand descriptor file for '{dir}'...")
+                        octools.print_error_log(f"Unable to generate the ligand descriptor file dir for '{dir}'...", f"{logdir}/PDBbind_integrity_report.log")
+                        failed = failed + 1
+                        continue
+
+                # If there is no descriptor file for the receptor or its size is 0
+                if not os.path.isfile(f"{dir}/{ptn}_protein_descriptors.json") or os.path.getsize(f"{dir}/{ptn}_protein_descriptors.json") == 0:
+                    # Generate it
+                    __prepare_no_parallel(f"{dir}/{ptn}_protein.pdb", False, "receptor", archive, sanitize = True)
+                    # If the file still does not exists...
+                    if not os.path.isfile(f"{dir}/{ptn}_protein_descriptors.json") or os.path.getsize(f"{dir}/{ptn}_protein_descriptors.json") == 0:
+                        # REPORT
+                        octools.print_error(f"Unable to generate the receptor descriptor file for '{dir}'...")
+                        octools.print_error_log(f"Unable to generate the receptor descriptor file dir for '{dir}'...", f"{logdir}/PDBbind_integrity_report.log")
+                        failed = failed + 1
+                        continue
 
     octools.printv(f"Integrity check of the PDBbind database accomplished. Success rate: {((lenDirs - failed) / lenDirs) * 100}% ({(lenDirs - failed)}/{lenDirs})")
 
@@ -478,7 +598,7 @@ def convert_debug_to_production(chosenArchive, chosenAlgorithm = "ac", strict = 
     allowed = ["ap", "ac", "bi", "db", "km", "ms", "mb", "na", "op", "sc"]
 
     # Redirect output to tqdm.write
-    with redirect_to_tqdm():
+    with octools.redirect_to_tqdm():
         # For each directory in the database folder
         for dir in tqdm(iterable=dirs, total=len(dirs)):
             # Print text
@@ -727,9 +847,16 @@ def get_database(archive):
         chosenArchive = dudez_archive
     elif archive == "pdbbind":
         chosenArchive = pdbbind_archive
-        dirs = glob(f"{chosenArchive}/*")
-
     else:
         octools.print_error(f"Not valid archive type. Expected one of ['astex', 'dudez', 'pdbbind'] and found {archive}.")
         return None
-    return
+    # Get all dirs inside the database
+    dirs = glob(f"{chosenArchive}/*")
+    # Dict of elements
+    databaseDict = dict()
+    if args.multiprocess:
+        databaseDict = __get_parallel(dirs, archive, f"Processing database {archive} from path '{chosenArchive}'.")
+    else:
+        databaseDict = __get_no_parallel(dirs, archive)
+
+    return databaseDict

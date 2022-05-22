@@ -4,6 +4,7 @@
 ###############################################################################
 import os
 import sys
+import pickle
 import shutil
 import inspect
 import tarfile
@@ -740,6 +741,32 @@ def is_algorithm_allowed(path):
     # Allowed algorithms
     allowed = ["ap", "ac", "bi", "db", "km", "ms", "mb", "na", "op", "sc"]
     return path.split(os.path.sep).pop() in allowed
+
+def to_pickle(filePath, data):
+    '''
+    Pickle a dict in a given path.
+    Input:
+      filePath [string] - The path to save the file
+      data     [dict]   - Dict to pickle
+    Return:
+      -
+    '''
+    with open(filePath, 'wb') as handle:
+        pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+def from_pickle(filePath):
+    '''
+    Unpickle a pickle file into a dict.
+    Input:
+      filePath [string] - The path to pickle file
+    Return:
+      [dict] - Unpickled dict
+    '''
+    data = None
+    with open(filePath, 'rb') as handle:
+        data = pickle.load(handle)
+    return data
+
 
 @contextlib.contextmanager
 def redirect_to_tqdm():

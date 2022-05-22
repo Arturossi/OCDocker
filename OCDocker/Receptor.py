@@ -170,6 +170,16 @@ class Receptor:
 
         return properties
 
+    def __read_descriptors_from_json(self, path):
+        '''
+        Read the descriptors from a json file.
+        Input:
+          -
+        Return:
+          [list(mixed)] - Descriptors read from the json file. If fails, returns null.
+        '''
+        return read_descriptors_from_json(path)
+
     def __count_surface_AA(self):
         '''
         Counts how many of each of the 20 standard AAs has a relative Accessible surface area (ASA) value above a given cutoff.
@@ -387,49 +397,6 @@ class Receptor:
                 return errors.write_file(f"Problems while writing the file '{outputJson}' Error: {e}.")
         except Exception as e:
             return errors.unknown(f"Unknown error while converting the ligand {self.name} to json.\nError: {e}", "error")
-
-    def read_descriptors_from_json(path):
-        '''
-        Read the descriptors from a json file.
-        Input:
-          -
-        Return:
-          [list(mixed)] - Descriptors read from the json file. If fails, returns null.
-        '''
-        # Try to read the file
-        try:
-            # Open the json file in read mode
-            with open(path, "r") as f:
-                # Load the data
-                data = json.load(f)
-            # Missing keys list
-            missing = []
-            # Expected keys to have in the json file
-            # <editor-fold> keys
-            keys = ["Name", "sasa", "dipoleMoment", "isoelectricPoint", "instabilityIndex", "GRAVY", "aromaticity", "countAA"]
-            # </editor-fold>
-            # Validate the data
-            for key in keys:
-                # If key is lacking in data read from json (means malformed json!)
-                if not key in data:
-                    # Add the missing key to the missing list
-                    missing.Append(key)
-            # If missing list is not empty
-            if missing:
-                # Raise a Key error passing the file and the missing keys joined with ', '
-                raise KeyError((path, ", ".join(missing)))
-            # Since we have all keys, read them and return their values
-            # <editor-fold> Return data
-            return data["Name"], data["sasa"], data["dipoleMoment"], data["isoelectricPoint"], data["instabilityIndex"], data["GRAVY"], data["aromaticity"], data["countAA"]
-
-            # </editor-fold>
-        # Key error (when there is a missing key)
-        except KeyError as k:
-            octools.print_error(f"The following keys were not found in the json file '{k[0]}': {k[1]}.")
-        # General error (call it as problem to read file)
-        except Exception as e:
-            octools.print_error(f"Could not read the file '{path}'. Error: {e}")
-        return None
 
     def is_valid(self):
         '''
@@ -715,3 +682,46 @@ def computeInstabilityIndex(residues):
     octools.printv(f"Computing the Instability Index for protein with amino acid sequence of '{residues}'.")
     protein = ProteinAnalysis(__filterSequence(residues))
     return protein.instability_index()
+
+def read_descriptors_from_json(path):
+    '''
+    Read the descriptors from a json file.
+    Input:
+      -
+    Return:
+      [list(mixed)] - Descriptors read from the json file. If fails, returns null.
+    '''
+    # Try to read the file
+    try:
+        # Open the json file in read mode
+        with open(path, "r") as f:
+            # Load the data
+            data = json.load(f)
+        # Missing keys list
+        missing = []
+        # Expected keys to have in the json file
+        # <editor-fold> keys
+        keys = ["Name", "sasa", "dipoleMoment", "isoelectricPoint", "instabilityIndex", "GRAVY", "aromaticity", "countAA"]
+        # </editor-fold>
+        # Validate the data
+        for key in keys:
+            # If key is lacking in data read from json (means malformed json!)
+            if not key in data:
+                # Add the missing key to the missing list
+                missing.Append(key)
+        # If missing list is not empty
+        if missing:
+            # Raise a Key error passing the file and the missing keys joined with ', '
+            raise KeyError((path, ", ".join(missing)))
+        # Since we have all keys, read them and return their values
+        # <editor-fold> Return data
+        return data["Name"], data["sasa"], data["dipoleMoment"], data["isoelectricPoint"], data["instabilityIndex"], data["GRAVY"], data["aromaticity"], data["countAA"]
+
+        # </editor-fold>
+    # Key error (when there is a missing key)
+    except KeyError as k:
+        octools.print_error(f"The following keys were not found in the json file '{k[0]}': {k[1]}.")
+    # General error (call it as problem to read file)
+    except Exception as e:
+        octools.print_error(f"Could not read the file '{path}'. Error: {e}")
+    return None

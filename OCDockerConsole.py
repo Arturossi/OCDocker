@@ -65,8 +65,10 @@ message = tw.dedent("""\033[1;93m
 
 print(message)
 
-args.cpu_cores = 20
+#args.cpu_cores = 20
+args.cpu_cores = 6
 args.available_cores = args.cpu_cores - 1
+args.multiprocess = 1
 
 basePath = "/mnt/e/Documents/OCDocker/OCDocker"
 
@@ -92,7 +94,8 @@ for i in range(len(ligands)):
 
 # Testing the classes and objects
 #receptorTest = ocr.Receptor(f"{basePath}/test/rec.crg.pdb", relativeASAcutoff=0.7, name="Receptor teste")
-ligandTest = ocl.Ligand(f"{basePath}/test/xtal-lig.pdb", name="Ligante teste")
+#ligandTest = ocl.Ligand(f"{basePath}/test/xtal-lig.pdb", name="Ligante teste")
 
 #vinaTest = ocvina.Vina(f"{basePath}/test/conf_vina.txt", f"{basePath}/test/box.pdb", receptorTest, f"{basePath}/test/rec.crg.pdbqt", ligandTest, f"{basePath}/test/xtal-lig.pdbqt", f"{basePath}/test/vina.log", f"{basePath}/test/vina.pdbqt", name="Vina Test")
 #sminaTest = ocsmina.Smina(f"{basePath}/test/conf_smina.txt", receptorTest, f"{basePath}/test/rec.crg2.pdbqt", ligandTest, f"{basePath}/test/xtal-lig2.pdbqt", f"{basePath}/test/smina.log", f"{basePath}/test/smina.pdbqt", name="Smina Test")
+#plantsTest = ocsmina.PLANTS(f"{basePath}/test/conf_plants.txt", receptorTest, f"{basePath}/test/rec.crg2.pdbqt", ligandTest, f"{basePath}/test/xtal-lig2.pdbqt", f"{basePath}/test/smina.log", f"{basePath}/test/smina.pdbqt", name="Smina Test")
