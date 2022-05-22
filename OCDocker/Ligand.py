@@ -59,6 +59,7 @@ class Ligand:
     the molecule can be provided aswell.
     """
     def __init__(self, molecule, name, sanitize = True, from_json_descriptors = ""):
+        # Set the path and structure (NEVER SHOUD BE NONE)
         self.path, self.molecule = self.__loadMol(molecule, sanitize)
         # Define everything as None
         self.name = None
@@ -1064,8 +1065,6 @@ class Ligand:
 
             # </editor-fold>
 
-            print(self.name)
-
             # <editor-fold> 3D descriptors
             self.AUTOCORR3D_1,  self.AUTOCORR3D_2,  self.AUTOCORR3D_3,  self.AUTOCORR3D_4,  self.AUTOCORR3D_5,  self.AUTOCORR3D_6,  self.AUTOCORR3D_7,  self.AUTOCORR3D_8,  self.AUTOCORR3D_9,  self.AUTOCORR3D_10, self.AUTOCORR3D_11, self.AUTOCORR3D_12, self.AUTOCORR3D_13, self.AUTOCORR3D_14, self.AUTOCORR3D_15, self.AUTOCORR3D_16, self.AUTOCORR3D_17, self.AUTOCORR3D_18, self.AUTOCORR3D_19, self.AUTOCORR3D_20, self.AUTOCORR3D_21, self.AUTOCORR3D_22, self.AUTOCORR3D_23, self.AUTOCORR3D_24, self.AUTOCORR3D_25, self.AUTOCORR3D_26, self.AUTOCORR3D_27, self.AUTOCORR3D_28, self.AUTOCORR3D_29, self.AUTOCORR3D_30, self.AUTOCORR3D_31, self.AUTOCORR3D_32, self.AUTOCORR3D_33, self.AUTOCORR3D_34, self.AUTOCORR3D_35, self.AUTOCORR3D_36, self.AUTOCORR3D_37, self.AUTOCORR3D_38, self.AUTOCORR3D_39, self.AUTOCORR3D_40, self.AUTOCORR3D_41, self.AUTOCORR3D_42, self.AUTOCORR3D_43, self.AUTOCORR3D_44, self.AUTOCORR3D_45, self.AUTOCORR3D_46, self.AUTOCORR3D_47, self.AUTOCORR3D_48, self.AUTOCORR3D_49, self.AUTOCORR3D_50, self.AUTOCORR3D_51, self.AUTOCORR3D_52, self.AUTOCORR3D_53, self.AUTOCORR3D_54, self.AUTOCORR3D_55, self.AUTOCORR3D_56, self.AUTOCORR3D_57, self.AUTOCORR3D_58, self.AUTOCORR3D_59, self.AUTOCORR3D_60, self.AUTOCORR3D_61, self.AUTOCORR3D_62, self.AUTOCORR3D_63, self.AUTOCORR3D_64, self.AUTOCORR3D_65, self.AUTOCORR3D_66, self.AUTOCORR3D_67, self.AUTOCORR3D_68, self.AUTOCORR3D_69, self.AUTOCORR3D_70, self.AUTOCORR3D_71, self.AUTOCORR3D_72, self.AUTOCORR3D_73, self.AUTOCORR3D_74, self.AUTOCORR3D_75, self.AUTOCORR3D_76, self.AUTOCORR3D_77, self.AUTOCORR3D_78, self.AUTOCORR3D_79, self.AUTOCORR3D_80 = self.__findAUTOCORR3D()
 
@@ -1109,7 +1108,7 @@ class Ligand:
         Input:
           -
         Return:
-          -
+          [dict of mixed]
         '''
         # Create new dict
         properties = dict()

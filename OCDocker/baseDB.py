@@ -100,10 +100,12 @@ def __thread_prepare(arguments):
     '''
     Prepares the molecule.
     Input:
-     arguments [tuple(string, bool, string)] - Tuple containing, in this order:
+     arguments [tuple(string, bool, string, string, bool)] - Tuple containing, in this order:
         - [string] The molecule path
         - [bool]   Flag to tell if files should be overwritten
         - [string] The type of the molecule (ligant or receptor)
+        - [string] The database name
+        - [bool]   Flag to tell if the molecule should be sanitized
     Return:
       -
     '''
@@ -114,11 +116,12 @@ def __thread_prepare(arguments):
         overwrite = arguments[1]
         moltype = arguments[2]
         dbName = arguments[3]
-        # Parameterize the sanitize flag
-        sanitize = True
+        sanitize = arguments[4]
         # Find its name and path
-        #molName = ".".join(os.path.basename(mol).split(".")[:-1])
-        molPath, molName = os.path.split(mol)
+        if type(mol) == tuple:
+            molPath, molName = os.path.split(mol[0])
+        else:
+            molPath, molName = os.path.split(mol)
         if overwrite or not os.path.isfile(f"{molPath}/{molName}_descriptors.json"):
             if moltype == "ligand":
                 try:
@@ -153,7 +156,19 @@ def __thread_prepare(arguments):
                             octools.print_error_log(f"The molecule '{mol}' could not be parsed! .", f"{logdir}/{dbName}_error_Parse.log")
                             return None
             elif moltype == "receptor":
-                pass
+                try:
+                    # If is a tuple
+                    if type(mol) == tuple:
+                        # Create the receptor object
+                        m = ocr.Receptor(mol[0], molName, mol2Path = mol[1])
+                    else:
+                        # Create the receptor object
+                        m = ocr.Receptor(mol, molName)
+                # If m is not valid
+                except Exception as e:
+                    _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed!", "error")
+                    octools.print_error_log(f"The molecule '{mol}' could not be parsed! .", f"{logdir}/{dbName}_error_Parse.log")
+                    return None
             else:
                 _ = errors.unkown("Unknown molecule type", "error")
                 return None
@@ -167,7 +182,7 @@ def __thread_prepare(arguments):
     # Return
     return None
 
-def __prepare_parallel(dirList, overwrite, moltype, dbName, desc):
+def __prepare_parallel(dirList, overwrite, moltype, dbName, desc, sanitize = True):
     '''
     Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
     Input:
@@ -184,11 +199,135 @@ def __prepare_parallel(dirList, overwrite, moltype, dbName, desc):
     # For each file in the glob
     for filename in dirList:
         # Append a tuple containing the file name and ovewrite flag to the arguments list
-        arguments.append((filename, overwrite, moltype, dbName))
+        arguments.append((filename, overwrite, moltype, dbName, sanitize))
     # Create a Thread pool with the maximum available_cores
     with Pool(args.available_cores) as p:
         # Perform the multi process
         for _ in tqdm(p.imap_unordered(__thread_prepare, arguments), total = len(arguments), desc = desc):
+            pass
+    # Return
+    return None
+
+def __prepare_no_parallel(mol, overwrite, moltype, dbName, sanitize = True):
+    # Find its name and path
+    if type(mol) == tuple:
+        molPath, molName = os.path.split(mol[0])
+    else:
+        molPath, molName = os.path.split(mol)
+    if overwrite or not os.path.isfile(f"{molPath}/{molName}_descriptors.json"):
+        if moltype == "ligand":
+            try:
+                # Create the ligand object
+                m = ocl.Ligand(mol, molName, sanitize = sanitize)
+            # If m is not valid
+            except Exception as e:
+                # Let's check its extension
+                filename, file_extension = os.path.splitext(mol)
+                # Check if the extension is .mol2
+                if file_extension == ".mol2":
+                    # Tell the user the search for another extension (.sdf)
+                    _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.mol2' to '.sdf'.", "warning")
+                    octools.print_warning_log(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.mol2' to '.sdf'.", f"{logdir}/{dbName}_Parse.log")
+                    try:
+                        # Parse the .sdf file
+                        m = ocl.Ligand(f"{filename}.sdf", molName, sanitize = sanitize)
+                    except:
+                        _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed!", "error")
+                        octools.print_error_log(f"The molecule '{mol}' could not be parsed! .", f"{logdir}/{dbName}_error_Parse.log")
+                        return None
+                # Check if the extension is .sdf
+                elif file_extension == ".sdf":
+                    # Tell the user the search for another extension (.mol2)
+                    _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.sdf' to '.mol2'.", "warning")
+                    octools.print_warning_log(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.sdf' to '.mol2'.", f"{logdir}/{dbName}_warn_Parse.log")
+                    try:
+                        # Parse the .mol2 file
+                        m = ocl.Ligand(f"{filename}.sdf", molName, sanitize = sanitize)
+                    except:
+                        _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed!", "error")
+                        octools.print_error_log(f"The molecule '{mol}' could not be parsed! .", f"{logdir}/{dbName}_error_Parse.log")
+                        return None
+        elif moltype == "receptor":
+            try:
+                # If is a tuple
+                if type(mol) == tuple:
+                    # Create the receptor object
+                    m = ocr.Receptor(mol[0], molName, mol2Path = mol[1])
+                else:
+                    # Create the receptor object
+                    m = ocr.Receptor(mol, molName)
+            # If m is not valid
+            except Exception as e:
+                _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed!", "error")
+                octools.print_error_log(f"The molecule '{mol}' could not be parsed! .", f"{logdir}/{dbName}_error_Parse.log")
+                return None
+        else:
+            _ = errors.unkown("Unknown molecule type", "error")
+            return None
+        # Test if the ligand is valid
+        if not m or not m.is_valid():
+            _ = errors.malformed_molecule(f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!", "error")
+            octools.print_error_log(f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!", f"{logdir}/{dbName}_Parse.log")
+        else:
+            # Export its descriptors
+            _ = m.to_json(overwrite)
+    # Return
+    return None
+
+def __thread_prepare_pdbbind(arguments):
+    # Redirect all prints to tqdm.write
+    with octools.redirect_to_tqdm():
+        # Renaming arguments to what they are (making this just more readable)
+        dir = arguments[0]
+        overwrite = arguments[1]
+        # If is the index path
+        if os.path.basename(dir) == 'index':
+            # Skip it
+            return
+        # Find the protein name
+        ptn = dir.split(os.path.sep)[-1]
+        # Set the input file name path (to generate the box and data about the protein)
+        fin = f"{dir}/{ptn}_protein.pdb"
+        fout = f"{dir}/{ptn}_protein.mol2"
+        # Convert the .pdb to .mol2 (for dock6 use)
+        _ = octools.convertMols(fin, fout)
+        # Set the ligand file name path (to generate data about the ligand)
+        fligand = f"{dir}/{ptn}_ligand.mol2"
+        # For each ligand (don't use parallel, since there is no need)
+        __prepare_no_parallel(fligand, overwrite, "ligand", archive, f"{ptn} PDBbind ligand")
+        # For each Receptor
+        __prepare_no_parallel((fin, fout), overwrite, "receptor", archive, f"{ptn} PDBbind receptor")
+        # Set the output path
+        fout = f"{dir}/p2rank"
+        # Create the p2rank output dir
+        _ = octools.safe_create_dir(fout)
+        # Parameterizing box count
+        boxCount = len(glob(f"{fout}/box*.pdb"))
+        # If overwrite mode is on or there is no box in the p2rank output, p2rank will run
+        if boxCount == 0 or overwrite:
+            # Run p2rank
+            __run_p2rank(dir, fin)
+        else:
+            octools.print_info(f"The protein '{dir}' already has its p2rank output generated, skipping its execution.")
+        # If overwrite mode is on or there is not the same amount of box files as folders in vinaFiles folder
+        if len(glob(f"{dir}/vinaFiles/*")) == boxCount or overwrite:
+            # Create the vina inputs from the boxes
+            ocvina.generate_vina_files_database(dir, fin)
+        else:
+            octools.print_info(f"The protein '{dir}' already has its vina file generated, skipping its execution.")
+    return
+
+def __prepare_parallel_pdbbind(dirList, overwrite, desc):
+    # Arguments to pass to each Thread in the Thread Pool
+    arguments = []
+    # For each file in the glob
+    for dir in dirList:
+        # Append a tuple containing the file name and ovewrite flag to the arguments list
+        arguments.append((dir, overwrite))
+    # Create a Thread pool with the maximum available_cores
+    with Pool(args.available_cores) as p:
+        # Perform the multi process
+        for _ in tqdm(p.imap_unordered(__thread_prepare_pdbbind, arguments), total = len(arguments), desc = desc):
             pass
     # Return
     return None
@@ -424,7 +563,6 @@ def prepare(archive, overwrite = False):
     '''
     # Make archive lowercase
     archive = os.path.basename(archive).lower()
-
     # Find which kind of archive it will be
     if archive == "astex":
         chosenArchive = astex_archive
@@ -442,124 +580,156 @@ def prepare(archive, overwrite = False):
     # Get all dirs paths in the database
     dirs = glob(f"{chosenArchive}/*")
 
-    # For each directory in the database folder
-    for dir in dirs:
-        # If is the index path
-        if os.path.basename(dir) == 'index':
-            # Skip it
-            continue
-        # Find the protein name
-        ptn = dir.split(os.path.sep)[-1]
+    # Check if its pdbbind database and multiprocess flag is set as true
+    if archive == "pdbbind" and args.multiprocess:
+        # Let's go parallel (it's too slow without it)
+        # NOTE: This is safe because pdbbind database is 1 ligand + 1 receptor.
+        __prepare_parallel_pdbbind(dirs, overwrite, "PDBbind proteins")
 
-        # Set the input file name path
-        if archive == "astex":
+    else:
+        # For each directory in the database folder
+        for dir in dirs:
+            # If is the index path
+            if os.path.basename(dir) == 'index':
+                # Skip it
+                continue
+            # Find the protein name
+            ptn = dir.split(os.path.sep)[-1]
+
             # Set the input file name path
-            fin = f"{dir}/protein"
+            if archive == "astex":
+                # Set the input file name path
+                fin = f"{dir}/protein"
 
-            # Set the ligand input file name path
-            lfin = f"{dir}/ligand"
+                # Set the ligand input file name path
+                lfin = f"{dir}/ligand"
 
-            # If the overwrite flag is true or the receptor pdb file already exists
-            if overwrite or not os.path.isfile(f"{fin}.pdb"):
-                # Convert the protein file from mol2 to pdb
-                _ = octools.convertMols(f"{fin}.mol2", f"{fin}.pdb")
+                # If the overwrite flag is true or the receptor pdb file already exists
+                if overwrite or not os.path.isfile(f"{fin}.pdb"):
+                    # Convert the protein file from mol2 to pdb
+                    _ = octools.convertMols(f"{fin}.mol2", f"{fin}.pdb")
 
-            # If the overwrite flag is true or the ligand mol2 file already exists
-            if overwrite or not os.path.isfile(f"{lfin}.mol2"):
-                # Convert the ligand file from mol to mol2
-                _ = octools.convertMols(f"{lfin}.mol", f"{lfin}.mol2")
+                # If the overwrite flag is true or the ligand mol2 file already exists
+                if overwrite or not os.path.isfile(f"{lfin}.mol2"):
+                    # Convert the ligand file from mol to mol2
+                    _ = octools.convertMols(f"{lfin}.mol", f"{lfin}.mol2")
 
-            # Reset the input file variable
-            fin = f"{fin}.pdb"
-        elif archive == "dudez":
-            # Set the input file name path
-            fin = f"{dir}/rec.crg.pdb"
+                # Reset the input file variable
+                fin = f"{fin}.pdb"
+            elif archive == "dudez":
+                # Set the input file name path
+                fin = f"{dir}/rec.crg.pdb"
 
-            # Set the 3 dirs containing ligand/decoys
-            dudezDir = f"{dir}/DUDE_Z"
-            extremaDir = f"{dir}/Extrema"
-            goldilocksDir = f"{dir}/Goldilocks"
+                # Set the 3 dirs containing ligand/decoys
+                dudezDir = f"{dir}/DUDE_Z"
+                extremaDir = f"{dir}/Extrema"
+                goldilocksDir = f"{dir}/Goldilocks"
 
-            # Parameterize paths
-            dudezDirLigand = f"{dudezDir}_ligands"
-            dudezDirDecoy = f"{dudezDir}_decoys"
-            extremaDirDecoy = f"{extremaDir}_decoys"
-            goldilocksDirDecoy = f"{goldilocksDir}_decoys"
+                # Parameterize paths
+                dudezDirLigand = f"{dudezDir}_ligands"
+                dudezDirDecoy = f"{dudezDir}_decoys"
+                extremaDirDecoy = f"{extremaDir}_decoys"
+                goldilocksDirDecoy = f"{goldilocksDir}_decoys"
 
-            # Create the dirs for data from the 3 dirs above
-            _ = octools.safe_create_dir(dudezDirLigand)
-            _ = octools.safe_create_dir(dudezDirDecoy)
-            _ = octools.safe_create_dir(extremaDirDecoy)
-            _ = octools.safe_create_dir(goldilocksDirDecoy)
+                # Create the dirs for data from the 3 dirs above
+                _ = octools.safe_create_dir(dudezDirLigand)
+                _ = octools.safe_create_dir(dudezDirDecoy)
+                _ = octools.safe_create_dir(extremaDirDecoy)
+                _ = octools.safe_create_dir(goldilocksDirDecoy)
 
-            # Get all mol2 files in dudezDir
-            mol2Files = glob(f"{dudezDir}/*.mol2")
-            # Separate ligands and decoys
-            for mol2File in mol2Files:
-                # If there is the string ligand_poses in the link (means that is ligand)
-                if "ligand_poses" in mol2File:
-                    _ = octools.split_and_convert(mol2File, dudezDirLigand, "mol2", overwrite)
-                else:
-                    _ = octools.split_and_convert(mol2File, dudezDirDecoy, "mol2", overwrite)
+                # Get all mol2 files in dudezDir
+                mol2Files = glob(f"{dudezDir}/*.mol2")
+                # Separate ligands and decoys
+                for mol2File in mol2Files:
+                    # If there is the string ligand_poses in the link (means that is ligand)
+                    if "ligand_poses" in mol2File:
+                        _ = octools.split_and_convert(mol2File, dudezDirLigand, "mol2", overwrite)
+                    else:
+                        _ = octools.split_and_convert(mol2File, dudezDirDecoy, "mol2", overwrite)
 
-            # Get all mol2 files in extremaDir
-            mol2Files = glob(f"{extremaDir}/*.mol2")
-            # Separate ligands and decoys
-            for mol2File in mol2Files:
-                _ = octools.split_and_convert(mol2File, extremaDirDecoy, "mol2", overwrite)
+                # Get all mol2 files in extremaDir
+                mol2Files = glob(f"{extremaDir}/*.mol2")
+                # Separate ligands and decoys
+                for mol2File in mol2Files:
+                    _ = octools.split_and_convert(mol2File, extremaDirDecoy, "mol2", overwrite)
 
-            # Get all mol2 files in goldilocksDir
-            mol2Files = glob(f"{goldilocksDir}/*.mol2")
-            # Separate ligands and decoys
-            for mol2File in mol2Files:
-                _ = octools.split_and_convert(mol2File, goldilocksDirDecoy, "mol2", overwrite)
+                # Get all mol2 files in goldilocksDir
+                mol2Files = glob(f"{goldilocksDir}/*.mol2")
+                # Separate ligands and decoys
+                for mol2File in mol2Files:
+                    _ = octools.split_and_convert(mol2File, goldilocksDirDecoy, "mol2", overwrite)
 
-            # Defining the moltype
-            moltype = "ligand"
+                # Defining the moltype
+                moltype = "ligand"
 
-            # For each molecule in dudez ligand dir
-            mols = glob(f"{dudezDirLigand}/*.mol2")
-            __prepare_parallel(mols, overwrite, moltype, f"{ptn} DUDEz ligand")
-            # For each molecule in dudez decoy dir
-            __prepare_parallel(glob(f"{dudezDirDecoy}/*.mol2"), overwrite, moltype, f"{ptn} DUDEz decoy")
-            # For each molecule in extrema decoy dir
-            __prepare_parallel(glob(f"{extremaDirDecoy}/*.mol2"), overwrite, moltype, f"{ptn} extrema decoy")
-            # For each molecule in goldilocks decoy dir
-            __prepare_parallel(glob(f"{goldilocksDirDecoy}/*.mol2"), overwrite, moltype, f"{ptn} goldilocks decoy")
-        elif archive == "pdbbind":
-            # Set the input file name path (to generate the box and data about the protein)
-            fin = f"{dir}/{ptn}_protein.pdb"
-            fout = f"{dir}/{ptn}_protein.mol2"
-            # Convert the .pdb to .mol2 (for dock6 use)
-            _ = octools.convertMols(fin, fout)
-            # Set the ligand file name path (to generate data about the ligand)
-            fligand = f"{dir}/{ptn}_ligand.mol2"
-            # Defining the moltype
-            moltype = "ligand"
-            # For each molecule in dudez decoy dir
-            __prepare_parallel([fligand], overwrite, moltype, archive, f"{ptn} PDBbind ligand")
+                # For each molecule in dudez ligand dir
+                mols = glob(f"{dudezDirLigand}/*.mol2")
+                __prepare_parallel(mols, overwrite, moltype, f"{ptn} DUDEz ligand")
+                # For each molecule in dudez decoy dir
+                __prepare_parallel(glob(f"{dudezDirDecoy}/*.mol2"), overwrite, moltype, f"{ptn} DUDEz decoy")
+                # For each molecule in extrema decoy dir
+                __prepare_parallel(glob(f"{extremaDirDecoy}/*.mol2"), overwrite, moltype, f"{ptn} extrema decoy")
+                # For each molecule in goldilocks decoy dir
+                __prepare_parallel(glob(f"{goldilocksDirDecoy}/*.mol2"), overwrite, moltype, f"{ptn} goldilocks decoy")
+            elif archive == "pdbbind":
+                # Set the input file name path (to generate the box and data about the protein)
+                fin = f"{dir}/{ptn}_protein.pdb"
+                fout = f"{dir}/{ptn}_protein.mol2"
+                # Convert the .pdb to .mol2 (for dock6 use)
+                _ = octools.convertMols(fin, fout)
+                # Set the ligand file name path (to generate data about the ligand)
+                fligand = f"{dir}/{ptn}_ligand.mol2"
+                # For each ligand
+                __prepare_parallel([fligand], overwrite, "ligand", archive, f"{ptn} PDBbind ligand")
+                # For each Receptor
+                __prepare_parallel([(fin, fout)], overwrite, "receptor", archive, f"{ptn} PDBbind receptor")
 
-        # Set the output path
-        fout = f"{dir}/p2rank"
+            # Set the output path
+            fout = f"{dir}/p2rank"
 
-        # Create the p2rank output dir
-        _ = octools.safe_create_dir(fout)
+            # Create the p2rank output dir
+            _ = octools.safe_create_dir(fout)
 
-        # Parameterizing box count
-        boxCount = len(glob(f"{fout}/box*.pdb"))
+            # Parameterizing box count
+            boxCount = len(glob(f"{fout}/box*.pdb"))
 
-        # If overwrite mode is on or there is no box in the p2rank output, p2rank will run
-        if boxCount == 0 or overwrite:
-            # Run p2rank
-            __run_p2rank(dir, fin)
-        else:
-            octools.print_info(f"The protein '{dir}' already has its p2rank output generated, skipping its execution.")
+            # If overwrite mode is on or there is no box in the p2rank output, p2rank will run
+            if boxCount == 0 or overwrite:
+                # Run p2rank
+                __run_p2rank(dir, fin)
+            else:
+                octools.print_info(f"The protein '{dir}' already has its p2rank output generated, skipping its execution.")
 
-        # If overwrite mode is on or there is not the same amount of box files as folders in vinaFiles folder
-        if len(glob(f"{dir}/vinaFiles/*")) == boxCount or overwrite:
-            # Create the vina inputs from the boxes
-            ocvina.generate_vina_files_database(dir, fin)
-        else:
-            octools.print_info(f"The protein '{dir}' already has its vina file generated, skipping its execution.")
+            # If overwrite mode is on or there is not the same amount of box files as folders in vinaFiles folder
+            if len(glob(f"{dir}/vinaFiles/*")) == boxCount or overwrite:
+                # Create the vina inputs from the boxes
+                ocvina.generate_vina_files_database(dir, fin)
+            else:
+                octools.print_info(f"The protein '{dir}' already has its vina file generated, skipping its execution.")
 
+    return
+
+def get_database(archive):
+    '''
+    Parse the database into a serializable object.
+    Input:
+     archive   [string] - Which archive will be processed. [dudez, pdbbind, astex]
+    Return:
+      [dict of tuples]
+    '''
+    # Make archive lowercase
+    archive = archive.lower()
+
+    # Find which kind of archive it will be
+    if archive == "astex":
+        chosenArchive = astex_archive
+    elif archive == "dudez":
+        chosenArchive = dudez_archive
+    elif archive == "pdbbind":
+        chosenArchive = pdbbind_archive
+        dirs = glob(f"{chosenArchive}/*")
+
+    else:
+        octools.print_error(f"Not valid archive type. Expected one of ['astex', 'dudez', 'pdbbind'] and found {archive}.")
+        return None
     return

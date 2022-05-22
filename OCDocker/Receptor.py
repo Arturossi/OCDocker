@@ -3,6 +3,7 @@
 # Imports
 ###############################################################################
 import os
+import json
 import math
 
 from Bio.PDB import *
@@ -47,25 +48,86 @@ class Receptor:
     Load and compute receptor descriptors.
     """
 
-    def __init__(self, structure, cModel='gasteiger', gravyScale="KyteDoolitle", relativeASAcutoff=0.7, name=""):
-        self.name = name
+    def __init__(self, structure, name, mol2Path = None, cModel='gasteiger', gravyScale="KyteDoolitle", relativeASAcutoff=0.7, from_json_descriptors = ""):
+        # Name must come first
+        self.name = ""
+        # Set the path and structure (NEVER SHOUD BE NONE)
         self.path, self.structure = self.__loadMol(structure)
+        # The molpath not always will exist
+        self.mol2Path = mol2Path
+        # Set the residues (derived from structure)
         self.residues = self.__getRes()
-        self.sasa = self.structure.sasa
-        self.__cModel = cModel # The options are 'mmff94', 'gasteiger' or 'eem2015bm'
-        self.dipoleMoment = self.__computeDipoleMoment()
-        self.isoelectricPoint = self.__computeIsoelectricPoint()
-        self.instabilityIndex = self.__computeInstabilityIndex()
 
-        self.__gravyScale = gravyScale
-        self.GRAVY = self.__computeGravy()
+        # Set everything as None
+        self.sasa = None
+        self.__cModel = None
+        self.dipoleMoment = None
+        self.isoelectricPoint = None
+        self.instabilityIndex = None
 
-        self.aromaticity = self.__computeAromaticity()
+        self.__gravyScale = None
+        self.GRAVY = None
 
-        # Será que seria interessante? secondary_structure_fraction(self) https://biopython.org/docs/1.76/api/Bio.SeqUtils.ProtParam.html
+        self.aromaticity = None
 
-        self.__relativeASAcutoff = relativeASAcutoff
-        self.__countAA = self.__count_surface_AA()
+        self.__relativeASAcutoff = None
+        self.__countAA = None
+
+        self.countA = None
+        self.countR = None
+        self.countN = None
+        self.countD = None
+        self.countC = None
+        self.countQ = None
+        self.countE = None
+        self.countG = None
+        self.countH = None
+        self.countI = None
+        self.countL = None
+        self.countK = None
+        self.countM = None
+        self.countF = None
+        self.countP = None
+        self.countS = None
+        self.countT = None
+        self.countW = None
+        self.countY = None
+        self.countV = None
+
+        # If user pass a json
+        if from_json_descriptors:
+            # Read the descriptors from it
+            data = self.__read_descriptors_from_json(from_json_descriptors)
+            # If data is None, a problem occurred while reading the json file
+            if not data:
+                octools.print_error(f"Problems while parsing json file: '{from_json_descriptors}'")
+                return None
+            # <editor-fold> assign
+            self.name, self.sasa, self.dipoleMoment, self.isoelectricPoint, self.instabilityIndex,self.GRAVY, self.aromaticity, self.__countAA = data
+
+            # </editor-fold>
+        else:
+            # Check if the name is empty
+            if not name:
+                octools.print_error("The Receptor name should not be empty!")
+                return None
+            self.name = name.replace(" ", "_")
+
+            self.sasa = self.structure.sasa
+            self.__cModel = cModel # The options are 'mmff94', 'gasteiger' or 'eem2015bm'
+            self.dipoleMoment = self.__computeDipoleMoment()
+            self.isoelectricPoint = self.__computeIsoelectricPoint()
+            self.instabilityIndex = self.__computeInstabilityIndex()
+
+            self.__gravyScale = gravyScale
+            self.GRAVY = self.__computeGravy()
+
+            self.aromaticity = self.__computeAromaticity()
+
+            # Será que seria interessante? secondary_structure_fraction(self) https://biopython.org/docs/1.76/api/Bio.SeqUtils.ProtParam.html
+
+            self.__relativeASAcutoff = relativeASAcutoff
+            self.__countAA = self.__count_surface_AA()
 
         self.countA = self.__countAA["A"]
         self.countR = self.__countAA["R"]
@@ -89,6 +151,25 @@ class Receptor:
         self.countV = self.__countAA["V"]
 
     ## Private ##
+    def __safe_to_dict(self):
+        '''
+        Return all the properties (except the molecule object) for the Receptor object.
+        Input:
+          -
+        Return:
+          [dict of mixed]
+        '''
+        # Create new dict
+        properties = dict()
+        # Set Name and Path
+        properties["Name"] = self.name if self.name is not None else "-"
+        properties["Path"] = self.path if self.path is not None else "-"
+        properties["mol2Path"] = self.path if self.path is not None else "-"
+        # Combine both in one dict and return them
+        return {**properties, **self.get_descriptors()}
+
+        return properties
+
     def __count_surface_AA(self):
         '''
         Counts how many of each of the 20 standard AAs has a relative Accessible surface area (ASA) value above a given cutoff.
@@ -197,6 +278,7 @@ class Receptor:
         '''
         print(f"Name:              '{self.name if self.name else '-' }'")
         print(f"Structure path:    '{self.path if self.path else '-' }'")
+        print(f"mol2 path:         '{self.mol2Path if self.mol2Path else '-' }'")
         print(f"Structure:         '{self.structure if self.structure else '-' }'")
         print(f"AA residues:       '{self.residues if self.residues else '-' }'")
         print(f"SASA:              '{self.sasa if self.sasa else '0.0' }'")
@@ -272,39 +354,98 @@ class Receptor:
         Return:
           -
         '''
-        properties = {
-          "Name": self.name if self.name else "-",
-          "Path": self.path if self.path else "-",
-          "Structure": self.structure if self.structure else "-",
-          "Residues": self.residues if self.residues else "-",
-          "SASA": self.sasa if self.sasa else 0.0,
-          "DipoleMoment": self.dipoleMoment if self.dipoleMoment else "-",
-          "IsoelectricPoint": self.isoelectricPoint if self.isoelectricPoint else "-",
-          "GRAVY": self.GRAVY if self.GRAVY else "-",
-          "Aromaticity": self.aromaticity if self.aromaticity else "-",
-          "InstabilityIndex": self.instabilityIndex if self.instabilityIndex else "-",
-          "countA": self.countA if self.countA else 0,
-          "countR": self.countR if self.countR else 0,
-          "countN": self.countN if self.countN else 0,
-          "countD": self.countD if self.countD else 0,
-          "countC": self.countC if self.countC else 0,
-          "countQ": self.countQ if self.countQ else 0,
-          "countE": self.countE if self.countE else 0,
-          "countG": self.countG if self.countG else 0,
-          "countH": self.countH if self.countH else 0,
-          "countI": self.countI if self.countI else 0,
-          "countL": self.countL if self.countL else 0,
-          "countK": self.countK if self.countK else 0,
-          "countM": self.countM if self.countM else 0,
-          "countF": self.countF if self.countF else 0,
-          "countP": self.countP if self.countP else 0,
-          "countS": self.countS if self.countS else 0,
-          "countT": self.countT if self.countT else 0,
-          "countW": self.countW if self.countW else 0,
-          "countY": self.countY if self.countY else 0,
-          "countV": self.countV if self.countV else 0
-        }
-        return properties
+        # Create new dict
+        properties = dict()
+        # Set Name, Path and molecule
+        properties["Name"] = self.name if self.name is not None else "-"
+        properties["Path"] = self.path if self.path is not None else "-"
+        properties["mol2Path"] = self.mol2Path if self.mol2Path is not None else "-"
+        properties["Structure"] = self.structure if self.structure is not None else "-"
+        # Combine both in one dict and return them
+        return {**properties, **self.get_descriptors()}
+
+    def to_json(self, overwrite = False):
+        '''
+        Stores the descriptors as json to avoid the necessity of evaluate them many times.
+        Input:
+          overwrite [bool] DEFAULT: False - Flag to allow overwriting the target file.
+        Return:
+          [int]
+          See Error.py for all return codes.
+        '''
+        try:
+            outputJson = f"{os.path.dirname(self.path)}/{self.name}_descriptors.json"
+            if not overwrite and os.path.isfile(outputJson):
+                return errors.file_exists(f"The file {outputJson} already exists and the overwrite flag is set to False, no file will be generated or overwrited.", "warn")
+            if os.path.isfile(outputJson):
+                _ = errors.file_exists(f"The file '{outputJson}' already exists. It will be OVERWRITED!!!")
+            try:
+                with open(outputJson, "w") as outfile:
+                    json.dump(self.__safe_to_dict(), outfile)
+                return errors.ok()
+            except Exception as e:
+                return errors.write_file(f"Problems while writing the file '{outputJson}' Error: {e}.")
+        except Exception as e:
+            return errors.unknown(f"Unknown error while converting the ligand {self.name} to json.\nError: {e}", "error")
+
+    def read_descriptors_from_json(path):
+        '''
+        Read the descriptors from a json file.
+        Input:
+          -
+        Return:
+          [list(mixed)] - Descriptors read from the json file. If fails, returns null.
+        '''
+        # Try to read the file
+        try:
+            # Open the json file in read mode
+            with open(path, "r") as f:
+                # Load the data
+                data = json.load(f)
+            # Missing keys list
+            missing = []
+            # Expected keys to have in the json file
+            # <editor-fold> keys
+            keys = ["Name", "sasa", "dipoleMoment", "isoelectricPoint", "instabilityIndex", "GRAVY", "aromaticity", "countAA"]
+            # </editor-fold>
+            # Validate the data
+            for key in keys:
+                # If key is lacking in data read from json (means malformed json!)
+                if not key in data:
+                    # Add the missing key to the missing list
+                    missing.Append(key)
+            # If missing list is not empty
+            if missing:
+                # Raise a Key error passing the file and the missing keys joined with ', '
+                raise KeyError((path, ", ".join(missing)))
+            # Since we have all keys, read them and return their values
+            # <editor-fold> Return data
+            return data["Name"], data["sasa"], data["dipoleMoment"], data["isoelectricPoint"], data["instabilityIndex"], data["GRAVY"], data["aromaticity"], data["countAA"]
+
+            # </editor-fold>
+        # Key error (when there is a missing key)
+        except KeyError as k:
+            octools.print_error(f"The following keys were not found in the json file '{k[0]}': {k[1]}.")
+        # General error (call it as problem to read file)
+        except Exception as e:
+            octools.print_error(f"Could not read the file '{path}'. Error: {e}")
+        return None
+
+    def is_valid(self):
+        '''
+        Check if a Ligand object is valid.
+        Input:
+          -
+        Return:
+          [bool]
+            True  - if valid
+            False - if not valid
+        '''
+        # <editor-fold> if any attribute is None
+        if self.name is None or self.path is None or self.structure is None or self.residues is None or self.sasa is None or self.dipoleMoment is None or self.isoelectricPoint is None or self.instabilityIndex is None or self.GRAVY is None or self.aromaticity is None or self.__countAA is None is None:
+            return False
+        # </editor-fold>
+        return True
 
 # Functions
 ###############################################################################
