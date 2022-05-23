@@ -73,13 +73,23 @@ def convert_debug_to_production(chosenAlgorithm = "ac", strict = False, removeDe
 
 def get_database_single():
     '''
-    Parse the database into a serializable object. (Avoid this, the database is big, so it will bug everything)
+    Parse the database into a SINGLE serializable object. (Avoid this, the database is big, so it will bug everything)
     Input:
      archive   [string] - Which archive will be processed. [dudez, pdbbind, astex]
     Return:
       [dict of tuples]
     '''
     return ocbdb.get_database_single("pdbbind")
+
+def get_database(sliceSize = 100):
+    '''
+    Parse the database into a multiple serializable object. (Avoid this, the database is big, so it will bug everything)
+    Input:
+     sliceSize [int] - DEFAULT: 100 - Number of elements in each chunk. (Please, always use the same value)
+    Return:
+      [dict of tuples]
+    '''
+    return ocbdb.get_database("pdbbind", sliceSize = sliceSize)
 
 def prepare(overwrite = False):
     '''
