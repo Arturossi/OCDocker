@@ -71,15 +71,15 @@ def convert_debug_to_production(chosenAlgorithm = "ac", strict = False, removeDe
     '''
     ocbdb.convert_debug_to_production(pdbbind_archive, chosenAlgorithm = chosenAlgorithm, strict = strict, removeDebug = removeDebug)
 
-def get_database():
+def get_database_single():
     '''
-    Parse the database into a serializable object.
+    Parse the database into a serializable object. (Avoid this, the database is big, so it will bug everything)
     Input:
      archive   [string] - Which archive will be processed. [dudez, pdbbind, astex]
     Return:
       [dict of tuples]
     '''
-    return ocbdb.get_database("pdbbind")
+    return ocbdb.get_database_single("pdbbind")
 
 def prepare(overwrite = False):
     '''

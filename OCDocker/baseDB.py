@@ -285,7 +285,7 @@ def __thread_prepare_pdbbind(arguments):
         overwrite = arguments[1]
         archive = arguments[2]
         # If is the index path
-        if os.path.basename(dir) == 'index':
+        if os.path.basename(dir) not in ['index', 'db']:
             # Skip it
             return
         # Find the protein name
@@ -343,7 +343,7 @@ def __thread_get_parallel(arguments):
         dir = arguments[0]
         archive = arguments[1]
         # If is the index directory, ignore
-        if dir == "index":
+        if dir not in ['index', 'db']:
             return
         # Find which kind of archive it will be
         if archive == "astex":
@@ -388,7 +388,7 @@ def __get_no_parallel(dirs, archive):
     databaseDict = dict()
     for dir in dirs:
         # If is the index directory, ignore
-        if dir == "index":
+        if dir not in ['index', 'db']:
             return
         # Find which kind of archive it will be
         if archive == "astex":
@@ -445,7 +445,7 @@ def verify_integrity(chosenArchive):
         # For each directory in the database folder
         for dir in tqdm(iterable=dirs, total=lenDirs):
             # If is the index path
-            if os.path.basename(dir) == 'index':
+            if os.path.basename(dir) not in ['index', 'db']:
                 # Skip it
                 continue
 
@@ -710,7 +710,7 @@ def prepare(archive, overwrite = False):
         # For each directory in the database folder
         for dir in dirs:
             # If is the index path
-            if os.path.basename(dir) == 'index':
+            if os.path.basename(dir) == 'index' or os.path.basename(dir) == 'db':
                 # Skip it
                 continue
             # Find the protein name
@@ -829,11 +829,11 @@ def prepare(archive, overwrite = False):
 
     return
 
-def get_database(archive):
+def get_database_single(archive):
     '''
-    Parse the database into a serializable object.
+    Parse the database into a SINGLE serializable object. (Not so good)
     Input:
-     archive   [string] - Which archive will be processed. [dudez, pdbbind, astex]
+     archive [string] - Which archive will be processed. [dudez, pdbbind, astex]
     Return:
       [dict of tuples]
     '''
@@ -854,9 +854,55 @@ def get_database(archive):
     dirs = glob(f"{chosenArchive}/*")
     # Dict of elements
     databaseDict = dict()
+    # Decide if multprocessing will be used
     if args.multiprocess:
-        databaseDict = __get_parallel(dirs, archive, f"Processing database {archive} from path '{chosenArchive}'.")
+        databaseDict = __get_parallel(dirs, archive, f"Processing {archive}")
     else:
         databaseDict = __get_no_parallel(dirs, archive)
+    return databaseDict
+
+def get_database(archive, sliceSize = 100):
+    '''
+    Parse the database into a SINGLE serializable object. (Not so good)
+    Input:
+     archive   [string]              - Which archive will be processed. [dudez, pdbbind, astex]
+     sliceSize [int]    DEFAULT: 100 - Number of elements in each chunk. (Please, always use the same value)
+    Return:
+      [dict of tuples]
+    '''
+    # Make archive lowercase
+    archive = archive.lower()
+
+    # Find which kind of archive it will be
+    if archive == "astex":
+        chosenArchive = astex_archive
+    elif archive == "dudez":
+        chosenArchive = dudez_archive
+    elif archive == "pdbbind":
+        chosenArchive = pdbbind_archive
+    else:
+        octools.print_error(f"Not valid archive type. Expected one of ['astex', 'dudez', 'pdbbind'] and found {archive}.")
+        return None
+    # Get all dirs inside the database (except index and db)
+    dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db']]
+    # Create the db dir if does not exsit yet
+    _ = safe_create_dir(f"{chosenArchive}/db")
+    # Slice it into chunks
+    chunkedDirs = [dirs[x:x + sliceSize] for x in range(0, len(dirs), sliceSize)]
+    # For each chunk
+    for i, chunkedDir in enumerate(chunkedDirs):
+        if os.path.isfile(f"{chosenArchive}/db/pdbbind_{i}.pickle"):
+            octools.print_warning(f"The file '{chosenArchive}/db/pdbbind_{i}.pickle' already exists. Skipping.")
+            continue
+        # Dict of elements
+        databaseDict = dict()
+        # Decide if multprocessing will be used
+        if args.multiprocess:
+            databaseDict = __get_parallel(chunkedDir, archive, f"Processing {archive}")
+        else:
+            databaseDict = __get_no_parallel(chunkedDir, archive)
+        # Test if dabaseDict is fine
+        if databaseDict:
+            octools.to_pickle(f"{chosenArchive}/db/pdbbind_{i}.pickle", databaseDict)
 
     return databaseDict
