@@ -124,7 +124,7 @@ def read_index():
                     continue
                 # Split the line in spaces
                 splitedLine = line.split()
-                # The columns are listed below
+                # The columns are listed below (with a sample)
                 # PDB code, resolution, release year, -logKd/Ki, Kd/Ki, reference, ligand name
                 # 2r58  2.00  2007   2.00  Kd=10mM       // 2r58.pdf (MLY)
                 # Separate the type (Kd/Ki) from the value
@@ -144,7 +144,6 @@ def read_index():
                     val = float(val.replace("cM", "")) * order[pdbbind_KiKd_order]["c"]
                 else: # Will consider just molar, but this is not expected to show
                     val = float(val.replace("M", "")) * order[pdbbind_KiKd_order]["M"]
-
                 # Add to the dict having as a key the pdb code
                 proteinData[splitedLine[0]] = {
                     "resolution": splitedLine[1],
@@ -153,13 +152,24 @@ def read_index():
                     "type": tp,
                     "val": val
                     }
-
+        # Return the data
+        return proteinData
     else:
         # There is no file, throw an error
         _ = errors.file_do_not_exist(f"The file {indexFile} does not exist. Please check if the PDBbind database is correctly installed.", level = "error")
         return None
     # This return should never exist, but here it is
     return None
+
+def run_vina(overwrite = False):
+    '''
+    Runs vina in the whole database.
+    Input:
+     overwrite [bool] DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated.
+    Return:
+      -
+    '''
+    return ocbdb.run_vina("pdbbind", overwrite = overwrite)
 
 def prepare(overwrite = False):
     '''

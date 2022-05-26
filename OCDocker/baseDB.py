@@ -410,6 +410,29 @@ def __get_no_parallel(dirs, archive):
             databaseDict[ptn] = (receptor, ligand)
     return databaseDict
 
+def __run_vina_parallel(dirList, archive):
+    return
+
+def __run_vina_parallel(dirList, chosenArchive, desc):
+    # Arguments to pass to each Thread in the Thread Pool
+    arguments = []
+    # For each file in the glob
+    for dir in dirList:
+        # Append a tuple containing the file name and ovewrite flag to the arguments list
+        arguments.append((dir, chosenArchive))
+    # Dict of elements
+    databaseDict = dict()
+    # Define the number of used cores, limiting upper (max cores) and lowe bounds (1 core)
+    cores = int(args.available_cores/vina_exhaustiveness)
+    cores = cores if cores > 0 else 1
+    # Create a Thread pool with the maximum available_cores
+    with Pool(cores) as p:
+        # Perform the multi process
+        for _ in tqdm(p.imap_unordered(__thread_vina_parallel, arguments), total = len(arguments), desc = desc):
+            pass
+    # Return
+    return databaseDict
+
 ## Public ##
 def verify_integrity(chosenArchive):
     '''
@@ -829,11 +852,42 @@ def prepare(archive, overwrite = False):
 
     return
 
+def run_vina(archive, overwrite = False):
+    '''
+    Parse the database into a SINGLE serializable object. (Not so good)
+    Input:
+     archive [string] - Which archive will be processed. [dudez, pdbbind, astex]
+     overwrite [bool]   DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated.
+    Return:
+      [dict of tuples]
+    '''
+    # Make archive lowercase
+    archive = os.path.basename(archive).lower()
+    # Find which kind of archive it will be
+    if archive == "astex":
+        chosenArchive = astex_archive
+    elif archive == "dudez":
+        chosenArchive = dudez_archive
+    elif archive == "pdbbind":
+        chosenArchive = pdbbind_archive
+    else:
+        octools.print_error(f"Not valid archive type. Expected one of ['astex', 'dudez', 'pdbbind'] and found {archive}.")
+        return
+    # Get all dirs paths in the database
+    dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db']]
+    # Decide if multprocessing will be used
+    if args.multiprocess:
+        __get_parallel(dirs, archive, f"Processing {archive}")
+    else:
+        __get_no_parallel(dirs, archive)
+    return None
+
 def get_database_single_file(archive):
     '''
     Parse the database into a SINGLE serializable object. (Not so good)
     Input:
      archive [string] - Which archive will be processed. [dudez, pdbbind, astex]
+     overwrite [bool]   DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated.
     Return:
       [dict of tuples]
     '''
