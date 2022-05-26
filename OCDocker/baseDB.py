@@ -212,6 +212,13 @@ def __prepare_parallel(dirList, overwrite, moltype, dbName, desc, sanitize = Tru
     return None
 
 def __prepare_no_parallel(mol, overwrite, moltype, dbName, sanitize = True):
+    '''
+    # TODO:
+    Input:
+     chosenArchive [string] - Which archive will be processed. [dudez, pdbbind, astex]
+    Return:
+      -
+    '''
     # Find its name and path
     if type(mol) == tuple:
         molPath, molName = os.path.split(mol[0])
@@ -278,6 +285,13 @@ def __prepare_no_parallel(mol, overwrite, moltype, dbName, sanitize = True):
     return None
 
 def __thread_prepare_pdbbind(arguments):
+    '''
+    # TODO:
+    Input:
+     chosenArchive [string] - Which archive will be processed. [dudez, pdbbind, astex]
+    Return:
+      -
+    '''
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         # Renaming arguments to what they are (making this just more readable)
@@ -322,6 +336,13 @@ def __thread_prepare_pdbbind(arguments):
     return
 
 def __prepare_parallel_pdbbind(dirList, overwrite, desc):
+    '''
+    # TODO:
+    Input:
+     chosenArchive [string] - Which archive will be processed. [dudez, pdbbind, astex]
+    Return:
+      -
+    '''
     # Arguments to pass to each Thread in the Thread Pool
     arguments = []
     # For each file in the glob
@@ -337,6 +358,13 @@ def __prepare_parallel_pdbbind(dirList, overwrite, desc):
     return None
 
 def __thread_get_parallel(arguments):
+    '''
+    # TODO:
+    Input:
+     chosenArchive [string] - Which archive will be processed. [dudez, pdbbind, astex]
+    Return:
+      -
+    '''
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         # Renaming arguments to what they are (making this just more readable)
@@ -366,6 +394,13 @@ def __thread_get_parallel(arguments):
         return None
 
 def __get_parallel(dirList, chosenArchive, desc):
+    '''
+    # TODO:
+    Input:
+     chosenArchive [string] - Which archive will be processed. [dudez, pdbbind, astex]
+    Return:
+      -
+    '''
     # Arguments to pass to each Thread in the Thread Pool
     arguments = []
     # For each file in the glob
@@ -384,6 +419,13 @@ def __get_parallel(dirList, chosenArchive, desc):
     return databaseDict
 
 def __get_no_parallel(dirs, archive):
+    '''
+    # TODO:
+    Input:
+     chosenArchive [string] - Which archive will be processed. [dudez, pdbbind, astex]
+    Return:
+      -
+    '''
     # Dict of elements
     databaseDict = dict()
     for dir in dirs:
@@ -411,9 +453,23 @@ def __get_no_parallel(dirs, archive):
     return databaseDict
 
 def __run_vina_parallel(dirList, archive):
+    '''
+    # TODO:
+    Input:
+     chosenArchive [string] - Which archive will be processed. [dudez, pdbbind, astex]
+    Return:
+      -
+    '''
     return
 
 def __run_vina_parallel(dirList, chosenArchive, desc):
+    '''
+    # TODO:
+    Input:
+     chosenArchive [string] - Which archive will be processed. [dudez, pdbbind, astex]
+    Return:
+      -
+    '''
     # Arguments to pass to each Thread in the Thread Pool
     arguments = []
     # For each file in the glob
