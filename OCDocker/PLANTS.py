@@ -77,9 +77,9 @@ class PLANTS:
         Get the binding site from a box file.
         Input:
           boxFile   [string]               - Path to the box file.
-          spacing   [double] DEFAULT: 0.33 - Extra spacing
+          spacing   [float]  DEFAULT: 0.33 - Extra spacing
         Return:
-          [tuple of mixed tuple of doubles and double]
+          [tuple of mixed tuple of floats and floats]
            Binding center (x, y, z) and binding radius.
         '''
         octools.printv(f"Parsing '{boxFile}' to binding center data.")

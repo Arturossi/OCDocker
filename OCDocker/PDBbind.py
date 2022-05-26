@@ -2,6 +2,10 @@
 
 # Imports
 ###############################################################################
+import os
+
+from glob import glob
+
 from OCDocker.Initialise import *
 import OCDocker.baseDB as ocbdb
 
@@ -71,7 +75,7 @@ def convert_debug_to_production(chosenAlgorithm = "ac", strict = False, removeDe
     '''
     ocbdb.convert_debug_to_production(pdbbind_archive, chosenAlgorithm = chosenAlgorithm, strict = strict, removeDebug = removeDebug)
 
-def get_database_single():
+def get_database_single_file():
     '''
     Parse the database into a SINGLE serializable object. (Avoid this, the database is big, so it will bug everything)
     Input:
@@ -81,15 +85,81 @@ def get_database_single():
     '''
     return ocbdb.get_database_single("pdbbind")
 
-def get_database(sliceSize = 100):
+def get_database_multiple_files(sliceSize = 100):
     '''
-    Parse the database into a multiple serializable object. (Avoid this, the database is big, so it will bug everything)
+    Parse the database into a multiple serializable objects. (Avoid this, the database is big, so it will bug everything)
     Input:
      sliceSize [int] - DEFAULT: 100 - Number of elements in each chunk. (Please, always use the same value)
     Return:
       [dict of tuples]
     '''
     return ocbdb.get_database("pdbbind", sliceSize = sliceSize)
+
+def read_index():
+    '''
+    Read the index file from pdbbind database and return a list of data.
+    Input:
+     -
+    Return:
+     [dict]
+    '''
+    indexFile = glob(pdbbind_archive + '/index/INDEX_refined_data.*')[0]
+    # If the file exists
+    if os.path.isfile(indexFile):
+        # Dict to hold the protein data
+        proteinData = {"valOrder": f"{pdbbind_KiKd_order}M"}
+        # Open the file in read mode
+        with open(indexFile, "r") as f:
+            # This will loop the entire file (better than load the whole file in memory... imagine a huge file being loaded...)
+            while True:
+                # Read one line
+                line = f.readline()
+                # Check if there is a line
+                if not line:
+                    # If line is none, break the loop
+                    break
+                # If the line starts with a #
+                if line.startswith("#"):
+                    # Skip it (no useful info)
+                    continue
+                # Split the line in spaces
+                splitedLine = line.split()
+                # The columns are listed below
+                # PDB code, resolution, release year, -logKd/Ki, Kd/Ki, reference, ligand name
+                # 2r58  2.00  2007   2.00  Kd=10mM       // 2r58.pdf (MLY)
+                # Separate the type (Kd/Ki) from the value
+                tp, val = splitedLine[4].split("=")
+                # Convert all units to the same order (see the variable pdbbind_KiKd_order in initialise.py file for the precise order)
+                if "mM" in val: # If mili (10e-3)
+                    val = float(val.replace("mM", "")) * order[pdbbind_KiKd_order]["m"]
+                elif "uM" in val: # If micro (10e-6)
+                    val = float(val.replace("uM", "")) * order[pdbbind_KiKd_order]["u"]
+                elif "nM" in val: # If nano (10e-9)
+                    val = float(val.replace("nM", "")) * order[pdbbind_KiKd_order]["n"]
+                elif "pM" in val: # If pico (10e-12)
+                    val = float(val.replace("pM", "")) * order[pdbbind_KiKd_order]["p"]
+                elif "fM" in val: # If femto (10e-15) not expected to show
+                    val = float(val.replace("fM", "")) * order[pdbbind_KiKd_order]["f"]
+                elif "cM" in val: # If centi (10e-2) not expected to show
+                    val = float(val.replace("cM", "")) * order[pdbbind_KiKd_order]["c"]
+                else: # Will consider just molar, but this is not expected to show
+                    val = float(val.replace("M", "")) * order[pdbbind_KiKd_order]["M"]
+
+                # Add to the dict having as a key the pdb code
+                proteinData[splitedLine[0]] = {
+                    "resolution": splitedLine[1],
+                    "release_year": splitedLine[2],
+                    "-logKd/Ki": splitedLine[3],
+                    "type": tp,
+                    "val": val
+                    }
+
+    else:
+        # There is no file, throw an error
+        _ = errors.file_do_not_exist(f"The file {indexFile} does not exist. Please check if the PDBbind database is correctly installed.", level = "error")
+        return None
+    # This return should never exist, but here it is
+    return None
 
 def prepare(overwrite = False):
     '''

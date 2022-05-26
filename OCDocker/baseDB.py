@@ -829,7 +829,7 @@ def prepare(archive, overwrite = False):
 
     return
 
-def get_database_single(archive):
+def get_database_single_file(archive):
     '''
     Parse the database into a SINGLE serializable object. (Not so good)
     Input:
@@ -861,9 +861,9 @@ def get_database_single(archive):
         databaseDict = __get_no_parallel(dirs, archive)
     return databaseDict
 
-def get_database(archive, sliceSize = 100):
+def get_database_multiple_files(archive, sliceSize = 100):
     '''
-    Parse the database into a SINGLE serializable object. (Not so good)
+    Parse the database into multiple serializable objects.
     Input:
      archive   [string]              - Which archive will be processed. [dudez, pdbbind, astex]
      sliceSize [int]    DEFAULT: 100 - Number of elements in each chunk. (Please, always use the same value)

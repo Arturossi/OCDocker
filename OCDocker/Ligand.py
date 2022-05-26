@@ -1127,7 +1127,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_1 value.
+          [float] - The autocorrelation2D_1 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_1(self.molecule)
@@ -1138,7 +1138,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_2 value.
+          [float] - The autocorrelation2D_2 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_2(self.molecule)
@@ -1149,7 +1149,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_3 value.
+          [float] - The autocorrelation2D_3 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_3(self.molecule)
@@ -1160,7 +1160,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_4 value.
+          [float] - The autocorrelation2D_4 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_4(self.molecule)
@@ -1171,7 +1171,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_5 value.
+          [float] - The autocorrelation2D_5 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_5(self.molecule)
@@ -1182,7 +1182,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_6 value.
+          [float] - The autocorrelation2D_6 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_6(self.molecule)
@@ -1193,7 +1193,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_7 value.
+          [float] - The autocorrelation2D_7 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_7(self.molecule)
@@ -1204,7 +1204,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_8 value.
+          [float] - The autocorrelation2D_8 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_8(self.molecule)
@@ -1215,7 +1215,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_9 value.
+          [float] - The autocorrelation2D_9 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_9(self.molecule)
@@ -1226,7 +1226,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_10 value.
+          [float] - The autocorrelation2D_10 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_10(self.molecule)
@@ -1237,7 +1237,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_11 value.
+          [float] - The autocorrelation2D_11 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_11(self.molecule)
@@ -1248,7 +1248,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_12 value.
+          [float] - The autocorrelation2D_12 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_12(self.molecule)
@@ -1259,7 +1259,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_13 value.
+          [float] - The autocorrelation2D_13 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_13(self.molecule)
@@ -1270,7 +1270,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_14 value.
+          [float] - The autocorrelation2D_14 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_14(self.molecule)
@@ -1281,7 +1281,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_15 value.
+          [float] - The autocorrelation2D_15 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_15(self.molecule)
@@ -1292,7 +1292,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_16 value.
+          [float] - The autocorrelation2D_16 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_16(self.molecule)
@@ -1303,7 +1303,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_17 value.
+          [float] - The autocorrelation2D_17 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_17(self.molecule)
@@ -1314,7 +1314,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_18 value.
+          [float] - The autocorrelation2D_18 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_18(self.molecule)
@@ -1325,7 +1325,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_19 value.
+          [float] - The autocorrelation2D_19 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_19(self.molecule)
@@ -1336,7 +1336,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_20 value.
+          [float] - The autocorrelation2D_20 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_20(self.molecule)
@@ -1347,7 +1347,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_21 value.
+          [float] - The autocorrelation2D_21 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_21(self.molecule)
@@ -1358,7 +1358,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_22 value.
+          [float] - The autocorrelation2D_22 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_22(self.molecule)
@@ -1369,7 +1369,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_23 value.
+          [float] - The autocorrelation2D_23 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_23(self.molecule)
@@ -1380,7 +1380,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_24 value.
+          [float] - The autocorrelation2D_24 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_24(self.molecule)
@@ -1391,7 +1391,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_25 value.
+          [float] - The autocorrelation2D_25 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_25(self.molecule)
@@ -1402,7 +1402,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_26 value.
+          [float] - The autocorrelation2D_26 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_26(self.molecule)
@@ -1413,7 +1413,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_27 value.
+          [float] - The autocorrelation2D_27 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_27(self.molecule)
@@ -1424,7 +1424,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_28 value.
+          [float] - The autocorrelation2D_28 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_28(self.molecule)
@@ -1435,7 +1435,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_29 value.
+          [float] - The autocorrelation2D_29 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_29(self.molecule)
@@ -1446,7 +1446,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_30 value.
+          [float] - The autocorrelation2D_30 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_30(self.molecule)
@@ -1457,7 +1457,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_31 value.
+          [float] - The autocorrelation2D_31 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_31(self.molecule)
@@ -1468,7 +1468,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_32 value.
+          [float] - The autocorrelation2D_32 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_32(self.molecule)
@@ -1479,7 +1479,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_33 value.
+          [float] - The autocorrelation2D_33 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_33(self.molecule)
@@ -1490,7 +1490,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_34 value.
+          [float] - The autocorrelation2D_34 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_34(self.molecule)
@@ -1501,7 +1501,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_35 value.
+          [float] - The autocorrelation2D_35 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_35(self.molecule)
@@ -1512,7 +1512,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_36 value.
+          [float] - The autocorrelation2D_36 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_36(self.molecule)
@@ -1523,7 +1523,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_37 value.
+          [float] - The autocorrelation2D_37 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_37(self.molecule)
@@ -1534,7 +1534,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_38 value.
+          [float] - The autocorrelation2D_38 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_38(self.molecule)
@@ -1545,7 +1545,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_39 value.
+          [float] - The autocorrelation2D_39 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_39(self.molecule)
@@ -1556,7 +1556,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_40 value.
+          [float] - The autocorrelation2D_40 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_40(self.molecule)
@@ -1567,7 +1567,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_41 value.
+          [float] - The autocorrelation2D_41 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_41(self.molecule)
@@ -1578,7 +1578,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_42 value.
+          [float] - The autocorrelation2D_42 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_42(self.molecule)
@@ -1589,7 +1589,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_43 value.
+          [float] - The autocorrelation2D_43 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_43(self.molecule)
@@ -1600,7 +1600,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_44 value.
+          [float] - The autocorrelation2D_44 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_44(self.molecule)
@@ -1611,7 +1611,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_45 value.
+          [float] - The autocorrelation2D_45 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_45(self.molecule)
@@ -1622,7 +1622,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_46 value.
+          [float] - The autocorrelation2D_46 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_46(self.molecule)
@@ -1633,7 +1633,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_47 value.
+          [float] - The autocorrelation2D_47 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_47(self.molecule)
@@ -1644,7 +1644,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_48 value.
+          [float] - The autocorrelation2D_48 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_48(self.molecule)
@@ -1655,7 +1655,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_49 value.
+          [float] - The autocorrelation2D_49 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_49(self.molecule)
@@ -1666,7 +1666,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_50 value.
+          [float] - The autocorrelation2D_50 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_50(self.molecule)
@@ -1677,7 +1677,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_51 value.
+          [float] - The autocorrelation2D_51 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_51(self.molecule)
@@ -1688,7 +1688,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_52 value.
+          [float] - The autocorrelation2D_52 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_52(self.molecule)
@@ -1699,7 +1699,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_53 value.
+          [float] - The autocorrelation2D_53 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_53(self.molecule)
@@ -1710,7 +1710,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_54 value.
+          [float] - The autocorrelation2D_54 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_54(self.molecule)
@@ -1721,7 +1721,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_55 value.
+          [float] - The autocorrelation2D_55 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_55(self.molecule)
@@ -1732,7 +1732,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_56 value.
+          [float] - The autocorrelation2D_56 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_56(self.molecule)
@@ -1743,7 +1743,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_57 value.
+          [float] - The autocorrelation2D_57 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_57(self.molecule)
@@ -1754,7 +1754,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_58 value.
+          [float] - The autocorrelation2D_58 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_58(self.molecule)
@@ -1765,7 +1765,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_59 value.
+          [float] - The autocorrelation2D_59 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_59(self.molecule)
@@ -1776,7 +1776,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_60 value.
+          [float] - The autocorrelation2D_60 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_60(self.molecule)
@@ -1787,7 +1787,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_61 value.
+          [float] - The autocorrelation2D_61 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_61(self.molecule)
@@ -1798,7 +1798,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_62 value.
+          [float] - The autocorrelation2D_62 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_62(self.molecule)
@@ -1809,7 +1809,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_63 value.
+          [float] - The autocorrelation2D_63 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_63(self.molecule)
@@ -1820,7 +1820,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_64 value.
+          [float] - The autocorrelation2D_64 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_64(self.molecule)
@@ -1831,7 +1831,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_65 value.
+          [float] - The autocorrelation2D_65 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_65(self.molecule)
@@ -1842,7 +1842,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_66 value.
+          [float] - The autocorrelation2D_66 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_66(self.molecule)
@@ -1853,7 +1853,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_67 value.
+          [float] - The autocorrelation2D_67 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_67(self.molecule)
@@ -1864,7 +1864,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_68 value.
+          [float] - The autocorrelation2D_68 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_68(self.molecule)
@@ -1875,7 +1875,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_69 value.
+          [float] - The autocorrelation2D_69 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_69(self.molecule)
@@ -1886,7 +1886,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_70 value.
+          [float] - The autocorrelation2D_70 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_70(self.molecule)
@@ -1897,7 +1897,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_71 value.
+          [float] - The autocorrelation2D_71 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_71(self.molecule)
@@ -1908,7 +1908,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_72 value.
+          [float] - The autocorrelation2D_72 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_72(self.molecule)
@@ -1919,7 +1919,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_73 value.
+          [float] - The autocorrelation2D_73 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_73(self.molecule)
@@ -1930,7 +1930,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_74 value.
+          [float] - The autocorrelation2D_74 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_74(self.molecule)
@@ -1941,7 +1941,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_75 value.
+          [float] - The autocorrelation2D_75 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_75(self.molecule)
@@ -1952,7 +1952,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_76 value.
+          [float] - The autocorrelation2D_76 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_76(self.molecule)
@@ -1963,7 +1963,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_77 value.
+          [float] - The autocorrelation2D_77 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_77(self.molecule)
@@ -1974,7 +1974,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_78 value.
+          [float] - The autocorrelation2D_78 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_78(self.molecule)
@@ -1985,7 +1985,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_79 value.
+          [float] - The autocorrelation2D_79 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_79(self.molecule)
@@ -1996,7 +1996,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_80 value.
+          [float] - The autocorrelation2D_80 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_80(self.molecule)
@@ -2007,7 +2007,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_81 value.
+          [float] - The autocorrelation2D_81 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_81(self.molecule)
@@ -2018,7 +2018,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_82 value.
+          [float] - The autocorrelation2D_82 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_82(self.molecule)
@@ -2029,7 +2029,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_83 value.
+          [float] - The autocorrelation2D_83 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_83(self.molecule)
@@ -2040,7 +2040,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_84 value.
+          [float] - The autocorrelation2D_84 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_84(self.molecule)
@@ -2051,7 +2051,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_85 value.
+          [float] - The autocorrelation2D_85 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_85(self.molecule)
@@ -2062,7 +2062,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_86 value.
+          [float] - The autocorrelation2D_86 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_86(self.molecule)
@@ -2073,7 +2073,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_87 value.
+          [float] - The autocorrelation2D_87 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_87(self.molecule)
@@ -2084,7 +2084,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_88 value.
+          [float] - The autocorrelation2D_88 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_88(self.molecule)
@@ -2095,7 +2095,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_89 value.
+          [float] - The autocorrelation2D_89 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_89(self.molecule)
@@ -2106,7 +2106,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_90 value.
+          [float] - The autocorrelation2D_90 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_90(self.molecule)
@@ -2117,7 +2117,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_91 value.
+          [float] - The autocorrelation2D_91 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_91(self.molecule)
@@ -2128,7 +2128,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_92 value.
+          [float] - The autocorrelation2D_92 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_92(self.molecule)
@@ -2139,7 +2139,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_93 value.
+          [float] - The autocorrelation2D_93 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_93(self.molecule)
@@ -2150,7 +2150,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_94 value.
+          [float] - The autocorrelation2D_94 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_94(self.molecule)
@@ -2161,7 +2161,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_95 value.
+          [float] - The autocorrelation2D_95 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_95(self.molecule)
@@ -2172,7 +2172,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_96 value.
+          [float] - The autocorrelation2D_96 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_96(self.molecule)
@@ -2183,7 +2183,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_97 value.
+          [float] - The autocorrelation2D_97 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_97(self.molecule)
@@ -2194,7 +2194,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_98 value.
+          [float] - The autocorrelation2D_98 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_98(self.molecule)
@@ -2205,7 +2205,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_99 value.
+          [float] - The autocorrelation2D_99 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_99(self.molecule)
@@ -2216,7 +2216,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_100 value.
+          [float] - The autocorrelation2D_100 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_100(self.molecule)
@@ -2227,7 +2227,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_101 value.
+          [float] - The autocorrelation2D_101 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_101(self.molecule)
@@ -2238,7 +2238,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_102 value.
+          [float] - The autocorrelation2D_102 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_102(self.molecule)
@@ -2249,7 +2249,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_103 value.
+          [float] - The autocorrelation2D_103 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_103(self.molecule)
@@ -2260,7 +2260,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_104 value.
+          [float] - The autocorrelation2D_104 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_104(self.molecule)
@@ -2271,7 +2271,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_105 value.
+          [float] - The autocorrelation2D_105 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_105(self.molecule)
@@ -2282,7 +2282,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_106 value.
+          [float] - The autocorrelation2D_106 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_106(self.molecule)
@@ -2293,7 +2293,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_107 value.
+          [float] - The autocorrelation2D_107 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_107(self.molecule)
@@ -2304,7 +2304,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_108 value.
+          [float] - The autocorrelation2D_108 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_108(self.molecule)
@@ -2315,7 +2315,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_109 value.
+          [float] - The autocorrelation2D_109 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_109(self.molecule)
@@ -2326,7 +2326,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_110 value.
+          [float] - The autocorrelation2D_110 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_110(self.molecule)
@@ -2337,7 +2337,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_111 value.
+          [float] - The autocorrelation2D_111 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_111(self.molecule)
@@ -2348,7 +2348,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_112 value.
+          [float] - The autocorrelation2D_112 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_112(self.molecule)
@@ -2359,7 +2359,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_113 value.
+          [float] - The autocorrelation2D_113 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_113(self.molecule)
@@ -2370,7 +2370,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_114 value.
+          [float] - The autocorrelation2D_114 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_114(self.molecule)
@@ -2381,7 +2381,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_115 value.
+          [float] - The autocorrelation2D_115 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_115(self.molecule)
@@ -2392,7 +2392,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_116 value.
+          [float] - The autocorrelation2D_116 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_116(self.molecule)
@@ -2403,7 +2403,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_117 value.
+          [float] - The autocorrelation2D_117 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_117(self.molecule)
@@ -2414,7 +2414,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_118 value.
+          [float] - The autocorrelation2D_118 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_118(self.molecule)
@@ -2425,7 +2425,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_119 value.
+          [float] - The autocorrelation2D_119 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_119(self.molecule)
@@ -2436,7 +2436,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_120 value.
+          [float] - The autocorrelation2D_120 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_120(self.molecule)
@@ -2447,7 +2447,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_121 value.
+          [float] - The autocorrelation2D_121 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_121(self.molecule)
@@ -2458,7 +2458,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_122 value.
+          [float] - The autocorrelation2D_122 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_122(self.molecule)
@@ -2469,7 +2469,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_123 value.
+          [float] - The autocorrelation2D_123 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_123(self.molecule)
@@ -2480,7 +2480,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_124 value.
+          [float] - The autocorrelation2D_124 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_124(self.molecule)
@@ -2491,7 +2491,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_125 value.
+          [float] - The autocorrelation2D_125 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_125(self.molecule)
@@ -2502,7 +2502,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_126 value.
+          [float] - The autocorrelation2D_126 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_126(self.molecule)
@@ -2513,7 +2513,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_127 value.
+          [float] - The autocorrelation2D_127 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_127(self.molecule)
@@ -2524,7 +2524,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_128 value.
+          [float] - The autocorrelation2D_128 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_128(self.molecule)
@@ -2535,7 +2535,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_129 value.
+          [float] - The autocorrelation2D_129 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_129(self.molecule)
@@ -2546,7 +2546,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_130 value.
+          [float] - The autocorrelation2D_130 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_130(self.molecule)
@@ -2557,7 +2557,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_131 value.
+          [float] - The autocorrelation2D_131 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_131(self.molecule)
@@ -2568,7 +2568,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_132 value.
+          [float] - The autocorrelation2D_132 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_132(self.molecule)
@@ -2579,7 +2579,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_133 value.
+          [float] - The autocorrelation2D_133 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_133(self.molecule)
@@ -2590,7 +2590,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_134 value.
+          [float] - The autocorrelation2D_134 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_134(self.molecule)
@@ -2601,7 +2601,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_135 value.
+          [float] - The autocorrelation2D_135 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_135(self.molecule)
@@ -2612,7 +2612,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_136 value.
+          [float] - The autocorrelation2D_136 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_136(self.molecule)
@@ -2623,7 +2623,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_137 value.
+          [float] - The autocorrelation2D_137 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_137(self.molecule)
@@ -2634,7 +2634,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_138 value.
+          [float] - The autocorrelation2D_138 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_138(self.molecule)
@@ -2645,7 +2645,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_139 value.
+          [float] - The autocorrelation2D_139 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_139(self.molecule)
@@ -2656,7 +2656,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_140 value.
+          [float] - The autocorrelation2D_140 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_140(self.molecule)
@@ -2667,7 +2667,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_141 value.
+          [float] - The autocorrelation2D_141 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_141(self.molecule)
@@ -2678,7 +2678,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_142 value.
+          [float] - The autocorrelation2D_142 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_142(self.molecule)
@@ -2689,7 +2689,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_143 value.
+          [float] - The autocorrelation2D_143 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_143(self.molecule)
@@ -2700,7 +2700,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_144 value.
+          [float] - The autocorrelation2D_144 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_144(self.molecule)
@@ -2711,7 +2711,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_145 value.
+          [float] - The autocorrelation2D_145 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_145(self.molecule)
@@ -2722,7 +2722,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_146 value.
+          [float] - The autocorrelation2D_146 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_146(self.molecule)
@@ -2733,7 +2733,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_147 value.
+          [float] - The autocorrelation2D_147 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_147(self.molecule)
@@ -2744,7 +2744,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_148 value.
+          [float] - The autocorrelation2D_148 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_148(self.molecule)
@@ -2755,7 +2755,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_149 value.
+          [float] - The autocorrelation2D_149 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_149(self.molecule)
@@ -2766,7 +2766,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_150 value.
+          [float] - The autocorrelation2D_150 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_150(self.molecule)
@@ -2777,7 +2777,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_151 value.
+          [float] - The autocorrelation2D_151 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_151(self.molecule)
@@ -2788,7 +2788,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_152 value.
+          [float] - The autocorrelation2D_152 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_152(self.molecule)
@@ -2799,7 +2799,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_153 value.
+          [float] - The autocorrelation2D_153 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_153(self.molecule)
@@ -2810,7 +2810,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_154 value.
+          [float] - The autocorrelation2D_154 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_154(self.molecule)
@@ -2821,7 +2821,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_155 value.
+          [float] - The autocorrelation2D_155 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_155(self.molecule)
@@ -2832,7 +2832,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_156 value.
+          [float] - The autocorrelation2D_156 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_156(self.molecule)
@@ -2843,7 +2843,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_157 value.
+          [float] - The autocorrelation2D_157 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_157(self.molecule)
@@ -2854,7 +2854,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_158 value.
+          [float] - The autocorrelation2D_158 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_158(self.molecule)
@@ -2865,7 +2865,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_159 value.
+          [float] - The autocorrelation2D_159 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_159(self.molecule)
@@ -2876,7 +2876,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_160 value.
+          [float] - The autocorrelation2D_160 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_160(self.molecule)
@@ -2887,7 +2887,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_161 value.
+          [float] - The autocorrelation2D_161 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_161(self.molecule)
@@ -2898,7 +2898,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_162 value.
+          [float] - The autocorrelation2D_162 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_162(self.molecule)
@@ -2909,7 +2909,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_163 value.
+          [float] - The autocorrelation2D_163 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_163(self.molecule)
@@ -2920,7 +2920,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_164 value.
+          [float] - The autocorrelation2D_164 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_164(self.molecule)
@@ -2931,7 +2931,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_165 value.
+          [float] - The autocorrelation2D_165 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_165(self.molecule)
@@ -2942,7 +2942,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_166 value.
+          [float] - The autocorrelation2D_166 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_166(self.molecule)
@@ -2953,7 +2953,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_167 value.
+          [float] - The autocorrelation2D_167 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_167(self.molecule)
@@ -2964,7 +2964,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_168 value.
+          [float] - The autocorrelation2D_168 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_168(self.molecule)
@@ -2975,7 +2975,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_169 value.
+          [float] - The autocorrelation2D_169 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_169(self.molecule)
@@ -2986,7 +2986,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_170 value.
+          [float] - The autocorrelation2D_170 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_170(self.molecule)
@@ -2997,7 +2997,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_171 value.
+          [float] - The autocorrelation2D_171 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_171(self.molecule)
@@ -3008,7 +3008,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_172 value.
+          [float] - The autocorrelation2D_172 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_172(self.molecule)
@@ -3019,7 +3019,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_173 value.
+          [float] - The autocorrelation2D_173 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_173(self.molecule)
@@ -3030,7 +3030,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_174 value.
+          [float] - The autocorrelation2D_174 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_174(self.molecule)
@@ -3041,7 +3041,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_175 value.
+          [float] - The autocorrelation2D_175 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_175(self.molecule)
@@ -3052,7 +3052,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_176 value.
+          [float] - The autocorrelation2D_176 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_176(self.molecule)
@@ -3063,7 +3063,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_177 value.
+          [float] - The autocorrelation2D_177 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_177(self.molecule)
@@ -3074,7 +3074,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_178 value.
+          [float] - The autocorrelation2D_178 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_178(self.molecule)
@@ -3085,7 +3085,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_179 value.
+          [float] - The autocorrelation2D_179 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_179(self.molecule)
@@ -3096,7 +3096,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_180 value.
+          [float] - The autocorrelation2D_180 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_180(self.molecule)
@@ -3107,7 +3107,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_181 value.
+          [float] - The autocorrelation2D_181 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_181(self.molecule)
@@ -3118,7 +3118,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_182 value.
+          [float] - The autocorrelation2D_182 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_182(self.molecule)
@@ -3129,7 +3129,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_183 value.
+          [float] - The autocorrelation2D_183 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_183(self.molecule)
@@ -3140,7 +3140,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_184 value.
+          [float] - The autocorrelation2D_184 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_184(self.molecule)
@@ -3151,7 +3151,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_185 value.
+          [float] - The autocorrelation2D_185 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_185(self.molecule)
@@ -3162,7 +3162,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_186 value.
+          [float] - The autocorrelation2D_186 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_186(self.molecule)
@@ -3173,7 +3173,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_187 value.
+          [float] - The autocorrelation2D_187 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_187(self.molecule)
@@ -3184,7 +3184,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_188 value.
+          [float] - The autocorrelation2D_188 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_188(self.molecule)
@@ -3195,7 +3195,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_189 value.
+          [float] - The autocorrelation2D_189 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_189(self.molecule)
@@ -3206,7 +3206,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_190 value.
+          [float] - The autocorrelation2D_190 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_190(self.molecule)
@@ -3217,7 +3217,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_191 value.
+          [float] - The autocorrelation2D_191 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_191(self.molecule)
@@ -3228,7 +3228,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The autocorrelation2D_192 value.
+          [float] - The autocorrelation2D_192 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR2D_192(self.molecule)
@@ -3242,7 +3242,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The BCUT2D_CHGHI descriptor.
+          [float] - The BCUT2D_CHGHI descriptor.
         '''
         return findBCUT2D_CHGHI(self.molecule)
 
@@ -3252,7 +3252,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The the BCUT2D_CHGLO descriptor.
+          [float] - The the BCUT2D_CHGLO descriptor.
         '''
         return findBCUT2D_CHGLO(self.molecule)
 
@@ -3262,7 +3262,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The BCUT2D_LOGPHI descriptor.
+          [float] - The BCUT2D_LOGPHI descriptor.
         '''
         return findBCUT2D_LOGPHI(self.molecule)
 
@@ -3272,7 +3272,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The BCUT2D_LOGPLOW descriptor.
+          [float] - The BCUT2D_LOGPLOW descriptor.
         '''
         return findBCUT2D_LOGPLOW(self.molecule)
 
@@ -3282,7 +3282,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The BCUT2D_MRHI descriptor.
+          [float] - The BCUT2D_MRHI descriptor.
         '''
         return findBCUT2D_MRHI(self.molecule)
 
@@ -3292,7 +3292,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The BCUT2D_MRLOW descriptor.
+          [float] - The BCUT2D_MRLOW descriptor.
         '''
         return findBCUT2D_MRLOW(self.molecule)
 
@@ -3302,7 +3302,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The BCUT2D_MWHI descriptor.
+          [float] - The BCUT2D_MWHI descriptor.
         '''
         return findBCUT2D_MWHI(self.molecule)
 
@@ -3312,7 +3312,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The BCUT2D_MWLOW descriptor.
+          [float] - The BCUT2D_MWLOW descriptor.
         '''
         return findBCUT2D_MWLOW(self.molecule)
 
@@ -3324,7 +3324,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The BalabanJ descriptor.
+          [float] - The BalabanJ descriptor.
         '''
         return findBalabanJ(self.molecule)
 
@@ -3334,7 +3334,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The BertzCT descriptor.
+          [float] - The BertzCT descriptor.
         '''
         return findBertzCT(self.molecule)
 
@@ -3345,7 +3345,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The Chi0 descriptor.
+          [float] - The Chi0 descriptor.
         '''
         return findChi0(self.molecule)
 
@@ -3355,7 +3355,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The Chi0n descriptor.
+          [float] - The Chi0n descriptor.
         '''
         return findChi0n(self.molecule)
 
@@ -3365,7 +3365,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The Chi0v descriptor.
+          [float] - The Chi0v descriptor.
         '''
         return findChi0v(self.molecule)
 
@@ -3375,7 +3375,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The Chi1 descriptor.
+          [float] - The Chi1 descriptor.
         '''
         return findChi1(self.molecule)
 
@@ -3385,7 +3385,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The Chi1n descriptor.
+          [float] - The Chi1n descriptor.
         '''
         return findChi1n(self.molecule)
 
@@ -3395,7 +3395,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The Chi1v descriptor.
+          [float] - The Chi1v descriptor.
         '''
         return findChi1v(self.molecule)
 
@@ -3405,7 +3405,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The Chi2n descriptor.
+          [float] - The Chi2n descriptor.
         '''
         return findChi2n(self.molecule)
 
@@ -3415,7 +3415,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The Chi2v descriptor.
+          [float] - The Chi2v descriptor.
         '''
         return findChi2v(self.molecule)
 
@@ -3425,7 +3425,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The Chi3n descriptor.
+          [float] - The Chi3n descriptor.
         '''
         return findChi3n(self.molecule)
 
@@ -3435,7 +3435,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The Chi3v descriptor.
+          [float] - The Chi3v descriptor.
         '''
         return findChi3v(self.molecule)
 
@@ -3445,7 +3445,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The Chi4n descriptor.
+          [float] - The Chi4n descriptor.
         '''
         return findChi4n(self.molecule)
 
@@ -3455,7 +3455,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The Chi4v descriptor.
+          [float] - The Chi4v descriptor.
         '''
         return findChi4v(self.molecule)
 
@@ -3468,7 +3468,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The EState_VSA1 descriptor.
+          [float] - The EState_VSA1 descriptor.
         '''
         return findEState_VSA1(self.molecule)
 
@@ -3478,7 +3478,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The EState_VSA2 descriptor.
+          [float] - The EState_VSA2 descriptor.
         '''
         return findEState_VSA2(self.molecule)
 
@@ -3488,7 +3488,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The EState_VSA3 descriptor.
+          [float] - The EState_VSA3 descriptor.
         '''
         return findEState_VSA3(self.molecule)
 
@@ -3498,7 +3498,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The EState_VSA4 descriptor.
+          [float] - The EState_VSA4 descriptor.
         '''
         return findEState_VSA4(self.molecule)
 
@@ -3508,7 +3508,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The EState_VSA5 descriptor.
+          [float] - The EState_VSA5 descriptor.
         '''
         return findEState_VSA5(self.molecule)
 
@@ -3518,7 +3518,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The EState_VSA6 descriptor.
+          [float] - The EState_VSA6 descriptor.
         '''
         return findEState_VSA6(self.molecule)
 
@@ -3528,7 +3528,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The EState_VSA7 descriptor.
+          [float] - The EState_VSA7 descriptor.
         '''
         return findEState_VSA7(self.molecule)
 
@@ -3538,7 +3538,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The EState_VSA8 descriptor.
+          [float] - The EState_VSA8 descriptor.
         '''
         return findEState_VSA8(self.molecule)
 
@@ -3548,7 +3548,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The EState_VSA9 descriptor.
+          [float] - The EState_VSA9 descriptor.
         '''
         return findEState_VSA9(self.molecule)
 
@@ -3558,7 +3558,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The EState_VSA10 descriptor.
+          [float] - The EState_VSA10 descriptor.
         '''
         return findEState_VSA10(self.molecule)
 
@@ -3568,7 +3568,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The EState_VSA11 descriptor.
+          [float] - The EState_VSA11 descriptor.
         '''
         return findEState_VSA11(self.molecule)
 
@@ -3578,7 +3578,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The MaxAbsEStateIndex descriptor.
+          [float] - The MaxAbsEStateIndex descriptor.
         '''
         return findMaxAbsEStateIndex(self.molecule)
 
@@ -3588,7 +3588,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The MaxEStateIndex descriptor.
+          [float] - The MaxEStateIndex descriptor.
         '''
         return findMaxEStateIndex(self.molecule)
 
@@ -3598,7 +3598,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The MinAbsEStateIndex descriptor.
+          [float] - The MinAbsEStateIndex descriptor.
         '''
         return findMinAbsEStateIndex(self.molecule)
 
@@ -3608,7 +3608,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The MinEStateIndex descriptor.
+          [float] - The MinEStateIndex descriptor.
         '''
         return findMinEStateIndex(self.molecule)
 
@@ -3620,7 +3620,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The exact molecular weight.
+          [float] - The exact molecular weight.
         '''
         return findExactMolWt(self.molecule)
 
@@ -3630,7 +3630,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The Morgan fingerprint, radius 1.
+          [float] - The Morgan fingerprint, radius 1.
         '''
         return findFpDensityMorgan1(self.molecule)
 
@@ -3640,7 +3640,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The Morgan fingerprint, radius 2.
+          [float] - The Morgan fingerprint, radius 2.
         '''
         return findFpDensityMorgan2(self.molecule)
 
@@ -3650,7 +3650,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The Morgan fingerprint, radius 3.
+          [float] - The Morgan fingerprint, radius 3.
         '''
         return findFpDensityMorgan3(self.molecule)
 
@@ -4598,7 +4598,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The FractionCSP3 descriptor.
+          [float] - The FractionCSP3 descriptor.
         '''
         return findFractionCSP3(self.molecule)
 
@@ -4608,7 +4608,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The HallKierAlpha descriptor.
+          [float] - The HallKierAlpha descriptor.
         '''
         return findHallKierAlpha(self.molecule)
 
@@ -4618,7 +4618,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The heavy atom molecular weight.
+          [float] - The heavy atom molecular weight.
         '''
         return findHeavyAtomMolWt(self.molecule)
 
@@ -4638,7 +4638,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The Ipc descriptor.
+          [float] - The Ipc descriptor.
         '''
         return findIpc(self.molecule)
 
@@ -4649,7 +4649,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The Kappa1 descriptor.
+          [float] - The Kappa1 descriptor.
         '''
         return findKappa1(self.molecule)
 
@@ -4659,7 +4659,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The Kappa2 descriptor.
+          [float] - The Kappa2 descriptor.
         '''
         return findKappa2(self.molecule)
 
@@ -4669,7 +4669,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The Kappa3 descriptor.
+          [float] - The Kappa3 descriptor.
         '''
         return findKappa3(self.molecule)
 
@@ -4681,7 +4681,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The LabuteASA descriptor.
+          [float] - The LabuteASA descriptor.
         '''
         return findLabuteASA(self.molecule)
 
@@ -4691,7 +4691,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The maximum absolute partial charge.
+          [float] - The maximum absolute partial charge.
         '''
         return findMaxAbsPartialCharge(self.molecule)
 
@@ -4701,7 +4701,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The absolute partial partial charge.
+          [float] - The absolute partial partial charge.
         '''
         return findMaxPartialCharge(self.molecule)
 
@@ -4711,7 +4711,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The minimum absolute partial partial charge.
+          [float] - The minimum absolute partial partial charge.
         '''
         return findMinAbsPartialCharge(self.molecule)
 
@@ -4721,7 +4721,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The minimum partial partial charge.
+          [float] - The minimum partial partial charge.
         '''
         return findMinPartialCharge(self.molecule)
 
@@ -4731,7 +4731,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The MolLogP descriptor.
+          [float] - The MolLogP descriptor.
         '''
         return findMolLogP(self.molecule)
 
@@ -4741,7 +4741,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The MolMR descriptor.
+          [float] - The MolMR descriptor.
         '''
         return findMolMR(self.molecule)
 
@@ -4751,7 +4751,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The molecular weight.
+          [float] - The molecular weight.
         '''
         return findMolWt(self.molecule)
 
@@ -4945,7 +4945,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The RingCount value.
+          [float] - The RingCount value.
           [None]   - If parsing the descriptor fails.
         '''
         return findRingCount(self.molecule)
@@ -4959,7 +4959,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The PEOE_VSA1 value.
+          [float] - The PEOE_VSA1 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findPEOE_VSA1(self.molecule)
@@ -4970,7 +4970,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The PEOE_VSA2 value.
+          [float] - The PEOE_VSA2 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findPEOE_VSA2(self.molecule)
@@ -4981,7 +4981,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The PEOE_VSA3 value.
+          [float] - The PEOE_VSA3 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findPEOE_VSA3(self.molecule)
@@ -4992,7 +4992,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The PEOE_VSA4 value.
+          [float] - The PEOE_VSA4 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findPEOE_VSA4(self.molecule)
@@ -5003,7 +5003,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The PEOE_VSA5 value.
+          [float] - The PEOE_VSA5 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findPEOE_VSA5(self.molecule)
@@ -5014,7 +5014,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The PEOE_VSA6 value.
+          [float] - The PEOE_VSA6 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findPEOE_VSA6(self.molecule)
@@ -5025,7 +5025,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The PEOE_VSA7 value.
+          [float] - The PEOE_VSA7 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findPEOE_VSA7(self.molecule)
@@ -5036,7 +5036,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The PEOE_VSA8 value.
+          [float] - The PEOE_VSA8 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findPEOE_VSA8(self.molecule)
@@ -5047,7 +5047,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The PEOE_VSA9 value.
+          [float] - The PEOE_VSA9 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findPEOE_VSA9(self.molecule)
@@ -5058,7 +5058,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The PEOE_VSA10 value.
+          [float] - The PEOE_VSA10 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findPEOE_VSA10(self.molecule)
@@ -5069,7 +5069,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The PEOE_VSA11 value.
+          [float] - The PEOE_VSA11 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findPEOE_VSA11(self.molecule)
@@ -5080,7 +5080,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The PEOE_VSA12 value.
+          [float] - The PEOE_VSA12 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findPEOE_VSA12(self.molecule)
@@ -5091,7 +5091,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The PEOE_VSA13 value.
+          [float] - The PEOE_VSA13 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findPEOE_VSA13(self.molecule)
@@ -5102,7 +5102,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The PEOE_VSA14 value.
+          [float] - The PEOE_VSA14 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findPEOE_VSA14(self.molecule)
@@ -5115,7 +5115,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The qed value.
+          [float] - The qed value.
           [None]   - If parsing the descriptor fails.
         '''
         return findqed(self.molecule)
@@ -5128,7 +5128,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The SMR_VSA1 value.
+          [float] - The SMR_VSA1 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findSMR_VSA1(self.molecule)
@@ -5139,7 +5139,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The SMR_VSA2 value.
+          [float] - The SMR_VSA2 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findSMR_VSA2(self.molecule)
@@ -5150,7 +5150,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The SMR_VSA3 value.
+          [float] - The SMR_VSA3 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findSMR_VSA3(self.molecule)
@@ -5161,7 +5161,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The SMR_VSA4 value.
+          [float] - The SMR_VSA4 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findSMR_VSA4(self.molecule)
@@ -5172,7 +5172,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The SMR_VSA5 value.
+          [float] - The SMR_VSA5 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findSMR_VSA5(self.molecule)
@@ -5183,7 +5183,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The SMR_VSA6 value.
+          [float] - The SMR_VSA6 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findSMR_VSA6(self.molecule)
@@ -5194,7 +5194,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The SMR_VSA7 value.
+          [float] - The SMR_VSA7 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findSMR_VSA7(self.molecule)
@@ -5205,7 +5205,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The SMR_VSA8 value.
+          [float] - The SMR_VSA8 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findSMR_VSA8(self.molecule)
@@ -5216,7 +5216,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The SMR_VSA9 value.
+          [float] - The SMR_VSA9 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findSMR_VSA9(self.molecule)
@@ -5227,7 +5227,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The SMR_VSA10 value.
+          [float] - The SMR_VSA10 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findSMR_VSA10(self.molecule)
@@ -5241,7 +5241,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The SlogP_VSA1 value.
+          [float] - The SlogP_VSA1 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findSlogP_VSA1(self.molecule)
@@ -5252,7 +5252,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The SlogP_VSA2 value.
+          [float] - The SlogP_VSA2 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findSlogP_VSA2(self.molecule)
@@ -5263,7 +5263,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The SlogP_VSA3 value.
+          [float] - The SlogP_VSA3 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findSlogP_VSA3(self.molecule)
@@ -5274,7 +5274,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The SlogP_VSA4 value.
+          [float] - The SlogP_VSA4 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findSlogP_VSA4(self.molecule)
@@ -5285,7 +5285,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The SlogP_VSA5 value.
+          [float] - The SlogP_VSA5 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findSlogP_VSA5(self.molecule)
@@ -5296,7 +5296,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The SlogP_VSA6 value.
+          [float] - The SlogP_VSA6 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findSlogP_VSA6(self.molecule)
@@ -5307,7 +5307,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The SlogP_VSA7 value.
+          [float] - The SlogP_VSA7 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findSlogP_VSA7(self.molecule)
@@ -5318,7 +5318,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The SlogP_VSA8 value.
+          [float] - The SlogP_VSA8 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findSlogP_VSA8(self.molecule)
@@ -5329,7 +5329,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The SlogP_VSA9 value.
+          [float] - The SlogP_VSA9 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findSlogP_VSA9(self.molecule)
@@ -5340,7 +5340,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The SlogP_VSA10 value.
+          [float] - The SlogP_VSA10 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findSlogP_VSA10(self.molecule)
@@ -5351,7 +5351,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The SlogP_VSA11 value.
+          [float] - The SlogP_VSA11 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findSlogP_VSA11(self.molecule)
@@ -5362,7 +5362,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The SlogP_VSA12 value.
+          [float] - The SlogP_VSA12 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findSlogP_VSA12(self.molecule)
@@ -5376,7 +5376,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The AUTOCORR3D_1 value.
+          [float] - The AUTOCORR3D_1 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAUTOCORR3D(self.molecule)
@@ -5387,7 +5387,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The Asphericity value.
+          [float] - The Asphericity value.
           [None]   - If parsing the descriptor fails.
         '''
         return findAsphericity(self.molecule)
@@ -5398,7 +5398,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The Eccentricity value.
+          [float] - The Eccentricity value.
           [None]   - If parsing the descriptor fails.
         '''
         return findEccentricity(self.molecule)
@@ -5409,7 +5409,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The InertialShapeFactor value.
+          [float] - The InertialShapeFactor value.
           [None]   - If parsing the descriptor fails.
         '''
         return findInertialShapeFactor(self.molecule)
@@ -5420,7 +5420,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The NPR1 value.
+          [float] - The NPR1 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findNPR1(self.molecule)
@@ -5431,7 +5431,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The NPR2 value.
+          [float] - The NPR2 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findNPR2(self.molecule)
@@ -5442,7 +5442,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The PMI1 value.
+          [float] - The PMI1 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findPMI1(self.molecule)
@@ -5453,7 +5453,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The PMI2 value.
+          [float] - The PMI2 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findPMI2(self.molecule)
@@ -5464,7 +5464,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The PMI3 value.
+          [float] - The PMI3 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findPMI3(self.molecule)
@@ -5475,7 +5475,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The RadiusOfGyration value.
+          [float] - The RadiusOfGyration value.
           [None]   - If parsing the descriptor fails.
         '''
         return findRadiusOfGyration(self.molecule)
@@ -5486,7 +5486,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The SpherocityIndex value.
+          [float] - The SpherocityIndex value.
           [None]   - If parsing the descriptor fails.
         '''
         return findSpherocityIndex(self.molecule)
@@ -5499,7 +5499,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The TPSA value.
+          [float] - The TPSA value.
           [None]   - If parsing the descriptor fails.
         '''
         return findTPSA(self.molecule)
@@ -5511,7 +5511,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The VSA_EState1 value.
+          [float] - The VSA_EState1 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findVSA_EState1(self.molecule)
@@ -5522,7 +5522,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The VSA_EState2 value.
+          [float] - The VSA_EState2 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findVSA_EState2(self.molecule)
@@ -5533,7 +5533,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The VSA_EState3 value.
+          [float] - The VSA_EState3 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findVSA_EState3(self.molecule)
@@ -5544,7 +5544,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The VSA_EState4 value.
+          [float] - The VSA_EState4 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findVSA_EState4(self.molecule)
@@ -5555,7 +5555,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The VSA_EState5 value.
+          [float] - The VSA_EState5 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findVSA_EState5(self.molecule)
@@ -5566,7 +5566,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The VSA_EState6 value.
+          [float] - The VSA_EState6 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findVSA_EState6(self.molecule)
@@ -5577,7 +5577,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The VSA_EState7 value.
+          [float] - The VSA_EState7 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findVSA_EState7(self.molecule)
@@ -5588,7 +5588,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The VSA_EState8 value.
+          [float] - The VSA_EState8 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findVSA_EState8(self.molecule)
@@ -5599,7 +5599,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The VSA_EState9 value.
+          [float] - The VSA_EState9 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findVSA_EState9(self.molecule)
@@ -5610,7 +5610,7 @@ class Ligand:
         Input:
           -
         Return:
-          [double] - The VSA_EState10 value.
+          [float] - The VSA_EState10 value.
           [None]   - If parsing the descriptor fails.
         '''
         return findVSA_EState10(self.molecule)
@@ -7138,7 +7138,7 @@ def findAUTOCORR2D_1(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_1 value.
+      [float] - The autocorrelation2D_1 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7155,7 +7155,7 @@ def findAUTOCORR2D_2(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_2 value.
+      [float] - The autocorrelation2D_2 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7172,7 +7172,7 @@ def findAUTOCORR2D_3(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_3 value.
+      [float] - The autocorrelation2D_3 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7189,7 +7189,7 @@ def findAUTOCORR2D_4(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_4 value.
+      [float] - The autocorrelation2D_4 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7206,7 +7206,7 @@ def findAUTOCORR2D_5(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_5 value.
+      [float] - The autocorrelation2D_5 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7223,7 +7223,7 @@ def findAUTOCORR2D_6(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_6 value.
+      [float] - The autocorrelation2D_6 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7240,7 +7240,7 @@ def findAUTOCORR2D_7(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_7 value.
+      [float] - The autocorrelation2D_7 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7257,7 +7257,7 @@ def findAUTOCORR2D_8(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_8 value.
+      [float] - The autocorrelation2D_8 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7274,7 +7274,7 @@ def findAUTOCORR2D_9(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_9 value.
+      [float] - The autocorrelation2D_9 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7291,7 +7291,7 @@ def findAUTOCORR2D_10(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_10 value.
+      [float] - The autocorrelation2D_10 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7308,7 +7308,7 @@ def findAUTOCORR2D_11(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_11 value.
+      [float] - The autocorrelation2D_11 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7325,7 +7325,7 @@ def findAUTOCORR2D_12(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_12 value.
+      [float] - The autocorrelation2D_12 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7342,7 +7342,7 @@ def findAUTOCORR2D_13(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_13 value.
+      [float] - The autocorrelation2D_13 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7359,7 +7359,7 @@ def findAUTOCORR2D_14(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_14 value.
+      [float] - The autocorrelation2D_14 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7376,7 +7376,7 @@ def findAUTOCORR2D_15(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_15 value.
+      [float] - The autocorrelation2D_15 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7393,7 +7393,7 @@ def findAUTOCORR2D_16(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_16 value.
+      [float] - The autocorrelation2D_16 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7410,7 +7410,7 @@ def findAUTOCORR2D_17(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_17 value.
+      [float] - The autocorrelation2D_17 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7427,7 +7427,7 @@ def findAUTOCORR2D_18(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_18 value.
+      [float] - The autocorrelation2D_18 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7444,7 +7444,7 @@ def findAUTOCORR2D_19(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_19 value.
+      [float] - The autocorrelation2D_19 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7461,7 +7461,7 @@ def findAUTOCORR2D_20(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_20 value.
+      [float] - The autocorrelation2D_20 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7478,7 +7478,7 @@ def findAUTOCORR2D_21(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_21 value.
+      [float] - The autocorrelation2D_21 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7495,7 +7495,7 @@ def findAUTOCORR2D_22(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_22 value.
+      [float] - The autocorrelation2D_22 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7512,7 +7512,7 @@ def findAUTOCORR2D_23(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_23 value.
+      [float] - The autocorrelation2D_23 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7529,7 +7529,7 @@ def findAUTOCORR2D_24(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_24 value.
+      [float] - The autocorrelation2D_24 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7546,7 +7546,7 @@ def findAUTOCORR2D_25(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_25 value.
+      [float] - The autocorrelation2D_25 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7563,7 +7563,7 @@ def findAUTOCORR2D_26(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_26 value.
+      [float] - The autocorrelation2D_26 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7580,7 +7580,7 @@ def findAUTOCORR2D_27(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_27 value.
+      [float] - The autocorrelation2D_27 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7597,7 +7597,7 @@ def findAUTOCORR2D_28(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_28 value.
+      [float] - The autocorrelation2D_28 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7614,7 +7614,7 @@ def findAUTOCORR2D_29(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_29 value.
+      [float] - The autocorrelation2D_29 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7631,7 +7631,7 @@ def findAUTOCORR2D_30(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_30 value.
+      [float] - The autocorrelation2D_30 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7648,7 +7648,7 @@ def findAUTOCORR2D_31(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_31 value.
+      [float] - The autocorrelation2D_31 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7665,7 +7665,7 @@ def findAUTOCORR2D_32(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_32 value.
+      [float] - The autocorrelation2D_32 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7682,7 +7682,7 @@ def findAUTOCORR2D_33(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_33 value.
+      [float] - The autocorrelation2D_33 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7699,7 +7699,7 @@ def findAUTOCORR2D_34(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_34 value.
+      [float] - The autocorrelation2D_34 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7716,7 +7716,7 @@ def findAUTOCORR2D_35(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_35 value.
+      [float] - The autocorrelation2D_35 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7733,7 +7733,7 @@ def findAUTOCORR2D_36(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_36 value.
+      [float] - The autocorrelation2D_36 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7750,7 +7750,7 @@ def findAUTOCORR2D_37(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_37 value.
+      [float] - The autocorrelation2D_37 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7767,7 +7767,7 @@ def findAUTOCORR2D_38(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_38 value.
+      [float] - The autocorrelation2D_38 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7784,7 +7784,7 @@ def findAUTOCORR2D_39(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_39 value.
+      [float] - The autocorrelation2D_39 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7801,7 +7801,7 @@ def findAUTOCORR2D_40(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_40 value.
+      [float] - The autocorrelation2D_40 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7818,7 +7818,7 @@ def findAUTOCORR2D_41(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_41 value.
+      [float] - The autocorrelation2D_41 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7835,7 +7835,7 @@ def findAUTOCORR2D_42(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_42 value.
+      [float] - The autocorrelation2D_42 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7852,7 +7852,7 @@ def findAUTOCORR2D_43(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_43 value.
+      [float] - The autocorrelation2D_43 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7869,7 +7869,7 @@ def findAUTOCORR2D_44(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_44 value.
+      [float] - The autocorrelation2D_44 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7886,7 +7886,7 @@ def findAUTOCORR2D_45(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_45 value.
+      [float] - The autocorrelation2D_45 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7903,7 +7903,7 @@ def findAUTOCORR2D_46(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_46 value.
+      [float] - The autocorrelation2D_46 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7920,7 +7920,7 @@ def findAUTOCORR2D_47(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_47 value.
+      [float] - The autocorrelation2D_47 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7937,7 +7937,7 @@ def findAUTOCORR2D_48(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_48 value.
+      [float] - The autocorrelation2D_48 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7954,7 +7954,7 @@ def findAUTOCORR2D_49(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_49 value.
+      [float] - The autocorrelation2D_49 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7971,7 +7971,7 @@ def findAUTOCORR2D_50(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_50 value.
+      [float] - The autocorrelation2D_50 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -7988,7 +7988,7 @@ def findAUTOCORR2D_51(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_51 value.
+      [float] - The autocorrelation2D_51 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8005,7 +8005,7 @@ def findAUTOCORR2D_52(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_52 value.
+      [float] - The autocorrelation2D_52 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8022,7 +8022,7 @@ def findAUTOCORR2D_53(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_53 value.
+      [float] - The autocorrelation2D_53 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8039,7 +8039,7 @@ def findAUTOCORR2D_54(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_54 value.
+      [float] - The autocorrelation2D_54 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8056,7 +8056,7 @@ def findAUTOCORR2D_55(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_55 value.
+      [float] - The autocorrelation2D_55 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8073,7 +8073,7 @@ def findAUTOCORR2D_56(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_56 value.
+      [float] - The autocorrelation2D_56 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8090,7 +8090,7 @@ def findAUTOCORR2D_57(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_57 value.
+      [float] - The autocorrelation2D_57 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8107,7 +8107,7 @@ def findAUTOCORR2D_58(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_58 value.
+      [float] - The autocorrelation2D_58 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8124,7 +8124,7 @@ def findAUTOCORR2D_59(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_59 value.
+      [float] - The autocorrelation2D_59 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8141,7 +8141,7 @@ def findAUTOCORR2D_60(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_60 value.
+      [float] - The autocorrelation2D_60 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8158,7 +8158,7 @@ def findAUTOCORR2D_61(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_61 value.
+      [float] - The autocorrelation2D_61 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8175,7 +8175,7 @@ def findAUTOCORR2D_62(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_62 value.
+      [float] - The autocorrelation2D_62 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8192,7 +8192,7 @@ def findAUTOCORR2D_63(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_63 value.
+      [float] - The autocorrelation2D_63 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8209,7 +8209,7 @@ def findAUTOCORR2D_64(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_64 value.
+      [float] - The autocorrelation2D_64 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8226,7 +8226,7 @@ def findAUTOCORR2D_65(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_65 value.
+      [float] - The autocorrelation2D_65 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8243,7 +8243,7 @@ def findAUTOCORR2D_66(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_66 value.
+      [float] - The autocorrelation2D_66 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8260,7 +8260,7 @@ def findAUTOCORR2D_67(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_67 value.
+      [float] - The autocorrelation2D_67 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8277,7 +8277,7 @@ def findAUTOCORR2D_68(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_68 value.
+      [float] - The autocorrelation2D_68 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8294,7 +8294,7 @@ def findAUTOCORR2D_69(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_69 value.
+      [float] - The autocorrelation2D_69 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8311,7 +8311,7 @@ def findAUTOCORR2D_70(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_70 value.
+      [float] - The autocorrelation2D_70 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8328,7 +8328,7 @@ def findAUTOCORR2D_71(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_71 value.
+      [float] - The autocorrelation2D_71 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8345,7 +8345,7 @@ def findAUTOCORR2D_72(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_72 value.
+      [float] - The autocorrelation2D_72 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8362,7 +8362,7 @@ def findAUTOCORR2D_73(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_73 value.
+      [float] - The autocorrelation2D_73 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8379,7 +8379,7 @@ def findAUTOCORR2D_74(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_74 value.
+      [float] - The autocorrelation2D_74 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8396,7 +8396,7 @@ def findAUTOCORR2D_75(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_75 value.
+      [float] - The autocorrelation2D_75 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8413,7 +8413,7 @@ def findAUTOCORR2D_76(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_76 value.
+      [float] - The autocorrelation2D_76 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8430,7 +8430,7 @@ def findAUTOCORR2D_77(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_77 value.
+      [float] - The autocorrelation2D_77 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8447,7 +8447,7 @@ def findAUTOCORR2D_78(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_78 value.
+      [float] - The autocorrelation2D_78 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8464,7 +8464,7 @@ def findAUTOCORR2D_79(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_79 value.
+      [float] - The autocorrelation2D_79 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8481,7 +8481,7 @@ def findAUTOCORR2D_80(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_80 value.
+      [float] - The autocorrelation2D_80 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8498,7 +8498,7 @@ def findAUTOCORR2D_81(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_81 value.
+      [float] - The autocorrelation2D_81 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8515,7 +8515,7 @@ def findAUTOCORR2D_82(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_82 value.
+      [float] - The autocorrelation2D_82 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8532,7 +8532,7 @@ def findAUTOCORR2D_83(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_83 value.
+      [float] - The autocorrelation2D_83 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8549,7 +8549,7 @@ def findAUTOCORR2D_84(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_84 value.
+      [float] - The autocorrelation2D_84 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8566,7 +8566,7 @@ def findAUTOCORR2D_85(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_85 value.
+      [float] - The autocorrelation2D_85 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8583,7 +8583,7 @@ def findAUTOCORR2D_86(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_86 value.
+      [float] - The autocorrelation2D_86 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8600,7 +8600,7 @@ def findAUTOCORR2D_87(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_87 value.
+      [float] - The autocorrelation2D_87 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8617,7 +8617,7 @@ def findAUTOCORR2D_88(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_88 value.
+      [float] - The autocorrelation2D_88 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8634,7 +8634,7 @@ def findAUTOCORR2D_89(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_89 value.
+      [float] - The autocorrelation2D_89 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8651,7 +8651,7 @@ def findAUTOCORR2D_90(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_90 value.
+      [float] - The autocorrelation2D_90 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8668,7 +8668,7 @@ def findAUTOCORR2D_91(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_91 value.
+      [float] - The autocorrelation2D_91 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8685,7 +8685,7 @@ def findAUTOCORR2D_92(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_92 value.
+      [float] - The autocorrelation2D_92 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8702,7 +8702,7 @@ def findAUTOCORR2D_93(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_93 value.
+      [float] - The autocorrelation2D_93 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8719,7 +8719,7 @@ def findAUTOCORR2D_94(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_94 value.
+      [float] - The autocorrelation2D_94 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8736,7 +8736,7 @@ def findAUTOCORR2D_95(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_95 value.
+      [float] - The autocorrelation2D_95 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8753,7 +8753,7 @@ def findAUTOCORR2D_96(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_96 value.
+      [float] - The autocorrelation2D_96 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8770,7 +8770,7 @@ def findAUTOCORR2D_97(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_97 value.
+      [float] - The autocorrelation2D_97 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8787,7 +8787,7 @@ def findAUTOCORR2D_98(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_98 value.
+      [float] - The autocorrelation2D_98 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8804,7 +8804,7 @@ def findAUTOCORR2D_99(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_99 value.
+      [float] - The autocorrelation2D_99 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8821,7 +8821,7 @@ def findAUTOCORR2D_100(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_100 value.
+      [float] - The autocorrelation2D_100 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8838,7 +8838,7 @@ def findAUTOCORR2D_101(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_101 value.
+      [float] - The autocorrelation2D_101 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8855,7 +8855,7 @@ def findAUTOCORR2D_102(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_102 value.
+      [float] - The autocorrelation2D_102 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8872,7 +8872,7 @@ def findAUTOCORR2D_103(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_103 value.
+      [float] - The autocorrelation2D_103 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8889,7 +8889,7 @@ def findAUTOCORR2D_104(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_104 value.
+      [float] - The autocorrelation2D_104 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8906,7 +8906,7 @@ def findAUTOCORR2D_105(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_105 value.
+      [float] - The autocorrelation2D_105 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8923,7 +8923,7 @@ def findAUTOCORR2D_106(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_106 value.
+      [float] - The autocorrelation2D_106 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8940,7 +8940,7 @@ def findAUTOCORR2D_107(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_107 value.
+      [float] - The autocorrelation2D_107 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8957,7 +8957,7 @@ def findAUTOCORR2D_108(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_108 value.
+      [float] - The autocorrelation2D_108 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8974,7 +8974,7 @@ def findAUTOCORR2D_109(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_109 value.
+      [float] - The autocorrelation2D_109 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -8991,7 +8991,7 @@ def findAUTOCORR2D_110(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_110 value.
+      [float] - The autocorrelation2D_110 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9008,7 +9008,7 @@ def findAUTOCORR2D_111(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_111 value.
+      [float] - The autocorrelation2D_111 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9025,7 +9025,7 @@ def findAUTOCORR2D_112(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_112 value.
+      [float] - The autocorrelation2D_112 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9042,7 +9042,7 @@ def findAUTOCORR2D_113(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_113 value.
+      [float] - The autocorrelation2D_113 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9059,7 +9059,7 @@ def findAUTOCORR2D_114(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_114 value.
+      [float] - The autocorrelation2D_114 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9076,7 +9076,7 @@ def findAUTOCORR2D_115(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_115 value.
+      [float] - The autocorrelation2D_115 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9093,7 +9093,7 @@ def findAUTOCORR2D_116(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_116 value.
+      [float] - The autocorrelation2D_116 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9110,7 +9110,7 @@ def findAUTOCORR2D_117(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_117 value.
+      [float] - The autocorrelation2D_117 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9127,7 +9127,7 @@ def findAUTOCORR2D_118(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_118 value.
+      [float] - The autocorrelation2D_118 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9144,7 +9144,7 @@ def findAUTOCORR2D_119(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_119 value.
+      [float] - The autocorrelation2D_119 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9161,7 +9161,7 @@ def findAUTOCORR2D_120(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_120 value.
+      [float] - The autocorrelation2D_120 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9178,7 +9178,7 @@ def findAUTOCORR2D_121(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_121 value.
+      [float] - The autocorrelation2D_121 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9195,7 +9195,7 @@ def findAUTOCORR2D_122(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_122 value.
+      [float] - The autocorrelation2D_122 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9212,7 +9212,7 @@ def findAUTOCORR2D_123(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_123 value.
+      [float] - The autocorrelation2D_123 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9229,7 +9229,7 @@ def findAUTOCORR2D_124(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_124 value.
+      [float] - The autocorrelation2D_124 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9246,7 +9246,7 @@ def findAUTOCORR2D_125(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_125 value.
+      [float] - The autocorrelation2D_125 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9263,7 +9263,7 @@ def findAUTOCORR2D_126(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_126 value.
+      [float] - The autocorrelation2D_126 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9280,7 +9280,7 @@ def findAUTOCORR2D_127(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_127 value.
+      [float] - The autocorrelation2D_127 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9297,7 +9297,7 @@ def findAUTOCORR2D_128(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_128 value.
+      [float] - The autocorrelation2D_128 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9314,7 +9314,7 @@ def findAUTOCORR2D_129(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_129 value.
+      [float] - The autocorrelation2D_129 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9331,7 +9331,7 @@ def findAUTOCORR2D_130(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_130 value.
+      [float] - The autocorrelation2D_130 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9348,7 +9348,7 @@ def findAUTOCORR2D_131(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_131 value.
+      [float] - The autocorrelation2D_131 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9365,7 +9365,7 @@ def findAUTOCORR2D_132(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_132 value.
+      [float] - The autocorrelation2D_132 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9382,7 +9382,7 @@ def findAUTOCORR2D_133(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_133 value.
+      [float] - The autocorrelation2D_133 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9399,7 +9399,7 @@ def findAUTOCORR2D_134(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_134 value.
+      [float] - The autocorrelation2D_134 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9416,7 +9416,7 @@ def findAUTOCORR2D_135(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_135 value.
+      [float] - The autocorrelation2D_135 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9433,7 +9433,7 @@ def findAUTOCORR2D_136(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_136 value.
+      [float] - The autocorrelation2D_136 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9450,7 +9450,7 @@ def findAUTOCORR2D_137(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_137 value.
+      [float] - The autocorrelation2D_137 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9467,7 +9467,7 @@ def findAUTOCORR2D_138(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_138 value.
+      [float] - The autocorrelation2D_138 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9484,7 +9484,7 @@ def findAUTOCORR2D_139(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_139 value.
+      [float] - The autocorrelation2D_139 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9501,7 +9501,7 @@ def findAUTOCORR2D_140(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_140 value.
+      [float] - The autocorrelation2D_140 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9518,7 +9518,7 @@ def findAUTOCORR2D_141(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_141 value.
+      [float] - The autocorrelation2D_141 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9535,7 +9535,7 @@ def findAUTOCORR2D_142(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_142 value.
+      [float] - The autocorrelation2D_142 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9552,7 +9552,7 @@ def findAUTOCORR2D_143(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_143 value.
+      [float] - The autocorrelation2D_143 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9569,7 +9569,7 @@ def findAUTOCORR2D_144(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_144 value.
+      [float] - The autocorrelation2D_144 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9586,7 +9586,7 @@ def findAUTOCORR2D_145(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_145 value.
+      [float] - The autocorrelation2D_145 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9603,7 +9603,7 @@ def findAUTOCORR2D_146(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_146 value.
+      [float] - The autocorrelation2D_146 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9620,7 +9620,7 @@ def findAUTOCORR2D_147(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_147 value.
+      [float] - The autocorrelation2D_147 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9637,7 +9637,7 @@ def findAUTOCORR2D_148(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_148 value.
+      [float] - The autocorrelation2D_148 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9654,7 +9654,7 @@ def findAUTOCORR2D_149(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_149 value.
+      [float] - The autocorrelation2D_149 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9671,7 +9671,7 @@ def findAUTOCORR2D_150(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_150 value.
+      [float] - The autocorrelation2D_150 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9688,7 +9688,7 @@ def findAUTOCORR2D_151(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_151 value.
+      [float] - The autocorrelation2D_151 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9705,7 +9705,7 @@ def findAUTOCORR2D_152(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_152 value.
+      [float] - The autocorrelation2D_152 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9722,7 +9722,7 @@ def findAUTOCORR2D_153(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_153 value.
+      [float] - The autocorrelation2D_153 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9739,7 +9739,7 @@ def findAUTOCORR2D_154(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_154 value.
+      [float] - The autocorrelation2D_154 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9756,7 +9756,7 @@ def findAUTOCORR2D_155(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_155 value.
+      [float] - The autocorrelation2D_155 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9773,7 +9773,7 @@ def findAUTOCORR2D_156(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_156 value.
+      [float] - The autocorrelation2D_156 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9790,7 +9790,7 @@ def findAUTOCORR2D_157(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_157 value.
+      [float] - The autocorrelation2D_157 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9807,7 +9807,7 @@ def findAUTOCORR2D_158(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_158 value.
+      [float] - The autocorrelation2D_158 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9824,7 +9824,7 @@ def findAUTOCORR2D_159(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_159 value.
+      [float] - The autocorrelation2D_159 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9841,7 +9841,7 @@ def findAUTOCORR2D_160(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_160 value.
+      [float] - The autocorrelation2D_160 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9858,7 +9858,7 @@ def findAUTOCORR2D_161(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_161 value.
+      [float] - The autocorrelation2D_161 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9875,7 +9875,7 @@ def findAUTOCORR2D_162(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_162 value.
+      [float] - The autocorrelation2D_162 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9892,7 +9892,7 @@ def findAUTOCORR2D_163(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_163 value.
+      [float] - The autocorrelation2D_163 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9909,7 +9909,7 @@ def findAUTOCORR2D_164(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_164 value.
+      [float] - The autocorrelation2D_164 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9926,7 +9926,7 @@ def findAUTOCORR2D_165(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_165 value.
+      [float] - The autocorrelation2D_165 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9943,7 +9943,7 @@ def findAUTOCORR2D_166(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_166 value.
+      [float] - The autocorrelation2D_166 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9960,7 +9960,7 @@ def findAUTOCORR2D_167(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_167 value.
+      [float] - The autocorrelation2D_167 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9977,7 +9977,7 @@ def findAUTOCORR2D_168(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_168 value.
+      [float] - The autocorrelation2D_168 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -9994,7 +9994,7 @@ def findAUTOCORR2D_169(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_169 value.
+      [float] - The autocorrelation2D_169 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10011,7 +10011,7 @@ def findAUTOCORR2D_170(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_170 value.
+      [float] - The autocorrelation2D_170 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10028,7 +10028,7 @@ def findAUTOCORR2D_171(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_171 value.
+      [float] - The autocorrelation2D_171 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10045,7 +10045,7 @@ def findAUTOCORR2D_172(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_172 value.
+      [float] - The autocorrelation2D_172 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10062,7 +10062,7 @@ def findAUTOCORR2D_173(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_173 value.
+      [float] - The autocorrelation2D_173 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10079,7 +10079,7 @@ def findAUTOCORR2D_174(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_174 value.
+      [float] - The autocorrelation2D_174 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10096,7 +10096,7 @@ def findAUTOCORR2D_175(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_175 value.
+      [float] - The autocorrelation2D_175 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10113,7 +10113,7 @@ def findAUTOCORR2D_176(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_176 value.
+      [float] - The autocorrelation2D_176 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10130,7 +10130,7 @@ def findAUTOCORR2D_177(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_177 value.
+      [float] - The autocorrelation2D_177 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10147,7 +10147,7 @@ def findAUTOCORR2D_178(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_178 value.
+      [float] - The autocorrelation2D_178 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10164,7 +10164,7 @@ def findAUTOCORR2D_179(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_179 value.
+      [float] - The autocorrelation2D_179 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10181,7 +10181,7 @@ def findAUTOCORR2D_180(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_180 value.
+      [float] - The autocorrelation2D_180 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10198,7 +10198,7 @@ def findAUTOCORR2D_181(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_181 value.
+      [float] - The autocorrelation2D_181 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10215,7 +10215,7 @@ def findAUTOCORR2D_182(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_182 value.
+      [float] - The autocorrelation2D_182 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10232,7 +10232,7 @@ def findAUTOCORR2D_183(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_183 value.
+      [float] - The autocorrelation2D_183 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10249,7 +10249,7 @@ def findAUTOCORR2D_184(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_184 value.
+      [float] - The autocorrelation2D_184 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10266,7 +10266,7 @@ def findAUTOCORR2D_185(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_185 value.
+      [float] - The autocorrelation2D_185 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10283,7 +10283,7 @@ def findAUTOCORR2D_186(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_186 value.
+      [float] - The autocorrelation2D_186 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10300,7 +10300,7 @@ def findAUTOCORR2D_187(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_187 value.
+      [float] - The autocorrelation2D_187 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10317,7 +10317,7 @@ def findAUTOCORR2D_188(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_188 value.
+      [float] - The autocorrelation2D_188 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10334,7 +10334,7 @@ def findAUTOCORR2D_189(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_189 value.
+      [float] - The autocorrelation2D_189 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10351,7 +10351,7 @@ def findAUTOCORR2D_190(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_190 value.
+      [float] - The autocorrelation2D_190 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10368,7 +10368,7 @@ def findAUTOCORR2D_191(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_191 value.
+      [float] - The autocorrelation2D_191 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10385,7 +10385,7 @@ def findAUTOCORR2D_192(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The autocorrelation2D_192 value.
+      [float] - The autocorrelation2D_192 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10405,7 +10405,7 @@ def findBCUT2D_CHGHI(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The BCUT2D_CHGHI descriptor.
+      [float] - The BCUT2D_CHGHI descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10422,7 +10422,7 @@ def findBCUT2D_CHGLO(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The the BCUT2D_CHGLO descriptor.
+      [float] - The the BCUT2D_CHGLO descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10439,7 +10439,7 @@ def findBCUT2D_LOGPHI(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The BCUT2D_LOGPHI descriptor.
+      [float] - The BCUT2D_LOGPHI descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10456,7 +10456,7 @@ def findBCUT2D_LOGPLOW(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The BCUT2D_LOGPLOW descriptor.
+      [float] - The BCUT2D_LOGPLOW descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10473,7 +10473,7 @@ def findBCUT2D_MRHI(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The BCUT2D_MRHI descriptor.
+      [float] - The BCUT2D_MRHI descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10490,7 +10490,7 @@ def findBCUT2D_MRLOW(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The BCUT2D_MRLOW descriptor.
+      [float] - The BCUT2D_MRLOW descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10507,7 +10507,7 @@ def findBCUT2D_MWHI(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The BCUT2D_MWHI descriptor.
+      [float] - The BCUT2D_MWHI descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10524,7 +10524,7 @@ def findBCUT2D_MWLOW(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The BCUT2D_MWLOW descriptor.
+      [float] - The BCUT2D_MWLOW descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10543,7 +10543,7 @@ def findBalabanJ(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The BalabanJ descriptor.
+      [float] - The BalabanJ descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10560,7 +10560,7 @@ def findBertzCT(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The BertzCT descriptor.
+      [float] - The BertzCT descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10578,7 +10578,7 @@ def findChi0(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The Chi0 descriptor.
+      [float] - The Chi0 descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10595,7 +10595,7 @@ def findChi0n(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The Chi0n descriptor.
+      [float] - The Chi0n descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10612,7 +10612,7 @@ def findChi0v(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The Chi0v descriptor.
+      [float] - The Chi0v descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10629,7 +10629,7 @@ def findChi1(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The Chi1 descriptor.
+      [float] - The Chi1 descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10646,7 +10646,7 @@ def findChi1n(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The Chi1n descriptor.
+      [float] - The Chi1n descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10663,7 +10663,7 @@ def findChi1v(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The Chi1v descriptor.
+      [float] - The Chi1v descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10680,7 +10680,7 @@ def findChi2n(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The Chi2n descriptor.
+      [float] - The Chi2n descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10697,7 +10697,7 @@ def findChi2v(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The Chi2v descriptor.
+      [float] - The Chi2v descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10714,7 +10714,7 @@ def findChi3n(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The Chi3n descriptor.
+      [float] - The Chi3n descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10731,7 +10731,7 @@ def findChi3v(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The Chi3v descriptor.
+      [float] - The Chi3v descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10748,7 +10748,7 @@ def findChi4n(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The Chi4n descriptor.
+      [float] - The Chi4n descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10765,7 +10765,7 @@ def findChi4v(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The Chi4v descriptor.
+      [float] - The Chi4v descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10785,7 +10785,7 @@ def findEState_VSA1(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The EState_VSA1 descriptor.
+      [float] - The EState_VSA1 descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10802,7 +10802,7 @@ def findEState_VSA2(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The EState_VSA2 descriptor.
+      [float] - The EState_VSA2 descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10819,7 +10819,7 @@ def findEState_VSA3(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The EState_VSA3 descriptor.
+      [float] - The EState_VSA3 descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10836,7 +10836,7 @@ def findEState_VSA4(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The EState_VSA4 descriptor.
+      [float] - The EState_VSA4 descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10853,7 +10853,7 @@ def findEState_VSA5(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The EState_VSA5 descriptor.
+      [float] - The EState_VSA5 descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10870,7 +10870,7 @@ def findEState_VSA6(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The EState_VSA6 descriptor.
+      [float] - The EState_VSA6 descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10887,7 +10887,7 @@ def findEState_VSA7(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The EState_VSA7 descriptor.
+      [float] - The EState_VSA7 descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10904,7 +10904,7 @@ def findEState_VSA8(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The EState_VSA8 descriptor.
+      [float] - The EState_VSA8 descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10921,7 +10921,7 @@ def findEState_VSA9(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The EState_VSA9 descriptor.
+      [float] - The EState_VSA9 descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10938,7 +10938,7 @@ def findEState_VSA10(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The EState_VSA10 descriptor.
+      [float] - The EState_VSA10 descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10955,7 +10955,7 @@ def findEState_VSA11(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The EState_VSA11 descriptor.
+      [float] - The EState_VSA11 descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10972,7 +10972,7 @@ def findMaxAbsEStateIndex(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The MaxAbsEStateIndex descriptor.
+      [float] - The MaxAbsEStateIndex descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -10989,7 +10989,7 @@ def findMaxEStateIndex(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The MaxEStateIndex descriptor.
+      [float] - The MaxEStateIndex descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -11006,7 +11006,7 @@ def findMinAbsEStateIndex(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The MinAbsEStateIndex descriptor.
+      [float] - The MinAbsEStateIndex descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -11023,7 +11023,7 @@ def findMinEStateIndex(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The MinEStateIndex descriptor.
+      [float] - The MinEStateIndex descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -11042,7 +11042,7 @@ def findExactMolWt(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The exact molecular weight.
+      [float] - The exact molecular weight.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -11059,7 +11059,7 @@ def findFpDensityMorgan1(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The Morgan fingerprint, radius 1.
+      [float] - The Morgan fingerprint, radius 1.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -11076,7 +11076,7 @@ def findFpDensityMorgan2(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The Morgan fingerprint, radius 2.
+      [float] - The Morgan fingerprint, radius 2.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -11093,7 +11093,7 @@ def findFpDensityMorgan3(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The Morgan fingerprint, radius 3.
+      [float] - The Morgan fingerprint, radius 3.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -12505,7 +12505,7 @@ def findfr_thiophene(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The fr_thiophene value.
+      [float] - The fr_thiophene value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -12522,7 +12522,7 @@ def findfr_unbrch_alkane(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The fr_unbrch_alkane value.
+      [float] - The fr_unbrch_alkane value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -12539,7 +12539,7 @@ def findfr_urea(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The fr_urea value.
+      [float] - The fr_urea value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -12558,7 +12558,7 @@ def findFractionCSP3(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The FractionCSP3 descriptor.
+      [float] - The FractionCSP3 descriptor.
     '''
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
@@ -12574,7 +12574,7 @@ def findHallKierAlpha(molecule):
     Input:
       -
     Return:
-      [double] - The HallKierAlpha descriptor.
+      [float] - The HallKierAlpha descriptor.
     '''
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
@@ -12590,7 +12590,7 @@ def findHeavyAtomMolWt(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The heavy atom molecular weight.
+      [float] - The heavy atom molecular weight.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -12624,7 +12624,7 @@ def findIpc(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The Ipc descriptor.
+      [float] - The Ipc descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -12642,7 +12642,7 @@ def findKappa1(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The Kappa1 descriptor.
+      [float] - The Kappa1 descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -12659,7 +12659,7 @@ def findKappa2(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The Kappa2 descriptor.
+      [float] - The Kappa2 descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -12676,7 +12676,7 @@ def findKappa3(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The Kappa3 descriptor.
+      [float] - The Kappa3 descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -12695,7 +12695,7 @@ def findLabuteASA(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The LabuteASA descriptor.
+      [float] - The LabuteASA descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -12712,7 +12712,7 @@ def findMaxAbsPartialCharge(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The maximum absolute partial charge.
+      [float] - The maximum absolute partial charge.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -12729,7 +12729,7 @@ def findMaxPartialCharge(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The absolute partial partial charge.
+      [float] - The absolute partial partial charge.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -12746,7 +12746,7 @@ def findMinAbsPartialCharge(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The minimum absolute partial partial charge.
+      [float] - The minimum absolute partial partial charge.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -12763,7 +12763,7 @@ def findMinPartialCharge(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The minimum partial partial charge.
+      [float] - The minimum partial partial charge.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -12780,7 +12780,7 @@ def findMolLogP(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The MolLogP descriptor.
+      [float] - The MolLogP descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -12797,7 +12797,7 @@ def findMolMR(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The MolMR descriptor.
+      [float] - The MolMR descriptor.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -12814,7 +12814,7 @@ def findMolWt(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The molecular weight.
+      [float] - The molecular weight.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -12866,7 +12866,7 @@ def findNumAliphaticCarbocycles(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The NumAliphaticCarbocycles value.
+      [float] - The NumAliphaticCarbocycles value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -12883,7 +12883,7 @@ def findNumAliphaticHeterocycles(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The NumAliphaticHeterocycles value.
+      [float] - The NumAliphaticHeterocycles value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -12900,7 +12900,7 @@ def findNumAliphaticRings(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The NumAliphaticRings value.
+      [float] - The NumAliphaticRings value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -12917,7 +12917,7 @@ def findNumAromaticCarbocycles(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The NumAromaticCarbocycles value.
+      [float] - The NumAromaticCarbocycles value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -12934,7 +12934,7 @@ def findNumAromaticHeterocycles(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The NumAromaticHeterocycles value.
+      [float] - The NumAromaticHeterocycles value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -12951,7 +12951,7 @@ def findNumAromaticRings(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The NumAromaticRings value.
+      [float] - The NumAromaticRings value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -12968,7 +12968,7 @@ def findNumHAcceptors(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The NumHAcceptors value.
+      [float] - The NumHAcceptors value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -12985,7 +12985,7 @@ def findNumHDonors(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The NumHDonors value.
+      [float] - The NumHDonors value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13002,7 +13002,7 @@ def findNumHeteroatoms(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The NumHeteroatoms value.
+      [float] - The NumHeteroatoms value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13036,7 +13036,7 @@ def findNumRotatableBonds(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The NumRotatableBonds value.
+      [float] - The NumRotatableBonds value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13053,7 +13053,7 @@ def findNumSaturatedCarbocycles(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The NumSaturatedCarbocycles value.
+      [float] - The NumSaturatedCarbocycles value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13070,7 +13070,7 @@ def findNumSaturatedHeterocycles(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The NumSaturatedHeterocycles value.
+      [float] - The NumSaturatedHeterocycles value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13087,7 +13087,7 @@ def findNumSaturatedRings(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The NumSaturatedRings value.
+      [float] - The NumSaturatedRings value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13141,7 +13141,7 @@ def findPEOE_VSA1(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The PEOE_VSA1 value.
+      [float] - The PEOE_VSA1 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13158,7 +13158,7 @@ def findPEOE_VSA2(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The PEOE_VSA2 value.
+      [float] - The PEOE_VSA2 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13175,7 +13175,7 @@ def findPEOE_VSA3(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The PEOE_VSA3 value.
+      [float] - The PEOE_VSA3 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13192,7 +13192,7 @@ def findPEOE_VSA4(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The PEOE_VSA4 value.
+      [float] - The PEOE_VSA4 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13209,7 +13209,7 @@ def findPEOE_VSA5(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The PEOE_VSA5 value.
+      [float] - The PEOE_VSA5 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13226,7 +13226,7 @@ def findPEOE_VSA6(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The PEOE_VSA6 value.
+      [float] - The PEOE_VSA6 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13243,7 +13243,7 @@ def findPEOE_VSA7(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The PEOE_VSA7 value.
+      [float] - The PEOE_VSA7 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13260,7 +13260,7 @@ def findPEOE_VSA8(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The PEOE_VSA8 value.
+      [float] - The PEOE_VSA8 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13277,7 +13277,7 @@ def findPEOE_VSA9(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The PEOE_VSA9 value.
+      [float] - The PEOE_VSA9 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13294,7 +13294,7 @@ def findPEOE_VSA10(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The PEOE_VSA10 value.
+      [float] - The PEOE_VSA10 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13311,7 +13311,7 @@ def findPEOE_VSA11(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The PEOE_VSA11 value.
+      [float] - The PEOE_VSA11 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13328,7 +13328,7 @@ def findPEOE_VSA12(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The PEOE_VSA12 value.
+      [float] - The PEOE_VSA12 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13345,7 +13345,7 @@ def findPEOE_VSA13(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The PEOE_VSA13 value.
+      [float] - The PEOE_VSA13 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13362,7 +13362,7 @@ def findPEOE_VSA14(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The PEOE_VSA14 value.
+      [float] - The PEOE_VSA14 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13381,7 +13381,7 @@ def findqed(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The qed value.
+      [float] - The qed value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13399,7 +13399,7 @@ def findSMR_VSA1(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The SMR_VSA1 value.
+      [float] - The SMR_VSA1 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13416,7 +13416,7 @@ def findSMR_VSA2(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The SMR_VSA2 value.
+      [float] - The SMR_VSA2 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13433,7 +13433,7 @@ def findSMR_VSA3(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The SMR_VSA3 value.
+      [float] - The SMR_VSA3 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13450,7 +13450,7 @@ def findSMR_VSA4(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The SMR_VSA4 value.
+      [float] - The SMR_VSA4 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13467,7 +13467,7 @@ def findSMR_VSA5(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The SMR_VSA5 value.
+      [float] - The SMR_VSA5 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13484,7 +13484,7 @@ def findSMR_VSA6(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The SMR_VSA6 value.
+      [float] - The SMR_VSA6 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13501,7 +13501,7 @@ def findSMR_VSA7(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The SMR_VSA7 value.
+      [float] - The SMR_VSA7 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13518,7 +13518,7 @@ def findSMR_VSA8(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The SMR_VSA8 value.
+      [float] - The SMR_VSA8 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13535,7 +13535,7 @@ def findSMR_VSA9(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The SMR_VSA9 value.
+      [float] - The SMR_VSA9 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13552,7 +13552,7 @@ def findSMR_VSA10(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The SMR_VSA10 value.
+      [float] - The SMR_VSA10 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13572,7 +13572,7 @@ def findSlogP_VSA1(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The SlogP_VSA1 value.
+      [float] - The SlogP_VSA1 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13589,7 +13589,7 @@ def findSlogP_VSA2(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The SlogP_VSA2 value.
+      [float] - The SlogP_VSA2 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13606,7 +13606,7 @@ def findSlogP_VSA3(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The SlogP_VSA3 value.
+      [float] - The SlogP_VSA3 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13623,7 +13623,7 @@ def findSlogP_VSA4(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The SlogP_VSA4 value.
+      [float] - The SlogP_VSA4 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13640,7 +13640,7 @@ def findSlogP_VSA5(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The SlogP_VSA5 value.
+      [float] - The SlogP_VSA5 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13657,7 +13657,7 @@ def findSlogP_VSA6(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The SlogP_VSA6 value.
+      [float] - The SlogP_VSA6 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13674,7 +13674,7 @@ def findSlogP_VSA7(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The SlogP_VSA7 value.
+      [float] - The SlogP_VSA7 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13691,7 +13691,7 @@ def findSlogP_VSA8(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The SlogP_VSA8 value.
+      [float] - The SlogP_VSA8 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13708,7 +13708,7 @@ def findSlogP_VSA9(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The SlogP_VSA9 value.
+      [float] - The SlogP_VSA9 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13725,7 +13725,7 @@ def findSlogP_VSA10(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The SlogP_VSA10 value.
+      [float] - The SlogP_VSA10 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13742,7 +13742,7 @@ def findSlogP_VSA11(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The SlogP_VSA11 value.
+      [float] - The SlogP_VSA11 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13759,7 +13759,7 @@ def findSlogP_VSA12(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The SlogP_VSA12 value.
+      [float] - The SlogP_VSA12 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13778,7 +13778,7 @@ def findTPSA(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The TPSA value.
+      [float] - The TPSA value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13796,7 +13796,7 @@ def findVSA_EState1(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The VSA_EState1 value.
+      [float] - The VSA_EState1 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13813,7 +13813,7 @@ def findVSA_EState2(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The VSA_EState2 value.
+      [float] - The VSA_EState2 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13830,7 +13830,7 @@ def findVSA_EState3(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The VSA_EState3 value.
+      [float] - The VSA_EState3 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13847,7 +13847,7 @@ def findVSA_EState4(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The VSA_EState4 value.
+      [float] - The VSA_EState4 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13864,7 +13864,7 @@ def findVSA_EState5(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The VSA_EState5 value.
+      [float] - The VSA_EState5 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13881,7 +13881,7 @@ def findVSA_EState6(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The VSA_EState6 value.
+      [float] - The VSA_EState6 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13898,7 +13898,7 @@ def findVSA_EState7(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The VSA_EState7 value.
+      [float] - The VSA_EState7 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13915,7 +13915,7 @@ def findVSA_EState8(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The VSA_EState8 value.
+      [float] - The VSA_EState8 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13932,7 +13932,7 @@ def findVSA_EState9(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The VSA_EState9 value.
+      [float] - The VSA_EState9 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13949,7 +13949,7 @@ def findVSA_EState10(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The VSA_EState10 value.
+      [float] - The VSA_EState10 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13969,7 +13969,7 @@ def findAUTOCORR3D(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The AUTOCORR3D values.
+      [float] - The AUTOCORR3D values.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -13986,7 +13986,7 @@ def findAsphericity(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The Asphericity value.
+      [float] - The Asphericity value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -14003,7 +14003,7 @@ def findEccentricity(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The Eccentricity value.
+      [float] - The Eccentricity value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -14020,7 +14020,7 @@ def findInertialShapeFactor(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The InertialShapeFactor value.
+      [float] - The InertialShapeFactor value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -14037,7 +14037,7 @@ def findNPR1(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The NPR1 value.
+      [float] - The NPR1 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -14054,7 +14054,7 @@ def findNPR2(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The NPR2 value.
+      [float] - The NPR2 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -14071,7 +14071,7 @@ def findPMI1(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The PMI1 value.
+      [float] - The PMI1 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -14088,7 +14088,7 @@ def findPMI2(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The PMI2 value.
+      [float] - The PMI2 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -14105,7 +14105,7 @@ def findPMI3(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The PMI3 value.
+      [float] - The PMI3 value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -14122,7 +14122,7 @@ def findRadiusOfGyration(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The RadiusOfGyration value.
+      [float] - The RadiusOfGyration value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
@@ -14139,7 +14139,7 @@ def findSpherocityIndex(molecule):
     Input:
       molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
     Return:
-      [double] - The SpherocityIndex value.
+      [float] - The SpherocityIndex value.
       [None]   - If parsing the descriptor fails.
     '''
     if molecule:
