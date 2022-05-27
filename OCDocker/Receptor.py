@@ -52,7 +52,13 @@ class Receptor:
         # Name must come first
         self.name = ""
         # Set the path and structure (NEVER SHOUD BE NONE)
-        self.path, self.structure = self.__loadMol(structure)
+        # If user pass a json
+        if from_json_descriptors:
+            # Read the molecule telling that there is no need to fetch the SASA value
+            self.path, self.structure = self.__loadMol(structure, computeSASA=False)
+        else:
+            # Read the molecule telling that there is the need to fetch the SASA value
+            self.path, self.structure = self.__loadMol(structure, computeSASA=True)
         # The molpath not always will exist
         self.mol2Path = mol2Path
         # Set the residues (derived from structure)
@@ -103,7 +109,7 @@ class Receptor:
                 octools.print_error(f"Problems while parsing json file: '{from_json_descriptors}'")
                 return None
             # <editor-fold> assign
-            self.name, self.sasa, self.dipoleMoment, self.isoelectricPoint, self.instabilityIndex,self.GRAVY, self.aromaticity, self.__countAA = data
+            self.name, self.sasa, self.dipoleMoment, self.isoelectricPoint, self.instabilityIndex,self.GRAVY, self.aromaticity, self.__countAA, self.countA, self.countR, self.countN, self.countD, self.countC, self.countQ, self.countE, self.countG, self.countH, self.countI, self.countL, self.countK, self.countM, self.countF, self.countP, self.countS, self.countT, self.countW, self.countY, self.countV = data
 
             # </editor-fold>
         else:
@@ -129,26 +135,26 @@ class Receptor:
             self.__relativeASAcutoff = relativeASAcutoff
             self.__countAA = self.__count_surface_AA()
 
-        self.countA = self.__countAA["A"]
-        self.countR = self.__countAA["R"]
-        self.countN = self.__countAA["N"]
-        self.countD = self.__countAA["D"]
-        self.countC = self.__countAA["C"]
-        self.countQ = self.__countAA["Q"]
-        self.countE = self.__countAA["E"]
-        self.countG = self.__countAA["G"]
-        self.countH = self.__countAA["H"]
-        self.countI = self.__countAA["I"]
-        self.countL = self.__countAA["L"]
-        self.countK = self.__countAA["K"]
-        self.countM = self.__countAA["M"]
-        self.countF = self.__countAA["F"]
-        self.countP = self.__countAA["P"]
-        self.countS = self.__countAA["S"]
-        self.countT = self.__countAA["T"]
-        self.countW = self.__countAA["W"]
-        self.countY = self.__countAA["Y"]
-        self.countV = self.__countAA["V"]
+            self.countA = self.__countAA["A"]
+            self.countR = self.__countAA["R"]
+            self.countN = self.__countAA["N"]
+            self.countD = self.__countAA["D"]
+            self.countC = self.__countAA["C"]
+            self.countQ = self.__countAA["Q"]
+            self.countE = self.__countAA["E"]
+            self.countG = self.__countAA["G"]
+            self.countH = self.__countAA["H"]
+            self.countI = self.__countAA["I"]
+            self.countL = self.__countAA["L"]
+            self.countK = self.__countAA["K"]
+            self.countM = self.__countAA["M"]
+            self.countF = self.__countAA["F"]
+            self.countP = self.__countAA["P"]
+            self.countS = self.__countAA["S"]
+            self.countT = self.__countAA["T"]
+            self.countW = self.__countAA["W"]
+            self.countY = self.__countAA["Y"]
+            self.countV = self.__countAA["V"]
 
     ## Private ##
     def __safe_to_dict(self):
@@ -194,16 +200,17 @@ class Receptor:
             return None
         return count_surface_AA(self.structure, self.path, self.__relativeASAcutoff)
 
-    def __loadMol(self, structure):
+    def __loadMol(self, structure, computeSASA=True):
         '''
         Load a structure pdb/cif if a path is provided or just assign the Bio.PDB.Structure.Structure object to the structure.
         Input:
-          structure [string/Bio.PDB.Structure.Structure] - Path to the structure file OR Bio.PDB.Structure.Structure object.
+          structure   [string/Bio.PDB.Structure.Structure]               - Path to the structure file OR Bio.PDB.Structure.Structure object.
+          computeSASA [Bool]                               DEFAULT: True - Flag to denote if it is needed to compute the SASA descriptor.
         Return:
           [Bio.PDB.Structure.Structure] - If the object has been correctly parsed.
           [None]                        - If the object has not been correctly parsed.
         '''
-        return loadMol(structure, name=self.name)
+        return loadMol(structure, name=self.name, computeSASA=True)
 
     def __getRes(self):
         '''
@@ -501,7 +508,6 @@ def count_surface_AA(model, modelPath, cutoff=0.7):
             else:
                 # Add 1 to its count
                 aas["X"] += 1
-
     return aas
 
 def compute_sasa(model):
@@ -535,12 +541,13 @@ def getRes(model):
         residues.append(seq1(residue.get_resname()))
     return "".join(residues)
 
-def loadMol(structure, name=""):
+def loadMol(structure, name="", computeSASA=True):
     '''
     Load a structure pdb/cif if a path is provided or just assign the Bio.PDB.Structure.Structure object to the structure. Also returns the path as a tuple (path, structure).
     Input:
-      name      [string] DEFAULT: ""                 - Name of the structure (if empty the structure's name will be 'Generic structure').
-      structure [string/Bio.PDB.Structure.Structure] - Path to the structure file OR Bio.PDB.Structure.Structure object.
+      name      [string]                             DEFAULT: ""   - Name of the structure (if empty the structure's name will be 'Generic structure').
+      structure [string/Bio.PDB.Structure.Structure]               - Path to the structure file OR Bio.PDB.Structure.Structure object.
+      computeSASA [Bool]                             DEFAULT: True - Flag to denote if it is needed to compute the SASA descriptor.
     Return:
       [string, Bio.PDB.Structure.Structure]
       [string, object] - If the object has been correctly parsed.
@@ -549,7 +556,9 @@ def loadMol(structure, name=""):
     octools.printv(f"Trying to load protein '{structure}'.")
     # Check if the type of the variable structure is a string or a Bio.PDB.Structure.Structure
     if type(structure) == Structure.Structure:
-        compute_sasa(structure)
+        # Check if SASA should be computed
+        if computeSASA:
+            compute_sasa(structure)
         # Since is already a structure, assign it to the class
         return structure, None
     elif type(structure) == str:
@@ -572,7 +581,9 @@ def loadMol(structure, name=""):
                 return "", None
             # Compute the SASA value of the structure
             tmpStructure = parser.get_structure(name, structure)
-            compute_sasa(tmpStructure)
+            # Check if SASA should be computed
+            if computeSASA:
+                compute_sasa(tmpStructure)
             octools.print_success(f"Successfully loaded the molecule '{structure}'")
             # Return the structure using selected parser
             return structure, tmpStructure
@@ -701,21 +712,45 @@ def read_descriptors_from_json(path):
         missing = []
         # Expected keys to have in the json file
         # <editor-fold> keys
-        keys = ["Name", "sasa", "dipoleMoment", "isoelectricPoint", "instabilityIndex", "GRAVY", "aromaticity", "countAA"]
+        keys = ["Name", "SASA", "DipoleMoment", "IsoelectricPoint", "InstabilityIndex", "GRAVY", "Aromaticity", "countA", "countR", "countN", "countD", "countC", "countQ", "countE", "countG", "countH", "countI", "countL", "countK", "countM", "countF", "countP", "countS", "countT", "countW", "countY", "countV"]
+
         # </editor-fold>
         # Validate the data
         for key in keys:
             # If key is lacking in data read from json (means malformed json!)
             if not key in data:
                 # Add the missing key to the missing list
-                missing.Append(key)
+                missing.append(key)
         # If missing list is not empty
         if missing:
             # Raise a Key error passing the file and the missing keys joined with ', '
             raise KeyError((path, ", ".join(missing)))
+        # Create the countAA variable
+        countAA = {
+            "A": data["countA"],
+            "R": data["countR"],
+            "N": data["countN"],
+            "D": data["countD"],
+            "C": data["countC"],
+            "Q": data["countQ"],
+            "E": data["countE"],
+            "G": data["countG"],
+            "H": data["countH"],
+            "I": data["countI"],
+            "L": data["countL"],
+            "K": data["countK"],
+            "M": data["countM"],
+            "F": data["countF"],
+            "P": data["countP"],
+            "S": data["countS"],
+            "T": data["countT"],
+            "W": data["countW"],
+            "Y": data["countY"],
+            "V": data["countV"]
+        }
         # Since we have all keys, read them and return their values
         # <editor-fold> Return data
-        return data["Name"], data["sasa"], data["dipoleMoment"], data["isoelectricPoint"], data["instabilityIndex"], data["GRAVY"], data["aromaticity"], data["countAA"]
+        return data["Name"], data["SASA"], data["DipoleMoment"], data["IsoelectricPoint"], data["InstabilityIndex"], data["GRAVY"], data["Aromaticity"], countAA, data["countA"], data["countR"], data["countN"], data["countD"], data["countC"], data["countQ"], data["countE"], data["countG"], data["countH"], data["countI"], data["countL"], data["countK"], data["countM"], data["countF"], data["countP"], data["countS"], data["countT"], data["countW"], data["countY"], data["countV"]
 
         # </editor-fold>
     # Key error (when there is a missing key)

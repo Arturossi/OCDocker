@@ -452,7 +452,7 @@ def __get_no_parallel(dirs, archive):
             databaseDict[ptn] = (receptor, ligand)
     return databaseDict
 
-def __run_vina_parallel(dirList, archive):
+def __thread_dock_parallel(arguments):
     '''
     # TODO:
     Input:
@@ -460,13 +460,76 @@ def __run_vina_parallel(dirList, archive):
     Return:
       -
     '''
-    return
+    # Redirect all prints to tqdm.write
+    with octools.redirect_to_tqdm():
+        # Renaming arguments to what they are (making this just more readable)
+        dir = arguments[0]
+        archive = arguments[1]
+        dockingAlgorithm = arguments[2]
+        overwrite = arguments[3]
+        # If is the index directory, ignore
+        if dir in ['index', 'db']:
+            return
+        # Find which kind of archive it will be
+        if archive == "astex":
+            chosenArchive = astex_archive
+        elif archive == "dudez":
+            chosenArchive = dudez_archive
+        elif archive == "pdbbind":
+            # Find protein name
+            ptn = dir.split(os.path.sep)[-1]
+            # Set the input file name path (to generate the box and data about the protein)
+            receptorPath = f"{dir}/{ptn}_protein.pdb"
+            # Set the ligand file name path (to generate data about the ligand)
+            ligandPath = f"{dir}/{ptn}_ligand.mol2"
+            # If the complex has all descriptors for protein AND ligand
+            if os.path.isfile(f"{dir}/{ptn}_protein_descriptors.json") and os.path.isfile(f"{dir}/{ptn}_ligand_descriptors.json"):
+                # Read the receptor and the ligand
+                receptor = ocr.Receptor(receptorPath, from_json_descriptors = f"{dir}/{ptn}_protein_descriptors.json", name = f"{ptn}_receptor")
+                ligand = ocl.Ligand(ligandPath, from_json_descriptors = f"{dir}/{ptn}_ligand_descriptors.json", name = f"{ptn}_ligand")
+                # If receptor and ligand are not null
+                if receptor and ligand:
+                    # Get the folder for each run
+                    runPaths = glob(f"{dir}/vinaFiles/*")
+                    # For each path in the paths array (will be more than on in case of multiple boxes)
+                    for runPath in runPaths:
+                        # Get the run number
+                        runNumber = runPath.split(os.path.sep)[-1]
+                        # If running vina
+                        if dockingAlgorithm == "vina":
+                            # Create the vina object (the pdbqt files will be in the father directory because it will be used multiple times, let's save some disk space, please)
+                            vina = ocvina.Vina(f"{runPath}/conf_vina.txt", f"{dir}/p2rank/box{runNumber}.pdb", receptor, f"{dir}/{ptn}_protein.pdbqt", ligand, f"{dir}/{ptn}_ligand.pdbqt", f"{runPath}/vina_{runNumber}.log", f"{runPath}/vina_{runNumber}.pdbqt", name=f"{ptn}_run_{runNumber}")
+                            # Check if the vina object has been correctly created
+                            if not vina:
+                                octools.print_error_log(f"Could not generate vina object for the protein in dir '{dir}'. Error found while trying to run the {dockingAlgorithm} docking software.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report.log")
+                                return errors.docking_object_not_generated(f"Could not generate vina object for the protein in dir '{dir}'. Error found while trying to run the {dockingAlgorithm} docking software.", level = "error")
+                            # If prepared ligand does not exsits or overwrite flag is true
+                            if not os.path.isfile(vina.preparedLigand) or overwrite:
+                                # Run the prepare ligand
+                                _ = vina.run_prepare_ligand()
+                            # If prepared receptor does not exists or overwrite flag is true
+                            if not os.path.isfile(vina.preparedReceptor) or overwrite:
+                                # Run the prepare receptor
+                                _ = vina.run_prepare_receptor()
+                            # If the output does not exist or overwrite flag is true
+                            if overwrite or not os.path.isfile(f"{runPath}/vina_{runNumber}.log") or not os.path.isfile(f"{runPath}/vina_{runNumber}.pdbqt"):
+                                # Run vina
+                                vina.run_vina()
+                            else:
+                                octools.print_warning(f"The vina output for {ptn} run {runNumber} is already generated and you can check it at the '{runPath}/vina_{runNumber}.log' path. Vina execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true")
+                else:
+                    octools.print_error_log(f"Could not generate receptor or ligand object for the protein in dir '{dir}'. Error found while trying to run the {dockingAlgorithm} docking software.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report.log")
+                    return errors.receptor_or_ligand_not_generated(f"Could not generate receptor or ligand object for the protein in dir '{dir}'. Error found while trying to run the {dockingAlgorithm} docking software.", level = "error")
+            else:
+                octools.print_error_log(f"There is no ligand or receptor descriptor for the protein in dir '{dir}'. Error found while trying to run the {dockingAlgorithm} docking software.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report.log")
+                return errors.receptor_or_ligand_descriptor_does_not_exist(f"There is no ligand or receptor descriptor for the protein in dir '{dir}'. Error found while trying to run the {dockingAlgorithm} docking software.", level = "error")
+    return None
 
-def __run_vina_parallel(dirList, chosenArchive, desc):
+def __run_dock_parallel(dirList, archive, dockingAlgorithm, overwrite, desc):
     '''
     # TODO:
     Input:
-     chosenArchive [string] - Which archive will be processed. [dudez, pdbbind, astex]
+     archive [string] - Which archive will be processed. [dudez, pdbbind, astex]
     Return:
       -
     '''
@@ -475,19 +538,91 @@ def __run_vina_parallel(dirList, chosenArchive, desc):
     # For each file in the glob
     for dir in dirList:
         # Append a tuple containing the file name and ovewrite flag to the arguments list
-        arguments.append((dir, chosenArchive))
-    # Dict of elements
-    databaseDict = dict()
+        arguments.append((dir, archive, dockingAlgorithm, overwrite))
     # Define the number of used cores, limiting upper (max cores) and lowe bounds (1 core)
-    cores = int(args.available_cores/vina_exhaustiveness)
-    cores = cores if cores > 0 else 1
+    #if dockingAlgorithm == "vina":
+    #    cores = int(args.available_cores)/vina_exhaustiveness
+    #    cores = int(cores) if cores > 0 else 1
+    #else:
+    #    cores = args.available_cores
+    cores = args.available_cores
     # Create a Thread pool with the maximum available_cores
     with Pool(cores) as p:
         # Perform the multi process
-        for _ in tqdm(p.imap_unordered(__thread_vina_parallel, arguments), total = len(arguments), desc = desc):
+        for _ in tqdm(p.imap_unordered(__thread_dock_parallel, arguments), total = len(arguments), desc = desc):
             pass
     # Return
-    return databaseDict
+    return None
+
+def __run_dock_no_parallel(dirs, archive, dockingAlgorithm, overwrite):
+    '''
+    # TODO:
+    Input:
+     chosenArchive [string] - Which archive will be processed. [dudez, pdbbind, astex]
+    Return:
+      -
+    '''
+    # For each dir in dirs
+    for dir in dirs:
+        # If is the index directory, ignore
+        if dir not in ['index', 'db']:
+            continue
+        # Find which kind of archive it will be
+        if archive == "astex":
+            chosenArchive = astex_archive
+        elif archive == "dudez":
+            chosenArchive = dudez_archive
+        elif archive == "pdbbind":
+            # Find protein name
+            ptn = dir.split(os.path.sep)[-1]
+            # Set the input file name path (to generate the box and data about the protein)
+            receptorPath = f"{dir}/{ptn}_protein.pdb"
+            # Set the ligand file name path (to generate data about the ligand)
+            ligandPath = f"{dir}/{ptn}_ligand.mol2"
+            # If the complex has all descriptors for protein AND ligand
+            if os.path.isfile(f"{dir}/{ptn}_protein_descriptors.json") and os.path.isfile(f"{dir}/{ptn}_ligand_descriptors.json"):
+                # Read the receptor and the ligand
+                receptor = ocr.Receptor(receptorPath, from_json_descriptors = f"{dir}/{ptn}_protein_descriptors.json", name = f"{ptn}_receptor")
+                ligand = ocl.Ligand(ligandPath, from_json_descriptors = f"{dir}/{ptn}_ligand_descriptors.json", name = f"{ptn}_ligand")
+                # If receptor and ligand are not null
+                if receptor and ligand:
+                    # Get the folder for each run
+                    runPaths = glob(f"{dir}/vinaFiles/*")
+                    # For each path in the paths array (will be more than on in case of multiple boxes)
+                    for runPath in runPaths:
+                        # Get the run number
+                        runNumber = runPath.split(os.path.sep)[-1]
+                        # If running vina
+                        if dockingAlgorithm == "vina":
+                            # Create the vina object (the pdbqt files will be in the father directory because it will be used multiple times, let's save some disk space, please)
+                            vina = ocvina.Vina(f"{runPath}/conf_vina.txt", f"{dir}/p2rank/box{runNumber}.pdb", receptor, f"{dir}/{ptn}_protein.pdbqt", ligand, f"{dir}/{ptn}_ligand.pdbqt", f"{runPath}/vina_{runNumber}.log", f"{runPath}/vina_{runNumber}.pdbqt", name=f"{ptn}_run_{runNumber}")
+                            # Check if the vina object has been correctly created
+                            if not vina:
+                                octools.print_error_log(f"Could not generate vina object for the protein in dir '{dir}'. Error found while trying to run the {dockingAlgorithm} docking software.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report.log")
+                                return errors.docking_object_not_generated(f"Could not generate vina object for the protein in dir '{dir}'. Error found while trying to run the {dockingAlgorithm} docking software.", level = "error")
+                            # If prepared ligand does not exsits or overwrite flag is true
+                            if not os.path.isfile(vina.preparedLigand) or overwrite:
+                                # Run the prepare ligand
+                                _ = vina.run_prepare_ligand()
+                            # If prepared receptor does not exists or overwrite flag is true
+                            if not os.path.isfile(vina.preparedReceptor) or overwrite:
+                                # Run the prepare receptor
+                                _ = vina.run_prepare_receptor()
+                            # If the output does not exist or overwrite flag is true
+                            if overwrite or (not os.path.isfile(f"{runPath}/vina_{runNumber}.log") and os.path.isfile(f"{runPath}/vina_{runNumber}.pdbqt")):
+                                # Run vina
+                                vina.run_vina()
+                            else:
+                                octools.print_warning(f"The vina output for {ptn} run {runNumber} is already generated and you can check it at the '{runPath}/vina_{runNumber}.log' path. Vina execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true")
+                else:
+                    octools.print_error_log(f"Could not generate receptor or ligand object for the protein in dir '{dir}'. Error found while trying to run the {dockingAlgorithm} docking software.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report.log")
+                    _ = errors.receptor_or_ligand_not_generated(f"Could not generate receptor or ligand object for the protein in dir '{dir}'. Error found while trying to run the {dockingAlgorithm} docking software.", level = "error")
+                    continue
+            else:
+                octools.print_error_log(f"There is no ligand or receptor descriptor for the protein in dir '{dir}'. Error found while trying to run the {dockingAlgorithm} docking software.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report.log")
+                _ = errors.receptor_or_ligand_descriptor_does_not_exist(f"There is no ligand or receptor descriptor for the protein in dir '{dir}'. Error found while trying to run the {dockingAlgorithm} docking software.", level = "error")
+                continue
+    return None
 
 ## Public ##
 def verify_integrity(chosenArchive):
@@ -908,12 +1043,13 @@ def prepare(archive, overwrite = False):
 
     return
 
-def run_vina(archive, overwrite = False):
+def run_dock(archive, dockingAlgorithm, overwrite = False):
     '''
     Parse the database into a SINGLE serializable object. (Not so good)
     Input:
-     archive [string] - Which archive will be processed. [dudez, pdbbind, astex]
-     overwrite [bool]   DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated.
+     archive [string]                         - Which archive will be processed. [dudez, pdbbind, astex]
+     dockingAlgorithm [string]                - Which docking software will be run. [vina, smina, plants]
+     overwrite [bool]          DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated.
     Return:
       [dict of tuples]
     '''
@@ -929,13 +1065,17 @@ def run_vina(archive, overwrite = False):
     else:
         octools.print_error(f"Not valid archive type. Expected one of ['astex', 'dudez', 'pdbbind'] and found {archive}.")
         return
+    # Check if the docking algorithm is valid
+    if dockingAlgorithm not in ["vina", "smina", "plants"]:
+        octools.print_error(f"Docking software not recognized. Expected ('vina', 'smina', 'plants') and got '{dockingAlgorithm}'.")
+        return None
     # Get all dirs paths in the database
     dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db']]
     # Decide if multprocessing will be used
     if args.multiprocess:
-        __get_parallel(dirs, archive, f"Processing {archive}")
+        __run_dock_parallel(dirs, archive, dockingAlgorithm, overwrite, f"Processing {archive}")
     else:
-        __get_no_parallel(dirs, archive)
+        __run_dock_no_parallel(dirs, archive, dockingAlgorithm, overwrite)
     return None
 
 def get_database_single_file(archive):

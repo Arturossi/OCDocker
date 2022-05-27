@@ -608,7 +608,7 @@ for line in open(config_file, "r"):
     elif line.startswith("vina_energy_range ="):
         vina_energy_range = line.split("=")[1].strip()
     elif line.startswith("vina_exhaustiveness ="):
-        vina_exhaustiveness = line.split("=")[1].strip()
+        vina_exhaustiveness = int(line.split("=")[1].strip())
     elif line.startswith("vina_num_modes ="):
         vina_num_modes = line.split("=")[1].strip()
     elif line.startswith("smina_energy_range ="):

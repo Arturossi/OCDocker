@@ -169,7 +169,7 @@ def run_vina(overwrite = False):
     Return:
       -
     '''
-    return ocbdb.run_vina("pdbbind", overwrite = overwrite)
+    return ocbdb.run_dock("pdbbind", "vina", overwrite = overwrite)
 
 def prepare(overwrite = False):
     '''

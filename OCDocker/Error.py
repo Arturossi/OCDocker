@@ -43,32 +43,37 @@ class Error:
         self.args = args
 
         # Common errors
-        self.okCode                   = 0
-        self.unkownCode               = -666
+        self.okCode                        = 0
+        self.unkownCode                    = -666
 
         # File errors
-        self.fileExistsCode           = 100
-        self.fileDoNotExistCode       = 101
-        self.readFileCode             = 102
-        self.writeFileCode            = 103
-        self.untarFileCode            = 104
-        self.unsupportedExtensionCode = 105
+        self.fileExistsCode                = 100
+        self.fileDoNotExistCode            = 101
+        self.readFileCode                  = 102
+        self.writeFileCode                 = 103
+        self.untarFileCode                 = 104
+        self.unsupportedExtensionCode      = 105
 
         # Directory errors
-        self.createDirCode            = 150
-        self.dirDoesNotExistsCode     = 151
+        self.createDirCode                 = 150
+        self.dirDoesNotExistsCode          = 151
 
         # Variable errors
-        self.wrongTypeCode            = 200
-        self.notSetCode               = 201
-        self.emptyCode                = 202
+        self.wrongTypeCode                 = 200
+        self.notSetCode                    = 201
+        self.emptyCode                     = 202
 
         # Subprocess errors
-        self.subprocessCode           = 300
+        self.subprocessCode                = 300
 
         # Molecule error
-        self.parseMoleculeCode        = 400
-        self.malformedMoleculeCode    = 401
+        self.parseMoleculeCode             = 400
+        self.malformedMoleculeCode         = 401
+
+        # Docking error
+        self.dockingObjectNotGeneratedCode = 500
+        self.recLigObjectNotGeneratedCode  = 501
+        self.recLigFileDoesNotExist        = 502
 
     ## Private ##
     def __print_success(self, message):
@@ -113,10 +118,10 @@ class Error:
         if self.args.output_level >= 3:
             print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;91mERROR\033[1;0m: {message} In function '{inspect.currentframe().f_back.f_back.f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_back.f_back.f_lineno} from file '{inspect.currentframe().f_back.f_back.f_back.f_code.co_filename}'.")
         else:
-            print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;91mERROR\033[1;0m")
+            print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;91mERROR\033[1;0m: {message}")
         return
 
-    def __print_msg(self, message, level):
+    def __print_msg(self, message="", level="warn"):
         '''
         Prints a message based on level.
         Input:
@@ -332,6 +337,43 @@ class Error:
         self.__print_msg(message, level)
         return self.malformedMoleculeCode
 
+    # Molecules errors
+    def docking_object_not_generated(self, message="", level="warn"):
+        '''
+        Return this when a docking object has not been generated.
+        Input:
+          message [string] DEFAULT: ""     - Message to be shown.
+          level   [string] DEFAULT: "warn" - Type of message "warn" or "error".
+        Return:
+          -
+        '''
+        self.__print_msg(message, level)
+        return self.dockingObjectNotGeneratedCode
+
+    def receptor_or_ligand_not_generated(self, message="", level="warn"):
+        '''
+        Return this when a receptor or ligand object has not been generated.
+        Input:
+          message [string] DEFAULT: ""     - Message to be shown.
+          level   [string] DEFAULT: "warn" - Type of message "warn" or "error".
+        Return:
+          -
+        '''
+        self.__print_msg(message, level)
+        return self.recLigObjectNotGeneratedCode
+
+    def receptor_or_ligand_descriptor_does_not_exist(self, message="", level="warn"):
+        '''
+        Return this when a receptor or ligand has no descriptor file.
+        Input:
+          message [string] DEFAULT: ""     - Message to be shown.
+          level   [string] DEFAULT: "warn" - Type of message "warn" or "error".
+        Return:
+          -
+        '''
+        self.__print_msg(message, level)
+        return self.recLigObjectNotGeneratedCode
+
     # Debug functions
     def print_attributes(self):
         '''
@@ -372,6 +414,14 @@ class Error:
         print(f"\n\t~~~~~~~~~~~~~ MOLECULE ERRORS ~~~~~~~~~~~~~~")
         print(f"\t - Molecule parse error:        {self.moleculeParseCode}")
         print(f"\t - Malformed molecule error:    {self.malformedMoleculeCode}")
+
+        print(f"\n\t~~~~~~~~~~~~~ DOCKING ERRORS ~~~~~~~~~~~~~~")
+        print(f"\t - Docking Object Generation")
+        print(f"\t   error:                       {self.dockingObjectNotGeneratedCode}")
+        print(f"\t - Receptor/Ligand Object")
+        print(f"\t   Generation error:            {self.recLigObjectNotGeneratedCode}")
+        print(f"\t - Receptor/Ligand File")
+        print(f"\t   descriptor does not exist:     {self.recLigFileDoesNotExist}")
 
         return
 
