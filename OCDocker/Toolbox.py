@@ -79,14 +79,14 @@ def printv(message):
     Return:
       -
     '''
-    if args.output_level >= 3:
+    if args.output_level >= 5:
         today = datetime.datetime.now()
         print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {message}")
     return
 
 def print_info(message, force = False):
     '''
-    Function to print warning.
+    Function to print info.
     Input:
       message [string]                - Message to be printed.
       force   [bool]   DEFAULT: False - Forces the system to print the message, even if output_level is turning it off (AVOID TO SET THIS TO TRUE!).
@@ -95,7 +95,7 @@ def print_info(message, force = False):
     '''
     if args.output_level >= 2 or force:
         today = datetime.datetime.now()
-        if args.output_level >= 3:
+        if args.output_level >= 4:
             print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['c']}INFO{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
         else:
             print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['c']}INFO{clrs['n']}: {message}")

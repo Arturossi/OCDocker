@@ -76,6 +76,21 @@ class Error:
         self.recLigFileDoesNotExist        = 502
 
     ## Private ##
+    def __print_info(self, message):
+        '''
+        Function to print info.
+        Input:
+          message [string] - Message to be printed.
+        Return:
+          -
+        '''
+        today = datetime.datetime.now()
+        if self.args.output_level >= 4:
+            print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['c']}INFO{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
+        else:
+            print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['c']}INFO{clrs['n']}: {message}")
+        return
+
     def __print_success(self, message):
         '''
         Print success.
@@ -137,6 +152,8 @@ class Error:
                 self.__print_error(message)
             elif level == "success" and self.args.output_level >= 3:
                 self.__print_success(message)
+            elif level == "info" and self.args.output_level >= 2:
+                self.__print_info(message)
         return
 
     ## Public ##

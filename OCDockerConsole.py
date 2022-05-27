@@ -7,7 +7,7 @@ from pprint import pprint
 
 from OCDocker.Initialise import *
 
-args.output_level = 0
+args.output_level = 3
 
 import OCDocker.Toolbox as octools
 
@@ -65,8 +65,8 @@ message = tw.dedent("""\033[1;93m
 
 print(message)
 
-args.cpu_cores = 10
-#args.cpu_cores = 11
+#args.cpu_cores = 20
+args.cpu_cores = 5
 args.available_cores = args.cpu_cores - 1
 args.multiprocess = 1
 
