@@ -13,6 +13,7 @@ from OCDocker.Initialise import *
 import OCDocker.Ligand as ocl
 import OCDocker.Vina as ocvina
 import OCDocker.Receptor as ocr
+import OCDocker.Smina as ocsmina
 import OCDocker.Toolbox as octools
 import OCDocker.ExternalTools.runprank as runprank
 
