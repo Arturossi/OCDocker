@@ -171,6 +171,16 @@ def run_vina(overwrite = False):
     '''
     return ocbdb.run_dock("pdbbind", "vina", overwrite = overwrite)
 
+def run_sina(overwrite = False):
+    '''
+    Runs smina in the whole database.
+    Input:
+     overwrite [bool] DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated.
+    Return:
+      -
+    '''
+    return ocbdb.run_dock("pdbbind", "smina", overwrite = overwrite)
+
 def prepare(overwrite = False):
     '''
     Prepares the PDBbind database.
