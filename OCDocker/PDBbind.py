@@ -171,7 +171,7 @@ def run_vina(overwrite = False):
     '''
     return ocbdb.run_dock("pdbbind", "vina", overwrite = overwrite)
 
-def run_sina(overwrite = False):
+def run_smina(overwrite = False):
     '''
     Runs smina in the whole database.
     Input:
