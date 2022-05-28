@@ -542,7 +542,7 @@ def __thread_dock_parallel(arguments):
                     # Set the run path
                     runPath = f"{dir}/sminaFiles/"
                     # Create the smina dir
-                    _ = safe_create_dir(runPath)
+                    _ = octools.safe_create_dir(runPath)
                     # If is needed to run (overwrite is set or no output is produced)
                     if overwrite or not os.path.isfile(f"{runPath}/smina.log") or not os.path.isfile(f"{runPath}/smina.pdbqt"):
                         # Read the receptor and the ligand
@@ -1211,7 +1211,7 @@ def get_database_multiple_files(archive, sliceSize = 100):
     # Get all dirs inside the database (except index and db)
     dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db']]
     # Create the db dir if does not exsit yet
-    _ = safe_create_dir(f"{chosenArchive}/db")
+    _ = octools.safe_create_dir(f"{chosenArchive}/db")
     # Slice it into chunks
     chunkedDirs = [dirs[x:x + sliceSize] for x in range(0, len(dirs), sliceSize)]
     # For each chunk
