@@ -1,0 +1,11 @@
+scoring_function chemplp
+search_speed speed1
+keep_original_mol2_description 0
+protein_file /mnt/e/Documents/OCDocker/OCDocker/test/rec.crg2_prepared_spores.mol2
+ligand_file /mnt/e/Documents/OCDocker/OCDocker/test/xtal-lig2_prepared_spores.mol2
+output_dir /mnt/e/Documents/OCDocker/OCDocker/test/plants
+write_multi_mol2 0
+bindingsite_center 36.552 39.252 51.291
+bindingsite_radius 68.21703
+cluster_structures 10
+cluster_rmsd 2.0

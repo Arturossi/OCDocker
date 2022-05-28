@@ -48,19 +48,20 @@ class Receptor:
     Load and compute receptor descriptors.
     """
 
-    def __init__(self, structure, name, mol2Path = None, cModel='gasteiger', gravyScale="KyteDoolitle", relativeASAcutoff=0.7, from_json_descriptors = ""):
+    def __init__(self, structure, name, mol2Path = None, cModel='gasteiger', gravyScale="KyteDoolitle", relativeASAcutoff=0.7, from_json_descriptors = "", overwrite=False):
         # Name must come first
         self.name = ""
+        # The molpath not always will exist (should also come first)
+        self.mol2Path = str(mol2Path)
         # Set the path and structure (NEVER SHOUD BE NONE)
         # If user pass a json
         if from_json_descriptors:
             # Read the molecule telling that there is no need to fetch the SASA value
-            self.path, self.structure = self.__loadMol(structure, computeSASA=False)
+            self.path, self.structure = self.__loadMol(structure, computeSASA=False, overwrite=overwrite)
         else:
             # Read the molecule telling that there is the need to fetch the SASA value
-            self.path, self.structure = self.__loadMol(structure, computeSASA=True)
-        # The molpath not always will exist
-        self.mol2Path = mol2Path
+            self.path, self.structure = self.__loadMol(structure, computeSASA=True, overwrite=overwrite)
+
         # Set the residues (derived from structure)
         self.residues = self.__getRes()
 
@@ -200,17 +201,18 @@ class Receptor:
             return None
         return count_surface_AA(self.structure, self.path, self.__relativeASAcutoff)
 
-    def __loadMol(self, structure, computeSASA=True):
+    def __loadMol(self, structure, computeSASA=True, overwrite=False):
         '''
         Load a structure pdb/cif if a path is provided or just assign the Bio.PDB.Structure.Structure object to the structure.
         Input:
-          structure   [string/Bio.PDB.Structure.Structure]               - Path to the structure file OR Bio.PDB.Structure.Structure object.
-          computeSASA [Bool]                               DEFAULT: True - Flag to denote if it is needed to compute the SASA descriptor.
+          structure   [string/Bio.PDB.Structure.Structure]                - Path to the structure file OR Bio.PDB.Structure.Structure object.
+          computeSASA [Bool]                               DEFAULT: True  - Flag to denote if it is needed to compute the SASA descriptor.
+          overwrite   [Bool]                               DEFAULT: False - Flag to denote if files will be overwritten.
         Return:
           [Bio.PDB.Structure.Structure] - If the object has been correctly parsed.
           [None]                        - If the object has not been correctly parsed.
         '''
-        return loadMol(structure, name=self.name, computeSASA=True)
+        return loadMol(structure, name=self.name, computeSASA=True, mol2Path=self.mol2Path, overwrite=overwrite)
 
     def __getRes(self):
         '''
@@ -541,13 +543,15 @@ def getRes(model):
         residues.append(seq1(residue.get_resname()))
     return "".join(residues)
 
-def loadMol(structure, name="", computeSASA=True):
+def loadMol(structure, name="", computeSASA=True, mol2Path="", overwrite=False):
     '''
     Load a structure pdb/cif if a path is provided or just assign the Bio.PDB.Structure.Structure object to the structure. Also returns the path as a tuple (path, structure).
     Input:
-      name      [string]                             DEFAULT: ""   - Name of the structure (if empty the structure's name will be 'Generic structure').
-      structure [string/Bio.PDB.Structure.Structure]               - Path to the structure file OR Bio.PDB.Structure.Structure object.
-      computeSASA [Bool]                             DEFAULT: True - Flag to denote if it is needed to compute the SASA descriptor.
+      name      [string]                             DEFAULT: ""    - Name of the structure (if empty the structure's name will be 'Generic structure').
+      structure [string/Bio.PDB.Structure.Structure]                - Path to the structure file (.pdb or .cif) OR Bio.PDB.Structure.Structure object.
+      computeSASA [Bool]                             DEFAULT: True  - Flag to denote if it is needed to compute the SASA descriptor.
+      mol2Path  [string]                             DEFAULT: ""    - Path of the mol2 file (if empty no mol2 file will be generated).
+      overwrite [Bool]                               DEFAULT: False - Flag to denote if files will be overwritten.
     Return:
       [string, Bio.PDB.Structure.Structure]
       [string, object] - If the object has been correctly parsed.
@@ -581,6 +585,10 @@ def loadMol(structure, name="", computeSASA=True):
                 return "", None
             # Compute the SASA value of the structure
             tmpStructure = parser.get_structure(name, structure)
+            # If there is a mol2 path and the file does not exist
+            if mol2Path and (not os.path.isfile(mol2Path) or overwrite):
+                # Convert the molecule
+                _ = octools.convertMols(structure, mol2Path)
             # Check if SASA should be computed
             if computeSASA:
                 compute_sasa(tmpStructure)

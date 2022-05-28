@@ -13,6 +13,7 @@ import OCDocker.Toolbox as octools
 
 import OCDocker.Vina as ocvina
 import OCDocker.Smina as ocsmina
+import OCDocker.PLANTS as ocplants
 import OCDocker.Database as ocdb
 import OCDocker.Astex as ocastex
 import OCDocker.DUDEz as ocdudez
@@ -98,4 +99,4 @@ for i in range(len(ligands)):
 
 #vinaTest = ocvina.Vina(f"{basePath}/test/conf_vina.txt", f"{basePath}/test/box.pdb", receptorTest, f"{basePath}/test/rec.crg.pdbqt", ligandTest, f"{basePath}/test/xtal-lig.pdbqt", f"{basePath}/test/vina.log", f"{basePath}/test/vina.pdbqt", name="Vina Test")
 #sminaTest = ocsmina.Smina(f"{basePath}/test/conf_smina.txt", receptorTest, f"{basePath}/test/rec.crg2.pdbqt", ligandTest, f"{basePath}/test/xtal-lig2.pdbqt", f"{basePath}/test/smina.log", f"{basePath}/test/smina.pdbqt", name="Smina Test")
-#plantsTest = ocsmina.PLANTS(f"{basePath}/test/conf_plants.txt", receptorTest, f"{basePath}/test/rec.crg2.pdbqt", ligandTest, f"{basePath}/test/xtal-lig2.pdbqt", f"{basePath}/test/smina.log", f"{basePath}/test/smina.pdbqt", name="Smina Test")
+#plantsTest = ocplants.PLANTS(f"{basePath}/test/conf_plants.txt", f"{basePath}/test/box.pdb", receptorTest, f"{basePath}/test/rec.crg2_prepared_spores.pdb", ligandTest, f"{basePath}/test/xtal-lig2_prepared_spores.mol2", f"{basePath}/test/plants.log", f"{basePath}/test/plants.pdb", name="Smina Test")

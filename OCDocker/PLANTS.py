@@ -49,10 +49,14 @@ class PLANTS:
     """
     PLANTS object with methods for easy run.
     """
-    def __init__(self, configPath, boxFile, receptor, preparedReceptorPath, ligand, preparedLigandPath, plantsLog, outputPlants, name=""):
+    def __init__(self, configPath, boxFile, receptor, preparedReceptorPath, ligand, preparedLigandPath, plantsLog, outputPlants, runs=1, name="", boxSpacing=0.33):
         self.name = str(name)
         self.config = str(configPath)
-        self.bindingSiteCenter, self.bindingSiteRadius = __get_binding_site(boxFile)
+        self.boxFile = str(boxFile)
+        self.boxSpacing = float(boxSpacing)
+        self.bindingSiteCenter, self.bindingSiteRadius = self.__get_binding_site()
+        self.runs = int(runs) if int(runs) > 0 else 1
+        self.currentRun = 0
         # Receptor
         self.inputReceptor = self.__parse_receptor(receptor)
         self.inputReceptorPath = self.__parse_receptor_path(receptor)
@@ -64,7 +68,7 @@ class PLANTS:
         self.inputLigand = self.__parse_ligand(ligand)
         self.inputLigandPath = self.__parse_ligand_path(ligand)
         self.prepareLigandCmd = self.__prepare_ligand_cmd()
-        # Vina
+        # Plants
         self.plantsLog = str(plantsLog)
         self.outputPlants = str(outputPlants)
         self.plantsCmd = self.__plants_cmd()
@@ -72,45 +76,16 @@ class PLANTS:
         self.__write_config_file()
 
     ## Private ##
-    def __get_binding_site(boxFile, spacing = 0.33):
+    def __get_binding_site(self):
         '''
         Get the binding site from a box file.
         Input:
-          boxFile   [string]               - Path to the box file.
-          spacing   [float]  DEFAULT: 0.33 - Extra spacing
+          -
         Return:
           [tuple of mixed tuple of floats and floats]
            Binding center (x, y, z) and binding radius.
         '''
-        octools.printv(f"Parsing '{boxFile}' to binding center data.")
-        # Test if the file boxFile exists
-        if not os.path.exists(boxFile):
-            return errors.file_do_not_exist(message=f"The box file in the path {boxFile} does not exists! Please ensure that the file exsits and the path is correct. If you have no box file, try to run the function 'runprank' from the 'runprank' library to create it before calling this function or creating a PLANTS class object.", level="error")
-        # List to hold all the data
-        lines = []
-        try:
-            # Open the box file
-            with open(str(boxFile), "r") as box_file:
-                # For each line in the file
-                for line in box_file:
-                    # If it starts with REMARK
-                    if line.startswith("REMARK"):
-                        # Split the line (using spaces as delimiters)
-                        l = line.split()
-                        # Append the last 3 elements as a tuple to the list
-                        lines.append((l[-3], l[-2], l[-1]))
-                        # If the length of the lines element is 2 or greater
-                        if len(lines) >= 2:
-                            # Break the loop (optimization)
-                            break
-        except Exception as e:
-            return errors.read_file(message=f"Found a problem while reading the box file: {e}", level="error")
-        # Get the biggest value among the coordinates, divide for 2 (because its a size)
-        radius = (max(lines[1][0], lines[1][1], lines[1][2])/2)
-        # Add some extra space
-        radius += spacing * radius
-        # Return the data
-        return ((lines[0][0], lines[0][1], lines[0][2]), radius)
+        return get_binding_site(self.boxFile, self.boxSpacing)
 
     def __parse_receptor(self, receptor):
         '''
@@ -140,7 +115,22 @@ class PLANTS:
         '''
         # Check the type of receptor variable
         if type(receptor) == ocr.Receptor:
-            return receptor.path
+            # If receptor has a mol2Path
+            if receptor.mol2Path:
+                return receptor.mol2Path
+            # Try to generate it
+            else:
+                mol2Path = f"{os.path.splitext(receptor.path)[0]}.mol2"
+                # Create the mol2Path
+                octools.print_warn(f"No mol2 file for '{receptor.path}' trying to generate in '{mol2Path}'.")
+                # Convert the molecule
+                _ = octools.convertMols(receptor.path, mol2Path)
+                # Check if it is generated
+                if os.path.isfile(mol2Path):
+                    return receptor.mol2Path
+                else:
+                    _ = octools.print_error(f"The mol2 file could not be generated for '{receptor.path}'.")
+                    return None
         elif type(receptor) == str:
             # Since is a string, check if the file exists
             if os.path.isfile(receptor):
@@ -248,7 +238,7 @@ class PLANTS:
         Return:
           list[string] - List of strings of the command.
         '''
-        cmd = [spores, "--mode", "complete", self.inputReceptor, self.preparedReceptor]
+        cmd = [spores, "--mode", "complete", self.inputReceptorPath, self.preparedReceptor]
         return cmd
 
     def __write_config_file(self):
@@ -260,26 +250,7 @@ class PLANTS:
           [int]
            See Error.py for all return codes.
         '''
-        try:
-            with open(self.config, "w") as f:
-                #f.write("# scoring function and search settings")
-                f.write("scoring_function chemplp")
-                f.write(f"search_speed {plants_search_speed}")
-                #f.write("# input")
-                f.write(f"protein_file {self.preparedReceptor}")
-                f.write(f"ligand_file {self.inputReceptor}")
-                #f.write("# output")
-                f.write(f"output_dir {outputPlants}")
-                #f.write("# write single mol2 files (e.g. for RMSD calculation)")
-                f.write("write_multi_mol2 0")
-                #f.write("# binding site definition")
-                f.write(f"bindingsite_center {self.bindingSiteCenter[0]} {self.bindingSiteCenter[1]} {self.bindingSiteCenter[2]}")
-                f.write(f"bindingsite_radius {self.bindingSiteRadius}")
-                f.write("# cluster algorithm")
-                f.write(f"cluster_structures {plants_cluster_structures}")
-                f.write(f"cluster_rmsd {plants_cluster_rmsd}")
-        except Exception as e:
-            return errors.write_file(f"Problems while writing the file {self.config}: {e}")
+        write_config_file(self.config, self.preparedReceptor, self.preparedLigand, self.outputPlants, self.bindingSiteCenter[0], self.bindingSiteCenter[1], self.bindingSiteCenter[2], self.bindingSiteRadius)
 
     ## Public ##
     def run_plants(self, logFile = ""):
@@ -341,9 +312,9 @@ class PLANTS:
         print(f"Prepared ligand path:        '{self.preparedLigand if self.preparedLigand else '-' }'")
         print(f"Prepared ligand command:     '{' '.join(self.prepareLigandCmd) if self.prepareLigandCmd else '-' }'")
         print(f"Conversion to mol2 log path: '{self.convert2mol2log if self.convert2mol2log else '-' }'")
-        print(f"Vina execution log path:     '{self.vinaLog if self.vinaLog else '-' }'")
-        print(f"Vina output path:            '{self.outputVina if self.outputVina else '-' }'")
-        print(f"Vina command:                '{' '.join(self.vinaCmd) if self.vinaCmd else '-' }'")
+        print(f"PLANTS execution log path:   '{self.plantsLog if self.plantsLog else '-' }'")
+        print(f"PLANTS output path:          '{self.outputPlants if self.outputPlants else '-' }'")
+        print(f"PLANTS command:              '{' '.join(self.plantsCmd) if self.plantsCmd else '-' }'")
         return
 
 # Functions
@@ -405,6 +376,77 @@ def run_plants(confFile, ligand, outpath, logFile=""):
     octools.printv(f"Running PLANTS using the '{confFile}' configurations.")
     # Run the command
     return octools.run(cmd, logFile=logFile)
+
+def write_config_file(config, preparedReceptor, preparedLigand, outputPlants, bindingSiteCenterX, bindingSiteCenterY, bindingSiteCenterZ, bindingSiteRadius):
+    '''
+    Write the config file.
+    Input:
+      -
+    Return:
+      [int]
+       See Error.py for all return codes.
+    '''
+    try:
+        with open(config, "w") as f:
+            #f.write("# scoring function and search settings\n")
+            f.write("scoring_function chemplp\n")
+            f.write(f"search_speed {plants_search_speed}\n")
+            #f.write("# input\n")
+            f.write(f"protein_file {preparedReceptor}\n")
+            f.write(f"ligand_file {preparedLigand}\n")
+            #f.write("# output\n")
+            f.write(f"keep_original_mol2_description 0\n")
+            f.write(f"output_dir {outputPlants}\n")
+            #f.write("# write single mol2 files (e.g. for RMSD calculation)\n")
+            f.write("write_multi_mol2 0\n")
+            #f.write("# binding site definition\n")
+            f.write(f"bindingsite_center {bindingSiteCenterX} {bindingSiteCenterY} {bindingSiteCenterZ}\n")
+            f.write(f"bindingsite_radius {bindingSiteRadius}\n")
+            #f.write("# cluster algorithm\n")
+            f.write(f"cluster_structures {plants_cluster_structures}\n")
+            f.write(f"cluster_rmsd {plants_cluster_rmsd}")
+    except Exception as e:
+        return errors.write_file(f"Problems while writing the file {config}: {e}")
+
+def get_binding_site(boxFile, spacing = 0.33):
+    '''
+    Get the binding site from a box file.
+    Input:
+      boxFile   [string]               - Path to the box file.
+      spacing   [float]  DEFAULT: 0.33 - Extra spacing
+    Return:
+      [tuple of mixed tuple of floats and floats]
+       Binding center (x, y, z) and binding radius.
+    '''
+    octools.printv(f"Parsing '{boxFile}' to binding center data.")
+    # Test if the file boxFile exists
+    if not os.path.exists(boxFile):
+        return errors.file_do_not_exist(message=f"The box file in the path {boxFile} does not exists! Please ensure that the file exsits and the path is correct. If you have no box file, try to run the function 'runprank' from the 'runprank' library to create it before calling this function or creating a PLANTS class object.", level="error")
+    # List to hold all the data
+    lines = []
+    try:
+        # Open the box file
+        with open(str(boxFile), "r") as box_file:
+            # For each line in the file
+            for line in box_file:
+                # If it starts with REMARK
+                if line.startswith("REMARK"):
+                    # Split the line (using spaces as delimiters)
+                    l = line.split()
+                    # Append the last 3 elements as a tuple to the list
+                    lines.append((l[-3], l[-2], l[-1]))
+                    # If the length of the lines element is 2 or greater
+                    if len(lines) >= 2:
+                        # Break the loop (optimization)
+                        break
+    except Exception as e:
+        return errors.read_file(message=f"Found a problem while reading the box file: {e}", level="error")
+    # Get the biggest value among the coordinates, divide for 2 (because its a size)
+    radius = (max(float(lines[1][0]), float(lines[1][1]), float(lines[1][2]))/2)
+    # Add some extra space
+    radius += spacing * radius
+    # Return the data
+    return ((lines[0][0], lines[0][1], lines[0][2]), radius)
 
 """def generate_vina_files_database(path, protein):
     '''
