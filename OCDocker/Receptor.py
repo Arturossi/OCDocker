@@ -48,7 +48,7 @@ class Receptor:
     Load and compute receptor descriptors.
     """
 
-    def __init__(self, structure, name, mol2Path = None, cModel='gasteiger', gravyScale="KyteDoolitle", relativeASAcutoff=0.7, from_json_descriptors = "", overwrite=False):
+    def __init__(self, structure, name, mol2Path = "", cModel='gasteiger', gravyScale="KyteDoolitle", relativeASAcutoff=0.7, from_json_descriptors = "", overwrite=False):
         # Name must come first
         self.name = ""
         # The molpath not always will exist (should also come first)
@@ -57,7 +57,7 @@ class Receptor:
         # If user pass a json
         if from_json_descriptors:
             # Read the molecule telling that there is no need to fetch the SASA value
-            self.path, self.structure = self.__loadMol(structure, computeSASA=False, overwrite=overwrite)
+            self.path, self.structure = self.__loadMol(structure, computeSASA=False,overwrite=overwrite)
         else:
             # Read the molecule telling that there is the need to fetch the SASA value
             self.path, self.structure = self.__loadMol(structure, computeSASA=True, overwrite=overwrite)
