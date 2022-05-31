@@ -49,14 +49,12 @@ class PLANTS:
     """
     PLANTS object with methods for easy run.
     """
-    def __init__(self, configPath, boxFile, receptor, preparedReceptorPath, ligand, preparedLigandPath, plantsLog, outputPlants, runs=1, name="", boxSpacing=0.33):
+    def __init__(self, configPath, boxFile, receptor, preparedReceptorPath, ligand, preparedLigandPath, plantsLog, outputPlants, name="", boxSpacing=0.33):
         self.name = str(name)
         self.config = str(configPath)
         self.boxFile = str(boxFile)
         self.boxSpacing = float(boxSpacing)
         self.bindingSiteCenter, self.bindingSiteRadius = self.__get_binding_site()
-        self.runs = int(runs) if int(runs) > 0 else 1
-        self.currentRun = 0
         # Receptor
         self.inputReceptor = self.__parse_receptor(receptor)
         self.inputReceptorPath = self.__parse_receptor_path(receptor)
@@ -73,7 +71,7 @@ class PLANTS:
         self.outputPlants = str(outputPlants)
         self.plantsCmd = self.__plants_cmd()
         # Create the box
-        self.__write_config_file()
+        self.write_config_file()
 
     ## Private ##
     def __get_binding_site(self):
@@ -122,7 +120,7 @@ class PLANTS:
             else:
                 mol2Path = f"{os.path.splitext(receptor.path)[0]}.mol2"
                 # Create the mol2Path
-                octools.print_warn(f"No mol2 file for '{receptor.path}' trying to generate in '{mol2Path}'.")
+                octools.print_warning(f"No mol2 file for '{receptor.path}' trying to generate in '{mol2Path}'.")
                 # Convert the molecule
                 _ = octools.convertMols(receptor.path, mol2Path)
                 # Check if it is generated
@@ -241,7 +239,8 @@ class PLANTS:
         cmd = [spores, "--mode", "complete", self.inputReceptorPath, self.preparedReceptor]
         return cmd
 
-    def __write_config_file(self):
+    ## Public ##
+    def write_config_file(self):
         '''
         Write the config file.
         Input:
@@ -252,16 +251,29 @@ class PLANTS:
         '''
         write_config_file(self.config, self.preparedReceptor, self.preparedLigand, self.outputPlants, self.bindingSiteCenter[0], self.bindingSiteCenter[1], self.bindingSiteCenter[2], self.bindingSiteRadius)
 
-    ## Public ##
-    def run_plants(self, logFile = ""):
+    def run_plants(self, logFile = "", overwrite=False):
         '''
         Run plants.
         Input:
-          logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
+          logFile   [list(string)] DEFAULT: ""    - Path to the logFile. If empty, suppress the output.
+          overwrite [bool]         DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated.
         Return:
           [int]
            See Error.py for all return codes.
         '''
+        # If overwrite is set
+        if overwrite:
+            # Check if there is an output
+            if os.path.isdir(self.outputPlants):
+                # Remove it
+                shutil.rmtree(self.outputPlants)
+        # Check if there is an output
+        elif os.path.isdir(self.outputPlants):
+            # Check if the dir is empty
+            if len(os.listdir(self.outputPlants)) == 0:
+                # Remove it
+                os.rmdir(self.outputPlants)
+
         # Print verboosity
         octools.printv(f"Running PLANTS using the '{self.config}' configurations.")
         return octools.run(self.plantsCmd, logFile=self.plantsLog)
@@ -322,6 +334,27 @@ class PLANTS:
 ## Private ##
 
 ## Public ##
+## Public ##
+def box_to_smina(boxFile, confFile, receptor, ligand, outputPlants, spacing = 0.33):
+    '''
+    Convert a box (DUDE like format) to smina input.
+    Input:
+      boxFile      [string]               - Path to the box file.
+      confFile     [string]               - Path to the conf file.
+      receptor     [string]               - Receptor name to be used in conf file.
+      ligand       [string]               - Ligand name to be used in conf file.
+      outputPlants [string]               - Path where SMINA output should be put.
+      spacing      [float]  DEFAULT: 0.33 - Extra spacing for the sphere in percentage. (To ensure that all the sites will be accounted)
+    Return:
+      [int]
+       See Error.py for all return codes.
+    '''
+    octools.printv(f"Converting the box file '{boxFile}' to Smina conf file as '{confFile}' file.")
+    # Get the center and the binding site center
+    center, bindingSiteRadius = get_binding_site(boxFile, spacing = spacing)
+    # Write the file
+    return write_config_file(confFile, receptor, ligand, outputPlants, center[0], center[1], center[2], bindingSiteRadius)
+
 def run_prepare_ligand(inputLigandPath, outputLigand, logFile=""):
     '''
     Prepares the ligand using 'prepare_ligand4' from MGLTools suite.
@@ -358,18 +391,31 @@ def run_prepare_receptor(inputReceptorPath, outputReceptor, logFile=""):
     # Run the command
     return octools.run(cmd, logFile=logFile)
 
-def run_plants(confFile, ligand, outpath, logFile=""):
+def run_plants(confFile, ligand, outputPlants, overwrite=False, logFile=""):
     '''
     Run PLANTS.
     Input:
-      confFile [string]                   - Path to the config file.
-      ligand   [string]                   - Path to the ligand file.
-      outpath  [string]                   - Path to the receptor file.
-      logFile  [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
+      confFile     [string]                   - Path to the config file.
+      ligand       [string]                   - Path to the ligand file.
+      outputPlants [string]                   - Path where the PLANTS output will be. (SHOULD be the same as inside the conf file!)
+      logFile      [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
     Return:
       [int]
        See Error.py for all return codes.
     '''
+    # If overwrite is set
+    if overwrite:
+        # Check if there is an output
+        if os.path.isdir(outputPlants):
+            # Remove it
+            shutil.rmtree(outputPlants)
+    # Check if there is an output
+    elif os.path.isdir(outputPlants):
+        # Check if the dir is empty
+        if len(os.listdir(outputPlants)) == 0:
+            # Remove it
+            os.rmdir(outputPlants)
+
     # Create the command list
     cmd = [plants, "--mode", "screen", confFile]
     # Print verboosity
@@ -395,13 +441,13 @@ def write_config_file(config, preparedReceptor, preparedLigand, outputPlants, bi
             f.write(f"protein_file {preparedReceptor}\n")
             f.write(f"ligand_file {preparedLigand}\n")
             #f.write("# output\n")
-            f.write(f"keep_original_mol2_description 0\n")
+            f.write(f"keep_original_mol2_description 0\n") # important to avoid problems in output generation
             f.write(f"output_dir {outputPlants}\n")
             #f.write("# write single mol2 files (e.g. for RMSD calculation)\n")
             f.write("write_multi_mol2 0\n")
             #f.write("# binding site definition\n")
             f.write(f"bindingsite_center {bindingSiteCenterX} {bindingSiteCenterY} {bindingSiteCenterZ}\n")
-            f.write(f"bindingsite_radius {bindingSiteRadius}\n")
+            f.write(f"bindingsite_radius {round(bindingSiteRadius, 3)}\n")
             #f.write("# cluster algorithm\n")
             f.write(f"cluster_structures {plants_cluster_structures}\n")
             f.write(f"cluster_rmsd {plants_cluster_rmsd}")
@@ -423,7 +469,20 @@ def get_binding_site(boxFile, spacing = 0.33):
     if not os.path.exists(boxFile):
         return errors.file_do_not_exist(message=f"The box file in the path {boxFile} does not exists! Please ensure that the file exsits and the path is correct. If you have no box file, try to run the function 'runprank' from the 'runprank' library to create it before calling this function or creating a PLANTS class object.", level="error")
     # List to hold all the data
-    lines = []
+    center = {
+        'x': None,
+        'y': None,
+        'z': None
+    }
+    # Dict to hold max and min x,y,z (set all as None)
+    positions = {
+        'max_x': None,
+        'max_y': None,
+        'max_z': None,
+        'min_x': None,
+        'min_y': None,
+        'min_z': None
+        }
     try:
         # Open the box file
         with open(str(boxFile), "r") as box_file:
@@ -433,56 +492,63 @@ def get_binding_site(boxFile, spacing = 0.33):
                 if line.startswith("REMARK"):
                     # Split the line (using spaces as delimiters)
                     l = line.split()
-                    # Append the last 3 elements as a tuple to the list
-                    lines.append((l[-3], l[-2], l[-1]))
-                    # If the length of the lines element is 2 or greater
-                    if len(lines) >= 2:
-                        # Break the loop (optimization)
-                        break
+                    # Slice the line in right positions
+                    center['x'] = float(line[31:38])
+                    center['y'] = float(line[38:46])
+                    center['z'] = float(line[46:54])
+                    # Break the loop (optimization)
+                    break
+                # If it starts with ATOM
+                elif line.startswith("HEADER"):
+                    # Slice the line in right positions
+                    positions['min_x'] = float(line[31:38])
+                    positions['min_y'] = float(line[38:46])
+                    positions['min_z'] = float(line[46:54])
+                    positions['max_x'] = float(line[54:62])
+                    positions['max_y'] = float(line[62:70])
+                    positions['max_z'] = float(line[70:78])
+
     except Exception as e:
         return errors.read_file(message=f"Found a problem while reading the box file: {e}", level="error")
+    # Find which is the biggest value in each coordinate
+    xMax = max(abs(center['x'] - positions['min_x']), abs(positions['max_x'] - center['x']))
+    yMax = max(abs(center['y'] - positions['min_y']), abs(positions['max_y'] - center['y']))
+    zMax = max(abs(center['z'] - positions['min_z']), abs(positions['max_z'] - center['z']))
     # Get the biggest value among the coordinates, divide for 2 (because its a size)
-    radius = (max(float(lines[1][0]), float(lines[1][1]), float(lines[1][2]))/2)
+    radius = max(xMax, yMax, zMax)/2
     # Add some extra space
-    radius += spacing * radius
+    radius += round(spacing * radius, 3)
     # Return the data
-    return ((lines[0][0], lines[0][1], lines[0][2]), radius)
+    return ((center['x'], center['y'], center['z']), radius)
 
-"""def generate_vina_files_database(path, protein):
+def generate_plants_files_database(path, protein, ligand, spacing):
     '''
-    Generate all vina required files for provided protein.
+    Generate all PLANTS required files for provided protein.
     Input:
-     path    [string] - Input path.
-     protein [string] - Protein path.
+     path         [string]               - Input path.
+     protein      [string]               - Protein path.
+     ligand       [string]               - Ligand name to be used in conf file.
+     spacing      [float]  DEFAULT: 0.33 - Extra spacing for the sphere in percentage. (To ensure that all the sites will be accounted)
     Return:
       -
     '''
     # Parameterize the vina and p2rank paths
-    vinaPath = f"{path}/vinaFiles"
+    plantsPath = f"{path}/plantsFiles"
     prankPath = f"{path}/p2rank"
-
     # Create the vina folder inside protein's directory
-    _ = octools.safe_create_dir(vinaPath)
-
+    _ = octools.safe_create_dir(plantsPath)
     # Find all boxes
     boxes = glob(f"{prankPath}/box*.pdb")
-
     # For each box
     for box in boxes:
         # Get box name
         boxName = os.path.basename(box)
-
         # Get box id
         boxId = boxName.split(".")[0].replace("box", "").replace(".pdb", "")
-
         # Parameterize the box folder
-        boxFolder = f"{vinaPath}/{boxId}"
-
+        outputPlants = f"{plantsPath}/{boxId}"
         # Create vina execution folder
-        _ = octools.safe_create_dir(boxFolder)
-
-        confPath = f"{boxFolder}/conf_vina.txt"
-
-        box_to_vina(box, confPath, protein)
-
-    return"""
+        _ = octools.safe_create_dir(outputPlants)
+        confPath = f"{outputPlants}/conf_plants.txt"
+        box_to_smina(box, confPath, protein, ligand, outputPlants, spacing = spacing)
+    return None

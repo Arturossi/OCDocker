@@ -767,6 +767,21 @@ def from_pickle(filePath):
         data = pickle.load(handle)
     return data
 
+def clear_past_logs():
+    '''
+    Clear past logs entries.
+    Input:
+      -
+    Return:
+      -
+    '''
+    # For each dir in the log dir
+    for pastLog in [d for d in glob(f"{logdir}/*") if os.path.isdir(d)]:
+        # Extra check for avoid wrong deletions
+        if pastLog.endswith("past"):
+            # Remove all the folder
+            shutil.rmtree(pastLog)
+    return
 
 @contextlib.contextmanager
 def redirect_to_tqdm():

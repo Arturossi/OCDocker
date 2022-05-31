@@ -413,13 +413,15 @@ global dssp
 ###############################################################################
 
 # Dictionary for the output colors
-clrs = {"r": "\033[1;91m",  # red
-        "g": "\033[1;92m",  # green
-        "y": "\033[1;93m",  # yellow
-        "b": "\033[1;94m",  # blue
-        "p": "\033[1;95m",  # purple
-        "c": "\033[1;96m",  # cyan
-        "n": "\033[1;0m"}   # default
+clrs = {
+    "r": "\033[1;91m",  # red
+    "g": "\033[1;92m",  # green
+    "y": "\033[1;93m",  # yellow
+    "b": "\033[1;94m",  # blue
+    "p": "\033[1;95m",  # purple
+    "c": "\033[1;96m",  # cyan
+    "n": "\033[1;0m"   # default
+    }
 
 # This structure is to define which will be used order, the first index will be the default magnitude and the other is element magnitude [Y, Z, E, P, T, G, M, k, un, c, m, u, n, p, f, a, z, y]
 order = {

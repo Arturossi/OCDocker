@@ -316,15 +316,12 @@ def box_to_vina(boxFile, confFile, receptor):
     try:
         # Open the box file
         with open(str(boxFile), "r") as box_file:
-
             # For each line in the file
             for line in box_file:
                 # If it starts with REMARK
                 if line.startswith("REMARK"):
-                    # Split the line (using spaces as delimiters)
-                    l = line.split()
-                    # Append the last 3 elements as a tuple to the list
-                    lines.append((l[-3], l[-2], l[-1]))
+                    # Slice the line in right positions
+                    lines.append((float(line[31:38]), float(line[38:46]), float(line[46:54])))
 
                     # If the length of the lines element is 2 or greater
                     if len(lines) >= 2:
@@ -417,29 +414,20 @@ def generate_vina_files_database(path, protein):
     # Parameterize the vina and p2rank paths
     vinaPath = f"{path}/vinaFiles"
     prankPath = f"{path}/p2rank"
-
     # Create the vina folder inside protein's directory
     _ = octools.safe_create_dir(vinaPath)
-
     # Find all boxes
     boxes = glob(f"{prankPath}/box*.pdb")
-
     # For each box
     for box in boxes:
         # Get box name
         boxName = os.path.basename(box)
-
         # Get box id
         boxId = boxName.split(".")[0].replace("box", "").replace(".pdb", "")
-
         # Parameterize the box folder
         boxFolder = f"{vinaPath}/{boxId}"
-
         # Create vina execution folder
         _ = octools.safe_create_dir(boxFolder)
-
         confPath = f"{boxFolder}/conf_vina.txt"
-
         box_to_vina(box, confPath, protein)
-
-    return
+    return None

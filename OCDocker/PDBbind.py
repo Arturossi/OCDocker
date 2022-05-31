@@ -181,6 +181,16 @@ def run_smina(overwrite = False):
     '''
     return ocbdb.run_dock("pdbbind", "smina", overwrite = overwrite)
 
+def run_plants(overwrite = False):
+    '''
+    Runs PLANTS in the whole database.
+    Input:
+     overwrite [bool] DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated.
+    Return:
+      -
+    '''
+    return ocbdb.run_dock("pdbbind", "plants", overwrite = overwrite)
+
 def prepare(overwrite = False):
     '''
     Prepares the PDBbind database.

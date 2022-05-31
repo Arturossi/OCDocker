@@ -311,20 +311,20 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
         center_z = round(dim_z/2, 3)
 
         # Convert the values found above to string with 8 chars (complete with spaces to the left) as the .pdb file model
-        min_x = " "*(8-len(str(box["min_x"]))) + str(box["min_x"])
-        max_x = " "*(8-len(str(box["max_x"]))) + str(box["max_x"])
-        min_y = " "*(8-len(str(box["min_y"]))) + str(box["min_y"])
-        max_y = " "*(8-len(str(box["max_y"]))) + str(box["max_y"])
-        min_z = " "*(8-len(str(box["min_z"]))) + str(box["min_z"])
-        max_z = " "*(8-len(str(box["max_z"]))) + str(box["max_z"])
+        min_x = " " * (8 - len(str(box["min_x"]))) + str(box["min_x"])
+        max_x = " " * (8 - len(str(box["max_x"]))) + str(box["max_x"])
+        min_y = " " * (8 - len(str(box["min_y"]))) + str(box["min_y"])
+        max_y = " " * (8 - len(str(box["max_y"]))) + str(box["max_y"])
+        min_z = " " * (8 - len(str(box["min_z"]))) + str(box["min_z"])
+        max_z = " " * (8 - len(str(box["max_z"]))) + str(box["max_z"])
 
-        dim_x = " "*(8-len(str(dim_x))) + str(dim_x)
-        dim_y = " "*(8-len(str(dim_y))) + str(dim_y)
-        dim_z = " "*(8-len(str(dim_z))) + str(dim_z)
+        dim_x = " " * (8 - len(str(dim_x))) + str(dim_x)
+        dim_y = " " * (8 - len(str(dim_y))) + str(dim_y)
+        dim_z = " " * (8 - len(str(dim_z))) + str(dim_z)
 
-        center_x = " "*(8-len(str(center_x))) + str(center_x)
-        center_y = " "*(8-len(str(center_y))) + str(center_y)
-        center_z = " "*(8-len(str(center_z))) + str(center_z)
+        center_x = " " * (8 - len(str(center_x))) + str(center_x)
+        center_y = " " * (8 - len(str(center_y))) + str(center_y)
+        center_z = " " * (8 - len(str(center_z))) + str(center_z)
 
         # Write out the box file (following the one given in the DUD-E database)
         with open(f"{fout}{folder}/box{index}{suffix}.pdb", "w") as f:
