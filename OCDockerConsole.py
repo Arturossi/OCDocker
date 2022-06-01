@@ -67,8 +67,8 @@ message = tw.dedent("""\033[1;93m
 
 print(message)
 
-args.cpu_cores = 20
-#args.cpu_cores = 5
+#args.cpu_cores = 20
+args.cpu_cores = 5
 args.available_cores = args.cpu_cores - 1
 args.multiprocess = 1
 

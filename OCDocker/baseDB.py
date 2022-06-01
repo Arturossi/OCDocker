@@ -615,9 +615,9 @@ def __thread_dock_parallel(arguments):
                     # If is needed to run (at least one protein)
                     if needToRun:
                         # Separate the extension from file path
-                        mol2path, file_extension = os.path.splitext(receptorPath)
+                        mol2Path, file_extension = os.path.splitext(receptorPath)
                         # Read the receptor and the ligand (passing the mol2!!!)
-                        receptor = ocr.Receptor(receptorPath, mol2path = f"{mol2path}.mol2", from_json_descriptors = f"{dir}/{ptn}_protein_descriptors.json", name = f"{ptn}_receptor")
+                        receptor = ocr.Receptor(receptorPath, mol2Path = f"{mol2Path}.mol2", from_json_descriptors = f"{dir}/{ptn}_protein_descriptors.json", name = f"{ptn}_receptor")
                         ligand = ocl.Ligand(ligandPath, from_json_descriptors = f"{dir}/{ptn}_ligand_descriptors.json", name = f"{ptn}_ligand")
                         # If receptor and ligand are not null
                         if receptor and ligand:
@@ -626,8 +626,8 @@ def __thread_dock_parallel(arguments):
                                 # Get the run number
                                 runNumber = runPath.split(os.path.sep)[-1]
                                 # Parameterizing paths
-                                plantsLog = f"{runPath}/{runNumber}/plants_{runNumber}.log"
-                                plantsOutput = f"{runPath}/plants/{runNumber}"
+                                plantsLog = f"{runPath}/plants_{runNumber}.log"
+                                plantsOutput = f"{runPath}/run"
                                 # Create the smina object (the pdbqt files will be in the father directory because it will be used multiple times, let's save some disk space, please)
                                 plants = ocplants.PLANTS(f"{runPath}/conf_plants.txt", f"{dir}/p2rank/box{runNumber}.pdb", receptor, f"{dir}/{ptn}_protein_prepared.mol2", ligand, f"{dir}/{ptn}_ligand_prepared.mol2", plantsLog, plantsOutput, name=f"{ptn} PLANTS")
                                 # Check if the smina object has been correctly created
@@ -644,16 +644,16 @@ def __thread_dock_parallel(arguments):
                                     _ = plants.run_prepare_receptor()
                                 if overwrite or not os.path.isfile(plantsLog) or not os.path.isfile(plantsOutput):
                                     # Run vina
-                                    plants.run_plants()
+                                    plants.run_plants(overwrite=True)
                                 else:
                                     octools.print_warning_log(f"The PLANTS output for '{ptn}' run '{runNumber}' is already generated and you can check it at the '{runPath}/*/plants_<runNumber>.log' path. PLANTS execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_WARNING.log")
                                     octools.print_warning(f"The PLANTS output for '{ptn}' run '{runNumber}' is already generated and you can check it at the '{runPath}/*/plants_<runNumber>.log' path. PLANTS execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true.")
-                            else:
-                                octools.print_error_log(f"Could not generate receptor or ligand object for the protein in dir '{dir}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_ERROR.log")
-                                return errors.receptor_or_ligand_not_generated(f"Could not generate receptor or ligand object for the protein in dir '{dir}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", level = "error")
+                        else:
+                            octools.print_error_log(f"Could not generate receptor or ligand object for the protein in dir '{dir}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_ERROR.log")
+                            return errors.receptor_or_ligand_not_generated(f"Could not generate receptor or ligand object for the protein in dir '{dir}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", level = "error")
                     else:
-                        octools.print_warning_log(f"The smina output for '{ptn}' is already generated and you can check it at the '{plantsLog}' path. PLANTS execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_WARNING.log")
-                        octools.print_warning(f"The smina output for '{ptn}' is already generated and you can check it at the '{plantsLog}' path. PLANTS execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true.")
+                        octools.print_warning_log(f"The PLANTS output for '{ptn}' is already generated and you can check it at the '{plantsLog}' path. PLANTS execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_WARNING.log")
+                        octools.print_warning(f"The PLANTS output for '{ptn}' is already generated and you can check it at the '{plantsLog}' path. PLANTS execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true.")
                 else:
                     octools.print_error_log(f"Wrong docking algorithm. Expected ['vina', 'smina', 'plants'] and got '{dockingAlgorithm}'.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_ERROR.log")
                     return errors.receptor_or_ligand_descriptor_does_not_exist(f"Wrong docking algorithm. Expected ['vina', 'smina', 'plants'] and got '{dockingAlgorithm}'.", level = "error")
@@ -764,7 +764,7 @@ def __run_dock_no_parallel(dirs, archive, dockingAlgorithm, overwrite):
                             else:
                                 octools.print_warning(f"The vina output for {ptn} run {runNumber} is already generated and you can check it at the '{runPath}/vina_{runNumber}.log' path. Vina execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true")
                 else:
-                    octools.print_error_log(f"Could not generate receptor or ligand object for the protein in dir '{dir}'. Error found while trying to run the {dockingAlgorithm} docking software.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report.log")
+                    octools.print_error_log(f"Could not generate receptor: {receptor if receptor else 'None'} or ligand {ligand if ligand else 'None'} object for the protein in dir '{dir}'. Error found while trying to run the {dockingAlgorithm} docking software.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report.log")
                     _ = errors.receptor_or_ligand_not_generated(f"Could not generate receptor or ligand object for the protein in dir '{dir}'. Error found while trying to run the {dockingAlgorithm} docking software.", level = "error")
                     continue
             else:
@@ -827,8 +827,8 @@ def verify_integrity(chosenArchive, spacing = 0.33):
             elif archive == "dudez":
                 fin = f"{dir}/rec.crg.pdb"
             elif archive == "pdbbind":
-                fin = f"{dir}/{dir.split(os.path.sep)[-1]}_protein.pdb"
-                ligand = f"{dir}/{dir.split(os.path.sep)[-1]}_ligand.mol2"
+                fin = f"{dir}/{ptn}_protein.pdb"
+                ligand = f"{dir}/{ptn}_ligand.mol2"
             else:
                 octools.print_error(f"Unknown archive type, expected one of the following ['astex', 'dudez', 'pdbbind'] and got '{archive}'.")
                 return
@@ -910,9 +910,10 @@ def verify_integrity(chosenArchive, spacing = 0.33):
             # If there is not the same amount of box files as folders in vinaFiles folder
             if len([d for d in glob(f"{vinaDir}/*") if os.path.isdir(d)]) < boxCount:
                 octools.print_warning(f"The protein '{dir}' has not the same amount of vina conf files as the amount of box files. Trying to fix...")
-
+                # If vina is needed, the input should be the prepared receptor
+                preparedReceptor = f"{dir}/{ptn}_protein.pdbqt"
                 # Run the vina conf creation from box
-                __run_create_vina_conf_from_box(dir, fin)
+                __run_create_vina_conf_from_box(dir, preparedReceptor)
 
                 # If there is not the same amount of box files as folders in vinaFiles folder (again)
                 if len([d for d in glob(f"{vinaDir}/*") if os.path.isdir(d)]) == boxCount:
@@ -926,8 +927,11 @@ def verify_integrity(chosenArchive, spacing = 0.33):
             # If there is not the same amount of box files as folders in plantsFiles folder
             if len([d for d in glob(f"{plantsDir}/*") if os.path.isdir(d)]) < boxCount:
                 octools.print_warning(f"The protein '{dir}' has not the same amount of PLANTS conf files as the amount of box files. Trying to fix...")
+                # If PLANTS is needed, the input should be the prepared receptor and ligand
+                preparedReceptor = f"{dir}/{ptn}_protein_prepared.mol2"
+                preparedLigand = f"{dir}/{ptn}_ligand_prepared.mol2"
                 # Generate box files
-                __run_create_plants_conf_from_box(dir, fin, ligand, spacing)
+                __run_create_plants_conf_from_box(dir, preparedReceptor, preparedLigand, spacing)
                 # If there is not the same amount of box files as folders in vinaFiles folder (again)
                 if len([d for d in glob(f"{plantsDir}/*") if os.path.isdir(d)]):
                     octools.print_success(f"PLANTS conf files generated for '{dir}'.")

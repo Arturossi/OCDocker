@@ -70,8 +70,10 @@ class PLANTS:
         self.plantsLog = str(plantsLog)
         self.outputPlants = str(outputPlants)
         self.plantsCmd = self.__plants_cmd()
-        # Create the box
-        self.write_config_file()
+        # Check if config file exists to avoid useless processing
+        if not os.path.isfile(self.config):
+            # Create the box
+            self.write_config_file()
 
     ## Private ##
     def __get_binding_site(self):
@@ -276,7 +278,10 @@ class PLANTS:
 
         # Print verboosity
         octools.printv(f"Running PLANTS using the '{self.config}' configurations.")
-        return octools.run(self.plantsCmd, logFile=self.plantsLog)
+        output = octools.run(self.plantsCmd, logFile=self.plantsLog)
+        # Remove the annoying .pid file
+        _ = octools.run(["rm", "PLANTS-*.pid"])
+        return output
 
     def run_prepare_ligand(self, logFile = ""):
         '''
@@ -334,10 +339,9 @@ class PLANTS:
 ## Private ##
 
 ## Public ##
-## Public ##
-def box_to_smina(boxFile, confFile, receptor, ligand, outputPlants, spacing = 0.33):
+def box_to_plants(boxFile, confFile, receptor, ligand, outputPlants, spacing = 0.33):
     '''
-    Convert a box (DUDE like format) to smina input.
+    Convert a box (DUDE like format) to PLANTS input.
     Input:
       boxFile      [string]               - Path to the box file.
       confFile     [string]               - Path to the conf file.
@@ -349,7 +353,7 @@ def box_to_smina(boxFile, confFile, receptor, ligand, outputPlants, spacing = 0.
       [int]
        See Error.py for all return codes.
     '''
-    octools.printv(f"Converting the box file '{boxFile}' to Smina conf file as '{confFile}' file.")
+    octools.printv(f"Converting the box file '{boxFile}' to PLANTS conf file as '{confFile}' file.")
     # Get the center and the binding site center
     center, bindingSiteRadius = get_binding_site(boxFile, spacing = spacing)
     # Write the file
@@ -550,5 +554,5 @@ def generate_plants_files_database(path, protein, ligand, spacing):
         # Create vina execution folder
         _ = octools.safe_create_dir(outputPlants)
         confPath = f"{outputPlants}/conf_plants.txt"
-        box_to_smina(box, confPath, protein, ligand, outputPlants, spacing = spacing)
+        box_to_plants(box, confPath, protein, ligand, f"{outputPlants}/run", spacing = spacing)
     return None

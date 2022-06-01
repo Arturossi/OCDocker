@@ -436,8 +436,8 @@ def run(cmd, logFile = ""):
     '''
     Run the given command (generic).
     Input:
-      cmd     [list(string)]             - List containing the strings of the command.
-      logfile [list(string)] DEFAULT: "" - Path to the logFile (empty string to suppress the output).
+      cmd             [list(string)]             - List containing the strings of the command.
+      logfile         [list(string)] DEFAULT: "" - Path to the logFile (empty string to suppress the output).
     Return:
       [int]
       See Error.py for all return codes.
@@ -460,6 +460,7 @@ def run(cmd, logFile = ""):
     try:
         with open(logFile, "w") as outfile:
             subprocess.run(cmd, stdout=outfile)
+
     except Exception as e:
         return errors.subprocess(message=f"Found a problem while executing the command '{' '.join(cmd)}': {e}", level="error")
 

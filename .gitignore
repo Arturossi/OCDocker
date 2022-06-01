@@ -175,3 +175,6 @@ tmp/
 
 # Ignore python backup files
 *.py.bak
+
+# Ignore the .pid files
+*.pid

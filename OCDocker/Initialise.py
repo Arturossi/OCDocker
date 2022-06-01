@@ -27,7 +27,7 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 
 # Description & version
 ###############################################################################
-ocVersion = "0.3.0"
+ocVersion = "0.3.5"
 
 description = tw.dedent("""\033[1;93m
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -36,7 +36,7 @@ description = tw.dedent("""\033[1;93m
     +-+-+-+-+-+-+-+-+-+- \033[1;96m┗━┛┗━╸╺┻━┛┗━┛┗━╸╹ ╹┗━╸╹┗╸ \033[1;93m-+-+-+-+-+-+-+-+-+-+
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 \033[1;0m
-      Copyright (C) 2021  Rossi, A.D; Torres, P.H.M.
+      Copyright (C) 2022  Rossi, A.D; Torres, P.H.M.
 \033[1;95m
                   [The Federal University of Rio de Janeiro]
 \033[1;0m
