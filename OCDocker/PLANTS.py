@@ -147,7 +147,7 @@ class PLANTS:
         '''
         Parse the ligand as input, handling its type.
         Input:
-          receptor [ocl.Ligand] - The path for the receptor or its receptor object.
+          ligand [ocl.Ligand] - The path for the ligand or its ligand object.
         Return:
           [ocl.Ligand]
            [object] The ocr.Ligand object.
@@ -285,7 +285,7 @@ class PLANTS:
 
     def run_prepare_ligand(self, logFile = ""):
         '''
-        Run 'prepare_ligand4'.
+        Run SPORES for ligand.
         Input:
           logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
         Return:
@@ -298,7 +298,7 @@ class PLANTS:
 
     def run_prepare_receptor(self, logFile = ""):
         '''
-        Run 'prepare_receptor4'.
+        Run SPORES for receptor.
         Input:
           logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
         Return:
@@ -427,17 +427,25 @@ def run_plants(confFile, ligand, outputPlants, overwrite=False, logFile=""):
     # Run the command
     return octools.run(cmd, logFile=logFile)
 
-def write_config_file(config, preparedReceptor, preparedLigand, outputPlants, bindingSiteCenterX, bindingSiteCenterY, bindingSiteCenterZ, bindingSiteRadius):
+def write_config_file(confFile, preparedReceptor, preparedLigand, outputPlants, bindingSiteCenterX, bindingSiteCenterY, bindingSiteCenterZ, bindingSiteRadius):
     '''
     Write the config file.
     Input:
+      confFile           [string] - Path to the config file
+      preparedReceptor   [string] - Path to the prepared receptor file
+      preparedLigand     [string] - Path to the prepared ligand file
+      outputPlants       [string] - Path where the output should be put (directory will be created)
+      bindingSiteCenterX [float]  - Value for the X coordinate for the binding center
+      bindingSiteCenterY [float]  - Value for the Y coordinate for the binding center
+      bindingSiteCenterZ [float]  - Value for the Y coordinate for the binding center
+      bindingSiteRadius  [float]  - Value for the sphere radius
       -
     Return:
       [int]
        See Error.py for all return codes.
     '''
     try:
-        with open(config, "w") as f:
+        with open(confFile, "w") as f:
             #f.write("# scoring function and search settings\n")
             f.write("scoring_function chemplp\n")
             f.write(f"search_speed {plants_search_speed}\n")
@@ -456,13 +464,13 @@ def write_config_file(config, preparedReceptor, preparedLigand, outputPlants, bi
             f.write(f"cluster_structures {plants_cluster_structures}\n")
             f.write(f"cluster_rmsd {plants_cluster_rmsd}")
     except Exception as e:
-        return errors.write_file(f"Problems while writing the file {config}: {e}")
+        return errors.write_file(f"Problems while writing the file {confFile}: {e}")
 
 def get_binding_site(boxFile, spacing = 0.33):
     '''
     Get the binding site from a box file.
     Input:
-      boxFile   [string]               - Path to the box file.
+      boxFile   [string]               - Path to the box file
       spacing   [float]  DEFAULT: 0.33 - Extra spacing
     Return:
       [tuple of mixed tuple of floats and floats]
@@ -529,10 +537,10 @@ def generate_plants_files_database(path, protein, ligand, spacing):
     '''
     Generate all PLANTS required files for provided protein.
     Input:
-     path         [string]               - Input path.
-     protein      [string]               - Protein path.
-     ligand       [string]               - Ligand name to be used in conf file.
-     spacing      [float]  DEFAULT: 0.33 - Extra spacing for the sphere in percentage. (To ensure that all the sites will be accounted)
+     path         [string]               - Input path
+     protein      [string]               - Protein path
+     ligand       [string]               - Ligand name to be used in conf file
+     spacing      [float]  DEFAULT: 0.33 - Extra spacing for the sphere in percentage (To ensure that all the sites will be accounted)
     Return:
       -
     '''
