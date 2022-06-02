@@ -271,8 +271,8 @@ class PLANTS:
                 shutil.rmtree(self.outputPlants)
         # Check if there is an output
         elif os.path.isdir(self.outputPlants):
-            # Check if the dir is empty
-            if len(os.listdir(self.outputPlants)) == 0:
+            # Check if the dir is empty or no output file has been generated (the double of the number of cluster structures, being 2 for each structure)
+            if len(os.listdir(self.outputPlants)) == 0 or (len(glob(f"{self.outputPlants}/{self.inputLigand.name}*.mol2")) < plants_cluster_structures * 2):
                 # Remove it
                 os.rmdir(self.outputPlants)
 

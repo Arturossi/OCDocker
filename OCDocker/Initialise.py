@@ -107,9 +107,6 @@ def create_ocdocker_conf():
     answer = input(f"Path to the Dock6 software. Default [{confDock6}] (press enter to keep default): ")
     confDock6 = confDock6 if not answer else answer
 
-    answer = input(f"Path to the Plants software. Default [{confPlants}] (press enter to keep default): ")
-    confPlants = confPlants if not answer else answer
-
     answer = input(f"Path to the obabel software. Default [{confObabel}] (press enter to keep default): ")
     confObabel = confObabel if not answer else answer
 
@@ -196,6 +193,37 @@ def create_ocdocker_conf():
 
     answer = input(f"Vina num modes parameter. Default [{confVina_num_modes}] (press enter to keep default): ")
     confVina_num_modes = confVina_num_modes if not answer else answer
+
+    # Smina variables
+    #print("\nVina configuration")
+    #answer = input(f"Path to the Vina software. Default [{confVina}] (press enter to keep default): ")
+    #confVina = confVina if not answer else answer
+
+    #answer = input(f"Vina energy parameter. Default [{confVina_energy_range}] (press enter to keep default): ")
+    #confVina_energy_range = confVina_energy_range if not answer else answer
+
+    #answer = input(f"Vina exhaustiveness parameter. Default [{confVina_exhaustiveness}] (press enter to keep default): ")
+    #confVina_exhaustiveness = confVina_exhaustiveness if not answer else answer
+
+    #answer = input(f"Vina num modes parameter. Default [{confVina_num_modes}] (press enter to keep default): ")
+    #confVina_num_modes = confVina_num_modes if not answer else answer
+
+    # PLANTS variables
+    print("\nPLANTS configuration")
+    answer = input(f"Path to the Plants software. Default [{confPlants}] (press enter to keep default): ")
+    confPlants = confPlants if not answer else answer
+
+    answer = input(f"How many structures will be generated. Default [{confPlants_cluster_structures}] (press enter to keep default): ")
+    plants_cluster_structures = plants_cluster_structures if not answer else answer
+
+    answer = input(f"Vina exhaustiveness parameter. Default [{confPlants_cluster_rmsd}] (press enter to keep default): ")
+    confVina_exhaustiveness = confVina_exhaustiveness if not answer else answer
+
+    answer = input(f"Vina num modes parameter. Default [{confPlants_cluster_rmsd}] (press enter to keep default): ")
+    plants_cluster_rmsd = plants_cluster_rmsd if not answer else answer
+
+    answer = input(f"Vina num modes parameter. Default [{confPlants_search_speed}] (press enter to keep default): ")
+    plants_search_speed = plants_search_speed if not answer else answer
 
     # MGLTools variables
     print("\nMGLTools configuration")
@@ -324,6 +352,17 @@ def create_ocdocker_conf():
 
         # Scales user_grid and functional scoring
         smina_user_grid_lambda = """ + confSmina_user_grid_lambda + """
+
+        ################# PLANTS PARAMETERS ##################
+
+        # Number of cluster structures
+        plants_cluster_structures = """ + confPlants_cluster_structures + """
+
+        # RMSD value for plants
+        plants_cluster_rmsd = """ + confPlants_cluster_rmsd + """
+
+        # Search speed
+        plants_search_speed = """ + confPlants_search_speed + """
 
         ################## OTHER SOFTWARE ###################
 
