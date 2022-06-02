@@ -303,9 +303,9 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
     # For each box in boxes
     for index, box in enumerate(boxes):
         # Get dimensions for each axis and its center (round to 3 decimals)
-        dim_x = round(abs(box["min_x"]) + abs(box["max_x"]), 3)
-        dim_y = round(abs(box["min_y"]) + abs(box["max_y"]), 3)
-        dim_z = round(abs(box["min_z"]) + abs(box["max_z"]), 3)
+        dim_x = abs(round(box["max_x"] - box["min_x"], 3))
+        dim_y = abs(round(box["max_y"] - box["min_y"], 3))
+        dim_z = abs(round(box["max_z"] - box["min_z"], 3))
         center_x = round(dim_x/2, 3)
         center_y = round(dim_y/2, 3)
         center_z = round(dim_z/2, 3)
@@ -376,7 +376,7 @@ def __gen_connectivity_matrix(coordinates):
         coordMatrix.append(innerMatrix)
     return np.array(coordMatrix)
 
-def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "AgglomerativeClustering": True, "Birch": False, "DBSCAN": False, "KMeans": False, "MeanShift": False, "MiniBatchKMeans": False, "NoCluster": False, "OPTICS": False, "SpectralClustering": False}, prank = "", threads = 1, coordSystem = "cartesian", spacing = 4.0, boxMaxCutoff = 0.5, boxMinCutoff = 0.1, percentCutoff = 0.5, pocketCutoff = 0.1, verbose = False, debug = False):
+def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "AgglomerativeClustering": True, "Birch": False, "DBSCAN": False, "KMeans": False, "MeanShift": False, "MiniBatchKMeans": False, "NoCluster": False, "OPTICS": False, "SpectralClustering": False}, prank = "", threads = 1, coordSystem = "cartesian", spacing = 4.0, boxMaxCutoff = 0.5, boxMinCutoff = 0.1, percentCutoff = 0.5, pocketCutoff = 0.1, verbose = False, debug = False, overwrite = False):
     '''
     Run p2rank and process its results, converting to a box space to be used in Vina
     Input:
@@ -405,9 +405,13 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
      pocketCutoff [float]   DEFAULT: 0.5         - Value to consider (use 0.0 to disable this feature)
      verbose      [bool]    DEFAULT: False       - Verbose mode on/off
      debug        [bool]    DEFAULT: False       - Debug on/off
+     overwrite    [bool]    DEFAULT: False       - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated
     Return:
         Nothing
     '''
+
+    # Get the input file name (which will be used to read the output from P2Rank)
+    fname = os.path.basename(filein)
 
     # If the prank variable is set
     if prank:
@@ -415,11 +419,10 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
         if verbose:
             # Show the command
             print(f"P2Rank execution command: {' '.join([prank, 'predict','-threads', str(threads),  '-f', filein, '-o', outpath])}")
-        # Execute the P2Rank
-        subprocess.run([prank, "predict", "-threads", str(threads), "-f", filein, "-o", outpath], stdout=subprocess.DEVNULL)
-
-    # Get the input file name (which will be used to read the output from P2Rank)
-    fname = os.path.basename(filein)
+        # If overwrite flag is true or there is no output file
+        if overwrite or not os.path.isfile(f"{outpath}/{fname}_predictions.csv"):
+            # Execute the P2Rank
+            subprocess.run([prank, "predict", "-threads", str(threads), "-f", filein, "-o", outpath], stdout=subprocess.DEVNULL)
 
     # Read the output
     data = pd.read_csv(f"{outpath}/{fname}_predictions.csv")
@@ -844,6 +847,7 @@ if __name__ == "__main__":
     pocketCutoff = 0.1
     debug = True
     verbose = True
+    overwrite = False
 
     # Algorith list
     algorithms = {
@@ -859,4 +863,4 @@ if __name__ == "__main__":
         "SpectralClustering": True
     }
 
-    run_prank(fin, fout, algorithms = algorithms, prank = prank, threads = threads, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff, boxMinCutoff = boxMinCutoff, percentCutoff = percentCutoff, pocketCutoff = pocketCutoff, verbose = verbose, debug = debug)
+    run_prank(fin, fout, algorithms = algorithms, prank = prank, threads = threads, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff, boxMinCutoff = boxMinCutoff, percentCutoff = percentCutoff, pocketCutoff = pocketCutoff, verbose = verbose, debug = debug, overwrite = overwrite)

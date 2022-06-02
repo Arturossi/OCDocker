@@ -178,3 +178,6 @@ tmp/
 
 # Ignore the .pid files
 *.pid
+
+# Ignore backup files
+*.bkp
