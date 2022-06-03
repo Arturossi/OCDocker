@@ -283,9 +283,9 @@ class PLANTS:
         # Run plants
         output = octools.run(self.plantsCmd, logFile=self.plantsLog)
         # Remove the annoying .pid file
-        _ = octools.run(["rm", "PLANTS-*.pid"])
+        _ = octools.run(["rm", f"{tmpDir}/PLANTS-*.pid"])
         # Remove the bad .mol2 file
-        _ = octools.run(["rm", "*bad*.mol2"])
+        _ = octools.run(["rm", f"{tmpDir}/*bad*.mol2"])
         return output
 
     def run_prepare_ligand(self, logFile = ""):

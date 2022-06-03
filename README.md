@@ -3,6 +3,25 @@ OCDocker installation instructions Step-by-step
 
 ![OCDocker](./OCDocker.png "OCDocker")
 
+Easy OCDocker installation
+--------------------------
+
+Go to OCDocker dir and execute the install.sh file with the following command. (Yes, need to be sudo... sorry :/)
+
+	```bash
+	$ sudo sh ./install.sh
+	```
+
+Log out then in (or open a new shell env) to activate conda env (base).
+
+Install the conda OCDocker env
+
+	```bash
+	$ conda env create -f environment.yml
+	```
+
+Or perform each software installation manually with the below steps.
+
 Download and install MGLTools
 -----------------------------
 
