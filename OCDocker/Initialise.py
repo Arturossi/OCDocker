@@ -3,6 +3,7 @@
 # Imports
 ###############################################################################
 import os
+import shutil
 import argparse
 import multiprocessing
 
@@ -25,7 +26,7 @@ E-mail address: arturossi10@gmail.com
 This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 '''
 
-# Description & version
+# Description, version & clear tmp
 ###############################################################################
 ocVersion = "0.3.5"
 
@@ -60,25 +61,71 @@ def create_ocdocker_conf():
     Return:
       -
     '''
+    # <editor-fold> General config
     confOcdb = "/mnt/e/Documents/OCDocker/OCDocker/data/ocdb"
-    confDock6 = "/mnt/e/Documents/OCDocker/software/docking/dock6/bin/dock6"
-    confPlants = "/mnt/e/Documents/OCDocker/software/docking/plants/PLANTS1.2_64bit"
+
+    print("\nGeneral OCDocker configuration")
+    answer = input(f"Path to the OCDB. Default [{confOcdb}] (press enter to keep default): ")
+    confOcdb = confOcdb if not answer else answer
+
+    # </editor-fold>
+
+    # <editor-fold> MGLTools config
     confPythonsh = "/mnt/e/Documents/OCDocker/OCDocker/mgltools/bin/pythonsh"
     confPrepare_ligand = "/mnt/e/Documents/OCDocker/OCDocker/mgltools/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_ligand4.py"
     confPrepare_receptor = "/mnt/e/Documents/OCDocker/OCDocker/mgltools/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_receptor4.py"
 
+    print("\nMGLTools configuration")
+    answer = input(f"Path to the pythonsh env from MGLTools. Default [{confPythonsh}] (press enter to keep default): ")
+    confPythonsh = confPythonsh if not answer else answer
+
+    answer = input(f"Path to the prepare_ligand4.py script from MGLTools. Default [{confPrepare_ligand}] (press enter to keep default): ")
+    confPrepare_ligand = confPrepare_ligand if not answer else answer
+
+    answer = input(f"Path to the prepare_receptor4.py script from MGLTools. Default [{confPrepare_receptor}] (press enter to keep default): ")
+    confPrepare_receptor = confPrepare_receptor if not answer else answer
+
+    # </editor-fold>
+
+    # <editor-fold> P2rank config
+    confPrank = "/mnt/e/Documents/OCDocker/software/search/p2rank_2.3/prank"
     confP2rankBoxMaxCutoff = "0.5"
     confP2RankPocketCutoff = "0.1"
 
-    confObabel = "/usr/bin/obabel"
-    confPrank = "/mnt/e/Documents/OCDocker/software/search/p2rank_2.3/prank"
-    confDUDEz = "https://dudez.docking.org/DOCKING_GRIDS_AND_POSES.tgz"
+    print("\np2rank configuration")
+    answer = input(f"Path to the p2rank software. Default [{confPrank}] (press enter to keep default): ")
+    confPrank = confPrank if not answer else answer
 
+    answer = input(f"p2rank box max cutoff. Default [{confP2rankBoxMaxCutoff}] (press enter to keep default): ")
+    confP2rankBoxMaxCutoff = confP2rankBoxMaxCutoff if not answer else answer
+
+    answer = input(f"p2rank pocket cutoff. Default [{confP2RankPocketCutoff}] (press enter to keep default): ")
+    confP2RankPocketCutoff = confP2RankPocketCutoff if not answer else answer
+
+    # </editor-fold>
+
+    # <editor-fold> Vina config
     confVina = "/usr/bin/vina"
     confVina_energy_range = "10"
     confVina_exhaustiveness = "5"
     confVina_num_modes = "3"
 
+    print("\nVina configuration")
+    answer = input(f"Path to the Vina software. Default [{confVina}] (press enter to keep default): ")
+    confVina = confVina if not answer else answer
+
+    answer = input(f"Vina energy parameter. Default [{confVina_energy_range}] (press enter to keep default): ")
+    confVina_energy_range = confVina_energy_range if not answer else answer
+
+    answer = input(f"Vina exhaustiveness parameter. Default [{confVina_exhaustiveness}] (press enter to keep default): ")
+    confVina_exhaustiveness = confVina_exhaustiveness if not answer else answer
+
+    answer = input(f"Vina num modes parameter. Default [{confVina_num_modes}] (press enter to keep default): ")
+    confVina_num_modes = confVina_num_modes if not answer else answer
+
+    # </editor-fold>
+
+    # <editor-fold> SMINA variables
     confSmina = "/mnt/e/Documents/OCDocker/software/docking/smina/build/smina"
     confSmina_energy_range = "10"
     confSmina_exhaustiveness = "5"
@@ -98,33 +145,6 @@ def create_ocdocker_conf():
     confSmina_user_grid = "no"
     confSmina_user_grid_lambda = "-1"
 
-    confDssp = "/usr/bin/dssp"
-
-    # General variables
-    answer = input(f"Path to the OCDB. Default [{confOcdb}] (press enter to keep default): ")
-    confOcdb = confOcdb if not answer else answer
-
-    answer = input(f"Path to the Dock6 software. Default [{confDock6}] (press enter to keep default): ")
-    confDock6 = confDock6 if not answer else answer
-
-    answer = input(f"Path to the obabel software. Default [{confObabel}] (press enter to keep default): ")
-    confObabel = confObabel if not answer else answer
-
-    answer = input(f"Path to the p2rank software. Default [{confPrank}] (press enter to keep default): ")
-    confPrank = confPrank if not answer else answer
-
-    answer = input(f"Link to the DUDEz database where you can download data. Default [{confDUDEz}] (press enter to keep default): ")
-    confDUDEz = confDUDEz if not answer else answer
-
-    # p2rank variables
-    print("\np2rank configuration")
-    answer = input(f"p2rank box max cutoff. Default [{confP2rankBoxMaxCutoff}] (press enter to keep default): ")
-    confP2rankBoxMaxCutoff = confP2rankBoxMaxCutoff if not answer else answer
-
-    answer = input(f"p2rank pocket cutoff. Default [{confP2RankPocketCutoff}] (press enter to keep default): ")
-    confP2RankPocketCutoff = confP2RankPocketCutoff if not answer else answer
-
-    # Smina variables
     print("\nSmina configuration")
     answer = input(f"Path to the Smina software. Default [{confSmina}] (press enter to keep default): ")
     confSmina = confSmina if not answer else answer
@@ -180,86 +200,83 @@ def create_ocdocker_conf():
     answer = input(f"Smina user grid lambda parameter. Default [{confSmina_user_grid_lambda}] (press enter to keep default): ")
     confSmina_user_grid_lambda = confSmina_user_grid_lambda if not answer else answer
 
-    # Vina variables
-    print("\nVina configuration")
-    answer = input(f"Path to the Vina software. Default [{confVina}] (press enter to keep default): ")
-    confVina = confVina if not answer else answer
+    # </editor-fold>
 
-    answer = input(f"Vina energy parameter. Default [{confVina_energy_range}] (press enter to keep default): ")
-    confVina_energy_range = confVina_energy_range if not answer else answer
+    # <editor-fold> PLANTS variables
+    confPlants = "/mnt/e/Documents/OCDocker/software/docking/plants/PLANTS1.2_64bit"
+    confPlants_cluster_structures = 10
+    confPlants_cluster_rmsd = 2.0
+    confPlants_search_speed = "speed1"
 
-    answer = input(f"Vina exhaustiveness parameter. Default [{confVina_exhaustiveness}] (press enter to keep default): ")
-    confVina_exhaustiveness = confVina_exhaustiveness if not answer else answer
-
-    answer = input(f"Vina num modes parameter. Default [{confVina_num_modes}] (press enter to keep default): ")
-    confVina_num_modes = confVina_num_modes if not answer else answer
-
-    # Smina variables
-    #print("\nVina configuration")
-    #answer = input(f"Path to the Vina software. Default [{confVina}] (press enter to keep default): ")
-    #confVina = confVina if not answer else answer
-
-    #answer = input(f"Vina energy parameter. Default [{confVina_energy_range}] (press enter to keep default): ")
-    #confVina_energy_range = confVina_energy_range if not answer else answer
-
-    #answer = input(f"Vina exhaustiveness parameter. Default [{confVina_exhaustiveness}] (press enter to keep default): ")
-    #confVina_exhaustiveness = confVina_exhaustiveness if not answer else answer
-
-    #answer = input(f"Vina num modes parameter. Default [{confVina_num_modes}] (press enter to keep default): ")
-    #confVina_num_modes = confVina_num_modes if not answer else answer
-
-    # PLANTS variables
     print("\nPLANTS configuration")
     answer = input(f"Path to the Plants software. Default [{confPlants}] (press enter to keep default): ")
     confPlants = confPlants if not answer else answer
 
     answer = input(f"How many structures will be generated. Default [{confPlants_cluster_structures}] (press enter to keep default): ")
-    plants_cluster_structures = plants_cluster_structures if not answer else answer
+    confPlants_cluster_structures = confPlants_cluster_structures if not answer else answer
 
-    answer = input(f"Vina exhaustiveness parameter. Default [{confPlants_cluster_rmsd}] (press enter to keep default): ")
-    confVina_exhaustiveness = confVina_exhaustiveness if not answer else answer
+    answer = input(f"PLANTS exhaustiveness parameter. Default [{confPlants_exhaustiveness}] (press enter to keep default): ")
+    confPlants_exhaustiveness = confPlants_exhaustiveness if not answer else answer
 
-    answer = input(f"Vina num modes parameter. Default [{confPlants_cluster_rmsd}] (press enter to keep default): ")
-    plants_cluster_rmsd = plants_cluster_rmsd if not answer else answer
+    answer = input(f"PLANTS cluster RMSD parameter. Default [{confPlants_cluster_rmsd}] (press enter to keep default): ")
+    confPlants_cluster_rmsd = confPlants_cluster_rmsd if not answer else answer
 
-    answer = input(f"Vina num modes parameter. Default [{confPlants_search_speed}] (press enter to keep default): ")
-    plants_search_speed = plants_search_speed if not answer else answer
+    answer = input(f"PLANTS search speed parameter. Default [{confPlants_search_speed}] (press enter to keep default): ")
+    confPlants_search_speed = confPlants_search_speed if not answer else answer
 
-    # MGLTools variables
-    print("\nMGLTools configuration")
-    answer = input(f"Path to the pythonsh env from MGLTools. Default [{confPythonsh}] (press enter to keep default): ")
-    confPythonsh = confPythonsh if not answer else answer
+    # </editor-fold>
 
-    answer = input(f"Path to the prepare_ligand4.py script from MGLTools. Default [{confPrepare_ligand}] (press enter to keep default): ")
-    confPrepare_ligand = confPrepare_ligand if not answer else answer
+    # <editor-fold> DOCK6 variables
+    confDock6 = "/mnt/e/Documents/OCDocker/software/docking/dock6/bin/dock6"
+    confDock6_vdw_defn_file = "/mnt/e/Documents/OCDocker/software/docking/dock6/vdw_AMBER_parm99.defn"
+    confDock6_flex_defn_file = "/mnt/e/Documents/OCDocker/software/docking/dock6/flex.defn"
+    confDock6_flex_drive_file = "/mnt/e/Documents/OCDocker/software/docking/dock6/flex_drive.tbl"
 
-    answer = input(f"Path to the prepare_receptor4.py script from MGLTools. Default [{confPrepare_receptor}] (press enter to keep default): ")
-    confPrepare_receptor = confPrepare_receptor if not answer else answer
+    #print("\nVina configuration")
+    answer = input(f"Path to the DOCK6 software. Default [{confDock6}] (press enter to keep default): ")
+    confDock6 = confDock6 if not answer else answer
 
-    # Other software
+    answer = input(f"DOCK6 vdw_defn file path. Default [{confDock6_vdw_defn_file}] (press enter to keep default): ")
+    confDock6_vdw_defn_file = confDock6_vdw_defn_file if not answer else answer
+
+    answer = input(f"DOCK6 flex_defn file path. Default [{confDock6_flex_defn_file}] (press enter to keep default): ")
+    confDock6_flex_defn_file = confDock6_flex_defn_file if not answer else answer
+
+    answer = input(f"DOCK6 flex_drive file path. Default [{confDock6_flex_drive_file}] (press enter to keep default): ")
+    confDock6_flex_drive_file = confDock6_flex_drive_file if not answer else answer
+
+    # </editor-fold>
+
+    # <editor-fold> Other variables
+    confDssp = "/usr/bin/dssp"
+    confObabel = "/usr/bin/obabel"
+    confSpores = "/mnt/e/Documents/OCDocker/software/docking/plants/SPORES_64bit"
+    confDUDEz = "https://dudez.docking.org/DOCKING_GRIDS_AND_POSES.tgz" # this is WRONG
+
     print("\nOther software configuration")
     answer = input(f"Path to the dssp file/command. Default [{confDssp}] (press enter to keep default): ")
     confDssp = confDssp if not answer else answer
 
+    answer = input(f"Path to the obabel software. Default [{confObabel}] (press enter to keep default): ")
+    confObabel = confObabel if not answer else answer
+
+    answer = input(f"Path to the SPORES software. Default [{confSpores}] (press enter to keep default): ")
+    confSpores = confSpores if not answer else answer
+
+    answer = input(f"Link to the DUDEz database where you can download data. Default [{confDUDEz}] (press enter to keep default): ")
+    confDUDEz = confDUDEz if not answer else answer
+
+    # </editor-fold>
+
+    # Define the config file (NOT CHANGABLE)
     conf_file = "OCDocker.cfg"
 
     # Create the conf file
     with open(conf_file, "w") as cf:
-        cf.write(tw.dedent("""
-        # Root directory for the OCDocker Database
+        cf.write(tw.dedent("""# Root directory for the OCDocker Database
         ocdb = """ + confOcdb + """
 
-        # dock6 path
-        dock6 = """ + confDock6 + """
-
-        # PLANTS path
-        plants = """ + confPlants + """
-
-        # Smina path
-        smina = """ + confSmina + """
-
-        # Vina path
-        vina = """ + confVina + """
+        ################# MGLTools PARAMETERS #################
 
         # MGLTools's pythonsh path
         pythonsh = """ + confPythonsh + """
@@ -270,13 +287,10 @@ def create_ocdocker_conf():
         # prepare_receptor4 path
         prepare_receptor = """ + confPrepare_receptor + """
 
-        # Open Babel path
-        obabel = """ + confObabel + """
+        ################# P2RANK PARAMETERS #################
 
         # P2Rank path
         prank = """ + confPrank + """
-
-        ################# P2RANK PARAMETERS #################
 
         # p2rank box cutoff
         boxMaxCutoff = """ + confP2rankBoxMaxCutoff + """
@@ -284,12 +298,10 @@ def create_ocdocker_conf():
         # p2rank pocket cutoff
         pocketCutoff = """ + confP2RankPocketCutoff + """
 
-        ############# DATABASE FETCH PARAMETERS #############
-
-        # DUDEz download link
-        DUDEz = """ + confDUDEz + """
-
         ################## VINA PARAMETERS ##################
+
+        # Vina path
+        vina = """ + confVina + """
 
         # Maximum energy difference between the best binding mode and the worst one displayed (kcal/mol)
         vina_energy_range = """ + confVina_energy_range + """
@@ -301,6 +313,9 @@ def create_ocdocker_conf():
         vina_num_modes = """ + confVina_num_modes + """
 
         ################# SMINA PARAMETERS ##################
+
+        # Smina path
+        smina = """ + confSmina + """
 
         # Maximum energy difference between the best binding mode and the worst one displayed (kcal/mol)
         smina_energy_range = """ + confSmina_energy_range + """
@@ -332,11 +347,11 @@ def create_ocdocker_conf():
         # Number iterations of steepest descent; default scales with rotors and usually isn't sufficient for convergence
         smina_minimize_iters = """ + confSmina_minimize_iters + """
 
-        # Stop minimization before convergence conditions are fully met
-        smina_minimize_early_term = """ + confSmina_minimize_early_term + """
-
         # Use accurate line search
         smina_accurate_line = """ + confSmina_accurate_line + """
+
+        # Stop minimization before convergence conditions are fully met
+        smina_minimize_early_term = """ + confSmina_minimize_early_term + """
 
         # Approximation (linear, spline, or exact) to use
         smina_approximation = """ + confSmina_approximation + """
@@ -355,6 +370,9 @@ def create_ocdocker_conf():
 
         ################# PLANTS PARAMETERS ##################
 
+        # PLANTS path
+        plants = """ + confPlants + """
+
         # Number of cluster structures
         plants_cluster_structures = """ + confPlants_cluster_structures + """
 
@@ -364,11 +382,33 @@ def create_ocdocker_conf():
         # Search speed
         plants_search_speed = """ + confPlants_search_speed + """
 
+        ################# DOCK6 PARAMETERS ##################
+
+        # dock6 path
+        dock6 = """ + confDock6 + """
+
+        # Path to the vdw defn file
+        dock6_vdw_defn_file = """ + confDock6_vdw_defn_file + """
+
+        # Path to the flex defn file
+        dock6_flex_defn_file = """ + confDock6_flex_defn_file + """
+
+        # Path to the flex drive file
+        dock6_flex_drive_file = """ + confDock6_flex_drive_file + """
+
         ################## OTHER SOFTWARE ###################
 
         # MSMS program for the surface calculation
         dssp = """ + confDssp + """
 
+        # Open Babel path
+        obabel = """ + confObabel + """
+
+        # SPORES path
+        spores = """ + confSpores + """
+
+        # DUDEz download link
+        DUDEz = """ + confDUDEz + """
         """))
 
     print(f"{clrs['g']}Configuration file created!{clrs['n']} If you need to change the paths you might want to {clrs['y']}EDIT ITS CONTENTS{clrs['n']} or delete the file and execute this routine again so that your environment variables are correctly set. To ensure that all variables are correctly set, please restart OCDocker.")
@@ -383,6 +423,7 @@ global widgets
 global workdir
 global errors
 global logdir
+global tmpdir
 
 # Order variable
 global order
@@ -616,42 +657,32 @@ elif args.config_file:
     assert os.path.isfile(args.config_file), f"{clrs['r']}\n\n Not able to find configuration file.\n\n Does \"{args.config_file}\" exist?{clrs['n']}"
     config_file = args.config_file
 
-# Read the conf file and assign its data to its variables
+# Read the conf file and assign its data to its variables (The order matters here, if you follow the same order which is in the conf file less computation power will be needed! It is not much, but it is something.)
 for line in open(config_file, "r"):
     if line.startswith("ocdb ="):
         ocdb = line.split("=")[1].strip()
-    elif line.startswith("dock6 ="):
-        dock6 = line.split("=")[1].strip()
-    elif line.startswith("plants ="):
-        plants = line.split("=")[1].strip()
-    elif line.startswith("spores ="):
-        spores = line.split("=")[1].strip()
-    elif line.startswith("smina ="):
-        smina = line.split("=")[1].strip()
-    elif line.startswith("vina ="):
-        vina = line.split("=")[1].strip()
-    elif line.startswith("prepare_ligand ="):
-        prepare_ligand = line.split("=")[1].strip()
     elif line.startswith("pythonsh ="):
         pythonsh = line.split("=")[1].strip()
+    elif line.startswith("prepare_ligand ="):
+        prepare_ligand = line.split("=")[1].strip()
     elif line.startswith("prepare_receptor ="):
         prepare_receptor = line.split("=")[1].strip()
-    elif line.startswith("obabel ="):
-        obabel = line.split("=")[1].strip()
-    elif line.startswith("DUDEz ="):
-        dudez_download = line.split("=")[1].strip()
     elif line.startswith("prank ="):
         prank = line.split("=")[1].strip()
     elif line.startswith("boxMaxCutoff ="):
         p2rank_boxMaxCutoff = float(line.split("=")[1].strip())
     elif line.startswith("pocketCutoff ="):
         p2rank_pocketCutoff = float(line.split("=")[1].strip())
+    elif line.startswith("vina ="):
+        vina = line.split("=")[1].strip()
     elif line.startswith("vina_energy_range ="):
         vina_energy_range = line.split("=")[1].strip()
     elif line.startswith("vina_exhaustiveness ="):
         vina_exhaustiveness = int(line.split("=")[1].strip())
     elif line.startswith("vina_num_modes ="):
         vina_num_modes = line.split("=")[1].strip()
+    elif line.startswith("smina ="):
+        smina = line.split("=")[1].strip()
     elif line.startswith("smina_energy_range ="):
         smina_energy_range = line.split("=")[1].strip()
     elif line.startswith("smina_exhaustiveness ="):
@@ -686,12 +717,16 @@ for line in open(config_file, "r"):
         smina_user_grid = line.split("=")[1].strip()
     elif line.startswith("smina_user_grid_lambda ="):
         smina_user_grid_lambda = line.split("=")[1].strip()
+    elif line.startswith("plants ="):
+        plants = line.split("=")[1].strip()
     elif line.startswith("plants_cluster_structures ="):
         plants_cluster_structures = line.split("=")[1].strip()
     elif line.startswith("plants_cluster_rmsd ="):
         plants_cluster_rmsd = line.split("=")[1].strip()
     elif line.startswith("plants_search_speed ="):
         plants_search_speed = line.split("=")[1].strip()
+    elif line.startswith("dock6 ="):
+        dock6 = line.split("=")[1].strip()
     elif line.startswith("dock6_vdw_defn_file ="):
         dock6_vdw_defn_file = line.split("=")[1].strip()
     elif line.startswith("dock6_flex_defn_file ="):
@@ -700,6 +735,12 @@ for line in open(config_file, "r"):
         dock6_flex_drive_file = line.split("=")[1].strip()
     elif line.startswith("dssp ="):
         dssp = line.split("=")[1].strip()
+    elif line.startswith("obabel ="):
+        obabel = line.split("=")[1].strip()
+    elif line.startswith("spores ="):
+        spores = line.split("=")[1].strip()
+    elif line.startswith("DUDEz ="):
+        dudez_download = line.split("=")[1].strip()
 
 # Root directory for OCDocker module
 ocdocker_path = os.path.dirname(os.path.abspath( __file__ ))
@@ -716,6 +757,11 @@ pdbbind_archive = os.path.join(ocdb, "PDBbind")
 # Set the log directory
 logdir = f"{os.path.abspath(os.path.join(os.path.dirname(ocerror.__file__), os.pardir))}/logs"
 
+# Remove tmp path then create it again
+tmpDir = f"{ocdocker_path}/tmp"
+shutil.rmtree(tmpDir)
+os.mkdir(tmpDir)
+
 # Get number of CPUs (minus one) with a minimum of one
 if args.multiprocess:
     n_cpu = multiprocessing.cpu_count() - 1
@@ -723,7 +769,7 @@ if args.multiprocess:
 else:
     args.available_cores = 1
 
-# Limit the output_level between acceptable values
+# Limit the output_level between acceptable values [0-4]
 if args.output_level > 4:
     args.output_level = 4
 elif args.output_level < 0:

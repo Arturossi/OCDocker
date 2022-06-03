@@ -167,9 +167,6 @@ BaseFile.py
 inDev/
 inDev2/
 
-# tmp folder is temporary, so... IGNORE IT
-tmp/
-
 # Ignore pickle files... (for now)
 *.pickle
 
@@ -178,6 +175,9 @@ tmp/
 
 # Ignore the .pid files
 *.pid
+
+# Ignore the tmp dir
+tmp/
 
 # Ignore backup files
 *.bkp

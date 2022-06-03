@@ -278,9 +278,14 @@ class PLANTS:
 
         # Print verboosity
         octools.printv(f"Running PLANTS using the '{self.config}' configurations.")
+        # Cd to tmpDir (because PLANTS keeps spamming annoying files)
+        os.chdir(tmpDir)
+        # Run plants
         output = octools.run(self.plantsCmd, logFile=self.plantsLog)
         # Remove the annoying .pid file
         _ = octools.run(["rm", "PLANTS-*.pid"])
+        # Remove the bad .mol2 file
+        _ = octools.run(["rm", "*bad*.mol2"])
         return output
 
     def run_prepare_ligand(self, logFile = ""):
