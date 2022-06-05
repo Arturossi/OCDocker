@@ -269,7 +269,7 @@ def __thread_prepare(arguments):
     # Return
     return None
 
-def __prepare_parallel2(filenames, overwrite, moltype, dbName, sanitize = True, desc):
+def __prepare_parallel2(filenames, overwrite, moltype, dbName, sanitize, desc):
     '''
     Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
     Input:

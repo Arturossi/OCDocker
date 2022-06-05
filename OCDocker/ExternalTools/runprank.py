@@ -306,9 +306,14 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
         dim_x = abs(round(box["max_x"] - box["min_x"], 3))
         dim_y = abs(round(box["max_y"] - box["min_y"], 3))
         dim_z = abs(round(box["max_z"] - box["min_z"], 3))
-        center_x = round(dim_x/2, 3)
-        center_y = round(dim_y/2, 3)
-        center_z = round(dim_z/2, 3)
+        # Get the size of the center (starting from the origin) (not using dim because I want to round only once)
+        center_x = abs((box["max_x"] - box["min_x"])/2)
+        center_y = abs((box["max_y"] - box["min_y"])/2)
+        center_z = abs((box["max_z"] - box["min_z"])/2)
+        # Since the boxes might not have one corner at the origin, shift it in all directions X,Y,Z
+        center_x = round(center_x + box["min_x"], 3)
+        center_y = round(center_y + box["min_y"], 3)
+        center_z = round(center_z + box["min_z"], 3)
 
         # Convert the values found above to string with 8 chars (complete with spaces to the left) as the .pdb file model
         min_x = " " * (8 - len(str(box["min_x"]))) + str(box["min_x"])
