@@ -11,7 +11,7 @@ import textwrap as tw
 from glob import glob
 
 from OCDocker.Initialise import *
-import OCDocker.DUDEz as ocdudez
+import OCDocker.DUDEZ as ocdudez
 import OCDocker.Astex as ocastex
 import OCDocker.PDBbind as ocpdbbind
 import OCDocker.Toolbox as octools
