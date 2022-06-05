@@ -181,3 +181,6 @@ tmp/
 
 # Ignore backup files
 *.bkp
+
+# Do not upload .cfg files
+*.cfg
