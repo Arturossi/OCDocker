@@ -79,10 +79,10 @@ def __run_p2rank(dir, fin, overwrite = False):
     }
     try:
         # Run p2rank
-        runprank.run_prank(fin, fout, algorithms, prank = runPrank, threads = args.cpu_cores, debug = False, boxMaxCutoff = p2rank_boxMaxCutoff, pocketCutoff = p2rank_pocketCutoff, verbose = 1 if args.output_level >= 3 else 0, overwrite = overwrite)
+        runprank.run_prank(fin, fout, algorithms, prank = prank, threads = args.cpu_cores, debug = False, boxMaxCutoff = p2rank_boxMaxCutoff, pocketCutoff = p2rank_pocketCutoff, verbose = 1 if args.output_level >= 3 else 0, overwrite = overwrite)
     except Exception as e:
         octools.print_warning(f"The protein '{dir}' had a problem while running p2rank. Retrying to run p2rank. Exception: {e}  ")
-        runprank.run_prank(fin, fout, algorithms, prank = runPrank, threads = args.cpu_cores, debug = False, boxMaxCutoff = p2rank_boxMaxCutoff, pocketCutoff = p2rank_pocketCutoff, verbose = 1 if args.output_level >= 3 else 0, overwrite = overwrite)
+        runprank.run_prank(fin, fout, algorithms, prank = prank, threads = args.cpu_cores, debug = False, boxMaxCutoff = p2rank_boxMaxCutoff, pocketCutoff = p2rank_pocketCutoff, verbose = 1 if args.output_level >= 3 else 0, overwrite = overwrite)
 
     return
 
@@ -231,7 +231,7 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
     # If overwrite mode is on or there is no box in the p2rank output, p2rank will run
     if boxCount == 0 or overwrite:
         # Run p2rank
-        __run_p2rank(dir, fin)
+        __run_p2rank(dir, fin, overwrite=overwrite)
     else:
         octools.print_info(f"The protein '{dir}' already has its p2rank output generated, skipping its execution.")
     # If overwrite mode is on or there is not the same amount of box files as folders in vinaFiles folder
@@ -899,8 +899,6 @@ def verify_integrity(chosenArchive, spacing = 0.33):
             # If there is no box in the p2rank output, p2rank will run
             if boxCount == 0:
                 octools.print_warning(f"The protein '{dir}' has no box file. Trying to fix...")
-
-                print(dir)
 
                 # Run p2rank
                 __run_p2rank(dir, fin)
