@@ -9,6 +9,9 @@ import tarfile
 import datetime
 import subprocess
 
+import numpy as np
+import pandas as pd
+
 import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
 from OCDocker.Initialise import *
@@ -252,6 +255,16 @@ class PLANTS:
            See Error.py for all return codes.
         '''
         write_config_file(self.config, self.preparedReceptor, self.preparedLigand, self.outputPlants, self.bindingSiteCenter[0], self.bindingSiteCenter[1], self.bindingSiteCenter[2], self.bindingSiteRadius)
+
+    def read_plants_log(path):
+        '''
+        Read the PLANTS log path, returning a pd.dataframe with data from complexes.
+        Input:
+          path [string] - Path to the vina output log file.
+        Return:
+          [pd.dataframe]
+        '''
+        return read_plants_log(self.plantsLog)
 
     def run_plants(self, logFile = "", overwrite=False):
         '''
@@ -569,3 +582,31 @@ def generate_plants_files_database(path, protein, ligand, spacing):
         confPath = f"{outputPlants}/conf_plants.txt"
         box_to_plants(box, confPath, protein, ligand, f"{outputPlants}/run", spacing = spacing)
     return None
+
+def read_plants_log(path):
+    '''
+    Read the PLANTS log path, returning a list with data from complexes.
+    Input:
+      path [string] - Path to the vina output log file.
+    Return:
+      [pd.dataframe]
+    '''
+    # Check if file exists
+    if os.path.isfile(path):
+        try:
+            # Read the csv
+            df = pd.read_csv(path)
+            # Remove EVAL and TIME columns
+            df.drop("EVAL", axis=1, inplace=True)
+            df.drop("TIME", axis=1, inplace=True)
+            # For each column in the dataframe
+            for column in df:
+                # If has inifinity or minus infinity, remove it
+                df = df[df["SCORE_NORM_CONTACT"] != -np.inf]
+                df = df[df["SCORE_NORM_CONTACT"] != np.inf]
+            return df
+        except Exception as e:
+            octools.print_error(f"Problems while reading file '{path}'. Error: {e}")
+            octools.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{logdir}/PLANTS_read_log_ERROR.log")
+    # Throw an error
+    return errors.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")

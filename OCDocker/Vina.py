@@ -9,6 +9,9 @@ import tarfile
 import datetime
 import subprocess
 
+import numpy as np
+import pandas as pd
+
 import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
 from OCDocker.Initialise import *
@@ -226,6 +229,16 @@ class Vina:
 
     ## Public ##
 
+    def read_vina_log(self):
+        '''
+        Read the vina log path, returning a pd.dataframe with data from complexes.
+        Input:
+          -
+        Return:
+          [pd.dataframe]
+        '''
+        return read_vina_log(self.vinaLog)
+
     def run_vina(self, logFile = ""):
         '''
         Run vina.
@@ -431,3 +444,36 @@ def generate_vina_files_database(path, protein):
         confPath = f"{boxFolder}/conf_vina.txt"
         box_to_vina(box, confPath, protein)
     return None
+
+def read_vina_log(path):
+    '''
+    Read the vina log path, returning a pd.dataframe with data from complexes.
+    Input:
+      path [string] - Path to the vina output log file.
+    Return:
+      [pd.dataframe]
+    '''
+    # Check if file exists
+    if os.path.isfile(path):
+        # Open the log file
+        with open(path, "r") as f:
+            # Read ALL the lines in file (there should not be lots of lines, so no problem)
+            lines = f.readlines()
+        # Create a dataframe to store the info
+        df = pd.DataFrame(columns=['mode','affinity','rmsd_lb_best_mode','rmsd_ub_best_mode'])
+        # For each line from the end to the beggining (reverse iteration since the intresting data is in the end of the file)
+        for i in range(len(lines)-1, -1, -1):
+            # If the line starts with a -
+            if lines[i].startswith("-"):
+                # Stop iteration, because it does not contain useful information and neither the upper lines do
+                break
+            try:
+                # Add the reversed list to the end of
+                df.loc[len(df), df.columns] = lines[i].strip().split()
+            except Exception as e:
+                octools.print_error(f"Problems while reading file '{path}'. Error: {e}")
+                octools.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{logdir}/vina_read_log_ERROR.log")
+        # Return the df
+        return df.reindex(index=df.index[::-1]).reset_index(drop=True)
+    # Throw an error
+    return errors.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")

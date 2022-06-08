@@ -28,7 +28,7 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 
 # Description, version & clear tmp
 ###############################################################################
-ocVersion = "0.3.5"
+ocVersion = "0.3.7"
 
 description = tw.dedent("""\033[1;93m
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+

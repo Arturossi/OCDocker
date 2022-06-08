@@ -9,6 +9,8 @@ from glob import glob
 from tqdm import tqdm
 from multiprocessing import Pool
 
+import pandas as pd
+
 from OCDocker.Initialise import *
 import OCDocker.Ligand as ocl
 import OCDocker.Vina as ocvina
@@ -740,13 +742,6 @@ def __run_dock_parallel(dirs, archive, dockingAlgorithm, overwrite, desc):
     for dir in dirs:
         # Append a tuple containing the file name and ovewrite flag to the arguments list
         arguments.append((dir, archive, dockingAlgorithm, overwrite))
-    # Define the number of used cores, limiting upper (max cores) and lower bounds (1 core)
-    #if dockingAlgorithm == "vina":
-    #    cores = int(args.available_cores)/vina_exhaustiveness
-    #    cores = int(cores) if cores > 0 else 1
-    #else:
-    #    cores = args.available_cores
-    cores = args.available_cores
     # If logfile exists, backup it (for error and warnings)
     if os.path.isfile(f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_ERROR.log"):
         if not os.path.isdir(f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_past"):
@@ -757,7 +752,7 @@ def __run_dock_parallel(dirs, archive, dockingAlgorithm, overwrite, desc):
             octools.safe_create_dir(f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_past")
         os.rename(f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_WARNING.log", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_past/PDBbind_{dockingAlgorithm}_run_report_WARNING_{time.strftime('%d%m%Y-%H%M%S')}.log")
     # Create a Thread pool with the maximum available_cores
-    with Pool(cores) as p:
+    with Pool(args.available_cores) as p:
         # Perform the multi process
         for _ in tqdm(p.imap_unordered(__thread_run_dock_parallel, arguments), total = len(arguments), desc = desc):
             pass
@@ -776,11 +771,165 @@ def __run_dock_no_parallel(dirs, archive, dockingAlgorithm, overwrite, desc):
     Return:
       -
     '''
+    # If logfile exists, backup it (for error and warnings)
+    if os.path.isfile(f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_ERROR.log"):
+        if not os.path.isdir(f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_past"):
+            octools.safe_create_dir(f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_past")
+        os.rename(f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_ERROR.log", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_past/PDBbind_{dockingAlgorithm}_run_report_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
+    if os.path.isfile(f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_WARNING.log"):
+        if not os.path.isdir(f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_past"):
+            octools.safe_create_dir(f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_past")
+        os.rename(f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_WARNING.log", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_past/PDBbind_{dockingAlgorithm}_run_report_WARNING_{time.strftime('%d%m%Y-%H%M%S')}.log")
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         for dir in tqdm(iterable=dirs, total=len(dirs), desc=desc):
             # Call the core dock function (shared between parallel and not parallel)
             __core_dock(dir, archive, dockingAlgorithm, overwrite)
+    return None
+
+### Read logs
+
+def __core_read_log(dir, archive):
+    '''
+    Reads Vina, Smina and PLANTS logs and then return a dict of dataframes.
+    Input:
+     dir     [string] - The directory where the files are stored
+     archive [string] - Which archive will be processed [dudez, pdbbind, astex]
+    Return:
+      -
+    '''
+    # Find ptn name
+    ptn = dir.split(os.path.sep)[-1]
+    # Create Vina, Smina and PLANTS dataframes
+    vinadf = pd.DataFrame(columns=["mode", "affinity", "rmsd_lb_best_mode", "rmsd_ub_best_mode"])
+    sminadf = pd.DataFrame(columns=["mode", "affinity", "rmsd_lb_best_mode", "rmsd_ub_best_mode"])
+    plantsdf = pd.DataFrame(columns=["LIGAND_ENTRY", "TOTAL_SCORE", "SCORE_RB_PEN", "SCORE_NORM_HEVATOMS", "SCORE_NORM_CRT_HEVATOMS", "SCORE_NORM_WEIGHT", "SCORE_NORM_CRT_WEIGHT", "SCORE_RB_PEN_NORM_CRT_HEVATOMS", "SCORE_NORM_CONTACT"])
+    # Get all vina directories (0, 1, 2...)
+    vinaDirs = glob(f"{dir}/vinaFiles/*")
+    # For each dir in vinaDirs
+    for vinaDir in vinaDirs:
+        # Get run number
+        runNumber = vinaDir.split(os.path.sep)[-1]
+        # Parameterize the log path
+        logPath = f"{vinaDir}/vina_{runNumber}.log"
+        # Check if exists
+        if os.path.isfile(logPath):
+            # Read the log into dataframe
+            df = ocvina.read_vina_log(logPath)
+            # Check if df is a dataframe
+            if isinstance(df, pd.DataFrame):
+                # Concatenate df and vinadf
+                vinadf = pd.concat([vinadf, df])
+            else:
+                _ = errors.wrong_type(f"The file '{logPath}' could not be read.")
+        else:
+            _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its vina output.")
+    # Get all vina directories (0, 1, 2...)
+    plantsDirs = glob(f"{dir}/plantsFiles/*")
+    # For each dir in plantsDir
+    for plantsDir in plantsDirs:
+        # Get run number
+        runNumber = plantsDir.split(os.path.sep)[-1]
+        # Parameterize the log path
+        logPath = f"{plantsDir}/run/ranking.csv"
+        # Check if exists
+        if os.path.isfile(logPath):
+            # Read the log into dataframe
+            df = ocplants.read_plants_log(logPath)
+            if isinstance(df, pd.DataFrame):
+                # Concatenate df and plantsdf
+                plantsdf = pd.concat([plantsdf, df])
+            else:
+                _ = errors.wrong_type(f"The file '{logPath}' could not be read.")
+        else:
+            _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its PLANTS output.")
+    # Parameterize the log path
+    logPath = f"{dir}/sminaFiles/smina.log"
+    # Check if smina log exists
+    if os.path.isfile(logPath):
+        # Read the log into dataframe
+        df = ocsmina.read_smina_log(logPath)
+        if isinstance(df, pd.DataFrame):
+            # Concatenate df and plantsdf
+            sminadf = df
+        else:
+            _ = errors.wrong_type(f"The file '{logPath}' could not be read.")
+    else:
+        _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its SMINA output.")
+    # Return a dict with each read data with the protein name as index
+    return {ptn: {"vina": vinadf, "smina": sminadf, "plants": plantsdf}}
+
+def __thread_read_log_parallel(arguments):
+    '''
+    Thread aid function to call __core_read_log.
+    Input:
+     arguments [tuple(string, string, string, bool)] - Tuple containing, in this order:
+        - [string] - The directory where the files are stored
+        - [string] - Which archive will be processed [dudez, pdbbind, astex]
+    Return:
+      -
+    '''
+    # Redirect all prints to tqdm.write
+    with octools.redirect_to_tqdm():
+        # Call the core read log function passing the arguments correctly
+        return __core_read_log(arguments[0], arguments[1])
+    return None
+
+def __read_log_parallel(dirs, archive, desc):
+    '''
+    Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
+    Input:
+     dirs    [string] - List of paths to process
+     archive [string] - Which archive will be processed [dudez, pdbbind, astex]
+     desc    [string] - The description used in the progress bar
+    Return:
+      [dict of dicts of pd.DataFrame]
+    '''
+    # Arguments to pass to each Thread in the Thread Pool
+    arguments = []
+    # For each file in the glob
+    for dir in dirs:
+        # Append a tuple containing the file name and ovewrite flag to the arguments list
+        arguments.append((dir, archive))
+    # If logfile exists, backup it for vina, smina and plants (for error and warnings)
+    if os.path.isfile(f"{logdir}/vina_read_log_ERROR.log"):
+        if not os.path.isdir(f"{logdir}/read_log_past"):
+            octools.safe_create_dir(f"{logdir}/read_log_past")
+        os.rename(f"{logdir}/vina_read_log_ERROR.log", f"{logdir}/read_log_past/vina_read_log_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
+    if os.path.isfile(f"{logdir}/smina_read_log_ERROR.log"):
+        if not os.path.isdir(f"{logdir}/read_log_past"):
+            octools.safe_create_dir(f"{logdir}/read_log_past")
+        os.rename(f"{logdir}/smina_read_log_ERROR.log", f"{logdir}/read_log_past/smina_read_log_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
+    if os.path.isfile(f"{logdir}/plants_read_log_ERROR.log"):
+        if not os.path.isdir(f"{logdir}/read_log_past"):
+            octools.safe_create_dir(f"{logdir}/read_log_past")
+        os.rename(f"{logdir}/plants_read_log_ERROR.log", f"{logdir}/read_log_past/plants_read_log_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
+    # Dict to store the read data
+    data = {}
+    # Create a Thread pool with the maximum available_cores
+    with Pool(args.available_cores) as p:
+        # Perform the multi process
+        for innerData in tqdm(p.imap_unordered(__thread_read_log_parallel, arguments), total = len(arguments), desc = desc):
+            data.update(innerData)
+    return data
+
+def __read_log_no_parallel(dirs, archive, desc):
+    '''
+    Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_read_log function.
+    Input:
+     dirs    [string] - List of paths to process
+     archive [string] - Which archive will be processed [dudez, pdbbind, astex]
+     desc    [string] - The description used in the progress bar
+    Return:
+      -
+    '''
+    # Dict to store the read data
+    data = {}
+    # Redirect all prints to tqdm.write
+    with octools.redirect_to_tqdm():
+        for dir in tqdm(iterable = dirs, total = len(dirs), desc = desc):
+            # Call the core read log function (shared between parallel and not parallel) and store the data into the data dict
+            data.update(__core_read_log(dir, archive))
     return None
 
 ## Public ##
@@ -1126,7 +1275,7 @@ def prepare(archive, overwrite = False, spacing = 0.33, sanitize = True):
 
 def run_dock(archive, dockingAlgorithm, overwrite = False):
     '''
-    Parse the database into a SINGLE serializable object. (Not so good)
+    Run docking.
     Input:
      archive          [string]                - Which archive will be processed. [dudez, pdbbind, astex]
      dockingAlgorithm [string]                - Which docking software will be run. [vina, smina, plants]
@@ -1236,3 +1385,50 @@ def get_database_multiple_files(archive, sliceSize = 100):
             octools.to_pickle(f"{chosenArchive}/db/pdbbind_{i}.pickle", databaseDict)
 
     return databaseDict
+
+def read_logs(archive, picklePath = ""):
+    '''
+    Parse the database into multiple serializable objects.
+    Input:
+     archive    [string]             - Which archive will be processed. [dudez, pdbbind, astex]
+     picklePath [string] DEFAULT: "" - The path where to store the pickle file. If empty no pickle file will be generated.
+    Return:
+     -
+    '''
+    # Make archive lowercase
+    archive = os.path.basename(archive).lower()
+    # Find which kind of archive it will be
+    if archive == "astex":
+        chosenArchive = astex_archive
+    elif archive == "dudez":
+        chosenArchive = dudez_archive
+    elif archive == "pdbbind":
+        chosenArchive = pdbbind_archive
+    else:
+        octools.print_error(f"Not valid archive type. Expected one of ['astex', 'dudez', 'pdbbind'] and found {archive}.")
+        return None
+    # Get all dirs paths in the database
+    dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db']]
+    # Make data be None (in case of failure)
+    data = None
+    # Decide if multprocessing will be used
+    if args.multiprocess:
+        data = __read_log_parallel(dirs, archive, f"Processing {archive}")
+    else:
+        data = __read_log_no_parallel(dirs, archive, f"Processing {archive}")
+    # If user asked for a pickle file
+    if picklePath:
+        # Check if data is not empty
+        if data:
+            # Try to write it
+            try:
+                octools.to_pickle(picklePath, data)
+                octools.print_success(f"The file '{picklePath}' has been successfully written.")
+            except Exception as e:
+                octools.print_error(f"Could not write the file '{picklePath}'. Error: {e}")
+        else:
+            octools.print_warning(f"The data object is not defined! There is no reason to write it as a pickle. Aborting...")
+    # Return the data
+    return data
+
+#def generate_dock_result_csv(result):

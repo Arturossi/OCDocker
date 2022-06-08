@@ -71,6 +71,8 @@ class DownloadProgressBar(tqdm):
 ## Private ##
 
 ## Public ##
+
+### Print functions
 def printv(message):
     '''
     Function to print if verbosity mode is set.
@@ -346,125 +348,7 @@ def print_sorry():
           f"{clrs['n']} sorry... =(\n")
     return
 
-def untar(fname, out_path = ".", delete = False):
-    '''
-    Untar a file.
-    Input:
-      fname    [string]  - File path to be untarred.
-      out_path [string]  - Output path.
-      delete   [boolean] - Flag to denote if the tar file should be deleted (True) or not (False).
-    Return:
-      [int]
-      See Error.py for all return codes.
-    '''
-    # Print verboosity
-    printv(f"Untarring file '{fname}' to the output '{out_path}'")
-    # Check if the file has the right extensions
-    if fname.endswith("tar.gz") or fname.endswith(".tgz") or fname.endswith(".gz"):
-        try:
-            printv("Preparing to untar the file...")
-            # open your tar.gz file
-            with tarfile.open(name=fname) as tar:
-                # Redirect output to tqdm.write
-                with redirect_to_tqdm():
-                    # Go over each member
-                    for member in tqdm(iterable=tar.getmembers(), total=len(tar.getmembers())):
-                        # Extract member
-                        tar.extract(member=member, path=out_path)
-            # Report success on untarring the file
-            _ = errors.ok(f"The file {fname} has been {clrs['g']}successfully{clrs['n']} untarred to the dir {out_path}!")
-            # If delete flag is set, delete file
-            if delete:
-                #shutil.rmtree(fname) # remove the files
-                os.remove(fname) # remove the files
-                return errors.ok(f"The file {fname} has been {clrs['y']}deleted!{clrs['n']}") # Report success on deleting the file
-            return errors.ok()
-        except Exception as e:
-            return errors.untar_file(message=f"{clrs['r']}Failed{clrs['n']} to untar the file {fname}.\n\n{clrs['r']}Error{clrs['n']}: {e}", level="error")
-    else:
-        # No supported extension has been provided
-        return errors.unsupported_extension(message=f"The file {fname} is not a tar.gz file. {clrs['y']}Aborting execution{clrs['n']}", level="error")
-
-def safe_create_dir(dirname):
-    '''
-    Create a dir if not exists.
-    Input:
-      dirname [string] - File path to be created.
-    Return:
-      [int]
-      See Error.py for all return codes.
-    '''
-    # Try to create
-    try:
-        # If file does not exists
-        if not os.path.isdir(dirname):
-            # Create it
-            os.mkdir(dirname)
-            # Print verbosity
-            if args.output_level >= 3:
-                return errors.ok(f"Successfully created the directory {dirname}")
-            return errors.ok()
-        else:
-            # It exists
-            return errors.file_exists(message="File 'dirname' already exists!", level="warn")
-    except Exception as e:
-        # Some error has occurred
-        return errors.create_dir(message=f"Problem found while creating the dir {dirname}: {e}", level="error")
-    # This should never appear since all the other paths ends in some kind of return
-    return errors.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while creating a dir safetly.", level="error")
-
-def download_url(url, out_path):
-    '''
-    Download a file from given url.
-    Input:
-      url      [string] - Url to be downloaded.
-      out_path [string] - Output path.
-    Return:
-      -
-    '''
-    # Print verboosity
-    printv(f"Downloading a file from '{url}' and saving to {out_path}.")
-    # Create the progress bar object
-    with DownloadProgressBar(unit="B",
-                             unit_scale=True,
-                             miniters=1,
-                             desc=url.split(os.path.sep)[-1]) as t:
-        urllib.request.urlretrieve(url, filename=out_path, reporthook=t.update_to)
-    return
-
-def run(cmd, logFile = ""):
-    '''
-    Run the given command (generic).
-    Input:
-      cmd             [list(string)]             - List containing the strings of the command.
-      logfile         [list(string)] DEFAULT: "" - Path to the logFile (empty string to suppress the output).
-    Return:
-      [int]
-      See Error.py for all return codes.
-    '''
-    if not cmd:
-        return errors.not_set(message=f"The variable cmd is not set or is an empty list!", type="error")
-
-    if type(cmd) != list:
-        return errors.wrong_type(message=f"The argument cmd has to be a list! Found '{type(cmd)}' instead...", type="error")
-
-    # Print verboosity
-    printv(f"Running the command '{' '.join(cmd)}'.")
-
-    if logFile == "":
-        printv(f"No log will be made")
-        logFile = os.devnull
-    else:
-        printv(f"Logging into '{logFile}'")
-
-    try:
-        with open(logFile, "w") as outfile:
-            subprocess.run(cmd, stdout=outfile)
-
-    except Exception as e:
-        return errors.subprocess(message=f"Found a problem while executing the command '{' '.join(cmd)}': {e}", level="error")
-
-    return errors.ok()
+### Conversion functions
 
 def convert2mol2_legacy(input, output, logFile = ""):
     '''
@@ -654,6 +538,155 @@ def convertMols(input, output):
 
     return errors.ok()
 
+### Pickle functions
+
+def to_pickle(filePath, data):
+    '''
+    Pickle a dict in a given path.
+    Input:
+      filePath [string] - The path to save the file
+      data     [dict]   - Dict to pickle
+    Return:
+      -
+    '''
+    with open(filePath, 'wb') as handle:
+        pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+def from_pickle(filePath):
+    '''
+    Unpickle a pickle file into a dict.
+    Input:
+      filePath [string] - The path to pickle file
+    Return:
+      [dict] - Unpickled dict
+    '''
+    data = None
+    with open(filePath, 'rb') as handle:
+        data = pickle.load(handle)
+    return data
+
+### Other functions
+
+def untar(fname, out_path = ".", delete = False):
+    '''
+    Untar a file.
+    Input:
+      fname    [string]  - File path to be untarred.
+      out_path [string]  - Output path.
+      delete   [boolean] - Flag to denote if the tar file should be deleted (True) or not (False).
+    Return:
+      [int]
+      See Error.py for all return codes.
+    '''
+    # Print verboosity
+    printv(f"Untarring file '{fname}' to the output '{out_path}'")
+    # Check if the file has the right extensions
+    if fname.endswith("tar.gz") or fname.endswith(".tgz") or fname.endswith(".gz"):
+        try:
+            printv("Preparing to untar the file...")
+            # open your tar.gz file
+            with tarfile.open(name=fname) as tar:
+                # Redirect output to tqdm.write
+                with redirect_to_tqdm():
+                    # Go over each member
+                    for member in tqdm(iterable=tar.getmembers(), total=len(tar.getmembers())):
+                        # Extract member
+                        tar.extract(member=member, path=out_path)
+            # Report success on untarring the file
+            _ = errors.ok(f"The file {fname} has been {clrs['g']}successfully{clrs['n']} untarred to the dir {out_path}!")
+            # If delete flag is set, delete file
+            if delete:
+                #shutil.rmtree(fname) # remove the files
+                os.remove(fname) # remove the files
+                return errors.ok(f"The file {fname} has been {clrs['y']}deleted!{clrs['n']}") # Report success on deleting the file
+            return errors.ok()
+        except Exception as e:
+            return errors.untar_file(message=f"{clrs['r']}Failed{clrs['n']} to untar the file {fname}.\n\n{clrs['r']}Error{clrs['n']}: {e}", level="error")
+    else:
+        # No supported extension has been provided
+        return errors.unsupported_extension(message=f"The file {fname} is not a tar.gz file. {clrs['y']}Aborting execution{clrs['n']}", level="error")
+
+def safe_create_dir(dirname):
+    '''
+    Create a dir if not exists.
+    Input:
+      dirname [string] - File path to be created.
+    Return:
+      [int]
+      See Error.py for all return codes.
+    '''
+    # Try to create
+    try:
+        # If file does not exists
+        if not os.path.isdir(dirname):
+            # Create it
+            os.mkdir(dirname)
+            # Print verbosity
+            if args.output_level >= 3:
+                return errors.ok(f"Successfully created the directory {dirname}")
+            return errors.ok()
+        else:
+            # It exists
+            return errors.file_exists(message="File 'dirname' already exists!", level="warn")
+    except Exception as e:
+        # Some error has occurred
+        return errors.create_dir(message=f"Problem found while creating the dir {dirname}: {e}", level="error")
+    # This should never appear since all the other paths ends in some kind of return
+    return errors.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while creating a dir safetly.", level="error")
+
+def download_url(url, out_path):
+    '''
+    Download a file from given url.
+    Input:
+      url      [string] - Url to be downloaded.
+      out_path [string] - Output path.
+    Return:
+      -
+    '''
+    # Print verboosity
+    printv(f"Downloading a file from '{url}' and saving to {out_path}.")
+    # Create the progress bar object
+    with DownloadProgressBar(unit="B",
+                             unit_scale=True,
+                             miniters=1,
+                             desc=url.split(os.path.sep)[-1]) as t:
+        urllib.request.urlretrieve(url, filename=out_path, reporthook=t.update_to)
+    return
+
+def run(cmd, logFile = ""):
+    '''
+    Run the given command (generic).
+    Input:
+      cmd             [list(string)]             - List containing the strings of the command.
+      logfile         [list(string)] DEFAULT: "" - Path to the logFile (empty string to suppress the output).
+    Return:
+      [int]
+      See Error.py for all return codes.
+    '''
+    if not cmd:
+        return errors.not_set(message=f"The variable cmd is not set or is an empty list!", type="error")
+
+    if type(cmd) != list:
+        return errors.wrong_type(message=f"The argument cmd has to be a list! Found '{type(cmd)}' instead...", type="error")
+
+    # Print verboosity
+    printv(f"Running the command '{' '.join(cmd)}'.")
+
+    if logFile == "":
+        printv(f"No log will be made")
+        logFile = os.devnull
+    else:
+        printv(f"Logging into '{logFile}'")
+
+    try:
+        with open(logFile, "w") as outfile:
+            subprocess.run(cmd, stdout=outfile)
+
+    except Exception as e:
+        return errors.subprocess(message=f"Found a problem while executing the command '{' '.join(cmd)}': {e}", level="error")
+
+    return errors.ok()
+
 def split_and_convert(path, out_path, extension, overwrite = False):
     '''
     Splits a multi-molecule file then save the output in multiple single-molecule file with the desired extension. (Supported by openbabel)
@@ -743,31 +776,6 @@ def is_algorithm_allowed(path):
     allowed = ["ap", "ac", "bi", "db", "km", "ms", "mb", "na", "op", "sc"]
     return path.split(os.path.sep).pop() in allowed
 
-def to_pickle(filePath, data):
-    '''
-    Pickle a dict in a given path.
-    Input:
-      filePath [string] - The path to save the file
-      data     [dict]   - Dict to pickle
-    Return:
-      -
-    '''
-    with open(filePath, 'wb') as handle:
-        pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-def from_pickle(filePath):
-    '''
-    Unpickle a pickle file into a dict.
-    Input:
-      filePath [string] - The path to pickle file
-    Return:
-      [dict] - Unpickled dict
-    '''
-    data = None
-    with open(filePath, 'rb') as handle:
-        data = pickle.load(handle)
-    return data
-
 def clear_past_logs():
     '''
     Clear past logs entries.
@@ -783,6 +791,8 @@ def clear_past_logs():
             # Remove all the folder
             shutil.rmtree(pastLog)
     return
+
+### Special functions
 
 @contextlib.contextmanager
 def redirect_to_tqdm():
