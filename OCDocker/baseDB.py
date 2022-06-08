@@ -9,6 +9,7 @@ from glob import glob
 from tqdm import tqdm
 from multiprocessing import Pool
 
+import numpy as np
 import pandas as pd
 
 from OCDocker.Initialise import *
@@ -819,7 +820,7 @@ def __core_read_log(dir, archive):
             # Check if df is a dataframe
             if isinstance(df, pd.DataFrame):
                 # Concatenate df and vinadf
-                vinadf = pd.concat([vinadf, df])
+                vinadf = pd.concat([vinadf, df], ignore_index=True)
             else:
                 _ = errors.wrong_type(f"The file '{logPath}' could not be read.")
         else:
@@ -838,7 +839,7 @@ def __core_read_log(dir, archive):
             df = ocplants.read_plants_log(logPath)
             if isinstance(df, pd.DataFrame):
                 # Concatenate df and plantsdf
-                plantsdf = pd.concat([plantsdf, df])
+                plantsdf = pd.concat([plantsdf, df], ignore_index=True)
             else:
                 _ = errors.wrong_type(f"The file '{logPath}' could not be read.")
         else:
@@ -921,7 +922,7 @@ def __read_log_no_parallel(dirs, archive, desc):
      archive [string] - Which archive will be processed [dudez, pdbbind, astex]
      desc    [string] - The description used in the progress bar
     Return:
-      -
+      [dict of dicts of pd.DataFrame]
     '''
     # Dict to store the read data
     data = {}
@@ -930,6 +931,164 @@ def __read_log_no_parallel(dirs, archive, desc):
         for dir in tqdm(iterable = dirs, total = len(dirs), desc = desc):
             # Call the core read log function (shared between parallel and not parallel) and store the data into the data dict
             data.update(__core_read_log(dir, archive))
+    return None
+
+### Parse into csv
+
+def __core_generate_dock_result_csv(log_dump, ptn, archive):
+    '''
+    Reads Vina, Smina and PLANTS logs and then return a dict of dataframes.
+    Input:
+     dir     [string] - The directory where the files are stored
+     ptn     [string] - Which protein is being processed
+     archive [string] - Which archive will be processed [dudez, pdbbind, astex]
+    Return:
+      -
+    '''
+    print(ptn)
+    # Find which kind of archive it will be
+    if archive == "astex":
+        chosenArchive = astex_archive
+    elif archive == "dudez":
+        chosenArchive = dudez_archive
+    elif archive == "pdbbind":
+        chosenArchive = pdbbind_archive
+        reference_ligand = f"{ptn}_ligand.mol2"
+
+    # Set the target dir
+    dir = f"{chosenArchive}/{ptn}"
+
+    # The new dataframe
+    df = pd.DataFrame(columns=["vina_affinity", "smina_affinity", "plants_TOTAL_SCORE", "plants_SCORE_RB_PEN", "plants_SCORE_NORM_HEVATOMS", "plants_SCORE_NORM_CRT_HEVATOMS", "plants_SCORE_NORM_WEIGHT", "plants_SCORE_NORM_CRT_WEIGHT", "plants_SCORE_RB_PEN_NORM_CRT_HEVATOMS", "plants_SCORE_NORM_CONTACT", "vina_rmsd", "smina_rmsd", "plants_rmsd"])
+
+    # List to work with vina/smina/PLANTS data
+    vinaData = []
+    sminaData = []
+    plantsData = []
+
+    # If the vina dataframe is not empty
+    if not log_dump['vina'].empty:
+        # Get all vina directories (0, 1, 2...)
+        vinaDirs = glob(f"{dir}/vinaFiles/*")
+        for vinaDir in vinaDirs:
+            # Get run number
+            runNumber = vinaDir.split(os.path.sep)[-1]
+            # Find and concatenate the RMSDs
+            vinaData += octools.get_rmsd(f"{dir}/{reference_ligand}", f"{dir}/vinaFiles/{runNumber}/vina_{runNumber}.pdbqt")
+
+    # If the vina dataframe is not empty
+    if not log_dump['smina'].empty:
+        # Read smina data
+        sminaData += octools.get_rmsd(f"{dir}/{reference_ligand}", f"{dir}/sminaFiles/smina.pdbqt")
+
+    # If the plants dataframe is not empty
+    if not log_dump['plants'].empty:
+        # Get all PLANTS directories (0, 1, 2...)
+        plantsDirs = glob(f"{dir}/plantsFiles/*")
+        for plantsDir in plantsDirs:
+            # Get run number
+            runNumber = plantsDir.split(os.path.sep)[-1]
+            # For each ligand which is in the list
+            for ligand in glob(f"{dir}/plantsFiles/{runNumber}/run/{ptn}*[0-9].mol2"):
+                # Find and concatenate the RMSDs
+                plantsData += octools.get_rmsd(f"{dir}/{reference_ligand}", ligand)
+
+    # For each software, if not empty, determine which is the minimum value and which index it belongs and then select the corresponding line in the DataFrame
+    if vinaData:
+        minRMSD_vina = min(vinaData)
+        index_vina = vinaData.index(minRMSD_vina)
+        vinaList = log_dump['vina'][['affinity']].iloc[[index_vina]].values[0].tolist()
+    else:
+        vinaList = [np.NaN]
+        minRMSD_vina = np.NaN
+
+    # For each software, if not empty, determine which is the minimum value and which index it belongs and then select the corresponding line in the DataFrame
+    if sminaData:
+        minRMSD_smina = min(sminaData)
+        index_smina = sminaData.index(minRMSD_smina)
+        sminaList = log_dump['smina'][['affinity']].iloc[[index_smina]].values[0].tolist()
+    else:
+        sminaList = [np.NaN]
+        minRMSD_smina = np.NaN
+
+    # For each software, if not empty, determine which is the minimum value and which index it belongs and then select the corresponding line in the DataFrame
+    if plantsData:
+        minRMSD_plants = min(plantsData)
+        index_plants = plantsData.index(minRMSD_plants)
+        print(minRMSD_plants)
+        print(index_plants)
+        plantsList = log_dump['plants'][["TOTAL_SCORE", "SCORE_RB_PEN", "SCORE_NORM_HEVATOMS", "SCORE_NORM_CRT_HEVATOMS", "SCORE_NORM_WEIGHT", "SCORE_NORM_CRT_WEIGHT", "SCORE_RB_PEN_NORM_CRT_HEVATOMS", "SCORE_NORM_CONTACT"]].iloc[[index_plants]].values[0].tolist()
+    else:
+        plantsList = [np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN]
+        minRMSD_plants = np.NaN
+
+    print("quase ok")
+    # Append the data to the DataFrame
+    df.loc[len(df), df.columns] = vinaList + sminaList + plantsList + [minRMSD_vina, minRMSD_smina, minRMSD_plants]
+
+    print("ok")
+    return df
+
+def __thread_generate_dock_result_csv_parallel(arguments):
+    '''
+    Thread aid function to call __core_generate_dock_result_csv.
+    Input:
+     arguments [tuple(string, string, string, bool)] - Tuple containing, in this order:
+        - [string] - The directory where the files are stored
+        - [string] - Which protein is being processed
+        - [string] - Which archive will be processed [dudez, pdbbind, astex]
+    Return:
+      -
+    '''
+    # Redirect all prints to tqdm.write
+    with octools.redirect_to_tqdm():
+        # Call the core read log function passing the arguments correctly
+        return __core_generate_dock_result_csv(arguments[0], arguments[1], arguments[2])
+    return None
+
+def __generate_dock_result_csv_parallel(log_dumps, archive, desc):
+    '''
+    Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
+    Input:
+     log_dumps [dict of dicts of pd.DataFrame] - The dump generated from the read_logs function
+     archive   [string]                        - Which archive will be processed [dudez, pdbbind, astex]
+     desc      [string]                        - The description used in the progress bar
+    Return:
+      [dict of dicts of pd.DataFrame]
+    '''
+    # Arguments to pass to each Thread in the Thread Pool
+    arguments = []
+    # For each file in the glob
+    for ptn, log_dump in log_dumps.items():
+        # Append a tuple containing the file name and ovewrite flag to the arguments list
+        arguments.append((log_dump, ptn, archive))
+    # If logfile exists, backup it for vina, smina and plants (for error and warnings)
+    if os.path.isfile(f"{logdir}/generate_dock_result_csv_ERROR.log"):
+        if not os.path.isdir(f"{logdir}/generate_dock_result_csv_past"):
+            octools.safe_create_dir(f"{logdir}/generate_dock_result_csv_past")
+        os.rename(f"{logdir}/generate_dock_result_csv_ERROR.log", f"{logdir}/read_log_past/generate_dock_result_csv_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
+    # Create a Thread pool with the maximum available_cores
+    with Pool(args.available_cores) as p:
+        # Perform the multi process
+        for line in tqdm(p.imap_unordered(__thread_generate_dock_result_csv_parallel, arguments), total = len(arguments), desc = desc):
+            pass
+    return None
+
+def __generate_dock_result_csv_no_parallel(log_dumps, archive, desc):
+    '''
+    Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_generate_dock_result_csv function.
+    Input:
+     log_dumps [dict of dicts of pd.DataFrame] - The dump generated from the read_logs function
+     archive   [string]                        - Which archive will be processed [dudez, pdbbind, astex]
+     desc      [string]                        - The description used in the progress bar
+    Return:
+      [dict of dicts of pd.DataFrame]
+    '''
+    # Redirect all prints to tqdm.write
+    with octools.redirect_to_tqdm():
+        for ptn, log_dump in tqdm(iterable = log_dumps.items(), total = len(log_dumps), desc = desc):
+            # Call the core read log function (shared between parallel and not parallel) and assign it to the line
+            line = __core_generate_dock_result_csv(log_dump, ptn, archive)
     return None
 
 ## Public ##
@@ -1388,12 +1547,12 @@ def get_database_multiple_files(archive, sliceSize = 100):
 
 def read_logs(archive, picklePath = ""):
     '''
-    Parse the database into multiple serializable objects.
+    Reads database logfiles returning a dict of dicts of pd.DataFrames.
     Input:
      archive    [string]             - Which archive will be processed. [dudez, pdbbind, astex]
      picklePath [string] DEFAULT: "" - The path where to store the pickle file. If empty no pickle file will be generated.
     Return:
-     -
+     [dict of dicts of pd.DataFrame]
     '''
     # Make archive lowercase
     archive = os.path.basename(archive).lower()
@@ -1431,4 +1590,17 @@ def read_logs(archive, picklePath = ""):
     # Return the data
     return data
 
-#def generate_dock_result_csv(result):
+def generate_dock_result_csv(log_dumps, archive):
+    '''
+    Uses the structure from read_logs to generate an output for all docking softwares.
+    Input:
+     log_dumps [dict of dicts of pd.DataFrame] - The dump generated from the read_logs function
+     archive   [string]                        - Which archive will be processed [dudez, pdbbind, astex]
+    Return:
+     -
+    '''
+    # Decide if multprocessing will be used
+    if args.multiprocess:
+        data = __generate_dock_result_csv_parallel(log_dumps, archive, f"Generating docking csv {archive}")
+    else:
+        data = __generate_dock_result_csv_no_parallel(log_dumps, archive, f"Generating docking csv {archive}")

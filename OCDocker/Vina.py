@@ -467,13 +467,16 @@ def read_vina_log(path):
             if lines[i].startswith("-"):
                 # Stop iteration, because it does not contain useful information and neither the upper lines do
                 break
+            # If useless information is in our way ignore it
+            if "Writing output ... done." in lines[i]:
+                continue
             try:
                 # Add the reversed list to the end of
                 df.loc[len(df), df.columns] = lines[i].strip().split()
             except Exception as e:
                 octools.print_error(f"Problems while reading file '{path}'. Error: {e}")
                 octools.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{logdir}/vina_read_log_ERROR.log")
-        # Return the df
+        # Return the df reversing the order and reseting the index
         return df.reindex(index=df.index[::-1]).reset_index(drop=True)
     # Throw an error
     return errors.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")

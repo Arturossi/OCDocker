@@ -199,4 +199,15 @@ def prepare(overwrite = False):
     Return:
       -
     '''
-    ocbdb.prepare(f"{pdbbind_archive}", overwrite = overwrite)
+    return ocbdb.prepare("pdbbind", overwrite = overwrite)
+
+def read_logs(picklePath = ""):
+    '''
+    Parse the database into multiple serializable objects.
+    Input:
+     archive    [string]             - Which archive will be processed. [dudez, pdbbind, astex]
+     picklePath [string] DEFAULT: "" - The path where to store the pickle file. If empty no pickle file will be generated.
+    Return:
+     -
+    '''
+    return ocbdb.read_logs("pdbbind", picklePath = picklePath)

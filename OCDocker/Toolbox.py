@@ -13,6 +13,7 @@ import contextlib
 import subprocess
 import urllib.request
 
+from spyrmsd import io, rmsd
 from tqdm import tqdm
 from openbabel import pybel
 from openbabel import openbabel
@@ -538,6 +539,43 @@ def convertMols(input, output):
 
     return errors.ok()
 
+def split_and_convert(path, out_path, extension, overwrite = False):
+    '''
+    Splits a multi-molecule file then save the output in multiple single-molecule file with the desired extension. (Supported by openbabel)
+    Input:
+      path      [string]                - Path to the file which will be read.
+      out_path  [string]                - Path to the file which will be written.
+      extension [string]                - Output desired extension.
+      overwrite [bool]   DEFAULT: False - Flag to denote if the file will be overwritten.
+    Return:
+      [int]
+      See Error.py for all return codes.
+    '''
+    # Finds the input extension
+    extensionIn = validate_obabel_extension(path)
+
+    # If input extension is not valid
+    if type(extension) != str:
+        # Return the unsupported_extension
+        return errors.unsupported_extension(f"Unsupported extension provided while spliting '{path}' file. Supported extensions are the one supported by OpenBabel.", "error")
+
+    # For each molecule in input file
+    for mol in pybel.readfile(extensionIn, path):
+        # Get its name and remove the "none string", strip blank spaces and then replace the remaining blank spaces for underscores
+        molName = mol.title.replace("none", "").strip().replace(" ", "_")
+        # Set the output file name
+        outfile = f"{out_path}/{molName}.{extension}"
+        # Try to convert
+        try:
+            # Write the file with the right extension
+            mol.write(extension, outfile, overwrite=overwrite)
+        # If fails
+        except Exception as e:
+            # Return write file error
+            return errors.write_file(f"Problems while writing the file '{outfile}'. Error: {e}")
+    # Since everything gone ok, return the ok code
+    return errors.ok()
+
 ### Pickle functions
 
 def to_pickle(filePath, data):
@@ -564,6 +602,24 @@ def from_pickle(filePath):
     with open(filePath, 'rb') as handle:
         data = pickle.load(handle)
     return data
+
+### Log functions
+
+def clear_past_logs():
+    '''
+    Clear past logs entries.
+    Input:
+      -
+    Return:
+      -
+    '''
+    # For each dir in the log dir
+    for pastLog in [d for d in glob(f"{logdir}/*") if os.path.isdir(d)]:
+        # Extra check for avoid wrong deletions
+        if pastLog.endswith("past"):
+            # Remove all the folder
+            shutil.rmtree(pastLog)
+    return
 
 ### Other functions
 
@@ -687,43 +743,6 @@ def run(cmd, logFile = ""):
 
     return errors.ok()
 
-def split_and_convert(path, out_path, extension, overwrite = False):
-    '''
-    Splits a multi-molecule file then save the output in multiple single-molecule file with the desired extension. (Supported by openbabel)
-    Input:
-      path      [string]                - Path to the file which will be read.
-      out_path  [string]                - Path to the file which will be written.
-      extension [string]                - Output desired extension.
-      overwrite [bool]   DEFAULT: False - Flag to denote if the file will be overwritten.
-    Return:
-      [int]
-      See Error.py for all return codes.
-    '''
-    # Finds the input extension
-    extensionIn = validate_obabel_extension(path)
-
-    # If input extension is not valid
-    if type(extension) != str:
-        # Return the unsupported_extension
-        return errors.unsupported_extension(f"Unsupported extension provided while spliting '{path}' file. Supported extensions are the one supported by OpenBabel.", "error")
-
-    # For each molecule in input file
-    for mol in pybel.readfile(extensionIn, path):
-        # Get its name and remove the "none string", strip blank spaces and then replace the remaining blank spaces for underscores
-        molName = mol.title.replace("none", "").strip().replace(" ", "_")
-        # Set the output file name
-        outfile = f"{out_path}/{molName}.{extension}"
-        # Try to convert
-        try:
-            # Write the file with the right extension
-            mol.write(extension, outfile, overwrite=overwrite)
-        # If fails
-        except Exception as e:
-            # Return write file error
-            return errors.write_file(f"Problems while writing the file '{outfile}'. Error: {e}")
-    # Since everything gone ok, return the ok code
-    return errors.ok()
-
 def validate_obabel_extension(path):
     '''
     Validate the input file extension to ensure the compability with obabel lib.
@@ -776,21 +795,41 @@ def is_algorithm_allowed(path):
     allowed = ["ap", "ac", "bi", "db", "km", "ms", "mb", "na", "op", "sc"]
     return path.split(os.path.sep).pop() in allowed
 
-def clear_past_logs():
+def get_rmsd(reference, molecule):
     '''
-    Clear past logs entries.
+    Get the rmsd between a reference and a molecule file (it supports more than one molecule in this second file).
     Input:
-      -
+      reference [string] - Path to the reference molecule
+      molecule  [string] - Path to the molecule file to perform the RMSD
     Return:
-      -
+      [list of float]
+        List containg the rmsds of all molecules
     '''
-    # For each dir in the log dir
-    for pastLog in [d for d in glob(f"{logdir}/*") if os.path.isdir(d)]:
-        # Extra check for avoid wrong deletions
-        if pastLog.endswith("past"):
-            # Remove all the folder
-            shutil.rmtree(pastLog)
-    return
+    # Load reference
+    ref = io.loadmol(reference)
+    # Remove its hydrogens
+    ref.strip()
+    # Load all molecules (if only one, a list with a single element will be generated)
+    mols = io.loadallmols(molecule)
+    # For each molecule in molecules
+    for mol in mols:
+        # Remove its hydrogens
+        mol.strip()
+
+    # Get the reference and molecules coordinates
+    refCoordinates = ref.coordinates
+    molCoordinates = [mol.coordinates for mol in mols]
+
+    # Get the reference and molecules atomicnums
+    refAtmNum = ref.atomicnums
+    molAtmNum = mols[0].atomicnums
+
+    # Get the reference and molecules adjacency_matrix
+    refAdjMat = ref.adjacency_matrix
+    molAdjMat = mols[0].adjacency_matrix
+
+    # Return the symmetric rmsd (account for symmetry because it is important)
+    return rmsd.symmrmsd(refCoordinates, molCoordinates, refAtmNum, molAtmNum, refAdjMat, molAdjMat)
 
 ### Special functions
 
