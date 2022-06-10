@@ -1022,11 +1022,9 @@ def __core_generate_dock_result_csv(log_dump, ptn, archive):
         plantsList = [np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN]
         minRMSD_plants = np.NaN
 
-    print("quase ok")
     # Append the data to the DataFrame
     df.loc[len(df), df.columns] = vinaList + sminaList + plantsList + [minRMSD_vina, minRMSD_smina, minRMSD_plants]
 
-    print("ok")
     return df
 
 def __thread_generate_dock_result_csv_parallel(arguments):
