@@ -599,11 +599,8 @@ def read_plants_log(path):
             # Remove EVAL and TIME columns
             df.drop("EVAL", axis=1, inplace=True)
             df.drop("TIME", axis=1, inplace=True)
-            # For each column in the dataframe
-            for column in df:
-                # If has inifinity or minus infinity, remove it
-                df = df[df["SCORE_NORM_CONTACT"] != -np.inf]
-                df = df[df["SCORE_NORM_CONTACT"] != np.inf]
+            # Remove also the SCORE_NORM_CONTACT because it was being problematic
+            df.drop("SCORE_NORM_CONTACT", axis=1, inplace=True)
             return df
         except Exception as e:
             octools.print_error(f"Problems while reading file '{path}'. Error: {e}")

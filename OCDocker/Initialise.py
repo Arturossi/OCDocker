@@ -430,7 +430,7 @@ global order
 global pdbbind_KiKd_order
 
 # Data from .cfg
-global ocdb
+global ocdb_path
 global vina
 global dock6
 global prank
@@ -485,6 +485,7 @@ global astex_archive
 global dudez_archive
 global ocdocker_path
 global pdbbind_archive
+global parsed_archive
 
 # Other software
 global dssp
@@ -660,7 +661,7 @@ elif args.config_file:
 # Read the conf file and assign its data to its variables (The order matters here, if you follow the same order which is in the conf file less computation power will be needed! It is not much, but it is something.)
 for line in open(config_file, "r"):
     if line.startswith("ocdb ="):
-        ocdb = line.split("=")[1].strip()
+        ocdb_path = line.split("=")[1].strip()
     elif line.startswith("pythonsh ="):
         pythonsh = line.split("=")[1].strip()
     elif line.startswith("prepare_ligand ="):
@@ -746,13 +747,16 @@ for line in open(config_file, "r"):
 ocdocker_path = os.path.dirname(os.path.abspath( __file__ ))
 
 # Directory containing the astex archive
-astex_archive = os.path.join(ocdb, "Astex")
+astex_archive = os.path.join(ocdb_path, "Astex")
 
 # Directory containing the dudez archive
-dudez_archive = os.path.join(ocdb, "DUDEz")
+dudez_archive = os.path.join(ocdb_path, "DUDEz")
 
 # Directory containing the pdbbind archive
-pdbbind_archive = os.path.join(ocdb, "PDBbind")
+pdbbind_archive = os.path.join(ocdb_path, "PDBbind")
+
+# Directory containing the pdbbind archive
+parsed_archive = os.path.join(ocdb_path, "Parsed")
 
 # Set the log directory
 logdir = f"{os.path.abspath(os.path.join(os.path.dirname(ocerror.__file__), os.pardir))}/logs"

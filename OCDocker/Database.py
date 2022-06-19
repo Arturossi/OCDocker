@@ -64,6 +64,8 @@ def create_directories():
     _ = octools.safe_create_dir(dudez_archive)
     # Create the Astex dir
     _ = octools.safe_create_dir(astex_archive)
+    # Create the Parsed dir
+    _ = octools.safe_create_dir(parsed_archive)
 
 def update_DUDEz():
     '''

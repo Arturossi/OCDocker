@@ -804,7 +804,7 @@ def __core_read_log(dir, archive):
     # Create Vina, Smina and PLANTS dataframes
     vinadf = pd.DataFrame(columns=["mode", "affinity", "rmsd_lb_best_mode", "rmsd_ub_best_mode"])
     sminadf = pd.DataFrame(columns=["mode", "affinity", "rmsd_lb_best_mode", "rmsd_ub_best_mode"])
-    plantsdf = pd.DataFrame(columns=["LIGAND_ENTRY", "TOTAL_SCORE", "SCORE_RB_PEN", "SCORE_NORM_HEVATOMS", "SCORE_NORM_CRT_HEVATOMS", "SCORE_NORM_WEIGHT", "SCORE_NORM_CRT_WEIGHT", "SCORE_RB_PEN_NORM_CRT_HEVATOMS", "SCORE_NORM_CONTACT"])
+    plantsdf = pd.DataFrame(columns=["LIGAND_ENTRY", "TOTAL_SCORE", "SCORE_RB_PEN", "SCORE_NORM_HEVATOMS", "SCORE_NORM_CRT_HEVATOMS", "SCORE_NORM_WEIGHT", "SCORE_NORM_CRT_WEIGHT", "SCORE_RB_PEN_NORM_CRT_HEVATOMS"])
     # Get all vina directories (0, 1, 2...)
     vinaDirs = glob(f"{dir}/vinaFiles/*")
     # For each dir in vinaDirs
@@ -926,6 +926,19 @@ def __read_log_no_parallel(dirs, archive, desc):
     '''
     # Dict to store the read data
     data = {}
+    # If logfile exists, backup it for vina, smina and plants (for error and warnings)
+    if os.path.isfile(f"{logdir}/vina_read_log_ERROR.log"):
+        if not os.path.isdir(f"{logdir}/read_log_past"):
+            octools.safe_create_dir(f"{logdir}/read_log_past")
+        os.rename(f"{logdir}/vina_read_log_ERROR.log", f"{logdir}/read_log_past/vina_read_log_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
+    if os.path.isfile(f"{logdir}/smina_read_log_ERROR.log"):
+        if not os.path.isdir(f"{logdir}/read_log_past"):
+            octools.safe_create_dir(f"{logdir}/read_log_past")
+        os.rename(f"{logdir}/smina_read_log_ERROR.log", f"{logdir}/read_log_past/smina_read_log_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
+    if os.path.isfile(f"{logdir}/plants_read_log_ERROR.log"):
+        if not os.path.isdir(f"{logdir}/read_log_past"):
+            octools.safe_create_dir(f"{logdir}/read_log_past")
+        os.rename(f"{logdir}/plants_read_log_ERROR.log", f"{logdir}/read_log_past/plants_read_log_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         for dir in tqdm(iterable = dirs, total = len(dirs), desc = desc):
@@ -945,7 +958,6 @@ def __core_generate_dock_result_csv(log_dump, ptn, archive):
     Return:
       -
     '''
-    print(ptn)
     # Find which kind of archive it will be
     if archive == "astex":
         chosenArchive = astex_archive
@@ -954,12 +966,13 @@ def __core_generate_dock_result_csv(log_dump, ptn, archive):
     elif archive == "pdbbind":
         chosenArchive = pdbbind_archive
         reference_ligand = f"{ptn}_ligand.mol2"
+        reference_ligand2 = f"{ptn}_ligand.sdf"
 
     # Set the target dir
     dir = f"{chosenArchive}/{ptn}"
 
     # The new dataframe
-    df = pd.DataFrame(columns=["vina_affinity", "smina_affinity", "plants_TOTAL_SCORE", "plants_SCORE_RB_PEN", "plants_SCORE_NORM_HEVATOMS", "plants_SCORE_NORM_CRT_HEVATOMS", "plants_SCORE_NORM_WEIGHT", "plants_SCORE_NORM_CRT_WEIGHT", "plants_SCORE_RB_PEN_NORM_CRT_HEVATOMS", "plants_SCORE_NORM_CONTACT", "vina_rmsd", "smina_rmsd", "plants_rmsd"])
+    df = pd.DataFrame(columns=["Protein", "vina_affinity", "smina_affinity", "plants_TOTAL_SCORE", "plants_SCORE_RB_PEN", "plants_SCORE_NORM_HEVATOMS", "plants_SCORE_NORM_CRT_HEVATOMS", "plants_SCORE_NORM_WEIGHT", "plants_SCORE_NORM_CRT_WEIGHT", "plants_SCORE_RB_PEN_NORM_CRT_HEVATOMS", "vina_rmsd", "smina_rmsd", "plants_rmsd"])
 
     # List to work with vina/smina/PLANTS data
     vinaData = []
@@ -973,13 +986,33 @@ def __core_generate_dock_result_csv(log_dump, ptn, archive):
         for vinaDir in vinaDirs:
             # Get run number
             runNumber = vinaDir.split(os.path.sep)[-1]
-            # Find and concatenate the RMSDs
-            vinaData += octools.get_rmsd(f"{dir}/{reference_ligand}", f"{dir}/vinaFiles/{runNumber}/vina_{runNumber}.pdbqt")
+            # Try to load the mol2, if fails, try the .sdf
+            try:
+                # Find and concatenate the RMSDs
+                vinaData += octools.get_rmsd(f"{dir}/{reference_ligand}", f"{dir}/vinaFiles/{runNumber}/vina_{runNumber}.pdbqt")
+            except Exception as e:
+                try:
+                    octools.print_warning(f"Possibly I could not load the '{reference_ligand}', trying to load the '{reference_ligand2}' instead. Error: {e}")
+                    # Find and concatenate the RMSDs
+                    vinaData += octools.get_rmsd(f"{dir}/{reference_ligand2}", f"{dir}/vinaFiles/{runNumber}/vina_{runNumber}.pdbqt")
+                except Exception as e2:
+                    octools.print_error(f"Problems while processing the Vina output for the protein '{dir}'")
+                    octools.print_error_log(f"Problems while processing the Vina output for the protein '{dir}'. Error: {e2}", f"{logdir}/{archive}_dock_result_ERROR.log")
 
     # If the vina dataframe is not empty
     if not log_dump['smina'].empty:
-        # Read smina data
-        sminaData += octools.get_rmsd(f"{dir}/{reference_ligand}", f"{dir}/sminaFiles/smina.pdbqt")
+        # Try to load the mol2, if fails, try the .sdf
+        try:
+            # Read smina data
+            sminaData += octools.get_rmsd(f"{dir}/{reference_ligand}", f"{dir}/sminaFiles/smina.pdbqt")
+        except Exception as e:
+            try:
+                octools.print_warning(f"Possibly I could not load the '{reference_ligand}', trying to load the '{reference_ligand2}' instead. Error: {e}")
+                # Find and concatenate the RMSDs
+                sminaData += octools.get_rmsd(f"{dir}/{reference_ligand2}", f"{dir}/sminaFiles/smina.pdbqt")
+            except Exception as e2:
+                octools.print_error(f"Problems while processing the Smina output for the protein '{dir}'")
+                octools.print_error_log(f"Problems while processing the Smina output for the protein '{dir}'. Error: {e2}", f"{logdir}/{archive}_dock_result_ERROR.log")
 
     # If the plants dataframe is not empty
     if not log_dump['plants'].empty:
@@ -990,8 +1023,18 @@ def __core_generate_dock_result_csv(log_dump, ptn, archive):
             runNumber = plantsDir.split(os.path.sep)[-1]
             # For each ligand which is in the list
             for ligand in glob(f"{dir}/plantsFiles/{runNumber}/run/{ptn}*[0-9].mol2"):
-                # Find and concatenate the RMSDs
-                plantsData += octools.get_rmsd(f"{dir}/{reference_ligand}", ligand)
+                # Try to load the mol2, if fails, try the .sdf
+                try:
+                    # Find and concatenate the RMSDs
+                    plantsData += octools.get_rmsd(f"{dir}/{reference_ligand}", ligand)
+                except Exception as e:
+                    try:
+                        octools.print_warning(f"Possibly I could not load the '{reference_ligand}', trying to load the '{reference_ligand2}' instead. Error: {e}")
+                        # Find and concatenate the RMSDs
+                        plantsData += octools.get_rmsd(f"{dir}/{reference_ligand2}", ligand)
+                    except Exception as e2:
+                        octools.print_error(f"Problems while processing the PLANTS output for the protein '{dir}'")
+                        octools.print_error_log(f"Problems while processing the PLANTS output for the protein '{dir}'. Error: {e2}", f"{logdir}/{archive}_dock_result_ERROR.log")
 
     # For each software, if not empty, determine which is the minimum value and which index it belongs and then select the corresponding line in the DataFrame
     if vinaData:
@@ -1015,15 +1058,13 @@ def __core_generate_dock_result_csv(log_dump, ptn, archive):
     if plantsData:
         minRMSD_plants = min(plantsData)
         index_plants = plantsData.index(minRMSD_plants)
-        print(minRMSD_plants)
-        print(index_plants)
-        plantsList = log_dump['plants'][["TOTAL_SCORE", "SCORE_RB_PEN", "SCORE_NORM_HEVATOMS", "SCORE_NORM_CRT_HEVATOMS", "SCORE_NORM_WEIGHT", "SCORE_NORM_CRT_WEIGHT", "SCORE_RB_PEN_NORM_CRT_HEVATOMS", "SCORE_NORM_CONTACT"]].iloc[[index_plants]].values[0].tolist()
+        plantsList = log_dump['plants'][["TOTAL_SCORE", "SCORE_RB_PEN", "SCORE_NORM_HEVATOMS", "SCORE_NORM_CRT_HEVATOMS", "SCORE_NORM_WEIGHT", "SCORE_NORM_CRT_WEIGHT", "SCORE_RB_PEN_NORM_CRT_HEVATOMS"]].iloc[[index_plants]].values[0].tolist()
     else:
-        plantsList = [np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN]
+        plantsList = [np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN]
         minRMSD_plants = np.NaN
 
     # Append the data to the DataFrame
-    df.loc[len(df), df.columns] = vinaList + sminaList + plantsList + [minRMSD_vina, minRMSD_smina, minRMSD_plants]
+    df.loc[len(df), df.columns] = [ptn] + vinaList + sminaList + plantsList + [minRMSD_vina, minRMSD_smina, minRMSD_plants]
 
     return df
 
@@ -1054,23 +1095,25 @@ def __generate_dock_result_csv_parallel(log_dumps, archive, desc):
     Return:
       [dict of dicts of pd.DataFrame]
     '''
+    # If logfile exists, backup it for vina, smina and plants (for error and warnings)
+    if os.path.isfile(f"{logdir}/{archive}_dock_result_ERROR.log"):
+        if not os.path.isdir(f"{logdir}/generate_dock_result_csv_past"):
+            octools.safe_create_dir(f"{logdir}/generate_dock_result_csv_past")
+        os.rename(f"{logdir}/{archive}_dock_result_ERROR.log", f"{logdir}/read_log_past/{archive}_dock_result_ERROR.{time.strftime('%d%m%Y-%H%M%S')}.log")
     # Arguments to pass to each Thread in the Thread Pool
     arguments = []
     # For each file in the glob
     for ptn, log_dump in log_dumps.items():
         # Append a tuple containing the file name and ovewrite flag to the arguments list
         arguments.append((log_dump, ptn, archive))
-    # If logfile exists, backup it for vina, smina and plants (for error and warnings)
-    if os.path.isfile(f"{logdir}/generate_dock_result_csv_ERROR.log"):
-        if not os.path.isdir(f"{logdir}/generate_dock_result_csv_past"):
-            octools.safe_create_dir(f"{logdir}/generate_dock_result_csv_past")
-        os.rename(f"{logdir}/generate_dock_result_csv_ERROR.log", f"{logdir}/read_log_past/generate_dock_result_csv_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
+    # Result DataFrame list
+    dfList = []
     # Create a Thread pool with the maximum available_cores
     with Pool(args.available_cores) as p:
         # Perform the multi process
         for line in tqdm(p.imap_unordered(__thread_generate_dock_result_csv_parallel, arguments), total = len(arguments), desc = desc):
-            pass
-    return None
+            dfList.append(line)
+    return pd.concat(dfList)
 
 def __generate_dock_result_csv_no_parallel(log_dumps, archive, desc):
     '''
@@ -1082,12 +1125,19 @@ def __generate_dock_result_csv_no_parallel(log_dumps, archive, desc):
     Return:
       [dict of dicts of pd.DataFrame]
     '''
+    # If logfile exists, backup it for vina, smina and plants (for error and warnings)
+    if os.path.isfile(f"{logdir}/{archive}_dock_result_ERROR..log"):
+        if not os.path.isdir(f"{logdir}/generate_dock_result_csv_past"):
+            octools.safe_create_dir(f"{logdir}/generate_dock_result_csv_past")
+        os.rename(f"{logdir}/{archive}_dock_result_ERROR..log", f"{logdir}/read_log_past/{archive}_dock_result_ERROR.{time.strftime('%d%m%Y-%H%M%S')}.log")
+    # Result DataFrame list
+    dfList = []
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         for ptn, log_dump in tqdm(iterable = log_dumps.items(), total = len(log_dumps), desc = desc):
             # Call the core read log function (shared between parallel and not parallel) and assign it to the line
-            line = __core_generate_dock_result_csv(log_dump, ptn, archive)
-    return None
+            dfList.append(__core_generate_dock_result_csv(log_dump, ptn, archive))
+    return pd.concat(dfList)
 
 ## Public ##
 def verify_integrity(chosenArchive, spacing = 0.33):
@@ -1585,15 +1635,19 @@ def read_logs(archive, picklePath = ""):
                 octools.print_error(f"Could not write the file '{picklePath}'. Error: {e}")
         else:
             octools.print_warning(f"The data object is not defined! There is no reason to write it as a pickle. Aborting...")
+        # Return nothing
+        return
     # Return the data
     return data
 
-def generate_dock_result_csv(log_dumps, archive):
+def generate_dock_result_csv(archive, log_dumps, csv_path, chunksize=500):
     '''
     Uses the structure from read_logs to generate an output for all docking softwares.
     Input:
-     log_dumps [dict of dicts of pd.DataFrame] - The dump generated from the read_logs function
-     archive   [string]                        - Which archive will be processed [dudez, pdbbind, astex]
+     archive   [string]                                     - Which archive will be processed [dudez, pdbbind, astex]
+     log_dumps [dict of dicts of pd.DataFrame]              - The dump generated from the read_logs function
+     csv_path  [string]                                     - Path to the csv file
+     chunksize [int]                           DEFAULT: 500 - Chunk size to write the csv
     Return:
      -
     '''
@@ -1602,3 +1656,7 @@ def generate_dock_result_csv(log_dumps, archive):
         data = __generate_dock_result_csv_parallel(log_dumps, archive, f"Generating docking csv {archive}")
     else:
         data = __generate_dock_result_csv_no_parallel(log_dumps, archive, f"Generating docking csv {archive}")
+    # Check if data is not empty
+    if not data.empty:
+        data.to_csv(csv_path, index=False, chunksize=chunksize)
+    return
