@@ -184,3 +184,6 @@ tmp/
 
 # Do not upload .cfg files
 *.cfg
+
+# Ignore nohup.out
+*nohup.out
