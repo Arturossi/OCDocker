@@ -3,6 +3,7 @@
 # Imports
 ###############################################################################
 import os
+import gc
 import time
 import shutil
 from glob import glob
@@ -400,7 +401,8 @@ def __prepare_parallel(dirs, overwrite, archive, sanitize, spacing, desc):
     with Pool(args.available_cores) as p:
         # Perform the multi process
         for _ in tqdm(p.imap_unordered(__thread_prepare, arguments), total = len(arguments), desc = desc):
-            pass
+            # Clear the memory
+            gc.collect()
     # Return
     return None
 
@@ -422,6 +424,8 @@ def __prepare_no_parallel(dirs, overwrite, archive, sanitize, spacing, desc):
         for dir in tqdm(iterable=dirs, total=len(dirs), desc=desc):
             # Call the core prepare function
             __core_prepare(dir, overwrite, archive, sanitize, spacing)
+            # Clear the memory
+            gc.collect()
     return None
 
 ### Get
@@ -495,8 +499,11 @@ def __get_parallel(dirs, archive, desc):
     with Pool(args.available_cores) as p:
         # Perform the multi process
         for complexData in tqdm(p.imap_unordered(__thread_get_parallel, arguments), total = len(arguments), desc = desc):
+            # If the complex data is not empty
             if complexData:
                 databaseDict[complexData[0]] = (complexData[1], complexData[2])
+            # Clear the memory
+            gc.collect()
     # Return
     return databaseDict
 
@@ -519,6 +526,8 @@ def __get_no_parallel(dirs, archive, desc):
             data = __core_get(dir, archive)
             # Add them to the dict using the protein as the key
             databaseDict[data[0]] = (data[1], data[2])
+            # Clear the memory
+            gc.collect()
         return databaseDict
 
 ### Docking
@@ -756,7 +765,8 @@ def __run_dock_parallel(dirs, archive, dockingAlgorithm, overwrite, desc):
     with Pool(args.available_cores) as p:
         # Perform the multi process
         for _ in tqdm(p.imap_unordered(__thread_run_dock_parallel, arguments), total = len(arguments), desc = desc):
-            pass
+            # Clear the memory
+            gc.collect()
     # Return
     return None
 
@@ -786,6 +796,8 @@ def __run_dock_no_parallel(dirs, archive, dockingAlgorithm, overwrite, desc):
         for dir in tqdm(iterable=dirs, total=len(dirs), desc=desc):
             # Call the core dock function (shared between parallel and not parallel)
             __core_dock(dir, archive, dockingAlgorithm, overwrite)
+            # Clear the memory
+            gc.collect()
     return None
 
 ### Read logs
@@ -911,7 +923,11 @@ def __read_log_parallel(dirs, archive, desc):
     with Pool(args.available_cores) as p:
         # Perform the multi process
         for innerData in tqdm(p.imap_unordered(__thread_read_log_parallel, arguments), total = len(arguments), desc = desc):
+            # Update the dict with the result from the called function
             data.update(innerData)
+            # Clear the memory
+            gc.collect()
+
     return data
 
 def __read_log_no_parallel(dirs, archive, desc):
@@ -944,6 +960,8 @@ def __read_log_no_parallel(dirs, archive, desc):
         for dir in tqdm(iterable = dirs, total = len(dirs), desc = desc):
             # Call the core read log function (shared between parallel and not parallel) and store the data into the data dict
             data.update(__core_read_log(dir, archive))
+            # Clear the memory
+            gc.collect()
     return None
 
 ### Parse into csv
@@ -1112,7 +1130,10 @@ def __generate_dock_result_csv_parallel(log_dumps, archive, desc):
     with Pool(args.available_cores) as p:
         # Perform the multi process
         for line in tqdm(p.imap_unordered(__thread_generate_dock_result_csv_parallel, arguments), total = len(arguments), desc = desc):
+            # Append the result to the dataframe list
             dfList.append(line)
+            # Clear the memory
+            gc.collect()
     return pd.concat(dfList)
 
 def __generate_dock_result_csv_no_parallel(log_dumps, archive, desc):
@@ -1137,6 +1158,8 @@ def __generate_dock_result_csv_no_parallel(log_dumps, archive, desc):
         for ptn, log_dump in tqdm(iterable = log_dumps.items(), total = len(log_dumps), desc = desc):
             # Call the core read log function (shared between parallel and not parallel) and assign it to the line
             dfList.append(__core_generate_dock_result_csv(log_dump, ptn, archive))
+            # Clear the memory
+            gc.collect()
     return pd.concat(dfList)
 
 ## Public ##
