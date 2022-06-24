@@ -18,6 +18,9 @@ from tqdm import tqdm
 from openbabel import pybel
 from openbabel import openbabel
 
+from Bio.PDB import *
+from rdkit import Chem
+
 from OCDocker.Initialise import *
 
 # Set output levels for openbabel
@@ -116,9 +119,9 @@ def print_success(message, force = False):
     if args.output_level >= 3 or force:
         today = datetime.datetime.now()
         if args.output_level >= 4:
-            print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['g']}SUCCSESS{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
+            print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['g']}SUCCESS{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
         else:
-            print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['g']}SUCCSESS{clrs['n']}: {message}")
+            print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['g']}SUCCESS{clrs['n']}: {message}")
     return
 
 def print_warning(message, force = False):
@@ -182,7 +185,7 @@ def print_success_log(message, logfile, mode = "a"):
     '''
     today = datetime.datetime.now()
     with open(logfile, mode) as f:
-        f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] SUCCSESS: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.\n")
+        f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] SUCCESS: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.\n")
     return
 
 def print_warning_log(message, logfile, mode = "a"):
@@ -621,6 +624,115 @@ def clear_past_logs():
             shutil.rmtree(pastLog)
     return
 
+### Validation functions
+
+def validate_obabel_extension(path):
+    '''
+    Validate the input file extension to ensure the compability with obabel lib.
+    Input:
+      path [string] - Path to the file which will be tested.
+    Return:
+      [string/int] The extension if success, otherwise see Error.py for all return codes.
+    '''
+    supportedExtensions = [
+                            'acesin', 'adf', 'alc', 'ascii', 'bgf', 'box', 'bs', 'c3d1', 'c3d2', 'cac',
+                            'caccrt', 'cache', 'cacint', 'can', 'cdjson', 'cdxml', 'cht', 'cif', 'ck', 'cml',
+                            'cmlr', 'cof', 'com', 'confabreport', 'CONFIG', 'CONTCAR', 'CONTFF', 'copy', 'crk2d', 'crk3d',
+                            'csr', 'cssr', 'ct', 'cub', 'cube', 'dalmol', 'dmol', 'dx', 'ent', 'exyz',
+                            'fa', 'fasta', 'feat', 'fh', 'fhiaims', 'fix', 'fps', 'fpt', 'fract', 'fs',
+                            'fsa', 'gamin', 'gau', 'gjc', 'gjf', 'gpr', 'gr96', 'gro', 'gukin', 'gukout',
+                            'gzmat', 'hin', 'inchi', 'inchikey', 'inp', 'jin', 'k', 'lmpdat', 'lpmd', 'mcdl',
+                            'mcif', 'MDFF', 'mdl', 'ml2', 'mmcif', 'mmd', 'mmod', 'mna', 'mol', 'mol2',
+                            'mold', 'molden', 'molf', 'molreport', 'mop', 'mopcrt', 'mopin', 'mp', 'mpc',
+                            'mpd', 'mpqcin', 'mrv', 'msms', 'nul', 'nw', 'orcainp', 'outmol', 'paint',
+                            'pcjson', 'pcm', 'pdb', 'pdbqt', 'png', 'pointcloud', 'POSCAR', 'POSFF', 'pov',
+                            'pqr', 'pqs', 'qcin', 'report', 'rinchi', 'rsmi', 'rxn', 'sd', 'sdf',
+                            'smi', 'smiles', 'stl', 'svg', 'sy2', 'tdd', 'text', 'therm', 'tmol',
+                            'txt', 'txyz', 'unixyz', 'VASP', 'vmol', 'xed', 'xyz', 'yob', 'zin'
+                          ]
+    extension = os.path.splitext(path)[1][1:]
+    if extension in supportedExtensions:
+        return extension
+    return errors.unsupported_extension(message=f"Unsupported extension for input molecule file! Supported extensions are '{' '.join(supportedExtensions)}' and got '{extension}'.")
+
+def is_algorithm_allowed(path):
+    '''
+    Finds if the given dir is a folder from an allowed algorithm.
+    Input:
+      path [string] - Path to the directory which will be tested.
+                      The algorithm list and their shortcodes:
+                          AffinityPropagation: ap
+                          AgglomerativeClustering: ac
+                          Birch: bi
+                          DBSCAN: db
+                          KMeans:  km
+                          MeanShift: ms
+                          MiniBatchKMeans: mb
+                          NoCluster: na
+                          OPTICS: op
+                          SpectralClustering: sc
+    Return:
+      [bool] True if is allowed / False if is not allowed
+    '''
+    # Allowed algorithms
+    allowed = ["ap", "ac", "bi", "db", "km", "ms", "mb", "na", "op", "sc"]
+    return path.split(os.path.sep).pop() in allowed
+
+def is_molecule_valid(molecule):
+    '''
+    Check if a molecule is valid (protein or ligand).
+    Input:
+      molecule [string] - Path to the molecule which will be tested.
+    Return:
+      [bool] True if is valid / False if is not valid
+    '''
+    # Check if file exists
+    if os.path.isfile(molecule):
+        # Check which is its extension to use the correct function
+        extension = os.path.splitext(molecule)[1]
+        # Test if the molecule should be loaded with biopython or rdkit
+        if molecule.endswith((".cif", ".pdb")):
+            try:
+                # Now we know that it is a file path, check which is its extension to use the correct function
+                extension = os.path.splitext(molecule)[1]
+                # Choose the parser based on extension
+                if extension == ".pdb":
+                    parser = PDBParser()
+                elif extension == ".cif":
+                    parser = MMCIFParser()
+                else:
+                    # Not suitable extension, so... say False!!!
+                    return False
+                # Parse it
+                _ = parser.get_structure("Please, be ok", molecule)
+                # If no problems occur, the molecule should be fine
+                return True
+            except:
+                # Uh oh, some problem has been found
+                return False
+        elif validate_obabel_extension(molecule):
+            try:
+                # Check if the extension is .mol2
+                if extension == ".mol2":
+                    # Parse it
+                    _ = rdkit.Chem.rdmolfiles.MolFromMol2File(molecule, sanitize = True)
+                elif extension == ".sdf":
+                    # Parse it
+                    _ = rdkit.Chem.rdmolfiles.SDMolSupplier(molecule, sanitize = True)
+                elif extension == ".mol":
+                    # Parse it
+                    _ = rdkit.Chem.rdmolfiles.MolFromMolFile(molecule, sanitize = True)
+                else:
+                    # Not suitable extension, so... say False!!!!
+                    return False
+                # If no problems occur, the molecule should be fine
+                return True
+            except:
+                # Uh oh, some problem has been found
+                return False
+    # No file, so it is False
+    return False
+
 ### Other functions
 
 def untar(fname, out_path = ".", delete = False):
@@ -742,58 +854,6 @@ def run(cmd, logFile = ""):
         return errors.subprocess(message=f"Found a problem while executing the command '{' '.join(cmd)}': {e}", level="error")
 
     return errors.ok()
-
-def validate_obabel_extension(path):
-    '''
-    Validate the input file extension to ensure the compability with obabel lib.
-    Input:
-      path [string] - Path to the file which will be tested.
-    Return:
-      [string/int] The extension if success, otherwise see Error.py for all return codes.
-    '''
-    supportedExtensions = [
-                            'acesin', 'adf', 'alc', 'ascii', 'bgf', 'box', 'bs', 'c3d1', 'c3d2', 'cac',
-                            'caccrt', 'cache', 'cacint', 'can', 'cdjson', 'cdxml', 'cht', 'cif', 'ck', 'cml',
-                            'cmlr', 'cof', 'com', 'confabreport', 'CONFIG', 'CONTCAR', 'CONTFF', 'copy', 'crk2d', 'crk3d',
-                            'csr', 'cssr', 'ct', 'cub', 'cube', 'dalmol', 'dmol', 'dx', 'ent', 'exyz',
-                            'fa', 'fasta', 'feat', 'fh', 'fhiaims', 'fix', 'fps', 'fpt', 'fract', 'fs',
-                            'fsa', 'gamin', 'gau', 'gjc', 'gjf', 'gpr', 'gr96', 'gro', 'gukin', 'gukout',
-                            'gzmat', 'hin', 'inchi', 'inchikey', 'inp', 'jin', 'k', 'lmpdat', 'lpmd', 'mcdl',
-                            'mcif', 'MDFF', 'mdl', 'ml2', 'mmcif', 'mmd', 'mmod', 'mna', 'mol', 'mol2',
-                            'mold', 'molden', 'molf', 'molreport', 'mop', 'mopcrt', 'mopin', 'mp', 'mpc',
-                            'mpd', 'mpqcin', 'mrv', 'msms', 'nul', 'nw', 'orcainp', 'outmol', 'paint',
-                            'pcjson', 'pcm', 'pdb', 'pdbqt', 'png', 'pointcloud', 'POSCAR', 'POSFF', 'pov',
-                            'pqr', 'pqs', 'qcin', 'report', 'rinchi', 'rsmi', 'rxn', 'sd', 'sdf',
-                            'smi', 'smiles', 'stl', 'svg', 'sy2', 'tdd', 'text', 'therm', 'tmol',
-                            'txt', 'txyz', 'unixyz', 'VASP', 'vmol', 'xed', 'xyz', 'yob', 'zin'
-                          ]
-    extension = os.path.splitext(path)[1][1:]
-    if extension in supportedExtensions:
-        return extension
-    return errors.unsupported_extension(message=f"Unsupported extension for input molecule file! Supported extensions are '{' '.join(supportedExtensions)}' and got '{extension}'.")
-
-def is_algorithm_allowed(path):
-    '''
-    Finds if the given dir is a folder from an allowed algorithm.
-    Input:
-      path [string] - Path to the directory which will be tested.
-                      The algorithm list and their shortcodes:
-                          AffinityPropagation: ap
-                          AgglomerativeClustering: ac
-                          Birch: bi
-                          DBSCAN: db
-                          KMeans:  km
-                          MeanShift: ms
-                          MiniBatchKMeans: mb
-                          NoCluster: na
-                          OPTICS: op
-                          SpectralClustering: sc
-    Return:
-      [bool] True if is allowed / False if is not allowed
-    '''
-    # Allowed algorithms
-    allowed = ["ap", "ac", "bi", "db", "km", "ms", "mb", "na", "op", "sc"]
-    return path.split(os.path.sep).pop() in allowed
 
 def get_rmsd(reference, molecule):
     '''

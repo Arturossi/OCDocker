@@ -593,15 +593,16 @@ def __core_run_dock(dir, archive, dockingAlgorithm, overwrite):
                             if not vina:
                                 octools.print_error_log(f"Could not generate vina object for the protein in dir '{dir}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_ERROR.log")
                                 return errors.docking_object_not_generated(f"Could not generate vina object for the protein in dir '{dir}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", level = "error")
-                            # If prepared ligand does not exsits or overwrite flag is true
-                            if not os.path.isfile(vina.preparedLigand) or overwrite:
+                            # If prepared ligand has the overwrite flag on, does not exists, has size 0 or is not valid
+                            if overwrite or not os.path.isfile(vina.preparedLigand) or os.path.getsize(vina.preparedLigand) == 0 or not octools.is_molecule_valid(vina.preparedLigand):
                                 # Run the prepare ligand
                                 _ = vina.run_prepare_ligand()
-                            # If prepared receptor does not exists or overwrite flag is true
-                            if not os.path.isfile(vina.preparedReceptor) or overwrite:
+                            # If prepared receptor has the overwrite flag on, does not exists, has size 0 or is not valid
+                            if overwrite or not os.path.isfile(vina.preparedReceptor) or os.path.getsize(vina.preparedReceptor) == 0 or not octools.is_molecule_valid(vina.preparedReceptor):
                                 # Run the prepare receptor
                                 _ = vina.run_prepare_receptor()
-                            if overwrite or not os.path.isfile(vinaLog) or not os.path.isfile(vinaOutput):
+                            # Check if vina output exists
+                            if overwrite or not os.path.isfile(vinaOutput) or not os.path.isfile(vinaLog):
                                 # Run vina
                                 vina.run_vina()
                             else:
@@ -634,12 +635,12 @@ def __core_run_dock(dir, archive, dockingAlgorithm, overwrite):
                         if not smina:
                             octools.print_error_log(f"Could not generate smina object for the protein in dir '{dir}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_ERROR.log")
                             return errors.docking_object_not_generated(f"Could not generate smina object for the protein in dir '{dir}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", level = "error")
-                        # If prepared ligand does not exsits or overwrite flag is true
-                        if not os.path.isfile(smina.preparedLigand) or overwrite:
+                        # If prepared ligand has the overwrite flag on, does not exists, has size 0 or is not valid
+                        if overwrite or not os.path.isfile(smina.preparedLigand) or os.path.getsize(smina.preparedLigand) == 0 or not octools.is_molecule_valid(smina.preparedLigand):
                             # Run the prepare ligand
                             _ = smina.run_prepare_ligand()
-                        # If prepared receptor does not exists or overwrite flag is true
-                        if not os.path.isfile(smina.preparedReceptor) or overwrite:
+                        # If prepared receptor has the overwrite flag on, does not exists, has size 0 or is not valid
+                        if overwrite or not os.path.isfile(smina.preparedReceptor) or os.path.getsize(smina.preparedReceptor) == 0 or not octools.is_molecule_valid(smina.preparedReceptor):
                             # Run the prepare receptor
                             _ = smina.run_prepare_receptor()
                         # Run vina (no need to recheck for overwrite or output existance because it is already done some lines ago)
@@ -679,26 +680,32 @@ def __core_run_dock(dir, archive, dockingAlgorithm, overwrite):
                             # Parameterizing paths
                             plantsLog = f"{runPath}/plants_{runNumber}.log"
                             plantsOutput = f"{runPath}/run"
+                            plantsRankingCsv = f"{plantsOutput}/ranking.csv"
                             # Create the smina object (the pdbqt files will be in the father directory because it will be used multiple times, let's save some disk space, please)
                             plants = ocplants.PLANTS(f"{runPath}/conf_plants.txt", f"{dir}/p2rank/box{runNumber}.pdb", receptor, f"{dir}/{ptn}_protein_prepared.mol2", ligand, f"{dir}/{ptn}_ligand_prepared.mol2", plantsLog, plantsOutput, name=f"{ptn} PLANTS")
                             # Check if the smina object has been correctly created
                             if not plants:
                                 octools.print_error_log(f"Could not generate plants object for the protein in dir '{dir}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_ERROR.log")
                                 return errors.docking_object_not_generated(f"Could not generate plants object for the protein in dir '{dir}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", level = "error")
-                            # If prepared ligand does not exsits or overwrite flag is true
-                            if not os.path.isfile(plants.preparedLigand) or overwrite:
+                            # If prepared ligand has the overwrite flag on, does not exists, has size 0 or is not valid
+                            if overwrite or not os.path.isfile(plants.preparedLigand) or os.path.getsize(plants.preparedLigand) == 0 or not octools.is_molecule_valid(plants.preparedLigand):
                                 # Run the prepare ligand
                                 _ = plants.run_prepare_ligand()
-                            # If prepared receptor does not exists or overwrite flag is true
-                            if not os.path.isfile(plants.preparedReceptor) or overwrite:
+                            # If prepared receptor has the overwrite flag on, does not exists, has size 0 or is not valid
+                            if overwrite or not os.path.isfile(plants.preparedReceptor) or os.path.getsize(plants.preparedReceptor) == 0 or not octools.is_molecule_valid(plants.preparedReceptor):
                                 # Run the prepare receptor
                                 _ = plants.run_prepare_receptor()
-                            if overwrite or not os.path.isfile(plantsLog) or not os.path.isfile(plantsOutput):
-                                # Run vina
-                                plants.run_plants(overwrite=True)
+                            # Check if PLANTS output exists and its size is not 0
+                            if overwrite or not os.path.isdir(plantsOutput) or not os.path.isfile(plantsRankingCsv) and not os.path.getsize(plantsOutput) == 0:
+                                # If there is already a PLANTS output (PLANTS do not run if the folder is already created. And knowing that PLANTS will ALWAYS run if this code is interpreted, just delete the folder if it exists and lets avoid headaches)
+                                if os.path.isdir(plantsOutput):
+                                    # Remove the folder and its contets
+                                    shutil.rmtree(plantsOutput)
+                                # Run PLANTS
+                                plants.run_plants(overwrite=overwrite)
                             else:
-                                octools.print_warning_log(f"The PLANTS output for '{ptn}' run '{runNumber}' is already generated and you can check it at the '{runPath}/*/plants_<runNumber>.log' path. PLANTS execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_WARNING.log")
-                                octools.print_warning(f"The PLANTS output for '{ptn}' run '{runNumber}' is already generated and you can check it at the '{runPath}/*/plants_<runNumber>.log' path. PLANTS execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true.")
+                                octools.print_warning_log(f"The PLANTS output for '{ptn}' run '{runNumber}' is already generated and you can check it at the '*/run/plants_<runNumber>.log' path. PLANTS execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_WARNING.log")
+                                octools.print_warning(f"The PLANTS output for '{ptn}' run '{runNumber}' is already generated and you can check it at the '*/run/plants_<runNumber>.log' path. PLANTS execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true.")
                     else:
                         octools.print_error_log(f"Could not generate receptor or ligand object for the protein in dir '{dir}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_ERROR.log")
                         return errors.receptor_or_ligand_not_generated(f"Could not generate receptor or ligand object for the protein in dir '{dir}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", level = "error")
