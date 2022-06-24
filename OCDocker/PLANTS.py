@@ -498,7 +498,7 @@ def get_binding_site(boxFile, spacing = 0.33):
     # Test if the file boxFile exists
     if not os.path.exists(boxFile):
         return errors.file_do_not_exist(message=f"The box file in the path {boxFile} does not exists! Please ensure that the file exsits and the path is correct. If you have no box file, try to run the function 'runprank' from the 'runprank' library to create it before calling this function or creating a PLANTS class object.", level="error")
-    # List to hold all the data
+    # Dict to hold all the data
     center = {
         'x': None,
         'y': None,
