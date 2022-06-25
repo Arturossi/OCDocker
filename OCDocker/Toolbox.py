@@ -18,6 +18,7 @@ from tqdm import tqdm
 from openbabel import pybel
 from openbabel import openbabel
 
+import rdkit
 from Bio.PDB import *
 from rdkit import Chem
 
@@ -710,7 +711,7 @@ def is_molecule_valid(molecule):
             except:
                 # Uh oh, some problem has been found
                 return False
-        elif validate_obabel_extension(molecule):
+        elif type(validate_obabel_extension(molecule)) == str:
             try:
                 # Check if the extension is .mol2
                 if extension == ".mol2":

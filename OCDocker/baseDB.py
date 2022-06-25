@@ -652,7 +652,7 @@ def __core_run_dock(dir, archive, dockingAlgorithm, overwrite):
                     octools.print_warning_log(f"The smina output for '{ptn}' is already generated and you can check it at the '{sminaLog}' path. Smina execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_WARNING.log")
                     octools.print_warning(f"The smina output for '{ptn}' is already generated and you can check it at the '{sminaLog}' path. Smina execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true.")
             elif dockingAlgorithm == "plants":
-                # Flag to denote if its needed to run this protein through vina
+                # Flag to denote if its needed to run this protein through plants
                 needToRun = False
                 # Get the folder for each run
                 runPaths = glob(f"{dir}/plantsFiles/*")
