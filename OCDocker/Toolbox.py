@@ -850,7 +850,6 @@ def run(cmd, logFile = ""):
     try:
         with open(logFile, "w") as outfile:
             subprocess.run(cmd, stdout=outfile)
-
     except Exception as e:
         return errors.subprocess(message=f"Found a problem while executing the command '{' '.join(cmd)}': {e}", level="error")
 

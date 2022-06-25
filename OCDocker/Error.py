@@ -69,6 +69,8 @@ class Error:
         # Molecule error
         self.parseMoleculeCode             = 400
         self.malformedMoleculeCode         = 401
+        self.ligandNotPreparedCode         = 402
+        self.receptorNotPreparedCode       = 403
 
         # Docking error
         self.dockingObjectNotGeneratedCode = 500
@@ -353,6 +355,30 @@ class Error:
         '''
         self.__print_msg(message, level)
         return self.malformedMoleculeCode
+
+    def ligand_not_prepared(self, message="", level="warn"):
+        '''
+        Return this when a ligand could not be prepared.
+        Input:
+          message [string] DEFAULT: ""     - Message to be shown.
+          level   [string] DEFAULT: "warn" - Type of message "warn" or "error".
+        Return:
+          -
+        '''
+        self.__print_msg(message, level)
+        return self.ligandNotPreparedCode
+
+    def receptor_not_prepared(self, message="", level="warn"):
+        '''
+        Return this when a receptor could not be prepared.
+        Input:
+          message [string] DEFAULT: ""     - Message to be shown.
+          level   [string] DEFAULT: "warn" - Type of message "warn" or "error".
+        Return:
+          -
+        '''
+        self.__print_msg(message, level)
+        return self.receptorNotPreparedCode
 
     # Molecules errors
     def docking_object_not_generated(self, message="", level="warn"):

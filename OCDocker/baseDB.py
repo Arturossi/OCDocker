@@ -597,10 +597,30 @@ def __core_run_dock(dir, archive, dockingAlgorithm, overwrite):
                             if overwrite or not os.path.isfile(vina.preparedLigand) or os.path.getsize(vina.preparedLigand) == 0 or not octools.is_molecule_valid(vina.preparedLigand):
                                 # Run the prepare ligand
                                 _ = vina.run_prepare_ligand()
+                                # Check if the generated ligand has size 0 or is invalid
+                                if os.path.getsize(vina.preparedLigand) == 0 or not octools.is_molecule_valid(vina.preparedLigand):
+                                    octools.print_warning_log(f"The prepare ligand script has made an output of 0kb for ligand '{vina.preparedLigand}', this is wierd. Trying to run it again.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_WARNING.log")
+                                    octools.print_warning(f"The prepare ligand script has made an output of 0kb for ligand '{vina.preparedLigand}', this is wierd. Trying to run it again.")
+                                    # Run again the prepare ligand
+                                    _ = vina.run_prepare_ligand()
+                                    # Check again if the generated ligand has size 0 or is invalid
+                                    if os.path.getsize(vina.preparedLigand) == 0 or not octools.is_molecule_valid(vina.preparedLigand):
+                                        octools.print_error_log(f"The prepare ligand script has made an output of 0kb again for ligand '{vina.preparedLigand}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(vina.prepareLigandCmd)}", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_ERROR.log")
+                                        return errors.ligand_not_prepared(f"The prepare ligand script has made an output of 0kb again for ligand '{vina.preparedLigand}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(vina.prepareLigandCmd)}", level = "error")
                             # If prepared receptor has the overwrite flag on, does not exists, has size 0 or is not valid
                             if overwrite or not os.path.isfile(vina.preparedReceptor) or os.path.getsize(vina.preparedReceptor) == 0 or not octools.is_molecule_valid(vina.preparedReceptor):
                                 # Run the prepare receptor
                                 _ = vina.run_prepare_receptor()
+                                # Check if the generated receptor has size 0 or is invalid
+                                if os.path.getsize(vina.preparedReceptor) == 0 or not octools.is_molecule_valid(vina.preparedReceptor):
+                                    octools.print_warning_log(f"The prepare receptor has made an output of 0kb for ligand '{vina.preparedReceptor}', this is wierd. Trying to run it again.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_WARNING.log")
+                                    octools.print_warning(f"The prepare receptor has made an output of 0kb for ligand '{vina.preparedReceptor}', this is wierd. Trying to run it again.")
+                                    # Run again the prepare receptor
+                                    _ = vina.run_prepare_receptor()
+                                    # Check again if the generated receptor has size 0 or is invalid
+                                    if os.path.getsize(smina.preparedReceptor) == 0 or not octools.is_molecule_valid(vina.preparedReceptor):
+                                        octools.print_error_log(f"The prepare receptor has made an output of 0kb again for receptor '{vina.preparedReceptor}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(vina.prepareReceptorCmd)}", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_ERROR.log")
+                                        return errors.receptor_not_prepared(f"The prepare receptor has made an output of 0kb again for receptor '{vina.preparedReceptor}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(vina.prepareReceptorCmd)}", level = "error")
                             # Check if vina output exists
                             if overwrite or not os.path.isfile(vinaOutput) or not os.path.isfile(vinaLog):
                                 # Run vina
@@ -639,11 +659,31 @@ def __core_run_dock(dir, archive, dockingAlgorithm, overwrite):
                         if overwrite or not os.path.isfile(smina.preparedLigand) or os.path.getsize(smina.preparedLigand) == 0 or not octools.is_molecule_valid(smina.preparedLigand):
                             # Run the prepare ligand
                             _ = smina.run_prepare_ligand()
+                            # Check if the generated ligand has size 0 or is invalid
+                            if os.path.getsize(smina.preparedLigand) == 0 or not octools.is_molecule_valid(smina.preparedLigand):
+                                octools.print_warning_log(f"The prepare ligand script has made an output of 0kb for ligand '{smina.preparedLigand}', this is wierd. Trying to run it again.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_WARNING.log")
+                                octools.print_warning(f"The prepare ligand script has made an output of 0kb for ligand '{smina.preparedLigand}', this is wierd. Trying to run it again.")
+                                # Run again the prepare ligand
+                                _ = smina.run_prepare_ligand()
+                                # Check again if the generated ligand has size 0 or is invalid
+                                if os.path.getsize(smina.preparedLigand) == 0 or not octools.is_molecule_valid(smina.preparedLigand):
+                                    octools.print_error_log(f"The prepare ligand script has made an output of 0kb again for ligand '{smina.preparedLigand}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(smina.prepareLigandCmd)}", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_ERROR.log")
+                                    return errors.ligand_not_prepared(f"The prepare ligand script has made an output of 0kb again for ligand '{smina.preparedLigand}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(smina.prepareLigandCmd)}", level = "error")
                         # If prepared receptor has the overwrite flag on, does not exists, has size 0 or is not valid
                         if overwrite or not os.path.isfile(smina.preparedReceptor) or os.path.getsize(smina.preparedReceptor) == 0 or not octools.is_molecule_valid(smina.preparedReceptor):
                             # Run the prepare receptor
                             _ = smina.run_prepare_receptor()
-                        # Run vina (no need to recheck for overwrite or output existance because it is already done some lines ago)
+                            # Check if the generated receptor has size 0 or is invalid
+                            if os.path.getsize(smina.preparedReceptor) == 0 or not octools.is_molecule_valid(smina.preparedReceptor):
+                                octools.print_warning_log(f"The prepare receptor has made an output of 0kb for ligand '{smina.preparedReceptor}', this is wierd. Trying to run it again.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_WARNING.log")
+                                octools.print_warning(f"The prepare receptor has made an output of 0kb for ligand '{smina.preparedReceptor}', this is wierd. Trying to run it again.")
+                                # Run again the prepare receptor
+                                _ = smina.run_prepare_receptor()
+                                # Check again if the generated receptor has size 0 or is invalid
+                                if os.path.getsize(smina.preparedReceptor) == 0 or not octools.is_molecule_valid(smina.preparedReceptor):
+                                    octools.print_error_log(f"The prepare receptor has made an output of 0kb again for receptor '{smina.preparedReceptor}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(smina.prepareReceptorCmd)}", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_ERROR.log")
+                                    return errors.receptor_not_prepared(f"The prepare receptor has made an output of 0kb again for receptor '{smina.preparedReceptor}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(smina.prepareReceptorCmd)}", level = "error")
+                        # Run smina (no need to recheck for overwrite or output existance because it is already done some lines ago)
                         smina.run_smina()
                     else:
                         octools.print_error_log(f"Could not generate receptor or ligand object for the protein in dir '{dir}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_ERROR.log")
@@ -691,10 +731,31 @@ def __core_run_dock(dir, archive, dockingAlgorithm, overwrite):
                             if overwrite or not os.path.isfile(plants.preparedLigand) or os.path.getsize(plants.preparedLigand) == 0 or not octools.is_molecule_valid(plants.preparedLigand):
                                 # Run the prepare ligand
                                 _ = plants.run_prepare_ligand()
+                                # Check if the generated ligand has size 0 or is invalid
+                                if os.path.getsize(plants.preparedLigand) == 0 or not octools.is_molecule_valid(plants.preparedLigand):
+                                    octools.print_warning_log(f"SPORES has made an output of 0kb for ligand '{plants.preparedLigand}', this is wierd. Trying to run it again.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_WARNING.log")
+                                    octools.print_warning(f"SPORES has made an output of 0kb for ligand '{plants.preparedLigand}', this is wierd. Trying to run it again.")
+                                    # Run again the prepare ligand
+                                    _ = plants.run_prepare_ligand()
+                                    # Check again if the generated ligand has size 0 or is invalid
+                                    if os.path.getsize(plants.preparedLigand) == 0 or not octools.is_molecule_valid(plants.preparedLigand):
+                                        octools.print_error_log(f"SPORES has made an output of 0kb again for ligand '{plants.preparedLigand}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(plants.prepareLigandCmd)}", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_ERROR.log")
+                                        return errors.ligand_not_prepared(f"SPORES has made an output of 0kb again for ligand '{plants.preparedLigand}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(plants.prepareLigandCmd)}", level = "error")
+
                             # If prepared receptor has the overwrite flag on, does not exists, has size 0 or is not valid
                             if overwrite or not os.path.isfile(plants.preparedReceptor) or os.path.getsize(plants.preparedReceptor) == 0 or not octools.is_molecule_valid(plants.preparedReceptor):
                                 # Run the prepare receptor
                                 _ = plants.run_prepare_receptor()
+                                # Check if the generated receptor has size 0 or is invalid
+                                if os.path.getsize(plants.preparedReceptor) == 0 or not octools.is_molecule_valid(plants.preparedReceptor):
+                                    octools.print_warning_log(f"SPORES has made an output of 0kb for ligand '{plants.preparedReceptor}', this is wierd. Trying to run it again.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_WARNING.log")
+                                    octools.print_warning(f"SPORES has made an output of 0kb for ligand '{plants.preparedReceptor}', this is wierd. Trying to run it again.")
+                                    # Run again the prepare receptor
+                                    _ = plants.run_prepare_receptor()
+                                    # Check again if the generated receptor has size 0 or is invalid
+                                    if os.path.getsize(plants.preparedReceptor) == 0 or not octools.is_molecule_valid(plants.preparedReceptor):
+                                        octools.print_error_log(f"SPORES has made an output of 0kb again for receptor '{plants.preparedReceptor}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(plants.prepareReceptorCmd)}", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_ERROR.log")
+                                        return errors.receptor_not_prepared(f"SPORES has made an output of 0kb again for receptor '{plants.preparedReceptor}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(plants.prepareReceptorCmd)}", level = "error")
                             # Check if PLANTS output exists and its size is not 0
                             if overwrite or not os.path.isdir(plantsOutput) or not os.path.isfile(plantsRankingCsv) and not os.path.getsize(plantsOutput) == 0:
                                 # If there is already a PLANTS output (PLANTS do not run if the folder is already created. And knowing that PLANTS will ALWAYS run if this code is interpreted, just delete the folder if it exists and lets avoid headaches)
