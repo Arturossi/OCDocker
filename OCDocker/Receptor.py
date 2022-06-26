@@ -217,7 +217,7 @@ class Receptor:
         if not self.path:
             _ = errors.not_set(message=f"The model path is not set!", level="error")
             return None
-        return __count_AAs_and_chains(self.structure, self.path)
+        return count_AAs_and_chains(self.structure, self.path)
 
     def __loadMol(self, structure, computeSASA=True, overwrite=False):
         '''
