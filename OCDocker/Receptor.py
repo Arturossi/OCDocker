@@ -536,17 +536,17 @@ def count_surface_AA(model, modelPath, cutoff=0.7):
                 aas["X"] += 1
     return aas
 
-def count_AAs_and_chains(model):
+def count_AAs_and_chains(structure):
     '''
     Counts the total length (sum of all AAs), the average length (the total AAs divided by the number of chains) and the number of chains the protein has.
     Input:
-      model [Bio.PDB.Structure.Structure] - The model to be evaluated.
+      structure [Bio.PDB.Structure.Structure] - The model to be evaluated.
     Return:
       [tuple(int, float, int)] - A tuple of the total lenght, the average length and the number of chains
       [None, None, None]     - If the model path is not set
     '''
     # If the model is not set
-    if not model:
+    if not structure:
         _ = errors.not_set(message=f"The model object is not set!", level="error")
         return None, None, None
     # Initialise the counter of number of residues and chains
