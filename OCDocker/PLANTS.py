@@ -108,31 +108,43 @@ class PLANTS:
         octools.print_warning(f"The receptor '{receptor}' is not the type 'ocr.Receptor'. It is STRONGLY recomended that you provide an 'ocr.Receptor' object.")
         return None
 
-    def __parse_receptor_path(self, receptor):
+    def __parse_receptor_path(self, receptor, forceMol2=False):
         '''
         Parse the receptor path, handling its type.
         Input:
-          receptor [string/ocr.Receptor] - The path for the receptor or its receptor object.
+          receptor  [string/ocr.Receptor]                - The path for the receptor or its receptor object.
+          forceMol2 [bool]                DEFAULT: False - Flag to force the use of a mol2 as input file. If True and if the receptor has a mol2Path object it will be used, if True and if the receptor has not a mol2Path, a mol2 file will be generated and the path will be set, otherwise a pdb file will be used as input.
         Return:
           [string] The receptor path.
         '''
         # Check the type of receptor variable
         if type(receptor) == ocr.Receptor:
-            # If receptor has a mol2Path
-            if receptor.mol2Path:
-                return receptor.mol2Path
-            # Try to generate it
-            else:
-                mol2Path = f"{os.path.splitext(receptor.path)[0]}.mol2"
-                # Create the mol2Path
-                octools.print_warning(f"No mol2 file for '{receptor.path}' trying to generate in '{mol2Path}'.")
-                # Convert the molecule
-                _ = octools.convertMols(receptor.path, mol2Path)
-                # Check if it is generated
-                if os.path.isfile(mol2Path):
+            # If the flag to force the use of mol2 file as input is True
+            if forceMol2:
+                # If receptor has a mol2Path
+                if receptor.mol2Path:
                     return receptor.mol2Path
+                # Try to generate it
                 else:
-                    _ = octools.print_error(f"The mol2 file could not be generated for '{receptor.path}'.")
+                    mol2Path = f"{os.path.splitext(receptor.path)[0]}.mol2"
+                    # Create the mol2Path
+                    octools.print_warning(f"No mol2 file for '{receptor.path}' trying to generate in '{mol2Path}'.")
+                    # Convert the molecule
+                    _ = octools.convertMols(receptor.path, mol2Path)
+                    # Check if it is generated
+                    if os.path.isfile(mol2Path):
+                        # Set the mol2path in the receptor object
+                        receptor.mol2Path = mol2Path
+                        return receptor.mol2Path
+                    else:
+                        _ = octools.print_error(f"The mol2 file could not be generated for '{receptor.path}'.")
+                        return None
+            else:
+                # Check if the object has a valid path
+                if receptor.path:
+                    return receptor.path
+                else:
+                    _ = octools.print_error(f"Invalid receptor path for the following path: '{receptor.path}'.")
                     return None
         elif type(receptor) == str:
             # Since is a string, check if the file exists

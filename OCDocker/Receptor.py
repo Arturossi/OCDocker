@@ -77,6 +77,10 @@ class Receptor:
 
         self.aromaticity = None
 
+        self.totalLen = None
+        self.avgLen = None
+        self.chainNumber = None
+
         self.__relativeASAcutoff = None
         self.__countAA = None
 
@@ -110,7 +114,7 @@ class Receptor:
                 octools.print_error(f"Problems while parsing json file: '{from_json_descriptors}'")
                 return None
             # <editor-fold> assign
-            self.name, self.sasa, self.dipoleMoment, self.isoelectricPoint, self.instabilityIndex,self.GRAVY, self.aromaticity, self.__countAA, self.countA, self.countR, self.countN, self.countD, self.countC, self.countQ, self.countE, self.countG, self.countH, self.countI, self.countL, self.countK, self.countM, self.countF, self.countP, self.countS, self.countT, self.countW, self.countY, self.countV = data
+            self.name, self.sasa, self.dipoleMoment, self.isoelectricPoint, self.instabilityIndex,self.GRAVY, self.aromaticity, self.__countAA, self.countA, self.countR, self.countN, self.countD, self.countC, self.countQ, self.countE, self.countG, self.countH, self.countI, self.countL, self.countK, self.countM, self.countF, self.countP, self.countS, self.countT, self.countW, self.countY, self.countV, self.totalLen, self.avgLen, self.chainNumber = data
 
             # </editor-fold>
         else:
@@ -119,6 +123,8 @@ class Receptor:
                 octools.print_error("The Receptor name should not be empty!")
                 return None
             self.name = name.replace(" ", "_")
+
+            self.totalLen, self.avgLen, self.chainNumber = self.__count_AAs_and_chains()
 
             self.sasa = self.structure.sasa
             self.__cModel = cModel # The options are 'mmff94', 'gasteiger' or 'eem2015bm'
@@ -175,15 +181,13 @@ class Receptor:
         # Combine both in one dict and return them
         return {**properties, **self.get_descriptors()}
 
-        return properties
-
     def __read_descriptors_from_json(self, path):
         '''
         Read the descriptors from a json file.
         Input:
           -
         Return:
-          [list(mixed)] - Descriptors read from the json file. If fails, returns null.
+          [list(mixed)] - Descriptors read from the json file. If fails, returns null
         '''
         return read_descriptors_from_json(path)
 
@@ -193,13 +197,27 @@ class Receptor:
         Input:
           -
         Return:
-          [dict(string)] - A dict containing the number of each AA with a relative ASA value greater than the cutoff.
-          [None]         - If the model path is not set.
+          [dict(string)] - A dict containing the number of each AA with a relative ASA value greater than the cutoff
+          [None]         - If the model path is not set
         '''
         if not self.path:
             _ = errors.not_set(message=f"The model path is not set!", level="error")
             return None
         return count_surface_AA(self.structure, self.path, self.__relativeASAcutoff)
+
+    def __count_AAs_and_chains(self):
+        '''
+        Counts the total length (sum of all AAs), the average length (the total AAs divided by the number of chains) and the number of chains the protein has.
+        Input:
+          -
+        Return:
+          [tuple(int, float, int)] - A tuple of the total lenght, the average length and the number of chains
+          [None, None, None]     - If the model path is not set
+        '''
+        if not self.path:
+            _ = errors.not_set(message=f"The model path is not set!", level="error")
+            return None
+        return __count_AAs_and_chains(self.structure, self.path)
 
     def __loadMol(self, structure, computeSASA=True, overwrite=False):
         '''
@@ -300,6 +318,9 @@ class Receptor:
         print(f"mol2 path:         '{self.mol2Path if self.mol2Path else '-' }'")
         print(f"Structure:         '{self.structure if self.structure else '-' }'")
         print(f"AA residues:       '{self.residues if self.residues else '-' }'")
+        print(f"Total AA len:      '{self.totalLen if self.totalLen else '0' }'")
+        print(f"Average AA len:    '{self.avgLen if self.avgLen else '0' }'")
+        print(f"# of chains:       '{self.chainNumber if self.chainNumber else '0' }'")
         print(f"SASA:              '{self.sasa if self.sasa else '0.0' }'")
         print(f"Dipole Moment:     '{self.dipoleMoment if self.dipoleMoment else '-' }'")
         print(f"Isoelectric Point: '{self.isoelectricPoint if self.isoelectricPoint else '-' }'")
@@ -336,6 +357,9 @@ class Receptor:
           [dict] - Dictionary of descriptors for the recpetor.
         '''
         descriptors = {
+          "TotalAALength": self.totalLen if self.totalLen else 0,
+          "AvgAALength": self.avgLen if self.avgLen else 0.0,
+          "countChain": self.chainNumber if self.chainNumber else 0,
           "SASA": self.sasa if self.sasa else 0.0,
           "DipoleMoment": self.dipoleMoment if self.dipoleMoment else None,
           "IsoelectricPoint": self.isoelectricPoint if self.isoelectricPoint else None,
@@ -418,7 +442,7 @@ class Receptor:
             False - if not valid
         '''
         # <editor-fold> if any attribute is None
-        if self.name is None or self.path is None or self.structure is None or self.residues is None or self.sasa is None or self.dipoleMoment is None or self.isoelectricPoint is None or self.instabilityIndex is None or self.GRAVY is None or self.aromaticity is None or self.__countAA is None is None:
+        if self.name is None or self.path is None or self.structure is None or self.residues is None or self.sasa is None or self.dipoleMoment is None or self.isoelectricPoint is None or self.instabilityIndex is None or self.GRAVY is None or self.aromaticity is None or self.__countAA is None or self.totalLen is None or self.avgLen is None or self.chainNumber is None:
             return False
         # </editor-fold>
         return True
@@ -430,8 +454,8 @@ def __filterSequence(residues):
     '''
     Filter the given sequence to avoid unsupported amino acid residues. (Currently: X)
     Input:
-      residues [string]                         - The one letter amino acid sequence for the protein.
-      scale    [string] DEFAULT: "KyteDoolitle" - Scale to be used.
+      residues [string]                         - The one letter amino acid sequence for the protein
+      scale    [string] DEFAULT: "KyteDoolitle" - Scale to be used
     Return:
       [float] - GRAVY value.
     '''
@@ -511,6 +535,40 @@ def count_surface_AA(model, modelPath, cutoff=0.7):
                 # Add 1 to its count
                 aas["X"] += 1
     return aas
+
+def count_AAs_and_chains(model):
+    '''
+    Counts the total length (sum of all AAs), the average length (the total AAs divided by the number of chains) and the number of chains the protein has.
+    Input:
+      model [Bio.PDB.Structure.Structure] - The model to be evaluated.
+    Return:
+      [tuple(int, float, int)] - A tuple of the total lenght, the average length and the number of chains
+      [None, None, None]     - If the model path is not set
+    '''
+    # If the model is not set
+    if not model:
+        _ = errors.not_set(message=f"The model object is not set!", level="error")
+        return None, None, None
+    # Initialise the counter of number of residues and chains
+    res_no = 0
+    chains = 0
+    # For each model in the structure
+    for model in structure:
+        # For each chain in the model
+        for chain in model:
+            # Add one more chain
+            chains += 1
+            # For each residue in the chain
+            for r in chain.get_residues():
+                # If the first position of the residue id is empty, then it is an AA (this may be more robust than the PDB.is_aa() method)
+                if r.id[0] == ' ':
+                    res_no += 1
+    # Check if the number of chains is not 0
+    if chains == 0:
+        octools.print_error("The number of chains for the provided model is 0. This is not acceptable!")
+        return None, None, None
+
+    return res_no, res_no/chains, chains
 
 def compute_sasa(model):
     '''
@@ -720,7 +778,7 @@ def read_descriptors_from_json(path):
         missing = []
         # Expected keys to have in the json file
         # <editor-fold> keys
-        keys = ["Name", "SASA", "DipoleMoment", "IsoelectricPoint", "InstabilityIndex", "GRAVY", "Aromaticity", "countA", "countR", "countN", "countD", "countC", "countQ", "countE", "countG", "countH", "countI", "countL", "countK", "countM", "countF", "countP", "countS", "countT", "countW", "countY", "countV"]
+        keys = ["Name", "SASA", "DipoleMoment", "IsoelectricPoint", "InstabilityIndex", "GRAVY", "Aromaticity", "countA", "countR", "countN", "countD", "countC", "countQ", "countE", "countG", "countH", "countI", "countL", "countK", "countM", "countF", "countP", "countS", "countT", "countW", "countY", "countV", "totalLen", "avgLen", "chainNumber"]
 
         # </editor-fold>
         # Validate the data
@@ -758,7 +816,7 @@ def read_descriptors_from_json(path):
         }
         # Since we have all keys, read them and return their values
         # <editor-fold> Return data
-        return data["Name"], data["SASA"], data["DipoleMoment"], data["IsoelectricPoint"], data["InstabilityIndex"], data["GRAVY"], data["Aromaticity"], countAA, data["countA"], data["countR"], data["countN"], data["countD"], data["countC"], data["countQ"], data["countE"], data["countG"], data["countH"], data["countI"], data["countL"], data["countK"], data["countM"], data["countF"], data["countP"], data["countS"], data["countT"], data["countW"], data["countY"], data["countV"]
+        return data["Name"], data["SASA"], data["DipoleMoment"], data["IsoelectricPoint"], data["InstabilityIndex"], data["GRAVY"], data["Aromaticity"], countAA, data["countA"], data["countR"], data["countN"], data["countD"], data["countC"], data["countQ"], data["countE"], data["countG"], data["countH"], data["countI"], data["countL"], data["countK"], data["countM"], data["countF"], data["countP"], data["countS"], data["countT"], data["countW"], data["countY"], data["totalLen"], data["avgLen"], data["chainNumber"]
 
         # </editor-fold>
     # Key error (when there is a missing key)
