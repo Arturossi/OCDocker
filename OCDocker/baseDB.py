@@ -1380,7 +1380,7 @@ def verify_integrity(chosenArchive, spacing = 0.33):
                     continue
 
             # If there is not the same amount of box files as folders in plantsFiles folder
-            if len([d for d in glob(f"{plantsDir}/*") if os.path.isdir(d)]) < boxCount or True:
+            if len([d for d in glob(f"{plantsDir}/*") if os.path.isdir(d)]) < boxCount:
                 octools.print_warning(f"The protein '{dir}' has not the same amount of PLANTS conf files as the amount of box files. Trying to fix...")
                 # If PLANTS is needed, the input should be the prepared receptor and ligand
                 preparedReceptor = f"{dir}/{ptn}_protein_prepared.mol2"
