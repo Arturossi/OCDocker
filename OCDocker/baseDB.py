@@ -362,8 +362,8 @@ def __prepare_molecule(mol, overwrite, moltype, dbName, sanitize):
                     m = ocr.Receptor(mol, molName)
             # If m is not valid
             except Exception as e:
-                _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed!", "error")
-                octools.print_error_log(f"The molecule '{mol}' could not be parsed! .", f"{logdir}/{dbName}_error_Parse.log")
+                _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed! Error {e}", "error")
+                octools.print_error_log(f"The molecule '{mol}' could not be parsed! Error {e}", f"{logdir}/{dbName}_error_Parse.log")
                 return None
         else:
             _ = errors.unkown("Unknown molecule type", "error")
