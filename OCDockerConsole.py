@@ -72,6 +72,7 @@ args.available_cores = args.cpu_cores - 1
 args.multiprocess = 1
 
 basePath = "/mnt/e/Documents/OCDocker/OCDocker"
+basePath = "/mnt/sda/artur/OCDocker"
 
 '''
 dbsampledir = f"{basePath}/data/ocdb/DUDEz/AA2AR"

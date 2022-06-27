@@ -77,9 +77,9 @@ class Receptor:
 
         self.aromaticity = None
 
-        self.totalLen = None
-        self.avgLen = None
-        self.chainNumber = None
+        self.totalAALength = None
+        self.avgAALength = None
+        self.countChain = None
 
         self.__relativeASAcutoff = None
         self.__countAA = None
@@ -114,7 +114,7 @@ class Receptor:
                 octools.print_error(f"Problems while parsing json file: '{from_json_descriptors}'")
                 return None
             # <editor-fold> assign
-            self.name, self.sasa, self.dipoleMoment, self.isoelectricPoint, self.instabilityIndex,self.GRAVY, self.aromaticity, self.__countAA, self.countA, self.countR, self.countN, self.countD, self.countC, self.countQ, self.countE, self.countG, self.countH, self.countI, self.countL, self.countK, self.countM, self.countF, self.countP, self.countS, self.countT, self.countW, self.countY, self.countV, self.totalLen, self.avgLen, self.chainNumber = data
+            self.name, self.sasa, self.dipoleMoment, self.isoelectricPoint, self.instabilityIndex,self.GRAVY, self.aromaticity, self.__countAA, self.countA, self.countR, self.countN, self.countD, self.countC, self.countQ, self.countE, self.countG, self.countH, self.countI, self.countL, self.countK, self.countM, self.countF, self.countP, self.countS, self.countT, self.countW, self.countY, self.countV, self.totalAALength, self.avgAALength, self.countChain = data
 
             # </editor-fold>
         else:
@@ -124,7 +124,7 @@ class Receptor:
                 return None
             self.name = name.replace(" ", "_")
 
-            self.totalLen, self.avgLen, self.chainNumber = self.__count_AAs_and_chains()
+            self.totalAALength, self.avgAALength, self.countChain = self.__count_AAs_and_chains()
 
             self.sasa = self.structure.sasa
             self.__cModel = cModel # The options are 'mmff94', 'gasteiger' or 'eem2015bm'
@@ -318,9 +318,9 @@ class Receptor:
         print(f"mol2 path:         '{self.mol2Path if self.mol2Path else '-' }'")
         print(f"Structure:         '{self.structure if self.structure else '-' }'")
         print(f"AA residues:       '{self.residues if self.residues else '-' }'")
-        print(f"Total AA len:      '{self.totalLen if self.totalLen else '0' }'")
-        print(f"Average AA len:    '{self.avgLen if self.avgLen else '0' }'")
-        print(f"# of chains:       '{self.chainNumber if self.chainNumber else '0' }'")
+        print(f"Total AA len:      '{self.totalAALength if self.totalAALength else '0' }'")
+        print(f"Average AA len:    '{self.avgAALength if self.avgAALength else '0' }'")
+        print(f"# of chains:       '{self.countChain if self.countChain else '0' }'")
         print(f"SASA:              '{self.sasa if self.sasa else '0.0' }'")
         print(f"Dipole Moment:     '{self.dipoleMoment if self.dipoleMoment else '-' }'")
         print(f"Isoelectric Point: '{self.isoelectricPoint if self.isoelectricPoint else '-' }'")
@@ -357,9 +357,9 @@ class Receptor:
           [dict] - Dictionary of descriptors for the recpetor.
         '''
         descriptors = {
-          "TotalAALength": self.totalLen if self.totalLen else 0,
-          "AvgAALength": self.avgLen if self.avgLen else 0.0,
-          "countChain": self.chainNumber if self.chainNumber else 0,
+          "TotalAALength": self.totalAALength if self.totalAALength else 0,
+          "AvgAALength": self.avgAALength if self.avgAALength else 0.0,
+          "countChain": self.countChain if self.countChain else 0,
           "SASA": self.sasa if self.sasa else 0.0,
           "DipoleMoment": self.dipoleMoment if self.dipoleMoment else None,
           "IsoelectricPoint": self.isoelectricPoint if self.isoelectricPoint else None,
@@ -778,7 +778,7 @@ def read_descriptors_from_json(path):
         missing = []
         # Expected keys to have in the json file
         # <editor-fold> keys
-        keys = ["Name", "SASA", "DipoleMoment", "IsoelectricPoint", "InstabilityIndex", "GRAVY", "Aromaticity", "countA", "countR", "countN", "countD", "countC", "countQ", "countE", "countG", "countH", "countI", "countL", "countK", "countM", "countF", "countP", "countS", "countT", "countW", "countY", "countV", "totalLen", "avgLen", "chainNumber"]
+        keys = ["Name", "SASA", "DipoleMoment", "IsoelectricPoint", "InstabilityIndex", "GRAVY", "Aromaticity", "countA", "countR", "countN", "countD", "countC", "countQ", "countE", "countG", "countH", "countI", "countL", "countK", "countM", "countF", "countP", "countS", "countT", "countW", "countY", "countV", "TotalAALength", "AvgAALength", "countChain"]
 
         # </editor-fold>
         # Validate the data
@@ -789,8 +789,10 @@ def read_descriptors_from_json(path):
                 missing.append(key)
         # If missing list is not empty
         if missing:
+            # Set the mkissed values
+            missed = (path, ", ".join(missing))
             # Raise a Key error passing the file and the missing keys joined with ', '
-            raise KeyError((path, ", ".join(missing)))
+            raise KeyError
         # Create the countAA variable
         countAA = {
             "A": data["countA"],
@@ -814,14 +816,15 @@ def read_descriptors_from_json(path):
             "Y": data["countY"],
             "V": data["countV"]
         }
+
         # Since we have all keys, read them and return their values
         # <editor-fold> Return data
-        return data["Name"], data["SASA"], data["DipoleMoment"], data["IsoelectricPoint"], data["InstabilityIndex"], data["GRAVY"], data["Aromaticity"], countAA, data["countA"], data["countR"], data["countN"], data["countD"], data["countC"], data["countQ"], data["countE"], data["countG"], data["countH"], data["countI"], data["countL"], data["countK"], data["countM"], data["countF"], data["countP"], data["countS"], data["countT"], data["countW"], data["countY"], data["totalLen"], data["avgLen"], data["chainNumber"]
+        return data["Name"],  data["SASA"], data["DipoleMoment"], data["IsoelectricPoint"], data["InstabilityIndex"], data["GRAVY"], data["Aromaticity"], countAA, data["countA"], data["countR"], data["countN"], data["countD"], data["countC"], data["countQ"], data["countE"], data["countG"], data["countH"], data["countI"], data["countL"], data["countK"], data["countM"], data["countF"], data["countP"], data["countS"], data["countT"], data["countW"], data["countY"], data["countV"], data["TotalAALength"], data["AvgAALength"], data["countChain"]
 
         # </editor-fold>
     # Key error (when there is a missing key)
     except KeyError as k:
-        octools.print_error(f"The following keys were not found in the json file '{k[0]}': {k[1]}.")
+        octools.print_error(f"The following keys were not found in the json file '{missed[0]}': {missed[1]}.")
     # General error (call it as problem to read file)
     except Exception as e:
         octools.print_error(f"Could not read the file '{path}'. Error: {e}")
