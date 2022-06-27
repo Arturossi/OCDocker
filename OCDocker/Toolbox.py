@@ -13,8 +13,9 @@ import contextlib
 import subprocess
 import urllib.request
 
-from spyrmsd import io, rmsd
+from glob import glob
 from tqdm import tqdm
+from spyrmsd import io, rmsd
 from openbabel import pybel
 from openbabel import openbabel
 
