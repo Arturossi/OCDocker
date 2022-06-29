@@ -55,6 +55,7 @@ import OCDocker.baseDB as ocbdb
 # Functions
 ###############################################################################
 ## Private ##
+### p2rank
 def __run_p2rank(dir, fin, overwrite = False):
     '''
     Runs p2rank for a given directory.
@@ -700,8 +701,11 @@ def __core_run_dock(dir, archive, dockingAlgorithm, overwrite):
                 for runPath in runPaths:
                     # Get the run number
                     runNumber = runPath.split(os.path.sep)[-1]
-                    # If the output does not exist or overwrite flag is true
-                    if overwrite or not os.path.isfile(f"{runPath}/plants_{runNumber}.log") or not os.path.isfile(f"{runPath}/plants{runNumber}.mol2"):
+                    # Parameterizing paths
+                    plantsOutput = f"{runPath}/run"
+                    plantsRankingCsv = f"{plantsOutput}/ranking.csv"
+                    # If the output dir or the output file does not exist or overwrite flag is true
+                    if overwrite or not os.path.isdir(plantsOutput) or not os.path.isfile(plantsRankingCsv):
                         needToRun = True
                         break
                 # If is needed to run (at least one protein)
@@ -741,7 +745,6 @@ def __core_run_dock(dir, archive, dockingAlgorithm, overwrite):
                                     if os.path.getsize(plants.preparedLigand) == 0 or not octools.is_molecule_valid(plants.preparedLigand):
                                         octools.print_error_log(f"SPORES has made an output of 0kb again for ligand '{plants.preparedLigand}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(plants.prepareLigandCmd)}", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_ERROR.log")
                                         return errors.ligand_not_prepared(f"SPORES has made an output of 0kb again for ligand '{plants.preparedLigand}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(plants.prepareLigandCmd)}", level = "error")
-
                             # If prepared receptor has the overwrite flag on, does not exists, has size 0 or is not valid
                             if overwrite or not os.path.isfile(plants.preparedReceptor) or os.path.getsize(plants.preparedReceptor) == 0 or not octools.is_molecule_valid(plants.preparedReceptor):
                                 # Run the prepare receptor
@@ -757,7 +760,7 @@ def __core_run_dock(dir, archive, dockingAlgorithm, overwrite):
                                         octools.print_error_log(f"SPORES has made an output of 0kb again for receptor '{plants.preparedReceptor}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(plants.prepareReceptorCmd)}", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_ERROR.log")
                                         return errors.receptor_not_prepared(f"SPORES has made an output of 0kb again for receptor '{plants.preparedReceptor}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(plants.prepareReceptorCmd)}", level = "error")
                             # Check if PLANTS output exists and its size is not 0
-                            if overwrite or not os.path.isdir(plantsOutput) or not os.path.isfile(plantsRankingCsv) and not os.path.getsize(plantsOutput) == 0:
+                            if overwrite or not os.path.isdir(plantsOutput) or not os.path.isfile(plantsRankingCsv) and not os.path.getsize(plantsRankingCsv) == 0:
                                 # If there is already a PLANTS output (PLANTS do not run if the folder is already created. And knowing that PLANTS will ALWAYS run if this code is interpreted, just delete the folder if it exists and lets avoid headaches)
                                 if os.path.isdir(plantsOutput):
                                     # Remove the folder and its contets
@@ -869,7 +872,6 @@ def __run_dock_no_parallel(dirs, archive, dockingAlgorithm, overwrite, desc):
     return None
 
 ### Read logs
-
 def __core_read_log(dir, archive):
     '''
     Reads Vina, Smina and PLANTS logs and then return a dict of dataframes.
@@ -1033,7 +1035,6 @@ def __read_log_no_parallel(dirs, archive, desc):
     return None
 
 ### Parse into csv
-
 def __core_generate_dock_result_csv(log_dump, ptn, archive):
     '''
     Reads Vina, Smina and PLANTS logs and then return a dict of dataframes.
