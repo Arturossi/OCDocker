@@ -1282,7 +1282,7 @@ def __core_merge_descriptors_in_dataframe(dir, archive):
     all_descriptors = {**all_descriptors, **receptor_descriptors}
     all_descriptors = {**all_descriptors, **ligand_descriptors}
     # Append the line to the DataFrame
-    ptndf = ptndf.append(all_descriptors, ignore_index=True)
+    ptndf = pd.append([ptndf, all_descriptors], ignore_index=True)
     # Return the dataframe with a single row
     return ptndf
 
@@ -1938,7 +1938,7 @@ def merge_descriptors_in_dataframe(archive, saveCsv=True):
             csv_path_in = f"{parsed_archive}/PDBbind.csv"
             csv_path_out = f"{parsed_archive}/PDBbind_complete.csv"
             # Read the csv from input file
-            ptndf = pd.read_pd.read_csv(f'{parsed_archive}/PDBbind.csv')
+            ptndf = pd.read_csv(csv_path_in)
             # Merge the both DataFrames using the Protein column as a comparer
             data = pd.merge(ptndf, data, on="Protein", how="left")
             # Write the data to a new csv file
