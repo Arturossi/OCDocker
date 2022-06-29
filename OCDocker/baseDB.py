@@ -1922,7 +1922,7 @@ def merge_descriptors_in_dataframe(archive, saveCsv=True):
         return None
     # Get all dirs paths in the database
     dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db']]
-    
+
     # Make data be None (in case of failure)
     data = None
     # Decide if multprocessing will be used
@@ -1942,10 +1942,10 @@ def merge_descriptors_in_dataframe(archive, saveCsv=True):
             # Merge the both DataFrames using the Protein column as a comparer
             data = pd.merge(ptndf, data, on="Protein", how="left")
             # Write the data to a new csv file
-            data.to_csv(csv_path)
-            octools.print_success(f"The file '{csv_path}' has been successfully written.")
+            data.to_csv(csv_path_out)
+            octools.print_success(f"The file '{csv_path_out}' has been successfully written.")
         except Exception as e:
-            octools.print_error(f"Could not write the file '{csv_path}'. Error: {e}")
+            octools.print_error(f"Could not write the file '{csv_path_out}'. Error: {e}")
             # Return Nothing
             return
     else:
