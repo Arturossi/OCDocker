@@ -1922,6 +1922,7 @@ def merge_descriptors_in_dataframe(archive, saveCsv=True):
         return None
     # Get all dirs paths in the database
     dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db']]
+    
     # Make data be None (in case of failure)
     data = None
     # Decide if multprocessing will be used
@@ -1929,8 +1930,8 @@ def merge_descriptors_in_dataframe(archive, saveCsv=True):
         data = __merge_descriptors_in_dataframe_parallel(dirs, archive, f"Processing {archive}")
     else:
         data = __merge_descriptors_in_dataframe_no_parallel(dirs, archive, f"Processing {archive}")
-    # Check if data is defined
-    if data:
+    # Check if data is pd.DataFrame type and is not empty
+    if type(data) == pd.DataFrame and not data.empty:
         # Try to write the csv
         try:
             # Parameterize the csvs paths
