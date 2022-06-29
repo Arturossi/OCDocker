@@ -760,11 +760,12 @@ def computeInstabilityIndex(residues):
     protein = ProteinAnalysis(__filterSequence(residues))
     return protein.instability_index()
 
-def read_descriptors_from_json(path):
+def read_descriptors_from_json(path, returnDict = False):
     '''
     Read the descriptors from a json file.
     Input:
-      -
+      path       [string]                - Path to the json file
+      returnDict [bool]   DEFAULT: False - If true forces the function to return the entire dict rather than each element separately.
     Return:
       [list(mixed)] - Descriptors read from the json file. If fails, returns null.
     '''
@@ -816,6 +817,11 @@ def read_descriptors_from_json(path):
             "Y": data["countY"],
             "V": data["countV"]
         }
+
+        # If the returnDict flag is on
+        if returnDict:
+            # Return the entire dict
+            return data
 
         # Since we have all keys, read them and return their values
         # <editor-fold> Return data
