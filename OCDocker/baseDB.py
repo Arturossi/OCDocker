@@ -1938,7 +1938,7 @@ def merge_descriptors_in_dataframe(archive, saveCsv=True):
         try:
             # Remove unwanted keys
             for k in ["Name", "Path", "mol2Path"]:
-                if k in all_descriptors:
+                if k in data:
                     del data[k]
             # Parameterize the csvs paths
             csv_path_in = f"{parsed_archive}/PDBbind.csv"
