@@ -1281,8 +1281,9 @@ def __core_merge_descriptors_in_dataframe(dir, archive):
     # Merge both descriptors dicts
     all_descriptors = {**all_descriptors, **receptor_descriptors}
     all_descriptors = {**all_descriptors, **ligand_descriptors}
+    tmpdf = pd.DataFrame(all_descriptors)
     # Append the line to the DataFrame
-    ptndf = pd.concat([ptndf, pd.DataFrame(all_descriptors)], ignore_index=True)
+    ptndf = pd.concat([ptndf, tmpdf], ignore_index=True)
     # Return the dataframe with a single row
     return ptndf
 
