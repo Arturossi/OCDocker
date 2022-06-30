@@ -1283,8 +1283,7 @@ def __core_merge_descriptors_in_dataframe(dir, archive):
     all_descriptors = {**all_descriptors, **ligand_descriptors}
     # Remove unwanted keys
     for k in ["Name", "Path", "mol2Path"]:
-        if k in all_descriptors:
-            del all_descriptors[k]
+        del all_descriptors[k]
     tmpdf = pd.DataFrame(all_descriptors, index=[0])
     # Append the line to the DataFrame
     ptndf = pd.concat([ptndf, tmpdf], ignore_index=True)
