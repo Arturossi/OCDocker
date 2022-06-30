@@ -1281,11 +1281,9 @@ def __core_merge_descriptors_in_dataframe(dir, archive):
     # Merge both descriptors dicts
     all_descriptors = {**all_descriptors, **receptor_descriptors}
     all_descriptors = {**all_descriptors, **ligand_descriptors}
-    # Remove unwanted keys
-    for k in ["Name", "Path", "mol2Path"]:
-        del all_descriptors[k]
+    # Create a temporary pd.DataFrame
     tmpdf = pd.DataFrame(all_descriptors, index=[0])
-    # Append the line to the DataFrame
+    # Append the line to the pd.DataFrame
     ptndf = pd.concat([ptndf, tmpdf], ignore_index=True)
     # Return the dataframe with a single row
     return ptndf
@@ -1938,6 +1936,10 @@ def merge_descriptors_in_dataframe(archive, saveCsv=True):
     if type(data) == pd.DataFrame and not data.empty:
         # Try to write the csv
         try:
+            # Remove unwanted keys
+            for k in ["Name", "Path", "mol2Path"]:
+                if k in all_descriptors
+                    del data[k]
             # Parameterize the csvs paths
             csv_path_in = f"{parsed_archive}/PDBbind.csv"
             csv_path_out = f"{parsed_archive}/PDBbind_complete.csv"
