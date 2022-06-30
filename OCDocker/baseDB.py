@@ -1267,7 +1267,7 @@ def __core_merge_descriptors_in_dataframe(dir, archive):
     if os.path.isfile(receptor_descriptor_path):
         receptor_descriptors = ocr.read_descriptors_from_json(receptor_descriptor_path, returnDict = True)
         # Remove unwanted keys
-        for k in ["Name", "Path", "mol2Path"]
+        for k in ["Name", "Path", "mol2Path"]:
             if k in receptor_descriptors:
                 del receptor_descriptors[k]
     else:
@@ -1276,7 +1276,7 @@ def __core_merge_descriptors_in_dataframe(dir, archive):
     if os.path.isfile(ligand_descriptor_path):
         ligand_descriptors = ocl.read_descriptors_from_json(ligand_descriptor_path, returnDict = True)
         # Remove unwanted keys
-        for k in ["Name", "Path"]
+        for k in ["Name", "Path"]:
             if k in receptor_descriptors:
                 del receptor_descriptors[k]
     else:
