@@ -1266,19 +1266,11 @@ def __core_merge_descriptors_in_dataframe(dir, archive):
     # Check if there is the receptor and the ligand descriptor json, if yes, load them
     if os.path.isfile(receptor_descriptor_path):
         receptor_descriptors = ocr.read_descriptors_from_json(receptor_descriptor_path, returnDict = True)
-        # Remove unwanted keys
-        for k in ["Name", "Path", "mol2Path"]:
-            if k in receptor_descriptors:
-                del receptor_descriptors[k]
     else:
         _ = errors.file_do_not_exist(f"The file {receptor_descriptor_path} does not exist!")
         receptor_descriptors = {}
     if os.path.isfile(ligand_descriptor_path):
         ligand_descriptors = ocl.read_descriptors_from_json(ligand_descriptor_path, returnDict = True)
-        # Remove unwanted keys
-        for k in ["Name", "Path"]:
-            if k in receptor_descriptors:
-                del receptor_descriptors[k]
     else:
         _ = errors.file_do_not_exist(f"The file {ligand_descriptor_path} does not exist!")
         ligand_descriptors = {}
@@ -1289,6 +1281,10 @@ def __core_merge_descriptors_in_dataframe(dir, archive):
     # Merge both descriptors dicts
     all_descriptors = {**all_descriptors, **receptor_descriptors}
     all_descriptors = {**all_descriptors, **ligand_descriptors}
+    # Remove unwanted keys
+    for k in ["Name", "Path", "mol2Path"]:
+        if k in receptor_descriptors:
+            del receptor_descriptors[k]
     tmpdf = pd.DataFrame(all_descriptors, index=[0])
     # Append the line to the DataFrame
     ptndf = pd.concat([ptndf, tmpdf], ignore_index=True)
