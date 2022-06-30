@@ -1943,7 +1943,7 @@ def merge_descriptors_in_dataframe(archive, saveCsv=True):
             # Merge the both DataFrames using the Protein column as a comparer
             data = pd.merge(ptndf, data, on="Protein", how="left")
             # Write the data to a new csv file
-            data.to_csv(csv_path_out, index=False)
+            data.to_csv(csv_path_out, index=False_
             octools.print_success(f"The file '{csv_path_out}' has been successfully written.")
         except Exception as e:
             octools.print_error(f"Could not write the file '{csv_path_out}'. Error: {e}")
