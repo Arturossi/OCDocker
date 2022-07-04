@@ -224,3 +224,13 @@ def generate_dock_result_csv(log_dumps, csv_path, chunksize=500):
      -
     '''
     return ocbdb.generate_dock_result_csv("pdbbind", log_dumps, csv_path, chunksize=chunksize)
+
+def merge_descriptors_in_dataframe(saveCsv=True):
+    '''
+    Reads all the descriptors jsons and return a pd.DataFrame.
+    Input:
+     saveCsv [bool]   DEFAULT: True - If True will save to the Prepared folder in the database
+    Return:
+     [pd.DataFrame]
+    '''
+    return ocbdb.merge_descriptors_in_dataframe("pdbbind", saveCsv=saveCsv)

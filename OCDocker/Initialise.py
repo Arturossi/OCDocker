@@ -761,9 +761,17 @@ parsed_archive = os.path.join(ocdb_path, "Parsed")
 # Set the log directory
 logdir = f"{os.path.abspath(os.path.join(os.path.dirname(ocerror.__file__), os.pardir))}/logs"
 
+# Check if logdir exists, if not, create-it
+if not os.path.isdir(logdir):
+    os.mkdir(logdir)
+
 # Remove tmp path then create it again
 tmpDir = f"{ocdocker_path}/tmp"
-shutil.rmtree(tmpDir)
+
+# If the dir exists, remove it
+if os.path.isdir(tmpDir):
+    shutil.rmtree(tmpDir)
+
 os.mkdir(tmpDir)
 
 # Get number of CPUs (minus one) with a minimum of one

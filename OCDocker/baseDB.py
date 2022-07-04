@@ -1937,7 +1937,7 @@ def merge_descriptors_in_dataframe(archive, saveCsv=True):
         # Try to write the csv
         try:
             # Remove unwanted keys
-            for k in ["Name", "Path", "mol2Path"]:
+            for k in ["Name", "Path", "mol2Path", "__countAA"]:
                 if k in data:
                     del data[k]
             # Parameterize the csvs paths
