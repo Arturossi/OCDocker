@@ -63,10 +63,17 @@ def create_ocdocker_conf():
     '''
     # <editor-fold> General config
     confOcdb = "/mnt/e/Documents/OCDocker/OCDocker/data/ocdb"
+    confPDBbind_KdKi_order = "u"
 
     print("\nGeneral OCDocker configuration")
     answer = input(f"Path to the OCDB. Default [{confOcdb}] (press enter to keep default): ")
     confOcdb = confOcdb if not answer else answer
+
+    # Ensure that the answer is valid (reset its value to an known invalid value before checking)
+    answer = ""
+    while answer not in ["Y", "Z", "E", "P", "T", "G", "M", "k", "un", "c", "m", "u", "n", "pf", "a", "z", "y"]:
+        answer = input(f"The default pdbbind KiKd magnitude [Y, Z, E, P, T, G, M, k, un, c, m, u, n, pf, a, z, y] (follow the unit prefix table). Default [{confPDBbind_KdKi_order}] (press enter to keep default): ")
+        confPDBbind_KdKi_order = confPDBbind_KdKi_order if not answer else answer
 
     # </editor-fold>
 
@@ -276,6 +283,9 @@ def create_ocdocker_conf():
         cf.write(tw.dedent("""# Root directory for the OCDocker Database
         ocdb = """ + confOcdb + """
 
+        # The default pdbbind KiKd magnitude [Y, Z, E, P, T, G, M, k, un, c, m, u, n, pf, a, z, y] (follow the unit prefix table)
+        pdbbind_KdKi_order = """ + confPDBbind_KdKi_order + """
+
         ################# MGLTools PARAMETERS #################
 
         # MGLTools's pythonsh path
@@ -427,7 +437,7 @@ global tmpdir
 
 # Order variable
 global order
-global pdbbind_KiKd_order
+global pdbbind_KdKi_order
 
 # Data from .cfg
 global ocdb_path
@@ -562,9 +572,6 @@ order = {
     }
 }
 
-# The default pdbbind KiKd manitude
-pdbbind_KiKd_order = "u"
-
 # Parse command line arguments
 ###############################################################################
 def argument_parsing():
@@ -662,6 +669,8 @@ elif args.config_file:
 for line in open(config_file, "r"):
     if line.startswith("ocdb ="):
         ocdb_path = line.split("=")[1].strip()
+    elif line.startswith("pdbbind_KdKi_order ="):
+        pdbbind_KdKi_order = line.split("=")[1].strip()
     elif line.startswith("pythonsh ="):
         pythonsh = line.split("=")[1].strip()
     elif line.startswith("prepare_ligand ="):

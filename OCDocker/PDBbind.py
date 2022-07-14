@@ -5,9 +5,11 @@
 import os
 
 from glob import glob
+import pandas as pd
 
 from OCDocker.Initialise import *
 import OCDocker.baseDB as ocbdb
+import OCDocker.Toolbox as octools
 
 # License
 ###############################################################################
@@ -97,17 +99,18 @@ def get_database_multiple_files(sliceSize = 100):
 
 def read_index():
     '''
-    Read the index file from pdbbind database and return a list of data.
+    Read the index file from pdbbind database and returns a list of the data (dict).
     Input:
      -
     Return:
-     [dict]
+     [list of dicts]
     '''
     indexFile = glob(pdbbind_archive + '/index/INDEX_refined_data.*')[0]
     # If the file exists
     if os.path.isfile(indexFile):
-        # Dict to hold the protein data
-        proteinData = {"valOrder": f"{pdbbind_KiKd_order}M"}
+        # List to hold the protein data
+        proteinDataOrder = f"{pdbbind_KdKi_order}M"
+        proteinData = []
         # Open the file in read mode
         with open(indexFile, "r") as f:
             # This will loop the entire file (better than load the whole file in memory... imagine a huge file being loaded...)
@@ -128,30 +131,32 @@ def read_index():
                 # PDB code, resolution, release year, -logKd/Ki, Kd/Ki, reference, ligand name
                 # 2r58  2.00  2007   2.00  Kd=10mM       // 2r58.pdf (MLY)
                 # Separate the type (Kd/Ki) from the value
-                tp, val = splitedLine[4].split("=")
-                # Convert all units to the same order (see the variable pdbbind_KiKd_order in initialise.py file for the precise order)
-                if "mM" in val: # If mili (10e-3)
-                    val = float(val.replace("mM", "")) * order[pdbbind_KiKd_order]["m"]
-                elif "uM" in val: # If micro (10e-6)
-                    val = float(val.replace("uM", "")) * order[pdbbind_KiKd_order]["u"]
-                elif "nM" in val: # If nano (10e-9)
-                    val = float(val.replace("nM", "")) * order[pdbbind_KiKd_order]["n"]
-                elif "pM" in val: # If pico (10e-12)
-                    val = float(val.replace("pM", "")) * order[pdbbind_KiKd_order]["p"]
-                elif "fM" in val: # If femto (10e-15) not expected to show
-                    val = float(val.replace("fM", "")) * order[pdbbind_KiKd_order]["f"]
-                elif "cM" in val: # If centi (10e-2) not expected to show
-                    val = float(val.replace("cM", "")) * order[pdbbind_KiKd_order]["c"]
+                tp, kdki = splitedLine[4].split("=")
+                # Convert all units to the same order (see the variable pdbbind_KdKi_order in initialise.py file for the precise order)
+                if "mM" in kdki: # If mili (10e-3)
+                    kdki = float(kdki.replace("mM", "")) * order[pdbbind_KdKi_order]["m"]
+                elif "uM" in kdki: # If micro (10e-6)
+                    kdki = float(kdki.replace("uM", "")) * order[pdbbind_KdKi_order]["u"]
+                elif "nM" in kdki: # If nano (10e-9)
+                    kdki = float(kdki.replace("nM", "")) * order[pdbbind_KdKi_order]["n"]
+                elif "pM" in kdki: # If pico (10e-12)
+                    kdki = float(kdki.replace("pM", "")) * order[pdbbind_KdKi_order]["p"]
+                elif "fM" in kdki: # If femto (10e-15) not expected to show
+                    kdki = float(kdki.replace("fM", "")) * order[pdbbind_KdKi_order]["f"]
+                elif "cM" in kdki: # If centi (10e-2) not expected to show
+                    kdki = float(kdki.replace("cM", "")) * order[pdbbind_KdKi_order]["c"]
                 else: # Will consider just molar, but this is not expected to show
-                    val = float(val.replace("M", "")) * order[pdbbind_KiKd_order]["M"]
-                # Add to the dict having as a key the pdb code
-                proteinData[splitedLine[0]] = {
+                    kdki = float(kdki.replace("M", "")) * order[pdbbind_KdKi_order]["M"]
+                # Add to the list having as a key the pdb code
+                proteinData.append({
+                    "Protein": splitedLine[0],
                     "resolution": splitedLine[1],
                     "release_year": splitedLine[2],
                     "-logKd/Ki": splitedLine[3],
-                    "type": tp,
-                    "val": val
-                    }
+                    "Ki/Kd": tp,
+                    "Ki/Kd_value": kdki,
+                    "Ki/Kd_order": proteinDataOrder
+                    })
         # Return the data
         return proteinData
     else:
@@ -233,4 +238,18 @@ def merge_descriptors_in_dataframe(saveCsv=True):
     Return:
      [pd.DataFrame]
     '''
-    return ocbdb.merge_descriptors_in_dataframe("pdbbind", saveCsv=saveCsv)
+    # Get the dataframe with descriptors and docking scores
+    pdbbinddf = ocbdb.merge_descriptors_in_dataframe("pdbbind", saveCsv=False)
+
+    # Merge the pdbbinddf DataFrame with the metadata from the PDBbind database using the Protein column as a comparer
+    pdbbinddf = pd.merge(pdbbinddf, pd.DataFrame(read_index()), on="Protein", how="left")
+
+    if saveCsv:
+        # Parameterize the csvs paths
+        csv_path_out = f"{parsed_archive}/PDBbind_complete.csv"
+        if os.path.isfile(csv_path_out):
+            octools.print_warning(f"The file {csv_path_out} already exists, it will be OVERWRITTEN!!")
+        # Write the data to a new csv file
+        pdbbinddf.to_csv(csv_path_out, index=False)
+
+    return pdbbinddf

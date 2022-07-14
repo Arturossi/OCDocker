@@ -1919,6 +1919,9 @@ def merge_descriptors_in_dataframe(archive, saveCsv=True):
         chosenArchive = dudez_archive
     elif archive == "pdbbind":
         chosenArchive = pdbbind_archive
+        # Parameterize the csvs paths
+        csv_path_in = f"{parsed_archive}/PDBbind.csv"
+        csv_path_out = f"{parsed_archive}/PDBbind_complete.csv"
     else:
         octools.print_error(f"Not valid archive type. Expected one of ['astex', 'dudez', 'pdbbind'] and found {archive}.")
         return None
@@ -1940,9 +1943,6 @@ def merge_descriptors_in_dataframe(archive, saveCsv=True):
             for k in ["Name", "Path", "mol2Path", "__countAA"]:
                 if k in data:
                     del data[k]
-            # Parameterize the csvs paths
-            csv_path_in = f"{parsed_archive}/PDBbind.csv"
-            csv_path_out = f"{parsed_archive}/PDBbind_complete.csv"
             # Read the csv from input file
             ptndf = pd.read_csv(csv_path_in)
             # Merge the both DataFrames using the Protein column as a comparer
