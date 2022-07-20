@@ -166,6 +166,26 @@ def read_index():
     # This return should never exist, but here it is
     return None
 
+def run_prank(overwrite = False):
+    '''
+    Runs P2Rank in the whole database.
+    Input:
+     overwrite [bool] DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated.
+    Return:
+      -
+    '''
+    return ocbdb.run_dock("pdbbind", overwrite = overwrite)
+
+def run_p2rank(overwrite = False):
+    '''
+    Runs P2Rank in the whole database.
+    Input:
+     overwrite [bool] DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated.
+    Return:
+      -
+    '''
+    return ocbdb.run_p2rank("pdbbind", overwrite = overwrite)
+
 def run_vina(overwrite = False):
     '''
     Runs vina in the whole database.

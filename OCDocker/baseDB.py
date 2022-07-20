@@ -119,6 +119,112 @@ def __run_create_plants_conf_from_box(dir, fin, ligand, spacing):
     ocplants.generate_plants_files_database(dir, fin, ligand, spacing)
     return
 
+def __core_p2rank(dir, overwrite, archive):
+    '''
+    Prepares a database entry to be run in multiple docking software.
+    Input:
+     dir       [string] - Path where the data is
+     overwrite [bool]   - Flag for demanding file overwrite
+     archive   [string] - Which archive will be processed [dudez, pdbbind, astex]
+    Return:
+      -
+    '''
+    if archive == "astex":
+        # Set the input file name path
+        fin = f"{dir}/protein.pdb"
+    elif archive == "dudez":
+        # Set the input file name path
+        fin = f"{dir}/rec.crg.pdb"
+    elif archive == "pdbbind":
+        # If is the index path
+        if os.path.basename(dir) not in ['index', 'db']:
+            # Skip it
+            return
+        # Find the protein name
+        ptn = dir.split(os.path.sep)[-1]
+        # Set the input file name path (to generate the box and data about the protein)
+        fin = f"{dir}/{ptn}_protein.pdb"
+    # Set the output path
+    fout = f"{dir}/p2rank"
+    # Create the p2rank output dir
+    _ = octools.safe_create_dir(fout)
+    # If overwrite mode is on or there is no box in the p2rank output, p2rank will run
+    if boxCount == 0 or overwrite:
+        # Run p2rank
+        __run_p2rank(dir, fin, overwrite=overwrite)
+    else:
+        octools.print_info(f"The protein '{dir}' already has its p2rank output generated, skipping its execution.")
+
+    return None
+
+def __thread_p2rank(arguments):
+    '''
+    Thread aid function to call __core_p2rank.
+    Input:
+     arguments [tuple(string, bool, string, string, bool)] - Tuple containing, in this order:
+        - [string] The path where the files are
+        - [bool]   Flag to tell if files should be overwritten
+        - [string] The database name [dudez, pdbbind, astex]
+        - [bool]   Flag to tell if the molecule should be sanitized
+        - [float]  The spacing value used to enlarge the radius of the sphere used in PLANTS file. Ranges from 0 to 1
+    Return:
+      -
+    '''
+    # Redirect all prints to tqdm.write
+    with octools.redirect_to_tqdm():
+        # Call core prepare function (shared between thread and no thread)
+        return __core_p2rank(arguments[0], arguments[1], arguments[2])
+    # Return
+    return None
+
+def __p2rank_parallel(dirs, overwrite, archive, desc):
+    '''
+    Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
+    Input:
+     dirs      [string] - List of paths to process
+     overwrite [bool]   - Flag to tell if files should be overwritten
+     archive   [string] - The database name (for proper logging) [dudez, pdbbind, astex]
+     desc      [string] - The description used in the progress bar
+    Return:
+      -
+    '''
+    # Arguments to pass to each Thread in the Thread Pool
+    arguments = []
+    # For each file in the glob
+    for dir in dirs:
+        # Append a tuple containing the file name and ovewrite flag to the arguments list
+        arguments.append((dir, overwrite, archive))
+    # Create a Thread pool with the maximum available_cores
+    with Pool(args.available_cores) as p:
+        # Perform the multi process
+        for _ in tqdm(p.imap_unordered(__thread_p2rank, arguments), total = len(arguments), desc = desc):
+            # Clear the memory
+            gc.collect()
+    # Return
+    return None
+
+def __p2rank_no_parallel(dirs, overwrite, archive, desc):
+    '''
+    Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_p2rank function.
+    Input:
+     dirs      [string] - List of paths to process
+     overwrite [bool]   - Flag to tell if files should be overwritten
+     archive   [string] - The database name (for proper logging)
+     sanitize  [string] - Flag to tell telling if the molecule should be sanitized
+     spacing   [float]  - The spacing value used to enlarge the radius of the sphere used in PLANTS file. Ranges from 0 to 1
+     desc      [string] - The description used in the progress bar
+    Return:
+      -
+    '''
+    # Redirect all prints to tqdm.write
+    with octools.redirect_to_tqdm():
+        for dir in tqdm(iterable=dirs, total=len(dirs), desc=desc):
+            # Call the core prepare function
+            __core_p2rank(dir, overwrite, archive)
+            # Clear the memory
+            gc.collect()
+    return None
+
 ### Prepare
 def __core_prepare(dir, overwrite, archive, sanitize, spacing):
     '''
@@ -1696,10 +1802,19 @@ def prepare(archive, overwrite = False, spacing = 0.33, sanitize = True):
     # Find which kind of archive it will be
     if archive == "astex":
         chosenArchive = astex_archive
+        label = f"Astex proteins"
+        # Get all dirs paths in the database
+        dirs = glob(f"{chosenArchive}/*")
     elif archive == "dudez":
         chosenArchive = dudez_archive
+        label = f"DUDEz proteins"
+        # Get all dirs paths in the database
+        dirs = glob(f"{chosenArchive}/*")
     elif archive == "pdbbind":
         chosenArchive = pdbbind_archive
+        label = "PDBbind proteins"
+        # Get all dirs paths in the database filtering for pdbbind
+        dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index']]
     else:
         octools.print_error(f"Not valid archive type. Expected one of ['astex', 'dudez', 'pdbbind'] and found {archive}.")
         return
@@ -1707,17 +1822,52 @@ def prepare(archive, overwrite = False, spacing = 0.33, sanitize = True):
     octools.printv("Generating information regarding possible ligand site.")
     # If is multiprocess
     if args.multiprocess:
-        # If the archive is pdbbind
-        if archive == "pdbbind":
-            # Get all dirs paths in the database
-            dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db']]
-            # Prepare the pdbbind
-            __prepare_parallel(dirs, overwrite, archive, sanitize, spacing, "PDBbind proteins")
-        else:
-            # Get all dirs paths in the database
-            dirs = glob(f"{chosenArchive}/*")
-            # Prepare the database
-            __prepare_parallel(dirs, overwrite, archive, sanitize, spacing, f"{chosenArchive} proteins")
+        # Prepare the pdbbind
+        __prepare_parallel(dirs, overwrite, archive, sanitize, spacing, label)
+    else:
+        # Prepare the database
+        __prepare_no_parallel(dirs, overwrite, archive, sanitize, spacing, label)
+    return None
+
+def run_p2rank(archive, overwrite = False):
+    '''
+    Runs P2Rank in the desired database.
+    Input:
+     archive   [string]                - Which archive will be processed. [dudez, pdbbind, astex]
+     overwrite [bool]   DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated.
+    Return:
+      -
+    '''
+    # Make archive lowercase
+    archive = os.path.basename(archive).lower()
+    # Find which kind of archive it will be
+    if archive == "astex":
+        chosenArchive = astex_archive
+        label = f"Astex proteins"
+        # Get all dirs paths in the database
+        dirs = glob(f"{chosenArchive}/*")
+    elif archive == "dudez":
+        chosenArchive = dudez_archive
+        label = f"DUDEz proteins"
+        # Get all dirs paths in the database
+        dirs = glob(f"{chosenArchive}/*")
+    elif archive == "pdbbind":
+        chosenArchive = pdbbind_archive
+        label = "PDBbind proteins"
+        # Get all dirs paths in the database filtering for pdbbind
+        dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index']]
+    else:
+        octools.print_error(f"Not valid archive type. Expected one of ['astex', 'dudez', 'pdbbind'] and found {archive}.")
+        return
+    # Generate boxes for all receptors
+    octools.printv("Generating P2Rank files.")
+    # If is multiprocess
+    if args.multiprocess:
+        # Prepare the pdbbind
+        __p2rank_parallel(dirs, overwrite, archive, label)
+    else:
+        # Prepare the database
+        __p2rank_no_parallel(dirs, overwrite, archive, label)
     return None
 
 def run_dock(archive, dockingAlgorithm, overwrite = False):

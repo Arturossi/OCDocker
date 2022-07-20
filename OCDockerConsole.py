@@ -73,7 +73,7 @@ args.multiprocess = 1
 
 basePath = "/mnt/e/Documents/OCDocker/OCDocker"
 basePath = "/mnt/sda/artur/OCDocker"
-basePath = "/media/artur/hd4tb/artur/OCDocker"
+basePath = "/media/artur/hd4tb/OCDocker/OCDocker"
 
 '''
 dbsampledir = f"{basePath}/data/ocdb/DUDEz/AA2AR"

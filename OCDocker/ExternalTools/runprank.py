@@ -482,18 +482,18 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
                     # Check and convert (if needed) the coordinates cartesian/polar/spherical
                     if coordSystem.lower() == "cartesian": # if is cartesian, just read the values
                         v1 = line[31:38]
-                        v2 = line[39:46]
-                        v3 = line[47:54]
+                        v2 = line[38:46]
+                        v3 = line[46:54]
                     elif coordSystem.lower() == "polar": # if is polar, convert x and y, but keep z
                         v1, v2 = __cart2pol(line[31:38], line[39:46])
-                        v3 = line[47:54]
+                        v3 = line[46:54]
                     elif coordSystem.lower() == "spherical": # if is spherical, convert x, y and z
                         v1, v2, v3 = __cart2sph(line[31:38], line[39:46], line[47:54])
                     else: # if the user has typed something wrong, show a warning message and use cartesian
                         print("WARNING: Unknown, coordinate system, using cartesian!")
                         v1 = line[31:38]
-                        v2 = line[39:46]
-                        v3 = line[47:54]
+                        v2 = line[38:46]
+                        v3 = line[46:54]
 
                     # If the whole protein is included
                     if wholeProt:

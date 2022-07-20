@@ -263,7 +263,9 @@ class Vina:
         '''
         # Print verboosity
         octools.printv(f"Running '{prepare_ligand}' for '{self.inputLigandPath}'.")
-        return octools.run(self.prepareLigandCmd, logFile=logFile)
+        octools.convertMols(self.inputLigandPath, self.preparedLigand)
+        return
+        #return octools.run(self.prepareLigandCmd, logFile=logFile)
 
     def run_prepare_receptor(self, logFile = ""):
         '''
@@ -276,7 +278,9 @@ class Vina:
         '''
         # Print verboosity
         octools.printv(f"Running '{prepare_receptor}' for '{self.inputReceptorPath}'.")
-        return octools.run(self.prepareReceptorCmd, logFile=logFile)
+        octools.convertMols(self.inputReceptorPath, self.preparedReceptor)
+        return
+        #return octools.run(self.prepareReceptorCmd, logFile=logFile)
 
     def print_attributes(self):
         '''
