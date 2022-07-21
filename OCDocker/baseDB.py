@@ -702,13 +702,13 @@ def __core_run_dock(dir, archive, dockingAlgorithm, overwrite):
                             # If prepared ligand has the overwrite flag on, does not exists, has size 0 or is not valid
                             if overwrite or not os.path.isfile(vina.preparedLigand) or os.path.getsize(vina.preparedLigand) == 0 or not octools.is_molecule_valid(vina.preparedLigand):
                                 # Run the prepare ligand
-                                _ = vina.run_prepare_ligand()
+                                _ = vina.run_prepare_ligand(useOpenBabel=True)
                                 # Check if the generated ligand has size 0 or is invalid
                                 if os.path.getsize(vina.preparedLigand) == 0 or not octools.is_molecule_valid(vina.preparedLigand):
                                     octools.print_warning_log(f"The prepare ligand script has made an output of 0kb for ligand '{vina.preparedLigand}', this is wierd. Trying to run it again.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_WARNING.log")
                                     octools.print_warning(f"The prepare ligand script has made an output of 0kb for ligand '{vina.preparedLigand}', this is wierd. Trying to run it again.")
                                     # Run again the prepare ligand
-                                    _ = vina.run_prepare_ligand()
+                                    _ = vina.run_prepare_ligand(useOpenBabel=True)
                                     # Check again if the generated ligand has size 0 or is invalid
                                     if os.path.getsize(vina.preparedLigand) == 0 or not octools.is_molecule_valid(vina.preparedLigand):
                                         octools.print_error_log(f"The prepare ligand script has made an output of 0kb again for ligand '{vina.preparedLigand}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(vina.prepareLigandCmd)}", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_ERROR.log")
@@ -716,13 +716,13 @@ def __core_run_dock(dir, archive, dockingAlgorithm, overwrite):
                             # If prepared receptor has the overwrite flag on, does not exists, has size 0 or is not valid
                             if overwrite or not os.path.isfile(vina.preparedReceptor) or os.path.getsize(vina.preparedReceptor) == 0 or not octools.is_molecule_valid(vina.preparedReceptor):
                                 # Run the prepare receptor
-                                _ = vina.run_prepare_receptor()
+                                _ = vina.run_prepare_receptor(useOpenBabel=True)
                                 # Check if the generated receptor has size 0 or is invalid
                                 if os.path.getsize(vina.preparedReceptor) == 0 or not octools.is_molecule_valid(vina.preparedReceptor):
                                     octools.print_warning_log(f"The prepare receptor has made an output of 0kb for ligand '{vina.preparedReceptor}', this is wierd. Trying to run it again.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_WARNING.log")
                                     octools.print_warning(f"The prepare receptor has made an output of 0kb for ligand '{vina.preparedReceptor}', this is wierd. Trying to run it again.")
                                     # Run again the prepare receptor
-                                    _ = vina.run_prepare_receptor()
+                                    _ = vina.run_prepare_receptor(useOpenBabel=True)
                                     # Check again if the generated receptor has size 0 or is invalid
                                     if os.path.getsize(smina.preparedReceptor) == 0 or not octools.is_molecule_valid(vina.preparedReceptor):
                                         octools.print_error_log(f"The prepare receptor has made an output of 0kb again for receptor '{vina.preparedReceptor}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(vina.prepareReceptorCmd)}", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_ERROR.log")
