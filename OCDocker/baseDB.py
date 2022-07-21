@@ -137,7 +137,7 @@ def __core_p2rank(dir, overwrite, archive):
         fin = f"{dir}/rec.crg.pdb"
     elif archive == "pdbbind":
         # If is the index path
-        if os.path.basename(dir) not in ['index', 'db']:
+        if os.path.basename(dir) in ['index', 'db']:
             # Skip it
             return
         # Find the protein name
@@ -148,6 +148,8 @@ def __core_p2rank(dir, overwrite, archive):
     fout = f"{dir}/p2rank"
     # Create the p2rank output dir
     _ = octools.safe_create_dir(fout)
+    # Parameterizing box count
+    boxCount = len(glob(f"{fout}/box*.pdb"))
     # If overwrite mode is on or there is no box in the p2rank output, p2rank will run
     if boxCount == 0 or overwrite:
         # Run p2rank
@@ -165,8 +167,6 @@ def __thread_p2rank(arguments):
         - [string] The path where the files are
         - [bool]   Flag to tell if files should be overwritten
         - [string] The database name [dudez, pdbbind, astex]
-        - [bool]   Flag to tell if the molecule should be sanitized
-        - [float]  The spacing value used to enlarge the radius of the sphere used in PLANTS file. Ranges from 0 to 1
     Return:
       -
     '''
@@ -315,7 +315,7 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         #__prepare_parallel(glob(f"{goldilocksDirDecoy}/*.mol2"), overwrite, moltype, f"{ptn} goldilocks decoy")
     elif archive == "pdbbind":
         # If is the index path
-        if os.path.basename(dir) not in ['index', 'db']:
+        if os.path.basename(dir) in ['index', 'db']:
             # Skip it
             return
         # Find the protein name
