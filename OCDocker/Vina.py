@@ -178,7 +178,6 @@ class Vina:
         outputLigandPath = f"{os.path.dirname(ligandPath)}/{os.path.splitext(os.path.basename(ligandPath))[0]}.mol2"
 
         # Process the ligand
-        #octools.convert2mol2(ligandPath, outputLigandPath, logFile = self.convert2mol2log)
         octools.convertMols(ligandPath, outputLigandPath, logFile = self.convert2mol2log)
 
         return outputLigandPath
@@ -252,42 +251,43 @@ class Vina:
         octools.printv(f"Running vina using the '{self.config}' configurations.")
         return octools.run(self.vinaCmd, logFile=self.vinaLog)
 
-    def run_prepare_ligand(self, logFile = ""):
+    def run_prepare_ligand(self, logFile = "", useOpenBabel = False):
         '''
-        Run 'prepare_ligand4'.
+        Run 'prepare_ligand4' or openbabel to prepare the ligand.
         Input:
-          logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
+          logFile      [list(string)] DEFAULT: ""    - Path to the logFile. If empty, suppress the output
+          useOpenBabel [list(string)] DEFAULT: False - If True will try to run openbabel, otherwise will run prepare_ligand4
         Return:
           [int]
            See Error.py for all return codes.
         '''
         # Print verboosity
         octools.printv(f"Running '{prepare_ligand}' for '{self.inputLigandPath}'.")
-        # Get the current dir, switch to the protein dir, run the prepare ligand and then return to previous dir
-        #currDir = os.getcwd()
-        #os.chdir(os.path.dirname(self.inputLigandPath))
-        #print(f"cd from {currDir} to {os.path.dirname(self.inputLigandPath)} and now im in {os.getcwd()}")
-        flag = octools.run(self.prepareLigandCmd, logFile=logFile, cwd=os.path.dirname(self.inputLigandPath))
-        #os.chdir(currDir)
-        return flag
+        # If True, use openbabel
+        if useOpenBabel:
+            return octools.convertMols(self.inputLigandPath, self.preparedLigand)
+        else:
+            return octools.run(self.prepareLigandCmd, logFile=logFile)
+        return None
 
-    def run_prepare_receptor(self, logFile = ""):
+    def run_prepare_receptor(self, logFile = "", useOpenBabel = False):
         '''
-        Run 'prepare_receptor4'.
+        Run 'prepare_receptor4' or openbabel to prepare the receptor.
         Input:
-          logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
+          logFile      [list(string)] DEFAULT: ""    - Path to the logFile. If empty, suppress the output
+          useOpenBabel [list(string)] DEFAULT: False - If True will try to run openbabel, otherwise will run prepare_receptor4
         Return:
           [int]
            See Error.py for all return codes.
         '''
         # Print verboosity
         octools.printv(f"Running '{prepare_receptor}' for '{self.inputReceptorPath}'.")
-        # Get the current dir, switch to the protein dir, run the prepare ligand and then return to previous dir
-        currDir = os.getcwd()
-        os.chdir(os.path.dirname(self.inputReceptorPath))
-        flag = octools.run(self.prepareReceptorCmd, logFile=logFile)
-        os.chdir(currDir)
-        return flag
+        # If True, use openbabel
+        if useOpenBabel:
+            return octools.convertMols(self.inputReceptorPath, self.preparedReceptor)
+        else:
+            return octools.run(self.prepareReceptorCmd, logFile=logFile)
+        return None
 
     def print_attributes(self):
         '''

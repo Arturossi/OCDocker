@@ -541,7 +541,6 @@ def convertMols(input, output):
         obConversion.WriteFile(mol, output)
     except Exception as e:
         return errors.subprocess(message=f"Error while running molecule conversion from {inExtension} to {outExtension} using obabel python lib. Error: {e}", level="error")
-
     return errors.ok()
 
 def split_and_convert(path, out_path, extension, overwrite = False):
