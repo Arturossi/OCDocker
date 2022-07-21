@@ -263,9 +263,13 @@ class Vina:
         '''
         # Print verboosity
         octools.printv(f"Running '{prepare_ligand}' for '{self.inputLigandPath}'.")
-        octools.convertMols(self.inputLigandPath, self.preparedLigand)
-        return
-        #return octools.run(self.prepareLigandCmd, logFile=logFile)
+        # Get the current dir, switch to the protein dir, run the prepare ligand and then return to previous dir
+        #currDir = os.getcwd()
+        #os.chdir(os.path.dirname(self.inputLigandPath))
+        #print(f"cd from {currDir} to {os.path.dirname(self.inputLigandPath)} and now im in {os.getcwd()}")
+        flag = octools.run(self.prepareLigandCmd, logFile=logFile, cwd=os.path.dirname(self.inputLigandPath))
+        #os.chdir(currDir)
+        return flag
 
     def run_prepare_receptor(self, logFile = ""):
         '''
@@ -278,9 +282,12 @@ class Vina:
         '''
         # Print verboosity
         octools.printv(f"Running '{prepare_receptor}' for '{self.inputReceptorPath}'.")
-        octools.convertMols(self.inputReceptorPath, self.preparedReceptor)
-        return
-        #return octools.run(self.prepareReceptorCmd, logFile=logFile)
+        # Get the current dir, switch to the protein dir, run the prepare ligand and then return to previous dir
+        currDir = os.getcwd()
+        os.chdir(os.path.dirname(self.inputReceptorPath))
+        flag = octools.run(self.prepareReceptorCmd, logFile=logFile)
+        os.chdir(currDir)
+        return flag
 
     def print_attributes(self):
         '''

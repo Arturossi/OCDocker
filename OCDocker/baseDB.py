@@ -345,13 +345,13 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
     else:
         octools.print_info(f"The protein '{dir}' already has its p2rank output generated, skipping its execution.")
     # If overwrite mode is on or there is not the same amount of box files as folders in vinaFiles folder
-    if len(glob(f"{dir}/vinaFiles/*")) == boxCount or overwrite:
+    if boxCount == 0 or len(glob(f"{dir}/vinaFiles/*")) == boxCount or overwrite:
         # Create the vina inputs from the boxes
         ocvina.generate_vina_files_database(dir, fin)
     else:
         octools.print_info(f"The protein '{dir}' already has its vina file generated, skipping its execution.")
     # If overwrite mode is on or there is not the same amount of box files as folders in vinaFiles folder
-    if len(glob(f"{dir}/plantsFiles/*")) == boxCount or overwrite:
+    if boxCount == 0 or len(glob(f"{dir}/plantsFiles/*")) == boxCount or overwrite:
         # Create the PLANTS inputs from the boxes
         ocplants.generate_plants_files_database(dir, fin, fligand, spacing)
     else:
@@ -1898,6 +1898,7 @@ def run_dock(archive, dockingAlgorithm, overwrite = False):
         return None
     # Get all dirs paths in the database
     dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db']]
+
     # Decide if multprocessing will be used
     if args.multiprocess:
         __run_dock_parallel(dirs, archive, dockingAlgorithm, overwrite, f"Processing {archive}")

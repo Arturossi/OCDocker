@@ -797,7 +797,7 @@ def safe_create_dir(dirname):
             return errors.ok()
         else:
             # It exists
-            return errors.file_exists(message="File 'dirname' already exists!", level="warn")
+            return errors.file_exists(message=f"File '{dirname}' already exists!", level="warn")
     except Exception as e:
         # Some error has occurred
         return errors.create_dir(message=f"Problem found while creating the dir {dirname}: {e}", level="error")
@@ -823,12 +823,13 @@ def download_url(url, out_path):
         urllib.request.urlretrieve(url, filename=out_path, reporthook=t.update_to)
     return
 
-def run(cmd, logFile = ""):
+def run(cmd, logFile = "", cwd = ""):
     '''
     Run the given command (generic).
     Input:
-      cmd             [list(string)]             - List containing the strings of the command.
-      logfile         [list(string)] DEFAULT: "" - Path to the logFile (empty string to suppress the output).
+      cmd     [list(string)]             - List containing the strings of the command
+      logfile [list(string)] DEFAULT: "" - Path to the logFile (empty string to suppress the output)
+      cwd     [list(string)] DEFAULT: "" - Where the command will be run, if empty it will not care where the command is running
     Return:
       [int]
       See Error.py for all return codes.
@@ -849,8 +850,12 @@ def run(cmd, logFile = ""):
         printv(f"Logging into '{logFile}'")
 
     try:
-        with open(logFile, "w") as outfile:
-            subprocess.run(cmd, stdout=outfile)
+        if cwd == "":
+            with open(logFile, "w") as outfile:
+                subprocess.run(cmd, stdout=outfile)
+        else:
+            with open(logFile, "w") as outfile:
+                subprocess.run(cmd, stdout=outfile, cwd=cwd)
     except Exception as e:
         return errors.subprocess(message=f"Found a problem while executing the command '{' '.join(cmd)}': {e}", level="error")
 
