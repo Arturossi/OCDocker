@@ -652,7 +652,9 @@ def validate_obabel_extension(path):
                             'txt', 'txyz', 'unixyz', 'VASP', 'vmol', 'xed', 'xyz', 'yob', 'zin'
                           ]
     extension = os.path.splitext(path)[1][1:]
+    print(extension)
     if extension in supportedExtensions:
+        print(extension)
         return extension
     return errors.unsupported_extension(message=f"Unsupported extension for input molecule file! Supported extensions are '{' '.join(supportedExtensions)}' and got '{extension}'.")
 
