@@ -696,6 +696,7 @@ def is_molecule_valid(molecule):
         print(extension)
         # Test if the molecule should be loaded with biopython or rdkit
         if molecule.endswith((".cif", ".pdb")):
+            print("test")
             try:
                 # Now we know that it is a file path, check which is its extension to use the correct function
                 extension = os.path.splitext(molecule)[1]
