@@ -652,9 +652,8 @@ def validate_obabel_extension(path):
                             'txt', 'txyz', 'unixyz', 'VASP', 'vmol', 'xed', 'xyz', 'yob', 'zin'
                           ]
     extension = os.path.splitext(path)[1][1:]
-    print(extension)
+
     if extension in supportedExtensions:
-        print(extension)
         return extension
     return errors.unsupported_extension(message=f"Unsupported extension for input molecule file! Supported extensions are '{' '.join(supportedExtensions)}' and got '{extension}'.")
 
@@ -693,10 +692,8 @@ def is_molecule_valid(molecule):
     if os.path.isfile(molecule):
         # Check which is its extension to use the correct function
         extension = os.path.splitext(molecule)[1]
-        print(extension)
         # Test if the molecule should be loaded with biopython or rdkit
         if molecule.endswith((".cif", ".pdb")):
-            print("test")
             try:
                 # Now we know that it is a file path, check which is its extension to use the correct function
                 extension = os.path.splitext(molecule)[1]
@@ -725,6 +722,9 @@ def is_molecule_valid(molecule):
                     # Parse it
                     _ = rdkit.Chem.rdmolfiles.SDMolSupplier(molecule, sanitize = True)
                 elif extension == ".mol":
+                    # Parse it
+                    _ = rdkit.Chem.rdmolfiles.MolFromMolFile(molecule, sanitize = True)
+                elif extension == ".pdbqt":
                     # Parse it
                     _ = rdkit.Chem.rdmolfiles.MolFromMolFile(molecule, sanitize = True)
                 else:
