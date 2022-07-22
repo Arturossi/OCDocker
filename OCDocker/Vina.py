@@ -267,7 +267,7 @@ class Vina:
         if useOpenBabel:
             return octools.convertMols(self.inputLigandPath, self.preparedLigand)
         else:
-            return octools.run(self.prepareLigandCmd, logFile=logFile)
+            return octools.run(self.prepareLigandCmd, logFile=logFile, cwd=os.path.dirname(self.inputLigandPath))
         return None
 
     def run_prepare_receptor(self, logFile = "", useOpenBabel = False):
@@ -286,7 +286,7 @@ class Vina:
         if useOpenBabel:
             return octools.convertMols(self.inputReceptorPath, self.preparedReceptor)
         else:
-            return octools.run(self.prepareReceptorCmd, logFile=logFile)
+            return octools.run(self.prepareReceptorCmd, logFile=logFile, cwd=os.path.dirname(self.inputReceptorPath))
         return None
 
     def print_attributes(self):
