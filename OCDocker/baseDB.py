@@ -710,8 +710,6 @@ def __core_run_dock(dir, archive, dockingAlgorithm, overwrite):
                                     # Run again the prepare ligand
                                     _ = vina.run_prepare_ligand(useOpenBabel=True)
                                     # Check again if the generated ligand has size 0 or is invalid
-                                    print(os.path.getsize(vina.preparedLigand))
-                                    print(not octools.is_molecule_valid(vina.preparedLigand))
                                     if os.path.getsize(vina.preparedLigand) == 0 or not octools.is_molecule_valid(vina.preparedLigand):
                                         octools.print_error_log(f"The prepare ligand script has made an output of 0kb again for ligand '{vina.preparedLigand}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(vina.prepareLigandCmd)}", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_ERROR.log")
                                         return errors.ligand_not_prepared(f"The prepare ligand script has made an output of 0kb again for ligand '{vina.preparedLigand}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(vina.prepareLigandCmd)}", level = "error")
