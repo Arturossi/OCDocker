@@ -307,10 +307,14 @@ class PLANTS:
         os.chdir(tmpDir)
         # Run plants
         output = octools.run(self.plantsCmd, logFile=self.plantsLog)
-        # Remove the annoying .pid file
-        _ = octools.run(["rm", f"{tmpDir}/PLANTS-*.pid"])
-        # Remove the bad .mol2 file
-        _ = octools.run(["rm", f"{tmpDir}/*bad*.mol2"])
+        # Check if there is a PLANTS-*.pid file
+        if len(glob(f"{tmpDir}/PLANTS-*.pid")):
+            # Remove it
+            _ = octools.run(["rm", f"{tmpDir}/PLANTS-*.pid"])
+        # Check if there is a *bad*.mol2 file
+        if len(glob(f"{tmpDir}/*bad*.mol2")):
+            # Remove it
+            _ = octools.run(["rm", f"{tmpDir}/*bad*.mol2"])
         return output
 
     def run_prepare_ligand(self, logFile = ""):
