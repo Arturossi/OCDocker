@@ -687,7 +687,7 @@ def is_molecule_valid(molecule):
     Return:
       [bool] True if is valid / False if is not valid
     '''
-    print(molecule)
+    print(os.path.isfile(molecule))
     # Check if file exists
     if os.path.isfile(molecule):
         # Check which is its extension to use the correct function
