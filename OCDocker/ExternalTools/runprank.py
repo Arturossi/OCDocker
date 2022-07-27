@@ -479,21 +479,20 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
                         # Finds if the atom index is in the atom list (again to ensure that the right probability is assigned to the right atom)
                         idx = atoms.index(line[7:11].strip())
 
+                    # Assume that is cartesian (which is plain text read ans MUST be done anyaway)
+                    v1 = line[30:38].strip()
+                    v2 = line[38:46].strip()
+                    v3 = line[46:54].strip()
+
                     # Check and convert (if needed) the coordinates cartesian/polar/spherical
-                    if coordSystem.lower() == "cartesian": # if is cartesian, just read the values
-                        v1 = line[31:38]
-                        v2 = line[38:46]
-                        v3 = line[46:54]
+                    if coordSystem.lower() == "cartesian": # if is cartesian, do nothing
+                        pass
                     elif coordSystem.lower() == "polar": # if is polar, convert x and y, but keep z
-                        v1, v2 = __cart2pol(line[31:38], line[39:46])
-                        v3 = line[46:54]
+                        v1, v2 = __cart2pol(v1, v2)
                     elif coordSystem.lower() == "spherical": # if is spherical, convert x, y and z
-                        v1, v2, v3 = __cart2sph(line[31:38], line[39:46], line[47:54])
+                        v1, v2, v3 = __cart2sph(v1, v2, v3)
                     else: # if the user has typed something wrong, show a warning message and use cartesian
                         print("WARNING: Unknown, coordinate system, using cartesian!")
-                        v1 = line[31:38]
-                        v2 = line[38:46]
-                        v3 = line[46:54]
 
                     # If the whole protein is included
                     if wholeProt:
