@@ -539,7 +539,7 @@ def get_binding_site(boxFile, spacing = 0.33):
                     # Split the line (using spaces as delimiters)
                     l = line.split()
                     # Slice the line in right positions
-                    center['x'] = float(line[31:38])
+                    center['x'] = float(line[30:38])
                     center['y'] = float(line[38:46])
                     center['z'] = float(line[46:54])
                     # Break the loop (optimization)
@@ -547,7 +547,7 @@ def get_binding_site(boxFile, spacing = 0.33):
                 # If it starts with ATOM
                 elif line.startswith("HEADER"):
                     # Slice the line in right positions
-                    positions['min_x'] = float(line[31:38])
+                    positions['min_x'] = float(line[30:38])
                     positions['min_y'] = float(line[38:46])
                     positions['min_z'] = float(line[46:54])
                     positions['max_x'] = float(line[54:62])

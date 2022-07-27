@@ -345,7 +345,7 @@ def box_to_vina(boxFile, confFile, receptor):
                 # If it starts with REMARK
                 if line.startswith("REMARK"):
                     # Slice the line in right positions
-                    lines.append((float(line[31:38]), float(line[38:46]), float(line[46:54])))
+                    lines.append((float(line[30:38]), float(line[38:46]), float(line[46:54])))
 
                     # If the length of the lines element is 2 or greater
                     if len(lines) >= 2:
