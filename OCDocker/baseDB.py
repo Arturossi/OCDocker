@@ -669,6 +669,10 @@ def __core_run_dock(dir, archive, dockingAlgorithm, overwrite):
             if dockingAlgorithm == "vina":
                 # Flag to denote if its needed to run this protein through vina
                 needToRun = False
+                # Check if sminaFiles does not exist
+                if not os.path.isdir(f"{dir}/vinaFiles/*"):
+                    octools.print_error_log(f"The directory '{dir}/vinaFiles/' does not exist! Please ensure its existance before running this function. NOTE: You may need to run the verify_integrity routine to help to ensure that all files are ok.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_ERROR.log")
+                    return errors.dir_does_not_exists(f"The directory '{dir}/vinaFiles/' does not exist! Please ensure its existance before running this function. NOTE: You may need to run the verify_integrity routine to help to ensure that all files are ok.", level = "error")
                 # Get the folder for each run
                 runPaths = glob(f"{dir}/vinaFiles/*")
                 # Check if all files have been processed
@@ -746,8 +750,10 @@ def __core_run_dock(dir, archive, dockingAlgorithm, overwrite):
                 # Parameterizing paths
                 sminaLog = f"{runPath}/smina.log"
                 sminaOutput = f"{runPath}/smina.pdbqt"
-                # Create the smina dir
-                _ = octools.safe_create_dir(runPath)
+                # Check if sminaFiles does not exist
+                if not os.path.isdir(runPath):
+                    octools.print_error_log(f"The directory '{runPath}' does not exist! Please ensure its existance before running this function. NOTE: You may need to run the verify_integrity routine to help to ensure that all files are ok.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_ERROR.log")
+                    return errors.dir_does_not_exists(f"The directory '{runPath}' does not exist! Please ensure its existance before running this function. NOTE: You may need to run the verify_integrity routine to help to ensure that all files are ok.", level = "error")
                 # If is needed to run (overwrite is set or no output is produced)
                 if overwrite or not os.path.isfile(sminaLog) or not os.path.isfile(sminaOutput):
                     # Read the receptor and the ligand
@@ -800,6 +806,10 @@ def __core_run_dock(dir, archive, dockingAlgorithm, overwrite):
             elif dockingAlgorithm == "plants":
                 # Flag to denote if its needed to run this protein through plants
                 needToRun = False
+                # Check if plantsFiles does not exist
+                if not os.path.isdir(f"{dir}/plantsFiles/"):
+                    octools.print_error_log(f"The directory '{dir}/plantsFiles/' does not exist! Please ensure its existance before running this function. NOTE: You may need to run the verify_integrity routine to help to ensure that all files are ok.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_ERROR.log")
+                    return errors.dir_does_not_exists(f"The directory '{dir}/plantsFiles/' does not exist! Please ensure its existance before running this function. NOTE: You may need to run the verify_integrity routine to help to ensure that all files are ok.", level = "error")
                 # Get the folder for each run
                 runPaths = glob(f"{dir}/plantsFiles/*")
                 # Check if all files have been processed
