@@ -147,6 +147,9 @@ cython_debug/
 # Project ignores #
 ###################
 
+# Don't want the .code-workspace files
+*.code-workspace
+
 # Avoid database upload (due to its size/avaliability)
 data/
 
