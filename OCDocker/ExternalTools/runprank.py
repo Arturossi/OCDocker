@@ -7,7 +7,7 @@ runprank.py is a script to run the software p2rank and then convert its output
 to box coordinates to be used as input to docking software like Vina
 
 Created by: Artur Duque Rossi
-Version: 0.9
+Version: 0.10
 '''
 
 import os
@@ -142,7 +142,41 @@ def __getPercentOverlap(min_pre, max_pre, min_more, max_more):
         return area1 if area1 > area2 else area2
     return 0.0 # No overlap
 
-def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = "cartesian", spacing = 4.0, boxMaxCutoff = 0.5, boxMinCutoff = 0.1, percentCutoff = 0.5, volumeCutoff = 1000, verbose = False, overwrite = False):
+def __find_best_xyz(x, y, z, volumeCutoff=4000, step=0.01, half=True):
+    '''
+    Finds the best value of size in Angstroms for x, y and z incrementing equally in all directions.
+    !!!! ONLY TESTED IN CARTESIAN !!!!
+    Input:
+     x            [float]               - Size of x axis
+     y            [float]               - Size of y axis
+     z            [float]               - Size of z axis
+     volumeCutoff [float] DEFAULT: 4000 - The minimum volume
+     step         [float] DEFAULT: 0.01 - Step to search the optimal value. Bigger values will require more processing
+     half         [bool]  DEFAULT: True - If true halves the result, otherwise don't
+    Return:
+        [float] The value to offset the mins/maxes
+    '''
+    # Count how many loops have been performed
+    loops = 0
+    # While the volume formed from x*y*z is lesser than the cutoff
+    while x * y * z < volumeCutoff:
+        # Increase a step in all directions
+        x += step
+        y += step
+        z += step
+        # Add a loop
+        loops += 1
+    # If the result is required in a half
+    if half:
+        # Find its half
+        offset = round((loops * step) / 2, 3)
+    else:
+        # Do not half it
+        offset = round(loops * step, 3)
+
+    return offset
+
+def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = "cartesian", spacing = 4.0, boxMaxCutoff = 0.5, boxMinCutoff = 0.1, percentCutoff = 0.5, volumeCutoff = 4000, verbose = False, overwrite = False):
     '''
     Function to process the cluster object and print a box file
     Input:
@@ -155,7 +189,7 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
      boxMaxCutoff  [float]  DEFAULT: 0.5         - If the probability value from p2rank is above this value, the pocket WILL be considered as valid, even if its value is below the cutoff (use 1.0 to disable this feature)
      boxMinCutoff  [float]  DEFAULT: 0.1         - If the probability value from p2rank is below this value, the pocket WILL be considered as valid, even if its value is above the cutoff (use 0.0 to disable this feature)
      percentCutoff [float]  DEFAULT: 0.5         - Cutoff to consider how much percentage of box overlapping will determine if two boxes should be merged
-     volumeCutoff  [float]  DEFAULT: 1000        - Minimum volume of a box in Angstoms. If a box has been found and is lesser than this value, its coordinates are adjusted to ensure at least a minimum of this value of volume. Use a value lesser or equal to 0 to disable this
+     volumeCutoff  [float]  DEFAULT: 4000        - Minimum volume of a box in Angstoms. If a box has been found and is lesser than this value, its coordinates are adjusted to ensure at least a minimum of this value of volume. Use a value lesser or equal to 0 to disable this
      verbose       [bool]    DEFAULT: False      - Verbose mode on/off
     Return:
         Nothing
@@ -307,16 +341,6 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
         dim_x = abs(round(box["max_x"] - box["min_x"], 3))
         dim_y = abs(round(box["max_y"] - box["min_y"], 3))
         dim_z = abs(round(box["max_z"] - box["min_z"], 3))
-        # Get the volume
-        vol = dim_x * dim_y * dim_z
-        # Check if the volume is greater than the volume cutoff
-        if volumeCutoff > 0 and vol < volumeCutoff:
-            # The proportion to enlarge each axis
-            prop = np.cbrt(volumeCutoff / vol)
-            # Multiply each axis
-            dim_x = prop * dim_x
-            dim_y = prop * dim_y
-            dim_z = prop * dim_z
 
         # Get the size of the center (starting from the origin) (not using dim because I want to round only once)
         center_x = abs((box["max_x"] - box["min_x"])/2)
@@ -327,13 +351,43 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
         center_y = round(center_y + box["min_y"], 3)
         center_z = round(center_z + box["min_z"], 3)
 
-        # Convert the values found above to string with 8 chars (complete with spaces to the left) as the .pdb file model
-        min_x = " " * (8 - len(str(box["min_x"]))) + str(box["min_x"])
-        max_x = " " * (8 - len(str(box["max_x"]))) + str(box["max_x"])
-        min_y = " " * (8 - len(str(box["min_y"]))) + str(box["min_y"])
-        max_y = " " * (8 - len(str(box["max_y"]))) + str(box["max_y"])
-        min_z = " " * (8 - len(str(box["min_z"]))) + str(box["min_z"])
-        max_z = " " * (8 - len(str(box["max_z"]))) + str(box["max_z"])
+        # Get the volume
+        vol = dim_x * dim_y * dim_z
+        # Check if the volume is greater than the volume cutoff
+        if volumeCutoff > 0 and vol < volumeCutoff:
+            # The proportion to enlarge each axis
+            prop = __find_best_xyz(dim_x, dim_y, dim_z, volumeCutoff=volumeCutoff, half=True)
+
+            print(f"The offset is {prop}")
+
+            # Add the pror twice (since is halved)
+            dim_x += round((2 * prop), 3)
+            dim_y += round((2 * prop), 3)
+            dim_z += round((2 * prop), 3)
+
+            # Find the new corner values for min max for each axis
+            min_x = round(box["min_x"] - prop, 3)
+            max_x = round(box["max_x"] + prop, 3)
+            min_y = round(box["min_y"] - prop, 3)
+            max_y = round(box["max_y"] + prop, 3)
+            min_z = round(box["min_z"] - prop, 3)
+            max_z = round(box["max_z"] + prop, 3)
+
+            # Convert the values found above to string with 8 chars (complete with spaces to the left) as the .pdb file model
+            min_x = " " * (8 - len(str(min_x))) + str(min_x)
+            max_x = " " * (8 - len(str(max_x))) + str(max_x)
+            min_y = " " * (8 - len(str(min_y))) + str(min_y)
+            max_y = " " * (8 - len(str(max_y))) + str(max_y)
+            min_z = " " * (8 - len(str(min_z))) + str(min_z)
+            max_z = " " * (8 - len(str(max_z))) + str(max_z)
+        else:
+            # Convert the values found above to string with 8 chars (complete with spaces to the left) as the .pdb file model
+            min_x = " " * (8 - len(str(box["min_x"]))) + str(box["min_x"])
+            max_x = " " * (8 - len(str(box["max_x"]))) + str(box["max_x"])
+            min_y = " " * (8 - len(str(box["min_y"]))) + str(box["min_y"])
+            max_y = " " * (8 - len(str(box["max_y"]))) + str(box["max_y"])
+            min_z = " " * (8 - len(str(box["min_z"]))) + str(box["min_z"])
+            max_z = " " * (8 - len(str(box["max_z"]))) + str(box["max_z"])
 
         dim_x = " " * (8 - len(str(dim_x))) + str(dim_x)
         dim_y = " " * (8 - len(str(dim_y))) + str(dim_y)
@@ -393,7 +447,7 @@ def __gen_connectivity_matrix(coordinates):
         coordMatrix.append(innerMatrix)
     return np.array(coordMatrix)
 
-def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "AgglomerativeClustering": True, "Birch": False, "DBSCAN": False, "KMeans": False, "MeanShift": False, "MiniBatchKMeans": False, "NoCluster": False, "OPTICS": False, "SpectralClustering": False}, prank = "", threads = 1, coordSystem = "cartesian", spacing = 4.0, boxMaxCutoff = 0.5, boxMinCutoff = 0.1, percentCutoff = 0.5, pocketCutoff = 0.1, volumeCutoff = 1000, verbose = False, debug = False, overwrite = False):
+def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "AgglomerativeClustering": True, "Birch": False, "DBSCAN": False, "KMeans": False, "MeanShift": False, "MiniBatchKMeans": False, "NoCluster": False, "OPTICS": False, "SpectralClustering": False}, prank = "", threads = 1, coordSystem = "cartesian", spacing = 4.0, boxMaxCutoff = 0.5, boxMinCutoff = 0.1, percentCutoff = 0.5, pocketCutoff = 0.1, volumeCutoff = 4000, verbose = False, debug = False, overwrite = False):
     '''
     Run p2rank and process its results, converting to a box space to be used in Vina
     Input:
@@ -420,7 +474,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
      boxMinCutoff [float]   DEFAULT: 0.5         - Value to be used as the minimum value as probability cutoff to consider a box as valid (use 0.0 to disable this feature)
      percentCutoff [float]  DEFAULT: 0.5         - Cutoff to consider how much percentage of box overlapping will determine if two boxes should be merged
      pocketCutoff [float]   DEFAULT: 0.5         - Value to consider the score cutoff to accept, or not, a pocket as a statistically valid pocket (use 0.0 to disable this feature)
-     volumeCutoff  [float]  DEFAULT: 1000        - Minimum volume of a box in Angstoms. If a box has been found and is lesser than this value, its coordinates are adjusted to ensure at least a minimum of this value of volume. Use a value lesser or equal to 0 to disable this
+     volumeCutoff  [float]  DEFAULT: 4000        - Minimum volume of a box in Angstoms. If a box has been found and is lesser than this value, its coordinates are adjusted to ensure at least a minimum of this value of volume. Use a value lesser or equal to 0 to disable this
      verbose      [bool]    DEFAULT: False       - Verbose mode on/off
      debug        [bool]    DEFAULT: False       - Debug on/off
      overwrite    [bool]    DEFAULT: False       - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated
@@ -865,7 +919,7 @@ if __name__ == "__main__":
     debug = True
     verbose = True
     overwrite = False
-    volumeCutoff = 1000
+    volumeCutoff = 4000
 
     # Algorith list
     algorithms = {
