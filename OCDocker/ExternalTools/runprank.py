@@ -142,7 +142,7 @@ def __getPercentOverlap(min_pre, max_pre, min_more, max_more):
         return area1 if area1 > area2 else area2
     return 0.0 # No overlap
 
-def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = "cartesian", spacing = 4.0, boxMaxCutoff = 0.5, boxMinCutoff = 0.1, percentCutoff = 0.5, volumeCutoff = 1000 verbose = False, overwrite = False):
+def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = "cartesian", spacing = 4.0, boxMaxCutoff = 0.5, boxMinCutoff = 0.1, percentCutoff = 0.5, volumeCutoff = 1000, verbose = False, overwrite = False):
     '''
     Function to process the cluster object and print a box file
     Input:
