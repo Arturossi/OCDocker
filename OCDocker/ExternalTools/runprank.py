@@ -7,7 +7,7 @@ runprank.py is a script to run the software p2rank and then convert its output
 to box coordinates to be used as input to docking software like Vina
 
 Created by: Artur Duque Rossi
-Version: 0.4
+Version: 0.9
 '''
 
 import os
@@ -142,7 +142,7 @@ def __getPercentOverlap(min_pre, max_pre, min_more, max_more):
         return area1 if area1 > area2 else area2
     return 0.0 # No overlap
 
-def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = "cartesian", spacing = 4.0, boxMaxCutoff = 0.5, boxMinCutoff = 0.1, percentCutoff = 0.5, verbose = False, overwrite = False):
+def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = "cartesian", spacing = 4.0, boxMaxCutoff = 0.5, boxMinCutoff = 0.1, percentCutoff = 0.5, volumeCutoff = 1000 verbose = False, overwrite = False):
     '''
     Function to process the cluster object and print a box file
     Input:
@@ -155,7 +155,8 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
      boxMaxCutoff  [float]  DEFAULT: 0.5         - If the probability value from p2rank is above this value, the pocket WILL be considered as valid, even if its value is below the cutoff (use 1.0 to disable this feature)
      boxMinCutoff  [float]  DEFAULT: 0.1         - If the probability value from p2rank is below this value, the pocket WILL be considered as valid, even if its value is above the cutoff (use 0.0 to disable this feature)
      percentCutoff [float]  DEFAULT: 0.5         - Cutoff to consider how much percentage of box overlapping will determine if two boxes should be merged
-     verbose       [bool]    DEFAULT: False       - Verbose mode on/off
+     volumeCutoff  [float]  DEFAULT: 1000        - Minimum volume of a box in Angstoms. If a box has been found and is lesser than this value, its coordinates are adjusted to ensure at least a minimum of this value of volume. Use a value lesser or equal to 0 to disable this
+     verbose       [bool]    DEFAULT: False      - Verbose mode on/off
     Return:
         Nothing
     '''
@@ -306,6 +307,17 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
         dim_x = abs(round(box["max_x"] - box["min_x"], 3))
         dim_y = abs(round(box["max_y"] - box["min_y"], 3))
         dim_z = abs(round(box["max_z"] - box["min_z"], 3))
+        # Get the volume
+        vol = dim_x * dim_y * dim_z
+        # Check if the volume is greater than the volume cutoff
+        if volumeCutoff > 0 and vol < volumeCutoff:
+            # The proportion to enlarge each axis
+            prop = np.cbrt(volumeCutoff / vol)
+            # Multiply each axis
+            dim_x = prop * dim_x
+            dim_y = prop * dim_y
+            dim_z = prop * dim_z
+
         # Get the size of the center (starting from the origin) (not using dim because I want to round only once)
         center_x = abs((box["max_x"] - box["min_x"])/2)
         center_y = abs((box["max_y"] - box["min_y"])/2)
@@ -381,7 +393,7 @@ def __gen_connectivity_matrix(coordinates):
         coordMatrix.append(innerMatrix)
     return np.array(coordMatrix)
 
-def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "AgglomerativeClustering": True, "Birch": False, "DBSCAN": False, "KMeans": False, "MeanShift": False, "MiniBatchKMeans": False, "NoCluster": False, "OPTICS": False, "SpectralClustering": False}, prank = "", threads = 1, coordSystem = "cartesian", spacing = 4.0, boxMaxCutoff = 0.5, boxMinCutoff = 0.1, percentCutoff = 0.5, pocketCutoff = 0.1, verbose = False, debug = False, overwrite = False):
+def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "AgglomerativeClustering": True, "Birch": False, "DBSCAN": False, "KMeans": False, "MeanShift": False, "MiniBatchKMeans": False, "NoCluster": False, "OPTICS": False, "SpectralClustering": False}, prank = "", threads = 1, coordSystem = "cartesian", spacing = 4.0, boxMaxCutoff = 0.5, boxMinCutoff = 0.1, percentCutoff = 0.5, pocketCutoff = 0.1, volumeCutoff = 1000, verbose = False, debug = False, overwrite = False):
     '''
     Run p2rank and process its results, converting to a box space to be used in Vina
     Input:
@@ -407,7 +419,8 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
      boxMaxCutoff [float]   DEFAULT: 0.5         - Value to be used as the maximum value as probability cutoff to consider a box as valid (use 1.0 to disable this feature)
      boxMinCutoff [float]   DEFAULT: 0.5         - Value to be used as the minimum value as probability cutoff to consider a box as valid (use 0.0 to disable this feature)
      percentCutoff [float]  DEFAULT: 0.5         - Cutoff to consider how much percentage of box overlapping will determine if two boxes should be merged
-     pocketCutoff [float]   DEFAULT: 0.5         - Value to consider (use 0.0 to disable this feature)
+     pocketCutoff [float]   DEFAULT: 0.5         - Value to consider the score cutoff to accept, or not, a pocket as a statistically valid pocket (use 0.0 to disable this feature)
+     volumeCutoff  [float]  DEFAULT: 1000        - Minimum volume of a box in Angstoms. If a box has been found and is lesser than this value, its coordinates are adjusted to ensure at least a minimum of this value of volume. Use a value lesser or equal to 0 to disable this
      verbose      [bool]    DEFAULT: False       - Verbose mode on/off
      debug        [bool]    DEFAULT: False       - Debug on/off
      overwrite    [bool]    DEFAULT: False       - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated
@@ -562,7 +575,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
         if verbose:
             print(f"No processing, the execution time is 0s.")
 
-        __process_cluster(None, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = 3 * spacing, boxMaxCutoff = boxMaxCutoff, boxMinCutoff = boxMinCutoff, percentCutoff = percentCutoff)
+        __process_cluster(None, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = 3 * spacing, boxMaxCutoff = boxMaxCutoff, boxMinCutoff = boxMinCutoff, percentCutoff = percentCutoff, volumeCutoff = volumeCutoff)
 
         if debug:
             with open(f"{outpath}/statistics.txt", "a") as f:
@@ -582,7 +595,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
             if verbose:
                 print(f"No processing, the execution time is 0s.")
 
-            __process_cluster(None, coordinates, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff, boxMinCutoff = boxMinCutoff, percentCutoff = percentCutoff)
+            __process_cluster(None, coordinates, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff, boxMinCutoff = boxMinCutoff, percentCutoff = percentCutoff, volumeCutoff = volumeCutoff)
 
             if debug:
                 with open(f"{outpath}/statistics.txt", "a") as f:
@@ -609,7 +622,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
             if verbose:
                 print(f"Affinity Propagation execution time: {round(time.time() - start_time, 2)}s.")
 
-            __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
+            __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff, volumeCutoff = volumeCutoff)
 
             if debug:
                 with open(f"{outpath}/statistics.txt", "a") as f:
@@ -636,7 +649,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
             if verbose:
                 print(f" Agglomerative Clustering execution time: {round(time.time() - start_time, 2)}s.")
 
-            __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
+            __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff, volumeCutoff = volumeCutoff)
 
             if debug:
                 with open(f"{outpath}/statistics.txt", "a") as f:
@@ -663,7 +676,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
             if verbose:
                 print(f"Birch execution time: {round(time.time() - start_time, 2)}s.")
 
-            __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
+            __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff, volumeCutoff = volumeCutoff)
 
             if debug:
                 with open(f"{outpath}/statistics.txt", "a") as f:
@@ -690,7 +703,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
             if verbose:
                 print(f"DBSCAN execution time: {round(time.time() - start_time, 2)}s.")
 
-            __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
+            __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff, volumeCutoff = volumeCutoff)
 
             if debug:
                 with open(f"{outpath}/statistics.txt", "a") as f:
@@ -717,7 +730,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
             if verbose:
                 print(f"KMeans execution time: {round(time.time() - start_time, 2)}s.")
 
-            __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
+            __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff, volumeCutoff = volumeCutoff)
 
             if debug:
                 with open(f"{outpath}/statistics.txt", "a") as f:
@@ -745,7 +758,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
             if verbose:
                 print(f"Mean Shift execution time: {round(time.time() - start_time, 2)}s.")
 
-            __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
+            __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff, volumeCutoff = volumeCutoff)
 
             if debug:
                 with open(f"{outpath}/statistics.txt", "a") as f:
@@ -772,7 +785,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
             if verbose:
                 print(f"Mini Batch KMeans execution time: {round(time.time() - start_time, 2)}s.")
 
-            __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
+            __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff, volumeCutoff = volumeCutoff)
 
             if debug:
                 with open(f"{outpath}/statistics.txt", "a") as f:
@@ -799,7 +812,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
             if verbose:
                 print(f"OPTICS execution time: {round(time.time() - start_time, 2)}s.")
 
-            __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
+            __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff, volumeCutoff = volumeCutoff)
 
             if debug:
                 with open(f"{outpath}/statistics.txt", "a") as f:
@@ -826,7 +839,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
             if verbose:
                 print(f"Spectral Clustering execution time: {round(time.time() - start_time, 2)}s.")
 
-            __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff)
+            __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff, volumeCutoff = volumeCutoff)
 
             if debug:
                 with open(f"{outpath}/statistics.txt", "a") as f:
@@ -852,6 +865,7 @@ if __name__ == "__main__":
     debug = True
     verbose = True
     overwrite = False
+    volumeCutoff = 1000
 
     # Algorith list
     algorithms = {
@@ -867,4 +881,4 @@ if __name__ == "__main__":
         "SpectralClustering": True
     }
 
-    run_prank(fin, fout, algorithms = algorithms, prank = prank, threads = threads, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff, boxMinCutoff = boxMinCutoff, percentCutoff = percentCutoff, pocketCutoff = pocketCutoff, verbose = verbose, debug = debug, overwrite = overwrite)
+    run_prank(fin, fout, algorithms = algorithms, prank = prank, threads = threads, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff, boxMinCutoff = boxMinCutoff, percentCutoff = percentCutoff, pocketCutoff = pocketCutoff, volumeCutoff = volumeCutoff, verbose = verbose, debug = debug, overwrite = overwrite)

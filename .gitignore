@@ -191,3 +191,6 @@ tmp/
 
 # Ignore nohup.out
 *nohup.out
+
+# Ignore the rundock script because it is meant to stay only locally (temporary entry)
+rundock.py
