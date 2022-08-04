@@ -142,7 +142,7 @@ def __getPercentOverlap(min_pre, max_pre, min_more, max_more):
         return area1 if area1 > area2 else area2
     return 0.0 # No overlap
 
-def __find_best_xyz(x, y, z, volumeCutoff=4000, step=0.01, half=True):
+def __find_best_xyz(x, y, z, volumeCutoff=7000, step=0.01, half=True):
     '''
     Finds the best value of size in Angstroms for x, y and z incrementing equally in all directions.
     !!!! ONLY TESTED IN CARTESIAN !!!!
@@ -150,7 +150,7 @@ def __find_best_xyz(x, y, z, volumeCutoff=4000, step=0.01, half=True):
      x            [float]               - Size of x axis
      y            [float]               - Size of y axis
      z            [float]               - Size of z axis
-     volumeCutoff [float] DEFAULT: 4000 - The minimum volume
+     volumeCutoff [float] DEFAULT: 7000 - The minimum volume
      step         [float] DEFAULT: 0.01 - Step to search the optimal value. Bigger values will require more processing
      half         [bool]  DEFAULT: True - If true halves the result, otherwise don't
     Return:
@@ -176,7 +176,7 @@ def __find_best_xyz(x, y, z, volumeCutoff=4000, step=0.01, half=True):
 
     return offset
 
-def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = "cartesian", spacing = 4.0, boxMaxCutoff = 0.5, boxMinCutoff = 0.1, percentCutoff = 0.5, volumeCutoff = 4000, verbose = False, overwrite = False):
+def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = "cartesian", spacing = 4.0, boxMaxCutoff = 0.5, boxMinCutoff = 0.1, percentCutoff = 0.5, volumeCutoff = 7000, verbose = False, overwrite = False):
     '''
     Function to process the cluster object and print a box file
     Input:
@@ -189,7 +189,7 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
      boxMaxCutoff  [float]  DEFAULT: 0.5         - If the probability value from p2rank is above this value, the pocket WILL be considered as valid, even if its value is below the cutoff (use 1.0 to disable this feature)
      boxMinCutoff  [float]  DEFAULT: 0.1         - If the probability value from p2rank is below this value, the pocket WILL be considered as valid, even if its value is above the cutoff (use 0.0 to disable this feature)
      percentCutoff [float]  DEFAULT: 0.5         - Cutoff to consider how much percentage of box overlapping will determine if two boxes should be merged
-     volumeCutoff  [float]  DEFAULT: 4000        - Minimum volume of a box in Angstoms. If a box has been found and is lesser than this value, its coordinates are adjusted to ensure at least a minimum of this value of volume. Use a value lesser or equal to 0 to disable this
+     volumeCutoff  [float]  DEFAULT: 7000        - Minimum volume of a box in Angstoms. If a box has been found and is lesser than this value, its coordinates are adjusted to ensure at least a minimum of this value of volume. Use a value lesser or equal to 0 to disable this
      verbose       [bool]    DEFAULT: False      - Verbose mode on/off
     Return:
         Nothing
@@ -355,10 +355,11 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
         vol = dim_x * dim_y * dim_z
         # Check if the volume is greater than the volume cutoff
         if volumeCutoff > 0 and vol < volumeCutoff:
+            # Print information if verbose
+            if verbose:
+                print(f"The box does not have at least {volumeCutoff}Å of volume (it has {vol}Å). It will be expanded to avoid some problems while docking.")
             # The proportion to enlarge each axis
             prop = __find_best_xyz(dim_x, dim_y, dim_z, volumeCutoff=volumeCutoff, half=True)
-
-            print(f"The offset is {prop}")
 
             # Add the pror twice (since is halved)
             dim_x += round((2 * prop), 3)
@@ -382,20 +383,20 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
             max_z = " " * (8 - len(str(max_z))) + str(max_z)
         else:
             # Convert the values found above to string with 8 chars (complete with spaces to the left) as the .pdb file model
-            min_x = " " * (8 - len(str(box["min_x"]))) + str(box["min_x"])
-            max_x = " " * (8 - len(str(box["max_x"]))) + str(box["max_x"])
-            min_y = " " * (8 - len(str(box["min_y"]))) + str(box["min_y"])
-            max_y = " " * (8 - len(str(box["max_y"]))) + str(box["max_y"])
-            min_z = " " * (8 - len(str(box["min_z"]))) + str(box["min_z"])
-            max_z = " " * (8 - len(str(box["max_z"]))) + str(box["max_z"])
+            min_x = " " * (8 - len(str(round(box["min_x"], 3)))) + str(round(box["min_x"], 3))
+            max_x = " " * (8 - len(str(round(box["max_x"], 3)))) + str(round(box["max_x"], 3))
+            min_y = " " * (8 - len(str(round(box["min_y"], 3)))) + str(round(box["min_y"], 3))
+            max_y = " " * (8 - len(str(round(box["max_y"], 3)))) + str(round(box["max_y"], 3))
+            min_z = " " * (8 - len(str(round(box["min_z"], 3)))) + str(round(box["min_z"], 3))
+            max_z = " " * (8 - len(str(round(box["max_z"], 3)))) + str(round(box["max_z"], 3))
 
-        dim_x = " " * (8 - len(str(dim_x))) + str(dim_x)
-        dim_y = " " * (8 - len(str(dim_y))) + str(dim_y)
-        dim_z = " " * (8 - len(str(dim_z))) + str(dim_z)
+        dim_x = " " * (8 - len(str(round(dim_x, 3)))) + str(round(dim_x, 3))
+        dim_y = " " * (8 - len(str(round(dim_y, 3)))) + str(round(dim_y, 3))
+        dim_z = " " * (8 - len(str(round(dim_z, 3)))) + str(round(dim_z, 3))
 
-        center_x = " " * (8 - len(str(center_x))) + str(center_x)
-        center_y = " " * (8 - len(str(center_y))) + str(center_y)
-        center_z = " " * (8 - len(str(center_z))) + str(center_z)
+        center_x = " " * (8 - len(str(round(center_x, 3)))) + str(round(center_x, 3))
+        center_y = " " * (8 - len(str(round(center_y, 3)))) + str(round(center_y, 3))
+        center_z = " " * (8 - len(str(round(center_z, 3)))) + str(round(center_z, 3))
 
         # Write out the box file (following the one given in the DUD-E database)
         with open(f"{fout}{folder}/box{index}{suffix}.pdb", "w") as f:
@@ -447,7 +448,7 @@ def __gen_connectivity_matrix(coordinates):
         coordMatrix.append(innerMatrix)
     return np.array(coordMatrix)
 
-def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "AgglomerativeClustering": True, "Birch": False, "DBSCAN": False, "KMeans": False, "MeanShift": False, "MiniBatchKMeans": False, "NoCluster": False, "OPTICS": False, "SpectralClustering": False}, prank = "", threads = 1, coordSystem = "cartesian", spacing = 4.0, boxMaxCutoff = 0.5, boxMinCutoff = 0.1, percentCutoff = 0.5, pocketCutoff = 0.1, volumeCutoff = 4000, verbose = False, debug = False, overwrite = False):
+def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "AgglomerativeClustering": True, "Birch": False, "DBSCAN": False, "KMeans": False, "MeanShift": False, "MiniBatchKMeans": False, "NoCluster": False, "OPTICS": False, "SpectralClustering": False}, prank = "", threads = 1, coordSystem = "cartesian", spacing = 4.0, boxMaxCutoff = 0.5, boxMinCutoff = 0.1, percentCutoff = 0.5, pocketCutoff = 0.1, volumeCutoff = 7000, verbose = False, debug = False, overwrite = False):
     '''
     Run p2rank and process its results, converting to a box space to be used in Vina
     Input:
@@ -474,7 +475,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
      boxMinCutoff [float]   DEFAULT: 0.5         - Value to be used as the minimum value as probability cutoff to consider a box as valid (use 0.0 to disable this feature)
      percentCutoff [float]  DEFAULT: 0.5         - Cutoff to consider how much percentage of box overlapping will determine if two boxes should be merged
      pocketCutoff [float]   DEFAULT: 0.5         - Value to consider the score cutoff to accept, or not, a pocket as a statistically valid pocket (use 0.0 to disable this feature)
-     volumeCutoff  [float]  DEFAULT: 4000        - Minimum volume of a box in Angstoms. If a box has been found and is lesser than this value, its coordinates are adjusted to ensure at least a minimum of this value of volume. Use a value lesser or equal to 0 to disable this
+     volumeCutoff  [float]  DEFAULT: 7000        - Minimum volume of a box in Angstoms. If a box has been found and is lesser than this value, its coordinates are adjusted to ensure at least a minimum of this value of volume. Use a value lesser or equal to 0 to disable this
      verbose      [bool]    DEFAULT: False       - Verbose mode on/off
      debug        [bool]    DEFAULT: False       - Debug on/off
      overwrite    [bool]    DEFAULT: False       - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated
@@ -919,7 +920,7 @@ if __name__ == "__main__":
     debug = True
     verbose = True
     overwrite = False
-    volumeCutoff = 4000
+    volumeCutoff = 7000
 
     # Algorith list
     algorithms = {
