@@ -671,12 +671,12 @@ def __core_run_dock(dir, archive, dockingAlgorithm, overwrite):
             if dockingAlgorithm == "vina":
                 # Flag to denote if its needed to run this protein through vina
                 needToRun = False
-                 # Get the folder for each run
-                runPaths = glob(f"{dir}/vinaFiles/*")
-                # Check if there is any run path in runPaths
-                if len(runPaths) > 0:
+                # Check if the vinaFiles directory exists
+                if not os.path.isdir(f"{dir}/vinaFiles"):
                     octools.print_error_log(f"The directory '{dir}/vinaFiles/' does not exist! Please ensure its existance before running this function. NOTE: You may need to run the verify_integrity routine to help to ensure that all files are ok.", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_ERROR.log")
                     return errors.dir_does_not_exists(f"The directory '{dir}/vinaFiles/' does not exist! Please ensure its existance before running this function. NOTE: You may need to run the verify_integrity routine to help to ensure that all files are ok.", level = "error")
+                # Get the folder for each run
+                runPaths = glob(f"{dir}/vinaFiles/*")
                 # Check if all files have been processed
                 for runPath in runPaths:
                     # Get the run number
