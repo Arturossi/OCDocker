@@ -659,8 +659,6 @@ def __core_run_dock(dir, archive, dockingAlgorithm, overwrite):
     elif archive == "pdbbind":
         # Find protein name
         ptn = dir.split(os.path.sep)[-1]
-        if ptn != "1h2t":
-            return
         # Set the input file name path (to generate the box and data about the protein)
         receptorPath = f"{dir}/{ptn}_protein.pdb"
         # Set the ligand file name path (to generate data about the ligand)
