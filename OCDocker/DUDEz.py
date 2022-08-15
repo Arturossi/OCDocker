@@ -390,6 +390,6 @@ def prepare(overwrite = False):
       -
     '''
     # Prepare the databse
-    ocbdb.prepare(dudez_archive, overwrite = overwrite)
+    ocbdb.prepare("dudez", overwrite = overwrite)
     # Verify its integrity
-    verify_integrity()
+    #verify_integrity()
