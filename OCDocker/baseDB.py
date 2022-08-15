@@ -278,6 +278,9 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         _ = octools.safe_create_dir(extremaDirDecoy)
         _ = octools.safe_create_dir(goldilocksDirDecoy)
 
+        # Create an empty list to hold all dirs to be processed
+        processDirs = []
+
         # Get all mol2 files in dudezDir
         mol2Files = glob(f"{dudezDir}/*1pt0LD*.mol2")
         # Separate ligands and decoys
@@ -300,19 +303,63 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         for mol2File in mol2Files:
             _ = octools.split_and_convert(mol2File, goldilocksDirDecoy, "mol2", overwrite)
 
+        # Reads each dir and then prepares
+
         # Defining the moltype
         moltype = "ligand"
 
-        # TODO: refazer essa parte aqui para adequar ao novo modelo de preparação
         # For each molecule in dudez ligand dir
-        mols = glob(f"{dudezDirLigand}/*1pt0LD*.mol2")
-        #__prepare_parallel(mols, overwrite, moltype, f"{ptn} DUDEz ligand")
+        mols = glob(f"{dudezDirLigand}/*.mol2")
+        # Extract the ligand name from the path
+        for mol in mols:
+            # Extract the ligand name from the path
+            ligandName = os.path.basename(mol).split(".")[0]
+            # Safe create its dir
+            _ = octools.safe_create_dir(f"{dudezDirLigand}/{ligandName}")
+            # Move the ligand to its dir
+            shutil.move(mol, f"{dudezDirLigand}/{ligandName}/{ligandName}.mol2")
+            # Append the dir to the list of dirs to be processed
+            processDirs.append(f"{dudezDirLigand}/{ligandName}")
+        
         # For each molecule in dudez decoy dir
-        #__prepare_parallel(glob(f"{dudezDirDecoy}/*.mol2"), overwrite, moltype, f"{ptn} DUDEz decoy")
-        # For each molecule in extrema decoy dir
-        #__prepare_parallel(glob(f"{extremaDirDecoy}/*.mol2"), overwrite, moltype, f"{ptn} extrema decoy")
-        # For each molecule in goldilocks decoy dir
-        #__prepare_parallel(glob(f"{goldilocksDirDecoy}/*.mol2"), overwrite, moltype, f"{ptn} goldilocks decoy")
+        mols = glob(f"{dudezDirDecoy}/*.mol2")
+        # Extract the ligand name from the path
+        for mol in mols:
+            # Extract the ligand name from the path
+            ligandName = os.path.basename(mol).split(".")[0]
+            # Safe create its dir
+            _ = octools.safe_create_dir(f"{dudezDirDecoy}/{ligandName}")
+            # Move the ligand to its dir
+            shutil.move(mol, f"{dudezDirDecoy}/{ligandName}/{ligandName}.mol2")
+            # Append the dir to the list of dirs to be processed
+            processDirs.append(f"{dudezDirDecoy}/{ligandName}")
+        
+        # For each molecule in dudez decoy dir
+        mols = glob(f"{extremaDirDecoy}/*.mol2")
+        # Extract the ligand name from the path
+        for mol in mols:
+            # Extract the ligand name from the path
+            ligandName = os.path.basename(mol).split(".")[0]
+            # Safe create its dir
+            _ = octools.safe_create_dir(f"{extremaDirDecoy}/{ligandName}")
+            # Move the ligand to its dir
+            shutil.move(mol, f"{extremaDirDecoy}/{ligandName}/{ligandName}.mol2")
+            # Append the dir to the list of dirs to be processed
+            processDirs.append(f"{extremaDirDecoy}/{ligandName}")
+        
+        # For each molecule in dudez decoy dir
+        mols = glob(f"{goldilocksDirDecoy}/*.mol2")
+        # Extract the ligand name from the path
+        for mol in mols:
+            # Extract the ligand name from the path
+            ligandName = os.path.basename(mol).split(".")[0]
+            # Safe create its dir
+            _ = octools.safe_create_dir(f"{goldilocksDirDecoy}/{ligandName}")
+            # Move the ligand to its dir
+            shutil.move(mol, f"{goldilocksDirDecoy}/{ligandName}/{ligandName}.mol2")
+            # Append the dir to the list of dirs to be processed
+            processDirs.append(f"{goldilocksDirDecoy}/{ligandName}")
+
     elif archive == "pdbbind":
         # If is the index path
         if os.path.basename(dir) in ['index', 'db']:
@@ -344,6 +391,12 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         __run_p2rank(dir, fin, overwrite=overwrite)
     else:
         octools.print_info(f"The protein '{dir}' already has its p2rank output generated, skipping its execution.")
+
+    # Check if processDirs is set and is not empty
+    if processDirs and len(processDirs) > 0:
+        # Set dirs as processDirs
+        dirs = processDirs
+
     # If overwrite mode is on or there is not the same amount of box files as folders in vinaFiles folder
     if boxCount == 0 or len(glob(f"{dir}/vinaFiles/*")) == boxCount or overwrite:
         # Create the vina inputs from the boxes
@@ -352,8 +405,16 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         octools.print_info(f"The protein '{dir}' already has its vina file generated, skipping its execution.")
     # If overwrite mode is on or there is not the same amount of box files as folders in vinaFiles folder
     if boxCount == 0 or len(glob(f"{dir}/plantsFiles/*")) == boxCount or overwrite:
-        # Create the PLANTS inputs from the boxes
-        ocplants.generate_plants_files_database(dir, fin, fligand, spacing)
+        # Check if fligand is a list type
+        if isinstance(fligand, list):
+            # Since it is a list, we need to generate the plants files for each ligand
+            for l in fligand:
+                # Create the plants files for each ligand
+                ocvina.generate_plants_files_database(dir, fin, l, spacing)
+        # If it is not a list, it should be a string so treat it as a single ligand
+        else:
+            # Create the PLANTS inputs from the boxes
+            ocplants.generate_plants_files_database(dir, fin, fligand, spacing)
     else:
         octools.print_info(f"The protein '{dir}' already has its PLANTS file generated, skipping its execution.")
 
