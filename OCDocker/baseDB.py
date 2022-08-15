@@ -279,7 +279,7 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         _ = octools.safe_create_dir(goldilocksDirDecoy)
 
         # Get all mol2 files in dudezDir
-        mol2Files = glob(f"{dudezDir}/*.mol2")
+        mol2Files = glob(f"{dudezDir}/*1pt0LD*.mol2")
         # Separate ligands and decoys
         for mol2File in mol2Files:
             # If there is the string ligand_poses in the link (means that is ligand)
@@ -289,13 +289,13 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
                 _ = octools.split_and_convert(mol2File, dudezDirDecoy, "mol2", overwrite)
 
         # Get all mol2 files in extremaDir
-        mol2Files = glob(f"{extremaDir}/*.mol2")
+        mol2Files = glob(f"{extremaDir}/*1pt0LD*.mol2")
         # Separate ligands and decoys
         for mol2File in mol2Files:
             _ = octools.split_and_convert(mol2File, extremaDirDecoy, "mol2", overwrite)
 
         # Get all mol2 files in goldilocksDir
-        mol2Files = glob(f"{goldilocksDir}/*.mol2")
+        mol2Files = glob(f"{goldilocksDir}/*1pt0LD*.mol2")
         # Separate ligands and decoys
         for mol2File in mol2Files:
             _ = octools.split_and_convert(mol2File, goldilocksDirDecoy, "mol2", overwrite)
@@ -305,7 +305,7 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
 
         # TODO: refazer essa parte aqui para adequar ao novo modelo de preparação
         # For each molecule in dudez ligand dir
-        mols = glob(f"{dudezDirLigand}/*.mol2")
+        mols = glob(f"{dudezDirLigand}/*1pt0LD*.mol2")
         #__prepare_parallel(mols, overwrite, moltype, f"{ptn} DUDEz ligand")
         # For each molecule in dudez decoy dir
         #__prepare_parallel(glob(f"{dudezDirDecoy}/*.mol2"), overwrite, moltype, f"{ptn} DUDEz decoy")
