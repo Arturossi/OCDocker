@@ -86,8 +86,9 @@ def __inner_validate_database_molecules(database, subset):
     if not os.path.isdir(database):
         _ = errors.dir_does_not_exists(f"The directory '{database}' does not exist. {clrs['p']}PLEASE{clrs['n']}, review this!")
     else:
-        # Get all the molecules
-        mols = glob(f"{database}/*.mol2")
+        # Get all the molecules with 1pt0LD pattern (optimized)
+        # TODO: "This is a temporary solution. It should be changed to read the smiles format instead."
+        mols = glob(f"{database}/*1pt0LD*.mol2")
         # Arguments to pass to each Thread in the Thread Pool
         arguments = []
         # For each file in the glob
