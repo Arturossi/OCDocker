@@ -393,3 +393,13 @@ def prepare(overwrite = False):
     ocbdb.prepare("dudez", overwrite = overwrite)
     # Verify its integrity
     #verify_integrity()
+
+def run_p2rank(overwrite = False):
+    '''
+    Runs P2Rank in the whole database.
+    Input:
+     overwrite [bool] DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated.
+    Return:
+      -
+    '''
+    return ocbdb.run_p2rank("dudez", overwrite = overwrite)
