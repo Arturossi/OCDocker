@@ -1069,7 +1069,7 @@ def __thread_run_dock_parallel(arguments):
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         # Call the core dock function passing the arguments correctly
-        __core_run_dock(arguments[0], arguments[1], arguments[2], arguments[3], ligandAlternativeDirs = arguments[4])
+        __core_run_dock(arguments[0], arguments[1], arguments[2], arguments[3], ligandAlternativeDir = arguments[4])
     return None
 
 def __run_dock_parallel(dirs, archive, dockingAlgorithm, overwrite, desc, ligandAlternativeDirs = ""):
@@ -1143,11 +1143,20 @@ def __run_dock_no_parallel(dirs, archive, dockingAlgorithm, overwrite, desc, lig
         os.rename(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_WARNING.log", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past/{archive}_{dockingAlgorithm}_run_report_WARNING_{time.strftime('%d%m%Y-%H%M%S')}.log")
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
+        # For each file in dirs
         for dir in tqdm(iterable=dirs, total=len(dirs), desc=desc):
-            # Call the core dock function (shared between parallel and not parallel)
-            __core_run_dock(dir, archive, dockingAlgorithm, overwrite, ligandAlternativeDir = ligandAlternativeDir)
+            if isinstance(ligandAlternativeDirs, list):
+                # Now loop over the ligands of this protein
+                for ligandAlternativeDir in ligandAlternativeDirs:
+                    # Call the core dock function (shared between parallel and not parallel)
+                    __core_run_dock(dir, archive, dockingAlgorithm, overwrite, ligandAlternativeDir = ligandAlternativeDir)
+            else:
+                # Call the core dock function (shared between parallel and not parallel)
+                __core_run_dock(dir, archive, dockingAlgorithm, overwrite, ligandAlternativeDir = ligandAlternativeDir)
             # Clear the memory
             gc.collect()
+        # Clear the memory
+        gc.collect()
     return None
 
 ### Read logs
