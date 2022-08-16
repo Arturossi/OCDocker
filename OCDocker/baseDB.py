@@ -262,6 +262,37 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         fin = f"{dir}/rec.crg.pdb"
         fout = f"{dir}/rec.crg.mol2"
 
+        # Initialise hasCryst1 flag
+        hasCryst1 = False
+
+        # Check if fin is a valid file
+        if os.path.isfile(fin):
+            # Open it
+            with open(fin, "r") as pdbFile:
+                # For each line in it
+                for line in pdbFile:
+                    # Check if starts with CRYST1
+                    if line.startswith("CRYST1"):
+                        # Set the hasCryst1 flag to True
+                        hasCryst1 = True
+                        # Since it has been found, break the loop
+                        break
+                    # If it is not CRYST1, check if it is ATOM
+                    elif line.startswith("ATOM"):
+                        # If is ATOM and not CRYST1, means that there is no CRYST1 line in the file, so break the loop
+                        break
+        
+        # If there is no CRYST1 line in the file let's add a generic CRYST1 line then
+        if not hasCryst1:
+            # Define a generic CRYST1 line
+            cryst1 = "CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1"
+            # Preapend the CRYST1 line to the file
+            with open(fin, "r+") as pdbFile:
+                # Read the file
+                content = pdbFile.read()
+                # Write the CRYST1 line
+                pdbFile.write(f"{cryst1}\n{content}")
+
         # Find the protein name
         ptn = dir.split(os.path.sep)[-1]
 

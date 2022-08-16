@@ -514,36 +514,38 @@ def count_surface_AA(model, modelPath, cutoff=0.7):
         octools.print_warning(f"Cutoff minimum value is 0 but the value {cutoff} has been provided instead. The value of 0 will be used!")
         cutoff = 0
 
-    # Initialise hasCryst1 fla
-    hasCryst1 = False
+    # Check if file is a PDB file
+    if modelPath.endswith(".pdb"):
+        # Initialise hasCryst1 flag
+        hasCryst1 = False
 
-    # Check if modelPath is a valid file
-    if os.path.isfile(modelPath):
-        # Open it
-        with open(modelPath, "r") as pdbFile:
-            # For each line in it
-            for line in pdbFile:
-                # Check if starts with CRYST1
-                if line.startswith("CRYST1"):
-                    # Set the hasCryst1 flag to True
-                    hasCryst1 = True
-                    # Since it has been found, break the loop
-                    break
-                # If it is not CRYST1, check if it is ATOM
-                elif line.startswith("ATOM"):
-                    # If is ATOM and not CRYST1, means that there is no CRYST1 line in the file, so break the loop
-                    break
-    
-    # If there is no CRYST1 line in the file let's add a generic CRYST1 line then
-    if not hasCryst1:
-        # Define a generic CRYST1 line
-        cryst1 = "CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1"
-        # Preapend the CRYST1 line to the file
-        with open(modelPath, "r+") as pdbFile:
-            # Read the file
-            content = pdbFile.read()
-            # Write the CRYST1 line
-            pdbFile.write(f"{cryst1}\n{content}")
+        # Check if modelPath is a valid file
+        if os.path.isfile(modelPath):
+            # Open it
+            with open(modelPath, "r") as pdbFile:
+                # For each line in it
+                for line in pdbFile:
+                    # Check if starts with CRYST1
+                    if line.startswith("CRYST1"):
+                        # Set the hasCryst1 flag to True
+                        hasCryst1 = True
+                        # Since it has been found, break the loop
+                        break
+                    # If it is not CRYST1, check if it is ATOM
+                    elif line.startswith("ATOM"):
+                        # If is ATOM and not CRYST1, means that there is no CRYST1 line in the file, so break the loop
+                        break
+        
+        # If there is no CRYST1 line in the file let's add a generic CRYST1 line then
+        if not hasCryst1:
+            # Define a generic CRYST1 line
+            cryst1 = "CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1"
+            # Preapend the CRYST1 line to the file
+            with open(modelPath, "r+") as pdbFile:
+                # Read the file
+                content = pdbFile.read()
+                # Write the CRYST1 line
+                pdbFile.write(f"{cryst1}\n{content}")
 
     # Column header to dsspData object will be
     # (dssp index, amino acid, secondary structure, relative ASA, phi, psi,
