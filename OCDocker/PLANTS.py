@@ -567,7 +567,7 @@ def get_binding_site(boxFile, spacing = 0.33):
     # Return the data
     return ((center['x'], center['y'], center['z']), radius)
 
-def generate_plants_files_database(path, protein, ligand, spacing):
+def generate_plants_files_database(path, protein, ligand, spacing, prankPath = ""):
     '''
     Generate all PLANTS required files for provided protein.
     Input:
@@ -575,12 +575,16 @@ def generate_plants_files_database(path, protein, ligand, spacing):
      protein      [string]               - Protein path
      ligand       [string]               - Ligand name to be used in conf file
      spacing      [float]  DEFAULT: 0.33 - Extra spacing for the sphere in percentage (To ensure that all the sites will be accounted)
+     prankPath    [string] DEFAULT: ""   - If the prank dir is different than path, pass it here, otherwise it will try to look for a p2rank dir inside <path>.
     Return:
       -
     '''
     # Parameterize the vina and p2rank paths
     plantsPath = f"{path}/plantsFiles"
-    prankPath = f"{path}/p2rank"
+    # Check if prankPath is an empty string
+    if prankPath == "":
+      # Set is as the path + p2rank
+      prankPath = f"{path}/p2rank"
     # Create the vina folder inside protein's directory
     _ = octools.safe_create_dir(plantsPath)
     # Find all boxes

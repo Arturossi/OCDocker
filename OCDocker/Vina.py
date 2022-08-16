@@ -432,7 +432,7 @@ def generate_vina_files_database(path, protein, prankPath = ""):
     Input:
      path      [string]             - Input path.
      protein   [string]             - Protein path.
-     prankPath [string] DEFAULT: "" - If the prank dir is different than path, pass it here.
+     prankPath [string] DEFAULT: "" - If the prank dir is different than path, pass it here, otherwise it will try to look for a p2rank dir inside <path>.
     Return:
       -
     '''
