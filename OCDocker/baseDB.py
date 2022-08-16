@@ -2075,7 +2075,6 @@ def run_dock(archive, dockingAlgorithm, overwrite = False):
 
     # Check if the archive type is dudez
     if archive == "dudez":
-    else:
         # Create the alternative dir list
         ligandAlternativeDirs = []
         # For each dir in dirs, let's grab all ligands
@@ -2087,6 +2086,8 @@ def run_dock(archive, dockingAlgorithm, overwrite = False):
             goldilocksDirDecoy = f"{dir}/Goldilocks_decoys"
             # Merge the ligandAlternative list with the list with dudezDirLigand, dudezDirDecoy, extremaDirDecoy, goldilocksDirDecoy ligands
             ligandAlternativeDirs.extend([glob(f"{dudezDirLigand}/*"), glob(f"{dudezDirDecoy}/*"), glob(f"{extremaDirDecoy}/*"), glob(f"{goldilocksDirDecoy}/*")])
+    else:
+        ligandAlternativeDirs = ""
             
     # Decide if multprocessing will be used
     if args.multiprocess:
