@@ -765,6 +765,7 @@ def __core_run_dock(dir, archive, dockingAlgorithm, overwrite, ligandAlternative
         ligandPath = f"{ligandAlternativeDir}/{ligand_name}.mol2"
         # If the complex has all descriptors for protein AND ligand
         if os.path.isfile(f"{dir}/{ptn}_protein_descriptors.json") and os.path.isfile(f"{dir}/{ptn}_ligand_descriptors.json"):
+            pass
 
     elif archive == "pdbbind":
         # Find protein name
