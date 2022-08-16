@@ -536,7 +536,7 @@ def count_surface_AA(model, modelPath, cutoff=0.7):
     
     # If there is no CRYST1 line in the file let's add a generic CRYST1 line then
     if not hasCryst1:
-        # Define the CRYST1 line
+        # Define a generic CRYST1 line
         cryst1 = "CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1"
         # Preapend the CRYST1 line to the file
         with open(modelPath, "r+") as pdbFile:
