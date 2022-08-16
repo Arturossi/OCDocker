@@ -539,13 +539,19 @@ def count_surface_AA(model, modelPath, cutoff=0.7):
         # If there is no CRYST1 line in the file let's add a generic CRYST1 line then
         if not hasCryst1:
             # Define a generic CRYST1 line
-            cryst1 = "CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1"
-            # Preapend the CRYST1 line to the file
-            with open(modelPath, "r+") as pdbFile:
+            cryst1 = "CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1\n"
+            # Initialise the contnt variable
+            content = ""
+            # Read the CRYST1 line to the file
+            with open(fin, "r") as pdbFile:
                 # Read the file
                 content = pdbFile.read()
-                # Write the CRYST1 line
-                pdbFile.write(f"{cryst1}\n{content}")
+            # Write the CRYST1 line to the file
+            with open(fin, "w") as pdbFile:
+                # Write the content to the file
+                pdbFile.write(content)
+                # Write the CRYST1 line to the file
+                pdbFile.write(cryst1)
 
     # Column header to dsspData object will be
     # (dssp index, amino acid, secondary structure, relative ASA, phi, psi,
