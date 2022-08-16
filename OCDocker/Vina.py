@@ -451,7 +451,7 @@ def generate_vina_files_database(path, protein, prankPath = ""):
         # Get box name
         boxName = os.path.basename(box)
         # Get box id
-        boxId = boxName.split(".")[0].replace("box", "").replace(".pdb", "")
+        boxId = os.path.splitext(boxName)[0].replace("box", "").replace(".pdb", "")
         # Parameterize the box folder
         boxFolder = f"{vinaPath}/{boxId}"
         # Create vina execution folder

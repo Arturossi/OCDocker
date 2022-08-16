@@ -522,6 +522,22 @@ def count_surface_AA(model, modelPath, cutoff=0.7):
     # Run the DSSP
     dsspData = DSSP(model[0], modelPath, dssp=dssp)
 
+    # If the length of the dssp dictionary is 0, try to run DSSP again calling the command directly without using biopython
+    if len(dsspData.property_dict) == 0:
+        # Get the model name from path and remove the extension
+        modelName = os.path.splitext(os.path.basename(modelPath))[0]
+        # Get the model path from modelPath
+        modelDirName = os.path.dirname(modelPath)
+
+        # Create the dssp command
+        dssp_command = [dssp, "-i", modelPath, "-o", f"{modelDirName}/{modelName}.dssp"]
+        # Run the command
+        _ = octools.run(dssp_command)
+        # Load the dssp file into dsspData variable
+        dsspData = DSSP(model[0], f"{modelDirName}/{modelName}.dssp", file_type="DSSP")
+        # Delete the dssp file
+        os.remove(f"{modelDirName}/{modelName}.dssp")
+
     # For each result in the DSSP object
     for key, value in dsspData.property_dict.items():
         # Check if the relative ASA is valid and is above the cutoff

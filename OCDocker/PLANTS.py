@@ -594,7 +594,7 @@ def generate_plants_files_database(path, protein, ligand, spacing, prankPath = "
         # Get box name
         boxName = os.path.basename(box)
         # Get box id
-        boxId = boxName.split(".")[0].replace("box", "").replace(".pdb", "")
+        boxId = os.path.splitext(boxName)[0].replace("box", "").replace(".pdb", "")
         # Parameterize the box folder
         outputPlants = f"{plantsPath}/{boxId}"
         # Create vina execution folder

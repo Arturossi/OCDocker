@@ -317,7 +317,7 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         mols = glob(f"{dudezDirLigand}/*.mol2")
         for mol in mols:
             # Extract the ligand name from the path
-            ligandName = os.path.basename(mol).split(".")[0]
+            ligandName = os.path.splitext(os.path.basename(mol))[0]
             # Safe create its dir
             _ = octools.safe_create_dir(f"{dudezDirLigand}/{ligandName}")
             # Safe create plantsFiles, vinaFiles and sminaFiles dirs
@@ -337,7 +337,7 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         mols = glob(f"{dudezDirDecoy}/*.mol2")
         for mol in mols:
             # Extract the ligand name from the path
-            ligandName = os.path.basename(mol).split(".")[0]
+            ligandName = os.path.splitext(os.path.basename(mol))[0]
             # Safe create its dir
             _ = octools.safe_create_dir(f"{dudezDirDecoy}/{ligandName}")
             # Safe create plantsFiles, vinaFiles and sminaFiles dirs
@@ -357,7 +357,7 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         mols = glob(f"{extremaDirDecoy}/*.mol2")
         for mol in mols:
             # Extract the ligand name from the path
-            ligandName = os.path.basename(mol).split(".")[0]
+            ligandName = os.path.splitext(os.path.basename(mol))[0]
             # Safe create its dir
             _ = octools.safe_create_dir(f"{extremaDirDecoy}/{ligandName}")
             # Safe create plantsFiles, vinaFiles and sminaFiles dirs
@@ -377,7 +377,7 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         mols = glob(f"{goldilocksDirDecoy}/*.mol2")
         for mol in mols:
             # Extract the ligand name from the path
-            ligandName = os.path.basename(mol).split(".")[0]
+            ligandName = os.path.splitext(os.path.basename(mol))[0]
             # Safe create its dir
             _ = octools.safe_create_dir(f"{goldilocksDirDecoy}/{ligandName}")
             # Safe create plantsFiles, vinaFiles and sminaFiles dirs
@@ -448,7 +448,7 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
             # Check if the archive is dudez
             if archive == "dudez":
                 # Extract the molecule name from dir
-                ligandName = os.path.basename(dir).split(".")[0]
+                ligandName = os.path.splitext(os.path.basename(dir))[0]
                 # Set the fligand variable to the dir + ligandName + .mol2
                 fligand = f"{dir}/{ligandName}.mol2"
             # Create the PLANTS inputs from the boxes
