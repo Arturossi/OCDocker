@@ -428,16 +428,14 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
             octools.print_info(f"The protein '{dir}' already has its vina file generated, skipping its execution.")
         # If overwrite mode is on or there is not the same amount of box files as folders in vinaFiles folder
         if boxCount == 0 or len(glob(f"{dir}/plantsFiles/*")) != boxCount or overwrite:
-            # Check if fligand is a list type
-            if isinstance(fligand, list):
-                # Since it is a list, we need to generate the plants files for each ligand
-                for l in fligand:
-                    # Create the plants files for each ligand
-                    ocvina.generate_plants_files_database(dir, fin, l, spacing)
-            # If it is not a list, it should be a string so treat it as a single ligand
-            else:
-                # Create the PLANTS inputs from the boxes
-                ocplants.generate_plants_files_database(dir, fin, fligand, spacing)
+            # Check if the archive is dudez
+            if archive == "dudez":
+                # Extract the molecule name from dir
+                ligandName = os.path.basename(dir).split(".")[0]
+                # Set the fligand variable to the dir + ligandName + .mol2
+                fligand = f"{dir}/{ligandName}.mol2"
+            # Create the PLANTS inputs from the boxes
+            ocplants.generate_plants_files_database(dir, fin, fligand, spacing)
         else:
             octools.print_info(f"The protein '{dir}' already has its PLANTS file generated, skipping its execution.")
 
