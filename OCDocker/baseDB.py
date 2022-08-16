@@ -401,8 +401,13 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
     for dir in processDirs:
         # If overwrite mode is on or there is not the same amount of box files as folders in vinaFiles folder
         if boxCount == 0 or len(glob(f"{dir}/vinaFiles/*")) == boxCount or overwrite:
-            # Create the vina inputs from the boxes
-            ocvina.generate_vina_files_database(dir, fin)
+            # Check if the archive is dudez
+            if archive == "dudez":
+                # Create the vina inputs from the boxes
+                ocvina.generate_vina_files_database(dir, fin, prankPath = fout)
+            else:
+                # Create the vina inputs from the boxes
+                ocvina.generate_vina_files_database(dir, fin)
         else:
             octools.print_info(f"The protein '{dir}' already has its vina file generated, skipping its execution.")
         # If overwrite mode is on or there is not the same amount of box files as folders in vinaFiles folder
