@@ -267,7 +267,7 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
 
         # Prepare the receptor
         __prepare_molecule((fin, fout), overwrite, "receptor", archive, f"{ptn} DUDEz receptor")
-        return
+        
         # Set the 3 dirs containing ligand/decoys
         dudezDir = f"{dir}/DUDE_Z"
         extremaDir = f"{dir}/Extrema"
@@ -1069,10 +1069,10 @@ def __thread_run_dock_parallel(arguments):
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         # Call the core dock function passing the arguments correctly
-        __core_run_dock(arguments[0], arguments[1], arguments[2], arguments[3], ligandAlternativeDir = arguments[4])
+        __core_run_dock(arguments[0], arguments[1], arguments[2], arguments[3], ligandAlternativeDirs = arguments[4])
     return None
 
-def __run_dock_parallel(dirs, archive, dockingAlgorithm, overwrite, desc, ligandAlternativeDir = ""):
+def __run_dock_parallel(dirs, archive, dockingAlgorithm, overwrite, desc, ligandAlternativeDirs = ""):
     '''
     Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
     Input:
@@ -1081,16 +1081,26 @@ def __run_dock_parallel(dirs, archive, dockingAlgorithm, overwrite, desc, ligand
      dockingAlgorithm     [string]             - Which docking algorithm will be used [vina, smina, plants]
      overwrite            [bool]               - Flag to tell if files should be overwritten
      desc                 [string]             - The description used in the progress bar
-     ligandAlternativeDir [string] DEFAULT: "" - If the directory where the ligand is stored is different than <dir> pass it here
+     ligandAlternativeDirs [string] DEFAULT: "" - If the directory where the ligand is stored is different than <dir> pass it here
     Return:
       -
     '''
     # Arguments to pass to each Thread in the Thread Pool
     arguments = []
-    # For each file in the glob
-    for dir in dirs:
-        # Append a tuple containing the file name and ovewrite flag to the arguments list
-        arguments.append((dir, archive, dockingAlgorithm, overwrite, ligandAlternativeDir))
+    # If ligandAlternativeDir is type of list
+    if isinstance(ligandAlternativeDirs, list):
+        # For each file in dirs
+        for dir in dirs:
+            # Now loop over the ligands of this protein
+            for ligandAlternativeDir in ligandAlternativeDirs:
+                # Add the arguments to the list (creating one execution for each pair receptor-ligand)
+                arguments.append((dir, archive, dockingAlgorithm, overwrite, ligandAlternativeDir))
+    # Otherwise, the ligand is in the same directory as the protein
+    else:
+        # For each file in dirs
+        for dir in dirs:
+            # Append a tuple containing the file name and ovewrite flag to the arguments list
+            arguments.append((dir, archive, dockingAlgorithm, overwrite))
     # If logfile exists, backup it (for error and warnings)
     if os.path.isfile(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log"):
         if not os.path.isdir(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past"):
@@ -2063,11 +2073,26 @@ def run_dock(archive, dockingAlgorithm, overwrite = False):
     # Get all dirs paths in the database
     dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db']]
 
+    # Check if the archive type is dudez
+    if archive == "dudez":
+    else:
+        # Create the alternative dir list
+        ligandAlternativeDirs = []
+        # For each dir in dirs, let's grab all ligands
+        for dir in dirs:
+            # Parameterize paths
+            dudezDirLigand = f"{dir}/DUDE_Z_ligands"
+            dudezDirDecoy = f"{dir}/DUDE_Z_decoys"
+            extremaDirDecoy = f"{dir}/Extrema_decoys"
+            goldilocksDirDecoy = f"{dir}/Goldilocks_decoys"
+            # Merge the ligandAlternative list with the list with dudezDirLigand, dudezDirDecoy, extremaDirDecoy, goldilocksDirDecoy ligands
+            ligandAlternativeDirs.extend([glob(f"{dudezDirLigand}/*"), glob(f"{dudezDirDecoy}/*"), glob(f"{extremaDirDecoy}/*"), glob(f"{goldilocksDirDecoy}/*")])
+            
     # Decide if multprocessing will be used
     if args.multiprocess:
-        __run_dock_parallel(dirs, archive, dockingAlgorithm, overwrite, f"Processing {archive}")
+        __run_dock_parallel(dirs, archive, dockingAlgorithm, overwrite, f"Processing {archive}", ligandAlternativeDirs = ligandAlternativeDirs)
     else:
-        __run_dock_no_parallel(dirs, archive, dockingAlgorithm, overwrite)
+        __run_dock_no_parallel(dirs, archive, dockingAlgorithm, overwrite, ligandAlternativeDirs = ligandAlternativeDirs)
     return None
 
 def get_database_single_file(archive):
