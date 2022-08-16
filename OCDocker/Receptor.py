@@ -113,10 +113,10 @@ class Receptor:
             if not data:
                 octools.print_error(f"Problems while parsing json file: '{from_json_descriptors}'")
                 return None
-            # <editor-fold> assign
+            #region assign
             self.name, self.sasa, self.dipoleMoment, self.isoelectricPoint, self.instabilityIndex,self.GRAVY, self.aromaticity, self.__countAA, self.countA, self.countR, self.countN, self.countD, self.countC, self.countQ, self.countE, self.countG, self.countH, self.countI, self.countL, self.countK, self.countM, self.countF, self.countP, self.countS, self.countT, self.countW, self.countY, self.countV, self.totalAALength, self.avgAALength, self.countChain = data
 
-            # </editor-fold>
+            #endregion
         else:
             # Check if the name is empty
             if not name:
@@ -441,10 +441,10 @@ class Receptor:
             True  - if valid
             False - if not valid
         '''
-        # <editor-fold> if any attribute is None
+        #region if any attribute is None
         if self.name is None or self.path is None or self.structure is None or self.residues is None or self.sasa is None or self.dipoleMoment is None or self.isoelectricPoint is None or self.instabilityIndex is None or self.GRAVY is None or self.aromaticity is None or self.__countAA is None or self.totalAALength is None or self.avgAALength is None or self.countChain is None:
             return False
-        # </editor-fold>
+        #endregion
         return True
 
 # Functions
@@ -837,10 +837,10 @@ def read_descriptors_from_json(path, returnDict = False):
         # Missing keys list
         missing = []
         # Expected keys to have in the json file
-        # <editor-fold> keys
+        #region keys
         keys = ["Name", "SASA", "DipoleMoment", "IsoelectricPoint", "InstabilityIndex", "GRAVY", "Aromaticity", "countA", "countR", "countN", "countD", "countC", "countQ", "countE", "countG", "countH", "countI", "countL", "countK", "countM", "countF", "countP", "countS", "countT", "countW", "countY", "countV", "TotalAALength", "AvgAALength", "countChain"]
 
-        # </editor-fold>
+        #endregion
         # Validate the data
         for key in keys:
             # If key is lacking in data read from json (means malformed json!)
@@ -883,10 +883,10 @@ def read_descriptors_from_json(path, returnDict = False):
             return data
 
         # Since we have all keys, read them and return their values
-        # <editor-fold> Return data
+        #region Return data
         return data["Name"],  data["SASA"], data["DipoleMoment"], data["IsoelectricPoint"], data["InstabilityIndex"], data["GRAVY"], data["Aromaticity"], countAA, data["countA"], data["countR"], data["countN"], data["countD"], data["countC"], data["countQ"], data["countE"], data["countG"], data["countH"], data["countI"], data["countL"], data["countK"], data["countM"], data["countF"], data["countP"], data["countS"], data["countT"], data["countW"], data["countY"], data["countV"], data["TotalAALength"], data["AvgAALength"], data["countChain"]
 
-        # </editor-fold>
+        #endregion
     # Key error (when there is a missing key)
     except KeyError as k:
         octools.print_error(f"The following keys were not found in the json file '{missed[0]}': {missed[1]}.")

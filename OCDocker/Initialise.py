@@ -61,7 +61,7 @@ def create_ocdocker_conf():
     Return:
       -
     '''
-    # <editor-fold> General config
+    #region General config
     confOcdb = "/mnt/e/Documents/OCDocker/OCDocker/data/ocdb"
     confPDBbind_KdKi_order = "u"
 
@@ -75,9 +75,9 @@ def create_ocdocker_conf():
         answer = input(f"The default pdbbind KiKd magnitude [Y, Z, E, P, T, G, M, k, un, c, m, u, n, pf, a, z, y] (follow the unit prefix table). Default [{confPDBbind_KdKi_order}] (press enter to keep default): ")
         confPDBbind_KdKi_order = confPDBbind_KdKi_order if not answer else answer
 
-    # </editor-fold>
+    #endregion
 
-    # <editor-fold> MGLTools config
+    #region MGLTools config
     confPythonsh = "/mnt/e/Documents/OCDocker/OCDocker/mgltools/bin/pythonsh"
     confPrepare_ligand = "/mnt/e/Documents/OCDocker/OCDocker/mgltools/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_ligand4.py"
     confPrepare_receptor = "/mnt/e/Documents/OCDocker/OCDocker/mgltools/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_receptor4.py"
@@ -92,9 +92,9 @@ def create_ocdocker_conf():
     answer = input(f"Path to the prepare_receptor4.py script from MGLTools. Default [{confPrepare_receptor}] (press enter to keep default): ")
     confPrepare_receptor = confPrepare_receptor if not answer else answer
 
-    # </editor-fold>
+    #endregion
 
-    # <editor-fold> P2rank config
+    #region P2rank config
     confPrank = "/mnt/e/Documents/OCDocker/software/search/p2rank_2.3/prank"
     confP2rankBoxMaxCutoff = "0.5"
     confP2RankPocketCutoff = "0.1"
@@ -109,9 +109,9 @@ def create_ocdocker_conf():
     answer = input(f"p2rank pocket cutoff. Default [{confP2RankPocketCutoff}] (press enter to keep default): ")
     confP2RankPocketCutoff = confP2RankPocketCutoff if not answer else answer
 
-    # </editor-fold>
+    #endregion
 
-    # <editor-fold> Vina config
+    #region Vina config
     confVina = "/usr/bin/vina"
     confVina_energy_range = "10"
     confVina_exhaustiveness = "5"
@@ -130,9 +130,9 @@ def create_ocdocker_conf():
     answer = input(f"Vina num modes parameter. Default [{confVina_num_modes}] (press enter to keep default): ")
     confVina_num_modes = confVina_num_modes if not answer else answer
 
-    # </editor-fold>
+    #endregion
 
-    # <editor-fold> SMINA variables
+    #region SMINA variables
     confSmina = "/mnt/e/Documents/OCDocker/software/docking/smina/build/smina"
     confSmina_energy_range = "10"
     confSmina_exhaustiveness = "5"
@@ -207,9 +207,9 @@ def create_ocdocker_conf():
     answer = input(f"Smina user grid lambda parameter. Default [{confSmina_user_grid_lambda}] (press enter to keep default): ")
     confSmina_user_grid_lambda = confSmina_user_grid_lambda if not answer else answer
 
-    # </editor-fold>
+    #endregion
 
-    # <editor-fold> PLANTS variables
+    #region PLANTS variables
     confPlants = "/mnt/e/Documents/OCDocker/software/docking/plants/PLANTS1.2_64bit"
     confPlants_cluster_structures = 10
     confPlants_cluster_rmsd = 2.0
@@ -231,9 +231,9 @@ def create_ocdocker_conf():
     answer = input(f"PLANTS search speed parameter. Default [{confPlants_search_speed}] (press enter to keep default): ")
     confPlants_search_speed = confPlants_search_speed if not answer else answer
 
-    # </editor-fold>
+    #endregion
 
-    # <editor-fold> DOCK6 variables
+    #region DOCK6 variables
     confDock6 = "/mnt/e/Documents/OCDocker/software/docking/dock6/bin/dock6"
     confDock6_vdw_defn_file = "/mnt/e/Documents/OCDocker/software/docking/dock6/vdw_AMBER_parm99.defn"
     confDock6_flex_defn_file = "/mnt/e/Documents/OCDocker/software/docking/dock6/flex.defn"
@@ -252,9 +252,9 @@ def create_ocdocker_conf():
     answer = input(f"DOCK6 flex_drive file path. Default [{confDock6_flex_drive_file}] (press enter to keep default): ")
     confDock6_flex_drive_file = confDock6_flex_drive_file if not answer else answer
 
-    # </editor-fold>
+    #endregion
 
-    # <editor-fold> Other variables
+    #region Other variables
     confDssp = "/usr/bin/dssp"
     confObabel = "/usr/bin/obabel"
     confSpores = "/mnt/e/Documents/OCDocker/software/docking/plants/SPORES_64bit"
@@ -273,7 +273,7 @@ def create_ocdocker_conf():
     answer = input(f"Link to the DUDEz database where you can download data. Default [{confDUDEz}] (press enter to keep default): ")
     confDUDEz = confDUDEz if not answer else answer
 
-    # </editor-fold>
+    #endregion
 
     # Define the config file (NOT CHANGABLE)
     conf_file = "OCDocker.cfg"

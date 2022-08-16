@@ -64,7 +64,7 @@ class Ligand:
         # Define everything as None
         self.name = None
 
-        # <editor-fold> AUTOCORR descriptors
+        #region AUTOCORR descriptors
         self.AUTOCORR2D_1 = None
         self.AUTOCORR2D_2 = None
         self.AUTOCORR2D_3 = None
@@ -257,9 +257,9 @@ class Ligand:
         self.AUTOCORR2D_190 = None
         self.AUTOCORR2D_191 = None
         self.AUTOCORR2D_192 = None
-        # </editor-fold>
+        #endregion 
 
-        # <editor-fold> BCUT2D descriptors
+        #region BCUT2D descriptors
         self.BCUT2D_CHGHI = None
         self.BCUT2D_CHGLO = None
         self.BCUT2D_LOGPHI = None
@@ -268,12 +268,12 @@ class Ligand:
         self.BCUT2D_MRLOW = None
         self.BCUT2D_MWHI = None
         self.BCUT2D_MWLOW = None
-        # </editor-fold>
+        #endregion
 
         self.BalabanJ = None
         self.BertzCT = None
 
-        # <editor-fold> Chi descriptors
+        #region Chi descriptors
         self.Chi0 = None
         self.Chi0n = None
         self.Chi0v = None
@@ -286,9 +286,9 @@ class Ligand:
         self.Chi3v = None
         self.Chi4n = None
         self.Chi4v = None
-        # </editor-fold>
+        #endregion
 
-        # <editor-fold> EState descriptors
+        #region EState descriptors
         self.EState_VSA1 = None
         self.EState_VSA2 = None
         self.EState_VSA3 = None
@@ -305,14 +305,14 @@ class Ligand:
         self.MaxEStateIndex = None
         self.MinAbsEStateIndex = None
         self.MinEStateIndex = None
-        # </editor-fold>
+        #endregion
 
         self.ExactMolWt = None
         self.FpDensityMorgan1 = None
         self.FpDensityMorgan2 = None
         self.FpDensityMorgan3 = None
 
-        # <editor-fold> fr_ descriptors
+        #region fr_ descriptors
         self.fr_Al_COO = None
         self.fr_Al_OH = None
         self.fr_Al_OH_noTert = None
@@ -398,7 +398,7 @@ class Ligand:
         self.fr_thiophene = None
         self.fr_unbrch_alkane = None
         self.fr_urea = None
-        # </editor-fold>
+        #endregion
 
         self.FractionCSP3 = None
         self.HallKierAlpha = None
@@ -406,11 +406,11 @@ class Ligand:
         self.HeavyAtomCount = None
         self.Ipc = None
 
-        # <editor-fold> Kappa descriptors
+        #region Kappa descriptors
         self.Kappa1 = None
         self.Kappa2 = None
         self.Kappa3 = None
-        # </editor-fold>
+        #endregion
 
         self.LabuteASA = None
         self.MaxAbsPartialCharge = None
@@ -423,7 +423,7 @@ class Ligand:
         self.NHOHCount = None
         self.NOCount = None
 
-        # <editor-fold> 'count' descriptors
+        #region 'count' descriptors
         self.NumAliphaticCarbocycles = None
         self.NumAliphaticHeterocycles = None
         self.NumAliphaticRings = None
@@ -439,9 +439,9 @@ class Ligand:
         self.NumSaturatedHeterocycles = None
         self.NumSaturatedRings = None
         self.NumValenceElectrons = None
-        # </editor-fold>
+        #endregion
 
-        # <editor-fold> PEOE_VSA descriptors
+        #region PEOE_VSA descriptors
         self.PEOE_VSA1 = None
         self.PEOE_VSA2 = None
         self.PEOE_VSA3 = None
@@ -456,12 +456,12 @@ class Ligand:
         self.PEOE_VSA12 = None
         self.PEOE_VSA13 = None
         self.PEOE_VSA14 = None
-        # </editor-fold>
+        #endregion
 
         self.qed = None
         self.RingCount = None
 
-        # <editor-fold> SMR_VSA descriptors
+        #region SMR_VSA descriptors
         self.SMR_VSA1 = None
         self.SMR_VSA2 = None
         self.SMR_VSA3 = None
@@ -472,9 +472,9 @@ class Ligand:
         self.SMR_VSA8 = None
         self.SMR_VSA9 = None
         self.SMR_VSA10 = None
-        # </editor-fold>
+        #endregion
 
-        # <editor-fold> SlogP_VSA descriptors
+        #region SlogP_VSA descriptors
         self.SlogP_VSA1 = None
         self.SlogP_VSA2 = None
         self.SlogP_VSA3 = None
@@ -487,11 +487,11 @@ class Ligand:
         self.SlogP_VSA10 = None
         self.SlogP_VSA11 = None
         self.SlogP_VSA12 = None
-        # </editor-fold>
+        #endregion
 
         self.TPSA = None
 
-        # <editor-fold> VSA_EState descriptors
+        #region VSA_EState descriptors
         self.VSA_EState1 = None
         self.VSA_EState2 = None
         self.VSA_EState3 = None
@@ -502,9 +502,9 @@ class Ligand:
         self.VSA_EState8 = None
         self.VSA_EState9 = None
         self.VSA_EState10 = None
-        # </editor-fold>
+        #endregion
 
-        # <editor-fold> 3D descriptors
+        #region 3D descriptors
         self.AUTOCORR3D_1 = None
         self.AUTOCORR3D_2 = None
         self.AUTOCORR3D_3 = None
@@ -597,7 +597,7 @@ class Ligand:
         self.RadiusOfGyration = None
         self.SpherocityIndex = None
 
-        # </editor-fold>
+        #endregion
 
         # If user pass a json
         if from_json_descriptors:
@@ -607,10 +607,10 @@ class Ligand:
             if not data:
                 octools.print_error(f"Problems while parsin json file: '{from_json_descriptors}'")
                 return None
-            # <editor-fold> assign
+            #region assign
             self.name, self.AUTOCORR2D_1, self.AUTOCORR2D_2, self.AUTOCORR2D_3, self.AUTOCORR2D_4, self.AUTOCORR2D_5, self.AUTOCORR2D_6, self.AUTOCORR2D_7, self.AUTOCORR2D_8, self.AUTOCORR2D_9, self.AUTOCORR2D_10, self.AUTOCORR2D_11, self.AUTOCORR2D_12, self.AUTOCORR2D_13, self.AUTOCORR2D_14, self.AUTOCORR2D_15, self.AUTOCORR2D_16, self.AUTOCORR2D_17, self.AUTOCORR2D_18, self.AUTOCORR2D_19, self.AUTOCORR2D_20, self.AUTOCORR2D_21, self.AUTOCORR2D_22, self.AUTOCORR2D_23, self.AUTOCORR2D_24, self.AUTOCORR2D_25, self.AUTOCORR2D_26, self.AUTOCORR2D_27, self.AUTOCORR2D_28, self.AUTOCORR2D_29, self.AUTOCORR2D_30, self.AUTOCORR2D_31, self.AUTOCORR2D_32, self.AUTOCORR2D_33, self.AUTOCORR2D_34, self.AUTOCORR2D_35, self.AUTOCORR2D_36, self.AUTOCORR2D_37, self.AUTOCORR2D_38, self.AUTOCORR2D_39, self.AUTOCORR2D_40, self.AUTOCORR2D_41, self.AUTOCORR2D_42, self.AUTOCORR2D_43, self.AUTOCORR2D_44, self.AUTOCORR2D_45, self.AUTOCORR2D_46, self.AUTOCORR2D_47, self.AUTOCORR2D_48, self.AUTOCORR2D_49, self.AUTOCORR2D_50, self.AUTOCORR2D_51, self.AUTOCORR2D_52, self.AUTOCORR2D_53, self.AUTOCORR2D_54, self.AUTOCORR2D_55, self.AUTOCORR2D_56, self.AUTOCORR2D_57, self.AUTOCORR2D_58, self.AUTOCORR2D_59, self.AUTOCORR2D_60, self.AUTOCORR2D_61, self.AUTOCORR2D_62, self.AUTOCORR2D_63, self.AUTOCORR2D_64, self.AUTOCORR2D_65, self.AUTOCORR2D_66, self.AUTOCORR2D_67, self.AUTOCORR2D_68, self.AUTOCORR2D_69, self.AUTOCORR2D_70, self.AUTOCORR2D_71, self.AUTOCORR2D_72, self.AUTOCORR2D_73, self.AUTOCORR2D_74, self.AUTOCORR2D_75, self.AUTOCORR2D_76, self.AUTOCORR2D_77, self.AUTOCORR2D_78, self.AUTOCORR2D_79, self.AUTOCORR2D_80, self.AUTOCORR2D_81, self.AUTOCORR2D_82, self.AUTOCORR2D_83, self.AUTOCORR2D_84, self.AUTOCORR2D_85, self.AUTOCORR2D_86, self.AUTOCORR2D_87, self.AUTOCORR2D_88, self.AUTOCORR2D_89, self.AUTOCORR2D_90, self.AUTOCORR2D_91, self.AUTOCORR2D_92, self.AUTOCORR2D_93, self.AUTOCORR2D_94, self.AUTOCORR2D_95, self.AUTOCORR2D_96, self.AUTOCORR2D_97, self.AUTOCORR2D_98, self.AUTOCORR2D_99, self.AUTOCORR2D_100, self.AUTOCORR2D_101, self.AUTOCORR2D_102, self.AUTOCORR2D_103, self.AUTOCORR2D_104, self.AUTOCORR2D_105, self.AUTOCORR2D_106, self.AUTOCORR2D_107, self.AUTOCORR2D_108, self.AUTOCORR2D_109, self.AUTOCORR2D_110, self.AUTOCORR2D_111, self.AUTOCORR2D_112, self.AUTOCORR2D_113, self.AUTOCORR2D_114, self.AUTOCORR2D_115, self.AUTOCORR2D_116, self.AUTOCORR2D_117, self.AUTOCORR2D_118, self.AUTOCORR2D_119, self.AUTOCORR2D_120, self.AUTOCORR2D_121, self.AUTOCORR2D_122, self.AUTOCORR2D_123, self.AUTOCORR2D_124, self.AUTOCORR2D_125, self.AUTOCORR2D_126, self.AUTOCORR2D_127, self.AUTOCORR2D_128, self.AUTOCORR2D_129, self.AUTOCORR2D_130, self.AUTOCORR2D_131, self.AUTOCORR2D_132, self.AUTOCORR2D_133, self.AUTOCORR2D_134, self.AUTOCORR2D_135, self.AUTOCORR2D_136, self.AUTOCORR2D_137, self.AUTOCORR2D_138, self.AUTOCORR2D_139, self.AUTOCORR2D_140, self.AUTOCORR2D_141, self.AUTOCORR2D_142, self.AUTOCORR2D_143, self.AUTOCORR2D_144, self.AUTOCORR2D_145, self.AUTOCORR2D_146, self.AUTOCORR2D_147, self.AUTOCORR2D_148, self.AUTOCORR2D_149, self.AUTOCORR2D_150, self.AUTOCORR2D_151, self.AUTOCORR2D_152, self.AUTOCORR2D_153, self.AUTOCORR2D_154, self.AUTOCORR2D_155, self.AUTOCORR2D_156, self.AUTOCORR2D_157, self.AUTOCORR2D_158, self.AUTOCORR2D_159, self.AUTOCORR2D_160, self.AUTOCORR2D_161, self.AUTOCORR2D_162, self.AUTOCORR2D_163, self.AUTOCORR2D_164, self.AUTOCORR2D_165, self.AUTOCORR2D_166, self.AUTOCORR2D_167, self.AUTOCORR2D_168, self.AUTOCORR2D_169, self.AUTOCORR2D_170, self.AUTOCORR2D_171, self.AUTOCORR2D_172, self.AUTOCORR2D_173, self.AUTOCORR2D_174, self.AUTOCORR2D_175, self.AUTOCORR2D_176, self.AUTOCORR2D_177, self.AUTOCORR2D_178, self.AUTOCORR2D_179, self.AUTOCORR2D_180, self.AUTOCORR2D_181, self.AUTOCORR2D_182, self.AUTOCORR2D_183, self.AUTOCORR2D_184, self.AUTOCORR2D_185, self.AUTOCORR2D_186, self.AUTOCORR2D_187, self.AUTOCORR2D_188, self.AUTOCORR2D_189, self.AUTOCORR2D_190, self.AUTOCORR2D_191, self.AUTOCORR2D_192, self.BCUT2D_CHGHI, self.BCUT2D_CHGLO, self.BCUT2D_LOGPHI, self.BCUT2D_LOGPLOW, self.BCUT2D_MRHI, self.BCUT2D_MRLOW, self.BCUT2D_MWHI, self.BCUT2D_MWLOW, self.BalabanJ, self.BertzCT, self.Chi0, self.Chi0n, self.Chi0v, self.Chi1, self.Chi1n, self.Chi1v, self.Chi2n, self.Chi2v, self.Chi3n, self.Chi3v, self.Chi4n, self.Chi4v, self.EState_VSA1, self.EState_VSA2, self.EState_VSA3, self.EState_VSA4, self.EState_VSA5, self.EState_VSA6, self.EState_VSA7, self.EState_VSA8, self.EState_VSA9, self.EState_VSA10, self.EState_VSA11, self.MaxAbsEStateIndex, self.MaxEStateIndex, self.MinAbsEStateIndex, self.MinEStateIndex, self.ExactMolWt, self.FpDensityMorgan1, self.FpDensityMorgan2, self.FpDensityMorgan3, self.fr_Al_COO, self.fr_Al_OH, self.fr_Al_OH_noTert, self.fr_ArN, self.fr_Ar_COO, self.fr_Ar_N, self.fr_Ar_NH, self.fr_Ar_OH, self.fr_COO, self.fr_COO2, self.fr_C_O, self.fr_C_O_noCOO, self.fr_C_S, self.fr_HOCCN, self.fr_Imine, self.fr_NH0, self.fr_NH1, self.fr_NH2, self.fr_N_O, self.fr_Ndealkylation1, self.fr_Ndealkylation2, self.fr_Nhpyrrole, self.fr_SH, self.fr_aldehyde, self.fr_alkyl_carbamate, self.fr_alkyl_halide, self.fr_allylic_oxid, self.fr_amide, self.fr_amidine, self.fr_aniline, self.fr_aryl_methyl, self.fr_azide, self.fr_azo, self.fr_barbitur, self.fr_benzene, self.fr_benzodiazepine, self.fr_bicyclic, self.fr_diazo, self.fr_dihydropyridine, self.fr_epoxide, self.fr_ester, self.fr_ether, self.fr_furan, self.fr_guanido, self.fr_halogen, self.fr_hdrzine, self.fr_hdrzone, self.fr_imidazole, self.fr_imide, self.fr_isocyan, self.fr_isothiocyan, self.fr_ketone, self.fr_ketone_Topliss, self.fr_lactam, self.fr_lactone, self.fr_methoxy, self.fr_morpholine, self.fr_nitrile, self.fr_nitro, self.fr_nitro_arom, self.fr_nitro_arom_nonortho, self.fr_nitroso, self.fr_oxazole, self.fr_oxime, self.fr_para_hydroxylation, self.fr_phenol, self.fr_phenol_noOrthoHbond, self.fr_phos_acid, self.fr_phos_ester, self.fr_piperdine, self.fr_piperzine, self.fr_priamide, self.fr_prisulfonamd, self.fr_pyridine, self.fr_quatN, self.fr_sulfide, self.fr_sulfonamd, self.fr_sulfone, self.fr_term_acetylene, self.fr_tetrazole, self.fr_thiazole, self.fr_thiocyan, self.fr_thiophene, self.fr_unbrch_alkane, self.fr_urea, self.FractionCSP3, self.HallKierAlpha, self.HeavyAtomMolWt, self.HeavyAtomCount, self.Ipc, self.Kappa1, self.Kappa2, self.Kappa3, self.LabuteASA, self.MaxAbsPartialCharge, self.MaxPartialCharge, self.MinAbsPartialCharge, self.MinPartialCharge, self.MolLogP, self.MolMR, self.MolWt, self.NHOHCount, self.NOCount, self.NumAliphaticCarbocycles, self.NumAliphaticHeterocycles, self.NumAliphaticRings, self.NumAromaticCarbocycles, self.NumAromaticHeterocycles, self.NumAromaticRings, self.NumHAcceptors, self.NumHDonors, self.NumHeteroatoms, self.NumRadicalElectrons, self.NumRotatableBonds, self.NumSaturatedCarbocycles, self.NumSaturatedHeterocycles, self.NumSaturatedRings, self.NumValenceElectrons, self.PEOE_VSA1, self.PEOE_VSA2, self.PEOE_VSA3, self.PEOE_VSA4, self.PEOE_VSA5, self.PEOE_VSA6, self.PEOE_VSA7, self.PEOE_VSA8, self.PEOE_VSA9, self.PEOE_VSA10, self.PEOE_VSA11, self.PEOE_VSA12, self.PEOE_VSA13, self.PEOE_VSA14, self.qed, self.RingCount, self.SMR_VSA1, self.SMR_VSA2, self.SMR_VSA3, self.SMR_VSA4, self.SMR_VSA5, self.SMR_VSA6, self.SMR_VSA7, self.SMR_VSA8, self.SMR_VSA9, self.SMR_VSA10, self.SlogP_VSA1, self.SlogP_VSA2, self.SlogP_VSA3, self.SlogP_VSA4, self.SlogP_VSA5, self.SlogP_VSA6, self.SlogP_VSA7, self.SlogP_VSA8, self.SlogP_VSA9, self.SlogP_VSA10, self.SlogP_VSA11, self.SlogP_VSA12, self.TPSA, self.VSA_EState1, self.VSA_EState2, self.VSA_EState3, self.VSA_EState4, self.VSA_EState5, self.VSA_EState6, self.VSA_EState7, self.VSA_EState8, self.VSA_EState9, self.VSA_EState10, self.AUTOCORR3D_1, self.AUTOCORR3D_2, self.AUTOCORR3D_3, self.AUTOCORR3D_4, self.AUTOCORR3D_5, self.AUTOCORR3D_6, self.AUTOCORR3D_7, self.AUTOCORR3D_8, self.AUTOCORR3D_9, self.AUTOCORR3D_10, self.AUTOCORR3D_11, self.AUTOCORR3D_12, self.AUTOCORR3D_13, self.AUTOCORR3D_14, self.AUTOCORR3D_15, self.AUTOCORR3D_16, self.AUTOCORR3D_17, self.AUTOCORR3D_18, self.AUTOCORR3D_19, self.AUTOCORR3D_20, self.AUTOCORR3D_21, self.AUTOCORR3D_22, self.AUTOCORR3D_23, self.AUTOCORR3D_24, self.AUTOCORR3D_25, self.AUTOCORR3D_26, self.AUTOCORR3D_27, self.AUTOCORR3D_28, self.AUTOCORR3D_29, self.AUTOCORR3D_30, self.AUTOCORR3D_31, self.AUTOCORR3D_32, self.AUTOCORR3D_33, self.AUTOCORR3D_34, self.AUTOCORR3D_35, self.AUTOCORR3D_36, self.AUTOCORR3D_37, self.AUTOCORR3D_38, self.AUTOCORR3D_39, self.AUTOCORR3D_40, self.AUTOCORR3D_41, self.AUTOCORR3D_42, self.AUTOCORR3D_43, self.AUTOCORR3D_44, self.AUTOCORR3D_45, self.AUTOCORR3D_46, self.AUTOCORR3D_47, self.AUTOCORR3D_48, self.AUTOCORR3D_49, self.AUTOCORR3D_50, self.AUTOCORR3D_51, self.AUTOCORR3D_52, self.AUTOCORR3D_53, self.AUTOCORR3D_54, self.AUTOCORR3D_55, self.AUTOCORR3D_56, self.AUTOCORR3D_57, self.AUTOCORR3D_58, self.AUTOCORR3D_59, self.AUTOCORR3D_60, self.AUTOCORR3D_61, self.AUTOCORR3D_62, self.AUTOCORR3D_63, self.AUTOCORR3D_64, self.AUTOCORR3D_65, self.AUTOCORR3D_66, self.AUTOCORR3D_67, self.AUTOCORR3D_68, self.AUTOCORR3D_69, self.AUTOCORR3D_70, self.AUTOCORR3D_71, self.AUTOCORR3D_72, self.AUTOCORR3D_73, self.AUTOCORR3D_74, self.AUTOCORR3D_75, self.AUTOCORR3D_76, self.AUTOCORR3D_77, self.AUTOCORR3D_78, self.AUTOCORR3D_79, self.AUTOCORR3D_80, self.Asphericity, self.Eccentricity, self.InertialShapeFactor, self.NPR1, self.NPR2, self.PMI1, self.PMI2, self.PMI3, self.RadiusOfGyration, self.SpherocityIndex = data
 
-            # </editor-fold>
+            #endregion
         else:
             # Check if the name is empty
             if not name:
@@ -618,7 +618,7 @@ class Ligand:
                 return None
             self.name = name.replace(" ", "_")
 
-            # <editor-fold> AUTOCORR descriptors
+            #region AUTOCORR descriptors
             self.AUTOCORR2D_1 = self.__findAUTOCORR2D_1()
             self.AUTOCORR2D_2 = self.__findAUTOCORR2D_2()
             self.AUTOCORR2D_3 = self.__findAUTOCORR2D_3()
@@ -811,9 +811,9 @@ class Ligand:
             self.AUTOCORR2D_190 = self.__findAUTOCORR2D_190()
             self.AUTOCORR2D_191 = self.__findAUTOCORR2D_191()
             self.AUTOCORR2D_192 = self.__findAUTOCORR2D_192()
-            # </editor-fold>
+            #endregion
 
-            # <editor-fold> BCUT2D descriptors
+            #region BCUT2D descriptors
             self.BCUT2D_CHGHI = self.__findBCUT2D_CHGHI()
             self.BCUT2D_CHGLO = self.__findBCUT2D_CHGLO()
             self.BCUT2D_LOGPHI = self.__findBCUT2D_LOGPHI()
@@ -822,12 +822,12 @@ class Ligand:
             self.BCUT2D_MRLOW = self.__findBCUT2D_MRLOW()
             self.BCUT2D_MWHI = self.__findBCUT2D_MWHI()
             self.BCUT2D_MWLOW = self.__findBCUT2D_MWLOW()
-            # </editor-fold>
+            #endregion
 
             self.BalabanJ = self.__findBalabanJ()
             self.BertzCT = self.__findBertzCT()
 
-            # <editor-fold> Chi descriptors
+            #region Chi descriptors
             self.Chi0 = self.__findChi0()
             self.Chi0n = self.__findChi0n()
             self.Chi0v = self.__findChi0v()
@@ -840,9 +840,9 @@ class Ligand:
             self.Chi3v = self.__findChi3v()
             self.Chi4n = self.__findChi4n()
             self.Chi4v = self.__findChi4v()
-            # </editor-fold>
+            #endregion
 
-            # <editor-fold> EState descriptors
+            #region EState descriptors
             self.EState_VSA1 = self.__findEState_VSA1()
             self.EState_VSA2 = self.__findEState_VSA2()
             self.EState_VSA3 = self.__findEState_VSA3()
@@ -859,14 +859,14 @@ class Ligand:
             self.MaxEStateIndex = self.__findMaxEStateIndex()
             self.MinAbsEStateIndex = self.__findMinAbsEStateIndex()
             self.MinEStateIndex = self.__findMinEStateIndex()
-            # </editor-fold>
+            #endregion
 
             self.ExactMolWt = self.__findExactMolWt()
             self.FpDensityMorgan1 = self.__findFpDensityMorgan1()
             self.FpDensityMorgan2 = self.__findFpDensityMorgan2()
             self.FpDensityMorgan3 = self.__findFpDensityMorgan3()
 
-            # <editor-fold> fr_ descriptors
+            #region fr_ descriptors
             self.fr_Al_COO = self.__findfr_Al_COO()
             self.fr_Al_OH = self.__findfr_Al_OH()
             self.fr_Al_OH_noTert = self.__findfr_Al_OH_noTert()
@@ -953,7 +953,7 @@ class Ligand:
             self.fr_unbrch_alkane = self.__findfr_unbrch_alkane()
             self.fr_urea = self.__findfr_urea()
 
-            # </editor-fold>
+            #endregion
 
             self.FractionCSP3 = self.__findFractionCSP3()
             self.HallKierAlpha = self.__findHallKierAlpha()
@@ -961,12 +961,12 @@ class Ligand:
             self.HeavyAtomCount = self.__findHeavyAtomCount()
             self.Ipc = self.__findIpc()
 
-            # <editor-fold> Kappa descriptors
+            #region Kappa descriptors
             self.Kappa1 = self.__findKappa1()
             self.Kappa2 = self.__findKappa2()
             self.Kappa3 = self.__findKappa3()
 
-            # </editor-fold>
+            #endregion
 
             self.LabuteASA = self.__findLabuteASA()
             self.MaxAbsPartialCharge = self.__findMaxAbsPartialCharge()
@@ -977,7 +977,7 @@ class Ligand:
             self.MolMR = self.__findMolMR()
             self.MolWt = self.__findMolWt()
 
-            # <editor-fold> 'count' descriptors
+            #region 'count' descriptors
             self.NHOHCount = self.__findNHOHCount()
             self.NOCount = self.__findNOCount()
             self.NumAliphaticHeterocycles = self.__findNumAliphaticHeterocycles()
@@ -997,9 +997,9 @@ class Ligand:
             self.NumAliphaticCarbocycles = self.__findNumAliphaticCarbocycles()
             self.RingCount = self.__findRingCount()
 
-            # </editor-fold>
+            #endregion
 
-            # <editor-fold> PEOE_VSA descriptors
+            #region PEOE_VSA descriptors
             self.PEOE_VSA1 = self.__findPEOE_VSA1()
             self.PEOE_VSA2 = self.__findPEOE_VSA2()
             self.PEOE_VSA3 = self.__findPEOE_VSA3()
@@ -1015,11 +1015,11 @@ class Ligand:
             self.PEOE_VSA13 = self.__findPEOE_VSA13()
             self.PEOE_VSA14 = self.__findPEOE_VSA14()
 
-            # </editor-fold>
+            #endregion
 
             self.qed = self.__findqed()
 
-            # <editor-fold> SMR_VSA descriptors
+            #region SMR_VSA descriptors
             self.SMR_VSA1 = self.__findSMR_VSA1()
             self.SMR_VSA2 = self.__findSMR_VSA2()
             self.SMR_VSA3 = self.__findSMR_VSA3()
@@ -1031,9 +1031,9 @@ class Ligand:
             self.SMR_VSA9 = self.__findSMR_VSA9()
             self.SMR_VSA10 = self.__findSMR_VSA10()
 
-            # </editor-fold>
+            #endregion
 
-            # <editor-fold> SlogP_VSA descriptors
+            #region SlogP_VSA descriptors
             self.SlogP_VSA1 = self.__findSlogP_VSA1()
             self.SlogP_VSA2 = self.__findSlogP_VSA2()
             self.SlogP_VSA3 = self.__findSlogP_VSA3()
@@ -1047,11 +1047,11 @@ class Ligand:
             self.SlogP_VSA11 = self.__findSlogP_VSA11()
             self.SlogP_VSA12 = self.__findSlogP_VSA12()
 
-            # </editor-fold>
+            #endregion
 
             self.TPSA = self.__findTPSA()
 
-            # <editor-fold> VSA_EState descriptors
+            #region VSA_EState descriptors
             self.VSA_EState1 = self.__findVSA_EState1()
             self.VSA_EState2 = self.__findVSA_EState2()
             self.VSA_EState3 = self.__findVSA_EState3()
@@ -1063,9 +1063,9 @@ class Ligand:
             self.VSA_EState9 = self.__findVSA_EState9()
             self.VSA_EState10 = self.__findVSA_EState10()
 
-            # </editor-fold>
+            #endregion
 
-            # <editor-fold> 3D descriptors
+            #region 3D descriptors
             self.AUTOCORR3D_1,  self.AUTOCORR3D_2,  self.AUTOCORR3D_3,  self.AUTOCORR3D_4,  self.AUTOCORR3D_5,  self.AUTOCORR3D_6,  self.AUTOCORR3D_7,  self.AUTOCORR3D_8,  self.AUTOCORR3D_9,  self.AUTOCORR3D_10, self.AUTOCORR3D_11, self.AUTOCORR3D_12, self.AUTOCORR3D_13, self.AUTOCORR3D_14, self.AUTOCORR3D_15, self.AUTOCORR3D_16, self.AUTOCORR3D_17, self.AUTOCORR3D_18, self.AUTOCORR3D_19, self.AUTOCORR3D_20, self.AUTOCORR3D_21, self.AUTOCORR3D_22, self.AUTOCORR3D_23, self.AUTOCORR3D_24, self.AUTOCORR3D_25, self.AUTOCORR3D_26, self.AUTOCORR3D_27, self.AUTOCORR3D_28, self.AUTOCORR3D_29, self.AUTOCORR3D_30, self.AUTOCORR3D_31, self.AUTOCORR3D_32, self.AUTOCORR3D_33, self.AUTOCORR3D_34, self.AUTOCORR3D_35, self.AUTOCORR3D_36, self.AUTOCORR3D_37, self.AUTOCORR3D_38, self.AUTOCORR3D_39, self.AUTOCORR3D_40, self.AUTOCORR3D_41, self.AUTOCORR3D_42, self.AUTOCORR3D_43, self.AUTOCORR3D_44, self.AUTOCORR3D_45, self.AUTOCORR3D_46, self.AUTOCORR3D_47, self.AUTOCORR3D_48, self.AUTOCORR3D_49, self.AUTOCORR3D_50, self.AUTOCORR3D_51, self.AUTOCORR3D_52, self.AUTOCORR3D_53, self.AUTOCORR3D_54, self.AUTOCORR3D_55, self.AUTOCORR3D_56, self.AUTOCORR3D_57, self.AUTOCORR3D_58, self.AUTOCORR3D_59, self.AUTOCORR3D_60, self.AUTOCORR3D_61, self.AUTOCORR3D_62, self.AUTOCORR3D_63, self.AUTOCORR3D_64, self.AUTOCORR3D_65, self.AUTOCORR3D_66, self.AUTOCORR3D_67, self.AUTOCORR3D_68, self.AUTOCORR3D_69, self.AUTOCORR3D_70, self.AUTOCORR3D_71, self.AUTOCORR3D_72, self.AUTOCORR3D_73, self.AUTOCORR3D_74, self.AUTOCORR3D_75, self.AUTOCORR3D_76, self.AUTOCORR3D_77, self.AUTOCORR3D_78, self.AUTOCORR3D_79, self.AUTOCORR3D_80 = self.__findAUTOCORR3D()
 
             self.Asphericity = self.__findAsphericity()
@@ -1079,7 +1079,7 @@ class Ligand:
             self.RadiusOfGyration = self.__findRadiusOfGyration()
             self.SpherocityIndex = self.__findSpherocityIndex()
 
-            # </editor-fold>
+            #endregion
 
     ## Private ##
     def __loadMol(self, molecule, sanitize):
@@ -1120,7 +1120,7 @@ class Ligand:
 
         return properties
 
-    # <editor-fold> AUTOCORR descriptors
+    #region AUTOCORR descriptors
     def __findAUTOCORR2D_1(self):
         '''
         Compute the autocorrelation2D_1 descriptor.
@@ -3233,9 +3233,9 @@ class Ligand:
         '''
         return findAUTOCORR2D_192(self.molecule)
 
-    # </editor-fold>
+    #endregion
 
-    # <editor-fold> BCUT2D descriptors
+    #region BCUT2D descriptors
     def __findBCUT2D_CHGHI(self):
         '''
         Compute the BCUT2D_CHGHI descriptor.
@@ -3316,7 +3316,7 @@ class Ligand:
         '''
         return findBCUT2D_MWLOW(self.molecule)
 
-    # </editor-fold>
+    #endregion
 
     def __findBalabanJ(self):
         '''
@@ -3338,7 +3338,7 @@ class Ligand:
         '''
         return findBertzCT(self.molecule)
 
-    # <editor-fold> Chi descriptors
+    #region Chi descriptors
     def __findChi0(self):
         '''
         Compute the Chi0 descriptor.
@@ -3459,9 +3459,9 @@ class Ligand:
         '''
         return findChi4v(self.molecule)
 
-    # </editor-fold>
+    #endregion
 
-    # <editor-fold> EState descriptors
+    #region EState descriptors
     def __findEState_VSA1(self):
         '''
         Compute the EState_VSA1 descriptor.
@@ -3612,7 +3612,7 @@ class Ligand:
         '''
         return findMinEStateIndex(self.molecule)
 
-    # </editor-fold>
+    #endregion
 
     def __findExactMolWt(self):
         '''
@@ -3654,7 +3654,7 @@ class Ligand:
         '''
         return findFpDensityMorgan3(self.molecule)
 
-    # <editor-fold> fr_ descriptors
+    #region fr_ descriptors
     def __findfr_Al_COO(self):
         '''
         Compute the fr_Al_COO descriptor.
@@ -4590,7 +4590,7 @@ class Ligand:
         '''
         return findfr_urea(self.molecule)
 
-    # </editor-fold>
+    #endregion
 
     def __findFractionCSP3(self):
         '''
@@ -4642,7 +4642,7 @@ class Ligand:
         '''
         return findIpc(self.molecule)
 
-    # <editor-fold> Kappa descriptors
+    #region Kappa descriptors
     def __findKappa1(self):
         '''
         Compute the Kappa1 descriptor.
@@ -4673,7 +4673,7 @@ class Ligand:
         '''
         return findKappa3(self.molecule)
 
-    # </editor-fold>
+    #endregion
 
     def __findLabuteASA(self):
         '''
@@ -4755,7 +4755,7 @@ class Ligand:
         '''
         return findMolWt(self.molecule)
 
-    # <editor-fold> 'count' descriptors
+    #region 'count' descriptors
     def __findNHOHCount(self):
         '''
         Compute the NHOHCount descriptor.
@@ -4950,9 +4950,9 @@ class Ligand:
         '''
         return findRingCount(self.molecule)
 
-    # </editor-fold>
+    #endregion
 
-    # <editor-fold> PEOE_VSA descriptors
+    #region PEOE_VSA descriptors
     def __findPEOE_VSA1(self):
         '''
         Compute the PEOE_VSA1 descriptor.
@@ -5107,7 +5107,7 @@ class Ligand:
         '''
         return findPEOE_VSA14(self.molecule)
 
-    # </editor-fold>
+    #endregion
 
     def __findqed(self):
         '''
@@ -5120,7 +5120,7 @@ class Ligand:
         '''
         return findqed(self.molecule)
 
-    # <editor-fold> SMR_VSA1 descriptors
+    #region SMR_VSA1 descriptors
 
     def __findSMR_VSA1(self):
         '''
@@ -5232,9 +5232,9 @@ class Ligand:
         '''
         return findSMR_VSA10(self.molecule)
 
-    # </editor-fold>
+    #endregion
 
-    # <editor-fold> SlogP_VSA1 descriptors
+    #region SlogP_VSA1 descriptors
     def __findSlogP_VSA1(self):
         '''
         Compute the SlogP_VSA1 descriptor.
@@ -5367,9 +5367,9 @@ class Ligand:
         '''
         return findSlogP_VSA12(self.molecule)
 
-    # </editor-fold>
+    #endregion
 
-    # <editor-fold> 3D descriptors
+    #region 3D descriptors
     def __findAUTOCORR3D(self):
         '''
         Compute the AUTOCORR3D descriptors.
@@ -5491,7 +5491,7 @@ class Ligand:
         '''
         return findSpherocityIndex(self.molecule)
 
-    # </editor-fold>
+    #endregion
 
     def __findTPSA(self):
         '''
@@ -5504,7 +5504,7 @@ class Ligand:
         '''
         return findTPSA(self.molecule)
 
-    # <editor-fold> VSA_EState descriptors
+    #region VSA_EState descriptors
     def __findVSA_EState1(self):
         '''
         Compute the VSA_EState1 descriptor.
@@ -5615,7 +5615,7 @@ class Ligand:
         '''
         return findVSA_EState10(self.molecule)
 
-    # </editor-fold>
+    #endregion
 
     ## Public ##
     def print_attributes(self):
@@ -5626,7 +5626,7 @@ class Ligand:
         Return:
           -
         '''
-        # <editor-fold> prints
+        #region prints
         print(f"Name:                     '{self.name if self.name is not None else '-' }'")
         print(f"Molecule:                 '{self.molecule if self.molecule is not None else '-' }'")
         print(f"AUTOCORR2D_1:             '{self.AUTOCORR2D_1 if self.AUTOCORR2D_1 is not None else '-' }'")
@@ -6120,7 +6120,7 @@ class Ligand:
         print(f"RadiusOfGyration:         '{self.RadiusOfGyration if self.RadiusOfGyration is not None else 0.0 }'")
         print(f"SpherocityIndex:          '{self.SpherocityIndex if self.SpherocityIndex is not None else 0.0 }'")
 
-        # </editor-fold>
+        #endregion
         return
 
     def get_descriptors(self):
@@ -6676,10 +6676,10 @@ class Ligand:
             True  - if valid
             False - if not valid
         '''
-        # <editor-fold> if any attribute is None
+        #region if any attribute is None
         if self.name is None or self.path is None or self.AUTOCORR2D_1 is None or self.AUTOCORR2D_2 is None or self.AUTOCORR2D_3 is None or self.AUTOCORR2D_4 is None or self.AUTOCORR2D_5 is None or self.AUTOCORR2D_6 is None or self.AUTOCORR2D_7 is None or self.AUTOCORR2D_8 is None or self.AUTOCORR2D_9 is None or self.AUTOCORR2D_10 is None or self.AUTOCORR2D_11 is None or self.AUTOCORR2D_12 is None or self.AUTOCORR2D_13 is None or self.AUTOCORR2D_14 is None or self.AUTOCORR2D_15 is None or self.AUTOCORR2D_16 is None or self.AUTOCORR2D_17 is None or self.AUTOCORR2D_18 is None or self.AUTOCORR2D_19 is None or self.AUTOCORR2D_20 is None or self.AUTOCORR2D_21 is None or self.AUTOCORR2D_22 is None or self.AUTOCORR2D_23 is None or self.AUTOCORR2D_24 is None or self.AUTOCORR2D_25 is None or self.AUTOCORR2D_26 is None or self.AUTOCORR2D_27 is None or self.AUTOCORR2D_28 is None or self.AUTOCORR2D_29 is None or self.AUTOCORR2D_30 is None or self.AUTOCORR2D_31 is None or self.AUTOCORR2D_32 is None or self.AUTOCORR2D_33 is None or self.AUTOCORR2D_34 is None or self.AUTOCORR2D_35 is None or self.AUTOCORR2D_36 is None or self.AUTOCORR2D_37 is None or self.AUTOCORR2D_38 is None or self.AUTOCORR2D_39 is None or self.AUTOCORR2D_40 is None or self.AUTOCORR2D_41 is None or self.AUTOCORR2D_42 is None or self.AUTOCORR2D_43 is None or self.AUTOCORR2D_44 is None or self.AUTOCORR2D_45 is None or self.AUTOCORR2D_46 is None or self.AUTOCORR2D_47 is None or self.AUTOCORR2D_48 is None or self.AUTOCORR2D_49 is None or self.AUTOCORR2D_50 is None or self.AUTOCORR2D_51 is None or self.AUTOCORR2D_52 is None or self.AUTOCORR2D_53 is None or self.AUTOCORR2D_54 is None or self.AUTOCORR2D_55 is None or self.AUTOCORR2D_56 is None or self.AUTOCORR2D_57 is None or self.AUTOCORR2D_58 is None or self.AUTOCORR2D_59 is None or self.AUTOCORR2D_60 is None or self.AUTOCORR2D_61 is None or self.AUTOCORR2D_62 is None or self.AUTOCORR2D_63 is None or self.AUTOCORR2D_64 is None or self.AUTOCORR2D_65 is None or self.AUTOCORR2D_66 is None or self.AUTOCORR2D_67 is None or self.AUTOCORR2D_68 is None or self.AUTOCORR2D_69 is None or self.AUTOCORR2D_70 is None or self.AUTOCORR2D_71 is None or self.AUTOCORR2D_72 is None or self.AUTOCORR2D_73 is None or self.AUTOCORR2D_74 is None or self.AUTOCORR2D_75 is None or self.AUTOCORR2D_76 is None or self.AUTOCORR2D_77 is None or self.AUTOCORR2D_78 is None or self.AUTOCORR2D_79 is None or self.AUTOCORR2D_80 is None or self.AUTOCORR2D_81 is None or self.AUTOCORR2D_82 is None or self.AUTOCORR2D_83 is None or self.AUTOCORR2D_84 is None or self.AUTOCORR2D_85 is None or self.AUTOCORR2D_86 is None or self.AUTOCORR2D_87 is None or self.AUTOCORR2D_88 is None or self.AUTOCORR2D_89 is None or self.AUTOCORR2D_90 is None or self.AUTOCORR2D_91 is None or self.AUTOCORR2D_92 is None or self.AUTOCORR2D_93 is None or self.AUTOCORR2D_94 is None or self.AUTOCORR2D_95 is None or self.AUTOCORR2D_96 is None or self.AUTOCORR2D_97 is None or self.AUTOCORR2D_98 is None or self.AUTOCORR2D_99 is None or self.AUTOCORR2D_100 is None or self.AUTOCORR2D_101 is None or self.AUTOCORR2D_102 is None or self.AUTOCORR2D_103 is None or self.AUTOCORR2D_104 is None or self.AUTOCORR2D_105 is None or self.AUTOCORR2D_106 is None or self.AUTOCORR2D_107 is None or self.AUTOCORR2D_108 is None or self.AUTOCORR2D_109 is None or self.AUTOCORR2D_110 is None or self.AUTOCORR2D_111 is None or self.AUTOCORR2D_112 is None or self.AUTOCORR2D_113 is None or self.AUTOCORR2D_114 is None or self.AUTOCORR2D_115 is None or self.AUTOCORR2D_116 is None or self.AUTOCORR2D_117 is None or self.AUTOCORR2D_118 is None or self.AUTOCORR2D_119 is None or self.AUTOCORR2D_120 is None or self.AUTOCORR2D_121 is None or self.AUTOCORR2D_122 is None or self.AUTOCORR2D_123 is None or self.AUTOCORR2D_124 is None or self.AUTOCORR2D_125 is None or self.AUTOCORR2D_126 is None or self.AUTOCORR2D_127 is None or self.AUTOCORR2D_128 is None or self.AUTOCORR2D_129 is None or self.AUTOCORR2D_130 is None or self.AUTOCORR2D_131 is None or self.AUTOCORR2D_132 is None or self.AUTOCORR2D_133 is None or self.AUTOCORR2D_134 is None or self.AUTOCORR2D_135 is None or self.AUTOCORR2D_136 is None or self.AUTOCORR2D_137 is None or self.AUTOCORR2D_138 is None or self.AUTOCORR2D_139 is None or self.AUTOCORR2D_140 is None or self.AUTOCORR2D_141 is None or self.AUTOCORR2D_142 is None or self.AUTOCORR2D_143 is None or self.AUTOCORR2D_144 is None or self.AUTOCORR2D_145 is None or self.AUTOCORR2D_146 is None or self.AUTOCORR2D_147 is None or self.AUTOCORR2D_148 is None or self.AUTOCORR2D_149 is None or self.AUTOCORR2D_150 is None or self.AUTOCORR2D_151 is None or self.AUTOCORR2D_152 is None or self.AUTOCORR2D_153 is None or self.AUTOCORR2D_154 is None or self.AUTOCORR2D_155 is None or self.AUTOCORR2D_156 is None or self.AUTOCORR2D_157 is None or self.AUTOCORR2D_158 is None or self.AUTOCORR2D_159 is None or self.AUTOCORR2D_160 is None or self.AUTOCORR2D_161 is None or self.AUTOCORR2D_162 is None or self.AUTOCORR2D_163 is None or self.AUTOCORR2D_164 is None or self.AUTOCORR2D_165 is None or self.AUTOCORR2D_166 is None or self.AUTOCORR2D_167 is None or self.AUTOCORR2D_168 is None or self.AUTOCORR2D_169 is None or self.AUTOCORR2D_170 is None or self.AUTOCORR2D_171 is None or self.AUTOCORR2D_172 is None or self.AUTOCORR2D_173 is None or self.AUTOCORR2D_174 is None or self.AUTOCORR2D_175 is None or self.AUTOCORR2D_176 is None or self.AUTOCORR2D_177 is None or self.AUTOCORR2D_178 is None or self.AUTOCORR2D_179 is None or self.AUTOCORR2D_180 is None or self.AUTOCORR2D_181 is None or self.AUTOCORR2D_182 is None or self.AUTOCORR2D_183 is None or self.AUTOCORR2D_184 is None or self.AUTOCORR2D_185 is None or self.AUTOCORR2D_186 is None or self.AUTOCORR2D_187 is None or self.AUTOCORR2D_188 is None or self.AUTOCORR2D_189 is None or self.AUTOCORR2D_190 is None or self.AUTOCORR2D_191 is None or self.AUTOCORR2D_192 is None or self.BCUT2D_CHGHI is None or self.BCUT2D_CHGLO is None or self.BCUT2D_LOGPHI is None or self.BCUT2D_LOGPLOW is None or self.BCUT2D_MRHI is None or self.BCUT2D_MRLOW is None or self.BCUT2D_MWHI is None or self.BCUT2D_MWLOW is None or self.BalabanJ is None or self.BertzCT is None or self.Chi0 is None or self.Chi0n is None or self.Chi0v is None or self.Chi1 is None or self.Chi1n is None or self.Chi1v is None or self.Chi2n is None or self.Chi2v is None or self.Chi3n is None or self.Chi3v is None or self.Chi4n is None or self.Chi4v is None or self.EState_VSA1 is None or self.EState_VSA2 is None or self.EState_VSA3 is None or self.EState_VSA4 is None or self.EState_VSA5 is None or self.EState_VSA6 is None or self.EState_VSA7 is None or self.EState_VSA8 is None or self.EState_VSA9 is None or self.EState_VSA10 is None or self.EState_VSA11 is None or self.MaxAbsEStateIndex is None or self.MaxEStateIndex is None or self.MinAbsEStateIndex is None or self.MinEStateIndex is None or self.ExactMolWt is None or self.FpDensityMorgan1 is None or self.FpDensityMorgan2 is None or self.FpDensityMorgan3 is None or self.fr_Al_COO is None or self.fr_Al_OH is None or self.fr_Al_OH_noTert is None or self.fr_ArN is None or self.fr_Ar_COO is None or self.fr_Ar_N is None or self.fr_Ar_NH is None or self.fr_Ar_OH is None or self.fr_COO is None or self.fr_COO2 is None or self.fr_C_O is None or self.fr_C_O_noCOO is None or self.fr_C_S is None or self.fr_HOCCN is None or self.fr_Imine is None or self.fr_NH0 is None or self.fr_NH1 is None or self.fr_NH2 is None or self.fr_N_O is None or self.fr_Ndealkylation1 is None or self.fr_Ndealkylation2 is None or self.fr_Nhpyrrole is None or self.fr_SH is None or self.fr_aldehyde is None or self.fr_alkyl_carbamate is None or self.fr_alkyl_halide is None or self.fr_allylic_oxid is None or self.fr_amide is None or self.fr_amidine is None or self.fr_aniline is None or self.fr_aryl_methyl is None or self.fr_azide is None or self.fr_azo is None or self.fr_barbitur is None or self.fr_benzene is None or self.fr_benzodiazepine is None or self.fr_bicyclic is None or self.fr_diazo is None or self.fr_dihydropyridine is None or self.fr_epoxide is None or self.fr_ester is None or self.fr_ether is None or self.fr_furan is None or self.fr_guanido is None or self.fr_halogen is None or self.fr_hdrzine is None or self.fr_hdrzone is None or self.fr_imidazole is None or self.fr_imide is None or self.fr_isocyan is None or self.fr_isothiocyan is None or self.fr_ketone is None or self.fr_ketone_Topliss is None or self.fr_lactam is None or self.fr_lactone is None or self.fr_methoxy is None or self.fr_morpholine is None or self.fr_nitrile is None or self.fr_nitro is None or self.fr_nitro_arom is None or self.fr_nitro_arom_nonortho is None or self.fr_nitroso is None or self.fr_oxazole is None or self.fr_oxime is None or self.fr_para_hydroxylation is None or self.fr_phenol is None or self.fr_phenol_noOrthoHbond is None or self.fr_phos_acid is None or self.fr_phos_ester is None or self.fr_piperdine is None or self.fr_piperzine is None or self.fr_priamide is None or self.fr_prisulfonamd is None or self.fr_pyridine is None or self.fr_quatN is None or self.fr_sulfide is None or self.fr_sulfonamd is None or self.fr_sulfone is None or self.fr_term_acetylene is None or self.fr_tetrazole is None or self.fr_thiazole is None or self.fr_thiocyan is None or self.fr_thiophene is None or self.fr_unbrch_alkane is None or self.fr_urea is None or self.FractionCSP3 is None or self.HallKierAlpha is None or self.HeavyAtomMolWt is None or self.HeavyAtomCount is None or self.Ipc is None or self.Kappa1 is None or self.Kappa2 is None or self.Kappa3 is None or self.LabuteASA is None or self.MaxAbsPartialCharge is None or self.MaxPartialCharge is None or self.MinAbsPartialCharge is None or self.MinPartialCharge is None or self.MolLogP is None or self.MolMR is None or self.MolWt is None or self.NHOHCount is None or self.NOCount is None or self.NumAliphaticCarbocycles is None or self.NumAliphaticHeterocycles is None or self.NumAliphaticRings is None or self.NumAromaticCarbocycles is None or self.NumAromaticHeterocycles is None or self.NumAromaticRings is None or self.NumHAcceptors is None or self.NumHDonors is None or self.NumHeteroatoms is None or self.NumRadicalElectrons is None or self.NumRotatableBonds is None or self.NumSaturatedCarbocycles is None or self.NumSaturatedHeterocycles is None or self.NumSaturatedRings is None or self.NumValenceElectrons is None or self.PEOE_VSA1 is None or self.PEOE_VSA2 is None or self.PEOE_VSA3 is None or self.PEOE_VSA4 is None or self.PEOE_VSA5 is None or self.PEOE_VSA6 is None or self.PEOE_VSA7 is None or self.PEOE_VSA8 is None or self.PEOE_VSA9 is None or self.PEOE_VSA10 is None or self.PEOE_VSA11 is None or self.PEOE_VSA12 is None or self.PEOE_VSA13 is None or self.PEOE_VSA14 is None or self.qed is None or self.RingCount is None or self.SMR_VSA1 is None or self.SMR_VSA2 is None or self.SMR_VSA3 is None or self.SMR_VSA4 is None or self.SMR_VSA5 is None or self.SMR_VSA6 is None or self.SMR_VSA7 is None or self.SMR_VSA8 is None or self.SMR_VSA9 is None or self.SMR_VSA10 is None or self.SlogP_VSA1 is None or self.SlogP_VSA2 is None or self.SlogP_VSA3 is None or self.SlogP_VSA4 is None or self.SlogP_VSA5 is None or self.SlogP_VSA6 is None or self.SlogP_VSA7 is None or self.SlogP_VSA8 is None or self.SlogP_VSA9 is None or self.SlogP_VSA10 is None or self.SlogP_VSA11 is None or self.SlogP_VSA12 is None or self.TPSA is None or self.VSA_EState1 is None or self.VSA_EState2 is None or self.VSA_EState3 is None or self.VSA_EState4 is None or self.VSA_EState5 is None or self.VSA_EState6 is None or self.VSA_EState7 is None or self.VSA_EState8 is None or self.VSA_EState9 is None or self.VSA_EState10 is None:
             return False
-        # </editor-fold>
+        #endregion
         return True
 
     def to_smiles(self):
@@ -7091,9 +7091,9 @@ def read_descriptors_from_json(path, returnDict = False):
         # Missing keys list
         missing = []
         # Expected keys to have in the json file
-        # <editor-fold> keys
+        #region keys
         keys = ["Name", "AUTOCORR2D_1", "AUTOCORR2D_2", "AUTOCORR2D_3", "AUTOCORR2D_4", "AUTOCORR2D_5", "AUTOCORR2D_6", "AUTOCORR2D_7", "AUTOCORR2D_8", "AUTOCORR2D_9", "AUTOCORR2D_10", "AUTOCORR2D_11", "AUTOCORR2D_12", "AUTOCORR2D_13", "AUTOCORR2D_14", "AUTOCORR2D_15", "AUTOCORR2D_16", "AUTOCORR2D_17", "AUTOCORR2D_18", "AUTOCORR2D_19", "AUTOCORR2D_20", "AUTOCORR2D_21", "AUTOCORR2D_22", "AUTOCORR2D_23", "AUTOCORR2D_24", "AUTOCORR2D_25", "AUTOCORR2D_26", "AUTOCORR2D_27", "AUTOCORR2D_28", "AUTOCORR2D_29", "AUTOCORR2D_30", "AUTOCORR2D_31", "AUTOCORR2D_32", "AUTOCORR2D_33", "AUTOCORR2D_34", "AUTOCORR2D_35", "AUTOCORR2D_36", "AUTOCORR2D_37", "AUTOCORR2D_38", "AUTOCORR2D_39", "AUTOCORR2D_40", "AUTOCORR2D_41", "AUTOCORR2D_42", "AUTOCORR2D_43", "AUTOCORR2D_44", "AUTOCORR2D_45", "AUTOCORR2D_46", "AUTOCORR2D_47", "AUTOCORR2D_48", "AUTOCORR2D_49", "AUTOCORR2D_50", "AUTOCORR2D_51", "AUTOCORR2D_52", "AUTOCORR2D_53", "AUTOCORR2D_54", "AUTOCORR2D_55", "AUTOCORR2D_56", "AUTOCORR2D_57", "AUTOCORR2D_58", "AUTOCORR2D_59", "AUTOCORR2D_60", "AUTOCORR2D_61", "AUTOCORR2D_62", "AUTOCORR2D_63", "AUTOCORR2D_64", "AUTOCORR2D_65", "AUTOCORR2D_66", "AUTOCORR2D_67", "AUTOCORR2D_68", "AUTOCORR2D_69", "AUTOCORR2D_70", "AUTOCORR2D_71", "AUTOCORR2D_72", "AUTOCORR2D_73", "AUTOCORR2D_74", "AUTOCORR2D_75", "AUTOCORR2D_76", "AUTOCORR2D_77", "AUTOCORR2D_78", "AUTOCORR2D_79", "AUTOCORR2D_80", "AUTOCORR2D_81", "AUTOCORR2D_82", "AUTOCORR2D_83", "AUTOCORR2D_84", "AUTOCORR2D_85", "AUTOCORR2D_86", "AUTOCORR2D_87", "AUTOCORR2D_88", "AUTOCORR2D_89", "AUTOCORR2D_90", "AUTOCORR2D_91", "AUTOCORR2D_92", "AUTOCORR2D_93", "AUTOCORR2D_94", "AUTOCORR2D_95", "AUTOCORR2D_96", "AUTOCORR2D_97", "AUTOCORR2D_98", "AUTOCORR2D_99", "AUTOCORR2D_100", "AUTOCORR2D_101", "AUTOCORR2D_102", "AUTOCORR2D_103", "AUTOCORR2D_104", "AUTOCORR2D_105", "AUTOCORR2D_106", "AUTOCORR2D_107", "AUTOCORR2D_108", "AUTOCORR2D_109", "AUTOCORR2D_110", "AUTOCORR2D_111", "AUTOCORR2D_112", "AUTOCORR2D_113", "AUTOCORR2D_114", "AUTOCORR2D_115", "AUTOCORR2D_116", "AUTOCORR2D_117", "AUTOCORR2D_118", "AUTOCORR2D_119", "AUTOCORR2D_120", "AUTOCORR2D_121", "AUTOCORR2D_122", "AUTOCORR2D_123", "AUTOCORR2D_124", "AUTOCORR2D_125", "AUTOCORR2D_126", "AUTOCORR2D_127", "AUTOCORR2D_128", "AUTOCORR2D_129", "AUTOCORR2D_130", "AUTOCORR2D_131", "AUTOCORR2D_132", "AUTOCORR2D_133", "AUTOCORR2D_134", "AUTOCORR2D_135", "AUTOCORR2D_136", "AUTOCORR2D_137", "AUTOCORR2D_138", "AUTOCORR2D_139", "AUTOCORR2D_140", "AUTOCORR2D_141", "AUTOCORR2D_142", "AUTOCORR2D_143", "AUTOCORR2D_144", "AUTOCORR2D_145", "AUTOCORR2D_146", "AUTOCORR2D_147", "AUTOCORR2D_148", "AUTOCORR2D_149", "AUTOCORR2D_150", "AUTOCORR2D_151", "AUTOCORR2D_152", "AUTOCORR2D_153", "AUTOCORR2D_154", "AUTOCORR2D_155", "AUTOCORR2D_156", "AUTOCORR2D_157", "AUTOCORR2D_158", "AUTOCORR2D_159", "AUTOCORR2D_160", "AUTOCORR2D_161", "AUTOCORR2D_162", "AUTOCORR2D_163", "AUTOCORR2D_164", "AUTOCORR2D_165", "AUTOCORR2D_166", "AUTOCORR2D_167", "AUTOCORR2D_168", "AUTOCORR2D_169", "AUTOCORR2D_170", "AUTOCORR2D_171", "AUTOCORR2D_172", "AUTOCORR2D_173", "AUTOCORR2D_174", "AUTOCORR2D_175", "AUTOCORR2D_176", "AUTOCORR2D_177", "AUTOCORR2D_178", "AUTOCORR2D_179", "AUTOCORR2D_180", "AUTOCORR2D_181", "AUTOCORR2D_182", "AUTOCORR2D_183", "AUTOCORR2D_184", "AUTOCORR2D_185", "AUTOCORR2D_186", "AUTOCORR2D_187", "AUTOCORR2D_188", "AUTOCORR2D_189", "AUTOCORR2D_190", "AUTOCORR2D_191", "AUTOCORR2D_192", "BCUT2D_CHGHI", "BCUT2D_CHGLO", "BCUT2D_LOGPHI", "BCUT2D_LOGPLOW", "BCUT2D_MRHI", "BCUT2D_MRLOW", "BCUT2D_MWHI", "BCUT2D_MWLOW", "BalabanJ", "BertzCT", "Chi0", "Chi0n", "Chi0v", "Chi1", "Chi1n", "Chi1v", "Chi2n", "Chi2v", "Chi3n", "Chi3v", "Chi4n", "Chi4v", "EState_VSA1", "EState_VSA2", "EState_VSA3", "EState_VSA4", "EState_VSA5", "EState_VSA6", "EState_VSA7", "EState_VSA8", "EState_VSA9", "EState_VSA10", "EState_VSA11", "MaxAbsEStateIndex", "MaxEStateIndex", "MinAbsEStateIndex", "MinEStateIndex", "ExactMolWt", "FpDensityMorgan1", "FpDensityMorgan2", "FpDensityMorgan3", "fr_Al_COO", "fr_Al_OH", "fr_Al_OH_noTert", "fr_ArN", "fr_Ar_COO", "fr_Ar_N", "fr_Ar_NH", "fr_Ar_OH", "fr_COO", "fr_COO2", "fr_C_O", "fr_C_O_noCOO", "fr_C_S", "fr_HOCCN", "fr_Imine", "fr_NH0", "fr_NH1", "fr_NH2", "fr_N_O", "fr_Ndealkylation1", "fr_Ndealkylation2", "fr_Nhpyrrole", "fr_SH", "fr_aldehyde", "fr_alkyl_carbamate", "fr_alkyl_halide", "fr_allylic_oxid", "fr_amide", "fr_amidine", "fr_aniline", "fr_aryl_methyl", "fr_azide", "fr_azo", "fr_barbitur", "fr_benzene", "fr_benzodiazepine", "fr_bicyclic", "fr_diazo", "fr_dihydropyridine", "fr_epoxide", "fr_ester", "fr_ether", "fr_furan", "fr_guanido", "fr_halogen", "fr_hdrzine", "fr_hdrzone", "fr_imidazole", "fr_imide", "fr_isocyan", "fr_isothiocyan", "fr_ketone", "fr_ketone_Topliss", "fr_lactam", "fr_lactone", "fr_methoxy", "fr_morpholine", "fr_nitrile", "fr_nitro", "fr_nitro_arom", "fr_nitro_arom_nonortho", "fr_nitroso", "fr_oxazole", "fr_oxime", "fr_para_hydroxylation", "fr_phenol", "fr_phenol_noOrthoHbond", "fr_phos_acid", "fr_phos_ester", "fr_piperdine", "fr_piperzine", "fr_priamide", "fr_prisulfonamd", "fr_pyridine", "fr_quatN", "fr_sulfide", "fr_sulfonamd", "fr_sulfone", "fr_term_acetylene", "fr_tetrazole", "fr_thiazole", "fr_thiocyan", "fr_thiophene", "fr_unbrch_alkane", "fr_urea", "FractionCSP3", "HallKierAlpha", "HeavyAtomMolWt", "HeavyAtomCount", "Ipc", "Kappa1", "Kappa2", "Kappa3", "LabuteASA", "MaxAbsPartialCharge", "MaxPartialCharge", "MinAbsPartialCharge", "MinPartialCharge", "MolLogP", "MolMR", "MolWt", "NHOHCount", "NOCount", "NumAliphaticCarbocycles", "NumAliphaticHeterocycles", "NumAliphaticRings", "NumAromaticCarbocycles", "NumAromaticHeterocycles", "NumAromaticRings", "NumHAcceptors", "NumHDonors", "NumHeteroatoms", "NumRadicalElectrons", "NumRotatableBonds", "NumSaturatedCarbocycles", "NumSaturatedHeterocycles", "NumSaturatedRings", "NumValenceElectrons", "PEOE_VSA1", "PEOE_VSA2", "PEOE_VSA3", "PEOE_VSA4", "PEOE_VSA5", "PEOE_VSA6", "PEOE_VSA7", "PEOE_VSA8", "PEOE_VSA9", "PEOE_VSA10", "PEOE_VSA11", "PEOE_VSA12", "PEOE_VSA13", "PEOE_VSA14", "qed", "RingCount", "SMR_VSA1", "SMR_VSA2", "SMR_VSA3", "SMR_VSA4", "SMR_VSA5", "SMR_VSA6", "SMR_VSA7", "SMR_VSA8", "SMR_VSA9", "SMR_VSA10", "SlogP_VSA1", "SlogP_VSA2", "SlogP_VSA3", "SlogP_VSA4", "SlogP_VSA5", "SlogP_VSA6", "SlogP_VSA7", "SlogP_VSA8", "SlogP_VSA9", "SlogP_VSA10", "SlogP_VSA11", "SlogP_VSA12", "TPSA", "VSA_EState1", "VSA_EState2", "VSA_EState3", "VSA_EState4", "VSA_EState5", "VSA_EState6", "VSA_EState7", "VSA_EState8", "VSA_EState9", "VSA_EState10", "AUTOCORR3D_1", "AUTOCORR3D_2", "AUTOCORR3D_3", "AUTOCORR3D_4", "AUTOCORR3D_5", "AUTOCORR3D_6", "AUTOCORR3D_7", "AUTOCORR3D_8", "AUTOCORR3D_9", "AUTOCORR3D_10", "AUTOCORR3D_11", "AUTOCORR3D_12", "AUTOCORR3D_13", "AUTOCORR3D_14", "AUTOCORR3D_15", "AUTOCORR3D_16", "AUTOCORR3D_17", "AUTOCORR3D_18", "AUTOCORR3D_19", "AUTOCORR3D_20", "AUTOCORR3D_21", "AUTOCORR3D_22", "AUTOCORR3D_23", "AUTOCORR3D_24", "AUTOCORR3D_25", "AUTOCORR3D_26", "AUTOCORR3D_27", "AUTOCORR3D_28", "AUTOCORR3D_29", "AUTOCORR3D_30", "AUTOCORR3D_31", "AUTOCORR3D_32", "AUTOCORR3D_33", "AUTOCORR3D_34", "AUTOCORR3D_35", "AUTOCORR3D_36", "AUTOCORR3D_37", "AUTOCORR3D_38", "AUTOCORR3D_39", "AUTOCORR3D_40", "AUTOCORR3D_41", "AUTOCORR3D_42", "AUTOCORR3D_43", "AUTOCORR3D_44", "AUTOCORR3D_45", "AUTOCORR3D_46", "AUTOCORR3D_47", "AUTOCORR3D_48", "AUTOCORR3D_49", "AUTOCORR3D_50", "AUTOCORR3D_51", "AUTOCORR3D_52", "AUTOCORR3D_53", "AUTOCORR3D_54", "AUTOCORR3D_55", "AUTOCORR3D_56", "AUTOCORR3D_57", "AUTOCORR3D_58", "AUTOCORR3D_59", "AUTOCORR3D_60", "AUTOCORR3D_61", "AUTOCORR3D_62", "AUTOCORR3D_63", "AUTOCORR3D_64", "AUTOCORR3D_65", "AUTOCORR3D_66", "AUTOCORR3D_67", "AUTOCORR3D_68", "AUTOCORR3D_69", "AUTOCORR3D_70", "AUTOCORR3D_71", "AUTOCORR3D_72", "AUTOCORR3D_73", "AUTOCORR3D_74", "AUTOCORR3D_75", "AUTOCORR3D_76", "AUTOCORR3D_77", "AUTOCORR3D_78", "AUTOCORR3D_79", "AUTOCORR3D_80", "Asphericity", "Eccentricity", "InertialShapeFactor", "NPR1", "NPR2", "PMI1", "PMI2", "PMI3", "RadiusOfGyration", "SpherocityIndex"]
-        # </editor-fold>
+        #endregion
         # Validate the data
         for key in keys:
             # If key is lacking in data read from json (means malformed json!)
@@ -7109,9 +7109,9 @@ def read_descriptors_from_json(path, returnDict = False):
             # Return the entire dict
             return data
         # Since we have all keys, read them and return their values
-        # <editor-fold> Return data
+        #region Return data
         return data["Name"], data["AUTOCORR2D_1"], data["AUTOCORR2D_2"], data["AUTOCORR2D_3"], data["AUTOCORR2D_4"], data["AUTOCORR2D_5"], data["AUTOCORR2D_6"], data["AUTOCORR2D_7"], data["AUTOCORR2D_8"], data["AUTOCORR2D_9"], data["AUTOCORR2D_10"], data["AUTOCORR2D_11"], data["AUTOCORR2D_12"], data["AUTOCORR2D_13"], data["AUTOCORR2D_14"], data["AUTOCORR2D_15"], data["AUTOCORR2D_16"], data["AUTOCORR2D_17"], data["AUTOCORR2D_18"], data["AUTOCORR2D_19"], data["AUTOCORR2D_20"], data["AUTOCORR2D_21"], data["AUTOCORR2D_22"], data["AUTOCORR2D_23"], data["AUTOCORR2D_24"], data["AUTOCORR2D_25"], data["AUTOCORR2D_26"], data["AUTOCORR2D_27"], data["AUTOCORR2D_28"], data["AUTOCORR2D_29"], data["AUTOCORR2D_30"], data["AUTOCORR2D_31"], data["AUTOCORR2D_32"], data["AUTOCORR2D_33"], data["AUTOCORR2D_34"], data["AUTOCORR2D_35"], data["AUTOCORR2D_36"], data["AUTOCORR2D_37"], data["AUTOCORR2D_38"], data["AUTOCORR2D_39"], data["AUTOCORR2D_40"], data["AUTOCORR2D_41"], data["AUTOCORR2D_42"], data["AUTOCORR2D_43"], data["AUTOCORR2D_44"], data["AUTOCORR2D_45"], data["AUTOCORR2D_46"], data["AUTOCORR2D_47"], data["AUTOCORR2D_48"], data["AUTOCORR2D_49"], data["AUTOCORR2D_50"], data["AUTOCORR2D_51"], data["AUTOCORR2D_52"], data["AUTOCORR2D_53"], data["AUTOCORR2D_54"], data["AUTOCORR2D_55"], data["AUTOCORR2D_56"], data["AUTOCORR2D_57"], data["AUTOCORR2D_58"], data["AUTOCORR2D_59"], data["AUTOCORR2D_60"], data["AUTOCORR2D_61"], data["AUTOCORR2D_62"], data["AUTOCORR2D_63"], data["AUTOCORR2D_64"], data["AUTOCORR2D_65"], data["AUTOCORR2D_66"], data["AUTOCORR2D_67"], data["AUTOCORR2D_68"], data["AUTOCORR2D_69"], data["AUTOCORR2D_70"], data["AUTOCORR2D_71"], data["AUTOCORR2D_72"], data["AUTOCORR2D_73"], data["AUTOCORR2D_74"], data["AUTOCORR2D_75"], data["AUTOCORR2D_76"], data["AUTOCORR2D_77"], data["AUTOCORR2D_78"], data["AUTOCORR2D_79"], data["AUTOCORR2D_80"], data["AUTOCORR2D_81"], data["AUTOCORR2D_82"], data["AUTOCORR2D_83"], data["AUTOCORR2D_84"], data["AUTOCORR2D_85"], data["AUTOCORR2D_86"], data["AUTOCORR2D_87"], data["AUTOCORR2D_88"], data["AUTOCORR2D_89"], data["AUTOCORR2D_90"], data["AUTOCORR2D_91"], data["AUTOCORR2D_92"], data["AUTOCORR2D_93"], data["AUTOCORR2D_94"], data["AUTOCORR2D_95"], data["AUTOCORR2D_96"], data["AUTOCORR2D_97"], data["AUTOCORR2D_98"], data["AUTOCORR2D_99"], data["AUTOCORR2D_100"], data["AUTOCORR2D_101"], data["AUTOCORR2D_102"], data["AUTOCORR2D_103"], data["AUTOCORR2D_104"], data["AUTOCORR2D_105"], data["AUTOCORR2D_106"], data["AUTOCORR2D_107"], data["AUTOCORR2D_108"], data["AUTOCORR2D_109"], data["AUTOCORR2D_110"], data["AUTOCORR2D_111"], data["AUTOCORR2D_112"], data["AUTOCORR2D_113"], data["AUTOCORR2D_114"], data["AUTOCORR2D_115"], data["AUTOCORR2D_116"], data["AUTOCORR2D_117"], data["AUTOCORR2D_118"], data["AUTOCORR2D_119"], data["AUTOCORR2D_120"], data["AUTOCORR2D_121"], data["AUTOCORR2D_122"], data["AUTOCORR2D_123"], data["AUTOCORR2D_124"], data["AUTOCORR2D_125"], data["AUTOCORR2D_126"], data["AUTOCORR2D_127"], data["AUTOCORR2D_128"], data["AUTOCORR2D_129"], data["AUTOCORR2D_130"], data["AUTOCORR2D_131"], data["AUTOCORR2D_132"], data["AUTOCORR2D_133"], data["AUTOCORR2D_134"], data["AUTOCORR2D_135"], data["AUTOCORR2D_136"], data["AUTOCORR2D_137"], data["AUTOCORR2D_138"], data["AUTOCORR2D_139"], data["AUTOCORR2D_140"], data["AUTOCORR2D_141"], data["AUTOCORR2D_142"], data["AUTOCORR2D_143"], data["AUTOCORR2D_144"], data["AUTOCORR2D_145"], data["AUTOCORR2D_146"], data["AUTOCORR2D_147"], data["AUTOCORR2D_148"], data["AUTOCORR2D_149"], data["AUTOCORR2D_150"], data["AUTOCORR2D_151"], data["AUTOCORR2D_152"], data["AUTOCORR2D_153"], data["AUTOCORR2D_154"], data["AUTOCORR2D_155"], data["AUTOCORR2D_156"], data["AUTOCORR2D_157"], data["AUTOCORR2D_158"], data["AUTOCORR2D_159"], data["AUTOCORR2D_160"], data["AUTOCORR2D_161"], data["AUTOCORR2D_162"], data["AUTOCORR2D_163"], data["AUTOCORR2D_164"], data["AUTOCORR2D_165"], data["AUTOCORR2D_166"], data["AUTOCORR2D_167"], data["AUTOCORR2D_168"], data["AUTOCORR2D_169"], data["AUTOCORR2D_170"], data["AUTOCORR2D_171"], data["AUTOCORR2D_172"], data["AUTOCORR2D_173"], data["AUTOCORR2D_174"], data["AUTOCORR2D_175"], data["AUTOCORR2D_176"], data["AUTOCORR2D_177"], data["AUTOCORR2D_178"], data["AUTOCORR2D_179"], data["AUTOCORR2D_180"], data["AUTOCORR2D_181"], data["AUTOCORR2D_182"], data["AUTOCORR2D_183"], data["AUTOCORR2D_184"], data["AUTOCORR2D_185"], data["AUTOCORR2D_186"], data["AUTOCORR2D_187"], data["AUTOCORR2D_188"], data["AUTOCORR2D_189"], data["AUTOCORR2D_190"], data["AUTOCORR2D_191"], data["AUTOCORR2D_192"], data["BCUT2D_CHGHI"], data["BCUT2D_CHGLO"], data["BCUT2D_LOGPHI"], data["BCUT2D_LOGPLOW"], data["BCUT2D_MRHI"], data["BCUT2D_MRLOW"], data["BCUT2D_MWHI"], data["BCUT2D_MWLOW"], data["BalabanJ"], data["BertzCT"], data["Chi0"], data["Chi0n"], data["Chi0v"], data["Chi1"], data["Chi1n"], data["Chi1v"], data["Chi2n"], data["Chi2v"], data["Chi3n"], data["Chi3v"], data["Chi4n"], data["Chi4v"], data["EState_VSA1"], data["EState_VSA2"], data["EState_VSA3"], data["EState_VSA4"], data["EState_VSA5"], data["EState_VSA6"], data["EState_VSA7"], data["EState_VSA8"], data["EState_VSA9"], data["EState_VSA10"], data["EState_VSA11"], data["MaxAbsEStateIndex"], data["MaxEStateIndex"], data["MinAbsEStateIndex"], data["MinEStateIndex"], data["ExactMolWt"], data["FpDensityMorgan1"], data["FpDensityMorgan2"], data["FpDensityMorgan3"], data["fr_Al_COO"], data["fr_Al_OH"], data["fr_Al_OH_noTert"], data["fr_ArN"], data["fr_Ar_COO"], data["fr_Ar_N"], data["fr_Ar_NH"], data["fr_Ar_OH"], data["fr_COO"], data["fr_COO2"], data["fr_C_O"], data["fr_C_O_noCOO"], data["fr_C_S"], data["fr_HOCCN"], data["fr_Imine"], data["fr_NH0"], data["fr_NH1"], data["fr_NH2"], data["fr_N_O"], data["fr_Ndealkylation1"], data["fr_Ndealkylation2"], data["fr_Nhpyrrole"], data["fr_SH"], data["fr_aldehyde"], data["fr_alkyl_carbamate"], data["fr_alkyl_halide"], data["fr_allylic_oxid"], data["fr_amide"], data["fr_amidine"], data["fr_aniline"], data["fr_aryl_methyl"], data["fr_azide"], data["fr_azo"], data["fr_barbitur"], data["fr_benzene"], data["fr_benzodiazepine"], data["fr_bicyclic"], data["fr_diazo"], data["fr_dihydropyridine"], data["fr_epoxide"], data["fr_ester"], data["fr_ether"], data["fr_furan"], data["fr_guanido"], data["fr_halogen"], data["fr_hdrzine"], data["fr_hdrzone"], data["fr_imidazole"], data["fr_imide"], data["fr_isocyan"], data["fr_isothiocyan"], data["fr_ketone"], data["fr_ketone_Topliss"], data["fr_lactam"], data["fr_lactone"], data["fr_methoxy"], data["fr_morpholine"], data["fr_nitrile"], data["fr_nitro"], data["fr_nitro_arom"], data["fr_nitro_arom_nonortho"], data["fr_nitroso"], data["fr_oxazole"], data["fr_oxime"], data["fr_para_hydroxylation"], data["fr_phenol"], data["fr_phenol_noOrthoHbond"], data["fr_phos_acid"], data["fr_phos_ester"], data["fr_piperdine"], data["fr_piperzine"], data["fr_priamide"], data["fr_prisulfonamd"], data["fr_pyridine"], data["fr_quatN"], data["fr_sulfide"], data["fr_sulfonamd"], data["fr_sulfone"], data["fr_term_acetylene"], data["fr_tetrazole"], data["fr_thiazole"], data["fr_thiocyan"], data["fr_thiophene"], data["fr_unbrch_alkane"], data["fr_urea"], data["FractionCSP3"], data["HallKierAlpha"], data["HeavyAtomMolWt"], data["HeavyAtomCount"], data["Ipc"], data["Kappa1"], data["Kappa2"], data["Kappa3"], data["LabuteASA"], data["MaxAbsPartialCharge"], data["MaxPartialCharge"], data["MinAbsPartialCharge"], data["MinPartialCharge"], data["MolLogP"], data["MolMR"], data["MolWt"], data["NHOHCount"], data["NOCount"], data["NumAliphaticCarbocycles"], data["NumAliphaticHeterocycles"], data["NumAliphaticRings"], data["NumAromaticCarbocycles"], data["NumAromaticHeterocycles"], data["NumAromaticRings"], data["NumHAcceptors"], data["NumHDonors"], data["NumHeteroatoms"], data["NumRadicalElectrons"], data["NumRotatableBonds"], data["NumSaturatedCarbocycles"], data["NumSaturatedHeterocycles"], data["NumSaturatedRings"], data["NumValenceElectrons"], data["PEOE_VSA1"], data["PEOE_VSA2"], data["PEOE_VSA3"], data["PEOE_VSA4"], data["PEOE_VSA5"], data["PEOE_VSA6"], data["PEOE_VSA7"], data["PEOE_VSA8"], data["PEOE_VSA9"], data["PEOE_VSA10"], data["PEOE_VSA11"], data["PEOE_VSA12"], data["PEOE_VSA13"], data["PEOE_VSA14"], data["qed"], data["RingCount"], data["SMR_VSA1"], data["SMR_VSA2"], data["SMR_VSA3"], data["SMR_VSA4"], data["SMR_VSA5"], data["SMR_VSA6"], data["SMR_VSA7"], data["SMR_VSA8"], data["SMR_VSA9"], data["SMR_VSA10"], data["SlogP_VSA1"], data["SlogP_VSA2"], data["SlogP_VSA3"], data["SlogP_VSA4"], data["SlogP_VSA5"], data["SlogP_VSA6"], data["SlogP_VSA7"], data["SlogP_VSA8"], data["SlogP_VSA9"], data["SlogP_VSA10"], data["SlogP_VSA11"], data["SlogP_VSA12"], data["TPSA"], data["VSA_EState1"], data["VSA_EState2"], data["VSA_EState3"], data["VSA_EState4"], data["VSA_EState5"], data["VSA_EState6"], data["VSA_EState7"], data["VSA_EState8"], data["VSA_EState9"], data["VSA_EState10"], data["AUTOCORR3D_1"], data["AUTOCORR3D_2"], data["AUTOCORR3D_3"], data["AUTOCORR3D_4"], data["AUTOCORR3D_5"], data["AUTOCORR3D_6"], data["AUTOCORR3D_7"], data["AUTOCORR3D_8"], data["AUTOCORR3D_9"], data["AUTOCORR3D_10"], data["AUTOCORR3D_11"], data["AUTOCORR3D_12"], data["AUTOCORR3D_13"], data["AUTOCORR3D_14"], data["AUTOCORR3D_15"], data["AUTOCORR3D_16"], data["AUTOCORR3D_17"], data["AUTOCORR3D_18"], data["AUTOCORR3D_19"], data["AUTOCORR3D_20"], data["AUTOCORR3D_21"], data["AUTOCORR3D_22"], data["AUTOCORR3D_23"], data["AUTOCORR3D_24"], data["AUTOCORR3D_25"], data["AUTOCORR3D_26"], data["AUTOCORR3D_27"], data["AUTOCORR3D_28"], data["AUTOCORR3D_29"], data["AUTOCORR3D_30"], data["AUTOCORR3D_31"], data["AUTOCORR3D_32"], data["AUTOCORR3D_33"], data["AUTOCORR3D_34"], data["AUTOCORR3D_35"], data["AUTOCORR3D_36"], data["AUTOCORR3D_37"], data["AUTOCORR3D_38"], data["AUTOCORR3D_39"], data["AUTOCORR3D_40"], data["AUTOCORR3D_41"], data["AUTOCORR3D_42"], data["AUTOCORR3D_43"], data["AUTOCORR3D_44"], data["AUTOCORR3D_45"], data["AUTOCORR3D_46"], data["AUTOCORR3D_47"], data["AUTOCORR3D_48"], data["AUTOCORR3D_49"], data["AUTOCORR3D_50"], data["AUTOCORR3D_51"], data["AUTOCORR3D_52"], data["AUTOCORR3D_53"], data["AUTOCORR3D_54"], data["AUTOCORR3D_55"], data["AUTOCORR3D_56"], data["AUTOCORR3D_57"], data["AUTOCORR3D_58"], data["AUTOCORR3D_59"], data["AUTOCORR3D_60"], data["AUTOCORR3D_61"], data["AUTOCORR3D_62"], data["AUTOCORR3D_63"], data["AUTOCORR3D_64"], data["AUTOCORR3D_65"], data["AUTOCORR3D_66"], data["AUTOCORR3D_67"], data["AUTOCORR3D_68"], data["AUTOCORR3D_69"], data["AUTOCORR3D_70"], data["AUTOCORR3D_71"], data["AUTOCORR3D_72"], data["AUTOCORR3D_73"], data["AUTOCORR3D_74"], data["AUTOCORR3D_75"], data["AUTOCORR3D_76"], data["AUTOCORR3D_77"], data["AUTOCORR3D_78"], data["AUTOCORR3D_79"], data["AUTOCORR3D_80"], data["Asphericity"], data["Eccentricity"], data["InertialShapeFactor"], data["NPR1"], data["NPR2"], data["PMI1"], data["PMI2"], data["PMI3"], data["RadiusOfGyration"], data["SpherocityIndex"]
-        # </editor-fold>
+        #endregion
     # Key error (when there is a missing key)
     except KeyError as k:
         octools.print_error(f"The following keys were not found in the json file '{k[0]}': {k[1]}.")
@@ -7136,7 +7136,7 @@ def get_smiles(molecule):
 
 # Descriptors functions #
 
-# <editor-fold> AUTOCORR descriptors
+#region AUTOCORR descriptors
 def findAUTOCORR2D_1(molecule):
     '''
     Compute the autocorrelation2D_1 descriptor.
@@ -10401,9 +10401,9 @@ def findAUTOCORR2D_192(molecule):
     _ = errors.not_set(f"The variable is not set.")
     return None
 
-# </editor-fold>
+#endregion
 
-# <editor-fold> BCUT2D descriptors
+#region BCUT2D descriptors
 def findBCUT2D_CHGHI(molecule):
     '''
     Compute the BCUT2D_CHGHI descriptor.
@@ -10540,7 +10540,7 @@ def findBCUT2D_MWLOW(molecule):
     _ = errors.not_set(f"The variable is not set.")
     return None
 
-# </editor-fold>
+#endregion
 
 def findBalabanJ(molecule):
     '''
@@ -10576,7 +10576,7 @@ def findBertzCT(molecule):
     _ = errors.not_set(f"The variable is not set.")
     return None
 
-# <editor-fold> Chi descriptors
+#region Chi descriptors
 def findChi0(molecule):
     '''
     Compute the Chi0 descriptor.
@@ -10781,9 +10781,9 @@ def findChi4v(molecule):
     _ = errors.not_set(f"The variable is not set.")
     return None
 
-# </editor-fold>
+#endregion
 
-# <editor-fold> EState descriptors
+#region EState descriptors
 def findEState_VSA1(molecule):
     '''
     Compute the EState_VSA1 descriptor.
@@ -11039,7 +11039,7 @@ def findMinEStateIndex(molecule):
     _ = errors.not_set(f"The variable is not set.")
     return None
 
-# </editor-fold>
+#endregion
 
 def findExactMolWt(molecule):
     '''
@@ -11109,7 +11109,7 @@ def findFpDensityMorgan3(molecule):
     _ = errors.not_set(f"The variable is not set.")
     return None
 
-# <editor-fold> fr_ descriptors
+#region fr_ descriptors
 def findfr_Al_COO(molecule):
     '''
     Compute the fr_Al_COO descriptor.
@@ -12555,7 +12555,7 @@ def findfr_urea(molecule):
     _ = errors.not_set(f"The variable is not set.")
     return None
 
-# </editor-fold>
+#endregion
 
 def findFractionCSP3(molecule):
     '''
@@ -12640,7 +12640,7 @@ def findIpc(molecule):
     _ = errors.not_set(f"The variable is not set.")
     return None
 
-# <editor-fold> Kappa descriptors
+#region Kappa descriptors
 def findKappa1(molecule):
     '''
     Compute the Kappa1 descriptor.
@@ -12692,7 +12692,7 @@ def findKappa3(molecule):
     _ = errors.not_set(f"The variable is not set.")
     return None
 
-# </editor-fold>
+#endregion
 
 def findLabuteASA(molecule):
     '''
@@ -12830,7 +12830,7 @@ def findMolWt(molecule):
     _ = errors.not_set(f"The variable is not set.")
     return None
 
-# <editor-fold> 'count' descriptors
+#region 'count' descriptors
 def findNHOHCount(molecule):
     '''
     Compute the NHOHCount descriptor.
@@ -13137,9 +13137,9 @@ def findRingCount(molecule):
     _ = errors.not_set(f"The variable is not set.")
     return None
 
-# </editor-fold>
+#endregion
 
-# <editor-fold> PEOE_VSA descriptors
+#region PEOE_VSA descriptors
 def findPEOE_VSA1(molecule):
     '''
     Compute the PEOE_VSA1 descriptor.
@@ -13378,7 +13378,7 @@ def findPEOE_VSA14(molecule):
     _ = errors.not_set(f"The variable is not set.")
     return None
 
-# </editor-fold>
+#endregion
 
 def findqed(molecule):
     '''
@@ -13397,7 +13397,7 @@ def findqed(molecule):
     _ = errors.not_set(f"The variable is not set.")
     return None
 
-# <editor-fold> SMR_VSA descriptors
+#region SMR_VSA descriptors
 def findSMR_VSA1(molecule):
     '''
     Compute the SMR_VSA1 descriptor.
@@ -13568,9 +13568,9 @@ def findSMR_VSA10(molecule):
     _ = errors.not_set(f"The variable is not set.")
     return None
 
-# </editor-fold>
+#endregion
 
-# <editor-fold> SlogP_VSA descriptors
+#region SlogP_VSA descriptors
 def findSlogP_VSA1(molecule):
     '''
     Compute the SlogP_VSA1 descriptor.
@@ -13775,7 +13775,7 @@ def findSlogP_VSA12(molecule):
     _ = errors.not_set(f"The variable is not set.")
     return None
 
-# </editor-fold>
+#endregion
 
 def findTPSA(molecule):
     '''
@@ -13794,7 +13794,7 @@ def findTPSA(molecule):
     _ = errors.not_set(f"The variable is not set.")
     return None
 
-# <editor-fold> VSA_EState descriptors
+#region VSA_EState descriptors
 def findVSA_EState1(molecule):
     '''
     Compute the VSA_EState1 descriptor.
@@ -13965,9 +13965,9 @@ def findVSA_EState10(molecule):
     _ = errors.not_set(f"The variable is not set.")
     return None
 
-# </editor-fold>
+#endregion
 
-# <editor-fold> 3D descriptors
+#region 3D descriptors
 def findAUTOCORR3D(molecule):
     '''
     Compute the AUTOCORR3D descriptors.
@@ -14155,4 +14155,4 @@ def findSpherocityIndex(molecule):
     _ = errors.not_set(f"The variable is not set.")
     return None
 
-# </editor-fold>
+#endregion
