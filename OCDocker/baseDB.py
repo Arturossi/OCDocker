@@ -2094,7 +2094,7 @@ def run_dock(archive, dockingAlgorithm, overwrite = False):
             extremaDirDecoy = f"{dir}/Extrema_decoys"
             goldilocksDirDecoy = f"{dir}/Goldilocks_decoys"
             # Merge the ligandAlternative list with the list with dudezDirLigand, dudezDirDecoy, extremaDirDecoy, goldilocksDirDecoy ligands
-            ligandAlternativeDirs.extend([glob(f"{dudezDirLigand}/*"), glob(f"{dudezDirDecoy}/*"), glob(f"{extremaDirDecoy}/*"), glob(f"{goldilocksDirDecoy}/*")])
+            ligandAlternativeDirs.extend(glob(f"{dudezDirLigand}/*"), glob(f"{dudezDirDecoy}/*"), glob(f"{extremaDirDecoy}/*"), glob(f"{goldilocksDirDecoy}/*"))
     else:
         ligandAlternativeDirs = ""
             
