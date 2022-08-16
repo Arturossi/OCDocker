@@ -752,6 +752,8 @@ def __sub_core_run_dock(receptorPath, ligandPath, receptorDir, ligandDir, archiv
     Return:
       -
     '''
+    print(ligandDescriptor)
+    print(receptorDescriptor)
     # If the complex has all descriptors for protein AND ligand
     if os.path.isfile(receptorDescriptor) and os.path.isfile(ligandDescriptor):
         # Find protein name
