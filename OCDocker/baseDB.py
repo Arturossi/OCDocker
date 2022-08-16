@@ -260,10 +260,14 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
     elif archive == "dudez":
         # Set the input file name path
         fin = f"{dir}/rec.crg.pdb"
+        fout = f"{dir}/rec.crg.mol2"
 
         # Find the protein name
         ptn = dir.split(os.path.sep)[-1]
 
+        # Prepare the receptor
+        __prepare_molecule((fin, fout), overwrite, "receptor", archive, f"{ptn} DUDEz receptor")
+        return
         # Set the 3 dirs containing ligand/decoys
         dudezDir = f"{dir}/DUDE_Z"
         extremaDir = f"{dir}/Extrema"
@@ -732,14 +736,15 @@ def __get_no_parallel(dirs, archive, desc):
         return databaseDict
 
 ### Docking
-def __core_run_dock(dir, archive, dockingAlgorithm, overwrite):
+def __core_run_dock(dir, archive, dockingAlgorithm, overwrite, ligandAlternativeDir = ""):
     '''
     Performs the docking.
     Input:
-     dir              [string] - The directory where the files are stored
-     archive          [string] - Which archive will be processed [dudez, pdbbind, astex]
-     dockingAlgorithm [string] - Which docking algorithm will be used [vina, smina, plants]
-     overwrite        [bool]   - Flag to tell if files should be overwritten
+     dir                  [string]             - The directory where the files are stored
+     archive              [string]             - Which archive will be processed [dudez, pdbbind, astex]
+     dockingAlgorithm     [string]             - Which docking algorithm will be used [vina, smina, plants]
+     overwrite            [bool]               - Flag to tell if files should be overwritten
+     ligandAlternativeDir [string] DEFAULT: "" - If the directory where the ligand is stored is different than <dir> pass it here
     Return:
       -
     '''
@@ -751,6 +756,16 @@ def __core_run_dock(dir, archive, dockingAlgorithm, overwrite):
         chosenArchive = astex_archive
     elif archive == "dudez":
         chosenArchive = dudez_archive
+        # Find protein name
+        ptn = dir.split(os.path.sep)[-1]
+        # Find protein name
+        receptorPath = f"{dir}/rec.crg.pdb"
+        # Find ligand name
+        ligandName = os.path.basename(ligandAlternativeDir).split("_")[0]
+        ligandPath = f"{ligandAlternativeDir}/{ligand_name}.mol2"
+        # If the complex has all descriptors for protein AND ligand
+        if os.path.isfile(f"{dir}/{ptn}_protein_descriptors.json") and os.path.isfile(f"{dir}/{ptn}_ligand_descriptors.json"):
+
     elif archive == "pdbbind":
         # Find protein name
         ptn = dir.split(os.path.sep)[-1]
@@ -1002,28 +1017,30 @@ def __thread_run_dock_parallel(arguments):
     Thread aid function to call __core_run_dock.
     Input:
      arguments [tuple(string, string, string, bool)] - Tuple containing, in this order:
-        - [string] - The directory where the files are stored
-        - [string] - Which archive will be processed [dudez, pdbbind, astex]
-        - [string] - Which docking algorithm will be used [vina, smina, plants]
-        - [bool]   - Flag to tell if files should be overwritten
+        - [string]             - The directory where the files are stored
+        - [string]             - Which archive will be processed [dudez, pdbbind, astex]
+        - [string]             - Which docking algorithm will be used [vina, smina, plants]
+        - [bool]               - Flag to tell if files should be overwritten
+        - [string] DEFAULT: "" - If the directory where the ligand is stored is different than <dir> pass it here
     Return:
       -
     '''
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         # Call the core dock function passing the arguments correctly
-        __core_run_dock(arguments[0], arguments[1], arguments[2], arguments[3])
+        __core_run_dock(arguments[0], arguments[1], arguments[2], arguments[3], ligandAlternativeDir = arguments[4])
     return None
 
-def __run_dock_parallel(dirs, archive, dockingAlgorithm, overwrite, desc):
+def __run_dock_parallel(dirs, archive, dockingAlgorithm, overwrite, desc, ligandAlternativeDir = ""):
     '''
     Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
     Input:
-     dirs             [string] - List of paths to process
-     archive          [string] - The database name (for proper logging)
-     dockingAlgorithm [string] - Which docking algorithm will be used [vina, smina, plants]
-     overwrite        [bool]   - Flag to tell if files should be overwritten
-     desc             [string] - The description used in the progress bar
+     dirs                 [string]             - List of paths to process
+     archive              [string]             - The database name (for proper logging)
+     dockingAlgorithm     [string]             - Which docking algorithm will be used [vina, smina, plants]
+     overwrite            [bool]               - Flag to tell if files should be overwritten
+     desc                 [string]             - The description used in the progress bar
+     ligandAlternativeDir [string] DEFAULT: "" - If the directory where the ligand is stored is different than <dir> pass it here
     Return:
       -
     '''
@@ -1032,16 +1049,16 @@ def __run_dock_parallel(dirs, archive, dockingAlgorithm, overwrite, desc):
     # For each file in the glob
     for dir in dirs:
         # Append a tuple containing the file name and ovewrite flag to the arguments list
-        arguments.append((dir, archive, dockingAlgorithm, overwrite))
+        arguments.append((dir, archive, dockingAlgorithm, overwrite, ligandAlternativeDir))
     # If logfile exists, backup it (for error and warnings)
-    if os.path.isfile(f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_ERROR.log"):
-        if not os.path.isdir(f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_past"):
-            octools.safe_create_dir(f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_past")
-        os.rename(f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_ERROR.log", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_past/PDBbind_{dockingAlgorithm}_run_report_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
-    if os.path.isfile(f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_WARNING.log"):
-        if not os.path.isdir(f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_past"):
-            octools.safe_create_dir(f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_past")
-        os.rename(f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_WARNING.log", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_past/PDBbind_{dockingAlgorithm}_run_report_WARNING_{time.strftime('%d%m%Y-%H%M%S')}.log")
+    if os.path.isfile(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log"):
+        if not os.path.isdir(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past"):
+            octools.safe_create_dir(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past")
+        os.rename(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past/{archive}_{dockingAlgorithm}_run_report_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
+    if os.path.isfile(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_WARNING.log"):
+        if not os.path.isdir(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past"):
+            octools.safe_create_dir(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past")
+        os.rename(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_WARNING.log", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past/{archive}_{dockingAlgorithm}_run_report_WARNING_{time.strftime('%d%m%Y-%H%M%S')}.log")
     # Create a Thread pool with the maximum available_cores
     with Pool(args.available_cores) as p:
         # Perform the multi process
@@ -1051,32 +1068,33 @@ def __run_dock_parallel(dirs, archive, dockingAlgorithm, overwrite, desc):
     # Return
     return None
 
-def __run_dock_no_parallel(dirs, archive, dockingAlgorithm, overwrite, desc):
+def __run_dock_no_parallel(dirs, archive, dockingAlgorithm, overwrite, desc, ligandAlternativeDir = ""):
     '''
     Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_run_dock function.
     Input:
-     dirs             [string] - List of paths to process
-     archive          [string] - The database name (for proper logging)
-     dockingAlgorithm [string] - Which docking algorithm will be used [vina, smina, plants]
-     overwrite        [bool]   - Flag to tell if files should be overwritten
-     desc             [string] - The description used in the progress bar
+     dirs                 [string]             - List of paths to process
+     archive              [string]             - The database name (for proper logging)
+     dockingAlgorithm     [string]             - Which docking algorithm will be used [vina, smina, plants]
+     overwrite            [bool]               - Flag to tell if files should be overwritten
+     desc                 [string]             - The description used in the progress bar
+     ligandAlternativeDir [string] DEFAULT: "" - If the directory where the ligand is stored is different than <dir> pass it here
     Return:
       -
     '''
     # If logfile exists, backup it (for error and warnings)
-    if os.path.isfile(f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_ERROR.log"):
-        if not os.path.isdir(f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_past"):
-            octools.safe_create_dir(f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_past")
-        os.rename(f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_ERROR.log", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_past/PDBbind_{dockingAlgorithm}_run_report_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
-    if os.path.isfile(f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_WARNING.log"):
-        if not os.path.isdir(f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_past"):
-            octools.safe_create_dir(f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_past")
-        os.rename(f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_WARNING.log", f"{logdir}/PDBbind_{dockingAlgorithm}_run_report_past/PDBbind_{dockingAlgorithm}_run_report_WARNING_{time.strftime('%d%m%Y-%H%M%S')}.log")
+    if os.path.isfile(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log"):
+        if not os.path.isdir(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past"):
+            octools.safe_create_dir(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past")
+        os.rename(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past/{archive}_{dockingAlgorithm}_run_report_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
+    if os.path.isfile(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_WARNING.log"):
+        if not os.path.isdir(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past"):
+            octools.safe_create_dir(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past")
+        os.rename(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_WARNING.log", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past/{archive}_{dockingAlgorithm}_run_report_WARNING_{time.strftime('%d%m%Y-%H%M%S')}.log")
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         for dir in tqdm(iterable=dirs, total=len(dirs), desc=desc):
             # Call the core dock function (shared between parallel and not parallel)
-            __core_dock(dir, archive, dockingAlgorithm, overwrite)
+            __core_run_dock(dir, archive, dockingAlgorithm, overwrite, ligandAlternativeDir = ligandAlternativeDir)
             # Clear the memory
             gc.collect()
     return None

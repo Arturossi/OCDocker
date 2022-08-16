@@ -403,3 +403,33 @@ def run_p2rank(overwrite = False):
       -
     '''
     return ocbdb.run_p2rank("dudez", overwrite = overwrite)
+
+def run_vina(overwrite = False):
+    '''
+    Runs vina in the whole database.
+    Input:
+     overwrite [bool] DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated.
+    Return:
+      -
+    '''
+    return ocbdb.run_dock("dudez", "vina", overwrite = overwrite)
+
+def run_smina(overwrite = False):
+    '''
+    Runs smina in the whole database.
+    Input:
+     overwrite [bool] DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated.
+    Return:
+      -
+    '''
+    return ocbdb.run_dock("dudez", "smina", overwrite = overwrite)
+
+def run_plants(overwrite = False):
+    '''
+    Runs PLANTS in the whole database.
+    Input:
+     overwrite [bool] DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated.
+    Return:
+      -
+    '''
+    return ocbdb.run_dock("dudez", "plants", overwrite = overwrite)
