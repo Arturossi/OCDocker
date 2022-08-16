@@ -442,7 +442,7 @@ class Receptor:
             False - if not valid
         '''
         # <editor-fold> if any attribute is None
-        if self.name is None or self.path is None or self.structure is None or self.residues is None or self.sasa is None or self.dipoleMoment is None or self.isoelectricPoint is None or self.instabilityIndex is None or self.GRAVY is None or self.aromaticity is None or self.__countAA is None or self.totalLen is None or self.avgLen is None or self.chainNumber is None:
+        if self.name is None or self.path is None or self.structure is None or self.residues is None or self.sasa is None or self.dipoleMoment is None or self.isoelectricPoint is None or self.instabilityIndex is None or self.GRAVY is None or self.aromaticity is None or self.__countAA is None or self.totalAALength is None or self.avgAALength is None or self.countChain is None:
             return False
         # </editor-fold>
         return True
