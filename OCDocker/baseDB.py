@@ -752,6 +752,8 @@ def __sub_core_run_dock(receptorPath, ligandPath, receptorDir, ligandDir, archiv
     Return:
       -
     '''
+    print(receptorDescriptor)
+    print(ligandDescriptor)
     # If the complex has all descriptors for protein AND ligand
     if os.path.isfile(receptorDescriptor) and os.path.isfile(ligandDescriptor):
         # Find protein name
@@ -998,8 +1000,8 @@ def __sub_core_run_dock(receptorPath, ligandPath, receptorDir, ligandDir, archiv
             octools.print_error_log(f"Wrong docking algorithm. Expected ['vina', 'smina', 'plants'] and got '{dockingAlgorithm}'.", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
             return errors.receptor_or_ligand_descriptor_does_not_exist(f"Wrong docking algorithm. Expected ['vina', 'smina', 'plants'] and got '{dockingAlgorithm}'.", level = "error")
     else:
-        octools.print_error_log(f"There is no ligand or receptor descriptor json file for the protein in dir '{dir}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
-        return errors.receptor_or_ligand_descriptor_does_not_exist(f"There is no ligand or receptor descriptor for the protein in dir '{dir}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", level = "error")
+        octools.print_error_log(f"There is no ligand or receptor descriptor json file for the protein in dir '{ligandDir}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
+        return errors.receptor_or_ligand_descriptor_does_not_exist(f"There is no ligand or receptor descriptor for the protein in dir '{ligandDir}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", level = "error")
     return None
 
 def __core_run_dock(dir, archive, dockingAlgorithm, overwrite, ligandAlternativeDir = ""):
