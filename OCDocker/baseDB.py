@@ -752,8 +752,6 @@ def __sub_core_run_dock(receptorPath, ligandPath, receptorDir, ligandDir, archiv
     Return:
       -
     '''
-    print(receptorDescriptor)
-    print(ligandDescriptor)
     # If the complex has all descriptors for protein AND ligand
     if os.path.isfile(receptorDescriptor) and os.path.isfile(ligandDescriptor):
         # Find protein name
@@ -1037,7 +1035,7 @@ def __core_run_dock(dir, archive, dockingAlgorithm, overwrite, ligandAlternative
         ligandPath = f"{ligandAlternativeDir}/{ligandName}.mol2"
         # Set ligand and receptor descriptor paths
         ligandDescriptor = f"{ligandAlternativeDir}/rec.crg_descriptors.json"
-        receptorDescriptor = f"{dir}/rec.crg_descriptors.json"  
+        receptorDescriptor = f"{dir}/{ligandName}_descriptors.json"  
     elif archive == "pdbbind":
         # Find protein name
         ptn = dir.split(os.path.sep)[-1]
