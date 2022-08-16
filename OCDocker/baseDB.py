@@ -261,6 +261,9 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         # Set the input file name path
         fin = f"{dir}/rec.crg.pdb"
 
+        # Find the protein name
+        ptn = dir.split(os.path.sep)[-1]
+
         # Set the 3 dirs containing ligand/decoys
         dudezDir = f"{dir}/DUDE_Z"
         extremaDir = f"{dir}/Extrema"
