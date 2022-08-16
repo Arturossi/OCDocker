@@ -328,6 +328,10 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
             fligand = f"{dudezDirLigand}/{ligandName}/{ligandName}.mol2"
             # For each ligand (don't use parallel, since there is no need)
             __prepare_molecule(fligand, overwrite, "ligand", archive, f"{ptn} DUDEz ligand")
+            # Test if destination file exists and if it should be overwritten
+            if os.path.isfile(fligand) and overwrite:
+                # Delete it
+                os.remove(fligand)
             # Move the ligand to its dir
             shutil.move(mol, fligand)
             # Append the dir to the list of dirs to be processed
@@ -348,6 +352,10 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
             fligand = f"{dudezDirDecoy}/{ligandName}/{ligandName}.mol2"
             # For each ligand (don't use parallel, since there is no need)
             __prepare_molecule(fligand, overwrite, "ligand", archive, f"{ptn} DUDEz ligand")
+            # Test if destination file exists and if it should be overwritten
+            if os.path.isfile(fligand) and overwrite:
+                # Delete it
+                os.remove(fligand)
             # Move the ligand to its dir
             shutil.move(mol, fligand)
             # Append the dir to the list of dirs to be processed
@@ -368,6 +376,10 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
             fligand = f"{extremaDirDecoy}/{ligandName}/{ligandName}.mol2"
             # For each ligand (don't use parallel, since there is no need)
             __prepare_molecule(fligand, overwrite, "ligand", archive, f"{ptn} DUDEz ligand")
+            # Test if destination file exists and if it should be overwritten
+            if os.path.isfile(fligand) and overwrite:
+                # Delete it
+                os.remove(fligand)
             # Move the ligand to its dir
             shutil.move(mol, fligand)
             # Append the dir to the list of dirs to be processed
@@ -388,11 +400,14 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
             fligand = f"{goldilocksDirDecoy}/{ligandName}/{ligandName}.mol2"
             # For each ligand (don't use parallel, since there is no need)
             __prepare_molecule(fligand, overwrite, "ligand", archive, f"{ptn} DUDEz ligand")
+            # Test if destination file exists and if it should be overwritten
+            if os.path.isfile(fligand) and overwrite:
+                # Delete it
+                os.remove(fligand)
             # Move the ligand to its dir
             shutil.move(mol, fligand)
             # Append the dir to the list of dirs to be processed
             processDirs.append(f"{goldilocksDirDecoy}/{ligandName}")
-
     elif archive == "pdbbind":
         # If is the index path
         if os.path.basename(dir) in ['index', 'db']:
@@ -788,6 +803,8 @@ def __sub_core_run_dock(receptorPath, ligandPath, receptorDir, ligandDir, archiv
                     break
             # If is needed to run (at least one protein)
             if needToRun:
+                print(f"ocr.Receptor(receptorPath, from_json_descriptors = receptorDescriptor, name = f\"{ptn}_receptor\")")
+                print(f"ocl.Ligand(ligandPath, from_json_descriptors = ligandDescriptor, name = f\"{ptn}_ligand\")")
                 # Read the receptor and the ligand
                 receptor = ocr.Receptor(receptorPath, from_json_descriptors = receptorDescriptor, name = f"{ptn}_receptor")
                 ligand = ocl.Ligand(ligandPath, from_json_descriptors = ligandDescriptor, name = f"{ptn}_ligand")
@@ -802,6 +819,7 @@ def __sub_core_run_dock(receptorPath, ligandPath, receptorDir, ligandDir, archiv
                         vinaOutput = f"{runPath}/vina_{runNumber}.pdbqt"
                         # Create the vina object (the pdbqt files will be in the father directory because it will be used multiple times, let's save some disk space, please)
                         vina = ocvina.Vina(f"{runPath}/conf_vina.txt", f"{receptorDir}/p2rank/box{runNumber}.pdb", receptor, f"{receptorDir}/{receptorName}.pdbqt", ligand, f"{ligandDir}/{ligandName}.pdbqt", vinaLog, vinaOutput, name=f"{ptn}_run_{runNumber}")
+                        print(f"ocvina.Vina(f\"{runPath}/conf_vina.txt\", f\"{receptorDir}/p2rank/box{runNumber}.pdb\", receptor, f\"{receptorDir}/{receptorName}.pdbqt\", ligand, f\"{ligandDir}/{ligandName}.pdbqt\", vinaLog, vinaOutput, name=f\"{ptn}_run_{runNumber}\")")
                         # Check if the vina object has been correctly created
                         if not vina:
                             octools.print_error_log(f"Could not generate vina object for the protein in dir '{ligandDir}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
