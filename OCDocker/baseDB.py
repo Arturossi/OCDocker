@@ -346,6 +346,10 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
             ligandName = os.path.basename(mol).split(".")[0]
             # Safe create its dir
             _ = octools.safe_create_dir(f"{extremaDirDecoy}/{ligandName}")
+            # Safe create plantsFiles, vinaFiles and sminaFiles dirs
+            _ = octools.safe_create_dir(f"{dudezDirDecoy}/{ligandName}/plantsFiles")
+            _ = octools.safe_create_dir(f"{dudezDirDecoy}/{ligandName}/vinaFiles")
+            _ = octools.safe_create_dir(f"{dudezDirDecoy}/{ligandName}/sminaFiles")
             # Move the ligand to its dir
             shutil.move(mol, f"{extremaDirDecoy}/{ligandName}/{ligandName}.mol2")
             # Append the dir to the list of dirs to be processed
@@ -359,6 +363,10 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
             ligandName = os.path.basename(mol).split(".")[0]
             # Safe create its dir
             _ = octools.safe_create_dir(f"{goldilocksDirDecoy}/{ligandName}")
+            # Safe create plantsFiles, vinaFiles and sminaFiles dirs
+            _ = octools.safe_create_dir(f"{dudezDirDecoy}/{ligandName}/plantsFiles")
+            _ = octools.safe_create_dir(f"{dudezDirDecoy}/{ligandName}/vinaFiles")
+            _ = octools.safe_create_dir(f"{dudezDirDecoy}/{ligandName}/sminaFiles")
             # Move the ligand to its dir
             shutil.move(mol, f"{goldilocksDirDecoy}/{ligandName}/{ligandName}.mol2")
             # Append the dir to the list of dirs to be processed
