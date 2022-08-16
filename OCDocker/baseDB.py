@@ -736,19 +736,19 @@ def __get_no_parallel(dirs, archive, desc):
         return databaseDict
 
 ### Docking
-def __sub_core_run_dock(receptorPath, ligandPath, receptorDir, ligandDir, archive, dockingAlgorithm, from_json_descriptors_receptor, from_json_descriptors_ligand, overwrite):
+def __sub_core_run_dock(receptorPath, ligandPath, receptorDir, ligandDir, archive, dockingAlgorithm, receptorDescriptor, ligandDescriptor, overwrite):
     '''
     Performs the docking.
     Input:
-     receptorPath                   [string]             - The receptor path
-     ligandPath                     [string]             - The ligand path
-     receptorDir                    [string]             - The directory where the files are stored
-     ligandDir                      [string] DEFAULT: "" - If the directory where the ligand is stored is different than <dir> pass it here
-     archive                        [string]             - Which archive will be processed [dudez, pdbbind, astex]
-     dockingAlgorithm               [string]             - Which docking algorithm will be used [vina, smina, plants]
-     from_json_descriptors_receptor [string]             - Descriptors file path for the receptor
-     from_json_descriptors_ligand   [string]             - Descriptors file path for the ligand
-     overwrite                      [bool]               - Flag to tell if files should be overwritten
+     receptorPath       [string]             - The receptor path
+     ligandPath         [string]             - The ligand path
+     receptorDir        [string]             - The directory where the files are stored
+     ligandDir          [string] DEFAULT: "" - If the directory where the ligand is stored is different than <dir> pass it here
+     archive            [string]             - Which archive will be processed [dudez, pdbbind, astex]
+     dockingAlgorithm   [string]             - Which docking algorithm will be used [vina, smina, plants]
+     receptorDescriptor [string]             - Descriptors file path for the receptor
+     ligandDescriptor   [string]             - Descriptors file path for the ligand
+     overwrite          [bool]               - Flag to tell if files should be overwritten
     Return:
       -
     '''
@@ -789,8 +789,8 @@ def __sub_core_run_dock(receptorPath, ligandPath, receptorDir, ligandDir, archiv
             # If is needed to run (at least one protein)
             if needToRun:
                 # Read the receptor and the ligand
-                receptor = ocr.Receptor(receptorPath, from_json_descriptors = from_json_descriptors_receptor, name = f"{ptn}_receptor")
-                ligand = ocl.Ligand(ligandPath, from_json_descriptors = from_json_descriptors_ligand, name = f"{ptn}_ligand")
+                receptor = ocr.Receptor(receptorPath, from_json_descriptors = receptorDescriptor, name = f"{ptn}_receptor")
+                ligand = ocl.Ligand(ligandPath, from_json_descriptors = ligandDescriptor, name = f"{ptn}_ligand")
                 # If receptor and ligand are not null
                 if receptor and ligand:
                     # For each path in the paths array (will be more than on in case of multiple boxes)
@@ -860,8 +860,8 @@ def __sub_core_run_dock(receptorPath, ligandPath, receptorDir, ligandDir, archiv
             # If is needed to run (overwrite is set or no output is produced)
             if overwrite or not os.path.isfile(sminaLog) or not os.path.isfile(sminaOutput):
                 # Read the receptor and the ligand
-                receptor = ocr.Receptor(receptorPath, from_json_descriptors = from_json_descriptors_receptor, name = f"{ptn}_receptor")
-                ligand = ocl.Ligand(ligandPath, from_json_descriptors = from_json_descriptors_ligand, name = f"{ptn}_ligand")
+                receptor = ocr.Receptor(receptorPath, from_json_descriptors = receptorDescriptor, name = f"{ptn}_receptor")
+                ligand = ocl.Ligand(ligandPath, from_json_descriptors = ligandDescriptor, name = f"{ptn}_ligand")
                 # If receptor and ligand are not null
                 if receptor and ligand:
                     # Create the smina object (the pdbqt files will be in the father directory because it will be used multiple times, let's save some disk space, please)
@@ -931,8 +931,8 @@ def __sub_core_run_dock(receptorPath, ligandPath, receptorDir, ligandDir, archiv
                 # Separate the extension from file path
                 mol2Path, file_extension = os.path.splitext(receptorPath)
                 # Read the receptor and the ligand (passing the mol2!!!)
-                receptor = ocr.Receptor(receptorPath, mol2Path = f"{mol2Path}.mol2", from_json_descriptors = from_json_descriptors_receptor, name = f"{ptn}_receptor")
-                ligand = ocl.Ligand(ligandPath, from_json_descriptors = from_json_descriptors_ligand, name = f"{ptn}_ligand")
+                receptor = ocr.Receptor(receptorPath, mol2Path = f"{mol2Path}.mol2", from_json_descriptors = receptorDescriptor, name = f"{ptn}_receptor")
+                ligand = ocl.Ligand(ligandPath, from_json_descriptors = ligandDescriptor, name = f"{ptn}_ligand")
                 # If receptor and ligand are not null
                 if receptor and ligand:
                     # For each path in the paths array (will be more than on in case of multiple boxes)
