@@ -514,6 +514,37 @@ def count_surface_AA(model, modelPath, cutoff=0.7):
         octools.print_warning(f"Cutoff minimum value is 0 but the value {cutoff} has been provided instead. The value of 0 will be used!")
         cutoff = 0
 
+    # Initialise hasCryst1 fla
+    hasCryst1 = False
+
+    # Check if modelPath is a valid file
+    if os.path.isfile(modelPath):
+        # Open it
+        with open(modelPath, "r") as pdbFile:
+            # For each line in it
+            for line in pdbFile:
+                # Check if starts with CRYST1
+                if line.startswith("CRYST1"):
+                    # Set the hasCryst1 flag to True
+                    hasCryst1 = True
+                    # Since it has been found, break the loop
+                    break
+                # If it is not CRYST1, check if it is ATOM
+                elif line.startswith("ATOM"):
+                    # If is ATOM and not CRYST1, means that there is no CRYST1 line in the file, so break the loop
+                    break
+    
+    # If there is no CRYST1 line in the file let's add a generic CRYST1 line then
+    if not hasCryst1:
+        # Define the CRYST1 line
+        cryst1 = "CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1"
+        # Preapend the CRYST1 line to the file
+        with open(modelPath, "r+") as pdbFile:
+            # Read the file
+            content = pdbFile.read()
+            # Write the CRYST1 line
+            pdbFile.write(f"{cryst1}\n{content}")
+
     # Column header to dsspData object will be
     # (dssp index, amino acid, secondary structure, relative ASA, phi, psi,
     # NH_O_1_relidx, NH_O_1_energy, O_NH_1_relidx, O_NH_1_energy,
@@ -524,6 +555,8 @@ def count_surface_AA(model, modelPath, cutoff=0.7):
 
     # If the length of the dssp dictionary is 0, try to run DSSP again calling the command directly without using biopython
     if len(dsspData.property_dict) == 0:
+        # Print a warning telling that the DSSP failed and that will trying to run it again without using biopython
+        octools.print_warning(f"The DSSP failed to run for the model '{modelPath}'. Trying to run it again without using biopython.")
         # Get the model name from path and remove the extension
         modelName = os.path.splitext(os.path.basename(modelPath))[0]
         # Get the model path from modelPath
@@ -540,6 +573,7 @@ def count_surface_AA(model, modelPath, cutoff=0.7):
 
     # For each result in the DSSP object
     for key, value in dsspData.property_dict.items():
+        
         # Check if the relative ASA is valid and is above the cutoff
         if value[3] != "NA" and float(value[3]) >= cutoff:
             # If so, check if the amino acid is one of the 20 standard ones
