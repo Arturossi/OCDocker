@@ -543,15 +543,16 @@ def count_surface_AA(model, modelPath, cutoff=0.7):
             # Initialise the contnt variable
             content = ""
             # Read the CRYST1 line to the file
-            with open(fin, "r") as pdbFile:
+            with open(modelPath, "r") as pdbFile:
                 # Read the file
                 content = pdbFile.read()
             # Write the CRYST1 line to the file
-            with open(fin, "w") as pdbFile:
-                # Write the content to the file
-                pdbFile.write(content)
+            with open(modelPath, "w") as pdbFile:
                 # Write the CRYST1 line to the file
                 pdbFile.write(cryst1)
+                # Write the content to the file
+                pdbFile.write(content)
+                
 
     # Column header to dsspData object will be
     # (dssp index, amino acid, secondary structure, relative ASA, phi, psi,
