@@ -398,7 +398,7 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         processDirs = [dir]
     
     from pprint import pprint
-    pprint(dir)
+    pprint(processDirs)
         
     # For each dir to be processed
     for dir in processDirs:
