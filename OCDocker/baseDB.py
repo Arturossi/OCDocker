@@ -396,6 +396,9 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
     if not processDirs or len(processDirs) == 0:
         # Set the processDirs to the current dir
         processDirs = [dir]
+    
+    from pprint import pprint
+    pprint(dir)
         
     # For each dir to be processed
     for dir in processDirs:
