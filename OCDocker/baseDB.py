@@ -1032,7 +1032,7 @@ def __core_run_dock(dir, archive, dockingAlgorithm, overwrite, ligandAlternative
             return errors.dir_does_not_exists(f"The ligandAlternativeDir variable is empty, please pass the path to the ligand directory. DUDEz archive does not have ligands in the same directory as the protein.", level = "error")
         # Find ligand name
         ligandName = os.path.basename(ligandAlternativeDir).split("_")[0]
-        ligandPath = f"{ligandAlternativeDir}/{ligand_name}.mol2"
+        ligandPath = f"{ligandAlternativeDir}/{ligandName}.mol2"
         # Set ligand and receptor descriptor paths
         ligandDescriptor = f"{ligandAlternativeDir}/rec.crg_descriptors.json"
         receptorDescriptor = f"{dir}/rec.crg_descriptors.json"  
