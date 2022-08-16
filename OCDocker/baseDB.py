@@ -803,8 +803,6 @@ def __sub_core_run_dock(receptorPath, ligandPath, receptorDir, ligandDir, archiv
                     break
             # If is needed to run (at least one protein)
             if needToRun:
-                print(f"ocr.Receptor(receptorPath, from_json_descriptors = receptorDescriptor, name = f\"{ptn}_receptor\")")
-                print(f"ocl.Ligand(ligandPath, from_json_descriptors = ligandDescriptor, name = f\"{ptn}_ligand\")")
                 # Read the receptor and the ligand
                 receptor = ocr.Receptor(receptorPath, from_json_descriptors = receptorDescriptor, name = f"{ptn}_receptor")
                 ligand = ocl.Ligand(ligandPath, from_json_descriptors = ligandDescriptor, name = f"{ptn}_ligand")
@@ -819,7 +817,7 @@ def __sub_core_run_dock(receptorPath, ligandPath, receptorDir, ligandDir, archiv
                         vinaOutput = f"{runPath}/vina_{runNumber}.pdbqt"
                         # Create the vina object (the pdbqt files will be in the father directory because it will be used multiple times, let's save some disk space, please)
                         vina = ocvina.Vina(f"{runPath}/conf_vina.txt", f"{receptorDir}/p2rank/box{runNumber}.pdb", receptor, f"{receptorDir}/{receptorName}.pdbqt", ligand, f"{ligandDir}/{ligandName}.pdbqt", vinaLog, vinaOutput, name=f"{ptn}_run_{runNumber}")
-                        print(f"ocvina.Vina(f\"{runPath}/conf_vina.txt\", f\"{receptorDir}/p2rank/box{runNumber}.pdb\", receptor, f\"{receptorDir}/{receptorName}.pdbqt\", ligand, f\"{ligandDir}/{ligandName}.pdbqt\", vinaLog, vinaOutput, name=f\"{ptn}_run_{runNumber}\")")
+                        print(f"\n\nocr.Receptor(receptorPath, from_json_descriptors = receptorDescriptor, name = f\"{ptn}_receptor\")\nocl.Ligand(ligandPath, from_json_descriptors = ligandDescriptor, name = f\"{ptn}_ligand\\nocvina.Vina(f\"{runPath}/conf_vina.txt\", f\"{receptorDir}/p2rank/box{runNumber}.pdb\", receptor, f\"{receptorDir}/{receptorName}.pdbqt\", ligand, f\"{ligandDir}/{ligandName}.pdbqt\", vinaLog, vinaOutput, name=f\"{ptn}_run_{runNumber}\")\n\n")
                         # Check if the vina object has been correctly created
                         if not vina:
                             octools.print_error_log(f"Could not generate vina object for the protein in dir '{ligandDir}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
@@ -1052,8 +1050,8 @@ def __core_run_dock(dir, archive, dockingAlgorithm, overwrite, ligandAlternative
         ligandName = os.path.basename(ligandAlternativeDir).split("_")[0]
         ligandPath = f"{ligandAlternativeDir}/{ligandName}.mol2"
         # Set ligand and receptor descriptor paths
-        ligandDescriptor = f"{dir}/rec.crg_descriptors.json"
-        receptorDescriptor = f"{ligandAlternativeDir}/{ligandName}_descriptors.json"  
+        ligandDescriptor = f"{ligandAlternativeDir}/{ligandName}_descriptors.json"  
+        receptorDescriptor = f"{dir}/rec.crg_descriptors.json"
     elif archive == "pdbbind":
         # Find protein name
         ptn = dir.split(os.path.sep)[-1]
