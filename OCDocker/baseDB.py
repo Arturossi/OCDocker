@@ -448,7 +448,7 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
     # For each dir to be processed
     for dir in processDirs:
         # If overwrite mode is on or there is not the same amount of box files as folders in vinaFiles folder
-        if boxCount == 0 or len(glob(f"{dir}/vinaFiles/*")) != boxCount or overwrite:
+        if boxCount == 0 or len(glob(f"{dir}/vinaFiles/*")) != boxCount or overwrite or len(glob(f"{dir}/vinaFiles/*")) == 0:
             # Check if the archive is dudez
             if archive == "dudez":
                 # Create the vina inputs from the boxes
@@ -459,7 +459,7 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         else:
             octools.print_info(f"The protein '{dir}' already has its vina file generated, skipping its execution.")
         # If overwrite mode is on or there is not the same amount of box files as folders in vinaFiles folder
-        if boxCount == 0 or len(glob(f"{dir}/plantsFiles/*")) != boxCount or overwrite:
+        if boxCount == 0 or len(glob(f"{dir}/plantsFiles/*")) != boxCount or overwrite or len(glob(f"{dir}/plantsFiles/*")) == 0:
             # Check if the archive is dudez
             if archive == "dudez":
                 # Extract the molecule name from dir
