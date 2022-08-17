@@ -730,7 +730,7 @@ for line in open(config_file, "r"):
     elif line.startswith("plants ="):
         plants = line.split("=")[1].strip()
     elif line.startswith("plants_cluster_structures ="):
-        plants_cluster_structures = line.split("=")[1].strip()
+        plants_cluster_structures = int(line.split("=")[1].strip())
     elif line.startswith("plants_cluster_rmsd ="):
         plants_cluster_rmsd = line.split("=")[1].strip()
     elif line.startswith("plants_search_speed ="):

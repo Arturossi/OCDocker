@@ -261,13 +261,15 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         # Set the input file name path
         fin = f"{dir}/rec.crg.pdb"
         fout = f"{dir}/rec.crg.mol2"
+        # Set the prepared receptor name
+        preparedReceptor = f"{dir}/rec.crg_prepared.mol2"
 
         # Find the protein name
         ptn = dir.split(os.path.sep)[-1]
 
         # Prepare the receptor
         __prepare_molecule((fin, fout), overwrite, "receptor", archive, f"{ptn} DUDEz receptor")
-        
+
         # Set the 3 dirs containing ligand/decoys
         dudezDir = f"{dir}/DUDE_Z"
         extremaDir = f"{dir}/Extrema"
@@ -288,6 +290,7 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         _ = octools.safe_create_dir(extremaDirDecoy)
         _ = octools.safe_create_dir(goldilocksDirDecoy)
 
+        '''
         # Get all mol2 files in dudezDir
         mol2Files = glob(f"{dudezDir}/*1pt0LD*.mol2")
         # Separate ligands and decoys
@@ -309,7 +312,8 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         # Separate ligands and decoys
         for mol2File in mol2Files:
             _ = octools.split_and_convert(mol2File, goldilocksDirDecoy, "mol2", overwrite)
-        
+        '''
+
         # Defining the moltype
         moltype = "ligand"
 
@@ -341,7 +345,6 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
                 shutil.move(mol, fligand)
                 # Append the dir to the list of dirs to be processed
                 processDirs.append(f"{dudezDirLigand}/{ligandName}")
-        
         # For each molecule in dudez decoy dir
         mols = glob(f"{dudezDirDecoy}/*.mol2")
         # Check the length of the list of mols
@@ -370,7 +373,7 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
                 shutil.move(mol, fligand)
                 # Append the dir to the list of dirs to be processed
                 processDirs.append(f"{dudezDirDecoy}/{ligandName}")
-        
+
         # For each molecule in dudez decoy dir
         mols = glob(f"{extremaDirDecoy}/*.mol2")
         # Check the length of the list of mols
@@ -399,7 +402,7 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
                 shutil.move(mol, fligand)
                 # Append the dir to the list of dirs to be processed
                 processDirs.append(f"{extremaDirDecoy}/{ligandName}")
-        
+
         # For each molecule in dudez decoy dir
         mols = glob(f"{goldilocksDirDecoy}/*.mol2")
         # Check the length of the list of mols
@@ -428,7 +431,7 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
                 shutil.move(mol, fligand)
                 # Append the dir to the list of dirs to be processed
                 processDirs.append(f"{goldilocksDirDecoy}/{ligandName}")
-                
+
     elif archive == "pdbbind":
         # If is the index path
         if os.path.basename(dir) in ['index', 'db']:
@@ -439,6 +442,8 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         # Set the input file name path (to generate the box and data about the protein)
         fin = f"{dir}/{ptn}_protein.pdb"
         fout = f"{dir}/{ptn}_protein.mol2"
+        # Set the prepared receptor name
+        preparedReceptor = f"{dir}/{ptn}_prepared.mol2"
         # Convert the .pdb to .mol2 (for dock6 use)
         _ = octools.convertMols(fin, fout)
         # Set the ligand file name path (to generate data about the ligand)
@@ -465,7 +470,7 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
     if not processDirs or len(processDirs) == 0:
         # Set the processDirs to the current dir
         processDirs = [dir]
-    
+
     # For each dir to be processed
     for processDir in processDirs:
         # If overwrite mode is on or there is not the same amount of box files as folders in vinaFiles folder
@@ -488,7 +493,7 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
                 # Set the fligand variable to the dir + ligandName + .mol2
                 fligand = f"{processDir}/{ligandName}.mol2"
             # Create the PLANTS inputs from the boxes
-            ocplants.generate_plants_files_database(processDir, fin, fligand, spacing, prankPath = fout)
+            ocplants.generate_plants_files_database(processDir, preparedReceptor, fligand, spacing, prankPath = fout)
         else:
             octools.print_info(f"The protein '{processDir}' already has its PLANTS file generated, skipping its execution.")
 
@@ -980,8 +985,7 @@ def __sub_core_run_dock(receptorPath, ligandPath, receptorDir, ligandDir, archiv
                         plantsOutput = f"{runPath}/run"
                         plantsRankingCsv = f"{plantsOutput}/ranking.csv"
                         # Create the smina object (the pdbqt files will be in the father directory because it will be used multiple times, let's save some disk space, please)
-                        plants = ocplants.PLANTS(f"{runPath}/conf_plants.txt", f"{recDir}/p2rank/box{runNumber}.pdb", receptor, f"{receptorDir}/{ptn}_protein_prepared.mol2", ligand, f"{ligandDir}/{ptn}_ligand_prepared.mol2", plantsLog, plantsOutput, name=f"{ptn} PLANTS")
-                        print(f"receptor = ocr.Receptor(receptorPath, mol2Path = f\"{mol2Path}.mol2\", from_json_descriptors = receptorDescriptor, name = f\"{ptn}_receptor\")\nligand = ocl.Ligand(ligandPath, from_json_descriptors = ligandDescriptor, name = f\"{ptn}_ligand\")\nplants = ocplants.PLANTS(f\"{runPath}/conf_plants.txt\", f\"{recDir}/p2rank/box{runNumber}.pdb\", receptor, f\"{receptorDir}/{ptn}_protein_prepared.mol2\", ligand, f\"{ligandDir}/{ptn}_ligand_prepared.mol2\", plantsLog, plantsOutput, name=f\"{ptn} PLANTS\")")
+                        plants = ocplants.PLANTS(f"{runPath}/conf_plants.txt", f"{receptorDir}/p2rank/box{runNumber}.pdb", receptor, f"{receptorDir}/{receptorName}_prepared.mol2", ligand, f"{ligandDir}/{ptn}_ligand_prepared.mol2", plantsLog, plantsOutput, name=f"{ptn} PLANTS")
                         # Check if the smina object has been correctly created
                         if not plants:
                             octools.print_error_log(f"Could not generate plants object for the protein in dir '{dir}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
@@ -1071,7 +1075,7 @@ def __core_run_dock(dir, archive, dockingAlgorithm, overwrite, ligandAlternative
         ligandName = os.path.basename(ligandAlternativeDir).split("_")[0]
         ligandPath = f"{ligandAlternativeDir}/{ligandName}.mol2"
         # Set ligand and receptor descriptor paths
-        ligandDescriptor = f"{ligandAlternativeDir}/{ligandName}_descriptors.json"  
+        ligandDescriptor = f"{ligandAlternativeDir}/{ligandName}_descriptors.json"
         receptorDescriptor = f"{dir}/rec.crg_descriptors.json"
     elif archive == "pdbbind":
         # Find protein name
@@ -2125,6 +2129,45 @@ def run_dock(archive, dockingAlgorithm, overwrite = False):
         ligandAlternativeDirs = []
         # For each dir in dirs, let's grab all ligands
         for dir in dirs:
+            # Set the model path
+            receptorPath = f"{dir}/rec.crg.pdb"
+            # Check if file is a PDB file
+            if receptorPath.endswith(".pdb"):
+                # Initialise hasCryst1 flag
+                hasCryst1 = False
+
+                # Check if modelPath is a valid file
+                if os.path.isfile(receptorPath):
+                    # Open it
+                    with open(receptorPath, "r") as pdbFile:
+                        # For each line in it
+                        for line in pdbFile:
+                            # Check if starts with CRYST1
+                            if line.startswith("CRYST1"):
+                                # Set the hasCryst1 flag to True
+                                hasCryst1 = True
+                                # Since it has been found, break the loop
+                                break
+                            # If it is not CRYST1, check if it is ATOM
+                            elif line.startswith("ATOM"):
+                                # If is ATOM and not CRYST1, means that there is no CRYST1 line in the file, so break the loop
+                                break
+                # If there is no CRYST1 line in the file let's add a generic CRYST1 line then
+                if not hasCryst1:
+                    # Define a generic CRYST1 line
+                    cryst1 = "CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1\n"
+                    # Initialise the contnt variable
+                    content = ""
+                    # Read the CRYST1 line to the file
+                    with open(receptorPath, "r") as pdbFile:
+                        # Read the file
+                        content = pdbFile.read()
+                    # Write the CRYST1 line to the file
+                    with open(receptorPath, "w") as pdbFile:
+                        # Write the CRYST1 line to the file
+                        pdbFile.write(cryst1)
+                        # Write the content to the file
+                        pdbFile.write(content)
             # Parameterize paths
             dudezDirLigand = f"{dir}/DUDE_Z_ligands"
             dudezDirDecoy = f"{dir}/DUDE_Z_decoys"
@@ -2134,7 +2177,7 @@ def run_dock(archive, dockingAlgorithm, overwrite = False):
             ligandAlternativeDirs = glob(f"{dudezDirLigand}/*") + glob(f"{dudezDirDecoy}/*") + glob(f"{extremaDirDecoy}/*") + glob(f"{goldilocksDirDecoy}/*")
     else:
         ligandAlternativeDirs = ""
-            
+
     # Decide if multprocessing will be used
     if args.multiprocess:
         __run_dock_parallel(dirs, archive, dockingAlgorithm, overwrite, f"Processing {archive}", ligandAlternativeDirs = ligandAlternativeDirs)
