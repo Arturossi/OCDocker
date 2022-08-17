@@ -864,7 +864,6 @@ def __sub_core_run_dock(receptorPath, ligandPath, receptorDir, ligandDir, archiv
                 # Read the receptor and the ligand
                 receptor = ocr.Receptor(receptorPath, from_json_descriptors = receptorDescriptor, name = f"{ptn}_receptor")
                 ligand = ocl.Ligand(ligandPath, from_json_descriptors = ligandDescriptor, name = f"{ptn}_ligand")
-                print(f"ligand = ocl.Ligand(\"{ligandPath}\", from_json_descriptors = \"{ligandDescriptor}\", name = f\"{ptn}_ligand\")")
                 # If receptor and ligand are not null
                 if receptor and ligand:
                     # For each path in the paths array (will be more than on in case of multiple boxes)
@@ -876,6 +875,7 @@ def __sub_core_run_dock(receptorPath, ligandPath, receptorDir, ligandDir, archiv
                         vinaOutput = f"{runPath}/vina_{runNumber}.pdbqt"
                         # Create the vina object (the pdbqt files will be in the father directory because it will be used multiple times, let's save some disk space, please)
                         vina = ocvina.Vina(f"{runPath}/conf_vina.txt", f"{receptorDir}/p2rank/box{runNumber}.pdb", receptor, f"{receptorDir}/{receptorName}.pdbqt", ligand, f"{ligandDir}/{ligandName}.pdbqt", vinaLog, vinaOutput, name=f"{ptn}_run_{runNumber}")
+                        print(f"ligand = ocl.Ligand(\"{ligandPath}\", from_json_descriptors = \"{ligandDescriptor}\", name = f\"{ptn}_ligand\")\nreceptor = ocr.Receptor(\"{receptorPath}\", from_json_descriptors = \"{receptorDescriptor}\", name = f\"{ptn}_receptor\")\nvina = ocvina.Vina(f\"{runPath}/conf_vina.txt\", f\"{receptorDir}/p2rank/box{runNumber}.pdb\", receptor, f\"{receptorDir}/{receptorName}.pdbqt\", ligand, f\"{ligandDir}/{ligandName}.pdbqt\", \"{vinaLog}\", \"{vinaOutput}\", name=f\"{ptn}_run_{runNumber}\")")
                         # Check if the vina object has been correctly created
                         if not vina:
                             octools.print_error_log(f"Could not generate vina object for the protein in dir '{ligandDir}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
