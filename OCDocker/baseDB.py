@@ -488,8 +488,7 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
                 # Set the fligand variable to the dir + ligandName + .mol2
                 fligand = f"{processDir}/{ligandName}.mol2"
             # Create the PLANTS inputs from the boxes
-            print(f"ocplants.generate_plants_files_database({processDir}, {fin}, {fligand}, {spacing})")
-            ocplants.generate_plants_files_database(processDir, fin, fligand, spacing)
+            ocplants.generate_plants_files_database(processDir, fin, fligand, spacing, prankPath = fout)
         else:
             octools.print_info(f"The protein '{processDir}' already has its PLANTS file generated, skipping its execution.")
 
