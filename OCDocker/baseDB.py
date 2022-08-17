@@ -926,6 +926,7 @@ def __sub_core_run_dock(receptorPath, ligandPath, receptorDir, ligandDir, archiv
         elif dockingAlgorithm == "plants":
             # Flag to denote if its needed to run this protein through plants
             needToRun = False
+            print("testing plants")
             # Check if plantsFiles does not exist
             if not os.path.isdir(f"{ligandDir}/plantsFiles/"):
                 octools.print_error_log(f"The directory '{ligandDir}/plantsFiles/' does not exist! Please ensure its existance before running this function. NOTE: You may need to run the verify_integrity routine to help to ensure that all files are ok.", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
