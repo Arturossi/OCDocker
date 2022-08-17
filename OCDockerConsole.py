@@ -7,7 +7,7 @@ from pprint import pprint
 
 from OCDocker.Initialise import *
 
-args.output_level = 1
+args.output_level = 0
 
 import OCDocker.Toolbox as octools
 

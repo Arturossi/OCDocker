@@ -268,7 +268,7 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         ptn = dir.split(os.path.sep)[-1]
 
         # Prepare the receptor
-        __prepare_molecule((fin, fout), overwrite, "receptor", archive, f"{ptn} DUDEz receptor")
+        __prepare_molecule((fin, fout), overwrite, "receptor", archive, sanitize = True)
 
         # Set the 3 dirs containing ligand/decoys
         dudezDir = f"{dir}/DUDE_Z"
@@ -323,6 +323,14 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         if len(mols) == 0:
             # If it is 0, get a list of all directories in goldilocksDirDecoy
             processDirs += [d for d in glob(f"{dudezDirLigand}/*") if os.path.isdir(d)]
+            # For each directory (check to see if it is needed to generate descriptors)
+            for processDir in processDirs:
+                # Extract the ligand name from the path
+                ligandName = os.path.splitext(os.path.basename(processDir))[0]
+                # Set the fligand name as the ligand file path
+                fligand = f"{processDir}/{ligandName}.mol2"
+                # For each ligand (don't use parallel, since there is no need)
+                __prepare_molecule(fligand, overwrite, "ligand", archive, sanitize = True)
         else:
             for mol in mols:
                 # Extract the ligand name from the path
@@ -335,14 +343,14 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
                 _ = octools.safe_create_dir(f"{dudezDirLigand}/{ligandName}/sminaFiles")
                 # Set the fligand name as the ligand file path
                 fligand = f"{dudezDirLigand}/{ligandName}/{ligandName}.mol2"
-                # For each ligand (don't use parallel, since there is no need)
-                __prepare_molecule(fligand, overwrite, "ligand", archive, f"{ptn} DUDEz ligand")
                 # Test if destination file exists and if it should be overwritten
                 if os.path.isfile(fligand) and overwrite:
                     # Delete it
                     os.remove(fligand)
                 # Move the ligand to its dir
                 shutil.move(mol, fligand)
+                # For each ligand (don't use parallel, since there is no need)
+                __prepare_molecule(fligand, overwrite, "ligand", archive, sanitize = True)
                 # Append the dir to the list of dirs to be processed
                 processDirs.append(f"{dudezDirLigand}/{ligandName}")
         # For each molecule in dudez decoy dir
@@ -351,6 +359,14 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         if len(mols) == 0:
             # If it is 0, get a list of all directories in goldilocksDirDecoy
             processDirs += [d for d in glob(f"{dudezDirDecoy}/*") if os.path.isdir(d)]
+            # For each directory (check to see if it is needed to generate descriptors)
+            for processDir in processDirs:
+                # Extract the ligand name from the path
+                ligandName = os.path.splitext(os.path.basename(processDir))[0]
+                # Set the fligand name as the ligand file path
+                fligand = f"{processDir}/{ligandName}.mol2"
+                # For each ligand (don't use parallel, since there is no need)
+                __prepare_molecule(fligand, overwrite, "ligand", archive, sanitize = True)
         else:
             for mol in mols:
                 # Extract the ligand name from the path
@@ -364,7 +380,7 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
                 # Set the fligand name as the ligand file path
                 fligand = f"{dudezDirDecoy}/{ligandName}/{ligandName}.mol2"
                 # For each ligand (don't use parallel, since there is no need)
-                __prepare_molecule(fligand, overwrite, "ligand", archive, f"{ptn} DUDEz ligand")
+                __prepare_molecule(fligand, overwrite, "ligand", archive, sanitize = True)
                 # Test if destination file exists and if it should be overwritten
                 if os.path.isfile(fligand) and overwrite:
                     # Delete it
@@ -380,6 +396,14 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         if len(mols) == 0:
             # If it is 0, get a list of all directories in goldilocksDirDecoy
             processDirs += [d for d in glob(f"{extremaDirDecoy}/*") if os.path.isdir(d)]
+            # For each directory (check to see if it is needed to generate descriptors)
+            for processDir in processDirs:
+                # Extract the ligand name from the path
+                ligandName = os.path.splitext(os.path.basename(processDir))[0]
+                # Set the fligand name as the ligand file path
+                fligand = f"{processDir}/{ligandName}.mol2"
+                # For each ligand (don't use parallel, since there is no need)
+                __prepare_molecule(fligand, overwrite, "ligand", archive, sanitize = True)
         else:
             for mol in mols:
                 # Extract the ligand name from the path
@@ -393,7 +417,7 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
                 # Set the fligand name as the ligand file path
                 fligand = f"{extremaDirDecoy}/{ligandName}/{ligandName}.mol2"
                 # For each ligand (don't use parallel, since there is no need)
-                __prepare_molecule(fligand, overwrite, "ligand", archive, f"{ptn} DUDEz ligand")
+                __prepare_molecule(fligand, overwrite, "ligand", archive, sanitize = True)
                 # Test if destination file exists and if it should be overwritten
                 if os.path.isfile(fligand) and overwrite:
                     # Delete it
@@ -409,6 +433,14 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         if len(mols) == 0:
             # If it is 0, get a list of all directories in goldilocksDirDecoy
             processDirs += [d for d in glob(f"{goldilocksDirDecoy}/*") if os.path.isdir(d)]
+            # For each directory (check to see if it is needed to generate descriptors)
+            for processDir in processDirs:
+                # Extract the ligand name from the path
+                ligandName = os.path.splitext(os.path.basename(processDir))[0]
+                # Set the fligand name as the ligand file path
+                fligand = f"{processDir}/{ligandName}.mol2"
+                # For each ligand (don't use parallel, since there is no need)
+                __prepare_molecule(fligand, overwrite, "ligand", archive, sanitize = True)
         else:
             for mol in mols:
                 # Extract the ligand name from the path
@@ -422,7 +454,7 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
                 # Set the fligand name as the ligand file path
                 fligand = f"{goldilocksDirDecoy}/{ligandName}/{ligandName}.mol2"
                 # For each ligand (don't use parallel, since there is no need)
-                __prepare_molecule(fligand, overwrite, "ligand", archive, f"{ptn} DUDEz ligand")
+                __prepare_molecule(fligand, overwrite, "ligand", archive, sanitize = True)
                 # Test if destination file exists and if it should be overwritten
                 if os.path.isfile(fligand) and overwrite:
                     # Delete it
@@ -449,9 +481,9 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         # Set the ligand file name path (to generate data about the ligand)
         fligand = f"{dir}/{ptn}_ligand.mol2"
         # For each ligand (don't use parallel, since there is no need)
-        __prepare_molecule(fligand, overwrite, "ligand", archive, f"{ptn} PDBbind ligand")
+        __prepare_molecule(fligand, overwrite, "ligand", archive, sanitize = True)
         # For each Receptor
-        __prepare_molecule((fin, fout), overwrite, "receptor", archive, f"{ptn} PDBbind receptor")
+        __prepare_molecule((fin, fout), overwrite, "receptor", archive, sanitize = True)
 
     # Set the output path
     fout = f"{dir}/p2rank"
@@ -802,7 +834,7 @@ def __sub_core_run_dock(receptorPath, ligandPath, receptorDir, ligandDir, archiv
             pass
         elif archive == "dudez":
             receptorName = "rec.crg"
-            ligandName = os.path.basename(ligandPath).split("_")[0]
+            ligandName = ligandPath.split(os.path.sep)[-1]#os.path.basename(ligandPath).split("_")[0]
         elif archive == "pdbbind":
             receptorName = f"{receptorName}_protein"
             ligandName = f"{ptn}_ligand"
@@ -832,6 +864,7 @@ def __sub_core_run_dock(receptorPath, ligandPath, receptorDir, ligandDir, archiv
                 # Read the receptor and the ligand
                 receptor = ocr.Receptor(receptorPath, from_json_descriptors = receptorDescriptor, name = f"{ptn}_receptor")
                 ligand = ocl.Ligand(ligandPath, from_json_descriptors = ligandDescriptor, name = f"{ptn}_ligand")
+                print(f"ligand = ocl.Ligand(\"{ligandPath}\", from_json_descriptors = \"{ligandDescriptor}\", name = f\"{ptn}_ligand\")")
                 # If receptor and ligand are not null
                 if receptor and ligand:
                     # For each path in the paths array (will be more than on in case of multiple boxes)
@@ -1039,8 +1072,13 @@ def __sub_core_run_dock(receptorPath, ligandPath, receptorDir, ligandDir, archiv
             octools.print_error_log(f"Wrong docking algorithm. Expected ['vina', 'smina', 'plants'] and got '{dockingAlgorithm}'.", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
             return errors.receptor_or_ligand_descriptor_does_not_exist(f"Wrong docking algorithm. Expected ['vina', 'smina', 'plants'] and got '{dockingAlgorithm}'.", level = "error")
     else:
-        octools.print_error_log(f"There is no ligand or receptor descriptor json file for the protein in dir '{ligandDir}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
-        return errors.receptor_or_ligand_descriptor_does_not_exist(f"There is no ligand or receptor descriptor for the protein in dir '{ligandDir}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", level = "error")
+        if not os.path.isfile(receptorDescriptor):
+            octools.print_error_log(f"There is no receptor descriptor json file for the protein in the path '{receptorDescriptor}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
+            errors.receptor_or_ligand_descriptor_does_not_exist(f"There is no receptor descriptor for the protein in the path '{receptorDescriptor}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", level = "error")
+        if not os.path.isfile(ligandDescriptor):
+            octools.print_error_log(f"There is no ligand descriptor json file for the protein in the path '{ligandDescriptor}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
+            errors.receptor_or_ligand_descriptor_does_not_exist(f"There is no ligand descriptor for the protein in the path '{ligandDescriptor}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", level = "error")
+        return None
     return None
 
 def __core_run_dock(dir, archive, dockingAlgorithm, overwrite, ligandAlternativeDir = ""):
@@ -1762,6 +1800,7 @@ def verify_integrity(chosenArchive, spacing = 0.33):
                 fin = f"{dir}/protein.pdb"
             elif archive == "dudez":
                 fin = f"{dir}/rec.crg.pdb"
+                ligand = f""
             elif archive == "pdbbind":
                 fin = f"{dir}/{ptn}_protein.pdb"
                 ligand = f"{dir}/{ptn}_ligand.mol2"
