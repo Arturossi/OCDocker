@@ -834,7 +834,8 @@ def __sub_core_run_dock(receptorPath, ligandPath, receptorDir, ligandDir, archiv
             pass
         elif archive == "dudez":
             receptorName = "rec.crg"
-            ligandName = ligandPath.split(os.path.sep)[-1]#os.path.basename(ligandPath).split("_")[0]
+            # Get ligand name removing the extension
+            ligandName = os.path.splitext(os.path.basename(ligandPath))[0]
         elif archive == "pdbbind":
             receptorName = f"{receptorName}_protein"
             ligandName = f"{ptn}_ligand"
