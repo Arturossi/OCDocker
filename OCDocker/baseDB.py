@@ -279,7 +279,7 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         extremaDirDecoy = f"{extremaDir}_decoys"
         goldilocksDirDecoy = f"{goldilocksDir}_decoys"
 
-        # Create the dirs for data from the 3 dirs above
+        '''# Create the dirs for data from the 3 dirs above
         _ = octools.safe_create_dir(dudezDirLigand)
         _ = octools.safe_create_dir(dudezDirDecoy)
         _ = octools.safe_create_dir(extremaDirDecoy)
@@ -309,7 +309,7 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         # Separate ligands and decoys
         for mol2File in mol2Files:
             _ = octools.split_and_convert(mol2File, goldilocksDirDecoy, "mol2", overwrite)
-
+        '''
         # Defining the moltype
         moltype = "ligand"
 
@@ -926,7 +926,6 @@ def __sub_core_run_dock(receptorPath, ligandPath, receptorDir, ligandDir, archiv
         elif dockingAlgorithm == "plants":
             # Flag to denote if its needed to run this protein through plants
             needToRun = False
-            print("testing plants")
             # Check if plantsFiles does not exist
             if not os.path.isdir(f"{ligandDir}/plantsFiles/"):
                 octools.print_error_log(f"The directory '{ligandDir}/plantsFiles/' does not exist! Please ensure its existance before running this function. NOTE: You may need to run the verify_integrity routine to help to ensure that all files are ok.", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
