@@ -279,14 +279,14 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         extremaDirDecoy = f"{extremaDir}_decoys"
         goldilocksDirDecoy = f"{goldilocksDir}_decoys"
 
+        # Create an empty list to hold all dirs to be processed
+        processDirs = []
+
         '''# Create the dirs for data from the 3 dirs above
         _ = octools.safe_create_dir(dudezDirLigand)
         _ = octools.safe_create_dir(dudezDirDecoy)
         _ = octools.safe_create_dir(extremaDirDecoy)
         _ = octools.safe_create_dir(goldilocksDirDecoy)
-
-        # Create an empty list to hold all dirs to be processed
-        processDirs = []
 
         # Get all mol2 files in dudezDir
         mol2Files = glob(f"{dudezDir}/*1pt0LD*.mol2")
