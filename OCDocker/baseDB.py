@@ -444,7 +444,9 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
     if not processDirs or len(processDirs) == 0:
         # Set the processDirs to the current dir
         processDirs = [dir]
-        
+    
+    from pprint import pprint
+    pprint(processDirs)
     # For each dir to be processed
     for dir in processDirs:
         # If overwrite mode is on or there is not the same amount of box files as folders in vinaFiles folder
