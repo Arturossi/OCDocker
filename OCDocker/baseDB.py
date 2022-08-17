@@ -282,7 +282,7 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         # Create an empty list to hold all dirs to be processed
         processDirs = []
 
-        # Create the dirs for data from the 3 dirs above
+        '''# Create the dirs for data from the 3 dirs above
         _ = octools.safe_create_dir(dudezDirLigand)
         _ = octools.safe_create_dir(dudezDirDecoy)
         _ = octools.safe_create_dir(extremaDirDecoy)
@@ -309,7 +309,7 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         # Separate ligands and decoys
         for mol2File in mol2Files:
             _ = octools.split_and_convert(mol2File, goldilocksDirDecoy, "mol2", overwrite)
-        
+        '''
         # Defining the moltype
         moltype = "ligand"
 
