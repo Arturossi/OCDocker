@@ -466,8 +466,6 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         # Set the processDirs to the current dir
         processDirs = [dir]
     
-    from pprint import pprint
-    pprint(processDirs)
     # For each dir to be processed
     for processDir in processDirs:
         # If overwrite mode is on or there is not the same amount of box files as folders in vinaFiles folder
@@ -490,6 +488,7 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
                 # Set the fligand variable to the dir + ligandName + .mol2
                 fligand = f"{processDir}/{ligandName}.mol2"
             # Create the PLANTS inputs from the boxes
+            print(f"ocplants.generate_plants_files_database({processDir}, {fin}, {fligand}, {spacing})")
             ocplants.generate_plants_files_database(processDir, fin, fligand, spacing)
         else:
             octools.print_info(f"The protein '{processDir}' already has its PLANTS file generated, skipping its execution.")
