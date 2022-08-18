@@ -290,7 +290,6 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         _ = octools.safe_create_dir(extremaDirDecoy)
         _ = octools.safe_create_dir(goldilocksDirDecoy)
 
-        '''
         # Get all mol2 files in dudezDir
         mol2Files = glob(f"{dudezDir}/*1pt0LD*.mol2")
         # Separate ligands and decoys
@@ -312,7 +311,6 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         # Separate ligands and decoys
         for mol2File in mol2Files:
             _ = octools.split_and_convert(mol2File, goldilocksDirDecoy, "mol2", overwrite)
-        '''
 
         # Defining the moltype
         moltype = "ligand"
