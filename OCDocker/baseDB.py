@@ -1659,11 +1659,11 @@ def __core_merge_descriptors_in_dataframe(dir, archive):
     # Find which kind of archive it will be
     if archive == "astex":
         chosenArchive = astex_archive
-        recpetor_descriptor = f"{astex_archive}/{ptn}/{ptn}_protein_descriptors.json"
+        receptor_descriptor_path = f"{astex_archive}/{ptn}/{ptn}_protein_descriptors.json"
         ligand_descriptor = f"{astex_archive}/{ptn}/{ptn}_ligand_descriptors.json"
     elif archive == "dudez":
         chosenArchive = dudez_archive
-        recpetor_descriptor = f"{dudez_archive}/{ptn}/rec.crg_protein_descriptors.json"
+        receptor_descriptor_path = f"{dudez_archive}/{ptn}/rec.crg_protein_descriptors.json"
         # Parameterize paths
         dudezDirLigand = f"{dir}/DUDE_Z_ligands"
         dudezDirDecoy = f"{dir}/DUDE_Z_decoys"
