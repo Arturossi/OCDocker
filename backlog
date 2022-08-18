@@ -1,0 +1,20 @@
+# Backlog
+## Priority labels
+0. Low Priority (longterm future)
+1. Medium Priority (not critical)
+2. High Priority (critical)
+3. Extremely high priority (potentially blocker)
+
+## Log
+### 0
+- Faster file system | 0
+
+### 1
+- Optimize the file system | 1
+
+### 2
+- Add integrity verification for DUDEz | 2
+- Check previously made functions for DUDEz to update it to the new format | 2
+
+### 3
+- Change DUDEz data import from current routines to smiles and change the filesystem tree | 3
