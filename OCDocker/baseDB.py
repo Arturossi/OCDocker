@@ -1284,6 +1284,7 @@ def __core_read_log(dir, archive):
     for processDir, tp in processDirs:
         # Get all vina directories (0, 1, 2...)
         vinaDirs = glob(f"{processDirs}/vinaFiles/*")
+        print(f"glob(f\"{processDirs}/vinaFiles/*\")")
         # For each dir in vinaDirs
         for vinaDir in vinaDirs:
             # Get run number
