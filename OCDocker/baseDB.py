@@ -1449,10 +1449,10 @@ def __core_generate_dock_result_csv(log_dump, ptn, archive):
     elif archive == "dudez":
         chosenArchive = dudez_archive
         # Parameterize paths
-        dudezDirLigand = f"{dudezDir}_ligands"
-        dudezDirDecoy = f"{dudezDir}_decoys"
-        extremaDirDecoy = f"{extremaDir}_decoys"
-        goldilocksDirDecoy = f"{goldilocksDir}_decoys"
+        dudezDirLigand = f"{dudez_archive}/{ptn}/DUDE_Z_ligands"
+        dudezDirDecoy = f"{dudez_archive}/{ptn}/DUDE_Z_decoys"
+        extremaDirDecoy = f"{dudez_archive}/{ptn}/Extrema_decoys"
+        goldilocksDirDecoy = f"{dudez_archive}/{ptn}/Goldilocks_decoys"
         # Create an empty list for all directories to be processed
         processDirs = []
         # Add all subdirs (one for each ligand) from all 4 folders as a tuple (dir, ligand_name))
