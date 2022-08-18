@@ -1283,8 +1283,7 @@ def __core_read_log(dir, archive):
     # For each processDir and type in the unpacked processDirs tuple
     for processDir, tp in processDirs:
         # Get all vina directories (0, 1, 2...)
-        print(f"glob(f\"{processDirs}/vinaFiles/*\")")
-        vinaDirs = glob(f"{processDirs}/vinaFiles/*")
+        vinaDirs = glob(f"{processDir}/vinaFiles/*")
         # For each dir in vinaDirs
         for vinaDir in vinaDirs:
             # Get run number
@@ -1304,7 +1303,7 @@ def __core_read_log(dir, archive):
             else:
                 _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its vina output.")
         # Get all vina directories (0, 1, 2...)
-        plantsDirs = glob(f"{processDirs}/plantsFiles/*")
+        plantsDirs = glob(f"{processDir}/plantsFiles/*")
         # For each dir in plantsDir
         for plantsDir in plantsDirs:
             # Get run number
@@ -1323,7 +1322,7 @@ def __core_read_log(dir, archive):
             else:
                 _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its PLANTS output.")
         # Parameterize the log path
-        logPath = f"{processDirs}/sminaFiles/smina.log"
+        logPath = f"{processDir}/sminaFiles/smina.log"
         # Check if smina log exists
         if os.path.isfile(logPath):
             # Read the log into dataframe
