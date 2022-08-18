@@ -1448,108 +1448,119 @@ def __core_generate_dock_result_csv(log_dump, ptn, archive):
         chosenArchive = astex_archive
     elif archive == "dudez":
         chosenArchive = dudez_archive
+        # Parameterize paths
+        dudezDirLigand = f"{dudezDir}_ligands"
+        dudezDirDecoy = f"{dudezDir}_decoys"
+        extremaDirDecoy = f"{extremaDir}_decoys"
+        goldilocksDirDecoy = f"{goldilocksDir}_decoys"
+        # Create an empty list for all directories to be processed
+        processDirs = []
+        # Add all subdirs (one for each ligand) from all 4 folders as a tuple (dir, ligand_name))
+        processDirs += [(d, d.split(os.path.sep)[-1]) for d in glob(f"{dudezDirLigand}/*") if os.path.isdir(d)]
+        processDirs += [(d, d.split(os.path.sep)[-1]) for d in glob(f"{dudezDirDecoy}/*") if os.path.isdir(d)]
+        processDirs += [(d, d.split(os.path.sep)[-1]) for d in glob(f"{extremaDirDecoy}/*") if os.path.isdir(d)]
+        processDirs += [(d, d.split(os.path.sep)[-1]) for d in glob(f"{goldilocksDirDecoy}/*") if os.path.isdir(d)]
     elif archive == "pdbbind":
         chosenArchive = pdbbind_archive
-        reference_ligand = f"{ptn}_ligand.mol2"
-        reference_ligand2 = f"{ptn}_ligand.sdf"
-
-    # Set the target dir
-    dir = f"{chosenArchive}/{ptn}"
+        # Set the target dir
+        processDirs = [(f"{chosenArchive}/{ptn}", f"{ptn}_ligand")]
 
     # The new dataframe
-    df = pd.DataFrame(columns=["Protein", "vina_affinity", "smina_affinity", "plants_TOTAL_SCORE", "plants_SCORE_RB_PEN", "plants_SCORE_NORM_HEVATOMS", "plants_SCORE_NORM_CRT_HEVATOMS", "plants_SCORE_NORM_WEIGHT", "plants_SCORE_NORM_CRT_WEIGHT", "plants_SCORE_RB_PEN_NORM_CRT_HEVATOMS", "vina_rmsd", "smina_rmsd", "plants_rmsd"])
+    df = pd.DataFrame(columns=["Protein", "Ligand", "vina_affinity", "smina_affinity", "plants_TOTAL_SCORE", "plants_SCORE_RB_PEN", "plants_SCORE_NORM_HEVATOMS", "plants_SCORE_NORM_CRT_HEVATOMS", "plants_SCORE_NORM_WEIGHT", "plants_SCORE_NORM_CRT_WEIGHT", "plants_SCORE_RB_PEN_NORM_CRT_HEVATOMS", "vina_rmsd", "smina_rmsd", "plants_rmsd"])
 
-    # List to work with vina/smina/PLANTS data
-    vinaData = []
-    sminaData = []
-    plantsData = []
+    # For each dir in processDirs
+    for processDir, reference_ligand in processDirs:
+        # List to work with vina/smina/PLANTS data
+        vinaData = []
+        sminaData = []
+        plantsData = []
 
-    # If the vina dataframe is not empty
-    if not log_dump['vina'].empty:
-        # Get all vina directories (0, 1, 2...)
-        vinaDirs = glob(f"{dir}/vinaFiles/*")
-        for vinaDir in vinaDirs:
-            # Get run number
-            runNumber = vinaDir.split(os.path.sep)[-1]
-            # Try to load the mol2, if fails, try the .sdf
-            try:
-                # Find and concatenate the RMSDs
-                vinaData += octools.get_rmsd(f"{dir}/{reference_ligand}", f"{dir}/vinaFiles/{runNumber}/vina_{runNumber}.pdbqt")
-            except Exception as e:
-                try:
-                    octools.print_warning(f"Possibly I could not load the '{reference_ligand}', trying to load the '{reference_ligand2}' instead. Error: {e}")
-                    # Find and concatenate the RMSDs
-                    vinaData += octools.get_rmsd(f"{dir}/{reference_ligand2}", f"{dir}/vinaFiles/{runNumber}/vina_{runNumber}.pdbqt")
-                except Exception as e2:
-                    octools.print_error(f"Problems while processing the Vina output for the protein '{dir}'")
-                    octools.print_error_log(f"Problems while processing the Vina output for the protein '{dir}'. Error: {e2}", f"{logdir}/{archive}_dock_result_ERROR.log")
-
-    # If the vina dataframe is not empty
-    if not log_dump['smina'].empty:
-        # Try to load the mol2, if fails, try the .sdf
-        try:
-            # Read smina data
-            sminaData += octools.get_rmsd(f"{dir}/{reference_ligand}", f"{dir}/sminaFiles/smina.pdbqt")
-        except Exception as e:
-            try:
-                octools.print_warning(f"Possibly I could not load the '{reference_ligand}', trying to load the '{reference_ligand2}' instead. Error: {e}")
-                # Find and concatenate the RMSDs
-                sminaData += octools.get_rmsd(f"{dir}/{reference_ligand2}", f"{dir}/sminaFiles/smina.pdbqt")
-            except Exception as e2:
-                octools.print_error(f"Problems while processing the Smina output for the protein '{dir}'")
-                octools.print_error_log(f"Problems while processing the Smina output for the protein '{dir}'. Error: {e2}", f"{logdir}/{archive}_dock_result_ERROR.log")
-
-    # If the plants dataframe is not empty
-    if not log_dump['plants'].empty:
-        # Get all PLANTS directories (0, 1, 2...)
-        plantsDirs = glob(f"{dir}/plantsFiles/*")
-        for plantsDir in plantsDirs:
-            # Get run number
-            runNumber = plantsDir.split(os.path.sep)[-1]
-            # For each ligand which is in the list
-            for ligand in glob(f"{dir}/plantsFiles/{runNumber}/run/{ptn}*[0-9].mol2"):
+        # If the vina dataframe is not empty
+        if not log_dump['vina'].empty:
+            # Get all vina directories (0, 1, 2...)
+            vinaDirs = glob(f"{processDir}/vinaFiles/*")
+            for vinaDir in vinaDirs:
+                # Get run number
+                runNumber = vinaDir.split(os.path.sep)[-1]
                 # Try to load the mol2, if fails, try the .sdf
                 try:
                     # Find and concatenate the RMSDs
-                    plantsData += octools.get_rmsd(f"{dir}/{reference_ligand}", ligand)
+                    vinaData += octools.get_rmsd(f"{processDir}/{reference_ligand}.mol2", f"{processDir}/vinaFiles/{runNumber}/vina_{runNumber}.pdbqt")
                 except Exception as e:
                     try:
-                        octools.print_warning(f"Possibly I could not load the '{reference_ligand}', trying to load the '{reference_ligand2}' instead. Error: {e}")
+                        octools.print_warning(f"Possibly I could not load the '{reference_ligand}.mol2', trying to load the '{reference_ligand}.sdf' instead. Error: {e}")
                         # Find and concatenate the RMSDs
-                        plantsData += octools.get_rmsd(f"{dir}/{reference_ligand2}", ligand)
+                        vinaData += octools.get_rmsd(f"{processDir}/{reference_ligand}.sdf", f"{processDir}/vinaFiles/{runNumber}/vina_{runNumber}.pdbqt")
                     except Exception as e2:
-                        octools.print_error(f"Problems while processing the PLANTS output for the protein '{dir}'")
-                        octools.print_error_log(f"Problems while processing the PLANTS output for the protein '{dir}'. Error: {e2}", f"{logdir}/{archive}_dock_result_ERROR.log")
+                        octools.print_error(f"Problems while processing the Vina output for the protein '{processDir}'")
+                        octools.print_error_log(f"Problems while processing the Vina output for the protein '{processDir}'. Error: {e2}", f"{logdir}/{archive}_dock_result_ERROR.log")
 
-    # For each software, if not empty, determine which is the minimum value and which index it belongs and then select the corresponding line in the DataFrame
-    if vinaData:
-        minRMSD_vina = min(vinaData)
-        index_vina = vinaData.index(minRMSD_vina)
-        vinaList = log_dump['vina'][['affinity']].iloc[[index_vina]].values[0].tolist()
-    else:
-        vinaList = [np.NaN]
-        minRMSD_vina = np.NaN
+        # If the vina dataframe is not empty
+        if not log_dump['smina'].empty:
+            # Try to load the mol2, if fails, try the .sdf
+            try:
+                # Read smina data
+                sminaData += octools.get_rmsd(f"{processDir}/{reference_ligand}.mol2", f"{processDir}/sminaFiles/smina.pdbqt")
+            except Exception as e:
+                try:
+                    octools.print_warning(f"Possibly I could not load the '{reference_ligand}.mol2', trying to load the '{reference_ligand}.sdf' instead. Error: {e}")
+                    # Find and concatenate the RMSDs
+                    sminaData += octools.get_rmsd(f"{processDir}/{reference_ligand}.sdf", f"{processDir}/sminaFiles/smina.pdbqt")
+                except Exception as e2:
+                    octools.print_error(f"Problems while processing the Smina output for the protein '{processDir}'")
+                    octools.print_error_log(f"Problems while processing the Smina output for the protein '{processDir}'. Error: {e2}", f"{logdir}/{archive}_dock_result_ERROR.log")
 
-    # For each software, if not empty, determine which is the minimum value and which index it belongs and then select the corresponding line in the DataFrame
-    if sminaData:
-        minRMSD_smina = min(sminaData)
-        index_smina = sminaData.index(minRMSD_smina)
-        sminaList = log_dump['smina'][['affinity']].iloc[[index_smina]].values[0].tolist()
-    else:
-        sminaList = [np.NaN]
-        minRMSD_smina = np.NaN
+        # If the plants dataframe is not empty
+        if not log_dump['plants'].empty:
+            # Get all PLANTS directories (0, 1, 2...)
+            plantsDirs = glob(f"{processDir}/plantsFiles/*")
+            for plantsDir in plantsDirs:
+                # Get run number
+                runNumber = plantsDir.split(os.path.sep)[-1]
+                # For each ligand which is in the list
+                for ligand in glob(f"{processDir}/plantsFiles/{runNumber}/run/{ptn}*[0-9].mol2"):
+                    # Try to load the mol2, if fails, try the .sdf
+                    try:
+                        # Find and concatenate the RMSDs
+                        plantsData += octools.get_rmsd(f"{processDir}/{reference_ligand}.mol2", ligand)
+                    except Exception as e:
+                        try:
+                            octools.print_warning(f"Possibly I could not load the '{reference_ligand}.mol2', trying to load the '{reference_ligand}.sdf' instead. Error: {e}")
+                            # Find and concatenate the RMSDs
+                            plantsData += octools.get_rmsd(f"{processDir}/{reference_ligand}.sdf", ligand)
+                        except Exception as e2:
+                            octools.print_error(f"Problems while processing the PLANTS output for the protein '{processDir}'")
+                            octools.print_error_log(f"Problems while processing the PLANTS output for the protein '{processDir}'. Error: {e2}", f"{logdir}/{archive}_dock_result_ERROR.log")
 
-    # For each software, if not empty, determine which is the minimum value and which index it belongs and then select the corresponding line in the DataFrame
-    if plantsData:
-        minRMSD_plants = min(plantsData)
-        index_plants = plantsData.index(minRMSD_plants)
-        plantsList = log_dump['plants'][["TOTAL_SCORE", "SCORE_RB_PEN", "SCORE_NORM_HEVATOMS", "SCORE_NORM_CRT_HEVATOMS", "SCORE_NORM_WEIGHT", "SCORE_NORM_CRT_WEIGHT", "SCORE_RB_PEN_NORM_CRT_HEVATOMS"]].iloc[[index_plants]].values[0].tolist()
-    else:
-        plantsList = [np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN]
-        minRMSD_plants = np.NaN
+        # For each software, if not empty, determine which is the minimum value and which index it belongs and then select the corresponding line in the DataFrame
+        if vinaData:
+            minRMSD_vina = min(vinaData)
+            index_vina = vinaData.index(minRMSD_vina)
+            vinaList = log_dump['vina'][['affinity']].iloc[[index_vina]].values[0].tolist()
+        else:
+            vinaList = [np.NaN]
+            minRMSD_vina = np.NaN
 
-    # Append the data to the DataFrame
-    df.loc[len(df), df.columns] = [ptn] + vinaList + sminaList + plantsList + [minRMSD_vina, minRMSD_smina, minRMSD_plants]
+        # For each software, if not empty, determine which is the minimum value and which index it belongs and then select the corresponding line in the DataFrame
+        if sminaData:
+            minRMSD_smina = min(sminaData)
+            index_smina = sminaData.index(minRMSD_smina)
+            sminaList = log_dump['smina'][['affinity']].iloc[[index_smina]].values[0].tolist()
+        else:
+            sminaList = [np.NaN]
+            minRMSD_smina = np.NaN
+
+        # For each software, if not empty, determine which is the minimum value and which index it belongs and then select the corresponding line in the DataFrame
+        if plantsData:
+            minRMSD_plants = min(plantsData)
+            index_plants = plantsData.index(minRMSD_plants)
+            plantsList = log_dump['plants'][["TOTAL_SCORE", "SCORE_RB_PEN", "SCORE_NORM_HEVATOMS", "SCORE_NORM_CRT_HEVATOMS", "SCORE_NORM_WEIGHT", "SCORE_NORM_CRT_WEIGHT", "SCORE_RB_PEN_NORM_CRT_HEVATOMS"]].iloc[[index_plants]].values[0].tolist()
+        else:
+            plantsList = [np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN]
+            minRMSD_plants = np.NaN
+
+        # Append the data to the DataFrame
+        df.loc[len(df), df.columns] = [ptn] + [reference_ligand] + vinaList + sminaList + plantsList + [minRMSD_vina, minRMSD_smina, minRMSD_plants]
 
     return df
 
@@ -1652,38 +1663,52 @@ def __core_merge_descriptors_in_dataframe(dir, archive):
         ligand_descriptor = f"{astex_archive}/{ptn}/{ptn}_ligand_descriptors.json"
     elif archive == "dudez":
         chosenArchive = dudez_archive
-        recpetor_descriptor = f"{dudez_archive}/{ptn}/{ptn}_protein_descriptors.json"
-        ligand_descriptor = f"{dudez_archive}/{ptn}/{ptn}_ligand_descriptors.json"
-        # TODO: Add here a way to process all descriptors from ligands (the way that __core_read_log uses may already be the solution)
+        recpetor_descriptor = f"{dudez_archive}/{ptn}/rec.crg_protein_descriptors.json"
+        # Parameterize paths
+        dudezDirLigand = f"{dudezDir}_ligands"
+        dudezDirDecoy = f"{dudezDir}_decoys"
+        extremaDirDecoy = f"{extremaDir}_decoys"
+        goldilocksDirDecoy = f"{goldilocksDir}_decoys"
+        # Create an empty list for all directories to be processed
+        processDirs = []
+        # Add all subdirs (one for each ligand) from all 4 folders as a tuple (dir, ligand_descriptor_path)
+        processDirs += [(d, f"{dudezDirLigand}/{ptn}/{d.split(os.path.sep)[-1]}_ligand_descriptors.json") for d in glob(f"{dudezDirLigand}/*") if os.path.isdir(d)]
+        processDirs += [(d, f"{dudezDirDecoy}/{ptn}/{d.split(os.path.sep)[-1]}_ligand_descriptors.json") for d in glob(f"{dudezDirDecoy}/*") if os.path.isdir(d)]
+        processDirs += [(d, f"{extremaDirDecoy}/{ptn}/{d.split(os.path.sep)[-1]}_ligand_descriptors.json") for d in glob(f"{extremaDirDecoy}/*") if os.path.isdir(d)]
+        processDirs += [(d, f"{goldilocksDirDecoy}/{ptn}/{d.split(os.path.sep)[-1]}_ligand_descriptors.json") for d in glob(f"{goldilocksDirDecoy}/*") if os.path.isdir(d)]
     elif archive == "pdbbind":
         chosenArchive = pdbbind_archive
         receptor_descriptor_path = f"{pdbbind_archive}/{ptn}/{ptn}_protein_descriptors.json"
-        ligand_descriptor_path = f"{pdbbind_archive}/{ptn}/{ptn}_ligand_descriptors.json"
+        # Make the processDirs a unitary list of the dir and its descriptors (since there is only one ligand per protein)
+        processDirs = [(dir, f"{pdbbind_archive}/{ptn}/{ptn}_ligand_descriptors.json")]
     else:
         octools.print_error(f"Unknown archive type. Expected one of the following: 'astex', 'dudez', 'pdbbind' and got {archive}.")
         return ptndf
-    # Check if there is the receptor and the ligand descriptor json, if yes, load them
+    # Check if there is the receptor json, if yes, load it
     if os.path.isfile(receptor_descriptor_path):
         receptor_descriptors = ocr.read_descriptors_from_json(receptor_descriptor_path, returnDict = True)
     else:
         _ = errors.file_do_not_exist(f"The file {receptor_descriptor_path} does not exist!")
         receptor_descriptors = {}
-    if os.path.isfile(ligand_descriptor_path):
-        ligand_descriptors = ocl.read_descriptors_from_json(ligand_descriptor_path, returnDict = True)
-    else:
-        _ = errors.file_do_not_exist(f"The file {ligand_descriptor_path} does not exist!")
-        ligand_descriptors = {}
-    # Create new dict
-    all_descriptors = dict()
-    # Set Name and Path
-    all_descriptors["Protein"] = ptn
-    # Merge both descriptors dicts
-    all_descriptors = {**all_descriptors, **receptor_descriptors}
-    all_descriptors = {**all_descriptors, **ligand_descriptors}
-    # Create a temporary pd.DataFrame
-    tmpdf = pd.DataFrame(all_descriptors, index=[0])
-    # Append the line to the pd.DataFrame
-    ptndf = pd.concat([ptndf, tmpdf], ignore_index=True)
+    # For each directory in processDirs, unpack directory, ligand descriptor and read its descriptors
+    for processDir, ligand_descriptor_path in processDirs:
+        # Check if there is the ligand json, if yes, load it
+        if os.path.isfile(ligand_descriptor_path):
+            ligand_descriptors = ocl.read_descriptors_from_json(ligand_descriptor_path, returnDict = True)
+        else:
+            _ = errors.file_do_not_exist(f"The file {ligand_descriptor_path} does not exist!")
+            ligand_descriptors = {}
+        # Create new dict
+        all_descriptors = dict()
+        # Set Name and Path
+        all_descriptors["Protein"] = ptn
+        # Merge both descriptors dicts
+        all_descriptors = {**all_descriptors, **receptor_descriptors}
+        all_descriptors = {**all_descriptors, **ligand_descriptors}
+        # Create a temporary pd.DataFrame
+        tmpdf = pd.DataFrame(all_descriptors, index=[0])
+        # Append the line to the pd.DataFrame
+        ptndf = pd.concat([ptndf, tmpdf], ignore_index=True)
     # Return the dataframe with a single row
     return ptndf
 

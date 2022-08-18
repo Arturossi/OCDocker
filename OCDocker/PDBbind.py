@@ -231,7 +231,6 @@ def generate_dock_result_csv(log_dumps, csv_path, chunksize=500):
     '''
     Uses the structure from read_logs to generate an output for all docking softwares.
     Input:
-     archive   [string]                                     - Which archive will be processed [dudez, pdbbind, astex]
      log_dumps [dict of dicts of pd.DataFrame]              - The dump generated from the read_logs function
      csv_path  [string]                                     - Path to the csv file
      chunksize [int]                           DEFAULT: 500 - Chunk size to write the csv
@@ -244,7 +243,7 @@ def merge_descriptors_in_dataframe(saveCsv=True):
     '''
     Reads all the descriptors jsons and return a pd.DataFrame.
     Input:
-     saveCsv [bool]   DEFAULT: True - If True will save to the Prepared folder in the database
+     saveCsv [bool] DEFAULT: True - If True will save to the Prepared folder in the database
     Return:
      [pd.DataFrame]
     '''

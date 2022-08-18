@@ -433,3 +433,50 @@ def run_plants(overwrite = False):
       -
     '''
     return ocbdb.run_dock("dudez", "plants", overwrite = overwrite)
+
+def read_logs(picklePath = ""):
+    '''
+    Parse the database into multiple serializable objects.
+    Input:
+     picklePath [string] DEFAULT: "" - The path where to store the pickle file. If empty no pickle file will be generated
+    Return:
+     -
+    '''
+    return ocbdb.read_logs("dudez", picklePath = picklePath)
+
+def generate_dock_result_csv(log_dumps, csv_path, chunksize=500):
+    '''
+    Uses the structure from read_logs to generate an output for all docking softwares.
+    Input:
+     archive   [string]                                     - Which archive will be processed [dudez, pdbbind, astex]
+     log_dumps [dict of dicts of pd.DataFrame]              - The dump generated from the read_logs function
+     csv_path  [string]                                     - Path to the csv file
+     chunksize [int]                           DEFAULT: 500 - Chunk size to write the csv
+    Return:
+     -
+    '''
+    return ocbdb.generate_dock_result_csv("dudez", log_dumps, csv_path, chunksize=chunksize)
+
+def merge_descriptors_in_dataframe(saveCsv=True):
+    '''
+    Reads all the descriptors jsons and return a pd.DataFrame.
+    Input:
+     saveCsv [bool] DEFAULT: True - If True will save to the Prepared folder in the database
+    Return:
+     [pd.DataFrame]
+    '''
+    # Get the dataframe with descriptors and docking scores
+    dudezdf = ocbdb.merge_descriptors_in_dataframe("dudez", saveCsv=False)
+
+    # Merge the pdbbinddf DataFrame with the metadata from the DUDEz database using the Protein column as a comparer
+    dudezdf = pd.merge(dudezdf, pd.DataFrame(read_index()), on="Protein", how="left")
+
+    if saveCsv:
+        # Parameterize the csvs paths
+        csv_path_out = f"{parsed_archive}/DUDEz_complete.csv"
+        if os.path.isfile(csv_path_out):
+            octools.print_warning(f"The file {csv_path_out} already exists, it will be OVERWRITTEN!!")
+        # Write the data to a new csv file
+        pdbbinddf.to_csv(csv_path_out, index=False)
+
+    return pdbbinddf
