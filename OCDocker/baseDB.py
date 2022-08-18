@@ -1265,10 +1265,10 @@ def __core_read_log(dir, archive):
     # Check if the archive is dudez (which needs special processing)
     if archive == "dudez":
         # Parameterize paths
-        dudezDirLigand = f"{dudezDir}_ligands"
-        dudezDirDecoy = f"{dudezDir}_decoys"
-        extremaDirDecoy = f"{extremaDir}_decoys"
-        goldilocksDirDecoy = f"{goldilocksDir}_decoys"
+        dudezDirLigand = f"{dir}/DUDE_Z_ligands"
+        dudezDirDecoy = f"{dir}/DUDE_Z_decoys"
+        extremaDirDecoy = f"{dir}/Extrema_decoys"
+        goldilocksDirDecoy = f"{dir}/Goldilocks_decoys"
         # Create an empty list for all directories to be processed
         processDirs = []
         # Add all subdires (one for each ligand) from all 4 folders as a tuple (dir, dataset)
@@ -1665,10 +1665,10 @@ def __core_merge_descriptors_in_dataframe(dir, archive):
         chosenArchive = dudez_archive
         recpetor_descriptor = f"{dudez_archive}/{ptn}/rec.crg_protein_descriptors.json"
         # Parameterize paths
-        dudezDirLigand = f"{dudezDir}_ligands"
-        dudezDirDecoy = f"{dudezDir}_decoys"
-        extremaDirDecoy = f"{extremaDir}_decoys"
-        goldilocksDirDecoy = f"{goldilocksDir}_decoys"
+        dudezDirLigand = f"{dir}/DUDE_Z_ligands"
+        dudezDirDecoy = f"{dir}/DUDE_Z_decoys"
+        extremaDirDecoy = f"{dir}/Extrema_decoys"
+        goldilocksDirDecoy = f"{dir}/Goldilocks_decoys"
         # Create an empty list for all directories to be processed
         processDirs = []
         # Add all subdirs (one for each ligand) from all 4 folders as a tuple (dir, ligand_descriptor_path)
