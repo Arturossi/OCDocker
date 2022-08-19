@@ -2476,8 +2476,8 @@ def merge_descriptors_in_dataframe(archive, saveCsv=True):
         data = __merge_descriptors_in_dataframe_parallel(processDirs, archive, f"Processing {archive}")
     else:
         data = __merge_descriptors_in_dataframe_no_parallel(processDirs, archive, f"Processing {archive}")
-    # Check if data is defined and is pd.DataFrame type and is not empty
-    if data and type(data) == pd.DataFrame and not data.empty:
+    # Check if data is pd.DataFrame type and is not empty
+    if type(data) == pd.DataFrame and not data.empty:
         # Try to write the csv
         try:
             # Remove unwanted keys
