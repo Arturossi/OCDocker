@@ -2461,7 +2461,7 @@ def merge_descriptors_in_dataframe(archive, saveCsv=True):
                 processDirs += [(processDir, f"{d}/rec.crg_protein_descriptors.json") for processDir in glob(f"{dudezDirLigand}/*") if os.path.isdir(processDir)]
                 processDirs += [(processDir, f"{d}/rec.crg_protein_descriptors.json") for processDir in glob(f"{dudezDirDecoy}/*") if os.path.isdir(processDir)]
                 processDirs += [(processDir, f"{d}/rec.crg_protein_descriptors.json") for processDir in glob(f"{extremaDirDecoy}/*") if os.path.isdir(processDir)]
-                processDirs += [(processDir, f"{d}/rec.crg_protein_descriptors.json") for processDir in glob(f"{goldilocksDirDecoy}/*") if os.path.isdir(pprocessDird)]
+                processDirs += [(processDir, f"{d}/rec.crg_protein_descriptors.json") for processDir in glob(f"{goldilocksDirDecoy}/*") if os.path.isdir(processDir)]
             elif archive == "pdbbind":
                 receptor_descriptor_path = f"{pdbbind_archive}/{ptn}/{ptn}_protein_descriptors.json"
                 # Make the processDirs a unitary list of the dir and its descriptors (since there is only one ligand per protein)
