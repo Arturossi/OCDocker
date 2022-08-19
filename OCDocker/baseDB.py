@@ -1641,15 +1641,18 @@ def __generate_dock_result_csv_no_parallel(log_dumps, archive, desc):
     return pd.concat(dfList)
 
 ### Merge descriptors in dataframe
-def __core_merge_descriptors_in_dataframe(processDir, archive):
+def __core_merge_descriptors_in_dataframe(processDirPackage, archive):
     '''
     Reads the descriptor and receptor json then parse them into a dataframe.
     Input:
-     processDir [string] - The directory where the files are stored
-     archive    [string] - Which archive will be processed [dudez, pdbbind, astex]
+     processDirPackage [tuple(string, string)] - Tuple containing the directory where the files are stored and the receptor descriptor json file
+     archive           [string]                - Which archive will be processed [dudez, pdbbind, astex]
     Return:
       -
     '''
+    # Unpack the tuple
+    processDir, receptor_descriptor_path = processDirPackage
+
     # Find ptn name
     ptn = processDir.split(os.path.sep)[-1]
 
@@ -1659,13 +1662,10 @@ def __core_merge_descriptors_in_dataframe(processDir, archive):
 
     # Find which kind of archive it will be
     if archive == "astex":
-        receptor_descriptor_path = f"{astex_archive}/{ptn}/{ptn}_protein_descriptors.json"
         ligand_descriptor_path = f"{astex_archive}/{ptn}/{ptn}_ligand_descriptors.json"
     elif archive == "dudez":
-        receptor_descriptor_path = f"{dudez_archive}/{ptn}/rec.crg_protein_descriptors.json"
-        ligand_descriptor_path = f"{dudezDirLigand}/{ptn}/{pd.split(os.path.sep)[-1]}_ligand_descriptors.json"
+        ligand_descriptor_path = f"{dudez_archive}/{ptn}/{pd.split(os.path.sep)[-1]}_ligand_descriptors.json"
     elif archive == "pdbbind":
-        receptor_descriptor_path = f"{pdbbind_archive}/{ptn}/{ptn}_protein_descriptors.json"
         ligand_descriptor_path = f"{pdbbind_archive}/{ptn}/{ptn}_ligand_descriptors.json"
     else:
         octools.print_error(f"Unknown archive type. Expected one of the following: 'astex', 'dudez', 'pdbbind' and got {archive}.")
@@ -1700,8 +1700,8 @@ def __thread_merge_descriptors_in_dataframe_parallel(arguments):
     '''
     Thread aid function to call __core_merge_descriptors_in_dataframe.
     Input:
-     arguments [tuple(string, string)] - Tuple containing, in this order:
-        - [string] - Directory to work with
+     arguments [tuple(tuple(string, string, string)] - Tuple containing, in this order:
+        - [tuple(string, string)] - Tuple containing in this order the directory where the files are stored and the receptor descriptor json file
         - [string] - Which archive will be processed [dudez, pdbbind, astex]
     Return:
       -
@@ -1716,9 +1716,9 @@ def __merge_descriptors_in_dataframe_parallel(dirs, archive, desc):
     '''
     Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
     Input:
-     dirs    [string] - List of paths to process
-     archive [string] - Which archive will be processed [dudez, pdbbind, astex]
-     desc    [string] - The description used in the progress bar
+     dirs    [tuple(string, string)] - Tuple containing the directory where the files are stored and the receptor descriptor json file
+     archive [string]                - Which archive will be processed [dudez, pdbbind, astex]
+     desc    [string]                - The description used in the progress bar
     Return:
       [pd.DataFrame]
     '''
@@ -1757,7 +1757,7 @@ def __merge_descriptors_in_dataframe_no_parallel(dirs, archive, desc):
     '''
     Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_read_log function.
     Input:
-     dirs    [string] - List of paths to process
+     dirs    [tuple(string, string)] - Tuple containing the directory where the files are stored and the receptor descriptor json file
      archive [string] - Which archive will be processed [dudez, pdbbind, astex]
      desc    [string] - The description used in the progress bar
     Return:
@@ -2458,14 +2458,14 @@ def merge_descriptors_in_dataframe(archive, saveCsv=True):
                 # Create an empty list for all directories to be processed
                 processDirs = []
                 # Add all subdirs (one for each ligand) from all 4 folders as a tuple (dir, ligand_descriptor_path)
-                processDirs += glob(f"{dudezDirLigand}/*")
-                processDirs += glob(f"{dudezDirDecoy}/*")
-                processDirs += glob(f"{extremaDirDecoy}/*")
-                processDirs += glob(f"{goldilocksDirDecoy}/*")
+                processDirs += [(pd, f"{d}/rec.crg_protein_descriptors.json") for pd in glob(f"{dudezDirLigand}/*") if os.path.isdir(pd)]
+                processDirs += [(pd, f"{d}/rec.crg_protein_descriptors.json") for pd in glob(f"{dudezDirDecoy}/*") if os.path.isdir(pd)]
+                processDirs += [(pd, f"{d}/rec.crg_protein_descriptors.json") for pd in glob(f"{extremaDirDecoy}/*") if os.path.isdir(pd)]
+                processDirs += [(pd, f"{d}/rec.crg_protein_descriptors.json") for pd in glob(f"{goldilocksDirDecoy}/*") if os.path.isdir(pd)]
             elif archive == "pdbbind":
                 receptor_descriptor_path = f"{pdbbind_archive}/{ptn}/{ptn}_protein_descriptors.json"
                 # Make the processDirs a unitary list of the dir and its descriptors (since there is only one ligand per protein)
-                processDirs = [d]
+                processDirs = [(d, f"{astex_archive}/{ptn}/{ptn}_protein_descriptors.json")]
             else:
                 octools.print_error(f"Unknown archive type. Expected one of the following: 'astex', 'dudez', 'pdbbind' and got {archive}.")
                 return None
