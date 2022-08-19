@@ -1427,9 +1427,8 @@ def __core_generate_dock_result_csv(log_dump, ptn, archive):
     '''
     # Find which kind of archive it will be
     if archive == "astex":
-        chosenArchive = astex_archive
+        pass
     elif archive == "dudez":
-        chosenArchive = dudez_archive
         # Parameterize paths
         dudezDirLigand = f"{dudez_archive}/{ptn}/DUDE_Z_ligands"
         dudezDirDecoy = f"{dudez_archive}/{ptn}/DUDE_Z_decoys"
@@ -1443,9 +1442,8 @@ def __core_generate_dock_result_csv(log_dump, ptn, archive):
         processDirs += [(d, d.split(os.path.sep)[-1]) for d in glob(f"{extremaDirDecoy}/*") if os.path.isdir(d)]
         processDirs += [(d, d.split(os.path.sep)[-1]) for d in glob(f"{goldilocksDirDecoy}/*") if os.path.isdir(d)]
     elif archive == "pdbbind":
-        chosenArchive = pdbbind_archive
         # Set the target dir
-        processDirs = [(f"{chosenArchive}/{ptn}", f"{ptn}_ligand")]
+        processDirs = [(f"{pdbbind_archive}/{ptn}", f"{ptn}_ligand")]
 
     # The new dataframe
     df = pd.DataFrame(columns=["Protein", "Ligand", "vina_affinity", "smina_affinity", "plants_TOTAL_SCORE", "plants_SCORE_RB_PEN", "plants_SCORE_NORM_HEVATOMS", "plants_SCORE_NORM_CRT_HEVATOMS", "plants_SCORE_NORM_WEIGHT", "plants_SCORE_NORM_CRT_WEIGHT", "plants_SCORE_RB_PEN_NORM_CRT_HEVATOMS", "vina_rmsd", "smina_rmsd", "plants_rmsd"])
