@@ -1245,12 +1245,12 @@ def __run_dock_no_parallel(dirs, archive, dockingAlgorithm, overwrite, desc, lig
     return None
 
 ### Read logs
-def __core_read_log(dir, archive):
+def __core_read_log(processDir, archive):
     '''
     Reads Vina, Smina and PLANTS logs and then return a dict of dataframes.
     Input:
-     dir     [string] - The directory where the files are stored
-     archive [string] - Which archive will be processed [dudez, pdbbind, astex]
+     processDir [tuple(string, string)] - Tuple containing the directory where the files are stored and the receptor descriptor json file
+     archive    [string]                - Which archive will be processed [dudez, pdbbind, astex]
     Return:
       -
     '''
@@ -1262,82 +1262,64 @@ def __core_read_log(dir, archive):
     plantsdf = pd.DataFrame(columns=["LIGAND_ENTRY", "TOTAL_SCORE", "SCORE_RB_PEN", "SCORE_NORM_HEVATOMS", "SCORE_NORM_CRT_HEVATOMS", "SCORE_NORM_WEIGHT", "SCORE_NORM_CRT_WEIGHT", "SCORE_RB_PEN_NORM_CRT_HEVATOMS"])
     # Dict to hold the protein data
     proteinData = {}
-    # Check if the archive is dudez (which needs special processing)
-    if archive == "dudez":
-        # Parameterize paths
-        dudezDirLigand = f"{dir}/DUDE_Z_ligands"
-        dudezDirDecoy = f"{dir}/DUDE_Z_decoys"
-        extremaDirDecoy = f"{dir}/Extrema_decoys"
-        goldilocksDirDecoy = f"{dir}/Goldilocks_decoys"
-        # Create an empty list for all directories to be processed
-        processDirs = []
-        # Add all subdires (one for each ligand) from all 4 folders as a tuple (dir, dataset)
-        processDirs += [(d, 'dudez_ligand') for d in glob(f"{dudezDirLigand}/*") if os.path.isdir(d)]
-        processDirs += [(d, 'dudez_decoy') for d in glob(f"{dudezDirDecoy}/*") if os.path.isdir(d)]
-        processDirs += [(d, 'dudez_extrema') for d in glob(f"{extremaDirDecoy}/*") if os.path.isdir(d)]
-        processDirs += [(d, 'dudez_goldilocks') for d in glob(f"{goldilocksDirDecoy}/*") if os.path.isdir(d)]
-    else:
-        # Set the process dir list as only one element list of directory containing a ligand (generic)
-        processDirs = [(dir, 'ligand')]
 
-    # For each processDir and type in the unpacked processDirs tuple
-    for processDir, tp in processDirs:
-        # Get all vina directories (0, 1, 2...)
-        vinaDirs = glob(f"{processDir}/vinaFiles/*")
-        # For each dir in vinaDirs
-        for vinaDir in vinaDirs:
-            # Get run number
-            runNumber = vinaDir.split(os.path.sep)[-1]
-            # Parameterize the log path
-            logPath = f"{vinaDir}/vina_{runNumber}.log"
-            # Check if exists
-            if os.path.isfile(logPath):
-                # Read the log into dataframe
-                df = ocvina.read_vina_log(logPath)
-                # Check if df is a dataframe
-                if isinstance(df, pd.DataFrame):
-                    # Concatenate df and vinadf
-                    vinadf = pd.concat([vinadf, df], ignore_index=True)
-                else:
-                    _ = errors.wrong_type(f"The file '{logPath}' could not be read.")
-            else:
-                _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its vina output.")
-        # Get all vina directories (0, 1, 2...)
-        plantsDirs = glob(f"{processDir}/plantsFiles/*")
-        # For each dir in plantsDir
-        for plantsDir in plantsDirs:
-            # Get run number
-            runNumber = plantsDir.split(os.path.sep)[-1]
-            # Parameterize the log path
-            logPath = f"{plantsDir}/run/ranking.csv"
-            # Check if exists
-            if os.path.isfile(logPath):
-                # Read the log into dataframe
-                df = ocplants.read_plants_log(logPath)
-                if isinstance(df, pd.DataFrame):
-                    # Concatenate df and plantsdf
-                    plantsdf = pd.concat([plantsdf, df], ignore_index=True)
-                else:
-                    _ = errors.wrong_type(f"The file '{logPath}' could not be read.")
-            else:
-                _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its PLANTS output.")
+    # Get all vina directories (0, 1, 2...)
+    vinaDirs = glob(f"{processDir}/vinaFiles/*")
+    # For each dir in vinaDirs
+    for vinaDir in vinaDirs:
+        # Get run number
+        runNumber = vinaDir.split(os.path.sep)[-1]
         # Parameterize the log path
-        logPath = f"{processDir}/sminaFiles/smina.log"
-        # Check if smina log exists
+        logPath = f"{vinaDir}/vina_{runNumber}.log"
+        # Check if exists
         if os.path.isfile(logPath):
             # Read the log into dataframe
-            df = ocsmina.read_smina_log(logPath)
+            df = ocvina.read_vina_log(logPath)
+            # Check if df is a dataframe
             if isinstance(df, pd.DataFrame):
-                # Concatenate df and plantsdf
-                sminadf = df
+                # Concatenate df and vinadf
+                vinadf = pd.concat([vinadf, df], ignore_index=True)
             else:
                 _ = errors.wrong_type(f"The file '{logPath}' could not be read.")
         else:
-            _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its SMINA output.")
-        # Create a dataFrame to the type
-        df = pd.DataFrame([tp], columns=['type'])
-        # Add the protein data to the proteinData dict using ptn as the key
-        proteinData[ptn] = {"vina": vinadf, "smina": sminadf, "plants": plantsdf, "type": df}
+            _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its vina output.")
+    # Get all vina directories (0, 1, 2...)
+    plantsDirs = glob(f"{processDir}/plantsFiles/*")
+    # For each dir in plantsDir
+    for plantsDir in plantsDirs:
+        # Get run number
+        runNumber = plantsDir.split(os.path.sep)[-1]
+        # Parameterize the log path
+        logPath = f"{plantsDir}/run/ranking.csv"
+        # Check if exists
+        if os.path.isfile(logPath):
+            # Read the log into dataframe
+            df = ocplants.read_plants_log(logPath)
+            if isinstance(df, pd.DataFrame):
+                # Concatenate df and plantsdf
+                plantsdf = pd.concat([plantsdf, df], ignore_index=True)
+            else:
+                _ = errors.wrong_type(f"The file '{logPath}' could not be read.")
+        else:
+            _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its PLANTS output.")
+    # Parameterize the log path
+    logPath = f"{processDir}/sminaFiles/smina.log"
+    # Check if smina log exists
+    if os.path.isfile(logPath):
+        # Read the log into dataframe
+        df = ocsmina.read_smina_log(logPath)
+        if isinstance(df, pd.DataFrame):
+            # Concatenate df and plantsdf
+            sminadf = df
+        else:
+            _ = errors.wrong_type(f"The file '{logPath}' could not be read.")
+    else:
+        _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its SMINA output.")
+    # Create a dataFrame to the type
+    df = pd.DataFrame([tp], columns=['type'])
+    # Add the protein data to the proteinData dict using ptn as the key
+    proteinData[ptn] = {"vina": vinadf, "smina": sminadf, "plants": plantsdf, "type": df}
+
     # Return the proteinData dict
     return proteinData
 
@@ -1345,9 +1327,9 @@ def __thread_read_log_parallel(arguments):
     '''
     Thread aid function to call __core_read_log.
     Input:
-     arguments [tuple(string, string, string, bool)] - Tuple containing, in this order:
-        - [string] - The directory where the files are stored
-        - [string] - Which archive will be processed [dudez, pdbbind, astex]
+     arguments [tuple(tuple(string, string), string)] - Tuple containing, in this order:
+        - [tuple(string, string)] - Tuple containing in this order the directory where the files are stored and the receptor descriptor json file
+        - [string]                - Which archive will be processed [dudez, pdbbind, astex]
     Return:
       -
     '''
@@ -1361,9 +1343,9 @@ def __read_log_parallel(dirs, archive, desc):
     '''
     Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
     Input:
-     dirs    [string] - List of paths to process
-     archive [string] - Which archive will be processed [dudez, pdbbind, astex]
-     desc    [string] - The description used in the progress bar
+     dirs    [tuple(string, string)] - Tuple containing the directory where the files are stored and the receptor descriptor json file
+     archive [string]                - Which archive will be processed [dudez, pdbbind, astex]
+     desc    [string]                - The description used in the progress bar
     Return:
       [dict of dicts of pd.DataFrame]
     '''
@@ -1402,7 +1384,7 @@ def __read_log_no_parallel(dirs, archive, desc):
     '''
     Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_read_log function.
     Input:
-     dirs    [string] - List of paths to process
+     dirs    [tuple(string, string)] - Tuple containing the directory where the files are stored and the receptor descriptor json file
      archive [string] - Which archive will be processed [dudez, pdbbind, astex]
      desc    [string] - The description used in the progress bar
     Return:
@@ -1782,7 +1764,7 @@ def __merge_descriptors_in_dataframe_no_parallel(dirs, archive, desc):
     with octools.redirect_to_tqdm():
         for dir in tqdm(iterable = dirs, total = len(dirs), desc = desc):
             # Call the core read log function (shared between parallel and not parallel) and store the data into the DataFrame
-            ptndf = pd.concat([ptndf, __core_read_log(dir, archive)])
+            ptndf = pd.concat([ptndf, __core_merge_descriptors_in_dataframe(dir, archive)])
             # Clear the memory
             gc.collect()
     return ptndf
@@ -2363,15 +2345,42 @@ def read_logs(archive, picklePath = ""):
     else:
         octools.print_error(f"Not valid archive type. Expected one of ['astex', 'dudez', 'pdbbind'] and found {archive}.")
         return None
-    # Get all dirs paths in the database
-    dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db']]
+    # For each dir in chosenArchive
+    for d in glob(f"{chosenArchive}/*"):
+        # Check if is a dir (just in case) and if its name is not one of the ones we want to skip
+        if os.path.isdir(d) and os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db']:
+            # Find ptn name
+            ptn = d.split(os.path.sep)[-1]
+            # Find which kind of archive it will be
+            if archive == "astex":
+                processDirs = []
+            elif archive == "dudez":
+                # Parameterize paths
+                dudezDirLigand = f"{d}/DUDE_Z_ligands"
+                dudezDirDecoy = f"{d}/DUDE_Z_decoys"
+                extremaDirDecoy = f"{d}/Extrema_decoys"
+                goldilocksDirDecoy = f"{d}/Goldilocks_decoys"
+                # Create an empty list for all directories to be processed
+                processDirs = []
+                # Add all subdirs (one for each ligand) from all 4 folders as a tuple (dir, ligand_descriptor_path)
+                processDirs += [(processDir, 'dudez_ligand') for processDir in glob(f"{dudezDirLigand}/*") if os.path.isdir(processDir)]
+                processDirs += [(processDir, 'dudez_decoy') for processDir in glob(f"{dudezDirDecoy}/*") if os.path.isdir(processDir)]
+                processDirs += [(processDir, 'dudez_extrema') for processDir in glob(f"{extremaDirDecoy}/*") if os.path.isdir(processDir)]
+                processDirs += [(processDir, 'dudez_goldilocks') for processDir in glob(f"{goldilocksDirDecoy}/*") if os.path.isdir(processDir)]
+            elif archive == "pdbbind":
+                receptor_descriptor_path = f"{pdbbind_archive}/{ptn}/{ptn}_protein_descriptors.json"
+                # Make the processDirs a unitary list of the dir and its descriptors (since there is only one ligand per protein)
+                processDirs = [(d, f"{astex_archive}/{ptn}/{ptn}_protein_descriptors.json")]
+            else:
+                octools.print_error(f"Unknown archive type. Expected one of the following: 'astex', 'dudez', 'pdbbind' and got {archive}.")
+                return None
     # Make data be None (in case of failure)
     data = None
     # Decide if multprocessing will be used
     if args.multiprocess:
-        data = __read_log_parallel(dirs, archive, f"Processing {archive}")
+        data = __read_log_parallel(processDirs, archive, f"Processing {archive}")
     else:
-        data = __read_log_no_parallel(dirs, archive, f"Processing {archive}")
+        data = __read_log_no_parallel(processDirs, archive, f"Processing {archive}")
     # If user asked for a pickle file
     if picklePath:
         # Check if data is not empty
