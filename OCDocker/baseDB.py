@@ -1664,7 +1664,7 @@ def __core_merge_descriptors_in_dataframe(processDirPackage, archive):
     if archive == "astex":
         ligand_descriptor_path = f"{astex_archive}/{ptn}/{ptn}_ligand_descriptors.json"
     elif archive == "dudez":
-        ligand_descriptor_path = f"{dudez_archive}/{ptn}/{pd.split(os.path.sep)[-1]}_ligand_descriptors.json"
+        ligand_descriptor_path = f"{dudez_archive}/{ptn}/{processDir.split(os.path.sep)[-1]}_ligand_descriptors.json"
     elif archive == "pdbbind":
         ligand_descriptor_path = f"{pdbbind_archive}/{ptn}/{ptn}_ligand_descriptors.json"
     else:
@@ -2458,10 +2458,10 @@ def merge_descriptors_in_dataframe(archive, saveCsv=True):
                 # Create an empty list for all directories to be processed
                 processDirs = []
                 # Add all subdirs (one for each ligand) from all 4 folders as a tuple (dir, ligand_descriptor_path)
-                processDirs += [(pd, f"{d}/rec.crg_protein_descriptors.json") for pd in glob(f"{dudezDirLigand}/*") if os.path.isdir(pd)]
-                processDirs += [(pd, f"{d}/rec.crg_protein_descriptors.json") for pd in glob(f"{dudezDirDecoy}/*") if os.path.isdir(pd)]
-                processDirs += [(pd, f"{d}/rec.crg_protein_descriptors.json") for pd in glob(f"{extremaDirDecoy}/*") if os.path.isdir(pd)]
-                processDirs += [(pd, f"{d}/rec.crg_protein_descriptors.json") for pd in glob(f"{goldilocksDirDecoy}/*") if os.path.isdir(pd)]
+                processDirs += [(processDir, f"{d}/rec.crg_protein_descriptors.json") for processDir in glob(f"{dudezDirLigand}/*") if os.path.isdir(processDir)]
+                processDirs += [(processDir, f"{d}/rec.crg_protein_descriptors.json") for processDir in glob(f"{dudezDirDecoy}/*") if os.path.isdir(processDir)]
+                processDirs += [(processDir, f"{d}/rec.crg_protein_descriptors.json") for processDir in glob(f"{extremaDirDecoy}/*") if os.path.isdir(processDir)]
+                processDirs += [(processDir, f"{d}/rec.crg_protein_descriptors.json") for processDir in glob(f"{goldilocksDirDecoy}/*") if os.path.isdir(pprocessDird)]
             elif archive == "pdbbind":
                 receptor_descriptor_path = f"{pdbbind_archive}/{ptn}/{ptn}_protein_descriptors.json"
                 # Make the processDirs a unitary list of the dir and its descriptors (since there is only one ligand per protein)
