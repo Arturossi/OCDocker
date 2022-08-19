@@ -1518,7 +1518,7 @@ def __core_generate_dock_result_csv(log_dump, ptn, archive):
                 # Get run number
                 runNumber = plantsDir.split(os.path.sep)[-1]
                 # For each ligand which is in the list
-                for ligand in glob(f"{processDir}/plantsFiles/{runNumber}/run/{ptn}*[0-9].mol2"):
+                for ligand in glob(f"{processDir}/plantsFiles/{runNumber}/run/*[0-9].mol2"):
                     # Try to load the mol2, if fails, try the .sdf
                     try:
                         # Find and concatenate the RMSDs
