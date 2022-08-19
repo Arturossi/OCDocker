@@ -3,6 +3,8 @@
 # Imports
 ###############################################################################
 import os
+import pandas as pd
+
 from glob import glob
 from tqdm import tqdm
 from multiprocessing import Pool
