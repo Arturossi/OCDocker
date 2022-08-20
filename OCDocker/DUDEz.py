@@ -470,15 +470,12 @@ def merge_descriptors_in_dataframe(saveCsv=True):
     # Get the dataframe with descriptors and docking scores
     dudezdf = ocbdb.merge_descriptors_in_dataframe("dudez", saveCsv=False)
 
-    # Merge the pdbbinddf DataFrame with the metadata from the DUDEz database using the Protein column as a comparer
-    dudezdf = pd.merge(dudezdf, pd.DataFrame(read_index()), on="Protein", how="left")
-
     if saveCsv:
         # Parameterize the csvs paths
         csv_path_out = f"{parsed_archive}/DUDEz_complete.csv"
         if os.path.isfile(csv_path_out):
             octools.print_warning(f"The file {csv_path_out} already exists, it will be OVERWRITTEN!!")
         # Write the data to a new csv file
-        pdbbinddf.to_csv(csv_path_out, index=False)
+        dudezdf.to_csv(csv_path_out, index=False)
 
-    return pdbbinddf
+    return dudezdf
