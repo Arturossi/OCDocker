@@ -1260,12 +1260,15 @@ def __core_read_log(processDirData, archive):
     if archive == "astex":
         # Find ptn name
         ptn = processDir.split(os.path.sep)[-1]
+        lgd = "ligand"
     elif archive == "dudez":
         # Find ptn name
-        ptn = os.path.dirname(processDir).split(os.path.sep)[-3]
+        ptn = processDir.split(os.path.sep)[-3]
+        lgd = processDir.split(os.path.sep)[-1]
     elif archive == "pdbbind":
         # Find ptn name
         ptn = processDir.split(os.path.sep)[-1]
+        lgd = "ligand"
     else:
         # TODO: PRBOELMS!!!
         return
@@ -1329,9 +1332,9 @@ def __core_read_log(processDirData, archive):
     else:
         _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its SMINA output.")
     # Create a dataFrame to the type
-    df = pd.DataFrame([tp], columns=['type'])
+    df = pd.DataFrame([[ptn, lgd, tp]], columns=['Protein', 'Ligand', 'type'])
     # Add the protein data to the proteinData dict using ptn as the key
-    proteinData[ptn] = {"vina": vinadf, "smina": sminadf, "plants": plantsdf, "type": df}
+    proteinData[f"{ptn}-{lgd}"] = {"vina": vinadf, "smina": sminadf, "plants": plantsdf, "type": df}
     
     # Return the proteinData dict
     return proteinData
@@ -1387,7 +1390,6 @@ def __read_log_parallel(dirs, archive, desc):
     with Pool(args.available_cores) as p:
         # Perform the multi process
         for innerData in tqdm(p.imap_unordered(__thread_read_log_parallel, arguments), total = len(arguments), desc = desc):
-            print(data)
             # Update the dict with the result from the called function
             data.update(innerData)
             # Clear the memory
@@ -2491,7 +2493,6 @@ def merge_descriptors_in_dataframe(archive, saveCsv=True):
             else:
                 octools.print_error(f"Unknown archive type. Expected one of the following: 'astex', 'dudez', 'pdbbind' and got {archive}.")
                 return None
-    processDirs = processDirs[0:100]
     # Make data be None (in case of failure)
     data = None
     # Decide if multprocessing will be used
