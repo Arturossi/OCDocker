@@ -383,16 +383,17 @@ def convert_debug_to_production(chosenAlgorithm = "ac", strict = False, removeDe
     '''
     ocbdb.convert_debug_to_production(dudez_archive, chosenAlgorithm = chosenAlgorithm, strict = strict, removeDebug = removeDebug)
 
-def prepare(overwrite = False):
+def prepare(overwrite = False, sanitize = False):
     '''
     Prepares the DUDEz database.
     Input:
      overwrite [bool] DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with the output already generated.
+     sanitize  [bool] DEFAULT: False - Flag to denote if the molecule should be sanitized
     Return:
       -
     '''
     # Prepare the databse
-    ocbdb.prepare("dudez", overwrite = overwrite)
+    ocbdb.prepare("dudez", overwrite = overwrite, sanitize = sanitize)
     # Verify its integrity
     #verify_integrity()
 

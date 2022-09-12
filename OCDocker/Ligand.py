@@ -257,7 +257,7 @@ class Ligand:
         self.AUTOCORR2D_190 = None
         self.AUTOCORR2D_191 = None
         self.AUTOCORR2D_192 = None
-        #endregion 
+        #endregion
 
         #region BCUT2D descriptors
         self.BCUT2D_CHGHI = None
@@ -6997,7 +6997,7 @@ def loadMol(molecule, sanitize = True):
                         # Return the sanitized molecule
                         return molecule, m
                     except Exception as e:
-                        _ = errors.parse_molecule(f"The molecule '{molecule}' could not be parsed.", "error")
+                        _ = errors.parse_molecule(f"The molecule '{molecule}' could not be parsed. Error: {e}", "error")
                         return molecule, None
 
                 return molecule, rdkit.Chem.rdmolfiles.MolFromMol2File(molecule, sanitize = True)
