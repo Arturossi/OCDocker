@@ -175,6 +175,7 @@ inDev2/
 
 # Ignore python backup files
 *.py.bak
+*.save
 
 # Ignore the .pid files
 *.pid
