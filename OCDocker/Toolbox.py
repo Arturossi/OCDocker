@@ -495,6 +495,33 @@ def convert2pdb(input, output):
         return errors.subprocess(message=f"Error while running molecule conversion using obabel python lib. Error: {e}", level="error")
 
     return errors.ok()
+  
+def convertMolsFromString(input, output):
+    '''
+    Currently only works with smiles.
+    TODO: Add support to other formats.
+    Input:
+      input  [string] - Input string.
+      output [string] - Output path.
+    Return:
+      [int]
+      See Error.py for all return codes.
+    '''
+    # Get the in and out extensions 
+    inExtension = "smi" # TODO: Add support to other formats
+    outExtension = validate_obabel_extension(output)
+    # Check if the output extension is valid
+    if type(outExtension) != str:
+        print_error(f"Problems while pre-processing the molecule from output file '{output}'.")
+        return outExtension
+    try:
+      # Read the string into pybel object
+      mol = pybel.readstring("smi", input)
+      # Write the molecule to the output file
+      mol.write(outExtension, output)
+    except Exception as e:
+        return errors.subprocess(message=f"Error while running molecule conversion from {inExtension} to {outExtension} using obabel python lib. Error: {e}", level="error")
+    return errors.ok()
 
 def convertMols(input, output):
     '''
@@ -520,7 +547,7 @@ def convertMols(input, output):
 
     # Check if the output extension is valid
     if type(outExtension) != str:
-        print_error(f"Problems while reading the molecule from output file '{output}'.")
+        print_error(f"Problems while pre-processing the molecule from output file '{output}'.")
         return outExtension
 
     # Check if the output exists, if so, no need to convert

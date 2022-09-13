@@ -67,11 +67,11 @@ def create_directories():
     # Create the Parsed dir
     _ = octools.safe_create_dir(parsed_archive)
 
-def update_DUDEz():
+def update_DUDEz(overwrite = False):
     '''
     Updates the DUDE-Z database.
     Input:
-      -
+      overwrite [bool] - If True, overwrites the existing database
     Return:
       -
     '''
@@ -80,14 +80,94 @@ def update_DUDEz():
 
     octools.printv("Downloading the DUDE-Z database")
 
-    # Download file (with progress bar!!!)
-    octools.download_url(dudez_download, "./tmp/DUDEz.tgz")
+    # Download the benchmark grids indexes
+    octools.download_url(f"{dudez_download}/DUDE-Z-benchmark-grids/DUDE-Z_targets", "./tmp/DUDE-Z_targets")
 
-    # Untar it (deleting the downloaded .tgz)
-    octools.untar("./tmp/DUDEz.tgz", out_path="./tmp", delete=True)
+    # Initialize an empty list to store the targets
+    targets = []
+    # Read the targets into a list
+    with open("./tmp/DUDE-Z_targets", "r") as f:
+        targets = f.read().splitlines()
+    
+    # Check if the target list is empty
+    if len(targets) == 0:
+        return errors.file_do_not_exist("The target list is empty. Something went wrong with the download.", "error")
+    
+    # For each target (TODO: parallelize)
+    for target in targets:
+        # Trying to fix dudez lazy webmasters mistakes
+        if target == "D4":
+            target2 = "DRD4"
+        else:
+            target2 = target
+        # Create a folder for the target in the archive
+        _ = octools.safe_create_dir(f"{dudez_archive}/{target2}")
+        # Download the target receptor
+        octools.download_url(f"{dudez_download}/DOCKING_GRIDS_AND_POSES/{target2}/rec.crg.pdb", f"{dudez_archive}/{target2}/rec.crg.pdb")
+        # Download the dudeZ ligands
+        octools.download_url(f"{dudez_download}/DUDE-Z-benchmark-grids/{target}/ligands.smi", f"{dudez_archive}/{target2}/ligands.smi")
+        # Download the dudeZ ligands
+        octools.download_url(f"{dudez_download}/DUDE-Z-benchmark-grids/{target}/decoys.smi", f"{dudez_archive}/{target2}/decoys.smi")
+        # Download the Extrema set
+        octools.download_url(f"{dudez_download}/extrema/{target}/minus2/{target}_minus2.smi", f"{dudez_archive}/{target2}/extrema_minus2.smi")
+        octools.download_url(f"{dudez_download}/extrema/{target}/minus1/{target}_minus1.smi", f"{dudez_archive}/{target2}/extrema_minus1.smi")
+        octools.download_url(f"{dudez_download}/extrema/{target}/neutral/{target}_neutral.smi", f"{dudez_archive}/{target2}/extrema_neutral.smi")
+        octools.download_url(f"{dudez_download}/extrema/{target}/plus1/{target}_plus1.smi", f"{dudez_archive}/{target2}/extrema_plus1.smi")
+        octools.download_url(f"{dudez_download}/extrema/{target}/plus2/{target}_plus2.smi", f"{dudez_archive}/{target2}/extrema_plus2.smi")
 
-    # Move the folders (and subfolders) to right database folders
-    shutil.move("./tmp/DOCKING_GRIDS_AND_POSES", dudez_archive)
+    # Create the goldilocks folder
+    _ = octools.safe_create_dir(f"{dudez_archive}/goldilocks")
+    # Download the Goldilocks set (it is universal for all targets)
+    octools.download_url(f"{dudez_download}/goldilocks/goldilocks_minus2.smi", f"{dudez_archive}/goldilocks/goldilocks_minus2.smi")
+    octools.download_url(f"{dudez_download}/goldilocks/goldilocks_minus1.smi", f"{dudez_archive}/goldilocks/goldilocks_minus1.smi")
+    octools.download_url(f"{dudez_download}/goldilocks/goldilocks_neutral.smi", f"{dudez_archive}/goldilocks/goldilocks_neutral.smi")
+    octools.download_url(f"{dudez_download}/goldilocks/goldilocks_plus1.smi", f"{dudez_archive}/goldilocks/goldilocks_plus1.smi")
+    octools.download_url(f"{dudez_download}/goldilocks/goldilocks_plus2.smi", f"{dudez_archive}/goldilocks/goldilocks_plus2.smi")
+
+    # Process each target
+    targets = [d for d in glob(f"{dudez_archive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['goldilocks']]
+
+    # For each target (TODO: parallelize)
+    for target in targets:
+        # Get the target name
+        target_name = os.path.basename(target)
+        # Process the ligands
+        octools.printv(f"Processing the ligands for {target_name}")
+        # List to hold the tuples for each processing that will be made
+        process_list = [("dudez_ligands", "ligands"), ("dudez_decoys", "decoys"), ("extrema/minus2", "extrema_minus2"), ("extrema/minus1", "extrema_minus1"), ("extrema/neutral", "extrema_neutral"), ("extrema/plus1", "extrema_plus1"), ("extrema/plus2", "extrema_plus2")]
+        # Create the extrema folder inside the target folder
+        _ = octools.safe_create_dir(f"{target}/extrema")
+        # For each data
+        for data in process_list:
+            # Create the ligands folder
+            _ = octools.safe_create_dir(f"{target}/{data[0]}")
+            # Process the ligands, splitting them into the multiple files
+            with open(f"{target}/{data[1]}.smi", "r") as f:
+                for line in f:
+                   # Get the smiles and name of the ligand
+                    smiles, name = line.split()
+                    # Test if the file exists
+                    if not os.path.isfile(f"{target}/{data[0]}/{name}.mol2") or overwrite:
+                        # Convert it to mol2 (NOTE: There are many molecules with SAME name... currently I am not handling this. I am just accounting the first molecule and discarding the others. IMPORTANT: Error messages WILL pop while processing the data here! They may be safe to ignore, I guess...)
+                        mol2 = octools.convertMolsFromString(smiles, f"{target}/{data[0]}/{name}.mol2")
+    # Process the goldilocks set
+    octools.printv("Processing the goldilocks set")
+    # List to hold the tuples for each processing that will be made
+    process_list = [("minus2", "goldilocks_minus2"), ("minus1", "goldilocks_minus1"), ("neutral", "goldilocks_neutral"), ("plus1", "goldilocks_plus1"), ("plus2", "goldilocks_plus2")]
+    # For each data
+    for data in process_list:
+        # Create the ligands folder
+        _ = octools.safe_create_dir(f"{dudez_download}/goldilocks/{data[0]}")
+        # Process the ligands, splitting them into the multiple files
+        with open(f"{dudez_download}/goldilocks/{data[1]}.smi", "r") as f:
+            for line in f:
+                # Get the smiles and name of the ligand
+                smiles, name = line.split()
+                # Test if the file exists
+                if not os.path.isfile(f"{dudez_download}/goldilocks/{data[0]}/{name}.mol2") or overwrite:
+                    # Convert it to mol2
+                    mol2 = octools.convertMolsFromString(smiles, f"{dudez_download}/goldilocks/{data[0]}/{name}.mol2")
+
 
     # Delete the temporary folder
     shutil.rmtree("./tmp")
@@ -95,7 +175,7 @@ def update_DUDEz():
     # Run p2rank in the DUDEz database
     ocdudez.prepare()
 
-    return
+    return errors.ok()
 
 def update_pdbbind():
     '''

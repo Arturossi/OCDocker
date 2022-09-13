@@ -2077,8 +2077,21 @@ def prepare(archive, overwrite = False, spacing = 0.33, sanitize = True):
     elif archive == "dudez":
         chosenArchive = dudez_archive
         label = f"DUDEz proteins"
-        # Get all dirs paths in the database
-        dirs = glob(f"{chosenArchive}/*")
+        # Get all dirs paths in the database (except for the goldilocks folder)
+        dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['goldilocks']]
+
+        # Create a temporary folder and subfolders (optimization here)
+        tmpDir = f"{chosenArchive}/tmp"
+        _ = octools.safe_create_dir(tmpDir)
+        _ = octools.safe_create_dir(f"{tmpDir}/minus2")
+        _ = octools.safe_create_dir(f"{tmpDir}/minus1")
+        _ = octools.safe_create_dir(f"{tmpDir}/neutral")
+        _ = octools.safe_create_dir(f"{tmpDir}/plus1")
+        _ = octools.safe_create_dir(f"{tmpDir}/plus2")
+
+        # Process the files into the tmp folder
+        #octools.
+
     elif archive == "pdbbind":
         chosenArchive = pdbbind_archive
         label = "PDBbind proteins"
@@ -2119,7 +2132,7 @@ def run_p2rank(archive, overwrite = False):
         chosenArchive = dudez_archive
         label = f"DUDEz proteins"
         # Get all dirs paths in the database
-        dirs = glob(f"{chosenArchive}/*")
+        dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['goldilocks']]
     elif archive == "pdbbind":
         chosenArchive = pdbbind_archive
         label = "PDBbind proteins"
@@ -2166,7 +2179,7 @@ def run_dock(archive, dockingAlgorithm, overwrite = False):
         octools.print_error(f"Docking software not recognized. Expected ('vina', 'smina', 'plants') and got '{dockingAlgorithm}'.")
         return None
     # Get all dirs paths in the database
-    dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db']]
+    dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db', 'goldilocks']]
 
     # Check if the archive type is dudez
     if archive == "dudez":
@@ -2285,7 +2298,7 @@ def get_database_multiple_files(archive, sliceSize = 100):
         octools.print_error(f"Not valid archive type. Expected one of ['astex', 'dudez', 'pdbbind'] and found {archive}.")
         return None
     # Get all dirs inside the database (except index and db)
-    dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db']]
+    dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db', 'goldilocks']]
     # Create the db dir if does not exsit yet
     _ = octools.safe_create_dir(f"{chosenArchive}/db")
     # Slice it into chunks
@@ -2332,7 +2345,7 @@ def read_logs(archive, picklePath = ""):
     # For each dir in chosenArchive
     for d in glob(f"{chosenArchive}/*"):
         # Check if is a dir (just in case) and if its name is not one of the ones we want to skip
-        if os.path.isdir(d) and os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db']:
+        if os.path.isdir(d) and os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db', 'goldilocks']:
             # Find ptn name
             ptn = d.split(os.path.sep)[-1]
             # Find which kind of archive it will be
@@ -2460,7 +2473,7 @@ def merge_descriptors_in_dataframe(archive, saveCsv=True):
     # For each dir in chosenArchive
     for d in glob(f"{chosenArchive}/*"):
         # Check if is a dir (just in case) and if its name is not one of the ones we want to skip
-        if os.path.isdir(d) and os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db']:
+        if os.path.isdir(d) and os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db', 'goldilocks']:
             # Find ptn name
             ptn = d.split(os.path.sep)[-1]
             # Find which kind of archive it will be
