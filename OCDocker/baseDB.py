@@ -219,7 +219,7 @@ def __p2rank_no_parallel(dirs, overwrite, archive, desc):
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         for dir in tqdm(iterable=dirs, total=len(dirs), desc=desc):
-            # Call the core prepare function
+            # Call the core p2rank function
             __core_p2rank(dir, overwrite, archive)
             # Clear the memory
             gc.collect()
@@ -271,7 +271,7 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         __prepare_molecule((fin, fout), overwrite, "receptor", archive, sanitize = sanitize)
 
         # Set the 3 dirs containing ligand/decoys
-        dudezDir = f"{dir}/DUDE_Z"
+        dudezDir = f"{dir}/dudez"
         extremaDir = f"{dir}/Extrema"
         goldilocksDir = f"{dir}/Goldilocks"
 
@@ -279,41 +279,9 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         dudezDirLigand = f"{dudezDir}_ligands"
         dudezDirDecoy = f"{dudezDir}_decoys"
         extremaDirDecoy = f"{extremaDir}_decoys"
-        goldilocksDirDecoy = f"{goldilocksDir}_decoys"
 
         # Create an empty list to hold all dirs to be processed
         processDirs = []
-
-        # Create the dirs for data from the 3 dirs above
-        _ = octools.safe_create_dir(dudezDirLigand)
-        _ = octools.safe_create_dir(dudezDirDecoy)
-        _ = octools.safe_create_dir(extremaDirDecoy)
-        _ = octools.safe_create_dir(goldilocksDirDecoy)
-
-        # Get all mol2 files in dudezDir
-        mol2Files = glob(f"{dudezDir}/*1pt0LD*.mol2")
-        # Separate ligands and decoys
-        for mol2File in mol2Files:
-            # If there is the string ligand_poses in the link (means that is ligand)
-            if "ligand_poses" in mol2File:
-                _ = octools.split_and_convert(mol2File, dudezDirLigand, "mol2", overwrite)
-            else:
-                _ = octools.split_and_convert(mol2File, dudezDirDecoy, "mol2", overwrite)
-
-        # Get all mol2 files in extremaDir
-        mol2Files = glob(f"{extremaDir}/*1pt0LD*.mol2")
-        # Separate ligands and decoys
-        for mol2File in mol2Files:
-            _ = octools.split_and_convert(mol2File, extremaDirDecoy, "mol2", overwrite)
-
-        # Get all mol2 files in goldilocksDir
-        mol2Files = glob(f"{goldilocksDir}/*1pt0LD*.mol2")
-        # Separate ligands and decoys
-        for mol2File in mol2Files:
-            _ = octools.split_and_convert(mol2File, goldilocksDirDecoy, "mol2", overwrite)
-
-        # Defining the moltype
-        moltype = "ligand"
 
         # For each molecule in dudez ligand dir
         mols = glob(f"{dudezDirLigand}/*.mol2")
@@ -444,47 +412,6 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
                 shutil.move(mol, fligand)
                 # Append the dir to the list of dirs to be processed
                 processDirs.append(f"{extremaDirDecoy}/{ligandName}")
-
-        # For each molecule in dudez decoy dir
-        mols = glob(f"{goldilocksDirDecoy}/*.mol2")
-        # Check the length of the list of mols
-        if len(mols) == 0:
-            # If it is 0, get a list of all directories in goldilocksDirDecoy
-            processDirs += [d for d in glob(f"{goldilocksDirDecoy}/*") if os.path.isdir(d)]
-            # For each directory (check to see if it is needed to generate descriptors)
-            for processDir in processDirs:
-                # Extract the ligand name from the path
-                ligandName = os.path.splitext(os.path.basename(processDir))[0]
-                # Safe create plantsFiles, vinaFiles and sminaFiles dirs
-                _ = octools.safe_create_dir(f"{processDir}/plantsFiles")
-                _ = octools.safe_create_dir(f"{processDir}/vinaFiles")
-                _ = octools.safe_create_dir(f"{processDir}/sminaFiles")
-                # Set the fligand name as the ligand file path
-                fligand = f"{processDir}/{ligandName}.mol2"
-                # For each ligand (don't use parallel, since there is no need)
-                __prepare_molecule(fligand, overwrite, "ligand", archive, sanitize = sanitize)
-        else:
-            for mol in mols:
-                # Extract the ligand name from the path
-                ligandName = os.path.splitext(os.path.basename(mol))[0]
-                # Safe create its dir
-                _ = octools.safe_create_dir(f"{goldilocksDirDecoy}/{ligandName}")
-                # Safe create plantsFiles, vinaFiles and sminaFiles dirs
-                _ = octools.safe_create_dir(f"{goldilocksDirDecoy}/{ligandName}/plantsFiles")
-                _ = octools.safe_create_dir(f"{goldilocksDirDecoy}/{ligandName}/vinaFiles")
-                _ = octools.safe_create_dir(f"{goldilocksDirDecoy}/{ligandName}/sminaFiles")
-                # Set the fligand name as the ligand file path
-                fligand = f"{goldilocksDirDecoy}/{ligandName}/{ligandName}.mol2"
-                # For each ligand (don't use parallel, since there is no need)
-                __prepare_molecule(fligand, overwrite, "ligand", archive, sanitize = sanitize)
-                # Test if destination file exists and if it should be overwritten
-                if os.path.isfile(fligand) and overwrite:
-                    # Delete it
-                    os.remove(fligand)
-                # Move the ligand to its dir
-                shutil.move(mol, fligand)
-                # Append the dir to the list of dirs to be processed
-                processDirs.append(f"{goldilocksDirDecoy}/{ligandName}")
 
     elif archive == "pdbbind":
         # If is the index path
@@ -2077,21 +2004,8 @@ def prepare(archive, overwrite = False, spacing = 0.33, sanitize = True):
     elif archive == "dudez":
         chosenArchive = dudez_archive
         label = f"DUDEz proteins"
-        # Get all dirs paths in the database (except for the goldilocks folder)
-        dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['goldilocks']]
-
-        # Create a temporary folder and subfolders (optimization here)
-        tmpDir = f"{chosenArchive}/tmp"
-        _ = octools.safe_create_dir(tmpDir)
-        _ = octools.safe_create_dir(f"{tmpDir}/minus2")
-        _ = octools.safe_create_dir(f"{tmpDir}/minus1")
-        _ = octools.safe_create_dir(f"{tmpDir}/neutral")
-        _ = octools.safe_create_dir(f"{tmpDir}/plus1")
-        _ = octools.safe_create_dir(f"{tmpDir}/plus2")
-
-        # Process the files into the tmp folder
-        #octools.
-
+        # Get all dirs paths in the database
+        dirs = glob(f"{chosenArchive}/*")
     elif archive == "pdbbind":
         chosenArchive = pdbbind_archive
         label = "PDBbind proteins"
@@ -2132,7 +2046,7 @@ def run_p2rank(archive, overwrite = False):
         chosenArchive = dudez_archive
         label = f"DUDEz proteins"
         # Get all dirs paths in the database
-        dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['goldilocks']]
+        dirs = glob(f"{chosenArchive}/*")
     elif archive == "pdbbind":
         chosenArchive = pdbbind_archive
         label = "PDBbind proteins"
@@ -2179,7 +2093,7 @@ def run_dock(archive, dockingAlgorithm, overwrite = False):
         octools.print_error(f"Docking software not recognized. Expected ('vina', 'smina', 'plants') and got '{dockingAlgorithm}'.")
         return None
     # Get all dirs paths in the database
-    dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db', 'goldilocks']]
+    dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db']]
 
     # Check if the archive type is dudez
     if archive == "dudez":
@@ -2298,7 +2212,7 @@ def get_database_multiple_files(archive, sliceSize = 100):
         octools.print_error(f"Not valid archive type. Expected one of ['astex', 'dudez', 'pdbbind'] and found {archive}.")
         return None
     # Get all dirs inside the database (except index and db)
-    dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db', 'goldilocks']]
+    dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db']]
     # Create the db dir if does not exsit yet
     _ = octools.safe_create_dir(f"{chosenArchive}/db")
     # Slice it into chunks
@@ -2345,7 +2259,7 @@ def read_logs(archive, picklePath = ""):
     # For each dir in chosenArchive
     for d in glob(f"{chosenArchive}/*"):
         # Check if is a dir (just in case) and if its name is not one of the ones we want to skip
-        if os.path.isdir(d) and os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db', 'goldilocks']:
+        if os.path.isdir(d) and os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db']:
             # Find ptn name
             ptn = d.split(os.path.sep)[-1]
             # Find which kind of archive it will be
@@ -2473,7 +2387,7 @@ def merge_descriptors_in_dataframe(archive, saveCsv=True):
     # For each dir in chosenArchive
     for d in glob(f"{chosenArchive}/*"):
         # Check if is a dir (just in case) and if its name is not one of the ones we want to skip
-        if os.path.isdir(d) and os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db', 'goldilocks']:
+        if os.path.isdir(d) and os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db']:
             # Find ptn name
             ptn = d.split(os.path.sep)[-1]
             # Find which kind of archive it will be

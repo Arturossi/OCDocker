@@ -2,13 +2,15 @@
 
 # Imports
 ###############################################################################
+import gc
 import os
 import shutil
 import mimetypes
-import urllib.request
 import textwrap as tw
 
 from glob import glob
+from tqdm import tqdm
+from multiprocessing import Pool
 
 from OCDocker.Initialise import *
 import OCDocker.DUDEz as ocdudez
@@ -46,6 +48,190 @@ import OCDocker.Database as ocdb
 # Functions
 ###############################################################################
 ## Private ##
+def __core_process_dudez(target, overwrite):
+    '''
+    Processes the DUDEz database.
+    Input:
+     target    [string] - Path where the data is
+     overwrite [bool]   - Flag for demanding file overwrite
+    Return:
+      -
+    '''
+    # Get the target name
+    target_name = os.path.basename(target)
+    # Process the ligands
+    octools.printv(f"Processing the ligands for {target_name}")
+    # List to hold the tuples for each processing that will be made
+    process_list = [("dudez_ligands", "ligands"), ("dudez_decoys", "decoys"), ("extrema/minus2", "extrema_minus2"), ("extrema/minus1", "extrema_minus1"), ("extrema/neutral", "extrema_neutral"), ("extrema/plus1", "extrema_plus1"), ("extrema/plus2", "extrema_plus2")]
+    # Create the extrema folder inside the target folder
+    _ = octools.safe_create_dir(f"{target}/extrema")
+    # For each data
+    for data in process_list:
+        # Print which file is being processed
+        octools.printv(f"Processing {target}/{data[1]}.smi")
+        print(f"Processing {target}/{data[1]}.smi")
+        # Create the ligands folder
+        _ = octools.safe_create_dir(f"{target}/{data[0]}")
+        # Process the ligands, splitting them into the multiple files
+        with open(f"{target}/{data[1]}.smi", "r") as f:
+            for line in f:
+                # Get the smiles and name of the ligand
+                smiles, name = line.split()
+                # Test if the file exists
+                if not os.path.isfile(f"{target}/{data[0]}/{name}.mol2") or overwrite:
+                    # Convert it to mol2 (NOTE: There are many molecules with SAME name... currently I am not handling this. I am just accounting the first molecule and discarding the others. IMPORTANT: Error messages WILL pop while processing the data here! They may be safe to ignore, I guess...)
+                    _ = octools.convertMolsFromString(smiles, f"{target}/{data[0]}/{name}.mol2")
+                else:
+                    octools.print_warning(f"File {target}/{data[0]}/{name}.mol2 already exists. Skipping...")
+    return None
+
+def __thread_process_dudez(arguments):
+    '''
+    Thread aid function to call __core_process_dudez.
+    Input:
+     arguments [tuple(string, bool, string, string, bool)] - Tuple containing, in this order:
+        - [string] The path where the files are
+        - [bool]   Flag to tell if files should be overwritten
+    Return:
+      -
+    '''
+    # Redirect all prints to tqdm.write
+    with octools.redirect_to_tqdm():
+        # Call core prepare function (shared between thread and no thread)
+        return __core_process_dudez(arguments[0], arguments[1])
+    return None
+
+def __process_dudez_parallel(targets, overwrite, desc):
+    '''
+    Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
+    Input:
+     targets   [string] - List of paths to process
+     overwrite [bool]   - Flag to tell if files should be overwritten
+     desc      [string] - The description used in the progress bar
+    Return:
+      -
+    '''
+    # Arguments to pass to each Thread in the Thread Pool
+    arguments = []
+    # For each file in the glob
+    for target in targets:
+        # Append a tuple containing the file name and ovewrite flag to the arguments list
+        arguments.append((target, overwrite))
+    # Create a Thread pool with the maximum available_cores
+    with Pool(args.available_cores) as p:
+        # Perform the multi process
+        for _ in tqdm(p.imap_unordered(__thread_process_dudez, arguments), total = len(arguments), desc = desc):
+            # Clear the memory
+            gc.collect()
+    return None
+
+def __process_dudez_no_parallel(targets, overwrite, desc):
+    '''
+    Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_process_dudez function.
+    Input:
+     targets   [string] - List of paths to process
+     overwrite [bool]   - Flag to tell if files should be overwritten
+     desc      [string] - The description used in the progress bar
+    Return:
+      -
+    '''
+    # Redirect all prints to tqdm.write
+    with octools.redirect_to_tqdm():
+        for target in tqdm(iterable=targets, total=len(targets), desc=desc):
+            # Call the core prepare function
+            __core_process_dudez(target, overwrite)
+            # Clear the memory
+            gc.collect()
+    return None
+
+def __core_download_dudez(target, overwrite):
+    '''
+    Downloads the DUDEz database.
+    Input:
+     target    [string] - Path where the data is
+     overwrite [bool]   - Flag for demanding file overwrite
+    Return:
+      -
+    '''
+    # Trying to fix dudez lazy webmasters mistakes
+    if target == "D4":
+        target2 = "DRD4"
+    else:
+        target2 = target
+    # Create a folder for the target in the archive
+    _ = octools.safe_create_dir(f"{dudez_archive}/{target2}")
+    # Download the target receptor
+    octools.download_url(f"{dudez_download}/DOCKING_GRIDS_AND_POSES/{target2}/rec.crg.pdb", f"{dudez_archive}/{target2}/rec.crg.pdb")
+    # Download the dudeZ ligands
+    octools.download_url(f"{dudez_download}/DUDE-Z-benchmark-grids/{target}/ligands.smi", f"{dudez_archive}/{target2}/ligands.smi")
+    # Download the dudeZ ligands
+    octools.download_url(f"{dudez_download}/DUDE-Z-benchmark-grids/{target}/decoys.smi", f"{dudez_archive}/{target2}/decoys.smi")
+    # Download the Extrema set
+    octools.download_url(f"{dudez_download}/extrema/{target}/minus2/{target}_minus2.smi", f"{dudez_archive}/{target2}/extrema_minus2.smi")
+    octools.download_url(f"{dudez_download}/extrema/{target}/minus1/{target}_minus1.smi", f"{dudez_archive}/{target2}/extrema_minus1.smi")
+    octools.download_url(f"{dudez_download}/extrema/{target}/neutral/{target}_neutral.smi", f"{dudez_archive}/{target2}/extrema_neutral.smi")
+    octools.download_url(f"{dudez_download}/extrema/{target}/plus1/{target}_plus1.smi", f"{dudez_archive}/{target2}/extrema_plus1.smi")
+    octools.download_url(f"{dudez_download}/extrema/{target}/plus2/{target}_plus2.smi", f"{dudez_archive}/{target2}/extrema_plus2.smi")
+    return None
+
+def __thread_download_dudez(arguments):
+    '''
+    Thread aid function to call __core_download_dudez.
+    Input:
+     arguments [tuple(string, bool, string, string, bool)] - Tuple containing, in this order:
+        - [string] The path where the files are
+        - [bool]   Flag to tell if files should be overwritten
+    Return:
+      -
+    '''
+    # Redirect all prints to tqdm.write
+    with octools.redirect_to_tqdm():
+        # Call core prepare function (shared between thread and no thread)
+        return __core_download_dudez(arguments[0], arguments[1])
+    return None
+
+def __download_dudez_parallel(targets, overwrite, desc):
+    '''
+    Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
+    Input:
+     targets   [string] - List of paths to process
+     overwrite [bool]   - Flag to tell if files should be overwritten
+     desc      [string] - The description used in the progress bar
+    Return:
+      -
+    '''
+    # Arguments to pass to each Thread in the Thread Pool
+    arguments = []
+    # For each file in the glob
+    for target in targets:
+        # Append a tuple containing the file name and ovewrite flag to the arguments list
+        arguments.append((target, overwrite))
+    # Create a Thread pool with the maximum available_cores
+    with Pool(args.available_cores) as p:
+        # Perform the multi process
+        for _ in tqdm(p.imap_unordered(__thread_download_dudez, arguments), total = len(arguments), desc = desc):
+            # Clear the memory
+            gc.collect()
+    return None
+
+def __download_dudez_no_parallel(targets, overwrite, desc):
+    '''
+    Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_download_dudez function.
+    Input:
+     targets   [string] - List of paths to process
+     overwrite [bool]   - Flag to tell if files should be overwritten
+     desc      [string] - The description used in the progress bar
+    Return:
+      -
+    '''
+    # Redirect all prints to tqdm.write
+    with octools.redirect_to_tqdm():
+        for target in tqdm(iterable=targets, total=len(targets), desc=desc):
+            # Call the core prepare function
+            __core_download_dudez(target, overwrite)
+            # Clear the memory
+            gc.collect()
+    return None
 
 ## Public ##
 def create_directories():
@@ -81,39 +267,28 @@ def update_DUDEz(overwrite = False):
     octools.printv("Downloading the DUDE-Z database")
 
     # Download the benchmark grids indexes
-    octools.download_url(f"{dudez_download}/DUDE-Z-benchmark-grids/DUDE-Z_targets", "./tmp/DUDE-Z_targets")
+    octools.download_url(f"{dudez_download}/DUDE-Z-benchmark-grids/DUDE-Z_targets", "{tmpDir}/DUDE-Z_targets")
 
     # Initialize an empty list to store the targets
     targets = []
     # Read the targets into a list
-    with open("./tmp/DUDE-Z_targets", "r") as f:
+    with open("{tmpDir}/DUDE-Z_targets", "r") as f:
         targets = f.read().splitlines()
-    
+
     # Check if the target list is empty
     if len(targets) == 0:
         return errors.file_do_not_exist("The target list is empty. Something went wrong with the download.", "error")
-    
-    # For each target (TODO: parallelize)
-    for target in targets:
-        # Trying to fix dudez lazy webmasters mistakes
-        if target == "D4":
-            target2 = "DRD4"
-        else:
-            target2 = target
-        # Create a folder for the target in the archive
-        _ = octools.safe_create_dir(f"{dudez_archive}/{target2}")
-        # Download the target receptor
-        octools.download_url(f"{dudez_download}/DOCKING_GRIDS_AND_POSES/{target2}/rec.crg.pdb", f"{dudez_archive}/{target2}/rec.crg.pdb")
-        # Download the dudeZ ligands
-        octools.download_url(f"{dudez_download}/DUDE-Z-benchmark-grids/{target}/ligands.smi", f"{dudez_archive}/{target2}/ligands.smi")
-        # Download the dudeZ ligands
-        octools.download_url(f"{dudez_download}/DUDE-Z-benchmark-grids/{target}/decoys.smi", f"{dudez_archive}/{target2}/decoys.smi")
-        # Download the Extrema set
-        octools.download_url(f"{dudez_download}/extrema/{target}/minus2/{target}_minus2.smi", f"{dudez_archive}/{target2}/extrema_minus2.smi")
-        octools.download_url(f"{dudez_download}/extrema/{target}/minus1/{target}_minus1.smi", f"{dudez_archive}/{target2}/extrema_minus1.smi")
-        octools.download_url(f"{dudez_download}/extrema/{target}/neutral/{target}_neutral.smi", f"{dudez_archive}/{target2}/extrema_neutral.smi")
-        octools.download_url(f"{dudez_download}/extrema/{target}/plus1/{target}_plus1.smi", f"{dudez_archive}/{target2}/extrema_plus1.smi")
-        octools.download_url(f"{dudez_download}/extrema/{target}/plus2/{target}_plus2.smi", f"{dudez_archive}/{target2}/extrema_plus2.smi")
+
+    # Process all sets, except for the goldilocks set
+    octools.printv("Processing the datasets without goldilocks.")
+
+    # Check multiprocessing is enabled
+    if args.multiprocess:
+        # Call the multiprocessing function
+        __process_dudez_parallel(targets, overwrite, "DUDE-Z database")
+    else:
+        # Call the single process function
+        __process_dudez_no_parallel(targets, overwrite, "DUDE-Z database")
 
     # Create the goldilocks folder
     _ = octools.safe_create_dir(f"{dudez_archive}/goldilocks")
@@ -125,57 +300,41 @@ def update_DUDEz(overwrite = False):
     octools.download_url(f"{dudez_download}/goldilocks/goldilocks_plus2.smi", f"{dudez_archive}/goldilocks/goldilocks_plus2.smi")
 
     # Process each target
-    targets = [d for d in glob(f"{dudez_archive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['goldilocks']]
+    targets = [d for d in glob(f"{dudez_archive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['goldilocks', 'tmp']]
 
-    # For each target (TODO: parallelize)
-    for target in targets:
-        # Get the target name
-        target_name = os.path.basename(target)
-        # Process the ligands
-        octools.printv(f"Processing the ligands for {target_name}")
-        # List to hold the tuples for each processing that will be made
-        process_list = [("dudez_ligands", "ligands"), ("dudez_decoys", "decoys"), ("extrema/minus2", "extrema_minus2"), ("extrema/minus1", "extrema_minus1"), ("extrema/neutral", "extrema_neutral"), ("extrema/plus1", "extrema_plus1"), ("extrema/plus2", "extrema_plus2")]
-        # Create the extrema folder inside the target folder
-        _ = octools.safe_create_dir(f"{target}/extrema")
-        # For each data
-        for data in process_list:
-            # Print which file is being processed
-            octools.printv(f"Processing {target}/{data[1]}.smi")
-            print(f"Processing {target}/{data[1]}.smi")
-            # Create the ligands folder
-            _ = octools.safe_create_dir(f"{target}/{data[0]}")
-            # Process the ligands, splitting them into the multiple files
-            with open(f"{target}/{data[1]}.smi", "r") as f:
-                for line in f:
-                    # Get the smiles and name of the ligand
-                    smiles, name = line.split()
-                    # Test if the file exists
-                    if not os.path.isfile(f"{target}/{data[0]}/{name}.mol2") or overwrite:
-                        # Convert it to mol2 (NOTE: There are many molecules with SAME name... currently I am not handling this. I am just accounting the first molecule and discarding the others. IMPORTANT: Error messages WILL pop while processing the data here! They may be safe to ignore, I guess...)
-                        mol2 = octools.convertMolsFromString(smiles, f"{target}/{data[0]}/{name}.mol2")
-                    else:
-                        octools.print_warning(f"File {target}/{data[0]}/{name}.mol2 already exists. Skipping...")
+    # Check multiprocessing is enabled
+    if args.multiprocess:
+        # Call the multiprocessing function
+        __download_dudez_parallel(targets, overwrite, "DUDE-Z database")
+    else:
+        # Call the single process function
+        __download_dudez_no_parallel(targets, overwrite, "DUDE-Z database")
 
+    # Currently the goldilocks set is not being used, so we will not download it (NOTE: This may change in the future, that's why the code is still here)
+    """
     # Process the goldilocks set
-    octools.printv("Processing the goldilocks set")
-    # List to hold the tuples for each processing that will be made
+    octools.printv("Processing the goldilocks set.")
+
+    # Create the process list
     process_list = [("minus2", "goldilocks_minus2"), ("minus1", "goldilocks_minus1"), ("neutral", "goldilocks_neutral"), ("plus1", "goldilocks_plus1"), ("plus2", "goldilocks_plus2")]
     # For each data
     for data in process_list:
         # Create the ligands folder
-        _ = octools.safe_create_dir(f"{dudez_download}/goldilocks/{data[0]}")
+        _ = octools.safe_create_dir(f"{dudez_archive}/goldilocks/{data[0]}")
         # Process the ligands, splitting them into the multiple files
-        with open(f"{dudez_download}/goldilocks/{data[1]}.smi", "r") as f:
+        with open(f"{dudez_archive}/goldilocks/{data[1]}.smi", "r") as f:
             for line in f:
                 # Get the smiles and name of the ligand
                 smiles, name = line.split()
                 # Test if the file exists
-                if not os.path.isfile(f"{dudez_download}/goldilocks/{data[0]}/{name}.mol2") or overwrite:
+                if not os.path.isfile(f"{dudez_archive}/goldilocks/{data[0]}/{name}.mol2") or overwrite:
                     # Convert it to mol2
-                    mol2 = octools.convertMolsFromString(smiles, f"{dudez_download}/goldilocks/{data[0]}/{name}.mol2")
-
-    # Delete the temporary folder
-    shutil.rmtree("./tmp")
+                    _ = octools.convertMolsFromString(smiles, f"{dudez_archive}/goldilocks/{data[0]}/{name}.mol2")
+    """
+    
+    # Delete the downloaded file
+    octools.printv("Deleting the downloaded file.")
+    os.remove(f"{tmpDir}/DUDE-Z_targets")
 
     # Run p2rank in the DUDEz database
     ocdudez.prepare()

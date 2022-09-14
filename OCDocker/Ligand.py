@@ -6985,10 +6985,12 @@ def loadMol(molecule, sanitize = True):
 
             # Check the extension to see if its needed to convert to mol2
             if extension == ".mol2":
+                print(extension)
                 # If sanitize is off
                 if not sanitize:
                     # Load the molecule
                     m = rdkit.Chem.rdmolfiles.MolFromMol2File(molecule, sanitize = False)
+                    print(m)
                     try:
                         # Turn off the property cache
                         m.UpdatePropertyCache(strict = False)

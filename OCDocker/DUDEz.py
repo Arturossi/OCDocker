@@ -154,7 +154,7 @@ def convert_debug_to_production(chosenAlgorithm = "ac", strict = False, removeDe
     '''
     ocbdb.convert_debug_to_production(dudez_archive, chosenAlgorithm = chosenAlgorithm, strict = strict, removeDebug = removeDebug)
 
-def prepare(overwrite = False, sanitize = False):
+def prepare(overwrite = False, sanitize = True):
     '''
     Prepares the DUDEz database.
     Input:
@@ -163,7 +163,7 @@ def prepare(overwrite = False, sanitize = False):
     Return:
       -
     '''
-    # Prepare the databse
+    # Prepare the rest of the database
     ocbdb.prepare("dudez", overwrite = overwrite, sanitize = sanitize)
     # Verify its integrity
     #verify_integrity()
