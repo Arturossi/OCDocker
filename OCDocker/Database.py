@@ -139,17 +139,23 @@ def update_DUDEz(overwrite = False):
         _ = octools.safe_create_dir(f"{target}/extrema")
         # For each data
         for data in process_list:
+            # Print which file is being processed
+            octools.printv(f"Processing {target}/{data[1]}.smi")
+            print(f"Processing {target}/{data[1]}.smi")
             # Create the ligands folder
             _ = octools.safe_create_dir(f"{target}/{data[0]}")
             # Process the ligands, splitting them into the multiple files
             with open(f"{target}/{data[1]}.smi", "r") as f:
                 for line in f:
-                   # Get the smiles and name of the ligand
+                    # Get the smiles and name of the ligand
                     smiles, name = line.split()
                     # Test if the file exists
                     if not os.path.isfile(f"{target}/{data[0]}/{name}.mol2") or overwrite:
                         # Convert it to mol2 (NOTE: There are many molecules with SAME name... currently I am not handling this. I am just accounting the first molecule and discarding the others. IMPORTANT: Error messages WILL pop while processing the data here! They may be safe to ignore, I guess...)
                         mol2 = octools.convertMolsFromString(smiles, f"{target}/{data[0]}/{name}.mol2")
+                    else:
+                        octools.print_warning(f"File {target}/{data[0]}/{name}.mol2 already exists. Skipping...")
+
     # Process the goldilocks set
     octools.printv("Processing the goldilocks set")
     # List to hold the tuples for each processing that will be made
@@ -167,7 +173,6 @@ def update_DUDEz(overwrite = False):
                 if not os.path.isfile(f"{dudez_download}/goldilocks/{data[0]}/{name}.mol2") or overwrite:
                     # Convert it to mol2
                     mol2 = octools.convertMolsFromString(smiles, f"{dudez_download}/goldilocks/{data[0]}/{name}.mol2")
-
 
     # Delete the temporary folder
     shutil.rmtree("./tmp")
