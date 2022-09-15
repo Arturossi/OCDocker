@@ -267,12 +267,12 @@ def update_DUDEz(overwrite = False):
     octools.printv("Downloading the DUDE-Z database")
 
     # Download the benchmark grids indexes
-    octools.download_url(f"{dudez_download}/DUDE-Z-benchmark-grids/DUDE-Z_targets", "{tmpDir}/DUDE-Z_targets")
+    octools.download_url(f"{dudez_download}/DUDE-Z-benchmark-grids/DUDE-Z_targets", f"{tmpDir}/DUDE-Z_targets")
 
     # Initialize an empty list to store the targets
     targets = []
     # Read the targets into a list
-    with open("{tmpDir}/DUDE-Z_targets", "r") as f:
+    with open(f"{tmpDir}/DUDE-Z_targets", "r") as f:
         targets = f.read().splitlines()
 
     # Check if the target list is empty
@@ -285,11 +285,24 @@ def update_DUDEz(overwrite = False):
     # Check multiprocessing is enabled
     if args.multiprocess:
         # Call the multiprocessing function
+        __download_dudez_parallel(targets, overwrite, "DUDE-Z database")
+    else:
+        # Call the single process function
+        __download_dudez_no_parallel(targets, overwrite, "DUDE-Z database")
+
+    # Process each target
+    targets = [d for d in glob(f"{dudez_archive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['goldilocks', 'tmp']]
+
+    # Check multiprocessing is enabled
+    if args.multiprocess:
+        # Call the multiprocessing function
         __process_dudez_parallel(targets, overwrite, "DUDE-Z database")
     else:
         # Call the single process function
         __process_dudez_no_parallel(targets, overwrite, "DUDE-Z database")
 
+    # Currently the goldilocks set is not being used, so we will not download it (NOTE: This may change in the future, that's why the code is still here)
+    """
     # Create the goldilocks folder
     _ = octools.safe_create_dir(f"{dudez_archive}/goldilocks")
     # Download the Goldilocks set (it is universal for all targets)
@@ -299,19 +312,6 @@ def update_DUDEz(overwrite = False):
     octools.download_url(f"{dudez_download}/goldilocks/goldilocks_plus1.smi", f"{dudez_archive}/goldilocks/goldilocks_plus1.smi")
     octools.download_url(f"{dudez_download}/goldilocks/goldilocks_plus2.smi", f"{dudez_archive}/goldilocks/goldilocks_plus2.smi")
 
-    # Process each target
-    targets = [d for d in glob(f"{dudez_archive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['goldilocks', 'tmp']]
-
-    # Check multiprocessing is enabled
-    if args.multiprocess:
-        # Call the multiprocessing function
-        __download_dudez_parallel(targets, overwrite, "DUDE-Z database")
-    else:
-        # Call the single process function
-        __download_dudez_no_parallel(targets, overwrite, "DUDE-Z database")
-
-    # Currently the goldilocks set is not being used, so we will not download it (NOTE: This may change in the future, that's why the code is still here)
-    """
     # Process the goldilocks set
     octools.printv("Processing the goldilocks set.")
 
