@@ -110,7 +110,7 @@ def get_all_ligands():
     Return:
       list(ocl.Ligand) - A list of all ligands in the DUDEz database
     '''
-    return ligands
+    return None
 
 def get_ligands_from_molecule(molecule):
     '''
@@ -120,7 +120,7 @@ def get_ligands_from_molecule(molecule):
     Return:
       list(ocl.Ligand) - A list of all ligands in the DUDEz database
     '''
-    return ligands
+    return None
 
 def verify_integrity():
     '''
@@ -159,7 +159,7 @@ def prepare(overwrite = False, sanitize = True):
     Prepares the DUDEz database.
     Input:
      overwrite [bool] DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with the output already generated.
-     sanitize  [bool] DEFAULT: False - Flag to denote if the molecule should be sanitized
+     sanitize  [bool] DEFAULT: True  - Flag to denote if the molecule should be sanitized
     Return:
       -
     '''

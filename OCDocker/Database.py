@@ -69,7 +69,6 @@ def __core_process_dudez(target, overwrite):
     for data in process_list:
         # Print which file is being processed
         octools.printv(f"Processing {target}/{data[1]}.smi")
-        print(f"Processing {target}/{data[1]}.smi")
         # Create the ligands folder
         _ = octools.safe_create_dir(f"{target}/{data[0]}")
         # Process the ligands, splitting them into the multiple files
@@ -77,10 +76,20 @@ def __core_process_dudez(target, overwrite):
             for line in f:
                 # Get the smiles and name of the ligand
                 smiles, name = line.split()
+                # Check if there is already a folder with the ligand name (to warn the user)
+                if os.path.isdir(f"{target}/{data[0]}/{name}"):
+                    octools.print_warning(f"The ligand {name} already exists in the {data[0]} dataser. You may not need to process the {data[1]}.smi file again. By the way... I am just warning you.")
                 # Test if the file exists
-                if not os.path.isfile(f"{target}/{data[0]}/{name}.mol2") or overwrite:
+                if overwrite or not os.path.isfile(f"{target}/{data[0]}/{name}.mol2"):
+                    # Check if the outputfile exists
+                    if os.path.isfile(f"{target}/{data[0]}/{name}.mol2"):
+                        # Remove the file
+                        os.remove(f"{target}/{data[0]}/{name}.mol2")
                     # Convert it to mol2 (NOTE: There are many molecules with SAME name... currently I am not handling this. I am just accounting the first molecule and discarding the others. IMPORTANT: Error messages WILL pop while processing the data here! They may be safe to ignore, I guess...)
                     _ = octools.convertMolsFromString(smiles, f"{target}/{data[0]}/{name}.mol2")
+                    # Save a smiles file (to avoid compatibility issues)
+                    with open(f"{target}/{data[0]}/{name}.smi", "w") as f:
+                        f.write(f"{smiles}")
                 else:
                     octools.print_warning(f"File {target}/{data[0]}/{name}.mol2 already exists. Skipping...")
     return None
@@ -243,7 +252,7 @@ def create_directories():
       -
     '''
     # Create the base dir
-    _ = octools.safe_create_dir(ocdb)
+    _ = octools.safe_create_dir(ocdb_path)
     # Create the pdbbind dir
     _ = octools.safe_create_dir(pdbbind_archive)
     # Create the dudez dir
@@ -253,11 +262,12 @@ def create_directories():
     # Create the Parsed dir
     _ = octools.safe_create_dir(parsed_archive)
 
-def update_DUDEz(overwrite = False):
+def update_DUDEz(overwrite = False, download = True):
     '''
     Updates the DUDE-Z database.
     Input:
-      overwrite [bool] - If True, overwrites the existing database
+      overwrite [bool] - If True, overwrites the existing database, otherwise, don't
+      download  [bool] - If True, downloads the database, otherwise, don't
     Return:
       -
     '''
@@ -279,16 +289,17 @@ def update_DUDEz(overwrite = False):
     if len(targets) == 0:
         return errors.file_do_not_exist("The target list is empty. Something went wrong with the download.", "error")
 
-    # Process all sets, except for the goldilocks set
-    octools.printv("Processing the datasets without goldilocks.")
+    if download:
+        # Download all sets
+        octools.printv("Downloading the datasets.")
 
-    # Check multiprocessing is enabled
-    if args.multiprocess:
-        # Call the multiprocessing function
-        __download_dudez_parallel(targets, overwrite, "DUDE-Z database")
-    else:
-        # Call the single process function
-        __download_dudez_no_parallel(targets, overwrite, "DUDE-Z database")
+        # Check multiprocessing is enabled
+        if args.multiprocess:
+            # Call the multiprocessing function
+            __download_dudez_parallel(targets, overwrite, "DUDE-Z database")
+        else:
+            # Call the single process function
+            __download_dudez_no_parallel(targets, overwrite, "DUDE-Z database")
 
     # Process each target
     targets = [d for d in glob(f"{dudez_archive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['goldilocks', 'tmp']]
@@ -331,7 +342,7 @@ def update_DUDEz(overwrite = False):
                     # Convert it to mol2
                     _ = octools.convertMolsFromString(smiles, f"{dudez_archive}/goldilocks/{data[0]}/{name}.mol2")
     """
-    
+
     # Delete the downloaded file
     octools.printv("Deleting the downloaded file.")
     os.remove(f"{tmpDir}/DUDE-Z_targets")

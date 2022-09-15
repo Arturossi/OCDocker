@@ -428,7 +428,7 @@ def convert2mol2(input, output):
 
     # Discover if the output extension is pdbqt (to warn user if it is not)
     if outExtension != ".mol2":
-        print_warn(f"The output extension is not '.mol2', is {outExtension}. This function converts {clrs['r']}ONLY{clrs['n']} to '.mol2'. Please pay attention, since this might be a problem in the future for you!")
+        print_warning(f"The output extension is not '.mol2', is {outExtension}. This function converts {clrs['r']}ONLY{clrs['n']} to '.mol2'. Please pay attention, since this might be a problem in the future for you!")
 
     # Check if the output exists, if so, no need to convert
     if os.path.isfile(output):
@@ -473,7 +473,7 @@ def convert2pdb(input, output):
 
     # Discover if the output extension is pdbqt (to warn user if it is not)
     if outExtension != ".pdb":
-        print_warn(f"The output extension is not '.pdb', is {outExtension}. This function converts {clrs['r']}ONLY{clrs['n']} to '.pdb'. Please pay attention, since this might be a problem in the future for you!")
+        print_warning(f"The output extension is not '.pdb', is {outExtension}. This function converts {clrs['r']}ONLY{clrs['n']} to '.pdb'. Please pay attention, since this might be a problem in the future for you!")
 
     # Check if the output exists, if so, no need to convert
     if os.path.isfile(output):
@@ -501,8 +501,8 @@ def convertMolsFromString(input, output):
     Currently only works with smiles.
     TODO: Add support to other formats.
     Input:
-      input  [string] - Input string.
-      output [string] - Output path.
+      input     [string]                 - Input string.
+      output    [string]                 - Output path.
     Return:
       [int]
       See Error.py for all return codes.
@@ -741,19 +741,17 @@ def is_molecule_valid(molecule):
                 return False
         elif type(validate_obabel_extension(molecule)) == str:
             try:
-                # Check if the extension is .mol2
+                # Check if the extension is within the supported ones, if yes, parse it
                 if extension == ".mol2":
-                    # Parse it
                     _ = rdkit.Chem.rdmolfiles.MolFromMol2File(molecule, sanitize = True)
                 elif extension == ".sdf":
-                    # Parse it
                     _ = rdkit.Chem.rdmolfiles.SDMolSupplier(molecule, sanitize = True)
                 elif extension == ".mol":
-                    # Parse it
                     _ = rdkit.Chem.rdmolfiles.MolFromMolFile(molecule, sanitize = True)
                 elif extension == ".pdbqt":
-                    # Parse it
                     _ = rdkit.Chem.rdmolfiles.MolFromMolFile(molecule, sanitize = True)
+                elif extension in [".smi", ".smiles"]:
+                    _ = rdkit.Chem.rdmolfiles.MolFromSmiles(molecule, sanitize = True)
                 else:
                     # Not suitable extension, so... say False!!!!
                     return False
