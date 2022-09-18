@@ -238,7 +238,6 @@ def __sub_core_prepare_dudez(dirToProcess, mols, overwrite, sanitize):
     Return:
       -
     '''
-    print(mols)
     processDirs = []
     # Check the length of the list of mols
     if len(mols) == 0:
@@ -314,7 +313,7 @@ def __core_prepare(d, overwrite, archive, sanitize, spacing):
     '''
     Prepares a database entry to be run in multiple docking software.
     Input:
-     d       [string] - Path where the data is
+     d         [string] - Path where the data is
      overwrite [bool]   - Flag for demanding file overwrite
      archive   [string] - Which archive will be processed [dudez, pdbbind, astex]
      sanitize  [string] - Flag to tell if the molecule should be sanitized
@@ -356,20 +355,24 @@ def __core_prepare(d, overwrite, archive, sanitize, spacing):
 
         # Set the 3 dirs containing ligand/decoys
         dudezDir = f"{d}/dudez"
-        extremaDir = f"{d}/Extrema"
+        extremaDir = f"{d}/extrema"
 
         # Parameterize paths
         dudezDirLigand = f"{dudezDir}_ligands"
         dudezDirDecoy = f"{dudezDir}_decoys"
-        extremaDirDecoy = f"{extremaDir}_decoys"
+        extremaDirDecoy = f"{extremaDir}"
 
         # Create an empty list to hold all dirs to be processed
         processDirs = []
 
+        print(dudezDirLigand)
+        print(dudezDirDecoy)
+        print(extremaDirDecoy)
+
         # For each molecule in dudez ligand dir
         mols = glob(f"{dudezDirLigand}/*.mol2")
         # Append the dir to the list of dirs to be processed
-        processDirs += __sub_core_prepare_dudez(dudezDirLigand, mols, overwrite, sanitize)
+        processDirs += __sub_core_prepare_dudez(v, mols, overwrite, sanitize)
 
         # For each molecule in dudez decoy dir
         mols = glob(f"{dudezDirDecoy}/*.mol2")
@@ -2244,17 +2247,15 @@ def read_logs(archive, picklePath = ""):
                 processDirs = []
             elif archive == "dudez":
                 # Parameterize paths
-                dudezDirLigand = f"{d}/DUDE_Z_ligands"
-                dudezDirDecoy = f"{d}/DUDE_Z_decoys"
-                extremaDirDecoy = f"{d}/Extrema_decoys"
-                goldilocksDirDecoy = f"{d}/Goldilocks_decoys"
+                dudezDirLigand = f"{d}/dudez_ligands"
+                dudezDirDecoy = f"{d}/dudez_decoys"
+                extremaDirDecoy = f"{d}/extrema"
                 # Create an empty list for all directories to be processed
                 processDirs = []
                 # Add all subdirs (one for each ligand) from all 4 folders as a tuple (dir, ligand_descriptor_path)
                 processDirs += [(processDir, 'dudez_ligand') for processDir in glob(f"{dudezDirLigand}/*") if os.path.isdir(processDir)]
                 processDirs += [(processDir, 'dudez_decoy') for processDir in glob(f"{dudezDirDecoy}/*") if os.path.isdir(processDir)]
                 processDirs += [(processDir, 'dudez_extrema') for processDir in glob(f"{extremaDirDecoy}/*") if os.path.isdir(processDir)]
-                processDirs += [(processDir, 'dudez_goldilocks') for processDir in glob(f"{goldilocksDirDecoy}/*") if os.path.isdir(processDir)]
             elif archive == "pdbbind":
                 receptor_descriptor_path = f"{pdbbind_archive}/{ptn}/{ptn}_protein_descriptors.json"
                 # Make the processDirs a unitary list of the dir and its descriptors (since there is only one ligand per protein)
@@ -2306,17 +2307,15 @@ def generate_dock_result_csv(archive, log_dumps, csv_path, chunksize=500):
         # For each protein in proteins
         for ptn in ptns:
             # Parameterize paths
-            dudezDirLigand = f"{dudez_archive}/{ptn}/DUDE_Z_ligands"
-            dudezDirDecoy = f"{dudez_archive}/{ptn}/DUDE_Z_decoys"
-            extremaDirDecoy = f"{dudez_archive}/{ptn}/Extrema_decoys"
-            goldilocksDirDecoy = f"{dudez_archive}/{ptn}/Goldilocks_decoys"
+            dudezDirLigand = f"{dudez_archive}/{ptn}/dudez_ligands"
+            dudezDirDecoy = f"{dudez_archive}/{ptn}/dudez_decoys"
+            extremaDirDecoy = f"{dudez_archive}/{ptn}/extrema"
             # Create an empty list for all directories to be processed
             processDirs = []
             # Add all subdirs (one for each ligand) from all 4 folders as a tuple (dir, ligand_name))
             processDirs += [(d, d.split(os.path.sep)[-3], d.split(os.path.sep)[-1], log_dumps[f"{d.split(os.path.sep)[-3]}-{d.split(os.path.sep)[-1]}"]) for d in glob(f"{dudezDirLigand}/*") if os.path.isdir(d)]
             processDirs += [(d, d.split(os.path.sep)[-3], d.split(os.path.sep)[-1], log_dumps[f"{d.split(os.path.sep)[-3]}-{d.split(os.path.sep)[-1]}"]) for d in glob(f"{dudezDirDecoy}/*") if os.path.isdir(d)]
             processDirs += [(d, d.split(os.path.sep)[-3], d.split(os.path.sep)[-1], log_dumps[f"{d.split(os.path.sep)[-3]}-{d.split(os.path.sep)[-1]}"]) for d in glob(f"{extremaDirDecoy}/*") if os.path.isdir(d)]
-            processDirs += [(d, d.split(os.path.sep)[-3], d.split(os.path.sep)[-1], log_dumps[f"{d.split(os.path.sep)[-3]}-{d.split(os.path.sep)[-1]}"]) for d in glob(f"{goldilocksDirDecoy}/*") if os.path.isdir(d)]
     elif archive == "pdbbind":
         # Set the target dir
         processDirs = [(f"{pdbbind_archive}/{ptn}", ptn, f"{ptn}_ligand", f"{ptn}-{ptn}_ligand", [])]
@@ -2372,17 +2371,15 @@ def merge_descriptors_in_dataframe(archive, saveCsv=True):
                 processDirs = []
             elif archive == "dudez":
                 # Parameterize paths
-                dudezDirLigand = f"{d}/DUDE_Z_ligands"
-                dudezDirDecoy = f"{d}/DUDE_Z_decoys"
-                extremaDirDecoy = f"{d}/Extrema_decoys"
-                goldilocksDirDecoy = f"{d}/Goldilocks_decoys"
+                dudezDirLigand = f"{d}/dudez_ligands"
+                dudezDirDecoy = f"{d}/dudez_decoys"
+                extremaDirDecoy = f"{d}/extrema"
                 # Create an empty list for all directories to be processed
                 processDirs = []
                 # Add all subdirs (one for each ligand) from all 4 folders as a tuple (dir, ligand_descriptor_path)
                 processDirs += [(processDir, f"{d}/rec.crg_descriptors.json") for processDir in glob(f"{dudezDirLigand}/*") if os.path.isdir(processDir)]
                 processDirs += [(processDir, f"{d}/rec.crg_descriptors.json") for processDir in glob(f"{dudezDirDecoy}/*") if os.path.isdir(processDir)]
                 processDirs += [(processDir, f"{d}/rec.crg_descriptors.json") for processDir in glob(f"{extremaDirDecoy}/*") if os.path.isdir(processDir)]
-                processDirs += [(processDir, f"{d}/rec.crg_descriptors.json") for processDir in glob(f"{goldilocksDirDecoy}/*") if os.path.isdir(processDir)]
             elif archive == "pdbbind":
                 receptor_descriptor_path = f"{pdbbind_archive}/{ptn}/{ptn}_protein_descriptors.json"
                 # Make the processDirs a unitary list of the dir and its descriptors (since there is only one ligand per protein)
