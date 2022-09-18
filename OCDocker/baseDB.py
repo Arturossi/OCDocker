@@ -379,7 +379,7 @@ def __core_prepare(d, overwrite, archive, sanitize, spacing):
         for extrema_d in ['minus2', 'minus1', 'neutral', 'plus1', 'plus2']:
             # For each molecule in extrema decoy dir
             mols = glob(f"{extremaDirDecoy}/{extrema_d}/*.mol2")
-            print(mols)
+            print(f"mols: {mols}")
             exit()
             # Append the dir to the list of dirs to be processed
             processDirs += __sub_core_prepare_dudez(extremaDirDecoy, mols, overwrite, sanitize)
