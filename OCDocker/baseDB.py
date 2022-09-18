@@ -981,11 +981,11 @@ def __sub_core_run_dock(receptorPath, ligandPath, receptorDir, ligandDir, archiv
         return None
     return None
 
-def __core_run_dock(dir, archive, dockingAlgorithm, overwrite, ligandAlternativeDir = ""):
+def __core_run_dock(d, archive, dockingAlgorithm, overwrite, ligandAlternativeDir = ""):
     '''
     Performs the docking.
     Input:
-     dir                  [string]             - The directory where the files are stored
+     d                    [string]             - The directory where the files are stored
      archive              [string]             - Which archive will be processed [dudez, pdbbind, astex]
      dockingAlgorithm     [string]             - Which docking algorithm will be used [vina, smina, plants]
      overwrite            [bool]               - Flag to tell if files should be overwritten
@@ -994,7 +994,7 @@ def __core_run_dock(dir, archive, dockingAlgorithm, overwrite, ligandAlternative
       -
     '''
     # If is the index directory, ignore
-    if dir in ['index', 'db']:
+    if d in ['index', 'db']:
         return
     # Find which kind of archive it will be
     if archive == "astex":
@@ -1002,9 +1002,9 @@ def __core_run_dock(dir, archive, dockingAlgorithm, overwrite, ligandAlternative
     elif archive == "dudez":
         chosenArchive = dudez_archive
         # Find protein name
-        ptn = dir.split(os.path.sep)[-1]
+        ptn = d.split(os.path.sep)[-1]
         # Find protein name
-        receptorPath = f"{dir}/rec.crg.pdb"
+        receptorPath = f"{d}/rec.crg.pdb"
         # Check if ligandAlternativeDir is an empty string
         if ligandAlternativeDir == "":
             # If it is, print an error message and return
@@ -1014,23 +1014,23 @@ def __core_run_dock(dir, archive, dockingAlgorithm, overwrite, ligandAlternative
         ligandPath = f"{ligandAlternativeDir}/{ligandName}.mol2"
         # Set ligand and receptor descriptor paths
         ligandDescriptor = f"{ligandAlternativeDir}/{ligandName}_descriptors.json"
-        receptorDescriptor = f"{dir}/rec.crg_descriptors.json"
+        receptorDescriptor = f"{d}/rec.crg_descriptors.json"
     elif archive == "pdbbind":
         # Find protein name
-        ptn = dir.split(os.path.sep)[-1]
+        ptn = d.split(os.path.sep)[-1]
         # Set the input file name path (to generate the box and data about the protein)
-        receptorPath = f"{dir}/{ptn}_protein.pdb"
+        receptorPath = f"{d}/{ptn}_protein.pdb"
         # Set the ligand file name path (to generate data about the ligand)
-        ligandPath = f"{dir}/{ptn}_ligand.mol2"
+        ligandPath = f"{d}/{ptn}_ligand.mol2"
         # Set ligand and receptor descriptor paths
-        ligandDescriptor = f"{dir}/{ptn}_ligand_descriptors.json"
-        receptorDescriptor = f"{dir}/{ptn}_protein_descriptors.json"
-        ligandAlternativeDir = dir
+        ligandDescriptor = f"{d}/{ptn}_ligand_descriptors.json"
+        receptorDescriptor = f"{d}/{ptn}_protein_descriptors.json"
+        ligandAlternativeDir = d
     else:
         octools.print_error_log(f"Wrong archive. Only one of the following archives is accepted ['astex', 'dudez', 'pdbbind'] and got '{archive}'.", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
         return errors.receptor_or_ligand_descriptor_does_not_exist(f"Wrong archive. Only one of the following archives is accepted ['astex', 'dudez', 'pdbbind'] and got '{archive}'.", level = "error")
     # Run the docking sub core routine for the chosen archive and algorithm
-    return __sub_core_run_dock(receptorPath, ligandPath, dir, ligandAlternativeDir, archive, dockingAlgorithm, receptorDescriptor, ligandDescriptor, overwrite)
+    return __sub_core_run_dock(receptorPath, ligandPath, d, ligandAlternativeDir, archive, dockingAlgorithm, receptorDescriptor, ligandDescriptor, overwrite)
 
 def __thread_run_dock_parallel(arguments):
     '''
@@ -1077,9 +1077,9 @@ def __run_dock_parallel(dirs, archive, dockingAlgorithm, overwrite, desc, ligand
     # Otherwise, the ligand is in the same directory as the protein
     else:
         # For each file in dirs
-        for dir in dirs:
+        for d in dirs:
             # Append a tuple containing the file name and ovewrite flag to the arguments list
-            arguments.append((dir, archive, dockingAlgorithm, overwrite))
+            arguments.append((d, archive, dockingAlgorithm, overwrite))
     # If logfile exists, backup it (for error and warnings)
     if os.path.isfile(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log"):
         if not os.path.isdir(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past"):
