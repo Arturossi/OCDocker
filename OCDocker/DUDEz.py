@@ -242,6 +242,7 @@ def merge_descriptors_in_dataframe(saveCsv=True):
     # Get the dataframe with descriptors and docking scores
     dudezdf = ocbdb.merge_descriptors_in_dataframe("dudez", saveCsv=False)
 
+    # If the save csv flag is set
     if saveCsv:
         # Parameterize the csvs paths
         csv_path_out = f"{parsed_archive}/DUDEz_complete.csv"

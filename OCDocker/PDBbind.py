@@ -253,6 +253,7 @@ def merge_descriptors_in_dataframe(saveCsv=True):
     # Merge the pdbbinddf DataFrame with the metadata from the PDBbind database using the Protein column as a comparer
     pdbbinddf = pd.merge(pdbbinddf, pd.DataFrame(read_index()), on="Protein", how="left")
 
+    # If the save csv flag is set
     if saveCsv:
         # Parameterize the csvs paths
         csv_path_out = f"{parsed_archive}/PDBbind_complete.csv"
