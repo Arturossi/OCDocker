@@ -1066,7 +1066,6 @@ def __run_dock_parallel(dirs, archive, dockingAlgorithm, overwrite, desc, ligand
     '''
     # Arguments to pass to each Thread in the Thread Pool
     arguments = []
-    print(ligandAlternativeDirs)
     # If ligandAlternativeDir is type of list
     if isinstance(ligandAlternativeDirs, list):
         # For each file in dirs
@@ -2078,9 +2077,9 @@ def run_dock(archive, dockingAlgorithm, overwrite = False):
         # Create the alternative dir list
         ligandAlternativeDirs = []
         # For each dir in dirs, let's grab all ligands
-        for dir in dirs:
+        for d in dirs:
             # Set the model path
-            receptorPath = f"{dir}/rec.crg.pdb"
+            receptorPath = f"{d}/rec.crg.pdb"
             # Check if file is a PDB file
             if receptorPath.endswith(".pdb"):
                 # Initialise hasCryst1 flag
@@ -2119,12 +2118,11 @@ def run_dock(archive, dockingAlgorithm, overwrite = False):
                         # Write the content to the file
                         pdbFile.write(content)
             # Parameterize paths
-            dudezDirLigand = f"{dir}/DUDE_Z_ligands"
-            dudezDirDecoy = f"{dir}/DUDE_Z_decoys"
-            extremaDirDecoy = f"{dir}/Extrema_decoys"
-            goldilocksDirDecoy = f"{dir}/Goldilocks_decoys"
+            dudezDirLigand = f"{d}/dudez_ligands"
+            dudezDirDecoy = f"{d}/dudez_decoys"
+            extremaDirDecoy = f"{d}/extrema"
             # Merge the ligandAlternative list with the list with dudezDirLigand, dudezDirDecoy, extremaDirDecoy, goldilocksDirDecoy ligands
-            ligandAlternativeDirs = glob(f"{dudezDirLigand}/*") + glob(f"{dudezDirDecoy}/*") + glob(f"{extremaDirDecoy}/*") + glob(f"{goldilocksDirDecoy}/*")
+            ligandAlternativeDirs = glob(f"{dudezDirLigand}/*") + glob(f"{dudezDirDecoy}/*") + glob(f"{extremaDirDecoy}/*")
     else:
         ligandAlternativeDirs = ""
 
