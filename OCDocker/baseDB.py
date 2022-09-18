@@ -365,10 +365,6 @@ def __core_prepare(d, overwrite, archive, sanitize, spacing):
         # Create an empty list to hold all dirs to be processed
         processDirs = []
 
-        print(dudezDirLigand)
-        print(dudezDirDecoy)
-        print(extremaDirDecoy)
-
         # For each molecule in dudez ligand dir
         mols = glob(f"{dudezDirLigand}/*.mol2")
         # Append the dir to the list of dirs to be processed
