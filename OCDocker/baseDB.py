@@ -379,6 +379,8 @@ def __core_prepare(d, overwrite, archive, sanitize, spacing):
         for extrema_d in ['minus2', 'minus1', 'neutral', 'plus1', 'plus2']:
             # For each molecule in extrema decoy dir
             mols = glob(f"{extremaDirDecoy}/{extrema_d}/*.mol2")
+            print(mols)
+            exit()
             # Append the dir to the list of dirs to be processed
             processDirs += __sub_core_prepare_dudez(extremaDirDecoy, mols, overwrite, sanitize)
 
@@ -507,14 +509,14 @@ def __prepare_molecule(mol, overwrite, moltype, dbName, sanitize):
                 octools.print_warning_log(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '{file_extension}' to '.mol2'.", f"{logdir}/{dbName}_warn_Parse.log")
                 try:
                     # Parse the .sdf file
-                    m = ocl.Ligand(f"{filename}.mol2", molName, sanitize = sanitize)
+                    m = ocl.Ligand(f"{molPath}/{filename}.mol2", molName, sanitize = sanitize)
                 except:
                     # Tell the user that will search for another extension (.sdf)
                     _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.mol2' to '.sdf'.", "warning")
                     octools.print_warning_log(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.mol2' to '.sdf'.", f"{logdir}/{dbName}_warn_Parse.log")
                     try:
                         # Parse the .sdf file
-                        m = ocl.Ligand(f"{filename}.sdf", molName, sanitize = sanitize)
+                        m = ocl.Ligand(f"{molPath}/{filename}.sdf", molName, sanitize = sanitize)
                     except:
                         # Tell the user the search for another extension (.mol2)
                         _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.sdf' to '.smi/smiles'.", "warning")
