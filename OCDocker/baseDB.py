@@ -353,14 +353,10 @@ def __core_prepare(d, overwrite, archive, sanitize, spacing):
         # Prepare the receptor
         __prepare_molecule((fin, fout), overwrite, "receptor", archive, sanitize = sanitize)
 
-        # Set the 3 dirs containing ligand/decoys
-        dudezDir = f"{d}/dudez"
-        extremaDir = f"{d}/extrema"
-
         # Parameterize paths
-        dudezDirLigand = f"{dudezDir}_ligands"
-        dudezDirDecoy = f"{dudezDir}_decoys"
-        extremaDirDecoy = f"{extremaDir}_decoys"
+        dudezDirLigand = f"{d}/dudez_ligands"
+        dudezDirDecoy = f"{d}/dudez_decoys"
+        extremaDirDecoy = f"{d}/extrema_decoys"
 
         # Create an empty list to hold all dirs to be processed
         processDirs = []
@@ -507,14 +503,14 @@ def __prepare_molecule(mol, overwrite, moltype, dbName, sanitize):
                 octools.print_warning_log(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '{file_extension}' to '.mol2'.", f"{logdir}/{dbName}_warn_Parse.log")
                 try:
                     # Parse the .sdf file
-                    m = ocl.Ligand(f"{molPath}/{filename}.mol2", molName, sanitize = sanitize)
+                    m = ocl.Ligand(f"{filename}.mol2", molName, sanitize = sanitize)
                 except:
                     # Tell the user that will search for another extension (.sdf)
                     _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.mol2' to '.sdf'.", "warning")
                     octools.print_warning_log(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.mol2' to '.sdf'.", f"{logdir}/{dbName}_warn_Parse.log")
                     try:
                         # Parse the .sdf file
-                        m = ocl.Ligand(f"{molPath}/{filename}.sdf", molName, sanitize = sanitize)
+                        m = ocl.Ligand(f"{filename}.sdf", molName, sanitize = sanitize)
                     except:
                         # Tell the user the search for another extension (.mol2)
                         _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.sdf' to '.smi/smiles'.", "warning")

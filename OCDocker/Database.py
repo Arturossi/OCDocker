@@ -62,9 +62,9 @@ def __core_process_dudez(target, overwrite):
     # Process the ligands
     octools.printv(f"Processing the ligands for {target_name}")
     # List to hold the tuples for each processing that will be made
-    process_list = [("dudez_ligands", "ligands"), ("dudez_decoys", "decoys"), ("extrema/minus2", "extrema_minus2"), ("extrema/minus1", "extrema_minus1"), ("extrema/neutral", "extrema_neutral"), ("extrema/plus1", "extrema_plus1"), ("extrema/plus2", "extrema_plus2")]
+    process_list = [("dudez_ligands", "ligands"), ("dudez_decoys", "decoys"), ("extrema_decoys/minus2", "extrema_minus2"), ("extrema_decoys/minus1", "extrema_minus1"), ("extrema_decoys/neutral", "extrema_neutral"), ("extrema_decoys/plus1", "extrema_plus1"), ("extrema_decoys/plus2", "extrema_plus2")]
     # Create the extrema folder inside the target folder
-    _ = octools.safe_create_dir(f"{target}/extrema")
+    _ = octools.safe_create_dir(f"{target}/extrema_decoys")
     # For each data
     for data in process_list:
         # Print which file is being processed

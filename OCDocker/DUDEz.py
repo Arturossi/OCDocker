@@ -65,7 +65,7 @@ def __inner_validate_database_molecules(database, subset):
     Validates all the molecules in the DUDEz database.
     Input:
       database [string] - The database dir
-      subset   [string] - The database subset (DUDE_Z_ligands, DUDE_Z_decoys, extrema_decoys, goldilocks_decoys)
+      subset   [string] - The database subset (dudez_ligands, dudez_decoys, extrema_decoys)
     Return:
       -
     '''
