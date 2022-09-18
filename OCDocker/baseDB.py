@@ -372,7 +372,7 @@ def __core_prepare(d, overwrite, archive, sanitize, spacing):
         # For each molecule in dudez ligand dir
         mols = glob(f"{dudezDirLigand}/*.mol2")
         # Append the dir to the list of dirs to be processed
-        processDirs += __sub_core_prepare_dudez(v, mols, overwrite, sanitize)
+        processDirs += __sub_core_prepare_dudez(dudezDirLigand, mols, overwrite, sanitize)
 
         # For each molecule in dudez decoy dir
         mols = glob(f"{dudezDirDecoy}/*.mol2")
