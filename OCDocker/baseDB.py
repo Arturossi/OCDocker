@@ -238,6 +238,7 @@ def __sub_core_prepare_dudez(dirToProcess, mols, overwrite, sanitize):
     Return:
       -
     '''
+    print(mols)
     processDirs = []
     # Check the length of the list of mols
     if len(mols) == 0:
@@ -309,11 +310,11 @@ def __sub_core_prepare_dudez(dirToProcess, mols, overwrite, sanitize):
             processDirs.append(f"{dirToProcess}/{ligandName}")
     return processDirs
 
-def __core_prepare(dir, overwrite, archive, sanitize, spacing):
+def __core_prepare(d, overwrite, archive, sanitize, spacing):
     '''
     Prepares a database entry to be run in multiple docking software.
     Input:
-     dir       [string] - Path where the data is
+     d       [string] - Path where the data is
      overwrite [bool]   - Flag for demanding file overwrite
      archive   [string] - Which archive will be processed [dudez, pdbbind, astex]
      sanitize  [string] - Flag to tell if the molecule should be sanitized
@@ -323,10 +324,10 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
     '''
     if archive == "astex":
         # Set the input file name path
-        fin = f"{dir}/protein"
+        fin = f"{d}/protein"
 
         # Set the ligand input file name path
-        lfin = f"{dir}/ligand"
+        lfin = f"{d}/ligand"
 
         # If the overwrite flag is true or the receptor pdb file does not exist
         if overwrite or not os.path.isfile(f"{fin}.pdb"):
@@ -342,20 +343,20 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
         fin = f"{fin}.pdb"
     elif archive == "dudez":
         # Set the input file name path
-        fin = f"{dir}/rec.crg.pdb"
-        fout = f"{dir}/rec.crg.mol2"
+        fin = f"{d}/rec.crg.pdb"
+        fout = f"{d}/rec.crg.mol2"
         # Set the prepared receptor name
-        preparedReceptor = f"{dir}/rec.crg_prepared.mol2"
+        preparedReceptor = f"{d}/rec.crg_prepared.mol2"
 
         # Find the protein name
-        ptn = dir.split(os.path.sep)[-1]
+        ptn = d.split(os.path.sep)[-1]
 
         # Prepare the receptor
         __prepare_molecule((fin, fout), overwrite, "receptor", archive, sanitize = sanitize)
 
         # Set the 3 dirs containing ligand/decoys
-        dudezDir = f"{dir}/dudez"
-        extremaDir = f"{dir}/Extrema"
+        dudezDir = f"{d}/dudez"
+        extremaDir = f"{d}/Extrema"
 
         # Parameterize paths
         dudezDirLigand = f"{dudezDir}_ligands"
@@ -382,27 +383,27 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
 
     elif archive == "pdbbind":
         # If is the index path
-        if os.path.basename(dir) in ['index', 'db']:
+        if os.path.basename(d) in ['index', 'db']:
             # Skip it
             return
         # Find the protein name
-        ptn = dir.split(os.path.sep)[-1]
+        ptn = d.split(os.path.sep)[-1]
         # Set the input file name path (to generate the box and data about the protein)
-        fin = f"{dir}/{ptn}_protein.pdb"
-        fout = f"{dir}/{ptn}_protein.mol2"
+        fin = f"{d}/{ptn}_protein.pdb"
+        fout = f"{d}/{ptn}_protein.mol2"
         # Set the prepared receptor name
-        preparedReceptor = f"{dir}/{ptn}_prepared.mol2"
+        preparedReceptor = f"{d}/{ptn}_prepared.mol2"
         # Convert the .pdb to .mol2 (for dock6 use)
         _ = octools.convertMols(fin, fout)
         # Set the ligand file name path (to generate data about the ligand)
-        fligand = f"{dir}/{ptn}_ligand.mol2"
+        fligand = f"{d}/{ptn}_ligand.mol2"
         # For each ligand (don't use parallel, since there is no need)
         __prepare_molecule(fligand, overwrite, "ligand", archive, sanitize = sanitize)
         # For each Receptor
         __prepare_molecule((fin, fout), overwrite, "receptor", archive, sanitize = sanitize)
 
     # Set the output path
-    fout = f"{dir}/p2rank"
+    fout = f"{d}/p2rank"
     # Create the p2rank output dir
     _ = octools.safe_create_dir(fout)
     # Parameterizing box count
@@ -410,14 +411,14 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
     # If overwrite mode is on or there is no box in the p2rank output, p2rank will run
     if boxCount == 0 or overwrite:
         # Run p2rank
-        __run_p2rank(dir, fin, overwrite=overwrite)
+        __run_p2rank(d, fin, overwrite=overwrite)
     else:
-        octools.print_info(f"The protein '{dir}' already has its p2rank output generated, skipping its execution.")
+        octools.print_info(f"The protein '{d}' already has its p2rank output generated, skipping its execution.")
 
     # Check if processDirs is not set or is empty
     if not processDirs or len(processDirs) == 0:
         # Set the processDirs to the current dir
-        processDirs = [dir]
+        processDirs = [d]
 
     # For each dir to be processed
     for processDir in processDirs:
@@ -1262,9 +1263,9 @@ def __read_log_parallel(dirs, archive, desc):
     # Arguments to pass to each Thread in the Thread Pool
     arguments = []
     # For each file in the glob
-    for dir in dirs:
+    for d in dirs:
         # Append a tuple containing the file name and ovewrite flag to the arguments list
-        arguments.append((dir, archive))
+        arguments.append((d, archive))
     # If logfile exists, backup it for vina, smina and plants (for error and warnings)
     if os.path.isfile(f"{logdir}/vina_read_log_ERROR.log"):
         if not os.path.isdir(f"{logdir}/read_log_past"):
@@ -1318,9 +1319,9 @@ def __read_log_no_parallel(dirs, archive, desc):
         os.rename(f"{logdir}/plants_read_log_ERROR.log", f"{logdir}/read_log_past/plants_read_log_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
-        for dir in tqdm(iterable = dirs, total = len(dirs), desc = desc):
+        for d in tqdm(iterable = dirs, total = len(dirs), desc = desc):
             # Call the core read log function (shared between parallel and not parallel) and store the data into the data dict
-            data.update(__core_read_log(dir, archive))
+            data.update(__core_read_log(d, archive))
             # Clear the memory
             gc.collect()
     return data
@@ -1498,7 +1499,7 @@ def __generate_dock_result_csv_no_parallel(processDirs, archive, desc):
     if os.path.isfile(f"{logdir}/{archive}_dock_result_ERROR..log"):
         if not os.path.isdir(f"{logdir}/generate_dock_result_csv_past"):
             octools.safe_create_dir(f"{logdir}/generate_dock_result_csv_past")
-        os.rename(f"{logdir}/{archive}_dock_result_ERROR..log", f"{logdir}/read_log_past/{archive}_dock_result_ERROR.{time.strftime('%d%m%Y-%H%M%S')}.log")
+        os.rename(f"{logdir}/{archive}_dock_result_ERROR.log", f"{logdir}/read_log_past/{archive}_dock_result_ERROR.{time.strftime('%d%m%Y-%H%M%S')}.log")
     # Result DataFrame list
     dfList = []
     # Redirect all prints to tqdm.write
