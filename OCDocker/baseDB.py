@@ -1066,6 +1066,7 @@ def __run_dock_parallel(dirs, archive, dockingAlgorithm, overwrite, desc, ligand
     '''
     # Arguments to pass to each Thread in the Thread Pool
     arguments = []
+    print(ligandAlternativeDirs)
     # If ligandAlternativeDir is type of list
     if isinstance(ligandAlternativeDirs, list):
         # For each file in dirs
@@ -1098,16 +1099,16 @@ def __run_dock_parallel(dirs, archive, dockingAlgorithm, overwrite, desc, ligand
     # Return
     return None
 
-def __run_dock_no_parallel(dirs, archive, dockingAlgorithm, overwrite, desc, ligandAlternativeDir = ""):
+def __run_dock_no_parallel(dirs, archive, dockingAlgorithm, overwrite, desc, ligandAlternativeDirs = ""):
     '''
     Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_run_dock function.
     Input:
-     dirs                 [string]             - List of paths to process
-     archive              [string]             - The database name (for proper logging)
-     dockingAlgorithm     [string]             - Which docking algorithm will be used [vina, smina, plants]
-     overwrite            [bool]               - Flag to tell if files should be overwritten
-     desc                 [string]             - The description used in the progress bar
-     ligandAlternativeDir [string] DEFAULT: "" - If the directory where the ligand is stored is different than <dir> pass it here
+     dirs                  [string]             - List of paths to process
+     archive               [string]             - The database name (for proper logging)
+     dockingAlgorithm      [string]             - Which docking algorithm will be used [vina, smina, plants]
+     overwrite             [bool]               - Flag to tell if files should be overwritten
+     desc                  [string]             - The description used in the progress bar
+     ligandAlternativeDirs [string] DEFAULT: "" - If the directory where the ligand is stored is different than <dir> pass it here
     Return:
       -
     '''
@@ -1123,15 +1124,15 @@ def __run_dock_no_parallel(dirs, archive, dockingAlgorithm, overwrite, desc, lig
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         # For each file in dirs
-        for dir in tqdm(iterable=dirs, total=len(dirs), desc=desc):
-            if isinstance(dirs, list):
+        for d in tqdm(iterable=dirs, total=len(dirs), desc=desc):
+            if isinstance(ligandAlternativeDir, list):
                 # Now loop over the ligands of this protein
-                for ligandAlternativeDir in dirs:
+                for ligandAlternativeDir in ligandAlternativeDirs:
                     # Call the core dock function (shared between parallel and not parallel)
-                    __core_run_dock(dir, archive, dockingAlgorithm, overwrite, ligandAlternativeDir = ligandAlternativeDir)
+                    __core_run_dock(d, archive, dockingAlgorithm, overwrite, ligandAlternativeDir = ligandAlternativeDir)
             else:
                 # Call the core dock function (shared between parallel and not parallel)
-                __core_run_dock(dir, archive, dockingAlgorithm, overwrite, ligandAlternativeDir = ligandAlternativeDir)
+                __core_run_dock(d, archive, dockingAlgorithm, overwrite, ligandAlternativeDir = ligandAlternativeDirs)
             # Clear the memory
             gc.collect()
         # Clear the memory
