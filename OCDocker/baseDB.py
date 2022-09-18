@@ -360,7 +360,7 @@ def __core_prepare(d, overwrite, archive, sanitize, spacing):
         # Parameterize paths
         dudezDirLigand = f"{dudezDir}_ligands"
         dudezDirDecoy = f"{dudezDir}_decoys"
-        extremaDirDecoy = f"{extremaDir}"
+        extremaDirDecoy = f"{extremaDir}_decoys"
 
         # Create an empty list to hold all dirs to be processed
         processDirs = []
@@ -376,7 +376,7 @@ def __core_prepare(d, overwrite, archive, sanitize, spacing):
         processDirs += __sub_core_prepare_dudez(dudezDirDecoy, mols, overwrite, sanitize)
 
         # For each molecule in dudez decoy dir
-        mols = glob(f"{extremaDirDecoy}/*.mol2")
+        mols = glob(f"{extremaDirDecoy}/*/*.mol2")
         # Append the dir to the list of dirs to be processed
         processDirs += __sub_core_prepare_dudez(extremaDirDecoy, mols, overwrite, sanitize)
 
@@ -2120,7 +2120,7 @@ def run_dock(archive, dockingAlgorithm, overwrite = False):
             # Parameterize paths
             dudezDirLigand = f"{d}/dudez_ligands"
             dudezDirDecoy = f"{d}/dudez_decoys"
-            extremaDirDecoy = f"{d}/extrema"
+            extremaDirDecoy = f"{d}/extrema_decoys"
             # Merge the ligandAlternative list with the list with dudezDirLigand, dudezDirDecoy, extremaDirDecoy, goldilocksDirDecoy ligands
             ligandAlternativeDirs = glob(f"{dudezDirLigand}/*") + glob(f"{dudezDirDecoy}/*") + glob(f"{extremaDirDecoy}/*")
     else:
@@ -2245,7 +2245,7 @@ def read_logs(archive, picklePath = ""):
                 # Parameterize paths
                 dudezDirLigand = f"{d}/dudez_ligands"
                 dudezDirDecoy = f"{d}/dudez_decoys"
-                extremaDirDecoy = f"{d}/extrema"
+                extremaDirDecoy = f"{d}/extrema_decoys"
                 # Create an empty list for all directories to be processed
                 processDirs = []
                 # Add all subdirs (one for each ligand) from all 4 folders as a tuple (dir, ligand_descriptor_path)
@@ -2305,7 +2305,7 @@ def generate_dock_result_csv(archive, log_dumps, csv_path, chunksize=500):
             # Parameterize paths
             dudezDirLigand = f"{dudez_archive}/{ptn}/dudez_ligands"
             dudezDirDecoy = f"{dudez_archive}/{ptn}/dudez_decoys"
-            extremaDirDecoy = f"{dudez_archive}/{ptn}/extrema"
+            extremaDirDecoy = f"{dudez_archive}/{ptn}/extrema_decoys"
             # Create an empty list for all directories to be processed
             processDirs = []
             # Add all subdirs (one for each ligand) from all 4 folders as a tuple (dir, ligand_name))
@@ -2369,7 +2369,7 @@ def merge_descriptors_in_dataframe(archive, saveCsv=True):
                 # Parameterize paths
                 dudezDirLigand = f"{d}/dudez_ligands"
                 dudezDirDecoy = f"{d}/dudez_decoys"
-                extremaDirDecoy = f"{d}/extrema"
+                extremaDirDecoy = f"{d}/extrema_decoys"
                 # Create an empty list for all directories to be processed
                 processDirs = []
                 # Add all subdirs (one for each ligand) from all 4 folders as a tuple (dir, ligand_descriptor_path)
