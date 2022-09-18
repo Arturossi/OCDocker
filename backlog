@@ -7,14 +7,16 @@
 
 ## Log
 ### 0
-- Faster file system | 0
+- Faster file system. | 0
+- Add a new blind docking protocol. Maybe using a function to correlate some characteristics of the ligand to the box size. | 0
 
 ### 1
-- Optimize the file system | 1
+- Optimize the file system. | 1
 
 ### 2
-- Add integrity verification for DUDEz | 2
-- Check previously made functions for DUDEz to update it to the new format | 2
+- Add integrity verification for DUDEz. | 2
+- Check previously made functions for DUDEz to update it to the new format. | 2
 
 ### 3
-- Change DUDEz data import from current routines to smiles and change the filesystem tree | 3
+- Change DUDEz data import from current routines to smiles and change the filesystem tree. | 3
+- Review the pandas merge function when reading results to generate docking result file (.csv) | 3

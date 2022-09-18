@@ -289,6 +289,7 @@ def update_DUDEz(overwrite = False, download = True):
     if len(targets) == 0:
         return errors.file_do_not_exist("The target list is empty. Something went wrong with the download.", "error")
 
+    # If the download flag is set
     if download:
         # Download all sets
         octools.printv("Downloading the datasets.")
