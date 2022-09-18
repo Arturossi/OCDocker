@@ -444,6 +444,12 @@ def __core_prepare(dir, overwrite, archive, sanitize, spacing):
             ocplants.generate_plants_files_database(processDir, preparedReceptor, fligand, spacing, prankPath = fout)
         else:
             octools.print_info(f"The protein '{processDir}' already has its PLANTS file generated, skipping its execution.")
+        # If overwrite mode is on or there not any conf file in the sminaFiles folder
+        if len(glob(f"{processDir}/sminaFiles/*.conf")) == 0 or overwrite:
+            # Create the smina inputs
+            ocsmina.gen_smina_conf(f"{processDir}/sminaFiles/conf_smina.conf", fin)
+        else:
+            octools.print_info(f"The protein '{processDir}' already has its smina file generated, skipping its execution.")
 
     return None
 

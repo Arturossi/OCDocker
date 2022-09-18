@@ -307,13 +307,12 @@ class Smina:
 ## Private ##
 
 ## Public ##
-def gen_smina_conf(confFile, receptor = "receptor_noH"):
+def gen_smina_conf(confFile, receptor):
     '''
     Convert a box (DUDE like format) to vina input.
     Input:
-      boxFile   [string]                         - Path to the box file.
-      confFile  [string]                         - Path to the conf file.
-      receptor  [string] DEFAULT: "receptor_noH" - Receptor name to be used in conf file.
+      confFile  [string] - Path to the conf file.
+      receptor  [string] - Receptor name to be used in conf file.
     Return:
       [int]
       See Error.py for all return codes.
