@@ -239,8 +239,6 @@ def __sub_core_prepare_dudez(dirToProcess, mols, overwrite, sanitize):
       -
     '''
     processDirs = []
-    print(mols)
-    return
     # Check the length of the list of mols
     if len(mols) == 0:
         # If it is 0, get a list of all directories in goldilocksDirDecoy
@@ -260,15 +258,18 @@ def __sub_core_prepare_dudez(dirToProcess, mols, overwrite, sanitize):
     else:
         for mol in mols:
             # Extract the ligand name from the path
-            ligandName = os.path.splitext(os.path.basename(mol))[0]
+            #ligandName = os.path.splitext(os.path.basename(mol))[0]
+            # Extract the ligand name and path from mol
+            ligandPath, ligandName = os.path.split(mol)
+            ligandName = os.path.splitext(ligandName)[0]
             # Safe create its dir
-            _ = octools.safe_create_dir(f"{dirToProcess}/{ligandName}")
+            _ = octools.safe_create_dir(f"{ligandPath}/{ligandName}")
             # Safe create plantsFiles, vinaFiles and sminaFiles dirs
-            _ = octools.safe_create_dir(f"{dirToProcess}/{ligandName}/plantsFiles")
-            _ = octools.safe_create_dir(f"{dirToProcess}/{ligandName}/vinaFiles")
-            _ = octools.safe_create_dir(f"{dirToProcess}/{ligandName}/sminaFiles")
+            _ = octools.safe_create_dir(f"{ligandPath}/{ligandName}/plantsFiles")
+            _ = octools.safe_create_dir(f"{ligandPath}/{ligandName}/vinaFiles")
+            _ = octools.safe_create_dir(f"{ligandPath}/{ligandName}/sminaFiles")
             # Set the fligand name as the ligand file path
-            fligand = f"{dirToProcess}/{ligandName}/{ligandName}.mol2"
+            fligand = f"{ligandPath}/{ligandName}/{ligandName}.mol2"
             # Test if destination file exists
             if os.path.isfile(fligand):
                 # Now check if it should be overwritten
@@ -284,8 +285,8 @@ def __sub_core_prepare_dudez(dirToProcess, mols, overwrite, sanitize):
                 # It does not exist. Move the ligand to its dir
                 shutil.move(mol, fligand)
             # Create the smiles path
-            fligandsmiorig = f"{dirToProcess}/{ligandName}.smi"
-            fligandsmidest = f"{dirToProcess}/{ligandName}/{ligandName}.smi"
+            fligandsmiorig = f"{ligandPath}/{ligandName}.smi"
+            fligandsmidest = f"{ligandPath}/{ligandName}/{ligandName}.smi"
             # Test if source file exists
             if os.path.isfile(fligandsmiorig):
                 # Test if destination file exists
@@ -308,7 +309,7 @@ def __sub_core_prepare_dudez(dirToProcess, mols, overwrite, sanitize):
                 # For each ligand (don't use parallel, since there is no need)
                 __prepare_molecule(fligand, overwrite, "ligand", "dudez", sanitize = sanitize)
             # Append the dir to the list of dirs to be processed
-            processDirs.append(f"{dirToProcess}/{ligandName}")
+            processDirs.append(f"{ligandPath}/{ligandName}")
     return processDirs
 
 def __core_prepare(d, overwrite, archive, sanitize, spacing):
