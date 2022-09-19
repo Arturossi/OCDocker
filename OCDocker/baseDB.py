@@ -239,6 +239,7 @@ def __sub_core_prepare_dudez(dirToProcess, mols, overwrite, sanitize):
       -
     '''
     processDirs = []
+    print(mols)
     # Check the length of the list of mols
     if len(mols) == 0:
         # If it is 0, get a list of all directories in goldilocksDirDecoy
@@ -364,20 +365,20 @@ def __core_prepare(d, overwrite, archive, sanitize, spacing):
         # For each molecule in dudez ligand dir
         mols = glob(f"{dudezDirLigand}/*.mol2")
         # Append the dir to the list of dirs to be processed
-        processDirs += __sub_core_prepare_dudez(dudezDirLigand, mols, overwrite, sanitize)
+        #processDirs += __sub_core_prepare_dudez(dudezDirLigand, mols, overwrite, sanitize)
 
         # For each molecule in dudez decoy dir
         mols = glob(f"{dudezDirDecoy}/*.mol2")
         # Append the dir to the list of dirs to be processed
-        processDirs += __sub_core_prepare_dudez(dudezDirDecoy, mols, overwrite, sanitize)
+        #processDirs += __sub_core_prepare_dudez(dudezDirDecoy, mols, overwrite, sanitize)
 
         # Process all folders for extrema dir
         for extrema_d in ['minus2', 'minus1', 'neutral', 'plus1', 'plus2']:
             # For each molecule in extrema decoy dir
             mols = glob(f"{extremaDirDecoy}/{extrema_d}/*.mol2")
-            print(f"{extremaDirDecoy}/{extrema_d}/*.mol2")
             # Append the dir to the list of dirs to be processed
-            #processDirs += __sub_core_prepare_dudez(extremaDirDecoy, mols, overwrite, sanitize)
+            processDirs += __sub_core_prepare_dudez(extremaDirDecoy, mols, overwrite, sanitize)
+            exit()
 
     elif archive == "pdbbind":
         # If is the index path
