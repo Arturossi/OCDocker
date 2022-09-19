@@ -240,6 +240,7 @@ def __sub_core_prepare_dudez(dirToProcess, mols, overwrite, sanitize):
     '''
     processDirs = []
     print(mols)
+    return
     # Check the length of the list of mols
     if len(mols) == 0:
         # If it is 0, get a list of all directories in goldilocksDirDecoy
