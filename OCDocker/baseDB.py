@@ -227,6 +227,88 @@ def __p2rank_no_parallel(dirs, overwrite, archive, desc):
     return None
 
 ### Prepare
+def __prepare_molecule(mol, overwrite, moltype, dbName, sanitize):
+    '''
+    Prepares a molecule, generating output to docking software.
+    Input:
+     mol       [string] - Path to the molecule
+     overwrite [bool]   - Flag to tell if files should be overwritten
+     moltype   [string] - The type of the molecule (ligant or receptor)
+     dbName    [string] - The database name (for proper logging)
+     sanitize  [string] - Flag to tell telling if the molecule should be sanitized
+    Return:
+      -
+    '''
+    # Find its name and path
+    if type(mol) == tuple:
+        molPath, molName = os.path.split(mol[0])
+    else:
+        molPath, molName = os.path.split(mol)
+    molName = os.path.splitext(molName)[0]
+    if overwrite or not os.path.isfile(f"{molPath}/{molName}_descriptors.json"):
+        if moltype == "ligand":
+            try:
+                # Create the ligand object
+                m = ocl.Ligand(mol, molName, sanitize = sanitize)
+            # If m is not valid
+            except Exception as e:
+                # Let's check its extension
+                filename, file_extension = os.path.splitext(mol)
+                # Tell the user that will search for another extension (.sdf)
+                _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '{file_extension}' to '.mol2'.", "warning")
+                octools.print_warning_log(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '{file_extension}' to '.mol2'.", f"{logdir}/{dbName}_warn_Parse.log")
+                try:
+                    # Parse the .sdf file
+                    m = ocl.Ligand(f"{filename}.mol2", molName, sanitize = sanitize)
+                except:
+                    # Tell the user that will search for another extension (.sdf)
+                    _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.mol2' to '.sdf'.", "warning")
+                    octools.print_warning_log(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.mol2' to '.sdf'.", f"{logdir}/{dbName}_warn_Parse.log")
+                    try:
+                        # Parse the .sdf file
+                        m = ocl.Ligand(f"{filename}.sdf", molName, sanitize = sanitize)
+                    except:
+                        # Tell the user the search for another extension (.mol2)
+                        _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.sdf' to '.smi/smiles'.", "warning")
+                        octools.print_warning_log(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.sdf' to '.smi/smiles'.", f"{logdir}/{dbName}_warn_Parse.log")
+                        try:
+                            if os.path.isfile(f"{filename}.smi"):
+                                # Parse the .smi file
+                                m = ocl.Ligand(f"{filename}.smi", molName, sanitize = sanitize)
+                            else:
+                                # Parse the .mol2 file
+                                m = ocl.Ligand(f"{filename}.smi", molName, sanitize = sanitize)
+                        except:
+                            _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed!", "error")
+                            octools.print_error_log(f"The molecule '{mol}' could not be parsed! .", f"{logdir}/{dbName}_error_Parse.log")
+                            return None
+        elif moltype == "receptor":
+            try:
+                # If is a tuple
+                if type(mol) == tuple:
+                    # Create the receptor object
+                    m = ocr.Receptor(mol[0], molName, mol2Path = mol[1])
+                else:
+                    # Create the receptor object
+                    m = ocr.Receptor(mol, molName)
+            # If m is not valid
+            except Exception as e:
+                _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed! Error {e}", "error")
+                octools.print_error_log(f"The molecule '{mol}' could not be parsed! Error {e}", f"{logdir}/{dbName}_error_Parse.log")
+                return None
+        else:
+            _ = errors.unkown("Unknown molecule type", "error")
+            return None
+        # Test if the ligand is valid
+        if not m or not m.is_valid():
+            _ = errors.malformed_molecule(f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!", "error")
+            octools.print_error_log(f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!", f"{logdir}/{dbName}_error_Parse.log")
+        else:
+            # Export its descriptors
+            _ = m.to_json(overwrite)
+    # Return
+    return None
+
 def __sub_core_prepare_dudez(dirToProcess, mols, overwrite, sanitize):
     '''
     Runs the prepare function for the dudez database subsets.
@@ -259,13 +341,13 @@ def __sub_core_prepare_dudez(dirToProcess, mols, overwrite, sanitize):
         for mol in mols:
             # Extract the ligand name from the path
             #ligandName = os.path.splitext(os.path.basename(mol))[0]
-            # Extract the ligand name and path from mol
+            # Extract the ligand name (without extension) and path from mol
             ligandPath, ligandName = os.path.split(mol)
             ligandName = os.path.splitext(ligandName)[0]
             # Safe create its dir
             _ = octools.safe_create_dir(f"{ligandPath}/{ligandName}")
             # Safe create plantsFiles, vinaFiles and sminaFiles dirs
-            _ = octools.safe_create_dir(f"{ligandPath}/{ligandName}/plantsFiles")
+            _ = octools.safe_create_dir(f"{ligandPath}/{ligandName}")
             _ = octools.safe_create_dir(f"{ligandPath}/{ligandName}/vinaFiles")
             _ = octools.safe_create_dir(f"{ligandPath}/{ligandName}/sminaFiles")
             # Set the fligand name as the ligand file path
@@ -294,9 +376,9 @@ def __sub_core_prepare_dudez(dirToProcess, mols, overwrite, sanitize):
                     # Now check if it should be overwritten
                     if overwrite:
                         # Since yes, delete it, then move it
-                        os.remove(fligand)
+                        os.remove(fligandsmidest)
                         # Move the ligand to its dir
-                        shutil.move(mol, fligand)
+                        shutil.move(fligandsmiorig, fligandsmidest)
                     else:
                         # Since no, delete the source file
                         os.remove(fligandsmiorig)
@@ -365,22 +447,21 @@ def __core_prepare(d, overwrite, archive, sanitize, spacing):
         processDirs = []
 
         # For each molecule in dudez ligand dir
-        mols = glob(f"{dudezDirLigand}/*.mol2")
+        mols = glob(f"{dudezDirLigand}/*.smi")
         # Append the dir to the list of dirs to be processed
-        #processDirs += __sub_core_prepare_dudez(dudezDirLigand, mols, overwrite, sanitize)
+        processDirs += __sub_core_prepare_dudez(dudezDirLigand, mols, overwrite, sanitize)
 
         # For each molecule in dudez decoy dir
-        mols = glob(f"{dudezDirDecoy}/*.mol2")
+        mols = glob(f"{dudezDirDecoy}/*.smi")
         # Append the dir to the list of dirs to be processed
-        #processDirs += __sub_core_prepare_dudez(dudezDirDecoy, mols, overwrite, sanitize)
+        processDirs += __sub_core_prepare_dudez(dudezDirDecoy, mols, overwrite, sanitize)
 
         # Process all folders for extrema dir
         for extrema_d in ['minus2', 'minus1', 'neutral', 'plus1', 'plus2']:
             # For each molecule in extrema decoy dir
-            mols = glob(f"{extremaDirDecoy}/{extrema_d}/*.mol2")
+            mols = glob(f"{extremaDirDecoy}/{extrema_d}/*.smi")
             # Append the dir to the list of dirs to be processed
             processDirs += __sub_core_prepare_dudez(extremaDirDecoy, mols, overwrite, sanitize)
-            exit()
 
     elif archive == "pdbbind":
         # If is the index path
@@ -472,88 +553,6 @@ def __thread_prepare(arguments):
     with octools.redirect_to_tqdm():
         # Call core prepare function (shared between thread and no thread)
         return __core_prepare(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4])
-    # Return
-    return None
-
-def __prepare_molecule(mol, overwrite, moltype, dbName, sanitize):
-    '''
-    Prepares a molecule, generating output to docking software.
-    Input:
-     mol       [string] - Path to the molecule
-     overwrite [bool]   - Flag to tell if files should be overwritten
-     moltype   [string] - The type of the molecule (ligant or receptor)
-     dbName    [string] - The database name (for proper logging)
-     sanitize  [string] - Flag to tell telling if the molecule should be sanitized
-    Return:
-      -
-    '''
-    # Find its name and path
-    if type(mol) == tuple:
-        molPath, molName = os.path.split(mol[0])
-    else:
-        molPath, molName = os.path.split(mol)
-    molName, _ = os.path.splitext(molName)
-    if overwrite or not os.path.isfile(f"{molPath}/{molName}_descriptors.json"):
-        if moltype == "ligand":
-            try:
-                # Create the ligand object
-                m = ocl.Ligand(mol, molName, sanitize = sanitize)
-            # If m is not valid
-            except Exception as e:
-                # Let's check its extension
-                filename, file_extension = os.path.splitext(mol)
-                # Tell the user that will search for another extension (.sdf)
-                _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '{file_extension}' to '.mol2'.", "warning")
-                octools.print_warning_log(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '{file_extension}' to '.mol2'.", f"{logdir}/{dbName}_warn_Parse.log")
-                try:
-                    # Parse the .sdf file
-                    m = ocl.Ligand(f"{filename}.mol2", molName, sanitize = sanitize)
-                except:
-                    # Tell the user that will search for another extension (.sdf)
-                    _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.mol2' to '.sdf'.", "warning")
-                    octools.print_warning_log(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.mol2' to '.sdf'.", f"{logdir}/{dbName}_warn_Parse.log")
-                    try:
-                        # Parse the .sdf file
-                        m = ocl.Ligand(f"{filename}.sdf", molName, sanitize = sanitize)
-                    except:
-                        # Tell the user the search for another extension (.mol2)
-                        _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.sdf' to '.smi/smiles'.", "warning")
-                        octools.print_warning_log(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.sdf' to '.smi/smiles'.", f"{logdir}/{dbName}_warn_Parse.log")
-                        try:
-                            if os.path.isfile(f"{filename}.smi"):
-                                # Parse the .smi file
-                                m = ocl.Ligand(f"{filename}.smi", molName, sanitize = sanitize)
-                            else:
-                                # Parse the .mol2 file
-                                m = ocl.Ligand(f"{filename}.smi", molName, sanitize = sanitize)
-                        except:
-                            _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed!", "error")
-                            octools.print_error_log(f"The molecule '{mol}' could not be parsed! .", f"{logdir}/{dbName}_error_Parse.log")
-                            return None
-        elif moltype == "receptor":
-            try:
-                # If is a tuple
-                if type(mol) == tuple:
-                    # Create the receptor object
-                    m = ocr.Receptor(mol[0], molName, mol2Path = mol[1])
-                else:
-                    # Create the receptor object
-                    m = ocr.Receptor(mol, molName)
-            # If m is not valid
-            except Exception as e:
-                _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed! Error {e}", "error")
-                octools.print_error_log(f"The molecule '{mol}' could not be parsed! Error {e}", f"{logdir}/{dbName}_error_Parse.log")
-                return None
-        else:
-            _ = errors.unkown("Unknown molecule type", "error")
-            return None
-        # Test if the ligand is valid
-        if not m or not m.is_valid():
-            _ = errors.malformed_molecule(f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!", "error")
-            octools.print_error_log(f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!", f"{logdir}/{dbName}_error_Parse.log")
-        else:
-            # Export its descriptors
-            _ = m.to_json(overwrite)
     # Return
     return None
 
@@ -1984,7 +1983,8 @@ def prepare(archive, overwrite = False, spacing = 0.33, sanitize = True):
         chosenArchive = dudez_archive
         label = f"DUDEz proteins"
         # Get all dirs paths in the database
-        dirs = glob(f"{chosenArchive}/*")
+        #dirs = glob(f"{chosenArchive}/*") #TODO: Uncomment this line
+        dirs = glob(f"{chosenArchive}/AA2A*") #TODO: Remove this line
     elif archive == "pdbbind":
         chosenArchive = pdbbind_archive
         label = "PDBbind proteins"

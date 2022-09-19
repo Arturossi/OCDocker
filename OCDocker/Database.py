@@ -349,7 +349,7 @@ def update_DUDEz(overwrite = False, download = True):
     os.remove(f"{tmpDir}/DUDE-Z_targets")
 
     # Run p2rank in the DUDEz database
-    ocdudez.prepare()
+    #ocdudez.prepare()
 
     return errors.ok()
 
