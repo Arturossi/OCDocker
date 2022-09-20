@@ -370,28 +370,20 @@ def __sub_core_prepare_dudez(dirToProcess, mols, overwrite, sanitize):
             fligandsmiorig = f"{ligandPath}/{ligandName}.smi"
             fligandsmidest = f"{ligandPath}/{ligandName}/{ligandName}.smi"
 
-            print(f"orig: {fligandsmiorig}")
-            print(f"dest: {fligandsmidest}")
-
             # Test if source file exists
             if os.path.isfile(fligandsmiorig):
-                print("has origin")
                 # Test if destination file exists
                 if os.path.isfile(fligandsmidest):
-                    print("has dest")
                     # Now check if it should be overwritten
                     if overwrite:
-                        print("delete dest then move")
                         # Since yes, delete it, then move it
                         os.remove(fligandsmidest)
                         # Move the ligand to its dir
                         shutil.move(fligandsmiorig, fligandsmidest)
                     else:
-                        print("removing origin")
                         # Since no, delete the source file
                         os.remove(fligandsmiorig)
                 else:
-                    print("has not dest")
                     # It does not exist. Move the ligand to its dir
                     shutil.move(fligandsmiorig, fligandsmidest)
                 # For each ligand (don't use parallel, since there is no need)
