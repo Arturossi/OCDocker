@@ -1984,8 +1984,7 @@ def prepare(archive, overwrite = False, spacing = 0.33, sanitize = True):
         chosenArchive = dudez_archive
         label = f"DUDEz proteins"
         # Get all dirs paths in the database
-        #dirs = glob(f"{chosenArchive}/*") #TODO: Uncomment this line
-        dirs = glob(f"{chosenArchive}/AA2A*") #TODO: Remove this line
+        dirs = glob(f"{chosenArchive}/*")
     elif archive == "pdbbind":
         chosenArchive = pdbbind_archive
         label = "PDBbind proteins"
