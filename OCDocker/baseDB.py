@@ -369,20 +369,29 @@ def __sub_core_prepare_dudez(dirToProcess, mols, overwrite, sanitize):
             # Create the smiles path
             fligandsmiorig = f"{ligandPath}/{ligandName}.smi"
             fligandsmidest = f"{ligandPath}/{ligandName}/{ligandName}.smi"
+
+            print(f"orig: {fligandsmiorig}")
+            print(f"dest: {fligandsmidest}")
+
             # Test if source file exists
             if os.path.isfile(fligandsmiorig):
+                print("has origin")
                 # Test if destination file exists
                 if os.path.isfile(fligandsmidest):
+                    print("has dest")
                     # Now check if it should be overwritten
                     if overwrite:
+                        print("delete dest then move")
                         # Since yes, delete it, then move it
                         os.remove(fligandsmidest)
                         # Move the ligand to its dir
                         shutil.move(fligandsmiorig, fligandsmidest)
                     else:
+                        print("removing origin")
                         # Since no, delete the source file
                         os.remove(fligandsmiorig)
                 else:
+                    print("has not dest")
                     # It does not exist. Move the ligand to its dir
                     shutil.move(fligandsmiorig, fligandsmidest)
                 # For each ligand (don't use parallel, since there is no need)
@@ -449,17 +458,17 @@ def __core_prepare(d, overwrite, archive, sanitize, spacing):
         # For each molecule in dudez ligand dir
         mols = glob(f"{dudezDirLigand}/*.smi")
         # Append the dir to the list of dirs to be processed
-        processDirs += __sub_core_prepare_dudez(dudezDirLigand, mols, overwrite, sanitize)
+        #processDirs += __sub_core_prepare_dudez(dudezDirLigand, mols, overwrite, sanitize)
 
         # For each molecule in dudez decoy dir
         mols = glob(f"{dudezDirDecoy}/*.smi")
         # Append the dir to the list of dirs to be processed
-        processDirs += __sub_core_prepare_dudez(dudezDirDecoy, mols, overwrite, sanitize)
+        #processDirs += __sub_core_prepare_dudez(dudezDirDecoy, mols, overwrite, sanitize)
 
         # Process all folders for extrema dir
         for extrema_d in ['minus2', 'minus1', 'neutral', 'plus1', 'plus2']:
             # For each molecule in extrema decoy dir
-            mols = glob(f"{extremaDirDecoy}/{extrema_d}/*.smi")
+            mols = glob(f"{extremaDirDecoy}/{extrema_d}/*.smi")[0:10]
             # Append the dir to the list of dirs to be processed
             processDirs += __sub_core_prepare_dudez(extremaDirDecoy, mols, overwrite, sanitize)
 
