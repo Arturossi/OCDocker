@@ -323,7 +323,6 @@ def __sub_core_prepare_dudez(dirToProcess, mols, overwrite, sanitize):
     processDirs = []
     # Check the length of the list of mols
     if len(mols) == 0:
-        print(f"{dirToProcess}/*")
         # If it is 0, get a list of all directories in goldilocksDirDecoy
         processDirs += [d for d in glob(f"{dirToProcess}/*") if os.path.isdir(d)]
         # For each directory (check to see if it is needed to generate descriptors)
@@ -460,13 +459,11 @@ def __core_prepare(d, overwrite, archive, sanitize, spacing):
 
         # Process all folders for extrema dir
         for extrema_d in ['minus2', 'minus1', 'neutral', 'plus1', 'plus2']:
+            extremaDir = f"{extremaDirDecoy}/{extrema_d}"
             # For each molecule in extrema decoy dir
-            mols = glob(f"{extremaDirDecoy}/{extrema_d}/*.mol2")
+            mols = glob(f"{extremaDir}/*.mol2")
             # Append the dir to the list of dirs to be processed
-            processDirs += __sub_core_prepare_dudez(extremaDirDecoy, mols, overwrite, sanitize)
-
-        #print(processDirs)
-        return
+            processDirs += __sub_core_prepare_dudez(extremaDir, mols, overwrite, sanitize)
 
     elif archive == "pdbbind":
         # If is the index path
