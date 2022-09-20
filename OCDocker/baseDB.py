@@ -323,6 +323,7 @@ def __sub_core_prepare_dudez(dirToProcess, mols, overwrite, sanitize):
     processDirs = []
     # Check the length of the list of mols
     if len(mols) == 0:
+        print(f"{dirToProcess}/*")
         # If it is 0, get a list of all directories in goldilocksDirDecoy
         processDirs += [d for d in glob(f"{dirToProcess}/*") if os.path.isdir(d)]
         # For each directory (check to see if it is needed to generate descriptors)
