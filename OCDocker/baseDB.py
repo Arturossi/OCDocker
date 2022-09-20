@@ -464,6 +464,8 @@ def __core_prepare(d, overwrite, archive, sanitize, spacing):
             # Append the dir to the list of dirs to be processed
             processDirs += __sub_core_prepare_dudez(extremaDirDecoy, mols, overwrite, sanitize)
 
+    print(processDirs)
+    
     elif archive == "pdbbind":
         # If is the index path
         if os.path.basename(d) in ['index', 'db']:
