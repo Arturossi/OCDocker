@@ -465,7 +465,7 @@ def __core_prepare(d, overwrite, archive, sanitize, spacing):
             processDirs += __sub_core_prepare_dudez(extremaDirDecoy, mols, overwrite, sanitize)
 
     print(processDirs)
-    exit()
+    return
 
     elif archive == "pdbbind":
         # If is the index path
