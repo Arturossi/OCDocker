@@ -575,9 +575,8 @@ def __prepare_parallel(dirs, overwrite, archive, sanitize, spacing, desc):
     arguments = []
     # For each file in the glob
     for dir in dirs:
-        if "AA2AR" in dir:
-            # Append a tuple containing the file name and ovewrite flag to the arguments list
-            arguments.append((dir, overwrite, archive, sanitize, spacing))
+        # Append a tuple containing the file name and ovewrite flag to the arguments list
+        arguments.append((dir, overwrite, archive, sanitize, spacing))
     # Create a Thread pool with the maximum available_cores
     with Pool(args.available_cores) as p:
         # Perform the multi process
