@@ -456,19 +456,19 @@ def __core_prepare(d, overwrite, archive, sanitize, spacing):
         processDirs = []
 
         # For each molecule in dudez ligand dir
-        mols = glob(f"{dudezDirLigand}/*.smi")
+        mols = glob(f"{dudezDirLigand}/*.mol2")
         # Append the dir to the list of dirs to be processed
-        #processDirs += __sub_core_prepare_dudez(dudezDirLigand, mols, overwrite, sanitize)
+        processDirs += __sub_core_prepare_dudez(dudezDirLigand, mols, overwrite, sanitize)
 
         # For each molecule in dudez decoy dir
-        mols = glob(f"{dudezDirDecoy}/*.smi")
+        mols = glob(f"{dudezDirDecoy}/*.mol2")
         # Append the dir to the list of dirs to be processed
-        #processDirs += __sub_core_prepare_dudez(dudezDirDecoy, mols, overwrite, sanitize)
+        processDirs += __sub_core_prepare_dudez(dudezDirDecoy, mols, overwrite, sanitize)
 
         # Process all folders for extrema dir
         for extrema_d in ['minus2', 'minus1', 'neutral', 'plus1', 'plus2']:
             # For each molecule in extrema decoy dir
-            mols = glob(f"{extremaDirDecoy}/{extrema_d}/*.smi")[0:10]
+            mols = glob(f"{extremaDirDecoy}/{extrema_d}/*.mol2")
             # Append the dir to the list of dirs to be processed
             processDirs += __sub_core_prepare_dudez(extremaDirDecoy, mols, overwrite, sanitize)
 
