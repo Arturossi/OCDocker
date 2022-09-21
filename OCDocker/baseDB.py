@@ -227,15 +227,16 @@ def __p2rank_no_parallel(dirs, overwrite, archive, desc):
     return None
 
 ### Prepare
-def __prepare_molecule(mol, overwrite, moltype, dbName, sanitize):
+def __prepare_molecule(mol, overwrite, moltype, dbName, sanitize, targetCentroid = None):
     '''
     Prepares a molecule, generating output to docking software.
     Input:
-     mol       [string] - Path to the molecule
-     overwrite [bool]   - Flag to tell if files should be overwritten
-     moltype   [string] - The type of the molecule (ligant or receptor)
-     dbName    [string] - The database name (for proper logging)
-     sanitize  [string] - Flag to tell telling if the molecule should be sanitized
+     mol       [string]                         - Path to the molecule
+     overwrite [bool]                           - Flag to tell if files should be overwritten
+     moltype   [string]                         - The type of the molecule (ligant or receptor)
+     dbName    [string]                         - The database name (for proper logging)
+     sanitize  [string]                         - Flag to tell telling if the molecule should be sanitized
+     targetCentroid [list(float)] DEFAULT: None - The centroid of the target
     Return:
       -
     '''
@@ -306,17 +307,20 @@ def __prepare_molecule(mol, overwrite, moltype, dbName, sanitize):
         else:
             # Export its descriptors
             _ = m.to_json(overwrite)
+            # Create the ligand box
+            _ = m.create_box(centroid = targetCentroid, overwrite = overwrite)
     # Return
     return None
 
-def __sub_core_prepare_dudez(dirToProcess, mols, overwrite, sanitize):
+def __sub_core_prepare_dudez(dirToProcess, mols, overwrite, sanitize, targetCentroid = None):
     '''
     Runs the prepare function for the dudez database subsets.
     Input:
-     dirToProcess [string]       - Path where the data is
-     mols         [list(string)] - List of molecules to process
-     overwrite    [bool]         - Flag for demanding file overwrite
-     sanitize     [bool]         - Flag to tell if the molecule should be sanitized
+     dirToProcess [string]                      - Path where the data is
+     mols         [list(string)]                - List of molecules to process
+     overwrite    [bool]                        - Flag for demanding file overwrite
+     sanitize     [bool]                        - Flag to tell if the molecule should be sanitized
+     targetCentroid [list(float)] DEFAULT: None - The centroid of the target
     Return:
       -
     '''
@@ -336,7 +340,7 @@ def __sub_core_prepare_dudez(dirToProcess, mols, overwrite, sanitize):
             # Set the fligand name as the ligand file path
             fligand = f"{processDir}/{ligandName}.smi"
             # For each ligand (don't use parallel, since there is no need)
-            __prepare_molecule(fligand, overwrite, "ligand", "dudez", sanitize = sanitize)
+            __prepare_molecule(fligand, overwrite, "ligand", "dudez", sanitize = sanitize, targetCentroid = targetCentroid)
     else:
         for mol in mols:
             # Extract the ligand name from the path
@@ -387,10 +391,10 @@ def __sub_core_prepare_dudez(dirToProcess, mols, overwrite, sanitize):
                     # It does not exist. Move the ligand to its dir
                     shutil.move(fligandsmiorig, fligandsmidest)
                 # For each ligand (don't use parallel, since there is no need)
-                __prepare_molecule(fligandsmidest, overwrite, "ligand", "dudez", sanitize = sanitize)
+                __prepare_molecule(fligandsmidest, overwrite, "ligand", "dudez", sanitize = sanitize, targetCentroid = targetCentroid)
             else:
                 # For each ligand (don't use parallel, since there is no need)
-                __prepare_molecule(fligand, overwrite, "ligand", "dudez", sanitize = sanitize)
+                __prepare_molecule(fligand, overwrite, "ligand", "dudez", sanitize = sanitize, targetCentroid = targetCentroid)
             # Append the dir to the list of dirs to be processed
             processDirs.append(f"{ligandPath}/{ligandName}")
     return processDirs
@@ -404,6 +408,7 @@ def __core_prepare(d, overwrite, archive, sanitize, spacing):
      archive   [string] - Which archive will be processed [dudez, pdbbind, astex]
      sanitize  [string] - Flag to tell if the molecule should be sanitized
      spacing   [float]  - The spacing value used to enlarge the radius of the sphere used in PLANTS file. Ranges from 0 to 1
+     targetCentroid [list(float)] DEFAULT: None - The centroid of the target molecule
     Return:
       -
     '''
@@ -433,6 +438,9 @@ def __core_prepare(d, overwrite, archive, sanitize, spacing):
         # Set the prepared receptor name
         preparedReceptor = f"{d}/rec.crg_prepared.mol2"
 
+        # Get the ligand file name path
+        lfin = f"{d}/ligand.smi"
+
         # Find the protein name
         ptn = d.split(os.path.sep)[-1]
 
@@ -442,7 +450,7 @@ def __core_prepare(d, overwrite, archive, sanitize, spacing):
         # Parameterize paths
         dudezDirLigand = f"{d}/dudez_ligands"
         dudezDirDecoy = f"{d}/dudez_decoys"
-        extremaDirDecoy = f"{d}/extrema_decoys"
+        #extremaDirDecoy = f"{d}/extrema_decoys" # TODO: Implement this
 
         # Create an empty list to hold all dirs to be processed
         processDirs = []
@@ -450,20 +458,23 @@ def __core_prepare(d, overwrite, archive, sanitize, spacing):
         # For each molecule in dudez ligand dir
         mols = glob(f"{dudezDirLigand}/*.mol2")
         # Append the dir to the list of dirs to be processed
-        processDirs += __sub_core_prepare_dudez(dudezDirLigand, mols, overwrite, sanitize)
+        processDirs += __sub_core_prepare_dudez(dudezDirLigand, mols, overwrite, sanitize, targetCentroid = targetCentroid)
 
         # For each molecule in dudez decoy dir
         mols = glob(f"{dudezDirDecoy}/*.mol2")
         # Append the dir to the list of dirs to be processed
-        processDirs += __sub_core_prepare_dudez(dudezDirDecoy, mols, overwrite, sanitize)
+        processDirs += __sub_core_prepare_dudez(dudezDirDecoy, mols, overwrite, sanitize, targetCentroid = targetCentroid)
 
+        # TODO: Implement this
+        '''
         # Process all folders for extrema dir
         for extrema_d in ['minus2', 'minus1', 'neutral', 'plus1', 'plus2']:
             extremaDir = f"{extremaDirDecoy}/{extrema_d}"
             # For each molecule in extrema decoy dir
             mols = glob(f"{extremaDir}/*.mol2")
             # Append the dir to the list of dirs to be processed
-            processDirs += __sub_core_prepare_dudez(extremaDir, mols, overwrite, sanitize)
+            processDirs += __sub_core_prepare_dudez(extremaDir, mols, overwrite, sanitize, targetCentroid = targetCentroid)]
+        '''
 
     elif archive == "pdbbind":
         # If is the index path
@@ -511,7 +522,7 @@ def __core_prepare(d, overwrite, archive, sanitize, spacing):
             # Check if the archive is dudez
             if archive == "dudez":
                 # Create the vina inputs from the boxes
-                ocvina.generate_vina_files_database(processDir, fin, prankPath = fout)
+                ocvina.generate_vina_files_database(processDir, fin, boxPath = fout)
             else:
                 # Create the vina inputs from the boxes
                 ocvina.generate_vina_files_database(processDir, fin)
@@ -526,7 +537,7 @@ def __core_prepare(d, overwrite, archive, sanitize, spacing):
                 # Set the fligand variable to the dir + ligandName + .mol2
                 fligand = f"{processDir}/{ligandName}.mol2"
             # Create the PLANTS inputs from the boxes
-            ocplants.generate_plants_files_database(processDir, preparedReceptor, fligand, spacing, prankPath = fout)
+            ocplants.generate_plants_files_database(processDir, preparedReceptor, fligand, spacing, boxPath = fout)
         else:
             octools.print_info(f"The protein '{processDir}' already has its PLANTS file generated, skipping its execution.")
         # If overwrite mode is on or there not any conf file in the sminaFiles folder
@@ -2122,9 +2133,9 @@ def run_dock(archive, dockingAlgorithm, overwrite = False):
             # Parameterize paths
             dudezDirLigand = f"{d}/dudez_ligands"
             dudezDirDecoy = f"{d}/dudez_decoys"
-            extremaDirDecoy = f"{d}/extrema_decoys"
+            #extremaDirDecoy = f"{d}/extrema_decoys" # TODO: Uncomment this line when extrema decoys are available
             # Merge the ligandAlternative list with the list with dudezDirLigand, dudezDirDecoy, extremaDirDecoy, goldilocksDirDecoy ligands
-            ligandAlternativeDirs = glob(f"{dudezDirLigand}/*") + glob(f"{dudezDirDecoy}/*") + glob(f"{extremaDirDecoy}/*")
+            ligandAlternativeDirs = glob(f"{dudezDirLigand}/*") + glob(f"{dudezDirDecoy}/*")# + glob(f"{extremaDirDecoy}/*")
     else:
         ligandAlternativeDirs = ""
 
@@ -2253,7 +2264,8 @@ def read_logs(archive, picklePath = ""):
                 # Add all subdirs (one for each ligand) from all 4 folders as a tuple (dir, ligand_descriptor_path)
                 processDirs += [(processDir, 'dudez_ligand') for processDir in glob(f"{dudezDirLigand}/*") if os.path.isdir(processDir)]
                 processDirs += [(processDir, 'dudez_decoy') for processDir in glob(f"{dudezDirDecoy}/*") if os.path.isdir(processDir)]
-                processDirs += [(processDir, 'dudez_extrema') for processDir in glob(f"{extremaDirDecoy}/*") if os.path.isdir(processDir)]
+                # TODO: Add extrema decoys (future work)
+                #processDirs += [(processDir, 'dudez_extrema') for processDir in glob(f"{extremaDirDecoy}/*") if os.path.isdir(processDir)]
             elif archive == "pdbbind":
                 receptor_descriptor_path = f"{pdbbind_archive}/{ptn}/{ptn}_protein_descriptors.json"
                 # Make the processDirs a unitary list of the dir and its descriptors (since there is only one ligand per protein)
@@ -2307,13 +2319,13 @@ def generate_dock_result_csv(archive, log_dumps, csv_path, chunksize=500):
             # Parameterize paths
             dudezDirLigand = f"{dudez_archive}/{ptn}/dudez_ligands"
             dudezDirDecoy = f"{dudez_archive}/{ptn}/dudez_decoys"
-            extremaDirDecoy = f"{dudez_archive}/{ptn}/extrema_decoys"
+            #extremaDirDecoy = f"{dudez_archive}/{ptn}/extrema_decoys" # TODO: Add extrema decoys (future work)
             # Create an empty list for all directories to be processed
             processDirs = []
             # Add all subdirs (one for each ligand) from all 4 folders as a tuple (dir, ligand_name))
             processDirs += [(d, d.split(os.path.sep)[-3], d.split(os.path.sep)[-1], log_dumps[f"{d.split(os.path.sep)[-3]}-{d.split(os.path.sep)[-1]}"]) for d in glob(f"{dudezDirLigand}/*") if os.path.isdir(d)]
             processDirs += [(d, d.split(os.path.sep)[-3], d.split(os.path.sep)[-1], log_dumps[f"{d.split(os.path.sep)[-3]}-{d.split(os.path.sep)[-1]}"]) for d in glob(f"{dudezDirDecoy}/*") if os.path.isdir(d)]
-            processDirs += [(d, d.split(os.path.sep)[-3], d.split(os.path.sep)[-1], log_dumps[f"{d.split(os.path.sep)[-3]}-{d.split(os.path.sep)[-1]}"]) for d in glob(f"{extremaDirDecoy}/*") if os.path.isdir(d)]
+            #processDirs += [(d, d.split(os.path.sep)[-3], d.split(os.path.sep)[-1], log_dumps[f"{d.split(os.path.sep)[-3]}-{d.split(os.path.sep)[-1]}"]) for d in glob(f"{extremaDirDecoy}/*") if os.path.isdir(d)] 
     elif archive == "pdbbind":
         # Set the target dir
         processDirs = [(f"{pdbbind_archive}/{ptn}", ptn, f"{ptn}_ligand", f"{ptn}-{ptn}_ligand", [])]
@@ -2371,13 +2383,14 @@ def merge_descriptors_in_dataframe(archive, saveCsv=True):
                 # Parameterize paths
                 dudezDirLigand = f"{d}/dudez_ligands"
                 dudezDirDecoy = f"{d}/dudez_decoys"
-                extremaDirDecoy = f"{d}/extrema_decoys"
+                #extremaDirDecoy = f"{d}/extrema_decoys" # TODO: Add extrema decoys (future work)
                 # Create an empty list for all directories to be processed
                 processDirs = []
                 # Add all subdirs (one for each ligand) from all 4 folders as a tuple (dir, ligand_descriptor_path)
                 processDirs += [(processDir, f"{d}/rec.crg_descriptors.json") for processDir in glob(f"{dudezDirLigand}/*") if os.path.isdir(processDir)]
                 processDirs += [(processDir, f"{d}/rec.crg_descriptors.json") for processDir in glob(f"{dudezDirDecoy}/*") if os.path.isdir(processDir)]
-                processDirs += [(processDir, f"{d}/rec.crg_descriptors.json") for processDir in glob(f"{extremaDirDecoy}/*") if os.path.isdir(processDir)]
+                # TODO: Add extrema decoys (future work)
+                #processDirs += [(processDir, f"{d}/rec.crg_descriptors.json") for processDir in glob(f"{extremaDirDecoy}/*") if os.path.isdir(processDir)]
             elif archive == "pdbbind":
                 receptor_descriptor_path = f"{pdbbind_archive}/{ptn}/{ptn}_protein_descriptors.json"
                 # Make the processDirs a unitary list of the dir and its descriptors (since there is only one ligand per protein)

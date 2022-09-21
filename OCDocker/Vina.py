@@ -426,26 +426,26 @@ def run_vina(confFile, ligand, outpath, logFile=""):
     # Run the command
     return octools.run(cmd, logFile=logFile)
 
-def generate_vina_files_database(path, protein, prankPath = ""):
+def generate_vina_files_database(path, protein, boxPath = ""):
     '''
     Generate all vina required files for provided protein.
     Input:
-     path      [string]             - Input path.
-     protein   [string]             - Protein path.
-     prankPath [string] DEFAULT: "" - If the prank dir is different than path, pass it here, otherwise it will try to look for a p2rank dir inside <path>.
+     path    [string]             - Input path.
+     protein [string]             - Protein path.
+     boxPath [string] DEFAULT: "" - If the prank dir is different than path, pass it here, otherwise it will try to look for a p2rank dir inside <path>.
     Return:
       -
     '''
     # Parameterize the vina and p2rank paths
     vinaPath = f"{path}/vinaFiles"
-    # Check if prankPath is an empty string
-    if prankPath == "":
+    # Check if boxPath is an empty string
+    if boxPath == "":
       # Set is as the path + p2rank
-      prankPath = f"{path}/p2rank"
+      boxPath = f"{path}/p2rank"
     # Create the vina folder inside protein's directory
     _ = octools.safe_create_dir(vinaPath)
     # Find all boxes
-    boxes = glob(f"{prankPath}/box*.pdb")
+    boxes = glob(f"{boxPath}/box*.pdb")
     # For each box
     for box in boxes:
         # Get box name

@@ -147,7 +147,7 @@ class Dock6:
             # Since is a string, check if the file exists
             if os.path.isfile(ligand):
                 # Exists! Process it then!
-                return __process_ligand(ligand)
+                return self.__process_ligand(ligand)
             else:
                 _ = errors.file_do_not_exist(message=f"The ligand '{ligand}' has not a valid path.", level="error")
                 return ""
