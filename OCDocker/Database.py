@@ -262,7 +262,7 @@ def create_directories():
     # Create the Parsed dir
     _ = octools.safe_create_dir(parsed_archive)
 
-def update_DUDEz(overwrite = False, download = True):
+def update_DUDEz(overwrite:bool = False, download:bool = True):
     '''
     Updates the DUDE-Z database.
     Input:

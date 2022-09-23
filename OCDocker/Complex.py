@@ -41,9 +41,10 @@ class Complex:
     Load and compute Complex descriptors.
     """
 
-    def __init__(self, molecule, name=""):
+    def __init__(self, molecule, ligand, name=""):
         self.name = name
         self.molecule = self.__loadMol(molecule)
+        self.ligand = ligand
         #self.real_energy = self.__read_real_energy()
 
     ## Private ##
