@@ -738,7 +738,7 @@ def computeDipoleMoment(structure, cModel='gasteiger'):
     moment = None
     # Check if the extension is valid
     if type(extension) != str:
-        octools.print_error(f"Problems while reading the ligand file '{inputLigandPath}'.")
+        octools.print_error(f"Problems while reading the ligand file '{structure}'.")
     else:
         # Create the conversion object
         obConversion = openbabel.OBConversion()

@@ -6799,7 +6799,7 @@ class Ligand:
         if type(centroid) == rdkit.Geometry.rdGeometry.Point3D:
             centroid = [centroid.x, centroid.y, centroid.z]
         # Get the partial size for each axis (to determine how much should be expanded in each direction)
-        partialSize = boxLength / 2
+        partialSize = (boxLength * self.RadiusOfGyration) / 2
         # Create the box using this Centroid
         box = {
             "min_x": centroid[0] - partialSize,
