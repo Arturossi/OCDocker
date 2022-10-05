@@ -6,10 +6,12 @@ import gc
 import os
 import shutil
 import mimetypes
+import string
 import textwrap as tw
 
 from glob import glob
 from tqdm import tqdm
+from typing import List, Tuple
 from multiprocessing import Pool
 
 from OCDocker.Initialise import *
@@ -48,12 +50,12 @@ import OCDocker.Database as ocdb
 # Functions
 ###############################################################################
 ## Private ##
-def __core_process_dudez(target, overwrite):
+def __core_process_dudez(target: str, overwrite: bool) -> None:
     '''
     Processes the DUDEz database.
     Input:
-     target    [string] - Path where the data is
-     overwrite [bool]   - Flag for demanding file overwrite
+     target    - Path where the data is
+     overwrite - Flag for demanding file overwrite
     Return:
       -
     '''
@@ -94,13 +96,13 @@ def __core_process_dudez(target, overwrite):
                     octools.print_warning(f"File {target}/{data[0]}/{name}.mol2 already exists. Skipping...")
     return None
 
-def __thread_process_dudez(arguments):
+def __thread_process_dudez(arguments: Tuple[str, bool]) -> None:
     '''
     Thread aid function to call __core_process_dudez.
     Input:
-     arguments [tuple(string, bool, string, string, bool)] - Tuple containing, in this order:
-        - [string] The path where the files are
-        - [bool]   Flag to tell if files should be overwritten
+     arguments - Tuple containing, in this order:
+        - The path where the files are
+        - Flag to tell if files should be overwritten
     Return:
       -
     '''
@@ -110,13 +112,13 @@ def __thread_process_dudez(arguments):
         return __core_process_dudez(arguments[0], arguments[1])
     return None
 
-def __process_dudez_parallel(targets, overwrite, desc):
+def __process_dudez_parallel(targets: str, overwrite: bool, desc: str) -> None:
     '''
     Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
     Input:
-     targets   [string] - List of paths to process
-     overwrite [bool]   - Flag to tell if files should be overwritten
-     desc      [string] - The description used in the progress bar
+     targets   - List of paths to process
+     overwrite - Flag to tell if files should be overwritten
+     desc      - The description used in the progress bar
     Return:
       -
     '''
@@ -134,13 +136,13 @@ def __process_dudez_parallel(targets, overwrite, desc):
             gc.collect()
     return None
 
-def __process_dudez_no_parallel(targets, overwrite, desc):
+def __process_dudez_no_parallel(targets: str, overwrite: bool, desc: str) -> None:
     '''
     Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_process_dudez function.
     Input:
-     targets   [string] - List of paths to process
-     overwrite [bool]   - Flag to tell if files should be overwritten
-     desc      [string] - The description used in the progress bar
+     targets   - List of paths to process
+     overwrite - Flag to tell if files should be overwritten
+     desc      - The description used in the progress bar
     Return:
       -
     '''
@@ -153,12 +155,12 @@ def __process_dudez_no_parallel(targets, overwrite, desc):
             gc.collect()
     return None
 
-def __core_download_dudez(target, overwrite):
+def __core_download_dudez(target: str, overwrite: bool) -> None:
     '''
     Downloads the DUDEz database.
     Input:
-     target    [string] - Path where the data is
-     overwrite [bool]   - Flag for demanding file overwrite
+     target    - Path where the data is
+     overwrite - Flag for demanding file overwrite
     Return:
       -
     '''
@@ -169,27 +171,33 @@ def __core_download_dudez(target, overwrite):
         target2 = target
     # Create a folder for the target in the archive
     _ = octools.safe_create_dir(f"{dudez_archive}/{target2}")
-    # Download the target receptor
-    octools.download_url(f"{dudez_download}/DOCKING_GRIDS_AND_POSES/{target2}/rec.crg.pdb", f"{dudez_archive}/{target2}/rec.crg.pdb")
-    # Download the dudeZ ligands
-    octools.download_url(f"{dudez_download}/DUDE-Z-benchmark-grids/{target}/ligands.smi", f"{dudez_archive}/{target2}/ligands.smi")
-    # Download the dudeZ ligands
-    octools.download_url(f"{dudez_download}/DUDE-Z-benchmark-grids/{target}/decoys.smi", f"{dudez_archive}/{target2}/decoys.smi")
-    # Download the Extrema set
-    octools.download_url(f"{dudez_download}/extrema/{target}/minus2/{target}_minus2.smi", f"{dudez_archive}/{target2}/extrema_minus2.smi")
-    octools.download_url(f"{dudez_download}/extrema/{target}/minus1/{target}_minus1.smi", f"{dudez_archive}/{target2}/extrema_minus1.smi")
-    octools.download_url(f"{dudez_download}/extrema/{target}/neutral/{target}_neutral.smi", f"{dudez_archive}/{target2}/extrema_neutral.smi")
-    octools.download_url(f"{dudez_download}/extrema/{target}/plus1/{target}_plus1.smi", f"{dudez_archive}/{target2}/extrema_plus1.smi")
-    octools.download_url(f"{dudez_download}/extrema/{target}/plus2/{target}_plus2.smi", f"{dudez_archive}/{target2}/extrema_plus2.smi")
+    # Check if the target receptor does not exists or the user wants to overwrite it
+    if not os.path.isfile(f"{dudez_archive}/{target2}/receptor.pdb") or overwrite:
+        # Download the target receptor
+        octools.download_url(f"{dudez_download}/DOCKING_GRIDS_AND_POSES/{target2}/rec.crg.pdb", f"{dudez_archive}/{target2}/receptor.pdb")
+    # Check if the target dudez ligands does not exists or the user wants to overwrite it
+    if not os.path.isfile(f"{dudez_archive}/{target2}/ligands.smi") or overwrite:
+        # Download the dudeZ ligands
+        octools.download_url(f"{dudez_download}/DUDE-Z-benchmark-grids/{target}/ligands.smi", f"{dudez_archive}/{target2}/ligands.smi")
+    # Check if the target dudez decoys does not exists or the user wants to overwrite it
+    if not os.path.isfile(f"{dudez_archive}/{target2}/decoys.smi") or overwrite:
+        # Download the dudeZ ligands
+        octools.download_url(f"{dudez_download}/DUDE-Z-benchmark-grids/{target}/decoys.smi", f"{dudez_archive}/{target2}/decoys.smi")
+    # Download the Extrema set TODO: Currently not used
+    #octools.download_url(f"{dudez_download}/extrema/{target}/minus2/{target}_minus2.smi", f"{dudez_archive}/{target2}/extrema_minus2.smi")
+    #octools.download_url(f"{dudez_download}/extrema/{target}/minus1/{target}_minus1.smi", f"{dudez_archive}/{target2}/extrema_minus1.smi")
+    #octools.download_url(f"{dudez_download}/extrema/{target}/neutral/{target}_neutral.smi", f"{dudez_archive}/{target2}/extrema_neutral.smi")
+    #octools.download_url(f"{dudez_download}/extrema/{target}/plus1/{target}_plus1.smi", f"{dudez_archive}/{target2}/extrema_plus1.smi")
+    #octools.download_url(f"{dudez_download}/extrema/{target}/plus2/{target}_plus2.smi", f"{dudez_archive}/{target2}/extrema_plus2.smi")
     return None
 
-def __thread_download_dudez(arguments):
+def __thread_download_dudez(arguments: Tuple[str, bool]) -> None:
     '''
     Thread aid function to call __core_download_dudez.
     Input:
-     arguments [tuple(string, bool, string, string, bool)] - Tuple containing, in this order:
-        - [string] The path where the files are
-        - [bool]   Flag to tell if files should be overwritten
+     arguments - Tuple containing, in this order:
+        - The path where the files are
+        - Flag to tell if files should be overwritten
     Return:
       -
     '''
@@ -199,13 +207,13 @@ def __thread_download_dudez(arguments):
         return __core_download_dudez(arguments[0], arguments[1])
     return None
 
-def __download_dudez_parallel(targets, overwrite, desc):
+def __download_dudez_parallel(targets: List[str], overwrite: bool, desc: str) -> None:
     '''
     Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
     Input:
-     targets   [string] - List of paths to process
-     overwrite [bool]   - Flag to tell if files should be overwritten
-     desc      [string] - The description used in the progress bar
+     targets   - List of paths to process
+     overwrite - Flag to tell if files should be overwritten
+     desc      - The description used in the progress bar
     Return:
       -
     '''
@@ -223,13 +231,13 @@ def __download_dudez_parallel(targets, overwrite, desc):
             gc.collect()
     return None
 
-def __download_dudez_no_parallel(targets, overwrite, desc):
+def __download_dudez_no_parallel(targets: List[str], overwrite: bool, desc: str) -> None:
     '''
     Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_download_dudez function.
     Input:
-     targets   [string] - List of paths to process
-     overwrite [bool]   - Flag to tell if files should be overwritten
-     desc      [string] - The description used in the progress bar
+     targets   - List of paths to process
+     overwrite - Flag to tell if files should be overwritten
+     desc      - The description used in the progress bar
     Return:
       -
     '''
@@ -243,7 +251,7 @@ def __download_dudez_no_parallel(targets, overwrite, desc):
     return None
 
 ## Public ##
-def create_directories():
+def create_directories() -> None:
     '''
     Create necessary dirs.
     Input:
@@ -262,15 +270,20 @@ def create_directories():
     # Create the Parsed dir
     _ = octools.safe_create_dir(parsed_archive)
 
-def update_DUDEz(overwrite:bool = False, download:bool = True):
+def update_DUDEz(overwrite:bool = False, download:bool = True, multiprocess:bool = True) -> int:
     '''
     Updates the DUDE-Z database.
     Input:
-      overwrite [bool] - If True, overwrites the existing database, otherwise, don't
-      download  [bool] - If True, downloads the database, otherwise, don't
+      overwrite    - If True, overwrites the existing database, otherwise, don't
+      download     - If True, downloads the database, otherwise, don't
+      multiprocess - If True, uses multiprocessing approach, otherwise, don't
     Return:
       -
     '''
+    # If mimetypes are not inited yet
+    if mimetypes.inited == False:
+        # Init mimetypes
+        mimetypes.init()
     # Create tmp dir for download
     _ = octools.safe_create_dir("./tmp")
 
@@ -295,7 +308,7 @@ def update_DUDEz(overwrite:bool = False, download:bool = True):
         octools.printv("Downloading the datasets.")
 
         # Check multiprocessing is enabled
-        if args.multiprocess:
+        if multiprocess:
             # Call the multiprocessing function
             __download_dudez_parallel(targets, overwrite, "DUDE-Z database")
         else:
@@ -306,11 +319,11 @@ def update_DUDEz(overwrite:bool = False, download:bool = True):
     targets = [d for d in glob(f"{dudez_archive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['goldilocks', 'tmp']]
 
     # Check multiprocessing is enabled
-    if args.multiprocess:
-        # Call the multiprocessing function
+    if multiprocess:
+        # Call the multiprocessing function NOTE: the extrema files are not being download for now
         __process_dudez_parallel(targets, overwrite, "DUDE-Z database")
     else:
-        # Call the single process function
+        # Call the single process function NOTE: the extrema files are not being download for now
         __process_dudez_no_parallel(targets, overwrite, "DUDE-Z database")
 
     # Currently the goldilocks set is not being used, so we will not download it (NOTE: This may change in the future, that's why the code is still here)
@@ -353,7 +366,7 @@ def update_DUDEz(overwrite:bool = False, download:bool = True):
 
     return errors.ok()
 
-def update_pdbbind():
+def update_pdbbind() -> None:
     '''
     Updates the PDBbind database from the Protein-ligand complexes: The refined set.
     Input:
@@ -361,6 +374,10 @@ def update_pdbbind():
     Return:
       -
     '''
+    # If mimetypes are not inited yet
+    if mimetypes.inited == False:
+        # Init mimetypes
+        mimetypes.init()
     # Parameterizing the topics (this sounds strange but one large string concatenation was bugging the IDE)
     t1 = f"- Go to the PDBbind website ({clrs['c']}http://www.pdbbind.org.cn/download.php{clrs['n']})."
 
@@ -423,7 +440,7 @@ def update_pdbbind():
 
         elif option.lower() in ["skip", "pular"]:
             octools.printv(f"The user decided to skip this update. Skipping!!!")
-            return
+            return None
 
         elif option == "":
             octools.print_warning("User aborted the update.")
@@ -473,16 +490,21 @@ def update_pdbbind():
     # Run p2rank in the Astex database
     ocpdbbind.prepare()
 
-    return
+    return None
 
-def update_astex():
+def update_astex() -> None:
     '''
     Updates the Astex database from the Astex Diverse Set.
+    TODO: This function is not working yet.
     Input:
       -
     Return:
       -
     '''
+    # If mimetypes are not inited yet
+    if mimetypes.inited == False:
+        # Init mimetypes
+        mimetypes.init()
     # Parameterizing the topics (this sounds strange but one large string concatenation was bugging the IDE)
     t1 = f"- Go to the CCDC website ({clrs['c']}https://www.ccdc.cam.ac.uk/support-and-resources/downloads{clrs['n']})."
 
@@ -501,6 +523,8 @@ def update_astex():
     """ + t2 + """
 
     """))
+
+    return None
 
     # Infinite loop (user can break it by sending an empty answer)
     while True:
@@ -586,7 +610,7 @@ def update_astex():
 
     return
 
-def update_databases():
+def update_databases() -> None:
     '''
     Calls all the database update functions sequentially.
     Input:
@@ -614,4 +638,4 @@ def update_databases():
 
     print("\n\nDone updating ALL databases.\n")
 
-    return
+    return None

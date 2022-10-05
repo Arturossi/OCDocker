@@ -399,7 +399,7 @@ def __sub_core_prepare_dudez(dirToProcess, mols, overwrite, sanitize, targetCent
             processDirs.append(f"{ligandPath}/{ligandName}")
     return processDirs
 
-def __core_prepare(d, overwrite, archive, sanitize, spacing):
+def __core_prepare(d, overwrite, archive, sanitize, spacing, targetCentroid = None):
     '''
     Prepares a database entry to be run in multiple docking software.
     Input:
