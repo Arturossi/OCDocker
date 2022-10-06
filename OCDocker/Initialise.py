@@ -53,7 +53,7 @@ description = tw.dedent("""\033[1;93m
 
 # Functions
 ###############################################################################
-def create_ocdocker_conf():
+def create_ocdocker_conf() -> None:
     '''
     Creates the 'ocdocker.conf' file.
     Input:
@@ -574,13 +574,13 @@ order = {
 
 # Parse command line arguments
 ###############################################################################
-def argument_parsing():
+def argument_parsing() -> argparse.Namespace:
     '''
     Get data to generate vina conf file from box file.
     Input:
       -
     Return:
-     [argparse.ArgumentParser] - 'argparse' object with all arguments.
+     - 'argparse' object with all arguments.
     '''
     # Create the parser
     parser = argparse.ArgumentParser(prog="OCDocker",

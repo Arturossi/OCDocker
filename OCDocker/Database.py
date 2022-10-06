@@ -63,10 +63,21 @@ def __core_process_dudez(target: str, overwrite: bool) -> None:
     target_name = os.path.basename(target)
     # Process the ligands
     octools.printv(f"Processing the ligands for {target_name}")
+    # Create the compound folder (will hold all compounds, no matter if they are ligand or decoy)
+    _ = octools.safe_create_dir(f"{target}/compounds")
+    # List to hold the tuples for each processing that will be made
+    process_list = [("dudez_ligands", "dudezLigand"), ("dudez_decoys", "dudezDecoy")]
+    # For each data
+    for data in process_list:
+        # Print which file is being processed
+        octools.printv(f"Processing {target}/{data[1]}.smi")
+
+
+
     # List to hold the tuples for each processing that will be made
     process_list = [("dudez_ligands", "ligands"), ("dudez_decoys", "decoys"), ("extrema_decoys/minus2", "extrema_minus2"), ("extrema_decoys/minus1", "extrema_minus1"), ("extrema_decoys/neutral", "extrema_neutral"), ("extrema_decoys/plus1", "extrema_plus1"), ("extrema_decoys/plus2", "extrema_plus2")]
     # Create the extrema folder inside the target folder
-    _ = octools.safe_create_dir(f"{target}/extrema_decoys")
+    #_ = octools.safe_create_dir(f"{target}/extrema_decoys")
     # For each data
     for data in process_list:
         # Print which file is being processed

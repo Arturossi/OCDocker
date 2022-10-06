@@ -7,7 +7,6 @@ import sys
 import shutil
 import tarfile
 import datetime
-import subprocess
 
 import numpy as np
 import pandas as pd
@@ -20,6 +19,7 @@ import OCDocker.Toolbox as octools
 from Bio.PDB import *
 from glob import glob
 from rdkit import Chem
+from typing import List, Union
 
 # License
 ###############################################################################
@@ -49,10 +49,40 @@ import OCDocker.Vina as ocvina
 # Classes
 ###############################################################################
 class Vina:
-    """
-    Vina object with methods for easy run.
-    """
-    def __init__(self, configPath, boxFile, receptor, preparedReceptorPath, ligand, preparedLigandPath, vinaLog, outputVina, name=""):
+    """Vina object with methods for easy run."""
+    def __init__(self, configPath: str, boxFile: str, receptor: ocr.Receptor, preparedReceptorPath: str, ligand: ocl.Ligand, preparedLigandPath: str, vinaLog: str, outputVina: str, name: str="") -> None:
+        '''Initialise the Vina object.
+        
+        Parameters
+        ----------
+        configPath : str
+            The path for the config file.
+        boxFile : str
+            The path for the box file.
+        receptor : ocr.Receptor
+            The receptor object.
+        preparedReceptorPath : str
+            The path for the prepared receptor.
+        ligand : ocl.Ligand
+            The ligand object.
+        preparedLigandPath : str
+            The path for the prepared ligand.
+        vinaLog : str
+            The path for the vina log file.
+        outputVina : str
+            The path for the vina output files.
+        name : str, optional
+            The name of the vina object, by default "".
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        None
+        '''
+
         self.name = str(name)
         self.config = str(configPath)
         self.boxFile = str(boxFile)
@@ -76,16 +106,24 @@ class Vina:
 
     ## Private ##
 
-    def __parse_receptor(self, receptor):
+    def __parse_receptor(self, receptor: ocr.Receptor) -> Union[ocr.Receptor, None]:
+        '''Parse the receptor as input, handling its type to validate the object.
+
+        Parameters
+        ----------
+        receptor : ocr.Receptor
+            The path for the receptor or its ocr.Receptor object.
+
+        Returns
+        -------
+        ocr.Receptor | None
+            The ocr.Receptor object if succeed or None if fail.
+        
+        Raises
+        ------
+        None
         '''
-        Parse the receptor as input, handling its type.
-        Input:
-          receptor [ocr.Receptor] - The path for the receptor or its ocr.Receptor object.
-        Return:
-          [ocr.Receptor]
-           [object] The ocr.Receptor object.
-           [None]   If is a path, returns None (no linkage to Receptor object) NOT RECOMENDED.
-        '''
+
         # Check the type of the receptor
         if type(receptor) == ocr.Receptor:
             octools.printv(f"The receptor '{receptor}' has been loaded.")
@@ -94,14 +132,24 @@ class Vina:
         octools.print_warning(f"The receptor '{receptor}' is not the type 'ocr.Receptor'. It is STRONGLY recomended that you provide an 'ocr.Receptor' object.")
         return None
 
-    def __parse_receptor_path(self, receptor):
+    def __parse_receptor_path(self, receptor: Union[str, ocr.Receptor]) -> str:
+        '''Parse the receptor path, handling its type.
+        
+        Parameters
+        ----------
+        receptor : str | ocr.Receptor
+            The path for the receptor or its receptor object.
+
+        Returns
+        -------
+        str
+            The receptor path.
+
+        Raises
+        ------
+        None
         '''
-        Parse the receptor path, handling its type.
-        Input:
-          receptor [string/ocr.Receptor] - The path for the receptor or its receptor object.
-        Return:
-          [string] The receptor path.
-        '''
+
         # Check the type of receptor variable
         if type(receptor) == ocr.Receptor:
             return receptor.path
@@ -117,16 +165,24 @@ class Vina:
         _ = errors.wrong_type(message=f"The receptor '{receptor}' has not a supported type. Expected 'string' or 'ocr.Receptor' but got {type(receptor)} instead.", level="error")
         return ""
 
-    def __parse_ligand(self, ligand):
+    def __parse_ligand(self, ligand: ocl.Ligand) -> Union[ocl.Ligand, None]:
+        '''Parse the ligand as input, handling its type.
+
+        Parameters
+        ----------
+        receptor : ocl.Ligand
+            The path for the receptor or its receptor object.
+
+        Returns
+        -------
+        ocl.Ligand | None
+            The ocr.Ligand object if succeed or None if fail.
+        
+        Raises
+        ------
+        None
         '''
-        Parse the ligand as input, handling its type.
-        Input:
-          receptor [ocl.Ligand] - The path for the receptor or its receptor object.
-        Return:
-          [ocl.Ligand]
-           [object] The ocr.Ligand object.
-           [None]   If is a path, returns None (no linkage to Ligand object) NOT RECOMENDED.
-        '''
+
         # Check the type of the ligand
         if type(ligand) == ocl.Ligand:
             octools.printv(f"The ligand '{ligand}' has been loaded.")
@@ -135,14 +191,23 @@ class Vina:
         octools.print_warning(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.")
         return None
 
-    def __parse_ligand_path(self, ligand):
+    def __parse_ligand_path(self, ligand: Union[str, ocl.Ligand]) -> str:
+        '''Parse the ligand path, handling its type.
+        
+        Parameters
+        ----------
+        ligand : str | ocl.Ligand
+            The path for the ligand or its ocl.Ligand object.
+
+        Returns
+        -------
+            The ligand path. If fails, return an empty string.
+        
+        Raises
+        ------
+        None
         '''
-        Parse the ligand path, handling its type.
-        Input:
-          ;igand [string/ocl.Ligand] - The path for the ligand or its ocl.Ligand object.
-        Return:
-          [string] The ligand object.
-        '''
+
         # Check the type of ligand variable
         if type(ligand) == ocl.Ligand:
             return ligand.path
@@ -158,14 +223,24 @@ class Vina:
         _ = errors.wrong_type(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.", level="error")
         return ""
 
-    def __process_ligand(self, ligandPath):
+    def __process_ligand(self, ligandPath: str) -> str:
+        '''Process the ligand to output to mol2 if needed.
+
+        Parameters
+        ----------
+        ligandPath : str
+            The path for the ligand.
+
+        Returns
+        -------
+        str
+            The Path of the ligand with mol2 extension.
+
+        Raises
+        ------
+        None
         '''
-        Process the ligand to output to mol2 if needed.
-        Input:
-          ligandPath [list(string)] - The path for the ligand.
-        Return:
-          [string] The Path of the ligand with mol2 extension.
-        '''
+
         # Get the extension
         ligandExtension = os.path.splitext(ligandPath)[1]
 
@@ -182,121 +257,198 @@ class Vina:
 
         return outputLigandPath
 
-    def __vina_cmd(self):
+    def __vina_cmd(self) -> List[str]:
+        '''Generate the vina command.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        List[str]
+            The vina command.
+        
+        Raises
+        ------
+        None
         '''
-        Generate the vina command.
-        Input:
-          -
-        Return:
-          list[string] - List of strings of the command.
-        '''
+
         cmd = [vina, "--config", self.config, "--ligand", self.preparedLigand, "--out", self.outputVina, "--cpu", "1"]
         return cmd
 
-    def __prepare_ligand_cmd(self):
+    def __prepare_ligand_cmd(self) -> List[str]:
+        '''Generate the prepare ligand command.
+
+        Parameters
+        ----------
+          None
+
+        Returns
+        -------
+        List[str]
+          List of strings of the command.
+        
+        Raises
+        ------
+        None
         '''
-        Generate the prepare ligand command.
-        Input:
-          -
-        Return:
-          list[string] - List of strings of the command.
-        '''
+
         cmd = [pythonsh, prepare_ligand, "-l", self.inputLigandPath, "-C", "-o", self.preparedLigand]
         return cmd
 
-    def __prepare_receptor_cmd(self):
+    def __prepare_receptor_cmd(self) -> List[str]:
+        '''Generate the prepare receptor command.
+        
+        Parameters
+        ----------
+          None
+
+        Returns
+        -------
+        List[str]
+            List of strings of the command.
+        
+        Raises
+        ------
+        None
         '''
-        Generate the prepare receptor command.
-        Input:
-          -
-        Return:
-          list[string] - List of strings of the command.
-        '''
+
         cmd = [pythonsh, prepare_receptor, "-r", self.inputReceptorPath, "-o", self.preparedReceptor, "-A", "hydrogens", "-U", "nphs_lps_waters"]
         return cmd
 
-    def __box_to_vina(self):
+    def __box_to_vina(self) -> int:
+        '''Convert a box (DUDE like format) to vina input.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        int
+            The exit code of the command (based on the Error.py code table).
+        
+        Raises
+        ------
+        None
         '''
-        Convert a box (DUDE like format) to vina input.
-        Input:
-          -
-        Return:
-          [int]
-           See Error.py for all return codes.
-        '''
+
         return box_to_vina(self.boxFile, self.config, self.preparedReceptor)
 
     ## Public ##
 
-    def read_vina_log(self):
+    def read_vina_log(self) -> Union[pd.DataFrame, int]:
+        '''Read the vina log path, returning a pd.dataframe with data from complexes.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        pd.DataFrame | int
+            The dataframe with the data or the error code.
+        
+        Raises
+        ------
+        None
         '''
-        Read the vina log path, returning a pd.dataframe with data from complexes.
-        Input:
-          -
-        Return:
-          [pd.dataframe]
-        '''
+
         return read_vina_log(self.vinaLog)
 
-    def run_vina(self, logFile = ""):
+    def run_vina(self, logFile: str = "") -> int:
+        '''Run vina.
+
+        Parameters
+        ----------
+        logFile : str
+            The path for the log file.
+
+        Returns
+        -------
+        int
+            The exit code of the command (based on the Error.py code table).
+        
+        Raises
+        ------
+        None
         '''
-        Run vina.
-        Input:
-          logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
-        Return:
-          [int]
-           See Error.py for all return codes.
-        '''
+
         # Print verboosity
         octools.printv(f"Running vina using the '{self.config}' configurations.")
         return octools.run(self.vinaCmd, logFile=self.vinaLog)
 
-    def run_prepare_ligand(self, logFile = "", useOpenBabel = False):
+    def run_prepare_ligand(self, logFile: str = "", useOpenBabel: bool = False) -> int:
+        '''Run 'prepare_ligand4' or openbabel to prepare the ligand.
+
+        Parameters
+        ----------
+        logFile : str
+            Path to the logFile. If empty, suppress the output.
+        useOpenBabel : bool
+            If True, use openbabel instead of prepare_ligand4.
+        
+        Returns
+        -------
+        int
+            The exit code of the command (based on the Error.py code table).
+        
+        Raises
+        ------
+        None
         '''
-        Run 'prepare_ligand4' or openbabel to prepare the ligand.
-        Input:
-          logFile      [list(string)] DEFAULT: ""    - Path to the logFile. If empty, suppress the output
-          useOpenBabel [list(string)] DEFAULT: False - If True will try to run openbabel, otherwise will run prepare_ligand4
-        Return:
-          [int]
-           See Error.py for all return codes.
-        '''
+
         # Print verboosity
         octools.printv(f"Running '{prepare_ligand}' for '{self.inputLigandPath}'.")
         # If True, use openbabel
         if useOpenBabel:
             return octools.convertMols(self.inputLigandPath, self.preparedLigand)
-        else:
-            return octools.run(self.prepareLigandCmd, logFile=logFile, cwd=os.path.dirname(self.inputLigandPath))
-        return None
+        return octools.run(self.prepareLigandCmd, logFile=logFile, cwd=os.path.dirname(self.inputLigandPath))
 
-    def run_prepare_receptor(self, logFile = "", useOpenBabel = False):
+    def run_prepare_receptor(self, logFile:str = "", useOpenBabel:bool = False) -> int:
+        '''Run 'prepare_receptor4' or openbabel to prepare the receptor.
+
+        Parameters
+        ----------
+        logFile : str
+            Path to the logFile. If empty, suppress the output.
+        useOpenBabel : bool
+            If True, use openbabel instead of prepare_receptor4.
+
+        Returns
+        -------
+        int
+            The exit code of the command (based on the Error.py code table).
+
+        Raises
+        ------
+        None
         '''
-        Run 'prepare_receptor4' or openbabel to prepare the receptor.
-        Input:
-          logFile      [list(string)] DEFAULT: ""    - Path to the logFile. If empty, suppress the output
-          useOpenBabel [list(string)] DEFAULT: False - If True will try to run openbabel, otherwise will run prepare_receptor4
-        Return:
-          [int]
-           See Error.py for all return codes.
-        '''
+
         # Print verboosity
         octools.printv(f"Running '{prepare_receptor}' for '{self.inputReceptorPath}'.")
         # If True, use openbabel
         if useOpenBabel:
             return octools.convertMols(self.inputReceptorPath, self.preparedReceptor)
-        else:
-            return octools.run(self.prepareReceptorCmd, logFile=logFile, cwd=os.path.dirname(self.inputReceptorPath))
-        return None
+        return octools.run(self.prepareReceptorCmd, logFile=logFile, cwd=os.path.dirname(self.inputReceptorPath))
 
-    def print_attributes(self):
+    def print_attributes(self) -> None:
+        '''Print the class attributes.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        None
         '''
-        Print the class attributes.
-        Input:
-          -
-        Return:
-          -
-        '''
+
         print(f"Name:                        '{self.name if self.name else '-' }'")
         print(f"Box path:                    '{self.boxFile if self.boxFile else '-' }'")
         print(f"Config path:                 '{self.config if self.config else '-' }'")
@@ -312,24 +464,36 @@ class Vina:
         print(f"Vina execution log path:     '{self.vinaLog if self.vinaLog else '-' }'")
         print(f"Vina output path:            '{self.outputVina if self.outputVina else '-' }'")
         print(f"Vina command:                '{' '.join(self.vinaCmd) if self.vinaCmd else '-' }'")
-        return
+
+        return None
 
 # Functions
 ###############################################################################
 ## Private ##
 
 ## Public ##
-def box_to_vina(boxFile, confFile, receptor):
+def box_to_vina(boxFile: str, confFile: str, receptor: str) -> None:
+    '''Convert a box (DUDE like format) to vina input.
+
+    Parameters
+    ----------
+    boxFile : str
+        The path to the box file.
+    confFile : str
+        The path to the vina configuration file.
+    receptor : str
+        The path to the receptor file.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
     '''
-    Convert a box (DUDE like format) to vina input.
-    Input:
-      boxFile   [string] - Path to the box file.
-      confFile  [string] - Path to the conf file.
-      receptor  [string] - Receptor name to be used in conf file.
-    Return:
-      [int]
-       See Error.py for all return codes.
-    '''
+
     octools.printv(f"Converting the box file '{boxFile}' to Vina conf file as '{confFile}' file.")
     # Test if the file boxFile exists
     if not os.path.exists(boxFile):
@@ -371,17 +535,28 @@ def box_to_vina(boxFile, confFile, receptor):
         return errors.write_file(message=f"Found a problem while opening conf file: {e}.", level="error")
     return errors.ok()
 
-def run_prepare_ligand(inputLigandPath, outputLigand, logFile=""):
+def run_prepare_ligand(inputLigandPath: str, outputLigand: str, logFile: str = ""):
+    '''Prepares the ligand using 'prepare_ligand' from MGLTools suite.
+
+    Parameters
+    ----------
+    inputLigandPath : str
+        The path to the input ligand.
+    outputLigand : str
+        The path to the output ligand.
+    logFile : str
+        The path to the log file. If empty, suppress the output.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
     '''
-    Prepares the ligand using 'prepare_ligand' from MGLTools suite.
-    Input:
-      inputLigandPath  [string]                   - Path to the input ligand file.
-      outputLigand     [string]                   - Path to the output ligand file.
-      logFile          [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
-    Return:
-      [int]
-       See Error.py for all return codes.
-    '''
+
     # Create the command list
     cmd = [pythonsh, prepare_ligand, "-l", inputLigandPath, "-C", "-o", outputLigand]
     # Print verboosity
@@ -389,17 +564,28 @@ def run_prepare_ligand(inputLigandPath, outputLigand, logFile=""):
     # Run the command
     return octools.run(cmd, logFile=logFile)
 
-def run_prepare_receptor(inputReceptorPath, outputReceptor, logFile=""):
+def run_prepare_receptor(inputReceptorPath: str, outputReceptor: str, logFile: str = ""):
+    '''Convert a box (DUDE like format) to vina input.
+
+    Parameters
+    ----------
+    inputReceptorPath : str
+        The path to the input receptor file.
+    outputReceptor : str
+        The path to the output receptor file.
+    logFile : str
+        The path to the log file. If empty, suppress the output.
+    
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
     '''
-    Convert a box (DUDE like format) to vina input.
-    Input:
-      inputReceptorPath  [string]                   - Path to the input receptor file.
-      outputReceptor     [string]                   - Path to the output receptor file.
-      logFile            [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
-    Return:
-      [int]
-       See Error.py for all return codes.
-    '''
+
     # Create the command list
     cmd = [pythonsh, prepare_receptor, "-r", inputReceptorPath, "-o", outputReceptor, "-A", "hydrogens", "-U", "nphs_lps_waters"]
     # Print verboosity
@@ -408,17 +594,29 @@ def run_prepare_receptor(inputReceptorPath, outputReceptor, logFile=""):
     return octools.run(cmd, logFile=logFile)
 
 def run_vina(confFile, ligand, outpath, logFile=""):
+    '''Run vina.
+
+    Parameters
+    ----------
+    confFile : str
+        The path to the vina configuration file.
+    ligand : str
+        The path to the ligand file.
+    outpath : str
+        The path to the output file.
+    logFile : str
+        The path to the log file. If empty, suppress the output.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
     '''
-    Run vina.
-    Input:
-      confFile [string]                   - Path to the config file.
-      ligand   [string]                   - Path to the ligand file.
-      outpath  [string]                   - Path to the receptor file.
-      logFile  [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
-    Return:
-      [int]
-       See Error.py for all return codes.
-    '''
+    
     # Create the command list
     cmd = [vina, "--config", confFile, "--ligand", ligand, "--out", outpath, "--cpu", "1"]
     # Print verboosity
@@ -426,15 +624,25 @@ def run_vina(confFile, ligand, outpath, logFile=""):
     # Run the command
     return octools.run(cmd, logFile=logFile)
 
-def generate_vina_files_database(path, protein, boxPath = ""):
-    '''
-    Generate all vina required files for provided protein.
-    Input:
-     path    [string]             - Input path.
-     protein [string]             - Protein path.
-     boxPath [string] DEFAULT: "" - If the prank dir is different than path, pass it here, otherwise it will try to look for a p2rank dir inside <path>.
-    Return:
-      -
+def generate_vina_files_database(path: str, protein: str, boxPath: str = "") -> None:
+    '''Generate all vina required files for provided protein.
+
+    Parameters
+    ----------
+    path : str
+        The path to the folder where the files will be generated.
+    protein : str
+        The path of the protein.
+    boxPath : str
+        The path to the box file. If empty, it will try to look for a p2rank dir inside <path>.
+    
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
     # Parameterize the vina and p2rank paths
     vinaPath = f"{path}/vinaFiles"
@@ -458,16 +666,27 @@ def generate_vina_files_database(path, protein, boxPath = ""):
         _ = octools.safe_create_dir(boxFolder)
         confPath = f"{boxFolder}/conf_vina.txt"
         box_to_vina(box, confPath, protein)
+
     return None
 
-def read_vina_log(path):
+def read_vina_log(path: str) -> pd.DataFrame:
+    '''Read the vina log path, returning a pd.dataframe with data from complexes.
+
+    Parameters
+    ----------
+    path : str
+        The path to the vina log file.
+
+    Returns
+    -------
+    pd.DataFrame | int
+        A dataframe with the data from the vina log file. If any error occurs, it will return the exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
     '''
-    Read the vina log path, returning a pd.dataframe with data from complexes.
-    Input:
-      path [string] - Path to the vina output log file.
-    Return:
-      [pd.dataframe]
-    '''
+
     # Check if file exists
     if os.path.isfile(path):
         # Open the log file
