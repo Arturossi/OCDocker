@@ -16,6 +16,7 @@ import urllib.request
 from glob import glob
 from tqdm import tqdm
 from spyrmsd import io, rmsd
+from typing import Any, Dict, List, Union
 from openbabel import pybel
 from openbabel import openbabel
 
@@ -62,12 +63,27 @@ class DownloadProgressBar(tqdm):
     """
     Deal with the progress bar to track download. Extends the tqdm class.
     """
-    def update_to(self, b=1, bsize=1, tsize=None):
+    def update_to(self, b: int = 1, bsize: int = 1, tsize: int = None) -> None:
+        '''Update the progress bar.
+
+        Parameters
+        ----------
+        b : int, optional
+            Number of blocks transferred so far [1]
+        bsize : int, optional
+            Size of each block (in tqdm units) [1]
+        tsize : int, optional
+            Total size (in tqdm units). If [None] remains unchanged.
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        None
         '''
-        b     [int] - Byte
-        bsize [int] - Byte size
-        tsize [int] - Current progress
-        '''
+
         if tsize is not None:
             self.total = tsize
         self.update(b * bsize - self.n)
@@ -79,28 +95,47 @@ class DownloadProgressBar(tqdm):
 ## Public ##
 
 ### Print functions
-def printv(message):
+def printv(message: str) -> None:
+    '''Function to print if verbosity mode is set.
+
+    Parameters
+    ----------
+    message : str
+        Message to be printed.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Function to print if verbosity mode is set.
-    Input:
-      message   [string] - Message to be printed.
-    Return:
-      -
-    '''
+
     if args.output_level >= 5:
         today = datetime.datetime.now()
         print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {message}")
     return
 
-def print_info(message, force = False):
+def print_info(message: str, force = False) -> None:
+    '''Function to print info.
+
+    Parameters
+    ----------
+    message : str
+        Message to be printed.
+    force : bool, optional
+        Forces the system to print the message, even if output_level is turning it off (USE WITH CAUTION!!!).
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Function to print info.
-    Input:
-      message [string]                - Message to be printed.
-      force   [bool]   DEFAULT: False - Forces the system to print the message, even if output_level is turning it off (AVOID TO SET THIS TO TRUE!).
-    Return:
-      -
-    '''
+
     if args.output_level >= 2 or force:
         today = datetime.datetime.now()
         if args.output_level >= 4:
@@ -109,15 +144,25 @@ def print_info(message, force = False):
             print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['c']}INFO{clrs['n']}: {message}")
     return
 
-def print_success(message, force = False):
+def print_success(message: str, force: bool = False) -> None:
+    '''Print success. [DEPRECATED]
+
+    Parameters
+    ----------
+    message : str
+        Message to be printed.
+    force : bool, optional
+        Forces the system to print the message, even if output_level is turning it off (USE WITH CAUTION!!!).
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Print success. [DEPRECATED]
-    Input:
-      message [string]                - Message to be printed.
-      force   [bool]   DEFAULT: False - Forces the system to print the message, even if output_level is turning it off (AVOID TO SET THIS TO TRUE!).
-    Return:
-      -
-    '''
+
     if args.output_level >= 3 or force:
         today = datetime.datetime.now()
         if args.output_level >= 4:
@@ -126,15 +171,25 @@ def print_success(message, force = False):
             print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['g']}SUCCESS{clrs['n']}: {message}")
     return
 
-def print_warning(message, force = False):
+def print_warning(message: str, force: bool = False) -> None:
+    '''Function to print warning. [DEPRECATED]
+
+    Parameters
+    ----------
+    message : str
+        Message to be printed.
+    force : bool, optional
+        Forces the system to print the message, even if output_level is turning it off (USE WITH CAUTION!!!).
+        
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Function to print warning. [DEPRECATED]
-    Input:
-      message [string]                - Message to be printed.
-      force   [bool]   DEFAULT: False - Forces the system to print the message, even if output_level is turning it off (AVOID TO SET THIS TO TRUE!).
-    Return:
-      -
-    '''
+
     if args.output_level >= 1 or force:
         today = datetime.datetime.now()
         if args.output_level == 4:
@@ -143,15 +198,25 @@ def print_warning(message, force = False):
             print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['y']}WARNING{clrs['n']}: {message}")
     return
 
-def print_error(message, force = False):
+def print_error(message: str, force: bool = False) -> None:
+    '''Print error. [DEPRECATED]
+
+    Parameters
+    ----------
+    message : str
+        Message to be printed.
+    force : bool, optional
+        Forces the system to print the message, even if output_level is turning it off (USE WITH CAUTION!!!).
+
+    Returns
+    -------
+    None
+    
+    Raises
+    ------
+    None
     '''
-    Print error. [DEPRECATED]
-    Input:
-      message [string]                - Message to be printed.
-      force   [bool]   DEFAULT: False - Forces the system to print the message, even if output_level is turning it off (AVOID TO SET THIS TO TRUE!).
-    Return:
-      -
-    '''
+
     if args.output_level > 0 or force:
         today = datetime.datetime.now()
         if args.output_level == 4:
@@ -160,75 +225,131 @@ def print_error(message, force = False):
             print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] {clrs['r']}ERROR{clrs['n']}: {message}")
     return
 
-def print_info_log(message, logfile, mode = "a"):
+def print_info_log(message: str, logfile:str, mode: str = "a") -> None:
+    '''Function to print info into log.
+
+    Parameters
+    ----------
+    message : str
+        Message to be printed.
+    logfile : str
+        Log file to be used.
+    mode : str, optional
+        Mode to open the file. Default is "a" (append).
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Function to print info into log.
-    Input:
-      message [string]            - Message to be printed.
-      logfile [string]            - Log file path.
-      mode    [string] DEFAULT: a - Open file mode.
-    Return:
-      -
-    '''
+
     today = datetime.datetime.now()
     with open(logfile, mode) as f:
         f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] INFO: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.\n")
     return
 
-def print_success_log(message, logfile, mode = "a"):
+def print_success_log(message: str, logfile: str, mode: str = "a") -> None:
+    '''Function to print success into log.
+
+    Parameters
+    ----------
+    message : str
+        Message to be printed.
+    logfile : str
+        Log file to be used.
+    mode : str, optional
+        Mode to open the file. Default is "a" (append).
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Function to print success into log.
-    Input:
-      message [string]            - Message to be printed.
-      logfile [string]            - Log file path.
-      mode    [string] DEFAULT: a - Open file mode.
-    Return:
-      -
-    '''
+
     today = datetime.datetime.now()
     with open(logfile, mode) as f:
         f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] SUCCESS: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.\n")
     return
 
-def print_warning_log(message, logfile, mode = "a"):
+def print_warning_log(message: str, logfile: str, mode: str = "a") -> None:
+    '''Function to print warning into log.
+
+    Parameters
+    ----------
+    message : str
+        Message to be printed.
+    logfile : str
+        Log file to be used.
+    mode : str, optional
+        Mode to open the file. Default is "a" (append).
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Function to print warning into log.
-    Input:
-      message [string]            - Message to be printed.
-      logfile [string]            - Log file path.
-      mode    [string] DEFAULT: a - Open file mode.
-    Return:
-      -
-    '''
+
     today = datetime.datetime.now()
     with open(logfile, mode) as f:
         f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] WARNING: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.\n")
     return
 
-def print_error_log(message, logfile, mode = "a"):
+def print_error_log(message: str, logfile: str, mode: str = "a") -> None:
+    '''Function to print error into log.
+
+    Parameters
+    ----------
+    message : str
+        Message to be printed.
+    logfile : str
+        Log file to be used.
+    mode : str, optional
+        Mode to open the file. Default is "a" (append).
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Function to print error into log.
-    Input:
-      message [string]            - Message to be printed.
-      logfile [string]            - Log file path.
-      mode    [string] DEFAULT: a - Open file mode.
-    Return:
-      -
-    '''
+
     today = datetime.datetime.now()
     with open(logfile, mode) as f:
         f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] ERROR: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.\n")
     return
 
-def print_section(n, name):
+def print_section(n: int, name: str, logName = "OCDocker_Progress.out") -> None:
+    '''Print the section header and write progress to the progress file.
+
+    Parameters
+    ----------
+    n : int
+        Section number.
+    name : str
+        Section name (empty string for no log).
+    logName : str, optional
+        Log file name. Default is "OCDocker_Progress.out".
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Print the section header and write progress to the progress file.
-    Input:
-      n    [int]    - Number of the section.
-      name [string] - Name of the section (Empty string for no log).
-    Return:
-      -
-    '''
+
     # Print a nice section header
     print(f"\n{clrs['y']}+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n" +
           f"{clrs['r']}| " +
@@ -247,22 +368,33 @@ def print_section(n, name):
     if name:
         # Check if is the Runtime Arguments section
         if name == "Runtime Arguments":
-            with open("OCDocker_Progress.out", "w") as f:
+            with open(logName, "w") as f:
                 f.write(f"{datetime.now().strftime('%H:%M:%S')}: Starting new OCDocker run\n")
         else:
-            with open("OCDocker_Progress.out", "a") as f:
+            with open(logName, "a") as f:
                 f.write(f"\n{datetime.now().strftime('%H:%M:%S')}: {str(name)}...\n")
     return
 
-def section(n, name):
+def section(n: int, name: str) -> str:
+    '''Return the section header.
+
+    Parameters
+    ----------
+    n : int
+        Section number.
+    name : str
+        Section name.
+
+    Returns
+    -------
+    str
+        Section header.
+
+    Raises
+    ------
+    None
     '''
-    Return the section header.
-    Input:
-      n    [int]    - Number of the section.
-      name [string] - Name of the section.
-    Return:
-      [string] - The subsection composed string.
-    '''
+
     # Create a nice section header to return
     section_string = str(f"\n{clrs['y']}+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n" +
                          f"{clrs['r']}| "+
@@ -280,15 +412,27 @@ def section(n, name):
 
     return section_string
 
-def print_subsection(n, name):
+def print_subsection(n: int, name: str, logName: str = "OCDocker_Progess.out") -> None:
+    '''Print the subsection header in progress file.
+
+    Parameters
+    ----------
+    n : int
+        Subsection number.
+    name : str
+        Subsection name.
+    logName : str
+        Log file name. Default is "OCDocker_Progress.out".
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Print the subsection header in progress file.
-    Input:
-      n    [int]    - Number of the subsection.
-      name [string] - Name of the subsection (Empty string for no log).
-    Return:
-      -
-    '''
+
     # Print a nice subsection header
     print(f"\n{clrs['r']}|" +
           f"{clrs['y']}S" +
@@ -311,15 +455,26 @@ def print_subsection(n, name):
             f.write(f"{datetime.now().strftime('%H:%M:%S')}: {str(name)}...\n")
     return
 
-def subsection(n, name):
+def subsection(n: int, name: str) -> str:
+    '''Return the subsection header.
+
+    Parameters
+    ----------
+    n : int
+        Subsection number.
+    name : str
+        Subsection name.
+
+    Returns
+    -------
+    str
+        Subsection header.
+
+    Raises
+    ------
+    None
     '''
-    Return the subsection header.
-    Input:
-      n    [int]    - Number of the subsection.
-      name [string] - Name of the subsection.
-    Return:
-      [string] - The subsection composed string.
-    '''
+
     # Create a nice subsection header to return
     subsection_string = str(f"\n{clrs['r']}|" +
                             f"{clrs['y']}S" +
@@ -339,34 +494,53 @@ def subsection(n, name):
 
     return subsection_string
 
-def print_sorry():
+def print_sorry()-> None:
+    '''Function to print sorry message.
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Function to print sorry message.
-    Input:
-      -
-    Return:
-      -
-    '''
+
     # Print a nice looking sorry message :/
     print(f"**We are {clrs['y']}t{clrs['r']}e"+
           f"{clrs['y']}r{clrs['r']}r{clrs['y']}i"+
           f"{clrs['r']}b{clrs['y']}l{clrs['r']}y"+
           f"{clrs['n']} sorry... =(\n")
-    return
+    return None
 
 ### Conversion functions
 
-def convert2mol2_legacy(input, output, logFile = ""):
+def convert2mol2_legacy(input: str, output: str, logFile: str = "") -> int:
+    '''Convert a pdb/sdf/mol/smi file to '.mol2'. Uses external obabel software. [DEPRECATED]
+
+    Parameters
+    ----------
+    input : str
+        Input file name.
+    output : str
+        Output file name.
+    logFile : str
+        Log file name. Default is "".
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
     '''
-    Convert a pdb/sdf/mol/smi file to '.mol2'. Uses external obabel software. [DEPRECATED]
-    Input:
-      input   [string]                   - Input path.
-      output  [string]                   - Output path.
-      logfile [list(string)] DEFAULT: "" - Path to the logFile (empty string to suppress the output).
-    Return:
-      [int]
-      See Error.py for all return codes.
-    '''
+
     # Print verboosity
     printv(f"Converting '{input}' to '.mol2'.")
 
@@ -404,16 +578,26 @@ def convert2mol2_legacy(input, output, logFile = ""):
     # Return the execution code from the correct extension
     return run(cmd, logFile=logFile)
 
-def convert2mol2(input, output):
+def convert2mol2(input: str, output: str) -> int:
+    '''Convert a pdb/sdf/mol/smi file to '.mol2'. [DEPRECATED]
+
+    Parameters
+    ----------
+    input : str
+        Input file name.
+    output : str
+        Output file name.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
     '''
-    Convert a pdb/sdf/mol/smi file to '.mol2'. [DEPRECATED]
-    Input:
-      input  [string] - Input path.
-      output [string] - Output path.
-    Return:
-      [int]
-      See Error.py for all return codes.
-    '''
+
     # Print verboosity
     printv(f"Converting '{input}' to '.mol2'.")
 
@@ -449,16 +633,26 @@ def convert2mol2(input, output):
         return errors.subprocess(message=f"Error while running molecule conversion using obabel python lib. Error: {e}", level="error")
     return errors.ok()
 
-def convert2pdb(input, output):
+def convert2pdb(input: str, output: str) -> Union[int, str]:
+    '''Convert a mol2/sdf/mol/smi file to '.pdb'. [DEPRECATED]
+
+    Parameters
+    ----------
+    input : str
+        Input file name.
+    output : str
+        Output file name.
+
+    Returns
+    -------
+    int | str
+        The exit code of the command (based on the Error.py code table) if fails or the extension of the input file otherwise.
+
+    Raises
+    ------
+    None
     '''
-    Convert a mol2/sdf/mol/smi file to '.pdb'. [DEPRECATED]
-    Input:
-      input  [string] - Input path.
-      output [string] - Output path.
-    Return:
-      [int]
-      See Error.py for all return codes.
-    '''
+
     # Print verboosity
     printv(f"Converting '{input}' to '.pdb'.")
 
@@ -496,17 +690,26 @@ def convert2pdb(input, output):
 
     return errors.ok()
   
-def convertMolsFromString(input, output):
+def convertMolsFromString(input: str, output: str) -> Union[int, str]:
+    '''Currently only works with smiles. TODO: Add support to other formats.
+
+    Parameters
+    ----------
+    input : str
+        Input file name.
+    output : str
+        Output file name.
+
+    Returns
+    -------
+    int | str
+        The exit code of the command (based on the Error.py code table) if fails or the extension of the input file otherwise.
+
+    Raises
+    ------
+    None
     '''
-    Currently only works with smiles.
-    TODO: Add support to other formats.
-    Input:
-      input     [string]                 - Input string.
-      output    [string]                 - Output path.
-    Return:
-      [int]
-      See Error.py for all return codes.
-    '''
+
     # Get the in and out extensions 
     inExtension = "smi" # TODO: Add support to other formats
     outExtension = validate_obabel_extension(output)
@@ -523,16 +726,26 @@ def convertMolsFromString(input, output):
         return errors.subprocess(message=f"Error while running molecule conversion from {inExtension} to {outExtension} using obabel python lib. Error: {e}", level="error")
     return errors.ok()
 
-def convertMols(input, output):
+def convertMols(input: str, output: str) -> Union[int, str]:
+    '''Convert a molecule file between two extensions which obabel supports.
+
+    Parameters
+    ----------
+    input : str
+        Input file name.
+    output : str
+        Output file name.
+
+    Returns
+    -------
+    int | str
+        The exit code of the command (based on the Error.py code table) if fails or the extension of the input file otherwise.
+        
+    Raises
+    ------
+    None
     '''
-    Convert a molecule file between two extensions which obabel supports.
-    Input:
-      input  [string] - Input path.
-      output [string] - Output path.
-    Return:
-      [int]
-      See Error.py for all return codes.
-    '''
+
     # Find the extension for input and output
     inExtension = validate_obabel_extension(input)
     outExtension = validate_obabel_extension(output)
@@ -543,11 +756,13 @@ def convertMols(input, output):
     # Check if the input extension is valid
     if type(inExtension) != str:
         print_error(f"Problems while reading the molecule from input file '{input}'.")
+        # inExtension SHOULD be an int in this case
         return inExtension
 
     # Check if the output extension is valid
     if type(outExtension) != str:
         print_error(f"Problems while pre-processing the molecule from output file '{output}'.")
+        # outExtension SHOULD be an int in this case
         return outExtension
 
     # Check if the output exists, if so, no need to convert
@@ -570,18 +785,30 @@ def convertMols(input, output):
         return errors.subprocess(message=f"Error while running molecule conversion from {inExtension} to {outExtension} using obabel python lib. Error: {e}", level="error")
     return errors.ok()
 
-def split_and_convert(path, out_path, extension, overwrite = False):
+def split_and_convert(path: str, out_path: str, extension: str, overwrite: bool = False) -> int:
+    '''Splits a multi-molecule file then save the output in multiple single-molecule file with the desired extension. (Supported by openbabel)
+
+    Parameters
+    ----------
+    path : str
+        Path to the multi-molecule file.
+    out_path : str
+        Path to the output folder.
+    extension : str
+        Extension of the output files.
+    overwrite : bool, optional
+        If True, overwrites the output files if they already exist. (default is False)
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
     '''
-    Splits a multi-molecule file then save the output in multiple single-molecule file with the desired extension. (Supported by openbabel)
-    Input:
-      path      [string]                - Path to the file which will be read.
-      out_path  [string]                - Path to the file which will be written.
-      extension [string]                - Output desired extension.
-      overwrite [bool]   DEFAULT: False - Flag to denote if the file will be overwritten.
-    Return:
-      [int]
-      See Error.py for all return codes.
-    '''
+
     # Finds the input extension
     extensionIn = validate_obabel_extension(path)
 
@@ -609,59 +836,105 @@ def split_and_convert(path, out_path, extension, overwrite = False):
 
 ### Pickle functions
 
-def to_pickle(filePath, data):
-    '''
-    Pickle a dict in a given path.
-    Input:
-      filePath [string] - The path to save the file
-      data     [dict]   - Dict to pickle
-    Return:
-      -
-    '''
-    with open(filePath, 'wb') as handle:
-        pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+def to_pickle(filePath: str, data: Dict[str, Any]) -> int:
+    '''Pickle a dict in a given path.
 
-def from_pickle(filePath):
+    Parameters
+    ----------
+    filePath : str
+        Path to the pickle file.
+    data : Dict[str, Any]
+        Data to be pickled.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
     '''
-    Unpickle a pickle file into a dict.
-    Input:
-      filePath [string] - The path to pickle file
-    Return:
-      [dict] - Unpickled dict
+
+    try:
+        with open(filePath, 'wb') as handle:
+            pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    except Exception as e:
+        return errors.write_file(f"Problems while pickling the file '{filePath}'. Error: {e}")
+    return errors.ok()
+
+def from_pickle(filePath: str) -> Union[int, Dict[str, Any]]:
+    '''Unpickle a pickle file into a dict.
+
+    Parameters
+    ----------
+    filePath : str
+        Path to the pickle file.
+
+    Returns
+    -------
+    int | Dict[str, Any]
+        The exit code of the command (based on the Error.py code table) if fails or the unpickled data otherwise.
+
+    Raises
+    ------
+    None
     '''
+
     data = None
-    with open(filePath, 'rb') as handle:
-        data = pickle.load(handle)
+    try:
+        with open(filePath, 'rb') as handle:
+            data = pickle.load(handle)
+    except Exception as e:
+        return errors.read_file(f"Problems while unpickling the file '{filePath}'. Error: {e}")
     return data
 
 ### Log functions
 
-def clear_past_logs():
+def clear_past_logs() -> None:
+    '''Clear past logs entries.
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Clear past logs entries.
-    Input:
-      -
-    Return:
-      -
-    '''
+    
     # For each dir in the log dir
     for pastLog in [d for d in glob(f"{logdir}/*") if os.path.isdir(d)]:
         # Extra check for avoid wrong deletions
         if pastLog.endswith("past"):
             # Remove all the folder
             shutil.rmtree(pastLog)
-    return
+    return None
 
 ### Validation functions
 
-def validate_obabel_extension(path):
+def validate_obabel_extension(path: str) -> Union[str, int]:
+    '''Validate the input file extension to ensure the compability with obabel lib.
+
+    Parameters
+    ----------
+    path : str
+        Path to the input file.
+
+    Returns
+    -------
+    str | int
+        The exit code of the command (based on the Error.py code table) if fails or the extension otherwise.
+
+    Raises
+    ------
+    None
     '''
-    Validate the input file extension to ensure the compability with obabel lib.
-    Input:
-      path [string] - Path to the file which will be tested.
-    Return:
-      [string/int] The extension if success, otherwise see Error.py for all return codes.
-    '''
+
     supportedExtensions = [
                             'acesin', 'adf', 'alc', 'ascii', 'bgf', 'box', 'bs', 'c3d1', 'c3d2', 'cac',
                             'caccrt', 'cache', 'cacint', 'can', 'cdjson', 'cdxml', 'cht', 'cif', 'ck', 'cml',
@@ -684,37 +957,57 @@ def validate_obabel_extension(path):
         return extension
     return errors.unsupported_extension(message=f"Unsupported extension for input molecule file! Supported extensions are '{' '.join(supportedExtensions)}' and got '{extension}'.")
 
-def is_algorithm_allowed(path):
+def is_algorithm_allowed(path: str) -> bool:
+    '''Finds if the given dir is a folder from an allowed algorithm.
+
+    Parameters
+    ----------
+    path : str
+        Path to the dir which will be tested.
+        The algorithm list and their shortcodes:
+            - AffinityPropagation: ap
+            - AgglomerativeClustering: ac
+            - Birch: bi
+            - DBSCAN: db
+            - KMeans:  km
+            - MeanShift: ms
+            - MiniBatchKMeans: mb
+            - NoCluster: na
+            - OPTICS: op
+            - SpectralClustering: sc
+
+    Returns
+    -------
+    bool
+        True if the dir is an allowed algorithm, False otherwise.
+
+    Raises
+    ------
+    None
     '''
-    Finds if the given dir is a folder from an allowed algorithm.
-    Input:
-      path [string] - Path to the directory which will be tested.
-                      The algorithm list and their shortcodes:
-                          AffinityPropagation: ap
-                          AgglomerativeClustering: ac
-                          Birch: bi
-                          DBSCAN: db
-                          KMeans:  km
-                          MeanShift: ms
-                          MiniBatchKMeans: mb
-                          NoCluster: na
-                          OPTICS: op
-                          SpectralClustering: sc
-    Return:
-      [bool] True if is allowed / False if is not allowed
-    '''
+
     # Allowed algorithms
     allowed = ["ap", "ac", "bi", "db", "km", "ms", "mb", "na", "op", "sc"]
     return path.split(os.path.sep).pop() in allowed
 
-def is_molecule_valid(molecule):
+def is_molecule_valid(molecule: str) -> bool:
+    '''Check if a molecule is valid (protein or ligand).
+
+    Parameters
+    ----------
+    molecule : str
+        The molecule to be checked.
+
+    Returns
+    -------
+    bool
+        True if the molecule is valid, False otherwise.
+
+    Raises
+    ------
+    None
     '''
-    Check if a molecule is valid (protein or ligand).
-    Input:
-      molecule [string] - Path to the molecule which will be tested.
-    Return:
-      [bool] True if is valid / False if is not valid
-    '''
+
     # Check if file exists
     if os.path.isfile(molecule):
         # Check which is its extension to use the correct function
@@ -765,17 +1058,30 @@ def is_molecule_valid(molecule):
 
 ### Other functions
 
-def untar(fname, out_path = ".", delete = False):
+def untar(fname: str, out_path: str = ".", delete: bool = False) -> int:
+    '''Untar a file.
+
+    Parameters
+    ----------
+    fname : str
+        The file to be untarred.
+    out_path : str, optional
+        The path where the file will be untarred.
+        Default is the current directory.
+    delete : bool, optional
+        If True, the tar file will be deleted after the untar process.
+        Default is False.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
     '''
-    Untar a file.
-    Input:
-      fname    [string]  - File path to be untarred.
-      out_path [string]  - Output path.
-      delete   [boolean] - Flag to denote if the tar file should be deleted (True) or not (False).
-    Return:
-      [int]
-      See Error.py for all return codes.
-    '''
+
     # Print verboosity
     printv(f"Untarring file '{fname}' to the output '{out_path}'")
     # Check if the file has the right extensions
@@ -804,15 +1110,24 @@ def untar(fname, out_path = ".", delete = False):
         # No supported extension has been provided
         return errors.unsupported_extension(message=f"The file {fname} is not a tar.gz file. {clrs['y']}Aborting execution{clrs['n']}", level="error")
 
-def safe_create_dir(dirname):
+def safe_create_dir(dirname: str) -> int:
+    '''Create a dir if not exists.
+
+    Parameters
+    ----------
+    dirname : str
+        The dir to be created.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
     '''
-    Create a dir if not exists.
-    Input:
-      dirname [string] - File path to be created.
-    Return:
-      [int]
-      See Error.py for all return codes.
-    '''
+
     # Try to create
     try:
         # If file does not exists
@@ -832,15 +1147,25 @@ def safe_create_dir(dirname):
     # This should never appear since all the other paths ends in some kind of return
     return errors.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while creating a dir safetly.", level="error")
 
-def download_url(url, out_path):
+def download_url(url: str , out_path: str) -> None:
+    '''Download a file from given url.
+
+    Parameters
+    ----------
+    url : str
+        The url to download the file from.
+    out_path : str
+        The path where the file will be downloaded.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Download a file from given url.
-    Input:
-      url      [string] - Url to be downloaded.
-      out_path [string] - Output path.
-    Return:
-      -
-    '''
+
     # Print verboosity
     printv(f"Downloading a file from '{url}' and saving to {out_path}.")
     # Create the progress bar object
@@ -851,17 +1176,30 @@ def download_url(url, out_path):
         urllib.request.urlretrieve(url, filename=out_path, reporthook=t.update_to)
     return
 
-def run(cmd, logFile = "", cwd = ""):
+def run(cmd: List[str], logFile: str = "", cwd : str = "") -> int:
+    '''Run the given command (generic).
+
+    Parameters
+    ----------
+    cmd : List[str]
+        The command to be run.
+    logFile : str, optional
+        The file where the output will be saved.
+        Default is "".
+    cwd : str, optional
+        The current working directory.
+        Default is "".
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+    
+    Raises
+    ------
+    None
     '''
-    Run the given command (generic).
-    Input:
-      cmd     [list(string)]             - List containing the strings of the command
-      logfile [list(string)] DEFAULT: "" - Path to the logFile (empty string to suppress the output)
-      cwd     [list(string)] DEFAULT: "" - Where the command will be run, if empty it will not care where the command is running
-    Return:
-      [int]
-      See Error.py for all return codes.
-    '''
+
     if not cmd:
         return errors.not_set(message=f"The variable cmd is not set or is an empty list!", type="error")
 
@@ -889,16 +1227,26 @@ def run(cmd, logFile = "", cwd = ""):
 
     return errors.ok()
 
-def get_rmsd(reference, molecule):
+def get_rmsd(reference: str, molecule: str) -> Union[List, float]:
+    '''Get the rmsd between a reference and a molecule file (it supports more than one molecule in this second file).
+
+    Parameters
+    ----------
+    reference : str
+        The reference file.
+    molecule : str
+        The molecule file.
+
+    Returns
+    -------
+    List | float
+        The rmsd between the reference and the molecule file.
+
+    Raises
+    ------
+    None
     '''
-    Get the rmsd between a reference and a molecule file (it supports more than one molecule in this second file).
-    Input:
-      reference [string] - Path to the reference molecule
-      molecule  [string] - Path to the molecule file to perform the RMSD
-    Return:
-      [list of float]
-        List containg the rmsds of all molecules
-    '''
+
     # Load reference
     ref = io.loadmol(reference)
     # Remove its hydrogens
@@ -928,14 +1276,22 @@ def get_rmsd(reference, molecule):
 ### Special functions
 
 @contextlib.contextmanager
-def redirect_to_tqdm():
+def redirect_to_tqdm() -> None:
+    '''Redirects the stdout to tqdm.write()
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Redirects the stdout to tqdm.write()
-    Input:
-      -
-    Return:
-      -
-    '''
+
     # Store builtin print
     old_print = print
     def new_print(*args, **kwargs):

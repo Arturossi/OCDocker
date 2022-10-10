@@ -5,7 +5,11 @@
 import os
 
 from glob import glob
+from typing import Dict, List, Tuple
 import pandas as pd
+
+import Ligand as ocl
+import Receptor as ocr
 
 from OCDocker.Initialise import *
 import OCDocker.baseDB as ocbdb
@@ -45,66 +49,77 @@ import OCDocker.PDBbind as ocpdbbind
 ## Private ##
 
 ## Public ##
-def verify_integrity():
+def verify_integrity() -> None:
+    '''Verifies the integrity of the PDBbind database
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Verifies the integrity of the PDBbind database
-    Input:
-      -
-    Return:
-      -
-    '''
+
     ocbdb.verify_integrity(pdbbind_archive)
+    return None
 
-def convert_debug_to_production(chosenAlgorithm = "ac", strict = False, removeDebug = False):
+def convert_debug_to_production(chosenAlgorithm: str = "ac", strict: bool = False, removeDebug: bool = False) -> None:
+    '''Converts debug folders to production mode. It is required to choose an algorithm which will be used furtherly in the pipeline.
+
+    Parameters
+    ----------
+    chosenAlgorithm : str
+        The algorithm that will be used in the pipeline. It can be either "ac" or "p2rank".
+            AffinityPropagation: ap
+            AgglomerativeClustering: ac
+            Birch: bi
+            DBSCAN: db
+            KMeans:  km
+            MeanShift: ms
+            MiniBatchKMeans: mb
+            NoCluster: na
+            OPTICS: op
+            SpectralClustering: sc
+            Ward: wa
+    strict : bool
+        If True, it will only convert the folders that have the chosen algorithm. If False, it will convert all folders.
+    removeDebug : bool
+        If True, it will remove the debug folder after the conversion.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Converts debug folders to production mode. It is required to choose an algorithm which will be used furtherly in the pipeline.
-    Input:
-     chosenAlgorithm [string] DEFAULT: ac  - The short code for the chosen algorithm. The choices are:
-        AffinityPropagation: ap
-        AgglomerativeClustering: ac
-        Birch: bi
-        DBSCAN: db
-        KMeans:  km
-        MeanShift: ms
-        MiniBatchKMeans: mb
-        NoCluster: na
-        OPTICS: op
-        SpectralClustering: sc
-     strict          [bool] DEFAULT: False - If True does not convert the data even if there is only one dir, if False will convert the data if the protein has only one dir (this is good when you ran with only one algorithm, some proteins may have been run with "na")
-     removeDebug     [bool] DEFAULT: False - If True removes debug folders (NO TURNING BACK), if False leave the dirs
-    Return:
-      -
-    '''
+
     ocbdb.convert_debug_to_production(pdbbind_archive, chosenAlgorithm = chosenAlgorithm, strict = strict, removeDebug = removeDebug)
+    return None
 
-def get_database_single_file():
-    '''
-    Parse the database into a SINGLE serializable object. (Avoid this, the database is big, so it will bug everything)
-    Input:
-     archive   [string] - Which archive will be processed. [dudez, pdbbind, astex]
-    Return:
-      [dict of tuples]
-    '''
-    return ocbdb.get_database_single("pdbbind")
+def read_index() -> List[Dict[str, str]]:
+    '''Read the index file from pdbbind database and returns a list of the data (dict).
 
-def get_database_multiple_files(sliceSize = 100):
-    '''
-    Parse the database into a multiple serializable objects. (Avoid this, the database is big, so it will bug everything)
-    Input:
-     sliceSize [int] - DEFAULT: 100 - Number of elements in each chunk. (Please, always use the same value)
-    Return:
-      [dict of tuples]
-    '''
-    return ocbdb.get_database("pdbbind", sliceSize = sliceSize)
+    Parameters
+    ----------
+    None
 
-def read_index():
+    Returns
+    -------
+    List[Dict[str, str]]
+        A list of dictionaries with the data from the index file.
+
+    Raises
+    ------
+    None
     '''
-    Read the index file from pdbbind database and returns a list of the data (dict).
-    Input:
-     -
-    Return:
-     [list of dicts]
-    '''
+
     indexFile = glob(pdbbind_archive + '/index/INDEX_refined_data.*')[0]
     # If the file exists
     if os.path.isfile(indexFile):
@@ -166,87 +181,164 @@ def read_index():
     # This return should never exist, but here it is
     return None
 
-def run_p2rank(overwrite = False):
+def run_p2rank(overwrite: bool = False) -> None:
+    '''Runs P2Rank in the whole database.
+
+    Parameters
+    ----------
+    overwrite : bool, optional
+        If True, it will overwrite the results. If False, it will not run the P2Rank if the results already exist, by default False.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Runs P2Rank in the whole database.
-    Input:
-     overwrite [bool] DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated.
-    Return:
-      -
-    '''
+
     return ocbdb.run_p2rank("pdbbind", overwrite = overwrite)
 
-def run_vina(overwrite = False):
+def run_vina(overwrite: str = False) -> int:
+    '''Runs vina in the whole database.
+
+    Parameters
+    ----------
+    overwrite : bool, optional
+        If True, it will overwrite the results. If False, it will not run the vina if the results already exist, by default False.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
     '''
-    Runs vina in the whole database.
-    Input:
-     overwrite [bool] DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated.
-    Return:
-      -
-    '''
+
     return ocbdb.run_dock("pdbbind", "vina", overwrite = overwrite)
 
-def run_smina(overwrite = False):
+def run_smina(overwrite: bool = False) -> int:
+    '''Runs smina in the whole database.
+
+    Parameters
+    ----------
+    overwrite : bool, optional
+        If True, it will overwrite the results. If False, it will not run the smina if the results already exist, by default False.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
     '''
-    Runs smina in the whole database.
-    Input:
-     overwrite [bool] DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated.
-    Return:
-      -
-    '''
+
     return ocbdb.run_dock("pdbbind", "smina", overwrite = overwrite)
 
-def run_plants(overwrite = False):
+def run_plants(overwrite: bool = False) -> int:
+    '''Runs PLANTS in the whole database.
+
+    Parameters
+    ----------
+    overwrite : bool, optional
+        If True, it will overwrite the results. If False, it will not run the PLANTS if the results already exist, by default False.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
     '''
-    Runs PLANTS in the whole database.
-    Input:
-     overwrite [bool] DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated.
-    Return:
-      -
-    '''
+
     return ocbdb.run_dock("pdbbind", "plants", overwrite = overwrite)
 
-def prepare(overwrite = False):
+def prepare(overwrite: bool = False) -> None:
+    '''Prepares the PDBbind database.
+
+    Parameters
+    ----------
+    overwrite : bool, optional
+        If True, it will overwrite the results. If False, it will not run the preparation if the results already exist, by default False.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Prepares the PDBbind database.
-    Input:
-     overwrite [bool] DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated.
-    Return:
-      -
-    '''
+
     return ocbdb.prepare("pdbbind", overwrite = overwrite)
 
-def read_logs(picklePath = ""):
+def read_logs(picklePath: str = "") -> Dict[str, Dict[str, pd.DataFrame]]:
+    '''Parse the database into multiple serializable objects.
+
+    Parameters
+    ----------
+    picklePath : str, optional
+        The path to the pickle file, by default "".
+
+    Returns
+    -------
+    Dict[str, Dict[str, pd.DataFrame]]
+        The parsed data.
+
+    Raises
+    ------
+    None
     '''
-    Parse the database into multiple serializable objects.
-    Input:
-     archive    [string]             - Which archive will be processed. [dudez, pdbbind, astex]
-     picklePath [string] DEFAULT: "" - The path where to store the pickle file. If empty no pickle file will be generated.
-    Return:
-     -
-    '''
+
     return ocbdb.read_logs("pdbbind", picklePath = picklePath)
 
-def generate_dock_result_csv(log_dumps, csv_path, chunksize=500):
-    '''
-    Uses the structure from read_logs to generate an output for all docking softwares.
-    Input:
-     log_dumps [dict of dicts of pd.DataFrame]              - The dump generated from the read_logs function
-     csv_path  [string]                                     - Path to the csv file
-     chunksize [int]                           DEFAULT: 500 - Chunk size to write the csv
-    Return:
-     -
+def generate_dock_result_csv(log_dumps: Dict[str, Dict[str, pd.DataFrame]], csv_path: str, chunksize: int = 500) -> None:
+    '''Uses the structure from read_logs to generate an output for all docking softwares.
+
+    Parameters
+    ----------
+    log_dumps : Dict[str, Dict[str, pd.DataFrame]]
+        The parsed data.
+    csv_path : str
+        The path to the output csv file.
+    chunksize : int, optional
+        The chunksize to use when writing the csv file, by default 500.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
     return ocbdb.generate_dock_result_csv("pdbbind", log_dumps, csv_path, chunksize=chunksize)
 
-def merge_descriptors_in_dataframe(saveCsv=True):
+def merge_descriptors_in_dataframe(saveCsv: bool = True) -> pd.DataFrame:
+    '''Reads all the descriptors jsons and return a pd.DataFrame.
+
+    Parameters
+    ----------
+    saveCsv : bool, optional
+        If True, it will save the csv file, by default True.
+
+    Returns
+    -------
+    pd.DataFrame
+        The dataframe with all the complex descriptors.
+
+    Raises
+    ------
+    None
     '''
-    Reads all the descriptors jsons and return a pd.DataFrame.
-    Input:
-     saveCsv [bool] DEFAULT: True - If True will save to the Prepared folder in the database
-    Return:
-     [pd.DataFrame]
-    '''
+    
     # Get the dataframe with descriptors and docking scores
     pdbbinddf = ocbdb.merge_descriptors_in_dataframe("pdbbind", saveCsv=False)
 

@@ -1260,7 +1260,6 @@ def __thread_read_log_parallel(arguments):
     with octools.redirect_to_tqdm():
         # Call the core read log function passing the arguments correctly
         return __core_read_log(arguments[0], arguments[1])
-    return None
 
 def __read_log_parallel(dirs, archive, desc):
     '''
@@ -2003,7 +2002,7 @@ def prepare(archive, overwrite = False, spacing = 0.33, sanitize = True):
         dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index']]
     else:
         octools.print_error(f"Not valid archive type. Expected one of ['astex', 'dudez', 'pdbbind'] and found {archive}.")
-        return
+        return None
     # Generate boxes for all receptors
     octools.printv("Generating information regarding possible ligand site.")
     # If is multiprocess
@@ -2015,7 +2014,7 @@ def prepare(archive, overwrite = False, spacing = 0.33, sanitize = True):
         __prepare_no_parallel(dirs, overwrite, archive, sanitize, spacing, label)
     return None
 
-def run_p2rank(archive, overwrite = False):
+def run_p2rank(archive: str, overwrite: bool = False) -> None:
     '''
     Runs P2Rank in the desired database.
     Input:
@@ -2044,7 +2043,7 @@ def run_p2rank(archive, overwrite = False):
         dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index']]
     else:
         octools.print_error(f"Not valid archive type. Expected one of ['astex', 'dudez', 'pdbbind'] and found {archive}.")
-        return
+        return None
     # Generate boxes for all receptors
     octools.printv("Generating P2Rank files.")
     # If is multiprocess
@@ -2146,84 +2145,6 @@ def run_dock(archive, dockingAlgorithm, overwrite = False):
         __run_dock_no_parallel(dirs, archive, dockingAlgorithm, overwrite, ligandAlternativeDirs = ligandAlternativeDirs)
     return None
 
-def get_database_single_file(archive):
-    '''
-    Parse the database into a SINGLE serializable object. (Not so good)
-    Input:
-     archive [string] - Which archive will be processed. [dudez, pdbbind, astex]
-    Return:
-      [dict of tuples]
-    '''
-    # Make archive lowercase
-    archive = archive.lower()
-
-    # Find which kind of archive it will be
-    if archive == "astex":
-        chosenArchive = astex_archive
-    elif archive == "dudez":
-        chosenArchive = dudez_archive
-    elif archive == "pdbbind":
-        chosenArchive = pdbbind_archive
-    else:
-        octools.print_error(f"Not valid archive type. Expected one of ['astex', 'dudez', 'pdbbind'] and found {archive}.")
-        return None
-    # Get all dirs inside the database
-    dirs = glob(f"{chosenArchive}/*")
-    # Dict of elements
-    databaseDict = dict()
-    # Decide if multprocessing will be used
-    if args.multiprocess:
-        databaseDict = __get_parallel(dirs, archive, f"Processing {archive}")
-    else:
-        databaseDict = __get_no_parallel(dirs, archive)
-    return databaseDict
-
-def get_database_multiple_files(archive, sliceSize = 100):
-    '''
-    Parse the database into multiple serializable objects.
-    Input:
-     archive   [string]              - Which archive will be processed. [dudez, pdbbind, astex]
-     sliceSize [int]    DEFAULT: 100 - Number of elements in each chunk. (Please, always use the same value)
-    Return:
-      [dict of tuples]
-    '''
-    # Make archive lowercase
-    archive = archive.lower()
-
-    # Find which kind of archive it will be
-    if archive == "astex":
-        chosenArchive = astex_archive
-    elif archive == "dudez":
-        chosenArchive = dudez_archive
-    elif archive == "pdbbind":
-        chosenArchive = pdbbind_archive
-    else:
-        octools.print_error(f"Not valid archive type. Expected one of ['astex', 'dudez', 'pdbbind'] and found {archive}.")
-        return None
-    # Get all dirs inside the database (except index and db)
-    dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db']]
-    # Create the db dir if does not exsit yet
-    _ = octools.safe_create_dir(f"{chosenArchive}/db")
-    # Slice it into chunks
-    chunkedDirs = [dirs[x:x + sliceSize] for x in range(0, len(dirs), sliceSize)]
-    # For each chunk
-    for i, chunkedDir in enumerate(chunkedDirs):
-        if os.path.isfile(f"{chosenArchive}/db/{archive}_{i}.pickle"):
-            octools.print_warning(f"The file '{chosenArchive}/db/{archive}_{i}.pickle' already exists. Skipping.")
-            continue
-        # Dict of elements
-        databaseDict = dict()
-        # Decide if multprocessing will be used
-        if args.multiprocess:
-            databaseDict = __get_parallel(chunkedDir, archive, f"Processing {archive}")
-        else:
-            databaseDict = __get_no_parallel(chunkedDir, archive)
-        # Test if dabaseDict is fine
-        if databaseDict:
-            octools.to_pickle(f"{chosenArchive}/db/{archive}_{i}.pickle", databaseDict)
-
-    return databaseDict
-
 def read_logs(archive, picklePath = ""):
     '''
     Reads database logfiles returning a dict of dicts of pd.DataFrames.
@@ -2258,7 +2179,7 @@ def read_logs(archive, picklePath = ""):
                 # Parameterize paths
                 dudezDirLigand = f"{d}/dudez_ligands"
                 dudezDirDecoy = f"{d}/dudez_decoys"
-                extremaDirDecoy = f"{d}/extrema_decoys"
+                #extremaDirDecoy = f"{d}/extrema_decoys" # TODO: Uncomment this line when extrema decoys are available
                 # Create an empty list for all directories to be processed
                 processDirs = []
                 # Add all subdirs (one for each ligand) from all 4 folders as a tuple (dir, ligand_descriptor_path)
@@ -2293,7 +2214,7 @@ def read_logs(archive, picklePath = ""):
         else:
             octools.print_warning(f"The data object is not defined! There is no reason to write it as a pickle. Aborting...")
         # Return nothing
-        return
+        return None
     # Return the data
     return data
 
@@ -2338,7 +2259,7 @@ def generate_dock_result_csv(archive, log_dumps, csv_path, chunksize=500):
     # Check if data is not empty
     if not data.empty:
         data.to_csv(csv_path, index=False, chunksize=chunksize)
-    return
+    return None
 
 def merge_descriptors_in_dataframe(archive, saveCsv=True):
     '''

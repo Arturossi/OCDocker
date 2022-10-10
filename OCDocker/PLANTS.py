@@ -3,13 +3,9 @@
 # Imports
 ###############################################################################
 import os
-import sys
 import shutil
-import tarfile
-import datetime
-import subprocess
+from typing import List, Tuple
 
-import numpy as np
 import pandas as pd
 
 import OCDocker.Ligand as ocl
@@ -19,7 +15,6 @@ import OCDocker.Toolbox as octools
 
 from Bio.PDB import *
 from glob import glob
-from rdkit import Chem
 
 # License
 ###############################################################################
@@ -49,10 +44,42 @@ import OCDocker.PLANTS as ocplants
 # Classes
 ###############################################################################
 class PLANTS:
-    """
-    PLANTS object with methods for easy run.
-    """
-    def __init__(self, configPath, boxFile, receptor, preparedReceptorPath, ligand, preparedLigandPath, plantsLog, outputPlants, name="", boxSpacing=0.33):
+    """PLANTS object with methods for easy run."""
+    def __init__(self, configPath: str, boxFile: str, receptor: ocr.Receptor, preparedReceptorPath: str, ligand: ocl.Ligand, preparedLigandPath: str, plantsLog: str, outputPlants: str, name: str = "", boxSpacing: float = 0.33) -> None:
+        ''' Constructor for the PLANTS object.
+        
+        Parameters
+        ----------
+        configPath : str
+            Path for the PLANTS config file.
+        boxFile : str
+            Path for the PLANTS box file.
+        receptor : ocr.Receptor
+            Receptor object.
+        preparedReceptorPath : str
+            Path for the prepared receptor.
+        ligand : ocl.Ligand
+            Ligand object.
+        preparedLigandPath : str
+            Path for the prepared ligand.
+        plantsLog : str
+            Path for the PLANTS log file.
+        outputPlants : str
+            Path for the PLANTS output file.
+        name : str, optional
+            Name for the PLANTS run, by default ""
+        boxSpacing : float, optional
+            Spacing for the PLANTS box, by default 0.33
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        None
+        '''
+        
         self.name = str(name)
         self.config = str(configPath)
         self.boxFile = str(boxFile)
@@ -79,27 +106,42 @@ class PLANTS:
             self.write_config_file()
 
     ## Private ##
-    def __get_binding_site(self):
-        '''
-        Get the binding site from a box file.
-        Input:
-          -
-        Return:
-          [tuple of mixed tuple of floats and floats]
-           Binding center (x, y, z) and binding radius.
+    def __get_binding_site(self) -> Tuple[Tuple[float, float, float], float]:
+        '''Get the binding site from a box file.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        Tuple[Tuple[float, float, float], float]
+            Tuple with the center and radius of the binding site.
+
+        Raises
+        ------
+        None
         '''
         return get_binding_site(self.boxFile, self.boxSpacing)
 
-    def __parse_receptor(self, receptor):
+    def __parse_receptor(self, receptor: ocr.Receptor) -> ocr.Receptor:
+        '''Parse the receptor as input, handling its type.
+
+        Parameters
+        ----------
+        receptor : ocr.Receptor
+            The path for the receptor or its receptor object.
+
+        Returns
+        -------
+        ocr.Receptor
+            The ocr.Receptor object.
+
+        Raises
+        ------
+        None
         '''
-        Parse the receptor as input, handling its type.
-        Input:
-          receptor [ocr.Receptor] - The path for the receptor or its ocr.Receptor object.
-        Return:
-          [ocr.Receptor]
-           [object] The ocr.Receptor object.
-           [None]   If is a path, returns None (no linkage to Receptor object) NOT RECOMENDED.
-        '''
+
         # Check the type of the receptor
         if type(receptor) == ocr.Receptor:
             octools.printv(f"The receptor '{receptor}' has been loaded.")
@@ -108,15 +150,26 @@ class PLANTS:
         octools.print_warning(f"The receptor '{receptor}' is not the type 'ocr.Receptor'. It is STRONGLY recomended that you provide an 'ocr.Receptor' object.")
         return None
 
-    def __parse_receptor_path(self, receptor, forceMol2=False):
+    def __parse_receptor_path(self, receptor: ocr.Receptor, forceMol2: bool = False):
+        '''Parse the receptor path, handling its type.
+
+        Parameters
+        ----------
+        receptor : ocr.Receptor
+            The path for the receptor or its receptor object.
+        forceMol2 : bool, optional
+            Force the receptor to be converted to mol2, by default False
+            
+        Returns
+        -------
+        str
+            The path for the receptor.
+
+        Raises
+        ------
+        None
         '''
-        Parse the receptor path, handling its type.
-        Input:
-          receptor  [string/ocr.Receptor]                - The path for the receptor or its receptor object.
-          forceMol2 [bool]                DEFAULT: False - Flag to force the use of a mol2 as input file. If True and if the receptor has a mol2Path object it will be used, if True and if the receptor has not a mol2Path, a mol2 file will be generated and the path will be set, otherwise a pdb file will be used as input.
-        Return:
-          [string] The receptor path.
-        '''
+
         # Check the type of receptor variable
         if type(receptor) == ocr.Receptor:
             # If the flag to force the use of mol2 file as input is True
@@ -158,16 +211,24 @@ class PLANTS:
         _ = errors.wrong_type(message=f"The receptor '{receptor}' has not a supported type. Expected 'string' or 'ocr.Receptor' but got {type(receptor)} instead.", level="error")
         return ""
 
-    def __parse_ligand(self, ligand):
+    def __parse_ligand(self, ligand: ocl.Ligand) -> ocl.Ligand:
+        '''Parse the ligand as input, handling its type.
+
+        Parameters
+        ----------
+        ligand : ocl.Ligand
+            The path for the ligand or its ligand object.
+
+        Returns
+        -------
+        ocl.Ligand
+            The ocl.Ligand object.
+
+        Raises
+        ------
+        None
         '''
-        Parse the ligand as input, handling its type.
-        Input:
-          ligand [ocl.Ligand] - The path for the ligand or its ligand object.
-        Return:
-          [ocl.Ligand]
-           [object] The ocr.Ligand object.
-           [None]   If is a path, returns None (no linkage to Ligand object) NOT RECOMENDED.
-        '''
+
         # Check the type of the ligand
         if type(ligand) == ocl.Ligand:
             octools.printv(f"The ligand '{ligand}' has been loaded.")
@@ -176,37 +237,49 @@ class PLANTS:
         octools.print_warning(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.")
         return None
 
-    def __parse_ligand_path(self, ligand):
+    def __parse_ligand_path(self, ligand: ocl.Ligand) -> str:
+        '''Parse the ligand path, handling its type.
+
+        Parameters
+        ----------
+        ligand : ocl.Ligand
+            The path for the ligand or its ligand object.
+
+        Returns
+        -------
+        str
+            The path for the ligand.
+
+        Raises
+        ------
+        None
         '''
-        Parse the ligand path, handling its type.
-        Input:
-          ligand [string/ocl.Ligand] - The path for the ligand or its ocl.Ligand object.
-        Return:
-          [string] The ligand object.
-        '''
+
         # Check the type of ligand variable
         if type(ligand) == ocl.Ligand:
             return ligand.path
-        elif type(ligand) == str:
-            # Since is a string, check if the file exists
-            if os.path.isfile(ligand):
-                # Exists! Process it then!
-                return __process_ligand(ligand)
-            else:
-                _ = errors.file_do_not_exist(message=f"The ligand '{ligand}' has not a valid path.", level="error")
-                return ""
-
+        
         _ = errors.wrong_type(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.", level="error")
         return ""
 
-    def __process_ligand(self, ligandPath):
+    def __process_ligand(self, ligandPath: str) -> str:
+        '''Process the ligand to output to mol2 if needed.
+
+        Parameters
+        ----------
+        ligandPath : str
+            The path for the ligand.
+
+        Returns
+        -------
+        str
+            The path for the ligand.
+
+        Raises
+        ------
+        None
         '''
-        Process the ligand to output to mol2 if needed.
-        Input:
-          ligandPath [list(string)] - The path for the ligand.
-        Return:
-          [string] The Path of the ligand with mol2 extension.
-        '''
+
         # Get the extension
         ligandExtension = os.path.splitext(ligandPath)[1]
 
@@ -223,71 +296,123 @@ class PLANTS:
 
         return outputLigandPath
 
-    def __plants_cmd(self):
+    def __plants_cmd(self) -> List[str]:
+        '''Generate the vina command.
+
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        List[str]
+            The vina command.
+
+        Raises
+        ------
+        None
         '''
-        Generate the vina command.
-        Input:
-          -
-        Return:
-          list[string] - List of strings of the command.
-        '''
+
         cmd = [plants, "--mode", "screen", self.config]
         return cmd
 
-    def __prepare_ligand_cmd(self):
+    def __prepare_ligand_cmd(self) -> List[str]:
+        '''Generate the prepare ligand command.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        List[str]
+            The prepare ligand command.
+
+        Raises
+        ------
+        None
         '''
-        Generate the prepare ligand command.
-        Input:
-          -
-        Return:
-          list[string] - List of strings of the command.
-        '''
+
         cmd = [spores, "--mode", "complete", self.inputLigandPath, self.preparedLigand]
         return cmd
 
     def __prepare_receptor_cmd(self):
+        '''Generate the prepare receptor command.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        List[str]
+            The prepare receptor command.
+
+        Raises
+        ------
+        None
         '''
-        Generate the prepare receptor command.
-        Input:
-          -
-        Return:
-          list[string] - List of strings of the command.
-        '''
+
         cmd = [spores, "--mode", "complete", self.inputReceptorPath, self.preparedReceptor]
         return cmd
 
     ## Public ##
-    def write_config_file(self):
-        '''
-        Write the config file.
-        Input:
-          -
-        Return:
-          [int]
-           See Error.py for all return codes.
-        '''
-        write_config_file(self.config, self.preparedReceptor, self.preparedLigand, self.outputPlants, self.bindingSiteCenter[0], self.bindingSiteCenter[1], self.bindingSiteCenter[2], self.bindingSiteRadius)
+    def write_config_file(self) -> int:
+        '''Write the config file.
 
-    def read_plants_log(path):
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        int
+            The exit code of the command (based on the Error.py code table).
+        
+        Raises
+        ------
+        None
         '''
-        Read the PLANTS log path, returning a pd.dataframe with data from complexes.
-        Input:
-          path [string] - Path to the vina output log file.
-        Return:
-          [pd.dataframe]
+
+        return write_config_file(self.config, self.preparedReceptor, self.preparedLigand, self.outputPlants, self.bindingSiteCenter[0], self.bindingSiteCenter[1], self.bindingSiteCenter[2], self.bindingSiteRadius)
+
+    def read_plants_log(self) -> pd.DataFrame:
+        '''Read the PLANTS log path, returning a pd.dataframe with data from complexes.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        pd.DataFrame
+            The dataframe with the data from PLANTS.
+
+        Raises
+        ------
+        None
         '''
+
         return read_plants_log(self.plantsLog)
 
-    def run_plants(self, logFile = "", overwrite=False):
+    def run_plants(self, overwrite: bool =False) -> int:
+        '''Run plants.
+
+        Parameters
+        ----------
+        overwrite : bool, optional
+            If True, overwrite the output file. Default is False.
+
+        Returns
+        -------
+        int
+            The exit code of the command (based on the Error.py code table).
+
+        Raises
+        ------
+        None
         '''
-        Run plants.
-        Input:
-          logFile   [list(string)] DEFAULT: ""    - Path to the logFile. If empty, suppress the output.
-          overwrite [bool]         DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated.
-        Return:
-          [int]
-           See Error.py for all return codes.
-        '''
+
         # If overwrite is set
         if overwrite:
             # Check if there is an output
@@ -317,40 +442,62 @@ class PLANTS:
             _ = octools.run(["rm", f"{tmpDir}/*bad.mol2"])
         return output
 
-    def run_prepare_ligand(self, logFile = ""):
+    def run_prepare_ligand(self, logFile: str = "") -> int:
+        '''Run SPORES for ligand.
+
+        Parameters
+        ----------
+        logFile : str, optional
+            The path for the log file. Default is "".
+
+        Returns
+        -------
+        int
+            The exit code of the command (based on the Error.py code table).
+
+        Raises
+        ------
+        None
         '''
-        Run SPORES for ligand.
-        Input:
-          logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
-        Return:
-          [int]
-           See Error.py for all return codes.
-        '''
+
         # Print verboosity
         octools.printv(f"Running '{spores}' for '{self.inputLigandPath}'.")
         return octools.run(self.prepareLigandCmd, logFile=logFile)
 
-    def run_prepare_receptor(self, logFile = ""):
+    def run_prepare_receptor(self, logFile: str = "") -> int:
+        '''Run SPORES for receptor.
+
+        Parameters
+        ----------
+        logFile : str, optional
+            The path for the log file. Default is "".
+
+        Returns
+        -------
+        int
+            The exit code of the command (based on the Error.py code table).
+
+        Raises
+        ------
+        None
         '''
-        Run SPORES for receptor.
-        Input:
-          logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
-        Return:
-          [int]
-           See Error.py for all return codes.
-        '''
+
         # Print verboosity
         octools.printv(f"Running '{spores}' for '{self.inputReceptorPath}'.")
         return octools.run(self.prepareReceptorCmd, logFile=logFile)
 
-    def print_attributes(self):
+    def print_attributes(self) -> None:
+        '''Print the class attributes.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
         '''
-        Print the class attributes.
-        Input:
-          -
-        Return:
-          -
-        '''
+
         print(f"Name:                        '{self.name if self.name else '-' }'")
         print(f"Box path:                    '{self.boxFile if self.boxFile else '-' }'")
         print(f"Config path:                 '{self.config if self.config else '-' }'")
@@ -366,44 +513,69 @@ class PLANTS:
         print(f"PLANTS execution log path:   '{self.plantsLog if self.plantsLog else '-' }'")
         print(f"PLANTS output path:          '{self.outputPlants if self.outputPlants else '-' }'")
         print(f"PLANTS command:              '{' '.join(self.plantsCmd) if self.plantsCmd else '-' }'")
-        return
+        return None
 
 # Functions
 ###############################################################################
 ## Private ##
 
 ## Public ##
-def box_to_plants(boxFile, confFile, receptor, ligand, outputPlants, spacing = 0.33):
+def box_to_plants(boxFile: str, confFile: str, receptor: str, ligand: str, outputPlants: str, spacing: float = 0.33) -> int:
+    '''Convert a box (DUDE like format) to PLANTS input.
+
+    Parameters
+    ----------
+    boxFile : str
+        The path to the box file.
+    confFile : str
+        The path to the PLANTS configuration file.
+    receptor : str
+        The path to the receptor file.
+    ligand : str
+        The path to the ligand file.
+    outputPlants : str
+        The path to the PLANTS output directory.
+    spacing : float, optional
+        The spacing between the grid points. Default is 0.33.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
     '''
-    Convert a box (DUDE like format) to PLANTS input.
-    Input:
-      boxFile      [string]               - Path to the box file.
-      confFile     [string]               - Path to the conf file.
-      receptor     [string]               - Receptor name to be used in conf file.
-      ligand       [string]               - Ligand name to be used in conf file.
-      outputPlants [string]               - Path where SMINA output should be put.
-      spacing      [float]  DEFAULT: 0.33 - Extra spacing for the sphere in percentage. (To ensure that all the sites will be accounted)
-    Return:
-      [int]
-       See Error.py for all return codes.
-    '''
+
     octools.printv(f"Converting the box file '{boxFile}' to PLANTS conf file as '{confFile}' file.")
     # Get the center and the binding site center
     center, bindingSiteRadius = get_binding_site(boxFile, spacing = spacing)
     # Write the file
     return write_config_file(confFile, receptor, ligand, outputPlants, center[0], center[1], center[2], bindingSiteRadius)
 
-def run_prepare_ligand(inputLigandPath, outputLigand, logFile=""):
+def run_prepare_ligand(inputLigandPath: str, outputLigand: str, logFile: str = "") -> int:
+    ''' Run SPORES for ligand.
+
+    Parameters
+    ----------
+    inputLigandPath : str
+        The path to the input ligand.
+    outputLigand : str
+        The path to the output ligand.
+    logFile : str, optional
+        The path for the log file. Default is "".
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
     '''
-    Prepares the ligand using 'prepare_ligand4' from MGLTools suite.
-    Input:
-      inputLigandPath  [string]                   - Path to the input ligand file.
-      outputLigand     [string]                   - Path to the output ligand file.
-      logFile          [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
-    Return:
-      [int]
-       See Error.py for all return codes.
-    '''
+
     # Create the command list
     cmd = [spores, "--mode", "complete", inputLigandPath, outputLigand]
     # Print verboosity
@@ -411,16 +583,26 @@ def run_prepare_ligand(inputLigandPath, outputLigand, logFile=""):
     # Run the command
     return octools.run(cmd, logFile=logFile)
 
-def run_prepare_receptor(inputReceptorPath, outputReceptor, logFile=""):
-    '''
-    Prepares the receptor using 'prepare_receptor4' from MGLTools suite.
-    Input:
-      inputReceptorPath  [string]                   - Path to the input receptor file.
-      outputReceptor     [string]                   - Path to the output receptor file.
-      logFile            [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
-    Return:
-      [int]
-       See Error.py for all return codes.
+def run_prepare_receptor(inputReceptorPath: str, outputReceptor: str, logFile: str = "") -> int:
+    ''' Run SPORES for receptor.
+
+    Parameters
+    ----------
+    inputReceptorPath : str
+        The path to the input receptor.
+    outputReceptor : str
+        The path to the output receptor.
+    logFile : str, optional
+        The path for the log file. Default is "".
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
     '''
     # Create the command list
     cmd = [spores, "--mode", "complete", inputReceptorPath, outputReceptor]
@@ -429,18 +611,30 @@ def run_prepare_receptor(inputReceptorPath, outputReceptor, logFile=""):
     # Run the command
     return octools.run(cmd, logFile=logFile)
 
-def run_plants(confFile, ligand, outputPlants, overwrite=False, logFile=""):
+def run_plants(confFile: str, outputPlants: str, overwrite: bool = False, logFile: str = "") -> int:
+    '''Run PLANTS.
+
+    Parameters
+    ----------
+    confFile : str
+        The path to the PLANTS configuration file.
+    outputPlants : str
+        The path to the PLANTS output directory.
+    overwrite : bool, optional
+        If True, overwrite the output directory. Default is False.
+    logFile : str, optional
+        The path for the log file. Default is "".
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
     '''
-    Run PLANTS.
-    Input:
-      confFile     [string]                   - Path to the config file.
-      ligand       [string]                   - Path to the ligand file.
-      outputPlants [string]                   - Path where the PLANTS output will be. (SHOULD be the same as inside the conf file!)
-      logFile      [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
-    Return:
-      [int]
-       See Error.py for all return codes.
-    '''
+
     # If overwrite is set
     if overwrite:
         # Check if there is an output
@@ -461,23 +655,38 @@ def run_plants(confFile, ligand, outputPlants, overwrite=False, logFile=""):
     # Run the command
     return octools.run(cmd, logFile=logFile)
 
-def write_config_file(confFile, preparedReceptor, preparedLigand, outputPlants, bindingSiteCenterX, bindingSiteCenterY, bindingSiteCenterZ, bindingSiteRadius):
+def write_config_file(confFile: str, preparedReceptor: str, preparedLigand: str, outputPlants: str, bindingSiteCenterX: int, bindingSiteCenterY: int, bindingSiteCenterZ: int, bindingSiteRadius: int) -> int:
+    '''Write the config file.
+
+    Parameters
+    ----------
+    confFile : str
+        The path to the PLANTS configuration file.
+    preparedReceptor : str
+        The path to the prepared receptor.
+    preparedLigand : str
+        The path to the prepared ligand.
+    outputPlants : str
+        The path to the PLANTS output directory.
+    bindingSiteCenterX : int
+        The X coordinate of the binding site center.
+    bindingSiteCenterY : int
+        The Y coordinate of the binding site center.
+    bindingSiteCenterZ : int
+        The Z coordinate of the binding site center.
+    bindingSiteRadius : int
+        The radius of the binding site.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
     '''
-    Write the config file.
-    Input:
-      confFile           [string] - Path to the config file
-      preparedReceptor   [string] - Path to the prepared receptor file
-      preparedLigand     [string] - Path to the prepared ligand file
-      outputPlants       [string] - Path where the output should be put (directory will be created)
-      bindingSiteCenterX [float]  - Value for the X coordinate for the binding center
-      bindingSiteCenterY [float]  - Value for the Y coordinate for the binding center
-      bindingSiteCenterZ [float]  - Value for the Y coordinate for the binding center
-      bindingSiteRadius  [float]  - Value for the sphere radius
-      -
-    Return:
-      [int]
-       See Error.py for all return codes.
-    '''
+
     try:
         with open(confFile, "w") as f:
             #f.write("# scoring function and search settings\n")
@@ -499,17 +708,28 @@ def write_config_file(confFile, preparedReceptor, preparedLigand, outputPlants, 
             f.write(f"cluster_rmsd {plants_cluster_rmsd}")
     except Exception as e:
         return errors.write_file(f"Problems while writing the file {confFile}: {e}")
+    return errors.ok()
 
-def get_binding_site(boxFile, spacing = 0.33):
+def get_binding_site(boxFile: str, spacing: float = 0.33) -> Tuple[Tuple[int, int, int], int]:
+    '''Get the binding site from a box file.
+
+    Parameters
+    ----------
+    boxFile : str
+        The path to the box file.
+    spacing : float, optional
+        The spacing between the box and the binding site. Default is 0.33.
+    
+    Returns
+    -------
+    Tuple[Tuple[int, int, int], int]
+        The center of the binding site and the radius of the binding site.
+
+    Raises
+    ------
+    None
     '''
-    Get the binding site from a box file.
-    Input:
-      boxFile   [string]               - Path to the box file
-      spacing   [float]  DEFAULT: 0.33 - Extra spacing
-    Return:
-      [tuple of mixed tuple of floats and floats]
-       Binding center (x, y, z) and binding radius.
-    '''
+
     octools.printv(f"Parsing '{boxFile}' to binding center data.")
     # Test if the file boxFile exists
     if not os.path.exists(boxFile):
@@ -567,18 +787,32 @@ def get_binding_site(boxFile, spacing = 0.33):
     # Return the data
     return ((center['x'], center['y'], center['z']), radius)
 
-def generate_plants_files_database(path, protein, ligand, spacing, prankPath = ""):
+def generate_plants_files_database(path: str, protein: str, ligand: str, spacing: float, prankPath: str = "") -> None:
+    '''Generate all PLANTS required files for provided protein.
+
+    Parameters
+    ----------
+    path : str
+        The path to the directory where the files will be generated.
+    protein : str
+        The path to the protein file.
+    ligand : str
+        The path to the ligand file.
+    spacing : float
+        The spacing between the box and the binding site.
+    prankPath : str, optional
+        The path to the prank executable. Default is "".
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
     '''
-    Generate all PLANTS required files for provided protein.
-    Input:
-     path         [string]               - Input path
-     protein      [string]               - Protein path
-     ligand       [string]               - Ligand name to be used in conf file
-     spacing      [float]  DEFAULT: 0.33 - Extra spacing for the sphere in percentage (To ensure that all the sites will be accounted)
-     prankPath    [string] DEFAULT: ""   - If the prank dir is different than path, pass it here, otherwise it will try to look for a p2rank dir inside <path>.
-    Return:
-      -
-    '''
+
     # Parameterize the vina and p2rank paths
     plantsPath = f"{path}/plantsFiles"
     # Check if prankPath is an empty string
@@ -603,14 +837,24 @@ def generate_plants_files_database(path, protein, ligand, spacing, prankPath = "
         box_to_plants(box, confPath, protein, ligand, f"{outputPlants}/run", spacing = spacing)
     return None
 
-def read_plants_log(path):
+def read_plants_log(path: str ) -> pd.DataFrame:
+    '''Read the PLANTS log path, returning a pd.dataframe with data from complexes.
+
+    Parameters
+    ----------
+    path : str
+        The path to the PLANTS log file.
+        
+    Returns
+    -------
+    pd.DataFrame
+        A pandas dataframe with the data from the PLANTS log file.
+
+    Raises
+    ------
+    None
     '''
-    Read the PLANTS log path, returning a list with data from complexes.
-    Input:
-      path [string] - Path to the vina output log file.
-    Return:
-      [pd.dataframe]
-    '''
+    
     # Check if file exists
     if os.path.isfile(path):
         try:

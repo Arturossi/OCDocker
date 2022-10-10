@@ -3,12 +3,7 @@
 # Imports
 ###############################################################################
 import os
-import sys
-import shutil
-import tarfile
-import datetime
 
-import numpy as np
 import pandas as pd
 
 import OCDocker.Ligand as ocl
@@ -18,7 +13,6 @@ import OCDocker.Toolbox as octools
 
 from Bio.PDB import *
 from glob import glob
-from rdkit import Chem
 from typing import List, Union
 
 # License
@@ -51,7 +45,7 @@ import OCDocker.Vina as ocvina
 class Vina:
     """Vina object with methods for easy run."""
     def __init__(self, configPath: str, boxFile: str, receptor: ocr.Receptor, preparedReceptorPath: str, ligand: ocl.Ligand, preparedLigandPath: str, vinaLog: str, outputVina: str, name: str="") -> None:
-        '''Initialise the Vina object.
+        '''Constructor of the class Vina.
         
         Parameters
         ----------
@@ -282,7 +276,7 @@ class Vina:
 
         Parameters
         ----------
-          None
+        None
 
         Returns
         -------
@@ -302,7 +296,7 @@ class Vina:
         
         Parameters
         ----------
-          None
+        None
 
         Returns
         -------
@@ -357,13 +351,12 @@ class Vina:
 
         return read_vina_log(self.vinaLog)
 
-    def run_vina(self, logFile: str = "") -> int:
+    def run_vina(self) -> int:
         '''Run vina.
 
         Parameters
         ----------
-        logFile : str
-            The path for the log file.
+        None
 
         Returns
         -------
@@ -593,7 +586,7 @@ def run_prepare_receptor(inputReceptorPath: str, outputReceptor: str, logFile: s
     # Run the command
     return octools.run(cmd, logFile=logFile)
 
-def run_vina(confFile, ligand, outpath, logFile=""):
+def run_vina(confFile: str, ligand: str, outpath: str, logFile: str = ""):
     '''Run vina.
 
     Parameters

@@ -3,15 +3,10 @@
 # Imports
 ###############################################################################
 import os
-import sys
-import shutil
-import tarfile
-import datetime
-import subprocess
 
-import numpy as np
 import pandas as pd
 
+from typing import List, Union
 from openbabel import openbabel
 
 import OCDocker.Ligand as ocl
@@ -47,20 +42,48 @@ import OCDocker.Smina as ocsmina
 # Classes
 ###############################################################################
 class Smina:
-    """
-    Smina object with methods for easy run.
-    """
-    def __init__(self, configPath, receptorPath, preparedReceptorPath, ligandPath, preparedLigandPath, sminaLog, outputSmina, name=""):
+    """Smina object with methods for easy run."""
+    def __init__(self, configPath: str, receptor: ocr.Receptor, preparedReceptorPath: str, ligand: ocl.Ligand, preparedLigandPath: str, sminaLog: str, outputSmina: str, name: str = "") -> None:
+        '''Constructor of the class Smina.
+
+        Parameters
+        ----------
+        configPath : str
+            Path to the configuration file.
+        receptor : ocr.Receptor
+            The receptor object.
+        preparedReceptorPath : str 
+            Path to the prepared receptor.
+        ligand : ocl.Ligand
+            The ligand object.
+        preparedLigandPath : str
+            Path to the prepared ligand.
+        sminaLog : str
+            Path to the smina log file.
+        outputSmina : str
+            Path to the output smina file.
+        name : str, optional
+            Name of the smina object, by default ""
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        None
+        '''
+
         self.name = str(name)
         self.config = str(configPath)
         # Receptor
-        self.inputReceptor = self.__parse_receptor(receptorPath)
-        self.inputReceptorPath = self.__parse_receptor_path(receptorPath)
+        self.inputReceptor = self.__parse_receptor(receptor)
+        self.inputReceptorPath = self.__parse_receptor_path(receptor)
         self.preparedReceptor = str(preparedReceptorPath)
         self.prepareReceptorCmd = self.__prepare_receptor_cmd()
         # Ligand
-        self.inputLigand = self.__parse_ligand(ligandPath)
-        self.inputLigandPath = self.__parse_ligand_path(ligandPath)
+        self.inputLigand = self.__parse_ligand(ligand)
+        self.inputLigandPath = self.__parse_ligand_path(ligand)
         self.preparedLigand = str(preparedLigandPath)
         self.prepareLigandCmd = self.__prepare_ligand_cmd()
         # Vina
@@ -71,16 +94,24 @@ class Smina:
 
     ## Private ##
 
-    def __parse_receptor(self, receptor):
+    def __parse_receptor(self, receptor: ocr.Receptor) -> ocr.Receptor:
+        '''Parse the receptor as input, handling its type.
+
+        Parameters
+        ----------
+        receptor : ocr.Receptor
+            The path for the receptor or its receptor object.
+
+        Returns
+        -------
+        ocr.Receptor
+            The ocr.Receptor object.
+
+        Raises
+        ------
+        None
         '''
-        Parse the receptor as input, handling its type.
-        Input:
-          receptor [ocr.Receptor] - The path for the receptor or its ocr.Receptor object.
-        Return:
-          [ocr.Receptor]
-           [object] The ocr.Receptor object.
-           [None]   If is a path, returns None (no linkage to Receptor object) NOT RECOMENDED.
-        '''
+
         # Check the type of the receptor
         if type(receptor) == ocr.Receptor:
             octools.printv(f"The receptor '{receptor}' has been loaded.")
@@ -89,39 +120,49 @@ class Smina:
         octools.print_warning(f"The receptor '{receptor}' is not the type 'ocr.Receptor'. It is STRONGLY recomended that you provide an 'ocr.Receptor' object.")
         return None
 
-    def __parse_receptor_path(self, receptor):
+    def __parse_receptor_path(self, receptor: ocr.Receptor) -> str:
+        '''Parse the receptor path, handling its type.
+
+        Parameters
+        ----------
+        receptor : ocr.Receptor
+            The path for the receptor or its receptor object.
+
+        Returns
+        -------
+        str
+            The receptor path.
+
+        Raises
+        ------
+        None
         '''
-        Parse the receptor path, handling its type.
-        Input:
-          receptor [string/ocr.Receptor] - The path for the receptor or its receptor object.
-        Return:
-          [string] The receptor path.
-        '''
+
         # Check the type of receptor variable
         if type(receptor) == ocr.Receptor:
             return receptor.path
-        elif type(receptor) == str:
-            # Since is a string, check if the file exists
-            if os.path.isfile(receptor):
-                # Exists! Return it!
-                return receptor
-            else:
-                _ = errors.file_do_not_exist(message=f"The receptor '{receptor}' has not a valid path.", level="error")
-                return ""
 
         _ = errors.wrong_type(message=f"The receptor '{receptor}' has not a supported type. Expected 'string' or 'ocr.Receptor' but got {type(receptor)} instead.", level="error")
         return ""
 
-    def __parse_ligand(self, ligand):
+    def __parse_ligand(self, ligand: ocl.Ligand) -> ocl.Ligand:
+        '''Parse the ligand as input, handling its type.
+
+        Parameters
+        ----------
+        ligand : ocl.Ligand
+            The path for the ligand or its ligand object.
+
+        Returns
+        -------
+        ocl.Ligand
+            The ocl.Ligand object.
+
+        Raises
+        ------
+        None
         '''
-        Parse the ligand as input, handling its type.
-        Input:
-          receptor [ocl.Ligand] - The path for the receptor or its receptor object.
-        Return:
-          [ocl.Ligand]
-           [object] The ocr.Ligand object.
-           [None]   If is a path, returns None (no linkage to Ligand object) NOT RECOMENDED.
-        '''
+
         # Check the type of the ligand
         if type(ligand) == ocl.Ligand:
             octools.printv(f"The ligand '{ligand}' has been loaded.")
@@ -130,14 +171,24 @@ class Smina:
         octools.print_warning(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.")
         return None
 
-    def __parse_ligand_path(self, ligand):
+    def __parse_ligand_path(self, ligand: ocl.Ligand) -> str:
+        '''Parse the ligand path, handling its type.
+
+        Parameters
+        ----------
+        ligand : ocl.Ligand
+            The path for the ligand or its ligand object.
+
+        Returns
+        -------
+        str
+            The ligand path.
+
+        Raises
+        ------
+        None
         '''
-        Parse the ligand path, handling its type.
-        Input:
-          ;igand [string/ocl.Ligand] - The path for the ligand or its ocl.Ligand object.
-        Return:
-          [string] The ligand object.
-        '''
+
         # Check the type of ligand variable
         if type(ligand) == ocl.Ligand:
             return ligand.path
@@ -145,7 +196,7 @@ class Smina:
             # Since is a string, check if the file exists
             if os.path.isfile(ligand):
                 # Exists! Process it then!
-                return __process_ligand(ligand)
+                return self.__process_ligand(ligand)
             else:
                 _ = errors.file_do_not_exist(message=f"The ligand '{ligand}' has not a valid path.", level="error")
                 return ""
@@ -153,14 +204,23 @@ class Smina:
         _ = errors.wrong_type(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.", level="error")
         return ""
 
-    def __smina_cmd(self):
+    def __smina_cmd(self) -> List[str]:
+        '''Generate the smina command.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        List[str]
+            The smina command.
+
+        Raises
+        ------
+        None
         '''
-        Generate the vina command.
-        Input:
-          -
-        Return:
-          [list[string]] - List of strings of the command.
-        '''
+
         cmd = [smina, "--config", self.config, "--ligand", self.preparedLigand, "--autobox_ligand", self.preparedLigand]
 
         if smina_local_only.lower() in ["y", "ye", "yes"]:
@@ -177,116 +237,200 @@ class Smina:
         cmd.extend(["--out", self.outputSmina, "--log", self.sminaLog, "--cpu", "1"])
         return cmd
 
-    def __prepare_ligand_cmd(self):
-        '''
-        Generate the prepare ligand command.
-        Input:
-          -
-        Return:
-          cmd [list[string]] - List of strings of the command.
-        '''
-        cmd = [obabel, self.inputLigandPath, "-O", self.preparedLigand]
+    def __prepare_ligand_cmd(self) -> List[str]:
+        '''Generate the prepare ligand command.
 
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        List[str]
+            The prepare ligand command.
+
+        Raises
+        ------
+        None
+        '''
+
+        cmd = [obabel, self.inputLigandPath, "-O", self.preparedLigand]
         return cmd
 
-    def __prepare_receptor_cmd(self):
-        '''
-        Generate the prepare receptor command.
-        Input:
-          -
-        Return:
-          cmd [list[string]] - List of strings of the command.
+    def __prepare_receptor_cmd(self) -> List[str]:
+        '''Generate the prepare receptor command.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        List[str]
+            The prepare receptor command.
+
+        Raises
+        ------
+        None
         '''
 
         cmd = [obabel, self.inputReceptorPath, "-xr", "-O", self.preparedReceptor]
         return cmd
 
-    def __gen_smina_conf(self):
+    def __gen_smina_conf(self) -> int:
+        '''Creates a conf file for smina.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        int
+            The exit code of the command (based on the Error.py code table).
+
+        Raises
+        ------
+        None
         '''
-        Creates a conf file for smina.
-        Input:
-          -
-        Return:
-          [int]
-          See Error.py for all return codes.
-        '''
+        
         return gen_smina_conf(self.config, self.preparedReceptor)
 
     ## Public ##
 
-    def read_smina_log(self):
+    def read_smina_log(self) -> pd.DataFrame:
+        '''Read the smina log path, returning a pd.dataframe with data from complexes.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        pd.DataFrame
+            The dataframe with the data from the smina log.
+
+        Raises
+        ------
+        None
         '''
-        Read the smina log path, returning a pd.dataframe with data from complexes.
-        Input:
-          -
-        Return:
-          [pd.dataframe]
-        '''
+
         return read_smina_log(self.sminaLog)
 
-    def run_smina(self, logFile = ""):
+    def run_smina(self, logFile: str = "") -> int:
+        '''Run smina.
+
+        Parameters
+        ----------
+        logFile : str
+            The path for the log file.
+        
+        Returns
+        -------
+        int
+            The exit code of the command (based on the Error.py code table).
+
+        Raises
+        ------
+        None
         '''
-        Run smina.
-        Input:
-          logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
-        Return:
-          [int]
-          See Error.py for all return codes.
-        '''
+
         return octools.run(self.sminaCmd, logFile=logFile)
 
-    def run_prepare_ligand_from_cmd(self, logFile = ""):
+    def run_prepare_ligand_from_cmd(self, logFile: str = "") -> int:
+        '''Run obabel convert ligand to pdbqt using the 'self.inputLigandPath' attribute. [DEPRECATED]
+
+        Parameters
+        ----------
+        logFile : str
+            The path for the log file.
+
+        Returns
+        -------
+        int
+            The exit code of the command (based on the Error.py code table).
+
+        Raises
+        ------
+        None
         '''
-        Run obabel convert ligand to pdbqt using the 'self.inputLigandPath' attribute. [DEPRECATED]
-        Input:
-          logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
-        Return:
-          [int]
-          See Error.py for all return codes.
-        '''
+
         return octools.run(self.prepareLigandCmd, logFile=logFile)
 
-    def run_prepare_ligand(self):
+    def run_prepare_ligand(self) -> int:
+        '''Run obabel convert ligand to pdbqt using the openbabel python library.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        int
+            The exit code of the command (based on the Error.py code table).
+
+        Raises
+        ------
+        None
         '''
-        Run obabel convert ligand to pdbqt using the openbabel python library.
-        Input:
-          -
-        Return:
-          [int]
-          See Error.py for all return codes.
-        '''
+
         return run_prepare_ligand(self.inputLigandPath, self.preparedLigand)
 
-    def run_prepare_receptor_from_cmd(self, logFile = ""):
+    def run_prepare_receptor_from_cmd(self, logFile: str = "") -> int:
+        '''Run obabel convert receptor to pdbqt script using the 'self.prepareReceptorCmd' attribute. [DEPRECATED]
+
+        Parameters
+        ----------
+        logFile : str
+            The path for the log file.
+
+        Returns
+        -------
+        int
+            The exit code of the command (based on the Error.py code table).
+
+        Raises
+        ------
+        None
         '''
-        Run obabel convert receptor to pdbqt script using the 'self.prepareReceptorCmd' attribute. [DEPRECATED]
-        Input:
-          logFile [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
-        Return:
-          [int]
-          See Error.py for all return codes.
-        '''
+
         return octools.run(self.prepareReceptorCmd, logFile=logFile)
 
-    def run_prepare_receptor(self):
+    def run_prepare_receptor(self) -> int:
+        '''Run obabel convert receptor to pdbqt using the openbabel python library.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        int
+            The exit code of the command (based on the Error.py code table).
+
+        Raises
+        ------
+        None
         '''
-        Run obabel convert receptor to pdbqt using the openbabel python library.
-        Input:
-          -
-        Return:
-          [int]
-          See Error.py for all return codes.
-        '''
+
         return run_prepare_receptor(self.inputReceptorPath, self.preparedReceptor)
 
-    def print_attributes(self):
+    def print_attributes(self) -> None:
+        '''Print the class attributes.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        None
         '''
-        Print the class attributes.
-        Input:
-          -
-        Return:
-          -
-        '''
+
         print(f"Name:                        '{self.name if self.name else '-' }'")
         print(f"Config path:                 '{self.config if self.config else '-' }'")
         print(f"Input receptor:              '{self.inputReceptor if self.inputReceptor else '-' }'")
@@ -307,16 +451,26 @@ class Smina:
 ## Private ##
 
 ## Public ##
-def gen_smina_conf(confFile, receptor):
+def gen_smina_conf(confFile: str, receptor: str) -> int:
+    '''Convert a box (DUDE like format) to vina input.
+
+    Parameters
+    ----------
+    confFile : str
+        The path for the conf file.
+    receptor : str
+        The path for the receptor.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
     '''
-    Convert a box (DUDE like format) to vina input.
-    Input:
-      confFile  [string] - Path to the conf file.
-      receptor  [string] - Receptor name to be used in conf file.
-    Return:
-      [int]
-      See Error.py for all return codes.
-    '''
+
     octools.printv(f"Creating smina conf file in the path '{confFile}'.")
     try:
         # Now open the conf file to write
@@ -343,33 +497,54 @@ def gen_smina_conf(confFile, receptor):
         return errors.write_file(message=f"Found a problem while opening conf file: {e}.", level="error")
     return errors.ok()
 
-def run_prepare_ligand_from_cmd(inputLigandPath, preparedLigand, logFile = ""):
+def run_prepare_ligand_from_cmd(inputLigandPath: str, preparedLigand: str, logFile: str = "") -> int:
+    '''Converts the ligand to .pdbqt using obabel. [DEPRECATED]
+
+    Parameters
+    ----------
+    inputLigandPath : str
+        The path for the input ligand.
+    preparedLigand : str
+        The path for the prepared ligand.
+    logFile : str
+        The path for the log file.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
     '''
-    Converts the ligand to .pdbqt using obabel. [DEPRECATED]
-    Input:
-      inputLigandPath    [string]                   - Path to the input ligand file.
-      preparedLigand     [string]                   - Path to the output ligand file.
-      logFile            [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
-    Return:
-      [int]
-      See Error.py for all return codes.
-    '''
+
     # Create the command list
     cmd = [obabel, inputLigandPath, "-O", preparedLigand]
 
     # Run the command
     return octools.run(cmd, logFile=logFile)
 
-def run_prepare_ligand(inputLigandPath, preparedLigand):
+def run_prepare_ligand(inputLigandPath: str, preparedLigand: str) -> int:
+    '''Run obabel convert ligand to pdbqt using the openbabel python library.
+
+    Parameters
+    ----------
+    inputLigandPath : str
+        The path for the input ligand.
+    preparedLigand : str
+        The path for the prepared ligand.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
     '''
-    Run obabel convert ligand to pdbqt using the openbabel python library.
-    Input:
-      inputLigandPath [string] - Path to the input ligand file.
-      preparedLigand  [string] - Path to the output ligand file.
-    Return:
-      [int]
-      See Error.py for all return codes.
-    '''
+
     # Find the extension for input and output
     extension = octools.validate_obabel_extension(inputLigandPath)
     outExtension = os.path.splitext(preparedLigand)[1]
@@ -395,33 +570,53 @@ def run_prepare_ligand(inputLigandPath, preparedLigand):
         return errors.subprocess(message=f"Error while running ligand conversion using obabel python lib. Error: {e}", level="error")
     return errors.ok()
 
-def run_prepare_receptor_from_cmd(inputReceptorPath, outputReceptor, logFile=""):
-    '''
-    Converts the receptor to .pdbqt using obabel. [DEPRECATED]
-    Input:
-      inputReceptorPath    [string]                   - Path to the input receptor file.
-      preparedReceptor     [string]                   - Path to the output receptor file.
-      logFile              [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output.
-    Return:
-      [int]
-      See Error.py for all return codes.
-    '''
-    # Create the command list
-    cmd = [obabel, inputReceptorPath, "-xr", "-O", preparedReceptor]
+def run_prepare_receptor_from_cmd(inputReceptorPath: str, outputReceptor: str, logFile: str = "") -> int:
+    '''Converts the receptor to .pdbqt using obabel. [DEPRECATED]
 
+    Parameters
+    ----------
+    inputReceptorPath : str
+        The path for the input receptor.
+    outputReceptor : str
+        The path for the output receptor.
+    logFile : str
+        The path for the log file.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
+    '''
+
+    # Create the command list
+    cmd = [obabel, inputReceptorPath, "-xr", "-O", outputReceptor]
     # Run the command
     return octools.run(cmd, logFile=logFile)
 
-def run_prepare_receptor(inputReceptorPath, preparedReceptor):
+def run_prepare_receptor(inputReceptorPath: str, preparedReceptor: str) -> int:
+    '''Run obabel convert receptor to pdbqt using the openbabel python library.
+
+    Parameters
+    ----------
+    inputReceptorPath : str
+        The path for the input receptor.
+    preparedReceptor : str
+        The path for the prepared receptor.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
     '''
-    Run obabel convert receptor to pdbqt using the openbabel python library.
-    Input:
-      inputReceptorPath [string] - Path to the input receptor file.
-      preparedReceptor  [string] - Path to the output receptor file.
-    Return:
-      [int]
-      See Error.py for all return codes.
-    '''
+
     # Find the extension for input and output
     extension = octools.validate_obabel_extension(inputReceptorPath)
     outExtension = os.path.splitext(preparedReceptor)[1]
@@ -448,19 +643,32 @@ def run_prepare_receptor(inputReceptorPath, preparedReceptor):
         return errors.subprocess(message=f"Error while running receptor conversion using obabel python lib. Error: {e}", level="error")
     return errors.ok()
 
-def run_smina(config, preparedLigand, outputSmina, sminaLog, logpath):
+def run_smina(config: str, preparedLigand: str, outputSmina: str, sminaLog: str, logPath: str) -> int:
+    '''Convert a box (DUDE like format) to vina input.
+
+    Parameters
+    ----------
+    config : str
+        The path for the config file.
+    preparedLigand : str
+        The path for the prepared ligand.
+    outputSmina : str
+        The path for the output smina file.
+    sminaLog : str
+        The path for the smina log file.
+    logPath : str
+        The path for the log file.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
     '''
-    Convert a box (DUDE like format) to vina input.
-    Input:
-      config          [string]                   - Path to the config file.
-      preparedLigand  [string]                   - Path to the ligand file.
-      outputSmina     [string]                   - Path to the receptor file.
-      sminaLog        [string]                   - Path to the smina log file.
-      logFile         [list(string)] DEFAULT: "" - Path to the logFile. If empty, suppress the output
-    Return:
-      [int]
-      See Error.py for all return codes.
-    '''
+
     # Create the command list
     cmd = [smina, "--config", config, "--ligand", preparedLigand, "--autobox_ligand", preparedLigand]
 
@@ -477,16 +685,26 @@ def run_smina(config, preparedLigand, outputSmina, sminaLog, logpath):
 
     cmd.extend(["--out", outputSmina, "--log", sminaLog, "--cpu", "1"])
     # Run the command
-    return octools.run(cmd, logFile=logFile)
+    return octools.run(cmd, logFile = logPath)
 
-def read_smina_log(path):
+def read_smina_log(path: str) -> Union[pd.DataFrame, int]:
+    '''Read the smina log path, returning a pd.dataframe with data from complexes.
+
+    Parameters
+    ----------
+    path : str
+        The path for the smina log file.
+
+    Returns
+    -------
+    pd.DataFrame | int
+        The dataframe with the data from the smina log file or the exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
     '''
-    Read the smina log path, returning a pd.dataframe with data from complexes.
-    Input:
-      path [string] - Path to the vina output log file.
-    Return:
-      [pd.dataframe]
-    '''
+
     # Check if file exists
     if os.path.isfile(path):
         # Open the log file
