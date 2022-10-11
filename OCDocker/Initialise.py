@@ -54,13 +54,21 @@ description = tw.dedent("""\033[1;93m
 # Functions
 ###############################################################################
 def create_ocdocker_conf() -> None:
+    '''Creates the 'ocdocker.conf' file.
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Creates the 'ocdocker.conf' file.
-    Input:
-      -
-    Return:
-      -
-    '''
+
     #region General config
     confOcdb = "/mnt/e/Documents/OCDocker/OCDocker/data/ocdb"
     confPDBbind_KdKi_order = "u"
@@ -575,13 +583,22 @@ order = {
 # Parse command line arguments
 ###############################################################################
 def argument_parsing() -> argparse.Namespace:
+    '''Get data to generate vina conf file from box file.
+    
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    argparse.Namespace
+        Namespace object containing the arguments.
+
+    Raises
+    ------
+    None
     '''
-    Get data to generate vina conf file from box file.
-    Input:
-      -
-    Return:
-     - 'argparse' object with all arguments.
-    '''
+    
     # Create the parser
     parser = argparse.ArgumentParser(prog="OCDocker",
                                      formatter_class=argparse.RawDescriptionHelpFormatter,

@@ -51,14 +51,24 @@ import OCDocker.Database as ocdb
 ###############################################################################
 ## Private ##
 def __core_process_dudez(target: str, overwrite: bool) -> None:
+    '''Processes the DUDEz database.
+
+    Parameters
+    ----------
+    target : str
+        The path where the files are.
+    overwrite : bool
+        Flag to tell if files should be overwritten.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Processes the DUDEz database.
-    Input:
-     target    - Path where the data is
-     overwrite - Flag for demanding file overwrite
-    Return:
-      -
-    '''
+
     # Get the target name
     target_name = os.path.basename(target)
     # Process the ligands
@@ -108,15 +118,22 @@ def __core_process_dudez(target: str, overwrite: bool) -> None:
     return None
 
 def __thread_process_dudez(arguments: Tuple[str, bool]) -> None:
+    '''Thread aid function to call __core_process_dudez.
+
+    Parameters
+    ----------
+    arguments : Tuple[str, bool]
+        The arguments to be passed to __core_process_dudez.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Thread aid function to call __core_process_dudez.
-    Input:
-     arguments - Tuple containing, in this order:
-        - The path where the files are
-        - Flag to tell if files should be overwritten
-    Return:
-      -
-    '''
+
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         # Call core prepare function (shared between thread and no thread)
@@ -124,15 +141,26 @@ def __thread_process_dudez(arguments: Tuple[str, bool]) -> None:
     return None
 
 def __process_dudez_parallel(targets: str, overwrite: bool, desc: str) -> None:
+    '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
+
+    Parameters
+    ----------
+    targets : str
+        The list of directories to be processed.
+    overwrite : bool
+        Flag to tell if files should be overwritten.
+    desc : str
+        The description to be used in the tqdm progress bar.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
-    Input:
-     targets   - List of paths to process
-     overwrite - Flag to tell if files should be overwritten
-     desc      - The description used in the progress bar
-    Return:
-      -
-    '''
+
     # Arguments to pass to each Thread in the Thread Pool
     arguments = []
     # For each file in the glob
@@ -148,15 +176,26 @@ def __process_dudez_parallel(targets: str, overwrite: bool, desc: str) -> None:
     return None
 
 def __process_dudez_no_parallel(targets: str, overwrite: bool, desc: str) -> None:
+    '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_process_dudez function.
+
+    Parameters
+    ----------
+    targets : str
+        The list of directories to be processed.
+    overwrite : bool
+        Flag to tell if files should be overwritten.
+    desc : str
+        The description to be used in the tqdm progress bar.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_process_dudez function.
-    Input:
-     targets   - List of paths to process
-     overwrite - Flag to tell if files should be overwritten
-     desc      - The description used in the progress bar
-    Return:
-      -
-    '''
+
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         for target in tqdm(iterable=targets, total=len(targets), desc=desc):
@@ -167,14 +206,24 @@ def __process_dudez_no_parallel(targets: str, overwrite: bool, desc: str) -> Non
     return None
 
 def __core_download_dudez(target: str, overwrite: bool) -> None:
+    '''Downloads the DUDEz database.
+
+    Parameters
+    ----------
+    target : str
+        The target directory to download the database.
+    overwrite : bool
+        Flag to tell if files should be overwritten.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Downloads the DUDEz database.
-    Input:
-     target    - Path where the data is
-     overwrite - Flag for demanding file overwrite
-    Return:
-      -
-    '''
+
     # Trying to fix dudez lazy webmasters mistakes
     if target == "D4":
         target2 = "DRD4"
@@ -203,15 +252,22 @@ def __core_download_dudez(target: str, overwrite: bool) -> None:
     return None
 
 def __thread_download_dudez(arguments: Tuple[str, bool]) -> None:
+    '''Thread aid function to call __core_download_dudez.
+
+    Parameters
+    ----------
+    arguments : Tuple[str, bool]
+        The arguments to be passed to __core_download_dudez.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Thread aid function to call __core_download_dudez.
-    Input:
-     arguments - Tuple containing, in this order:
-        - The path where the files are
-        - Flag to tell if files should be overwritten
-    Return:
-      -
-    '''
+
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         # Call core prepare function (shared between thread and no thread)
@@ -219,15 +275,26 @@ def __thread_download_dudez(arguments: Tuple[str, bool]) -> None:
     return None
 
 def __download_dudez_parallel(targets: List[str], overwrite: bool, desc: str) -> None:
+    '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
+
+    Parameters
+    ----------
+    targets : List[str]
+        The list of directories to be processed.
+    overwrite : bool
+        Flag to tell if files should be overwritten.
+    desc : str
+        The description to be used in the tqdm progress bar.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
-    Input:
-     targets   - List of paths to process
-     overwrite - Flag to tell if files should be overwritten
-     desc      - The description used in the progress bar
-    Return:
-      -
-    '''
+
     # Arguments to pass to each Thread in the Thread Pool
     arguments = []
     # For each file in the glob
@@ -243,15 +310,26 @@ def __download_dudez_parallel(targets: List[str], overwrite: bool, desc: str) ->
     return None
 
 def __download_dudez_no_parallel(targets: List[str], overwrite: bool, desc: str) -> None:
+    '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_download_dudez function.
+
+    Parameters
+    ----------
+    targets : List[str]
+        The list of directories to be processed.
+    overwrite : bool
+        Flag to tell if files should be overwritten.
+    desc : str
+        The description to be used in the tqdm progress bar.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_download_dudez function.
-    Input:
-     targets   - List of paths to process
-     overwrite - Flag to tell if files should be overwritten
-     desc      - The description used in the progress bar
-    Return:
-      -
-    '''
+
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         for target in tqdm(iterable=targets, total=len(targets), desc=desc):
@@ -263,13 +341,21 @@ def __download_dudez_no_parallel(targets: List[str], overwrite: bool, desc: str)
 
 ## Public ##
 def create_directories() -> None:
+    '''Create necessary dirs.
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Create necessary dirs.
-    Input:
-      -
-    Return:
-      -
-    '''
+
     # Create the base dir
     _ = octools.safe_create_dir(ocdb_path)
     # Create the pdbbind dir
@@ -282,15 +368,27 @@ def create_directories() -> None:
     _ = octools.safe_create_dir(parsed_archive)
 
 def update_DUDEz(overwrite:bool = False, download:bool = True, multiprocess:bool = True) -> int:
+    '''Updates the DUDE-Z database.
+
+    Parameters
+    ----------
+    overwrite : bool
+        Flag to tell if files should be overwritten.
+    download : bool
+        Flag to tell if the database should be downloaded.
+    multiprocess : bool
+        Flag to tell if the download should be done in parallel.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
     '''
-    Updates the DUDE-Z database.
-    Input:
-      overwrite    - If True, overwrites the existing database, otherwise, don't
-      download     - If True, downloads the database, otherwise, don't
-      multiprocess - If True, uses multiprocessing approach, otherwise, don't
-    Return:
-      -
-    '''
+
     # If mimetypes are not inited yet
     if mimetypes.inited == False:
         # Init mimetypes
@@ -378,13 +476,21 @@ def update_DUDEz(overwrite:bool = False, download:bool = True, multiprocess:bool
     return errors.ok()
 
 def update_pdbbind() -> None:
+    '''Updates the PDBbind database from the Protein-ligand complexes: The refined set.
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Updates the PDBbind database from the Protein-ligand complexes: The refined set.
-    Input:
-      -
-    Return:
-      -
-    '''
+
     # If mimetypes are not inited yet
     if mimetypes.inited == False:
         # Init mimetypes
@@ -504,14 +610,21 @@ def update_pdbbind() -> None:
     return None
 
 def update_astex() -> None:
+    '''Updates the Astex database from the Astex Diverse Set. TODO: This function is not working yet.
+    
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Updates the Astex database from the Astex Diverse Set.
-    TODO: This function is not working yet.
-    Input:
-      -
-    Return:
-      -
-    '''
+
     # If mimetypes are not inited yet
     if mimetypes.inited == False:
         # Init mimetypes
@@ -622,13 +735,21 @@ def update_astex() -> None:
     return
 
 def update_databases() -> None:
+    '''Calls all the database update functions sequentially.
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Calls all the database update functions sequentially.
-    Input:
-      -
-    Return:
-      -
-    '''
+    
     # Start the mimetypes
     mimetypes.init()
 

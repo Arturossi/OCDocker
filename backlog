@@ -20,3 +20,4 @@
 ### 3
 - Change DUDEz data import from current routines to smiles and change the filesystem tree. | 3
 - Review the pandas merge function when reading results to generate docking result file (.csv) | 3
+- Organize the 

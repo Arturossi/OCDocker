@@ -56,9 +56,17 @@ import OCDocker.baseDB as ocbdb
 ###############################################################################
 ## Private ##
 ### p2rank
-def __run_p2rank(dir, fin, overwrite = False):
-    '''
-    Runs p2rank for a given directory.
+def __run_p2rank(dir: str, fin: str, overwrite: bool = False) -> None:
+    '''Runs p2rank for a given directory.
+
+    Parameters
+    ----------
+    dir : str
+        Path where the data is.
+    fin : str
+        PDB file as input.
+    overwrite : bool, optional
+        Flag for demanding file overwrite, by default False.
     Input:
       dir       [string]                - Directory of the protein to run p2rank
       fin       [string]                - PDB file as input

@@ -5,18 +5,17 @@
 import os
 import json
 import rdkit
-from glob import glob
 
+from glob import glob
+from typing import Dict, Tuple, Union
 from rdkit import Chem
 from rdkit import RDLogger
 from rdkit import DataStructs
 from rdkit.Chem import AllChem
 from rdkit.Chem import MACCSkeys
-from rdkit.Chem import Descriptors
 from rdkit.Chem.SaltRemover import SaltRemover
 from rdkit.Chem.rdMolTransforms import ComputeCentroid
 
-from multiprocessing import cpu_count
 
 from openbabel import openbabel
 
@@ -58,12 +57,33 @@ import OCDocker.Ligand as ocl
 # Classes
 ###############################################################################
 class Ligand:
-    """
-    Load and compute ligand descriptors. You can provide either a molecule file
+    """Load and compute ligand descriptors. You can provide either a molecule file
     (pdb/sdf/mol/mol2) or a rdkit.Chem.rdchem.Mol object. A name to indentify
-    the molecule can be provided aswell.
-    """
-    def __init__(self, molecule, name, sanitize = True, from_json_descriptors = ""):
+    the molecule can be provided aswell."""
+
+    def __init__(self, molecule: Union[str, rdkit.Chem.rdchem.Mol], name: str, sanitize: bool = True, from_json_descriptors: str = "") -> None:
+        ''' Constructor for the Ligand class.
+        
+        Parameters
+        ----------
+        molecule : str | rdkit.Chem.rdchem.Mol
+            The molecule to be processed. If a string is provided, it is assumed to be a path to a molecule file (pdb/sdf/mol/mol2). If a rdkit.Chem.rdchem.Mol object is provided, it is assumed to be a molecule object.
+        name : str
+            The name of the molecule.
+        sanitize : bool
+            If True, the molecule will be sanitized.
+        from_json_descriptors : str
+            If a path to a json file is provided, the descriptors will be read from the file instead of being computed.
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        None
+        '''
+
         # Set the path and structure (NEVER SHOUD BE NONE)
         self.path, self.molecule = self.__loadMol(molecule, sanitize)
         # Define everything as None
@@ -1088,34 +1108,65 @@ class Ligand:
             #endregion
 
     ## Private ##
-    def __loadMol(self, molecule, sanitize):
+    def __loadMol(self, molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize: bool) -> Tuple[str, rdkit.Chem.rdchem.Mol]:
+        '''Load a molecule pdb/sdf/mol/mol2 if a path is provided or just assign the Mol object to the molecule.
+
+        Parameters
+        ----------
+        molecule : str | rdkit.Chem.rdchem.Mol
+            The molecule to be processed. If a string is provided, it is assumed to be a path to a molecule file (pdb/sdf/mol/mol2). If a rdkit.Chem.rdchem.Mol object is provided, it is assumed to be a molecule object.
+        sanitize : bool
+            Whether to sanitize the molecule or not.
+
+        Returns
+        -------
+        Tuple[str, rdkit.Chem.rdchem.Mol]
+            The name of the molecule and the molecule object.
+
+        Raises
+        ------
+        None
         '''
-        Load a molecule pdb/sdf/mol/mol2 if a path is provided or just assign the Mol object to the molecule.
-        Input:
-          molecule [string/rdkit.Chem.rdchem.Mol] - If a path is provided, parse the molecule (only for single) and return a tuple path, rdkit.Chem.rdchem.Mol object. If the molecule is a rdkit.Chem.rdchem.Mol object, return an empty string and the object itself.
-        Return:
-          [string, rdkit.Chem.rdchem.Mol] - The molecule object.
-        '''
+
         return loadMol(molecule, sanitize)
 
-    def __read_descriptors_from_json(self, path):
+    def __read_descriptors_from_json(self, path: str) -> Tuple[Union[int, float]]:
+        '''Read the descriptors from a json file.
+
+        Parameters
+        ----------
+        path : str
+            The path to the json file.
+
+        Returns
+        -------
+        Tuple[int | float]
+            The descriptors.
+
+        Raises
+        ------
+        None
         '''
-        Read the descriptors from a json file.
-        Input:
-          -
-        Return:
-          [list(mixed)] - Descriptors read from the json file. If fails, returns null.
-        '''
+
         return read_descriptors_from_json(path)
 
-    def __safe_to_dict(self):
+    def __safe_to_dict(self) -> Dict[str, Union[int, float]]:
+        '''Return all the properties (except the molecule object) for the Ligand object.
+
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        Dict[str, int | float]
+            The properties of the Ligand object.
+
+        Raises
+        ------
+        None
         '''
-        Return all the properties (except the molecule object) for the Ligand object.
-        Input:
-          -
-        Return:
-          [dict of mixed]
-        '''
+
         # Create new dict
         properties = dict()
         # Set Name and Path
@@ -1125,81 +1176,135 @@ class Ligand:
         return {**properties, **self.get_descriptors()}
 
     #region AUTOCORR descriptors
-    def __findAUTOCORR2D_1(self):
+    def __findAUTOCORR2D_1(self) ->  float:
+        '''Compute the autocorrelation2D_1 descriptor.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        float
+            The autocorrelation2D_1 value.
+        
+        Raises
+        ------
+        None
         '''
-        Compute the autocorrelation2D_1 descriptor.
-        Input:
-          -
-        Return:
-          [float] - The autocorrelation2D_1 value.
-          [None]   - If parsing the descriptor fails.
-        '''
+
         return findAUTOCORR2D_1(self.molecule)
 
-    def __findAUTOCORR2D_2(self):
+    def __findAUTOCORR2D_2(self) ->  float:
+        '''Compute the autocorrelation2D_2 descriptor.
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        float
+            The autocorrelation2D_2 value.
+        
+        Raises
+        ------
+        None
         '''
-        Compute the autocorrelation2D_2 descriptor.
-        Input:
-          -
-        Return:
-          [float] - The autocorrelation2D_2 value.
-          [None]   - If parsing the descriptor fails.
-        '''
+
         return findAUTOCORR2D_2(self.molecule)
 
-    def __findAUTOCORR2D_3(self):
+    def __findAUTOCORR2D_3(self) ->  float:
+        '''Compute the autocorrelation2D_3 descriptor.
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        float
+            The autocorrelation2D_3 value.
+        
+        Raises
+        ------
+        None
         '''
-        Compute the autocorrelation2D_3 descriptor.
-        Input:
-          -
-        Return:
-          [float] - The autocorrelation2D_3 value.
-          [None]   - If parsing the descriptor fails.
-        '''
+
         return findAUTOCORR2D_3(self.molecule)
 
-    def __findAUTOCORR2D_4(self):
+    def __findAUTOCORR2D_4(self) ->  float:
+        '''Compute the autocorrelation2D_4 descriptor.
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        float
+            The autocorrelation2D_4 value.
+        
+        Raises
+        ------
+        None
         '''
-        Compute the autocorrelation2D_4 descriptor.
-        Input:
-          -
-        Return:
-          [float] - The autocorrelation2D_4 value.
-          [None]   - If parsing the descriptor fails.
-        '''
+
         return findAUTOCORR2D_4(self.molecule)
 
-    def __findAUTOCORR2D_5(self):
-        '''
-        Compute the autocorrelation2D_5 descriptor.
-        Input:
-          -
-        Return:
-          [float] - The autocorrelation2D_5 value.
-          [None]   - If parsing the descriptor fails.
+    def __findAUTOCORR2D_5(self) ->  float:
+        '''Compute the autocorrelation2D_5 descriptor.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        float
+            The autocorrelation2D_5 value.
+        
+        Raises
+        ------
+        None
         '''
         return findAUTOCORR2D_5(self.molecule)
 
-    def __findAUTOCORR2D_6(self):
+    def __findAUTOCORR2D_6(self) ->  float:
+        '''Compute the autocorrelation2D_6 descriptor.
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        float
+            The autocorrelation2D_6 value.
+        
+        Raises
+        ------
+        None
         '''
-        Compute the autocorrelation2D_6 descriptor.
-        Input:
-          -
-        Return:
-          [float] - The autocorrelation2D_6 value.
-          [None]   - If parsing the descriptor fails.
-        '''
+
         return findAUTOCORR2D_6(self.molecule)
 
-    def __findAUTOCORR2D_7(self):
-        '''
-        Compute the autocorrelation2D_7 descriptor.
-        Input:
-          -
-        Return:
-          [float] - The autocorrelation2D_7 value.
-          [None]   - If parsing the descriptor fails.
-        '''
+    def __findAUTOCORR2D_7(self) ->  float:
+        '''Compute the autocorrelation2D_7 descriptor.
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        float
+            The autocorrelation2D_7 value.
+        
+        Raises
+        ------
+        None
+'''
         return findAUTOCORR2D_7(self.molecule)
 
     def __findAUTOCORR2D_8(self):
