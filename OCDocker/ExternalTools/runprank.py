@@ -17,7 +17,9 @@ import subprocess
 import numpy as np
 import pandas as pd
 
-def __cart2pol(x, y):
+from typing import Tuple
+
+def __cart2pol(x: float, y: float) -> Tuple[float, float]:
     '''
     Transform Cartesian to polar coordinates
     Input:

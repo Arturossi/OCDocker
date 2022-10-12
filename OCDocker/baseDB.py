@@ -7,7 +7,9 @@ import os
 import gc
 import time
 import shutil
+import rdkit
 from glob import glob
+from typing import Dict, List, Tuple, Union
 from tqdm import tqdm
 from multiprocessing import Pool
 
@@ -67,13 +69,16 @@ def __run_p2rank(dir: str, fin: str, overwrite: bool = False) -> None:
         PDB file as input.
     overwrite : bool, optional
         Flag for demanding file overwrite, by default False.
-    Input:
-      dir       [string]                - Directory of the protein to run p2rank
-      fin       [string]                - PDB file as input
-      overwrite [bool]   DEFAULT: False - If True, all files will be generated, otherwise will try to optimize the run avoiding to run p2rank
-    Return:
-      -
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
+
     # Set the output path
     fout = f"{dir}/p2rank"
 
@@ -97,47 +102,79 @@ def __run_p2rank(dir: str, fin: str, overwrite: bool = False) -> None:
         octools.print_warning(f"The protein '{dir}' had a problem while running p2rank. Retrying to run p2rank. Exception: {e}")
         runprank.run_prank(fin, fout, algorithms, prank = prank, threads = args.cpu_cores, debug = False, boxMaxCutoff = p2rank_boxMaxCutoff, pocketCutoff = p2rank_pocketCutoff, verbose = 1 if args.output_level >= 3 else 0, overwrite = overwrite)
 
-    return
+    return None
 
-def __run_create_vina_conf_from_box(dir, fin):
+def __run_create_vina_conf_from_box(dir: str, fin: str) -> None:
+    '''Creates vina conf file from box.
+
+    Parameters
+    ----------
+    dir : str
+        Directory of the protein to run p2rank.
+    fin : str
+        PDB file as input.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Creates vina conf file from box.
-    Input:
-      dir [string] - Directory of the protein to run p2rank
-      fin [string] - PDB file as input
-    Return:
-      -
-    '''
+
     # Run vina
     ocvina.generate_vina_files_database(dir, fin)
+    return None
 
-    return
+def __run_create_plants_conf_from_box(dir: str, fin: str, ligand: str, spacing: float) -> None:
+    '''Creates PLANTS conf file from box.
 
-def __run_create_plants_conf_from_box(dir, fin, ligand, spacing):
+    Parameters
+    ----------
+    dir : str
+        Directory of the protein to run p2rank.
+    protein : str
+        Protein path.
+    ligand : str
+        Ligand name to be used in conf file.
+    spacing : float
+        Extra spacing.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Creates PLANTS conf file from box.
-    Input:
-      dir          [string] - Directory of the protein to run p2rank
-      protein      [string] - Protein path
-      ligand       [string] - Ligand name to be used in conf file
-      spacing      [float]  - Extra spacing
-    Return:
-      -
-    '''
+
     # Run vina
     ocplants.generate_plants_files_database(dir, fin, ligand, spacing)
     return
 
-def __core_p2rank(dir, overwrite, archive):
+def __core_p2rank(dir: str, overwrite: bool, archive: str) -> None:
+    '''Prepares a database entry to be run in multiple docking software.
+
+    Parameters
+    ----------
+    dir : str
+        Path where the data is.
+    overwrite : bool
+        Flag for demanding file overwrite.
+    archive : str
+        Which archive will be processed [dudez, pdbbind, astex].
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Prepares a database entry to be run in multiple docking software.
-    Input:
-     dir       [string] - Path where the data is
-     overwrite [bool]   - Flag for demanding file overwrite
-     archive   [string] - Which archive will be processed [dudez, pdbbind, astex]
-    Return:
-      -
-    '''
+
     if archive == "astex":
         # Set the input file name path
         fin = f"{dir}/protein.pdb"
@@ -168,17 +205,23 @@ def __core_p2rank(dir, overwrite, archive):
 
     return None
 
-def __thread_p2rank(arguments):
+def __thread_p2rank(arguments: Tuple[str, bool, str]) -> None:
+    '''Thread aid function to call __core_p2rank.
+
+    Parameters
+    ----------
+    arguments : Tuple[str, bool, str]
+        Tuple with the arguments to be passed to __core_p2rank. The arguments are: (dir, overwrite, archive). Where dir is the path where the data is, overwrite is a flag for demanding file overwrite and archive is which archive will be processed [dudez, pdbbind, astex].
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Thread aid function to call __core_p2rank.
-    Input:
-     arguments [tuple(string, bool, string, string, bool)] - Tuple containing, in this order:
-        - [string] The path where the files are
-        - [bool]   Flag to tell if files should be overwritten
-        - [string] The database name [dudez, pdbbind, astex]
-    Return:
-      -
-    '''
+
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         # Call core prepare function (shared between thread and no thread)
@@ -186,17 +229,29 @@ def __thread_p2rank(arguments):
     # Return
     return None
 
-def __p2rank_parallel(dirs, overwrite, archive, desc):
+def __p2rank_parallel(dirs: str, overwrite: bool, archive: str, desc: str) -> None:
+    '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
+
+    Parameters
+    ----------
+    dirs: str
+        List of directories to be processed.
+    overwrite: bool
+        Flag for demanding file overwrite.
+    archive: str
+        Which archive will be processed [dudez, pdbbind, astex].
+    desc: str
+        Description to be used in the progress bar.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
-    Input:
-     dirs      [string] - List of paths to process
-     overwrite [bool]   - Flag to tell if files should be overwritten
-     archive   [string] - The database name (for proper logging) [dudez, pdbbind, astex]
-     desc      [string] - The description used in the progress bar
-    Return:
-      -
-    '''
+
     # Arguments to pass to each Thread in the Thread Pool
     arguments = []
     # For each file in the glob
@@ -212,19 +267,29 @@ def __p2rank_parallel(dirs, overwrite, archive, desc):
     # Return
     return None
 
-def __p2rank_no_parallel(dirs, overwrite, archive, desc):
+def __p2rank_no_parallel(dirs: str, overwrite: bool, archive: str, desc: str) -> None:
+    '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_p2rank function.
+
+    Parameters
+    ----------
+    dirs: str
+        List of directories to be processed.
+    overwrite: bool
+        Flag for demanding file overwrite.
+    archive: str
+        Which archive will be processed [dudez, pdbbind, astex].
+    desc: str
+        Description to be used in the progress bar.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_p2rank function.
-    Input:
-     dirs      [string] - List of paths to process
-     overwrite [bool]   - Flag to tell if files should be overwritten
-     archive   [string] - The database name (for proper logging)
-     sanitize  [string] - Flag to tell telling if the molecule should be sanitized
-     spacing   [float]  - The spacing value used to enlarge the radius of the sphere used in PLANTS file. Ranges from 0 to 1
-     desc      [string] - The description used in the progress bar
-    Return:
-      -
-    '''
+
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         for dir in tqdm(iterable=dirs, total=len(dirs), desc=desc):
@@ -235,19 +300,33 @@ def __p2rank_no_parallel(dirs, overwrite, archive, desc):
     return None
 
 ### Prepare
-def __prepare_molecule(mol, overwrite, moltype, dbName, sanitize, targetCentroid = None):
+def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str, dbName: str, sanitize: bool, targetCentroid: Union[List[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> None:
+    '''Prepares a molecule, generating output to docking software.
+
+    Parameters
+    ----------
+    mol : rdkit.Chem.rdchem.Mol
+        Molecule to be prepared.
+    overwrite : bool
+        Flag for demanding file overwrite.
+    moltype : str
+        Type of the molecule to be prepared.
+    dbName : str
+        Name of the database.
+    sanitize : bool
+        Flag for demanding molecule sanitization.
+    targetCentroid : List[float, float, float] | rdkit.Geometry.rdGeometry.Point3D, optional
+        Centroid of the target. If not provided, the centroid of the molecule will be used.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Prepares a molecule, generating output to docking software.
-    Input:
-     mol       [string]                         - Path to the molecule
-     overwrite [bool]                           - Flag to tell if files should be overwritten
-     moltype   [string]                         - The type of the molecule (ligant or receptor)
-     dbName    [string]                         - The database name (for proper logging)
-     sanitize  [string]                         - Flag to tell telling if the molecule should be sanitized
-     targetCentroid [list(float)] DEFAULT: None - The centroid of the target
-    Return:
-      -
-    '''
+
     # Find its name and path
     if type(mol) == tuple:
         molPath, molName = os.path.split(mol[0])
@@ -320,18 +399,31 @@ def __prepare_molecule(mol, overwrite, moltype, dbName, sanitize, targetCentroid
     # Return
     return None
 
-def __sub_core_prepare_dudez(dirToProcess, mols, overwrite, sanitize, targetCentroid = None):
+def __sub_core_prepare_dudez(dirToProcess: str, mols: List[str], overwrite: bool, sanitize: bool, targetCentroid: Union[List[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> None:
+    '''Runs the prepare function for the dudez database subsets.
+
+    Parameters
+    ----------
+    dirToProcess : str
+        Path to the directory to be processed.
+    mols : List[str]
+        List of molecules to be processed.
+    overwrite : bool
+        Flag for demanding file overwrite.
+    sanitize : bool
+        Flag for demanding molecule sanitization.
+    targetCentroid : List[float, float, float] | rdkit.Geometry.rdGeometry.Point3D, optional
+        Centroid of the target. If not provided, the centroid of the molecule will be used.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Runs the prepare function for the dudez database subsets.
-    Input:
-     dirToProcess [string]                      - Path where the data is
-     mols         [list(string)]                - List of molecules to process
-     overwrite    [bool]                        - Flag for demanding file overwrite
-     sanitize     [bool]                        - Flag to tell if the molecule should be sanitized
-     targetCentroid [list(float)] DEFAULT: None - The centroid of the target
-    Return:
-      -
-    '''
+
     processDirs = []
     # Check the length of the list of mols
     if len(mols) == 0:
@@ -407,19 +499,33 @@ def __sub_core_prepare_dudez(dirToProcess, mols, overwrite, sanitize, targetCent
             processDirs.append(f"{ligandPath}/{ligandName}")
     return processDirs
 
-def __core_prepare(d, overwrite, archive, sanitize, spacing, targetCentroid = None):
+def __core_prepare(d: str, overwrite: bool, archive: str, sanitize: bool, spacing: float, targetCentroid: Union[List[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> None:
+    '''Prepares a database entry to be run in multiple docking software.
+
+    Parameters
+    ----------
+    d : str
+        Path to the database directory.
+    overwrite : bool
+        Flag for demanding file overwrite.
+    archive : str
+        Which archive to use. Options are [dudez, pdbbind, astex].
+    sanitize : bool
+        Flag for demanding molecule sanitization.
+    spacing : float
+        Spacing to enlarge the radius of the sphere used in PLANTS conf file. Ranges from 0 to 1
+    targetCentroid : List[float, float, float] | rdkit.Geometry.rdGeometry.Point3D, optional
+        Centroid of the target. If not provided, the centroid of the molecule will be used.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Prepares a database entry to be run in multiple docking software.
-    Input:
-     d         [string] - Path where the data is
-     overwrite [bool]   - Flag for demanding file overwrite
-     archive   [string] - Which archive will be processed [dudez, pdbbind, astex]
-     sanitize  [string] - Flag to tell if the molecule should be sanitized
-     spacing   [float]  - The spacing value used to enlarge the radius of the sphere used in PLANTS file. Ranges from 0 to 1
-     targetCentroid [list(float)] DEFAULT: None - The centroid of the target molecule
-    Return:
-      -
-    '''
+
     if archive == "astex":
         # Set the input file name path
         fin = f"{d}/protein"
@@ -557,39 +663,54 @@ def __core_prepare(d, overwrite, archive, sanitize, spacing, targetCentroid = No
 
     return None
 
-def __thread_prepare(arguments):
-    '''
-    Thread aid function to call __core_prepare.
-    Input:
-     arguments [tuple(string, bool, string, string, bool)] - Tuple containing, in this order:
-        - [string] The path where the files are
-        - [bool]   Flag to tell if files should be overwritten
-        - [string] The database name [dudez, pdbbind, astex]
-        - [bool]   Flag to tell if the molecule should be sanitized
-        - [float]  The spacing value used to enlarge the radius of the sphere used in PLANTS file. Ranges from 0 to 1
-    Return:
-      -
+def __thread_prepare(arguments: Tuple[str, bool, str, bool, float, rdkit.Geometry.rdGeometry.Point3D]) -> None:
+    '''Thread aid function to call __core_prepare.
+
+    Parameters
+    ----------
+    arguments : Tuple[str, bool, str, bool, float, rdkit.Geometry.rdGeometry.Point3D]
+        The arguments to be passed to __core_prepare. Its arguments are: (d, overwrite, archive, sanitize, spacing, targetCentroid). See __core_prepare for more information.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         # Call core prepare function (shared between thread and no thread)
-        return __core_prepare(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4])
-    # Return
-    return None
+        return __core_prepare(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4], arguments[5])
 
-def __prepare_parallel(dirs, overwrite, archive, sanitize, spacing, desc):
+def __prepare_parallel(dirs: List[str], overwrite: bool, archive: str, sanitize: bool, spacing: float, desc: str) -> None:
+    '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
+
+    Parameters
+    ----------
+    dirs : List[str]
+        The list of directories to be processed.
+    overwrite : bool
+        If True, the function will overwrite the files if they already exists.
+    archive : str
+        The archive name. Options are [astex, dudez, pdbbind].
+    sanitize : bool
+        If True, the function will sanitize the molecules.
+    spacing : float
+        The spacing value used to enlarge the radius of the sphere used in PLANTS file. Ranges from 0 to 1.
+    desc : str
+        The description to be used in the tqdm progress bar.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
-    Input:
-     dirs      [string] - List of paths to process
-     overwrite [bool]   - Flag to tell if files should be overwritten
-     archive   [string] - The database name (for proper logging) [dudez, pdbbind, astex]
-     sanitize  [string] - Flag to tell telling if the molecule should be sanitized
-     spacing   [float]  - The spacing value used to enlarge the radius of the sphere used in PLANTS file. Ranges from 0 to 1
-     desc      [string] - The description used in the progress bar
-    Return:
-      -
-    '''
+
     # Arguments to pass to each Thread in the Thread Pool
     arguments = []
     # For each file in the glob
@@ -605,19 +726,33 @@ def __prepare_parallel(dirs, overwrite, archive, sanitize, spacing, desc):
     # Return
     return None
 
-def __prepare_no_parallel(dirs, overwrite, archive, sanitize, spacing, desc):
+def __prepare_no_parallel(dirs: List[str], overwrite: bool, archive: str, sanitize: bool, spacing: float, desc: str) -> None:
+    '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_prepare function.
+
+    Parameters
+    ----------
+    dirs : List[str]
+        The list of directories to be processed.
+    overwrite : bool
+        If True, the function will overwrite the files if they already exists.
+    archive: str
+        The archive name. Options are [astex, dudez, pdbbind].
+    sanitize : bool
+        If True, the function will sanitize the molecules.
+    spacing : float
+        The spacing value used to enlarge the radius of the sphere used in PLANTS file. Ranges from 0 to 1.
+    desc : str
+        The description to be used in the tqdm progress bar.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_prepare function.
-    Input:
-     dirs      [string] - List of paths to process
-     overwrite [bool]   - Flag to tell if files should be overwritten
-     archive   [string] - The database name (for proper logging)
-     sanitize  [string] - Flag to tell telling if the molecule should be sanitized
-     spacing   [float]  - The spacing value used to enlarge the radius of the sphere used in PLANTS file. Ranges from 0 to 1
-     desc      [string] - The description used in the progress bar
-    Return:
-      -
-    '''
+
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         for dir in tqdm(iterable=dirs, total=len(dirs), desc=desc):
@@ -628,15 +763,26 @@ def __prepare_no_parallel(dirs, overwrite, archive, sanitize, spacing, desc):
     return None
 
 ### Get
-def __core_get(dir, archive):
+def __core_get(dir: str, archive: str) -> Tuple[str, ocr.Receptor, ocl.Ligand]:
+    '''Loads in memory a pair receptor-ligand and then return them in a tuple alongside with the protein name gotten from file path.
+
+    Parameters
+    ----------
+    dir : str
+        The directory to be processed.
+    archive : str
+        The archive name. Options are [astex, dudez, pdbbind].
+
+    Returns
+    -------
+    Tuple[str, ocr.Receptor, ocl.Ligand]
+        The tuple containing the protein name, the receptor and the ligand.
+
+    Raises
+    ------
+    None
     '''
-    Loads in memory a pair receptor-ligand and then return them in a tuple alongside with the protein name gotten from file path.
-    Input:
-     dir     [string] - The directory where the files are stored
-     archive [string] - Which archive will be processed [dudez, pdbbind, astex]
-    Return:
-      -
-    '''
+
     # Find ptn name
     ptn = dir.split(os.path.sep)[-1]
     # If is the index directory, ignore
@@ -661,31 +807,51 @@ def __core_get(dir, archive):
             return (ptn, receptor, ligand)
     return None
 
-def __thread_get_parallel(arguments):
+def __thread_get_parallel(arguments: Tuple[str, str]) -> Tuple[str, ocr.Receptor, ocl.Ligand]:
+    '''Thread aid function to call __core_get.
+
+    Parameters
+    ----------
+    arguments : Tuple[str, str]
+        The arguments to be passed to __core_get. Its arguments are: (dir, archive). See __core_get for more information.
+
+    Returns
+    -------
+    Tuple[str, ocr.Receptor, ocl.Ligand]
+        The tuple containing the protein name, the receptor and the ligand.
+
+    Raises
+    ------
+    None
     '''
-    Thread aid function to call __core_get.
-    Input:
-     arguments [tuple(string, string)] - Tuple containing, in this order:
-        - [string] - The directory where the files are stored
-        - [string] - Which archive will be processed [dudez, pdbbind, astex]
-    Return:
-      -
-    '''
+
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         # Call core get function (shared between thread and not thread)
         return __core_get(arguments[0], arguments[1])
 
-def __get_parallel(dirs, archive, desc):
+def __get_parallel(dirs: List[str], archive: str, desc: str) -> Dict[str, Tuple[ocr.Receptor, ocl.Ligand]]:
+    '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
+
+    Parameters
+    ----------
+    dirs : List[str]
+        The list of directories to be processed.
+    archive : str
+        The archive name. Options are [astex, dudez, pdbbind].
+    desc : str
+        The description to be used in the tqdm progress bar.
+
+    Returns
+    -------
+    Dict[str, Tuple[ocr.Receptor, ocl.Ligand]]
+        The dictionary containing the protein name as key and the tuple containing the receptor and the ligand as value.
+
+    Raises
+    ------
+    None
     '''
-    Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
-    Input:
-     dirs    [string] - List of paths to process
-     archive [string] - The database name (for proper logging)
-     desc    [string] - The description used in the progress bar
-    Return:
-      [dict of tuple of OCDocker.Receptor, OCDocker.Ligand] - Dict of OCDocker.Receptor and OCDocker.Ligand objects having as key the name of the protein.
-    '''
+
     # Arguments to pass to each Thread in the Thread Pool
     arguments = []
     # For each file in the glob
@@ -706,16 +872,28 @@ def __get_parallel(dirs, archive, desc):
     # Return
     return databaseDict
 
-def __get_no_parallel(dirs, archive, desc):
+def __get_no_parallel(dirs: List[str], archive: str, desc: str) -> Dict[str, Tuple[ocr.Receptor, ocl.Ligand]]:
+    '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_get function.
+
+    Parameters
+    ----------
+    dirs : List[str]
+        The list of directories to be processed.
+    archive : str
+        The archive name. Options are [astex, dudez, pdbbind].
+    desc : str
+        The description to be used in the tqdm progress bar.
+
+    Returns
+    -------
+    Dict[str, Tuple[ocr.Receptor, ocl.Ligand]]
+        The dictionary containing the protein name as key and the tuple containing the receptor and the ligand as value.
+
+    Raises
+    ------
+    None
     '''
-    Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_get function.
-    Input:
-     dirs      [string] - List of paths to process
-     archive   [string] - The database name (for proper logging)
-     desc      [string] - The description used in the progress bar
-    Return:
-      [dict of tuple of OCDocker.Receptor, OCDocker.Ligand] - Dict of OCDocker.Receptor and OCDocker.Ligand objects having as key the name of the protein.
-    '''
+
     # Dict of elements
     databaseDict = dict()
     # Redirect all prints to tqdm.write
@@ -730,22 +908,39 @@ def __get_no_parallel(dirs, archive, desc):
         return databaseDict
 
 ### Docking
-def __sub_core_run_dock(receptorPath, ligandPath, receptorDir, ligandDir, archive, dockingAlgorithm, receptorDescriptor, ligandDescriptor, overwrite):
+def __sub_core_run_dock(receptorPath: str, ligandPath: str, receptorDir: str, ligandDir: str, archive: str, dockingAlgorithm: str, receptorDescriptor: str, ligandDescriptor: str, overwrite: bool) -> None:
+    '''Performs the docking.
+
+    Parameters
+    ----------
+    receptorPath : str
+        The path to the receptor file.
+    ligandPath : str
+        The path to the ligand file.
+    receptorDir : str
+        The path to the receptor directory.
+    ligandDir : str
+        The path to the ligand directory.
+    archive : str
+        The archive name. Options are [astex, dudez, pdbbind].
+    dockingAlgorithm : str
+        The docking algorithm to be used. Options are [vina, smina, plants].
+    receptorDescriptor : str
+        The path to the receptor descriptor file.
+    ligandDescriptor : str
+        The path to the ligand descriptor file.
+    overwrite : bool
+        If the docking results should be overwritten.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Performs the docking.
-    Input:
-     receptorPath       [string]             - The receptor path
-     ligandPath         [string]             - The ligand path
-     receptorDir        [string]             - The directory where the files are stored
-     ligandDir          [string] DEFAULT: "" - If the directory where the ligand is stored is different than <dir> pass it here
-     archive            [string]             - Which archive will be processed [dudez, pdbbind, astex]
-     dockingAlgorithm   [string]             - Which docking algorithm will be used [vina, smina, plants]
-     receptorDescriptor [string]             - Descriptors file path for the receptor
-     ligandDescriptor   [string]             - Descriptors file path for the ligand
-     overwrite          [bool]               - Flag to tell if files should be overwritten
-    Return:
-      -
-    '''
+
     # If the complex has all descriptors for protein AND ligand
     if os.path.isfile(receptorDescriptor) and os.path.isfile(ligandDescriptor):
         # Find protein name
@@ -1002,18 +1197,31 @@ def __sub_core_run_dock(receptorPath, ligandPath, receptorDir, ligandDir, archiv
         return None
     return None
 
-def __core_run_dock(d, archive, dockingAlgorithm, overwrite, ligandAlternativeDir = ""):
+def __core_run_dock(d: str, archive: str, dockingAlgorithm: str, overwrite: bool, ligandAlternativeDir: str = "") -> None:
+    '''Performs the docking.
+
+    Parameters
+    ----------
+    d : str
+        The path to the protein directory.
+    archive : str
+        Which archive will be processed [dudez, pdbbind, astex].
+    dockingAlgorithm : str
+        Which docking algorithm will be used [vina, smina, plants].
+    overwrite : bool
+        If the docking output already exists, should it be overwritten?
+    ligandAlternativeDir : str, optional
+        If the ligand is not in the same directory as the receptor, this is the path to the ligand directory. By default "". If this is not empty, the ligand will be searched in this directory, otherwise, it will be searched in the same directory as the receptor.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Performs the docking.
-    Input:
-     d                    [string]             - The directory where the files are stored
-     archive              [string]             - Which archive will be processed [dudez, pdbbind, astex]
-     dockingAlgorithm     [string]             - Which docking algorithm will be used [vina, smina, plants]
-     overwrite            [bool]               - Flag to tell if files should be overwritten
-     ligandAlternativeDir [string] DEFAULT: "" - If the directory where the ligand is stored is different than <dir> pass it here
-    Return:
-      -
-    '''
+
     # If is the index directory, ignore
     if d in ['index', 'db']:
         return
@@ -1072,29 +1280,43 @@ def __thread_run_dock_parallel(arguments):
         __core_run_dock(arguments[0], arguments[1], arguments[2], arguments[3], ligandAlternativeDir = arguments[4])
     return None
 
-def __run_dock_parallel(dirs, archive, dockingAlgorithm, overwrite, desc, ligandAlternativeDirs = ""):
+def __run_dock_parallel(dirs: List[str], archive: str, dockingAlgorithm: str, overwrite: bool, desc: str, ligandAlternativeDirs: List[str] = None) -> None:
+    '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
+
+    Parameters
+    ----------
+    dirs : List[str]
+        A list of directories where the files are stored.
+    archive : str
+        Which archive will be processed [dudez, pdbbind, astex].
+    dockingAlgorithm : str
+        Which docking algorithm will be used [vina, smina, plants].
+    overwrite : bool
+        If the docking output already exists, should it be overwritten?
+    desc : str
+        The description of the progress bar.
+    ligandAlternativeDirs : List[str], optional
+        If the ligand is not in the same directory as the receptor, this is the path to the ligand directory. By default None. If this is not None, the ligand will be searched in this directory, otherwise, it will be searched in the same directory as the receptor.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
-    Input:
-     dirs                 [string]             - List of paths to process
-     archive              [string]             - The database name (for proper logging)
-     dockingAlgorithm     [string]             - Which docking algorithm will be used [vina, smina, plants]
-     overwrite            [bool]               - Flag to tell if files should be overwritten
-     desc                 [string]             - The description used in the progress bar
-     ligandAlternativeDirs [string] DEFAULT: "" - If the directory where the ligand is stored is different than <dir> pass it here
-    Return:
-      -
-    '''
+
     # Arguments to pass to each Thread in the Thread Pool
     arguments = []
     # If ligandAlternativeDir is type of list
     if isinstance(ligandAlternativeDirs, list):
         # For each file in dirs
-        for dir in dirs:
+        for d in dirs:
             # Now loop over the ligands of this protein
             for ligandAlternativeDir in ligandAlternativeDirs:
                 # Add the arguments to the list (creating one execution for each pair receptor-ligand)
-                arguments.append((dir, archive, dockingAlgorithm, overwrite, ligandAlternativeDir))
+                arguments.append((d, archive, dockingAlgorithm, overwrite, ligandAlternativeDir))
     # Otherwise, the ligand is in the same directory as the protein
     else:
         # For each file in dirs
@@ -1119,19 +1341,33 @@ def __run_dock_parallel(dirs, archive, dockingAlgorithm, overwrite, desc, ligand
     # Return
     return None
 
-def __run_dock_no_parallel(dirs, archive, dockingAlgorithm, overwrite, desc, ligandAlternativeDirs = ""):
+def __run_dock_no_parallel(dirs: List[str], archive: str, dockingAlgorithm: str, overwrite: bool, desc: str, ligandAlternativeDirs: List[str] = None) -> None:
+    '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_run_dock function.
+
+    Parameters
+    ----------
+    dirs : List[str]
+        A list of directories where the files are stored.
+    archive : str
+        Which archive will be processed [dudez, pdbbind, astex].
+    dockingAlgorithm : str
+        Which docking algorithm will be used [vina, smina, plants].
+    overwrite : bool
+        If the docking output already exists, should it be overwritten?
+    desc : str
+        The description of the progress bar.
+    ligandAlternativeDirs : List[str], optional
+        If the ligand is not in the same directory as the receptor, this is the path to the ligand directory. By default None. If this is not None, the ligand will be searched in this directory, otherwise, it will be searched in the same directory as the receptor.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_run_dock function.
-    Input:
-     dirs                  [string]             - List of paths to process
-     archive               [string]             - The database name (for proper logging)
-     dockingAlgorithm      [string]             - Which docking algorithm will be used [vina, smina, plants]
-     overwrite             [bool]               - Flag to tell if files should be overwritten
-     desc                  [string]             - The description used in the progress bar
-     ligandAlternativeDirs [string] DEFAULT: "" - If the directory where the ligand is stored is different than <dir> pass it here
-    Return:
-      -
-    '''
+
     # If logfile exists, backup it (for error and warnings)
     if os.path.isfile(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log"):
         if not os.path.isdir(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past"):
@@ -1160,15 +1396,25 @@ def __run_dock_no_parallel(dirs, archive, dockingAlgorithm, overwrite, desc, lig
     return None
 
 ### Read logs
-def __core_read_log(processDirData, archive):
+def __core_read_log(processDirData: Tuple[str, str], archive: str) -> None:
+    '''Reads Vina, Smina and PLANTS logs and then return a dict of dataframes.
+
+    Parameters
+    ----------
+    processDirData : Tuple[str, str]
+        A tuple with the directory and the ligand name.
+    archive : str
+        Which archive will be processed [dudez, pdbbind, astex].
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Reads Vina, Smina and PLANTS logs and then return a dict of dataframes.
-    Input:
-     processDirData [tuple(string, string)] - Tuple containing the directory where the files are stored and the receptor descriptor json file
-     archive        [string]                - Which archive will be processed [dudez, pdbbind, astex]
-    Return:
-      -
-    '''
+
     # Unpack the tuple
     processDir, tp = processDirData
     # Check which archive is being used
@@ -1254,31 +1500,49 @@ def __core_read_log(processDirData, archive):
     # Return the proteinData dict
     return proteinData
 
-def __thread_read_log_parallel(arguments):
+def __thread_read_log_parallel(arguments: Tuple[str, str]) -> None:
+    '''Thread aid function to call __core_read_log.
+
+    Parameters
+    ----------
+    arguments : Tuple[str, str]
+        A tuple with the directory and the ligand name.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Thread aid function to call __core_read_log.
-    Input:
-     arguments [tuple(tuple(string, string), string)] - Tuple containing, in this order:
-        - [tuple(string, string)] - Tuple containing in this order the directory where the files are stored and the receptor descriptor json file
-        - [string]                - Which archive will be processed [dudez, pdbbind, astex]
-    Return:
-      -
-    '''
+
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         # Call the core read log function passing the arguments correctly
         return __core_read_log(arguments[0], arguments[1])
 
-def __read_log_parallel(dirs, archive, desc):
+def __read_log_parallel(dirs: Tuple[str, str], archive: str, desc: str) -> Dict[str, Dict[str, pd.DataFrame]]:
+    '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
+
+    Parameters
+    ----------
+    dirs : Tuple[str, str]
+        A tuple with the directory and the ligand name.
+    archive : str
+        Which archive will be processed [dudez, pdbbind, astex].
+    desc : str
+        The description to be used in the tqdm progress bar.
+
+    Returns
+    -------
+    Dict[str, Dict[str, pd.DataFrame]]
+        A dictionary with the protein name as the key and a dictionary with the vina, smina and plants dataframes as the value.
+
+    Raises
+    ------
     '''
-    Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
-    Input:
-     dirs    [tuple(string, string)] - Tuple containing the directory where the files are stored and the receptor descriptor json file
-     archive [string]                - Which archive will be processed [dudez, pdbbind, astex]
-     desc    [string]                - The description used in the progress bar
-    Return:
-      [dict of dicts of pd.DataFrame]
-    '''
+
     # Arguments to pass to each Thread in the Thread Pool
     arguments = []
     # For each file in the glob
@@ -1311,16 +1575,28 @@ def __read_log_parallel(dirs, archive, desc):
 
     return data
 
-def __read_log_no_parallel(dirs, archive, desc):
+def __read_log_no_parallel(dirs: Tuple[str, str], archive: str, desc: str) -> Dict[str, Dict[str, pd.DataFrame]]:
+    '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_read_log function.
+
+    Parameters
+    ----------
+    dirs : Tuple[str, str]
+        A tuple with the directory and the ligand name.
+    archive : str
+        Which archive will be processed [dudez, pdbbind, astex].
+    desc : str
+        The description to be used in the tqdm progress bar.
+
+    Returns
+    -------
+    Dict[str, Dict[str, pd.DataFrame]]
+        A dictionary with the protein name as the key and a dictionary with the vina, smina and plants dataframes as the value.
+    
+    Raises
+    ------
+    None
     '''
-    Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_read_log function.
-    Input:
-     dirs    [tuple(string, string)] - Tuple containing the directory where the files are stored and the receptor descriptor json file
-     archive [string] - Which archive will be processed [dudez, pdbbind, astex]
-     desc    [string] - The description used in the progress bar
-    Return:
-      [dict of dicts of pd.DataFrame]
-    '''
+
     # Dict to store the read data
     data = {}
     # If logfile exists, backup it for vina, smina and plants (for error and warnings)
@@ -1346,17 +1622,32 @@ def __read_log_no_parallel(dirs, archive, desc):
     return data
 
 ### Parse into csv
-def __core_generate_dock_result_csv(processDir, log_dump, ptn, ligand, archive):
+def __core_generate_dock_result_csv(processDir: str, log_dump: str, ptn: str, ligand: str, archive: str) -> pd.DataFrame:
+    '''Reads Vina, Smina and PLANTS logs and then return a dict of dataframes.
+
+    Parameters
+    ----------
+    processDir : str
+        The directory where the logs are.
+    log_dump : str
+        The log dump name.
+    ptn : str
+        The protein name.
+    ligand : str
+        The ligand name.
+    archive : str
+        Which archive will be processed [dudez, pdbbind, astex].
+
+    Returns
+    -------
+    pd.DataFrame
+        A dataframe with the results.
+
+    Raises
+    ------
+    None
     '''
-    Reads Vina, Smina and PLANTS logs and then return a dict of dataframes.
-    Input:
-     dir     [string] - The directory where the files are stored
-     ptn     [string] - Which protein is being processed
-     ligand  [string] - Which ligand is being processed
-     archive [string] - Which archive will be processed [dudez, pdbbind, astex]
-    Return:
-      -
-    '''
+
     # The new dataframe
     df = pd.DataFrame(columns=["Protein", "Ligand", "vina_affinity", "smina_affinity", "plants_TOTAL_SCORE", "plants_SCORE_RB_PEN", "plants_SCORE_NORM_HEVATOMS", "plants_SCORE_NORM_CRT_HEVATOMS", "plants_SCORE_NORM_WEIGHT", "plants_SCORE_NORM_CRT_WEIGHT", "plants_SCORE_RB_PEN_NORM_CRT_HEVATOMS", "vina_rmsd", "smina_rmsd", "plants_rmsd"])
 
@@ -1454,33 +1745,51 @@ def __core_generate_dock_result_csv(processDir, log_dump, ptn, ligand, archive):
 
     return df
 
-def __thread_generate_dock_result_csv_parallel(arguments):
+def __thread_generate_dock_result_csv_parallel(arguments: Tuple[str, str, str, str, str]) -> pd.DataFrame:
+    '''Thread aid function to call __core_generate_dock_result_csv.
+
+    Parameters
+    ----------
+    arguments : Tuple[str, str, str, str, str]
+        Tuple containing the arguments for the __core_generate_dock_result_csv function. The arguments are: (ptn, ligand, processDir, logdir, archive).
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing the results of the docking.
+
+    Raises
+    ------
+    None
     '''
-    Thread aid function to call __core_generate_dock_result_csv.
-    Input:
-     arguments [tuple(string, string, string, bool)] - Tuple containing, in this order:
-        - [string] - The directory where the files are stored
-        - [string] - Which protein is being processed
-        - [string] - Which archive will be processed [dudez, pdbbind, astex]
-    Return:
-      -
-    '''
+
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         # Call the core read log function passing the arguments correctly
         return __core_generate_dock_result_csv(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4])
-    return None
 
-def __generate_dock_result_csv_parallel(processDirs, archive, desc):
+def __generate_dock_result_csv_parallel(processDirs: Dict[str, Dict[str, pd.DataFrame]], archive: str, desc: str) -> pd.DataFrame:
+    '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
+
+    Parameters
+    ----------
+    processDirs : Dict[str, Dict[str, pd.DataFrame]]
+        Dictionary containing the directories to process and the ligands to process. The dictionary is in the format: {ptn: {ligand: log_dump}}.
+    archive : str
+        Which archive will be processed [dudez, pdbbind, astex].
+    desc : str
+        Description to be displayed in the progress bar.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing the results of the docking.
+
+    Raises
+    ------
+    None
     '''
-    Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
-    Input:
-     log_dumps [dict of dicts of pd.DataFrame] - The dump generated from the read_logs function
-     archive   [string]                        - Which archive will be processed [dudez, pdbbind, astex]
-     desc      [string]                        - The description used in the progress bar
-    Return:
-      [dict of dicts of pd.DataFrame]
-    '''
+
     # If logfile exists, backup it for vina, smina and plants (for error and warnings)
     if os.path.isfile(f"{logdir}/{archive}_dock_result_ERROR.log"):
         if not os.path.isdir(f"{logdir}/generate_dock_result_csv_past"):
@@ -1504,16 +1813,28 @@ def __generate_dock_result_csv_parallel(processDirs, archive, desc):
             gc.collect()
     return pd.concat(dfList)
 
-def __generate_dock_result_csv_no_parallel(processDirs, archive, desc):
+def __generate_dock_result_csv_no_parallel(processDirs: Dict[str, Dict[str, pd.DataFrame]], archive: str, desc: str) -> pd.DataFrame:
+    '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_generate_dock_result_csv function.
+
+    Parameters
+    ----------
+    processDirs : Dict[str, Dict[str, pd.DataFrame]]
+        Dictionary containing the directories to process and the ligands to process. The dictionary is in the format: {ptn: {ligand: log_dump}}.
+    archive : str
+        Which archive will be processed [dudez, pdbbind, astex].
+    desc : str
+        Description to be displayed in the progress bar.
+        
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing the results of the docking.
+
+    Raises
+    ------
+    None
     '''
-    Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_generate_dock_result_csv function.
-    Input:
-     processDirs [dict of dicts of pd.DataFrame] - The dump generated from the read_logs function
-     archive     [string]                        - Which archive will be processed [dudez, pdbbind, astex]
-     desc        [string]                        - The description used in the progress bar
-    Return:
-      [dict of dicts of pd.DataFrame]
-    '''
+
     # If logfile exists, backup it for vina, smina and plants (for error and warnings)
     if os.path.isfile(f"{logdir}/{archive}_dock_result_ERROR..log"):
         if not os.path.isdir(f"{logdir}/generate_dock_result_csv_past"):
@@ -1531,15 +1852,26 @@ def __generate_dock_result_csv_no_parallel(processDirs, archive, desc):
     return pd.concat(dfList)
 
 ### Merge descriptors in dataframe
-def __core_merge_descriptors_in_dataframe(processDirPackage, archive):
+def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple(str, str), archive: str) -> pd.DataFrame:
+    '''Reads the descriptor and receptor json then parse them into a dataframe.
+
+    Parameters
+    ----------
+    processDirPackage : Tuple(str, str)
+        Tuple containing the processDir and the package. The tuple is in the format: (processDir, receptor_descriptor_path).
+    archive : str
+        Which archive will be processed [dudez, pdbbind, astex].
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing the results of the docking.
+
+    Raises
+    ------
+    None
     '''
-    Reads the descriptor and receptor json then parse them into a dataframe.
-    Input:
-     processDirPackage [tuple(string, string)] - Tuple containing the directory where the files are stored and the receptor descriptor json file
-     archive           [string]                - Which archive will be processed [dudez, pdbbind, astex]
-    Return:
-      -
-    '''
+
     # Unpack the tuple
     processDir, receptor_descriptor_path = processDirPackage
 
@@ -1586,32 +1918,52 @@ def __core_merge_descriptors_in_dataframe(processDirPackage, archive):
     # Return the dataframe with a single row
     return ptndf
 
-def __thread_merge_descriptors_in_dataframe_parallel(arguments):
+def __thread_merge_descriptors_in_dataframe_parallel(arguments: Tuple[Tuple[str, str], str]) -> pd.DataFrame:
+    '''Thread aid function to call __core_merge_descriptors_in_dataframe.
+
+    Parameters
+    ----------
+    arguments : Tuple[Tuple[str, str], str]
+        Tuple containing the directory where the files are stored and the receptor descriptor json file and the archive type.
+    
+    Returns
+    -------
+    pd.DataFrame
+        Dataframe with the descriptors of the protein.
+
+    Raises
+    ------
+    None
     '''
-    Thread aid function to call __core_merge_descriptors_in_dataframe.
-    Input:
-     arguments [tuple(tuple(string, string, string)] - Tuple containing, in this order:
-        - [tuple(string, string)] - Tuple containing in this order the directory where the files are stored and the receptor descriptor json file
-        - [string] - Which archive will be processed [dudez, pdbbind, astex]
-    Return:
-      -
-    '''
+
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         # Call the core read log function passing the arguments correctly
         return __core_merge_descriptors_in_dataframe(arguments[0], arguments[1])
     return None
 
-def __merge_descriptors_in_dataframe_parallel(dirs, archive, desc):
+def __merge_descriptors_in_dataframe_parallel(dirs: Tuple[str, str], archive: str, desc: str) -> pd.DataFrame:
+    '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
+
+    Parameters
+    ----------
+    dirs : Tuple[str, str]
+        Tuple containing the directory where the files are stored and the receptor descriptor json file.
+    archive : str
+        Which archive will be processed. [dudez, pdbbind, astex]
+    desc : str
+        Description of the process.
+
+    Returns
+    -------
+    pd.DataFrame
+        Dataframe with the descriptors of the proteins.
+
+    Raises
+    ------
+    None
     '''
-    Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
-    Input:
-     dirs    [tuple(string, string)] - Tuple containing the directory where the files are stored and the receptor descriptor json file
-     archive [string]                - Which archive will be processed [dudez, pdbbind, astex]
-     desc    [string]                - The description used in the progress bar
-    Return:
-      [pd.DataFrame]
-    '''
+
     # Arguments to pass to each Thread in the Thread Pool
     arguments = []
     # For each file in the glob
@@ -1643,16 +1995,24 @@ def __merge_descriptors_in_dataframe_parallel(dirs, archive, desc):
             gc.collect()
     return ptndf
 
-def __merge_descriptors_in_dataframe_no_parallel(dirs, archive, desc):
+def __merge_descriptors_in_dataframe_no_parallel(dirs: Tuple[str, str], archive: str, desc: str) -> pd.DataFrame:
+    '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_read_log function.
+
+    Parameters
+    ----------
+    dirs : Tuple[str, str]
+        Tuple containing the directory where the files are stored and the receptor descriptor json file.
+
+    Returns
+    -------
+    pd.DataFrame
+        Dataframe with the descriptors of the proteins.
+
+    Raises
+    ------
+    None
     '''
-    Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_read_log function.
-    Input:
-     dirs    [tuple(string, string)] - Tuple containing the directory where the files are stored and the receptor descriptor json file
-     archive [string] - Which archive will be processed [dudez, pdbbind, astex]
-     desc    [string] - The description used in the progress bar
-    Return:
-      [dict of dicts of pd.DataFrame]
-    '''
+
     # Dict to store the read data
     ptndf = pd.DataFrame()
     # If logfile exists, backup it for vina, smina and plants (for error and warnings)
@@ -1678,15 +2038,25 @@ def __merge_descriptors_in_dataframe_no_parallel(dirs, archive, desc):
     return ptndf
 
 ## Public ##
-def verify_integrity(chosenArchive, spacing = 0.33):
+def verify_integrity(chosenArchive: str, spacing: float = 0.33) -> None:
+    '''Verifies the integrity of the desired database
+
+    Parameters
+    ----------
+    chosenArchive : str
+        The name of the archive to verify the integrity.
+    spacing : float, optional
+        The spacing between the progress bar and the text, by default 0.33
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Verifies the integrity of the desired database
-    Input:
-     chosenArchive [string]               - Which archive will be processed. [dudez, pdbbind, astex]
-     spacing       [float]  DEFAULT: 0.33 - Extra spacing for the sphere in percentage. (To ensure that all the sites will be accounted) (ONLY USED IN Smina)
-    Return:
-      -
-    '''
+
     # Verify the integrity of the database
     octools.printv(f"Verifiying the integrity of the {chosenArchive} database")
 
@@ -1871,30 +2241,34 @@ def verify_integrity(chosenArchive, spacing = 0.33):
                         continue
 
     octools.printv(f"Integrity check of the PDBbind database accomplished. Success rate: {((lenDirs - failed) / lenDirs) * 100}% ({(lenDirs - failed)}/{lenDirs})")
+    return None
 
-    return
+def convert_debug_to_production(chosenArchive: str, chosenAlgorithm: str = "ac", strict: bool = False, removeDebug: bool = False) -> None:
+    '''Converts debug folders to production mode. It is required to choose an algorithm which will be used furtherly in the pipeline.
 
-def convert_debug_to_production(chosenArchive, chosenAlgorithm = "ac", strict = False, removeDebug = False):
+    Parameters
+    ----------
+    chosenArchive : str
+        The archive to be converted. The options are [dudez, pdbbind, astex].
+    chosenAlgorithm : str, optional
+        The algorithm to be used in the pipeline. The default is "ac". The short code for the algorithms are
+            AffinityPropagation: ap, 
+            AgglomerativeClustering: ac
+            Birch: bi
+            DBSCAN: db
+            KMeans:  km
+            MeanShift: ms
+            MiniBatchKMeans: mb
+            NoCluster: na
+            OPTICS: op
+            SpectralClustering: sc
+            Ward: wa
+    strict : bool, optional
+        If True does not convert the data even if there is only one dir, if False will convert the data if the protein has only one dir (this is good when you ran with only one algorithm, some proteins may have been run with "na"). The default is False.
+    removeDebug : bool, optional
+        If True removes the debug folder after the conversion, if False keeps the debug folder. The default is False.
     '''
-    Converts debug folders to production mode. It is required to choose an algorithm which will be used furtherly in the pipeline.
-    Input:
-     chosenArchive   [string]              - Which archive will be processed. [dudez, pdbbind, astex]
-     chosenAlgorithm [string] DEFAULT: ac  - The short code for the chosen algorithm. The choices are:
-                                                AffinityPropagation: ap
-                                                AgglomerativeClustering: ac
-                                                Birch: bi
-                                                DBSCAN: db
-                                                KMeans:  km
-                                                MeanShift: ms
-                                                MiniBatchKMeans: mb
-                                                NoCluster: na
-                                                OPTICS: op
-                                                SpectralClustering: sc
-     strict          [bool] DEFAULT: False - If True does not convert the data even if there is only one dir, if False will convert the data if the protein has only one dir (this is good when you ran with only one algorithm, some proteins may have been run with "na")
-     removeDebug     [bool] DEFAULT: False - If True removes debug folders (NO TURNING BACK), if False leave the dirs
-    Return:
-      -
-    '''
+
     # Generate boxes for all receptors
     octools.printv("Converting p2rank debug to production file tree.")
 
@@ -1902,7 +2276,7 @@ def convert_debug_to_production(chosenArchive, chosenAlgorithm = "ac", strict = 
     dirs = glob(f"{chosenArchive}/*")
 
     # Set the allowed values
-    allowed = ["ap", "ac", "bi", "db", "km", "ms", "mb", "na", "op", "sc"]
+    allowed = ["ap", "ac", "bi", "db", "km", "ms", "mb", "na", "op", "sc", "wa"]
 
     # Redirect output to tqdm.write
     with octools.redirect_to_tqdm():
@@ -1977,19 +2351,31 @@ def convert_debug_to_production(chosenArchive, chosenAlgorithm = "ac", strict = 
             else:
                 octools.printv(f"Nothing to convert for '{dir}'. Skipping...")
                 continue
-    return
+    return None
 
-def prepare(archive, overwrite = False, spacing = 0.33, sanitize = True):
+def prepare(archive: str, overwrite: bool = False, spacing: float = 0.33, sanitize: bool = True) -> None:
+    '''Prepares the database.
+
+    Parameters
+    ----------
+    archive : str
+        The archive to be prepared. The options are [dudez, pdbbind, astex].
+    overwrite : bool, optional
+        If True overwrites the files, if False does not overwrite the files. The default is False.
+    spacing : float, optional
+        The spacing to be used in the grid. The default is 0.33.
+    sanitize : bool, optional
+        If True sanitizes the ligands, if False does not sanitize the ligands. The default is True.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Prepares the database.
-    Input:
-     archive   [string]                - Which archive will be processed. [dudez, pdbbind, astex]
-     overwrite [bool]   DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated.
-     spacing   [float]  DEFAULT: 0.33  - Extra spacing for the sphere in percentage. (To ensure that all the sites will be accounted)
-     sanitize  [bool]   DEFAULT: True  - Flag to denote if the molecule should be sanitized
-    Return:
-      -
-    '''
+
     # Make archive lowercase
     archive = os.path.basename(archive).lower()
     # Find which kind of archive it will be
@@ -2023,14 +2409,24 @@ def prepare(archive, overwrite = False, spacing = 0.33, sanitize = True):
     return None
 
 def run_p2rank(archive: str, overwrite: bool = False) -> None:
+    '''Runs P2Rank in the desired database.
+
+    Parameters
+    ----------
+    archive : str
+        The archive to be prepared. The options are [dudez, pdbbind, astex].
+    overwrite : bool, optional
+        If True overwrites the files, if False does not overwrite the files. The default is False.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Runs P2Rank in the desired database.
-    Input:
-     archive   [string]                - Which archive will be processed. [dudez, pdbbind, astex]
-     overwrite [bool]   DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated.
-    Return:
-      -
-    '''
+
     # Make archive lowercase
     archive = os.path.basename(archive).lower()
     # Find which kind of archive it will be
@@ -2063,16 +2459,27 @@ def run_p2rank(archive: str, overwrite: bool = False) -> None:
         __p2rank_no_parallel(dirs, overwrite, archive, label)
     return None
 
-def run_dock(archive, dockingAlgorithm, overwrite = False):
+def run_dock(archive: str, dockingAlgorithm: str, overwrite: bool = False) -> None:
+    '''Run docking.
+
+    Parameters
+    ----------
+    archive : str
+        The archive to be prepared. The options are [dudez, pdbbind, astex].
+    dockingAlgorithm : str
+        The docking algorithm to be used. The options are [vina, smina, plants].
+    overwrite : bool, optional
+        If True overwrites the files, if False does not overwrite the files. The default is False.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Run docking.
-    Input:
-     archive          [string]                - Which archive will be processed. [dudez, pdbbind, astex]
-     dockingAlgorithm [string]                - Which docking software will be run. [vina, smina, plants]
-     overwrite        [bool]   DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated.
-    Return:
-      -
-    '''
+
     # Make archive lowercase
     archive = os.path.basename(archive).lower()
     # Find which kind of archive it will be
@@ -2153,15 +2560,26 @@ def run_dock(archive, dockingAlgorithm, overwrite = False):
         __run_dock_no_parallel(dirs, archive, dockingAlgorithm, overwrite, ligandAlternativeDirs = ligandAlternativeDirs)
     return None
 
-def read_logs(archive, picklePath = ""):
+def read_logs(archive: str, picklePath: str = "") -> Dict[str, Dict[str, pd.DataFrame]]:
+    '''Reads database logfiles returning a dict of dicts of pd.DataFrames.
+
+    Parameters
+    ----------
+    archive : str
+        The archive to be prepared. The options are [dudez, pdbbind, astex].
+    picklePath : str, optional
+        The path to the pickle file. The default is "". If the picklePath is not empty, the function will write the data to the pickle file.
+
+    Returns
+    -------
+    Dict[str, Dict[str, pd.DataFrame]]
+        A dict of dicts of pd.DataFrames with the data from the logfiles.
+
+    Raises
+    ------
+    None
     '''
-    Reads database logfiles returning a dict of dicts of pd.DataFrames.
-    Input:
-     archive    [string]             - Which archive will be processed. [dudez, pdbbind, astex]
-     picklePath [string] DEFAULT: "" - The path where to store the pickle file. If empty no pickle file will be generated.
-    Return:
-     [dict of dicts of pd.DataFrame]
-    '''
+
     # Make archive lowercase
     archive = os.path.basename(archive).lower()
     # Find which kind of archive it will be
@@ -2198,7 +2616,7 @@ def read_logs(archive, picklePath = ""):
             elif archive == "pdbbind":
                 receptor_descriptor_path = f"{pdbbind_archive}/{ptn}/{ptn}_protein_descriptors.json"
                 # Make the processDirs a unitary list of the dir and its descriptors (since there is only one ligand per protein)
-                processDirs = [(d, f"{astex_archive}/{ptn}/{ptn}_protein_descriptors.json")]
+                processDirs = [(d, receptor_descriptor_path)]
             else:
                 octools.print_error(f"Unknown archive type. Expected one of the following: 'astex', 'dudez', 'pdbbind' and got {archive}.")
                 return None
@@ -2226,17 +2644,29 @@ def read_logs(archive, picklePath = ""):
     # Return the data
     return data
 
-def generate_dock_result_csv(archive, log_dumps, csv_path, chunksize=500):
+def generate_dock_result_csv(archive: str, log_dumps: Dict[str, Dict[str, pd.DataFrame]], csv_path: str, chunksize: int = 500) -> None:
+    '''Uses the structure from read_logs to generate an output for all docking softwares.
+
+    Parameters
+    ----------
+    archive : str
+        The archive to be prepared. The options are [dudez, pdbbind, astex].
+    log_dumps : Dict[str, Dict[str, pd.DataFrame]]
+        The data from the logfiles.
+    csv_path : str
+        The path to the csv file.
+    chunksize : int, optional
+        The chunksize to be used when writing the csv. The default is 500.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Uses the structure from read_logs to generate an output for all docking softwares.
-    Input:
-     archive   [string]                                     - Which archive will be processed [dudez, pdbbind, astex]
-     log_dumps [dict of dicts of pd.DataFrame]              - The dump generated from the read_logs function
-     csv_path  [string]                                     - Path to the csv file
-     chunksize [int]                           DEFAULT: 500 - Chunk size to write the csv
-    Return:
-     -
-    '''
+
     # Find which kind of archive it will be
     if archive == "astex":
         pass
@@ -2269,15 +2699,26 @@ def generate_dock_result_csv(archive, log_dumps, csv_path, chunksize=500):
         data.to_csv(csv_path, index=False, chunksize=chunksize)
     return None
 
-def merge_descriptors_in_dataframe(archive, saveCsv=True):
+def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> pd.DataFrame:
+    '''Reads all the descriptors jsons and return a pd.DataFrame.
+
+    Parameters
+    ----------
+    archive : str
+        The archive to be prepared. The options are [dudez, pdbbind, astex].
+    saveCsv : bool, optional
+        If True, the csv will be saved. The default is True.
+    
+    Returns
+    -------
+    pd.DataFrame
+        The dataframe with all the descriptors.
+
+    Raises
+    ------
+    None
     '''
-    Reads all the descriptors jsons and return a pd.DataFrame.
-    Input:
-     archive [string]               - Which archive will be processed. [dudez, pdbbind, astex]
-     saveCsv [bool]   DEFAULT: True - If True will save to the Prepared folder in the database
-    Return:
-     [pd.DataFrame]
-    '''
+
     # Make archive lowercase
     archive = os.path.basename(archive).lower()
     # Find which kind of archive it will be
@@ -2348,8 +2789,10 @@ def merge_descriptors_in_dataframe(archive, saveCsv=True):
             ptndf = pd.read_csv(csv_path_in)
             # Merge the both DataFrames using the Protein column as a comparer
             data = pd.merge(ptndf, data, on=["Protein", "Ligand"], how="left")
-            # Write the data to a new csv file
-            data.to_csv(csv_path_out, index=False)
+            # If saveCsv is True, save the csv
+            if saveCsv:
+                # Write the data to a new csv file
+                data.to_csv(csv_path_out, index=False)
             octools.print_success(f"The file '{csv_path_out}' has been successfully written.")
         except Exception as e:
             octools.print_error(f"Could not write the file '{csv_path_out}'. Error: {e}")
