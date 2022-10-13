@@ -70,6 +70,10 @@ class Receptor:
             Path to the json file containing the descriptors, by default ""
         overwrite : bool, optional
             Flag to denote if files will be overwritten, by default False
+        
+        Returns
+        -------
+        None
 
         Raises
         ------
@@ -84,13 +88,13 @@ class Receptor:
         # If user pass a json
         if from_json_descriptors:
             # Read the molecule telling that there is no need to fetch the SASA value
-            self.path, self.structure = self.__loadMol(structure, computeSASA=False,overwrite=overwrite)
+            self.path, self.structure = loadMol(structure, name=self.name, computeSASA=False, mol2Path=self.mol2Path, overwrite=overwrite)
         else:
             # Read the molecule telling that there is the need to fetch the SASA value
-            self.path, self.structure = self.__loadMol(structure, computeSASA=True, overwrite=overwrite)
+            self.path, self.structure = loadMol(structure, name=self.name, computeSASA=True, mol2Path=self.mol2Path, overwrite=overwrite)
 
         # Set the residues (derived from structure)
-        self.residues = self.__getRes()
+        self.residues = getRes(self.structure)
 
         # Set everything as None
         self.sasa = None
@@ -135,7 +139,7 @@ class Receptor:
         # If user pass a json
         if from_json_descriptors:
             # Read the descriptors from it
-            data = self.__read_descriptors_from_json(from_json_descriptors)
+            data = read_descriptors_from_json(from_json_descriptors)
             # If data is None, a problem occurred while reading the json file
             if not data:
                 octools.print_error(f"Problems while parsing json file: '{from_json_descriptors}'")
@@ -151,23 +155,24 @@ class Receptor:
                 return None
             self.name = name.replace(" ", "_")
 
-            self.totalAALength, self.avgAALength, self.countChain = self.__count_AAs_and_chains()
+            self.totalAALength, self.avgAALength, self.countChain = count_AAs_and_chains(self.structure)
 
             self.sasa = self.structure.sasa
             self.__cModel = cModel # The options are 'mmff94', 'gasteiger' or 'eem2015bm'
-            self.dipoleMoment = self.__computeDipoleMoment()
-            self.isoelectricPoint = self.__computeIsoelectricPoint()
-            self.instabilityIndex = self.__computeInstabilityIndex()
+            self.dipoleMoment = computeDipoleMoment(self.path, self.__cModel)
+            self.isoelectricPoint = computeIsoelectricPoint(self.residues)
+            self.instabilityIndex = computeInstabilityIndex(self.residues)
 
             self.__gravyScale = gravyScale
-            self.GRAVY = self.__computeGravy()
+            self.GRAVY = computeGravy(self.residues, scale=self.__gravyScale)
 
-            self.aromaticity = self.__computeAromaticity()
+            self.aromaticity = computeAromaticity(self.residues)
 
             # Será que seria interessante? secondary_structure_fraction(self) https://biopython.org/docs/1.76/api/Bio.SeqUtils.ProtParam.html
 
             self.__relativeASAcutoff = relativeASAcutoff
-            self.__countAA = self.__count_surface_AA()
+            
+            self.__countAA = count_surface_AA(self.structure, self.path, self.__relativeASAcutoff)
 
             self.countA = self.__countAA["A"]
             self.countR = self.__countAA["R"]
@@ -236,202 +241,6 @@ class Receptor:
         '''
 
         return read_descriptors_from_json(path)
-
-    def __count_surface_AA(self) -> Dict:
-        '''Counts how many of each of the 20 standard AAs has a relative Accessible surface area (ASA) value above a given cutoff.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        Dict
-            A dictionary with the count of each AA. Will return None if the molecule is not valid.
-        
-        Raises
-        ------
-        None
-        '''
-
-        if not self.path:
-            _ = errors.not_set(message=f"The model path is not set!", level="error")
-            return None
-        return count_surface_AA(self.structure, self.path, self.__relativeASAcutoff)
-
-    def __count_AAs_and_chains(self) -> Tuple[int, float, int]:
-        '''Counts the total length (sum of all AAs), the average length (the total AAs divided by the number of chains) and the number of chains the protein 
-        has.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        Tuple[int, float, int]
-            A tuple with the total length, the average length and the number of chains. If fails will return None.
-
-        Raises
-        ------
-        None
-        '''
-
-        if not self.path:
-            _ = errors.not_set(message=f"The model path is not set!", level="error")
-            return None
-        return count_AAs_and_chains(self.structure)
-
-    def __loadMol(self, structure: Union[str, Bio.PDB.Structure.Structure], computeSASA: bool = True, overwrite: bool = False) -> Tuple[Bio.PDB.Structure.Structure, str]:
-        '''Load a structure pdb/cif if a path is provided or just assign the Bio.PDB.Structure.Structure object to the structure.
-
-        Parameters
-        ----------
-        structure : str | Bio.PDB.Structure.Structure
-            The path to the structure or the Bio.PDB.Structure.Structure object.
-        computeSASA : bool, optional
-            If True will compute the SASA for the structure. Default is True.
-        overwrite : bool, optional
-            If True will overwrite the current structure. Default is False.
-
-        Returns
-        -------
-        Tuple[Bio.PDB.Structure.Structure, str]
-            A tuple with the Bio.PDB.Structure.Structure object and the path to the structure. If fails will return a tuple containing None and "".
-
-        Raises
-        ------
-        None
-        '''
-
-        return loadMol(structure, name=self.name, computeSASA=True, mol2Path=self.mol2Path, overwrite=overwrite)
-
-    def __getRes(self) -> str:
-        '''Get the amino acid one letter sequence for the receptor (Ignore chains).
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        str
-            The amino acid one letter sequence for the receptor (Ignore chains).
-
-        Raises
-        ------
-        None
-        '''
-
-        return getRes(self.structure)
-
-    def __computeDipoleMoment(self) -> float:
-        '''Computes the receptor's dipole moment.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        float
-            The receptor's dipole moment.
-
-        Raises
-        ------
-        None
-        '''
-
-        return computeDipoleMoment(self.path, self.__cModel)
-
-    def __computeIsoelectricPoint(self) -> float:
-        '''Computes protein's isoelectric point.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        float
-            The protein's isoelectric point.
-
-        Raises
-        ------
-        None
-        '''
-
-        return computeIsoelectricPoint(self.residues)
-
-    def __computeGravy(self) -> float:
-        '''Computes the GRAVY (Grand Average of Hydropathy) according to Kyte and Doolitle, 1982.
-
-        Utilizes the given Hydrophobicity scale, by default uses the original
-        proposed by Kyte and Doolittle (KyteDoolitle). Other options are:
-        Aboderin, AbrahamLeo, Argos, BlackMould, BullBreese, Casari, Cid,
-        Cowan3.4, Cowan7.5, Eisenberg, Engelman, Fasman, Fauchere, GoldSack,
-        Guy, Jones, Juretic, Kidera, Miyazawa, Parker,Ponnuswamy, Rose,
-        Roseman, Sweet, Tanford, Wilson and Zimmerman.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        float
-            The GRAVY (Grand Average of Hydropathy) according to Kyte and Doolitle, 1982.
-
-        Raises
-        ------
-        None
-        '''
-
-        return computeGravy(self.residues, scale=self.__gravyScale)
-
-    def __computeAromaticity(self) -> float:
-        '''Compute the aromaticity according to Lobry, 1994.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        float
-            The aromaticity according to Lobry, 1994.
-
-        Raises
-        ------
-        None
-        '''
-
-        return computeAromaticity(self.residues)
-
-    def __computeInstabilityIndex(self) -> float:
-        '''Calculate the instability index according to Guruprasad et al 1990.
-
-        Implementation of the method of Guruprasad et al. 1990 to test a
-        protein for stability. Any value above 40 means the protein is unstable
-        (has a short half life).
-        See: Guruprasad K., Reddy B.V.B., Pandit M.W.
-        Protein Engineering 4:155-161(1990).
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        float
-            The instability index according to Guruprasad et al 1990.
-
-        Raises
-        ------
-        None
-        '''
-
-        return computeInstabilityIndex(self.residues)
 
     ## Public ##
     def print_attributes(self) -> None:
