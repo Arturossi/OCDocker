@@ -300,7 +300,7 @@ def __p2rank_no_parallel(dirs: str, overwrite: bool, archive: str, desc: str) ->
     return None
 
 ### Prepare
-def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str, dbName: str, sanitize: bool, targetCentroid: Union[List[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> None:
+def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str, dbName: str, sanitize: bool, molName: str = "molecule", targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> None:
     '''Prepares a molecule, generating output to docking software.
 
     Parameters
@@ -315,7 +315,9 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
         Name of the database.
     sanitize : bool
         Flag for demanding molecule sanitization.
-    targetCentroid : List[float, float, float] | rdkit.Geometry.rdGeometry.Point3D, optional
+    molName : str
+        Name of the molecule.
+    targetCentroid : Tuple[float, float, float] | rdkit.Geometry.rdGeometry.Point3D, optional
         Centroid of the target. If not provided, the centroid of the molecule will be used.
 
     Returns
@@ -329,17 +331,21 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
 
     # Find its name and path
     if type(mol) == tuple:
-        molPath, molName = os.path.split(mol[0])
+        molPath = os.path.split(mol[0])[0]
     else:
-        molPath, molName = os.path.split(mol)
-    molName = os.path.splitext(molName)[0]
-    if overwrite or not os.path.isfile(f"{molPath}/{molName}_descriptors.json"):
+        molPath = os.path.split(mol)[0]
+    
+    if overwrite or not os.path.isfile(f"{molPath}/{moltype}_descriptors.json"):
         if moltype == "ligand":
             try:
                 # Create the ligand object
                 m = ocl.Ligand(mol, molName, sanitize = sanitize)
             # If m is not valid
             except Exception as e:
+                _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed!", "error")
+                octools.print_error_log(f"The molecule '{mol}' could not be parsed! .", f"{logdir}/{dbName}_error_Parse.log")
+                return None
+                '''Additional checkages
                 # Let's check its extension
                 filename, file_extension = os.path.splitext(mol)
                 # Tell the user that will search for another extension (.sdf)
@@ -370,6 +376,7 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                             _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed!", "error")
                             octools.print_error_log(f"The molecule '{mol}' could not be parsed! .", f"{logdir}/{dbName}_error_Parse.log")
                             return None
+                            '''
         elif moltype == "receptor":
             try:
                 # If is a tuple
@@ -399,7 +406,7 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
     # Return
     return None
 
-def __sub_core_prepare_dudez(dirToProcess: str, mols: List[str], overwrite: bool, sanitize: bool, targetCentroid: Union[List[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> None:
+def __sub_core_prepare(dirToProcess: str, mols: List[str], dbName: str, overwrite: bool, sanitize: bool, targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> None:
     '''Runs the prepare function for the dudez database subsets.
 
     Parameters
@@ -408,11 +415,13 @@ def __sub_core_prepare_dudez(dirToProcess: str, mols: List[str], overwrite: bool
         Path to the directory to be processed.
     mols : List[str]
         List of molecules to be processed.
+    dbName : str
+        Name of the database.
     overwrite : bool
         Flag for demanding file overwrite.
     sanitize : bool
         Flag for demanding molecule sanitization.
-    targetCentroid : List[float, float, float] | rdkit.Geometry.rdGeometry.Point3D, optional
+    targetCentroid : Tuple[float, float, float] | rdkit.Geometry.rdGeometry.Point3D, optional
         Centroid of the target. If not provided, the centroid of the molecule will be used.
 
     Returns
@@ -438,9 +447,9 @@ def __sub_core_prepare_dudez(dirToProcess: str, mols: List[str], overwrite: bool
             _ = octools.safe_create_dir(f"{processDir}/vinaFiles")
             _ = octools.safe_create_dir(f"{processDir}/sminaFiles")
             # Set the fligand name as the ligand file path
-            fligand = f"{processDir}/{ligandName}.smi"
+            fligand = f"{processDir}/ligand.smi"
             # For each ligand (don't use parallel, since there is no need)
-            __prepare_molecule(fligand, overwrite, "ligand", "dudez", sanitize = sanitize, targetCentroid = targetCentroid)
+            __prepare_molecule(fligand, overwrite, "ligand", dbName, sanitize = sanitize, targetCentroid = targetCentroid)
     else:
         for mol in mols:
             # Extract the ligand name from the path
@@ -491,15 +500,16 @@ def __sub_core_prepare_dudez(dirToProcess: str, mols: List[str], overwrite: bool
                     # It does not exist. Move the ligand to its dir
                     shutil.move(fligandsmiorig, fligandsmidest)
                 # For each ligand (don't use parallel, since there is no need)
-                __prepare_molecule(fligandsmidest, overwrite, "ligand", "dudez", sanitize = sanitize, targetCentroid = targetCentroid)
+                __prepare_molecule(fligandsmidest, overwrite, "ligand", dbName, sanitize = sanitize, targetCentroid = targetCentroid)
             else:
                 # For each ligand (don't use parallel, since there is no need)
-                __prepare_molecule(fligand, overwrite, "ligand", "dudez", sanitize = sanitize, targetCentroid = targetCentroid)
+                __prepare_molecule(fligand, overwrite, "ligand", dbName, sanitize = sanitize, targetCentroid = targetCentroid)
             # Append the dir to the list of dirs to be processed
             processDirs.append(f"{ligandPath}/{ligandName}")
+
     return processDirs
 
-def __core_prepare(d: str, overwrite: bool, archive: str, sanitize: bool, spacing: float, targetCentroid: Union[List[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> None:
+def __core_prepare(d: str, overwrite: bool, archive: str, sanitize: bool, spacing: float, targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> None:
     '''Prepares a database entry to be run in multiple docking software.
 
     Parameters
@@ -514,7 +524,7 @@ def __core_prepare(d: str, overwrite: bool, archive: str, sanitize: bool, spacin
         Flag for demanding molecule sanitization.
     spacing : float
         Spacing to enlarge the radius of the sphere used in PLANTS conf file. Ranges from 0 to 1
-    targetCentroid : List[float, float, float] | rdkit.Geometry.rdGeometry.Point3D, optional
+    targetCentroid : Tuple[float, float, float] | rdkit.Geometry.rdGeometry.Point3D, optional
         Centroid of the target. If not provided, the centroid of the molecule will be used.
 
     Returns
@@ -526,91 +536,67 @@ def __core_prepare(d: str, overwrite: bool, archive: str, sanitize: bool, spacin
     None
     '''
 
-    if archive == "astex":
-        # Set the input file name path
-        fin = f"{d}/protein"
+    # Check if the basename of the working directory is not in the list of ignored directories
+    if os.path.basename(d) in ['index']:
+        # Skip it
+        return
 
-        # Set the ligand input file name path
-        lfin = f"{d}/ligand"
+    # Set the input file name path
+    fin = f"{d}/receptor.pdb"
+    fout = f"{d}/receptor.mol2"
+    # Set the prepared receptor name
+    preparedReceptor = f"{d}/receptor_prepared.mol2"
 
-        # If the overwrite flag is true or the receptor pdb file does not exist
-        if overwrite or not os.path.isfile(f"{fin}.pdb"):
-            # Convert the protein file from mol2 to pdb
-            _ = octools.convertMols(f"{fin}.mol2", f"{fin}.pdb")
+    # Prepare the receptor
+    __prepare_molecule((fin, fout), overwrite, "receptor", archive, sanitize = sanitize)
 
-        # If the overwrite flag is true or the ligand mol2 file does not exists
-        if overwrite or not os.path.isfile(f"{lfin}.mol2"):
-            # Convert the ligand file from mol to mol2
-            _ = octools.convertMols(f"{lfin}.mol", f"{lfin}.mol2")
+    # Parameterize the compounds folders
+    ligands_d = os.path.join(d, "ligands")       # known ligands
+    decoys_d = os.path.join(d, "decoys")         # known decoys
+    candidates_d = os.path.join(d, "candidates") # unknown ligands
 
-        # Reset the input file variable
-        fin = f"{fin}.pdb"
-    elif archive == "dudez":
-        # Set the input file name path
-        fin = f"{d}/rec.crg.pdb"
-        fout = f"{d}/rec.crg.mol2"
-        # Set the prepared receptor name
-        preparedReceptor = f"{d}/rec.crg_prepared.mol2"
+    # Create an empty list to hold all dirs to be processed
+    processDirs = []
 
-        # Get the ligand file name path
-        lfin = f"{d}/ligand.smi"
-
-        # Find the protein name
-        ptn = d.split(os.path.sep)[-1]
-
-        # Prepare the receptor
-        __prepare_molecule((fin, fout), overwrite, "receptor", archive, sanitize = sanitize)
-
-        # Parameterize paths
-        dudezDirLigand = f"{d}/dudez_ligands"
-        dudezDirDecoy = f"{d}/dudez_decoys"
-        #extremaDirDecoy = f"{d}/extrema_decoys" # TODO: Implement this
-
-        # Create an empty list to hold all dirs to be processed
-        processDirs = []
-
-        # For each molecule in dudez ligand dir
-        mols = glob(f"{dudezDirLigand}/*.mol2")
-        # Append the dir to the list of dirs to be processed
-        processDirs += __sub_core_prepare_dudez(dudezDirLigand, mols, overwrite, sanitize, targetCentroid = targetCentroid)
-
-        # For each molecule in dudez decoy dir
-        mols = glob(f"{dudezDirDecoy}/*.mol2")
-        # Append the dir to the list of dirs to be processed
-        processDirs += __sub_core_prepare_dudez(dudezDirDecoy, mols, overwrite, sanitize, targetCentroid = targetCentroid)
-
-        # TODO: Implement this
-        '''
-        # Process all folders for extrema dir
-        for extrema_d in ['minus2', 'minus1', 'neutral', 'plus1', 'plus2']:
-            extremaDir = f"{extremaDirDecoy}/{extrema_d}"
-            # For each molecule in extrema decoy dir
-            mols = glob(f"{extremaDir}/*.mol2")
+    # If the archive is dudez
+    if archive == "dudez":
+        # Set the ligand extension to .smi
+        ligandExt = ".smi"
+    else:
+        # Set the ligand extension to .mol2
+        ligandExt = ".mol2"
+        
+    # Check if the ligands dir exists
+    if os.path.isdir(ligands_d):
+        # For each molecule in ligands dir
+        mols = glob(f"{ligands_d}/*.{ligandExt}")
+        # If there any ligand
+        if len(mols) > 0:
             # Append the dir to the list of dirs to be processed
-            processDirs += __sub_core_prepare_dudez(extremaDir, mols, overwrite, sanitize, targetCentroid = targetCentroid)]
-        '''
+            processDirs += __sub_core_prepare(ligands_d, mols, overwrite, sanitize, targetCentroid = targetCentroid)
 
-    elif archive == "pdbbind":
-        # If is the index path
-        if os.path.basename(d) in ['index', 'db']:
-            # Skip it
-            return
-        # Find the protein name
-        ptn = d.split(os.path.sep)[-1]
-        # Set the input file name path (to generate the box and data about the protein)
-        fin = f"{d}/{ptn}_protein.pdb"
-        fout = f"{d}/{ptn}_protein.mol2"
-        # Set the prepared receptor name
-        preparedReceptor = f"{d}/{ptn}_prepared.mol2"
-        # Convert the .pdb to .mol2 (for dock6 use)
-        _ = octools.convertMols(fin, fout)
-        # Set the ligand file name path (to generate data about the ligand)
-        fligand = f"{d}/{ptn}_ligand.mol2"
-        # For each ligand (don't use parallel, since there is no need)
-        __prepare_molecule(fligand, overwrite, "ligand", archive, sanitize = sanitize)
-        # For each Receptor
-        __prepare_molecule((fin, fout), overwrite, "receptor", archive, sanitize = sanitize)
+    # Check if the decoys dir exists
+    if os.path.isdir(decoys_d):
+        # For each molecule in dudez decoy dir
+        mols = glob(f"{decoys_d}/*.{ligandExt}")
+        # If there any ligand
+        if len(mols) > 0:
+            # Append the dir to the list of dirs to be processed
+            processDirs += __sub_core_prepare(decoys_d, mols, overwrite, sanitize, targetCentroid = targetCentroid)
+    
+    # Check if the candidates dir exists
+    if os.path.isdir(candidates_d):
+        # For each molecule in dudez candidate dir
+        mols = glob(f"{candidates_d}/*.{ligandExt}")
+        # If there any ligand
+        if len(mols) > 0:
+            # Append the dir to the list of dirs to be processed
+            processDirs += __sub_core_prepare(candidates_d, mols, overwrite, sanitize, targetCentroid = targetCentroid)
 
+    # Find the protein name
+    ptn = d.split(os.path.sep)[-1]
+
+    ''' P2Rank is not used yet
     # Set the output path
     fout = f"{d}/p2rank"
     # Create the p2rank output dir
@@ -623,6 +609,7 @@ def __core_prepare(d: str, overwrite: bool, archive: str, sanitize: bool, spacin
         __run_p2rank(d, fin, overwrite=overwrite)
     else:
         octools.print_info(f"The protein '{d}' already has its p2rank output generated, skipping its execution.")
+    '''
 
     # Check if processDirs is not set or is empty
     if not processDirs or len(processDirs) == 0:
@@ -631,6 +618,9 @@ def __core_prepare(d: str, overwrite: bool, archive: str, sanitize: bool, spacin
 
     # For each dir to be processed
     for processDir in processDirs:
+        # Check if there is a box for the ligand
+        boxCount = len(glob(f"{processDir}/boxes/box*.pdb"))
+        # TODO: Check the code below
         # If overwrite mode is on or there is not the same amount of box files as folders in vinaFiles folder
         if boxCount == 0 or len(glob(f"{processDir}/vinaFiles/*")) != boxCount or overwrite or len(glob(f"{processDir}/vinaFiles/*")) == 0:
             # Check if the archive is dudez
@@ -713,10 +703,12 @@ def __prepare_parallel(dirs: List[str], overwrite: bool, archive: str, sanitize:
 
     # Arguments to pass to each Thread in the Thread Pool
     arguments = []
+    
     # For each file in the glob
     for dir in dirs:
         # Append a tuple containing the file name and ovewrite flag to the arguments list
         arguments.append((dir, overwrite, archive, sanitize, spacing))
+
     # Create a Thread pool with the maximum available_cores
     with Pool(args.available_cores) as p:
         # Perform the multi process
@@ -1852,7 +1844,7 @@ def __generate_dock_result_csv_no_parallel(processDirs: Dict[str, Dict[str, pd.D
     return pd.concat(dfList)
 
 ### Merge descriptors in dataframe
-def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple(str, str), archive: str) -> pd.DataFrame:
+def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str], archive: str) -> pd.DataFrame:
     '''Reads the descriptor and receptor json then parse them into a dataframe.
 
     Parameters
@@ -2397,8 +2389,10 @@ def prepare(archive: str, overwrite: bool = False, spacing: float = 0.33, saniti
     else:
         octools.print_error(f"Not valid archive type. Expected one of ['astex', 'dudez', 'pdbbind'] and found {archive}.")
         return None
+
     # Generate boxes for all receptors
     octools.printv("Generating information regarding possible ligand site.")
+
     # If is multiprocess
     if args.multiprocess:
         # Prepare the pdbbind
