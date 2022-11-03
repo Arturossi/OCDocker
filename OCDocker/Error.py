@@ -59,6 +59,7 @@ class Error:
 
         # Common errors
         self.okCode                        = 0
+        self.abortCode                     = 1
         self.unkownCode                    = -666
 
         # File errors
@@ -115,7 +116,7 @@ class Error:
             print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;96mINFO\033[1;0m: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
         else:
             print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;96mINFO\033[1;0m: {message}")
-        return
+        return None
 
     def __print_success(self, message: str) -> None:
         '''Print success.
@@ -139,7 +140,8 @@ class Error:
             print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;92mSUCCESS\033[1;0m: {message} In function '{inspect.currentframe().f_back.f_back.f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_back.f_back.f_lineno} from file '{inspect.currentframe().f_back.f_back.f_back.f_code.co_filename}'.")
         else:
             print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;92mSUCCESS\033[1;0m: {message}")
-        return
+
+        return None
 
     def __print_warning(self, message: str) -> None:
         '''Function to print warning.
@@ -163,7 +165,8 @@ class Error:
             print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;93mWARNING\033[1;0m: {message} In function '{inspect.currentframe().f_back.f_back.f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_back.f_back.f_lineno} from file '{inspect.currentframe().f_back.f_back.f_back.f_code.co_filename}'.")
         else:
             print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;93mWARNING\033[1;0m: {message}")
-        return
+
+        return None
 
     def __print_error(self, message: str) -> None:
         '''Print error.
@@ -187,7 +190,8 @@ class Error:
             print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;91mERROR\033[1;0m: {message} In function '{inspect.currentframe().f_back.f_back.f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_back.f_back.f_lineno} from file '{inspect.currentframe().f_back.f_back.f_back.f_code.co_filename}'.")
         else:
             print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;91mERROR\033[1;0m: {message}")
-        return
+
+        return None
 
     def __print_msg(self, message: str = "", level: str = "warn") -> None:
         '''Prints a message based on level.
@@ -217,7 +221,8 @@ class Error:
                 self.__print_success(message)
             elif level == "info" and self.args.output_level >= 2:
                 self.__print_info(message)
-        return
+
+        return None
 
     ## Public ##
     # Common errors
@@ -240,6 +245,29 @@ class Error:
         '''
 
         self.__print_msg(message, "success")
+
+        return self.okCode
+
+    def abort(self, message: str = "") -> int:
+        '''Return this when process has been aborted.
+
+        Parameters
+        ----------
+        message : string, optional
+            Message to be printed. Default is "".
+
+        Returns
+        -------
+        int
+            The code for abort (1).
+
+        Raises
+        ------
+        None
+        '''
+
+        self.__print_msg(message, "warn")
+
         return self.okCode
 
     def unkown(self, message: str = "", level: str = "warn") -> int:
@@ -263,6 +291,7 @@ class Error:
         '''
 
         self.__print_msg(message, level)
+
         return self.fileExistsCode
 
     # File errors
@@ -287,6 +316,7 @@ class Error:
         '''
 
         self.__print_msg(message, level)
+
         return self.fileExistsCode
 
     def file_do_not_exist(self, message: str = "", level: str = "warn") -> int:
@@ -310,6 +340,7 @@ class Error:
         '''
         
         self.__print_msg(message, level)
+
         return self.fileDoNotExistCode
 
     def read_file(self, message: str = "", level: str = "warn") -> int:
@@ -333,6 +364,7 @@ class Error:
         '''
 
         self.__print_msg(message, level)
+
         return self.readFileCode
 
     def write_file(self, message: str = "", level: str = "warn") -> int:
@@ -356,6 +388,7 @@ class Error:
         '''
 
         self.__print_msg(message, level)
+
         return self.writeFileCode
 
     def untar_file(self, message: str = "", level: str = "warn") -> int:
@@ -379,6 +412,7 @@ class Error:
         '''
 
         self.__print_msg(message, level)
+
         return self.untarFileCode
 
     def unsupported_extension(self, message: str = "", level: str = "warn") -> int:
@@ -402,6 +436,7 @@ class Error:
         '''
 
         self.__print_msg(message, level)
+
         return self.unsupportedExtensionCode
 
     # Directory errors
@@ -426,6 +461,7 @@ class Error:
         '''
 
         self.__print_msg(message, level)
+
         return self.createDirCode
 
     def dir_does_not_exists(self, message: str = "", level: str = "warn") -> int:
@@ -449,6 +485,7 @@ class Error:
         '''
 
         self.__print_msg(message, level)
+
         return self.dirDoesNotExistsCode
 
     # Variable errors
@@ -473,6 +510,7 @@ class Error:
         '''
 
         self.__print_msg(message, level)
+
         return self.wrongTypeCode
 
     def not_set(self, message: str = "", level: str = "warn") -> int:
@@ -496,6 +534,7 @@ class Error:
         '''
 
         self.__print_msg(message, level)
+
         return self.notSetCode
 
     def empty(self, message: str = "", level: str = "warn") -> int:
@@ -519,6 +558,7 @@ class Error:
         '''
 
         self.__print_msg(message, level)
+
         return self.emptyCode
 
     # Subprocess errors
@@ -543,6 +583,7 @@ class Error:
         '''
 
         self.__print_msg(message, level)
+
         return self.subprocessCode
 
     # Molecules errors
@@ -567,6 +608,7 @@ class Error:
         '''
 
         self.__print_msg(message, level)
+
         return self.parseMoleculeCode
 
     def malformed_molecule(self, message: str = "", level: str = "warn") -> int:
@@ -590,6 +632,7 @@ class Error:
         '''
 
         self.__print_msg(message, level)
+
         return self.malformedMoleculeCode
 
     def ligand_not_prepared(self, message: str = "", level: str = "warn") -> int:
@@ -613,6 +656,7 @@ class Error:
         '''
 
         self.__print_msg(message, level)
+
         return self.ligandNotPreparedCode
 
     def receptor_not_prepared(self, message: str = "", level: str = "warn") -> int:
@@ -636,6 +680,7 @@ class Error:
         '''
 
         self.__print_msg(message, level)
+
         return self.receptorNotPreparedCode
 
     # Molecules errors
@@ -660,6 +705,7 @@ class Error:
         '''
 
         self.__print_msg(message, level)
+
         return self.dockingObjectNotGeneratedCode
 
     def receptor_or_ligand_not_generated(self, message: str = "", level: str = "warn") -> int:
@@ -683,6 +729,7 @@ class Error:
         '''
 
         self.__print_msg(message, level)
+
         return self.recLigObjectNotGeneratedCode
 
     def receptor_or_ligand_descriptor_does_not_exist(self, message: str = "", level: str = "warn") -> int:
@@ -706,6 +753,7 @@ class Error:
         '''
 
         self.__print_msg(message, level)
+
         return self.recLigObjectNotGeneratedCode
 
     # Debug functions
@@ -731,6 +779,7 @@ class Error:
 
         print(f"\n\t~~~~~~~~~~~~~~~ GENERAL ERRORS ~~~~~~~~~~~~~~~")
         print(f"\t - No error:                      {self.okCode}")
+        print(f"\t - Abortion:                      {self.abortCode}")
         print(f"\t - Unknown error:                 {self.unkownCode}")
 
         print(f"\n\t~~~~~~~~~~~~~~~~~ FILE ERRORS ~~~~~~~~~~~~~~~~")
@@ -767,7 +816,7 @@ class Error:
         print(f"\t - Receptor/Ligand File")
         print(f"\t   descriptor does not exist:       {self.recLigFileDoesNotExist}")
 
-        return
+        return None
 
 # Functions
 ###############################################################################

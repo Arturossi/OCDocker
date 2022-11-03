@@ -8,8 +8,8 @@ from glob import glob
 from typing import Dict, List, Tuple
 import pandas as pd
 
-import Ligand as ocl
-import Receptor as ocr
+import OCDocker.Ligand as ocl
+import OCDocker.Receptor as ocr
 
 from OCDocker.Initialise import *
 import OCDocker.baseDB as ocbdb

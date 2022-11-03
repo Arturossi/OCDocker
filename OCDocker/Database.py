@@ -50,8 +50,10 @@ import OCDocker.Database as ocdb
 # Functions
 ###############################################################################
 ## Private ##
+
+# DUDEz #
 def __core_process_dudez(target: str, overwrite: bool) -> None:
-    '''Processes the DUDEz database.
+    '''Core function to process the DUDEz database.
 
     Parameters
     ----------
@@ -73,48 +75,43 @@ def __core_process_dudez(target: str, overwrite: bool) -> None:
     target_name = os.path.basename(target)
     # Process the ligands
     octools.printv(f"Processing the ligands for {target_name}")
+    # Parameterize the compounds path
+    targetc = os.path.join(target, "compounds")
     # Create the compound folder (will hold all compounds, no matter if they are ligand or decoy)
-    _ = octools.safe_create_dir(f"{target}/compounds")
+    _ = octools.safe_create_dir(targetc)
     # List to hold the tuples for each processing that will be made
-    process_list = [("dudez_ligands", "dudezLigand"), ("dudez_decoys", "dudezDecoy")]
+    process_list = ["ligands", "decoys"]
     # For each data
     for data in process_list:
         # Print which file is being processed
-        octools.printv(f"Processing {target}/{data[1]}.smi")
-
-
-
-    # List to hold the tuples for each processing that will be made
-    process_list = [("dudez_ligands", "ligands"), ("dudez_decoys", "decoys"), ("extrema_decoys/minus2", "extrema_minus2"), ("extrema_decoys/minus1", "extrema_minus1"), ("extrema_decoys/neutral", "extrema_neutral"), ("extrema_decoys/plus1", "extrema_plus1"), ("extrema_decoys/plus2", "extrema_plus2")]
-    # Create the extrema folder inside the target folder
-    #_ = octools.safe_create_dir(f"{target}/extrema_decoys")
-    # For each data
-    for data in process_list:
-        # Print which file is being processed
-        octools.printv(f"Processing {target}/{data[1]}.smi")
+        octools.printv(f"Processing {target}/{data}.smi")
         # Create the ligands folder
-        _ = octools.safe_create_dir(f"{target}/{data[0]}")
+        _ = octools.safe_create_dir(f"{targetc}/{data}")
         # Process the ligands, splitting them into the multiple files
-        with open(f"{target}/{data[1]}.smi", "r") as f:
+        with open(f"{target}/{data}.smi", "r") as f:
             for line in f:
                 # Get the smiles and name of the ligand
                 smiles, name = line.split()
                 # Check if there is already a folder with the ligand name (to warn the user)
-                if os.path.isdir(f"{target}/{data[0]}/{name}"):
+                if os.path.isdir(f"{targetc}/{data}/{name}"):
                     octools.print_warning(f"The ligand {name} already exists in the {data[0]} dataser. You may not need to process the {data[1]}.smi file again. By the way... I am just warning you.")
+
+                # Create the ligand folder using its name
+                _ = octools.safe_create_dir(f"{targetc}/{data}/{name}")
+                
                 # Test if the file exists
-                if overwrite or not os.path.isfile(f"{target}/{data[0]}/{name}.mol2"):
+                if overwrite or not os.path.isfile(f"{targetc}/{data}/{name}/ligand.mol2"):
                     # Check if the outputfile exists
-                    if os.path.isfile(f"{target}/{data[0]}/{name}.mol2"):
+                    if os.path.isfile(f"{targetc}/{data}/{name}/ligand.mol2"):
                         # Remove the file
-                        os.remove(f"{target}/{data[0]}/{name}.mol2")
+                        os.remove(f"{targetc}/{data}/{name}/ligand.mol2")
                     # Convert it to mol2 (NOTE: There are many molecules with SAME name... currently I am not handling this. I am just accounting the first molecule and discarding the others. IMPORTANT: Error messages WILL pop while processing the data here! They may be safe to ignore, I guess...)
-                    _ = octools.convertMolsFromString(smiles, f"{target}/{data[0]}/{name}.mol2")
+                    _ = octools.convertMolsFromString(smiles, f"{targetc}/{data}/{name}/ligand.mol2")
                     # Save a smiles file (to avoid compatibility issues)
-                    with open(f"{target}/{data[0]}/{name}.smi", "w") as f:
+                    with open(f"{targetc}/{data}/{name}/ligand.smi", "w") as f:
                         f.write(f"{smiles}")
                 else:
-                    octools.print_warning(f"File {target}/{data[0]}/{name}.mol2 already exists. Skipping...")
+                    octools.print_warning(f"File '{targetc}/{data}/{name}/ligand.mol2' already exists. Skipping...")
     return None
 
 def __thread_process_dudez(arguments: Tuple[str, bool]) -> None:
@@ -138,7 +135,6 @@ def __thread_process_dudez(arguments: Tuple[str, bool]) -> None:
     with octools.redirect_to_tqdm():
         # Call core prepare function (shared between thread and no thread)
         return __core_process_dudez(arguments[0], arguments[1])
-    return None
 
 def __process_dudez_parallel(targets: str, overwrite: bool, desc: str) -> None:
     '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
@@ -272,7 +268,6 @@ def __thread_download_dudez(arguments: Tuple[str, bool]) -> None:
     with octools.redirect_to_tqdm():
         # Call core prepare function (shared between thread and no thread)
         return __core_download_dudez(arguments[0], arguments[1])
-    return None
 
 def __download_dudez_parallel(targets: List[str], overwrite: bool, desc: str) -> None:
     '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
@@ -367,6 +362,8 @@ def create_directories() -> None:
     # Create the Parsed dir
     _ = octools.safe_create_dir(parsed_archive)
 
+    return None
+
 def update_DUDEz(overwrite:bool = False, download:bool = True, multiprocess:bool = True) -> int:
     '''Updates the DUDE-Z database.
 
@@ -427,6 +424,17 @@ def update_DUDEz(overwrite:bool = False, download:bool = True, multiprocess:bool
     # Process each target
     targets = [d for d in glob(f"{dudez_archive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['goldilocks', 'tmp']]
 
+    # Rename each protein protein file from rec.crg.pdb to {name}_protein.pdb
+    for target in tqdm(targets, desc="Renaming protein files"):
+        # Get the target name
+        name = os.path.basename(target)
+        # Get the protein file
+        protein = glob(f"{target}/rec.crg.pdb")
+        # If the protein file exists
+        if len(protein) > 0:
+            # Rename the file
+            os.rename(protein[0], f"{target}/{name}_protein.pdb")
+
     # Check multiprocessing is enabled
     if multiprocess:
         # Call the multiprocessing function NOTE: the extrema files are not being download for now
@@ -475,7 +483,7 @@ def update_DUDEz(overwrite:bool = False, download:bool = True, multiprocess:bool
 
     return errors.ok()
 
-def update_pdbbind() -> None:
+def update_PDBbind() -> None:
     '''Updates the PDBbind database from the Protein-ligand complexes: The refined set.
 
     Parameters
@@ -541,8 +549,17 @@ def update_pdbbind() -> None:
             if os.path.isdir(f"{pdbbind_archive}/refined-set"):
                 # For each file inside the refined-set folder
                 for filename in os.listdir(os.path.join(pdbbind_archive, "refined-set")):
+                    # Parameterize the destination path
+                    destPath = f"{pdbbind_archive}/{filename}"
+
                     # Move it to the parent folder
-                    shutil.move(f"{pdbbind_archive}/refined-set/{filename}", f"{pdbbind_archive}/{filename}")
+                    shutil.move(f"{pdbbind_archive}/refined-set/{filename}", destPath)
+                    # Create the compounds folder inside the protein folder
+                    _ = octools.safe_create_dir(f"{destPath}/compounds")
+                    # Create the ligands folder inside the compounds folder (PDBbind only has one ligand per protein)
+                    _ = octools.safe_create_dir(f"{destPath}/compounds/ligands")
+                    # Move the ligand file to the ligands folder
+                    shutil.move(f"{destPath}/{filename}_ligand.mol2", f"{destPath}/compounds/ligands/ligand.mol2")
 
                 # Remove the refined-set folder
                 os.rmdir(f"{pdbbind_archive}/refined-set")
@@ -553,15 +570,15 @@ def update_pdbbind() -> None:
                 os.remove(f"{pdbbind_archive}/README.txt")
 
             # Exit the loop
-            break;
+            break
 
         elif option.lower() in ["skip", "pular"]:
             octools.printv(f"The user decided to skip this update. Skipping!!!")
-            return None
+            return errors.ok()
 
         elif option == "":
-            octools.print_warning("User aborted the update.")
-            quit();
+            rcode = errors.abort("User aborted the update.")
+            quit(rcode);
 
         else:
             octools.printv(f"Still not validated, please use the other way.")
@@ -604,10 +621,10 @@ def update_pdbbind() -> None:
             else:
                 octools.print_warning(f"The string '{option}' is not a valid path!")
 
-    # Run p2rank in the Astex database
+    # Prepare the PDBbind database
     ocpdbbind.prepare()
 
-    return None
+    return errors.ok()
 
 def update_astex() -> None:
     '''Updates the Astex database from the Astex Diverse Set. TODO: This function is not working yet.
@@ -732,7 +749,7 @@ def update_astex() -> None:
     # Run p2rank in the Astex database
     ocastex.prepare()
 
-    return
+    return errors.ok()
 
 def update_databases() -> None:
     '''Calls all the database update functions sequentially.
@@ -757,15 +774,15 @@ def update_databases() -> None:
     create_directories()
 
     print("Updating PDBbind database...")
-    update_pdbbind(overwrite = args.overwrite)
+    _ = update_PDBbind(overwrite = args.overwrite)
     print("\n\nDone updating PDBbind!\n")
 
     print("Updating Astex database...")
-    update_astex(overwrite = args.overwrite)
+    _ = update_astex(overwrite = args.overwrite)
     print("\n\nDone updating Astex!\n")
 
     print("Updating DUDEz database...")
-    update_DUDEz(overwrite = args.overwrite)
+    _ = update_DUDEz(overwrite = args.overwrite)
     print("\n\nDone updating DUDEz!\n")
 
     print("\n\nDone updating ALL databases.\n")
