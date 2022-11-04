@@ -474,9 +474,9 @@ def __sub_core_prepare(dirToProcess: str, mols: List[str], dbName: str, overwrit
             # Safe create its dir
             _ = octools.safe_create_dir(f"{ligandPath}/{ligandName}")
             # Safe create plantsFiles, vinaFiles and sminaFiles dirs
-            _ = octools.safe_create_dir(f"{ligandPath}/{ligandName}")
             _ = octools.safe_create_dir(f"{ligandPath}/{ligandName}/vinaFiles")
             _ = octools.safe_create_dir(f"{ligandPath}/{ligandName}/sminaFiles")
+            _ = octools.safe_create_dir(f"{ligandPath}/{ligandName}/plantsFiles")
             # Set the fligand name as the ligand file path
             fligand = f"{ligandPath}/{ligandName}/{ligandName}.mol2"
             # Test if destination file exists
@@ -650,11 +650,6 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
     for processDir in processDirs:
         # Check if there is a box for the ligand
         boxCount = len(glob(f"{processDir}/boxes/box*.pdb"))
-
-        # Create docking output dirs
-        _ = octools.safe_create_dir(f"{processDir}/vinaFiles")
-        _ = octools.safe_create_dir(f"{processDir}/plantsFiles")
-        _ = octools.safe_create_dir(f"{processDir}/sminaFiles")
         
         # If overwrite mode is on or there is not the same amount of box files as folders in vinaFiles folder
         if boxCount == 0 or len(glob(f"{processDir}/vinaFiles/*")) != boxCount or overwrite or len(glob(f"{processDir}/vinaFiles/*")) == 0:

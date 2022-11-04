@@ -2396,6 +2396,7 @@ class Ligand:
 
         # Check if the box file already exists
         if os.path.isfile(self.boxPath) and not overwrite:
+            print(f"The box file already exists in '{self.boxPath}'.")
             # If it exists and the overwrite flag is False, return an error
             return errors.file_already_exists(f"The box file '{self.boxPath}' already exists. If you want to overwrite it, set the 'overwrite' flag to True.")
             
