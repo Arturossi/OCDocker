@@ -413,8 +413,10 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
         else:
             # Export its descriptors
             _ = m.to_json(overwrite)
-            # Create the ligand box
-            _ = m.create_box(centroid = targetCentroid, overwrite = overwrite)
+            # Check if the moltype is ligand
+            if moltype == "ligand":
+                # Create the ligand box
+                _ = m.create_box(centroid = targetCentroid, overwrite = overwrite)
     # Return
     return None
 
