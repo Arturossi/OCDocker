@@ -354,42 +354,9 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
             # If m is not valid
             except Exception as e:
                 _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed!", "error")
-                octools.print_error_log(f"The molecule '{mol}' could not be parsed! .", f"{logdir}/{dbName}_error_Parse.log")
+                octools.print_error_log(f"The molecule '{mol}' could not be parsed!", f"{logdir}/{dbName}_error_Parse.log")
                 return None
-                '''Additional checkages
-                # Let's check its extension
-                filename, file_extension = os.path.splitext(mol)
-                # Tell the user that will search for another extension (.sdf)
-                _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '{file_extension}' to '.mol2'.", "warning")
-                octools.print_warning_log(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '{file_extension}' to '.mol2'.", f"{logdir}/{dbName}_warn_Parse.log")
-                try:
-                    # Parse the .sdf file
-                    m = ocl.Ligand(f"{filename}.mol2", molName, sanitize = sanitize)
-                except:
-                    # Tell the user that will search for another extension (.sdf)
-                    _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.mol2' to '.sdf'.", "warning")
-                    octools.print_warning_log(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.mol2' to '.sdf'.", f"{logdir}/{dbName}_warn_Parse.log")
-                    try:
-                        # Parse the .sdf file
-                        m = ocl.Ligand(f"{filename}.sdf", molName, sanitize = sanitize)
-                    except:
-                        # Tell the user the search for another extension (.mol2)
-                        _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.sdf' to '.smi/smiles'.", "warning")
-                        octools.print_warning_log(f"The molecule '{mol}' could not be parsed! Trying to change its extension from '.sdf' to '.smi/smiles'.", f"{logdir}/{dbName}_warn_Parse.log")
-                        try:
-                            if os.path.isfile(f"{filename}.smi"):
-                                # Parse the .smi file
-                                m = ocl.Ligand(f"{filename}.smi", molName, sanitize = sanitize)
-                            else:
-                                # Parse the .mol2 file
-                                m = ocl.Ligand(f"{filename}.smi", molName, sanitize = sanitize)
-                        except:
-                            _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed!", "error")
-                            octools.print_error_log(f"The molecule '{mol}' could not be parsed! .", f"{logdir}/{dbName}_error_Parse.log")
-                            return None
-                            '''
         elif moltype == "receptor":
-            
                 # If is a tuple
                 if type(mol) == tuple:
                     try:
@@ -407,7 +374,6 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                         _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed! Error {e}", "error")
                         octools.print_error_log(f"The molecule '{mol}' could not be parsed! Error {e}", f"{logdir}/{dbName}_error_Parse.log")
                         return None
-           
         else:
             _ = errors.unkown("Unknown molecule type", "error")
             return None
@@ -585,11 +551,11 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
         if os.path.isfile(ref_ligand_pdb):
             # Set the target centroid as the centroid of the ligand from the pdb file
             targetCentroid = ocl.get_centroid(ref_ligand_pdb, sanitize = sanitize)
-        if os.path.isfile(ref_ligand_mol2):
+        elif os.path.isfile(ref_ligand_mol2):
             # Set the target centroid as the centroid of the ligand from the mol2 file
             targetCentroid = ocl.get_centroid(ref_ligand_mol2, sanitize = sanitize)
         else:
-            #octools.print_error_log(f"Could not find the file '{ref_ligand_pdb}' or '{ref_ligand_mol2}' for the molecule '{path}' and a target centroid has not been provided. This molecule will not be processed.", f"{logdir}/prepare_error.log")
+            #octools.print_error_log(f"Could not find the file '{ref_ligand_pdb}' or '{ref_ligand_mol2}' for the molecule '{path}' and a target centroid has not been provided. This molecule will not be processecvcd.", f"{logdir}/{archive}_error_Parse.log")
             return errors.file_do_not_exist(f"Could not find the file '{ref_ligand_pdb}' or '{ref_ligand_mol2}' for the molecule '{path}' and a target centroid has not been provided. This molecule will not be processed.", level = "error")
 
     # Create an empty list to hold all dirs to be processed
