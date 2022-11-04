@@ -2642,8 +2642,6 @@ def loadMol(molecule, sanitize = True):
                         # Return the sanitized molecule
                         return molecule, m
 
-                    print(f"rdkit.Chem.rdmolfiles.MolFromPDBFile({molecule}, sanitize = True)")
-
                     return outputMoleculePath, rdkit.Chem.rdmolfiles.MolFromPDBFile(molecule, sanitize = True)
                 elif extension == ".sdf":
                     # If sanitize is off
