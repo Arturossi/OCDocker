@@ -390,9 +390,9 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                             '''
         elif moltype == "receptor":
             try:
-                print(type(mol))
                 # If is a tuple
                 if type(mol) == tuple:
+                    print(type(mol))
                     # Create the receptor object
                     m = ocr.Receptor(mol[0], molName, mol2Path = mol[1])
                 else:
