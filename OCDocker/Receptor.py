@@ -526,7 +526,7 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
         if os.path.isfile(structurePath):
             # Open it (for cleaning)
             with open(structurePath, "r") as pdbFile:
-                # For each line in it
+                # For each line in pdbFile
                 for line in pdbFile:
                     if not line.startswith("CRYST1") and not hasCryst1:
                         # Set the hasCryst1 flag to True
@@ -540,8 +540,8 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
 
             # Write the lines to the file
             with open(structurePath, "w") as pdbFile:
-                # Write the CRYST1 line to the file
-                pdbFile.write(lines)
+                # Write the lines list to the file
+                pdbFile.writelines(lines)
                         
             '''
                     # Check if starts with CRYST1
