@@ -687,13 +687,13 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
 
     return None
 
-def __thread_prepare(arguments: Tuple[str, bool, str, bool, float, Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D]]) -> None:
+def __thread_prepare(arguments: Tuple[str, bool, str, bool, float]) -> None:
     '''Thread aid function to call __core_prepare.
 
     Parameters
     ----------
-    arguments : Tuple[str, bool, str, bool, float, rdkit.Geometry.rdGeometry.Point3D] | Tuple[float, float, float]
-        The arguments to be passed to __core_prepare. Its arguments are: (d, overwrite, archive, sanitize, spacing, targetCentroid). See __core_prepare for more information.
+    arguments : Tuple[str, bool, str, bool, float]
+        The arguments to be passed to __core_prepare. Its arguments are: (d, overwrite, archive, sanitize, spacing). See __core_prepare for more information.
 
     Returns
     -------
@@ -706,7 +706,7 @@ def __thread_prepare(arguments: Tuple[str, bool, str, bool, float, Union[Tuple[f
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         # Call core prepare function (shared between thread and no thread)
-        return __core_prepare(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4], arguments[5])
+        return __core_prepare(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4])
 
 def __prepare_parallel(dirs: List[str], overwrite: bool, archive: str, sanitize: bool, spacing: float, desc: str) -> None:
     '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
