@@ -519,12 +519,31 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
         # Initialise hasCryst1 flag
         hasCryst1 = False
 
+        # List of lines
+        lines = []
+
         # Check if structurePath is a valid file
         if os.path.isfile(structurePath):
-            # Open it
+            # Open it (for cleaning)
             with open(structurePath, "r") as pdbFile:
                 # For each line in it
                 for line in pdbFile:
+                    if not line.startswith("CRYST1") and not hasCryst1:
+                        # Set the hasCryst1 flag to True
+                        hasCryst1 = True
+                        # Add the line to the list
+                        lines.append("CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1\n")
+                    # Check if the line starts with ATOM
+                    if line.startswith("ATOM"):
+                        # Add the line to the list
+                        lines.append(line)
+
+                # Write the lines to the file
+                with open(structurePath, "w") as pdbFile:
+                    # Write the CRYST1 line to the file
+                    pdbFile.write(lines)
+                        
+                    '''
                     # Check if starts with CRYST1
                     if line.startswith("CRYST1"):
                         # Set the hasCryst1 flag to True
@@ -535,11 +554,12 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
                     elif line.startswith("ATOM"):
                         # If is ATOM and not CRYST1, means that there is no CRYST1 line in the file, so break the loop
                         break
+                    
         
         # If there is no CRYST1 line in the file let's add a generic CRYST1 line then
         if not hasCryst1:
             # Define a generic CRYST1 line
-            cryst1 = "CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1\n"
+            
             # Initialise the contnt variable
             content = ""
             # Read the CRYST1 line to the file
@@ -552,6 +572,7 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
                 pdbFile.write(cryst1)
                 # Write the content to the file
                 pdbFile.write(content)
+                '''
                 
 
     # Column header to dsspData object will be
