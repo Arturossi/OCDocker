@@ -2803,12 +2803,10 @@ def get_centroid(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize = True) -
         None
         '''
 
-        print(molecule)
         # Check if the molecule is a string (means that it is a path)
         if type(molecule) == str:
             # Load it
             _, molecule = loadMol(molecule, sanitize = sanitize)
-        print(molecule)
 
         # Get the molecule conformer
         conf = molecule.GetConformer()
