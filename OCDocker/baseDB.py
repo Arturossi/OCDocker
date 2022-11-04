@@ -626,9 +626,6 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
             # Append the dir to the list of dirs to be processed
             processDirs += __sub_core_prepare(candidates_d, mols, overwrite, sanitize, targetCentroid = targetCentroid)
 
-    # Find the protein name
-    ptn = path.split(os.path.sep)[-1]
-
     ''' P2Rank is not used yet
     # Set the output path
     fout = f"{path}/p2rank"
