@@ -390,6 +390,7 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                             '''
         elif moltype == "receptor":
             try:
+                print(type(mol))
                 # If is a tuple
                 if type(mol) == tuple:
                     # Create the receptor object
@@ -575,18 +576,16 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
         ref_ligand_pdb = os.path.join(f"{path}/reference_ligand.pdb")
         ref_ligand_mol2 = os.path.join(f"{path}/reference_ligand.mol2")
 
-        # Check if the reference ligand with the mol2 extension does not exist
-        if not os.path.isfile(ref_ligand_mol2):
-            # Check if the reference ligand with the pdb extension exists
-            if os.path.isfile(ref_ligand_pdb):
-                # Set the target centroid as the centroid of the ligand from the pdb file
-                targetCentroid = ocl.get_centroid(ref_ligand_pdb, sanitize = sanitize)
-            else:
-                #octools.print_error_log(f"Could not find the file '{ref_ligand_pdb}' or '{ref_ligand_mol2}' for the molecule '{path}' and a target centroid has not been provided. This molecule will not be processed.", f"{logdir}/prepare_error.log")
-                return errors.file_do_not_exist(f"Could not find the file '{ref_ligand_pdb}' or '{ref_ligand_mol2}' for the molecule '{path}' and a target centroid has not been provided. This molecule will not be processed.", level = "error")
-        else:
+        # Check if the reference ligand does not exist (extensions in order: pdb, mol2)
+        if os.path.isfile(ref_ligand_pdb):
+            # Set the target centroid as the centroid of the ligand from the pdb file
+            targetCentroid = ocl.get_centroid(ref_ligand_pdb, sanitize = sanitize)
+        if os.path.isfile(ref_ligand_mol2):
             # Set the target centroid as the centroid of the ligand from the mol2 file
             targetCentroid = ocl.get_centroid(ref_ligand_mol2, sanitize = sanitize)
+        else:
+            #octools.print_error_log(f"Could not find the file '{ref_ligand_pdb}' or '{ref_ligand_mol2}' for the molecule '{path}' and a target centroid has not been provided. This molecule will not be processed.", f"{logdir}/prepare_error.log")
+            return errors.file_do_not_exist(f"Could not find the file '{ref_ligand_pdb}' or '{ref_ligand_mol2}' for the molecule '{path}' and a target centroid has not been provided. This molecule will not be processed.", level = "error")
 
     # Create an empty list to hold all dirs to be processed
     processDirs = []
