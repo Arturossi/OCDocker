@@ -585,11 +585,8 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
                 octools.print_error_log(f"Could not find the file '{ref_ligand_pdb}' or '{ref_ligand_mol2}' for the molecule '{path}' and a target centroid has not been provided. This molecule will not be processed.", f"{path}/prepare_error.log")
                 return errors.file_do_not_exist(f"Could not find the file '{ref_ligand_pdb}' or '{ref_ligand_mol2}' for the molecule '{path}' and a target centroid has not been provided. This molecule will not be processed.", level = "error")
 
-        # Load the ligand
-        refLig = ocl.Ligand(ref_ligand_mol2)
-
         # Set the target centroid as the centroid of the ligand
-        targetCentroid = refLig.get_centroid(sanitize = sanitize)
+        targetCentroid = ocl.get_centroid(ref_ligand_mol2, sanitize = sanitize)
 
     # Create an empty list to hold all dirs to be processed
     processDirs = []

@@ -430,10 +430,10 @@ def update_DUDEz(overwrite:bool = False, download:bool = True, multiprocess:bool
         # Check multiprocessing is enabled
         if multiprocess:
             # Call the multiprocessing function
-            __download_dudez_parallel(targets, overwrite, "DUDE-Z database")
+            __download_dudez_parallel(targets, overwrite, "Downloading DUDE-Z database")
         else:
             # Call the single process function
-            __download_dudez_no_parallel(targets, overwrite, "DUDE-Z database")
+            __download_dudez_no_parallel(targets, overwrite, "Downloading DUDE-Z database")
 
     # Process each target
     targets = [d for d in glob(f"{dudez_archive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['goldilocks', 'tmp']]
@@ -452,10 +452,10 @@ def update_DUDEz(overwrite:bool = False, download:bool = True, multiprocess:bool
     # Check multiprocessing is enabled
     if multiprocess:
         # Call the multiprocessing function NOTE: the extrema files are not being download for now
-        __process_dudez_parallel(targets, overwrite, "DUDE-Z database")
+        __process_dudez_parallel(targets, overwrite, "Processing DUDE-Z database")
     else:
         # Call the single process function NOTE: the extrema files are not being download for now
-        __process_dudez_no_parallel(targets, overwrite, "DUDE-Z database")
+        __process_dudez_no_parallel(targets, overwrite, "Processing DUDE-Z database")
 
     # Currently the goldilocks set is not being used, so we will not download it (NOTE: This may change in the future, that's why the code is still here)
     """
