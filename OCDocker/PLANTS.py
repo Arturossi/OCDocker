@@ -787,7 +787,7 @@ def get_binding_site(boxFile: str, spacing: float = 0.33) -> Tuple[Tuple[int, in
     # Return the data
     return ((center['x'], center['y'], center['z']), radius)
 
-def generate_plants_files_database(path: str, protein: str, ligand: str, spacing: float, prankPath: str = "") -> None:
+def generate_plants_files_database(path: str, protein: str, ligand: str, spacing: float, boxPath: str = "") -> None:
     '''Generate all PLANTS required files for provided protein.
 
     Parameters
@@ -800,8 +800,8 @@ def generate_plants_files_database(path: str, protein: str, ligand: str, spacing
         The path to the ligand file.
     spacing : float
         The spacing between the box and the binding site.
-    prankPath : str, optional
-        The path to the prank executable. Default is "".
+    boxPath : str, optional
+        The path to the box file. If empty, it will try to look for a p2rank dir inside <path>.
 
     Returns
     -------
@@ -815,14 +815,14 @@ def generate_plants_files_database(path: str, protein: str, ligand: str, spacing
 
     # Parameterize the vina and p2rank paths
     plantsPath = f"{path}/plantsFiles"
-    # Check if prankPath is an empty string
-    if prankPath == "":
+    # Check if boxPath is an empty string
+    if boxPath == "":
       # Set is as the path + p2rank
-      prankPath = f"{path}/p2rank"
+      boxPath = f"{path}/p2rank"
     # Create the vina folder inside protein's directory
     _ = octools.safe_create_dir(plantsPath)
     # Find all boxes
-    boxes = glob(f"{prankPath}/box*.pdb")
+    boxes = glob(f"{boxPath}/box*.pdb")
     # For each box
     for box in boxes:
         # Get box name
@@ -834,7 +834,9 @@ def generate_plants_files_database(path: str, protein: str, ligand: str, spacing
         # Create vina execution folder
         _ = octools.safe_create_dir(outputPlants)
         confPath = f"{outputPlants}/conf_plants.txt"
+        # Convert the box to a conf file
         box_to_plants(box, confPath, protein, ligand, f"{outputPlants}/run", spacing = spacing)
+
     return None
 
 def read_plants_log(path: str ) -> pd.DataFrame:

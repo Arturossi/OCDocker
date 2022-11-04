@@ -637,6 +637,7 @@ def generate_vina_files_database(path: str, protein: str, boxPath: str = "") -> 
     ------
     None
     '''
+    
     # Parameterize the vina and p2rank paths
     vinaPath = f"{path}/vinaFiles"
     # Check if boxPath is an empty string

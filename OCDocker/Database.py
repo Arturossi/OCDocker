@@ -51,7 +51,7 @@ import OCDocker.Database as ocdb
 ###############################################################################
 ## Private ##
 
-# DUDEz #
+### DUDEz 
 def __core_process_dudez(target: str, overwrite: bool) -> None:
     '''Core function to process the DUDEz database.
 
@@ -112,6 +112,7 @@ def __core_process_dudez(target: str, overwrite: bool) -> None:
                         f.write(f"{smiles}")
                 else:
                     octools.print_warning(f"File '{targetc}/{data}/{name}/ligand.mol2' already exists. Skipping...")
+
     return None
 
 def __thread_process_dudez(arguments: Tuple[str, bool]) -> None:
@@ -774,15 +775,15 @@ def update_databases() -> None:
     create_directories()
 
     print("Updating PDBbind database...")
-    _ = update_PDBbind(overwrite = args.overwrite)
+    _ = update_PDBbind()
     print("\n\nDone updating PDBbind!\n")
 
     print("Updating Astex database...")
-    _ = update_astex(overwrite = args.overwrite)
+    _ = update_astex()
     print("\n\nDone updating Astex!\n")
 
     print("Updating DUDEz database...")
-    _ = update_DUDEz(overwrite = args.overwrite)
+    _ = update_DUDEz(overwrite = args.overwrite, multiprocess = args.multiprocess)
     print("\n\nDone updating DUDEz!\n")
 
     print("\n\nDone updating ALL databases.\n")

@@ -104,56 +104,6 @@ def __run_p2rank(dir: str, fin: str, overwrite: bool = False) -> None:
 
     return None
 
-def __run_create_vina_conf_from_box(dir: str, fin: str) -> None:
-    '''Creates vina conf file from box.
-
-    Parameters
-    ----------
-    dir : str
-        Directory of the protein to run p2rank.
-    fin : str
-        PDB file as input.
-
-    Returns
-    -------
-    None
-
-    Raises
-    ------
-    None
-    '''
-
-    # Run vina
-    ocvina.generate_vina_files_database(dir, fin)
-    return None
-
-def __run_create_plants_conf_from_box(dir: str, fin: str, ligand: str, spacing: float) -> None:
-    '''Creates PLANTS conf file from box.
-
-    Parameters
-    ----------
-    dir : str
-        Directory of the protein to run p2rank.
-    protein : str
-        Protein path.
-    ligand : str
-        Ligand name to be used in conf file.
-    spacing : float
-        Extra spacing.
-
-    Returns
-    -------
-    None
-
-    Raises
-    ------
-    None
-    '''
-
-    # Run vina
-    ocplants.generate_plants_files_database(dir, fin, ligand, spacing)
-    return
-
 def __core_p2rank(dir: str, overwrite: bool, archive: str) -> None:
     '''Prepares a database entry to be run in multiple docking software.
 
@@ -299,6 +249,65 @@ def __p2rank_no_parallel(dirs: str, overwrite: bool, archive: str, desc: str) ->
             gc.collect()
     return None
 
+
+### Box handling
+def __run_create_vina_conf_from_box(path: str, fin: str, boxPath: str = "") -> None:
+    '''Creates vina conf file from box.
+
+    Parameters
+    ----------
+    path : str
+        The path to the folder where the files will be generated.
+    fin : str
+        The path of the protein.
+    boxPath : str
+        The path to the box file. If empty, it will try to look for a p2rank dir inside <path>.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
+    '''
+
+    # Run vina
+    ocvina.generate_vina_files_database(path, fin, boxPath = boxPath)
+
+    return None
+
+def __run_create_plants_conf_from_box(path: str, fin: str, ligand: str, spacing: float, boxPath: str = "") -> None:
+    '''Creates PLANTS conf file from box.
+
+    Parameters
+    ----------
+    path : str
+        Directory of the protein to run p2rank.
+    protein : str
+        Protein path.
+    ligand : str
+        Ligand name to be used in conf file.
+    spacing : float
+        Extra spacing.
+    boxPath : str
+        The path to the box file. If empty, it will try to look for a p2rank dir inside <path>.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
+    '''
+
+    # Run vina
+    ocplants.generate_plants_files_database(path, fin, ligand, spacing, boxPath = boxPath)
+
+    return None
+
+
 ### Prepare
 def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str, dbName: str, sanitize: bool, molName: str = "molecule", targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> None:
     '''Prepares a molecule, generating output to docking software.
@@ -340,6 +349,8 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
             try:
                 # Create the ligand object
                 m = ocl.Ligand(mol, molName, sanitize = sanitize)
+                # Create a box around the ligand
+                m.create_box(centroid = targetCentroid, overwrite = overwrite)
             # If m is not valid
             except Exception as e:
                 _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed!", "error")
@@ -394,7 +405,8 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
         else:
             _ = errors.unkown("Unknown molecule type", "error")
             return None
-        # Test if the ligand is valid
+
+        # Test if the molecule is valid
         if not m or not m.is_valid():
             _ = errors.malformed_molecule(f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!", "error")
             octools.print_error_log(f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!", f"{logdir}/{dbName}_error_Parse.log")
@@ -754,6 +766,7 @@ def __prepare_no_parallel(dirs: List[str], overwrite: bool, archive: str, saniti
             gc.collect()
     return None
 
+
 ### Get
 def __core_get(dir: str, archive: str) -> Tuple[str, ocr.Receptor, ocl.Ligand]:
     '''Loads in memory a pair receptor-ligand and then return them in a tuple alongside with the protein name gotten from file path.
@@ -898,6 +911,7 @@ def __get_no_parallel(dirs: List[str], archive: str, desc: str) -> Dict[str, Tup
             # Clear the memory
             gc.collect()
         return databaseDict
+
 
 ### Docking
 def __sub_core_run_dock(receptorPath: str, ligandPath: str, receptorDir: str, ligandDir: str, archive: str, dockingAlgorithm: str, receptorDescriptor: str, ligandDescriptor: str, overwrite: bool) -> None:
@@ -1254,18 +1268,22 @@ def __core_run_dock(d: str, archive: str, dockingAlgorithm: str, overwrite: bool
     return __sub_core_run_dock(receptorPath, ligandPath, d, ligandAlternativeDir, archive, dockingAlgorithm, receptorDescriptor, ligandDescriptor, overwrite)
 
 def __thread_run_dock_parallel(arguments):
+    '''Thread aid function to call __core_run_dock.
+
+    Parameters
+    ----------
+    arguments : list
+        The arguments to be passed to __core_run_dock.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Thread aid function to call __core_run_dock.
-    Input:
-     arguments [tuple(string, string, string, bool)] - Tuple containing, in this order:
-        - [string]             - The directory where the files are stored
-        - [string]             - Which archive will be processed [dudez, pdbbind, astex]
-        - [string]             - Which docking algorithm will be used [vina, smina, plants]
-        - [bool]               - Flag to tell if files should be overwritten
-        - [string] DEFAULT: "" - If the directory where the ligand is stored is different than <dir> pass it here
-    Return:
-      -
-    '''
+
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         # Call the core dock function passing the arguments correctly
@@ -1386,6 +1404,7 @@ def __run_dock_no_parallel(dirs: List[str], archive: str, dockingAlgorithm: str,
         # Clear the memory
         gc.collect()
     return None
+
 
 ### Read logs
 def __core_read_log(processDirData: Tuple[str, str], archive: str) -> None:
@@ -1612,6 +1631,7 @@ def __read_log_no_parallel(dirs: Tuple[str, str], archive: str, desc: str) -> Di
             # Clear the memory
             gc.collect()
     return data
+
 
 ### Parse into csv
 def __core_generate_dock_result_csv(processDir: str, log_dump: str, ptn: str, ligand: str, archive: str) -> pd.DataFrame:
@@ -1843,6 +1863,7 @@ def __generate_dock_result_csv_no_parallel(processDirs: Dict[str, Dict[str, pd.D
             gc.collect()
     return pd.concat(dfList)
 
+
 ### Merge descriptors in dataframe
 def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str], archive: str) -> pd.DataFrame:
     '''Reads the descriptor and receptor json then parse them into a dataframe.
@@ -2028,6 +2049,7 @@ def __merge_descriptors_in_dataframe_no_parallel(dirs: Tuple[str, str], archive:
             # Clear the memory
             gc.collect()
     return ptndf
+
 
 ## Public ##
 def verify_integrity(chosenArchive: str, spacing: float = 0.33) -> None:

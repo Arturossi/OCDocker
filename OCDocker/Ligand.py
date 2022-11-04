@@ -1127,21 +1127,31 @@ class Ligand:
 
         # Create new dict
         properties = dict()
+
         # Set Name and Path
         properties["Name"] = self.name if self.name is not None else "-"
         properties["Path"] = self.path if self.path is not None else "-"
+
         # Combine both in one dict and return them
         return {**properties, **self.get_descriptors()}
 
     ## Public ##
-    def print_attributes(self):
+    def print_attributes(self) -> None:
+        '''Print the class attributes.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        None
         '''
-        Print the class attributes.
-        Input:
-          -
-        Return:
-          -
-        '''
+
         #region prints
         print(f"Name:                     '{self.name if self.name is not None else '-' }'")
         print(f"Molecule:                 '{self.molecule if self.molecule is not None else '-' }'")
@@ -1635,18 +1645,27 @@ class Ligand:
         print(f"PMI3:                     '{self.PMI3 if self.PMI3 is not None else 0.0 }'")
         print(f"RadiusOfGyration:         '{self.RadiusOfGyration if self.RadiusOfGyration is not None else 0.0 }'")
         print(f"SpherocityIndex:          '{self.SpherocityIndex if self.SpherocityIndex is not None else 0.0 }'")
-
         #endregion
+
         return
 
-    def get_descriptors(self):
+    def get_descriptors(self) -> Dict[str, Union[int, float]]:
+        '''Return the descriptors for the Ligand object.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        Dict[str, Union[int, float]]
+            A dictionary of the descriptors for the Ligand object.
+
+        Raises
+        ------
+        None
         '''
-        Return the descriptors for the Ligand object.
-        Input:
-          -
-        Return:
-          [dict] - Dictionary of descriptors for the recpetor.
-        '''
+
         descriptors = {
           "AUTOCORR2D_1": self.AUTOCORR2D_1 if self.AUTOCORR2D_1 is not None else 0.0,
           "AUTOCORR2D_2": self.AUTOCORR2D_2 if self.AUTOCORR2D_2 is not None else 0.0,
@@ -2139,11 +2158,17 @@ class Ligand:
           "RadiusOfGyration": self.RadiusOfGyration if self.RadiusOfGyration is not None else 0.0,
           "SpherocityIndex": self.SpherocityIndex if self.SpherocityIndex is not None else 0.0
         }
+        
         return descriptors
 
     def to_dict(self):
-        '''
-        Return all the properties for the Ligand object.
+        '''Return all the properties for the Ligand object.
+
+        Returns
+        -------
+        dict
+            A dictionary of all the properties for the Ligand object.
+
         Input:
           -
         Return:
@@ -2158,15 +2183,24 @@ class Ligand:
         # Combine both in one dict and return them
         return {**properties, **self.get_descriptors()}
 
-    def to_json(self, overwrite = False):
+    def to_json(self, overwrite = False) -> int:
+        '''Stores the descriptors as json to avoid the necessity of evaluate them many times.
+
+        Parameters
+        ----------
+        overwrite : bool, optional
+            If True, the json file will be overwritten, by default False.
+
+        Returns
+        -------
+        int
+            The exit code of the command (based on the Error.py code table).
+
+        Raises
+        ------
+        None
         '''
-        Stores the descriptors as json to avoid the necessity of evaluate them many times.
-        Input:
-          overwrite [bool] DEFAULT: False - Flag to allow overwriting the target file.
-        Return:
-          [int]
-          See Error.py for all return codes.
-        '''
+
         try:
             outputJson = f"{os.path.dirname(self.path)}/{self.name}_descriptors.json"
             if not overwrite and os.path.isfile(outputJson):
@@ -2182,45 +2216,64 @@ class Ligand:
         except Exception as e:
             return errors.unknown(f"Unknown error while converting the ligand {self.name} to json.\nError: {e}", "error")
 
-    def is_valid(self):
+    def is_valid(self) -> bool:
+        '''Check if a Ligand object is valid.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        bool
+            True if the Ligand object is valid, False otherwise.
+
+        Raises
+        ------
+        None
         '''
-        Check if a Ligand object is valid.
-        Input:
-          -
-        Return:
-          [bool]
-            True  - if valid
-            False - if not valid
-        '''
+
         #region if any attribute is None
         if None in [self.name, self.path, self.AUTOCORR2D_1, self.AUTOCORR2D_2, self.AUTOCORR2D_3, self.AUTOCORR2D_4, self.AUTOCORR2D_5, self.AUTOCORR2D_6, self.AUTOCORR2D_7, self.AUTOCORR2D_8, self.AUTOCORR2D_9, self.AUTOCORR2D_10, self.AUTOCORR2D_11, self.AUTOCORR2D_12, self.AUTOCORR2D_13, self.AUTOCORR2D_14, self.AUTOCORR2D_15, self.AUTOCORR2D_16, self.AUTOCORR2D_17, self.AUTOCORR2D_18, self.AUTOCORR2D_19, self.AUTOCORR2D_20, self.AUTOCORR2D_21, self.AUTOCORR2D_22, self.AUTOCORR2D_23, self.AUTOCORR2D_24, self.AUTOCORR2D_25, self.AUTOCORR2D_26, self.AUTOCORR2D_27, self.AUTOCORR2D_28, self.AUTOCORR2D_29, self.AUTOCORR2D_30, self.AUTOCORR2D_31, self.AUTOCORR2D_32, self.AUTOCORR2D_33, self.AUTOCORR2D_34, self.AUTOCORR2D_35, self.AUTOCORR2D_36, self.AUTOCORR2D_37, self.AUTOCORR2D_38, self.AUTOCORR2D_39, self.AUTOCORR2D_40, self.AUTOCORR2D_41, self.AUTOCORR2D_42, self.AUTOCORR2D_43, self.AUTOCORR2D_44, self.AUTOCORR2D_45, self.AUTOCORR2D_46, self.AUTOCORR2D_47, self.AUTOCORR2D_48, self.AUTOCORR2D_49, self.AUTOCORR2D_50, self.AUTOCORR2D_51, self.AUTOCORR2D_52, self.AUTOCORR2D_53, self.AUTOCORR2D_54, self.AUTOCORR2D_55, self.AUTOCORR2D_56, self.AUTOCORR2D_57, self.AUTOCORR2D_58, self.AUTOCORR2D_59, self.AUTOCORR2D_60, self.AUTOCORR2D_61, self.AUTOCORR2D_62, self.AUTOCORR2D_63, self.AUTOCORR2D_64, self.AUTOCORR2D_65, self.AUTOCORR2D_66, self.AUTOCORR2D_67, self.AUTOCORR2D_68, self.AUTOCORR2D_69, self.AUTOCORR2D_70, self.AUTOCORR2D_71, self.AUTOCORR2D_72, self.AUTOCORR2D_73, self.AUTOCORR2D_74, self.AUTOCORR2D_75, self.AUTOCORR2D_76, self.AUTOCORR2D_77, self.AUTOCORR2D_78, self.AUTOCORR2D_79, self.AUTOCORR2D_80, self.AUTOCORR2D_81, self.AUTOCORR2D_82, self.AUTOCORR2D_83, self.AUTOCORR2D_84, self.AUTOCORR2D_85, self.AUTOCORR2D_86, self.AUTOCORR2D_87, self.AUTOCORR2D_88, self.AUTOCORR2D_89, self.AUTOCORR2D_90, self.AUTOCORR2D_91, self.AUTOCORR2D_92, self.AUTOCORR2D_93, self.AUTOCORR2D_94, self.AUTOCORR2D_95, self.AUTOCORR2D_96, self.AUTOCORR2D_97, self.AUTOCORR2D_98, self.AUTOCORR2D_99, self.AUTOCORR2D_100, self.AUTOCORR2D_101, self.AUTOCORR2D_102, self.AUTOCORR2D_103, self.AUTOCORR2D_104, self.AUTOCORR2D_105, self.AUTOCORR2D_106, self.AUTOCORR2D_107, self.AUTOCORR2D_108, self.AUTOCORR2D_109, self.AUTOCORR2D_110, self.AUTOCORR2D_111, self.AUTOCORR2D_112, self.AUTOCORR2D_113, self.AUTOCORR2D_114, self.AUTOCORR2D_115, self.AUTOCORR2D_116, self.AUTOCORR2D_117, self.AUTOCORR2D_118, self.AUTOCORR2D_119, self.AUTOCORR2D_120, self.AUTOCORR2D_121, self.AUTOCORR2D_122, self.AUTOCORR2D_123, self.AUTOCORR2D_124, self.AUTOCORR2D_125, self.AUTOCORR2D_126, self.AUTOCORR2D_127, self.AUTOCORR2D_128, self.AUTOCORR2D_129, self.AUTOCORR2D_130, self.AUTOCORR2D_131, self.AUTOCORR2D_132, self.AUTOCORR2D_133, self.AUTOCORR2D_134, self.AUTOCORR2D_135, self.AUTOCORR2D_136, self.AUTOCORR2D_137, self.AUTOCORR2D_138, self.AUTOCORR2D_139, self.AUTOCORR2D_140, self.AUTOCORR2D_141, self.AUTOCORR2D_142, self.AUTOCORR2D_143, self.AUTOCORR2D_144, self.AUTOCORR2D_145, self.AUTOCORR2D_146, self.AUTOCORR2D_147, self.AUTOCORR2D_148, self.AUTOCORR2D_149, self.AUTOCORR2D_150, self.AUTOCORR2D_151, self.AUTOCORR2D_152, self.AUTOCORR2D_153, self.AUTOCORR2D_154, self.AUTOCORR2D_155, self.AUTOCORR2D_156, self.AUTOCORR2D_157, self.AUTOCORR2D_158, self.AUTOCORR2D_159, self.AUTOCORR2D_160, self.AUTOCORR2D_161, self.AUTOCORR2D_162, self.AUTOCORR2D_163, self.AUTOCORR2D_164, self.AUTOCORR2D_165, self.AUTOCORR2D_166, self.AUTOCORR2D_167, self.AUTOCORR2D_168, self.AUTOCORR2D_169, self.AUTOCORR2D_170, self.AUTOCORR2D_171, self.AUTOCORR2D_172, self.AUTOCORR2D_173, self.AUTOCORR2D_174, self.AUTOCORR2D_175, self.AUTOCORR2D_176, self.AUTOCORR2D_177, self.AUTOCORR2D_178, self.AUTOCORR2D_179, self.AUTOCORR2D_180, self.AUTOCORR2D_181, self.AUTOCORR2D_182, self.AUTOCORR2D_183, self.AUTOCORR2D_184, self.AUTOCORR2D_185, self.AUTOCORR2D_186, self.AUTOCORR2D_187, self.AUTOCORR2D_188, self.AUTOCORR2D_189, self.AUTOCORR2D_190, self.AUTOCORR2D_191, self.AUTOCORR2D_192, self.BCUT2D_CHGHI, self.BCUT2D_CHGLO, self.BCUT2D_LOGPHI, self.BCUT2D_LOGPLOW, self.BCUT2D_MRHI, self.BCUT2D_MRLOW, self.BCUT2D_MWHI, self.BCUT2D_MWLOW, self.BalabanJ, self.BertzCT, self.Chi0, self.Chi0n, self.Chi0v, self.Chi1, self.Chi1n, self.Chi1v, self.Chi2n, self.Chi2v, self.Chi3n, self.Chi3v, self.Chi4n, self.Chi4v, self.EState_VSA1, self.EState_VSA2, self.EState_VSA3, self.EState_VSA4, self.EState_VSA5, self.EState_VSA6, self.EState_VSA7, self.EState_VSA8, self.EState_VSA9, self.EState_VSA10, self.EState_VSA11, self.MaxAbsEStateIndex, self.MaxEStateIndex, self.MinAbsEStateIndex, self.MinEStateIndex, self.ExactMolWt, self.FpDensityMorgan1, self.FpDensityMorgan2, self.FpDensityMorgan3, self.fr_Al_COO, self.fr_Al_OH, self.fr_Al_OH_noTert, self.fr_ArN, self.fr_Ar_COO, self.fr_Ar_N, self.fr_Ar_NH, self.fr_Ar_OH, self.fr_COO, self.fr_COO2, self.fr_C_O, self.fr_C_O_noCOO, self.fr_C_S, self.fr_HOCCN, self.fr_Imine, self.fr_NH0, self.fr_NH1, self.fr_NH2, self.fr_N_O, self.fr_Ndealkylation1, self.fr_Ndealkylation2, self.fr_Nhpyrrole, self.fr_SH, self.fr_aldehyde, self.fr_alkyl_carbamate, self.fr_alkyl_halide, self.fr_allylic_oxid, self.fr_amide, self.fr_amidine, self.fr_aniline, self.fr_aryl_methyl, self.fr_azide, self.fr_azo, self.fr_barbitur, self.fr_benzene, self.fr_benzodiazepine, self.fr_bicyclic, self.fr_diazo, self.fr_dihydropyridine, self.fr_epoxide, self.fr_ester, self.fr_ether, self.fr_furan, self.fr_guanido, self.fr_halogen, self.fr_hdrzine, self.fr_hdrzone, self.fr_imidazole, self.fr_imide, self.fr_isocyan, self.fr_isothiocyan, self.fr_ketone, self.fr_ketone_Topliss, self.fr_lactam, self.fr_lactone, self.fr_methoxy, self.fr_morpholine, self.fr_nitrile, self.fr_nitro, self.fr_nitro_arom, self.fr_nitro_arom_nonortho, self.fr_nitroso, self.fr_oxazole, self.fr_oxime, self.fr_para_hydroxylation, self.fr_phenol, self.fr_phenol_noOrthoHbond, self.fr_phos_acid, self.fr_phos_ester, self.fr_piperdine, self.fr_piperzine, self.fr_priamide, self.fr_prisulfonamd, self.fr_pyridine, self.fr_quatN, self.fr_sulfide, self.fr_sulfonamd, self.fr_sulfone, self.fr_term_acetylene, self.fr_tetrazole, self.fr_thiazole, self.fr_thiocyan, self.fr_thiophene, self.fr_unbrch_alkane, self.fr_urea, self.FractionCSP3, self.HallKierAlpha, self.HeavyAtomMolWt, self.HeavyAtomCount, self.Ipc, self.Kappa1, self.Kappa2, self.Kappa3, self.LabuteASA, self.MaxAbsPartialCharge, self.MaxPartialCharge, self.MinAbsPartialCharge, self.MinPartialCharge, self.MolLogP, self.MolMR, self.MolWt, self.NHOHCount, self.NOCount, self.NumAliphaticCarbocycles, self.NumAliphaticHeterocycles, self.NumAliphaticRings, self.NumAromaticCarbocycles, self.NumAromaticHeterocycles, self.NumAromaticRings, self.NumHAcceptors, self.NumHDonors, self.NumHeteroatoms, self.NumRadicalElectrons, self.NumRotatableBonds, self.NumSaturatedCarbocycles, self.NumSaturatedHeterocycles, self.NumSaturatedRings, self.NumValenceElectrons, self.PEOE_VSA1, self.PEOE_VSA2, self.PEOE_VSA3, self.PEOE_VSA4, self.PEOE_VSA5, self.PEOE_VSA6, self.PEOE_VSA7, self.PEOE_VSA8, self.PEOE_VSA9, self.PEOE_VSA10, self.PEOE_VSA11, self.PEOE_VSA12, self.PEOE_VSA13, self.PEOE_VSA14, self.qed, self.RingCount, self.SMR_VSA1, self.SMR_VSA2, self.SMR_VSA3, self.SMR_VSA4, self.SMR_VSA5, self.SMR_VSA6, self.SMR_VSA7, self.SMR_VSA8, self.SMR_VSA9, self.SMR_VSA10, self.SlogP_VSA1, self.SlogP_VSA2, self.SlogP_VSA3, self.SlogP_VSA4, self.SlogP_VSA5, self.SlogP_VSA6, self.SlogP_VSA7, self.SlogP_VSA8, self.SlogP_VSA9, self.SlogP_VSA10, self.SlogP_VSA11, self.SlogP_VSA12, self.TPSA, self.VSA_EState1, self.VSA_EState2, self.VSA_EState3, self.VSA_EState4, self.VSA_EState5, self.VSA_EState6, self.VSA_EState7, self.VSA_EState8, self.VSA_EState9, self.VSA_EState10]:
             return False
         #endregion
         return True
 
-    def to_smiles(self):
+    def to_smiles(self) -> str:
+        '''Return the smiles of the molecule.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        str
+            The smiles of the molecule.
+
+        Raises
+        ------
+        None
         '''
-        Return the smiles of the molecule
-        Input:
-          -
-        Return:
-          [string] The smiles of given molecule
-        '''
+
         return get_smiles(self.molecule)
 
-    def is_same_molecule(self, molecule, sanitize = False):
+    def is_same_molecule(self, molecule, sanitize = False) -> Union[bool, int]:
+        '''Compare two molecules to check if they are the same using their MACCSkeys.
+
+        Parameters
+        ----------
+        molecule : rdkit.Chem.rdchem.Mol/ocl.Ligand
+            The molecule to compare with.
+        sanitize : bool, optional
+            Flag to allow, or not, molecules sanitization. (default is False)
+
+        Returns
+        -------
+        bool | int
+            If both molecules are the same, return True. If both molecules are not the same, return False. If fails, return an error code.
         '''
-        Compare two molecules to check if they are the same using their MACCSkeys.
-        Input:
-          [rdkit.Chem.rdchem.Mol/ocl.Ligand] molecule               - The molecule to compare with.
-          [bool]                             sanitize DEFAULT: True - Flag to allow, or not, molecules sanitization.
-        Return:
-          [bool]
-            True  - If both molecules are the same.
-            False - If both molecules are not the same.
-          [int] If fails
-            Check Error.py for error codes
-        '''
+
         # Get the MACCSKeys for the ligand object
         ligandMACCSSKeys = MACCSkeys.GenMACCSKeys(self.molecule)
         # Check if the type of the molecule is a Ligand
@@ -2245,19 +2298,26 @@ class Ligand:
             # Return False
             return False
 
-    def is_same_molecule_SMILES(self, molecule, sanitize = False):
+    def is_same_molecule_SMILES(self, molecule, sanitize = False) -> Union[bool, int]:
+        '''Compare two molecules to check if they are the same using their SMILES and FpDensityMorgan 1 2 and 3.
+
+        Parameters
+        ----------
+        molecule : rdkit.Chem.rdchem.Mol/ocl.Ligand
+            The molecule to compare with.
+        sanitize : bool, optional
+            Flag to allow, or not, molecules sanitization. (default is False)
+
+        Returns
+        -------
+        bool | int
+            If both molecules are the same, return True. If both molecules are not the same, return False. If fails, return an error code.
+
+        Raises
+        ------
+        None
         '''
-        Compare two molecules to check if they are the same using their SMILES and FpDensityMorgan 1 2 and 3.
-        Input:
-          [rdkit.Chem.rdchem.Mol/ocl.Ligand] molecule               - The molecule to compare with.
-          [bool]                             sanitize DEFAULT: True - Flag to allow, or not, molecules sanitization.
-        Return:
-          [bool]
-            True  - If both molecules are the same.
-            False - If both molecules are not the same.
-          [int] If fails
-            Check Error.py for error codes
-        '''
+
         # Get the smiles for the ligand object
         molSmiles = self.to_smiles()
         # Check if the type of the molecule is a Ligand
@@ -2291,16 +2351,28 @@ class Ligand:
             return False
 
     def create_box(self, centroid = None, savePath = "", boxLength = 2.9, overwrite = False):
+        '''Create a box file to be used by docking software.
+
+        Parameters
+        ----------
+        centroid : list, optional
+            The centroid of the box. If not provided, the centroid of the molecule will be used. (default is None)
+        savePath : str, optional
+            The path to save the box file. If not provided, the box file will be saved in the same path as the molecule. (default is "")
+        boxLength : float, optional
+            The length of the box. (default is 2.9)
+        overwrite : bool, optional
+            Flag to allow, or not, the overwrite of the box file. (default is False)
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        None
         '''
-        Create a box file to be used by docking software.
-        Input:
-            [list(float) | rdkit.Geometry.rdGeometry.Point3D]  centroid  DEFAULT: None  - The center of the box. If None, the center of the molecule will be used.
-            [string]                                           savePath  DEFAULT: ""    - The path to save the box. If empty will use the same path as the molecule under the boxes subdir.
-            [float]                                            boxLength DEFAULT: 2.9   - The length of the box. (Set as 2.9 of the gyration radius of the molecule. Value based on: Feinstein WP, Brylinski M. Calculating an optimal box size for ligand docking and virtual screening against experimental and predicted binding pockets. J Cheminform. 2015 May 15;7:18. doi: 10.1186/s13321-015-0067-5. PMID: 26082804; PMCID: PMC4468813.)
-            [bool]                                             overwrite DEFAULT: False - Flag to allow, or not, overwrite the file.
-        Return:
-          -
-        '''
+        
         # If the centroid is not defined
         if not centroid:
             # Get the molecule conformer
