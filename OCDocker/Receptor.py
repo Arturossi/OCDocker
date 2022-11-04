@@ -538,10 +538,10 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
                         # Add the line to the list
                         lines.append(line)
 
-                # Write the lines to the file
-                with open(structurePath, "w") as pdbFile:
-                    # Write the CRYST1 line to the file
-                    pdbFile.write(lines)
+            # Write the lines to the file
+            with open(structurePath, "w") as pdbFile:
+                # Write the CRYST1 line to the file
+                pdbFile.write(lines)
                         
                     '''
                     # Check if starts with CRYST1
