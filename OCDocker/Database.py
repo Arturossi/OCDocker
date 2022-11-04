@@ -52,6 +52,7 @@ import OCDocker.Database as ocdb
 ## Private ##
 
 ### DUDEz 
+#### Process
 def __core_process_dudez(target: str, overwrite: bool) -> None:
     '''Core function to process the DUDEz database.
 
@@ -202,6 +203,7 @@ def __process_dudez_no_parallel(targets: str, overwrite: bool, desc: str) -> Non
             gc.collect()
     return None
 
+#### Download
 def __core_download_dudez(target: str, overwrite: bool) -> None:
     '''Downloads the DUDEz database.
 
@@ -226,26 +228,37 @@ def __core_download_dudez(target: str, overwrite: bool) -> None:
         target2 = "DRD4"
     else:
         target2 = target
+
     # Create a folder for the target in the archive
     _ = octools.safe_create_dir(f"{dudez_archive}/{target2}")
+
     # Check if the target receptor does not exists or the user wants to overwrite it
     if not os.path.isfile(f"{dudez_archive}/{target2}/receptor.pdb") or overwrite:
         # Download the target receptor
         octools.download_url(f"{dudez_download}/DOCKING_GRIDS_AND_POSES/{target2}/rec.crg.pdb", f"{dudez_archive}/{target2}/receptor.pdb")
+
+    # Check if the reference ligand does not exists or the user wants to overwrite it
+    if not os.path.isfile(f"{dudez_archive}/{target2}/ligand.mol2") or overwrite:
+        # Download the target receptor
+        octools.download_url(f"{dudez_download}/DOCKING_GRIDS_AND_POSES/{target2}/xtal-lig.pdb", f"{dudez_archive}/{target2}/reference_ligand.pdb")
+
     # Check if the target dudez ligands does not exists or the user wants to overwrite it
     if not os.path.isfile(f"{dudez_archive}/{target2}/ligands.smi") or overwrite:
         # Download the dudeZ ligands
         octools.download_url(f"{dudez_download}/DUDE-Z-benchmark-grids/{target}/ligands.smi", f"{dudez_archive}/{target2}/ligands.smi")
+
     # Check if the target dudez decoys does not exists or the user wants to overwrite it
     if not os.path.isfile(f"{dudez_archive}/{target2}/decoys.smi") or overwrite:
         # Download the dudeZ ligands
         octools.download_url(f"{dudez_download}/DUDE-Z-benchmark-grids/{target}/decoys.smi", f"{dudez_archive}/{target2}/decoys.smi")
+
     # Download the Extrema set TODO: Currently not used
     #octools.download_url(f"{dudez_download}/extrema/{target}/minus2/{target}_minus2.smi", f"{dudez_archive}/{target2}/extrema_minus2.smi")
     #octools.download_url(f"{dudez_download}/extrema/{target}/minus1/{target}_minus1.smi", f"{dudez_archive}/{target2}/extrema_minus1.smi")
     #octools.download_url(f"{dudez_download}/extrema/{target}/neutral/{target}_neutral.smi", f"{dudez_archive}/{target2}/extrema_neutral.smi")
     #octools.download_url(f"{dudez_download}/extrema/{target}/plus1/{target}_plus1.smi", f"{dudez_archive}/{target2}/extrema_plus1.smi")
     #octools.download_url(f"{dudez_download}/extrema/{target}/plus2/{target}_plus2.smi", f"{dudez_archive}/{target2}/extrema_plus2.smi")
+
     return None
 
 def __thread_download_dudez(arguments: Tuple[str, bool]) -> None:
@@ -559,7 +572,8 @@ def update_PDBbind() -> None:
                     _ = octools.safe_create_dir(f"{destPath}/compounds")
                     # Create the ligands folder inside the compounds folder (PDBbind only has one ligand per protein)
                     _ = octools.safe_create_dir(f"{destPath}/compounds/ligands")
-                    # Move the ligand file to the ligands folder
+                    # Make a copy of the ligand to serve as reference and then move one of the ligand file to the ligands folder
+                    shutil.copy(f"{destPath}/{filename}_ligand.mol2", f"{destPath}/reference_ligand.mol2")
                     shutil.move(f"{destPath}/{filename}_ligand.mol2", f"{destPath}/compounds/ligands/ligand.mol2")
 
                 # Remove the refined-set folder

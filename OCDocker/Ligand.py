@@ -2258,7 +2258,7 @@ class Ligand:
 
         return get_smiles(self.molecule)
 
-    def is_same_molecule(self, molecule, sanitize = False) -> Union[bool, int]:
+    def is_same_molecule(self, molecule, sanitize = True) -> Union[bool, int]:
         '''Compare two molecules to check if they are the same using their MACCSkeys.
 
         Parameters
@@ -2266,7 +2266,7 @@ class Ligand:
         molecule : rdkit.Chem.rdchem.Mol/ocl.Ligand
             The molecule to compare with.
         sanitize : bool, optional
-            Flag to allow, or not, molecules sanitization. (default is False)
+            Flag to allow, or not, molecules sanitization. (default is True)
 
         Returns
         -------
@@ -2298,7 +2298,7 @@ class Ligand:
             # Return False
             return False
 
-    def is_same_molecule_SMILES(self, molecule, sanitize = False) -> Union[bool, int]:
+    def is_same_molecule_SMILES(self, molecule, sanitize = True) -> Union[bool, int]:
         '''Compare two molecules to check if they are the same using their SMILES and FpDensityMorgan 1 2 and 3.
 
         Parameters
@@ -2306,7 +2306,7 @@ class Ligand:
         molecule : rdkit.Chem.rdchem.Mol/ocl.Ligand
             The molecule to compare with.
         sanitize : bool, optional
-            Flag to allow, or not, molecules sanitization. (default is False)
+            Flag to allow, or not, molecules sanitization. (default is True)
 
         Returns
         -------
@@ -2350,6 +2350,27 @@ class Ligand:
             # Return False
             return False
 
+    def get_centroid(self, sanitize = True) -> rdkit.Geometry.rdGeometry.Point3D:
+        '''Get the centroid of the molecule.
+
+        Parameters
+        ----------
+        sanitize : bool, optional
+            Flag to allow, or not, molecules sanitization. (default is True)
+
+        Returns
+        -------
+        rdkit.Geometry.rdGeometry.Point3D
+            The centroid of the molecule.
+
+        Raises
+        ------
+        None
+        '''
+
+        # Compute the centroid of the molecule and return it
+        return get_centroid(self.molecule, sanitize = sanitize)
+
     def create_box(self, centroid = None, savePath = "", boxLength = 2.9, overwrite = False):
         '''Create a box file to be used by docking software.
 
@@ -2372,16 +2393,21 @@ class Ligand:
         ------
         None
         '''
-        
+
+        # Check if the box file already exists
+        if os.path.isfile(self.boxPath) and not overwrite:
+            # If it exists and the overwrite flag is False, return an error
+            return errors.file_already_exists(f"The box file '{self.boxPath}' already exists. If you want to overwrite it, set the 'overwrite' flag to True.")
+            
         # If the centroid is not defined
         if not centroid:
-            # Get the molecule conformer
-            conf = self.molecule.GetConformer()
-            # Compute the centroid of the molecule
-            centroid = ComputeCentroid(conf)
+            # Compute it
+            centroid = self.get_centroid()
+
         # Check if the centroid is the type rdkit.Geometry.rdGeometry.Point3D
         if type(centroid) == rdkit.Geometry.rdGeometry.Point3D:
             centroid = [centroid.x, centroid.y, centroid.z]
+
         # Get the partial size for each axis (to determine how much should be expanded in each direction)
         partialSize = (boxLength * self.RadiusOfGyration) / 2
         # Create the box using this Centroid
@@ -2467,56 +2493,6 @@ class Ligand:
 ## Private ##
 
 ## Public ##
-def splitMolecules_legacy(molecule, outputDir="", prefix="ligand"):
-    '''
-    Given a molecule file, checks if it has more than one ligand, if positive, splits the file into multiple single molecule files. Uses external obabel. [DEPRECATED]
-    Input:
-      molecule  [string]                   - Path to the molecule.
-      outputDir [string] DEFAULT: ""       - The output directory. If it is empty the outputDir will be the input dir plus an extra dir called ligand.
-      prefix    [string] DEFAULT: "ligand" - The output prefix for ligand file name.
-    Return:
-      [list(string)] - A list of paths to the new files.
-    '''
-    # Grab the extension and path
-    extension = os.path.splitext(molecule)[1]
-    path = os.path.split(os.path.abspath(molecule))[0]
-    if not outputDir:
-        outputDir = f"{path}/ligands"
-    # Initialise an empty list to hold all files paths
-    ligand_files = []
-
-    # Check the extension
-    if extension == ".sdf":
-        # Create the dir if does not exist
-        octools.safe_create_dir(outputDir)
-        # Create the command
-        cmd = [obabel, "-isdf", molecule, "-omol2", "-O", f"{outputDir}/{prefix}.mol2", "-m"]
-        # Convert it
-        octools.run(cmd, logFile="")
-        # Get all mol2 files
-        ligand_files = glob(f"{path}/{prefix}*.mol2")
-        # Remove the molecule from the list (if it is included)
-        if molecule in ligand_files:
-            ligand_files(molecule)
-    elif extension == ".mol2":
-        # Create the dir if does not exist
-        octools.safe_create_dir(outputDir)
-        # Create the command
-        cmd = [obabel, "-imol2", molecule, "-omol2", "-O", f"{outputDir}/{prefix}.mol2", "-m"]
-         # Convert it
-        octools.run(cmd, logFile="")
-        # Get all mol2 files
-        ligand_files = glob(f"{path}/{prefix}*.mol2")
-        # Remove the molecule from the list (if it is included)
-        if molecule in ligand_files:
-            ligand_files.remove(molecule)
-    else:
-        # Since no supported extension has been found, throw the exception
-        supportedExtensions = [".sdf", ".mol2"]
-        _ = errors.unsupported_extension(message=f"The ligand {molecule} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supportedExtensions)}.", level="error")
-
-    return ligand_files
-
 def splitMolecules(molecule, outputDir="", prefix="ligand"):
     '''
     Given a molecule file, checks if it has more than one ligand, if positive, splits the file into multiple single molecule files. Uses openbabel python library.
@@ -2590,49 +2566,6 @@ def multipleMoleculesSDF(molecule):
                     name = os.path.splitext(os.path.basename(molecule))[0]
                     # Append to the list
                     ligands.append(Ligand(molPath, name=name))
-                return ligands
-            else:
-                # This case the return code is suppressed because it is needed to return None in case of failure
-                _ = errors.wrong_type(message=f"The molecule file MUST be the .sdf format!", level="error")
-                return None
-        else:
-            # File does not exist
-            _ = errors.file_do_not_exist(message=f"The file '{molecule}' does not exist!", level="error")
-            return None
-    else:
-        # This case the return code is suppressed because it is needed to return None in case of failure
-        _ = errors.wrong_type(message=f"The molecule file path MUST be a string!", level="error")
-    return None
-
-def multipleMoleculesSDF_legacy(molecule):
-    '''
-    [DEPRECATED]
-    Parse a .sdf file with multiple molecules returning a list of ligands.
-    Input:
-      molecule [string/rdkit.Chem.rdchem.Mol] - If a path is provided, parse the molecule (only for single) and return the rdkit.Chem.rdchem.Mol object. If the molecule is a rdkit.Chem.rdchem.Mol object, return itself.
-    Return:
-      [list(Ligand)] - A list of Ligand objects.
-      [None]         - If any problem occurs.
-    '''
-    octools.print_warning("This function is deprecated since the add of the path attribute in Ligand class. Please use the multipleMoleculesSDF function instead.")
-    # List to hold multiple Ligand objects
-    ligands = []
-    # Check if the path is a string (it is assumed that the provided path is already a sdf)
-    if type(molecule) == str:
-        # Check if file exists
-        if os.path.isfile(molecule):
-            # Check if the extension of the file is .sdf
-            if os.path.splitext(molecule)[1] == ".sdf":
-                # Get the molecules
-                suppl = rdkit.Chem.rdmolfiles.SDMolSupplier(molecule)
-                # For each molecule
-                for mol in suppl:
-                    # Append an instance of the class of the molecule
-                    temporaryLigand = Ligand(mol)
-                    # Set the path
-                    temporaryLigand.path = molecule
-                    # Append to the list
-                    ligands.append(temporaryLigand)
                 return ligands
             else:
                 # This case the return code is suppressed because it is needed to return None in case of failure
@@ -2849,6 +2782,39 @@ def get_smiles(molecule):
             return Chem.MolToSmiles(molecule)
         return errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     return errors.not_set(f"The variable is not set.")
+
+def get_centroid(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize = True) -> rdkit.Geometry.rdGeometry.Point3D:
+        '''Get the centroid of the molecule.
+
+        Parameters
+        ----------
+        molecule : str | rdkit.Chem.rdchem.Mol
+            The molecule to get the centroid or its path.
+        sanitize : bool, optional
+            If the molecule should be sanitized, by default True.
+
+        Returns
+        -------
+        rdkit.Geometry.rdGeometry.Point3D
+            The centroid of the molecule.
+
+        Raises
+        ------
+        None
+        '''
+
+        # Check if the molecule is a string (means that it is a path)
+        if type(molecule) == str:
+            # Load it
+            _, molecule = loadMol(molecule, sanitize = sanitize)
+
+
+        # Get the molecule conformer
+        conf = molecule.GetConformer()
+
+        # Compute the centroid of the molecule and return it
+        return ComputeCentroid(conf)
+
 
 # Descriptors functions #
 

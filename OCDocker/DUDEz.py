@@ -46,60 +46,6 @@ import OCDocker.DUDEz as ocdudez
 # Functions
 ###############################################################################
 ## Private ##
-def __thread_validation(arguments):
-    '''
-    Function to
-    Input:
-     arguments [tuple(string, string)] - Tuple containing, in this order:
-        - [string] The molecule path
-        - [string] The database dir
-    Return:
-      [int]
-        1 - If a problem has been found
-        0 - If no problem has been found
-    '''
-    return 0
-
-def __inner_validate_database_molecules(database, subset):
-    '''
-    Validates all the molecules in the DUDEz database.
-    Input:
-      database [string] - The database dir
-      subset   [string] - The database subset (dudez_ligands, dudez_decoys, extrema_decoys)
-    Return:
-      -
-    '''
-    return
-
-def __validate_database_molecules():
-    '''
-    Validates all the molecules in the DUDEz database.
-    Input:
-      -
-    Return:
-      -
-    '''
-    return
-
-def __paralel_check_repeated_ligands(arguments):
-    '''
-    Runs the ligand simmilarity check in parallel.
-    Input:
-      arguments [tuple(Ligand,list(Ligand))] - A tuple with 2 positions, the first is the reference ligand and the list of ligands to be compared.
-    Return:
-      -
-    '''
-    return None
-
-def __check_for_repeated_ligands():
-    '''
-    Checks if there is any repeated ligand in the DUDEz database.
-    Input:
-      -
-    Return:
-      -
-    '''
-    return
 
 ## Public ##
 def get_all_ligands():
@@ -154,17 +100,18 @@ def convert_debug_to_production(chosenAlgorithm = "ac", strict = False, removeDe
     '''
     ocbdb.convert_debug_to_production(dudez_archive, chosenAlgorithm = chosenAlgorithm, strict = strict, removeDebug = removeDebug)
 
-def prepare(overwrite = False, sanitize = True):
+def prepare(overwrite = False, spacing = 0.33, sanitize = True):
     '''
     Prepares the DUDEz database.
     Input:
      overwrite [bool] DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with the output already generated.
+     spacing   [float] DEFAULT: 0.33 - The spacing to enlarge the box.
      sanitize  [bool] DEFAULT: True  - Flag to denote if the molecule should be sanitized
     Return:
       -
     '''
     # Prepare the rest of the database
-    ocbdb.prepare("dudez", overwrite = overwrite, sanitize = sanitize)
+    ocbdb.prepare("dudez", overwrite = overwrite, spacing = spacing, sanitize = sanitize)
     # Verify its integrity
     #verify_integrity()
 

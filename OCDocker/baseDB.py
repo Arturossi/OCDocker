@@ -521,12 +521,12 @@ def __sub_core_prepare(dirToProcess: str, mols: List[str], dbName: str, overwrit
 
     return processDirs
 
-def __core_prepare(d: str, overwrite: bool, archive: str, sanitize: bool, spacing: float, targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> None:
+def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spacing: float, targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> None:
     '''Prepares a database entry to be run in multiple docking software.
 
     Parameters
     ----------
-    d : str
+    path : str
         Path to the database directory.
     overwrite : bool
         Flag for demanding file overwrite.
@@ -537,7 +537,7 @@ def __core_prepare(d: str, overwrite: bool, archive: str, sanitize: bool, spacin
     spacing : float
         Spacing to enlarge the radius of the sphere used in PLANTS conf file. Ranges from 0 to 1
     targetCentroid : Tuple[float, float, float] | rdkit.Geometry.rdGeometry.Point3D, optional
-        Centroid of the target. If not provided, the centroid of the molecule will be used.
+        Centroid of the target. If not provided, the centroid of the ligand will be used.
 
     Returns
     -------
@@ -549,23 +549,45 @@ def __core_prepare(d: str, overwrite: bool, archive: str, sanitize: bool, spacin
     '''
 
     # Check if the basename of the working directory is not in the list of ignored directories
-    if os.path.basename(d) in ['index']:
+    if os.path.basename(path) in ['index']:
         # Skip it
         return
 
     # Set the input file name path
-    fin = f"{d}/receptor.pdb"
-    fout = f"{d}/receptor.mol2"
+    fin = f"{path}/receptor.pdb"
+    fout = f"{path}/receptor.mol2"
     # Set the prepared receptor name
-    preparedReceptor = f"{d}/receptor_prepared.mol2"
+    preparedReceptor = f"{path}/receptor_prepared.mol2"
 
     # Prepare the receptor
     __prepare_molecule((fin, fout), overwrite, "receptor", archive, sanitize = sanitize)
 
     # Parameterize the compounds folders
-    ligands_d = os.path.join(d, "ligands")       # known ligands
-    decoys_d = os.path.join(d, "decoys")         # known decoys
-    candidates_d = os.path.join(d, "candidates") # unknown ligands
+    ligands_d = os.path.join(path, "ligands")       # known ligands
+    decoys_d = os.path.join(path, "decoys")         # known decoys
+    candidates_d = os.path.join(path, "candidates") # unknown ligands
+
+    # Check if there is no target centroid data
+    if targetCentroid is None:
+        # Parameterize the reference ligand name (pdb and mol2)
+        ref_ligand_pdb = os.path.join(f"{path}/reference_ligand.pdb")
+        ref_ligand_mol2 = os.path.join(f"{path}/reference_ligand.mol2")
+
+        # Check if the reference ligand with the mol2 extension does not exist
+        if not os.path.isfile(ref_ligand_mol2):
+            # Check if the reference ligand with the pdb extension exists
+            if os.path.isfile(ref_ligand_pdb):
+                # Convert the reference ligand to mol2
+                _ = octools.convertMols(ref_ligand_pdb, ref_ligand_mol2)
+            else:
+                octools.print_error_log(f"Could not find the file '{ref_ligand_pdb}' or '{ref_ligand_mol2}' for the molecule '{path}' and a target centroid has not been provided. This molecule will not be processed.", f"{path}/prepare_error.log")
+                return errors.file_do_not_exist(f"Could not find the file '{ref_ligand_pdb}' or '{ref_ligand_mol2}' for the molecule '{path}' and a target centroid has not been provided. This molecule will not be processed.", level = "error")
+
+        # Load the ligand
+        refLig = ocl.Ligand(ref_ligand_mol2)
+
+        # Set the target centroid as the centroid of the ligand
+        targetCentroid = refLig.get_centroid(sanitize = sanitize)
 
     # Create an empty list to hold all dirs to be processed
     processDirs = []
@@ -606,11 +628,11 @@ def __core_prepare(d: str, overwrite: bool, archive: str, sanitize: bool, spacin
             processDirs += __sub_core_prepare(candidates_d, mols, overwrite, sanitize, targetCentroid = targetCentroid)
 
     # Find the protein name
-    ptn = d.split(os.path.sep)[-1]
+    ptn = path.split(os.path.sep)[-1]
 
     ''' P2Rank is not used yet
     # Set the output path
-    fout = f"{d}/p2rank"
+    fout = f"{path}/p2rank"
     # Create the p2rank output dir
     _ = octools.safe_create_dir(fout)
     # Parameterizing box count
@@ -618,15 +640,15 @@ def __core_prepare(d: str, overwrite: bool, archive: str, sanitize: bool, spacin
     # If overwrite mode is on or there is no box in the p2rank output, p2rank will run
     if boxCount == 0 or overwrite:
         # Run p2rank
-        __run_p2rank(d, fin, overwrite=overwrite)
+        __run_p2rank(path, fin, overwrite=overwrite)
     else:
-        octools.print_info(f"The protein '{d}' already has its p2rank output generated, skipping its execution.")
+        octools.print_info(f"The protein '{path}' already has its p2rank output generated, skipping its execution.")
     '''
 
     # Check if processDirs is not set or is empty
     if not processDirs or len(processDirs) == 0:
         # Set the processDirs to the current dir
-        processDirs = [d]
+        processDirs = [path]
 
     # For each dir to be processed
     for processDir in processDirs:
@@ -665,12 +687,12 @@ def __core_prepare(d: str, overwrite: bool, archive: str, sanitize: bool, spacin
 
     return None
 
-def __thread_prepare(arguments: Tuple[str, bool, str, bool, float, rdkit.Geometry.rdGeometry.Point3D]) -> None:
+def __thread_prepare(arguments: Tuple[str, bool, str, bool, float, Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D]]) -> None:
     '''Thread aid function to call __core_prepare.
 
     Parameters
     ----------
-    arguments : Tuple[str, bool, str, bool, float, rdkit.Geometry.rdGeometry.Point3D]
+    arguments : Tuple[str, bool, str, bool, float, rdkit.Geometry.rdGeometry.Point3D] | Tuple[float, float, float]
         The arguments to be passed to __core_prepare. Its arguments are: (d, overwrite, archive, sanitize, spacing, targetCentroid). See __core_prepare for more information.
 
     Returns
@@ -689,6 +711,8 @@ def __thread_prepare(arguments: Tuple[str, bool, str, bool, float, rdkit.Geometr
 def __prepare_parallel(dirs: List[str], overwrite: bool, archive: str, sanitize: bool, spacing: float, desc: str) -> None:
     '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
 
+    TODO: Add the support to custom databases.
+
     Parameters
     ----------
     dirs : List[str]
@@ -703,7 +727,7 @@ def __prepare_parallel(dirs: List[str], overwrite: bool, archive: str, sanitize:
         The spacing value used to enlarge the radius of the sphere used in PLANTS file. Ranges from 0 to 1.
     desc : str
         The description to be used in the tqdm progress bar.
-
+    
     Returns
     -------
     None
@@ -727,11 +751,13 @@ def __prepare_parallel(dirs: List[str], overwrite: bool, archive: str, sanitize:
         for _ in tqdm(p.imap_unordered(__thread_prepare, arguments), total = len(arguments), desc = desc):
             # Clear the memory
             gc.collect()
-    # Return
+    
     return None
 
 def __prepare_no_parallel(dirs: List[str], overwrite: bool, archive: str, sanitize: bool, spacing: float, desc: str) -> None:
     '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_prepare function.
+
+    TODO: Add the support to custom databases.
 
     Parameters
     ----------
@@ -764,6 +790,7 @@ def __prepare_no_parallel(dirs: List[str], overwrite: bool, archive: str, saniti
             __core_prepare(dir, overwrite, archive, sanitize, spacing)
             # Clear the memory
             gc.collect()
+
     return None
 
 
@@ -2410,6 +2437,7 @@ def prepare(archive: str, overwrite: bool = False, spacing: float = 0.33, saniti
         dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index']]
     else:
         octools.print_error(f"Not valid archive type. Expected one of ['astex', 'dudez', 'pdbbind'] and found {archive}.")
+
         return None
 
     # Generate boxes for all receptors
@@ -2422,6 +2450,7 @@ def prepare(archive: str, overwrite: bool = False, spacing: float = 0.33, saniti
     else:
         # Prepare the database
         __prepare_no_parallel(dirs, overwrite, archive, sanitize, spacing, label)
+
     return None
 
 def run_p2rank(archive: str, overwrite: bool = False) -> None:
