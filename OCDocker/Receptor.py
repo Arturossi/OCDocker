@@ -543,7 +543,7 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
                 # Write the CRYST1 line to the file
                 pdbFile.write(lines)
                         
-                    '''
+            '''
                     # Check if starts with CRYST1
                     if line.startswith("CRYST1"):
                         # Set the hasCryst1 flag to True
@@ -572,7 +572,7 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
                 pdbFile.write(cryst1)
                 # Write the content to the file
                 pdbFile.write(content)
-                '''
+            '''
                 
 
     # Column header to dsspData object will be
