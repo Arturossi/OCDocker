@@ -2464,6 +2464,8 @@ class Ligand:
             if not os.path.exists(savePath):
                 octools.print_error(f"The savePath '{savePath}' does not exist. The box will be saved in the ligand directory.")
 
+        print(f"{savePath}/box0.pdb")
+
         # Write out the box file (following the one given in the DUD-E database)
         with open(f"{savePath}/box0.pdb", "w") as f:
             f.write(f"HEADER    CORNERS OF BOX      {min_x}{min_y}{min_z}{max_x}{max_y}{max_z}\n")
