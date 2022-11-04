@@ -582,7 +582,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
                 # Set the target centroid as the centroid of the ligand from the pdb file
                 targetCentroid = ocl.get_centroid(ref_ligand_pdb, sanitize = sanitize)
             else:
-                octools.print_error_log(f"Could not find the file '{ref_ligand_pdb}' or '{ref_ligand_mol2}' for the molecule '{path}' and a target centroid has not been provided. This molecule will not be processed.", f"{path}/prepare_error.log")
+                #octools.print_error_log(f"Could not find the file '{ref_ligand_pdb}' or '{ref_ligand_mol2}' for the molecule '{path}' and a target centroid has not been provided. This molecule will not be processed.", f"{logdir}/prepare_error.log")
                 return errors.file_do_not_exist(f"Could not find the file '{ref_ligand_pdb}' or '{ref_ligand_mol2}' for the molecule '{path}' and a target centroid has not been provided. This molecule will not be processed.", level = "error")
         else:
             # Set the target centroid as the centroid of the ligand from the mol2 file
