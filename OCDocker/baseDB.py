@@ -389,20 +389,25 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                             return None
                             '''
         elif moltype == "receptor":
-            try:
+            
                 # If is a tuple
                 if type(mol) == tuple:
-                    # Create the receptor object
-                    m = ocr.Receptor(mol[0], molName, mol2Path = mol[1])
+                    try:
+                        # Create the receptor object
+                        m = ocr.Receptor(mol[0], molName, mol2Path = mol[1])
+                    except Exception as e:
+                        _ = errors.parse_molecule(f"The molecule '{mol[0]}' could not be parsed! Error {e}", "error")
+                        octools.print_error_log(f"The molecule '{mol[0]}' could not be parsed! Error {e}", f"{logdir}/{dbName}_error_Parse.log")
+                        return None
                 else:
-                    # Create the receptor object
-                    m = ocr.Receptor(mol, molName)
-            # If m is not valid
-            except Exception as e:
-                print(type(mol))
-                _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed! Error {e}", "error")
-                octools.print_error_log(f"The molecule '{mol}' could not be parsed! Error {e}", f"{logdir}/{dbName}_error_Parse.log")
-                return None
+                    try:
+                        # Create the receptor object
+                        m = ocr.Receptor(mol, molName)
+                    except Exception as e:
+                        _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed! Error {e}", "error")
+                        octools.print_error_log(f"The molecule '{mol}' could not be parsed! Error {e}", f"{logdir}/{dbName}_error_Parse.log")
+                        return None
+           
         else:
             _ = errors.unkown("Unknown molecule type", "error")
             return None
