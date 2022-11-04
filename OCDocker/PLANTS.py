@@ -813,13 +813,13 @@ def generate_plants_files_database(path: str, protein: str, ligand: str, spacing
     None
     '''
 
-    # Parameterize the vina and p2rank paths
+    # Parameterize the PLANTS and p2rank paths
     plantsPath = f"{path}/plantsFiles"
     # Check if boxPath is an empty string
     if boxPath == "":
       # Set is as the path + p2rank
       boxPath = f"{path}/p2rank"
-    # Create the vina folder inside protein's directory
+    # Create the PLANTS folder inside protein's directory
     _ = octools.safe_create_dir(plantsPath)
     # Find all boxes
     boxes = glob(f"{boxPath}/box*.pdb")
@@ -831,7 +831,7 @@ def generate_plants_files_database(path: str, protein: str, ligand: str, spacing
         boxId = os.path.splitext(boxName)[0].replace("box", "").replace(".pdb", "")
         # Parameterize the box folder
         outputPlants = f"{plantsPath}/{boxId}"
-        # Create vina execution folder
+        # Create PLANTS execution folder
         _ = octools.safe_create_dir(outputPlants)
         confPath = f"{outputPlants}/conf_plants.txt"
         # Convert the box to a conf file

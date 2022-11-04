@@ -495,6 +495,7 @@ def gen_smina_conf(confFile: str, receptor: str) -> int:
             conf_file.write(f"num_modes = {smina_num_modes}\n")
     except Exception as e:
         return errors.write_file(message=f"Found a problem while opening conf file: {e}.", level="error")
+
     return errors.ok()
 
 def run_prepare_ligand_from_cmd(inputLigandPath: str, preparedLigand: str, logFile: str = "") -> int:

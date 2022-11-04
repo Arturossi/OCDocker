@@ -653,7 +653,12 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
     for processDir in processDirs:
         # Check if there is a box for the ligand
         boxCount = len(glob(f"{processDir}/boxes/box*.pdb"))
-        # TODO: Check the code below
+
+        # Create docking output dirs
+        _ = octools.safe_create_dir(f"{processDir}/vinaFiles")
+        _ = octools.safe_create_dir(f"{processDir}/plantsFiles")
+        _ = octools.safe_create_dir(f"{processDir}/sminaFiles")
+        
         # If overwrite mode is on or there is not the same amount of box files as folders in vinaFiles folder
         if boxCount == 0 or len(glob(f"{processDir}/vinaFiles/*")) != boxCount or overwrite or len(glob(f"{processDir}/vinaFiles/*")) == 0:
             # Check if the archive is dudez
@@ -665,6 +670,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
                 ocvina.generate_vina_files_database(processDir, fin)
         else:
             octools.print_info(f"The protein '{processDir}' already has its vina file generated, skipping its execution.")
+
         # If overwrite mode is on or there is not the same amount of box files as folders in vinaFiles folder
         if boxCount == 0 or len(glob(f"{processDir}/plantsFiles/*")) != boxCount or overwrite or len(glob(f"{processDir}/plantsFiles/*")) == 0:
             # Check if the archive is dudez
@@ -677,8 +683,10 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
             ocplants.generate_plants_files_database(processDir, preparedReceptor, fligand, spacing, boxPath = fout)
         else:
             octools.print_info(f"The protein '{processDir}' already has its PLANTS file generated, skipping its execution.")
+
         # If overwrite mode is on or there not any conf file in the sminaFiles folder
         if len(glob(f"{processDir}/sminaFiles/*.conf")) == 0 or overwrite:
+            # Create the smina d
             # Create the smina inputs
             ocsmina.gen_smina_conf(f"{processDir}/sminaFiles/conf_smina.conf", fin)
         else:
