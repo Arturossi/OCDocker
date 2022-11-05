@@ -802,8 +802,8 @@ def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str
                     # Increment the residue number
                     res_id += 1
 
-        # Check if an output pdb was provided and if it should be overwritten or not exist
-        if outputPdb and (not os.path.isfile(outputPdb) or overwrite):
+        # Check if an output pdb was provided
+        if outputPdb:
             # Save the structure
             io = PDBIO()
             io.set_structure(structure)
