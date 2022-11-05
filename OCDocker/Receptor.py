@@ -792,15 +792,15 @@ def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str
         model = structure[0]
         # For each chain
         for chain in model:
-            for res_id, residue in enumerate(chain.get_residues()):
-                print(residue.id)
             # For each residue
-            for res_id, residue in enumerate(chain.get_residues()):
+            for res_id, residue in enumerate(chain.get_residues(), start = 1):
                 # Check if the sidue number is greater than 0
                 if residue.id[1] > 0:
-                    print(f"Chain: {chain.id}\tResidue:{(' ', res_id + 1, ' ')}")
                     # Change the residue number
-                    residue.id = (' ', res_id + 1, ' ')
+                    residue.id = (' ', res_id, ' ')
+                else:
+                    # Decrement the res_id because it has not been used
+                    res_id = res_id - 1
 
         # Check if an output pdb was provided and if it should be overwritten or not exist
         if outputPdb and (not os.path.isfile(outputPdb) or overwrite):
