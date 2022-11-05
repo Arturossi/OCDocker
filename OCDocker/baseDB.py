@@ -481,9 +481,9 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
     __prepare_molecule((fin, fout), overwrite, "receptor", archive, sanitize = sanitize)
 
     # Parameterize the compounds folders
-    ligands_d = os.path.join(path, "ligands")       # known ligands
-    decoys_d = os.path.join(path, "decoys")         # known decoys
-    candidates_d = os.path.join(path, "candidates") # unknown ligands
+    ligands_d = os.path.join(path, "compounds", "ligands")       # known ligands
+    decoys_d = os.path.join(path, "compounds", "decoys")         # known decoys
+    candidates_d = os.path.join(path, "compounds", "candidates") # unknown ligands
 
     # Check if there is no target centroid data
     if targetCentroid is None:
@@ -606,7 +606,7 @@ def __thread_prepare(arguments: Tuple[str, bool, str, bool, float]) -> None:
     Parameters
     ----------
     arguments : Tuple[str, bool, str, bool, float]
-        The arguments to be passed to __core_prepare. Its arguments are: (d, overwrite, archive, sanitize, spacing). See __core_prepare for more information.
+        The arguments to be passed to __core_prepare. Its arguments are: (path, overwrite, archive, sanitize, spacing). See __core_prepare for more information.
 
     Returns
     -------
@@ -667,14 +667,14 @@ def __prepare_parallel(dirs: List[str], overwrite: bool, archive: str, sanitize:
     
     return None
 
-def __prepare_no_parallel(dirs: List[str], overwrite: bool, archive: str, sanitize: bool, spacing: float, desc: str) -> None:
+def __prepare_no_parallel(paths: List[str], overwrite: bool, archive: str, sanitize: bool, spacing: float, desc: str) -> None:
     '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_prepare function.
 
     TODO: Add the support to custom databases.
 
     Parameters
     ----------
-    dirs : List[str]
+    paths : List[str]
         The list of directories to be processed.
     overwrite : bool
         If True, the function will overwrite the files if they already exists.
@@ -698,9 +698,9 @@ def __prepare_no_parallel(dirs: List[str], overwrite: bool, archive: str, saniti
 
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
-        for dir in tqdm(iterable=dirs, total=len(dirs), desc=desc):
+        for path in tqdm(iterable=paths, total=len(paths), desc=desc):
             # Call the core prepare function
-            __core_prepare(dir, overwrite, archive, sanitize, spacing)
+            __core_prepare(path, overwrite, archive, sanitize, spacing)
             # Clear the memory
             gc.collect()
 
@@ -2336,21 +2336,20 @@ def prepare(archive: str, overwrite: bool = False, spacing: float = 0.33, saniti
     if archive == "astex":
         chosenArchive = astex_archive
         label = f"Astex proteins"
-        # Get all dirs paths in the database
-        dirs = glob(f"{chosenArchive}/*")
+        # Get all paths in the database
+        paths = glob(f"{chosenArchive}/*")
     elif archive == "dudez":
         chosenArchive = dudez_archive
         label = f"DUDEz proteins"
-        # Get all dirs paths in the database
-        dirs = glob(f"{chosenArchive}/*")
+        # Get all paths in the database
+        paths = glob(f"{chosenArchive}/*")
     elif archive == "pdbbind":
         chosenArchive = pdbbind_archive
         label = "PDBbind proteins"
-        # Get all dirs paths in the database filtering for pdbbind
-        dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index']]
+        # Get all paths in the database filtering for pdbbind
+        paths = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index']]
     else:
         octools.print_error(f"Not valid archive type. Expected one of ['astex', 'dudez', 'pdbbind'] and found {archive}.")
-
         return None
 
     # Generate boxes for all receptors
@@ -2359,10 +2358,10 @@ def prepare(archive: str, overwrite: bool = False, spacing: float = 0.33, saniti
     # If is multiprocess
     if args.multiprocess:
         # Prepare the pdbbind
-        __prepare_parallel(dirs, overwrite, archive, sanitize, spacing, label)
+        __prepare_parallel(paths, overwrite, archive, sanitize, spacing, label)
     else:
         # Prepare the database
-        __prepare_no_parallel(dirs, overwrite, archive, sanitize, spacing, label)
+        __prepare_no_parallel(paths, overwrite, archive, sanitize, spacing, label)
 
     return None
 
