@@ -801,9 +801,11 @@ def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str
             io.set_structure(structure)
             io.save(outputPdb)
 
-        return errors.ok()
+        return structure
     except Exception as e:
-        return errors.unkown(f"Could not reset indexes for this protein and save it on path '{outputPdb}'. Error: {e}")
+        _ = errors.unkown(f"Could not reset indexes for this protein and save it on path '{outputPdb}'. Error: {e}")
+    
+    return None
 
 def computeDipoleMoment(structure: Bio.PDB.Structure.Structure, cModel: str = "gasteiger"):
     '''Computes the receptor's dipole moment.
