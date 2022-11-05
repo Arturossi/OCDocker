@@ -790,8 +790,6 @@ def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str
         model = structure[0]
         # For each chain
         for chain in model:
-            for res_id, residue in enumerate(chain.get_residues()):
-                print(residue.id)
             res_id = 1
             # For each residue
             for residue in chain.get_residues():
