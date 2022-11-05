@@ -90,15 +90,10 @@ class Receptor:
         # If user pass a json
         if from_json_descriptors:
             # Read the molecule telling that there is no need to fetch the SASA value
-            self.path, self.structure = loadMol(structure, name=self.name, computeSASA=False, mol2Path=self.mol2Path, overwrite=overwrite)
+            self.path, self.structure = loadMol(structure, name=self.name, computeSASA=False, mol2Path=self.mol2Path, overwrite = overwrite, clean = clean)
         else:
             # Read the molecule telling that there is the need to fetch the SASA value
-            self.path, self.structure = loadMol(structure, name=self.name, computeSASA=True, mol2Path=self.mol2Path, overwrite=overwrite)
-
-        # Check if the pdb file should be cleaned
-        if clean:
-            # Clean the pdb file
-            self.structure = renumber_pdb_residues(self.structure, outputPdb = self.path, overwrite = overwrite)
+            self.path, self.structure = loadMol(structure, name=self.name, computeSASA=True, mol2Path=self.mol2Path, overwrite = overwrite, clean = clean)
 
         # Set the residues (derived from structure)
         self.residues = getRes(self.structure)
@@ -685,7 +680,7 @@ def getRes(model: Bio.PDB.Structure.Structure) -> str:
         residues.append(seq1(residue.get_resname()))
     return "".join(residues)
 
-def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA: bool = True, mol2Path: str = "", overwrite: bool = False) -> Tuple[str, Bio.PDB.Structure.Structure]:
+def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA: bool = True, mol2Path: str = "", overwrite: bool = False, clean: bool = True) -> Tuple[str, Bio.PDB.Structure.Structure]:
     '''Load a structure pdb/cif if a path is provided or just assign the Bio.PDB.Structure.Structure object to the structure. Also returns the path as a tuple (path, structure).
 
     Parameters
@@ -700,6 +695,8 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
         The path to the mol2 file, by default "".
     overwrite : bool, optional
         Whether to overwrite the mol2 file or not, by default False.
+    clean : bool, optional
+        Whether to clean the protein file or not, by default True.
 
     Returns
     -------
@@ -717,6 +714,10 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
         # Check if SASA should be computed
         if computeSASA:
             compute_sasa(structure)
+        # Check if the pdb file should be cleaned
+        if clean:
+            # Clean the pdb file
+            structure = renumber_pdb_residues(structure, overwrite = overwrite)
         # Since is already a structure, assign it to the class
         return structure, None
     elif type(structure) == str:
@@ -739,6 +740,12 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
                 return "", None
             # Compute the SASA value of the structure
             tmpStructure = parser.get_structure(name, structure)
+
+            # Check if the pdb file should be cleaned
+            if clean:
+                # Clean the pdb file
+                tmpStructure = renumber_pdb_residues(tmpStructure, outputPdb = structure, overwrite = overwrite)
+
             # If there is a mol2 path and the file does not exist
             if mol2Path and (not os.path.isfile(mol2Path) or overwrite):
                 # Convert the molecule
@@ -803,7 +810,7 @@ def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str
 
         return structure
     except Exception as e:
-        _ = errors.unkown(f"Could not reset indexes for this protein and save it on path '{outputPdb}'. Error: {e}")
+        _ = errors.unkown(f"Could not reset indexes for this protein and save it on path '{outputPdb}'. Error: {e}", level = "error")
     
     return None
 
