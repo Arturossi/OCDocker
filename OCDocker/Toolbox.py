@@ -1273,6 +1273,7 @@ def get_rmsd(reference: str, molecule: str) -> Union[List, float]:
     # Return the symmetric rmsd (account for symmetry because it is important)
     return rmsd.symmrmsd(refCoordinates, molCoordinates, refAtmNum, molAtmNum, refAdjMat, molAdjMat)
 
+
 ### Special functions
 
 @contextlib.contextmanager

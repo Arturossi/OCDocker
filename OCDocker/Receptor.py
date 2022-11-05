@@ -49,7 +49,7 @@ import OCDocker.Receptor as ocr
 class Receptor:
     """Load and compute receptor descriptors."""
 
-    def __init__(self, structure: Union[str, Bio.PDB.Structure.Structure], name: str, mol2Path: str = "", cModel: str = "gasteiger", gravyScale: str = "KyteDoolitle", relativeASAcutoff: str = 0.7, from_json_descriptors: str = "", overwrite: bool = False) -> None:
+    def __init__(self, structure: Union[str, Bio.PDB.Structure.Structure], name: str, mol2Path: str = "", cModel: str = "gasteiger", gravyScale: str = "KyteDoolitle", relativeASAcutoff: str = 0.7, from_json_descriptors: str = "", overwrite: bool = False, clean: bool = True) -> None:
         '''Constructor of the class Receptor.
 
         Parameters
@@ -70,6 +70,8 @@ class Receptor:
             Path to the json file containing the descriptors, by default ""
         overwrite : bool, optional
             Flag to denote if files will be overwritten, by default False
+        clean : bool, optional
+            Flag to denote if the pdb file will be cleaned, by default True
         
         Returns
         -------
@@ -92,6 +94,11 @@ class Receptor:
         else:
             # Read the molecule telling that there is the need to fetch the SASA value
             self.path, self.structure = loadMol(structure, name=self.name, computeSASA=True, mol2Path=self.mol2Path, overwrite=overwrite)
+
+        # Check if the pdb file should be cleaned
+        if clean:
+            # Clean the pdb file
+            self.structure = renumber_pdb_residues(self.structure, outputPdb = self.path, overwrite = overwrite)
 
         # Set the residues (derived from structure)
         self.residues = getRes(self.structure)
@@ -750,6 +757,53 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
         # The variable is not in a supported data format
         octools.print_error("Unsupported molecule data. Please support either a molecule path (string) or an 'rdkit.Chem.rdchem.Mol' object.")
         return "", None
+
+def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str = "", overwrite: bool = False) -> Bio.PDB.Structure.Structure:
+    '''Renumber the pdb residues using biopython.
+
+    Parameters
+    ----------
+    structure : Bio.PDB.Structure.Structure
+        The structure to be renumbered.
+    outputPdb : str, optional
+        The output pdb file. If not provided, the structure will be renumbered in place, by default "".
+    overwrite : bool, optional
+        Whether to overwrite the output pdb file or not, by default False.
+
+    Returns
+    -------
+    Bio.PDB.Structure.Structure
+        The renumbered structure.
+
+    Raises
+    ------
+    None
+    '''
+
+    try:
+        # Get the model
+        model = structure[0]
+        # For each chain
+        for chain in model:
+            # Reset the residue id to 1
+            res_id = 1
+            # For each residue
+            for residue in chain:
+                # Set the residue id
+                residue.id = (' ', res_id, ' ')
+                # Increment the residue id
+                res_id += 1
+
+        # Check if an output pdb was provided and if it should be overwritten or not exist
+        if outputPdb and (not os.path.isfile(outputPdb) or overwrite):
+            # Save the structure
+            io = PDBIO()
+            io.set_structure(structure)
+            io.save(outputPdb)
+
+        return errors.ok()
+    except Exception as e:
+        return errors.unkown(f"Could not reset indexes for this protein and save it on path '{outputPdb}'. Error: {e}")
 
 def computeDipoleMoment(structure: Bio.PDB.Structure.Structure, cModel: str = "gasteiger"):
     '''Computes the receptor's dipole moment.
