@@ -425,8 +425,6 @@ def __sub_core_prepare(dirToProcess: str, mols: List[str], dbName: str, overwrit
 
     processDirs = []
     # Check the length of the list of mols
-    #if len(mols) == 0:
-        # If it is 0, get a list of all directories in goldilocksDirDecoy
     processDirs += [d for d in glob(f"{dirToProcess}/*") if os.path.isdir(d)]
     # For each directory (check to see if it is needed to generate descriptors)
     for processDir in processDirs:
@@ -438,64 +436,7 @@ def __sub_core_prepare(dirToProcess: str, mols: List[str], dbName: str, overwrit
         _ = octools.safe_create_dir(f"{processDir}/plantsFiles")
         # For each ligand (don't use parallel, since there is no need)
         __prepare_molecule(fligand, overwrite, "ligand", dbName, sanitize = sanitize, targetCentroid = targetCentroid)
-    '''
-    else:
-        for mol in mols:
-            # Extract the ligand name from the path
-            #ligandName = os.path.splitext(os.path.basename(mol))[0]
-            # Extract the ligand name (without extension) and path from mol
-            ligandPath, ligandName = os.path.split(mol)
-            ligandName = os.path.splitext(ligandName)[0]
-            # Safe create its dir
-            _ = octools.safe_create_dir(f"{ligandPath}/{ligandName}")
-            # Safe create plantsFiles, vinaFiles and sminaFiles dirs
-            _ = octools.safe_create_dir(f"{ligandPath}/{ligandName}/vinaFiles")
-            _ = octools.safe_create_dir(f"{ligandPath}/{ligandName}/sminaFiles")
-            _ = octools.safe_create_dir(f"{ligandPath}/{ligandName}/plantsFiles")
-            # Set the fligand name as the ligand file path
-            fligand = f"{ligandPath}/{ligandName}/{ligandName}.mol2"
-            # Test if destination file exists
-            if os.path.isfile(fligand):
-                # Now check if it should be overwritten
-                if overwrite:
-                    # Since yes, delete it, then move it
-                    os.remove(fligand)
-                    # Move the ligand to its dir
-                    shutil.move(mol, fligand)
-                else:
-                    # Since no, delete the source file
-                    os.remove(mol)
-            else:
-                # It does not exist. Move the ligand to its dir
-                shutil.move(mol, fligand)
-            # Create the smiles path
-            fligandsmiorig = f"{ligandPath}/{ligandName}.smi"
-            fligandsmidest = f"{ligandPath}/{ligandName}/{ligandName}.smi"
-
-            # Test if source file exists
-            if os.path.isfile(fligandsmiorig):
-                # Test if destination file exists
-                if os.path.isfile(fligandsmidest):
-                    # Now check if it should be overwritten
-                    if overwrite:
-                        # Since yes, delete it, then move it
-                        os.remove(fligandsmidest)
-                        # Move the ligand to its dir
-                        shutil.move(fligandsmiorig, fligandsmidest)
-                    else:
-                        # Since no, delete the source file
-                        os.remove(fligandsmiorig)
-                else:
-                    # It does not exist. Move the ligand to its dir
-                    shutil.move(fligandsmiorig, fligandsmidest)
-                # For each ligand (don't use parallel, since there is no need)
-                __prepare_molecule(fligandsmidest, overwrite, "ligand", dbName, sanitize = sanitize, targetCentroid = targetCentroid)
-            else:
-                # For each ligand (don't use parallel, since there is no need)
-                __prepare_molecule(fligand, overwrite, "ligand", dbName, sanitize = sanitize, targetCentroid = targetCentroid)
-            # Append the dir to the list of dirs to be processed
-            processDirs.append(f"{ligandPath}/{ligandName}")
-    '''
+    
     return processDirs
 
 def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spacing: float, targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> None:
