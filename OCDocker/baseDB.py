@@ -346,6 +346,10 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
     
     if overwrite or not os.path.isfile(f"{molPath}/{moltype}_descriptors.json"):
         if moltype == "ligand":
+            # Safe create plantsFiles, vinaFiles and sminaFiles dirs
+            _ = octools.safe_create_dir(f"{molPath}/plantsFiles")
+            _ = octools.safe_create_dir(f"{molPath}/vinaFiles")
+            _ = octools.safe_create_dir(f"{molPath}/sminaFiles")
             try:
                 # Create the ligand object
                 m = ocl.Ligand(mol, molName, sanitize = sanitize)
@@ -428,10 +432,6 @@ def __sub_core_prepare(dirToProcess: str, mols: List[str], dbName: str, overwrit
         for processDir in processDirs:
             # Extract the ligand name from the path
             ligandName = os.path.splitext(os.path.basename(processDir))[0]
-            # Safe create plantsFiles, vinaFiles and sminaFiles dirs
-            _ = octools.safe_create_dir(f"{processDir}/plantsFiles")
-            _ = octools.safe_create_dir(f"{processDir}/vinaFiles")
-            _ = octools.safe_create_dir(f"{processDir}/sminaFiles")
             # Set the fligand name as the ligand file path
             fligand = f"{processDir}/ligand.smi"
             # For each ligand (don't use parallel, since there is no need)
