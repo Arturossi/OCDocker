@@ -425,17 +425,20 @@ def __sub_core_prepare(dirToProcess: str, mols: List[str], dbName: str, overwrit
 
     processDirs = []
     # Check the length of the list of mols
-    if len(mols) == 0:
+    #if len(mols) == 0:
         # If it is 0, get a list of all directories in goldilocksDirDecoy
-        processDirs += [d for d in glob(f"{dirToProcess}/*") if os.path.isdir(d)]
-        # For each directory (check to see if it is needed to generate descriptors)
-        for processDir in processDirs:
-            # Extract the ligand name from the path
-            ligandName = os.path.splitext(os.path.basename(processDir))[0]
-            # Set the fligand name as the ligand file path
-            fligand = f"{processDir}/ligand.smi"
-            # For each ligand (don't use parallel, since there is no need)
-            __prepare_molecule(fligand, overwrite, "ligand", dbName, sanitize = sanitize, targetCentroid = targetCentroid)
+    processDirs += [d for d in glob(f"{dirToProcess}/*") if os.path.isdir(d)]
+    # For each directory (check to see if it is needed to generate descriptors)
+    for processDir in processDirs:
+        # Set the fligand name as the ligand file path
+        fligand = f"{processDir}/ligand.smi"
+        # Safe create plantsFiles, vinaFiles and sminaFiles dirs
+        _ = octools.safe_create_dir(f"{processDir}/vinaFiles")
+        _ = octools.safe_create_dir(f"{processDir}/sminaFiles")
+        _ = octools.safe_create_dir(f"{processDir}/plantsFiles")
+        # For each ligand (don't use parallel, since there is no need)
+        __prepare_molecule(fligand, overwrite, "ligand", dbName, sanitize = sanitize, targetCentroid = targetCentroid)
+    '''
     else:
         for mol in mols:
             # Extract the ligand name from the path
@@ -492,7 +495,7 @@ def __sub_core_prepare(dirToProcess: str, mols: List[str], dbName: str, overwrit
                 __prepare_molecule(fligand, overwrite, "ligand", dbName, sanitize = sanitize, targetCentroid = targetCentroid)
             # Append the dir to the list of dirs to be processed
             processDirs.append(f"{ligandPath}/{ligandName}")
-
+    '''
     return processDirs
 
 def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spacing: float, targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> None:
