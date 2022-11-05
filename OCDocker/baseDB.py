@@ -430,6 +430,7 @@ def __sub_core_prepare(dirToProcess: str, mols: List[str], dbName: str, overwrit
     for processDir in processDirs:
         # Set the fligand name as the ligand file path
         fligand = f"{processDir}/ligand.smi"
+        print(processDir)
         # Safe create plantsFiles, vinaFiles and sminaFiles dirs
         _ = octools.safe_create_dir(f"{processDir}/vinaFiles")
         _ = octools.safe_create_dir(f"{processDir}/sminaFiles")
@@ -554,11 +555,6 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
     else:
         octools.print_info(f"The protein '{path}' already has its p2rank output generated, skipping its execution.")
     '''
-
-    # Check if processDirs is not set or is empty
-    if not processDirs or len(processDirs) == 0:
-        # Set the processDirs to the current dir
-        processDirs = [path]
 
     # For each dir to be processed
     for processDir in processDirs:
