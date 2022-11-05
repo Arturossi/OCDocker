@@ -717,7 +717,7 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
         # Check if the pdb file should be cleaned
         if clean:
             # Clean the pdb file
-            structure = renumber_pdb_residues(structure, overwrite = overwrite)
+            structure = renumber_pdb_residues(structure)
         # Since is already a structure, assign it to the class
         return structure, None
     elif type(structure) == str:
@@ -744,7 +744,7 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
             # Check if the pdb file should be cleaned
             if clean:
                 # Clean the pdb file
-                tmpStructure = renumber_pdb_residues(tmpStructure, outputPdb = structure, overwrite = overwrite)
+                tmpStructure = renumber_pdb_residues(tmpStructure, outputPdb = structure)
 
             # If there is a mol2 path and the file does not exist
             if mol2Path and (not os.path.isfile(mol2Path) or overwrite):
@@ -765,7 +765,7 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
         octools.print_error("Unsupported molecule data. Please support either a molecule path (string) or an 'rdkit.Chem.rdchem.Mol' object.")
         return "", None
 
-def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str = "", overwrite: bool = False) -> Bio.PDB.Structure.Structure:
+def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str = "") -> Bio.PDB.Structure.Structure:
     '''Renumber the pdb residues using biopython.
 
     Parameters
@@ -774,8 +774,6 @@ def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str
         The structure to be renumbered.
     outputPdb : str, optional
         The output pdb file. If not provided, the structure will be renumbered in place, by default "".
-    overwrite : bool, optional
-        Whether to overwrite the output pdb file or not, by default False.
 
     Returns
     -------
@@ -799,13 +797,10 @@ def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str
             for residue in chain.get_residues():
                 # Check if the sidue number is greater than 0
                 if residue.id[1] > 0:
-                    print(f"Chain: {chain.id}\tOld residue:{(' ', residue.id[1], ' ')}\tNew residue: {(' ', res_id, ' ')}")
                     # Change the residue number
                     residue.id = (' ', res_id, ' ')
                     # Increment the residue number
                     res_id += 1
-                else:
-                    print(f"JUMP: Chain: {chain.id}\tOld residue:{(' ', residue.id[1], ' ')}")
 
         # Check if an output pdb was provided and if it should be overwritten or not exist
         if outputPdb and (not os.path.isfile(outputPdb) or overwrite):
