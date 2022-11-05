@@ -798,11 +798,11 @@ def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str
             for res_id, residue in enumerate(chain.get_residues(), start = 1):
                 # Check if the sidue number is greater than 0
                 if residue.id[1] > 0:
-                    print(f"Chain: {chain.id}\tResidue:{(' ', res_id, ' ')}")
+                    print(f"Chain: {chain.id}\tOld residue:{(' ', residue.id[1], ' ')}\tNew residue: {(' ', res_id, ' ')}")
                     # Change the residue number
                     residue.id = (' ', res_id, ' ')
                 else:
-                    print(f"JUMPING: Chain: {chain.id}\tResidue:{(' ', res_id, ' ')}")
+                    print(f"Chain: {chain.id}\tOld residue:{(' ', residue.id[1], ' ')}\tNew residue: {(' ', res_id, ' ')}")
                     # Decrement the res_id because it has not been used
                     res_id = res_id - 1
 
