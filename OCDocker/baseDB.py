@@ -97,10 +97,10 @@ def __run_p2rank(dir: str, fin: str, overwrite: bool = False) -> None:
     }
     try:
         # Run p2rank
-        runprank.run_prank(fin, fout, algorithms, prank = prank, threads = args.cpu_cores, debug = False, boxMaxCutoff = p2rank_boxMaxCutoff, pocketCutoff = p2rank_pocketCutoff, verbose = 1 if args.output_level >= 3 else 0, overwrite = overwrite)
+        runprank.run_prank(fin, fout, algorithms, prank = prank, threads = args.cpu_cores, debug = False, boxMaxCutoff = p2rank_boxMaxCutoff, pocketCutoff = p2rank_pocketCutoff, verbose = True if args.output_level >= 3 else False, overwrite = overwrite)
     except Exception as e:
         octools.print_warning(f"The protein '{dir}' had a problem while running p2rank. Retrying to run p2rank. Exception: {e}")
-        runprank.run_prank(fin, fout, algorithms, prank = prank, threads = args.cpu_cores, debug = False, boxMaxCutoff = p2rank_boxMaxCutoff, pocketCutoff = p2rank_pocketCutoff, verbose = 1 if args.output_level >= 3 else 0, overwrite = overwrite)
+        runprank.run_prank(fin, fout, algorithms, prank = prank, threads = args.cpu_cores, debug = False, boxMaxCutoff = p2rank_boxMaxCutoff, pocketCutoff = p2rank_pocketCutoff, verbose = True if args.output_level >= 3 else False, overwrite = overwrite)
 
     return None
 
@@ -124,6 +124,8 @@ def __core_p2rank(dir: str, overwrite: bool, archive: str) -> None:
     ------
     None
     '''
+
+    fin = ""
 
     if archive == "astex":
         # Set the input file name path
@@ -149,7 +151,7 @@ def __core_p2rank(dir: str, overwrite: bool, archive: str) -> None:
     # If overwrite mode is on or there is no box in the p2rank output, p2rank will run
     if boxCount == 0 or overwrite:
         # Run p2rank
-        __run_p2rank(dir, fin, overwrite=overwrite)
+        __run_p2rank(dir, fin, overwrite=overwrite) 
     else:
         octools.print_info(f"The protein '{dir}' already has its p2rank output generated, skipping its execution.")
 
@@ -179,12 +181,12 @@ def __thread_p2rank(arguments: Tuple[str, bool, str]) -> None:
     # Return
     return None
 
-def __p2rank_parallel(dirs: str, overwrite: bool, archive: str, desc: str) -> None:
+def __p2rank_parallel(dirs: List[str], overwrite: bool, archive: str, desc: str) -> None:
     '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
 
     Parameters
     ----------
-    dirs: str
+    dirs: List[str]
         List of directories to be processed.
     overwrite: bool
         Flag for demanding file overwrite.
@@ -217,12 +219,12 @@ def __p2rank_parallel(dirs: str, overwrite: bool, archive: str, desc: str) -> No
     # Return
     return None
 
-def __p2rank_no_parallel(dirs: str, overwrite: bool, archive: str, desc: str) -> None:
+def __p2rank_no_parallel(dirs: List[str], overwrite: bool, archive: str, desc: str) -> None:
     '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_p2rank function.
 
     Parameters
     ----------
-    dirs: str
+    dirs: List[str]
         List of directories to be processed.
     overwrite: bool
         Flag for demanding file overwrite.
@@ -309,7 +311,7 @@ def __run_create_plants_conf_from_box(path: str, fin: str, ligand: str, spacing:
 
 
 ### Prepare
-def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str, dbName: str, sanitize: bool, molName: str = "molecule", targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> None:
+def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str, dbName: str, sanitize: bool, molName: str = "molecule", targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> None: # type: ignore
     '''Prepares a molecule, generating output to docking software.
 
     Parameters
@@ -379,7 +381,7 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                         octools.print_error_log(f"The molecule '{mol}' could not be parsed! Error {e}", f"{logdir}/{dbName}_error_Parse.log")
                         return None
         else:
-            _ = errors.unkown("Unknown molecule type", "error")
+            _ = errors.unknown("Unknown molecule type", "error")
             return None
 
         # Test if the molecule is valid
@@ -389,43 +391,59 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
         else:
             # Export its descriptors
             _ = m.to_json(overwrite)
-            # Check if the moltype is ligand
-            if moltype == "ligand":
-                # Create the ligand box
-                _ = m.create_box(centroid = targetCentroid, overwrite = overwrite)
+            
     # Return
     return None
 
-def __sub_core_prepare(dirToProcess: str, mols: List[str], dbName: str, overwrite: bool, sanitize: bool, targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> None:
+def __sub_core_prepare(dirToProcess: str, dbName: str, overwrite: bool, mols : List[str] = [], sanitize: bool = True,  targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> List[str]: # type: ignore
     '''Runs the prepare function for the dudez database subsets.
 
     Parameters
     ----------
     dirToProcess : str
         Path to the directory to be processed.
-    mols : List[str]
-        List of molecules to be processed.
     dbName : str
         Name of the database.
     overwrite : bool
         Flag for demanding file overwrite.
-    sanitize : bool
-        Flag for demanding molecule sanitization.
+    mols : List[str], optional
+        List of molecules to be processed. If empty, all folders are inside dirToProcess are assumed to be molecules and are processed.
+    sanitize : bool, optional
+        Flag for demanding molecule sanitization, by default True.
     targetCentroid : Tuple[float, float, float] | rdkit.Geometry.rdGeometry.Point3D, optional
         Centroid of the target. If not provided, the centroid of the molecule will be used.
 
     Returns
     -------
-    None
+    List[str]
+        List of molecule directories.
 
     Raises
     ------
     None
     '''
 
-    processDirs = []
-    # Check the length of the list of mols
-    processDirs += [d for d in glob(f"{dirToProcess}/*") if os.path.isdir(d)]
+    # Check if mols is empty
+    if mols:
+        # If not, create each dir with the molecule and then move the molecule to it
+        for mol in mols:
+            # Get the molecule name and path
+            molPath, molName = os.path.split(mol)
+            # Remove the extension
+            molTmp = molName.split(".")
+            # Checage to support files with multiple dots
+            if len(molTmp) > 2:
+                molName = ".".join(molTmp[:-1])
+            else:
+                molName = molTmp[0]
+            # Create the dir
+            _ = octools.safe_create_dir(f"{mol}/{molName}")
+            # Move the molecule to it
+            shutil.move(mol, f"{mol}/{molName}/ligand.{molTmp[-1]}")
+
+    # Get the list of dirs to process
+    processDirs = [d for d in glob(f"{dirToProcess}/*") if os.path.isdir(d)]
+
     # For each directory (check to see if it is needed to generate descriptors)
     for processDir in processDirs:
         # Set the fligand name as the ligand file path
@@ -440,7 +458,7 @@ def __sub_core_prepare(dirToProcess: str, mols: List[str], dbName: str, overwrit
     
     return processDirs
 
-def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spacing: float, targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> None:
+def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spacing: float, targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> int: # type: ignore
     '''Prepares a database entry to be run in multiple docking software.
 
     Parameters
@@ -460,7 +478,8 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
 
     Returns
     -------
-    None
+    int
+        The exit code of the command (based on the Error.py code table).
 
     Raises
     ------
@@ -470,7 +489,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
     # Check if the basename of the working directory is not in the list of ignored directories
     if os.path.basename(path) in ['index']:
         # Skip it
-        return
+        return errors.unnalowed_dir()
 
     # Set the input file name path
     fin = f"{path}/receptor.pdb"
@@ -518,28 +537,22 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
     if os.path.isdir(ligands_d):
         # For each molecule in ligands dir
         mols = glob(f"{ligands_d}/*.{ligandExt}")
-        # If there any ligand
-        if len(mols) > 0:
-            # Append the dir to the list of dirs to be processed
-            processDirs += __sub_core_prepare(ligands_d, mols, overwrite, sanitize, targetCentroid = targetCentroid)
+        # Append the dir to the list of dirs to be processed
+        processDirs += __sub_core_prepare(ligands_d, archive, overwrite, mols, sanitize, targetCentroid = targetCentroid)
 
     # Check if the decoys dir exists
     if os.path.isdir(decoys_d):
         # For each molecule in dudez decoy dir
         mols = glob(f"{decoys_d}/*.{ligandExt}")
-        # If there any ligand
-        if len(mols) > 0:
-            # Append the dir to the list of dirs to be processed
-            processDirs += __sub_core_prepare(decoys_d, mols, overwrite, sanitize, targetCentroid = targetCentroid)
+        # Append the dir to the list of dirs to be processed
+        processDirs += __sub_core_prepare(decoys_d, archive, overwrite, mols, sanitize, targetCentroid = targetCentroid)
     
     # Check if the candidates dir exists
     if os.path.isdir(candidates_d):
         # For each molecule in dudez candidate dir
         mols = glob(f"{candidates_d}/*.{ligandExt}")
-        # If there any ligand
-        if len(mols) > 0:
-            # Append the dir to the list of dirs to be processed
-            processDirs += __sub_core_prepare(candidates_d, mols, overwrite, sanitize, targetCentroid = targetCentroid)
+        # Append the dir to the list of dirs to be processed
+        processDirs += __sub_core_prepare(candidates_d, archive, overwrite, mols, sanitize, targetCentroid = targetCentroid)
 
     ''' P2Rank is not used yet
     # Set the output path
@@ -581,6 +594,8 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
                 ligandName = os.path.splitext(os.path.basename(processDir))[0]
                 # Set the fligand variable to the dir + ligandName + .mol2
                 fligand = f"{processDir}/{ligandName}.mol2"
+            else:
+                fligand = ""
             # Create the PLANTS inputs from the boxes
             ocplants.generate_plants_files_database(processDir, preparedReceptor, fligand, spacing, boxPath = fout)
         else:
@@ -594,9 +609,9 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
         else:
             octools.print_info(f"The protein '{processDir}' already has its smina file generated, skipping its execution.")
 
-    return None
+    return errors.ok()
 
-def __thread_prepare(arguments: Tuple[str, bool, str, bool, float]) -> None:
+def __thread_prepare(arguments: Tuple[str, bool, str, bool, float]) -> int:
     '''Thread aid function to call __core_prepare.
 
     Parameters
@@ -606,7 +621,8 @@ def __thread_prepare(arguments: Tuple[str, bool, str, bool, float]) -> None:
 
     Returns
     -------
-    None
+    int
+        The error code. See octools.error_codes for more information.
 
     Raises
     ------
@@ -704,7 +720,7 @@ def __prepare_no_parallel(paths: List[str], overwrite: bool, archive: str, sanit
 
 
 ### Get
-def __core_get(dir: str, archive: str) -> Tuple[str, ocr.Receptor, ocl.Ligand]:
+def __core_get(dir: str, archive: str) -> Union[Tuple[str, ocr.Receptor, ocl.Ligand], None]:
     '''Loads in memory a pair receptor-ligand and then return them in a tuple alongside with the protein name gotten from file path.
 
     Parameters
@@ -716,8 +732,8 @@ def __core_get(dir: str, archive: str) -> Tuple[str, ocr.Receptor, ocl.Ligand]:
 
     Returns
     -------
-    Tuple[str, ocr.Receptor, ocl.Ligand]
-        The tuple containing the protein name, the receptor and the ligand.
+    Tuple[str, ocr.Receptor, ocl.Ligand] | None
+        The tuple containing the protein name, the receptor and the ligand. If the protein is not valid, returns None.
 
     Raises
     ------
@@ -748,7 +764,7 @@ def __core_get(dir: str, archive: str) -> Tuple[str, ocr.Receptor, ocl.Ligand]:
             return (ptn, receptor, ligand)
     return None
 
-def __thread_get_parallel(arguments: Tuple[str, str]) -> Tuple[str, ocr.Receptor, ocl.Ligand]:
+def __thread_get_parallel(arguments: Tuple[str, str]) -> Union[Tuple[str, ocr.Receptor, ocl.Ligand], None]:
     '''Thread aid function to call __core_get.
 
     Parameters
@@ -758,7 +774,7 @@ def __thread_get_parallel(arguments: Tuple[str, str]) -> Tuple[str, ocr.Receptor
 
     Returns
     -------
-    Tuple[str, ocr.Receptor, ocl.Ligand]
+    Tuple[str, ocr.Receptor, ocl.Ligand] | None
         The tuple containing the protein name, the receptor and the ligand.
 
     Raises
@@ -842,6 +858,10 @@ def __get_no_parallel(dirs: List[str], archive: str, desc: str) -> Dict[str, Tup
         for dir in tqdm(iterable=dirs, total=len(dirs), desc=desc):
             # Call the core get function
             data = __core_get(dir, archive)
+            # Check if data is None
+            if not data:
+                octools.print_error(f"Error while processing '{dir}'.")
+                continue
             # Add them to the dict using the protein as the key
             databaseDict[data[0]] = (data[1], data[2])
             # Clear the memory
@@ -850,7 +870,7 @@ def __get_no_parallel(dirs: List[str], archive: str, desc: str) -> Dict[str, Tup
 
 
 ### Docking
-def __sub_core_run_dock(receptorPath: str, ligandPath: str, receptorDir: str, ligandDir: str, archive: str, dockingAlgorithm: str, receptorDescriptor: str, ligandDescriptor: str, overwrite: bool) -> None:
+def __sub_core_run_dock(receptorPath: str, ligandPath: str, receptorDir: str, ligandDir: str, archive: str, dockingAlgorithm: str, receptorDescriptor: str, ligandDescriptor: str, overwrite: bool) -> int:
     '''Performs the docking.
 
     Parameters
@@ -876,7 +896,8 @@ def __sub_core_run_dock(receptorPath: str, ligandPath: str, receptorDir: str, li
 
     Returns
     -------
-    None
+    int
+        The exit code of the command (based on the Error.py code table).
 
     Raises
     ------
@@ -887,19 +908,11 @@ def __sub_core_run_dock(receptorPath: str, ligandPath: str, receptorDir: str, li
     if os.path.isfile(receptorDescriptor) and os.path.isfile(ligandDescriptor):
         # Find protein name
         ptn = receptorPath.split(os.path.sep)[-1]
-        # Check which archive it is
-        if archive == "astex":
-            pass
-        elif archive == "dudez":
-            receptorName = "rec.crg"
-            # Get ligand name removing the extension
-            ligandName = os.path.splitext(os.path.basename(ligandPath))[0]
-        elif archive == "pdbbind":
-            receptorName = f"{receptorName}_protein"
-            ligandName = f"{ptn}_ligand"
-        else:
-            octools.print_error_log(f"Wrong archive. Only one of the following archives is accepted ['astex', 'dudez', 'pdbbind'] and got '{archive}'.", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
-            return errors.receptor_or_ligand_descriptor_does_not_exist(f"Wrong archive. Only one of the following archives is accepted ['astex', 'dudez', 'pdbbind'] and got '{archive}'.", level = "error")
+        
+        # Parameterize the receptor and ligand names
+        receptorName = "receptor"
+        ligandName = "ligand"
+
         # If running vina
         if dockingAlgorithm == "vina":
             # Flag to denote if its needed to run this protein through vina
@@ -963,7 +976,7 @@ def __sub_core_run_dock(receptorPath: str, ligandPath: str, receptorDir: str, li
                                 # Run again the prepare receptor
                                 _ = vina.run_prepare_receptor(useOpenBabel=False) # useOpenBabel has proven to be a dangerous option, it is better to avoid its use for
                                 # Check again if the generated receptor has size 0 or is invalid
-                                if os.path.getsize(smina.preparedReceptor) == 0 or not octools.is_molecule_valid(vina.preparedReceptor):
+                                if os.path.getsize(vina.preparedReceptor) == 0 or not octools.is_molecule_valid(vina.preparedReceptor):
                                     octools.print_error_log(f"The prepare receptor has made an output of 0kb again for receptor '{vina.preparedReceptor}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(vina.prepareReceptorCmd)}", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
                                     return errors.receptor_not_prepared(f"The prepare receptor has made an output of 0kb again for receptor '{vina.preparedReceptor}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(vina.prepareReceptorCmd)}", level = "error")
                         # Check if vina output exists
@@ -1132,14 +1145,14 @@ def __sub_core_run_dock(receptorPath: str, ligandPath: str, receptorDir: str, li
     else:
         if not os.path.isfile(receptorDescriptor):
             octools.print_error_log(f"There is no receptor descriptor json file for the protein in the path '{receptorDescriptor}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
-            errors.receptor_or_ligand_descriptor_does_not_exist(f"There is no receptor descriptor for the protein in the path '{receptorDescriptor}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", level = "error")
+            _ = errors.receptor_or_ligand_descriptor_does_not_exist(f"There is no receptor descriptor for the protein in the path '{receptorDescriptor}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", level = "error")
         if not os.path.isfile(ligandDescriptor):
             octools.print_error_log(f"There is no ligand descriptor json file for the protein in the path '{ligandDescriptor}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
-            errors.receptor_or_ligand_descriptor_does_not_exist(f"There is no ligand descriptor for the protein in the path '{ligandDescriptor}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", level = "error")
-        return None
-    return None
+            _ = errors.receptor_or_ligand_descriptor_does_not_exist(f"There is no ligand descriptor for the protein in the path '{ligandDescriptor}'. Error found while trying to run the '{dockingAlgorithm}' docking software.", level = "error")
+        return errors.receptor_or_ligand_descriptor_does_not_exist()
+    return errors.ok()
 
-def __core_run_dock(d: str, archive: str, dockingAlgorithm: str, overwrite: bool, ligandAlternativeDir: str = "") -> None:
+def __core_run_dock(d: str, ligandDir: str, archive: str, dockingAlgorithm: str, overwrite: bool) -> int:
     '''Performs the docking.
 
     Parameters
@@ -1152,12 +1165,13 @@ def __core_run_dock(d: str, archive: str, dockingAlgorithm: str, overwrite: bool
         Which docking algorithm will be used [vina, smina, plants].
     overwrite : bool
         If the docking output already exists, should it be overwritten?
-    ligandAlternativeDir : str, optional
+    ligandDir : str
         If the ligand is not in the same directory as the receptor, this is the path to the ligand directory. By default "". If this is not empty, the ligand will be searched in this directory, otherwise, it will be searched in the same directory as the receptor.
 
     Returns
     -------
-    None
+    int
+        The exit code of the command (based on the Error.py code table).
 
     Raises
     ------
@@ -1166,42 +1180,21 @@ def __core_run_dock(d: str, archive: str, dockingAlgorithm: str, overwrite: bool
 
     # If is the index directory, ignore
     if d in ['index', 'db']:
-        return
-    # Find which kind of archive it will be
-    if archive == "astex":
-        chosenArchive = astex_archive
-    elif archive == "dudez":
-        chosenArchive = dudez_archive
-        # Find protein name
-        ptn = d.split(os.path.sep)[-1]
-        # Find protein name
-        receptorPath = f"{d}/rec.crg.pdb"
-        # Check if ligandAlternativeDir is an empty string
-        if ligandAlternativeDir == "":
-            # If it is, print an error message and return
-            return errors.dir_does_not_exists(f"The ligandAlternativeDir variable is empty, please pass the path to the ligand directory. DUDEz archive does not have ligands in the same directory as the protein.", level = "error")
-        # Find ligand name
-        ligandName = os.path.basename(ligandAlternativeDir).split("_")[0]
-        ligandPath = f"{ligandAlternativeDir}/{ligandName}.mol2"
-        # Set ligand and receptor descriptor paths
-        ligandDescriptor = f"{ligandAlternativeDir}/{ligandName}_descriptors.json"
-        receptorDescriptor = f"{d}/rec.crg_descriptors.json"
-    elif archive == "pdbbind":
-        # Find protein name
-        ptn = d.split(os.path.sep)[-1]
-        # Set the input file name path (to generate the box and data about the protein)
-        receptorPath = f"{d}/{ptn}_protein.pdb"
-        # Set the ligand file name path (to generate data about the ligand)
-        ligandPath = f"{d}/{ptn}_ligand.mol2"
-        # Set ligand and receptor descriptor paths
-        ligandDescriptor = f"{d}/{ptn}_ligand_descriptors.json"
-        receptorDescriptor = f"{d}/{ptn}_protein_descriptors.json"
-        ligandAlternativeDir = d
-    else:
-        octools.print_error_log(f"Wrong archive. Only one of the following archives is accepted ['astex', 'dudez', 'pdbbind'] and got '{archive}'.", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
-        return errors.receptor_or_ligand_descriptor_does_not_exist(f"Wrong archive. Only one of the following archives is accepted ['astex', 'dudez', 'pdbbind'] and got '{archive}'.", level = "error")
+        return errors.unnalowed_dir()
+
+    # Find protein name
+    ptn = d.split(os.path.sep)[-1]
+
+    # Set receptor data
+    receptorPath = f"{d}/receptor.pdb"
+    receptorDescriptor = f"{d}/receptor_descriptors.json"
+
+    # Set ligand data
+    ligandPath = f"{ligandDir}/ligand.smi"
+    ligandDescriptor = f"{ligandDir}/ligand_descriptors.json"
+
     # Run the docking sub core routine for the chosen archive and algorithm
-    return __sub_core_run_dock(receptorPath, ligandPath, d, ligandAlternativeDir, archive, dockingAlgorithm, receptorDescriptor, ligandDescriptor, overwrite)
+    return __sub_core_run_dock(receptorPath, ligandPath, d, ligandDir, archive, dockingAlgorithm, receptorDescriptor, ligandDescriptor, overwrite)
 
 def __thread_run_dock_parallel(arguments):
     '''Thread aid function to call __core_run_dock.
@@ -1223,16 +1216,18 @@ def __thread_run_dock_parallel(arguments):
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         # Call the core dock function passing the arguments correctly
-        __core_run_dock(arguments[0], arguments[1], arguments[2], arguments[3], ligandAlternativeDir = arguments[4])
+        __core_run_dock(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4])
     return None
 
-def __run_dock_parallel(dirs: List[str], archive: str, dockingAlgorithm: str, overwrite: bool, desc: str, ligandAlternativeDirs: List[str] = None) -> None:
+def __run_dock_parallel(dirs: List[str], ligandDirs: List[str], archive: str, dockingAlgorithm: str, overwrite: bool, desc: str) -> int:
     '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
 
     Parameters
     ----------
     dirs : List[str]
         A list of directories where the files are stored.
+    ligandDirs : List[str]
+        A list of directories where the ligands are stored.
     archive : str
         Which archive will be processed [dudez, pdbbind, astex].
     dockingAlgorithm : str
@@ -1241,12 +1236,11 @@ def __run_dock_parallel(dirs: List[str], archive: str, dockingAlgorithm: str, ov
         If the docking output already exists, should it be overwritten?
     desc : str
         The description of the progress bar.
-    ligandAlternativeDirs : List[str], optional
-        If the ligand is not in the same directory as the receptor, this is the path to the ligand directory. By default None. If this is not None, the ligand will be searched in this directory, otherwise, it will be searched in the same directory as the receptor.
 
     Returns
     -------
-    None
+    int
+        The exit code of the command (based on the Error.py code table).
 
     Raises
     ------
@@ -1255,20 +1249,14 @@ def __run_dock_parallel(dirs: List[str], archive: str, dockingAlgorithm: str, ov
 
     # Arguments to pass to each Thread in the Thread Pool
     arguments = []
-    # If ligandAlternativeDir is type of list
-    if isinstance(ligandAlternativeDirs, list):
-        # For each file in dirs
-        for d in dirs:
-            # Now loop over the ligands of this protein
-            for ligandAlternativeDir in ligandAlternativeDirs:
-                # Add the arguments to the list (creating one execution for each pair receptor-ligand)
-                arguments.append((d, archive, dockingAlgorithm, overwrite, ligandAlternativeDir))
-    # Otherwise, the ligand is in the same directory as the protein
-    else:
-        # For each file in dirs
-        for d in dirs:
-            # Append a tuple containing the file name and ovewrite flag to the arguments list
-            arguments.append((d, archive, dockingAlgorithm, overwrite))
+
+    # For each file in dirs
+    for d in dirs:
+        # Now loop over the ligands of this protein
+        for ligandDir in ligandDirs:
+            # Add the arguments to the list (creating one execution for each pair receptor-ligand)
+            arguments.append((d, ligandDir, archive, dockingAlgorithm, overwrite))
+
     # If logfile exists, backup it (for error and warnings)
     if os.path.isfile(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log"):
         if not os.path.isdir(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past"):
@@ -1278,22 +1266,26 @@ def __run_dock_parallel(dirs: List[str], archive: str, dockingAlgorithm: str, ov
         if not os.path.isdir(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past"):
             octools.safe_create_dir(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past")
         os.rename(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_WARNING.log", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past/{archive}_{dockingAlgorithm}_run_report_WARNING_{time.strftime('%d%m%Y-%H%M%S')}.log")
+
     # Create a Thread pool with the maximum available_cores
     with Pool(args.available_cores) as p:
         # Perform the multi process
         for _ in tqdm(p.imap_unordered(__thread_run_dock_parallel, arguments), total = len(arguments), desc = desc):
             # Clear the memory
             gc.collect()
-    # Return
-    return None
 
-def __run_dock_no_parallel(dirs: List[str], archive: str, dockingAlgorithm: str, overwrite: bool, desc: str, ligandAlternativeDirs: List[str] = None) -> None:
+    # Return
+    return errors.ok()
+
+def __run_dock_no_parallel(dirs: List[str], ligandDirs: List[str], archive: str, dockingAlgorithm: str, overwrite: bool, desc: str) -> int:
     '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_run_dock function.
 
     Parameters
     ----------
     dirs : List[str]
         A list of directories where the files are stored.
+    ligandDirs : List[str]
+        A list of directories where the ligands are stored.
     archive : str
         Which archive will be processed [dudez, pdbbind, astex].
     dockingAlgorithm : str
@@ -1302,12 +1294,11 @@ def __run_dock_no_parallel(dirs: List[str], archive: str, dockingAlgorithm: str,
         If the docking output already exists, should it be overwritten?
     desc : str
         The description of the progress bar.
-    ligandAlternativeDirs : List[str], optional
-        If the ligand is not in the same directory as the receptor, this is the path to the ligand directory. By default None. If this is not None, the ligand will be searched in this directory, otherwise, it will be searched in the same directory as the receptor.
-
+    
     Returns
     -------
-    None
+    int
+        The exit code of the command (based on the Error.py code table).
 
     Raises
     ------
@@ -1323,39 +1314,35 @@ def __run_dock_no_parallel(dirs: List[str], archive: str, dockingAlgorithm: str,
         if not os.path.isdir(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past"):
             octools.safe_create_dir(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past")
         os.rename(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_WARNING.log", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past/{archive}_{dockingAlgorithm}_run_report_WARNING_{time.strftime('%d%m%Y-%H%M%S')}.log")
+
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         # For each file in dirs
         for d in tqdm(iterable=dirs, total=len(dirs), desc=desc):
-            if isinstance(ligandAlternativeDir, list):
-                # Now loop over the ligands of this protein
-                for ligandAlternativeDir in ligandAlternativeDirs:
-                    # Call the core dock function (shared between parallel and not parallel)
-                    __core_run_dock(d, archive, dockingAlgorithm, overwrite, ligandAlternativeDir = ligandAlternativeDir)
-            else:
+            for ligandDir in ligandDirs:
                 # Call the core dock function (shared between parallel and not parallel)
-                __core_run_dock(d, archive, dockingAlgorithm, overwrite, ligandAlternativeDir = ligandAlternativeDirs)
+                __core_run_dock(d, ligandDir, archive, dockingAlgorithm, overwrite)
             # Clear the memory
             gc.collect()
         # Clear the memory
         gc.collect()
-    return None
+
+    return errors.ok()
 
 
 ### Read logs
-def __core_read_log(processDirData: Tuple[str, str], archive: str) -> None:
+def __core_read_log(processDirData: str) -> Dict[str, Dict[str, pd.DataFrame]]:
     '''Reads Vina, Smina and PLANTS logs and then return a dict of dataframes.
 
     Parameters
     ----------
     processDirData : Tuple[str, str]
         A tuple with the directory and the ligand name.
-    archive : str
-        Which archive will be processed [dudez, pdbbind, astex].
 
     Returns
     -------
-    None
+    Dict[str, Dict[str, pd.DataFrame]]
+        A dict of dicts of dataframes. Each element of the first dict is a complex protein-ligand, and each element of the second dict is a docking algorithm results.
 
     Raises
     ------
@@ -1364,22 +1351,11 @@ def __core_read_log(processDirData: Tuple[str, str], archive: str) -> None:
 
     # Unpack the tuple
     processDir, tp = processDirData
-    # Check which archive is being used
-    if archive == "astex":
-        # Find ptn name
-        ptn = processDir.split(os.path.sep)[-1]
-        lgd = "ligand"
-    elif archive == "dudez":
-        # Find ptn name
-        ptn = processDir.split(os.path.sep)[-3]
-        lgd = processDir.split(os.path.sep)[-1]
-    elif archive == "pdbbind":
-        # Find ptn name
-        ptn = processDir.split(os.path.sep)[-1]
-        lgd = "ligand"
-    else:
-        # TODO: PRBOELMS!!!
-        return
+
+    # Get protein and ligand names
+    ptn = processDir.split(os.path.sep)[-3]
+    lgd = processDir.split(os.path.sep)[-1]
+
     # Create Vina, Smina and PLANTS dataframes
     vinadf = pd.DataFrame(columns=["mode", "affinity", "rmsd_lb_best_mode", "rmsd_ub_best_mode"])
     sminadf = pd.DataFrame(columns=["mode", "affinity", "rmsd_lb_best_mode", "rmsd_ub_best_mode"])
@@ -1447,17 +1423,18 @@ def __core_read_log(processDirData: Tuple[str, str], archive: str) -> None:
     # Return the proteinData dict
     return proteinData
 
-def __thread_read_log_parallel(arguments: Tuple[str, str]) -> None:
+def __thread_read_log_parallel(arguments: Tuple[str]) -> Dict[str, Dict[str, pd.DataFrame]]:
     '''Thread aid function to call __core_read_log.
 
     Parameters
     ----------
-    arguments : Tuple[str, str]
-        A tuple with the directory and the ligand name.
+    arguments : Tuple[str]
+        A tuple with the directory.
 
     Returns
     -------
-    None
+    Dict[str, Dict[str, pd.DataFrame]]
+        A dict of dicts of dataframes. Each element of the first dict is a complex protein-ligand, and each element of the second dict is a docking algorithm results.
 
     Raises
     ------
@@ -1467,24 +1444,22 @@ def __thread_read_log_parallel(arguments: Tuple[str, str]) -> None:
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         # Call the core read log function passing the arguments correctly
-        return __core_read_log(arguments[0], arguments[1])
+        return __core_read_log(arguments[0])
 
-def __read_log_parallel(dirs: Tuple[str, str], archive: str, desc: str) -> Dict[str, Dict[str, pd.DataFrame]]:
+def __read_log_parallel(ptnDirs: List[str], desc: str) -> Dict[str, Dict[str, pd.DataFrame]]:
     '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
 
     Parameters
     ----------
-    dirs : Tuple[str, str]
-        A tuple with the directory and the ligand name.
-    archive : str
-        Which archive will be processed [dudez, pdbbind, astex].
+    ptnDirs : List[str]
+        A list of directories to be processed.
     desc : str
         The description to be used in the tqdm progress bar.
 
     Returns
     -------
     Dict[str, Dict[str, pd.DataFrame]]
-        A dictionary with the protein name as the key and a dictionary with the vina, smina and plants dataframes as the value.
+        A dict of dicts of dataframes. Each element of the first dict is a complex protein-ligand, and each element of the second dict is a docking algorithm results.
 
     Raises
     ------
@@ -1493,9 +1468,10 @@ def __read_log_parallel(dirs: Tuple[str, str], archive: str, desc: str) -> Dict[
     # Arguments to pass to each Thread in the Thread Pool
     arguments = []
     # For each file in the glob
-    for d in dirs:
+    for ptnDir in ptnDirs:
         # Append a tuple containing the file name and ovewrite flag to the arguments list
-        arguments.append((d, archive))
+        arguments.append((ptnDir))
+
     # If logfile exists, backup it for vina, smina and plants (for error and warnings)
     if os.path.isfile(f"{logdir}/vina_read_log_ERROR.log"):
         if not os.path.isdir(f"{logdir}/read_log_past"):
@@ -1509,6 +1485,7 @@ def __read_log_parallel(dirs: Tuple[str, str], archive: str, desc: str) -> Dict[
         if not os.path.isdir(f"{logdir}/read_log_past"):
             octools.safe_create_dir(f"{logdir}/read_log_past")
         os.rename(f"{logdir}/plants_read_log_ERROR.log", f"{logdir}/read_log_past/plants_read_log_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
+
     # Dict to store the read data
     data = {}
     # Create a Thread pool with the maximum available_cores
@@ -1522,15 +1499,13 @@ def __read_log_parallel(dirs: Tuple[str, str], archive: str, desc: str) -> Dict[
 
     return data
 
-def __read_log_no_parallel(dirs: Tuple[str, str], archive: str, desc: str) -> Dict[str, Dict[str, pd.DataFrame]]:
+def __read_log_no_parallel(ptnDirs: List[str], desc: str) -> Dict[str, Dict[str, pd.DataFrame]]:
     '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_read_log function.
 
     Parameters
     ----------
-    dirs : Tuple[str, str]
-        A tuple with the directory and the ligand name.
-    archive : str
-        Which archive will be processed [dudez, pdbbind, astex].
+    ptnDirs : List[str]
+        A list of directories to be processed.
     desc : str
         The description to be used in the tqdm progress bar.
 
@@ -1546,6 +1521,7 @@ def __read_log_no_parallel(dirs: Tuple[str, str], archive: str, desc: str) -> Di
 
     # Dict to store the read data
     data = {}
+
     # If logfile exists, backup it for vina, smina and plants (for error and warnings)
     if os.path.isfile(f"{logdir}/vina_read_log_ERROR.log"):
         if not os.path.isdir(f"{logdir}/read_log_past"):
@@ -1559,26 +1535,28 @@ def __read_log_no_parallel(dirs: Tuple[str, str], archive: str, desc: str) -> Di
         if not os.path.isdir(f"{logdir}/read_log_past"):
             octools.safe_create_dir(f"{logdir}/read_log_past")
         os.rename(f"{logdir}/plants_read_log_ERROR.log", f"{logdir}/read_log_past/plants_read_log_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
+
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
-        for d in tqdm(iterable = dirs, total = len(dirs), desc = desc):
+        for ptnDir in tqdm(iterable = ptnDirs, total = len(ptnDirs), desc = desc):
             # Call the core read log function (shared between parallel and not parallel) and store the data into the data dict
-            data.update(__core_read_log(d, archive))
+            data.update(__core_read_log(ptnDir))
             # Clear the memory
             gc.collect()
+
     return data
 
 
 ### Parse into csv
-def __core_generate_dock_result_csv(processDir: str, log_dump: str, ptn: str, ligand: str, archive: str) -> pd.DataFrame:
+def __core_generate_dock_result_csv(processDir: str, log_dump: Dict[str, pd.DataFrame], ptn: str, ligand: str, archive: str) -> pd.DataFrame:
     '''Reads Vina, Smina and PLANTS logs and then return a dict of dataframes.
 
     Parameters
     ----------
     processDir : str
         The directory where the logs are.
-    log_dump : str
-        The log dump name.
+    log_dump : Dict[str, pd.DataFrame]
+        The log dump for the complex ptn-ligand.
     ptn : str
         The protein name.
     ligand : str
@@ -1613,13 +1591,25 @@ def __core_generate_dock_result_csv(processDir: str, log_dump: str, ptn: str, li
             runNumber = vinaDir.split(os.path.sep)[-1]
             # Try to load the mol2, if fails, try the .sdf
             try:
-                # Find and concatenate the RMSDs
-                vinaData += octools.get_rmsd(f"{processDir}/{ligand}.mol2", f"{processDir}/vinaFiles/{runNumber}/vina_{runNumber}.pdbqt")
+                # Get the RMSD
+                rmsd = octools.get_rmsd(f"{processDir}/{ligand}.mol2", f"{processDir}/vinaFiles/{runNumber}/vina_{runNumber}.pdbqt")
+                # Check the RMSD type
+                if type(rmsd) == float:
+                    vinaData.append([rmsd])
+                else:
+                    # Find and concatenate the RMSDs
+                    vinaData += rmsd # type: ignore
             except Exception as e:
                 try:
                     octools.print_warning(f"Possibly I could not load the '{ligand}.mol2', trying to load the '{ligand}.sdf' instead. Error: {e}")
-                    # Find and concatenate the RMSDs
-                    vinaData += octools.get_rmsd(f"{processDir}/{ligand}.sdf", f"{processDir}/vinaFiles/{runNumber}/vina_{runNumber}.pdbqt")
+                    # Get the RMSD (using the sdf)
+                    rmsd = octools.get_rmsd(f"{processDir}/{ligand}.sdf", f"{processDir}/vinaFiles/{runNumber}/vina_{runNumber}.pdbqt")
+                    # Check the RMSD type
+                    if type(rmsd) == float:
+                        vinaData.append([runNumber, rmsd])
+                    else:
+                        # Find and concatenate the RMSDs
+                        vinaData += rmsd # type: ignore
                 except Exception as e2:
                     octools.print_error(f"Problems while processing the Vina output for the protein '{processDir}'")
                     octools.print_error_log(f"Problems while processing the Vina output for the protein '{processDir}'. Error: {e2}", f"{logdir}/{archive}_dock_result_ERROR.log")
@@ -1628,13 +1618,25 @@ def __core_generate_dock_result_csv(processDir: str, log_dump: str, ptn: str, li
     if not log_dump['smina'].empty:
         # Try to load the mol2, if fails, try the .sdf
         try:
-            # Read smina data
-            sminaData += octools.get_rmsd(f"{processDir}/{ligand}.mol2", f"{processDir}/sminaFiles/smina.pdbqt")
+            # Get the RMSD
+            rmsd = octools.get_rmsd(f"{processDir}/{ligand}.mol2", f"{processDir}/sminaFiles/smina.pdbqt")
+            # Check the RMSD type
+            if type(rmsd) == float:
+                sminaData.append([rmsd])
+            else:
+                # Find and concatenate the RMSDs
+                sminaData += rmsd # type: ignore
         except Exception as e:
             try:
                 octools.print_warning(f"Possibly I could not load the '{ligand}.mol2', trying to load the '{ligand}.sdf' instead. Error: {e}")
-                # Find and concatenate the RMSDs
-                sminaData += octools.get_rmsd(f"{processDir}/{ligand}.sdf", f"{processDir}/sminaFiles/smina.pdbqt")
+                # Get the RMSD
+                rmsd = octools.get_rmsd(f"{processDir}/{ligand}.sdf", f"{processDir}/sminaFiles/smina.pdbqt")
+                # Check the RMSD type
+                if type(rmsd) == float:
+                    sminaData.append([rmsd])
+                else:
+                    # Find and concatenate the RMSDs
+                    sminaData += rmsd # type: ignore
             except Exception as e2:
                 octools.print_error(f"Problems while processing the Smina output for the protein '{processDir}'")
                 octools.print_error_log(f"Problems while processing the Smina output for the protein '{processDir}'. Error: {e2}", f"{logdir}/{archive}_dock_result_ERROR.log")
@@ -1650,13 +1652,25 @@ def __core_generate_dock_result_csv(processDir: str, log_dump: str, ptn: str, li
             for l in glob(f"{processDir}/plantsFiles/{runNumber}/run/*[0-9].mol2"):
                 # Try to load the mol2, if fails, try the .sdf
                 try:
-                    # Find and concatenate the RMSDs
-                    plantsData += octools.get_rmsd(f"{processDir}/{ligand}.mol2", l)
+                    # Get the RMSD
+                    rmsd = octools.get_rmsd(f"{processDir}/{ligand}.mol2", l)
+                    # Check the RMSD type
+                    if type(rmsd) == float:
+                        plantsData.append([rmsd])
+                    else:
+                        # Find and concatenate the RMSDs
+                        plantsData += rmsd # type: ignore
                 except Exception as e:
                     try:
                         octools.print_warning(f"Possibly I could not load the '{ligand}.mol2', trying to load the '{ligand}.sdf' instead. Error: {e}")
-                        # Find and concatenate the RMSDs
-                        plantsData += octools.get_rmsd(f"{processDir}/{ligand}.sdf", l)
+                        # Get the RMSD
+                        rmsd = octools.get_rmsd(f"{processDir}/{ligand}.sdf", l)
+                        # Check the RMSD type
+                        if type(rmsd) == float:
+                            plantsData.append([rmsd])
+                        else:
+                            # Find and concatenate the RMSDs
+                            plantsData += rmsd # type: ignore
                     except Exception as e2:
                         octools.print_error(f"Problems while processing the PLANTS output for the protein '{processDir}'")
                         octools.print_error_log(f"Problems while processing the PLANTS output for the protein '{processDir}'. Error: {e2}", f"{logdir}/{archive}_dock_result_ERROR.log")
@@ -1693,12 +1707,12 @@ def __core_generate_dock_result_csv(processDir: str, log_dump: str, ptn: str, li
 
     return df
 
-def __thread_generate_dock_result_csv_parallel(arguments: Tuple[str, str, str, str, str]) -> pd.DataFrame:
+def __thread_generate_dock_result_csv_parallel(arguments: Tuple[str, Dict[str, pd.DataFrame], str, str, str]) -> pd.DataFrame:
     '''Thread aid function to call __core_generate_dock_result_csv.
 
     Parameters
     ----------
-    arguments : Tuple[str, str, str, str, str]
+    arguments : Tuple[str, Dict[str, pd.DataFrame], str, str, str]
         Tuple containing the arguments for the __core_generate_dock_result_csv function. The arguments are: (ptn, ligand, processDir, logdir, archive).
 
     Returns
@@ -1716,13 +1730,13 @@ def __thread_generate_dock_result_csv_parallel(arguments: Tuple[str, str, str, s
         # Call the core read log function passing the arguments correctly
         return __core_generate_dock_result_csv(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4])
 
-def __generate_dock_result_csv_parallel(processDirs: Dict[str, Dict[str, pd.DataFrame]], archive: str, desc: str) -> pd.DataFrame:
+def __generate_dock_result_csv_parallel(processDirs: List[Tuple[str, str, str, Dict[str, pd.DataFrame]]], archive: str, desc: str) -> pd.DataFrame:
     '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
 
     Parameters
     ----------
-    processDirs : Dict[str, Dict[str, pd.DataFrame]]
-        Dictionary containing the directories to process and the ligands to process. The dictionary is in the format: {ptn: {ligand: log_dump}}.
+    processDirs : List[Tuple[str, str, str, Dict[str, pd.DataFrame]]]
+        Dictionary containing the directories to process and the ligands to process. The dictionary is in the format: {ptn-ligand: log_dump}.
     archive : str
         Which archive will be processed [dudez, pdbbind, astex].
     desc : str
@@ -1743,12 +1757,15 @@ def __generate_dock_result_csv_parallel(processDirs: Dict[str, Dict[str, pd.Data
         if not os.path.isdir(f"{logdir}/generate_dock_result_csv_past"):
             octools.safe_create_dir(f"{logdir}/generate_dock_result_csv_past")
         os.rename(f"{logdir}/{archive}_dock_result_ERROR.log", f"{logdir}/read_log_past/{archive}_dock_result_ERROR.{time.strftime('%d%m%Y-%H%M%S')}.log")
+
     # Arguments to pass to each Thread in the Thread Pool
     arguments = []
+    
     # For each file in the glob
     for processDir, ptn, ligand, log_dump in processDirs:
         # Append a tuple containing the file name and ovewrite flag to the arguments list
         arguments.append((processDir, log_dump, ptn, ligand, archive))
+
     # Result DataFrame list
     dfList = []
     # Create a Thread pool with the maximum available_cores
@@ -1761,13 +1778,13 @@ def __generate_dock_result_csv_parallel(processDirs: Dict[str, Dict[str, pd.Data
             gc.collect()
     return pd.concat(dfList)
 
-def __generate_dock_result_csv_no_parallel(processDirs: Dict[str, Dict[str, pd.DataFrame]], archive: str, desc: str) -> pd.DataFrame:
+def __generate_dock_result_csv_no_parallel(processDirs: List[Tuple[str, str, str, Dict[str, pd.DataFrame]]], archive: str, desc: str) -> pd.DataFrame:
     '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_generate_dock_result_csv function.
 
     Parameters
     ----------
-    processDirs : Dict[str, Dict[str, pd.DataFrame]]
-        Dictionary containing the directories to process and the ligands to process. The dictionary is in the format: {ptn: {ligand: log_dump}}.
+    processDirs : List[Tuple[str, str, str, Dict[str, pd.DataFrame]]]
+        Dictionary containing the directories to process and the ligands to process. The dictionary is in the format: {ptn: log_dump}.
     archive : str
         Which archive will be processed [dudez, pdbbind, astex].
     desc : str
@@ -1788,8 +1805,10 @@ def __generate_dock_result_csv_no_parallel(processDirs: Dict[str, Dict[str, pd.D
         if not os.path.isdir(f"{logdir}/generate_dock_result_csv_past"):
             octools.safe_create_dir(f"{logdir}/generate_dock_result_csv_past")
         os.rename(f"{logdir}/{archive}_dock_result_ERROR.log", f"{logdir}/read_log_past/{archive}_dock_result_ERROR.{time.strftime('%d%m%Y-%H%M%S')}.log")
+
     # Result DataFrame list
     dfList = []
+
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         for processDir, ptn, ligand, log_dump in tqdm(iterable = processDirs, total = len(processDirs), desc = desc):
@@ -1797,6 +1816,7 @@ def __generate_dock_result_csv_no_parallel(processDirs: Dict[str, Dict[str, pd.D
             dfList.append(__core_generate_dock_result_csv(processDir, log_dump, ptn, ligand, archive))
             # Clear the memory
             gc.collect()
+
     return pd.concat(dfList)
 
 
@@ -1858,8 +1878,8 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str], ar
     # Set Name and Path
     all_descriptors["Protein"] = ptn
     # Merge both descriptors dicts
-    all_descriptors = {**all_descriptors, **receptor_descriptors}
-    all_descriptors = {**all_descriptors, **ligand_descriptors}
+    all_descriptors = { **all_descriptors, **receptor_descriptors }
+    all_descriptors = { **all_descriptors, **ligand_descriptors }
     # Create a temporary pd.DataFrame
     tmpdf = pd.DataFrame(all_descriptors, index=[0])
     # Append the line to the pd.DataFrame
@@ -1889,14 +1909,13 @@ def __thread_merge_descriptors_in_dataframe_parallel(arguments: Tuple[Tuple[str,
     with octools.redirect_to_tqdm():
         # Call the core read log function passing the arguments correctly
         return __core_merge_descriptors_in_dataframe(arguments[0], arguments[1])
-    return None
 
-def __merge_descriptors_in_dataframe_parallel(dirs: Tuple[str, str], archive: str, desc: str) -> pd.DataFrame:
+def __merge_descriptors_in_dataframe_parallel(dirs: List[Tuple[str, str]], archive: str, desc: str) -> pd.DataFrame:
     '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
 
     Parameters
     ----------
-    dirs : Tuple[str, str]
+    dirs : List[Tuple[str, str]]
         Tuple containing the directory where the files are stored and the receptor descriptor json file.
     archive : str
         Which archive will be processed. [dudez, pdbbind, astex]
@@ -1915,10 +1934,12 @@ def __merge_descriptors_in_dataframe_parallel(dirs: Tuple[str, str], archive: st
 
     # Arguments to pass to each Thread in the Thread Pool
     arguments = []
+
     # For each file in the glob
     for dir in dirs:
         # Append a tuple containing the file name and ovewrite flag to the arguments list
         arguments.append((dir, archive))
+
     # If logfile exists, backup it for vina, smina and plants (for error and warnings)
     if os.path.isfile(f"{logdir}/vina_read_log_ERROR.log"):
         if not os.path.isdir(f"{logdir}/read_log_past"):
@@ -1932,8 +1953,10 @@ def __merge_descriptors_in_dataframe_parallel(dirs: Tuple[str, str], archive: st
         if not os.path.isdir(f"{logdir}/read_log_past"):
             octools.safe_create_dir(f"{logdir}/read_log_past")
         os.rename(f"{logdir}/plants_read_log_ERROR.log", f"{logdir}/read_log_past/plants_read_log_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
+
     # Dataframe with all protein data
     ptndf = pd.DataFrame()
+
     # Create a Thread pool with the maximum available_cores
     with Pool(args.available_cores) as p:
         # Perform the multi process
@@ -1942,14 +1965,15 @@ def __merge_descriptors_in_dataframe_parallel(dirs: Tuple[str, str], archive: st
             ptndf = pd.concat([ptndf, innerData])
             # Clear the memory
             gc.collect()
+
     return ptndf
 
-def __merge_descriptors_in_dataframe_no_parallel(dirs: Tuple[str, str], archive: str, desc: str) -> pd.DataFrame:
+def __merge_descriptors_in_dataframe_no_parallel(dirs: List[Tuple[str, str]], archive: str, desc: str) -> pd.DataFrame:
     '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_read_log function.
 
     Parameters
     ----------
-    dirs : Tuple[str, str]
+    dirs : List[Tuple[str, str]]
         Tuple containing the directory where the files are stored and the receptor descriptor json file.
 
     Returns
@@ -2297,7 +2321,7 @@ def convert_debug_to_production(chosenArchive: str, chosenAlgorithm: str = "ac",
                             shutil.rmtree(p2rankFile)
                 else:
                     octools.print_error(f"The algorithm '{chosenAlgorithm}' has not been found for the protein '{dir}'.")
-                    octools.print_error_log(f"The algorithm '{chosenAlgorithm}' has not been found for the protein '{dir}'.")
+                    octools.print_error_log(f"The algorithm '{chosenAlgorithm}' has not been found for the protein '{dir}'.", f"{logdir}/{chosenArchive}_conversion_report.log")
             else:
                 octools.printv(f"Nothing to convert for '{dir}'. Skipping...")
                 continue
@@ -2412,7 +2436,7 @@ def run_p2rank(archive: str, overwrite: bool = False) -> None:
         __p2rank_no_parallel(dirs, overwrite, archive, label)
     return None
 
-def run_dock(archive: str, dockingAlgorithm: str, overwrite: bool = False) -> None:
+def run_dock(archive: str, dockingAlgorithm: str, overwrite: bool = False) -> int:
     '''Run docking.
 
     Parameters
@@ -2426,7 +2450,8 @@ def run_dock(archive: str, dockingAlgorithm: str, overwrite: bool = False) -> No
 
     Returns
     -------
-    None
+    int
+        The exit code of the command (based on the Error.py code table).
 
     Raises
     ------
@@ -2443,77 +2468,75 @@ def run_dock(archive: str, dockingAlgorithm: str, overwrite: bool = False) -> No
     elif archive == "pdbbind":
         chosenArchive = pdbbind_archive
     else:
-        octools.print_error(f"Not valid archive type. Expected one of ['astex', 'dudez', 'pdbbind'] and found {archive}.")
-        return None
+        return errors.not_supported_archive(f"Not valid archive type. Expected one of ['astex', 'dudez', 'pdbbind'] and found {archive}.")
+
     # Check if the docking algorithm is valid
     if dockingAlgorithm not in ["vina", "smina", "plants"]:
-        octools.print_error(f"Docking software not recognized. Expected ('vina', 'smina', 'plants') and got '{dockingAlgorithm}'.")
-        return None
+        return errors.not_supported_docking_algorithm(f"Docking software not recognized. Expected ('vina', 'smina', 'plants') and got '{dockingAlgorithm}'.")
+
     # Get all dirs paths in the database
-    dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db']]
+    ptnDirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db']]
 
-    # Check if the archive type is dudez
-    if archive == "dudez":
-        # Create the alternative dir list
-        ligandAlternativeDirs = []
-        # For each dir in dirs, let's grab all ligands
-        for d in dirs:
-            # Set the model path
-            receptorPath = f"{d}/rec.crg.pdb"
-            # Check if file is a PDB file
-            if receptorPath.endswith(".pdb"):
-                # Initialise hasCryst1 flag
-                hasCryst1 = False
+    # Create the alternative dir list
+    ligandDirs = []
+    # For each dir in dirs, let's grab all ligands
+    for ptnDir in ptnDirs:
+        # Set the model path
+        receptorPath = f"{ptnDir}/rec.crg.pdb"
+        # Check if file is a PDB file
+        if receptorPath.endswith(".pdb"):
+            # Initialise hasCryst1 flag
+            hasCryst1 = False
 
-                # Check if modelPath is a valid file
-                if os.path.isfile(receptorPath):
-                    # Open it
-                    with open(receptorPath, "r") as pdbFile:
-                        # For each line in it
-                        for line in pdbFile:
-                            # Check if starts with CRYST1
-                            if line.startswith("CRYST1"):
-                                # Set the hasCryst1 flag to True
-                                hasCryst1 = True
-                                # Since it has been found, break the loop
-                                break
-                            # If it is not CRYST1, check if it is ATOM
-                            elif line.startswith("ATOM"):
-                                # If is ATOM and not CRYST1, means that there is no CRYST1 line in the file, so break the loop
-                                break
-                # If there is no CRYST1 line in the file let's add a generic CRYST1 line then
-                if not hasCryst1:
-                    # Define a generic CRYST1 line
-                    cryst1 = "CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1\n"
-                    # Initialise the contnt variable
-                    content = ""
-                    # Read the CRYST1 line to the file
-                    with open(receptorPath, "r") as pdbFile:
-                        # Read the file
-                        content = pdbFile.read()
+            # Check if modelPath is a valid file
+            if os.path.isfile(receptorPath):
+                # Open it
+                with open(receptorPath, "r") as pdbFile:
+                    # For each line in it
+                    for line in pdbFile:
+                        # Check if starts with CRYST1
+                        if line.startswith("CRYST1"):
+                            # Set the hasCryst1 flag to True
+                            hasCryst1 = True
+                            # Since it has been found, break the loop
+                            break
+                        # If it is not CRYST1, check if it is ATOM
+                        elif line.startswith("ATOM"):
+                            # If is ATOM and not CRYST1, means that there is no CRYST1 line in the file, so break the loop
+                            break
+            # If there is no CRYST1 line in the file let's add a generic CRYST1 line then
+            if not hasCryst1:
+                # Define a generic CRYST1 line
+                cryst1 = "CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1\n"
+                # Initialise the contnt variable
+                content = ""
+                # Read the CRYST1 line to the file
+                with open(receptorPath, "r") as pdbFile:
+                    # Read the file
+                    content = pdbFile.read()
+                # Write the CRYST1 line to the file
+                with open(receptorPath, "w") as pdbFile:
                     # Write the CRYST1 line to the file
-                    with open(receptorPath, "w") as pdbFile:
-                        # Write the CRYST1 line to the file
-                        pdbFile.write(cryst1)
-                        # Write the content to the file
-                        pdbFile.write(content)
-            # Parameterize paths
-            dudezDirLigand = f"{d}/dudez_ligands"
-            dudezDirDecoy = f"{d}/dudez_decoys"
-            #extremaDirDecoy = f"{d}/extrema_decoys" # TODO: Uncomment this line when extrema decoys are available
-            # Merge the ligandAlternative list with the list with dudezDirLigand, dudezDirDecoy, extremaDirDecoy, goldilocksDirDecoy ligands
-            ligandAlternativeDirs = glob(f"{dudezDirLigand}/*") + glob(f"{dudezDirDecoy}/*")# + glob(f"{extremaDirDecoy}/*")
-    else:
-        ligandAlternativeDirs = ""
+                    pdbFile.write(cryst1)
+                    # Write the content to the file
+                    pdbFile.write(content)
+        # Parameterize paths
+        ligands = f"{ptnDir}/compounds/ligands"
+        decoys = f"{ptnDir}/compounds/decoys"
+        candidates = f"{ptnDir}/compounds/candidates"
+
+        # Merge the ligandAlternative list with the list with ligands, decoys and candidates
+        ligandDirs = glob(f"{ligands}/*") + glob(f"{decoys}/*") + glob(f"{candidates}/*")
 
     # Decide if multprocessing will be used
     if args.multiprocess:
-        __run_dock_parallel(dirs, archive, dockingAlgorithm, overwrite, f"Processing {archive}", ligandAlternativeDirs = ligandAlternativeDirs)
+        __run_dock_parallel(ptnDirs, ligandDirs, archive, dockingAlgorithm, overwrite, f"Processing {archive}")
     else:
-        __run_dock_no_parallel(dirs, archive, dockingAlgorithm, overwrite, ligandAlternativeDirs = ligandAlternativeDirs)
-    return None
+        __run_dock_no_parallel(ptnDirs, ligandDirs, archive, dockingAlgorithm, overwrite, f"Processing {archive}")
 
-def read_logs(archive: str, picklePath: str = "") -> Dict[str, Dict[str, pd.DataFrame]]:
+    return errors.ok()
+
+def read_logs(archive: str, picklePath: str = "") -> Union[Dict[str, Dict[str, pd.DataFrame]], None]:
     '''Reads database logfiles returning a dict of dicts of pd.DataFrames.
 
     Parameters
@@ -2525,8 +2548,8 @@ def read_logs(archive: str, picklePath: str = "") -> Dict[str, Dict[str, pd.Data
 
     Returns
     -------
-    Dict[str, Dict[str, pd.DataFrame]]
-        A dict of dicts of pd.DataFrames with the data from the logfiles.
+    Dict[str, Dict[str, pd.DataFrame]] | None
+        A dict of dicts of pd.DataFrames with the data from the logfiles. If fails, will return None.
 
     Raises
     ------
@@ -2545,41 +2568,34 @@ def read_logs(archive: str, picklePath: str = "") -> Dict[str, Dict[str, pd.Data
     else:
         octools.print_error(f"Not valid archive type. Expected one of ['astex', 'dudez', 'pdbbind'] and found {archive}.")
         return None
+        
+    # Create an empty list for all directories to be processed
+    processDirs = []
+
     # For each dir in chosenArchive
-    for d in glob(f"{chosenArchive}/*"):
+    for ptnDir in glob(f"{chosenArchive}/*"):
         # Check if is a dir (just in case) and if its name is not one of the ones we want to skip
-        if os.path.isdir(d) and os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db']:
+        if os.path.isdir(ptnDir) and os.path.basename(ptnDir.split(os.path.sep)[-1]) not in ['index', 'db']:
             # Find ptn name
-            ptn = d.split(os.path.sep)[-1]
-            # Find which kind of archive it will be
-            if archive == "astex":
-                processDirs = []
-            elif archive == "dudez":
-                # Parameterize paths
-                dudezDirLigand = f"{d}/dudez_ligands"
-                dudezDirDecoy = f"{d}/dudez_decoys"
-                #extremaDirDecoy = f"{d}/extrema_decoys" # TODO: Uncomment this line when extrema decoys are available
-                # Create an empty list for all directories to be processed
-                processDirs = []
-                # Add all subdirs (one for each ligand) from all 4 folders as a tuple (dir, ligand_descriptor_path)
-                processDirs += [(processDir, 'dudez_ligand') for processDir in glob(f"{dudezDirLigand}/*") if os.path.isdir(processDir)]
-                processDirs += [(processDir, 'dudez_decoy') for processDir in glob(f"{dudezDirDecoy}/*") if os.path.isdir(processDir)]
-                # TODO: Add extrema decoys (future work)
-                #processDirs += [(processDir, 'dudez_extrema') for processDir in glob(f"{extremaDirDecoy}/*") if os.path.isdir(processDir)]
-            elif archive == "pdbbind":
-                receptor_descriptor_path = f"{pdbbind_archive}/{ptn}/{ptn}_protein_descriptors.json"
-                # Make the processDirs a unitary list of the dir and its descriptors (since there is only one ligand per protein)
-                processDirs = [(d, receptor_descriptor_path)]
-            else:
-                octools.print_error(f"Unknown archive type. Expected one of the following: 'astex', 'dudez', 'pdbbind' and got {archive}.")
-                return None
+            ptn = ptnDir.split(os.path.sep)[-1]
+
+            ligands = f"{ptnDir}/compounds/ligands"
+            decoys = f"{ptnDir}/compounds/decoys"
+            candidates = f"{ptnDir}/compounds/candidates"
+
+            # Add all subdirs (one for each ligand) from all 4 folders as a tuple (dir, ligand_descriptor_path)
+            processDirs += [processDir for processDir in glob(f"{ligands}/*") if os.path.isdir(processDir)]
+            processDirs += [processDir for processDir in glob(f"{decoys}/*") if os.path.isdir(processDir)]
+            processDirs += [processDir for processDir in glob(f"{candidates}/*") if os.path.isdir(processDir)]
+
     # Make data be None (in case of failure)
     data = None
     # Decide if multprocessing will be used
     if args.multiprocess:
-        data = __read_log_parallel(processDirs, archive, f"Processing {archive}")
+        data = __read_log_parallel(processDirs, f"Processing {archive}")
     else:
-        data = __read_log_no_parallel(processDirs, archive, f"Processing {archive}")
+        data = __read_log_no_parallel(processDirs, f"Processing {archive}")
+
     # If user asked for a pickle file
     if picklePath:
         # Check if data is not empty
@@ -2620,28 +2636,35 @@ def generate_dock_result_csv(archive: str, log_dumps: Dict[str, Dict[str, pd.Dat
     None
     '''
 
-    # Find which kind of archive it will be
-    if archive == "astex":
-        pass
-    elif archive == "dudez":
-        # Get protein names
-        ptns = [d.split(os.path.sep)[-1] for d in glob(f"{dudez_archive}/*") if os.path.isdir(d)]
-        # For each protein in proteins
-        for ptn in ptns:
-            # Parameterize paths
-            dudezDirLigand = f"{dudez_archive}/{ptn}/dudez_ligands"
-            dudezDirDecoy = f"{dudez_archive}/{ptn}/dudez_decoys"
-            #extremaDirDecoy = f"{dudez_archive}/{ptn}/extrema_decoys" # TODO: Add extrema decoys (future work)
-            # Create an empty list for all directories to be processed
-            processDirs = []
-            # Add all subdirs (one for each ligand) from all 4 folders as a tuple (dir, ligand_name))
-            processDirs += [(d, d.split(os.path.sep)[-3], d.split(os.path.sep)[-1], log_dumps[f"{d.split(os.path.sep)[-3]}-{d.split(os.path.sep)[-1]}"]) for d in glob(f"{dudezDirLigand}/*") if os.path.isdir(d)]
-            processDirs += [(d, d.split(os.path.sep)[-3], d.split(os.path.sep)[-1], log_dumps[f"{d.split(os.path.sep)[-3]}-{d.split(os.path.sep)[-1]}"]) for d in glob(f"{dudezDirDecoy}/*") if os.path.isdir(d)]
-            #processDirs += [(d, d.split(os.path.sep)[-3], d.split(os.path.sep)[-1], log_dumps[f"{d.split(os.path.sep)[-3]}-{d.split(os.path.sep)[-1]}"]) for d in glob(f"{extremaDirDecoy}/*") if os.path.isdir(d)] 
-    elif archive == "pdbbind":
-        # Set the target dir
-        processDirs = [(f"{pdbbind_archive}/{ptn}", ptn, f"{ptn}_ligand", f"{ptn}-{ptn}_ligand", [])]
+    # Create an empty list for all directories to be processed
+    processDirs = []
 
+    # Check which archive is being used
+    if archive == "astex":
+        # Get protein dirs
+        ptnDirs = [d for d in glob(f"{astex_archive}/*") if os.path.isdir(d)]
+    elif archive == "dudez":
+        # Get protein dirs
+        ptnDirs = [d for d in glob(f"{dudez_archive}/*") if os.path.isdir(d)]
+    elif archive == "pdbbind":
+        # Get protein dirs
+        ptnDirs = [d for d in glob(f"{pdbbind_archive}/*") if os.path.isdir(d)]
+    else:
+        octools.print_error(f"Unknown archive type. Expected one of the following: 'astex', 'dudez', 'pdbbind' and got {archive}.")
+        return None
+
+    # For each protein in proteins
+    for ptnDir in ptnDirs:
+        # Parameterize paths
+        ligands = f"{ptnDir}/compounds/ligands"
+        decoys = f"{ptnDir}/compounds/decoys"
+        candidates = f"{ptnDir}/compounds/candidates"
+        
+        # Add all subdirs (one for each ligand) from all 4 folders as a tuple (dir, ligand_name))
+        processDirs += [(d, d.split(os.path.sep)[-3], d.split(os.path.sep)[-1], log_dumps[f"{d.split(os.path.sep)[-3]}-{d.split(os.path.sep)[-1]}"]) for d in glob(f"{ligands}/*") if os.path.isdir(d)]
+        processDirs += [(d, d.split(os.path.sep)[-3], d.split(os.path.sep)[-1], log_dumps[f"{d.split(os.path.sep)[-3]}-{d.split(os.path.sep)[-1]}"]) for d in glob(f"{decoys}/*") if os.path.isdir(d)]
+        processDirs += [(d, d.split(os.path.sep)[-3], d.split(os.path.sep)[-1], log_dumps[f"{d.split(os.path.sep)[-3]}-{d.split(os.path.sep)[-1]}"]) for d in glob(f"{candidates}/*") if os.path.isdir(d)]
+        
     # Decide if multprocessing will be used
     if args.multiprocess:
         data = __generate_dock_result_csv_parallel(processDirs, archive, f"Generating docking csv {archive}")
@@ -2652,7 +2675,7 @@ def generate_dock_result_csv(archive: str, log_dumps: Dict[str, Dict[str, pd.Dat
         data.to_csv(csv_path, index=False, chunksize=chunksize)
     return None
 
-def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> pd.DataFrame:
+def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[pd.DataFrame, None]:
     '''Reads all the descriptors jsons and return a pd.DataFrame.
 
     Parameters
@@ -2664,7 +2687,7 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> pd.Dat
     
     Returns
     -------
-    pd.DataFrame
+    pd.DataFrame | None
         The dataframe with all the descriptors.
 
     Raises
@@ -2677,50 +2700,38 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> pd.Dat
     # Find which kind of archive it will be
     if archive == "astex":
         chosenArchive = astex_archive
-        arch = "Astex"
     elif archive == "dudez":
         chosenArchive = dudez_archive
-        arch = "DUDEz"
         # Parameterize the csvs paths
     elif archive == "pdbbind":
         chosenArchive = pdbbind_archive
-        arch = "PDBbind"
     else:
         octools.print_error(f"Not valid archive type. Expected one of ['astex', 'dudez', 'pdbbind'] and found {archive}.")
         return None
 
     # Parameterize the csvs paths (parsed_archive is defined in Initialise.py)
-    csv_path_in = f"{parsed_archive}/{arch}.csv"
-    csv_path_out = f"{parsed_archive}/{arch}_complete.csv"
+    csv_path_in = f"{parsed_archive}/{archive}.csv"
+    csv_path_out = f"{parsed_archive}/{archive}_complete.csv"
+
+    # Create an empty list for all directories to be processed
+    processDirs = []
 
     # For each dir in chosenArchive
-    for d in glob(f"{chosenArchive}/*"):
+    for ptnDir in glob(f"{chosenArchive}/*"):
         # Check if is a dir (just in case) and if its name is not one of the ones we want to skip
-        if os.path.isdir(d) and os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db']:
+        if os.path.isdir(ptnDir) and os.path.basename(ptnDir.split(os.path.sep)[-1]) not in ['index', 'db']:
             # Find ptn name
-            ptn = d.split(os.path.sep)[-1]
-            # Find which kind of archive it will be
-            if archive == "astex":
-                processDirs = []
-            elif archive == "dudez":
-                # Parameterize paths
-                dudezDirLigand = f"{d}/dudez_ligands"
-                dudezDirDecoy = f"{d}/dudez_decoys"
-                #extremaDirDecoy = f"{d}/extrema_decoys" # TODO: Add extrema decoys (future work)
-                # Create an empty list for all directories to be processed
-                processDirs = []
-                # Add all subdirs (one for each ligand) from all 4 folders as a tuple (dir, ligand_descriptor_path)
-                processDirs += [(processDir, f"{d}/rec.crg_descriptors.json") for processDir in glob(f"{dudezDirLigand}/*") if os.path.isdir(processDir)]
-                processDirs += [(processDir, f"{d}/rec.crg_descriptors.json") for processDir in glob(f"{dudezDirDecoy}/*") if os.path.isdir(processDir)]
-                # TODO: Add extrema decoys (future work)
-                #processDirs += [(processDir, f"{d}/rec.crg_descriptors.json") for processDir in glob(f"{extremaDirDecoy}/*") if os.path.isdir(processDir)]
-            elif archive == "pdbbind":
-                receptor_descriptor_path = f"{pdbbind_archive}/{ptn}/{ptn}_protein_descriptors.json"
-                # Make the processDirs a unitary list of the dir and its descriptors (since there is only one ligand per protein)
-                processDirs = [(d, f"{astex_archive}/{ptn}/{ptn}_protein_descriptors.json")]
-            else:
-                octools.print_error(f"Unknown archive type. Expected one of the following: 'astex', 'dudez', 'pdbbind' and got {archive}.")
-                return None
+            ptn = ptnDir.split(os.path.sep)[-1]
+
+            # Parameterize paths
+            ligands = f"{ptnDir}/compounds/ligands"
+            decoys = f"{ptnDir}/compounds/decoys"
+            candidates = f"{ptnDir}/compounds/candidates"
+
+            processDirs += [(processDir, f"{ptnDir}/receptor.json") for processDir in glob(f"{ligands}/*") if os.path.isdir(processDir)]
+            processDirs += [(processDir, f"{ptnDir}/receptor.json") for processDir in glob(f"{decoys}/*") if os.path.isdir(processDir)]
+            processDirs += [(processDir, f"{ptnDir}/receptor.json") for processDir in glob(f"{candidates}/*") if os.path.isdir(processDir)]
+
     # Make data be None (in case of failure)
     data = None
     # Decide if multprocessing will be used

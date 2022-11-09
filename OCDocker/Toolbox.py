@@ -21,7 +21,7 @@ from openbabel import pybel
 from openbabel import openbabel
 
 import rdkit
-from Bio.PDB import *
+from Bio.PDB import * 
 from rdkit import Chem
 
 from OCDocker.Initialise import *
@@ -63,7 +63,7 @@ class DownloadProgressBar(tqdm):
     """
     Deal with the progress bar to track download. Extends the tqdm class.
     """
-    def update_to(self, b: int = 1, bsize: int = 1, tsize: int = None) -> None:
+    def update_to(self, b: int = 1, bsize: int = 1, tsize: int = 0) -> None:
         '''Update the progress bar.
 
         Parameters
@@ -139,7 +139,7 @@ def print_info(message: str, force = False) -> None:
     if args.output_level >= 2 or force:
         today = datetime.datetime.now()
         if args.output_level >= 4:
-            print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['c']}INFO{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
+            print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['c']}INFO{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.") # type: ignore
         else:
             print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['c']}INFO{clrs['n']}: {message}")
     return
@@ -166,7 +166,7 @@ def print_success(message: str, force: bool = False) -> None:
     if args.output_level >= 3 or force:
         today = datetime.datetime.now()
         if args.output_level >= 4:
-            print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['g']}SUCCESS{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
+            print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['g']}SUCCESS{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.") # type: ignore
         else:
             print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['g']}SUCCESS{clrs['n']}: {message}")
     return
@@ -193,7 +193,7 @@ def print_warning(message: str, force: bool = False) -> None:
     if args.output_level >= 1 or force:
         today = datetime.datetime.now()
         if args.output_level == 4:
-            print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['y']}WARNING{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
+            print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['y']}WARNING{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.") # type: ignore
         else:
             print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['y']}WARNING{clrs['n']}: {message}")
     return
@@ -220,7 +220,7 @@ def print_error(message: str, force: bool = False) -> None:
     if args.output_level > 0 or force:
         today = datetime.datetime.now()
         if args.output_level == 4:
-            print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] {clrs['r']}ERROR{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
+            print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] {clrs['r']}ERROR{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.") # type: ignore
         else:
             print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] {clrs['r']}ERROR{clrs['n']}: {message}")
     return
@@ -248,7 +248,7 @@ def print_info_log(message: str, logfile:str, mode: str = "a") -> None:
 
     today = datetime.datetime.now()
     with open(logfile, mode) as f:
-        f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] INFO: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.\n")
+        f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] INFO: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.\n") # type: ignore
     return
 
 def print_success_log(message: str, logfile: str, mode: str = "a") -> None:
@@ -274,7 +274,7 @@ def print_success_log(message: str, logfile: str, mode: str = "a") -> None:
 
     today = datetime.datetime.now()
     with open(logfile, mode) as f:
-        f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] SUCCESS: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.\n")
+        f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] SUCCESS: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.\n") # type: ignore
     return
 
 def print_warning_log(message: str, logfile: str, mode: str = "a") -> None:
@@ -300,7 +300,7 @@ def print_warning_log(message: str, logfile: str, mode: str = "a") -> None:
 
     today = datetime.datetime.now()
     with open(logfile, mode) as f:
-        f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] WARNING: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.\n")
+        f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] WARNING: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.\n") # type: ignore
     return
 
 def print_error_log(message: str, logfile: str, mode: str = "a") -> None:
@@ -326,7 +326,7 @@ def print_error_log(message: str, logfile: str, mode: str = "a") -> None:
 
     today = datetime.datetime.now()
     with open(logfile, mode) as f:
-        f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] ERROR: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.\n")
+        f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] ERROR: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.\n") # type: ignore
     return
 
 def print_section(n: int, name: str, logName = "OCDocker_Progress.out") -> None:
@@ -369,10 +369,10 @@ def print_section(n: int, name: str, logName = "OCDocker_Progress.out") -> None:
         # Check if is the Runtime Arguments section
         if name == "Runtime Arguments":
             with open(logName, "w") as f:
-                f.write(f"{datetime.now().strftime('%H:%M:%S')}: Starting new OCDocker run\n")
+                f.write(f"{datetime.now().strftime('%H:%M:%S')}: Starting new OCDocker run\n") # type: ignore
         else:
             with open(logName, "a") as f:
-                f.write(f"\n{datetime.now().strftime('%H:%M:%S')}: {str(name)}...\n")
+                f.write(f"\n{datetime.now().strftime('%H:%M:%S')}: {str(name)}...\n") # type: ignore
     return
 
 def section(n: int, name: str) -> str:
@@ -452,7 +452,7 @@ def print_subsection(n: int, name: str, logName: str = "OCDocker_Progess.out") -
 
     if name:
         with open("OCDocker_Progress.out", "a") as f:
-            f.write(f"{datetime.now().strftime('%H:%M:%S')}: {str(name)}...\n")
+            f.write(f"{datetime.now().strftime('%H:%M:%S')}: {str(name)}...\n") # type: ignore
     return
 
 def subsection(n: int, name: str) -> str:
@@ -556,7 +556,7 @@ def convert2mol2_legacy(input: str, output: str, logFile: str = "") -> int:
 
     # Check if the input extension is supported
     if not inputExtension in allowed:
-        return errors.wrong_type(type=f"The file '{input}' has not a supported extension. Found '{inputExtension}' and expected one of the following: {', '.join(allowed)}", level="warn")
+        return errors.wrong_type(f"The file '{input}' has not a supported extension. Found '{inputExtension}' and expected one of the following: {', '.join(allowed)}", level="warn")
 
     # If the output has no extension
     if outputExtension == "":
@@ -578,7 +578,7 @@ def convert2mol2_legacy(input: str, output: str, logFile: str = "") -> int:
     # Return the execution code from the correct extension
     return run(cmd, logFile=logFile)
 
-def convert2mol2(input: str, output: str) -> int:
+def convert2mol2(input: str, output: str) -> Union[int, str]:
     '''Convert a pdb/sdf/mol/smi file to '.mol2'. [DEPRECATED]
 
     Parameters
@@ -590,8 +590,8 @@ def convert2mol2(input: str, output: str) -> int:
 
     Returns
     -------
-    int
-        The exit code of the command (based on the Error.py code table).
+    int | str
+        The exit code of the command (based on the Error.py code table). If fails, returns the 
 
     Raises
     ------
@@ -703,7 +703,7 @@ def convertMolsFromString(input: str, output: str) -> Union[int, str]:
     Returns
     -------
     int | str
-        The exit code of the command (based on the Error.py code table) if fails or the extension of the input file otherwise.
+        The exit code of the command (based on the Error.py code table) if fails or the extension of the input file otherwise returns the extension itself.
 
     Raises
     ------
@@ -713,17 +713,20 @@ def convertMolsFromString(input: str, output: str) -> Union[int, str]:
     # Get the in and out extensions 
     inExtension = "smi" # TODO: Add support to other formats
     outExtension = validate_obabel_extension(output)
+
     # Check if the output extension is valid
     if type(outExtension) != str:
         print_error(f"Problems while pre-processing the molecule from output file '{output}'.")
         return outExtension
+
     try:
       # Read the string into pybel object
       mol = pybel.readstring("smi", input)
       # Write the molecule to the output file
-      mol.write(outExtension, output)
+      mol.write(outExtension, output) # type: ignore
     except Exception as e:
         return errors.subprocess(message=f"Error while running molecule conversion from {inExtension} to {outExtension} using obabel python lib. Error: {e}", level="error")
+
     return errors.ok()
 
 def convertMols(input: str, output: str) -> Union[int, str]:
@@ -1036,15 +1039,15 @@ def is_molecule_valid(molecule: str) -> bool:
             try:
                 # Check if the extension is within the supported ones, if yes, parse it
                 if extension == ".mol2":
-                    _ = rdkit.Chem.rdmolfiles.MolFromMol2File(molecule, sanitize = True)
+                    _ = rdkit.Chem.rdmolfiles.MolFromMol2File(molecule, sanitize = True) # type: ignore
                 elif extension == ".sdf":
-                    _ = rdkit.Chem.rdmolfiles.SDMolSupplier(molecule, sanitize = True)
+                    _ = rdkit.Chem.rdmolfiles.SDMolSupplier(molecule, sanitize = True) # type: ignore
                 elif extension == ".mol":
-                    _ = rdkit.Chem.rdmolfiles.MolFromMolFile(molecule, sanitize = True)
+                    _ = rdkit.Chem.rdmolfiles.MolFromMolFile(molecule, sanitize = True) # type: ignore
                 elif extension == ".pdbqt":
-                    _ = rdkit.Chem.rdmolfiles.MolFromMolFile(molecule, sanitize = True)
+                    _ = rdkit.Chem.rdmolfiles.MolFromMolFile(molecule, sanitize = True) # type: ignore
                 elif extension in [".smi", ".smiles"]:
-                    _ = rdkit.Chem.rdmolfiles.MolFromSmiles(molecule, sanitize = True)
+                    _ = rdkit.Chem.rdmolfiles.MolFromSmiles(molecule, sanitize = True) # type: ignore
                 else:
                     # Not suitable extension, so... say False!!!!
                     return False
@@ -1201,10 +1204,10 @@ def run(cmd: List[str], logFile: str = "", cwd : str = "") -> int:
     '''
 
     if not cmd:
-        return errors.not_set(message=f"The variable cmd is not set or is an empty list!", type="error")
+        return errors.not_set(message = f"The variable cmd is not set or is an empty list!", level = "error")
 
     if type(cmd) != list:
-        return errors.wrong_type(message=f"The argument cmd has to be a list! Found '{type(cmd)}' instead...", type="error")
+        return errors.wrong_type(message = f"The argument cmd has to be a list! Found '{type(cmd)}' instead...", level = "error")
 
     # Print verboosity
     printv(f"Running the command '{' '.join(cmd)}'.")
@@ -1256,19 +1259,19 @@ def get_rmsd(reference: str, molecule: str) -> Union[List, float]:
     # For each molecule in molecules
     for mol in mols:
         # Remove its hydrogens
-        mol.strip()
+        mol.strip() # type: ignore
 
     # Get the reference and molecules coordinates
     refCoordinates = ref.coordinates
-    molCoordinates = [mol.coordinates for mol in mols]
+    molCoordinates = [mol.coordinates for mol in mols] # type: ignore
 
     # Get the reference and molecules atomicnums
     refAtmNum = ref.atomicnums
-    molAtmNum = mols[0].atomicnums
+    molAtmNum = mols[0].atomicnums # type: ignore
 
     # Get the reference and molecules adjacency_matrix
     refAdjMat = ref.adjacency_matrix
-    molAdjMat = mols[0].adjacency_matrix
+    molAdjMat = mols[0].adjacency_matrix # type: ignore
 
     # Return the symmetric rmsd (account for symmetry because it is important)
     return rmsd.symmrmsd(refCoordinates, molCoordinates, refAtmNum, molAtmNum, refAdjMat, molAdjMat)
@@ -1277,7 +1280,7 @@ def get_rmsd(reference: str, molecule: str) -> Union[List, float]:
 ### Special functions
 
 @contextlib.contextmanager
-def redirect_to_tqdm() -> None:
+def redirect_to_tqdm():
     '''Redirects the stdout to tqdm.write()
 
     Parameters
@@ -1303,7 +1306,7 @@ def redirect_to_tqdm() -> None:
             old_print(*args, ** kwargs)
     try:
         # Globaly replace print with new_print
-        inspect.builtins.print = new_print
+        inspect.builtins.print = new_print # type: ignore
         yield
     finally:
-        inspect.builtins.print = old_print
+        inspect.builtins.print = old_print # type: ignore

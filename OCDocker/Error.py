@@ -58,40 +58,46 @@ class Error:
         self.args = args
 
         # Common errors
-        self.okCode                        = 0
-        self.abortCode                     = 1
-        self.unkownCode                    = -666
+        self.okCode                           = 0
+        self.abortCode                        = 1
+        self.unkownCode                       = -666
 
         # File errors
-        self.fileExistsCode                = 100
-        self.fileDoNotExistCode            = 101
-        self.readFileCode                  = 102
-        self.writeFileCode                 = 103
-        self.untarFileCode                 = 104
-        self.unsupportedExtensionCode      = 105
+        self.fileExistsCode                   = 100
+        self.fileDoNotExistCode               = 101
+        self.readFileCode                     = 102
+        self.writeFileCode                    = 103
+        self.untarFileCode                    = 104
+        self.unsupportedExtensionCode         = 105
 
         # Directory errors
-        self.createDirCode                 = 150
-        self.dirDoesNotExistsCode          = 151
+        self.createDirCode                    = 150
+        self.dirDoesNotExistsCode             = 151
+        self.dirUnallowedCode                 = 152
 
         # Variable errors
-        self.wrongTypeCode                 = 200
-        self.notSetCode                    = 201
-        self.emptyCode                     = 202
+        self.wrongTypeCode                    = 200
+        self.notSetCode                       = 201
+        self.emptyCode                        = 202
+        self.emptyList                        = 203
 
         # Subprocess errors
-        self.subprocessCode                = 300
+        self.subprocessCode                   = 300
 
         # Molecule error
-        self.parseMoleculeCode             = 400
-        self.malformedMoleculeCode         = 401
-        self.ligandNotPreparedCode         = 402
-        self.receptorNotPreparedCode       = 403
+        self.parseMoleculeCode                = 400
+        self.malformedMoleculeCode            = 401
+        self.ligandNotPreparedCode            = 402
+        self.receptorNotPreparedCode          = 403
 
         # Docking error
-        self.dockingObjectNotGeneratedCode = 500
-        self.recLigObjectNotGeneratedCode  = 501
-        self.recLigFileDoesNotExist        = 502
+        self.dockingObjectNotGeneratedCode    = 500
+        self.recLigObjectNotGeneratedCode     = 501
+        self.recLigFileDoesNotExistCode       = 502
+        self.notSupportedDockingAlgorithmCode = 503
+
+        # Archive error
+        self.notSupportedArchiveCode          = 600
 
     ## Private ##
     def __print_info(self, message: str) -> None:
@@ -113,7 +119,7 @@ class Error:
 
         today = datetime.datetime.now()
         if self.args.output_level >= 4:
-            print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;96mINFO\033[1;0m: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")
+            print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;96mINFO\033[1;0m: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.") # type: ignore
         else:
             print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;96mINFO\033[1;0m: {message}")
         return None
@@ -137,7 +143,7 @@ class Error:
 
         today = datetime.datetime.now()
         if self.args.output_level >= 4:
-            print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;92mSUCCESS\033[1;0m: {message} In function '{inspect.currentframe().f_back.f_back.f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_back.f_back.f_lineno} from file '{inspect.currentframe().f_back.f_back.f_back.f_code.co_filename}'.")
+            print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;92mSUCCESS\033[1;0m: {message} In function '{inspect.currentframe().f_back.f_back.f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_back.f_back.f_lineno} from file '{inspect.currentframe().f_back.f_back.f_back.f_code.co_filename}'.") # type: ignore
         else:
             print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;92mSUCCESS\033[1;0m: {message}")
 
@@ -162,7 +168,7 @@ class Error:
         
         today = datetime.datetime.now()
         if self.args.output_level >= 3:
-            print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;93mWARNING\033[1;0m: {message} In function '{inspect.currentframe().f_back.f_back.f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_back.f_back.f_lineno} from file '{inspect.currentframe().f_back.f_back.f_back.f_code.co_filename}'.")
+            print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;93mWARNING\033[1;0m: {message} In function '{inspect.currentframe().f_back.f_back.f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_back.f_back.f_lineno} from file '{inspect.currentframe().f_back.f_back.f_back.f_code.co_filename}'.") # type: ignore
         else:
             print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;93mWARNING\033[1;0m: {message}")
 
@@ -187,7 +193,7 @@ class Error:
 
         today = datetime.datetime.now()
         if self.args.output_level >= 3:
-            print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;91mERROR\033[1;0m: {message} In function '{inspect.currentframe().f_back.f_back.f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_back.f_back.f_lineno} from file '{inspect.currentframe().f_back.f_back.f_back.f_code.co_filename}'.")
+            print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;91mERROR\033[1;0m: {message} In function '{inspect.currentframe().f_back.f_back.f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_back.f_back.f_lineno} from file '{inspect.currentframe().f_back.f_back.f_back.f_code.co_filename}'.") # type: ignore
         else:
             print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;91mERROR\033[1;0m: {message}")
 
@@ -270,7 +276,7 @@ class Error:
 
         return self.okCode
 
-    def unkown(self, message: str = "", level: str = "warn") -> int:
+    def unknown(self, message: str = "", level: str = "warn") -> int:
         '''Return when the error is unknown.
 
         Parameters
@@ -488,6 +494,30 @@ class Error:
 
         return self.dirDoesNotExistsCode
 
+    def unnalowed_dir(self, message: str = "", level: str = "warn") -> int:
+        '''Return this when the accessed dir is not allowed for any reason.
+
+        Parameters
+        ----------
+        message : string, optional
+            Message to be printed. Default is "".
+        level : string, optional
+            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+
+        Returns
+        -------
+        int
+            The code for directory unallowed (152).
+
+        Raises
+        ------
+        None
+        '''
+
+        self.__print_msg(message, level)
+
+        return self.dirUnallowedCode
+
     # Variable errors
     def wrong_type(self, message: str = "", level: str = "warn") -> int:
         '''Return this when the variable has wrong type.
@@ -683,7 +713,7 @@ class Error:
 
         return self.receptorNotPreparedCode
 
-    # Molecules errors
+    # Docking errors
     def docking_object_not_generated(self, message: str = "", level: str = "warn") -> int:
         '''Return this when a docking object has not been generated.
 
@@ -754,7 +784,56 @@ class Error:
 
         self.__print_msg(message, level)
 
-        return self.recLigObjectNotGeneratedCode
+        return self.recLigFileDoesNotExistCode
+    
+    def not_supported_docking_algorithm(self, message: str = "", level: str = "error") -> int:
+        '''Return this when the docking algorithm is not supported.
+
+        Parameters
+        ----------
+        message : string, optional
+            Message to be printed. Default is "".
+        level : string, optional
+            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        
+        Returns
+        -------
+        int
+            The code for receptor or ligand descriptor does not exist error (503).
+
+        Raises
+        ------
+        None
+        '''
+
+        self.__print_msg(message, level)
+
+        return self.notSupportedDockingAlgorithmCode
+
+    # Archive errors
+    def not_supported_archive(self, message: str = "", level: str = "error") -> int:
+        '''Return this when the archive is not supported. NOTE: SHOULD be removed in the future.
+
+        Parameters
+        ----------
+        message : string, optional
+            Message to be printed. Default is "".
+        level : string, optional
+            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        
+        Returns
+        -------
+        int
+            The code for receptor or ligand descriptor does not exist error (600).
+
+        Raises
+        ------
+        None
+        '''
+
+        self.__print_msg(message, level)
+
+        return self.notSupportedArchiveCode
 
     # Debug functions
     def print_attributes(self) -> None:
@@ -773,48 +852,53 @@ class Error:
         None
         '''
         
-        print(f"\t+--------------------------------------------+")
-        print(f"\t|           OCDocker Return codes            |")
-        print(f"\t+--------------------------------------------+")
+        print(f"\t+----------------------------------------------+")
+        print(f"\t|            OCDocker Return codes             |")
+        print(f"\t+----------------------------------------------+")
 
-        print(f"\n\t~~~~~~~~~~~~~~~ GENERAL ERRORS ~~~~~~~~~~~~~~~")
-        print(f"\t - No error:                      {self.okCode}")
-        print(f"\t - Abortion:                      {self.abortCode}")
-        print(f"\t - Unknown error:                 {self.unkownCode}")
+        print(f"\n\t~~~~~~~~~~~~~~~~ GENERAL ERRORS ~~~~~~~~~~~~~~~~")
+        print(f"\t - No error:                        {self.okCode}")
+        print(f"\t - Abortion:                        {self.abortCode}")
+        print(f"\t - Unknown error:                   {self.unkownCode}")
 
-        print(f"\n\t~~~~~~~~~~~~~~~~~ FILE ERRORS ~~~~~~~~~~~~~~~~")
-        print(f"\t - File exists:                   {self.fileExistsCode}")
-        print(f"\t - File does not exists:          {self.fileDoNotExistCode}")
-        print(f"\t - Read file error:               {self.readFileCode}")
-        print(f"\t - Write file error:              {self.writeFileCode}")
-        print(f"\t - Untar error:                   {self.untarFileCode}")
-        print(f"\t - Unsupported extension error:   {self.unsupportedExtensionCode}")
+        print(f"\n\t~~~~~~~~~~~~~~~~~~ FILE ERRORS ~~~~~~~~~~~~~~~~~")
+        print(f"\t - File exists:                     {self.fileExistsCode}")
+        print(f"\t - File does not exists:            {self.fileDoNotExistCode}")
+        print(f"\t - Read file error:                 {self.readFileCode}")
+        print(f"\t - Write file error:                {self.writeFileCode}")
+        print(f"\t - Untar error:                     {self.untarFileCode}")
+        print(f"\t - Unsupported extension error:     {self.unsupportedExtensionCode}")
 
-        print(f"\n\t~~~~~~~~~~~~~~ DIRECTORY ERRORS ~~~~~~~~~~~~~~")
-        print(f"\t - Directory creation error:      {self.createDirCode}")
-        print(f"\t - Directory does not exist:      {self.dirDoesNotExistsCode}")
+        print(f"\n\t~~~~~~~~~~~~~~~ DIRECTORY ERRORS ~~~~~~~~~~~~~~~")
+        print(f"\t - Directory creation error:        {self.createDirCode}")
+        print(f"\t - Directory does not exist:        {self.dirDoesNotExistsCode}")
+        print(f"\t - Directory access not allowed:    {self.dirUnallowedCode}")
 
-        print(f"\n\t~~~~~~~~~~~~~~ VARIABLE ERRORS ~~~~~~~~~~~~~~~")
-        print(f"\t - Wrong type:                    {self.wrongTypeCode}")
-        print(f"\t - Not set:                       {self.notSetCode}")
-        print(f"\t - Empty:                         {self.emptyCode}")
+        print(f"\n\t~~~~~~~~~~~~~~~ VARIABLE ERRORS ~~~~~~~~~~~~~~~~")
+        print(f"\t - Wrong type:                      {self.wrongTypeCode}")
+        print(f"\t - Not set:                         {self.notSetCode}")
+        print(f"\t - Empty:                           {self.emptyCode}")
 
-        print(f"\n\t~~~~~~~~~~~~~~~ PROCESS ERRORS ~~~~~~~~~~~~~~~")
-        print(f"\t - Subprocess error:              {self.subprocessCode}")
+        print(f"\n\t~~~~~~~~~~~~~~~~ PROCESS ERRORS ~~~~~~~~~~~~~~~~")
+        print(f"\t - Subprocess error:                {self.subprocessCode}")
 
-        print(f"\n\t~~~~~~~~~~~~~~ MOLECULE ERRORS ~~~~~~~~~~~~~~~")
-        print(f"\t - Molecule parse error:          {self.moleculeParseCode}")
-        print(f"\t - Malformed molecule error:      {self.malformedMoleculeCode}")
-        print(f"\t - Receptor object not generated: {self.recLigObjectNotGeneratedCode}")
-        print(f"\t - Malformed molecule error:      {self.recLigFileDoesNotExist}")
+        print(f"\n\t~~~~~~~~~~~~~~~ MOLECULE ERRORS ~~~~~~~~~~~~~~~~")
+        print(f"\t - Molecule parse error:            {self.parseMoleculeCode}")
+        print(f"\t - Malformed molecule error:        {self.malformedMoleculeCode}")
+        print(f"\t - Ligand not prepared:             {self.ligandNotPreparedCode}")
+        print(f"\t - Receptor not prepared:           {self.receptorNotPreparedCode}")
 
-        print(f"\n\t~~~~~~~~~~~~~~~ DOCKING ERRORS ~~~~~~~~~~~~~~~~")
+        print(f"\n\t~~~~~~~~~~~~~~~~ DOCKING ERRORS ~~~~~~~~~~~~~~~~~")
         print(f"\t - Docking Object Generation")
-        print(f"\t   error:                         {self.dockingObjectNotGeneratedCode}")
+        print(f"\t   error:                           {self.dockingObjectNotGeneratedCode}")
         print(f"\t - Receptor/Ligand Object")
-        print(f"\t   Generation error:              {self.recLigObjectNotGeneratedCode}")
+        print(f"\t   Generation error:                {self.recLigObjectNotGeneratedCode}")
         print(f"\t - Receptor/Ligand File")
-        print(f"\t   descriptor does not exist:       {self.recLigFileDoesNotExist}")
+        print(f"\t   descriptor does not exist:       {self.recLigFileDoesNotExistCode}")
+        print(f"\t   Not supported docking algoritm:  {self.notSupportedDockingAlgorithmCode}")
+
+        print(f"\n\t~~~~~~~~~~~~~~~~ ARCHIVE ERRORS ~~~~~~~~~~~~~~~~~")
+        print(f"\t - Archive not supported:           {self.notSupportedArchiveCode}")
 
         return None
 

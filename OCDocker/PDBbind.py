@@ -5,7 +5,7 @@
 import os
 
 from glob import glob
-from typing import Dict, List, Tuple
+from typing import Dict, List, Union
 import pandas as pd
 
 import OCDocker.Ligand as ocl
@@ -103,7 +103,7 @@ def convert_debug_to_production(chosenAlgorithm: str = "ac", strict: bool = Fals
     ocbdb.convert_debug_to_production(pdbbind_archive, chosenAlgorithm = chosenAlgorithm, strict = strict, removeDebug = removeDebug)
     return None
 
-def read_index() -> List[Dict[str, str]]:
+def read_index() -> Union[List[Dict[str, str]], None]:
     '''Read the index file from pdbbind database and returns a list of the data (dict).
 
     Parameters
@@ -200,7 +200,7 @@ def run_p2rank(overwrite: bool = False) -> None:
 
     return ocbdb.run_p2rank("pdbbind", overwrite = overwrite)
 
-def run_vina(overwrite: str = False) -> int:
+def run_vina(overwrite: bool = False) -> int:
     '''Runs vina in the whole database.
 
     Parameters
@@ -279,7 +279,7 @@ def prepare(overwrite: bool = False) -> None:
 
     return ocbdb.prepare("pdbbind", overwrite = overwrite)
 
-def read_logs(picklePath: str = "") -> Dict[str, Dict[str, pd.DataFrame]]:
+def read_logs(picklePath: str = "") -> Union[Dict[str, Dict[str, pd.DataFrame]], None]:
     '''Parse the database into multiple serializable objects.
 
     Parameters
@@ -321,7 +321,7 @@ def generate_dock_result_csv(log_dumps: Dict[str, Dict[str, pd.DataFrame]], csv_
     '''
     return ocbdb.generate_dock_result_csv("pdbbind", log_dumps, csv_path, chunksize=chunksize)
 
-def merge_descriptors_in_dataframe(saveCsv: bool = True) -> pd.DataFrame:
+def merge_descriptors_in_dataframe(saveCsv: bool = True) -> Union[pd.DataFrame, None]:
     '''Reads all the descriptors jsons and return a pd.DataFrame.
 
     Parameters
@@ -331,7 +331,7 @@ def merge_descriptors_in_dataframe(saveCsv: bool = True) -> pd.DataFrame:
 
     Returns
     -------
-    pd.DataFrame
+    pd.DataFrame | None
         The dataframe with all the complex descriptors.
 
     Raises
@@ -342,6 +342,9 @@ def merge_descriptors_in_dataframe(saveCsv: bool = True) -> pd.DataFrame:
     # Get the dataframe with descriptors and docking scores
     pdbbinddf = ocbdb.merge_descriptors_in_dataframe("pdbbind", saveCsv=False)
 
+    # Check if the pdbbinddf is None
+    if not pdbbinddf:
+        return None
     # Merge the pdbbinddf DataFrame with the metadata from the PDBbind database using the Protein column as a comparer
     pdbbinddf = pd.merge(pdbbinddf, pd.DataFrame(read_index()), on="Protein", how="left")
 

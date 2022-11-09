@@ -138,12 +138,12 @@ def __thread_process_dudez(arguments: Tuple[str, bool]) -> None:
         # Call core prepare function (shared between thread and no thread)
         return __core_process_dudez(arguments[0], arguments[1])
 
-def __process_dudez_parallel(targets: str, overwrite: bool, desc: str) -> None:
+def __process_dudez_parallel(targets: List[str], overwrite: bool, desc: str) -> None:
     '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
 
     Parameters
     ----------
-    targets : str
+    targets : List[str]
         The list of directories to be processed.
     overwrite : bool
         Flag to tell if files should be overwritten.
@@ -173,12 +173,12 @@ def __process_dudez_parallel(targets: str, overwrite: bool, desc: str) -> None:
             gc.collect()
     return None
 
-def __process_dudez_no_parallel(targets: str, overwrite: bool, desc: str) -> None:
+def __process_dudez_no_parallel(targets: List[str], overwrite: bool, desc: str) -> None:
     '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_process_dudez function.
 
     Parameters
     ----------
-    targets : str
+    targets : List[str]
         The list of directories to be processed.
     overwrite : bool
         Flag to tell if files should be overwritten.
@@ -316,6 +316,7 @@ def __download_dudez_parallel(targets: List[str], overwrite: bool, desc: str) ->
         for _ in tqdm(p.imap_unordered(__thread_download_dudez, arguments), total = len(arguments), desc = desc):
             # Clear the memory
             gc.collect()
+
     return None
 
 def __download_dudez_no_parallel(targets: List[str], overwrite: bool, desc: str) -> None:
@@ -346,6 +347,7 @@ def __download_dudez_no_parallel(targets: List[str], overwrite: bool, desc: str)
             __core_download_dudez(target, overwrite)
             # Clear the memory
             gc.collect()
+
     return None
 
 ## Public ##
@@ -497,7 +499,7 @@ def update_DUDEz(overwrite:bool = False, download:bool = True, multiprocess:bool
 
     return errors.ok()
 
-def update_PDBbind() -> None:
+def update_PDBbind() -> int:
     '''Updates the PDBbind database from the Protein-ligand complexes: The refined set.
 
     Parameters
@@ -506,7 +508,8 @@ def update_PDBbind() -> None:
 
     Returns
     -------
-    None
+    int
+        The exit code of the command (based on the Error.py code table).
 
     Raises
     ------

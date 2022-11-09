@@ -49,7 +49,7 @@ import OCDocker.Receptor as ocr
 class Receptor:
     """Load and compute receptor descriptors."""
 
-    def __init__(self, structure: Union[str, Bio.PDB.Structure.Structure], name: str, mol2Path: str = "", cModel: str = "gasteiger", gravyScale: str = "KyteDoolitle", relativeASAcutoff: str = 0.7, from_json_descriptors: str = "", overwrite: bool = False, clean: bool = True) -> None:
+    def __init__(self, structure: Union[str, Bio.PDB.Structure.Structure], name: str, mol2Path: str = "", cModel: str = "gasteiger", gravyScale: str = "KyteDoolitle", relativeASAcutoff: float = 0.7, from_json_descriptors: str = "", overwrite: bool = False, clean: bool = True) -> None:  # type: ignore
         '''Constructor of the class Receptor.
 
         Parameters
@@ -64,7 +64,7 @@ class Receptor:
             Charge model to be used, by default "gasteiger"
         gravyScale : str, optional
             Scale to be used to compute the GRAVY descriptor, by default "KyteDoolitle"
-        relativeASAcutoff : str, optional
+        relativeASAcutoff : float, optional
             Relative cutoff to be used to compute the SASA descriptor, by default 0.7
         from_json_descriptors : str, optional
             Path to the json file containing the descriptors, by default ""
@@ -147,7 +147,7 @@ class Receptor:
                 octools.print_error(f"Problems while parsing json file: '{from_json_descriptors}'")
                 return None
             #region assign
-            self.name, self.sasa, self.dipoleMoment, self.isoelectricPoint, self.instabilityIndex,self.GRAVY, self.aromaticity, self.__countAA, self.countA, self.countR, self.countN, self.countD, self.countC, self.countQ, self.countE, self.countG, self.countH, self.countI, self.countL, self.countK, self.countM, self.countF, self.countP, self.countS, self.countT, self.countW, self.countY, self.countV, self.totalAALength, self.avgAALength, self.countChain = data
+            self.name, self.sasa, self.dipoleMoment, self.isoelectricPoint, self.instabilityIndex,self.GRAVY, self.aromaticity, self.__countAA, self.countA, self.countR, self.countN, self.countD, self.countC, self.countQ, self.countE, self.countG, self.countH, self.countI, self.countL, self.countK, self.countM, self.countF, self.countP, self.countS, self.countT, self.countW, self.countY, self.countV, self.totalAALength, self.avgAALength, self.countChain = data #type: ignore
 
             #endregion
         else:
@@ -223,26 +223,6 @@ class Receptor:
         properties["mol2Path"] = self.path if self.path is not None else "-"
         # Combine both in one dict and return them
         return {**properties, **self.get_descriptors()}
-
-    def __read_descriptors_from_json(self, path: str) -> List:
-        '''Read the descriptors from a json file.
-
-        Parameters
-        ----------
-        path : str
-            The path to the json file.
-
-        Returns
-        -------
-        List
-            A list with all the descriptors.
-
-        Raises
-        ------
-        None
-        '''
-
-        return read_descriptors_from_json(path)
 
     ## Public ##
     def print_attributes(self) -> None:
@@ -404,7 +384,7 @@ class Receptor:
             except Exception as e:
                 return errors.write_file(f"Problems while writing the file '{outputJson}' Error: {e}.")
         except Exception as e:
-            return errors.unknown(f"Unknown error while converting the ligand {self.name} to json.\nError: {e}", "error")
+            return errors.unkown(f"Unknown error while converting the ligand {self.name} to json.\nError: {e}", "error")
 
     def is_valid(self) -> bool:
         '''Check if a Ligand object is valid.
@@ -457,7 +437,7 @@ def __filterSequence(residues: str) -> str:
     return residues
 
 ## Public ##
-def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str, cutoff: float = 0.7) -> Dict[str, int]:
+def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str, cutoff: float = 0.7) -> Dict[str, int]: #type: ignore
     '''Counts how many of each of the 20 standard AAs has a relative ASA value above a given cutoff.
 
     Parameters
@@ -482,7 +462,7 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
     octools.printv(f"Counting how many of each of the 20 standard AAs from the structure '{structure.id}' are in the surface. Exposure cutoff is {cutoff}.")
     if not structurePath:
         _ = errors.not_set(message=f"The structure path is not set!", level="error")
-        return None
+        return None #type: ignore
 
     aas = {
         "A": 0, 
@@ -586,7 +566,7 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
                 aas["X"] += 1
     return aas
 
-def count_AAs_and_chains(structure: Bio.PDB.Structure.Structure) -> Tuple[int, float, int]:
+def count_AAs_and_chains(structure: Bio.PDB.Structure.Structure) -> Tuple[int, float, int]: #type: ignore
     '''Counts the total length (sum of all AAs), the average length (the total AAs divided by the number of chains) and the number of chains the protein has.
 
     Parameters
@@ -607,7 +587,7 @@ def count_AAs_and_chains(structure: Bio.PDB.Structure.Structure) -> Tuple[int, f
     # If the model is not set
     if not structure:
         _ = errors.not_set(message=f"The model object is not set!", level="error")
-        return None, None, None
+        return None #type: ignore
     # Initialise the counter of number of residues and chains
     res_no = 0
     chains = 0
@@ -625,11 +605,11 @@ def count_AAs_and_chains(structure: Bio.PDB.Structure.Structure) -> Tuple[int, f
     # Check if the number of chains is not 0
     if chains == 0:
         octools.print_error("The number of chains for the provided model is 0. This is not acceptable!")
-        return None, None, None
+        return None #type: ignore
 
     return res_no, res_no/chains, chains
 
-def compute_sasa(model: Bio.PDB.Structure.Structure, n_points: int = 1000) -> None:
+def compute_sasa(model: Bio.PDB.Structure.Structure, n_points: int = 1000) -> None: #type: ignore
     '''Computes the Solvent Accessible Surface Area of the molecule. NOTE: The sasa value is added to the structure and can be called using the command "model.sasa" (without quotes).
 
     Parameters
@@ -653,7 +633,7 @@ def compute_sasa(model: Bio.PDB.Structure.Structure, n_points: int = 1000) -> No
     sr.compute(model, level="S")
     return None
 
-def getRes(model: Bio.PDB.Structure.Structure) -> str:
+def getRes(model: Bio.PDB.Structure.Structure) -> str: #type: ignore
     '''Get the amino acid one letter sequence for the receptor (Ignore chains).
 
     Parameters
@@ -680,7 +660,7 @@ def getRes(model: Bio.PDB.Structure.Structure) -> str:
         residues.append(seq1(residue.get_resname()))
     return "".join(residues)
 
-def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA: bool = True, mol2Path: str = "", overwrite: bool = False, clean: bool = True) -> Tuple[str, Bio.PDB.Structure.Structure]:
+def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA: bool = True, mol2Path: str = "", overwrite: bool = False, clean: bool = True) -> Tuple[str, Bio.PDB.Structure.Structure]: #type: ignore
     '''Load a structure pdb/cif if a path is provided or just assign the Bio.PDB.Structure.Structure object to the structure. Also returns the path as a tuple (path, structure).
 
     Parameters
@@ -710,7 +690,7 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
 
     octools.printv(f"Trying to load protein '{structure}'.")
     # Check if the type of the variable structure is a string or a Bio.PDB.Structure.Structure
-    if type(structure) == Bio.PDB.Structure.Structure:
+    if type(structure) == Bio.PDB.Structure.Structure: #type: ignore
         # Check if SASA should be computed
         if computeSASA:
             compute_sasa(structure)
@@ -765,7 +745,7 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
         octools.print_error("Unsupported molecule data. Please support either a molecule path (string) or an 'rdkit.Chem.rdchem.Mol' object.")
         return "", None
 
-def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str = "") -> Bio.PDB.Structure.Structure:
+def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str = "") -> Bio.PDB.Structure.Structure: #type: ignore
     '''Renumber the pdb residues using biopython.
 
     Parameters
@@ -813,7 +793,7 @@ def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str
     
     return None
 
-def computeDipoleMoment(structure: Bio.PDB.Structure.Structure, cModel: str = "gasteiger"):
+def computeDipoleMoment(structure: Bio.PDB.Structure.Structure, cModel: str = "gasteiger"): #type: ignore
     '''Computes the receptor's dipole moment.
 
     Parameters
@@ -964,7 +944,7 @@ def computeInstabilityIndex(residues: str) -> float:
     protein = ProteinAnalysis(__filterSequence(residues))
     return protein.instability_index()
 
-def read_descriptors_from_json(path: str, returnDict: bool = False) -> Dict[str, Union[float, str, int]]:
+def read_descriptors_from_json(path: str, returnDict: bool = False) -> Tuple[Union[float, str, int]]:
     '''Read the descriptors from a json file.
 
     Parameters
@@ -976,7 +956,7 @@ def read_descriptors_from_json(path: str, returnDict: bool = False) -> Dict[str,
 
     Returns
     -------
-    Dict[str, float | str | int]
+    Tuple[Union[float, str, int]]
         The descriptors dictionary.
 
     Raises
