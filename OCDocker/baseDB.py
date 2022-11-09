@@ -359,6 +359,8 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                 m.create_box(centroid = targetCentroid, overwrite = overwrite)
             # If m is not valid
             except Exception as e:
+                print(f"ocl.Ligand({mol}, {molName}, sanitize = {sanitize})")
+                print(targetCentroid)
                 _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed!", "error")
                 octools.print_error_log(f"The molecule '{mol}' could not be parsed!", f"{logdir}/{dbName}_error_Parse.log")
                 return None
@@ -395,19 +397,19 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
     # Return
     return None
 
-def __sub_core_prepare(dirToProcess: str, dbName: str, overwrite: bool, mols : List[str] = [], sanitize: bool = True,  targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> List[str]: # type: ignore
+def __sub_core_prepare(dirsToProcess: str, dbName: str, overwrite: bool, mols : List[str] = [], sanitize: bool = True,  targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> List[str]: # type: ignore
     '''Runs the prepare function for the dudez database subsets.
 
     Parameters
     ----------
-    dirToProcess : str
+    dirsToProcess : str
         Path to the directory to be processed.
     dbName : str
         Name of the database.
     overwrite : bool
         Flag for demanding file overwrite.
     mols : List[str], optional
-        List of molecules to be processed. If empty, all folders are inside dirToProcess are assumed to be molecules and are processed.
+        List of molecules to be processed. If empty, all folders are inside dirsToProcess are assumed to be molecules and are processed.
     sanitize : bool, optional
         Flag for demanding molecule sanitization, by default True.
     targetCentroid : Tuple[float, float, float] | rdkit.Geometry.rdGeometry.Point3D, optional
@@ -428,7 +430,7 @@ def __sub_core_prepare(dirToProcess: str, dbName: str, overwrite: bool, mols : L
         # If not, create each dir with the molecule and then move the molecule to it
         for mol in mols:
             # Get the molecule name and path
-            molPath, molName = os.path.split(mol)
+            _, molName = os.path.split(mol)
             # Remove the extension
             molTmp = molName.split(".")
             # Checage to support files with multiple dots
@@ -442,7 +444,7 @@ def __sub_core_prepare(dirToProcess: str, dbName: str, overwrite: bool, mols : L
             shutil.move(mol, f"{mol}/{molName}/ligand.{molTmp[-1]}")
 
     # Get the list of dirs to process
-    processDirs = [d for d in glob(f"{dirToProcess}/*") if os.path.isdir(d)]
+    processDirs = [dirToProcess for dirToProcess in glob(f"{dirsToProcess}/*") if os.path.isdir(dirsToProcess)]
 
     # For each directory (check to see if it is needed to generate descriptors)
     for processDir in processDirs:
@@ -1703,7 +1705,8 @@ def __core_generate_dock_result_csv(processDir: str, log_dump: Dict[str, pd.Data
         minRMSD_plants = np.NaN
 
     # Append the data to the DataFrame
-    df.loc[len(df), df.columns] = [ptn] + [ligand] + vinaList + sminaList + plantsList + [minRMSD_vina, minRMSD_smina, minRMSD_plants]
+    #df.loc[len(df), df.columns] = [ptn] + [ligand] + vinaList + sminaList + plantsList + [minRMSD_vina, minRMSD_smina, minRMSD_plants]
+    df.append(pd.DataFrame([ptn] + [ligand] + vinaList + sminaList + plantsList + [minRMSD_vina, minRMSD_smina, minRMSD_plants], columns = df.columns))
 
     return df
 
@@ -1878,8 +1881,8 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str], ar
     # Set Name and Path
     all_descriptors["Protein"] = ptn
     # Merge both descriptors dicts
-    all_descriptors = { **all_descriptors, **receptor_descriptors }
-    all_descriptors = { **all_descriptors, **ligand_descriptors }
+    all_descriptors = { **all_descriptors, **receptor_descriptors } # type: ignore
+    all_descriptors = { **all_descriptors, **ligand_descriptors } # type: ignore
     # Create a temporary pd.DataFrame
     tmpdf = pd.DataFrame(all_descriptors, index=[0])
     # Append the line to the pd.DataFrame
