@@ -657,7 +657,6 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
                         # Append the line to the dsspLines list
                         dsspLines.append(line)'''
 
-            print(lines[0])
             # Write the lines to the file
             with open(structurePath, "w") as pdbFile:
                 # Write the lines list to the file
