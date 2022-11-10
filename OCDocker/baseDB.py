@@ -570,6 +570,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
         octools.print_info(f"The protein '{path}' already has its p2rank output generated, skipping its execution.")
     '''
 
+    print(processDirs)
     # For each dir to be processed
     for processDir in processDirs:
         # Check if there is a box for the ligand
