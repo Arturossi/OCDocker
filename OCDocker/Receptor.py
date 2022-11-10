@@ -90,10 +90,10 @@ class Receptor:
         # If user pass a json
         if from_json_descriptors:
             # Read the molecule telling that there is no need to fetch the SASA value
-            self.path, self.cleanPath, self.structure = loadMol(structure, name=self.name, computeSASA=False, mol2Path=self.mol2Path, overwrite = overwrite, clean = clean)
+            self.path, self.structure = loadMol(structure, name=self.name, computeSASA=False, mol2Path=self.mol2Path, overwrite = overwrite, clean = clean)
         else:
             # Read the molecule telling that there is the need to fetch the SASA value
-            self.path, self.cleanPath, self.structure = loadMol(structure, name=self.name, computeSASA=True, mol2Path=self.mol2Path, overwrite = overwrite, clean = clean)
+            self.path, self.structure = loadMol(structure, name=self.name, computeSASA=True, mol2Path=self.mol2Path, overwrite = overwrite, clean = clean)
 
         # Set the residues (derived from structure)
         self.residues = getRes(self.structure)
@@ -157,7 +157,13 @@ class Receptor:
                 return None
             self.name = name.replace(" ", "_")
 
-            self.totalAALength, self.avgAALength, self.countChain = count_AAs_and_chains(self.structure)
+            self.__AAdata = count_AAs_and_chains(self.structure)
+
+            if self.__AAdata:
+                self.totalAALength, self.avgAALength, self.countChain = self.__AAdata
+            else:
+                octools.print_error("Problems while counting AAs and chains!")
+                return None
 
             self.sasa = self.structure.sasa
             self.__cModel = cModel # The options are 'mmff94', 'gasteiger' or 'eem2015bm'
@@ -174,7 +180,7 @@ class Receptor:
 
             self.__relativeASAcutoff = relativeASAcutoff
             
-            self.__countAA = count_surface_AA(self.path, self.cleanPath, self.__relativeASAcutoff)
+            self.__countAA = count_surface_AA(self.structure, self.path, self.__relativeASAcutoff)
 
             self.countA = self.__countAA["A"]
             self.countR = self.__countAA["R"]
@@ -220,7 +226,6 @@ class Receptor:
         # Set Name and Path
         properties["Name"] = self.name if self.name is not None else "-"
         properties["Path"] = self.path if self.path is not None else "-"
-        properties["CleanPath"] = self.cleanPath if self.cleanPath is not None else "-"
         properties["mol2Path"] = self.path if self.path is not None else "-"
         # Combine both in one dict and return them
         return {**properties, **self.get_descriptors()}
@@ -244,7 +249,6 @@ class Receptor:
 
         print(f"Name:                 '{self.name if self.name else '-' }'")
         print(f"Structure path:       '{self.path if self.path else '-' }'")
-        print(f"Clean structure path: '{self.cleanPath if self.cleanPath else '-' }'")
         print(f"mol2 path:            '{self.mol2Path if self.mol2Path else '-' }'")
         print(f"Structure:            '{self.structure if self.structure else '-' }'")
         print(f"AA residues:          '{self.residues if self.residues else '-' }'")
@@ -350,7 +354,6 @@ class Receptor:
         # Set Name, Path and molecule
         properties["Name"] = self.name if self.name is not None else "-"
         properties["Path"] = self.path if self.path is not None else "-"
-        properties["CleanPath"] = self.cleanPath if self.cleanPath is not None else "-"
         properties["mol2Path"] = self.mol2Path if self.mol2Path is not None else "-"
         properties["Structure"] = self.structure if self.structure is not None else "-"
         # Combine both in one dict and return them
@@ -443,11 +446,13 @@ def __filterSequence(residues: str) -> str:
     return residues
 
 ## Public ##
-def count_surface_AA(structurePath: str, cleanStructurePath: str, cutoff: float = 0.7) -> Dict[str, int]: #type: ignore
+def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str, cutoff: float = 0.7) -> Dict[str, int]: #type: ignore
     '''Counts how many of each of the 20 standard AAs has a relative ASA value above a given cutoff.
 
     Parameters
     ----------
+    structure : Bio.PDB.Structure.Structure
+        The structure to be loaded.
     structurePath: str
         The path of the structure.
     cleanStructurePath: str
@@ -707,7 +712,7 @@ def count_surface_AA(structurePath: str, cleanStructurePath: str, cutoff: float 
                 aas["X"] += 1
     return aas
 
-def count_AAs_and_chains(structure: Bio.PDB.Structure.Structure) -> Tuple[int, float, int]: #type: ignore
+def count_AAs_and_chains(structure: Bio.PDB.Structure.Structure) -> Union[Tuple[int, float, int], None]: #type: ignore
     '''Counts the total length (sum of all AAs), the average length (the total AAs divided by the number of chains) and the number of chains the protein has.
 
     Parameters
@@ -717,8 +722,8 @@ def count_AAs_and_chains(structure: Bio.PDB.Structure.Structure) -> Tuple[int, f
 
     Returns
     -------
-    Tuple[int, float, int]
-        The total length, the average length and the number of chains.
+    Tuple[int, float, int] | None
+        The total length, the average length and the number of chains. If the structure is not valid, returns None.
 
     Raises
     ------
@@ -746,7 +751,7 @@ def count_AAs_and_chains(structure: Bio.PDB.Structure.Structure) -> Tuple[int, f
     # Check if the number of chains is not 0
     if chains == 0:
         octools.print_error("The number of chains for the provided model is 0. This is not acceptable!")
-        return None #type: ignore
+        return None
 
     return res_no, res_no/chains, chains
 
@@ -801,7 +806,7 @@ def getRes(model: Bio.PDB.Structure.Structure) -> str: #type: ignore
         residues.append(seq1(residue.get_resname()))
     return "".join(residues)
 
-def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA: bool = True, mol2Path: str = "", overwrite: bool = False, clean: bool = True) -> Tuple[str, str, Bio.PDB.Structure.Structure]: #type: ignore
+def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA: bool = True, mol2Path: str = "", overwrite: bool = False, clean: bool = True) -> Tuple[str, Bio.PDB.Structure.Structure]: #type: ignore
     '''Load a structure pdb/cif if a path is provided or just assign the Bio.PDB.Structure.Structure object to the structure. Also returns the path as a tuple (path, structure).
 
     Parameters
@@ -840,7 +845,7 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
             # Clean the pdb file
             structure = renumber_pdb_residues(structure)
         # Since is already a structure, assign it to the class
-        return structure, "", None
+        return structure, None
     elif type(structure) == str:
         if os.path.isfile(structure):
             # Check if the structure has no name
@@ -851,9 +856,6 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
             # Now we know that it is a file path, check which is its extension to use the correct function
             extension = os.path.splitext(structure)[1]
 
-            # Parameterize the clean structure directory
-            cleanStructure = f"{os.path.join(os.path.dirname(structure), 'cleanReceptor')}{extension}"
-
             # Choose the parser based on extension
             if extension == ".pdb":
                 parser = PDBParser()
@@ -863,7 +865,7 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
                 # The file extension is not supported, print data
                 supportedExtensions = [".pdb", ".cif"]
                 octools.print_error(f"The receptor {structure} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supportedExtensions)}.")
-                return "", "", None
+                return "", None
 
             # Compute the SASA value of the structure
             tmpStructure = parser.get_structure(name, structure)
@@ -884,15 +886,15 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
 
             octools.print_success(f"Successfully loaded the molecule '{structure}'")
             # Return the structure using selected parser
-            return structure, cleanStructure, tmpStructure
+            return structure, tmpStructure
         else:
             # File does not exist
             _ = errors.file_do_not_exist(message=f"The file '{structure}' does not exist!", level="error")
-            return "", "", None
+            return "", None
     else:
         # The variable is not in a supported data format
         octools.print_error("Unsupported molecule data. Please support either a molecule path (string) or an 'rdkit.Chem.rdchem.Mol' object.")
-        return "", "", None
+        return "", None
 
 def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str = "") -> Bio.PDB.Structure.Structure: #type: ignore
     '''Renumber the pdb residues using biopython.
