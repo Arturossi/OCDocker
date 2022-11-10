@@ -670,7 +670,7 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
 
     # Load the clean Structure
     #cleanStructure = loadMol(cleanStructurePath)
-    cleanStructure = loadMol(structurePath)
+    #cleanStructure = loadMol(structurePath)
                         
     # Column header to dsspData object will be
     # (dssp index, amino acid, secondary structure, relative ASA, phi, psi,
@@ -678,7 +678,7 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
     # NH_O_2_relidx, NH_O_2_energy, O_NH_2_relidx, O_NH_2_energy)
 
     # Run the DSSP
-    dsspData = DSSP(cleanStructure[0], structurePath, dssp=dssp)
+    dsspData = DSSP(structure[0], structurePath, dssp=dssp)
 
     # If the length of the dssp dictionary is 0, try to run DSSP again calling the command directly without using biopython
     if len(dsspData.property_dict) == 0:
@@ -694,7 +694,7 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
         # Run the command
         _ = octools.run(dssp_command)
         # Load the dssp file into dsspData variable
-        dsspData = DSSP(cleanStructure[0], f"{structureDirName}/{structureName}.dssp", file_type="DSSP")
+        dsspData = DSSP(structure[0], f"{structureDirName}/{structureName}.dssp", file_type="DSSP")
         # Delete the dssp file
         os.remove(f"{structureDirName}/{structureName}.dssp")
 
