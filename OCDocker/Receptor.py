@@ -90,10 +90,10 @@ class Receptor:
         # If user pass a json
         if from_json_descriptors:
             # Read the molecule telling that there is no need to fetch the SASA value
-            self.path, self.structure = loadMol(structure, name=self.name, computeSASA=False, mol2Path=self.mol2Path, overwrite = overwrite, clean = clean)
+            self.path, self.cleanPath, self.structure = loadMol(structure, name=self.name, computeSASA=False, mol2Path=self.mol2Path, overwrite = overwrite, clean = clean)
         else:
             # Read the molecule telling that there is the need to fetch the SASA value
-            self.path, self.structure = loadMol(structure, name=self.name, computeSASA=True, mol2Path=self.mol2Path, overwrite = overwrite, clean = clean)
+            self.path, self.cleanPath, self.structure = loadMol(structure, name=self.name, computeSASA=True, mol2Path=self.mol2Path, overwrite = overwrite, clean = clean)
 
         # Set the residues (derived from structure)
         self.residues = getRes(self.structure)
@@ -174,7 +174,7 @@ class Receptor:
 
             self.__relativeASAcutoff = relativeASAcutoff
             
-            self.__countAA = count_surface_AA(self.structure, self.path, self.__relativeASAcutoff)
+            self.__countAA = count_surface_AA(self.path, self.cleanPath, self.__relativeASAcutoff)
 
             self.countA = self.__countAA["A"]
             self.countR = self.__countAA["R"]
@@ -220,6 +220,7 @@ class Receptor:
         # Set Name and Path
         properties["Name"] = self.name if self.name is not None else "-"
         properties["Path"] = self.path if self.path is not None else "-"
+        properties["CleanPath"] = self.cleanPath if self.cleanPath is not None else "-"
         properties["mol2Path"] = self.path if self.path is not None else "-"
         # Combine both in one dict and return them
         return {**properties, **self.get_descriptors()}
@@ -241,40 +242,41 @@ class Receptor:
         None
         '''
 
-        print(f"Name:              '{self.name if self.name else '-' }'")
-        print(f"Structure path:    '{self.path if self.path else '-' }'")
-        print(f"mol2 path:         '{self.mol2Path if self.mol2Path else '-' }'")
-        print(f"Structure:         '{self.structure if self.structure else '-' }'")
-        print(f"AA residues:       '{self.residues if self.residues else '-' }'")
-        print(f"Total AA len:      '{self.totalAALength if self.totalAALength else '0' }'")
-        print(f"Average AA len:    '{self.avgAALength if self.avgAALength else '0' }'")
-        print(f"# of chains:       '{self.countChain if self.countChain else '0' }'")
-        print(f"SASA:              '{self.sasa if self.sasa else '0.0' }'")
-        print(f"Dipole Moment:     '{self.dipoleMoment if self.dipoleMoment else '-' }'")
-        print(f"Isoelectric Point: '{self.isoelectricPoint if self.isoelectricPoint else '-' }'")
-        print(f"GRAVY:             '{self.GRAVY if self.GRAVY else '-' }'")
-        print(f"Aromaticity:       '{self.aromaticity if self.aromaticity else '-' }'")
-        print(f"Instability Index: '{self.instabilityIndex if self.instabilityIndex else '-' }'")
-        print(f"# of accessible A: '{self.countA if self.countA else '0' }'")
-        print(f"# of accessible R: '{self.countR if self.countR else '0' }'")
-        print(f"# of accessible N: '{self.countN if self.countN else '0' }'")
-        print(f"# of accessible D: '{self.countD if self.countD else '0' }'")
-        print(f"# of accessible C: '{self.countC if self.countC else '0' }'")
-        print(f"# of accessible Q: '{self.countQ if self.countQ else '0' }'")
-        print(f"# of accessible E: '{self.countE if self.countE else '0' }'")
-        print(f"# of accessible G: '{self.countG if self.countG else '0' }'")
-        print(f"# of accessible H: '{self.countH if self.countH else '0' }'")
-        print(f"# of accessible I: '{self.countI if self.countI else '0' }'")
-        print(f"# of accessible L: '{self.countL if self.countL else '0' }'")
-        print(f"# of accessible K: '{self.countK if self.countK else '0' }'")
-        print(f"# of accessible M: '{self.countM if self.countM else '0' }'")
-        print(f"# of accessible F: '{self.countF if self.countF else '0' }'")
-        print(f"# of accessible P: '{self.countP if self.countP else '0' }'")
-        print(f"# of accessible S: '{self.countS if self.countS else '0' }'")
-        print(f"# of accessible T: '{self.countT if self.countT else '0' }'")
-        print(f"# of accessible W: '{self.countW if self.countW else '0' }'")
-        print(f"# of accessible Y: '{self.countY if self.countY else '0' }'")
-        print(f"# of accessible V: '{self.countV if self.countV else '0' }'")
+        print(f"Name:                 '{self.name if self.name else '-' }'")
+        print(f"Structure path:       '{self.path if self.path else '-' }'")
+        print(f"Clean structure path: '{self.cleanPath if self.cleanPath else '-' }'")
+        print(f"mol2 path:            '{self.mol2Path if self.mol2Path else '-' }'")
+        print(f"Structure:            '{self.structure if self.structure else '-' }'")
+        print(f"AA residues:          '{self.residues if self.residues else '-' }'")
+        print(f"Total AA len:         '{self.totalAALength if self.totalAALength else '0' }'")
+        print(f"Average AA len:       '{self.avgAALength if self.avgAALength else '0' }'")
+        print(f"# of chains:          '{self.countChain if self.countChain else '0' }'")
+        print(f"SASA:                 '{self.sasa if self.sasa else '0.0' }'")
+        print(f"Dipole Moment:        '{self.dipoleMoment if self.dipoleMoment else '-' }'")
+        print(f"Isoelectric Point:    '{self.isoelectricPoint if self.isoelectricPoint else '-' }'")
+        print(f"GRAVY:                '{self.GRAVY if self.GRAVY else '-' }'")
+        print(f"Aromaticity:          '{self.aromaticity if self.aromaticity else '-' }'")
+        print(f"Instability Index:    '{self.instabilityIndex if self.instabilityIndex else '-' }'")
+        print(f"# of accessible A:    '{self.countA if self.countA else '0' }'")
+        print(f"# of accessible R:    '{self.countR if self.countR else '0' }'")
+        print(f"# of accessible N:    '{self.countN if self.countN else '0' }'")
+        print(f"# of accessible D:    '{self.countD if self.countD else '0' }'")
+        print(f"# of accessible C:    '{self.countC if self.countC else '0' }'")
+        print(f"# of accessible Q:    '{self.countQ if self.countQ else '0' }'")
+        print(f"# of accessible E:    '{self.countE if self.countE else '0' }'")
+        print(f"# of accessible G:    '{self.countG if self.countG else '0' }'")
+        print(f"# of accessible H:    '{self.countH if self.countH else '0' }'")
+        print(f"# of accessible I:    '{self.countI if self.countI else '0' }'")
+        print(f"# of accessible L:    '{self.countL if self.countL else '0' }'")
+        print(f"# of accessible K:    '{self.countK if self.countK else '0' }'")
+        print(f"# of accessible M:    '{self.countM if self.countM else '0' }'")
+        print(f"# of accessible F:    '{self.countF if self.countF else '0' }'")
+        print(f"# of accessible P:    '{self.countP if self.countP else '0' }'")
+        print(f"# of accessible S:    '{self.countS if self.countS else '0' }'")
+        print(f"# of accessible T:    '{self.countT if self.countT else '0' }'")
+        print(f"# of accessible W:    '{self.countW if self.countW else '0' }'")
+        print(f"# of accessible Y:    '{self.countY if self.countY else '0' }'")
+        print(f"# of accessible V:    '{self.countV if self.countV else '0' }'")
 
     def get_descriptors(self)-> Dict[str, Union[float, int]]:
         '''Return the descriptors for the Receptor object.
@@ -348,6 +350,7 @@ class Receptor:
         # Set Name, Path and molecule
         properties["Name"] = self.name if self.name is not None else "-"
         properties["Path"] = self.path if self.path is not None else "-"
+        properties["CleanPath"] = self.cleanPath if self.cleanPath is not None else "-"
         properties["mol2Path"] = self.mol2Path if self.mol2Path is not None else "-"
         properties["Structure"] = self.structure if self.structure is not None else "-"
         # Combine both in one dict and return them
@@ -430,22 +433,25 @@ def __filterSequence(residues: str) -> str:
     None
     '''
 
+    # Makke it all uppercase, just in case...
     residues = residues.upper()
+
     if 'X' in residues:
         octools.print_warning(f"The gravy function does not supports the 'X' (unknown) amino acid. Stripping it to compute the GRAVY descriptor ({residues.count('X')} occurrences of {len(residues)} AAs).")
         return residues.replace('X', '')
+
     return residues
 
 ## Public ##
-def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str, cutoff: float = 0.7) -> Dict[str, int]: #type: ignore
+def count_surface_AA(structurePath: str, cleanStructurePath: str, cutoff: float = 0.7) -> Dict[str, int]: #type: ignore
     '''Counts how many of each of the 20 standard AAs has a relative ASA value above a given cutoff.
 
     Parameters
     ----------
-    structure: Bio.PDB.Structure.Structure
-        The structure to analyze.
     structurePath: str
         The path of the structure.
+    cleanStructurePath: str
+        The path of the clean structure.
     cutoff: float, optional
         The cutoff to consider an AA as surface. Default is 0.7.
 
@@ -459,9 +465,9 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
     None
     '''
 
-    octools.printv(f"Counting how many of each of the 20 standard AAs from the structure '{structure.id}' are in the surface. Exposure cutoff is {cutoff}.")
+    octools.printv(f"Counting how many of each of the 20 standard AAs from the structure '{structurePath}' are in the surface. Exposure cutoff is {cutoff}.")
     if not structurePath:
-        _ = errors.not_set(message=f"The structure path is not set!", level="error")
+        _ = errors.not_set(f"The structure path is not set!", level = "error")
         return None #type: ignore
 
     aas = {
@@ -501,8 +507,12 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
         # Initialise hasCryst1 flag
         hasCryst1 = False
 
-        # List of lines
+        # List of lines and dssp lines
         lines = []
+        #dsspLines = ["CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1\n"]
+
+        # Line number
+        #lineNumber = 0
 
         # Check if structurePath is a valid file
         if os.path.isfile(structurePath):
@@ -510,20 +520,152 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
             with open(structurePath, "r") as pdbFile:
                 # For each line in pdbFile
                 for line in pdbFile:
+                    # Increment line number
+                    #lineNumber += 1
+
                     if not line.startswith("CRYST1") and not hasCryst1:
+                        # Increment line number again because a new line will be added
+                        #lineNumber += 1
                         # Set the hasCryst1 flag to True
                         hasCryst1 = True
                         # Add the line to the list
                         lines.append("CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1\n")
+
                     # Check if the line starts with ATOM
                     if line.startswith("ATOM"):
+                        # Check if there is a chain in the line (all the lines should have a chain)
+                        if line[21] == " ":
+                            # Assume that the protein has only one chain and call it A
+                            line = f"{line[:21]}A{line[22:]}"
                         # Add the line to the list
                         lines.append(line)
+                        '''# Get the residue and make it uppercase
+                        residue = line[17:20].strip().upper()
 
+                        # Check if the residue is a standard AA
+                        if residue in ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 'GLU', 'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO', 'SER', 'THR', 'TRP', 'TYR', 'VAL']:
+                            # Do nothing, just skip unnecessary lines
+                            pass
+                        # Checkage in the order which is more likely to happen (to avoid unnecessary checks)
+                        # Now check if the residue is a non-standard histidine
+                        elif residue in ["HSD", "HSE", "HSP", "HID", "HIE", "HIP"]:
+                            # Print a warning
+                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by HIS. File: {structurePath}, line: {lineNumber}")
+                            # Replace the residue
+                            line = f"{line[:17]}HIS{line[20:]}"
+                        # Now check if the residue is a non-standard cysteine
+                        elif residue in ["CSD", "CSO", "CYX"]:
+                            # Print a warning
+                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by CYS. File: {structurePath}, line: {lineNumber}")
+                            # Replace the residue
+                            line = f"{line[:17]}CYS{line[20:]}"
+                        # Now check if the residue is a non-standard tyrosine
+                        elif residue in ["TYB"]:
+                            # Print a warning
+                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by TYR. File: {structurePath}, line: {lineNumber}")
+                            # Replace the residue
+                            line = f"{line[:17]}TYR{line[20:]}"
+                        # Now check if the residue is a non-standard lysine
+                        elif residue in ["LYN"]:
+                            # Print a warning
+                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by LYS. File: {structurePath}, line: {lineNumber}")
+                            # Replace the residue
+                            line = f"{line[:17]}LYS{line[20:]}"
+                        # Now check if the residue is a non-standard glutamic acid
+                        elif residue in ["GL3"]:
+                            # Print a warning
+                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by GLU. File: {structurePath}, line: {lineNumber}")
+                            # Replace the residue
+                            line = f"{line[:17]}GLU{line[20:]}"
+                        # Now check if the residue is a non-standard arginine
+                        elif residue in ["AR0"]:
+                            # Print a warning
+                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by ARG. File: {structurePath}, line: {lineNumber}")
+                            # Replace the residue
+                            line = f"{line[:17]}ARG{line[20:]}"
+                        # Now check if the residue is a non-standard serine
+                        elif residue in ["SEC"]:
+                            # Print a warning
+                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by SER. File: {structurePath}, line: {lineNumber}")
+                            # Replace the residue
+                            line = f"{line[:17]}SER{line[20:]}"
+                        # Now check if the residue is a non-standard leucine
+                        elif residue in ["LLY"]:
+                            # Print a warning
+                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by LEU. File: {structurePath}, line: {lineNumber}")
+                            # Replace the residue
+                            line = f"{line[:17]}LEU{line[20:]}"
+                        # Now check if the residue is a non-standard alanine
+                        elif residue in ["ALY"]:
+                            # Print a warning
+                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by ALA. File: {structurePath}, line: {lineNumber}")
+                            # Replace the residue
+                            line = f"{line[:17]}ALA{line[20:]}"
+                        # Now check if the residue is a non-standard threonine
+                        elif residue in ["TPO"]:
+                            # Print a warning
+                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by THR. File: {structurePath}, line: {lineNumber}")
+                            # Replace the residue
+                            line = f"{line[:17]}THR{line[20:]}"
+                        # Now check if the residue is a non-standard aspartate / aspartic acid
+                        elif residue in ["ASX"]:
+                            # Print a warning
+                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by ASP. File: {structurePath}, line: {lineNumber}")
+                            # Replace the residue
+                            line = f"{line[:17]}ASP{line[20:]}"
+                        # Now check if the residue is a non-standard proline
+                        elif residue in ["PCA"]:
+                            # Print a warning
+                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by PRO. File: {structurePath}, line: {lineNumber}")
+                            # Replace the residue
+                            line = f"{line[:17]}PRO{line[20:]}"
+                        # Now check if the residue is a non-standard asparagine
+                        elif residue in ["ASH", "ASB"]:
+                            # Print a warning
+                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by ASN. File: {structurePath}, line: {lineNumber}")
+                            # Replace the residue
+                            line = f"{line[:17]}ASN{line[20:]}"
+                        # Now check if the residue is a non-standard phenylalanine
+                        elif residue in ["FME"]:
+                            # Print a warning
+                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by PHE. File: {structurePath}, line: {lineNumber}")
+                            # Replace the residue
+                            line = f"{line[:17]}PHE{line[20:]}"
+                        # Now check if the residue is a non-standard glutamate
+                        elif residue in ["GLX"]:
+                            # Print a warning
+                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by GLU. File: {structurePath}, line: {lineNumber}")
+                            # Replace the residue
+                            line = f"{line[:17]}GLU{line[20:]}"
+                        # Now check if the residue is a non-standard glutamine
+                        elif residue in ["GLH", "GLB"]:
+                            # Print a warning
+                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by GLN. File: {structurePath}, line: {lineNumber}")
+                            # Replace the residue
+                            line = f"{line[:17]}GLN{line[20:]}"
+                        # Now check if the residue is a non-standard methionine
+                        elif residue in ["MSE"]:
+                            # Print a warning
+                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by MET. File: {structurePath}, line: {lineNumber}")
+                            # Replace the residue
+                            line = f"{line[:17]}MET{line[20:]}"
+                        # Append the line to the dsspLines list
+                        dsspLines.append(line)'''
+
+            print(lines[0])
             # Write the lines to the file
             with open(structurePath, "w") as pdbFile:
                 # Write the lines list to the file
                 pdbFile.writelines(lines)
+
+            '''# Write the lines to the DSSP file
+            with open(cleanStructurePath, "w") as pdbFile:
+                # Write the lines list to the file
+                pdbFile.writelines(dsspLines)'''
+
+    # Load the clean Structure
+    #cleanStructure = loadMol(cleanStructurePath)
+    cleanStructure = loadMol(structurePath)
                         
     # Column header to dsspData object will be
     # (dssp index, amino acid, secondary structure, relative ASA, phi, psi,
@@ -531,7 +673,7 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
     # NH_O_2_relidx, NH_O_2_energy, O_NH_2_relidx, O_NH_2_energy)
 
     # Run the DSSP
-    dsspData = DSSP(structure[0], structurePath, dssp=dssp)
+    dsspData = DSSP(cleanStructure[0], structurePath, dssp=dssp)
 
     # If the length of the dssp dictionary is 0, try to run DSSP again calling the command directly without using biopython
     if len(dsspData.property_dict) == 0:
@@ -547,13 +689,12 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
         # Run the command
         _ = octools.run(dssp_command)
         # Load the dssp file into dsspData variable
-        dsspData = DSSP(structure[0], f"{structureDirName}/{structureName}.dssp", file_type="DSSP")
+        dsspData = DSSP(cleanStructure[0], f"{structureDirName}/{structureName}.dssp", file_type="DSSP")
         # Delete the dssp file
         os.remove(f"{structureDirName}/{structureName}.dssp")
 
     # For each result in the DSSP object
     for _, value in dsspData.property_dict.items():
-        
         # Check if the relative ASA is valid and is above the cutoff
         if value[3] != "NA" and float(value[3]) >= cutoff:
             # If so, check if the amino acid is one of the 20 standard ones
@@ -660,7 +801,7 @@ def getRes(model: Bio.PDB.Structure.Structure) -> str: #type: ignore
         residues.append(seq1(residue.get_resname()))
     return "".join(residues)
 
-def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA: bool = True, mol2Path: str = "", overwrite: bool = False, clean: bool = True) -> Tuple[str, Bio.PDB.Structure.Structure]: #type: ignore
+def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA: bool = True, mol2Path: str = "", overwrite: bool = False, clean: bool = True) -> Tuple[str, str, Bio.PDB.Structure.Structure]: #type: ignore
     '''Load a structure pdb/cif if a path is provided or just assign the Bio.PDB.Structure.Structure object to the structure. Also returns the path as a tuple (path, structure).
 
     Parameters
@@ -680,8 +821,8 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
 
     Returns
     -------
-    Tuple[str, Bio.PDB.Structure.Structure]
-        The path to the structure and the structure object. Will return a tuple of ("", None) if the structure is not valid.
+    Tuple[str, Bio.PDB.Structure.Structure, str]
+        The path to the structure, the path to the clean structure and the structure object. Will return a tuple of ("", None) if the structure is not valid.
 
     Raises
     ------
@@ -699,15 +840,20 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
             # Clean the pdb file
             structure = renumber_pdb_residues(structure)
         # Since is already a structure, assign it to the class
-        return structure, None
+        return structure, "", None
     elif type(structure) == str:
         if os.path.isfile(structure):
             # Check if the structure has no name
             if name == "":
                 # If its true, set its name as 'Generic structure'
                 name = "Generic structure"
+            
             # Now we know that it is a file path, check which is its extension to use the correct function
             extension = os.path.splitext(structure)[1]
+
+            # Parameterize the clean structure directory
+            cleanStructure = f"{os.path.join(os.path.dirname(structure), 'cleanReceptor')}{extension}"
+
             # Choose the parser based on extension
             if extension == ".pdb":
                 parser = PDBParser()
@@ -717,7 +863,8 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
                 # The file extension is not supported, print data
                 supportedExtensions = [".pdb", ".cif"]
                 octools.print_error(f"The receptor {structure} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supportedExtensions)}.")
-                return "", None
+                return "", "", None
+
             # Compute the SASA value of the structure
             tmpStructure = parser.get_structure(name, structure)
 
@@ -730,20 +877,22 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
             if mol2Path and (not os.path.isfile(mol2Path) or overwrite):
                 # Convert the molecule
                 _ = octools.convertMols(structure, mol2Path)
+
             # Check if SASA should be computed
             if computeSASA:
                 compute_sasa(tmpStructure)
+
             octools.print_success(f"Successfully loaded the molecule '{structure}'")
             # Return the structure using selected parser
-            return structure, tmpStructure
+            return structure, cleanStructure, tmpStructure
         else:
             # File does not exist
             _ = errors.file_do_not_exist(message=f"The file '{structure}' does not exist!", level="error")
-            return "", None
+            return "", "", None
     else:
         # The variable is not in a supported data format
         octools.print_error("Unsupported molecule data. Please support either a molecule path (string) or an 'rdkit.Chem.rdchem.Mol' object.")
-        return "", None
+        return "", "", None
 
 def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str = "") -> Bio.PDB.Structure.Structure: #type: ignore
     '''Renumber the pdb residues using biopython.

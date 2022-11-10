@@ -359,7 +359,7 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                 m.create_box(centroid = targetCentroid, overwrite = overwrite)
             # If m is not valid
             except Exception as e:
-                print(f"ocl.Ligand({mol}, {molName}, sanitize = {sanitize})")
+                print(f"ocl.Ligand('{mol}', '{molName}', sanitize = {sanitize})")
                 print(targetCentroid)
                 _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed!", "error")
                 octools.print_error_log(f"The molecule '{mol}' could not be parsed!", f"{logdir}/{dbName}_error_Parse.log")
@@ -450,7 +450,6 @@ def __sub_core_prepare(dirsToProcess: str, dbName: str, overwrite: bool, mols : 
     for processDir in processDirs:
         # Set the fligand name as the ligand file path
         fligand = f"{processDir}/ligand.smi"
-        print(processDir)
         # Safe create plantsFiles, vinaFiles and sminaFiles dirs
         _ = octools.safe_create_dir(f"{processDir}/vinaFiles")
         _ = octools.safe_create_dir(f"{processDir}/sminaFiles")

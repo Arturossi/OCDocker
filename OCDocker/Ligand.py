@@ -2378,15 +2378,15 @@ class Ligand:
         # Compute the centroid of the molecule and return it
         return get_centroid(self.molecule, sanitize = sanitize)
 
-    def create_box(self, centroid = None, savePath = "", boxLength = 2.9, overwrite = False):
+    def create_box(self, centroid: Union[Tuple[float, float, float], None] = None, savePath: str = "", boxLength: float = 2.9, overwrite: bool = False) -> Union[int, None]:
         '''Create a box file to be used by docking software.
 
         Parameters
         ----------
-        centroid : list, optional
+        centroid : tuple | None, optional
             The centroid of the box. If not provided, the centroid of the molecule will be used. (default is None)
         savePath : str, optional
-            The path to save the box file. If not provided, the box file will be saved in the same path as the molecule. (default is "")
+            The path to save the box file. If not provided, the box file will be saved in the same path as the molecule. (default is "", which turns into self.boxPath)
         boxLength : float, optional
             The length of the box. (default is 2.9)
         overwrite : bool, optional
@@ -2394,7 +2394,8 @@ class Ligand:
 
         Returns
         -------
-        None
+        int | None
+            If the box file was created, return None. If fails, return the exit code of the command (based on the Error.py code table).
 
         Raises
         ------
@@ -2402,10 +2403,10 @@ class Ligand:
         '''
 
         # Check if the box file already exists
-        if os.path.isfile(self.boxPath) and not overwrite:
-            print(f"The box file already exists in '{self.boxPath}'.")
+        if os.path.isfile(savePath) and not overwrite:
+            print(f"The box file already exists in '{savePath}'.")
             # If it exists and the overwrite flag is False, return an error
-            return errors.file_exists(f"The box file '{self.boxPath}' already exists. If you want to overwrite it, set the 'overwrite' flag to True.")
+            return errors.file_exists(f"The box file '{savePath}' already exists. If you want to overwrite it, set the 'overwrite' flag to True.")
             
         # If the centroid is not defined
         if not centroid:
@@ -2414,18 +2415,19 @@ class Ligand:
 
         # Check if the centroid is the type rdkit.Geometry.rdGeometry.Point3D
         if type(centroid) == rdkit.Geometry.rdGeometry.Point3D: # type: ignore
-            centroid = [centroid.x, centroid.y, centroid.z]
+            centroid = (centroid.x, centroid.y, centroid.z) # type: ignore
 
         # Get the partial size for each axis (to determine how much should be expanded in each direction)
         partialSize = (boxLength * self.RadiusOfGyration) / 2 # type: ignore
+
         # Create the box using this Centroid
         box = {
-            "min_x": centroid[0] - partialSize,
-            "max_x": centroid[0] + partialSize,
-            "min_y": centroid[1] - partialSize,
-            "max_y": centroid[1] + partialSize,
-            "min_z": centroid[2] - partialSize,
-            "max_z": centroid[2] + partialSize
+            "min_x": centroid[0] - partialSize, # type: ignore
+            "max_x": centroid[0] + partialSize, # type: ignore
+            "min_y": centroid[1] - partialSize, # type: ignore
+            "max_y": centroid[1] + partialSize, # type: ignore
+            "min_z": centroid[2] - partialSize, # type: ignore
+            "max_z": centroid[2] + partialSize  # type: ignore
         }
 
         # Get dimensions for each axis and its center (round to 3 decimals)
@@ -2471,14 +2473,12 @@ class Ligand:
             if not os.path.exists(savePath):
                 octools.print_error(f"The savePath '{savePath}' does not exist. The box will be saved in the ligand directory.")
 
-        print(f"{savePath}/box0.pdb")
-
         # Write out the box file (following the one given in the DUD-E database)
         with open(f"{savePath}/box0.pdb", "w") as f:
             f.write(f"HEADER    CORNERS OF BOX      {min_x}{min_y}{min_z}{max_x}{max_y}{max_z}\n")
             f.write(f"REMARK    CENTER (X Y Z)      {center_x}{center_y}{center_z}\n")
             f.write(f"REMARK    DIMENSIONS (X Y Z)  {dim_x}{dim_y}{dim_z}\n")
-            f.write(f"REMARK    RESIDUES            {','.join(map(str, box['residues']))}\n")
+            #f.write(f"REMARK    RESIDUES            {','.join(map(str, box['residues']))}\n")
             f.write(f"ATOM      1  DUA BOX     1    {min_x}{min_y}{min_z}\n")
             f.write(f"ATOM      2  DUB BOX     1    {max_x}{min_y}{min_z}\n")
             f.write(f"ATOM      3  DUC BOX     1    {max_x}{min_y}{max_z}\n")
