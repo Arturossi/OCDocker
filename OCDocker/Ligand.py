@@ -6910,14 +6910,23 @@ def findAUTOCORR2D_150(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_151(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_151 descriptor.
+    
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_151 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_151 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_151 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_151(molecule) # type: ignore
@@ -6928,14 +6937,23 @@ def findAUTOCORR2D_151(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_152(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_152 descriptor.
+    
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_152 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_152 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_152 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_152(molecule) # type: ignore
@@ -6946,14 +6964,23 @@ def findAUTOCORR2D_152(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_153(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_153 descriptor.
+    
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_153 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_153 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_153 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_153(molecule) # type: ignore
@@ -6964,14 +6991,23 @@ def findAUTOCORR2D_153(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_154(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_154 descriptor.
+    
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_154 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_154 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_154 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_154(molecule) # type: ignore
@@ -6982,14 +7018,23 @@ def findAUTOCORR2D_154(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_155(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_155 descriptor.
+    
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_155 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_155 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_155 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_155(molecule) # type: ignore
@@ -7000,14 +7045,23 @@ def findAUTOCORR2D_155(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_156(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_156 descriptor.
+    
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_156 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_156 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_156 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_156(molecule) # type: ignore
@@ -7018,14 +7072,23 @@ def findAUTOCORR2D_156(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_157(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_157 descriptor.
+    
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_157 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_157 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_157 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_157(molecule) # type: ignore
@@ -7036,14 +7099,23 @@ def findAUTOCORR2D_157(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_158(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_158 descriptor.
+    
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_158 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_158 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_158 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_158(molecule) # type: ignore
@@ -7054,14 +7126,23 @@ def findAUTOCORR2D_158(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_159(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_159 descriptor.
+    
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_159 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_159 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_159 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_159(molecule) # type: ignore
@@ -7072,14 +7153,23 @@ def findAUTOCORR2D_159(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_160(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_160 descriptor.
+    
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_160 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_160 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_160 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_160(molecule) # type: ignore
@@ -7090,14 +7180,23 @@ def findAUTOCORR2D_160(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_161(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_161 descriptor.
+    
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_161 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_161 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_161 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_161(molecule) # type: ignore
@@ -7108,14 +7207,23 @@ def findAUTOCORR2D_161(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_162(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_162 descriptor.
+    
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_162 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_162 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_162 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_162(molecule) # type: ignore
@@ -7126,14 +7234,23 @@ def findAUTOCORR2D_162(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_163(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_163 descriptor.
+    
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_163 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_163 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_163 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_163(molecule) # type: ignore
@@ -7144,14 +7261,23 @@ def findAUTOCORR2D_163(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_164(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_164 descriptor.
+    
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_164 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_164 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_164 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_164(molecule) # type: ignore
@@ -7162,14 +7288,23 @@ def findAUTOCORR2D_164(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_165(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_165 descriptor.
+    
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_165 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_165 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_165 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_165(molecule) # type: ignore
@@ -7180,14 +7315,23 @@ def findAUTOCORR2D_165(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_166(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_166 descriptor.
+    
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_166 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_166 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_166 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_166(molecule) # type: ignore
@@ -7198,14 +7342,23 @@ def findAUTOCORR2D_166(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_167(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_167 descriptor.
+    
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_167 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_167 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_167 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_167(molecule) # type: ignore
@@ -7216,14 +7369,23 @@ def findAUTOCORR2D_167(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_168(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_168 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_168 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_168 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_168 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_168(molecule) # type: ignore
@@ -7234,14 +7396,23 @@ def findAUTOCORR2D_168(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_169(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_169 descriptor.
+    
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_169 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_169 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_169 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_169(molecule) # type: ignore
