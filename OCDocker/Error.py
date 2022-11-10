@@ -60,7 +60,7 @@ class Error:
         # Common errors
         self.okCode                           = 0
         self.abortCode                        = 1
-        self.unkownCode                       = -666
+        self.unknownCode                       = -666
 
         # File errors
         self.fileExistsCode                   = 100
@@ -298,7 +298,7 @@ class Error:
 
         self.__print_msg(message, level)
 
-        return self.fileExistsCode
+        return self.unknownCode
 
     # File errors
     def file_exists(self, message: str = "", level: str = "warn") -> int:
@@ -859,7 +859,7 @@ class Error:
         print(f"\n\t~~~~~~~~~~~~~~~~ GENERAL ERRORS ~~~~~~~~~~~~~~~~")
         print(f"\t - No error:                        {self.okCode}")
         print(f"\t - Abortion:                        {self.abortCode}")
-        print(f"\t - Unknown error:                   {self.unkownCode}")
+        print(f"\t - Unknown error:                   {self.unknownCode}")
 
         print(f"\n\t~~~~~~~~~~~~~~~~~~ FILE ERRORS ~~~~~~~~~~~~~~~~~")
         print(f"\t - File exists:                     {self.fileExistsCode}")

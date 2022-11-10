@@ -5,8 +5,7 @@
 import os
 import pandas as pd
 
-from glob import glob
-from tqdm import tqdm
+from typing import Dict, Union
 from multiprocessing import Pool
 
 from OCDocker.Initialise import *
@@ -48,144 +47,234 @@ import OCDocker.DUDEz as ocdudez
 ## Private ##
 
 ## Public ##
-def get_all_ligands():
+def verify_integrity() -> None:
+    '''Verifies the integrity of the DUDEz database.
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    None
+
+    Raise
+    -----
+    None
     '''
-    Gets all the ligands in the DUDEz database.
-    Input:
-      molecule [string] - Path of the molecule.
-    Return:
-      list(ocl.Ligand) - A list of all ligands in the DUDEz database
-    '''
+
     return None
 
-def get_ligands_from_molecule(molecule):
-    '''
-    Gets all the ligands in the DUDEz database.
-    Input:
-      molecule [string] - Path of the molecule.
-    Return:
-      list(ocl.Ligand) - A list of all ligands in the DUDEz database
-    '''
-    return None
+def convert_debug_to_production(chosenAlgorithm: str = "ac", strict: bool = False, removeDebug: bool = False) -> None:
+    '''Converts debug folders to production mode. It is required to choose an algorithm which will be used furtherly in the pipeline.
 
-def verify_integrity():
-    '''
-    Verifies the integrity of the DUDEz database
-    Input:
-      -
-    Return:
-      -
-    '''
-    return
+    Parameters
+    ----------
+    chosenAlgorithm : str, optional
+        The chosen algorithm, by default "ac". The short code for the chosen algorithm. The options are:
+        - ap: AffinityPropagation
+        - ac: AgglomerativeClustering
+        - bc: Birch
+        - db: DBSCAN
+        - km: KMeans
+        - ms: MeanShift
+        - mb: MiniBatchKMeans
+        - na: No algorithm
+        - op: OPTICS
+        - sc: SpectralClustering
+    strict : bool, optional
+        If True, it will only convert the debug folders that have the chosen algorithm, by default False.
+    removeDebug : bool, optional
+        If True, it will remove the debug folder, by default False.
 
-def convert_debug_to_production(chosenAlgorithm = "ac", strict = False, removeDebug = False):
+    Returns
+    -------
+    None
+
+    Raise
+    -----
+    None
     '''
-    Converts debug folders to production mode. It is required to choose an algorithm which will be used furtherly in the pipeline.
-    Input:
-     chosenAlgorithm [string] DEFAULT: ac  - The short code for the chosen algorithm. The choices are:
-        AffinityPropagation: ap
-        AgglomerativeClustering: ac
-        Birch: bi
-        DBSCAN: db
-        KMeans:  km
-        MeanShift: ms
-        MiniBatchKMeans: mb
-        NoCluster: na
-        OPTICS: op
-        SpectralClustering: sc
-     strict          [bool] DEFAULT: False - If True does not convert the data even if there is only one dir, if False will convert the data if the protein has only one dir (this is good when you ran with only one algorithm, some proteins may have been run with "na")
-     removeDebug     [bool] DEFAULT: False - If True removes debug folders (NO TURNING BACK), if False leave the dirs
-    Return:
-      -
-    '''
+
     ocbdb.convert_debug_to_production(dudez_archive, chosenAlgorithm = chosenAlgorithm, strict = strict, removeDebug = removeDebug)
 
-def prepare(overwrite = False, spacing = 0.33, sanitize = True):
+    return None
+
+def prepare(overwrite: bool = False, spacing: float = 0.33, sanitize: bool = True) -> None:
+    '''Prepares the DUDEz database.
+
+    Parameters
+    ----------
+    overwrite : bool, optional
+        If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated, by default False.
+    spacing : float, optional
+        The spacing between the grid points, by default 0.33.
+    sanitize : bool, optional
+        If True, sanitizes the ligands, by default True.
+
+    Returns
+    -------
+    None
+
+    Raise
+    -----
+    None
     '''
-    Prepares the DUDEz database.
-    Input:
-     overwrite [bool] DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with the output already generated.
-     spacing   [float] DEFAULT: 0.33 - The spacing to enlarge the box.
-     sanitize  [bool] DEFAULT: True  - Flag to denote if the molecule should be sanitized
-    Return:
-      -
-    '''
+
     # Prepare the rest of the database
     ocbdb.prepare("dudez", overwrite = overwrite, spacing = spacing, sanitize = sanitize)
     # Verify its integrity
     #verify_integrity()
+    
+    return None
 
-def run_p2rank(overwrite = False):
+def run_p2rank(overwrite: bool = False) -> None:
+    '''Runs P2Rank in the whole database.
+
+    Parameters
+    ----------
+    overwrite : bool, optional
+        If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated, by default False.
+
+    Returns
+    -------
+    None
+
+    Raise
+    -----
+    None
     '''
-    Runs P2Rank in the whole database.
-    Input:
-     overwrite [bool] DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated.
-    Return:
-      -
-    '''
+
     return ocbdb.run_p2rank("dudez", overwrite = overwrite)
 
-def run_vina(overwrite = False):
+def run_vina(overwrite: bool = False) -> int:
+    '''Runs vina in the whole database.
+
+    Parameters
+    ----------
+    overwrite : bool, optional
+        If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated, by default False.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raise
+    -----
+    None
     '''
-    Runs vina in the whole database.
-    Input:
-     overwrite [bool] DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated.
-    Return:
-      -
-    '''
+
     return ocbdb.run_dock("dudez", "vina", overwrite = overwrite)
 
-def run_smina(overwrite = False):
+def run_smina(overwrite: bool = False) -> int:
+    '''Runs smina in the whole database.
+
+    Parameters
+    ----------
+    overwrite : bool, optional
+        If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated, by default False.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raise
+    -----
+    None
     '''
-    Runs smina in the whole database.
-    Input:
-     overwrite [bool] DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated.
-    Return:
-      -
-    '''
+
     return ocbdb.run_dock("dudez", "smina", overwrite = overwrite)
 
-def run_plants(overwrite = False):
+def run_plants(overwrite: bool = False) -> int:
+    '''Runs PLANTS in the whole database.
+
+    Parameters
+    ----------
+    overwrite : bool, optional
+        If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated, by default False.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table)
+
+    Raise
+    -----
+    None
     '''
-    Runs PLANTS in the whole database.
-    Input:
-     overwrite [bool] DEFAULT: False - If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated.
-    Return:
-      -
-    '''
+
     return ocbdb.run_dock("dudez", "plants", overwrite = overwrite)
 
-def read_logs(picklePath = ""):
+def read_logs(picklePath = "") -> Union[Dict[str, Dict[str, pd.DataFrame]], None]:
+    '''Parse the database into multiple serializable objects.
+
+    Parameters
+    ----------
+    picklePath : str, optional
+        Path to the pickle file, by default "", which means that the pickle file will not be saved.
+
+    Returns
+    -------
+    Dict[str, Dict[str, Dict[str, pd.DataFrame]]] | None
+        A dictionary with the following structure or None if the routine fails:
+        {
+            "protein": {
+                "ligand": {
+                    "algorithm": pd.DataFrame
+                }
+            }
+        }
+
+    Raises
+    ------
+    None
     '''
-    Parse the database into multiple serializable objects.
-    Input:
-     picklePath [string] DEFAULT: "" - The path where to store the pickle file. If empty no pickle file will be generated
-    Return:
-     -
-    '''
+
     return ocbdb.read_logs("dudez", picklePath = picklePath)
 
-def generate_dock_result_csv(log_dumps, csv_path, chunksize=500):
-    '''
-    Uses the structure from read_logs to generate an output for all docking softwares.
-    Input:
-     archive   [string]                                     - Which archive will be processed [dudez, pdbbind, astex]
-     log_dumps [dict of dicts of pd.DataFrame]              - The dump generated from the read_logs function
-     csv_path  [string]                                     - Path to the csv file
-     chunksize [int]                           DEFAULT: 500 - Chunk size to write the csv
-    Return:
-     -
-    '''
-    return ocbdb.generate_dock_result_csv("dudez", log_dumps, csv_path, chunksize=chunksize)
+def generate_dock_result_csv(log_dumps: Dict[str, Dict[str, pd.DataFrame]], csv_path: str, chunksize: int = 500) -> None:
+    '''Uses the structure from read_logs to generate an output for all docking softwares.
 
-def merge_descriptors_in_dataframe(saveCsv=True):
+    Parameters
+    ----------
+    log_dumps : Dict[str, Dict[str, pd.DataFrame]]
+        The structure from read_logs.
+    csv_path : str
+        The path to the csv file to be generated.
+    chunksize : int, optional
+        The chunksize to be used in the pandas dataframe, by default 500.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
     '''
-    Reads all the descriptors jsons and return a pd.DataFrame.
-    Input:
-     saveCsv [bool] DEFAULT: True - If True will save to the Prepared folder in the database
-    Return:
-     [pd.DataFrame]
+
+    return ocbdb.generate_dock_result_csv("dudez", log_dumps, csv_path, chunksize = chunksize)
+
+def merge_descriptors_in_dataframe(saveCsv=True) -> Union[pd.DataFrame, None]:
+    '''Reads all the descriptors jsons and return a pd.DataFrame.
+
+    Parameters
+    ----------
+    saveCsv : bool, optional
+        If True, saves the dataframe as a csv file, by default True
+
+    Returns
+    -------
+    pd.DataFrame | None
+        A dataframe with all the descriptors or None if any error occur while reading the csv.
+
+    Raises
+    ------
+    None
     '''
+
     # Get the dataframe with descriptors and docking scores
     dudezdf = ocbdb.merge_descriptors_in_dataframe("dudez", saveCsv=False)
 
@@ -195,7 +284,11 @@ def merge_descriptors_in_dataframe(saveCsv=True):
         csv_path_out = f"{parsed_archive}/DUDEz_complete.csv"
         if os.path.isfile(csv_path_out):
             octools.print_warning(f"The file {csv_path_out} already exists, it will be OVERWRITTEN!!")
-        # Write the data to a new csv file
-        dudezdf.to_csv(csv_path_out, index=False)
+        # Check if the dudezdf is not None
+        if dudezdf is not None:
+            # Write the data to a new csv file
+            dudezdf.to_csv(csv_path_out, index=False)
+        else:
+            octools.print_warning(f"The dataframe is None, no csv will be generated")
 
     return dudezdf

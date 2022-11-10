@@ -384,7 +384,7 @@ class Receptor:
             except Exception as e:
                 return errors.write_file(f"Problems while writing the file '{outputJson}' Error: {e}.")
         except Exception as e:
-            return errors.unkown(f"Unknown error while converting the ligand {self.name} to json.\nError: {e}", "error")
+            return errors.unknown(f"Unknown error while converting the ligand {self.name} to json.\nError: {e}", "error")
 
     def is_valid(self) -> bool:
         '''Check if a Ligand object is valid.
@@ -789,7 +789,7 @@ def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str
 
         return structure
     except Exception as e:
-        _ = errors.unkown(f"Could not reset indexes for this protein and save it on path '{outputPdb}'. Error: {e}", level = "error")
+        _ = errors.unknown(f"Could not reset indexes for this protein and save it on path '{outputPdb}'. Error: {e}", level = "error")
     
     return None
 
@@ -944,7 +944,7 @@ def computeInstabilityIndex(residues: str) -> float:
     protein = ProteinAnalysis(__filterSequence(residues))
     return protein.instability_index()
 
-def read_descriptors_from_json(path: str, returnDict: bool = False) -> Tuple[Union[float, str, int]]:
+def read_descriptors_from_json(path: str, returnDict: bool = False) -> Union[Tuple[Union[float, str, int]], None]:
     '''Read the descriptors from a json file.
 
     Parameters
@@ -956,8 +956,8 @@ def read_descriptors_from_json(path: str, returnDict: bool = False) -> Tuple[Uni
 
     Returns
     -------
-    Tuple[Union[float, str, int]]
-        The descriptors dictionary.
+    Tuple[Union[float, str, int]] | None
+        The descriptors dictionary or None if any error occurs.
 
     Raises
     ------
@@ -1020,12 +1020,12 @@ def read_descriptors_from_json(path: str, returnDict: bool = False) -> Tuple[Uni
 
         # Since we have all keys, read them and return their values
         #region Return data
-        return data["Name"],  data["SASA"], data["DipoleMoment"], data["IsoelectricPoint"], data["InstabilityIndex"], data["GRAVY"], data["Aromaticity"], countAA, data["countA"], data["countR"], data["countN"], data["countD"], data["countC"], data["countQ"], data["countE"], data["countG"], data["countH"], data["countI"], data["countL"], data["countK"], data["countM"], data["countF"], data["countP"], data["countS"], data["countT"], data["countW"], data["countY"], data["countV"], data["TotalAALength"], data["AvgAALength"], data["countChain"]
+        return data["Name"],  data["SASA"], data["DipoleMoment"], data["IsoelectricPoint"], data["InstabilityIndex"], data["GRAVY"], data["Aromaticity"], countAA, data["countA"], data["countR"], data["countN"], data["countD"], data["countC"], data["countQ"], data["countE"], data["countG"], data["countH"], data["countI"], data["countL"], data["countK"], data["countM"], data["countF"], data["countP"], data["countS"], data["countT"], data["countW"], data["countY"], data["countV"], data["TotalAALength"], data["AvgAALength"], data["countChain"] # type: ignore
 
         #endregion
     # Key error (when there is a missing key)
-    except KeyError as k:
-        octools.print_error(f"The following keys were not found in the json file '{missed[0]}': {missed[1]}.")
+    except KeyError as missed:
+        octools.print_error(f"The following keys were not found in the json file '{missed[0]}': {missed[1]}.") # type: ignore
     # General error (call it as problem to read file)
     except Exception as e:
         octools.print_error(f"Could not read the file '{path}'. Error: {e}")
