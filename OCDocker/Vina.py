@@ -577,7 +577,7 @@ def generate_vina_files_database(path: str, protein: str, boxPath: str = "") -> 
         boxFolder = f"{vinaPath}/{boxId}"
         # Create vina execution folder
         _ = octools.safe_create_dir(boxFolder)
-        confPath = f"{boxFolder}/conf_vina.txt"
+        confPath = f"{vinaPath}/conf_vina.txt"
         box_to_vina(box, confPath, protein)
 
     return None

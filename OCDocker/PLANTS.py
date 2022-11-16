@@ -4,7 +4,7 @@
 ###############################################################################
 import os
 import shutil
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 import pandas as pd
 
@@ -124,7 +124,7 @@ class PLANTS:
         '''
         return get_binding_site(self.boxFile, self.boxSpacing)
 
-    def __parse_receptor(self, receptor: ocr.Receptor) -> ocr.Receptor:
+    def __parse_receptor(self, receptor: ocr.Receptor) -> Union[ocr.Receptor, None]:
         '''Parse the receptor as input, handling its type.
 
         Parameters
@@ -134,8 +134,8 @@ class PLANTS:
 
         Returns
         -------
-        ocr.Receptor
-            The ocr.Receptor object.
+        ocr.Receptor | None
+            The ocr.Receptor object or None.
 
         Raises
         ------
