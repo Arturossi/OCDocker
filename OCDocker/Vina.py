@@ -565,20 +565,11 @@ def generate_vina_files_database(path: str, protein: str, boxPath: str = "") -> 
       boxPath = f"{path}/p2rank"
     # Create the vina folder inside protein's directory
     _ = octools.safe_create_dir(vinaPath)
-    # Find all boxes
-    boxes = glob(f"{boxPath}/box*.pdb")
-    # For each box
-    for box in boxes:
-        # Get box name
-        boxName = os.path.basename(box)
-        # Get box id
-        boxId = os.path.splitext(boxName)[0].replace("box", "").replace(".pdb", "")
-        # Parameterize the box folder
-        boxFolder = f"{vinaPath}/{boxId}"
-        # Create vina execution folder
-        _ = octools.safe_create_dir(boxFolder)
-        confPath = f"{vinaPath}/conf_vina.txt"
-        box_to_vina(box, confPath, protein)
+    
+    # TODO: Implement multiple box support here
+    box = f"{boxPath}/box0.pdb"
+    confPath = f"{vinaPath}/conf_vina.conf"
+    box_to_vina(box, confPath, protein)
 
     return None
 

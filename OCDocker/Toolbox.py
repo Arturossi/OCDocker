@@ -1143,7 +1143,7 @@ def safe_create_dir(dirname: str) -> int:
             return errors.ok()
         else:
             # It exists
-            return errors.file_exists(message=f"File '{dirname}' already exists!", level="warn")
+            return errors.dir_exists(message=f"The dir '{dirname}' already exists!", level="warn")
     except Exception as e:
         # Some error has occurred
         return errors.create_dir(message=f"Problem found while creating the dir {dirname}: {e}", level="error")

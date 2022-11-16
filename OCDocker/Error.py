@@ -71,9 +71,10 @@ class Error:
         self.unsupportedExtensionCode         = 105
 
         # Directory errors
-        self.createDirCode                    = 150
-        self.dirDoesNotExistsCode             = 151
-        self.dirUnallowedCode                 = 152
+        self.dirExistsCode                    = 150
+        self.createDirCode                    = 151
+        self.dirDoesNotExistsCode             = 152
+        self.dirUnallowedCode                 = 153
 
         # Variable errors
         self.wrongTypeCode                    = 200
@@ -95,6 +96,7 @@ class Error:
         self.recLigObjectNotGeneratedCode     = 501
         self.recLigFileDoesNotExistCode       = 502
         self.notSupportedDockingAlgorithmCode = 503
+        self.bindingSiteNotFoundCode          = 504
 
         # Archive error
         self.notSupportedArchiveCode          = 600
@@ -446,6 +448,30 @@ class Error:
         return self.unsupportedExtensionCode
 
     # Directory errors
+    def dir_exists(self, message: str = "", level: str = "warn") -> int:
+        '''Return this when the directory already exists.
+
+        Parameters
+        ----------
+        message : string, optional
+            Message to be printed. Default is "".
+        level : string, optional
+            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+
+        Returns
+        -------
+        int
+            The code for create directory error (151).
+        
+        Raises
+        ------
+        None
+        '''
+
+        self.__print_msg(message, level)
+
+        return self.dirExistsCode
+
     def create_dir(self, message: str = "", level: str = "warn") -> int:
         '''Return this when the directory creation fails.
 
@@ -459,7 +485,7 @@ class Error:
         Returns
         -------
         int
-            The code for create directory error (150).
+            The code for create directory error (151).
         
         Raises
         ------
@@ -483,7 +509,7 @@ class Error:
         Returns
         -------
         int
-            The code for directory does not exists error (151).
+            The code for directory does not exists error (152).
 
         Raises
         ------
@@ -507,7 +533,7 @@ class Error:
         Returns
         -------
         int
-            The code for directory unallowed (152).
+            The code for directory unallowed (153).
 
         Raises
         ------
@@ -809,6 +835,30 @@ class Error:
         self.__print_msg(message, level)
 
         return self.notSupportedDockingAlgorithmCode
+    
+    def binding_site_not_found(self, message: str = "", level: str = "error") -> int:
+        '''Return this when the binding site has not been found.
+
+        Parameters
+        ----------
+        message : string, optional
+            Message to be printed. Default is "".
+        level : string, optional
+            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        
+        Returns
+        -------
+        int
+            The code for receptor or ligand descriptor does not exist error (503).
+
+        Raises
+        ------
+        None
+        '''
+
+        self.__print_msg(message, level)
+
+        return self.bindingSiteNotFoundCode
 
     # Archive errors
     def not_supported_archive(self, message: str = "", level: str = "error") -> int:
@@ -870,6 +920,7 @@ class Error:
         print(f"\t - Unsupported extension error:     {self.unsupportedExtensionCode}")
 
         print(f"\n\t~~~~~~~~~~~~~~~ DIRECTORY ERRORS ~~~~~~~~~~~~~~~")
+        print(f"\t - Directory exists:                {self.dirExistsCode}")
         print(f"\t - Directory creation error:        {self.createDirCode}")
         print(f"\t - Directory does not exist:        {self.dirDoesNotExistsCode}")
         print(f"\t - Directory access not allowed:    {self.dirUnallowedCode}")
@@ -896,6 +947,7 @@ class Error:
         print(f"\t - Receptor/Ligand File")
         print(f"\t   descriptor does not exist:       {self.recLigFileDoesNotExistCode}")
         print(f"\t   Not supported docking algoritm:  {self.notSupportedDockingAlgorithmCode}")
+        print(f"\t   Binding site not found:          {self.bindingSiteNotFoundCode}")
 
         print(f"\n\t~~~~~~~~~~~~~~~~ ARCHIVE ERRORS ~~~~~~~~~~~~~~~~~")
         print(f"\t - Archive not supported:           {self.notSupportedArchiveCode}")
