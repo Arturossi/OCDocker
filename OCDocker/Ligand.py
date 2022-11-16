@@ -86,8 +86,8 @@ class Ligand:
 
         # Set the path and structure (NEVER SHOUD BE NONE)
         self.path, self.molecule = loadMol(molecule, sanitize)
-        # Set the boxPath
-        self.boxPath = os.path.join(self.path, "boxes")
+        # Set the boxPath (removing the file from the path)
+        self.boxPath = os.path.join(os.path.dirname(self.path), "boxes/box0.pdb")
         
         # Define everything as None
         self.name = None
@@ -2404,7 +2404,6 @@ class Ligand:
 
         # Check if the box file already exists
         if os.path.isfile(savePath) and not overwrite:
-            print(f"The box file already exists in '{savePath}'.")
             # If it exists and the overwrite flag is False, return an error
             return errors.file_exists(f"The box file '{savePath}' already exists. If you want to overwrite it, set the 'overwrite' flag to True.")
             
@@ -2478,7 +2477,6 @@ class Ligand:
             f.write(f"HEADER    CORNERS OF BOX      {min_x}{min_y}{min_z}{max_x}{max_y}{max_z}\n")
             f.write(f"REMARK    CENTER (X Y Z)      {center_x}{center_y}{center_z}\n")
             f.write(f"REMARK    DIMENSIONS (X Y Z)  {dim_x}{dim_y}{dim_z}\n")
-            #f.write(f"REMARK    RESIDUES            {','.join(map(str, box['residues']))}\n")
             f.write(f"ATOM      1  DUA BOX     1    {min_x}{min_y}{min_z}\n")
             f.write(f"ATOM      2  DUB BOX     1    {max_x}{min_y}{min_z}\n")
             f.write(f"ATOM      3  DUC BOX     1    {max_x}{min_y}{max_z}\n")
