@@ -524,7 +524,7 @@ class PLANTS:
 ## Private ##
 
 ## Public ##
-def box_to_plants(boxFile: str, confFile: str, receptor: str, ligand: str, outputPlants: str, center: Union[float, None] = None, bindingSiteRadius: Union[float, None] = None, spacing: float = 0.33) -> int:
+def box_to_plants(boxFile: str, confFile: str, receptor: str, ligand: str, outputPlants: str, center: Union[float, None] = None, bindingSiteRadius: Union[float, None] = None, spacing: float = 2.9) -> int:
     '''Convert a box (DUDE like format) to PLANTS input.
 
     Parameters
@@ -544,7 +544,7 @@ def box_to_plants(boxFile: str, confFile: str, receptor: str, ligand: str, outpu
     bindingSiteRadius : float, optional
         The radius of the box. Default is None and it will be calculated.
     spacing : float, optional
-        The spacing between the grid points. Default is 0.33.
+        The spacing between the grid points. Default is 2.9.
 
     Returns
     -------
@@ -557,6 +557,7 @@ def box_to_plants(boxFile: str, confFile: str, receptor: str, ligand: str, outpu
     '''
 
     octools.printv(f"Converting the box file '{boxFile}' to PLANTS conf file as '{confFile}' file.")
+    
     # Check if the center and the radius are given
     if center is None or bindingSiteRadius is None:
         # Calculate the center and the radius
@@ -569,7 +570,7 @@ def box_to_plants(boxFile: str, confFile: str, receptor: str, ligand: str, outpu
         # Get the center and the binding site center
         center, bindingSiteRadius = bindingSite # type: ignore
     # Write the file
-    return write_config_file(confFile, receptor, ligand, outputPlants, center[0], center[1], center[2], bindingSiteRadius * 2.9) # type: ignore
+    return write_config_file(confFile, receptor, ligand, outputPlants, center[0], center[1], center[2], bindingSiteRadius) # type: ignore
 
 def run_prepare_ligand(inputLigandPath: str, outputLigand: str, logFile: str = "") -> int:
     ''' Run SPORES for ligand.
@@ -670,7 +671,7 @@ def run_plants(confFile: str, outputPlants: str, overwrite: bool = False, logFil
     # Print verboosity
     octools.printv(f"Running PLANTS using the '{confFile}' configurations.")
     # Run the command
-    return octools.run(cmd, logFile=logFile)
+    return octools.run(cmd, logFile = logFile)
 
 def write_config_file(confFile: str, preparedReceptor: str, preparedLigand: str, outputPlants: str, bindingSiteCenterX: float, bindingSiteCenterY: float, bindingSiteCenterZ: float, bindingSiteRadius: float) -> int:
     '''Write the config file.
@@ -725,9 +726,10 @@ def write_config_file(confFile: str, preparedReceptor: str, preparedLigand: str,
             f.write(f"cluster_rmsd {plants_cluster_rmsd}")
     except Exception as e:
         return errors.write_file(f"Problems while writing the file {confFile}: {e}")
+
     return errors.ok()
 
-def get_binding_site(boxFile: str, spacing: float = 0.33) -> Union[Tuple[Tuple[float, float, float], float], int]:
+def get_binding_site(boxFile: str, spacing: float = 2.9) -> Union[Tuple[Tuple[float, float, float], float], int]:
     '''Get the binding site from a box file.
 
     Parameters
@@ -735,7 +737,7 @@ def get_binding_site(boxFile: str, spacing: float = 0.33) -> Union[Tuple[Tuple[f
     boxFile : str
         The path to the box file.
     spacing : float, optional
-        The spacing between the box and the binding site. Default is 0.33.
+        The spacing between the box and the binding site. Default is 2.9.
     
     Returns
     -------
