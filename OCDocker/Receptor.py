@@ -514,10 +514,6 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
 
         # List of lines and dssp lines
         lines = []
-        #dsspLines = ["CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1\n"]
-
-        # Line number
-        #lineNumber = 0
 
         # Check if structurePath is a valid file
         if os.path.isfile(structurePath):
@@ -525,12 +521,7 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
             with open(structurePath, "r") as pdbFile:
                 # For each line in pdbFile
                 for line in pdbFile:
-                    # Increment line number
-                    #lineNumber += 1
-
                     if not line.startswith("CRYST1") and not hasCryst1:
-                        # Increment line number again because a new line will be added
-                        #lineNumber += 1
                         # Set the hasCryst1 flag to True
                         hasCryst1 = True
                         # Add the line to the list
@@ -661,11 +652,6 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
             with open(structurePath, "w") as pdbFile:
                 # Write the lines list to the file
                 pdbFile.writelines(lines)
-
-            '''# Write the lines to the DSSP file
-            with open(cleanStructurePath, "w") as pdbFile:
-                # Write the lines list to the file
-                pdbFile.writelines(dsspLines)'''
 
     # Load the clean Structure
     #cleanStructure = loadMol(cleanStructurePath)

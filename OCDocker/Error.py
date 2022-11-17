@@ -97,6 +97,7 @@ class Error:
         self.recLigFileDoesNotExistCode       = 502
         self.notSupportedDockingAlgorithmCode = 503
         self.bindingSiteNotFoundCode          = 504
+        self.dockingFailedCode                = 505
 
         # Archive error
         self.notSupportedArchiveCode          = 600
@@ -859,6 +860,30 @@ class Error:
         self.__print_msg(message, level)
 
         return self.bindingSiteNotFoundCode
+    
+    def docking_failed(self, message: str = "", level: str = "error") -> int:
+        '''Return this when the docking run has failed.
+
+        Parameters
+        ----------
+        message : string, optional
+            Message to be printed. Default is "".
+        level : string, optional
+            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        
+        Returns
+        -------
+        int
+            The code for receptor or ligand descriptor does not exist error (503).
+
+        Raises
+        ------
+        None
+        '''
+
+        self.__print_msg(message, level)
+
+        return self.dockingFailedCode
 
     # Archive errors
     def not_supported_archive(self, message: str = "", level: str = "error") -> int:
@@ -946,8 +971,9 @@ class Error:
         print(f"\t   Generation error:                {self.recLigObjectNotGeneratedCode}")
         print(f"\t - Receptor/Ligand File")
         print(f"\t   descriptor does not exist:       {self.recLigFileDoesNotExistCode}")
-        print(f"\t   Not supported docking algoritm:  {self.notSupportedDockingAlgorithmCode}")
-        print(f"\t   Binding site not found:          {self.bindingSiteNotFoundCode}")
+        print(f"\t - Not supported docking algoritm:  {self.notSupportedDockingAlgorithmCode}")
+        print(f"\t - Binding site not found:          {self.bindingSiteNotFoundCode}")
+        print(f"\t - Docking Failed:                  {self.dockingFailedCode}")
 
         print(f"\n\t~~~~~~~~~~~~~~~~ ARCHIVE ERRORS ~~~~~~~~~~~~~~~~~")
         print(f"\t - Archive not supported:           {self.notSupportedArchiveCode}")
