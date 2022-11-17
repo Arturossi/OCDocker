@@ -557,7 +557,7 @@ def box_to_plants(boxFile: str, confFile: str, receptor: str, ligand: str, outpu
     '''
 
     octools.printv(f"Converting the box file '{boxFile}' to PLANTS conf file as '{confFile}' file.")
-    
+
     # Check if the center and the radius are given
     if center is None or bindingSiteRadius is None:
         # Calculate the center and the radius
@@ -752,7 +752,7 @@ def get_binding_site(boxFile: str, spacing: float = 2.9) -> Union[Tuple[Tuple[fl
     octools.printv(f"Parsing '{boxFile}' to binding center data.")
     # Test if the file boxFile exists
     if not os.path.exists(boxFile):
-        return errors.file_do_not_exist(message=f"The box file in the path {boxFile} does not exists! Please ensure that the file exsits and the path is correct. If you have no box file, try to run the function 'runprank' from the 'runprank' library to create it before calling this function or creating a PLANTS class object.", level="error")
+        return errors.file_do_not_exist(message=f"The box file in the path {boxFile} does not exists! Please ensure that the box file exists and the path is correct.", level="error")
     # Dict to hold all the data
     center = {
         'x': None,
