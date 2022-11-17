@@ -406,6 +406,7 @@ def update_DUDEz(overwrite:bool = False, download:bool = True, multiprocess:bool
     if mimetypes.inited == False:
         # Init mimetypes
         mimetypes.init()
+
     # Create tmp dir for download
     _ = octools.safe_create_dir("./tmp")
 
@@ -520,6 +521,7 @@ def update_PDBbind() -> int:
     if mimetypes.inited == False:
         # Init mimetypes
         mimetypes.init()
+        
     # Parameterizing the topics (this sounds strange but one large string concatenation was bugging the IDE)
     t1 = f"- Go to the PDBbind website ({clrs['c']}http://www.pdbbind.org.cn/download.php{clrs['n']})."
 

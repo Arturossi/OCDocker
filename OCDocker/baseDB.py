@@ -311,7 +311,7 @@ def __run_create_plants_conf_from_box(path: str, fin: str, ligand: str, spacing:
 
 
 ### Prepare
-def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str, dbName: str, sanitize: bool, molName: str = "molecule", targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> None: # type: ignore
+def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str, dbName: str, sanitize: bool, molName: str = "", targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> None: # type: ignore
     '''Prepares a molecule, generating output to docking software.
 
     Parameters
@@ -326,7 +326,7 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
         Name of the database.
     sanitize : bool
         Flag for demanding molecule sanitization.
-    molName : str
+    molName : str, optional
         Name of the molecule.
     targetCentroid : Tuple[float, float, float] | rdkit.Geometry.rdGeometry.Point3D, optional
         Centroid of the target. If not provided, the centroid of the molecule will be used.
@@ -345,6 +345,11 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
         molPath = os.path.split(mol[0])[0]
     else:
         molPath = os.path.split(mol)[0]
+
+    # Check if the molName was provided
+    if molName == "":
+        # Set the molname as the molType
+        molName = moltype
     
     if overwrite or not os.path.isfile(f"{molPath}/{moltype}_descriptors.json"):
         if moltype == "ligand":
@@ -745,10 +750,10 @@ def __core_get(dir: str, archive: str) -> Union[Tuple[str, ocr.Receptor, ocl.Lig
         # Set the ligand file name path (to generate data about the ligand)
         ligandPath = f"{dir}/{ptn}_ligand.mol2"
         # If the complex has all descriptors for protein AND ligand
-        if os.path.isfile(f"{dir}/{ptn}_protein_descriptors.json") and os.path.isfile(f"{dir}/{ptn}_ligand_descriptors.json"):
+        if os.path.isfile(f"{dir}/receptor_descriptors.json") and os.path.isfile(f"{dir}/ligand_descriptors.json"):
             # Read the receptor and the ligand
-            receptor = ocr.Receptor(receptorPath, from_json_descriptors = f"{dir}/{ptn}_protein_descriptors.json", name = f"{ptn}_receptor")
-            ligand = ocl.Ligand(ligandPath, from_json_descriptors = f"{dir}/{ptn}_ligand_descriptors.json", name = f"{ptn}_ligand")
+            receptor = ocr.Receptor(receptorPath, from_json_descriptors = f"{dir}/receptor_descriptors.json", name = f"{ptn}_receptor")
+            ligand = ocl.Ligand(ligandPath, from_json_descriptors = f"{dir}/ligand_descriptors.json", name = f"{ptn}_ligand")
             # Return them
             return (ptn, receptor, ligand)
     return None
@@ -904,12 +909,13 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
         return errors.dir_does_not_exists(errMsg, level = "error")
 
     # Get the folder for each run
-    runPaths = glob(f"{ligandDir}/vinaFiles/*")
+    runPaths = [f"{ligandDir}/vinaFiles"] # glob(f"{ligandDir}/vinaFiles/*") # TODO: Add support for multiple runs
 
     # Check if all files have been processed
     for runPath in runPaths:
         # Get the run number
-        runNumber = runPath.split(os.path.sep)[-1]
+        runNumber = 0 # TODO: add support to multiple runs, currently only 0, the code should be something like: runPath.split(os.path.sep)[-1]
+
         # If the output does not exist or overwrite flag is set to true
         if overwrite or not os.path.isfile(f"{runPath}/vina_{runNumber}.log") or not os.path.isfile(f"{runPath}/vina_{runNumber}.pdbqt"):
             needToRun = True
@@ -917,9 +923,13 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
 
     # If is needed to run (at least one protein)
     if needToRun:
+        # Get the ligand name
+        lig = os.path.split(os.path.dirname(ligandPath))[-1]
         # Read the receptor and the ligand
         receptor = ocr.Receptor(receptorPath, from_json_descriptors = receptorDescriptorPath, name = f"{ptn}_receptor")
-        ligand = ocl.Ligand(ligandPath, from_json_descriptors = ligandDescriptorPath, name = f"{ptn}_ligand")
+        ligand = ocl.Ligand(ligandPath, from_json_descriptors = ligandDescriptorPath, name = f"{ptn}_{lig}_ligand")
+        print(f'\nr = ocr.Receptor("{receptorPath}", from_json_descriptors = "{receptorDescriptorPath}", name = f"{ptn}_receptor")')
+        print(f'l = ocl.Ligand("{ligandPath}", from_json_descriptors = "{ligandDescriptorPath}", name = f"{ptn}_{lig}_ligand")')
 
         # If receptor and ligand are not null
         if receptor and ligand:
@@ -938,6 +948,8 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
 
                 # Create the vina object (the pdbqt files will be in the father directory because it will be used multiple times, let's save some disk space, please)
                 vina = ocvina.Vina(f"{runPath}/conf_vina.conf", boxPath, receptor, preparedReceptorPath, ligand, preparedLigandPath, vinaLog, vinaOutput, name = f"{ptn}_run_{runNumber}")
+
+                print(f'v = ocvina.Vina(f"{runPath}/conf_vina.conf", "{boxPath}", r, "{preparedReceptorPath}", l, "{preparedLigandPath}", "{vinaLog}", "{vinaOutput}", name = f"{ptn}_run_{runNumber}")\n')
 
                 # Check if the vina object has been correctly created
                 if not vina:
@@ -1298,7 +1310,7 @@ def __core_run_dock(path: str, ligandDir: str, archive: str, dockingAlgorithm: s
     # If the complex has descriptor files for both ligand and receptor
     if os.path.isfile(receptorDescriptorPath) and os.path.isfile(ligandDescriptorPath):
         # Find the protein name
-        ptn = receptorPath.split(os.path.sep)[-1]
+        ptn = receptorPath.split(os.path.sep)[-2]
 
         # Get the box path TODO: add support to multiple boxes
         boxPath = f"{ligandDir}/boxes/box0.pdb"
@@ -1364,15 +1376,13 @@ def __thread_run_dock_parallel(arguments: list) -> int:
 
     return returnState
 
-def __run_dock_parallel(dirs: List[str], ligandDirs: List[str], archive: str, dockingAlgorithm: str, overwrite: bool, desc: str) -> int:
+def __run_dock_parallel(complexList: List[Tuple[str, List[str]]], archive: str, dockingAlgorithm: str, overwrite: bool, desc: str) -> int:
     '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
 
     Parameters
     ----------
-    dirs : List[str]
-        A list of directories where the files are stored.
-    ligandDirs : List[str]
-        A list of directories where the ligands are stored.
+    complexList : List[Tuple[str, List[str]]]
+        A list of tuples with the path to the protein directory and a list of ligand directories.
     archive : str
         Which archive will be processed [dudez, pdbbind, astex].
     dockingAlgorithm : str
@@ -1395,12 +1405,12 @@ def __run_dock_parallel(dirs: List[str], ligandDirs: List[str], archive: str, do
     # Arguments to pass to each Thread in the Thread Pool
     arguments = []
 
-    # For each file in dirs
-    for d in dirs:
+    # For each file in complexList
+    for cl in complexList:
         # Now loop over the ligands of this protein
-        for ligandDir in ligandDirs:
+        for ligandDir in cl[1]:
             # Add the arguments to the list (creating one execution for each pair receptor-ligand)
-            arguments.append((d, ligandDir, archive, dockingAlgorithm, overwrite))
+            arguments.append((cl[0], ligandDir, archive, dockingAlgorithm, overwrite))
 
     # If logfile exists, backup it (for error and warnings)
     if os.path.isfile(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log"):
@@ -1423,15 +1433,13 @@ def __run_dock_parallel(dirs: List[str], ligandDirs: List[str], archive: str, do
     # Return
     return errors.ok() # FIXME: This should be changed to return the error code in a way to track all docking errors
 
-def __run_dock_no_parallel(dirs: List[str], ligandDirs: List[str], archive: str, dockingAlgorithm: str, overwrite: bool, desc: str) -> int:
+def __run_dock_no_parallel(complexList: List[Tuple[str, List[str]]], archive: str, dockingAlgorithm: str, overwrite: bool, desc: str) -> int:
     '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_run_dock function.
 
     Parameters
     ----------
-    dirs : List[str]
-        A list of directories where the files are stored.
-    ligandDirs : List[str]
-        A list of directories where the ligands are stored.
+    complexList : List[Tuple[str, List[str]]]
+        A list of tuples with the path to the protein directory and a list of ligand directories.
     archive : str
         Which archive will be processed [dudez, pdbbind, astex].
     dockingAlgorithm : str
@@ -1465,10 +1473,10 @@ def __run_dock_no_parallel(dirs: List[str], ligandDirs: List[str], archive: str,
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         # For each file in dirs
-        for d in tqdm(iterable=dirs, total=len(dirs), desc=desc):
-            for ligandDir in ligandDirs:
+        for cl in tqdm(iterable = complexList, total = len(complexList), desc=desc):
+            for ligandDir in cl[1]:
                 # Call the core dock function (shared between parallel and not parallel)
-                __core_run_dock(d, ligandDir, archive, dockingAlgorithm, overwrite)
+                __core_run_dock(cl[0], ligandDir, archive, dockingAlgorithm, overwrite)
             # Clear the memory
             gc.collect()
         # Clear the memory
@@ -2000,15 +2008,7 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str], ar
     #endregion
 
     # Find which kind of archive it will be
-    if archive == "astex":
-        ligand_descriptor_path = f"{astex_archive}/{ptn}/{ptn}_ligand_descriptors.json"
-    elif archive == "dudez":
-        ligand_descriptor_path = f"{processDir}/{processDir.split(os.path.sep)[-1]}_descriptors.json"
-    elif archive == "pdbbind":
-        ligand_descriptor_path = f"{pdbbind_archive}/{ptn}/{ptn}_ligand_descriptors.json"
-    else:
-        octools.print_error(f"Unknown archive type. Expected one of the following: 'astex', 'dudez', 'pdbbind' and got {archive}.")
-        return ptndf
+    ligand_descriptor_path = f"{processDir}/ligand_descriptors.json"
     # Check if there is the receptor json, if yes, load it
     if os.path.isfile(receptor_descriptor_path):
         receptor_descriptors = ocr.read_descriptors_from_json(receptor_descriptor_path, returnDict = True)
@@ -2339,11 +2339,11 @@ def verify_integrity(chosenArchive: str, spacing: float = 0.33) -> None:
             # If is the pdbbind files
             if archive == "pdbbind":
                 # If there is no descriptor file for the ligand or its size is 0
-                if not os.path.isfile(f"{dir}/{ptn}_ligand_descriptors.json") or os.path.getsize(f"{dir}/{ptn}_ligand_descriptors.json") == 0:
+                if not os.path.isfile(f"{dir}/ligand_descriptors.json") or os.path.getsize(f"{dir}/ligand_descriptors.json") == 0:
                     # Generate it
                     __prepare_molecule(f"{dir}/{ptn}_ligand.mol2", False, "ligand", archive, sanitize = True)
                     # If the file still does not exists...
-                    if not os.path.isfile(f"{dir}/{ptn}_ligand_descriptors.json") or os.path.getsize(f"{dir}/{ptn}_ligand_descriptors.json") == 0:
+                    if not os.path.isfile(f"{dir}/ligand_descriptors.json") or os.path.getsize(f"{dir}/ligand_descriptors.json") == 0:
                         # REPORT
                         octools.print_error(f"Unable to generate the ligand descriptor file for '{dir}'...")
                         octools.print_error_log(f"Unable to generate the ligand descriptor file dir for '{dir}'...", f"{logdir}/{archive}_integrity_report.log")
@@ -2628,8 +2628,9 @@ def run_dock(archive: str, dockingAlgorithm: str, overwrite: bool = False) -> in
     # Get all dirs paths in the database
     ptnDirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db']]
 
-    # Create the compounds directory list
-    compoundDirs = []
+    # Create the complex list
+    complexList = []
+    
     # For each dir in dirs, let's grab all ligands
     for ptnDir in ptnDirs:
         # Parameterize paths
@@ -2637,14 +2638,14 @@ def run_dock(archive: str, dockingAlgorithm: str, overwrite: bool = False) -> in
         decoys = f"{ptnDir}/compounds/decoys"
         candidates = f"{ptnDir}/compounds/candidates"
 
-        # Merge the ligandAlternative list with the list with ligands, decoys and candidates
-        compoundDirs = glob(f"{ligands}/*") + glob(f"{decoys}/*") + glob(f"{candidates}/*")
-
+        # Append to the complex list the merged ligandAlternative list with the list with ligands, decoys and candidates. This is made because each receptor must have its own list of ligands, decoys and candidates, otherwise the docking could be done with the same ligands, decoys and candidates for all receptors making everything out of control.
+        complexList.append((ptnDir, glob(f"{ligands}/*") + glob(f"{decoys}/*") + glob(f"{candidates}/*")))
+        
     # Decide if multprocessing will be used
     if args.multiprocess:
-        return __run_dock_parallel(ptnDirs, compoundDirs, archive, dockingAlgorithm, overwrite, f"Processing {archive}")
+        return __run_dock_parallel(complexList, archive, dockingAlgorithm, overwrite, f"Processing {archive}")
     else:
-        return __run_dock_no_parallel(ptnDirs, compoundDirs, archive, dockingAlgorithm, overwrite, f"Processing {archive}")
+        return __run_dock_no_parallel(complexList, archive, dockingAlgorithm, overwrite, f"Processing {archive}")
 
 def read_logs(archive: str, picklePath: str = "") -> Union[Dict[str, Dict[str, pd.DataFrame]], None]:
     '''Reads database logfiles returning a dict of dicts of pd.DataFrames.

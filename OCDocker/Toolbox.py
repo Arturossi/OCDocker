@@ -23,6 +23,9 @@ from openbabel import openbabel
 import rdkit
 from Bio.PDB import * 
 from rdkit import Chem
+from rdkit.Chem import AllChem
+from rdkit.Chem.rdmolfiles import MolToMolFile
+from rdkit.Chem.SaltRemover import SaltRemover
 
 from OCDocker.Initialise import *
 
@@ -696,7 +699,7 @@ def convertMolsFromString(input: str, output: str) -> Union[int, str]:
     Parameters
     ----------
     input : str
-        Input file name.
+        Input file content as string.
     output : str
         Output file name.
 
@@ -720,10 +723,39 @@ def convertMolsFromString(input: str, output: str) -> Union[int, str]:
         return outExtension
 
     try:
-      # Read the string into pybel object
-      mol = pybel.readstring("smi", input)
-      # Write the molecule to the output file
-      mol.write(outExtension, output) # type: ignore
+        # Read the string into pybel object
+        #mol = pybel.readstring("smi", input)
+        # Write the molecule to the output file
+        #mol.write(outExtension, output) # type: ignore
+
+        # Initialize the salt remover
+        remover = SaltRemover()
+        # Load the molecule
+        mol = rdkit.Chem.rdmolfiles.MolFromSmiles(input) # type: ignore
+        # Remove the salts
+        mol = remover.StripMol(mol)
+        # Add the hydrogens
+        mol = Chem.AddHs(mol) # type: ignore
+        # Embed the molecule
+        _ = AllChem.EmbedMolecule(mol, AllChem.ETKDG()) # type: ignore
+        # Optimize the molecule
+        _ = AllChem.UFFOptimizeMolecule(mol) # type: ignore
+        
+        # Check if the output is mol
+        if outExtension == "mol":
+            # Write the molecule to the output file
+            MolToMolFile(mol, output)
+            return errors.ok()
+        
+        # Replace the extension to to mol
+        tmpOutput = f"{os.path.splitext(output)[0]}_tmp.mol"
+        
+        # Write the molecule to the output file
+        MolToMolFile(mol, tmpOutput)
+
+        # Convert it to the desired format (This will not cause an infinite loop since the input extension is always mol)
+        convertMols(tmpOutput, output)
+        
     except Exception as e:
         return errors.subprocess(message=f"Error while running molecule conversion from {inExtension} to {outExtension} using obabel python lib. Error: {e}", level="error")
 
@@ -771,6 +803,14 @@ def convertMols(input: str, output: str) -> Union[int, str]:
     # Check if the output exists, if so, no need to convert
     if os.path.isfile(output):
         return errors.file_exists(message=f"The file '{output}' already exists, aborting conversion.", level="warn")
+
+    # Check if input is a smiles file
+    if inExtension == "smi":
+        # Read the smiles file into string
+        with open(input, 'r') as file:
+            data = file.read().strip()
+        # Convert the string to the output file
+        return convertMolsFromString(data, output)
 
     # Try to convert (if fails, throw exception for subprocess failing)
     try:

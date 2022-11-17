@@ -2707,6 +2707,7 @@ def loadMol(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize: bool = True) 
                     _ = AllChem.EmbedMolecule(m, AllChem.ETKDG()) # type: ignore
                     # Optimize the molecule
                     _ = AllChem.UFFOptimizeMolecule(m) # type: ignore
+                    
                     # Find its name (without extension)
                     name = os.path.splitext(os.path.basename(molecule))[0]
                     # Set its name
