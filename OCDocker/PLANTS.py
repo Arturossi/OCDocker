@@ -569,7 +569,7 @@ def box_to_plants(boxFile: str, confFile: str, receptor: str, ligand: str, outpu
         # Get the center and the binding site center
         center, bindingSiteRadius = bindingSite # type: ignore
     # Write the file
-    return write_config_file(confFile, receptor, ligand, outputPlants, center[0], center[1], center[2], bindingSiteRadius) # type: ignore
+    return write_config_file(confFile, receptor, ligand, outputPlants, center[0], center[1], center[2], bindingSiteRadius * 2.9) # type: ignore
 
 def run_prepare_ligand(inputLigandPath: str, outputLigand: str, logFile: str = "") -> int:
     ''' Run SPORES for ligand.
