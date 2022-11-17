@@ -4,7 +4,7 @@
 ###############################################################################
 import os
 import shutil
-from typing import List, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 import pandas as pd
 
@@ -755,14 +755,14 @@ def get_binding_site(boxFile: str, spacing: float = 2.9) -> Union[Tuple[Tuple[fl
         return errors.file_do_not_exist(message=f"The box file in the path {boxFile} does not exists! Please ensure that the box file exists and the path is correct.", level="error")
 
     # Dict to hold the center data
-    center = {
+    center: Dict[str, Union[float, None]] = {
         'x': None,
         'y': None,
         'z': None
     }
 
     # Dict to hold max and min x,y,z (set all as None)
-    positions = {
+    positions: Dict[str, Union[float, None]] = {
         'max_x': None,
         'max_y': None,
         'max_z': None,
@@ -778,26 +778,25 @@ def get_binding_site(boxFile: str, spacing: float = 2.9) -> Union[Tuple[Tuple[fl
             for line in box_file:
                 # If it starts with REMARK
                 if line.startswith("REMARK"):
-                    # Split the line (using spaces as delimiters)
-                    l = line.split()
                     # Slice the line in right positions
-                    center['x'] = float(line[30:38]) # type: ignore
-                    center['y'] = float(line[38:46]) # type: ignore
-                    center['z'] = float(line[46:54]) # type: ignore
+                    center['x'] = float(line[30:38])
+                    center['y'] = float(line[38:46])
+                    center['z'] = float(line[46:54])
                     # Break the loop (optimization)
                     break
                 # If it starts with ATOM
                 elif line.startswith("HEADER"):
                     # Slice the line in right positions
-                    positions['min_x'] = float(line[30:38]) # type: ignore
-                    positions['min_y'] = float(line[38:46]) # type: ignore
-                    positions['min_z'] = float(line[46:54]) # type: ignore
-                    positions['max_x'] = float(line[54:62]) # type: ignore
-                    positions['max_y'] = float(line[62:70]) # type: ignore
-                    positions['max_z'] = float(line[70:78]) # type: ignore
+                    positions['min_x'] = float(line[30:38])
+                    positions['min_y'] = float(line[38:46])
+                    positions['min_z'] = float(line[46:54])
+                    positions['max_x'] = float(line[54:62])
+                    positions['max_y'] = float(line[62:70])
+                    positions['max_z'] = float(line[70:78])
 
     except Exception as e:
         return errors.read_file(message=f"Found a problem while reading the box file: {e}", level="error")
+        
     # Find which is the biggest value in each coordinate
     xMax = max(abs(center['x'] - positions['min_x']), abs(positions['max_x'] - center['x'])) # type: ignore
     yMax = max(abs(center['y'] - positions['min_y']), abs(positions['max_y'] - center['y'])) # type: ignore

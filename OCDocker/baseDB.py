@@ -928,9 +928,7 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
         # Read the receptor and the ligand
         receptor = ocr.Receptor(receptorPath, from_json_descriptors = receptorDescriptorPath, name = f"{ptn}_receptor")
         ligand = ocl.Ligand(ligandPath, from_json_descriptors = ligandDescriptorPath, name = f"{ptn}_{lig}_ligand")
-        print(f'\nr = ocr.Receptor("{receptorPath}", from_json_descriptors = "{receptorDescriptorPath}", name = f"{ptn}_receptor")')
-        print(f'l = ocl.Ligand("{ligandPath}", from_json_descriptors = "{ligandDescriptorPath}", name = f"{ptn}_{lig}_ligand")')
-
+        
         # If receptor and ligand are not null
         if receptor and ligand:
             # For each path in the paths array (will be more than on in case of multiple boxes)
@@ -948,8 +946,6 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
 
                 # Create the vina object (the pdbqt files will be in the father directory because it will be used multiple times, let's save some disk space, please)
                 vina = ocvina.Vina(f"{runPath}/conf_vina.conf", boxPath, receptor, preparedReceptorPath, ligand, preparedLigandPath, vinaLog, vinaOutput, name = f"{ptn}_run_{runNumber}")
-
-                print(f'v = ocvina.Vina(f"{runPath}/conf_vina.conf", "{boxPath}", r, "{preparedReceptorPath}", l, "{preparedLigandPath}", "{vinaLog}", "{vinaOutput}", name = f"{ptn}_run_{runNumber}")\n')
 
                 # Check if the vina object has been correctly created
                 if not vina:
@@ -1063,9 +1059,13 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
 
     # If is needed to run (overwrite is set or no output is produced)
     if overwrite or not os.path.isfile(sminaLog) or not os.path.isfile(sminaOutput):
+        # Get the ligand name
+        lig = os.path.split(os.path.dirname(ligandPath))[-1]
         # Read the receptor and the ligand
         receptor = ocr.Receptor(receptorPath, from_json_descriptors = receptorDescriptorPath, name = f"{ptn}_receptor")
         ligand = ocl.Ligand(ligandPath, from_json_descriptors = ligandDescriptorPath, name = f"{ptn}_ligand")
+        print(f'\nr = ocr.Receptor("{receptorPath}", from_json_descriptors = "{receptorDescriptorPath}", name = f"{ptn}_receptor")')
+        print(f'l = ocl.Ligand("{ligandPath}", from_json_descriptors = "{ligandDescriptorPath}", name = f"{ptn}_{lig}_ligand")')
 
         # If receptor and ligand are not null
         if receptor and ligand:
@@ -1075,6 +1075,8 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
 
             # Create the smina object (the pdbqt files will be in the father directory because it will be used multiple times, let's save some disk space, please)
             smina = ocsmina.Smina(f"{runPath}/conf_smina.conf", receptor, preparedReceptorPath, ligand, preparedLigandPath, sminaLog, sminaOutput, name=f"{ptn}_smina")
+            print(f's = ocsmina.Smina(f"{runPath}/conf_smina.conf", t, {preparedReceptorPath}, l, {preparedLigandPath}, {sminaLog}, {sminaOutput}, name=f"{ptn}_smina")\n')
+
 
             # Check if the smina object has been correctly created
             if not smina:
