@@ -753,12 +753,14 @@ def get_binding_site(boxFile: str, spacing: float = 2.9) -> Union[Tuple[Tuple[fl
     # Test if the file boxFile exists
     if not os.path.exists(boxFile):
         return errors.file_do_not_exist(message=f"The box file in the path {boxFile} does not exists! Please ensure that the box file exists and the path is correct.", level="error")
-    # Dict to hold all the data
+
+    # Dict to hold the center data
     center = {
         'x': None,
         'y': None,
         'z': None
     }
+
     # Dict to hold max and min x,y,z (set all as None)
     positions = {
         'max_x': None,
@@ -768,6 +770,7 @@ def get_binding_site(boxFile: str, spacing: float = 2.9) -> Union[Tuple[Tuple[fl
         'min_y': None,
         'min_z': None
         }
+        
     try:
         # Open the box file
         with open(str(boxFile), "r") as box_file:
