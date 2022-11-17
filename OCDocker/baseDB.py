@@ -597,7 +597,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
         if len(glob(f"{processDir}/sminaFiles/*.conf")) == 0 or overwrite:
             # Create the smina d
             # Create the smina inputs
-            ocsmina.gen_smina_conf(f"{processDir}/sminaFiles/conf_smina.conf", preparedReceptorMol2)
+            ocsmina.gen_smina_conf(f"{processDir}/sminaFiles/conf_smina.conf", preparedReceptorPdbqt)
         else:
             octools.print_info(f"The protein '{processDir}' already has its smina file generated, skipping its execution.")
 
