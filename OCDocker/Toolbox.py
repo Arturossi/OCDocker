@@ -959,7 +959,6 @@ def clear_past_logs() -> None:
     return None
 
 ### Validation functions
-
 def validate_obabel_extension(path: str) -> Union[str, int]:
     '''Validate the input file extension to ensure the compability with obabel lib.
 
