@@ -494,7 +494,8 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
     fin = f"{path}/receptor.pdb"
     fout = f"{path}/receptor.mol2"
     # Set the prepared receptor name
-    preparedReceptor = f"{path}/receptor_prepared.mol2"
+    preparedReceptorMol2 = f"{path}/receptor_prepared.mol2"
+    preparedReceptorPdbqt = f"{path}/receptor_prepared.pdbqt"
 
     # Prepare the receptor
     __prepare_molecule((fin, fout), overwrite, "receptor", archive, sanitize = sanitize)
@@ -577,8 +578,8 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
         # If overwrite mode is on or there is not the same amount of box files as folders in vinaFiles folder
         if boxCount == 0 or len(glob(f"{processDir}/vinaFiles/*")) != boxCount or len(glob(f"{processDir}/vinaFiles/*")) == 0 or overwrite:
             # Create the vina inputs from the boxes
-            print(f"ocvina.generate_vina_files_database('{processDir}', '{fin}', boxPath = '{processDir}/boxes')")
-            ocvina.generate_vina_files_database(processDir, fin, boxPath = f"{processDir}/boxes")
+            print(f"ocvina.generate_vina_files_database('{processDir}', '{preparedReceptorPdbqt}', boxPath = '{processDir}/boxes')")
+            ocvina.generate_vina_files_database(processDir, preparedReceptorPdbqt, boxPath = f"{processDir}/boxes")
         else:
             octools.print_info(f"The protein '{processDir}' already has its vina file generated, skipping its execution.")
 
@@ -587,8 +588,8 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
             # Set the fligand variable to the dir + ligandName + .mol2
             fligand = f"{processDir}/ligand.mol2"
             # Create the PLANTS inputs from the boxes
-            print(f"ocplants.generate_plants_files_database(f'{processDir}/plantsFiles/conf_plants.conf', '{fin}', boxPath = '{processDir}/boxes')")
-            ocplants.generate_plants_files_database(processDir, preparedReceptor, fligand, spacing, boxPath = f"{processDir}/boxes")
+            print(f"ocplants.generate_plants_files_database('{processDir}', '{preparedReceptorMol2}', '{fligand}', {spacing}, boxPath = f'{processDir}/boxes')")
+            ocplants.generate_plants_files_database(processDir, preparedReceptorMol2, fligand, spacing, boxPath = f"{processDir}/boxes")
         else:
             octools.print_info(f"The protein '{processDir}' already has its PLANTS file generated, skipping its execution.")
 

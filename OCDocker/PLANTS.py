@@ -804,7 +804,7 @@ def get_binding_site(boxFile: str, spacing: float = 0.33) -> Union[Tuple[Tuple[f
     # Return the data
     return ((center['x'], center['y'], center['z']), radius) # type: ignore
 
-def generate_plants_files_database(path: str, protein: str, ligand: str, spacing: float, boxPath: str = "") -> None:
+def generate_plants_files_database(path: str, protein: str, ligand: str, spacing: float = 0.33, boxPath: str = "") -> None:
     '''Generate all PLANTS required files for provided protein.
 
     Parameters
@@ -838,21 +838,14 @@ def generate_plants_files_database(path: str, protein: str, ligand: str, spacing
       boxPath = f"{path}/p2rank"
     # Create the PLANTS folder inside protein's directory
     _ = octools.safe_create_dir(plantsPath)
-    # Find all boxes
-    boxes = glob(f"{boxPath}/box*.pdb")
-    # For each box
-    for box in boxes:
-        # Get box name
-        boxName = os.path.basename(box)
-        # Get box id
-        boxId = os.path.splitext(boxName)[0].replace("box", "").replace(".pdb", "")
-        # Parameterize the box folder
-        outputPlants = f"{plantsPath}/{boxId}"
-        # Create PLANTS execution folder
-        _ = octools.safe_create_dir(outputPlants)
-        confPath = f"{outputPlants}/conf_plants.txt"
-        # Convert the box to a conf file
-        box_to_plants(box, confPath, protein, ligand, f"{outputPlants}/run", spacing = spacing)
+
+    # TODO: Implement multiple box support here
+    # Set the box file path
+    box = f"{boxPath}/box0.pdb"
+    # Set the conf file path
+    confPath = f"{plantsPath}/conf_plants.conf"
+    # Convert the box to a conf file
+    box_to_plants(box, confPath, protein, ligand, f"{plantsPath}/run", spacing = spacing)
 
     return None
 

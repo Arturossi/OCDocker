@@ -80,20 +80,24 @@ class Vina:
         self.name = str(name)
         self.config = str(configPath)
         self.boxFile = str(boxFile)
+
         # Receptor
         self.inputReceptor = self.__parse_receptor(receptor)
         self.inputReceptorPath = self.__parse_receptor_path(receptor)
         self.preparedReceptor = str(preparedReceptorPath)
         self.prepareReceptorCmd = [pythonsh, prepare_receptor, "-r", self.inputReceptorPath, "-o", self.preparedReceptor, "-A", "hydrogens", "-U", "nphs_lps_waters"]
+
         # Ligand
         self.preparedLigand = str(preparedLigandPath)
         self.inputLigand = self.__parse_ligand(ligand)
         self.inputLigandPath = self.__parse_ligand_path(ligand)
         self.prepareLigandCmd = [pythonsh, prepare_ligand, "-l", self.inputLigandPath, "-C", "-o", self.preparedLigand]
+
         # Vina
         self.vinaLog = str(vinaLog)
         self.outputVina = str(outputVina)
         self.vinaCmd = [vina, "--config", self.config, "--ligand", self.preparedLigand, "--out", self.outputVina, "--cpu", "1"]
+        
         # Create the box
         box_to_vina(self.boxFile, self.config, self.preparedReceptor)
 
