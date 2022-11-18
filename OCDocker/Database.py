@@ -10,6 +10,7 @@ import textwrap as tw
 
 from glob import glob
 from tqdm import tqdm
+from threading import Lock
 from typing import List, Tuple
 from multiprocessing import Pool
 
@@ -87,31 +88,35 @@ def __core_process_dudez(target: str, overwrite: bool) -> None:
         octools.printv(f"Processing {target}/{data}.smi")
         # Create the ligands folder
         _ = octools.safe_create_dir(f"{targetc}/{data}")
-        # Process the ligands, splitting them into the multiple files
-        with open(f"{target}/{data}.smi", "r") as f:
-            for line in f:
-                # Get the smiles and name of the ligand
-                smiles, name = line.split()
-                # Check if there is already a folder with the ligand name (to warn the user)
-                if os.path.isdir(f"{targetc}/{data}/{name}"):
-                    octools.print_warning(f"The ligand {name} already exists in the {data[0]} dataser. You may not need to process the {data[1]}.smi file again. By the way... I am just warning you.")
+        # Create a lock for multithreading
+        lock = Lock()
+        # Start the lock with statement
+        with lock:
+            # Process the ligands, splitting them into the multiple files
+            with open(f"{target}/{data}.smi", "r") as f:
+                for line in f:
+                    # Get the smiles and name of the ligand
+                    smiles, name = line.split()
+                    # Check if there is already a folder with the ligand name (to warn the user)
+                    if os.path.isdir(f"{targetc}/{data}/{name}"):
+                        octools.print_warning(f"The ligand {name} already exists in the {data[0]} dataser. You may not need to process the {data[1]}.smi file again. By the way... I am just warning you.")
 
-                # Create the ligand folder using its name
-                _ = octools.safe_create_dir(f"{targetc}/{data}/{name}")
-                
-                # Test if the file exists
-                if overwrite or not os.path.isfile(f"{targetc}/{data}/{name}/ligand.mol2"):
-                    # Check if the outputfile exists
-                    if os.path.isfile(f"{targetc}/{data}/{name}/ligand.mol2"):
-                        # Remove the file
-                        os.remove(f"{targetc}/{data}/{name}/ligand.mol2")
-                    # Convert it to mol2 (NOTE: There are many molecules with SAME name... currently I am not handling this. I am just accounting the first molecule and discarding the others. IMPORTANT: Error messages WILL pop while processing the data here! They may be safe to ignore, I guess...)
-                    _ = octools.convertMolsFromString(smiles, f"{targetc}/{data}/{name}/ligand.mol2")
-                    # Save a smiles file (to avoid compatibility issues)
-                    with open(f"{targetc}/{data}/{name}/ligand.smi", "w") as f:
-                        f.write(f"{smiles}")
-                else:
-                    octools.print_warning(f"File '{targetc}/{data}/{name}/ligand.mol2' already exists. Skipping...")
+                    # Create the ligand folder using its name
+                    _ = octools.safe_create_dir(f"{targetc}/{data}/{name}")
+                    
+                    # Test if the file exists
+                    if overwrite or not os.path.isfile(f"{targetc}/{data}/{name}/ligand.mol2"):
+                        # Check if the outputfile exists
+                        if os.path.isfile(f"{targetc}/{data}/{name}/ligand.mol2"):
+                            # Remove the file
+                            os.remove(f"{targetc}/{data}/{name}/ligand.mol2")
+                        # Convert it to mol2 (NOTE: There are many molecules with SAME name... currently I am not handling this. I am just accounting the first molecule and discarding the others. IMPORTANT: Error messages WILL pop while processing the data here! They may be safe to ignore, I guess...)
+                        _ = octools.convertMolsFromString(smiles, f"{targetc}/{data}/{name}/ligand.mol2")
+                        # Save a smiles file (to avoid compatibility issues)
+                        with open(f"{targetc}/{data}/{name}/ligand.smi", "w") as f:
+                            f.write(f"{smiles}")
+                    else:
+                        octools.print_warning(f"File '{targetc}/{data}/{name}/ligand.mol2' already exists. Skipping...")
 
     return None
 

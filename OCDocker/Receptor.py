@@ -13,6 +13,7 @@ from Bio.PDB.DSSP import DSSP
 from Bio.SeqUtils import seq1
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
 from openbabel import openbabel
+from threading import Lock
 from typing import Dict, List, Tuple, Union
 
 from OCDocker.Initialise import *
@@ -647,11 +648,14 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
                             line = f"{line[:17]}MET{line[20:]}"
                         # Append the line to the dsspLines list
                         dsspLines.append(line)'''
-
-            # Write the lines to the file
-            with open(structurePath, "w") as pdbFile:
-                # Write the lines list to the file
-                pdbFile.writelines(lines)
+            # Create a lock for multithreading
+            lock = Lock()
+            # Start the lock with statement
+            with lock:
+                # Write the lines to the file
+                with open(structurePath, "w") as pdbFile:
+                    # Write the lines list to the file
+                    pdbFile.writelines(lines)
 
     # Load the clean Structure
     #cleanStructure = loadMol(cleanStructurePath)

@@ -44,6 +44,53 @@ OBS: The scripts used to prepare ligand/receptor will be in the following dir: `
 
 > :warning: **Still cannot run MGLTools?**: If you are facing some shady problems such as the numpy one, you might have to compile MGLTools from source. You can download it at https://github.com/genome-vendor/MGLtools (Still not sure about its version... I do not know if it is 1.5.6 or 1.5.4)
 
+Download and install ADFRtools
+------------------------------
+
+To install it, you have 3 options:
+
+* Option 1 (For those who loves GUI)
+
+	.. code-block:: bash
+		$ wget https://ccsb.scripps.edu/adfr/download/1028/ --no-check-certificate -O adfr_install
+
+* Option 2 (For those who love to follow each step)
+
+	- Download the file
+
+	.. code-block:: bash
+		$ wget https://ccsb.scripps.edu/adfr/download/1038/ --no-check-certificate -O adfr_install.tar.gz
+
+	- Untar it and rename it (to look nicer):
+
+	.. code-block:: bash
+		$ tar -xvzf adfr_install.tar.gz -C ADFRsuite
+
+	- cd into created dir
+
+	.. code-block:: bash
+		$ cd ADFRsuite
+
+	- source the install.sh
+
+	.. code-block:: bash
+		$ source ./install.sh
+
+	- export the variable to the path
+
+	.. code-block:: bash
+		$ echo "PATH=`pwd`/bin:"'$PATH' >> ~/.bashrc
+
+	- source the bashrc
+	
+	.. code-block:: bash
+		$ source ~/.bashrc
+
+* Option 3 (Use this all-in-one command. It seems to be more complicated, but its easier than option 2 and its easy to automate-it)
+
+.. code-block:: bash
+	$ wget https://ccsb.scripps.edu/adfr/download/1028/ --no-check-certificate -O adfr_install && mkdir -p mgltools && tar -xvzf adfr_install.tar.gz -C ADFRsuite --strip-components=1 && rm adfr_install.tar.gz && cd ADFRsuite && source ./install.sh && echo "PATH=`pwd`/bin:"'$PATH' >> ~/.bashrc && source ~/.bashrc
+
 
 Install DSSP
 =========================

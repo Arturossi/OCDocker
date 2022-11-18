@@ -9,8 +9,9 @@ import time
 import shutil
 import rdkit
 from glob import glob
-from typing import Dict, List, Tuple, Union
+from threading import Lock
 from tqdm import tqdm
+from typing import Dict, List, Tuple, Union
 from multiprocessing import Pool
 
 import numpy as np
@@ -95,12 +96,17 @@ def __run_p2rank(dir: str, fin: str, overwrite: bool = False) -> None:
         "OPTICS": False,
         "SpectralClustering": False
     }
-    try:
-        # Run p2rank
-        runprank.run_prank(fin, fout, algorithms, prank = prank, threads = args.cpu_cores, debug = False, boxMaxCutoff = p2rank_boxMaxCutoff, pocketCutoff = p2rank_pocketCutoff, verbose = True if args.output_level >= 3 else False, overwrite = overwrite)
-    except Exception as e:
-        octools.print_warning(f"The protein '{dir}' had a problem while running p2rank. Retrying to run p2rank. Exception: {e}")
-        runprank.run_prank(fin, fout, algorithms, prank = prank, threads = args.cpu_cores, debug = False, boxMaxCutoff = p2rank_boxMaxCutoff, pocketCutoff = p2rank_pocketCutoff, verbose = True if args.output_level >= 3 else False, overwrite = overwrite)
+
+    # Create a lock for multithreading
+    lock = Lock()
+    # Start the lock with statement
+    with lock:
+        try:
+            # Run p2rank
+            runprank.run_prank(fin, fout, algorithms, prank = prank, threads = args.cpu_cores, debug = False, boxMaxCutoff = p2rank_boxMaxCutoff, pocketCutoff = p2rank_pocketCutoff, verbose = True if args.output_level >= 3 else False, overwrite = overwrite)
+        except Exception as e:
+            octools.print_warning(f"The protein '{dir}' had a problem while running p2rank. Retrying to run p2rank. Exception: {e}")
+            runprank.run_prank(fin, fout, algorithms, prank = prank, threads = args.cpu_cores, debug = False, boxMaxCutoff = p2rank_boxMaxCutoff, pocketCutoff = p2rank_pocketCutoff, verbose = True if args.output_level >= 3 else False, overwrite = overwrite)
 
     return None
 
@@ -274,8 +280,12 @@ def __run_create_vina_conf_from_box(path: str, fin: str, boxPath: str = "") -> N
     None
     '''
 
-    # Run vina
-    ocvina.generate_vina_files_database(path, fin, boxPath = boxPath)
+    # Create a lock for multithreading
+    lock = Lock()
+    # Start the lock with statement
+    with lock:
+        # Run vina
+        ocvina.generate_vina_files_database(path, fin, boxPath = boxPath)
 
     return None
 
@@ -304,8 +314,12 @@ def __run_create_plants_conf_from_box(path: str, fin: str, ligand: str, spacing:
     None
     '''
 
-    # Run vina
-    ocplants.generate_plants_files_database(path, fin, ligand, spacing, boxPath = boxPath)
+    # Create a lock for multithreading
+    lock = Lock()
+    # Start the lock with statement
+    with lock:
+        # Run vina
+        ocplants.generate_plants_files_database(path, fin, ligand, spacing, boxPath = boxPath)
 
     return None
 
@@ -358,32 +372,51 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
             _ = octools.safe_create_dir(f"{molPath}/vinaFiles")
             _ = octools.safe_create_dir(f"{molPath}/sminaFiles")
             try:
-                # Create the ligand object
-                m = ocl.Ligand(mol, molName, sanitize = sanitize)
-                # Create a box around the ligand
-                m.create_box(centroid = targetCentroid, overwrite = overwrite)
+                # Create a lock for multithreading
+                lock = Lock()
+                # Start the lock with statement
+                with lock:
+                    # Create the ligand object
+                    m = ocl.Ligand(mol, molName, sanitize = sanitize)
+                    # Create a box around the ligand
+                    m.create_box(centroid = targetCentroid, overwrite = overwrite)
             # If m is not valid
             except Exception as e:
-                _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed!", "error")
-                octools.print_error_log(f"The molecule '{mol}' could not be parsed!", f"{logdir}/{dbName}_error_Parse.log")
+                errMsg = f"The molecule '{mol}' could not be parsed!"
+
+                _ = errors.parse_molecule(errMsg, "error")
+                octools.print_error_log(errMsg, f"{logdir}/{dbName}_error_Parse.log")
                 return None
+
         elif moltype == "receptor":
                 # If is a tuple
                 if type(mol) == tuple:
                     try:
-                        # Create the receptor object
-                        m = ocr.Receptor(mol[0], molName, mol2Path = mol[1])
+                        # Create a lock for multithreading
+                        lock = Lock()
+                        # Start the lock with statement
+                        with lock:
+                            # Create the receptor object
+                            m = ocr.Receptor(mol[0], molName, mol2Path = mol[1])
                     except Exception as e:
-                        _ = errors.parse_molecule(f"The molecule '{mol[0]}' could not be parsed! Error {e}", "error")
-                        octools.print_error_log(f"The molecule '{mol[0]}' could not be parsed! Error {e}", f"{logdir}/{dbName}_error_Parse.log")
+                        errMsg = f"The molecule '{mol[0]}' could not be parsed! Error {e}"
+
+                        _ = errors.parse_molecule(errMsg, "error")
+                        octools.print_error_log(errMsg, f"{logdir}/{dbName}_error_Parse.log")
                         return None
                 else:
                     try:
-                        # Create the receptor object
-                        m = ocr.Receptor(mol, molName)
+                        # Create a lock for multithreading
+                        lock = Lock()
+                        # Start the lock with statement
+                        with lock:
+                            # Create the receptor object
+                            m = ocr.Receptor(mol, molName)
                     except Exception as e:
-                        _ = errors.parse_molecule(f"The molecule '{mol}' could not be parsed! Error {e}", "error")
-                        octools.print_error_log(f"The molecule '{mol}' could not be parsed! Error {e}", f"{logdir}/{dbName}_error_Parse.log")
+                        errMsg = f"The molecule '{mol}' could not be parsed! Error {e}"
+
+                        _ = errors.parse_molecule(errMsg, "error")
+                        octools.print_error_log(errMsg, f"{logdir}/{dbName}_error_Parse.log")
                         return None
         else:
             _ = errors.unknown("Unknown molecule type", "error")
@@ -391,8 +424,10 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
 
         # Test if the molecule is valid
         if not m or not m.is_valid():
-            _ = errors.malformed_molecule(f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!", "error")
-            octools.print_error_log(f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!", f"{logdir}/{dbName}_error_Parse.log")
+            errMsg = f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!"
+
+            _ = errors.malformed_molecule(errMsg, "error")
+            octools.print_error_log(errMsg, f"{logdir}/{dbName}_error_Parse.log")
         else:
             # Export its descriptors
             _ = m.to_json(overwrite)
@@ -581,8 +616,12 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
         
         # If overwrite mode is on or there is not the same amount of box files as folders in vinaFiles folder
         if boxCount == 0 or len(glob(f"{processDir}/vinaFiles/*")) != boxCount or len(glob(f"{processDir}/vinaFiles/*")) == 0 or overwrite:
-            # Create the vina inputs from the boxes
-            ocvina.generate_vina_files_database(processDir, preparedReceptorPdbqt, boxPath = f"{processDir}/boxes")
+            # Create a lock for multithreading
+            lock = Lock()
+            # Start the lock with statement
+            with lock:
+                # Create the vina inputs from the boxes
+                ocvina.generate_vina_files_database(processDir, preparedReceptorPdbqt, boxPath = f"{processDir}/boxes")
         else:
             octools.print_info(f"The protein '{processDir}' already has its vina file generated, skipping its execution.")
 
@@ -590,16 +629,23 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
         if boxCount == 0 or len(glob(f"{processDir}/plantsFiles/*")) != boxCount or len(glob(f"{processDir}/plantsFiles/*")) == 0 or overwrite:
             # Set the fligand variable to the dir + ligandName + .mol2
             fligand = f"{processDir}/ligand.mol2"
-            # Create the PLANTS inputs from the boxes
-            ocplants.generate_plants_files_database(processDir, preparedReceptorMol2, fligand, spacing, boxPath = f"{processDir}/boxes")
+            # Create a lock for multithreading
+            lock = Lock()
+            # Start the lock with statement
+            with lock:
+                # Create the PLANTS inputs from the boxes
+                ocplants.generate_plants_files_database(processDir, preparedReceptorMol2, fligand, spacing, boxPath = f"{processDir}/boxes")
         else:
             octools.print_info(f"The protein '{processDir}' already has its PLANTS file generated, skipping its execution.")
 
         # If overwrite mode is on or there not any conf file in the sminaFiles folder
         if len(glob(f"{processDir}/sminaFiles/*.conf")) == 0 or overwrite:
-            # Create the smina d
-            # Create the smina inputs
-            ocsmina.gen_smina_conf(f"{processDir}/sminaFiles/conf_smina.conf", preparedReceptorPdbqt)
+            # Create a lock for multithreading
+            lock = Lock()
+            # Start the lock with statement
+            with lock:
+                # Create the smina inputs
+                ocsmina.gen_smina_conf(f"{processDir}/sminaFiles/conf_smina.conf", preparedReceptorPdbqt)
         else:
             octools.print_info(f"The protein '{processDir}' already has its smina file generated, skipping its execution.")
 
@@ -713,156 +759,6 @@ def __prepare_no_parallel(paths: List[str], overwrite: bool, archive: str, sanit
     return None
 
 
-### Get
-def __core_get(dir: str, archive: str) -> Union[Tuple[str, ocr.Receptor, ocl.Ligand], None]:
-    '''Loads in memory a pair receptor-ligand and then return them in a tuple alongside with the protein name gotten from file path.
-
-    Parameters
-    ----------
-    dir : str
-        The directory to be processed.
-    archive : str
-        The archive name. Options are [astex, dudez, pdbbind].
-
-    Returns
-    -------
-    Tuple[str, ocr.Receptor, ocl.Ligand] | None
-        The tuple containing the protein name, the receptor and the ligand. If the protein is not valid, returns None.
-
-    Raises
-    ------
-    None
-    '''
-
-    # Find ptn name
-    ptn = dir.split(os.path.sep)[-1]
-    # If is the index directory, ignore
-    if dir in ['index', 'db']:
-        return None
-    # Find which kind of archive it will be
-    if archive == "astex":
-        pass
-    elif archive == "dudez":
-        pass
-    elif archive == "pdbbind":
-        # Set the input file name path (to generate the box and data about the protein)
-        receptorPath = f"{dir}/{ptn}_protein.pdb"
-        # Set the ligand file name path (to generate data about the ligand)
-        ligandPath = f"{dir}/{ptn}_ligand.mol2"
-        # If the complex has all descriptors for protein AND ligand
-        if os.path.isfile(f"{dir}/receptor_descriptors.json") and os.path.isfile(f"{dir}/ligand_descriptors.json"):
-            # Read the receptor and the ligand
-            receptor = ocr.Receptor(receptorPath, from_json_descriptors = f"{dir}/receptor_descriptors.json", name = f"{ptn}_receptor")
-            ligand = ocl.Ligand(ligandPath, from_json_descriptors = f"{dir}/ligand_descriptors.json", name = f"{ptn}_ligand")
-            # Return them
-            return (ptn, receptor, ligand)
-    return None
-
-def __thread_get_parallel(arguments: Tuple[str, str]) -> Union[Tuple[str, ocr.Receptor, ocl.Ligand], None]:
-    '''Thread aid function to call __core_get.
-
-    Parameters
-    ----------
-    arguments : Tuple[str, str]
-        The arguments to be passed to __core_get. Its arguments are: (dir, archive). See __core_get for more information.
-
-    Returns
-    -------
-    Tuple[str, ocr.Receptor, ocl.Ligand] | None
-        The tuple containing the protein name, the receptor and the ligand.
-
-    Raises
-    ------
-    None
-    '''
-
-    # Redirect all prints to tqdm.write
-    with octools.redirect_to_tqdm():
-        # Call core get function (shared between thread and not thread)
-        return __core_get(arguments[0], arguments[1])
-
-def __get_parallel(dirs: List[str], archive: str, desc: str) -> Dict[str, Tuple[ocr.Receptor, ocl.Ligand]]:
-    '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
-
-    Parameters
-    ----------
-    dirs : List[str]
-        The list of directories to be processed.
-    archive : str
-        The archive name. Options are [astex, dudez, pdbbind].
-    desc : str
-        The description to be used in the tqdm progress bar.
-
-    Returns
-    -------
-    Dict[str, Tuple[ocr.Receptor, ocl.Ligand]]
-        The dictionary containing the protein name as key and the tuple containing the receptor and the ligand as value.
-
-    Raises
-    ------
-    None
-    '''
-
-    # Arguments to pass to each Thread in the Thread Pool
-    arguments = []
-    # For each file in the glob
-    for dir in dirs:
-        # Append a tuple containing the file name and ovewrite flag to the arguments list
-        arguments.append((dir, archive))
-    # Dict of elements
-    databaseDict = dict()
-    # Create a Thread pool with the maximum available_cores
-    with Pool(args.available_cores) as p:
-        # Perform the multi process
-        for complexData in tqdm(p.imap_unordered(__thread_get_parallel, arguments), total = len(arguments), desc = desc):
-            # If the complex data is not empty
-            if complexData:
-                databaseDict[complexData[0]] = (complexData[1], complexData[2])
-            # Clear the memory
-            gc.collect()
-    # Return
-    return databaseDict
-
-def __get_no_parallel(dirs: List[str], archive: str, desc: str) -> Dict[str, Tuple[ocr.Receptor, ocl.Ligand]]:
-    '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_get function.
-
-    Parameters
-    ----------
-    dirs : List[str]
-        The list of directories to be processed.
-    archive : str
-        The archive name. Options are [astex, dudez, pdbbind].
-    desc : str
-        The description to be used in the tqdm progress bar.
-
-    Returns
-    -------
-    Dict[str, Tuple[ocr.Receptor, ocl.Ligand]]
-        The dictionary containing the protein name as key and the tuple containing the receptor and the ligand as value.
-
-    Raises
-    ------
-    None
-    '''
-
-    # Dict of elements
-    databaseDict = dict()
-    # Redirect all prints to tqdm.write
-    with octools.redirect_to_tqdm():
-        for dir in tqdm(iterable=dirs, total=len(dirs), desc=desc):
-            # Call the core get function
-            data = __core_get(dir, archive)
-            # Check if data is None
-            if not data:
-                octools.print_error(f"Error while processing '{dir}'.")
-                continue
-            # Add them to the dict using the protein as the key
-            databaseDict[data[0]] = (data[1], data[2])
-            # Clear the memory
-            gc.collect()
-        return databaseDict
-
-
 ### Docking
 def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, receptorDescriptorPath: str, boxPath: str, ptn: str, archive: str, overwrite: bool = False) -> int:
     '''Runs vina.
@@ -925,9 +821,13 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
     if needToRun:
         # Get the ligand name
         lig = os.path.split(os.path.dirname(ligandPath))[-1]
-        # Read the receptor and the ligand
-        receptor = ocr.Receptor(receptorPath, from_json_descriptors = receptorDescriptorPath, name = f"{ptn}_receptor")
-        ligand = ocl.Ligand(ligandPath, from_json_descriptors = ligandDescriptorPath, name = f"{ptn}_{lig}_ligand")
+        # Create a lock for multithreading
+        lock = Lock()
+        # Start the lock with statement
+        with lock:
+            # Read the receptor and the ligand
+            receptor = ocr.Receptor(receptorPath, from_json_descriptors = receptorDescriptorPath, name = f"{ptn}_receptor")
+            ligand = ocl.Ligand(ligandPath, from_json_descriptors = ligandDescriptorPath, name = f"{ptn}_{lig}_ligand")
         
         # If receptor and ligand are not null
         if receptor and ligand:
@@ -944,8 +844,12 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
                 vinaLog = f"{runPath}/vina_{runNumber}.log"
                 vinaOutput = f"{runPath}/vina_{runNumber}.pdbqt"
 
-                # Create the vina object (the pdbqt files will be in the father directory because it will be used multiple times, let's save some disk space, please)
-                vina = ocvina.Vina(f"{runPath}/conf_vina.conf", boxPath, receptor, preparedReceptorPath, ligand, preparedLigandPath, vinaLog, vinaOutput, name = f"{ptn}_run_{runNumber}")
+                # Create a lock for multithreading
+                lock = Lock()
+                # Start the lock with statement
+                with lock:
+                    # Create the vina object (the pdbqt files will be in the father directory because it will be used multiple times, let's save some disk space, please)
+                    vina = ocvina.Vina(f"{runPath}/conf_vina.conf", boxPath, receptor, preparedReceptorPath, ligand, preparedLigandPath, vinaLog, vinaOutput, name = f"{ptn}_run_{runNumber}")
 
                 # Check if the vina object has been correctly created
                 if not vina:
@@ -956,8 +860,12 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
 
                 # If prepared ligand has the overwrite flag on, does not exists, has size 0 or is not valid
                 if overwrite or not os.path.isfile(vina.preparedLigand) or os.path.getsize(vina.preparedLigand) == 0 or not octools.is_molecule_valid(vina.preparedLigand):
-                    # Run the prepare ligand
-                    _ = vina.run_prepare_ligand(useOpenBabel = False) # useOpenBabel has proven to be a dangerous option, it is better to avoid its use for
+                    # Create a lock for multithreading
+                    lock = Lock()
+                    # Start the lock with statement
+                    with lock:
+                        # Run the prepare ligand
+                        _ = vina.run_prepare_ligand(useOpenBabel = False) # useOpenBabel has proven to be a dangerous option, it is better to avoid its use for
 
                     # Check if the generated ligand has size 0 or is invalid
                     if os.path.getsize(vina.preparedLigand) == 0 or not octools.is_molecule_valid(vina.preparedLigand):
@@ -977,8 +885,13 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
 
                 # If prepared receptor has the overwrite flag on, does not exists, has size 0 or is not valid
                 if overwrite or not os.path.isfile(vina.preparedReceptor) or os.path.getsize(vina.preparedReceptor) == 0 or not octools.is_molecule_valid(vina.preparedReceptor):
-                    # Run the prepare receptor
-                    _ = vina.run_prepare_receptor(useOpenBabel=False) # useOpenBabel has proven to be a dangerous option, it is better to avoid its use for now
+                    # Create a lock for multithreading
+                    lock = Lock()
+                    # Start the lock with statement
+                    with lock:
+                        # Run the prepare receptor
+                        _ = vina.run_prepare_receptor(useOpenBabel=False) # useOpenBabel has proven to be a dangerous option, it is better to avoid its use for now
+
                     # Check if the generated receptor has size 0 or is invalid
                     if os.path.getsize(vina.preparedReceptor) == 0 or not octools.is_molecule_valid(vina.preparedReceptor):
                         errMsg = f"The prepare receptor has made an output of 0kb for receptor '{vina.preparedReceptor}' or is not valid... Here is its command line so you might be able to debug it by hand.\n{' '.join(vina.prepareReceptorCmd)}"
@@ -988,8 +901,12 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
 
                 # Check if vina output exists
                 if overwrite or not os.path.isfile(vinaOutput) or not os.path.isfile(vinaLog):
-                    # Run vina
-                    vina.run_vina()
+                    # Create a lock for multithreading
+                    lock = Lock()
+                    # Start the lock with statement
+                    with lock:
+                        # Run vina
+                        vina.run_vina()
                 else:
                     errMsg = f"The vina output for '{ptn}' run '{runNumber}' is already generated and you can check it at the '{runPath}/vina_{runNumber}.log' path. Vina execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true"
 
@@ -1061,9 +978,13 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
     if overwrite or not os.path.isfile(sminaLog) or not os.path.isfile(sminaOutput):
         # Get the ligand name
         lig = os.path.split(os.path.dirname(ligandPath))[-1]
-        # Read the receptor and the ligand
-        receptor = ocr.Receptor(receptorPath, from_json_descriptors = receptorDescriptorPath, name = f"{ptn}_receptor")
-        ligand = ocl.Ligand(ligandPath, from_json_descriptors = ligandDescriptorPath, name = f"{ptn}_ligand")
+        # Create a lock for multithreading
+        lock = Lock()
+        # Start the lock with statement
+        with lock:
+            # Read the receptor and the ligand
+            receptor = ocr.Receptor(receptorPath, from_json_descriptors = receptorDescriptorPath, name = f"{ptn}_receptor")
+            ligand = ocl.Ligand(ligandPath, from_json_descriptors = ligandDescriptorPath, name = f"{ptn}_ligand")
         print(f'\nr = ocr.Receptor("{receptorPath}", from_json_descriptors = "{receptorDescriptorPath}", name = f"{ptn}_receptor")')
         print(f'l = ocl.Ligand("{ligandPath}", from_json_descriptors = "{ligandDescriptorPath}", name = f"{ptn}_{lig}_ligand")')
 
@@ -1073,8 +994,12 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
             preparedReceptorPath = f"{os.path.dirname(receptorPath)}/prepared_receptor.pdbqt"
             preparedLigandPath = f"{ligandDir}/prepared_ligand.pdbqt"
 
-            # Create the smina object (the pdbqt files will be in the father directory because it will be used multiple times, let's save some disk space, please)
-            smina = ocsmina.Smina(f"{runPath}/conf_smina.conf", receptor, preparedReceptorPath, ligand, preparedLigandPath, sminaLog, sminaOutput, name=f"{ptn}_smina")
+            # Create a lock for multithreading
+            lock = Lock()
+            # Start the lock with statement
+            with lock:
+                # Create the smina object (the pdbqt files will be in the father directory because it will be used multiple times, let's save some disk space, please)
+                smina = ocsmina.Smina(f"{runPath}/conf_smina.conf", receptor, preparedReceptorPath, ligand, preparedLigandPath, sminaLog, sminaOutput, name=f"{ptn}_smina")
             print(f's = ocsmina.Smina(f"{runPath}/conf_smina.conf", t, {preparedReceptorPath}, l, {preparedLigandPath}, {sminaLog}, {sminaOutput}, name=f"{ptn}_smina")\n')
 
             # Check if the smina object has been correctly created
@@ -1086,8 +1011,12 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
 
             # If prepared ligand has the overwrite flag on, does not exists, has size 0 or is not valid
             if overwrite or not os.path.isfile(smina.preparedLigand) or os.path.getsize(smina.preparedLigand) == 0 or not octools.is_molecule_valid(smina.preparedLigand):
-                # Run the prepare ligand
-                _ = smina.run_prepare_ligand()
+                # Create a lock for multithreading
+                lock = Lock()
+                # Start the lock with statement
+                with lock:
+                    # Run the prepare ligand
+                    _ = smina.run_prepare_ligand()
 
                 # Check if the generated ligand has size 0 or is invalid
                 if os.path.getsize(smina.preparedLigand) == 0 or not octools.is_molecule_valid(smina.preparedLigand):
@@ -1098,8 +1027,12 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
                     
             # If prepared receptor has the overwrite flag on, does not exists, has size 0 or is not valid
             if overwrite or not os.path.isfile(smina.preparedReceptor) or os.path.getsize(smina.preparedReceptor) == 0 or not octools.is_molecule_valid(smina.preparedReceptor):
-                # Run the prepare receptor
-                _ = smina.run_prepare_receptor()
+                # Create a lock for multithreading
+                lock = Lock()
+                # Start the lock with statement
+                with lock:
+                    # Run the prepare receptor
+                    _ = smina.run_prepare_receptor()
 
                 # Check if the generated receptor has size 0 or is invalid
                 if os.path.getsize(smina.preparedReceptor) == 0 or not octools.is_molecule_valid(smina.preparedReceptor):
@@ -1108,8 +1041,12 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
                     octools.print_error_log(errMsg, f"{logdir}/{archive}_smina_run_report_ERROR.log")
                     return errors.receptor_not_prepared(errMsg, level = "error")
 
-            # Run smina (no need to recheck for overwrite or output existance because it is already done some lines ago)
-            smina.run_smina()
+            # Create a lock for multithreading
+            lock = Lock()
+            # Start the lock with statement
+            with lock:
+                # Run smina (no need to recheck for overwrite or output existance because it is already done some lines ago)
+                smina.run_smina()
         else:
             errMsg = f"Could not generate receptor or ligand object for the protein in dir '{ligandPath}'. Error found while trying to run the 'smina' docking software."
 
@@ -1186,9 +1123,13 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
         # Separate the extension from file path
         mol2Path, _ = os.path.splitext(receptorPath)
 
-        # Read the receptor and the ligand (passing the mol2!!!)
-        receptor = ocr.Receptor(receptorPath, mol2Path = f"{mol2Path}.mol2", from_json_descriptors = receptorDescriptorPath, name = f"{ptn}_receptor")
-        ligand = ocl.Ligand(ligandPath, from_json_descriptors = ligandDescriptorPath, name = f"{ptn}_ligand")
+        # Create a lock for multithreading
+        lock = Lock()
+        # Start the lock with statement
+        with lock:
+            # Read the receptor and the ligand (passing the mol2!!!)
+            receptor = ocr.Receptor(receptorPath, mol2Path = f"{mol2Path}.mol2", from_json_descriptors = receptorDescriptorPath, name = f"{ptn}_receptor")
+            ligand = ocl.Ligand(ligandPath, from_json_descriptors = ligandDescriptorPath, name = f"{ptn}_ligand")
 
         # If receptor and ligand are not null
         if receptor and ligand:
@@ -1206,8 +1147,12 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
                 plantsOutput = f"{runPath}/run"
                 plantsRankingCsv = f"{plantsOutput}/ranking.csv"
                 
-                # Create the smina object (the pdbqt files will be in the father directory because it will be used multiple times, let's save some disk space, please)
-                plants = ocplants.PLANTS(f"{runPath}/conf_plants.txt", boxPath, receptor, preparedReceptorPath, ligand, preparedLigandPath, plantsLog, plantsOutput, name=f"{ptn} PLANTS")
+                # Create a lock for multithreading
+                lock = Lock()
+                # Start the lock with statement
+                with lock:
+                    # Create the smina object (the pdbqt files will be in the father directory because it will be used multiple times, let's save some disk space, please)
+                    plants = ocplants.PLANTS(f"{runPath}/conf_plants.txt", boxPath, receptor, preparedReceptorPath, ligand, preparedLigandPath, plantsLog, plantsOutput, name=f"{ptn} PLANTS")
 
                 # Check if the smina object has been correctly created
                 if not plants:
@@ -1218,8 +1163,12 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
 
                 # If prepared ligand has the overwrite flag on, does not exists, has size 0 or is not valid
                 if overwrite or not os.path.isfile(plants.preparedLigand) or os.path.getsize(plants.preparedLigand) == 0 or not octools.is_molecule_valid(plants.preparedLigand):
-                    # Run the prepare ligand
-                    _ = plants.run_prepare_ligand()
+                    # Create a lock for multithreading
+                    lock = Lock()
+                    # Start the lock with statement
+                    with lock:
+                        # Run the prepare ligand
+                        _ = plants.run_prepare_ligand()
 
                     # Check if the generated ligand has size 0 or is invalid
                     if os.path.getsize(plants.preparedLigand) == 0 or not octools.is_molecule_valid(plants.preparedLigand):
@@ -1230,8 +1179,12 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
 
                 # If prepared receptor has the overwrite flag on, does not exists, has size 0 or is not valid
                 if overwrite or not os.path.isfile(plants.preparedReceptor) or os.path.getsize(plants.preparedReceptor) == 0 or not octools.is_molecule_valid(plants.preparedReceptor):
-                    # Run the prepare receptor
-                    _ = plants.run_prepare_receptor()
+                    # Create a lock for multithreading
+                    lock = Lock()
+                    # Start the lock with statement
+                    with lock:
+                        # Run the prepare receptor
+                        _ = plants.run_prepare_receptor()
 
                     # Check if the generated receptor has size 0 or is invalid
                     if os.path.getsize(plants.preparedReceptor) == 0 or not octools.is_molecule_valid(plants.preparedReceptor):
@@ -1246,8 +1199,12 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
                         # Remove the folder and its contets
                         shutil.rmtree(plantsOutput)
 
-                    # Run PLANTS
-                    plants.run_plants(overwrite=overwrite)
+                    # Create a lock for multithreading
+                    lock = Lock()
+                    # Start the lock with statement
+                    with lock:
+                        # Run PLANTS
+                        plants.run_plants(overwrite=overwrite)
                 else:
                     errMsg = f"The PLANTS output for '{ptn}' run '{runNumber}' is already generated and you can check it at the '*/run/plants_<runNumber>.log' path. PLANTS execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true."
 
@@ -1294,7 +1251,6 @@ def __core_run_dock(path: str, ligandDir: str, archive: str, dockingAlgorithm: s
 
     # Get the protein name (which is the last directory in the path)
     ptn = path.split("/")[-1]
-    print(ptn)
 
     # If is the index directory, ignore
     if ptn in ['index', 'db']:
@@ -1543,6 +1499,7 @@ def __core_read_log(processDirData: str) -> Dict[str, Dict[str, pd.DataFrame]]:
                 _ = errors.wrong_type(f"The file '{logPath}' could not be read.")
         else:
             _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its vina output.")
+
     # Get all vina directories (0, 1, 2...)
     plantsDirs = glob(f"{processDir}/plantsFiles/*")
     # For each dir in plantsDir
@@ -1562,6 +1519,7 @@ def __core_read_log(processDirData: str) -> Dict[str, Dict[str, pd.DataFrame]]:
                 _ = errors.wrong_type(f"The file '{logPath}' could not be read.")
         else:
             _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its PLANTS output.")
+
     # Parameterize the log path
     logPath = f"{processDir}/sminaFiles/smina.log"
     # Check if smina log exists
@@ -1752,7 +1710,7 @@ def __core_generate_dock_result_csv(processDir: str, log_dump: Dict[str, pd.Data
             # Try to load the mol2, if fails, try the .sdf
             try:
                 # Get the RMSD
-                rmsd = octools.get_rmsd(f"{processDir}/{ligand}.mol2", f"{processDir}/vinaFiles/{runNumber}/vina_{runNumber}.pdbqt")
+                rmsd = octools.get_rmsd(f"{processDir}/ligand.mol2", f"{processDir}/vinaFiles/{runNumber}/vina_{runNumber}.pdbqt")
                 # Check the RMSD type
                 if type(rmsd) == float:
                     vinaData.append([rmsd])
@@ -1761,9 +1719,9 @@ def __core_generate_dock_result_csv(processDir: str, log_dump: Dict[str, pd.Data
                     vinaData += rmsd # type: ignore
             except Exception as e:
                 try:
-                    octools.print_warning(f"Possibly I could not load the '{ligand}.mol2', trying to load the '{ligand}.sdf' instead. Error: {e}")
+                    octools.print_warning(f"Possibly I could not load the 'ligand.mol2', trying to load the '{ligand}.sdf' instead. Error: {e}")
                     # Get the RMSD (using the sdf)
-                    rmsd = octools.get_rmsd(f"{processDir}/{ligand}.sdf", f"{processDir}/vinaFiles/{runNumber}/vina_{runNumber}.pdbqt")
+                    rmsd = octools.get_rmsd(f"{processDir}/ligand.sdf", f"{processDir}/vinaFiles/{runNumber}/vina_{runNumber}.pdbqt")
                     # Check the RMSD type
                     if type(rmsd) == float:
                         vinaData.append([runNumber, rmsd])
@@ -2020,12 +1978,14 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str], ar
     else:
         _ = errors.file_do_not_exist(f"The file {receptor_descriptor_path} does not exist!")
         receptor_descriptors = {}
+
     # Check if there is the ligand json, if yes, load it
     if os.path.isfile(ligand_descriptor_path):
         ligand_descriptors = ocl.read_descriptors_from_json(ligand_descriptor_path, returnDict = True)
     else:
         _ = errors.file_do_not_exist(f"The file {ligand_descriptor_path} does not exist!")
         ligand_descriptors = {}
+
     # Create new dict
     all_descriptors = dict()
     # Set Name and Path
@@ -2037,6 +1997,7 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str], ar
     tmpdf = pd.DataFrame(all_descriptors, index=[0])
     # Append the line to the pd.DataFrame
     ptndf = pd.concat([ptndf, tmpdf], ignore_index=True)
+    
     # Return the dataframe with a single row
     return ptndf
 

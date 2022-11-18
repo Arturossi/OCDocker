@@ -1215,7 +1215,7 @@ def download_url(url: str , out_path: str) -> None:
                              miniters=1,
                              desc=url.split(os.path.sep)[-1]) as t:
         urllib.request.urlretrieve(url, filename=out_path, reporthook=t.update_to)
-    return
+    return None
 
 def run(cmd: List[str], logFile: str = "", cwd : str = "") -> int:
     '''Run the given command (generic).
