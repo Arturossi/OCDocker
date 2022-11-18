@@ -464,7 +464,8 @@ def run_prepare_ligand(inputLigandPath: str, preparedLigand: str) -> int:
             # Change it to mol2 in the inputLigandPath
             # get the path
             inputLigandPath = f"{os.path.dirname(inputLigandPath)}/ligand.mol2"
-            
+        
+        print(inputLigandPath)
         # Create the command list
         cmd = [pythonsh, prepare_ligand, "-l", inputLigandPath, "-C", "-o", preparedLigand]
         return octools.run(cmd)
