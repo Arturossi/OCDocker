@@ -1044,7 +1044,7 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
     ligandDir = os.path.dirname(ligandPath)
 
     # Set the run path (attatched to the ligand)
-    runPath = f"{ligandDir}/sminaFiles/"
+    runPath = f"{ligandDir}/sminaFiles  "
 
     # Parameterizing paths
     sminaLog = f"{runPath}/smina.log"
@@ -1070,13 +1070,12 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
         # If receptor and ligand are not null
         if receptor and ligand:
             # Set the prepared receptor and ligand paths
-            preparedReceptorPath = f"{os.path.dirname(receptorPath)}/prepared_receptor.mol2"
-            preparedLigandPath = f"{ligandDir}/prepared_ligand.mol2"
+            preparedReceptorPath = f"{os.path.dirname(receptorPath)}/prepared_receptor.pdbqt"
+            preparedLigandPath = f"{ligandDir}/prepared_ligand.pdbqt"
 
             # Create the smina object (the pdbqt files will be in the father directory because it will be used multiple times, let's save some disk space, please)
             smina = ocsmina.Smina(f"{runPath}/conf_smina.conf", receptor, preparedReceptorPath, ligand, preparedLigandPath, sminaLog, sminaOutput, name=f"{ptn}_smina")
             print(f's = ocsmina.Smina(f"{runPath}/conf_smina.conf", t, {preparedReceptorPath}, l, {preparedLigandPath}, {sminaLog}, {sminaOutput}, name=f"{ptn}_smina")\n')
-
 
             # Check if the smina object has been correctly created
             if not smina:

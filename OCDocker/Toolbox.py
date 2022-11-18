@@ -693,7 +693,7 @@ def convert2pdb(input: str, output: str) -> Union[int, str]:
 
     return errors.ok()
   
-def convertMolsFromString(input: str, output: str) -> Union[int, str]:
+def convertMolsFromString(input: str, output: str, mol: Union[rdkit.Chem.rdchem.Mol, None] = None) -> Union[int, str]: # type: ignore
     '''Currently only works with smiles. TODO: Add support to other formats.
 
     Parameters
@@ -702,6 +702,8 @@ def convertMolsFromString(input: str, output: str) -> Union[int, str]:
         Input file content as string.
     output : str
         Output file name.
+    mol : rdkit.Chem.rdchem.Mol | None, optional
+        The molecule object to be used to convert the input string to a file. If None, it will be created. (default is None)
 
     Returns
     -------
@@ -723,23 +725,20 @@ def convertMolsFromString(input: str, output: str) -> Union[int, str]:
         return outExtension
 
     try:
-        # Read the string into pybel object
-        #mol = pybel.readstring("smi", input)
-        # Write the molecule to the output file
-        #mol.write(outExtension, output) # type: ignore
-
-        # Initialize the salt remover
-        remover = SaltRemover()
-        # Load the molecule
-        mol = rdkit.Chem.rdmolfiles.MolFromSmiles(input) # type: ignore
-        # Remove the salts
-        mol = remover.StripMol(mol)
-        # Add the hydrogens
-        mol = Chem.AddHs(mol) # type: ignore
-        # Embed the molecule
-        _ = AllChem.EmbedMolecule(mol, AllChem.ETKDG()) # type: ignore
-        # Optimize the molecule
-        _ = AllChem.UFFOptimizeMolecule(mol) # type: ignore
+        # If mol is undefined, create it
+        if not mol:
+            # Initializ e the salt remover
+            remover = SaltRemover()
+            # Load the molecule
+            mol = rdkit.Chem.rdmolfiles.MolFromSmiles(input) # type: ignore
+            # Remove the salts
+            mol = remover.StripMol(mol)
+            # Add the hydrogens
+            mol = Chem.AddHs(mol) # type: ignore
+            # Embed the molecule
+            _ = AllChem.EmbedMolecule(mol, AllChem.ETKDG()) # type: ignore
+            # Optimize the molecule
+            _ = AllChem.UFFOptimizeMolecule(mol) # type: ignore
         
         # Check if the output is mol
         if outExtension == "mol":

@@ -2638,8 +2638,10 @@ def loadMol(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize: bool = True) 
                 # Since is needed to convert the ligand, create the output path
                 outputMoleculePath = f"{os.path.dirname(molecule)}/{os.path.splitext(os.path.basename(molecule))[0]}.mol2"
 
-                # Process the ligand
-                octools.convert2mol2(molecule, outputMoleculePath)
+                # Only process if is not smiles format, because it demands a different approach
+                if extension not in [".smi", ".smiles"]:
+                    # Process the ligand
+                    octools.convert2mol2(molecule, outputMoleculePath)
 
                 if extension == ".pdb":
                     # If sanitize is off
@@ -2707,6 +2709,8 @@ def loadMol(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize: bool = True) 
                     _ = AllChem.EmbedMolecule(m, AllChem.ETKDG()) # type: ignore
                     # Optimize the molecule
                     _ = AllChem.UFFOptimizeMolecule(m) # type: ignore
+
+                    octools.convertMolsFromString(m, outputMoleculePath)
                     
                     # Find its name (without extension)
                     name = os.path.splitext(os.path.basename(molecule))[0]

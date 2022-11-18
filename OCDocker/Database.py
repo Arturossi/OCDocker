@@ -6,7 +6,6 @@ import gc
 import os
 import shutil
 import mimetypes
-import string
 import textwrap as tw
 
 from glob import glob
