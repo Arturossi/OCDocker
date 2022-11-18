@@ -462,7 +462,8 @@ def run_prepare_ligand(inputLigandPath: str, preparedLigand: str) -> int:
         if extension in ["smi", "smiles"]:
             octools.print_warning(f"The input ligand is a smiles file, it is supposed that there will be also a mol2 file within the same folder, so I am changing the file extension to '.mol2' to be able to read it.")
             # Change it to mol2 in the inputLigandPath
-            inputLigandPath = f"{os.path.splitext(inputLigandPath)[0]}.mol2"
+            # get the path
+            inputLigandPath = f"{os.path.dirname(inputLigandPath)}/ligand.mol2"
             
         # Create the command list
         cmd = [pythonsh, prepare_ligand, "-l", inputLigandPath, "-C", "-o", preparedLigand]
