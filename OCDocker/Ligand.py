@@ -2710,7 +2710,7 @@ def loadMol(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize: bool = True) 
                     # Optimize the molecule
                     _ = AllChem.UFFOptimizeMolecule(m) # type: ignore
 
-                    octools.convertMolsFromString(m, outputMoleculePath)
+                    octools.convertMolsFromString("", outputMoleculePath, mol = m)
                     
                     # Find its name (without extension)
                     name = os.path.splitext(os.path.basename(molecule))[0]
