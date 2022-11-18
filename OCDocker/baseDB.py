@@ -1294,6 +1294,7 @@ def __core_run_dock(path: str, ligandDir: str, archive: str, dockingAlgorithm: s
 
     # Get the protein name (which is the last directory in the path)
     ptn = path.split("/")[-1]
+    print(ptn)
 
     # If is the index directory, ignore
     if ptn in ['index', 'db']:
