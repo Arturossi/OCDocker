@@ -1292,8 +1292,11 @@ def __core_run_dock(path: str, ligandDir: str, archive: str, dockingAlgorithm: s
     None
     '''
 
+    # Get the protein name (which is the last directory in the path)
+    ptn = path.split("/")[-1]
+
     # If is the index directory, ignore
-    if path in ['index', 'db']:
+    if ptn in ['index', 'db', 'CSF1R']:
         return errors.unnalowed_dir()
 
     # Set receptor data
