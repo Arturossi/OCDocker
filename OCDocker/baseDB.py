@@ -1296,7 +1296,7 @@ def __core_run_dock(path: str, ligandDir: str, archive: str, dockingAlgorithm: s
     ptn = path.split("/")[-1]
 
     # If is the index directory, ignore
-    if ptn in ['index', 'db', 'CSF1R']:
+    if ptn in ['index', 'db']:
         return errors.unnalowed_dir()
 
     # Set receptor data
