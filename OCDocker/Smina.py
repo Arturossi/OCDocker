@@ -459,20 +459,16 @@ def run_prepare_ligand(inputLigandPath: str, preparedLigand: str) -> int:
         octools.print_warning(f"The output extension is not '.pdbqt', is {outExtension}. This function converts {clrs['r']}ONLY{clrs['n']} to '.pdbqt'. Please pay attention, since this might be a problem in the future for you!")
 
     try:
-        # Create a conversor object
-        obConversion = openbabel.OBConversion()
-        # Set the conversion from the extension to pdbqt
-        obConversion.SetInAndOutFormats(extension, "pdbqt")
-        # Create an empty OBMol object
-        mol = openbabel.OBMol()
-        # Load the input file to the prebiusly loaded OBMol object
-        obConversion.ReadFile(mol, inputLigandPath)
-        # Write the mol object to the output performing the conversion
-        obConversion.WriteFile(mol, preparedLigand)
+        if extension in ["smi", "smiles"]:
+            octools.print_warning(f"The input ligand is a smiles file, it is supposed that there will be also a mol2 file within the same folder, so I am changing the file extension to '.mol2' to be able to read it.")
+            # Change it to mol2 in the inputLigandPath
+            inputLigandPath = f"{os.path.splitext(inputLigandPath)[0]}.mol2"
+            
+        # Create the command list
+        cmd = [pythonsh, prepare_ligand, "-l", inputLigandPath, "-C", "-o", preparedLigand]
+        return octools.run(cmd)
     except Exception as e:
         return errors.subprocess(message=f"Error while running ligand conversion using obabel python lib. Error: {e}", level="error")
-
-    return errors.ok()
 
 def run_prepare_receptor_from_cmd(inputReceptorPath: str, outputReceptor: str, logFile: str = "") -> int:
     '''Converts the receptor to .pdbqt using obabel. [DEPRECATED]
