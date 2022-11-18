@@ -2636,7 +2636,7 @@ def loadMol(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize: bool = True) 
                 return molecule, rdkit.Chem.rdmolfiles.MolFromMol2File(molecule, sanitize = True) # type: ignore
             else:
                 # Since is needed to convert the ligand, create the output path
-                outputMoleculePath = f"{os.path.dirname(molecule)}/{os.path.splitext(os.path.basename(molecule))[0]}.mol2"
+                outputMoleculePath = f"{os.path.dirname(molecule)}/prepared_receptor.mol2"
 
                 # Only process if is not smiles format, because it demands a different approach
                 if extension not in [".smi", ".smiles"]:
