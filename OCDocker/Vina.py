@@ -478,7 +478,7 @@ def run_prepare_ligand(inputLigandPath: str, outputLigand: str, logFile: str = "
     # Print verboosity
     octools.printv(f"Running '{prepare_ligand}' for '{inputLigandPath}'.")
     # Run the command
-    return octools.run(cmd, logFile=logFile)
+    return octools.run(cmd, logFile=logFile, cwd = os.path.dirname(inputLigandPath))
 
 def run_prepare_receptor(inputReceptorPath: str, outputReceptor: str, logFile: str = ""):
     '''Convert a box (DUDE like format) to vina input.

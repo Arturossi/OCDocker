@@ -465,10 +465,9 @@ def run_prepare_ligand(inputLigandPath: str, preparedLigand: str) -> int:
             # get the path
             inputLigandPath = f"{os.path.dirname(inputLigandPath)}/ligand.mol2"
         
-        print(inputLigandPath)
         # Create the command list
         cmd = [pythonsh, prepare_ligand, "-l", inputLigandPath, "-C", "-o", preparedLigand]
-        return octools.run(cmd)
+        return octools.run(cmd, cwd = os.path.dirname(inputLigandPath))
     except Exception as e:
         return errors.subprocess(message=f"Error while running ligand conversion using obabel python lib. Error: {e}", level="error")
 
