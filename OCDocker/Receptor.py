@@ -756,7 +756,7 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
             # Check if the pdb file should be cleaned
             if clean:
                 # Clean the pdb file
-                tmpStructure = renumber_pdb_residues(tmpStructure, outputPdb = structure)
+                tmpStructure = renumber_pdb_residues(tmpStructure)
 
             # If there is a mol2 path and the file does not exist
             if mol2Path and (not os.path.isfile(mol2Path) or overwrite):
