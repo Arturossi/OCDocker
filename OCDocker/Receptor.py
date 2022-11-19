@@ -516,6 +516,9 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
         # List of lines and dssp lines
         lines = []
 
+        # Flag to know if the line has been modified, thus, the file need to be rewritten
+        modified = False
+
         # Check if structurePath is a valid file
         if os.path.isfile(structurePath):
             # Open it (for cleaning)
@@ -532,130 +535,21 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
                     if line.startswith("ATOM"):
                         # Check if there is a chain in the line (all the lines should have a chain)
                         if line[21] == " ":
+                            modified = True
                             # Assume that the protein has only one chain and call it A
                             line = f"{line[:21]}A{line[22:]}"
                         # Add the line to the list
                         lines.append(line)
-                        '''# Get the residue and make it uppercase
-                        residue = line[17:20].strip().upper()
-
-                        # Check if the residue is a standard AA
-                        if residue in ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 'GLU', 'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO', 'SER', 'THR', 'TRP', 'TYR', 'VAL']:
-                            # Do nothing, just skip unnecessary lines
-                            pass
-                        # Checkage in the order which is more likely to happen (to avoid unnecessary checks)
-                        # Now check if the residue is a non-standard histidine
-                        elif residue in ["HSD", "HSE", "HSP", "HID", "HIE", "HIP"]:
-                            # Print a warning
-                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by HIS. File: {structurePath}, line: {lineNumber}")
-                            # Replace the residue
-                            line = f"{line[:17]}HIS{line[20:]}"
-                        # Now check if the residue is a non-standard cysteine
-                        elif residue in ["CSD", "CSO", "CYX"]:
-                            # Print a warning
-                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by CYS. File: {structurePath}, line: {lineNumber}")
-                            # Replace the residue
-                            line = f"{line[:17]}CYS{line[20:]}"
-                        # Now check if the residue is a non-standard tyrosine
-                        elif residue in ["TYB"]:
-                            # Print a warning
-                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by TYR. File: {structurePath}, line: {lineNumber}")
-                            # Replace the residue
-                            line = f"{line[:17]}TYR{line[20:]}"
-                        # Now check if the residue is a non-standard lysine
-                        elif residue in ["LYN"]:
-                            # Print a warning
-                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by LYS. File: {structurePath}, line: {lineNumber}")
-                            # Replace the residue
-                            line = f"{line[:17]}LYS{line[20:]}"
-                        # Now check if the residue is a non-standard glutamic acid
-                        elif residue in ["GL3"]:
-                            # Print a warning
-                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by GLU. File: {structurePath}, line: {lineNumber}")
-                            # Replace the residue
-                            line = f"{line[:17]}GLU{line[20:]}"
-                        # Now check if the residue is a non-standard arginine
-                        elif residue in ["AR0"]:
-                            # Print a warning
-                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by ARG. File: {structurePath}, line: {lineNumber}")
-                            # Replace the residue
-                            line = f"{line[:17]}ARG{line[20:]}"
-                        # Now check if the residue is a non-standard serine
-                        elif residue in ["SEC"]:
-                            # Print a warning
-                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by SER. File: {structurePath}, line: {lineNumber}")
-                            # Replace the residue
-                            line = f"{line[:17]}SER{line[20:]}"
-                        # Now check if the residue is a non-standard leucine
-                        elif residue in ["LLY"]:
-                            # Print a warning
-                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by LEU. File: {structurePath}, line: {lineNumber}")
-                            # Replace the residue
-                            line = f"{line[:17]}LEU{line[20:]}"
-                        # Now check if the residue is a non-standard alanine
-                        elif residue in ["ALY"]:
-                            # Print a warning
-                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by ALA. File: {structurePath}, line: {lineNumber}")
-                            # Replace the residue
-                            line = f"{line[:17]}ALA{line[20:]}"
-                        # Now check if the residue is a non-standard threonine
-                        elif residue in ["TPO"]:
-                            # Print a warning
-                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by THR. File: {structurePath}, line: {lineNumber}")
-                            # Replace the residue
-                            line = f"{line[:17]}THR{line[20:]}"
-                        # Now check if the residue is a non-standard aspartate / aspartic acid
-                        elif residue in ["ASX"]:
-                            # Print a warning
-                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by ASP. File: {structurePath}, line: {lineNumber}")
-                            # Replace the residue
-                            line = f"{line[:17]}ASP{line[20:]}"
-                        # Now check if the residue is a non-standard proline
-                        elif residue in ["PCA"]:
-                            # Print a warning
-                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by PRO. File: {structurePath}, line: {lineNumber}")
-                            # Replace the residue
-                            line = f"{line[:17]}PRO{line[20:]}"
-                        # Now check if the residue is a non-standard asparagine
-                        elif residue in ["ASH", "ASB"]:
-                            # Print a warning
-                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by ASN. File: {structurePath}, line: {lineNumber}")
-                            # Replace the residue
-                            line = f"{line[:17]}ASN{line[20:]}"
-                        # Now check if the residue is a non-standard phenylalanine
-                        elif residue in ["FME"]:
-                            # Print a warning
-                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by PHE. File: {structurePath}, line: {lineNumber}")
-                            # Replace the residue
-                            line = f"{line[:17]}PHE{line[20:]}"
-                        # Now check if the residue is a non-standard glutamate
-                        elif residue in ["GLX"]:
-                            # Print a warning
-                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by GLU. File: {structurePath}, line: {lineNumber}")
-                            # Replace the residue
-                            line = f"{line[:17]}GLU{line[20:]}"
-                        # Now check if the residue is a non-standard glutamine
-                        elif residue in ["GLH", "GLB"]:
-                            # Print a warning
-                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by GLN. File: {structurePath}, line: {lineNumber}")
-                            # Replace the residue
-                            line = f"{line[:17]}GLN{line[20:]}"
-                        # Now check if the residue is a non-standard methionine
-                        elif residue in ["MSE"]:
-                            # Print a warning
-                            octools.print_warning(f"The residue {residue} is not supported by DSSP. It will be replaced by MET. File: {structurePath}, line: {lineNumber}")
-                            # Replace the residue
-                            line = f"{line[:17]}MET{line[20:]}"
-                        # Append the line to the dsspLines list
-                        dsspLines.append(line)'''
-            # Create a lock for multithreading
-            lock = Lock()
-            # Start the lock with statement
-            with lock:
-                # Write the lines to the file
-                with open(structurePath, "w") as pdbFile:
-                    # Write the lines list to the file
-                    pdbFile.writelines(lines)
+            # If the file needs to be modified
+            if modified:
+                # Create a lock for multithreading
+                lock = Lock()
+                # Start the lock with statement
+                with lock:
+                    # Write the lines to the file
+                    with open(structurePath, "w") as pdbFile:
+                        # Write the lines list to the file
+                        pdbFile.writelines(lines)
 
     # Load the clean Structure
     #cleanStructure = loadMol(cleanStructurePath)
@@ -815,8 +709,8 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
 
     Returns
     -------
-    Tuple[str, Bio.PDB.Structure.Structure, str]
-        The path to the structure, the path to the clean structure and the structure object. Will return a tuple of ("", None) if the structure is not valid.
+    Tuple[str, Bio.PDB.Structure.Structure]
+        The path to the structure and the structure object. Will return a tuple of ("", None) if the structure is not valid.
 
     Raises
     ------
