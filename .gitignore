@@ -195,3 +195,6 @@ tmp/
 
 # Ignore the rundock script because it is meant to stay only locally (temporary entry)
 rundock.py
+ 
+# Ignore vscode files
+.vscode/
