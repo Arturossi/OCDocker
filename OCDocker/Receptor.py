@@ -816,10 +816,14 @@ def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str
 
         # Check if an output pdb was provided
         if outputPdb:
-            # Save the structure
-            io = PDBIO()
-            io.set_structure(structure)
-            io.save(outputPdb)
+            # Create a lock for multithreading
+            lock = Lock()
+            # Start the lock with statement
+            with lock:
+                # Save the structure
+                io = PDBIO()
+                io.set_structure(structure)
+                io.save(outputPdb)
 
         return structure
     except Exception as e:
