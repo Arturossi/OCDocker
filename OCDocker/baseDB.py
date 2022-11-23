@@ -1440,7 +1440,7 @@ def __run_dock_no_parallel(complexList: List[Tuple[str, List[str]]], archive: st
                 print(f"Processing '{cl[0]}' and '{ligandDir}'.")
                 # Call the core dock function (shared between parallel and not parallel)
                 __core_run_dock(cl[0], ligandDir, archive, dockingAlgorithm, overwrite)
-                if i == 10:
+                if i == 1:
                     return 1000
                 i += 1
 
