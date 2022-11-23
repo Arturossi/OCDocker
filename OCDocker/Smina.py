@@ -43,13 +43,15 @@ import OCDocker.Smina as ocsmina
 ###############################################################################
 class Smina:
     """Smina object with methods for easy run."""
-    def __init__(self, configPath: str, receptor: ocr.Receptor, preparedReceptorPath: str, ligand: ocl.Ligand, preparedLigandPath: str, sminaLog: str, outputSmina: str, name: str = "") -> None:
+    def __init__(self, configPath: str, boxFile: str, receptor: ocr.Receptor, preparedReceptorPath: str, ligand: ocl.Ligand, preparedLigandPath: str, sminaLog: str, outputSmina: str, name: str = "") -> None:
         '''Constructor of the class Smina.
 
         Parameters
         ----------
         configPath : str
             Path to the configuration file.
+        boxFile : str
+            The path for the box file.
         receptor : ocr.Receptor
             The receptor object.
         preparedReceptorPath : str 
@@ -76,6 +78,7 @@ class Smina:
 
         self.name = str(name)
         self.config = str(configPath)
+        self.boxFile = str(boxFile)
         
         # Receptor
         if type(receptor) == ocr.Receptor:
@@ -86,7 +89,8 @@ class Smina:
 
         self.inputReceptorPath = self.__parse_receptor_path(receptor)
         self.preparedReceptor = str(preparedReceptorPath)
-        self.prepareReceptorCmd = [obabel, self.inputReceptorPath, "-xr", "-O", self.preparedReceptor]
+        self.prepareReceptorCmd = [pythonsh, prepare_receptor, "-r", self.inputReceptorPath, "-o", self.preparedReceptor, "-A", "hydrogens", "-U", "nphs_lps_waters"]
+        #self.prepareReceptorCmd = [obabel, self.inputReceptorPath, "-xr", "-O", self.preparedReceptor]
 
         # Ligand
         if type(ligand) == ocl.Ligand:
@@ -97,12 +101,14 @@ class Smina:
 
         self.inputLigandPath = self.__parse_ligand_path(ligand)
         self.preparedLigand = str(preparedLigandPath)
-        self.prepareLigandCmd = [obabel, self.inputLigandPath, "-O", self.preparedLigand]
+        self.prepareLigandCmd = [pythonsh, prepare_ligand, "-l", self.inputLigandPath, "-C", "-o", self.preparedLigand]
+        #self.prepareLigandCmd = [obabel, self.inputLigandPath, "-O", self.preparedLigand]
+
         # Vina
         self.sminaLog = str(sminaLog)
         self.outputSmina = str(outputSmina)
         self.sminaCmd = self.__smina_cmd()
-        gen_smina_conf(self.config, self.preparedReceptor)
+        gen_smina_conf(self.boxFile, self.config, self.preparedReceptor)
 
     ## Private ##
     def __parse_receptor_path(self, receptor: ocr.Receptor) -> str:
@@ -180,7 +186,7 @@ class Smina:
         None
         '''
 
-        cmd = [smina, "--config", self.config, "--ligand", self.preparedLigand, "--autobox_ligand", self.preparedLigand]
+        cmd = [smina, "--config", self.config, "--ligand", self.preparedLigand]#, "--autobox_ligand", self.preparedLigand]
 
         if smina_local_only.lower() in ["y", "ye", "yes"]:
             cmd.append("--score_only")
@@ -350,11 +356,13 @@ class Smina:
 ## Private ##
 
 ## Public ##
-def gen_smina_conf(confFile: str, receptor: str) -> int:
+def gen_smina_conf(boxFile: str, confFile: str, receptor: str) -> int:
     '''Convert a box (DUDE like format) to vina input.
 
     Parameters
     ----------
+    boxFile : str
+        The path to the box file.
     confFile : str
         The path for the conf file.
     receptor : str
@@ -370,6 +378,29 @@ def gen_smina_conf(confFile: str, receptor: str) -> int:
     None
     '''
 
+    # Test if the file boxFile exists
+    if not os.path.exists(boxFile):
+        return errors.file_do_not_exist(message=f"The box file in the path {boxFile} does not exists! Please ensure that the file exsits and the path is correct.", level="error")
+    # List to hold all the data
+    lines = []
+
+    try:
+        # Open the box file
+        with open(str(boxFile), "r") as box_file:
+            # For each line in the file
+            for line in box_file:
+                # If it starts with REMARK
+                if line.startswith("REMARK"):
+                    # Slice the line in right positions
+                    lines.append((float(line[30:38]), float(line[38:46]), float(line[46:54])))
+
+                    # If the length of the lines element is 2 or greater
+                    if len(lines) >= 2:
+                        # Break the loop (optimization)
+                        break
+    except Exception as e:
+        return errors.read_file(message=f"Found a problem while reading the box file: {e}", level="error")
+
     octools.printv(f"Creating smina conf file in the path '{confFile}'.")
     try:
         # Now open the conf file to write
@@ -379,6 +410,13 @@ def gen_smina_conf(confFile: str, receptor: str) -> int:
                 conf_file.write(f"custom_scoring = {smina_custom_scoring}\n")
             if smina_custom_atoms.lower() != "no":
                 conf_file.write(f"custom_atoms = {smina_custom_atoms}\n")
+
+            conf_file.write(f"center_x = {lines[0][0]}\n")
+            conf_file.write(f"center_y = {lines[0][1]}\n")
+            conf_file.write(f"center_z = {lines[0][2]}\n\n")
+            conf_file.write(f"size_x = {lines[1][0]}\n")
+            conf_file.write(f"size_y = {lines[1][1]}\n")
+            conf_file.write(f"size_z = {lines[1][2]}\n\n")
 
             conf_file.write(f"minimize_iters = {smina_minimize_iters}\n")
             conf_file.write(f"approximation = {smina_approximation}\n")

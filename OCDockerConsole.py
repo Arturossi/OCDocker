@@ -53,6 +53,11 @@ the user to perform the steps step by step.
 
 # Functions
 ###############################################################################
+def print_args():
+    print('args:')
+    pprint(vars(args))
+
+
 message = tw.dedent("""\033[1;93m
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\033[1;96m
                                 CONSOLE MODE\033[1;93m

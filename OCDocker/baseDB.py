@@ -961,7 +961,7 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
     ligandDir = os.path.dirname(ligandPath)
 
     # Set the run path (attatched to the ligand)
-    runPath = f"{ligandDir}/sminaFiles  "
+    runPath = f"{ligandDir}/sminaFiles"
 
     # Parameterizing paths
     sminaLog = f"{runPath}/smina.log"
@@ -999,8 +999,8 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
             # Start the lock with statement
             with lock:
                 # Create the smina object (the pdbqt files will be in the father directory because it will be used multiple times, let's save some disk space, please)
-                smina = ocsmina.Smina(f"{runPath}/conf_smina.conf", receptor, preparedReceptorPath, ligand, preparedLigandPath, sminaLog, sminaOutput, name=f"{ptn}_smina")
-            print(f's = ocsmina.Smina(f"{runPath}/conf_smina.conf", t, {preparedReceptorPath}, l, {preparedLigandPath}, {sminaLog}, {sminaOutput}, name=f"{ptn}_smina")\n')
+                smina = ocsmina.Smina(f"{runPath}/conf_smina.conf", boxPath, receptor, preparedReceptorPath, ligand, preparedLigandPath, sminaLog, sminaOutput, name=f"{ptn}_smina")
+            print(f's = ocsmina.Smina(f"{runPath}/conf_smina.conf", r, "{preparedReceptorPath}", l, "{preparedLigandPath}", "{sminaLog}", "{sminaOutput}", name=f"{ptn}_smina")\n')
 
             # Check if the smina object has been correctly created
             if not smina:
@@ -1431,13 +1431,19 @@ def __run_dock_no_parallel(complexList: List[Tuple[str, List[str]]], archive: st
             octools.safe_create_dir(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past")
         os.rename(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_WARNING.log", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past/{archive}_{dockingAlgorithm}_run_report_WARNING_{time.strftime('%d%m%Y-%H%M%S')}.log")
 
+    i = 0
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         # For each file in dirs
         for cl in tqdm(iterable = complexList, total = len(complexList), desc=desc):
             for ligandDir in cl[1]:
+                print(f"Processing '{cl[0]}' and '{ligandDir}'.")
                 # Call the core dock function (shared between parallel and not parallel)
                 __core_run_dock(cl[0], ligandDir, archive, dockingAlgorithm, overwrite)
+                if i == 10:
+                    return 1000
+                i += 1
+
             # Clear the memory
             gc.collect()
         # Clear the memory
