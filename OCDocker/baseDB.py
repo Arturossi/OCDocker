@@ -2604,7 +2604,7 @@ def run_dock(archive: str, dockingAlgorithm: str, overwrite: bool = False) -> in
         #candidates = f"{ptnDir}/compounds/candidates"
 
         # Append to the complex list the merged ligandAlternative list with the list with ligands, decoys and candidates. This is made because each receptor must have its own list of ligands, decoys and candidates, otherwise the docking could be done with the same ligands, decoys and candidates for all receptors making everything out of control.
-        complexList.append((ptnDir, glob(f"{ligands}/*")))# + glob(f"{decoys}/*") + glob(f"{candidates}/*")))
+        complexList.append((ptnDir, [glob(f"{ligands}/*")[0]]))# + glob(f"{decoys}/*") + glob(f"{candidates}/*")))
         break
         
         
