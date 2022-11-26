@@ -2597,15 +2597,13 @@ def run_dock(archive: str, dockingAlgorithm: str, overwrite: bool = False) -> in
     
     # For each dir in dirs, let's grab all ligands
     for ptnDir in ptnDirs:
-        print(ptnDir)
         # Parameterize paths
         ligands = f"{ptnDir}/compounds/ligands"
-        #decoys = f"{ptnDir}/compounds/decoys"
-        #candidates = f"{ptnDir}/compounds/candidates"
+        decoys = f"{ptnDir}/compounds/decoys"
+        candidates = f"{ptnDir}/compounds/candidates"
 
         # Append to the complex list the merged ligandAlternative list with the list with ligands, decoys and candidates. This is made because each receptor must have its own list of ligands, decoys and candidates, otherwise the docking could be done with the same ligands, decoys and candidates for all receptors making everything out of control.
-        complexList.append((ptnDir, [glob(f"{ligands}/*")[0]]))# + glob(f"{decoys}/*") + glob(f"{candidates}/*")))
-        break
+        complexList.append((ptnDir, glob(f"{ligands}/*")S + glob(f"{decoys}/*") + glob(f"{candidates}/*")))
         
         
     # Decide if multprocessing will be used
