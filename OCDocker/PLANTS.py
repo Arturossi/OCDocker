@@ -95,16 +95,16 @@ class PLANTS:
         self.inputReceptor = self.__parse_receptor(receptor)
         self.inputReceptorPath = self.__parse_receptor_path(receptor)
         self.preparedReceptor = str(preparedReceptorPath)
-        self.prepareReceptorCmd = self.__prepare_receptor_cmd()
+        self.prepareReceptorCmd = [spores, "--mode", "complete", self.inputReceptorPath, self.preparedReceptor]
         # Ligand
         self.preparedLigand = str(preparedLigandPath)
         self.inputLigand = self.__parse_ligand(ligand)
         self.inputLigandPath = self.__parse_ligand_path(ligand)
-        self.prepareLigandCmd = self.__prepare_ligand_cmd()
+        self.prepareLigandCmd = [spores, "--mode", "complete", self.inputLigandPath, self.preparedLigand]
         # Plants
         self.plantsLog = str(plantsLog)
         self.outputPlants = str(outputPlants)
-        self.plantsCmd = self.__plants_cmd()
+        self.plantsCmd = [plants, "--mode", "screen", self.config]
         # Check if config file exists to avoid useless processing
         if not os.path.isfile(self.config):
             # Create the box
@@ -266,100 +266,6 @@ class PLANTS:
         
         _ = errors.wrong_type(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.", level="error")
         return ""
-
-    def __process_ligand(self, ligandPath: str) -> str:
-        '''Process the ligand to output to mol2 if needed.
-
-        Parameters
-        ----------
-        ligandPath : str
-            The path for the ligand.
-
-        Returns
-        -------
-        str
-            The path for the ligand.
-
-        Raises
-        ------
-        None
-        '''
-
-        # Get the extension
-        ligandExtension = os.path.splitext(ligandPath)[1]
-
-        # If its mol2 we do not need to convert it
-        if ligandExtension == "mol2":
-            # So return the ligandPath
-            return ligandPath
-
-        # Create the output path
-        outputLigandPath = f"{os.path.dirname(ligandPath)}/{os.path.splitext(os.path.basename(ligandPath))[0]}.mol2"
-
-        # Process the ligand
-        octools.convertMols(ligandPath, outputLigandPath)
-
-        return outputLigandPath
-
-    def __plants_cmd(self) -> List[str]:
-        '''Generate the vina command.
-
-        Parameters
-        ----------
-        None
-        
-        Returns
-        -------
-        List[str]
-            The vina command.
-
-        Raises
-        ------
-        None
-        '''
-
-        cmd = [plants, "--mode", "screen", self.config]
-        return cmd
-
-    def __prepare_ligand_cmd(self) -> List[str]:
-        '''Generate the prepare ligand command.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        List[str]
-            The prepare ligand command.
-
-        Raises
-        ------
-        None
-        '''
-
-        cmd = [spores, "--mode", "complete", self.inputLigandPath, self.preparedLigand]
-        return cmd
-
-    def __prepare_receptor_cmd(self):
-        '''Generate the prepare receptor command.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        List[str]
-            The prepare receptor command.
-
-        Raises
-        ------
-        None
-        '''
-
-        cmd = [spores, "--mode", "complete", self.inputReceptorPath, self.preparedReceptor]
-        return cmd
 
     ## Public ##
     def write_config_file(self) -> int:
@@ -861,7 +767,7 @@ def generate_plants_files_database(path: str, protein: str, ligand: str, spacing
 
     return None
 
-def read_plants_log(path: str ) -> Union[pd.DataFrame, int]:
+def read_plants_log(path: str) -> Union[pd.DataFrame, int]:
     '''Read the PLANTS log path, returning a pd.dataframe with data from complexes.
 
     Parameters

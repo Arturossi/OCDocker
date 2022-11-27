@@ -230,9 +230,6 @@ def create_ocdocker_conf() -> None:
     answer = input(f"How many structures will be generated. Default [{confPlants_cluster_structures}] (press enter to keep default): ")
     confPlants_cluster_structures = confPlants_cluster_structures if not answer else answer
 
-    answer = input(f"PLANTS exhaustiveness parameter. Default [{confPlants_exhaustiveness}] (press enter to keep default): ")
-    confPlants_exhaustiveness = confPlants_exhaustiveness if not answer else answer
-
     answer = input(f"PLANTS cluster RMSD parameter. Default [{confPlants_cluster_rmsd}] (press enter to keep default): ")
     confPlants_cluster_rmsd = confPlants_cluster_rmsd if not answer else answer
 
@@ -289,144 +286,144 @@ def create_ocdocker_conf() -> None:
     # Create the conf file
     with open(conf_file, "w") as cf:
         cf.write(tw.dedent("""# Root directory for the OCDocker Database
-        ocdb = """ + confOcdb + """
+        ocdb = """ + str(confOcdb) + """
 
         # The default pdbbind KiKd magnitude [Y, Z, E, P, T, G, M, k, un, c, m, u, n, pf, a, z, y] (follow the unit prefix table)
-        pdbbind_KdKi_order = """ + confPDBbind_KdKi_order + """
+        pdbbind_KdKi_order = """ + str(confPDBbind_KdKi_order) + """
 
         ################# MGLTools PARAMETERS #################
 
         # MGLTools's pythonsh path
-        pythonsh = """ + confPythonsh + """
+        pythonsh = """ + str(confPythonsh) + """
 
         # prepare_ligand4 path
-        prepare_ligand = """ + confPrepare_ligand + """
+        prepare_ligand = """ + str(confPrepare_ligand) + """
 
         # prepare_receptor4 path
-        prepare_receptor = """ + confPrepare_receptor + """
+        prepare_receptor = """ + str(confPrepare_receptor) + """
 
         ################# P2RANK PARAMETERS #################
 
         # P2Rank path
-        prank = """ + confPrank + """
+        prank = """ + str(confPrank) + """
 
         # p2rank box cutoff
-        boxMaxCutoff = """ + confP2rankBoxMaxCutoff + """
+        boxMaxCutoff = """ + str(confP2rankBoxMaxCutoff) + """
 
         # p2rank pocket cutoff
-        pocketCutoff = """ + confP2RankPocketCutoff + """
+        pocketCutoff = """ + str(confP2RankPocketCutoff) + """
 
         ################## VINA PARAMETERS ##################
 
         # Vina path
-        vina = """ + confVina + """
+        vina = """ + str(confVina) + """
 
         # Maximum energy difference between the best binding mode and the worst one displayed (kcal/mol)
-        vina_energy_range = """ + confVina_energy_range + """
+        vina_energy_range = """ + str(confVina_energy_range) + """
 
         # Exhaustiveness of the global search
-        vina_exhaustiveness = """ + confVina_exhaustiveness + """
+        vina_exhaustiveness = """ + str(confVina_exhaustiveness) + """
 
         # Maximum number of binding modes to generate
-        vina_num_modes = """ + confVina_num_modes + """
+        vina_num_modes = """ + str(confVina_num_modes) + """
 
         ################# SMINA PARAMETERS ##################
 
         # Smina path
-        smina = """ + confSmina + """
+        smina = """ + str(confSmina) + """
 
         # Maximum energy difference between the best binding mode and the worst one displayed (kcal/mol)
-        smina_energy_range = """ + confSmina_energy_range + """
+        smina_energy_range = """ + str(confSmina_energy_range) + """
 
         # Exhaustiveness of the global search
-        smina_exhaustiveness = """ + confSmina_exhaustiveness + """
+        smina_exhaustiveness = """ + str(confSmina_exhaustiveness) + """
 
         # Maximum number of binding modes to generate
-        smina_num_modes = """ + confSmina_num_modes + """
+        smina_num_modes = """ + str(confSmina_num_modes) + """
 
         # Alternativa scoring function
-        smina_scoring = """ + confSmina_scoring + """
+        smina_scoring = """ + str(confSmina_scoring) + """
 
         # Custom scoring file
-        smina_custom_scoring = """ + confSmina_custom_scoring_file + """
+        smina_custom_scoring = """ + str(confSmina_custom_scoring_file) + """
 
         # Custom atoms
-        smina_custom_atoms = """ + confSmina_custom_atoms + """
+        smina_custom_atoms = """ + str(confSmina_custom_atoms) + """
 
         # Local search only using autobox (you probably want to use --minimize)
-        smina_local_only = """ + confSmina_local_only + """
+        smina_local_only = """ + str(confSmina_local_only) + """
 
         # Energy minimization
-        smina_minimize = """ + confSmine_minimize + """
+        smina_minimize = """ + str(confSmine_minimize) + """
 
         # Generate random poses, attempting to avoid clashes
-        smina_randomize_only = """ + confSmina_randomize_only + """
+        smina_randomize_only = """ + str(confSmina_randomize_only) + """
 
         # Number iterations of steepest descent; default scales with rotors and usually isn't sufficient for convergence
-        smina_minimize_iters = """ + confSmina_minimize_iters + """
+        smina_minimize_iters = """ + str(confSmina_minimize_iters) + """
 
         # Use accurate line search
-        smina_accurate_line = """ + confSmina_accurate_line + """
+        smina_accurate_line = """ + str(confSmina_accurate_line) + """
 
         # Stop minimization before convergence conditions are fully met
-        smina_minimize_early_term = """ + confSmina_minimize_early_term + """
+        smina_minimize_early_term = """ + str(confSmina_minimize_early_term) + """
 
         # Approximation (linear, spline, or exact) to use
-        smina_approximation = """ + confSmina_approximation + """
+        smina_approximation = """ + str(confSmina_approximation) + """
 
         # Approximation factor: higher results in a finer-grained approximation
-        smina_factor = """ + confSmina_factor + """
+        smina_factor = """ + str(confSmina_factor) + """
 
         # Max allowed force; lower values more gently minimize clashing structures
-        smina_force_cap = """ + confSmina_force_cap + """
+        smina_force_cap = """ + str(confSmina_force_cap) + """
 
         # Autodock map file for user grid data based calculations
-        smina_user_grid = """ + confSmina_user_grid + """
+        smina_user_grid = """ + str(confSmina_user_grid) + """
 
         # Scales user_grid and functional scoring
-        smina_user_grid_lambda = """ + confSmina_user_grid_lambda + """
+        smina_user_grid_lambda = """ + str(confSmina_user_grid_lambda) + """
 
         ################# PLANTS PARAMETERS ##################
 
         # PLANTS path
-        plants = """ + confPlants + """
+        plants = """ + str(confPlants) + """
 
         # Number of cluster structures
-        plants_cluster_structures = """ + confPlants_cluster_structures + """
+        plants_cluster_structures = """ + str(confPlants_cluster_structures) + """
 
         # RMSD value for plants
-        plants_cluster_rmsd = """ + confPlants_cluster_rmsd + """
+        plants_cluster_rmsd = """ + str(confPlants_cluster_rmsd) + """
 
         # Search speed
-        plants_search_speed = """ + confPlants_search_speed + """
+        plants_search_speed = """ + str(confPlants_search_speed) + """
 
         ################# DOCK6 PARAMETERS ##################
 
         # dock6 path
-        dock6 = """ + confDock6 + """
+        dock6 = """ + str(confDock6) + """
 
         # Path to the vdw defn file
-        dock6_vdw_defn_file = """ + confDock6_vdw_defn_file + """
+        dock6_vdw_defn_file = """ + str(confDock6_vdw_defn_file) + """
 
         # Path to the flex defn file
-        dock6_flex_defn_file = """ + confDock6_flex_defn_file + """
+        dock6_flex_defn_file = """ + str(confDock6_flex_defn_file) + """
 
         # Path to the flex drive file
-        dock6_flex_drive_file = """ + confDock6_flex_drive_file + """
+        dock6_flex_drive_file = """ + str(confDock6_flex_drive_file) + """
 
         ################## OTHER SOFTWARE ###################
 
         # MSMS program for the surface calculation
-        dssp = """ + confDssp + """
+        dssp = """ + str(confDssp) + """
 
         # Open Babel path
-        obabel = """ + confObabel + """
+        obabel = """ + str(confObabel) + """
 
         # SPORES path
-        spores = """ + confSpores + """
+        spores = """ + str(confSpores) + """
 
         # DUDEz download link
-        DUDEz = """ + confDUDEz + """
+        DUDEz = """ + str(confDUDEz) + """
         """))
 
     print(f"{clrs['g']}Configuration file created!{clrs['n']} If you need to change the paths you might want to {clrs['y']}EDIT ITS CONTENTS{clrs['n']} or delete the file and execute this routine again so that your environment variables are correctly set. To ensure that all variables are correctly set, please restart OCDocker.")
@@ -499,7 +496,6 @@ global dock6_flex_defn_file
 global dock6_flex_drive_file
 
 # Database + OCDocker variables
-global astex_archive
 global dudez_archive
 global ocdocker_path
 global pdbbind_archive
@@ -682,8 +678,11 @@ elif args.config_file:
     assert os.path.isfile(args.config_file), f"{clrs['r']}\n\n Not able to find configuration file.\n\n Does \"{args.config_file}\" exist?{clrs['n']}"
     config_file = args.config_file
 
+# Set the ocdb path as an empty string
+ocdb_path = ""
+
 # Read the conf file and assign its data to its variables (The order matters here, if you follow the same order which is in the conf file less computation power will be needed! It is not much, but it is something.)
-for line in open(config_file, "r"):
+for line in open(args.config_file, "r"):
     if line.startswith("ocdb ="):
         ocdb_path = line.split("=")[1].strip()
     elif line.startswith("pdbbind_KdKi_order ="):
@@ -772,8 +771,10 @@ for line in open(config_file, "r"):
 # Root directory for OCDocker module
 ocdocker_path = os.path.dirname(os.path.abspath( __file__ ))
 
-# Directory containing the astex archive
-astex_archive = os.path.join(ocdb_path, "Astex")
+# Check if the ocdb_path is defined in the config file (empty string means not defined)
+if not ocdb_path:
+    print(f"{clrs['r']}ERROR{clrs['n']}: The variable ocdb_path is not set in the config file '{args.config_file}'")
+    quit()
 
 # Directory containing the dudez archive
 dudez_archive = os.path.join(ocdb_path, "DUDEz")

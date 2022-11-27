@@ -16,11 +16,9 @@ import OCDocker.Smina as ocsmina
 import OCDocker.PLANTS as ocplants
 import OCDocker.Database as ocdb
 import OCDocker.baseDB as ocbdb
-import OCDocker.Astex as ocastex
 import OCDocker.DUDEz as ocdudez
 import OCDocker.PDBbind as ocpdbbind
 import OCDocker.Ligand as ocl
-import OCDocker.Complex as occ
 import OCDocker.Receptor as ocr
 import OCDocker.ExternalTools.runprank as runprank
 

@@ -2666,7 +2666,7 @@ def loadMol(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize: bool = True) 
                 # Only process if is not smiles format, because it demands a different approach
                 if extension not in [".smi", ".smiles"]:
                     # Process the ligand
-                    octools.convert2mol2(molecule, outputMoleculePath)
+                    octools.convertMols(molecule, outputMoleculePath)
 
                 if extension == ".pdb":
                     # If sanitize is off

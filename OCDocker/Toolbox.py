@@ -3,7 +3,6 @@
 # Imports
 ###############################################################################
 import os
-import sys
 import pickle
 import shutil
 import inspect
@@ -63,9 +62,8 @@ import OCDocker.Toolbox as octools
 # Classes
 ###############################################################################
 class DownloadProgressBar(tqdm):
-    """
-    Deal with the progress bar to track download. Extends the tqdm class.
-    """
+    """Deal with the progress bar to track download. Extends the tqdm class."""
+    
     def update_to(self, b: int = 1, bsize: int = 1, tsize: int = 0) -> None:
         '''Update the progress bar.
 
@@ -521,178 +519,6 @@ def print_sorry()-> None:
     return None
 
 ### Conversion functions
-
-def convert2mol2_legacy(input: str, output: str, logFile: str = "") -> int:
-    '''Convert a pdb/sdf/mol/smi file to '.mol2'. Uses external obabel software. [DEPRECATED]
-
-    Parameters
-    ----------
-    input : str
-        Input file name.
-    output : str
-        Output file name.
-    logFile : str
-        Log file name. Default is "".
-
-    Returns
-    -------
-    int
-        The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
-    '''
-
-    # Print verboosity
-    printv(f"Converting '{input}' to '.mol2'.")
-
-    if os.path.isfile(output):
-        return errors.file_exists(message=f"The file '{output}' already exists, aborting conversion.", level="warn")
-
-    # Allowed extensions
-    allowed = [".pdb", ".sdf", ".mol", ".smi"]
-
-    # Get input and output extensions
-    inputExtension = os.path.splitext(input)[1]
-    outputExtension = os.path.splitext(output)[1]
-
-    # Check if the input extension is supported
-    if not inputExtension in allowed:
-        return errors.wrong_type(f"The file '{input}' has not a supported extension. Found '{inputExtension}' and expected one of the following: {', '.join(allowed)}", level="warn")
-
-    # If the output has no extension
-    if outputExtension == "":
-        # Add a mol2 extension to it
-        output += ".mol2"
-
-    # Execute the obabel command according to the extension
-    if inputExtension == ".pdb":
-        cmd = ["obabel", "-ipdb", str(input), "-omol2", "-O", str(output)]
-    elif inputExtension == ".mol":
-        cmd = ["obabel", str(input), "-omol2", "-O", str(output)]
-    elif inputExtension == ".sdf":
-        cmd = ["obabel", "-isdf", str(input), "-omol2", "-O", str(output)]
-    elif inputExtension == ".smi":
-        cmd = ["obabel", "-ismi", str(input), "-omol2", "-O", str(output)]
-    else:
-        return errors.unknown(message="What are you expecting to see here? This code should NEVER execute! (BTW, this is from unsupported file extension...)", level="error")
-
-    # Return the execution code from the correct extension
-    return run(cmd, logFile=logFile)
-
-def convert2mol2(input: str, output: str) -> Union[int, str]:
-    '''Convert a pdb/sdf/mol/smi file to '.mol2'. [DEPRECATED]
-
-    Parameters
-    ----------
-    input : str
-        Input file name.
-    output : str
-        Output file name.
-
-    Returns
-    -------
-    int | str
-        The exit code of the command (based on the Error.py code table). If fails, returns the 
-
-    Raises
-    ------
-    None
-    '''
-
-    # Print verboosity
-    printv(f"Converting '{input}' to '.mol2'.")
-
-    # Find the extension for input and output
-    extension = validate_obabel_extension(input)
-    outExtension = os.path.splitext(output)[1]
-
-    # Check if the extension is valid
-    if type(extension) != str:
-        print_error(f"Problems while reading the molecule from file '{input}'.")
-        return extension
-
-    # Discover if the output extension is pdbqt (to warn user if it is not)
-    if outExtension != ".mol2":
-        print_warning(f"The output extension is not '.mol2', is {outExtension}. This function converts {clrs['r']}ONLY{clrs['n']} to '.mol2'. Please pay attention, since this might be a problem in the future for you!")
-
-    # Check if the output exists, if so, no need to convert
-    if os.path.isfile(output):
-        return errors.file_exists(message=f"The file '{output}' already exists, aborting conversion.", level="warn")
-    # Try to convert (if fails, throw exception for subprocess failing)
-    try:
-        # Create a conversor object
-        obConversion = openbabel.OBConversion()
-        # Set the conversion from the extension to pdbqt
-        obConversion.SetInAndOutFormats(extension, "mol2")
-        # Create an empty OBMol object
-        mol = openbabel.OBMol()
-        # Load the input file to the prebiusly loaded OBMol object
-        obConversion.ReadFile(mol, input)
-        # Write the mol object to the output performing the conversion
-        obConversion.WriteFile(mol, output)
-    except Exception as e:
-        return errors.subprocess(message=f"Error while running molecule conversion using obabel python lib. Error: {e}", level="error")
-    return errors.ok()
-
-def convert2pdb(input: str, output: str) -> Union[int, str]:
-    '''Convert a mol2/sdf/mol/smi file to '.pdb'. [DEPRECATED]
-
-    Parameters
-    ----------
-    input : str
-        Input file name.
-    output : str
-        Output file name.
-
-    Returns
-    -------
-    int | str
-        The exit code of the command (based on the Error.py code table) if fails or the extension of the input file otherwise.
-
-    Raises
-    ------
-    None
-    '''
-
-    # Print verboosity
-    printv(f"Converting '{input}' to '.pdb'.")
-
-    # Find the extension for input and output
-    extension = validate_obabel_extension(input)
-    outExtension = os.path.splitext(output)[1]
-
-    # Check if the extension is valid
-    if type(extension) != str:
-        print_error(f"Problems while reading the molecule from file '{input}'.")
-        return extension
-
-    # Discover if the output extension is pdbqt (to warn user if it is not)
-    if outExtension != ".pdb":
-        print_warning(f"The output extension is not '.pdb', is {outExtension}. This function converts {clrs['r']}ONLY{clrs['n']} to '.pdb'. Please pay attention, since this might be a problem in the future for you!")
-
-    # Check if the output exists, if so, no need to convert
-    if os.path.isfile(output):
-        return errors.file_exists(message=f"The file '{output}' already exists, aborting conversion.", level="warn")
-
-    # Try to convert (if fails, throw exception for subprocess failing)
-    try:
-        # Create a conversor object
-        obConversion = openbabel.OBConversion()
-        # Set the conversion from the extension to pdbqt
-        obConversion.SetInAndOutFormats(extension, "pdb")
-        # Create an empty OBMol object
-        mol = openbabel.OBMol()
-        # Load the input file to the prebiusly loaded OBMol object
-        obConversion.ReadFile(mol, input)
-        # Write the mol object to the output performing the conversion
-        obConversion.WriteFile(mol, output)
-    except Exception as e:
-        return errors.subprocess(message=f"Error while running molecule conversion using obabel python lib. Error: {e}", level="error")
-
-    return errors.ok()
-  
 def convertMolsFromString(input: str, output: str, mol: Union[rdkit.Chem.rdchem.Mol, None] = None) -> Union[int, str]: # type: ignore
     '''Currently only works with smiles. TODO: Add support to other formats.
 

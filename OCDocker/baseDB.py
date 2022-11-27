@@ -120,7 +120,7 @@ def __core_p2rank(dir: str, overwrite: bool, archive: str) -> None:
     overwrite : bool
         Flag for demanding file overwrite.
     archive : str
-        Which archive will be processed [dudez, pdbbind, astex].
+        Which archive will be processed [dudez, pdbbind].
 
     Returns
     -------
@@ -133,10 +133,7 @@ def __core_p2rank(dir: str, overwrite: bool, archive: str) -> None:
 
     fin = ""
 
-    if archive == "astex":
-        # Set the input file name path
-        fin = f"{dir}/protein.pdb"
-    elif archive == "dudez":
+    if archive == "dudez":
         # Set the input file name path
         fin = f"{dir}/rec.crg.pdb"
     elif archive == "pdbbind":
@@ -169,7 +166,7 @@ def __thread_p2rank(arguments: Tuple[str, bool, str]) -> None:
     Parameters
     ----------
     arguments : Tuple[str, bool, str]
-        Tuple with the arguments to be passed to __core_p2rank. The arguments are: (dir, overwrite, archive). Where dir is the path where the data is, overwrite is a flag for demanding file overwrite and archive is which archive will be processed [dudez, pdbbind, astex].
+        Tuple with the arguments to be passed to __core_p2rank. The arguments are: (dir, overwrite, archive). Where dir is the path where the data is, overwrite is a flag for demanding file overwrite and archive is which archive will be processed [dudez, pdbbind].
 
     Returns
     -------
@@ -184,8 +181,6 @@ def __thread_p2rank(arguments: Tuple[str, bool, str]) -> None:
     with octools.redirect_to_tqdm():
         # Call core prepare function (shared between thread and no thread)
         return __core_p2rank(arguments[0], arguments[1], arguments[2])
-    # Return
-    return None
 
 def __p2rank_parallel(dirs: List[str], overwrite: bool, archive: str, desc: str) -> None:
     '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
@@ -197,7 +192,7 @@ def __p2rank_parallel(dirs: List[str], overwrite: bool, archive: str, desc: str)
     overwrite: bool
         Flag for demanding file overwrite.
     archive: str
-        Which archive will be processed [dudez, pdbbind, astex].
+        Which archive will be processed [dudez, pdbbind].
     desc: str
         Description to be used in the progress bar.
 
@@ -235,7 +230,7 @@ def __p2rank_no_parallel(dirs: List[str], overwrite: bool, archive: str, desc: s
     overwrite: bool
         Flag for demanding file overwrite.
     archive: str
-        Which archive will be processed [dudez, pdbbind, astex].
+        Which archive will be processed [dudez, pdbbind].
     desc: str
         Description to be used in the progress bar.
 
@@ -507,7 +502,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
     overwrite : bool
         Flag for demanding file overwrite.
     archive : str
-        Which archive to use. Options are [dudez, pdbbind, astex].
+        Which archive to use. Options are [dudez, pdbbind].
     sanitize : bool
         Flag for demanding molecule sanitization.
     spacing : float
@@ -685,7 +680,7 @@ def __prepare_parallel(dirs: List[str], overwrite: bool, archive: str, sanitize:
     overwrite : bool
         If True, the function will overwrite the files if they already exists.
     archive : str
-        The archive name. Options are [astex, dudez, pdbbind].
+        The archive name. Options are [dudez, pdbbind].
     sanitize : bool
         If True, the function will sanitize the molecules.
     spacing : float
@@ -731,7 +726,7 @@ def __prepare_no_parallel(paths: List[str], overwrite: bool, archive: str, sanit
     overwrite : bool
         If True, the function will overwrite the files if they already exists.
     archive: str
-        The archive name. Options are [astex, dudez, pdbbind].
+        The archive name. Options are [dudez, pdbbind].
     sanitize : bool
         If True, the function will sanitize the molecules.
     spacing : float
@@ -778,7 +773,7 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
     ptn : str
         The protein name.
     archive : str
-        The archive name. Options are [astex, dudez, pdbbind].
+        The archive name. Options are [dudez, pdbbind].
     overwrite : bool, optional
         If True, overwrite the output file. Defaults to False.
 
@@ -866,7 +861,7 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
                     with lock:
                         # Run the prepare ligand
                         _ = vina.run_prepare_ligand(useOpenBabel = False) # useOpenBabel has proven to be a dangerous option, it is better to avoid its use for
-                        
+
                     # Check again if the generated ligand has size 0 or is invalid
                     if os.path.getsize(vina.preparedLigand) == 0 or not octools.is_molecule_valid(vina.preparedLigand):
                         errMsg = f"The prepare ligand script has made an output of 0kb again for ligand '{vina.preparedLigand}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(vina.prepareLigandCmd)}"
@@ -934,7 +929,7 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
     ptn : str
         The protein name.
     archive : str
-        The archive name. Options are [astex, dudez, pdbbind].
+        The archive name. Options are [dudez, pdbbind].
     overwrite : bool, optional
         If True, overwrite the output file. Defaults to False.
 
@@ -1066,7 +1061,7 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
     ptn : str
         The protein name.
     archive : str
-        The archive name. Options are [astex, dudez, pdbbind].
+        The archive name. Options are [dudez, pdbbind].
     overwrite : bool, optional
         If True, overwrite the output file. Defaults to False.
 
@@ -1219,7 +1214,7 @@ def __core_run_dock(path: str, ligandDir: str, archive: str, dockingAlgorithm: s
     path : str
         The path to the protein directory.
     archive : str
-        Which archive will be processed [dudez, pdbbind, astex].
+        Which archive will be processed [dudez, pdbbind].
     dockingAlgorithm : str
         Which docking algorithm will be used [vina, smina, plants].
     overwrite : bool
@@ -1333,7 +1328,7 @@ def __run_dock_parallel(complexList: List[Tuple[str, List[str]]], archive: str, 
     complexList : List[Tuple[str, List[str]]]
         A list of tuples with the path to the protein directory and a list of ligand directories.
     archive : str
-        Which archive will be processed [dudez, pdbbind, astex].
+        Which archive will be processed [dudez, pdbbind].
     dockingAlgorithm : str
         Which docking algorithm will be used [vina, smina, plants].
     overwrite : bool
@@ -1390,7 +1385,7 @@ def __run_dock_no_parallel(complexList: List[Tuple[str, List[str]]], archive: st
     complexList : List[Tuple[str, List[str]]]
         A list of tuples with the path to the protein directory and a list of ligand directories.
     archive : str
-        Which archive will be processed [dudez, pdbbind, astex].
+        Which archive will be processed [dudez, pdbbind].
     dockingAlgorithm : str
         Which docking algorithm will be used [vina, smina, plants].
     overwrite : bool
@@ -1669,7 +1664,7 @@ def __core_generate_dock_result_csv(processDir: str, log_dump: Dict[str, pd.Data
     ligand : str
         The ligand name.
     archive : str
-        Which archive will be processed [dudez, pdbbind, astex].
+        Which archive will be processed [dudez, pdbbind].
 
     Returns
     -------
@@ -1846,7 +1841,7 @@ def __generate_dock_result_csv_parallel(processDirs: List[Tuple[str, str, str, D
     processDirs : List[Tuple[str, str, str, Dict[str, pd.DataFrame]]]
         Dictionary containing the directories to process and the ligands to process. The dictionary is in the format: {ptn-ligand: log_dump}.
     archive : str
-        Which archive will be processed [dudez, pdbbind, astex].
+        Which archive will be processed [dudez, pdbbind].
     desc : str
         Description to be displayed in the progress bar.
 
@@ -1894,7 +1889,7 @@ def __generate_dock_result_csv_no_parallel(processDirs: List[Tuple[str, str, str
     processDirs : List[Tuple[str, str, str, Dict[str, pd.DataFrame]]]
         Dictionary containing the directories to process and the ligands to process. The dictionary is in the format: {ptn: log_dump}.
     archive : str
-        Which archive will be processed [dudez, pdbbind, astex].
+        Which archive will be processed [dudez, pdbbind].
     desc : str
         Description to be displayed in the progress bar.
         
@@ -1937,7 +1932,7 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str], ar
     processDirPackage : Tuple(str, str)
         Tuple containing the processDir and the package. The tuple is in the format: (processDir, receptor_descriptor_path).
     archive : str
-        Which archive will be processed [dudez, pdbbind, astex].
+        Which archive will be processed [dudez, pdbbind].
 
     Returns
     -------
@@ -2021,7 +2016,7 @@ def __merge_descriptors_in_dataframe_parallel(dirs: List[Tuple[str, str]], archi
     dirs : List[Tuple[str, str]]
         Tuple containing the directory where the files are stored and the receptor descriptor json file.
     archive : str
-        Which archive will be processed. [dudez, pdbbind, astex]
+        Which archive will be processed. [dudez, pdbbind]
     desc : str
         Description of the process.
 
@@ -2173,16 +2168,14 @@ def verify_integrity(chosenArchive: str, spacing: float = 0.33) -> None:
             ptn = dir.split(os.path.sep)[-1]
 
             # Set the input file name path and set the input file name path
-            if archive == "astex":
-                fin = f"{dir}/protein.pdb"
-            elif archive == "dudez":
+            if archive == "dudez":
                 fin = f"{dir}/rec.crg.pdb"
                 ligand = f""
             elif archive == "pdbbind":
                 fin = f"{dir}/{ptn}_protein.pdb"
                 ligand = f"{dir}/{ptn}_ligand.mol2"
             else:
-                octools.print_error(f"Unknown archive type, expected one of the following ['astex', 'dudez', 'pdbbind'] and got '{archive}'.")
+                octools.print_error(f"Unknown archive type, expected one of the following ['dudez', 'pdbbind'] and got '{archive}'.")
                 return
 
             octools.printv(f"Checking directories for the protein '{dir}'.")
@@ -2326,7 +2319,7 @@ def convert_debug_to_production(chosenArchive: str, chosenAlgorithm: str = "ac",
     Parameters
     ----------
     chosenArchive : str
-        The archive to be converted. The options are [dudez, pdbbind, astex].
+        The archive to be converted. The options are [dudez, pdbbind].
     chosenAlgorithm : str, optional
         The algorithm to be used in the pipeline. The default is "ac". The short code for the algorithms are
             AffinityPropagation: ap, 
@@ -2436,7 +2429,7 @@ def prepare(archive: str, overwrite: bool = False, spacing: float = 0.33, saniti
     Parameters
     ----------
     archive : str
-        The archive to be prepared. The options are [dudez, pdbbind, astex].
+        The archive to be prepared. The options are [dudez, pdbbind].
     overwrite : bool, optional
         If True overwrites the files, if False does not overwrite the files. The default is False.
     spacing : float, optional
@@ -2456,12 +2449,7 @@ def prepare(archive: str, overwrite: bool = False, spacing: float = 0.33, saniti
     # Make archive lowercase
     archive = os.path.basename(archive).lower()
     # Find which kind of archive it will be
-    if archive == "astex":
-        chosenArchive = astex_archive
-        label = f"Astex proteins"
-        # Get all paths in the database
-        paths = glob(f"{chosenArchive}/*")
-    elif archive == "dudez":
+    if archive == "dudez":
         chosenArchive = dudez_archive
         label = f"DUDEz proteins"
         # Get all paths in the database
@@ -2472,7 +2460,7 @@ def prepare(archive: str, overwrite: bool = False, spacing: float = 0.33, saniti
         # Get all paths in the database filtering for pdbbind
         paths = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index']]
     else:
-        octools.print_error(f"Not valid archive type. Expected one of ['astex', 'dudez', 'pdbbind'] and found {archive}.")
+        octools.print_error(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}.")
         return None
 
     # Generate boxes for all receptors
@@ -2494,7 +2482,7 @@ def run_p2rank(archive: str, overwrite: bool = False) -> None:
     Parameters
     ----------
     archive : str
-        The archive to be prepared. The options are [dudez, pdbbind, astex].
+        The archive to be prepared. The options are [dudez, pdbbind].
     overwrite : bool, optional
         If True overwrites the files, if False does not overwrite the files. The default is False.
 
@@ -2510,12 +2498,7 @@ def run_p2rank(archive: str, overwrite: bool = False) -> None:
     # Make archive lowercase
     archive = os.path.basename(archive).lower()
     # Find which kind of archive it will be
-    if archive == "astex":
-        chosenArchive = astex_archive
-        label = f"Astex proteins"
-        # Get all dirs paths in the database
-        dirs = glob(f"{chosenArchive}/*")
-    elif archive == "dudez":
+    if archive == "dudez":
         chosenArchive = dudez_archive
         label = f"DUDEz proteins"
         # Get all dirs paths in the database
@@ -2526,7 +2509,7 @@ def run_p2rank(archive: str, overwrite: bool = False) -> None:
         # Get all dirs paths in the database filtering for pdbbind
         dirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index']]
     else:
-        octools.print_error(f"Not valid archive type. Expected one of ['astex', 'dudez', 'pdbbind'] and found {archive}.")
+        octools.print_error(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}.")
         return None
     # Generate boxes for all receptors
     octools.printv("Generating P2Rank files.")
@@ -2545,7 +2528,7 @@ def run_dock(archive: str, dockingAlgorithm: str, overwrite: bool = False) -> in
     Parameters
     ----------
     archive : str
-        The archive to be prepared. The options are [dudez, pdbbind, astex].
+        The archive to be prepared. The options are [dudez, pdbbind].
     dockingAlgorithm : str
         The docking algorithm to be used. The options are [vina, smina, plants].
     overwrite : bool, optional
@@ -2566,14 +2549,12 @@ def run_dock(archive: str, dockingAlgorithm: str, overwrite: bool = False) -> in
 
     # TODO: add support to custom databases
     # Find which kind of archive it will be
-    if archive == "astex":
-        chosenArchive = astex_archive
-    elif archive == "dudez":
+    if archive == "dudez":
         chosenArchive = dudez_archive
     elif archive == "pdbbind":
         chosenArchive = pdbbind_archive
     else:
-        return errors.not_supported_archive(f"Not valid archive type. Expected one of ['astex', 'dudez', 'pdbbind'] and found {archive}.")
+        return errors.not_supported_archive(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}.")
 
     # TODO: add support to more docking algorithms
     # Check if the docking algorithm is valid
@@ -2609,7 +2590,7 @@ def read_logs(archive: str, picklePath: str = "") -> Union[Dict[str, Dict[str, p
     Parameters
     ----------
     archive : str
-        The archive to be prepared. The options are [dudez, pdbbind, astex].
+        The archive to be prepared. The options are [dudez, pdbbind].
     picklePath : str, optional
         The path to the pickle file. The default is "". If the picklePath is not empty, the function will write the data to the pickle file.
 
@@ -2626,14 +2607,12 @@ def read_logs(archive: str, picklePath: str = "") -> Union[Dict[str, Dict[str, p
     # Make archive lowercase
     archive = os.path.basename(archive).lower()
     # Find which kind of archive it will be
-    if archive == "astex":
-        chosenArchive = astex_archive
-    elif archive == "dudez":
+    if archive == "dudez":
         chosenArchive = dudez_archive
     elif archive == "pdbbind":
         chosenArchive = pdbbind_archive
     else:
-        octools.print_error(f"Not valid archive type. Expected one of ['astex', 'dudez', 'pdbbind'] and found {archive}.")
+        octools.print_error(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}.")
         return None
         
     # Create an empty list for all directories to be processed
@@ -2686,7 +2665,7 @@ def generate_dock_result_csv(archive: str, log_dumps: Dict[str, Dict[str, pd.Dat
     Parameters
     ----------
     archive : str
-        The archive to be prepared. The options are [dudez, pdbbind, astex].
+        The archive to be prepared. The options are [dudez, pdbbind].
     log_dumps : Dict[str, Dict[str, pd.DataFrame]]
         The data from the logfiles.
     csv_path : str
@@ -2707,17 +2686,14 @@ def generate_dock_result_csv(archive: str, log_dumps: Dict[str, Dict[str, pd.Dat
     processDirs = []
 
     # Check which archive is being used
-    if archive == "astex":
-        # Get protein dirs
-        ptnDirs = [d for d in glob(f"{astex_archive}/*") if os.path.isdir(d)]
-    elif archive == "dudez":
+    if archive == "dudez":
         # Get protein dirs
         ptnDirs = [d for d in glob(f"{dudez_archive}/*") if os.path.isdir(d)]
     elif archive == "pdbbind":
         # Get protein dirs
         ptnDirs = [d for d in glob(f"{pdbbind_archive}/*") if os.path.isdir(d)]
     else:
-        octools.print_error(f"Unknown archive type. Expected one of the following: 'astex', 'dudez', 'pdbbind' and got {archive}.")
+        octools.print_error(f"Unknown archive type. Expected one of the following: 'dudez', 'pdbbind' and got {archive}.")
         return None
 
     # For each protein in proteins
@@ -2748,7 +2724,7 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
     Parameters
     ----------
     archive : str
-        The archive to be prepared. The options are [dudez, pdbbind, astex].
+        The archive to be prepared. The options are [dudez, pdbbind].
     saveCsv : bool, optional
         If True, the csv will be saved. The default is True.
     
@@ -2765,15 +2741,13 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
     # Make archive lowercase
     archive = os.path.basename(archive).lower()
     # Find which kind of archive it will be
-    if archive == "astex":
-        chosenArchive = astex_archive
-    elif archive == "dudez":
+    if archive == "dudez":
         chosenArchive = dudez_archive
         # Parameterize the csvs paths
     elif archive == "pdbbind":
         chosenArchive = pdbbind_archive
     else:
-        octools.print_error(f"Not valid archive type. Expected one of ['astex', 'dudez', 'pdbbind'] and found {archive}.")
+        octools.print_error(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}.")
         return None
 
     # Parameterize the csvs paths (parsed_archive is defined in Initialise.py)
