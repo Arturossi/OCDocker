@@ -3,7 +3,6 @@
 # Imports
 ###############################################################################
 import os
-import time
 import shutil
 from typing import Dict, List, Tuple, Union
 
@@ -438,16 +437,18 @@ class PLANTS:
         os.chdir(tmpDir)
         # Run plants
         output = octools.run(self.plantsCmd, logFile=self.plantsLog)
-        # Sleep for 0.3 seconds
-        time.sleep(0.3)
         # Check if there is a PLANTS-*.pid file
         for pidFile in glob(f"{tmpDir}/PLANTS-*.pid"):
-            # Remove it
-            os.remove(pidFile)
+            # Check if the file exists
+            if os.path.isfile(pidFile):
+                # Remove it
+                os.remove(pidFile)
         # Check if there is a *bad*.mol2 file
         for badFile in glob(f"{tmpDir}/*bad.mol2"):
-            # Remove it
-            os.remove(badFile)
+            # Check if the file exists
+            if os.path.isfile(badFile):
+                # Remove it
+                os.remove(badFile)
         return output
 
     def run_prepare_ligand(self, logFile: str = "") -> int:
