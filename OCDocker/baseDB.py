@@ -252,73 +252,6 @@ def __p2rank_no_parallel(dirs: List[str], overwrite: bool, archive: str, desc: s
             gc.collect()
     return None
 
-
-### Box handling
-def __run_create_vina_conf_from_box(path: str, fin: str, boxPath: str = "") -> None:
-    '''Creates vina conf file from box.
-
-    Parameters
-    ----------
-    path : str
-        The path to the folder where the files will be generated.
-    fin : str
-        The path of the protein.
-    boxPath : str
-        The path to the box file. If empty, it will try to look for a p2rank dir inside <path>.
-
-    Returns
-    -------
-    None
-
-    Raises
-    ------
-    None
-    '''
-
-    # Create a lock for multithreading
-    lock = Lock()
-    # Start the lock with statement
-    with lock:
-        # Run vina
-        ocvina.generate_vina_files_database(path, fin, boxPath = boxPath)
-
-    return None
-
-def __run_create_plants_conf_from_box(path: str, fin: str, ligand: str, spacing: float, boxPath: str = "") -> None:
-    '''Creates PLANTS conf file from box.
-
-    Parameters
-    ----------
-    path : str
-        Directory of the protein to run p2rank.
-    protein : str
-        Protein path.
-    ligand : str
-        Ligand name to be used in conf file.
-    spacing : float
-        Extra spacing.
-    boxPath : str
-        The path to the box file. If empty, it will try to look for a p2rank dir inside <path>.
-
-    Returns
-    -------
-    None
-
-    Raises
-    ------
-    None
-    '''
-
-    # Create a lock for multithreading
-    lock = Lock()
-    # Start the lock with statement
-    with lock:
-        # Run vina
-        ocplants.generate_plants_files_database(path, fin, ligand, spacing, boxPath = boxPath)
-
-    return None
-
-
 ### Prepare
 def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str, dbName: str, sanitize: bool, molName: str = "", targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> None: # type: ignore
     '''Prepares a molecule, generating output to docking software.
@@ -1092,7 +1025,7 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
     # Check if all files have been processed
     for runPath in runPaths:
         # Get the run number
-        runNumber = runPath.split(os.path.sep)[-1]
+        #runNumber = runPath.split(os.path.sep)[-1]
         # Parameterizing paths
         plantsOutput = f"{runPath}/run"
         plantsRankingCsv = f"{plantsOutput}/ranking.csv"
@@ -2255,8 +2188,15 @@ def verify_integrity(chosenArchive: str, spacing: float = 0.33) -> None:
                 octools.print_warning(f"The protein '{dir}' has not the same amount of vina conf files as the amount of box files. Trying to fix...")
                 # If vina is needed, the input should be the prepared receptor
                 preparedReceptor = f"{dir}/{ptn}_protein.pdbqt"
-                # Run the vina conf creation from box
-                __run_create_vina_conf_from_box(dir, preparedReceptor)
+
+                boxPath = "" # TODO: Fix this
+
+                # Create a lock for multithreading
+                lock = Lock()
+                # Start the lock with statement
+                with lock:
+                    # Run vina
+                    ocvina.generate_vina_files_database(dir, fin, boxPath = boxPath)
 
                 # If there is not the same amount of box files as folders in vinaFiles folder (again)
                 if len([d for d in glob(f"{vinaDir}/*") if os.path.isdir(d)]) == boxCount:
@@ -2273,8 +2213,16 @@ def verify_integrity(chosenArchive: str, spacing: float = 0.33) -> None:
                 # If PLANTS is needed, the input should be the prepared receptor and ligand
                 preparedReceptor = f"{dir}/{ptn}_protein_prepared.mol2"
                 preparedLigand = f"{dir}/{ptn}_ligand_prepared.mol2"
-                # Generate box files
-                __run_create_plants_conf_from_box(dir, preparedReceptor, preparedLigand, spacing)
+
+                boxPath = "" # TODO: fix the path
+
+                # Create a lock for multithreading
+                lock = Lock()
+                # Start the lock with statement
+                with lock:
+                    # Generate box files
+                    ocplants.generate_plants_files_database(dir, fin, ligand, spacing, boxPath = boxPath)
+
                 # If there is not the same amount of box files as folders in vinaFiles folder (again)
                 if len([d for d in glob(f"{plantsDir}/*") if os.path.isdir(d)]):
                     octools.print_success(f"PLANTS conf files generated for '{dir}'.")
