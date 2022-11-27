@@ -866,22 +866,13 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
                     with lock:
                         # Run the prepare ligand
                         _ = vina.run_prepare_ligand(useOpenBabel = False) # useOpenBabel has proven to be a dangerous option, it is better to avoid its use for
-
-                    # Check if the generated ligand has size 0 or is invalid
+                        
+                    # Check again if the generated ligand has size 0 or is invalid
                     if os.path.getsize(vina.preparedLigand) == 0 or not octools.is_molecule_valid(vina.preparedLigand):
-                        errMsg = f"The prepare ligand script has made an output of 0kb for ligand '{vina.preparedLigand}', this is wierd. Trying to run it again."
+                        errMsg = f"The prepare ligand script has made an output of 0kb again for ligand '{vina.preparedLigand}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(vina.prepareLigandCmd)}"
 
-                        octools.print_warning_log(errMsg, f"{logdir}/{archive}_vina_run_report_WARNING.log")
-                        octools.print_warning(errMsg)
-
-                        # Run again the prepare ligand
-                        _ = vina.run_prepare_ligand(useOpenBabel=False) # useOpenBabel has proven to be a dangerous option, it is better to avoid its use for
-                        # Check again if the generated ligand has size 0 or is invalid
-                        if os.path.getsize(vina.preparedLigand) == 0 or not octools.is_molecule_valid(vina.preparedLigand):
-                            errMsg = f"The prepare ligand script has made an output of 0kb again for ligand '{vina.preparedLigand}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(vina.prepareLigandCmd)}"
-
-                            octools.print_error_log(errMsg, f"{logdir}/{archive}_vina_run_report_ERROR.log")
-                            return errors.ligand_not_prepared(errMsg, level = "error")
+                        octools.print_error_log(errMsg, f"{logdir}/{archive}_vina_run_report_ERROR.log")
+                        return errors.ligand_not_prepared(errMsg, level = "error")
 
                 # If prepared receptor has the overwrite flag on, does not exists, has size 0 or is not valid
                 if overwrite or not os.path.isfile(vina.preparedReceptor) or os.path.getsize(vina.preparedReceptor) == 0 or not octools.is_molecule_valid(vina.preparedReceptor):

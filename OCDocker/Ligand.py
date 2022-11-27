@@ -6,7 +6,7 @@ import os
 import json
 import rdkit
 
-from glob import glob
+from threading import Lock
 from typing import Dict, List, Tuple, Union
 from rdkit import Chem
 from rdkit import RDLogger
@@ -16,11 +16,12 @@ from rdkit.Chem import MACCSkeys
 from rdkit.Chem.SaltRemover import SaltRemover
 from rdkit.Chem.rdMolTransforms import ComputeCentroid
 
-
 from openbabel import openbabel
 
 from OCDocker.Initialise import *
 import OCDocker.Toolbox as octools
+
+from __future__ import annotations
 
 # Set output levels for openbabel
 ob_log_handler = openbabel.OBMessageHandler()
@@ -981,7 +982,6 @@ class Ligand:
             self.fr_thiophene = findfr_thiophene(self.molecule)
             self.fr_unbrch_alkane = findfr_unbrch_alkane(self.molecule)
             self.fr_urea = findfr_urea(self.molecule)
-
             #endregion
 
             self.FractionCSP3 = findFractionCSP3(self.molecule)
@@ -994,7 +994,6 @@ class Ligand:
             self.Kappa1 = findKappa1(self.molecule)
             self.Kappa2 = findKappa2(self.molecule)
             self.Kappa3 = findKappa3(self.molecule)
-
             #endregion
 
             self.LabuteASA = findLabuteASA(self.molecule)
@@ -1025,7 +1024,6 @@ class Ligand:
             self.NumValenceElectrons = findNumValenceElectrons(self.molecule)
             self.NumAliphaticCarbocycles = findNumAliphaticCarbocycles(self.molecule)
             self.RingCount = findRingCount(self.molecule)
-
             #endregion
 
             #region PEOE_VSA descriptors
@@ -1043,7 +1041,6 @@ class Ligand:
             self.PEOE_VSA12 = findPEOE_VSA12(self.molecule)
             self.PEOE_VSA13 = findPEOE_VSA13(self.molecule)
             self.PEOE_VSA14 = findPEOE_VSA14(self.molecule)
-
             #endregion
 
             self.qed = findqed(self.molecule)
@@ -1059,7 +1056,6 @@ class Ligand:
             self.SMR_VSA8 = findSMR_VSA8(self.molecule)
             self.SMR_VSA9 = findSMR_VSA9(self.molecule)
             self.SMR_VSA10 = findSMR_VSA10(self.molecule)
-
             #endregion
 
             #region SlogP_VSA descriptors
@@ -1075,7 +1071,6 @@ class Ligand:
             self.SlogP_VSA10 = findSlogP_VSA10(self.molecule)
             self.SlogP_VSA11 = findSlogP_VSA11(self.molecule)
             self.SlogP_VSA12 = findSlogP_VSA12(self.molecule)
-
             #endregion
 
             self.TPSA = findTPSA(self.molecule)
@@ -1091,7 +1086,6 @@ class Ligand:
             self.VSA_EState8 = findVSA_EState8(self.molecule)
             self.VSA_EState9 = findVSA_EState9(self.molecule)
             self.VSA_EState10 = findVSA_EState10(self.molecule)
-
             #endregion
 
             #region 3D descriptors
@@ -1110,7 +1104,6 @@ class Ligand:
             self.PMI3 = findPMI3(self.molecule)
             self.RadiusOfGyration = findRadiusOfGyration(self.molecule)
             self.SpherocityIndex = findSpherocityIndex(self.molecule)
-
             #endregion
 
     ## Private ##
@@ -2167,19 +2160,23 @@ class Ligand:
         
         return descriptors # type: ignore
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Union[int, float, str]]:
         '''Return all the properties for the Ligand object.
+
+        Parameters
+        ----------
+        None
 
         Returns
         -------
-        dict
+        Dict[str, Union[int, float, str]]
             A dictionary of all the properties for the Ligand object.
 
-        Input:
-          -
-        Return:
-          -
+        Raises
+        ------
+        None
         '''
+
         # Create new dict
         properties = dict()
         # Set Name, Path and molecule
@@ -2189,7 +2186,7 @@ class Ligand:
         # Combine both in one dict and return them
         return {**properties, **self.get_descriptors()}
 
-    def to_json(self, overwrite = False) -> int:
+    def to_json(self, overwrite: bool = False) -> int:
         '''Stores the descriptors as json to avoid the necessity of evaluate them many times.
 
         Parameters
@@ -2208,14 +2205,25 @@ class Ligand:
         '''
 
         try:
+            # Parameterize the path
             outputJson = f"{os.path.dirname(self.path)}/{self.name}_descriptors.json"
-            if not overwrite and os.path.isfile(outputJson):
-                return errors.file_exists(f"The file {outputJson} already exists and the overwrite flag is set to False, no file will be generated or overwrited.", "warn")
+            # Check if the file exists
             if os.path.isfile(outputJson):
+                # Check if the user wants to overwrite the file
+                if not overwrite:
+                    # If the file exists and overwrite is False, return the file exists error
+                    return errors.file_exists(f"The file {outputJson} already exists and the overwrite flag is set to False, no file will be generated or overwrited.", "warn")
+                # Warns the user that the file will be overwritten
                 _ = errors.file_exists(f"The file '{outputJson}' already exists. It will be OVERWRITED!!!")
+
             try:
-                with open(outputJson, "w") as outfile:
-                    json.dump(self.__safe_to_dict(), outfile)
+                # Create a lock for multithreading
+                lock = Lock()
+                with lock:
+                    # Open the file for writing
+                    with open(outputJson, "w") as outfile:
+                        # Write the json file
+                        json.dump(self.__safe_to_dict(), outfile)
                 return errors.ok()
             except Exception as e:
                 return errors.write_file(f"Problems while writing the file '{outputJson}' Error: {e}.")
@@ -2239,7 +2247,7 @@ class Ligand:
         None
         '''
 
-        #region if any attribute is None
+        #region if any attribute is None (will check for every attribute in the ligand object)
         if None in [self.name, self.path, self.AUTOCORR2D_1, self.AUTOCORR2D_2, self.AUTOCORR2D_3, self.AUTOCORR2D_4, self.AUTOCORR2D_5, self.AUTOCORR2D_6, self.AUTOCORR2D_7, self.AUTOCORR2D_8, self.AUTOCORR2D_9, self.AUTOCORR2D_10, self.AUTOCORR2D_11, self.AUTOCORR2D_12, self.AUTOCORR2D_13, self.AUTOCORR2D_14, self.AUTOCORR2D_15, self.AUTOCORR2D_16, self.AUTOCORR2D_17, self.AUTOCORR2D_18, self.AUTOCORR2D_19, self.AUTOCORR2D_20, self.AUTOCORR2D_21, self.AUTOCORR2D_22, self.AUTOCORR2D_23, self.AUTOCORR2D_24, self.AUTOCORR2D_25, self.AUTOCORR2D_26, self.AUTOCORR2D_27, self.AUTOCORR2D_28, self.AUTOCORR2D_29, self.AUTOCORR2D_30, self.AUTOCORR2D_31, self.AUTOCORR2D_32, self.AUTOCORR2D_33, self.AUTOCORR2D_34, self.AUTOCORR2D_35, self.AUTOCORR2D_36, self.AUTOCORR2D_37, self.AUTOCORR2D_38, self.AUTOCORR2D_39, self.AUTOCORR2D_40, self.AUTOCORR2D_41, self.AUTOCORR2D_42, self.AUTOCORR2D_43, self.AUTOCORR2D_44, self.AUTOCORR2D_45, self.AUTOCORR2D_46, self.AUTOCORR2D_47, self.AUTOCORR2D_48, self.AUTOCORR2D_49, self.AUTOCORR2D_50, self.AUTOCORR2D_51, self.AUTOCORR2D_52, self.AUTOCORR2D_53, self.AUTOCORR2D_54, self.AUTOCORR2D_55, self.AUTOCORR2D_56, self.AUTOCORR2D_57, self.AUTOCORR2D_58, self.AUTOCORR2D_59, self.AUTOCORR2D_60, self.AUTOCORR2D_61, self.AUTOCORR2D_62, self.AUTOCORR2D_63, self.AUTOCORR2D_64, self.AUTOCORR2D_65, self.AUTOCORR2D_66, self.AUTOCORR2D_67, self.AUTOCORR2D_68, self.AUTOCORR2D_69, self.AUTOCORR2D_70, self.AUTOCORR2D_71, self.AUTOCORR2D_72, self.AUTOCORR2D_73, self.AUTOCORR2D_74, self.AUTOCORR2D_75, self.AUTOCORR2D_76, self.AUTOCORR2D_77, self.AUTOCORR2D_78, self.AUTOCORR2D_79, self.AUTOCORR2D_80, self.AUTOCORR2D_81, self.AUTOCORR2D_82, self.AUTOCORR2D_83, self.AUTOCORR2D_84, self.AUTOCORR2D_85, self.AUTOCORR2D_86, self.AUTOCORR2D_87, self.AUTOCORR2D_88, self.AUTOCORR2D_89, self.AUTOCORR2D_90, self.AUTOCORR2D_91, self.AUTOCORR2D_92, self.AUTOCORR2D_93, self.AUTOCORR2D_94, self.AUTOCORR2D_95, self.AUTOCORR2D_96, self.AUTOCORR2D_97, self.AUTOCORR2D_98, self.AUTOCORR2D_99, self.AUTOCORR2D_100, self.AUTOCORR2D_101, self.AUTOCORR2D_102, self.AUTOCORR2D_103, self.AUTOCORR2D_104, self.AUTOCORR2D_105, self.AUTOCORR2D_106, self.AUTOCORR2D_107, self.AUTOCORR2D_108, self.AUTOCORR2D_109, self.AUTOCORR2D_110, self.AUTOCORR2D_111, self.AUTOCORR2D_112, self.AUTOCORR2D_113, self.AUTOCORR2D_114, self.AUTOCORR2D_115, self.AUTOCORR2D_116, self.AUTOCORR2D_117, self.AUTOCORR2D_118, self.AUTOCORR2D_119, self.AUTOCORR2D_120, self.AUTOCORR2D_121, self.AUTOCORR2D_122, self.AUTOCORR2D_123, self.AUTOCORR2D_124, self.AUTOCORR2D_125, self.AUTOCORR2D_126, self.AUTOCORR2D_127, self.AUTOCORR2D_128, self.AUTOCORR2D_129, self.AUTOCORR2D_130, self.AUTOCORR2D_131, self.AUTOCORR2D_132, self.AUTOCORR2D_133, self.AUTOCORR2D_134, self.AUTOCORR2D_135, self.AUTOCORR2D_136, self.AUTOCORR2D_137, self.AUTOCORR2D_138, self.AUTOCORR2D_139, self.AUTOCORR2D_140, self.AUTOCORR2D_141, self.AUTOCORR2D_142, self.AUTOCORR2D_143, self.AUTOCORR2D_144, self.AUTOCORR2D_145, self.AUTOCORR2D_146, self.AUTOCORR2D_147, self.AUTOCORR2D_148, self.AUTOCORR2D_149, self.AUTOCORR2D_150, self.AUTOCORR2D_151, self.AUTOCORR2D_152, self.AUTOCORR2D_153, self.AUTOCORR2D_154, self.AUTOCORR2D_155, self.AUTOCORR2D_156, self.AUTOCORR2D_157, self.AUTOCORR2D_158, self.AUTOCORR2D_159, self.AUTOCORR2D_160, self.AUTOCORR2D_161, self.AUTOCORR2D_162, self.AUTOCORR2D_163, self.AUTOCORR2D_164, self.AUTOCORR2D_165, self.AUTOCORR2D_166, self.AUTOCORR2D_167, self.AUTOCORR2D_168, self.AUTOCORR2D_169, self.AUTOCORR2D_170, self.AUTOCORR2D_171, self.AUTOCORR2D_172, self.AUTOCORR2D_173, self.AUTOCORR2D_174, self.AUTOCORR2D_175, self.AUTOCORR2D_176, self.AUTOCORR2D_177, self.AUTOCORR2D_178, self.AUTOCORR2D_179, self.AUTOCORR2D_180, self.AUTOCORR2D_181, self.AUTOCORR2D_182, self.AUTOCORR2D_183, self.AUTOCORR2D_184, self.AUTOCORR2D_185, self.AUTOCORR2D_186, self.AUTOCORR2D_187, self.AUTOCORR2D_188, self.AUTOCORR2D_189, self.AUTOCORR2D_190, self.AUTOCORR2D_191, self.AUTOCORR2D_192, self.BCUT2D_CHGHI, self.BCUT2D_CHGLO, self.BCUT2D_LOGPHI, self.BCUT2D_LOGPLOW, self.BCUT2D_MRHI, self.BCUT2D_MRLOW, self.BCUT2D_MWHI, self.BCUT2D_MWLOW, self.BalabanJ, self.BertzCT, self.Chi0, self.Chi0n, self.Chi0v, self.Chi1, self.Chi1n, self.Chi1v, self.Chi2n, self.Chi2v, self.Chi3n, self.Chi3v, self.Chi4n, self.Chi4v, self.EState_VSA1, self.EState_VSA2, self.EState_VSA3, self.EState_VSA4, self.EState_VSA5, self.EState_VSA6, self.EState_VSA7, self.EState_VSA8, self.EState_VSA9, self.EState_VSA10, self.EState_VSA11, self.MaxAbsEStateIndex, self.MaxEStateIndex, self.MinAbsEStateIndex, self.MinEStateIndex, self.ExactMolWt, self.FpDensityMorgan1, self.FpDensityMorgan2, self.FpDensityMorgan3, self.fr_Al_COO, self.fr_Al_OH, self.fr_Al_OH_noTert, self.fr_ArN, self.fr_Ar_COO, self.fr_Ar_N, self.fr_Ar_NH, self.fr_Ar_OH, self.fr_COO, self.fr_COO2, self.fr_C_O, self.fr_C_O_noCOO, self.fr_C_S, self.fr_HOCCN, self.fr_Imine, self.fr_NH0, self.fr_NH1, self.fr_NH2, self.fr_N_O, self.fr_Ndealkylation1, self.fr_Ndealkylation2, self.fr_Nhpyrrole, self.fr_SH, self.fr_aldehyde, self.fr_alkyl_carbamate, self.fr_alkyl_halide, self.fr_allylic_oxid, self.fr_amide, self.fr_amidine, self.fr_aniline, self.fr_aryl_methyl, self.fr_azide, self.fr_azo, self.fr_barbitur, self.fr_benzene, self.fr_benzodiazepine, self.fr_bicyclic, self.fr_diazo, self.fr_dihydropyridine, self.fr_epoxide, self.fr_ester, self.fr_ether, self.fr_furan, self.fr_guanido, self.fr_halogen, self.fr_hdrzine, self.fr_hdrzone, self.fr_imidazole, self.fr_imide, self.fr_isocyan, self.fr_isothiocyan, self.fr_ketone, self.fr_ketone_Topliss, self.fr_lactam, self.fr_lactone, self.fr_methoxy, self.fr_morpholine, self.fr_nitrile, self.fr_nitro, self.fr_nitro_arom, self.fr_nitro_arom_nonortho, self.fr_nitroso, self.fr_oxazole, self.fr_oxime, self.fr_para_hydroxylation, self.fr_phenol, self.fr_phenol_noOrthoHbond, self.fr_phos_acid, self.fr_phos_ester, self.fr_piperdine, self.fr_piperzine, self.fr_priamide, self.fr_prisulfonamd, self.fr_pyridine, self.fr_quatN, self.fr_sulfide, self.fr_sulfonamd, self.fr_sulfone, self.fr_term_acetylene, self.fr_tetrazole, self.fr_thiazole, self.fr_thiocyan, self.fr_thiophene, self.fr_unbrch_alkane, self.fr_urea, self.FractionCSP3, self.HallKierAlpha, self.HeavyAtomMolWt, self.HeavyAtomCount, self.Ipc, self.Kappa1, self.Kappa2, self.Kappa3, self.LabuteASA, self.MaxAbsPartialCharge, self.MaxPartialCharge, self.MinAbsPartialCharge, self.MinPartialCharge, self.MolLogP, self.MolMR, self.MolWt, self.NHOHCount, self.NOCount, self.NumAliphaticCarbocycles, self.NumAliphaticHeterocycles, self.NumAliphaticRings, self.NumAromaticCarbocycles, self.NumAromaticHeterocycles, self.NumAromaticRings, self.NumHAcceptors, self.NumHDonors, self.NumHeteroatoms, self.NumRadicalElectrons, self.NumRotatableBonds, self.NumSaturatedCarbocycles, self.NumSaturatedHeterocycles, self.NumSaturatedRings, self.NumValenceElectrons, self.PEOE_VSA1, self.PEOE_VSA2, self.PEOE_VSA3, self.PEOE_VSA4, self.PEOE_VSA5, self.PEOE_VSA6, self.PEOE_VSA7, self.PEOE_VSA8, self.PEOE_VSA9, self.PEOE_VSA10, self.PEOE_VSA11, self.PEOE_VSA12, self.PEOE_VSA13, self.PEOE_VSA14, self.qed, self.RingCount, self.SMR_VSA1, self.SMR_VSA2, self.SMR_VSA3, self.SMR_VSA4, self.SMR_VSA5, self.SMR_VSA6, self.SMR_VSA7, self.SMR_VSA8, self.SMR_VSA9, self.SMR_VSA10, self.SlogP_VSA1, self.SlogP_VSA2, self.SlogP_VSA3, self.SlogP_VSA4, self.SlogP_VSA5, self.SlogP_VSA6, self.SlogP_VSA7, self.SlogP_VSA8, self.SlogP_VSA9, self.SlogP_VSA10, self.SlogP_VSA11, self.SlogP_VSA12, self.TPSA, self.VSA_EState1, self.VSA_EState2, self.VSA_EState3, self.VSA_EState4, self.VSA_EState5, self.VSA_EState6, self.VSA_EState7, self.VSA_EState8, self.VSA_EState9, self.VSA_EState10]:
             return False
         #endregion
@@ -2265,12 +2273,12 @@ class Ligand:
 
         return get_smiles(self.molecule)
 
-    def is_same_molecule(self, molecule, sanitize = True) -> Union[bool, int]:
+    def is_same_molecule(self, molecule: Union[rdkit.Chem.rdchem.Mol, Ligand], sanitize: bool = True) -> Union[bool, int]: # type: ignore
         '''Compare two molecules to check if they are the same using their MACCSkeys.
 
         Parameters
         ----------
-        molecule : rdkit.Chem.rdchem.Mol/ocl.Ligand
+        molecule : rdkit.Chem.rdchem.Mol | ocl.Ligand
             The molecule to compare with.
         sanitize : bool, optional
             Flag to allow, or not, molecules sanitization. (default is True)
@@ -2305,12 +2313,12 @@ class Ligand:
             # Return False
             return False
 
-    def is_same_molecule_SMILES(self, molecule, sanitize = True) -> Union[bool, int]:
+    def is_same_molecule_SMILES(self, molecule: Union[rdkit.Chem.rdchem.Mol, Ligand], sanitize: bool = True) -> Union[bool, int]: # type: ignore
         '''Compare two molecules to check if they are the same using their SMILES and FpDensityMorgan 1 2 and 3.
 
         Parameters
         ----------
-        molecule : rdkit.Chem.rdchem.Mol/ocl.Ligand
+        molecule : rdkit.Chem.rdchem.Mol | ocl.Ligand
             The molecule to compare with.
         sanitize : bool, optional
             Flag to allow, or not, molecules sanitization. (default is True)
@@ -2357,7 +2365,7 @@ class Ligand:
             # Return False
             return False
 
-    def get_centroid(self, sanitize = True) -> rdkit.Geometry.rdGeometry.Point3D: # type: ignore
+    def get_centroid(self, sanitize: bool = True) -> rdkit.Geometry.rdGeometry.Point3D: # type: ignore
         '''Get the centroid of the molecule.
 
         Parameters
@@ -2501,9 +2509,15 @@ class Ligand:
 ## Private ##
 
 ## Public ##
-def splitMolecules(molecule, outputDir="", prefix="ligand"):
-    '''
-    Given a molecule file, checks if it has more than one ligand, if positive, splits the file into multiple single molecule files. Uses openbabel python library.
+def splitMolecules(molecule: str, outputDir: str = "", prefix: str = "ligand") -> List[str]:
+    '''Given a molecule file, checks if it has more than one ligand, if positive, splits the file into multiple single molecule files. Uses openbabel python library. TODO: Make this function work better with the new database structure.
+
+    Parameters
+    ----------
+    molecule : str
+        The path to the molecule file.
+    outputDir : str, optional
+        The path to the output directory, by default ""
     Input:
       molecule  [string]                   - Path to the molecule.
       outputDir [string] DEFAULT: ""       - The output directory. If it is empty the outputDir will be the input dir plus an extra dir called ligand.
@@ -2516,14 +2530,16 @@ def splitMolecules(molecule, outputDir="", prefix="ligand"):
     ligand_files = []
     # Grab the extension and path
     extension = octools.validate_obabel_extension(molecule)
-    path = os.path.split(os.path.abspath(molecule))[0]
+
+    # If the outputDir is not defined
+    if not outputDir:
+        # Set it as the same dir as the ligand
+        outputDir = f"{os.path.split(os.path.abspath(molecule))[0]}/compounds"
+
     # Check if the extension is valid
     if type(extension) != str:
         octools.print_error(f"Problems while reading the ligand file '{molecule}'.")
     else:
-        # Check if outputDir is not set
-        if not outputDir:
-            outputDir = f"{path}/ligands"
         # Create the conversion object
         obConversion = openbabel.OBConversion()
         # Set the input/output format
@@ -2551,14 +2567,23 @@ def splitMolecules(molecule, outputDir="", prefix="ligand"):
     return ligand_files
 
 def multipleMoleculesSDF(molecule: rdkit.Chem.rdchem.Mol) -> List[Ligand]: # type: ignore
+    '''Parse a .sdf or .mol2 file with multiple molecules returning a list of ligands.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule object.
+
+    Returns
+    -------
+    List[Ligand]
+        A list of ligands.
+
+    Raises
+    ------
+    None
     '''
-    Parse a .sdf or .mol2 file with multiple molecules returning a list of ligands.
-    Input:
-      molecule [string/rdkit.Chem.rdchem.Mol] - If a path is provided, parse the molecule (only for single) and return the rdkit.Chem.rdchem.Mol object. If the molecule is a rdkit.Chem.rdchem.Mol object, return itself.
-    Return:
-      [list(Ligand)] - A list of Ligand objects.
-      [None]         - If any problem occurs.
-    '''
+
     # List to hold multiple Ligand objects
     ligands = []
     # Check if the path is a string (it is assumed that the provided path is already a sdf)
@@ -2791,6 +2816,7 @@ def read_descriptors_from_json(path: str, returnDict: bool = False) -> Union[Dic
             return data
 
         # Since we have all keys, read them and return their values
+        #region Return the data
         return data["Name"], data["AUTOCORR2D_1"], data["AUTOCORR2D_2"], data["AUTOCORR2D_3"], data["AUTOCORR2D_4"], data["AUTOCORR2D_5"], data["AUTOCORR2D_6"], data["AUTOCORR2D_7"], data["AUTOCORR2D_8"], data["AUTOCORR2D_9"], data["AUTOCORR2D_10"], data["AUTOCORR2D_11"], data["AUTOCORR2D_12"], data["AUTOCORR2D_13"], data["AUTOCORR2D_14"], data["AUTOCORR2D_15"], data["AUTOCORR2D_16"], data["AUTOCORR2D_17"], data["AUTOCORR2D_18"], data["AUTOCORR2D_19"], data["AUTOCORR2D_20"], data["AUTOCORR2D_21"], data["AUTOCORR2D_22"], data["AUTOCORR2D_23"], data["AUTOCORR2D_24"], data["AUTOCORR2D_25"], data["AUTOCORR2D_26"], data["AUTOCORR2D_27"], data["AUTOCORR2D_28"], data["AUTOCORR2D_29"], data["AUTOCORR2D_30"], data["AUTOCORR2D_31"], data["AUTOCORR2D_32"], data["AUTOCORR2D_33"], data["AUTOCORR2D_34"], data["AUTOCORR2D_35"], data["AUTOCORR2D_36"], data["AUTOCORR2D_37"], data["AUTOCORR2D_38"], data["AUTOCORR2D_39"], data["AUTOCORR2D_40"], data["AUTOCORR2D_41"], data["AUTOCORR2D_42"], data["AUTOCORR2D_43"], data["AUTOCORR2D_44"], data["AUTOCORR2D_45"], data["AUTOCORR2D_46"], data["AUTOCORR2D_47"], data["AUTOCORR2D_48"], data["AUTOCORR2D_49"], data["AUTOCORR2D_50"], data["AUTOCORR2D_51"], data["AUTOCORR2D_52"], data["AUTOCORR2D_53"], data["AUTOCORR2D_54"], data["AUTOCORR2D_55"], data["AUTOCORR2D_56"], data["AUTOCORR2D_57"], data["AUTOCORR2D_58"], data["AUTOCORR2D_59"], data["AUTOCORR2D_60"], data["AUTOCORR2D_61"], data["AUTOCORR2D_62"], data["AUTOCORR2D_63"], data["AUTOCORR2D_64"], data["AUTOCORR2D_65"], data["AUTOCORR2D_66"], data["AUTOCORR2D_67"], data["AUTOCORR2D_68"], data["AUTOCORR2D_69"], data["AUTOCORR2D_70"], data["AUTOCORR2D_71"], data["AUTOCORR2D_72"], data["AUTOCORR2D_73"], data["AUTOCORR2D_74"], data["AUTOCORR2D_75"], data["AUTOCORR2D_76"], data["AUTOCORR2D_77"], data["AUTOCORR2D_78"], data["AUTOCORR2D_79"], data["AUTOCORR2D_80"], data["AUTOCORR2D_81"], data["AUTOCORR2D_82"], data["AUTOCORR2D_83"], data["AUTOCORR2D_84"], data["AUTOCORR2D_85"], data["AUTOCORR2D_86"], data["AUTOCORR2D_87"], data["AUTOCORR2D_88"], data["AUTOCORR2D_89"], data["AUTOCORR2D_90"], data["AUTOCORR2D_91"], data["AUTOCORR2D_92"], data["AUTOCORR2D_93"], data["AUTOCORR2D_94"], data["AUTOCORR2D_95"], data["AUTOCORR2D_96"], data["AUTOCORR2D_97"], data["AUTOCORR2D_98"], data["AUTOCORR2D_99"], data["AUTOCORR2D_100"], data["AUTOCORR2D_101"], data["AUTOCORR2D_102"], data["AUTOCORR2D_103"], data["AUTOCORR2D_104"], data["AUTOCORR2D_105"], data["AUTOCORR2D_106"], data["AUTOCORR2D_107"], data["AUTOCORR2D_108"], data["AUTOCORR2D_109"], data["AUTOCORR2D_110"], data["AUTOCORR2D_111"], data["AUTOCORR2D_112"], data["AUTOCORR2D_113"], data["AUTOCORR2D_114"], data["AUTOCORR2D_115"], data["AUTOCORR2D_116"], data["AUTOCORR2D_117"], data["AUTOCORR2D_118"], data["AUTOCORR2D_119"], data["AUTOCORR2D_120"], data["AUTOCORR2D_121"], data["AUTOCORR2D_122"], data["AUTOCORR2D_123"], data["AUTOCORR2D_124"], data["AUTOCORR2D_125"], data["AUTOCORR2D_126"], data["AUTOCORR2D_127"], data["AUTOCORR2D_128"], data["AUTOCORR2D_129"], data["AUTOCORR2D_130"], data["AUTOCORR2D_131"], data["AUTOCORR2D_132"], data["AUTOCORR2D_133"], data["AUTOCORR2D_134"], data["AUTOCORR2D_135"], data["AUTOCORR2D_136"], data["AUTOCORR2D_137"], data["AUTOCORR2D_138"], data["AUTOCORR2D_139"], data["AUTOCORR2D_140"], data["AUTOCORR2D_141"], data["AUTOCORR2D_142"], data["AUTOCORR2D_143"], data["AUTOCORR2D_144"], data["AUTOCORR2D_145"], data["AUTOCORR2D_146"], data["AUTOCORR2D_147"], data["AUTOCORR2D_148"], data["AUTOCORR2D_149"], data["AUTOCORR2D_150"], data["AUTOCORR2D_151"], data["AUTOCORR2D_152"], data["AUTOCORR2D_153"], data["AUTOCORR2D_154"], data["AUTOCORR2D_155"], data["AUTOCORR2D_156"], data["AUTOCORR2D_157"], data["AUTOCORR2D_158"], data["AUTOCORR2D_159"], data["AUTOCORR2D_160"], data["AUTOCORR2D_161"], data["AUTOCORR2D_162"], data["AUTOCORR2D_163"], data["AUTOCORR2D_164"], data["AUTOCORR2D_165"], data["AUTOCORR2D_166"], data["AUTOCORR2D_167"], data["AUTOCORR2D_168"], data["AUTOCORR2D_169"], data["AUTOCORR2D_170"], data["AUTOCORR2D_171"], data["AUTOCORR2D_172"], data["AUTOCORR2D_173"], data["AUTOCORR2D_174"], data["AUTOCORR2D_175"], data["AUTOCORR2D_176"], data["AUTOCORR2D_177"], data["AUTOCORR2D_178"], data["AUTOCORR2D_179"], data["AUTOCORR2D_180"], data["AUTOCORR2D_181"], data["AUTOCORR2D_182"], data["AUTOCORR2D_183"], data["AUTOCORR2D_184"], data["AUTOCORR2D_185"], data["AUTOCORR2D_186"], data["AUTOCORR2D_187"], data["AUTOCORR2D_188"], data["AUTOCORR2D_189"], data["AUTOCORR2D_190"], data["AUTOCORR2D_191"], data["AUTOCORR2D_192"], data["BCUT2D_CHGHI"], data["BCUT2D_CHGLO"], data["BCUT2D_LOGPHI"], data["BCUT2D_LOGPLOW"], data["BCUT2D_MRHI"], data["BCUT2D_MRLOW"], data["BCUT2D_MWHI"], data["BCUT2D_MWLOW"], data["BalabanJ"], data["BertzCT"], data["Chi0"], data["Chi0n"], data["Chi0v"], data["Chi1"], data["Chi1n"], data["Chi1v"], data["Chi2n"], data["Chi2v"], data["Chi3n"], data["Chi3v"], data["Chi4n"], data["Chi4v"], data["EState_VSA1"], data["EState_VSA2"], data["EState_VSA3"], data["EState_VSA4"], data["EState_VSA5"], data["EState_VSA6"], data["EState_VSA7"], data["EState_VSA8"], data["EState_VSA9"], data["EState_VSA10"], data["EState_VSA11"], data["MaxAbsEStateIndex"], data["MaxEStateIndex"], data["MinAbsEStateIndex"], data["MinEStateIndex"], data["ExactMolWt"], data["FpDensityMorgan1"], data["FpDensityMorgan2"], data["FpDensityMorgan3"], data["fr_Al_COO"], data["fr_Al_OH"], data["fr_Al_OH_noTert"], data["fr_ArN"], data["fr_Ar_COO"], data["fr_Ar_N"], data["fr_Ar_NH"], data["fr_Ar_OH"], data["fr_COO"], data["fr_COO2"], data["fr_C_O"], data["fr_C_O_noCOO"], data["fr_C_S"], data["fr_HOCCN"], data["fr_Imine"], data["fr_NH0"], data["fr_NH1"], data["fr_NH2"], data["fr_N_O"], data["fr_Ndealkylation1"], data["fr_Ndealkylation2"], data["fr_Nhpyrrole"], data["fr_SH"], data["fr_aldehyde"], data["fr_alkyl_carbamate"], data["fr_alkyl_halide"], data["fr_allylic_oxid"], data["fr_amide"], data["fr_amidine"], data["fr_aniline"], data["fr_aryl_methyl"], data["fr_azide"], data["fr_azo"], data["fr_barbitur"], data["fr_benzene"], data["fr_benzodiazepine"], data["fr_bicyclic"], data["fr_diazo"], data["fr_dihydropyridine"], data["fr_epoxide"], data["fr_ester"], data["fr_ether"], data["fr_furan"], data["fr_guanido"], data["fr_halogen"], data["fr_hdrzine"], data["fr_hdrzone"], data["fr_imidazole"], data["fr_imide"], data["fr_isocyan"], data["fr_isothiocyan"], data["fr_ketone"], data["fr_ketone_Topliss"], data["fr_lactam"], data["fr_lactone"], data["fr_methoxy"], data["fr_morpholine"], data["fr_nitrile"], data["fr_nitro"], data["fr_nitro_arom"], data["fr_nitro_arom_nonortho"], data["fr_nitroso"], data["fr_oxazole"], data["fr_oxime"], data["fr_para_hydroxylation"], data["fr_phenol"], data["fr_phenol_noOrthoHbond"], data["fr_phos_acid"], data["fr_phos_ester"], data["fr_piperdine"], data["fr_piperzine"], data["fr_priamide"], data["fr_prisulfonamd"], data["fr_pyridine"], data["fr_quatN"], data["fr_sulfide"], data["fr_sulfonamd"], data["fr_sulfone"], data["fr_term_acetylene"], data["fr_tetrazole"], data["fr_thiazole"], data["fr_thiocyan"], data["fr_thiophene"], data["fr_unbrch_alkane"], data["fr_urea"], data["FractionCSP3"], data["HallKierAlpha"], data["HeavyAtomMolWt"], data["HeavyAtomCount"], data["Ipc"], data["Kappa1"], data["Kappa2"], data["Kappa3"], data["LabuteASA"], data["MaxAbsPartialCharge"], data["MaxPartialCharge"], data["MinAbsPartialCharge"], data["MinPartialCharge"], data["MolLogP"], data["MolMR"], data["MolWt"], data["NHOHCount"], data["NOCount"], data["NumAliphaticCarbocycles"], data["NumAliphaticHeterocycles"], data["NumAliphaticRings"], data["NumAromaticCarbocycles"], data["NumAromaticHeterocycles"], data["NumAromaticRings"], data["NumHAcceptors"], data["NumHDonors"], data["NumHeteroatoms"], data["NumRadicalElectrons"], data["NumRotatableBonds"], data["NumSaturatedCarbocycles"], data["NumSaturatedHeterocycles"], data["NumSaturatedRings"], data["NumValenceElectrons"], data["PEOE_VSA1"], data["PEOE_VSA2"], data["PEOE_VSA3"], data["PEOE_VSA4"], data["PEOE_VSA5"], data["PEOE_VSA6"], data["PEOE_VSA7"], data["PEOE_VSA8"], data["PEOE_VSA9"], data["PEOE_VSA10"], data["PEOE_VSA11"], data["PEOE_VSA12"], data["PEOE_VSA13"], data["PEOE_VSA14"], data["qed"], data["RingCount"], data["SMR_VSA1"], data["SMR_VSA2"], data["SMR_VSA3"], data["SMR_VSA4"], data["SMR_VSA5"], data["SMR_VSA6"], data["SMR_VSA7"], data["SMR_VSA8"], data["SMR_VSA9"], data["SMR_VSA10"], data["SlogP_VSA1"], data["SlogP_VSA2"], data["SlogP_VSA3"], data["SlogP_VSA4"], data["SlogP_VSA5"], data["SlogP_VSA6"], data["SlogP_VSA7"], data["SlogP_VSA8"], data["SlogP_VSA9"], data["SlogP_VSA10"], data["SlogP_VSA11"], data["SlogP_VSA12"], data["TPSA"], data["VSA_EState1"], data["VSA_EState2"], data["VSA_EState3"], data["VSA_EState4"], data["VSA_EState5"], data["VSA_EState6"], data["VSA_EState7"], data["VSA_EState8"], data["VSA_EState9"], data["VSA_EState10"], data["AUTOCORR3D_1"], data["AUTOCORR3D_2"], data["AUTOCORR3D_3"], data["AUTOCORR3D_4"], data["AUTOCORR3D_5"], data["AUTOCORR3D_6"], data["AUTOCORR3D_7"], data["AUTOCORR3D_8"], data["AUTOCORR3D_9"], data["AUTOCORR3D_10"], data["AUTOCORR3D_11"], data["AUTOCORR3D_12"], data["AUTOCORR3D_13"], data["AUTOCORR3D_14"], data["AUTOCORR3D_15"], data["AUTOCORR3D_16"], data["AUTOCORR3D_17"], data["AUTOCORR3D_18"], data["AUTOCORR3D_19"], data["AUTOCORR3D_20"], data["AUTOCORR3D_21"], data["AUTOCORR3D_22"], data["AUTOCORR3D_23"], data["AUTOCORR3D_24"], data["AUTOCORR3D_25"], data["AUTOCORR3D_26"], data["AUTOCORR3D_27"], data["AUTOCORR3D_28"], data["AUTOCORR3D_29"], data["AUTOCORR3D_30"], data["AUTOCORR3D_31"], data["AUTOCORR3D_32"], data["AUTOCORR3D_33"], data["AUTOCORR3D_34"], data["AUTOCORR3D_35"], data["AUTOCORR3D_36"], data["AUTOCORR3D_37"], data["AUTOCORR3D_38"], data["AUTOCORR3D_39"], data["AUTOCORR3D_40"], data["AUTOCORR3D_41"], data["AUTOCORR3D_42"], data["AUTOCORR3D_43"], data["AUTOCORR3D_44"], data["AUTOCORR3D_45"], data["AUTOCORR3D_46"], data["AUTOCORR3D_47"], data["AUTOCORR3D_48"], data["AUTOCORR3D_49"], data["AUTOCORR3D_50"], data["AUTOCORR3D_51"], data["AUTOCORR3D_52"], data["AUTOCORR3D_53"], data["AUTOCORR3D_54"], data["AUTOCORR3D_55"], data["AUTOCORR3D_56"], data["AUTOCORR3D_57"], data["AUTOCORR3D_58"], data["AUTOCORR3D_59"], data["AUTOCORR3D_60"], data["AUTOCORR3D_61"], data["AUTOCORR3D_62"], data["AUTOCORR3D_63"], data["AUTOCORR3D_64"], data["AUTOCORR3D_65"], data["AUTOCORR3D_66"], data["AUTOCORR3D_67"], data["AUTOCORR3D_68"], data["AUTOCORR3D_69"], data["AUTOCORR3D_70"], data["AUTOCORR3D_71"], data["AUTOCORR3D_72"], data["AUTOCORR3D_73"], data["AUTOCORR3D_74"], data["AUTOCORR3D_75"], data["AUTOCORR3D_76"], data["AUTOCORR3D_77"], data["AUTOCORR3D_78"], data["AUTOCORR3D_79"], data["AUTOCORR3D_80"], data["Asphericity"], data["Eccentricity"], data["InertialShapeFactor"], data["NPR1"], data["NPR2"], data["PMI1"], data["PMI2"], data["PMI3"], data["RadiusOfGyration"], data["SpherocityIndex"] # type: ignore
         #endregion
         
@@ -2800,9 +2826,10 @@ def read_descriptors_from_json(path: str, returnDict: bool = False) -> Union[Dic
     # General error (call it as problem to read file)
     except Exception as e:
         octools.print_error(f"Could not read the file '{path}'. Error: {e}")
+
     return None
 
-def get_smiles(molecule) -> Union[str, int]:
+def get_smiles(molecule: rdkit.Chem.rdchem.Mol) -> Union[str, int]: # type: ignore
     '''Return the smiles of the molecule
 
     Parameters
@@ -2828,35 +2855,35 @@ def get_smiles(molecule) -> Union[str, int]:
     return errors.not_set(f"The variable is not set.")
 
 def get_centroid(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize = True) -> rdkit.Geometry.rdGeometry.Point3D: # type: ignore
-        '''Get the centroid of the molecule.
+    '''Get the centroid of the molecule.
 
-        Parameters
-        ----------
-        molecule : str | rdkit.Chem.rdchem.Mol
-            The molecule to get the centroid or its path.
-        sanitize : bool, optional
-            If the molecule should be sanitized, by default True.
+    Parameters
+    ----------
+    molecule : str | rdkit.Chem.rdchem.Mol
+        The molecule to get the centroid or its path.
+    sanitize : bool, optional
+        If the molecule should be sanitized, by default True.
 
-        Returns
-        -------
-        rdkit.Geometry.rdGeometry.Point3D
-            The centroid of the molecule.
+    Returns
+    -------
+    rdkit.Geometry.rdGeometry.Point3D
+        The centroid of the molecule.
 
-        Raises
-        ------
-        None
-        '''
+    Raises
+    ------
+    None
+    '''
 
-        # Check if the molecule is a string (means that it is a path)
-        if type(molecule) == str:
-            # Load it
-            _, molecule = loadMol(molecule, sanitize = sanitize)
+    # Check if the molecule is a string (means that it is a path)
+    if type(molecule) == str:
+        # Load it
+        _, molecule = loadMol(molecule, sanitize = sanitize)
 
-        # Get the molecule conformer
-        conf = molecule.GetConformer() # type: ignore
+    # Get the molecule conformer
+    conf = molecule.GetConformer() # type: ignore
 
-        # Compute the centroid of the molecule and return it
-        return ComputeCentroid(conf)
+    # Compute the centroid of the molecule and return it
+    return ComputeCentroid(conf)
 
 
 # Descriptors functions #
@@ -7426,14 +7453,23 @@ def findAUTOCORR2D_169(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_170(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_170 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_170 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_170 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_170 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_170(molecule) # type: ignore
@@ -7444,14 +7480,23 @@ def findAUTOCORR2D_170(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_171(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_171 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_171 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_171 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_171 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_171(molecule) # type: ignore
@@ -7462,14 +7507,23 @@ def findAUTOCORR2D_171(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_172(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_172 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_172 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_172 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_172 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_172(molecule) # type: ignore
@@ -7480,14 +7534,23 @@ def findAUTOCORR2D_172(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_173(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_173 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_173 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_173 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_173 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_173(molecule) # type: ignore
@@ -7498,14 +7561,23 @@ def findAUTOCORR2D_173(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_174(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_174 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_174 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_174 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_174 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_174(molecule) # type: ignore
@@ -7516,14 +7588,23 @@ def findAUTOCORR2D_174(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_175(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_175 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_175 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_175 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_175 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_175(molecule) # type: ignore
@@ -7534,14 +7615,23 @@ def findAUTOCORR2D_175(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_176(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_176 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_176 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_176 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_176 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_176(molecule) # type: ignore
@@ -7552,14 +7642,23 @@ def findAUTOCORR2D_176(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_177(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_177 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_177 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_177 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_177 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_177(molecule) # type: ignore
@@ -7570,14 +7669,23 @@ def findAUTOCORR2D_177(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_178(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_178 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_178 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_178 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_178 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_178(molecule) # type: ignore
@@ -7588,14 +7696,23 @@ def findAUTOCORR2D_178(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_179(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_179 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_179 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_179 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_179 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_179(molecule) # type: ignore
@@ -7606,14 +7723,23 @@ def findAUTOCORR2D_179(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_180(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_180 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_180 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_180 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_180 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_180(molecule) # type: ignore
@@ -7624,14 +7750,23 @@ def findAUTOCORR2D_180(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_181(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_181 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_181 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_181 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_181 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_181(molecule) # type: ignore
@@ -7642,14 +7777,23 @@ def findAUTOCORR2D_181(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_182(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_182 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_182 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_182 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_182 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_182(molecule) # type: ignore
@@ -7660,14 +7804,23 @@ def findAUTOCORR2D_182(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_183(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_183 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_183 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_183 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_183 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_183(molecule) # type: ignore
@@ -7678,14 +7831,23 @@ def findAUTOCORR2D_183(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_184(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_184 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_184 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_184 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_184 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_184(molecule) # type: ignore
@@ -7696,14 +7858,23 @@ def findAUTOCORR2D_184(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_185(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_185 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_185 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_185 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_185 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_185(molecule) # type: ignore
@@ -7714,14 +7885,23 @@ def findAUTOCORR2D_185(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_186(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_186 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_186 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_186 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_186 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_186(molecule) # type: ignore
@@ -7732,14 +7912,23 @@ def findAUTOCORR2D_186(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_187(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_187 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_187 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_187 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_187 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_187(molecule) # type: ignore
@@ -7750,14 +7939,23 @@ def findAUTOCORR2D_187(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_188(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_188 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_188 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_188 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_188 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_188(molecule) # type: ignore
@@ -7768,14 +7966,23 @@ def findAUTOCORR2D_188(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_189(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_189 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_189 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_189 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_189 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_189(molecule) # type: ignore
@@ -7786,14 +7993,23 @@ def findAUTOCORR2D_189(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_190(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_190 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_190 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_190 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_190 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_190(molecule) # type: ignore
@@ -7804,14 +8020,23 @@ def findAUTOCORR2D_190(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_191(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_191 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_191 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_191 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_191 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_191(molecule) # type: ignore
@@ -7822,14 +8047,23 @@ def findAUTOCORR2D_191(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findAUTOCORR2D_192(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the autocorrelation2D_192 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The autocorrelation2D_192 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the autocorrelation2D_192 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The autocorrelation2D_192 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.AUTOCORR2D_192(molecule) # type: ignore
@@ -7843,14 +8077,23 @@ def findAUTOCORR2D_192(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
 #region BCUT2D descriptors
 def findBCUT2D_CHGHI(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the BCUT2D_CHGHI descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The BCUT2D_CHGHI value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the BCUT2D_CHGHI descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The BCUT2D_CHGHI descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.BCUT2D_CHGHI(molecule) # type: ignore
@@ -7861,14 +8104,23 @@ def findBCUT2D_CHGHI(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     return None
 
 def findBCUT2D_CHGLO(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the BCUT2D_CHGLO descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The BCUT2D_CHGLO value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the BCUT2D_CHGLO descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The the BCUT2D_CHGLO descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.BCUT2D_CHGLO(molecule) # type: ignore
@@ -7879,14 +8131,23 @@ def findBCUT2D_CHGLO(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     return None
 
 def findBCUT2D_LOGPHI(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the BCUT2D_LOGPHI descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The BCUT2D_LOGPHI value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the BCUT2D_LOGPHI descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The BCUT2D_LOGPHI descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.BCUT2D_LOGPHI(molecule) # type: ignore
@@ -7897,14 +8158,23 @@ def findBCUT2D_LOGPHI(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     return None
 
 def findBCUT2D_LOGPLOW(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the BCUT2D_LOGPLOW descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The BCUT2D_LOGPLOW value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the BCUT2D_LOGPLOW descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The BCUT2D_LOGPLOW descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.BCUT2D_LOGPLOW(molecule) # type: ignore
@@ -7933,14 +8203,23 @@ def findBCUT2D_MRHI(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     return None
 
 def findBCUT2D_MRLOW(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the BCUT2D_MRLOW descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The BCUT2D_MRLOW value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the BCUT2D_MRLOW descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The BCUT2D_MRLOW descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.BCUT2D_MRLOW(molecule) # type: ignore
@@ -7951,14 +8230,23 @@ def findBCUT2D_MRLOW(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     return None
 
 def findBCUT2D_MWHI(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the BCUT2D_MWHI descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The BCUT2D_MWHI value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the BCUT2D_MWHI descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The BCUT2D_MWHI descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.BCUT2D_MWHI(molecule) # type: ignore
@@ -7969,14 +8257,23 @@ def findBCUT2D_MWHI(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     return None
 
 def findBCUT2D_MWLOW(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the BCUT2D_MWLOW descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The BCUT2D_MWLOW value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the BCUT2D_MWLOW descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The BCUT2D_MWLOW descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.BCUT2D_MWLOW(molecule) # type: ignore
@@ -7989,14 +8286,23 @@ def findBCUT2D_MWLOW(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
 #endregion
 
 def findBalabanJ(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the BalabanJ descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The BalabanJ value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the BalabanJ descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The BalabanJ descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.BalabanJ(molecule) # type: ignore
@@ -8007,14 +8313,23 @@ def findBalabanJ(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type:
     return None
 
 def findBertzCT(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the BertzCT descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The BertzCT value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the BertzCT descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The BertzCT descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.BertzCT(molecule) # type: ignore
@@ -8026,14 +8341,23 @@ def findBertzCT(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: 
 
 #region Chi descriptors
 def findChi0(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the Chi0 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The Chi0 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the Chi0 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The Chi0 descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.Chi0(molecule) # type: ignore
@@ -8044,14 +8368,23 @@ def findChi0(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ign
     return None
 
 def findChi0n(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the Chi0n descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The Chi0n value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the Chi0n descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The Chi0n descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.Chi0n(molecule) # type: ignore
@@ -8062,14 +8395,23 @@ def findChi0n(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     return None
 
 def findChi0v(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the Chi0v descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The Chi0v value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the Chi0v descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The Chi0v descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.Chi0v(molecule) # type: ignore
@@ -8080,14 +8422,23 @@ def findChi0v(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     return None
 
 def findChi1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the Chi1 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The Chi1 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the Chi1 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The Chi1 descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.Chi1(molecule) # type: ignore
@@ -8098,14 +8449,23 @@ def findChi1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ign
     return None
 
 def findChi1n(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the Chi1n descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The Chi1n value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the Chi1n descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The Chi1n descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.Chi1n(molecule) # type: ignore
@@ -8116,14 +8476,23 @@ def findChi1n(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     return None
 
 def findChi1v(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the Chi1v descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The Chi1v value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the Chi1v descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The Chi1v descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.Chi1v(molecule) # type: ignore
@@ -8134,14 +8503,23 @@ def findChi1v(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     return None
 
 def findChi2n(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the Chi2n descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The Chi2n value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the Chi2n descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The Chi2n descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.Chi2n(molecule) # type: ignore
@@ -8152,14 +8530,23 @@ def findChi2n(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     return None
 
 def findChi2v(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the Chi2v descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The Chi2v value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the Chi2v descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The Chi2v descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.Chi2v(molecule) # type: ignore
@@ -8170,14 +8557,23 @@ def findChi2v(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     return None
 
 def findChi3n(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the Chi3n descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The Chi3n value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the Chi3n descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The Chi3n descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.Chi3n(molecule) # type: ignore
@@ -8188,14 +8584,23 @@ def findChi3n(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     return None
 
 def findChi3v(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the Chi3v descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The Chi3v value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the Chi3v descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The Chi3v descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.Chi3v(molecule) # type: ignore
@@ -8206,14 +8611,23 @@ def findChi3v(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     return None
 
 def findChi4n(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the Chi4n descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The Chi4n value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the Chi4n descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The Chi4n descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.Chi4n(molecule) # type: ignore
@@ -8224,14 +8638,23 @@ def findChi4n(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     return None
 
 def findChi4v(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the Chi4v descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The Chi4v value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the Chi4v descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The Chi4v descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.Chi4v(molecule) # type: ignore
@@ -8245,14 +8668,23 @@ def findChi4v(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
 
 #region EState descriptors
 def findEState_VSA1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the EState_VSA1 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The EState_VSA1 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the EState_VSA1 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The EState_VSA1 descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.EState_VSA1(molecule) # type: ignore
@@ -8263,14 +8695,23 @@ def findEState_VSA1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     return None
 
 def findEState_VSA2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the EState_VSA2 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The EState_VSA2 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the EState_VSA2 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The EState_VSA2 descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.EState_VSA2(molecule) # type: ignore
@@ -8281,14 +8722,23 @@ def findEState_VSA2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     return None
 
 def findEState_VSA3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the EState_VSA3 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The EState_VSA3 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the EState_VSA3 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The EState_VSA3 descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.EState_VSA3(molecule) # type: ignore
@@ -8299,14 +8749,23 @@ def findEState_VSA3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     return None
 
 def findEState_VSA4(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the EState_VSA4 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The EState_VSA4 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the EState_VSA4 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The EState_VSA4 descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.EState_VSA4(molecule) # type: ignore
@@ -8317,14 +8776,23 @@ def findEState_VSA4(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     return None
 
 def findEState_VSA5(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the EState_VSA5 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The EState_VSA5 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the EState_VSA5 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The EState_VSA5 descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.EState_VSA5(molecule) # type: ignore
@@ -8335,14 +8803,23 @@ def findEState_VSA5(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     return None
 
 def findEState_VSA6(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the EState_VSA6 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The EState_VSA6 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the EState_VSA6 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The EState_VSA6 descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.EState_VSA6(molecule) # type: ignore
@@ -8353,14 +8830,23 @@ def findEState_VSA6(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     return None
 
 def findEState_VSA7(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the EState_VSA7 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The EState_VSA7 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the EState_VSA7 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The EState_VSA7 descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.EState_VSA7(molecule) # type: ignore
@@ -8371,14 +8857,23 @@ def findEState_VSA7(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     return None
 
 def findEState_VSA8(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the EState_VSA8 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The EState_VSA8 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the EState_VSA8 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The EState_VSA8 descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.EState_VSA8(molecule) # type: ignore
@@ -8389,14 +8884,23 @@ def findEState_VSA8(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     return None
 
 def findEState_VSA9(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the EState_VSA9 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The EState_VSA9 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the EState_VSA9 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The EState_VSA9 descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.EState_VSA9(molecule) # type: ignore
@@ -8407,14 +8911,23 @@ def findEState_VSA9(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     return None
 
 def findEState_VSA10(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the EState_VSA10 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The EState_VSA10 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the EState_VSA10 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The EState_VSA10 descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.EState_VSA10(molecule) # type: ignore
@@ -8425,14 +8938,23 @@ def findEState_VSA10(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     return None
 
 def findEState_VSA11(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the EState_VSA11 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The EState_VSA11 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the EState_VSA11 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The EState_VSA11 descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.EState_VSA11(molecule) # type: ignore
@@ -8443,14 +8965,23 @@ def findEState_VSA11(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     return None
 
 def findMaxAbsEStateIndex(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the MaxAbsEStateIndex descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The MaxAbsEStateIndex value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the MaxAbsEStateIndex descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The MaxAbsEStateIndex descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.MaxAbsEStateIndex(molecule) # type: ignore
@@ -8461,14 +8992,23 @@ def findMaxAbsEStateIndex(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]
     return None
 
 def findMaxEStateIndex(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the MaxEStateIndex descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The MaxEStateIndex value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the MaxEStateIndex descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The MaxEStateIndex descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.MaxEStateIndex(molecule) # type: ignore
@@ -8479,14 +9019,23 @@ def findMaxEStateIndex(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findMinAbsEStateIndex(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the MinAbsEStateIndex descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The MinAbsEStateIndex value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the MinAbsEStateIndex descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The MinAbsEStateIndex descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.MinAbsEStateIndex(molecule) # type: ignore
@@ -8497,14 +9046,23 @@ def findMinAbsEStateIndex(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]
     return None
 
 def findMinEStateIndex(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the MinEStateIndex descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The MinEStateIndex value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the MinEStateIndex descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The MinEStateIndex descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.MinEStateIndex(molecule) # type: ignore
@@ -8517,14 +9075,23 @@ def findMinEStateIndex(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 #endregion
 
 def findExactMolWt(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the exact molecular weight of the molecule.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The exact molecular weight of the molecule or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the exact molecular weight of the molecule.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The exact molecular weight.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.ExactMolWt(molecule) # type: ignore
@@ -8535,14 +9102,23 @@ def findExactMolWt(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     return None
 
 def findFpDensityMorgan1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the Morgan fingerprint, radius 1 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The Morgan fingerprint, radius 1 descriptor or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the Morgan fingerprint, radius 1 descriptor of the molecule.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The Morgan fingerprint, radius 1.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.FpDensityMorgan1(molecule) # type: ignore
@@ -8553,14 +9129,23 @@ def findFpDensityMorgan1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]:
     return None
 
 def findFpDensityMorgan2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the Morgan fingerprint, radius 2 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The Morgan fingerprint, radius 2 descriptor or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the Morgan fingerprint, radius 2 descriptor of the molecule.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The Morgan fingerprint, radius 2.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.FpDensityMorgan2(molecule) # type: ignore
@@ -8571,14 +9156,23 @@ def findFpDensityMorgan2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]:
     return None
 
 def findFpDensityMorgan3(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the Morgan fingerprint, radius 3 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The Morgan fingerprint, radius 3 descriptor or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the Morgan fingerprint, radius 3 descriptor of the molecule.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The Morgan fingerprint, radius 3.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.FpDensityMorgan3(molecule) # type: ignore
@@ -8590,14 +9184,23 @@ def findFpDensityMorgan3(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: #
 
 #region fr_ descriptors
 def findfr_Al_COO(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_Al_COO descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The fr_Al_COO value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_Al_COO descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_Al_COO value.
-      [None] - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_Al_COO(molecule) # type: ignore
@@ -8608,14 +9211,23 @@ def findfr_Al_COO(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: 
     return None
 
 def findfr_Al_OH(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_Al_OH descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The fr_Al_OH value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_Al_OH descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_Al_OH value.
-      [None] - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_Al_OH(molecule) # type: ignore
@@ -8626,14 +9238,23 @@ def findfr_Al_OH(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     return None
 
 def findfr_Al_OH_noTert(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_Al_OH_noTert descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The fr_Al_OH_noTert value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_Al_OH_noTert descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_Al_OH_noTert value.
-      [None] - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_Al_OH_noTert(molecule) # type: ignore
@@ -8644,14 +9265,23 @@ def findfr_Al_OH_noTert(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # 
     return None
 
 def findfr_ArN(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_ArN descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The fr_ArN value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_ArN descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_ArN value.
-      [None] - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_ArN(molecule) # type: ignore
@@ -8662,14 +9292,23 @@ def findfr_ArN(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ign
     return None
 
 def findfr_Ar_COO(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_Ar_COO descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The fr_Ar_COO value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_Ar_COO descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_Ar_COO value.
-      [None] - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_Ar_COO(molecule) # type: ignore
@@ -8680,14 +9319,23 @@ def findfr_Ar_COO(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: 
     return None
 
 def findfr_Ar_N(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_Ar_N descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The fr_Ar_N value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_Ar_N descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_Ar_N value.
-      [None] - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_Ar_N(molecule) # type: ignore
@@ -8698,14 +9346,23 @@ def findfr_Ar_N(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ig
     return None
 
 def findfr_Ar_NH(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_Ar_NH descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The fr_Ar_NH value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_Ar_NH descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_Ar_NH value.
-      [None] - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_Ar_NH(molecule) # type: ignore
@@ -8716,14 +9373,23 @@ def findfr_Ar_NH(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     return None
 
 def findfr_Ar_OH(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_Ar_OH descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The fr_Ar_OH value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_Ar_OH descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_Ar_OH value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_Ar_OH(molecule) # type: ignore
@@ -8734,14 +9400,23 @@ def findfr_Ar_OH(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     return None
 
 def findfr_COO(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_COO descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The fr_COO value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_COO descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_COO value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_COO(molecule) # type: ignore
