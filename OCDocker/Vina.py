@@ -413,7 +413,7 @@ def box_to_vina(boxFile: str, confFile: str, receptor: str) -> int:
     octools.printv(f"Converting the box file '{boxFile}' to Vina conf file as '{confFile}' file.")
     # Test if the file boxFile exists
     if not os.path.exists(boxFile):
-        return errors.file_do_not_exist(message=f"The box file in the path {boxFile} does not exists! Please ensure that the file exsits and the path is correct.", level="error")
+        return errors.file_do_not_exist(message=f"The box file in the path {boxFile} does not exist! Please ensure that the file exists and the path is correct.", level="error")
     # List to hold all the data
     lines = []
 
