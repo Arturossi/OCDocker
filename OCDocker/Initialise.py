@@ -682,7 +682,7 @@ elif args.config_file:
 ocdb_path = ""
 
 # Read the conf file and assign its data to its variables (The order matters here, if you follow the same order which is in the conf file less computation power will be needed! It is not much, but it is something.)
-for line in open(args.config_file, "r"):
+for line in open(config_file, "r"): # type: ignore
     if line.startswith("ocdb ="):
         ocdb_path = line.split("=")[1].strip()
     elif line.startswith("pdbbind_KdKi_order ="):
