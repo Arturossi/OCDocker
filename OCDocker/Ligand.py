@@ -12486,14 +12486,23 @@ def findPEOE_VSA3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     return None
 
 def findPEOE_VSA4(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the PEOE_VSA4 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The PEOE_VSA4 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the PEOE_VSA4 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The PEOE_VSA4 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.PEOE_VSA4(molecule) # type: ignore
@@ -12504,14 +12513,23 @@ def findPEOE_VSA4(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     return None
 
 def findPEOE_VSA5(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the PEOE_VSA5 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The PEOE_VSA5 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the PEOE_VSA5 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The PEOE_VSA5 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.PEOE_VSA5(molecule) # type: ignore
@@ -12522,14 +12540,23 @@ def findPEOE_VSA5(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     return None
 
 def findPEOE_VSA6(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the PEOE_VSA6 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The PEOE_VSA6 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the PEOE_VSA6 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The PEOE_VSA6 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.PEOE_VSA6(molecule) # type: ignore
@@ -12540,14 +12567,23 @@ def findPEOE_VSA6(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     return None
 
 def findPEOE_VSA7(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the PEOE_VSA7 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The PEOE_VSA7 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the PEOE_VSA7 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The PEOE_VSA7 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.PEOE_VSA7(molecule) # type: ignore
@@ -12558,14 +12594,23 @@ def findPEOE_VSA7(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     return None
 
 def findPEOE_VSA8(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the PEOE_VSA8 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The PEOE_VSA8 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the PEOE_VSA8 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The PEOE_VSA8 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.PEOE_VSA8(molecule) # type: ignore
@@ -12576,14 +12621,23 @@ def findPEOE_VSA8(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     return None
 
 def findPEOE_VSA9(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the PEOE_VSA9 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The PEOE_VSA9 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the PEOE_VSA9 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The PEOE_VSA9 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.PEOE_VSA9(molecule) # type: ignore
@@ -12594,14 +12648,23 @@ def findPEOE_VSA9(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     return None
 
 def findPEOE_VSA10(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the PEOE_VSA10 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The PEOE_VSA10 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the PEOE_VSA10 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The PEOE_VSA10 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.PEOE_VSA10(molecule) # type: ignore
@@ -12612,14 +12675,23 @@ def findPEOE_VSA10(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     return None
 
 def findPEOE_VSA11(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the PEOE_VSA11 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The PEOE_VSA11 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the PEOE_VSA11 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The PEOE_VSA11 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.PEOE_VSA11(molecule) # type: ignore
@@ -12630,14 +12702,23 @@ def findPEOE_VSA11(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     return None
 
 def findPEOE_VSA12(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the PEOE_VSA12 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The PEOE_VSA12 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the PEOE_VSA12 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The PEOE_VSA12 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.PEOE_VSA12(molecule) # type: ignore
@@ -12648,14 +12729,23 @@ def findPEOE_VSA12(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     return None
 
 def findPEOE_VSA13(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the PEOE_VSA13 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The PEOE_VSA13 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the PEOE_VSA13 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The PEOE_VSA13 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.PEOE_VSA13(molecule) # type: ignore
@@ -12666,14 +12756,23 @@ def findPEOE_VSA13(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     return None
 
 def findPEOE_VSA14(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the PEOE_VSA14 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The PEOE_VSA14 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the PEOE_VSA14 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The PEOE_VSA14 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.PEOE_VSA14(molecule) # type: ignore
@@ -12682,18 +12781,26 @@ def findPEOE_VSA14(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
         _ = errors.not_set(f"The variable is not set.")
 
     return None
-
 #endregion
 
 def findqed(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the qed descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The qed value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the qed descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The qed value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.qed(molecule) # type: ignore
@@ -12705,14 +12812,23 @@ def findqed(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: igno
 
 #region SMR_VSA descriptors
 def findSMR_VSA1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the SMR_VSA1 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The SMR_VSA1 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the SMR_VSA1 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The SMR_VSA1 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.SMR_VSA1(molecule) # type: ignore
@@ -12723,14 +12839,23 @@ def findSMR_VSA1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type:
     return None
 
 def findSMR_VSA2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the SMR_VSA2 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The SMR_VSA2 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the SMR_VSA2 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The SMR_VSA2 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.SMR_VSA2(molecule) # type: ignore
@@ -12741,14 +12866,23 @@ def findSMR_VSA2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type:
     return None
 
 def findSMR_VSA3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the SMR_VSA3 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The SMR_VSA3 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the SMR_VSA3 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The SMR_VSA3 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.SMR_VSA3(molecule) # type: ignore
@@ -12759,14 +12893,23 @@ def findSMR_VSA3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type:
     return None
 
 def findSMR_VSA4(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the SMR_VSA4 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The SMR_VSA4 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the SMR_VSA4 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The SMR_VSA4 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.SMR_VSA4(molecule) # type: ignore
@@ -12777,14 +12920,23 @@ def findSMR_VSA4(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type:
     return None
 
 def findSMR_VSA5(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the SMR_VSA5 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The SMR_VSA5 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the SMR_VSA5 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The SMR_VSA5 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.SMR_VSA5(molecule) # type: ignore
@@ -12795,14 +12947,23 @@ def findSMR_VSA5(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type:
     return None
 
 def findSMR_VSA6(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the SMR_VSA6 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The SMR_VSA6 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the SMR_VSA6 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The SMR_VSA6 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.SMR_VSA6(molecule) # type: ignore
@@ -12813,14 +12974,23 @@ def findSMR_VSA6(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type:
     return None
 
 def findSMR_VSA7(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the SMR_VSA7 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The SMR_VSA7 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the SMR_VSA7 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The SMR_VSA7 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.SMR_VSA7(molecule) # type: ignore
@@ -12831,14 +13001,23 @@ def findSMR_VSA7(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type:
     return None
 
 def findSMR_VSA8(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the SMR_VSA8 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The SMR_VSA8 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the SMR_VSA8 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The SMR_VSA8 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.SMR_VSA8(molecule) # type: ignore
@@ -12849,14 +13028,23 @@ def findSMR_VSA8(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type:
     return None
 
 def findSMR_VSA9(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the SMR_VSA9 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The SMR_VSA9 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the SMR_VSA9 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The SMR_VSA9 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.SMR_VSA9(molecule) # type: ignore
@@ -12867,14 +13055,23 @@ def findSMR_VSA9(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type:
     return None
 
 def findSMR_VSA10(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the SMR_VSA10 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The SMR_VSA10 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the SMR_VSA10 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The SMR_VSA10 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.SMR_VSA10(molecule) # type: ignore
@@ -12883,19 +13080,27 @@ def findSMR_VSA10(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
         _ = errors.not_set(f"The variable is not set.")
 
     return None
-
 #endregion
 
 #region SlogP_VSA descriptors
 def findSlogP_VSA1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the SlogP_VSA1 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The SlogP_VSA1 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the SlogP_VSA1 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The SlogP_VSA1 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.SlogP_VSA1(molecule) # type: ignore
@@ -12906,14 +13111,23 @@ def findSlogP_VSA1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     return None
 
 def findSlogP_VSA2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the SlogP_VSA2 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The SlogP_VSA2 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the SlogP_VSA2 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The SlogP_VSA2 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.SlogP_VSA2(molecule) # type: ignore
@@ -12924,14 +13138,23 @@ def findSlogP_VSA2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     return None
 
 def findSlogP_VSA3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the SlogP_VSA3 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The SlogP_VSA3 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the SlogP_VSA3 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The SlogP_VSA3 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.SlogP_VSA3(molecule) # type: ignore
@@ -12942,14 +13165,23 @@ def findSlogP_VSA3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     return None
 
 def findSlogP_VSA4(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the SlogP_VSA4 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The SlogP_VSA4 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the SlogP_VSA4 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The SlogP_VSA4 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.SlogP_VSA4(molecule) # type: ignore
@@ -12960,14 +13192,23 @@ def findSlogP_VSA4(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     return None
 
 def findSlogP_VSA5(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the SlogP_VSA5 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The SlogP_VSA5 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the SlogP_VSA5 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The SlogP_VSA5 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.SlogP_VSA5(molecule) # type: ignore
@@ -12978,14 +13219,23 @@ def findSlogP_VSA5(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     return None
 
 def findSlogP_VSA6(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the SlogP_VSA6 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The SlogP_VSA6 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the SlogP_VSA6 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The SlogP_VSA6 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.SlogP_VSA6(molecule) # type: ignore
@@ -12996,14 +13246,23 @@ def findSlogP_VSA6(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     return None
 
 def findSlogP_VSA7(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the SlogP_VSA7 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The SlogP_VSA7 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the SlogP_VSA7 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The SlogP_VSA7 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.SlogP_VSA7(molecule) # type: ignore
@@ -13014,14 +13273,23 @@ def findSlogP_VSA7(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     return None
 
 def findSlogP_VSA8(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the SlogP_VSA8 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The SlogP_VSA8 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the SlogP_VSA8 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The SlogP_VSA8 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.SlogP_VSA8(molecule) # type: ignore
@@ -13032,14 +13300,23 @@ def findSlogP_VSA8(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     return None
 
 def findSlogP_VSA9(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the SlogP_VSA9 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The SlogP_VSA9 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the SlogP_VSA9 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The SlogP_VSA9 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.SlogP_VSA9(molecule) # type: ignore
@@ -13050,14 +13327,23 @@ def findSlogP_VSA9(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     return None
 
 def findSlogP_VSA10(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the SlogP_VSA10 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The SlogP_VSA10 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the SlogP_VSA10 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The SlogP_VSA10 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.SlogP_VSA10(molecule) # type: ignore
@@ -13068,14 +13354,23 @@ def findSlogP_VSA10(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     return None
 
 def findSlogP_VSA11(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the SlogP_VSA11 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The SlogP_VSA11 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the SlogP_VSA11 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The SlogP_VSA11 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.SlogP_VSA11(molecule) # type: ignore
@@ -13086,14 +13381,23 @@ def findSlogP_VSA11(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     return None
 
 def findSlogP_VSA12(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the SlogP_VSA12 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The SlogP_VSA12 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the SlogP_VSA12 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The SlogP_VSA12 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.SlogP_VSA12(molecule) # type: ignore
@@ -13102,18 +13406,26 @@ def findSlogP_VSA12(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
         _ = errors.not_set(f"The variable is not set.")
 
     return None
-
 #endregion
 
 def findTPSA(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the TPSA descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The TPSA value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the TPSA descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The TPSA value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.TPSA(molecule) # type: ignore
@@ -13125,14 +13437,23 @@ def findTPSA(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ign
 
 #region VSA_EState descriptors
 def findVSA_EState1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the VSA_EState1 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The VSA_EState1 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the VSA_EState1 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The VSA_EState1 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.VSA_EState1(molecule) # type: ignore
@@ -13143,14 +13464,23 @@ def findVSA_EState1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     return None
 
 def findVSA_EState2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the VSA_EState2 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The VSA_EState2 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the VSA_EState2 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The VSA_EState2 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.VSA_EState2(molecule) # type: ignore
@@ -13161,14 +13491,23 @@ def findVSA_EState2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     return None
 
 def findVSA_EState3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the VSA_EState3 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The VSA_EState3 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the VSA_EState3 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The VSA_EState3 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.VSA_EState3(molecule) # type: ignore
@@ -13179,14 +13518,23 @@ def findVSA_EState3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     return None
 
 def findVSA_EState4(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the VSA_EState4 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The VSA_EState4 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the VSA_EState4 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The VSA_EState4 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.VSA_EState4(molecule) # type: ignore
@@ -13197,14 +13545,23 @@ def findVSA_EState4(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     return None
 
 def findVSA_EState5(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the VSA_EState5 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The VSA_EState5 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the VSA_EState5 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The VSA_EState5 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.VSA_EState5(molecule) # type: ignore
@@ -13215,14 +13572,23 @@ def findVSA_EState5(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     return None
 
 def findVSA_EState6(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the VSA_EState6 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The VSA_EState6 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the VSA_EState6 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The VSA_EState6 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.VSA_EState6(molecule) # type: ignore
@@ -13233,14 +13599,23 @@ def findVSA_EState6(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     return None
 
 def findVSA_EState7(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the VSA_EState7 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The VSA_EState7 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the VSA_EState7 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The VSA_EState7 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.VSA_EState7(molecule) # type: ignore
@@ -13251,14 +13626,23 @@ def findVSA_EState7(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     return None
 
 def findVSA_EState8(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the VSA_EState8 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The VSA_EState8 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the VSA_EState8 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The VSA_EState8 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.VSA_EState8(molecule) # type: ignore
@@ -13269,14 +13653,23 @@ def findVSA_EState8(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     return None
 
 def findVSA_EState9(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the VSA_EState9 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The VSA_EState9 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the VSA_EState9 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The VSA_EState9 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.VSA_EState9(molecule) # type: ignore
@@ -13287,14 +13680,23 @@ def findVSA_EState9(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     return None
 
 def findVSA_EState10(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the VSA_EState10 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The VSA_EState10 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the VSA_EState10 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The VSA_EState10 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.VSA_EState10(molecule) # type: ignore
@@ -13303,7 +13705,6 @@ def findVSA_EState10(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
         _ = errors.not_set(f"The variable is not set.")
 
     return None
-
 #endregion
 
 #region 3D descriptors
@@ -13317,14 +13718,14 @@ def findAUTOCORR3D(molecule: rdkit.Chem.rdchem.Mol) -> Union[List[float], None]:
 
     Returns
     -------
-    Union[List[float], None]
-        The AUTOCORR3D values.
+    List[float] | None
+        The AUTOCORR3D values or None if parsing the descriptor fails.
 
     Raises
     ------
-    ValueError
+    None
     '''
-
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors3D.rdMolDescriptors.CalcAUTOCORR3D(molecule) # type: ignore
@@ -13336,14 +13737,23 @@ def findAUTOCORR3D(molecule: rdkit.Chem.rdchem.Mol) -> Union[List[float], None]:
     return None
 
 def findAsphericity(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the Asphericity descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The Asphericity value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the Asphericity descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The Asphericity value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors3D.Asphericity(molecule) # type: ignore
@@ -13354,14 +13764,23 @@ def findAsphericity(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     return None
 
 def findEccentricity(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the Eccentricity descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The Eccentricity value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the Eccentricity descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The Eccentricity value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors3D.Eccentricity(molecule) # type: ignore
@@ -13372,14 +13791,23 @@ def findEccentricity(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     return None
 
 def findInertialShapeFactor(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the InertialShapeFactor descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The InertialShapeFactor value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the InertialShapeFactor descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The InertialShapeFactor value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors3D.InertialShapeFactor(molecule) # type: ignore
@@ -13390,14 +13818,23 @@ def findInertialShapeFactor(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, Non
     return None
 
 def findNPR1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the NPR1 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The NPR1 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the NPR1 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The NPR1 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors3D.NPR1(molecule) # type: ignore
@@ -13408,14 +13845,23 @@ def findNPR1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ign
     return None
 
 def findNPR2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the NPR2 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The NPR2 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the NPR2 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The NPR2 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors3D.NPR2(molecule) # type: ignore
@@ -13426,14 +13872,23 @@ def findNPR2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ign
     return None
 
 def findPMI1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the PMI1 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The PMI1 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the PMI1 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The PMI1 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors3D.PMI1(molecule) # type: ignore
@@ -13444,14 +13899,23 @@ def findPMI1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ign
     return None
 
 def findPMI2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the PMI2 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The PMI2 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the PMI2 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The PMI2 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors3D.PMI2(molecule) # type: ignore
@@ -13462,14 +13926,23 @@ def findPMI2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ign
     return None
 
 def findPMI3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the PMI3 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The PMI3 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the PMI3 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The PMI3 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors3D.PMI3(molecule) # type: ignore
@@ -13480,14 +13953,23 @@ def findPMI3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ign
     return None
 
 def findRadiusOfGyration(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the RadiusOfGyration descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The RadiusOfGyration value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the RadiusOfGyration descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The RadiusOfGyration value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors3D.RadiusOfGyration(molecule) # type: ignore
@@ -13498,14 +13980,23 @@ def findRadiusOfGyration(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]:
     return None
 
 def findSpherocityIndex(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the SpherocityIndex descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The SpherocityIndex value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the SpherocityIndex descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The SpherocityIndex value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors3D.SpherocityIndex(molecule) # type: ignore
@@ -13514,5 +14005,4 @@ def findSpherocityIndex(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: 
         _ = errors.not_set(f"The variable is not set.")
 
     return None
-
 #endregion
