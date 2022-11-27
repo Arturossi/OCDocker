@@ -2,6 +2,8 @@
 
 # Imports
 ###############################################################################
+from __future__ import annotations
+
 import os
 import json
 import rdkit
@@ -21,7 +23,6 @@ from openbabel import openbabel
 from OCDocker.Initialise import *
 import OCDocker.Toolbox as octools
 
-from __future__ import annotations
 
 # Set output levels for openbabel
 ob_log_handler = openbabel.OBMessageHandler()
