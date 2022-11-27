@@ -438,13 +438,13 @@ class PLANTS:
         # Run plants
         output = octools.run(self.plantsCmd, logFile=self.plantsLog)
         # Check if there is a PLANTS-*.pid file
-        if len(glob(f"{tmpDir}/PLANTS-*.pid")) > 0:
+        for pidFile in glob(f"{tmpDir}/PLANTS-*.pid"):
             # Remove it
-            _ = octools.run(["rm", f"{tmpDir}/PLANTS-*.pid"])
+            _ = octools.run(["rm", pidFile])
         # Check if there is a *bad*.mol2 file
-        if len(glob(f"{tmpDir}/*bad.mol2")) > 0:
+        for badFile in glob(f"{tmpDir}/*bad.mol2"):
             # Remove it
-            _ = octools.run(["rm", f"{tmpDir}/*bad.mol2"])
+            _ = octools.run(["rm", badFile])
         return output
 
     def run_prepare_ligand(self, logFile: str = "") -> int:
