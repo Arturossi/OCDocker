@@ -440,11 +440,11 @@ class PLANTS:
         # Check if there is a PLANTS-*.pid file
         for pidFile in glob(f"{tmpDir}/PLANTS-*.pid"):
             # Remove it
-            _ = octools.run(["rm", pidFile])
+            os.remove(pidFile)
         # Check if there is a *bad*.mol2 file
         for badFile in glob(f"{tmpDir}/*bad.mol2"):
             # Remove it
-            _ = octools.run(["rm", badFile])
+            os.remove(badFile)
         return output
 
     def run_prepare_ligand(self, logFile: str = "") -> int:
