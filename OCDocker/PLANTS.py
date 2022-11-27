@@ -439,16 +439,20 @@ class PLANTS:
         output = octools.run(self.plantsCmd, logFile=self.plantsLog)
         # Check if there is a PLANTS-*.pid file
         for pidFile in glob(f"{tmpDir}/PLANTS-*.pid"):
-            # Check if the file exists
-            if os.path.isfile(pidFile):
+            # This try is to avoid errors when the file does not exist
+            try:
                 # Remove it
                 os.remove(pidFile)
+            except:
+                pass
         # Check if there is a *bad*.mol2 file
         for badFile in glob(f"{tmpDir}/*bad.mol2"):
-            # Check if the file exists
-            if os.path.isfile(badFile):
+            # This try is to avoid errors when the file does not exist
+            try:
                 # Remove it
                 os.remove(badFile)
+            except:
+                pass
         return output
 
     def run_prepare_ligand(self, logFile: str = "") -> int:
