@@ -9155,7 +9155,7 @@ def findFpDensityMorgan2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]:
 
     return None
 
-def findFpDensityMorgan3(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+def findFpDensityMorgan3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
     '''Compute the Morgan fingerprint, radius 3 descriptor.
 
     Parameters
@@ -9193,7 +9193,7 @@ def findfr_Al_COO(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: 
 
     Returns
     -------
-    float | None
+    int | None
         The fr_Al_COO value or None if parsing the descriptor fails.
 
     Raises
@@ -9220,7 +9220,7 @@ def findfr_Al_OH(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
 
     Returns
     -------
-    float | None
+    int | None
         The fr_Al_OH value or None if parsing the descriptor fails.
 
     Raises
@@ -9247,7 +9247,7 @@ def findfr_Al_OH_noTert(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # 
 
     Returns
     -------
-    float | None
+    int | None
         The fr_Al_OH_noTert value or None if parsing the descriptor fails.
 
     Raises
@@ -9274,7 +9274,7 @@ def findfr_ArN(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ign
 
     Returns
     -------
-    float | None
+    int | None
         The fr_ArN value or None if parsing the descriptor fails.
 
     Raises
@@ -9301,7 +9301,7 @@ def findfr_Ar_COO(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: 
 
     Returns
     -------
-    float | None
+    int | None
         The fr_Ar_COO value or None if parsing the descriptor fails.
 
     Raises
@@ -9328,7 +9328,7 @@ def findfr_Ar_N(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ig
 
     Returns
     -------
-    float | None
+    int | None
         The fr_Ar_N value or None if parsing the descriptor fails.
 
     Raises
@@ -9355,7 +9355,7 @@ def findfr_Ar_NH(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
 
     Returns
     -------
-    float | None
+    int | None
         The fr_Ar_NH value or None if parsing the descriptor fails.
 
     Raises
@@ -9382,7 +9382,7 @@ def findfr_Ar_OH(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
 
     Returns
     -------
-    float | None
+    int | None
         The fr_Ar_OH value or None if parsing the descriptor fails.
 
     Raises
@@ -9409,7 +9409,7 @@ def findfr_COO(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ign
 
     Returns
     -------
-    float | None
+    int | None
         The fr_COO value or None if parsing the descriptor fails.
 
     Raises
@@ -9427,14 +9427,23 @@ def findfr_COO(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ign
     return None
 
 def findfr_COO2(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_COO2 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_COO2 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_COO2 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_COO2 value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_COO2(molecule) # type: ignore
@@ -9445,14 +9454,23 @@ def findfr_COO2(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ig
     return None
 
 def findfr_C_O(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_C_O descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_C_O value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_C_O descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_C_O value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_C_O(molecule) # type: ignore
@@ -9463,14 +9481,23 @@ def findfr_C_O(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ign
     return None
 
 def findfr_C_O_noCOO(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_C_O_noCOO descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_C_O_noCOO value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_C_O_noCOO descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_C_O_noCOO value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_C_O_noCOO(molecule) # type: ignore
@@ -9481,14 +9508,23 @@ def findfr_C_O_noCOO(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # typ
     return None
 
 def findfr_C_S(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_C_S descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_C_S value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_C_S descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_C_S value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_C_S(molecule) # type: ignore
@@ -9499,14 +9535,23 @@ def findfr_C_S(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ign
     return None
 
 def findfr_HOCCN(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_HOCCN descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_HOCCN value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_HOCCN descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_HOCCN value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_HOCCN(molecule) # type: ignore
@@ -9517,14 +9562,23 @@ def findfr_HOCCN(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     return None
 
 def findfr_Imine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_Imine descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_Imine value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_Imine descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_Imine value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_Imine(molecule) # type: ignore
@@ -9535,14 +9589,23 @@ def findfr_Imine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     return None
 
 def findfr_NH0(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_NH0 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_NH0 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_NH0 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_NH0 value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_NH0(molecule) # type: ignore
@@ -9553,14 +9616,23 @@ def findfr_NH0(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ign
     return None
 
 def findfr_NH1(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_NH1 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_NH1 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_NH1 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_NH1 value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_NH1(molecule) # type: ignore
@@ -9571,14 +9643,23 @@ def findfr_NH1(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ign
     return None
 
 def findfr_NH2(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_NH2 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_NH2 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_NH2 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_NH2 value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_NH2(molecule) # type: ignore
@@ -9589,14 +9670,23 @@ def findfr_NH2(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ign
     return None
 
 def findfr_N_O(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_N_O descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_N_O value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_N_O descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_N_O value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_N_O(molecule) # type: ignore
@@ -9607,14 +9697,23 @@ def findfr_N_O(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ign
     return None
 
 def findfr_Ndealkylation1(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_Ndealkylation1 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_Ndealkylation1 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_Ndealkylation1 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_Ndealkylation1 value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_Ndealkylation1(molecule) # type: ignore
@@ -9625,14 +9724,23 @@ def findfr_Ndealkylation1(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: 
     return None
 
 def findfr_Ndealkylation2(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_Ndealkylation2 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_Ndealkylation2 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_Ndealkylation2 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_Ndealkylation2 value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_Ndealkylation2(molecule) # type: ignore
@@ -9643,14 +9751,23 @@ def findfr_Ndealkylation2(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: 
     return None
 
 def findfr_Nhpyrrole(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_Nhpyrrole descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_Nhpyrrole value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_Nhpyrrole descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_Nhpyrrole value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_Nhpyrrole(molecule) # type: ignore
@@ -9661,14 +9778,23 @@ def findfr_Nhpyrrole(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # typ
     return None
 
 def findfr_SH(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_SH descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_SH value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_SH descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_SH value.
-      [None] - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_SH(molecule) # type: ignore
@@ -9679,14 +9805,23 @@ def findfr_SH(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: igno
     return None
 
 def findfr_aldehyde(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_aldehyde descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_aldehyde value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_aldehyde descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_aldehyde value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_aldehyde(molecule) # type: ignore
@@ -9697,14 +9832,23 @@ def findfr_aldehyde(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type
     return None
 
 def findfr_alkyl_carbamate(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_alkyl_carbamate descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_alkyl_carbamate value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_alkyl_carbamate descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_alkyl_carbamate value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_alkyl_carbamate(molecule) # type: ignore
@@ -9715,14 +9859,23 @@ def findfr_alkyl_carbamate(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]:
     return None
 
 def findfr_alkyl_halide(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_alkyl_halide descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_alkyl_halide value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_alkyl_halide descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_alkyl_halide value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_alkyl_halide(molecule) # type: ignore
@@ -9733,14 +9886,23 @@ def findfr_alkyl_halide(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # 
     return None
 
 def findfr_allylic_oxid(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_allylic_oxid descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_allylic_oxid value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_allylic_oxid descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_allylic_oxid value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_allylic_oxid(molecule) # type: ignore
@@ -9751,14 +9913,23 @@ def findfr_allylic_oxid(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # 
     return None
 
 def findfr_amide(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_amide descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_amide value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_amide descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_amide value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_amide(molecule) # type: ignore
@@ -9769,14 +9940,23 @@ def findfr_amide(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     return None
 
 def findfr_amidine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_amidine descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_amidine value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_amidine descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_amidine value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_amidine(molecule) # type: ignore
@@ -9787,14 +9967,23 @@ def findfr_amidine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     return None
 
 def findfr_aniline(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_aniline descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_aniline value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_aniline descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_aniline value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_aniline(molecule) # type: ignore
@@ -9805,14 +9994,23 @@ def findfr_aniline(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     return None
 
 def findfr_aryl_methyl(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_aryl_methyl descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_aryl_methyl value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_aryl_methyl descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_aryl_methyl value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_aryl_methyl(molecule) # type: ignore
@@ -9823,14 +10021,23 @@ def findfr_aryl_methyl(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # t
     return None
 
 def findfr_azide(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_azide descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_azide value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_azide descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_azide value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_azide(molecule) # type: ignore
@@ -9841,14 +10048,23 @@ def findfr_azide(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     return None
 
 def findfr_azo(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_azo descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_azo value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_azo descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_azo value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_azo(molecule) # type: ignore
@@ -9859,14 +10075,23 @@ def findfr_azo(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ign
     return None
 
 def findfr_barbitur(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_barbitur descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_barbitur value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_barbitur descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_barbitur value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_barbitur(molecule) # type: ignore
@@ -9877,14 +10102,23 @@ def findfr_barbitur(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type
     return None
 
 def findfr_benzene(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_benzene descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_benzene value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_benzene descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_benzene value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_benzene(molecule) # type: ignore
@@ -9895,14 +10129,23 @@ def findfr_benzene(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     return None
 
 def findfr_benzodiazepine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_benzodiazepine descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_benzodiazepine value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_benzodiazepine descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_benzodiazepine value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_benzodiazepine(molecule) # type: ignore
@@ -9913,14 +10156,23 @@ def findfr_benzodiazepine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: 
     return None
 
 def findfr_bicyclic(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_bicyclic descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_bicyclic value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_bicyclic descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_bicyclic value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_bicyclic(molecule) # type: ignore
@@ -9931,14 +10183,23 @@ def findfr_bicyclic(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type
     return None
 
 def findfr_diazo(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_diazo descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_diazo value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_diazo descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_diazo value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_diazo(molecule) # type: ignore
@@ -9949,14 +10210,23 @@ def findfr_diazo(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     return None
 
 def findfr_dihydropyridine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_dihydropyridine descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_dihydropyridine value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_dihydropyridine descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_dihydropyridine value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_dihydropyridine(molecule) # type: ignore
@@ -9967,14 +10237,23 @@ def findfr_dihydropyridine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]:
     return None
 
 def findfr_epoxide(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_epoxide descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_epoxide value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_epoxide descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_epoxide value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_epoxide(molecule) # type: ignore
@@ -9985,14 +10264,23 @@ def findfr_epoxide(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     return None
 
 def findfr_ester(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_ester descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_ester value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_ester descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_ester value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_ester(molecule) # type: ignore
@@ -10003,14 +10291,23 @@ def findfr_ester(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     return None
 
 def findfr_ether(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_ether descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_ether value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_ether descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_ether value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_ether(molecule) # type: ignore
@@ -10021,14 +10318,23 @@ def findfr_ether(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     return None
 
 def findfr_furan(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_furan descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_furan value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_furan descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_furan value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_furan(molecule) # type: ignore
@@ -10039,14 +10345,23 @@ def findfr_furan(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     return None
 
 def findfr_guanido(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_guanido descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_guanido value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_guanido descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_guanido value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_guanido(molecule) # type: ignore
@@ -10057,14 +10372,23 @@ def findfr_guanido(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     return None
 
 def findfr_halogen(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_halogen descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_halogen value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_halogen descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_halogen value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_halogen(molecule) # type: ignore
@@ -10075,14 +10399,23 @@ def findfr_halogen(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     return None
 
 def findfr_hdrzine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_hdrzine descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_hdrzine value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_hdrzine descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_hdrzine value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_hdrzine(molecule) # type: ignore
@@ -10093,14 +10426,23 @@ def findfr_hdrzine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     return None
 
 def findfr_hdrzone(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_hdrzone descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_hdrzone value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_hdrzone descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_hdrzone value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_hdrzone(molecule) # type: ignore
@@ -10111,14 +10453,23 @@ def findfr_hdrzone(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     return None
 
 def findfr_imidazole(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_imidazole descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_imidazole value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_imidazole descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_imidazole value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_imidazole(molecule) # type: ignore
@@ -10129,14 +10480,23 @@ def findfr_imidazole(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # typ
     return None
 
 def findfr_imide(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_imide descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_imide value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_imide descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_imide value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_imide(molecule) # type: ignore
@@ -10147,14 +10507,23 @@ def findfr_imide(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     return None
 
 def findfr_isocyan(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_isocyan descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_isocyan value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_isocyan descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_isocyan value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_isocyan(molecule) # type: ignore
@@ -10165,14 +10534,23 @@ def findfr_isocyan(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     return None
 
 def findfr_isothiocyan(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_isothiocyan descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_isothiocyan value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_isothiocyan descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_isothiocyan value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_isothiocyan(molecule) # type: ignore
@@ -10183,14 +10561,23 @@ def findfr_isothiocyan(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # t
     return None
 
 def findfr_ketone(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_ketone descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_ketone value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_ketone descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_ketone value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_ketone(molecule) # type: ignore
@@ -10201,14 +10588,23 @@ def findfr_ketone(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: 
     return None
 
 def findfr_ketone_Topliss(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_ketone_Topliss descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_ketone_Topliss value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_ketone_Topliss descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_ketone_Topliss value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_ketone_Topliss(molecule) # type: ignore
@@ -10219,14 +10615,23 @@ def findfr_ketone_Topliss(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: 
     return None
 
 def findfr_lactam(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_lactam descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_lactam value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_lactam descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_lactam value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_lactam(molecule) # type: ignore
@@ -10237,14 +10642,23 @@ def findfr_lactam(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: 
     return None
 
 def findfr_lactone(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_lactone descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_lactone value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_lactone descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_lactone value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_lactone(molecule) # type: ignore
@@ -10255,14 +10669,23 @@ def findfr_lactone(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     return None
 
 def findfr_methoxy(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_methoxy descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_methoxy value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_methoxy descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_methoxy value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_methoxy(molecule) # type: ignore
@@ -10273,14 +10696,23 @@ def findfr_methoxy(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     return None
 
 def findfr_morpholine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_morpholine descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_morpholine value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_morpholine descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_morpholine value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_morpholine(molecule) # type: ignore
@@ -10291,14 +10723,23 @@ def findfr_morpholine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # ty
     return None
 
 def findfr_nitrile(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_nitrile descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_nitrile value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_nitrile descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_nitrile value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_nitrile(molecule) # type: ignore
@@ -10309,14 +10750,23 @@ def findfr_nitrile(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     return None
 
 def findfr_nitro(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_nitro descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_nitro value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_nitro descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_nitro value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_nitro(molecule) # type: ignore
@@ -10327,14 +10777,23 @@ def findfr_nitro(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     return None
 
 def findfr_nitro_arom(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_nitro_arom descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_nitro_arom value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_nitro_arom descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_nitro_arom value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_nitro_arom(molecule) # type: ignore
@@ -10345,14 +10804,23 @@ def findfr_nitro_arom(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # ty
     return None
 
 def findfr_nitro_arom_nonortho(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_nitro_arom_nonortho descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_nitro_arom_nonortho value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_nitro_arom_nonortho descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_nitro_arom_nonortho value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_nitro_arom_nonortho(molecule) # type: ignore
@@ -10363,14 +10831,23 @@ def findfr_nitro_arom_nonortho(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, No
     return None
 
 def findfr_nitroso(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_nitroso descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_nitroso value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_nitroso descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_nitroso value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_nitroso(molecule) # type: ignore
@@ -10381,14 +10858,23 @@ def findfr_nitroso(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     return None
 
 def findfr_oxazole(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_oxazole descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_oxazole value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_oxazole descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_oxazole value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_oxazole(molecule) # type: ignore
@@ -10399,14 +10885,23 @@ def findfr_oxazole(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     return None
 
 def findfr_oxime(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_oxime descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_oxime value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_oxime descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_oxime value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_oxime(molecule) # type: ignore
@@ -10417,14 +10912,23 @@ def findfr_oxime(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     return None
 
 def findfr_para_hydroxylation(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_para_hydroxylation descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_para_hydroxylation value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_para_hydroxylation descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_para_hydroxylation value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_para_hydroxylation(molecule) # type: ignore
@@ -10435,14 +10939,23 @@ def findfr_para_hydroxylation(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, Non
     return None
 
 def findfr_phenol(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_phenol descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_phenol value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_phenol descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_phenol value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_phenol(molecule) # type: ignore
@@ -10453,14 +10966,23 @@ def findfr_phenol(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: 
     return None
 
 def findfr_phenol_noOrthoHbond(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_phenol_noOrthoHbond descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_phenol_noOrthoHbond value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_phenol_noOrthoHbond descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_phenol_noOrthoHbond value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_phenol_noOrthoHbond(molecule) # type: ignore
@@ -10471,14 +10993,23 @@ def findfr_phenol_noOrthoHbond(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, No
     return None
 
 def findfr_phos_acid(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_phos_acid descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_phos_acid value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_phos_acid descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_phos_acid value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_phos_acid(molecule) # type: ignore
@@ -10489,14 +11020,23 @@ def findfr_phos_acid(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # typ
     return None
 
 def findfr_phos_ester(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_phos_ester descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_phos_ester value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_phos_ester descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_phos_ester value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_phos_ester(molecule) # type: ignore
@@ -10507,14 +11047,23 @@ def findfr_phos_ester(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # ty
     return None
 
 def findfr_piperdine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_piperdine descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_piperdine value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_piperdine descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_piperdine value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_piperdine(molecule) # type: ignore
@@ -10525,14 +11074,23 @@ def findfr_piperdine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # typ
     return None
 
 def findfr_piperzine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_piperzine descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_piperzine value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_piperzine descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_piperzine value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_piperzine(molecule) # type: ignore
@@ -10543,14 +11101,23 @@ def findfr_piperzine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # typ
     return None
 
 def findfr_priamide(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_priamide descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_priamide value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_priamide descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_priamide value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_priamide(molecule) # type: ignore
@@ -10561,14 +11128,23 @@ def findfr_priamide(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type
     return None
 
 def findfr_prisulfonamd(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_prisulfonamd descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_prisulfonamd value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_prisulfonamd descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_prisulfonamd value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_prisulfonamd(molecule) # type: ignore
@@ -10579,14 +11155,23 @@ def findfr_prisulfonamd(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # 
     return None
 
 def findfr_pyridine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_pyridine descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_pyridine value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_pyridine descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_pyridine value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_pyridine(molecule) # type: ignore
@@ -10597,14 +11182,23 @@ def findfr_pyridine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type
     return None
 
 def findfr_quatN(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_quatN descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_quatN value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_quatN descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_quatN value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_quatN(molecule) # type: ignore
@@ -10615,14 +11209,23 @@ def findfr_quatN(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     return None
 
 def findfr_sulfide(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_sulfide descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_sulfide value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_sulfide descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_sulfide value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_sulfide(molecule) # type: ignore
@@ -10633,14 +11236,23 @@ def findfr_sulfide(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     return None
 
 def findfr_sulfonamd(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_sulfonamd descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_sulfonamd value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_sulfonamd descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_sulfonamd value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_sulfonamd(molecule) # type: ignore
@@ -10651,14 +11263,23 @@ def findfr_sulfonamd(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # typ
     return None
 
 def findfr_sulfone(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_sulfone descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_sulfone value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_sulfone descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_sulfone value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_sulfone(molecule) # type: ignore
@@ -10669,14 +11290,23 @@ def findfr_sulfone(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     return None
 
 def findfr_term_acetylene(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_term_acetylene descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_term_acetylene value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_term_acetylene descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_term_acetylene value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_term_acetylene(molecule) # type: ignore
@@ -10687,14 +11317,23 @@ def findfr_term_acetylene(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: 
     return None
 
 def findfr_tetrazole(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_tetrazole descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_tetrazole value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_tetrazole descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_tetrazole value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_tetrazole(molecule) # type: ignore
@@ -10705,14 +11344,23 @@ def findfr_tetrazole(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # typ
     return None
 
 def findfr_thiazole(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_thiazole descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_thiazole value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_thiazole descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_thiazole value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_thiazole(molecule) # type: ignore
@@ -10722,15 +11370,24 @@ def findfr_thiazole(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type
 
     return None
 
-def findfr_thiocyan(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+def findfr_thiocyan(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_thiocyan descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_thiocyan value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_thiocyan descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The fr_thiocyan value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_thiocyan(molecule) # type: ignore
@@ -10740,15 +11397,24 @@ def findfr_thiocyan(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
 
     return None
 
-def findfr_thiophene(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+def findfr_thiophene(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_thiophene descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_thiophene value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_thiophene descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The fr_thiophene value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_thiophene(molecule) # type: ignore
@@ -10758,15 +11424,24 @@ def findfr_thiophene(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
 
     return None
 
-def findfr_unbrch_alkane(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+def findfr_unbrch_alkane(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_unbrch_alkane descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_unbrch_alkane value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_unbrch_alkane descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The fr_unbrch_alkane value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_unbrch_alkane(molecule) # type: ignore
@@ -10776,15 +11451,24 @@ def findfr_unbrch_alkane(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]:
 
     return None
 
-def findfr_urea(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+def findfr_urea(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the fr_urea descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The fr_urea value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the fr_urea descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The fr_urea value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.fr_urea(molecule) # type: ignore
@@ -10797,13 +11481,23 @@ def findfr_urea(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: 
 #endregion
 
 def findFractionCSP3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the FractionCSP3 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The FractionCSP3 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the FractionCSP3 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The FractionCSP3 descriptor.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.FractionCSP3(molecule) # type: ignore
@@ -10814,13 +11508,23 @@ def findFractionCSP3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     return None
 
 def findHallKierAlpha(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the HallKierAlpha descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The HallKierAlpha value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the HallKierAlpha descriptor.
-    Input:
-      -
-    Return:
-      [float] - The HallKierAlpha descriptor.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.HallKierAlpha(molecule) # type: ignore
@@ -10831,14 +11535,23 @@ def findHallKierAlpha(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     return None
 
 def findHeavyAtomMolWt(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the heavy atom molecular weight of the molecule.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The heavy atom molecular weight of the molecule or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the heavy atom molecular weight of the molecule.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The heavy atom molecular weight.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.HeavyAtomMolWt(molecule) # type: ignore
@@ -10849,14 +11562,23 @@ def findHeavyAtomMolWt(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findHeavyAtomCount(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the HeavyAtomCount descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The HeavyAtomCount value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the HeavyAtomCount descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The HeavyAtomCount descriptor.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.HeavyAtomCount(molecule) # type: ignore
@@ -10867,14 +11589,23 @@ def findHeavyAtomCount(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # t
     return None
 
 def findIpc(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the Ipc descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The Ipc value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the Ipc descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The Ipc descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.Ipc(molecule) # type: ignore
@@ -10886,14 +11617,23 @@ def findIpc(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: igno
 
 #region Kappa descriptors
 def findKappa1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the Kappa1 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The Kappa1 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the Kappa1 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The Kappa1 descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.Kappa1(molecule) # type: ignore
@@ -10904,14 +11644,23 @@ def findKappa1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: i
     return None
 
 def findKappa2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the Kappa2 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The Kappa2 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the Kappa2 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The Kappa2 descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.Kappa2(molecule) # type: ignore
@@ -10922,14 +11671,23 @@ def findKappa2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: i
     return None
 
 def findKappa3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the Kappa3 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The Kappa3 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the Kappa3 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The Kappa3 descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.Kappa3(molecule) # type: ignore
@@ -10942,14 +11700,23 @@ def findKappa3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: i
 #endregion
 
 def findLabuteASA(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the LabuteASA descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The LabuteASA value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the LabuteASA descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The LabuteASA descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.LabuteASA(molecule) # type: ignore
@@ -10960,14 +11727,23 @@ def findLabuteASA(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     return None
 
 def findMaxAbsPartialCharge(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the maximum absolute partial charge of the molecule.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The maximum absolute partial charge of the molecule or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the maximum absolute partial charge of the molecule.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The maximum absolute partial charge.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.MaxAbsPartialCharge(molecule) # type: ignore
@@ -10978,14 +11754,23 @@ def findMaxAbsPartialCharge(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, Non
     return None
 
 def findMaxPartialCharge(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the absolute partial charge of the molecule.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The absolute partial charge of the molecule or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the absolute partial charge of the molecule.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The absolute partial partial charge.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.MaxPartialCharge(molecule) # type: ignore
@@ -10996,14 +11781,23 @@ def findMaxPartialCharge(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]:
     return None
 
 def findMinAbsPartialCharge(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the minimum absolute partial charge of the molecule.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The minimum absolute partial charge of the molecule or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the minimum absolute partial charge of the molecule.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The minimum absolute partial partial charge.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.MinAbsPartialCharge(molecule) # type: ignore
@@ -11014,14 +11808,23 @@ def findMinAbsPartialCharge(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, Non
     return None
 
 def findMinPartialCharge(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the minimum partial charge of the molecule.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The minimum partial charge of the molecule or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the minimum partial charge of the molecule.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The minimum partial partial charge.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.MinPartialCharge(molecule) # type: ignore
@@ -11032,14 +11835,23 @@ def findMinPartialCharge(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]:
     return None
 
 def findMolLogP(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the MolLogP descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The MolLogP value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the MolLogP descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The MolLogP descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.MolLogP(molecule) # type: ignore
@@ -11050,14 +11862,23 @@ def findMolLogP(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: 
     return None
 
 def findMolMR(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the MolMR descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The MolMR value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the MolMR descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The MolMR descriptor.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.MolMR(molecule) # type: ignore
@@ -11068,14 +11889,23 @@ def findMolMR(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     return None
 
 def findMolWt(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the molecular weight of the molecule.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The molecular weight of the molecule or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the molecular weight of the molecule.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The molecular weight.
-      [None]   - If parsing the descriptor fails.
-    '''
+
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.MolWt(molecule) # type: ignore
@@ -11087,14 +11917,23 @@ def findMolWt(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
 
 #region 'count' descriptors
 def findNHOHCount(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the NHOHCount descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The NHOHCount value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the NHOHCount descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The NHOHCount descriptor.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.NHOHCount(molecule) # type: ignore
@@ -11105,14 +11944,23 @@ def findNHOHCount(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: 
     return None
 
 def findNOCount(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the NOCount descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The NOCount value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the NOCount descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The NOCount descriptor.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.NOCount(molecule) # type: ignore
@@ -11122,15 +11970,24 @@ def findNOCount(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ig
 
     return None
 
-def findNumAliphaticCarbocycles(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+def findNumAliphaticCarbocycles(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the NumAliphaticCarbocycles descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The NumAliphaticCarbocycles value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the NumAliphaticCarbocycles descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The NumAliphaticCarbocycles value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.NumAliphaticCarbocycles(molecule) # type: ignore
@@ -11140,15 +11997,24 @@ def findNumAliphaticCarbocycles(molecule: rdkit.Chem.rdchem.Mol) -> Union[float,
 
     return None
 
-def findNumAliphaticHeterocycles(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+def findNumAliphaticHeterocycles(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the NumAliphaticHeterocycles descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The NumAliphaticHeterocycles value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the NumAliphaticHeterocycles descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The NumAliphaticHeterocycles value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.NumAliphaticHeterocycles(molecule) # type: ignore
@@ -11158,15 +12024,24 @@ def findNumAliphaticHeterocycles(molecule: rdkit.Chem.rdchem.Mol) -> Union[float
 
     return None
 
-def findNumAliphaticRings(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+def findNumAliphaticRings(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the NumAliphaticRings descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The NumAliphaticRings value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the NumAliphaticRings descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The NumAliphaticRings value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.NumAliphaticRings(molecule) # type: ignore
@@ -11176,15 +12051,24 @@ def findNumAliphaticRings(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]
 
     return None
 
-def findNumAromaticCarbocycles(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+def findNumAromaticCarbocycles(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the NumAromaticCarbocycles descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The NumAromaticCarbocycles value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the NumAromaticCarbocycles descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The NumAromaticCarbocycles value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.NumAromaticCarbocycles(molecule) # type: ignore
@@ -11194,15 +12078,24 @@ def findNumAromaticCarbocycles(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, 
 
     return None
 
-def findNumAromaticHeterocycles(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+def findNumAromaticHeterocycles(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the NumAromaticHeterocycles descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The NumAromaticHeterocycles value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the NumAromaticHeterocycles descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The NumAromaticHeterocycles value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.NumAromaticHeterocycles(molecule) # type: ignore
@@ -11212,15 +12105,24 @@ def findNumAromaticHeterocycles(molecule: rdkit.Chem.rdchem.Mol) -> Union[float,
 
     return None
 
-def findNumAromaticRings(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+def findNumAromaticRings(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the NumAromaticRings descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The NumAromaticRings value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the NumAromaticRings descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The NumAromaticRings value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.NumAromaticRings(molecule) # type: ignore
@@ -11230,15 +12132,24 @@ def findNumAromaticRings(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]:
 
     return None
 
-def findNumHAcceptors(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+def findNumHAcceptors(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the NumHAcceptors descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The NumHAcceptors value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the NumHAcceptors descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The NumHAcceptors value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.NumHAcceptors(molecule) # type: ignore
@@ -11248,15 +12159,24 @@ def findNumHAcceptors(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     return None
 
-def findNumHDonors(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+def findNumHDonors(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the NumHDonors descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The NumHDonors value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the NumHDonors descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The NumHDonors value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.NumHDonors(molecule) # type: ignore
@@ -11266,15 +12186,24 @@ def findNumHDonors(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
 
     return None
 
-def findNumHeteroatoms(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+def findNumHeteroatoms(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the NumHeteroatoms descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The NumHeteroatoms value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the NumHeteroatoms descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The NumHeteroatoms value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.NumHeteroatoms(molecule) # type: ignore
@@ -11285,14 +12214,23 @@ def findNumHeteroatoms(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     return None
 
 def findNumRadicalElectrons(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the number of radical electrons in the molecule.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The number of radical electrons in the molecule or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the number of radical electrons in the molecule.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The number of radical electrons.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.NumRadicalElectrons(molecule) # type: ignore
@@ -11303,14 +12241,23 @@ def findNumRadicalElectrons(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]
     return None
 
 def findNumRotatableBonds(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the NumRotatableBonds descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The NumRotatableBonds value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the NumRotatableBonds descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The NumRotatableBonds value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.NumRotatableBonds(molecule) # type: ignore
@@ -11321,14 +12268,23 @@ def findNumRotatableBonds(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: 
     return None
 
 def findNumSaturatedCarbocycles(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the NumSaturatedCarbocycles descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The NumSaturatedCarbocycles value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the NumSaturatedCarbocycles descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The NumSaturatedCarbocycles value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.NumSaturatedCarbocycles(molecule) # type: ignore
@@ -11339,14 +12295,23 @@ def findNumSaturatedCarbocycles(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, N
     return None
 
 def findNumSaturatedHeterocycles(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the NumSaturatedHeterocycles descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The NumSaturatedHeterocycles value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the NumSaturatedHeterocycles descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The NumSaturatedHeterocycles value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.NumSaturatedHeterocycles(molecule) # type: ignore
@@ -11357,14 +12322,23 @@ def findNumSaturatedHeterocycles(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, 
     return None
 
 def findNumSaturatedRings(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the NumSaturatedRings descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The NumSaturatedRings value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the NumSaturatedRings descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The NumSaturatedRings value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.NumSaturatedRings(molecule) # type: ignore
@@ -11375,14 +12349,23 @@ def findNumSaturatedRings(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: 
     return None
 
 def findNumValenceElectrons(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the number of valence electrons in the molecule.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The number of valence electrons in the moleculeor None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the number of valence electrons in the molecule.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The number of valence electrons.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.NumValenceElectrons(molecule) # type: ignore
@@ -11393,14 +12376,23 @@ def findNumValenceElectrons(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]
     return None
 
 def findRingCount(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ignore
+    '''Compute the RingCount descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    int | None
+        The RingCount value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the RingCount descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [int]  - The RingCount value.
-      [None] - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.RingCount(molecule) # type: ignore
@@ -11409,19 +12401,27 @@ def findRingCount(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: 
         _ = errors.not_set(f"The variable is not set.")
 
     return None
-
 #endregion
 
 #region PEOE_VSA descriptors
 def findPEOE_VSA1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the PEOE_VSA1 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The PEOE_VSA1 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the PEOE_VSA1 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The PEOE_VSA1 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.PEOE_VSA1(molecule) # type: ignore
@@ -11432,14 +12432,23 @@ def findPEOE_VSA1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     return None
 
 def findPEOE_VSA2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the PEOE_VSA2 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The PEOE_VSA2 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the PEOE_VSA2 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The PEOE_VSA2 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.PEOE_VSA2(molecule) # type: ignore
@@ -11450,14 +12459,23 @@ def findPEOE_VSA2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     return None
 
 def findPEOE_VSA3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore
+    '''Compute the PEOE_VSA3 descriptor.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to be evaluated.
+
+    Returns
+    -------
+    float | None
+        The PEOE_VSA3 value or None if parsing the descriptor fails.
+
+    Raises
+    ------
+    None
     '''
-    Compute the PEOE_VSA3 descriptor.
-    Input:
-      molecule [rdkit.Chem.rdchem.Mol] - The molecule to be evaluated.
-    Return:
-      [float] - The PEOE_VSA3 value.
-      [None]   - If parsing the descriptor fails.
-    '''
+    
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
             return rdkit.Chem.Descriptors.PEOE_VSA3(molecule) # type: ignore
