@@ -506,12 +506,12 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silent: bool
 
     Parameters
     ----------
-    overwrite : bool
-        Flag to tell if files should be overwritten.
-    deleteTar : bool
-        Flag to tell if the tar files should be deleted after extraction.
-    silent : bool
-        Flag to tell if the function should be silent.
+    overwrite : bool, optional
+        Flag to tell if files should be overwritten. The default is False.
+    deleteTar : bool, optional
+        Flag to tell if the tar files should be deleted after extraction. The default is True.
+    silent : bool, optional
+        Flag to tell if the function should be silent, if True will continue without prompting to the user. The default is False.
 
     Returns
     -------
@@ -536,7 +536,7 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silent: bool
 
     t2 = f"- Download the{clrs['c']} Protein-ligand complexes: The refined set{clrs['n']} (it may have the number 3 as its index)."
 
-    t3 = f"- Then provide the full path to it or put the file inside the{clrs['y']} {ocdb_path}/download{clrs['n']} folder and type continue (please, make sure that the downloaded file is the{clrs['c']} ONLY{clrs['n']} file inside the{clrs['y']} {ocdb_path}/download{clrs['n']} folder). If you want to skip the PDBbind update, type 'skip' (without quotes) and press enter. "
+    t3 = f"- Then provide the full path to it or put the file inside the{clrs['y']} {pdbbind_archive}{clrs['n']} folder and type continue (please, make sure that the downloaded file is the{clrs['c']} ONLY{clrs['n']} file inside the{clrs['y']} {pdbbind_archive}{clrs['n']} folder). If you want to skip the PDBbind update, type 'skip' (without quotes) and press enter. "
 
     # Since no rsync option to update pdbbind database has been found you have to manually download/untar the files and put them inside the database folder
     print(tw.dedent("""
@@ -559,7 +559,7 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silent: bool
             option = "continue"
         else:
             # Check the options
-            option = input("Once these steps are done, type 'continue' and press enter to continue. To cancel just press enter without typing nothing.\n")
+            option = input("Once these steps are done, type 'continue' and press enter to continue. To skip, type 'skip' To cancel just press enter without typing nothing.\n")
 
             # If there is quotes or double quotes in the path
             if "'" in option or '"' in option:
@@ -570,10 +570,10 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silent: bool
         if option.lower() in ["continue", "continuar"]:
             octools.printv("Continuing the update proces...")
             # Find the pdbbindTar file
-            pdbbindTar = glob(f"{ocdb_path}/download/*.tar.gz")[0]
+            pdbbindTar = glob(f"{pdbbind_archive}/*.tar.gz")[0]
 
             # Since everything is right, start to untar/ungz them and delete source .tar.gz file
-            _ = octools.untar(pdbbindTar, out_path = f"{ocdb_path}", delete = deleteTar)
+            _ = octools.untar(pdbbindTar, out_path = f"{pdbbind_archive}", delete = deleteTar)
 
             # Check if there is a refined-set folder
             if os.path.isdir(f"{pdbbind_archive}/refined-set"):
