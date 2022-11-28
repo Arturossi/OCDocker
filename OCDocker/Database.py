@@ -527,15 +527,15 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silentMode: 
         # If silent mode is on
         if silentMode:
             # Set the option to continue
-            choice = silentMode
+            choice: str = silentMode
         else:
             # Check the options
-            choice = input("Once these steps are done, type 'continue' and press enter to continue. To skip, type 'skip' To cancel just press enter without typing nothing.\n")
+            choice: str = input("Once these steps are done, type 'continue' and press enter to continue. To skip, type 'skip' To cancel just press enter without typing nothing.\n")
 
             # If there is quotes or double quotes in the path
             if "'" in choice or '"' in choice:
                 # Remove them
-                choice = choice.replace('"', "").replace("'", "")
+                choice: str = choice.replace('"', "").replace("'", "")
 
         # If the option in lowercase is in the continue list (traductions may enter here)
         if choice.lower() in ["continue", "continuar"]:
