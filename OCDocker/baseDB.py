@@ -253,7 +253,7 @@ def __p2rank_no_parallel(dirs: List[str], overwrite: bool, archive: str, desc: s
     return None
 
 ### Prepare
-def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str, dbName: str, sanitize: bool, molName: str = "", targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> None: # type: ignore
+def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str, dbName: str, sanitize: bool, molName: str = "", targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None, alternativeLigand: rdkit.Chem.rdchem.Mol = None) -> None: # type: ignore
     '''Prepares a molecule, generating output to docking software.
 
     Parameters
@@ -272,6 +272,8 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
         Name of the molecule.
     targetCentroid : Tuple[float, float, float] | rdkit.Geometry.rdGeometry.Point3D, optional
         Centroid of the target. If not provided, the centroid of the molecule will be used.
+    alternativeLigand : rdkit.Chem.rdchem.Mol, optional
+        Alternative ligand to be used in the preparation.
 
     Returns
     -------
@@ -308,6 +310,22 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                 with lock:
                     # Create the ligand object
                     m = ocl.Ligand(mol, molName, sanitize = sanitize)
+                    # Test if the Radius of Gyration is None
+                    if not m.RadiusOfGyration:
+                        # Print a warning
+                        octools.print_warning(f"The ligand '{molName}' has a Radius of Gyration of None, trying to load its alternative ligand.")
+                        # If so, try to load the alternative ligand
+                        if alternativeLigand:
+                            # Create the ligand object
+                            m = ocl.Ligand(alternativeLigand, molName, sanitize = sanitize)
+                            # Check the radius of gyration again
+                            if not m.RadiusOfGyration:
+                                # If it is still None, print a warning and return
+                                octools.print_warning(f"The ligand '{molName}' has a Radius of Gyration of None, even with the alternative ligand, skipping.")
+                        else:
+                            # Print a warning
+                            octools.print_warning(f"The ligand '{molName}' has a Radius of Gyration of None and no alternative ligand was provided.")
+
                     # Create a box around the ligand
                     m.create_box(centroid = targetCentroid, overwrite = overwrite)
             # If m is not valid
@@ -416,22 +434,24 @@ def __sub_core_prepare(dirsToProcess: str, dbName: str, overwrite: bool, mols : 
 
     # For each directory (check to see if it is needed to generate descriptors)
     for processDir in processDirs:
-        # Check if the dbName is PDBbind
-        if dbName.lower() in ["pdbbind"]:
-            # Set the fligand name as the ligand file path
-            fligand = f"{processDir}/ligand.sdf"
-        else:
-            # Set the fligand name as the ligand file path (use mol2)
-            fligand = f"{processDir}/ligand.smi"
-
         # Safe create plantsFiles, vinaFiles and sminaFiles dirs
         _ = octools.safe_create_dir(f"{processDir}/vinaFiles")
         _ = octools.safe_create_dir(f"{processDir}/sminaFiles")
         _ = octools.safe_create_dir(f"{processDir}/plantsFiles")
 
-        # For each ligand (don't use parallel, since there is no need)
-        __prepare_molecule(fligand, overwrite, "ligand", dbName, sanitize = sanitize, targetCentroid = targetCentroid)
-    
+        # Check if the dbName is PDBbind
+        if dbName.lower() in ["pdbbind"]:
+            # Set the fligand name as the ligand file path
+            fligand = f"{processDir}/ligand.sdf"
+            alternativeLigand = f"{processDir}/ligand.mol2"
+            # For each ligand (don't use parallel, since there is no need)
+            __prepare_molecule(fligand, overwrite, "ligand", dbName, sanitize = sanitize, targetCentroid = targetCentroid, alternativeLigand = alternativeLigand)
+        else:
+            # Set the fligand name as the ligand file path (use mol2)
+            fligand = f"{processDir}/ligand.smi"
+            # For each ligand (don't use parallel, since there is no need)
+            __prepare_molecule(fligand, overwrite, "ligand", dbName, sanitize = sanitize, targetCentroid = targetCentroid)
+
     return processDirs
 
 def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spacing: float, targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> int: # type: ignore
