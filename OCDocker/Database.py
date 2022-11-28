@@ -591,7 +591,7 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silent: bool
 
                     # Move it to the parent folder
                     shutil.move(f"{pdbbind_archive}/refined-set/{filename}", destPath)
-                    
+
                     # If is not index (it is a special folder)
                     if filename != "index":
                         # Create the compounds folder inside the protein folder
@@ -603,7 +603,7 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silent: bool
                         shutil.move(f"{destPath}/{filename}_ligand.mol2", f"{destPath}/compounds/ligands/ligand.mol2")
 
                 # Remove the refined-set folder
-                os.rmdir(f"{pdbbind_archive}/refined-set")
+                shutil.rmtree(f"{pdbbind_archive}/refined-set")
 
             # Check if there is a readme file
             if os.path.isfile(f"{pdbbind_archive}/README.txt"):
