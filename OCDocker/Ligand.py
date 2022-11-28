@@ -15,6 +15,7 @@ from rdkit import RDLogger
 from rdkit import DataStructs
 from rdkit.Chem import AllChem
 from rdkit.Chem import MACCSkeys
+from rdkit.Chem import Descriptors
 from rdkit.Chem.SaltRemover import SaltRemover
 from rdkit.Chem.rdMolTransforms import ComputeCentroid
 
@@ -2911,7 +2912,7 @@ def findAUTOCORR2D_1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_1(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_1(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -2938,7 +2939,7 @@ def findAUTOCORR2D_2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_2(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_2(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -2965,7 +2966,7 @@ def findAUTOCORR2D_3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_3(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_3(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -2992,7 +2993,7 @@ def findAUTOCORR2D_4(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_4(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_4(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3019,7 +3020,7 @@ def findAUTOCORR2D_5(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_5(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_5(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3046,7 +3047,7 @@ def findAUTOCORR2D_6(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_6(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_6(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3073,7 +3074,7 @@ def findAUTOCORR2D_7(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_7(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_7(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3100,7 +3101,7 @@ def findAUTOCORR2D_8(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_8(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_8(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3127,7 +3128,7 @@ def findAUTOCORR2D_9(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_9(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_9(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3154,7 +3155,7 @@ def findAUTOCORR2D_10(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_10(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_10(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3181,7 +3182,7 @@ def findAUTOCORR2D_11(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_11(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_11(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3208,7 +3209,7 @@ def findAUTOCORR2D_12(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_12(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_12(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3235,7 +3236,7 @@ def findAUTOCORR2D_13(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_13(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_13(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3263,7 +3264,7 @@ def findAUTOCORR2D_14(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_14(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_14(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3290,7 +3291,7 @@ def findAUTOCORR2D_15(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_15(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_15(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3317,7 +3318,7 @@ def findAUTOCORR2D_16(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_16(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_16(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3344,7 +3345,7 @@ def findAUTOCORR2D_17(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_17(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_17(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3371,7 +3372,7 @@ def findAUTOCORR2D_18(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_18(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_18(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3398,7 +3399,7 @@ def findAUTOCORR2D_19(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_19(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_19(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3425,7 +3426,7 @@ def findAUTOCORR2D_20(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_20(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_20(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3452,7 +3453,7 @@ def findAUTOCORR2D_21(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_21(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_21(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3479,7 +3480,7 @@ def findAUTOCORR2D_22(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_22(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_22(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3506,7 +3507,7 @@ def findAUTOCORR2D_23(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_23(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_23(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3533,7 +3534,7 @@ def findAUTOCORR2D_24(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_24(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_24(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3560,7 +3561,7 @@ def findAUTOCORR2D_25(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_25(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_25(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3587,7 +3588,7 @@ def findAUTOCORR2D_26(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_26(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_26(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3614,7 +3615,7 @@ def findAUTOCORR2D_27(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_27(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_27(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3641,7 +3642,7 @@ def findAUTOCORR2D_28(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_28(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_28(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3668,7 +3669,7 @@ def findAUTOCORR2D_29(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_29(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_29(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3695,7 +3696,7 @@ def findAUTOCORR2D_30(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_30(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_30(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3722,7 +3723,7 @@ def findAUTOCORR2D_31(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_31(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_31(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3749,7 +3750,7 @@ def findAUTOCORR2D_32(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_32(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_32(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3776,7 +3777,7 @@ def findAUTOCORR2D_33(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_33(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_33(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3803,7 +3804,7 @@ def findAUTOCORR2D_34(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_34(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_34(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3830,7 +3831,7 @@ def findAUTOCORR2D_35(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_35(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_35(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3857,7 +3858,7 @@ def findAUTOCORR2D_36(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_36(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_36(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3884,7 +3885,7 @@ def findAUTOCORR2D_37(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_37(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_37(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3911,7 +3912,7 @@ def findAUTOCORR2D_38(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_38(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_38(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3938,7 +3939,7 @@ def findAUTOCORR2D_39(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_39(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_39(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3965,7 +3966,7 @@ def findAUTOCORR2D_40(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_40(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_40(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -3992,7 +3993,7 @@ def findAUTOCORR2D_41(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_41(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_41(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4019,7 +4020,7 @@ def findAUTOCORR2D_42(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_42(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_42(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4046,7 +4047,7 @@ def findAUTOCORR2D_43(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_43(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_43(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4073,7 +4074,7 @@ def findAUTOCORR2D_44(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_44(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_44(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4100,7 +4101,7 @@ def findAUTOCORR2D_45(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_45(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_45(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4127,7 +4128,7 @@ def findAUTOCORR2D_46(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_46(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_46(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4154,7 +4155,7 @@ def findAUTOCORR2D_47(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_47(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_47(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4181,7 +4182,7 @@ def findAUTOCORR2D_48(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_48(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_48(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4208,7 +4209,7 @@ def findAUTOCORR2D_49(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_49(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_49(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4235,7 +4236,7 @@ def findAUTOCORR2D_50(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_50(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_50(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4262,7 +4263,7 @@ def findAUTOCORR2D_51(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_51(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_51(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4289,7 +4290,7 @@ def findAUTOCORR2D_52(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_52(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_52(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4316,7 +4317,7 @@ def findAUTOCORR2D_53(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_53(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_53(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4343,7 +4344,7 @@ def findAUTOCORR2D_54(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_54(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_54(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4370,7 +4371,7 @@ def findAUTOCORR2D_55(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_55(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_55(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4397,7 +4398,7 @@ def findAUTOCORR2D_56(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_56(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_56(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4424,7 +4425,7 @@ def findAUTOCORR2D_57(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_57(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_57(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4451,7 +4452,7 @@ def findAUTOCORR2D_58(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_58(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_58(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4478,7 +4479,7 @@ def findAUTOCORR2D_59(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_59(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_59(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4505,7 +4506,7 @@ def findAUTOCORR2D_60(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_60(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_60(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4531,7 +4532,7 @@ def findAUTOCORR2D_61(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     '''
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_61(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_61(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4558,7 +4559,7 @@ def findAUTOCORR2D_62(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_62(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_62(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4585,7 +4586,7 @@ def findAUTOCORR2D_63(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_63(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_63(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4612,7 +4613,7 @@ def findAUTOCORR2D_64(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_64(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_64(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4639,7 +4640,7 @@ def findAUTOCORR2D_65(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_65(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_65(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4666,7 +4667,7 @@ def findAUTOCORR2D_66(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_66(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_66(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4693,7 +4694,7 @@ def findAUTOCORR2D_67(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_67(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_67(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4720,7 +4721,7 @@ def findAUTOCORR2D_68(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_68(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_68(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4747,7 +4748,7 @@ def findAUTOCORR2D_69(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_69(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_69(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4774,7 +4775,7 @@ def findAUTOCORR2D_70(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_70(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_70(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4801,7 +4802,7 @@ def findAUTOCORR2D_71(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_71(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_71(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4828,7 +4829,7 @@ def findAUTOCORR2D_72(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_72(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_72(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4855,7 +4856,7 @@ def findAUTOCORR2D_73(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_73(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_73(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4882,7 +4883,7 @@ def findAUTOCORR2D_74(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_74(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_74(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4909,7 +4910,7 @@ def findAUTOCORR2D_75(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_75(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_75(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4936,7 +4937,7 @@ def findAUTOCORR2D_76(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_76(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_76(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4963,7 +4964,7 @@ def findAUTOCORR2D_77(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_77(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_77(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -4990,7 +4991,7 @@ def findAUTOCORR2D_78(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_78(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_78(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5017,7 +5018,7 @@ def findAUTOCORR2D_79(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_79(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_79(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5044,7 +5045,7 @@ def findAUTOCORR2D_80(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_80(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_80(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5071,7 +5072,7 @@ def findAUTOCORR2D_81(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_81(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_81(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5098,7 +5099,7 @@ def findAUTOCORR2D_82(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_82(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_82(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5125,7 +5126,7 @@ def findAUTOCORR2D_83(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_83(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_83(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5152,7 +5153,7 @@ def findAUTOCORR2D_84(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_84(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_84(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5179,7 +5180,7 @@ def findAUTOCORR2D_85(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_85(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_85(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5206,7 +5207,7 @@ def findAUTOCORR2D_86(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_86(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_86(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5233,7 +5234,7 @@ def findAUTOCORR2D_87(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_87(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_87(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5260,7 +5261,7 @@ def findAUTOCORR2D_88(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_88(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_88(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5287,7 +5288,7 @@ def findAUTOCORR2D_89(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_89(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_89(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5314,7 +5315,7 @@ def findAUTOCORR2D_90(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_90(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_90(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5341,7 +5342,7 @@ def findAUTOCORR2D_91(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_91(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_91(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5368,7 +5369,7 @@ def findAUTOCORR2D_92(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_92(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_92(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5395,7 +5396,7 @@ def findAUTOCORR2D_93(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_93(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_93(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5422,7 +5423,7 @@ def findAUTOCORR2D_94(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_94(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_94(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5449,7 +5450,7 @@ def findAUTOCORR2D_95(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_95(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_95(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5476,7 +5477,7 @@ def findAUTOCORR2D_96(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_96(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_96(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5503,7 +5504,7 @@ def findAUTOCORR2D_97(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_97(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_97(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5530,7 +5531,7 @@ def findAUTOCORR2D_98(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_98(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_98(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5557,7 +5558,7 @@ def findAUTOCORR2D_99(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_99(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_99(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5584,7 +5585,7 @@ def findAUTOCORR2D_100(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_100(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_100(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5611,7 +5612,7 @@ def findAUTOCORR2D_101(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_101(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_101(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5638,7 +5639,7 @@ def findAUTOCORR2D_102(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_102(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_102(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5665,7 +5666,7 @@ def findAUTOCORR2D_103(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_103(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_103(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5692,7 +5693,7 @@ def findAUTOCORR2D_104(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_104(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_104(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5719,7 +5720,7 @@ def findAUTOCORR2D_105(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_105(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_105(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5746,7 +5747,7 @@ def findAUTOCORR2D_106(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_106(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_106(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5773,7 +5774,7 @@ def findAUTOCORR2D_107(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_107(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_107(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5800,7 +5801,7 @@ def findAUTOCORR2D_108(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_108(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_108(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5827,7 +5828,7 @@ def findAUTOCORR2D_109(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_109(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_109(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5854,7 +5855,7 @@ def findAUTOCORR2D_110(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_110(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_110(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5881,7 +5882,7 @@ def findAUTOCORR2D_111(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_111(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_111(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5908,7 +5909,7 @@ def findAUTOCORR2D_112(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_112(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_112(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5935,7 +5936,7 @@ def findAUTOCORR2D_113(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_113(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_113(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5962,7 +5963,7 @@ def findAUTOCORR2D_114(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_114(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_114(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -5989,7 +5990,7 @@ def findAUTOCORR2D_115(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_115(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_115(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6016,7 +6017,7 @@ def findAUTOCORR2D_116(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_116(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_116(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6043,7 +6044,7 @@ def findAUTOCORR2D_117(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_117(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_117(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6070,7 +6071,7 @@ def findAUTOCORR2D_118(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_118(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_118(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6097,7 +6098,7 @@ def findAUTOCORR2D_119(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_119(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_119(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6124,7 +6125,7 @@ def findAUTOCORR2D_120(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_120(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_120(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6151,7 +6152,7 @@ def findAUTOCORR2D_121(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_121(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_121(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6178,7 +6179,7 @@ def findAUTOCORR2D_122(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_122(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_122(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6205,7 +6206,7 @@ def findAUTOCORR2D_123(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_123(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_123(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6232,7 +6233,7 @@ def findAUTOCORR2D_124(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_124(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_124(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6259,7 +6260,7 @@ def findAUTOCORR2D_125(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_125(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_125(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6286,7 +6287,7 @@ def findAUTOCORR2D_126(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_126(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_126(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6313,7 +6314,7 @@ def findAUTOCORR2D_127(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_127(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_127(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6340,7 +6341,7 @@ def findAUTOCORR2D_128(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_128(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_128(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6367,7 +6368,7 @@ def findAUTOCORR2D_129(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_129(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_129(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6394,7 +6395,7 @@ def findAUTOCORR2D_130(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_130(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_130(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6421,7 +6422,7 @@ def findAUTOCORR2D_131(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_131(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_131(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6448,7 +6449,7 @@ def findAUTOCORR2D_132(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_132(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_132(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6475,7 +6476,7 @@ def findAUTOCORR2D_133(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_133(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_133(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6502,7 +6503,7 @@ def findAUTOCORR2D_134(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_134(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_134(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6529,7 +6530,7 @@ def findAUTOCORR2D_135(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_135(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_135(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6556,7 +6557,7 @@ def findAUTOCORR2D_136(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_136(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_136(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6583,7 +6584,7 @@ def findAUTOCORR2D_137(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_137(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_137(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6610,7 +6611,7 @@ def findAUTOCORR2D_138(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_138(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_138(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6637,7 +6638,7 @@ def findAUTOCORR2D_139(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_139(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_139(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6664,7 +6665,7 @@ def findAUTOCORR2D_140(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_140(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_140(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6691,7 +6692,7 @@ def findAUTOCORR2D_141(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_141(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_141(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6718,7 +6719,7 @@ def findAUTOCORR2D_142(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_142(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_142(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6745,7 +6746,7 @@ def findAUTOCORR2D_143(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_143(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_143(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6772,7 +6773,7 @@ def findAUTOCORR2D_144(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_144(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_144(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6799,7 +6800,7 @@ def findAUTOCORR2D_145(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_145(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_145(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6826,7 +6827,7 @@ def findAUTOCORR2D_146(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_146(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_146(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6853,7 +6854,7 @@ def findAUTOCORR2D_147(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_147(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_147(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6880,7 +6881,7 @@ def findAUTOCORR2D_148(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_148(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_148(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6907,7 +6908,7 @@ def findAUTOCORR2D_149(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_149(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_149(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6934,7 +6935,7 @@ def findAUTOCORR2D_150(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_150(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_150(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6961,7 +6962,7 @@ def findAUTOCORR2D_151(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_151(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_151(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -6988,7 +6989,7 @@ def findAUTOCORR2D_152(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_152(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_152(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7015,7 +7016,7 @@ def findAUTOCORR2D_153(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_153(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_153(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7042,7 +7043,7 @@ def findAUTOCORR2D_154(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_154(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_154(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7069,7 +7070,7 @@ def findAUTOCORR2D_155(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_155(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_155(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7096,7 +7097,7 @@ def findAUTOCORR2D_156(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_156(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_156(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7123,7 +7124,7 @@ def findAUTOCORR2D_157(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_157(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_157(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7150,7 +7151,7 @@ def findAUTOCORR2D_158(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_158(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_158(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7177,7 +7178,7 @@ def findAUTOCORR2D_159(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_159(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_159(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7204,7 +7205,7 @@ def findAUTOCORR2D_160(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_160(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_160(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7231,7 +7232,7 @@ def findAUTOCORR2D_161(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_161(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_161(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7258,7 +7259,7 @@ def findAUTOCORR2D_162(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_162(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_162(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7285,7 +7286,7 @@ def findAUTOCORR2D_163(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_163(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_163(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7312,7 +7313,7 @@ def findAUTOCORR2D_164(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_164(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_164(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7339,7 +7340,7 @@ def findAUTOCORR2D_165(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_165(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_165(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7366,7 +7367,7 @@ def findAUTOCORR2D_166(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_166(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_166(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7393,7 +7394,7 @@ def findAUTOCORR2D_167(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_167(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_167(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7420,7 +7421,7 @@ def findAUTOCORR2D_168(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_168(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_168(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7447,7 +7448,7 @@ def findAUTOCORR2D_169(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_169(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_169(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7474,7 +7475,7 @@ def findAUTOCORR2D_170(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_170(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_170(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7501,7 +7502,7 @@ def findAUTOCORR2D_171(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_171(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_171(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7528,7 +7529,7 @@ def findAUTOCORR2D_172(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_172(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_172(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7555,7 +7556,7 @@ def findAUTOCORR2D_173(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_173(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_173(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7582,7 +7583,7 @@ def findAUTOCORR2D_174(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_174(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_174(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7609,7 +7610,7 @@ def findAUTOCORR2D_175(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_175(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_175(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7636,7 +7637,7 @@ def findAUTOCORR2D_176(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_176(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_176(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7663,7 +7664,7 @@ def findAUTOCORR2D_177(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_177(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_177(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7690,7 +7691,7 @@ def findAUTOCORR2D_178(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_178(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_178(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7717,7 +7718,7 @@ def findAUTOCORR2D_179(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_179(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_179(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7744,7 +7745,7 @@ def findAUTOCORR2D_180(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_180(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_180(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7771,7 +7772,7 @@ def findAUTOCORR2D_181(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_181(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_181(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7798,7 +7799,7 @@ def findAUTOCORR2D_182(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_182(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_182(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7825,7 +7826,7 @@ def findAUTOCORR2D_183(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_183(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_183(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7852,7 +7853,7 @@ def findAUTOCORR2D_184(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_184(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_184(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7879,7 +7880,7 @@ def findAUTOCORR2D_185(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_185(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_185(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7906,7 +7907,7 @@ def findAUTOCORR2D_186(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_186(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_186(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7933,7 +7934,7 @@ def findAUTOCORR2D_187(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_187(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_187(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7960,7 +7961,7 @@ def findAUTOCORR2D_188(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_188(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_188(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -7987,7 +7988,7 @@ def findAUTOCORR2D_189(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_189(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_189(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8014,7 +8015,7 @@ def findAUTOCORR2D_190(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_190(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_190(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8041,7 +8042,7 @@ def findAUTOCORR2D_191(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_191(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_191(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8068,7 +8069,7 @@ def findAUTOCORR2D_192(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.AUTOCORR2D_192(molecule) # type: ignore
+            return Descriptors.AUTOCORR2D_192(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8098,7 +8099,7 @@ def findBCUT2D_CHGHI(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.BCUT2D_CHGHI(molecule) # type: ignore
+            return Descriptors.BCUT2D_CHGHI(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8125,7 +8126,7 @@ def findBCUT2D_CHGLO(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.BCUT2D_CHGLO(molecule) # type: ignore
+            return Descriptors.BCUT2D_CHGLO(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8152,7 +8153,7 @@ def findBCUT2D_LOGPHI(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.BCUT2D_LOGPHI(molecule) # type: ignore
+            return Descriptors.BCUT2D_LOGPHI(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8179,7 +8180,7 @@ def findBCUT2D_LOGPLOW(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.BCUT2D_LOGPLOW(molecule) # type: ignore
+            return Descriptors.BCUT2D_LOGPLOW(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8197,7 +8198,7 @@ def findBCUT2D_MRHI(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     '''
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.BCUT2D_MRHI(molecule) # type: ignore
+            return Descriptors.BCUT2D_MRHI(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8224,7 +8225,7 @@ def findBCUT2D_MRLOW(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.BCUT2D_MRLOW(molecule) # type: ignore
+            return Descriptors.BCUT2D_MRLOW(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8251,7 +8252,7 @@ def findBCUT2D_MWHI(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.BCUT2D_MWHI(molecule) # type: ignore
+            return Descriptors.BCUT2D_MWHI(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8278,7 +8279,7 @@ def findBCUT2D_MWLOW(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.BCUT2D_MWLOW(molecule) # type: ignore
+            return Descriptors.BCUT2D_MWLOW(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8307,7 +8308,7 @@ def findBalabanJ(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.BalabanJ(molecule) # type: ignore
+            return Descriptors.BalabanJ(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8334,7 +8335,7 @@ def findBertzCT(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.BertzCT(molecule) # type: ignore
+            return Descriptors.BertzCT(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8362,7 +8363,7 @@ def findChi0(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ign
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.Chi0(molecule) # type: ignore
+            return Descriptors.Chi0(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8389,7 +8390,7 @@ def findChi0n(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.Chi0n(molecule) # type: ignore
+            return Descriptors.Chi0n(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8416,7 +8417,7 @@ def findChi0v(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.Chi0v(molecule) # type: ignore
+            return Descriptors.Chi0v(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8443,7 +8444,7 @@ def findChi1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ign
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.Chi1(molecule) # type: ignore
+            return Descriptors.Chi1(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8470,7 +8471,7 @@ def findChi1n(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.Chi1n(molecule) # type: ignore
+            return Descriptors.Chi1n(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8497,7 +8498,7 @@ def findChi1v(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.Chi1v(molecule) # type: ignore
+            return Descriptors.Chi1v(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8524,7 +8525,7 @@ def findChi2n(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.Chi2n(molecule) # type: ignore
+            return Descriptors.Chi2n(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8551,7 +8552,7 @@ def findChi2v(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.Chi2v(molecule) # type: ignore
+            return Descriptors.Chi2v(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8578,7 +8579,7 @@ def findChi3n(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.Chi3n(molecule) # type: ignore
+            return Descriptors.Chi3n(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8605,7 +8606,7 @@ def findChi3v(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.Chi3v(molecule) # type: ignore
+            return Descriptors.Chi3v(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8632,7 +8633,7 @@ def findChi4n(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.Chi4n(molecule) # type: ignore
+            return Descriptors.Chi4n(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8659,7 +8660,7 @@ def findChi4v(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.Chi4v(molecule) # type: ignore
+            return Descriptors.Chi4v(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8689,7 +8690,7 @@ def findEState_VSA1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.EState_VSA1(molecule) # type: ignore
+            return Descriptors.EState_VSA1(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8716,7 +8717,7 @@ def findEState_VSA2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.EState_VSA2(molecule) # type: ignore
+            return Descriptors.EState_VSA2(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8743,7 +8744,7 @@ def findEState_VSA3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.EState_VSA3(molecule) # type: ignore
+            return Descriptors.EState_VSA3(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8770,7 +8771,7 @@ def findEState_VSA4(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.EState_VSA4(molecule) # type: ignore
+            return Descriptors.EState_VSA4(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8797,7 +8798,7 @@ def findEState_VSA5(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.EState_VSA5(molecule) # type: ignore
+            return Descriptors.EState_VSA5(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8824,7 +8825,7 @@ def findEState_VSA6(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.EState_VSA6(molecule) # type: ignore
+            return Descriptors.EState_VSA6(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8851,7 +8852,7 @@ def findEState_VSA7(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.EState_VSA7(molecule) # type: ignore
+            return Descriptors.EState_VSA7(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8878,7 +8879,7 @@ def findEState_VSA8(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.EState_VSA8(molecule) # type: ignore
+            return Descriptors.EState_VSA8(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8905,7 +8906,7 @@ def findEState_VSA9(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.EState_VSA9(molecule) # type: ignore
+            return Descriptors.EState_VSA9(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8932,7 +8933,7 @@ def findEState_VSA10(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.EState_VSA10(molecule) # type: ignore
+            return Descriptors.EState_VSA10(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8959,7 +8960,7 @@ def findEState_VSA11(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.EState_VSA11(molecule) # type: ignore
+            return Descriptors.EState_VSA11(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -8986,7 +8987,7 @@ def findMaxAbsEStateIndex(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.MaxAbsEStateIndex(molecule) # type: ignore
+            return Descriptors.MaxAbsEStateIndex(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9013,7 +9014,7 @@ def findMaxEStateIndex(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.MaxEStateIndex(molecule) # type: ignore
+            return Descriptors.MaxEStateIndex(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9040,7 +9041,7 @@ def findMinAbsEStateIndex(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.MinAbsEStateIndex(molecule) # type: ignore
+            return Descriptors.MinAbsEStateIndex(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9067,7 +9068,7 @@ def findMinEStateIndex(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.MinEStateIndex(molecule) # type: ignore
+            return Descriptors.MinEStateIndex(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9096,7 +9097,7 @@ def findExactMolWt(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.ExactMolWt(molecule) # type: ignore
+            return Descriptors.ExactMolWt(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9123,7 +9124,7 @@ def findFpDensityMorgan1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.FpDensityMorgan1(molecule) # type: ignore
+            return Descriptors.FpDensityMorgan1(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9150,7 +9151,7 @@ def findFpDensityMorgan2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.FpDensityMorgan2(molecule) # type: ignore
+            return Descriptors.FpDensityMorgan2(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9177,7 +9178,7 @@ def findFpDensityMorgan3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]:
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.FpDensityMorgan3(molecule) # type: ignore
+            return Descriptors.FpDensityMorgan3(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9205,7 +9206,7 @@ def findfr_Al_COO(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_Al_COO(molecule) # type: ignore
+            return Descriptors.fr_Al_COO(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9232,7 +9233,7 @@ def findfr_Al_OH(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_Al_OH(molecule) # type: ignore
+            return Descriptors.fr_Al_OH(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9259,7 +9260,7 @@ def findfr_Al_OH_noTert(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_Al_OH_noTert(molecule) # type: ignore
+            return Descriptors.fr_Al_OH_noTert(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9286,7 +9287,7 @@ def findfr_ArN(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ign
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_ArN(molecule) # type: ignore
+            return Descriptors.fr_ArN(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9313,7 +9314,7 @@ def findfr_Ar_COO(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: 
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_Ar_COO(molecule) # type: ignore
+            return Descriptors.fr_Ar_COO(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9340,7 +9341,7 @@ def findfr_Ar_N(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ig
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_Ar_N(molecule) # type: ignore
+            return Descriptors.fr_Ar_N(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9367,7 +9368,7 @@ def findfr_Ar_NH(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_Ar_NH(molecule) # type: ignore
+            return Descriptors.fr_Ar_NH(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9394,7 +9395,7 @@ def findfr_Ar_OH(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_Ar_OH(molecule) # type: ignore
+            return Descriptors.fr_Ar_OH(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9421,7 +9422,7 @@ def findfr_COO(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ign
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_COO(molecule) # type: ignore
+            return Descriptors.fr_COO(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9448,7 +9449,7 @@ def findfr_COO2(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ig
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_COO2(molecule) # type: ignore
+            return Descriptors.fr_COO2(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9475,7 +9476,7 @@ def findfr_C_O(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ign
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_C_O(molecule) # type: ignore
+            return Descriptors.fr_C_O(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9502,7 +9503,7 @@ def findfr_C_O_noCOO(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # typ
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_C_O_noCOO(molecule) # type: ignore
+            return Descriptors.fr_C_O_noCOO(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9529,7 +9530,7 @@ def findfr_C_S(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ign
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_C_S(molecule) # type: ignore
+            return Descriptors.fr_C_S(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9556,7 +9557,7 @@ def findfr_HOCCN(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_HOCCN(molecule) # type: ignore
+            return Descriptors.fr_HOCCN(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9583,7 +9584,7 @@ def findfr_Imine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_Imine(molecule) # type: ignore
+            return Descriptors.fr_Imine(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9610,7 +9611,7 @@ def findfr_NH0(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ign
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_NH0(molecule) # type: ignore
+            return Descriptors.fr_NH0(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9637,7 +9638,7 @@ def findfr_NH1(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ign
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_NH1(molecule) # type: ignore
+            return Descriptors.fr_NH1(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9664,7 +9665,7 @@ def findfr_NH2(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ign
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_NH2(molecule) # type: ignore
+            return Descriptors.fr_NH2(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9691,7 +9692,7 @@ def findfr_N_O(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ign
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_N_O(molecule) # type: ignore
+            return Descriptors.fr_N_O(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9718,7 +9719,7 @@ def findfr_Ndealkylation1(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: 
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_Ndealkylation1(molecule) # type: ignore
+            return Descriptors.fr_Ndealkylation1(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9745,7 +9746,7 @@ def findfr_Ndealkylation2(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: 
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_Ndealkylation2(molecule) # type: ignore
+            return Descriptors.fr_Ndealkylation2(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9772,7 +9773,7 @@ def findfr_Nhpyrrole(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # typ
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_Nhpyrrole(molecule) # type: ignore
+            return Descriptors.fr_Nhpyrrole(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9799,7 +9800,7 @@ def findfr_SH(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: igno
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_SH(molecule) # type: ignore
+            return Descriptors.fr_SH(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9826,7 +9827,7 @@ def findfr_aldehyde(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_aldehyde(molecule) # type: ignore
+            return Descriptors.fr_aldehyde(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9853,7 +9854,7 @@ def findfr_alkyl_carbamate(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_alkyl_carbamate(molecule) # type: ignore
+            return Descriptors.fr_alkyl_carbamate(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9880,7 +9881,7 @@ def findfr_alkyl_halide(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # 
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_alkyl_halide(molecule) # type: ignore
+            return Descriptors.fr_alkyl_halide(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9907,7 +9908,7 @@ def findfr_allylic_oxid(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # 
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_allylic_oxid(molecule) # type: ignore
+            return Descriptors.fr_allylic_oxid(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9934,7 +9935,7 @@ def findfr_amide(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_amide(molecule) # type: ignore
+            return Descriptors.fr_amide(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9961,7 +9962,7 @@ def findfr_amidine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_amidine(molecule) # type: ignore
+            return Descriptors.fr_amidine(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -9988,7 +9989,7 @@ def findfr_aniline(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_aniline(molecule) # type: ignore
+            return Descriptors.fr_aniline(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10015,7 +10016,7 @@ def findfr_aryl_methyl(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # t
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_aryl_methyl(molecule) # type: ignore
+            return Descriptors.fr_aryl_methyl(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10042,7 +10043,7 @@ def findfr_azide(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_azide(molecule) # type: ignore
+            return Descriptors.fr_azide(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10069,7 +10070,7 @@ def findfr_azo(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ign
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_azo(molecule) # type: ignore
+            return Descriptors.fr_azo(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10096,7 +10097,7 @@ def findfr_barbitur(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_barbitur(molecule) # type: ignore
+            return Descriptors.fr_barbitur(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10123,7 +10124,7 @@ def findfr_benzene(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_benzene(molecule) # type: ignore
+            return Descriptors.fr_benzene(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10150,7 +10151,7 @@ def findfr_benzodiazepine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: 
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_benzodiazepine(molecule) # type: ignore
+            return Descriptors.fr_benzodiazepine(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10177,7 +10178,7 @@ def findfr_bicyclic(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_bicyclic(molecule) # type: ignore
+            return Descriptors.fr_bicyclic(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10204,7 +10205,7 @@ def findfr_diazo(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_diazo(molecule) # type: ignore
+            return Descriptors.fr_diazo(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10231,7 +10232,7 @@ def findfr_dihydropyridine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_dihydropyridine(molecule) # type: ignore
+            return Descriptors.fr_dihydropyridine(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10258,7 +10259,7 @@ def findfr_epoxide(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_epoxide(molecule) # type: ignore
+            return Descriptors.fr_epoxide(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10285,7 +10286,7 @@ def findfr_ester(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_ester(molecule) # type: ignore
+            return Descriptors.fr_ester(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10312,7 +10313,7 @@ def findfr_ether(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_ether(molecule) # type: ignore
+            return Descriptors.fr_ether(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10339,7 +10340,7 @@ def findfr_furan(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_furan(molecule) # type: ignore
+            return Descriptors.fr_furan(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10366,7 +10367,7 @@ def findfr_guanido(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_guanido(molecule) # type: ignore
+            return Descriptors.fr_guanido(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10393,7 +10394,7 @@ def findfr_halogen(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_halogen(molecule) # type: ignore
+            return Descriptors.fr_halogen(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10420,7 +10421,7 @@ def findfr_hdrzine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_hdrzine(molecule) # type: ignore
+            return Descriptors.fr_hdrzine(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10447,7 +10448,7 @@ def findfr_hdrzone(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_hdrzone(molecule) # type: ignore
+            return Descriptors.fr_hdrzone(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10474,7 +10475,7 @@ def findfr_imidazole(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # typ
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_imidazole(molecule) # type: ignore
+            return Descriptors.fr_imidazole(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10501,7 +10502,7 @@ def findfr_imide(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_imide(molecule) # type: ignore
+            return Descriptors.fr_imide(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10528,7 +10529,7 @@ def findfr_isocyan(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_isocyan(molecule) # type: ignore
+            return Descriptors.fr_isocyan(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10555,7 +10556,7 @@ def findfr_isothiocyan(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # t
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_isothiocyan(molecule) # type: ignore
+            return Descriptors.fr_isothiocyan(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10582,7 +10583,7 @@ def findfr_ketone(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: 
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_ketone(molecule) # type: ignore
+            return Descriptors.fr_ketone(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10609,7 +10610,7 @@ def findfr_ketone_Topliss(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: 
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_ketone_Topliss(molecule) # type: ignore
+            return Descriptors.fr_ketone_Topliss(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10636,7 +10637,7 @@ def findfr_lactam(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: 
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_lactam(molecule) # type: ignore
+            return Descriptors.fr_lactam(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10663,7 +10664,7 @@ def findfr_lactone(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_lactone(molecule) # type: ignore
+            return Descriptors.fr_lactone(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10690,7 +10691,7 @@ def findfr_methoxy(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_methoxy(molecule) # type: ignore
+            return Descriptors.fr_methoxy(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10717,7 +10718,7 @@ def findfr_morpholine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # ty
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_morpholine(molecule) # type: ignore
+            return Descriptors.fr_morpholine(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10744,7 +10745,7 @@ def findfr_nitrile(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_nitrile(molecule) # type: ignore
+            return Descriptors.fr_nitrile(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10771,7 +10772,7 @@ def findfr_nitro(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_nitro(molecule) # type: ignore
+            return Descriptors.fr_nitro(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10798,7 +10799,7 @@ def findfr_nitro_arom(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # ty
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_nitro_arom(molecule) # type: ignore
+            return Descriptors.fr_nitro_arom(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10825,7 +10826,7 @@ def findfr_nitro_arom_nonortho(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, No
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_nitro_arom_nonortho(molecule) # type: ignore
+            return Descriptors.fr_nitro_arom_nonortho(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10852,7 +10853,7 @@ def findfr_nitroso(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_nitroso(molecule) # type: ignore
+            return Descriptors.fr_nitroso(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10879,7 +10880,7 @@ def findfr_oxazole(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_oxazole(molecule) # type: ignore
+            return Descriptors.fr_oxazole(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10906,7 +10907,7 @@ def findfr_oxime(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_oxime(molecule) # type: ignore
+            return Descriptors.fr_oxime(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10933,7 +10934,7 @@ def findfr_para_hydroxylation(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, Non
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_para_hydroxylation(molecule) # type: ignore
+            return Descriptors.fr_para_hydroxylation(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10960,7 +10961,7 @@ def findfr_phenol(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: 
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_phenol(molecule) # type: ignore
+            return Descriptors.fr_phenol(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -10987,7 +10988,7 @@ def findfr_phenol_noOrthoHbond(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, No
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_phenol_noOrthoHbond(molecule) # type: ignore
+            return Descriptors.fr_phenol_noOrthoHbond(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11014,7 +11015,7 @@ def findfr_phos_acid(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # typ
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_phos_acid(molecule) # type: ignore
+            return Descriptors.fr_phos_acid(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11041,7 +11042,7 @@ def findfr_phos_ester(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # ty
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_phos_ester(molecule) # type: ignore
+            return Descriptors.fr_phos_ester(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11068,7 +11069,7 @@ def findfr_piperdine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # typ
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_piperdine(molecule) # type: ignore
+            return Descriptors.fr_piperdine(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11095,7 +11096,7 @@ def findfr_piperzine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # typ
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_piperzine(molecule) # type: ignore
+            return Descriptors.fr_piperzine(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11122,7 +11123,7 @@ def findfr_priamide(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_priamide(molecule) # type: ignore
+            return Descriptors.fr_priamide(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11149,7 +11150,7 @@ def findfr_prisulfonamd(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # 
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_prisulfonamd(molecule) # type: ignore
+            return Descriptors.fr_prisulfonamd(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11176,7 +11177,7 @@ def findfr_pyridine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_pyridine(molecule) # type: ignore
+            return Descriptors.fr_pyridine(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11203,7 +11204,7 @@ def findfr_quatN(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_quatN(molecule) # type: ignore
+            return Descriptors.fr_quatN(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11230,7 +11231,7 @@ def findfr_sulfide(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_sulfide(molecule) # type: ignore
+            return Descriptors.fr_sulfide(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11257,7 +11258,7 @@ def findfr_sulfonamd(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # typ
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_sulfonamd(molecule) # type: ignore
+            return Descriptors.fr_sulfonamd(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11284,7 +11285,7 @@ def findfr_sulfone(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_sulfone(molecule) # type: ignore
+            return Descriptors.fr_sulfone(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11311,7 +11312,7 @@ def findfr_term_acetylene(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: 
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_term_acetylene(molecule) # type: ignore
+            return Descriptors.fr_term_acetylene(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11338,7 +11339,7 @@ def findfr_tetrazole(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # typ
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_tetrazole(molecule) # type: ignore
+            return Descriptors.fr_tetrazole(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11365,7 +11366,7 @@ def findfr_thiazole(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_thiazole(molecule) # type: ignore
+            return Descriptors.fr_thiazole(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11392,7 +11393,7 @@ def findfr_thiocyan(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_thiocyan(molecule) # type: ignore
+            return Descriptors.fr_thiocyan(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11419,7 +11420,7 @@ def findfr_thiophene(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # typ
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_thiophene(molecule) # type: ignore
+            return Descriptors.fr_thiophene(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11446,7 +11447,7 @@ def findfr_unbrch_alkane(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: #
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_unbrch_alkane(molecule) # type: ignore
+            return Descriptors.fr_unbrch_alkane(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11473,7 +11474,7 @@ def findfr_urea(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ig
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.fr_urea(molecule) # type: ignore
+            return Descriptors.fr_urea(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11502,7 +11503,7 @@ def findFractionCSP3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.FractionCSP3(molecule) # type: ignore
+            return Descriptors.FractionCSP3(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11529,7 +11530,7 @@ def findHallKierAlpha(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.HallKierAlpha(molecule) # type: ignore
+            return Descriptors.HallKierAlpha(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11556,7 +11557,7 @@ def findHeavyAtomMolWt(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.HeavyAtomMolWt(molecule) # type: ignore
+            return Descriptors.HeavyAtomMolWt(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11583,7 +11584,7 @@ def findHeavyAtomCount(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # t
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.HeavyAtomCount(molecule) # type: ignore
+            return Descriptors.HeavyAtomCount(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11610,7 +11611,7 @@ def findIpc(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: igno
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.Ipc(molecule) # type: ignore
+            return Descriptors.Ipc(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11638,7 +11639,7 @@ def findKappa1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: i
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.Kappa1(molecule) # type: ignore
+            return Descriptors.Kappa1(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11665,7 +11666,7 @@ def findKappa2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: i
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.Kappa2(molecule) # type: ignore
+            return Descriptors.Kappa2(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11692,7 +11693,7 @@ def findKappa3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: i
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.Kappa3(molecule) # type: ignore
+            return Descriptors.Kappa3(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11721,7 +11722,7 @@ def findLabuteASA(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.LabuteASA(molecule) # type: ignore
+            return Descriptors.LabuteASA(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11748,7 +11749,7 @@ def findMaxAbsPartialCharge(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, Non
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.MaxAbsPartialCharge(molecule) # type: ignore
+            return Descriptors.MaxAbsPartialCharge(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11775,7 +11776,7 @@ def findMaxPartialCharge(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.MaxPartialCharge(molecule) # type: ignore
+            return Descriptors.MaxPartialCharge(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11802,7 +11803,7 @@ def findMinAbsPartialCharge(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, Non
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.MinAbsPartialCharge(molecule) # type: ignore
+            return Descriptors.MinAbsPartialCharge(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11829,7 +11830,7 @@ def findMinPartialCharge(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.MinPartialCharge(molecule) # type: ignore
+            return Descriptors.MinPartialCharge(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11856,7 +11857,7 @@ def findMolLogP(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: 
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.MolLogP(molecule) # type: ignore
+            return Descriptors.MolLogP(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11883,7 +11884,7 @@ def findMolMR(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.MolMR(molecule) # type: ignore
+            return Descriptors.MolMR(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11910,7 +11911,7 @@ def findMolWt(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
 
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.MolWt(molecule) # type: ignore
+            return Descriptors.MolWt(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11938,7 +11939,7 @@ def findNHOHCount(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: 
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.NHOHCount(molecule) # type: ignore
+            return Descriptors.NHOHCount(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11965,7 +11966,7 @@ def findNOCount(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ig
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.NOCount(molecule) # type: ignore
+            return Descriptors.NOCount(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -11992,7 +11993,7 @@ def findNumAliphaticCarbocycles(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, N
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.NumAliphaticCarbocycles(molecule) # type: ignore
+            return Descriptors.NumAliphaticCarbocycles(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12019,7 +12020,7 @@ def findNumAliphaticHeterocycles(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, 
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.NumAliphaticHeterocycles(molecule) # type: ignore
+            return Descriptors.NumAliphaticHeterocycles(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12046,7 +12047,7 @@ def findNumAliphaticRings(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: 
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.NumAliphaticRings(molecule) # type: ignore
+            return Descriptors.NumAliphaticRings(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12073,7 +12074,7 @@ def findNumAromaticCarbocycles(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, No
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.NumAromaticCarbocycles(molecule) # type: ignore
+            return Descriptors.NumAromaticCarbocycles(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12100,7 +12101,7 @@ def findNumAromaticHeterocycles(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, N
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.NumAromaticHeterocycles(molecule) # type: ignore
+            return Descriptors.NumAromaticHeterocycles(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12127,7 +12128,7 @@ def findNumAromaticRings(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: #
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.NumAromaticRings(molecule) # type: ignore
+            return Descriptors.NumAromaticRings(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12154,7 +12155,7 @@ def findNumHAcceptors(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # ty
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.NumHAcceptors(molecule) # type: ignore
+            return Descriptors.NumHAcceptors(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12181,7 +12182,7 @@ def findNumHDonors(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.NumHDonors(molecule) # type: ignore
+            return Descriptors.NumHDonors(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12208,7 +12209,7 @@ def findNumHeteroatoms(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # t
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.NumHeteroatoms(molecule) # type: ignore
+            return Descriptors.NumHeteroatoms(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12235,7 +12236,7 @@ def findNumRadicalElectrons(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.NumRadicalElectrons(molecule) # type: ignore
+            return Descriptors.NumRadicalElectrons(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12262,7 +12263,7 @@ def findNumRotatableBonds(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: 
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.NumRotatableBonds(molecule) # type: ignore
+            return Descriptors.NumRotatableBonds(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12289,7 +12290,7 @@ def findNumSaturatedCarbocycles(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, N
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.NumSaturatedCarbocycles(molecule) # type: ignore
+            return Descriptors.NumSaturatedCarbocycles(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12316,7 +12317,7 @@ def findNumSaturatedHeterocycles(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, 
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.NumSaturatedHeterocycles(molecule) # type: ignore
+            return Descriptors.NumSaturatedHeterocycles(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12343,7 +12344,7 @@ def findNumSaturatedRings(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: 
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.NumSaturatedRings(molecule) # type: ignore
+            return Descriptors.NumSaturatedRings(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12370,7 +12371,7 @@ def findNumValenceElectrons(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.NumValenceElectrons(molecule) # type: ignore
+            return Descriptors.NumValenceElectrons(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12397,7 +12398,7 @@ def findRingCount(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: 
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.RingCount(molecule) # type: ignore
+            return Descriptors.RingCount(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12426,7 +12427,7 @@ def findPEOE_VSA1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.PEOE_VSA1(molecule) # type: ignore
+            return Descriptors.PEOE_VSA1(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12453,7 +12454,7 @@ def findPEOE_VSA2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.PEOE_VSA2(molecule) # type: ignore
+            return Descriptors.PEOE_VSA2(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12480,7 +12481,7 @@ def findPEOE_VSA3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.PEOE_VSA3(molecule) # type: ignore
+            return Descriptors.PEOE_VSA3(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12507,7 +12508,7 @@ def findPEOE_VSA4(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.PEOE_VSA4(molecule) # type: ignore
+            return Descriptors.PEOE_VSA4(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12534,7 +12535,7 @@ def findPEOE_VSA5(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.PEOE_VSA5(molecule) # type: ignore
+            return Descriptors.PEOE_VSA5(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12561,7 +12562,7 @@ def findPEOE_VSA6(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.PEOE_VSA6(molecule) # type: ignore
+            return Descriptors.PEOE_VSA6(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12588,7 +12589,7 @@ def findPEOE_VSA7(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.PEOE_VSA7(molecule) # type: ignore
+            return Descriptors.PEOE_VSA7(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12615,7 +12616,7 @@ def findPEOE_VSA8(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.PEOE_VSA8(molecule) # type: ignore
+            return Descriptors.PEOE_VSA8(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12642,7 +12643,7 @@ def findPEOE_VSA9(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.PEOE_VSA9(molecule) # type: ignore
+            return Descriptors.PEOE_VSA9(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12669,7 +12670,7 @@ def findPEOE_VSA10(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.PEOE_VSA10(molecule) # type: ignore
+            return Descriptors.PEOE_VSA10(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12696,7 +12697,7 @@ def findPEOE_VSA11(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.PEOE_VSA11(molecule) # type: ignore
+            return Descriptors.PEOE_VSA11(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12723,7 +12724,7 @@ def findPEOE_VSA12(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.PEOE_VSA12(molecule) # type: ignore
+            return Descriptors.PEOE_VSA12(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12750,7 +12751,7 @@ def findPEOE_VSA13(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.PEOE_VSA13(molecule) # type: ignore
+            return Descriptors.PEOE_VSA13(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12777,7 +12778,7 @@ def findPEOE_VSA14(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.PEOE_VSA14(molecule) # type: ignore
+            return Descriptors.PEOE_VSA14(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12805,7 +12806,7 @@ def findqed(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: igno
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.qed(molecule) # type: ignore
+            return Descriptors.qed(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12833,7 +12834,7 @@ def findSMR_VSA1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.SMR_VSA1(molecule) # type: ignore
+            return Descriptors.SMR_VSA1(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12860,7 +12861,7 @@ def findSMR_VSA2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.SMR_VSA2(molecule) # type: ignore
+            return Descriptors.SMR_VSA2(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12887,7 +12888,7 @@ def findSMR_VSA3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.SMR_VSA3(molecule) # type: ignore
+            return Descriptors.SMR_VSA3(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12914,7 +12915,7 @@ def findSMR_VSA4(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.SMR_VSA4(molecule) # type: ignore
+            return Descriptors.SMR_VSA4(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12941,7 +12942,7 @@ def findSMR_VSA5(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.SMR_VSA5(molecule) # type: ignore
+            return Descriptors.SMR_VSA5(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12968,7 +12969,7 @@ def findSMR_VSA6(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.SMR_VSA6(molecule) # type: ignore
+            return Descriptors.SMR_VSA6(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -12995,7 +12996,7 @@ def findSMR_VSA7(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.SMR_VSA7(molecule) # type: ignore
+            return Descriptors.SMR_VSA7(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13022,7 +13023,7 @@ def findSMR_VSA8(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.SMR_VSA8(molecule) # type: ignore
+            return Descriptors.SMR_VSA8(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13049,7 +13050,7 @@ def findSMR_VSA9(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.SMR_VSA9(molecule) # type: ignore
+            return Descriptors.SMR_VSA9(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13076,7 +13077,7 @@ def findSMR_VSA10(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.SMR_VSA10(molecule) # type: ignore
+            return Descriptors.SMR_VSA10(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13105,7 +13106,7 @@ def findSlogP_VSA1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.SlogP_VSA1(molecule) # type: ignore
+            return Descriptors.SlogP_VSA1(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13132,7 +13133,7 @@ def findSlogP_VSA2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.SlogP_VSA2(molecule) # type: ignore
+            return Descriptors.SlogP_VSA2(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13159,7 +13160,7 @@ def findSlogP_VSA3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.SlogP_VSA3(molecule) # type: ignore
+            return Descriptors.SlogP_VSA3(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13186,7 +13187,7 @@ def findSlogP_VSA4(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.SlogP_VSA4(molecule) # type: ignore
+            return Descriptors.SlogP_VSA4(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13213,7 +13214,7 @@ def findSlogP_VSA5(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.SlogP_VSA5(molecule) # type: ignore
+            return Descriptors.SlogP_VSA5(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13240,7 +13241,7 @@ def findSlogP_VSA6(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.SlogP_VSA6(molecule) # type: ignore
+            return Descriptors.SlogP_VSA6(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13267,7 +13268,7 @@ def findSlogP_VSA7(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.SlogP_VSA7(molecule) # type: ignore
+            return Descriptors.SlogP_VSA7(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13294,7 +13295,7 @@ def findSlogP_VSA8(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.SlogP_VSA8(molecule) # type: ignore
+            return Descriptors.SlogP_VSA8(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13321,7 +13322,7 @@ def findSlogP_VSA9(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.SlogP_VSA9(molecule) # type: ignore
+            return Descriptors.SlogP_VSA9(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13348,7 +13349,7 @@ def findSlogP_VSA10(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.SlogP_VSA10(molecule) # type: ignore
+            return Descriptors.SlogP_VSA10(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13375,7 +13376,7 @@ def findSlogP_VSA11(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.SlogP_VSA11(molecule) # type: ignore
+            return Descriptors.SlogP_VSA11(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13402,7 +13403,7 @@ def findSlogP_VSA12(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.SlogP_VSA12(molecule) # type: ignore
+            return Descriptors.SlogP_VSA12(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13430,7 +13431,7 @@ def findTPSA(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ign
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.TPSA(molecule) # type: ignore
+            return Descriptors.TPSA(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13458,7 +13459,7 @@ def findVSA_EState1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.VSA_EState1(molecule) # type: ignore
+            return Descriptors.VSA_EState1(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13485,7 +13486,7 @@ def findVSA_EState2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.VSA_EState2(molecule) # type: ignore
+            return Descriptors.VSA_EState2(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13512,7 +13513,7 @@ def findVSA_EState3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.VSA_EState3(molecule) # type: ignore
+            return Descriptors.VSA_EState3(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13539,7 +13540,7 @@ def findVSA_EState4(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.VSA_EState4(molecule) # type: ignore
+            return Descriptors.VSA_EState4(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13566,7 +13567,7 @@ def findVSA_EState5(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.VSA_EState5(molecule) # type: ignore
+            return Descriptors.VSA_EState5(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13593,7 +13594,7 @@ def findVSA_EState6(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.VSA_EState6(molecule) # type: ignore
+            return Descriptors.VSA_EState6(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13620,7 +13621,7 @@ def findVSA_EState7(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.VSA_EState7(molecule) # type: ignore
+            return Descriptors.VSA_EState7(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13647,7 +13648,7 @@ def findVSA_EState8(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.VSA_EState8(molecule) # type: ignore
+            return Descriptors.VSA_EState8(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13674,7 +13675,7 @@ def findVSA_EState9(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.VSA_EState9(molecule) # type: ignore
+            return Descriptors.VSA_EState9(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13701,7 +13702,7 @@ def findVSA_EState10(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors.VSA_EState10(molecule) # type: ignore
+            return Descriptors.VSA_EState10(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13730,7 +13731,7 @@ def findAUTOCORR3D(molecule: rdkit.Chem.rdchem.Mol) -> Union[List[float], None]:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors3D.rdMolDescriptors.CalcAUTOCORR3D(molecule) # type: ignore
+            return Descriptors3D.rdMolDescriptors.CalcAUTOCORR3D(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
         return None
 
@@ -13758,7 +13759,7 @@ def findAsphericity(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors3D.Asphericity(molecule) # type: ignore
+            return Descriptors3D.Asphericity(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13785,7 +13786,7 @@ def findEccentricity(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors3D.Eccentricity(molecule) # type: ignore
+            return Descriptors3D.Eccentricity(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13812,7 +13813,7 @@ def findInertialShapeFactor(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, Non
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors3D.InertialShapeFactor(molecule) # type: ignore
+            return Descriptors3D.InertialShapeFactor(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13839,7 +13840,7 @@ def findNPR1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ign
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors3D.NPR1(molecule) # type: ignore
+            return Descriptors3D.NPR1(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13866,7 +13867,7 @@ def findNPR2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ign
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors3D.NPR2(molecule) # type: ignore
+            return Descriptors3D.NPR2(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13893,7 +13894,7 @@ def findPMI1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ign
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors3D.PMI1(molecule) # type: ignore
+            return Descriptors3D.PMI1(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13920,7 +13921,7 @@ def findPMI2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ign
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors3D.PMI2(molecule) # type: ignore
+            return Descriptors3D.PMI2(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13947,7 +13948,7 @@ def findPMI3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ign
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors3D.PMI3(molecule) # type: ignore
+            return Descriptors3D.PMI3(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -13974,7 +13975,7 @@ def findRadiusOfGyration(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]:
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors3D.RadiusOfGyration(molecule) # type: ignore
+            return Descriptors3D.RadiusOfGyration(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
@@ -14001,7 +14002,7 @@ def findSpherocityIndex(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: 
     
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
-            return rdkit.Chem.Descriptors3D.SpherocityIndex(molecule) # type: ignore
+            return Descriptors3D.SpherocityIndex(molecule) # type: ignore
         _ = errors.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
     else:
         _ = errors.not_set(f"The variable is not set.")
