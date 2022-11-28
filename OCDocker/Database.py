@@ -524,8 +524,10 @@ def update_PDBbind(deleteTar: bool = True, silentMode: str = "") -> int:
     while True:
         # If silent mode is on
         if silentMode:
+            print(type(silentMode))
             # Set the option to continue
             opt = silentMode
+            print(type(opt))
         else:
             # Check the options
             opt = input("Once these steps are done, type 'continue' and press enter to continue. To skip, type 'skip' To cancel just press enter without typing nothing.\n")
