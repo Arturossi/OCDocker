@@ -516,9 +516,6 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
         # List of lines and dssp lines
         lines = []
 
-        # Flag to know if the line has been modified, thus, the file need to be rewritten
-        modified = False
-
         # Check if structurePath is a valid file
         if os.path.isfile(structurePath):
             # Open it (for cleaning)
@@ -535,21 +532,18 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
                     if line.startswith("ATOM"):
                         # Check if there is a chain in the line (all the lines should have a chain)
                         if line[21] == " ":
-                            modified = True
                             # Assume that the protein has only one chain and call it A
                             line = f"{line[:21]}A{line[22:]}"
                         # Add the line to the list
                         lines.append(line)
-            # If the file needs to be modified
-            if modified:
-                # Create a lock for multithreading
-                lock = Lock()
-                # Start the lock with statement
-                with lock:
-                    # Write the lines to the file
-                    with open(structurePath, "w") as pdbFile:
-                        # Write the lines list to the file
-                        pdbFile.writelines(lines)
+            # Create a lock for multithreading
+            lock = Lock()
+            # Start the lock with statement
+            with lock:
+                # Write the lines to the file
+                with open(structurePath, "w") as pdbFile:
+                    # Write the lines list to the file
+                    pdbFile.writelines(lines)
 
     # Load the clean Structure
     #cleanStructure = loadMol(cleanStructurePath)
