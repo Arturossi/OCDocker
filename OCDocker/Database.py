@@ -601,8 +601,8 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silentMode: 
                         
                         # Make a copy of the ligand to serve as reference and then move one of the ligand file to the ligands folder (mol2 and sdf)
                         shutil.copy(f"{destPath}/{filename}_ligand.mol2", f"{destPath}/reference_ligand.mol2")
-                        shutil.move(f"{destPath}/{filename}_ligand.mol2", f"{destPath}/compounds/ligands/ligand.mol2")
-                        shutil.move(f"{destPath}/{filename}_ligand.sdf", f"{destPath}/compounds/ligands/ligand.sdf")
+                        shutil.move(f"{destPath}/{filename}_ligand.mol2", f"{destPath}/compounds/ligands/ligand/ligand.mol2")
+                        shutil.move(f"{destPath}/{filename}_ligand.sdf", f"{destPath}/compounds/ligands/ligand/ligand.sdf")
 
                         # Rename the protein file
                         shutil.move(f"{destPath}/{filename}_protein.pdb", f"{destPath}/receptor.pdb")
