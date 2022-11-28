@@ -579,6 +579,11 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silent: bool
             if os.path.isdir(f"{pdbbind_archive}/refined-set"):
                 # For each file inside the refined-set folder
                 for filename in os.listdir(os.path.join(pdbbind_archive, "refined-set")):
+                    # Remove unwanted dirs here
+                    if filename in ["readme", "index"]:
+                        # Skip it
+                        continue
+                    
                     # Parameterize the destination path
                     destPath = f"{pdbbind_archive}/{filename}"
 
