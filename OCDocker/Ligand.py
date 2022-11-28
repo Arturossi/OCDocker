@@ -16,6 +16,7 @@ from rdkit import DataStructs
 from rdkit.Chem import AllChem
 from rdkit.Chem import MACCSkeys
 from rdkit.Chem import Descriptors
+from rdkit.Chem import Descriptors3D
 from rdkit.Chem.SaltRemover import SaltRemover
 from rdkit.Chem.rdMolTransforms import ComputeCentroid
 
