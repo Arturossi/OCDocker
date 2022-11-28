@@ -306,6 +306,7 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                 with lock:
                     # Create the ligand object
                     m = ocl.Ligand(mol, molName, sanitize = sanitize)
+                    print(f"m = ocl.Ligand('{mol}', '{molName}', sanitize = {sanitize})")
                     # Create a box around the ligand
                     m.create_box(centroid = targetCentroid, overwrite = overwrite)
             # If m is not valid
