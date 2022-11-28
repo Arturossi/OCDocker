@@ -555,25 +555,25 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
     # NH_O_2_relidx, NH_O_2_energy, O_NH_2_relidx, O_NH_2_energy)
 
     # Run the DSSP
-    dsspData = DSSP(structure[0], structurePath, dssp=dssp)
+    #dsspData = DSSP(structure[0], structurePath, dssp = dssp)
 
     # If the length of the dssp dictionary is 0, try to run DSSP again calling the command directly without using biopython
-    if len(dsspData.property_dict) == 0:
-        # Print a warning telling that the DSSP failed and that will trying to run it again without using biopython
-        octools.print_warning(f"The DSSP failed to run for the structure '{structurePath}'. Trying to run it again without using biopython.")
-        # Get the structure name from path and remove the extension
-        structureName = os.path.splitext(os.path.basename(structurePath))[0]
-        # Get the structure path from structurePath
-        structureDirName = os.path.dirname(structurePath)
+    #if len(dsspData.property_dict) == 0:
+    # Print a warning telling that the DSSP failed and that will trying to run it again without using biopython
+    #octools.print_warning(f"The DSSP failed to run for the structure '{structurePath}'. Trying to run it again without using biopython.")
+    # Get the structure name from path and remove the extension
+    structureName = os.path.splitext(os.path.basename(structurePath))[0]
+    # Get the structure path from structurePath
+    structureDirName = os.path.dirname(structurePath)
 
-        # Create the dssp command
-        dssp_command = [dssp, "-i", structurePath, "-o", f"{structureDirName}/{structureName}.dssp"]
-        # Run the command
-        _ = octools.run(dssp_command)
-        # Load the dssp file into dsspData variable
-        dsspData = DSSP(structure[0], f"{structureDirName}/{structureName}.dssp", file_type="DSSP")
-        # Delete the dssp file
-        os.remove(f"{structureDirName}/{structureName}.dssp")
+    # Create the dssp command
+    dssp_command = [dssp, "-i", structurePath, "-o", f"{structureDirName}/{structureName}.dssp"]
+    # Run the command
+    _ = octools.run(dssp_command)
+    # Load the dssp file into dsspData variable
+    dsspData = DSSP(structure[0], f"{structureDirName}/{structureName}.dssp", file_type="DSSP")
+    # Delete the dssp file
+    os.remove(f"{structureDirName}/{structureName}.dssp")
 
     # For each result in the DSSP object
     for _, value in dsspData.property_dict.items():
