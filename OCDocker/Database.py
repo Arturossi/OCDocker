@@ -579,12 +579,12 @@ def update_PDBbind(deleteTar: bool = True, silentMode: str = "") -> int:
                         shutil.move(f"{destPath}/{filename}_protein.pdb", f"{destPath}/receptor.pdb")
 
                         # Remove all the unwanted files
-                        unwanteds = ["pocket"]
+                        unwanteds = [("pocket", "pdb")]
                         for unwanted in unwanteds:
                             # If the file exists
-                            if os.path.isfile(f"{destPath}/{filename}{unwanted}.mol2"):
+                            if os.path.isfile(f"{destPath}/{filename}_{unwanted[0]}.{unwanted[1]}"):
                                 # Remove it
-                                os.remove(f"{destPath}/{filename}_{unwanted}.pdb")
+                                os.remove(f"{destPath}/{filename}_{unwanted[0]}.{unwanted[1]}")
 
                 # Remove the refined-set folder
                 shutil.rmtree(f"{pdbbind_archive}/refined-set")
