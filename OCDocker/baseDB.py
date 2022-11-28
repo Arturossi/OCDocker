@@ -299,6 +299,7 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
             _ = octools.safe_create_dir(f"{molPath}/plantsFiles")
             _ = octools.safe_create_dir(f"{molPath}/vinaFiles")
             _ = octools.safe_create_dir(f"{molPath}/sminaFiles")
+            print(f"m = ocl.Ligand('{mol}', '{molName}', sanitize = {sanitize})")
             try:
                 # Create a lock for multithreading
                 lock = Lock()
@@ -306,7 +307,6 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                 with lock:
                     # Create the ligand object
                     m = ocl.Ligand(mol, molName, sanitize = sanitize)
-                    print(f"m = ocl.Ligand('{mol}', '{molName}', sanitize = {sanitize})")
                     # Create a box around the ligand
                     m.create_box(centroid = targetCentroid, overwrite = overwrite)
             # If m is not valid
@@ -327,7 +327,6 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                         with lock:
                             # Create the receptor object
                             m = ocr.Receptor(mol[0], molName, mol2Path = mol[1])
-                            print(f"m = ocr.Receptor('{mol[0]}', '{molName}', mol2Path = '{mol[1]}')")
                     except Exception as e:
                         errMsg = f"The molecule '{mol[0]}' could not be parsed! Error {e}"
 
@@ -342,7 +341,6 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                         with lock:
                             # Create the receptor object
                             m = ocr.Receptor(mol, molName)
-                            print(f"ocr.Receptor('{mol}', '{molName}')")
                     except Exception as e:
                         errMsg = f"The molecule '{mol}' could not be parsed! Error {e}"
 

@@ -524,10 +524,8 @@ def update_PDBbind(deleteTar: bool = True, silentMode: str = "") -> int:
     while True:
         # If silent mode is on
         if silentMode:
-            print(type(silentMode))
             # Set the option to continue
             opt = silentMode
-            print(type(opt))
         else:
             # Check the options
             opt = input("Once these steps are done, type 'continue' and press enter to continue. To skip, type 'skip' To cancel just press enter without typing nothing.\n")
@@ -536,8 +534,7 @@ def update_PDBbind(deleteTar: bool = True, silentMode: str = "") -> int:
             if "'" in opt or '"' in opt:
                 # Remove them
                 opt = opt.replace('"', "").replace("'", "")
-        print(type(opt))
-        print(opt)
+
         # If the option in lowercase is in the continue list (traductions may enter here)
         if opt.lower() in ["continue", "continuar"]:
             octools.printv("Continuing the update proces...")
