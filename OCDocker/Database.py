@@ -561,7 +561,7 @@ def update_PDBbind(overwrite: bool = False) -> int:
         if option.lower() in ["continue", "continuar"]:
             octools.printv("Continuing the update proces...")
             # Find the pdbbindTar file
-            pdbbindTar = glob(f"{pdbbind_archive}/*.tar.gz")[0]
+            pdbbindTar = glob(f"{ocdb_path}/download/*.tar.gz")[0]
 
             # Since everything is right, start to untar/ungz them and delete source .tar.gz file
             _ = octools.untar(pdbbindTar, out_path = f"{pdbbind_archive}", delete = True)
