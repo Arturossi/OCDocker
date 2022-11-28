@@ -598,6 +598,8 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silentMode: 
                         _ = octools.safe_create_dir(f"{destPath}/compounds")
                         # Create the ligands folder inside the compounds folder (PDBbind only has one ligand per protein)
                         _ = octools.safe_create_dir(f"{destPath}/compounds/ligands")
+                        # Create the ligand folder inside the ligands folder (yes, generic name until I find a better one)
+                        _ = octools.safe_create_dir(f"{destPath}/compounds/ligands/ligand")
                         
                         # Make a copy of the ligand to serve as reference and then move one of the ligand file to the ligands folder (mol2 and sdf)
                         shutil.copy(f"{destPath}/{filename}_ligand.mol2", f"{destPath}/reference_ligand.mol2")
