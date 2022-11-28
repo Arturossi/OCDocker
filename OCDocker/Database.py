@@ -582,7 +582,7 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silent: bool
                 # For each file inside the refined-set folder
                 for filename in os.listdir(os.path.join(pdbbind_archive, "refined-set")):
                     # Remove unwanted dirs here
-                    if filename in ["readme", "index"]:
+                    if filename in ["readme"]:
                         # Skip it
                         continue
 
@@ -591,13 +591,16 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silent: bool
 
                     # Move it to the parent folder
                     shutil.move(f"{pdbbind_archive}/refined-set/{filename}", destPath)
-                    # Create the compounds folder inside the protein folder
-                    _ = octools.safe_create_dir(f"{destPath}/compounds")
-                    # Create the ligands folder inside the compounds folder (PDBbind only has one ligand per protein)
-                    _ = octools.safe_create_dir(f"{destPath}/compounds/ligands")
-                    # Make a copy of the ligand to serve as reference and then move one of the ligand file to the ligands folder
-                    shutil.copy(f"{destPath}/{filename}_ligand.mol2", f"{destPath}/reference_ligand.mol2")
-                    shutil.move(f"{destPath}/{filename}_ligand.mol2", f"{destPath}/compounds/ligands/ligand.mol2")
+                    
+                    # If is not index (it is a special folder)
+                    if filename != "index":
+                        # Create the compounds folder inside the protein folder
+                        _ = octools.safe_create_dir(f"{destPath}/compounds")
+                        # Create the ligands folder inside the compounds folder (PDBbind only has one ligand per protein)
+                        _ = octools.safe_create_dir(f"{destPath}/compounds/ligands")
+                        # Make a copy of the ligand to serve as reference and then move one of the ligand file to the ligands folder
+                        shutil.copy(f"{destPath}/{filename}_ligand.mol2", f"{destPath}/reference_ligand.mol2")
+                        shutil.move(f"{destPath}/{filename}_ligand.mol2", f"{destPath}/compounds/ligands/ligand.mol2")
 
                 # Remove the refined-set folder
                 os.rmdir(f"{pdbbind_archive}/refined-set")

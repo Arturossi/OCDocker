@@ -138,7 +138,7 @@ def __core_p2rank(dir: str, overwrite: bool, archive: str) -> None:
         fin = f"{dir}/rec.crg.pdb"
     elif archive == "pdbbind":
         # If is the index path
-        if os.path.basename(dir) in ['index', 'db']:
+        if os.path.basename(dir) in ['index']:
             # Skip it
             return
         # Find the protein name
@@ -1169,7 +1169,7 @@ def __core_run_dock(path: str, ligandDir: str, archive: str, dockingAlgorithm: s
     ptn = path.split("/")[-1]
 
     # If is the index directory, ignore
-    if ptn in ['index', 'db']:
+    if ptn in ['index']:
         return errors.unnalowed_dir()
 
     # Set receptor data
@@ -2088,7 +2088,7 @@ def verify_integrity(chosenArchive: str, spacing: float = 0.33) -> None:
         # For each directory in the database folder
         for dir in tqdm(iterable=dirs, total=lenDirs):
             # If is the index path
-            if os.path.basename(dir) in ['index', 'db']:
+            if os.path.basename(dir) in ['index']:
                 # Skip it
                 continue
 
@@ -2510,7 +2510,7 @@ def run_dock(archive: str, dockingAlgorithm: str, overwrite: bool = False) -> in
         return errors.not_supported_docking_algorithm(f"Docking software not recognized. Expected ('vina', 'smina', 'plants') and got '{dockingAlgorithm}'.")
 
     # Get all dirs paths in the database
-    ptnDirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index', 'db']]
+    ptnDirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index']]
 
     # Create the complex list
     complexList = []
@@ -2569,7 +2569,7 @@ def read_logs(archive: str, picklePath: str = "") -> Union[Dict[str, Dict[str, p
     # For each dir in chosenArchive
     for ptnDir in glob(f"{chosenArchive}/*"):
         # Check if is a dir (just in case) and if its name is not one of the ones we want to skip
-        if os.path.isdir(ptnDir) and os.path.basename(ptnDir.split(os.path.sep)[-1]) not in ['index', 'db']:
+        if os.path.isdir(ptnDir) and os.path.basename(ptnDir.split(os.path.sep)[-1]) not in ['index']:
             # Find ptn name
             ptn = ptnDir.split(os.path.sep)[-1]
 
@@ -2708,7 +2708,7 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
     # For each dir in chosenArchive
     for ptnDir in glob(f"{chosenArchive}/*"):
         # Check if is a dir (just in case) and if its name is not one of the ones we want to skip
-        if os.path.isdir(ptnDir) and os.path.basename(ptnDir.split(os.path.sep)[-1]) not in ['index', 'db']:
+        if os.path.isdir(ptnDir) and os.path.basename(ptnDir.split(os.path.sep)[-1]) not in ['index']:
             # Find ptn name
             ptn = ptnDir.split(os.path.sep)[-1]
 
