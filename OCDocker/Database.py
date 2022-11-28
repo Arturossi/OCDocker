@@ -501,7 +501,7 @@ def update_DUDEz(overwrite: bool = False, download: bool = True, multiprocess: b
 
     return errors.ok()
 
-def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silent: bool = False) -> int:
+def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silentMode: str = "") -> int:
     '''Updates the PDBbind database from the Protein-ligand complexes: The refined set.
 
     Parameters
@@ -510,8 +510,8 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silent: bool
         Flag to tell if files should be overwritten. The default is False.
     deleteTar : bool, optional
         Flag to tell if the tar files should be deleted after extraction. The default is True.
-    silent : bool, optional
-        Flag to tell if the function should be silent, if True will continue without prompting to the user. The default is False.
+    silentMode : str, optional
+        Flag to tell the behaviour of the function. The default is "", which means no silent. Options are "continue", "skip" and "".   
 
     Returns
     -------
@@ -539,7 +539,7 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silent: bool
     t3 = f"- Then provide the full path to it or put the file inside the{clrs['y']} {pdbbind_archive}{clrs['n']} folder and type continue (please, make sure that the downloaded file is the{clrs['c']} ONLY{clrs['n']} file inside the{clrs['y']} {pdbbind_archive}{clrs['n']} folder). If you want to skip the PDBbind update, type 'skip' (without quotes) and press enter. "
 
     # If silent mode is off
-    if not silent:
+    if silentMode == "":
         # Since no rsync option to update pdbbind database has been found you have to manually download/untar the files and put them inside the database folder
         print(tw.dedent("""
                 Unfortunately this step has not been able to be completely automatized... :(
@@ -556,9 +556,9 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silent: bool
     # Infinite loop (user can break it by sending an empty answer)
     while True:
         # If silent mode is on
-        if silent:
+        if silentMode:
             # Set the option to continue
-            option = "continue"
+            option = silentMode
         else:
             # Check the options
             option = input("Once these steps are done, type 'continue' and press enter to continue. To skip, type 'skip' To cancel just press enter without typing nothing.\n")
