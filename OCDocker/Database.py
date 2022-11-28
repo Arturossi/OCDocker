@@ -532,7 +532,7 @@ def update_PDBbind(overwrite: bool = False) -> int:
 
     t2 = f"- Download the{clrs['c']} Protein-ligand complexes: The refined set{clrs['n']} (it may have the number 3 as its index)."
 
-    t3 = f"- Then provide the full path to it or put the file inside the{clrs['y']} {pdbbind_archive}{clrs['n']} folder and type continue (please, make sure that the downloaded file is the{clrs['c']} ONLY{clrs['n']} file inside the{clrs['y']} {pdbbind_archive}{clrs['n']} folder). If you want to skip the PDBbind update, type 'skip' (without quotes) and press enter. "
+    t3 = f"- Then provide the full path to it or put the file inside the{clrs['y']} {ocdb_path}/download{clrs['n']} folder and type continue (please, make sure that the downloaded file is the{clrs['c']} ONLY{clrs['n']} file inside the{clrs['y']} {ocdb_path}/download{clrs['n']} folder). If you want to skip the PDBbind update, type 'skip' (without quotes) and press enter. "
 
     # Since no rsync option to update pdbbind database has been found you have to manually download/untar the files and put them inside the database folder
     print(tw.dedent("""
@@ -564,7 +564,7 @@ def update_PDBbind(overwrite: bool = False) -> int:
             pdbbindTar = glob(f"{ocdb_path}/download/*.tar.gz")[0]
 
             # Since everything is right, start to untar/ungz them and delete source .tar.gz file
-            _ = octools.untar(pdbbindTar, out_path = f"{pdbbind_archive}", delete = True)
+            _ = octools.untar(pdbbindTar, out_path = f"{ocdb_path}", delete = True)
 
             # Check if there is a refined-set folder
             if os.path.isdir(f"{pdbbind_archive}/refined-set"):
