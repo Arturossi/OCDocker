@@ -598,9 +598,22 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silent: bool
                         _ = octools.safe_create_dir(f"{destPath}/compounds")
                         # Create the ligands folder inside the compounds folder (PDBbind only has one ligand per protein)
                         _ = octools.safe_create_dir(f"{destPath}/compounds/ligands")
-                        # Make a copy of the ligand to serve as reference and then move one of the ligand file to the ligands folder
+                        
+                        # Make a copy of the ligand to serve as reference and then move one of the ligand file to the ligands folder (mol2 and sdf)
                         shutil.copy(f"{destPath}/{filename}_ligand.mol2", f"{destPath}/reference_ligand.mol2")
                         shutil.move(f"{destPath}/{filename}_ligand.mol2", f"{destPath}/compounds/ligands/ligand.mol2")
+                        shutil.move(f"{destPath}/{filename}_ligand.sdf", f"{destPath}/compounds/ligands/ligand.sdf")
+
+                        # Rename the protein file
+                        shutil.move(f"{destPath}/{filename}protein.pdb", f"{destPath}/receptor.pdb")
+
+                        # Remove all the unwanted files
+                        unwanteds = ["pocket"]
+                        for unwanted in unwanteds:
+                            # If the file exists
+                            if os.path.isfile(f"{destPath}/{filename}{unwanted}.mol2"):
+                                # Remove it
+                                os.remove(f"{destPath}/{filename}_{unwanted}.pdb")
 
                 # Remove the refined-set folder
                 shutil.rmtree(f"{pdbbind_archive}/refined-set")
@@ -622,45 +635,11 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silent: bool
             quit(rcode);
 
         else:
-            octools.printv(f"Still not validated, please use the other way.")
+            octools.printv(f"Please use a valid answer!")
+            octools.printv("- 'continue': To continue.")
+            octools.printv("- 'skip':     To skip.")
+            octools.printv("- '':         To quit.")
             continue
-            # Will not run the code below
-            octools.printv(f"Verifying if '{option}' is a valid path.")
-
-            # Check if the .tar.gz file exists
-            if os.path.isfile(option):
-                octools.printv(f"The '{option}' is a valid file path. Checking if its MIME type and encoding are correct.")
-
-                # Check its MIME type and encoding
-                mime_type, enc = mimetypes.guess_type(option)
-                if mime_type == "application/x-tar" and enc == "gzip":
-                    octools.printv("The MIME type and encoding are correct! Following with the installation.")
-
-                    # Since everything is right, start to untar it and delete source .tar.gz file
-                    _ = octools.untar(option, out_path=pdbbind_archive, delete=True)
-
-                    # Check if there is a refined-set folder
-                    if os.path.isdir(f"{pdbbind_archive}/refined-set"):
-                        # For each file inside the refined-set folder
-                        for filename in os.listdir(os.path.join(pdbbind_archive, "refined-set")):
-                            # Move it to the parent folder
-                            shutil.move(f"{pdbbind_archive}/refined-set/{filename}", f"{pdbbind_archive}/{filename}")
-
-                        # Remove the refined-set folder (which is empty)
-                        os.rmdir(f"{pdbbind_archive}/refined-set")
-
-                    # Check if there is a readme folder
-                    if os.path.isdir(f"{pdbbind_archive}/readme"):
-                        # Delete it
-                        shutin.rmtree(f"{pdbbind_archive}/readme")
-
-                    # Exit the loop
-                    break
-
-                else:
-                    octools.print_warning(f"Wrong file type! The mime type must be 'application/x-tar' and its encoding must be 'gzip', however mime type '{mime_type}' and encoding '{enc}' have been found.")
-            else:
-                octools.print_warning(f"The string '{option}' is not a valid path!")
 
     # Prepare the PDBbind database
     ocpdbbind.prepare()

@@ -461,6 +461,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
     # Set the input file name path
     fin = f"{path}/receptor.pdb"
     fout = f"{path}/receptor.mol2"
+    
     # Set the prepared receptor name
     preparedReceptorMol2 = f"{path}/receptor_prepared.mol2"
     preparedReceptorPdbqt = f"{path}/receptor_prepared.pdbqt"
@@ -2410,10 +2411,6 @@ def prepare(archive: str, overwrite: bool = False, spacing: float = 0.33, saniti
 
     # Get all paths in the database
     paths = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index']]
-
-    from pprint import pprint
-    pprint(paths)
-    return
 
     # Generate boxes for all receptors
     octools.printv("Generating information regarding possible ligand site.")
