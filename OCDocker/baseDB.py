@@ -484,7 +484,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
     # Check if there is no target centroid data
     if targetCentroid is None:
         # Parameterize the reference ligand extensions in a list (in order of preference)
-        ref_ligand_exts = ["mol2", "sdf", "pdb"]
+        ref_ligand_exts = ["sdf", "mol2", "pdb"]
 
         # Set the target centroid to None
         targetCentroid = None

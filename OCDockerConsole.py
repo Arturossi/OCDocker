@@ -65,6 +65,8 @@ message = tw.dedent("""\033[1;93m
 
         \033[1;91mWARNING\033[1;0m: This mode is still experimental, some unexpected
         behaviour might occur while using it.\033[1;93m
+
+        Please check the args variable to see the current settings.
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 \033[1;0m""")
 
@@ -77,6 +79,8 @@ args.multiprocess = 1
 basePath = "/mnt/e/Documents/OCDocker/OCDocker"
 basePath = "/mnt/sda/artur/OCDocker"
 basePath = "/media/artur/hd4tb/OCDocker/OCDocker"
+
+print_args()
 
 '''
 dbsampledir = f"{basePath}/data/ocdb/DUDEz/AA2AR"
