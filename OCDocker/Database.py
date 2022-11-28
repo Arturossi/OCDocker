@@ -538,18 +538,20 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silent: bool
 
     t3 = f"- Then provide the full path to it or put the file inside the{clrs['y']} {pdbbind_archive}{clrs['n']} folder and type continue (please, make sure that the downloaded file is the{clrs['c']} ONLY{clrs['n']} file inside the{clrs['y']} {pdbbind_archive}{clrs['n']} folder). If you want to skip the PDBbind update, type 'skip' (without quotes) and press enter. "
 
-    # Since no rsync option to update pdbbind database has been found you have to manually download/untar the files and put them inside the database folder
-    print(tw.dedent("""
-            Unfortunately this step has not been able to be completely automatized... :(
-    Please, we kindly ask you to perform the following steps to update the PDBbind database
+    # If silent mode is off
+    if not silent:
+        # Since no rsync option to update pdbbind database has been found you have to manually download/untar the files and put them inside the database folder
+        print(tw.dedent("""
+                Unfortunately this step has not been able to be completely automatized... :(
+        Please, we kindly ask you to perform the following steps to update the PDBbind database
 
-    """ + t1 + """
+        """ + t1 + """
 
-    """ + t2 + """
+        """ + t2 + """
 
-    """ + t3 + """
+        """ + t3 + """
 
-    """))
+        """))
 
     # Infinite loop (user can break it by sending an empty answer)
     while True:
@@ -583,7 +585,7 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silent: bool
                     if filename in ["readme", "index"]:
                         # Skip it
                         continue
-                    
+
                     # Parameterize the destination path
                     destPath = f"{pdbbind_archive}/{filename}"
 
