@@ -484,7 +484,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
     # Check if there is no target centroid data
     if targetCentroid is None:
         # Parameterize the reference ligand extensions in a list (in order of preference)
-        ref_ligand_exts = ["sdf", "mol2", "pdb"]
+        ref_ligand_exts = ["mol2", "sdf", "pdb"]
 
         # Set the target centroid to None
         targetCentroid = None
@@ -493,12 +493,17 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
         for ref_ligand_ext in ref_ligand_exts:
             # Parameterize the reference ligand path
             ref_ligand = os.path.join(path, f"reference_ligand.{ref_ligand_ext}")
+            
             # Check if the reference ligand does not exist (extensions in order: pdb, mol2)
             if os.path.isfile(ref_ligand):
-                # Set the target centroid as the centroid of the ligand from the mol2 file
-                targetCentroid = ocl.get_centroid(ref_ligand, sanitize = sanitize)
-                # Reference ligand found, break the loop
-                break
+                try:
+                    # Set the target centroid as the centroid of the ligand from the mol2 file
+                    targetCentroid = ocl.get_centroid(ref_ligand, sanitize = sanitize)
+                    # Reference ligand found and read, break the loop
+                    break
+                except Exception as e:
+                    # Print the error
+                    octools.print_error(f"Problems parsing the reference ligand file: {ref_ligand}. Error: {e}")
         
         # Check if the target centroid is still None
         if targetCentroid is None:
