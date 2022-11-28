@@ -76,6 +76,9 @@ print(message)
 args.cpu_cores = 18
 args.available_cores = args.cpu_cores - 1
 args.multiprocess = 1
+args.generate_report = False
+args.zip_output = False
+args.update = False
 
 basePath = "/mnt/e/Documents/OCDocker/OCDocker"
 basePath = "/mnt/sda/artur/OCDocker"
