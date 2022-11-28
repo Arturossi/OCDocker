@@ -415,8 +415,14 @@ def __sub_core_prepare(dirsToProcess: str, dbName: str, overwrite: bool, mols : 
 
     # For each directory (check to see if it is needed to generate descriptors)
     for processDir in processDirs:
-        # Set the fligand name as the ligand file path
-        fligand = f"{processDir}/ligand.smi"
+        # Check if the dbName is PDBbind
+        if dbName.lower() in ["pdbbind"]:
+            # Set the fligand name as the ligand file path
+            fligand = f"{processDir}/ligand.mol2"
+        else:
+            # Set the fligand name as the ligand file path (use mol2)
+            fligand = f"{processDir}/ligand.smi"
+
         # Safe create plantsFiles, vinaFiles and sminaFiles dirs
         _ = octools.safe_create_dir(f"{processDir}/vinaFiles")
         _ = octools.safe_create_dir(f"{processDir}/sminaFiles")
