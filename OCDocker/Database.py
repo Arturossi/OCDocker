@@ -564,7 +564,7 @@ def update_PDBbind(overwrite: bool = False) -> int:
             pdbbindTar = glob(f"{pdbbind_archive}/*.tar.gz")[0]
 
             # Since everything is right, start to untar/ungz them and delete source .tar.gz file
-            _ = octools.untar(pdbbindTar, out_path = f"{pdbbind_archive}/complex", delete = True)
+            _ = octools.untar(pdbbindTar, out_path = f"{pdbbind_archive}", delete = True)
 
             # Check if there is a refined-set folder
             if os.path.isdir(f"{pdbbind_archive}/refined-set"):
