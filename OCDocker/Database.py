@@ -605,7 +605,7 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silentMode: 
                         shutil.move(f"{destPath}/{filename}_ligand.sdf", f"{destPath}/compounds/ligands/ligand.sdf")
 
                         # Rename the protein file
-                        shutil.move(f"{destPath}/{filename}protein.pdb", f"{destPath}/receptor.pdb")
+                        shutil.move(f"{destPath}/{filename}_protein.pdb", f"{destPath}/receptor.pdb")
 
                         # Remove all the unwanted files
                         unwanteds = ["pocket"]
