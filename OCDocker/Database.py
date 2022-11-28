@@ -536,7 +536,8 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silentMode: 
             if "'" in choice or '"' in choice:
                 # Remove them
                 choice: str = choice.replace('"', "").replace("'", "")
-
+        print(type(choice))
+        print(choice)
         # If the option in lowercase is in the continue list (traductions may enter here)
         if choice.lower() in ["continue", "continuar"]:
             octools.printv("Continuing the update proces...")
