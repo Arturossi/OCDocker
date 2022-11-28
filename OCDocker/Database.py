@@ -470,13 +470,11 @@ def update_DUDEz(overwrite: bool = False, download: bool = True, multiprocess: b
 
     return errors.ok()
 
-def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silentMode: str = "") -> int:
+def update_PDBbind(deleteTar: bool = True, silentMode: str = "") -> int:
     '''Updates the PDBbind database from the Protein-ligand complexes: The refined set.
 
     Parameters
     ----------
-    overwrite : bool, optional
-        Flag to tell if files should be overwritten. The default is False.
     deleteTar : bool, optional
         Flag to tell if the tar files should be deleted after extraction. The default is True.
     silentMode : str, optional
@@ -527,19 +525,19 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silentMode: 
         # If silent mode is on
         if silentMode:
             # Set the option to continue
-            choice: str = silentMode
+            opt = silentMode
         else:
             # Check the options
-            choice: str = input("Once these steps are done, type 'continue' and press enter to continue. To skip, type 'skip' To cancel just press enter without typing nothing.\n")
+            opt = input("Once these steps are done, type 'continue' and press enter to continue. To skip, type 'skip' To cancel just press enter without typing nothing.\n")
 
             # If there is quotes or double quotes in the path
-            if "'" in choice or '"' in choice:
+            if "'" in opt or '"' in opt:
                 # Remove them
-                choice: str = choice.replace('"', "").replace("'", "")
-        print(type(choice))
-        print(choice)
+                opt = opt.replace('"', "").replace("'", "")
+        print(type(opt))
+        print(opt)
         # If the option in lowercase is in the continue list (traductions may enter here)
-        if choice.lower() in ["continue", "continuar"]:
+        if opt.lower() in ["continue", "continuar"]:
             octools.printv("Continuing the update proces...")
             # Find the pdbbindTar file
             pdbbindTar = glob(f"{pdbbind_archive}/*.tar.gz")[0]
@@ -600,11 +598,11 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silentMode: 
             # Exit the loop
             break
 
-        elif choice.lower() in ["skip", "pular"]:
+        elif opt.lower() in ["skip", "pular"]:
             octools.printv(f"The user decided to skip this update. Skipping!!!")
             return errors.ok()
 
-        elif choice == "":
+        elif opt == "":
             rcode = errors.abort("User aborted the update.")
             quit(rcode)
 
