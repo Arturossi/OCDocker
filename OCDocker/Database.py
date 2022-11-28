@@ -501,13 +501,17 @@ def update_DUDEz(overwrite: bool = False, download: bool = True, multiprocess: b
 
     return errors.ok()
 
-def update_PDBbind(overwrite: bool = False) -> int:
+def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silent: bool = False) -> int:
     '''Updates the PDBbind database from the Protein-ligand complexes: The refined set.
 
     Parameters
     ----------
     overwrite : bool
         Flag to tell if files should be overwritten.
+    deleteTar : bool
+        Flag to tell if the tar files should be deleted after extraction.
+    silent : bool
+        Flag to tell if the function should be silent.
 
     Returns
     -------
@@ -549,13 +553,18 @@ def update_PDBbind(overwrite: bool = False) -> int:
 
     # Infinite loop (user can break it by sending an empty answer)
     while True:
-        # Check the options
-        option = input("Once these steps are done, type 'continue' and press enter to continue. To cancel just press enter without typing nothing.\n")
+        # If silent mode is on
+        if silent:
+            # Set the option to continue
+            option = "continue"
+        else:
+            # Check the options
+            option = input("Once these steps are done, type 'continue' and press enter to continue. To cancel just press enter without typing nothing.\n")
 
-        # If there is quotes or double quotes in the path
-        if "'" in option or '"' in option:
-            # Remove them
-            option = option.replace('"', "").replace("'", "")
+            # If there is quotes or double quotes in the path
+            if "'" in option or '"' in option:
+                # Remove them
+                option = option.replace('"', "").replace("'", "")
 
         # If the option in lowercase is in the continue list (traductions may enter here)
         if option.lower() in ["continue", "continuar"]:
@@ -564,7 +573,7 @@ def update_PDBbind(overwrite: bool = False) -> int:
             pdbbindTar = glob(f"{ocdb_path}/download/*.tar.gz")[0]
 
             # Since everything is right, start to untar/ungz them and delete source .tar.gz file
-            _ = octools.untar(pdbbindTar, out_path = f"{ocdb_path}", delete = True)
+            _ = octools.untar(pdbbindTar, out_path = f"{ocdb_path}", delete = deleteTar)
 
             # Check if there is a refined-set folder
             if os.path.isdir(f"{pdbbind_archive}/refined-set"):
