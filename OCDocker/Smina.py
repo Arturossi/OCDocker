@@ -43,7 +43,7 @@ import OCDocker.Smina as ocsmina
 ###############################################################################
 class Smina:
     """Smina object with methods for easy run."""
-    def __init__(self, configPath: str, boxFile: str, receptor: ocr.Receptor, preparedReceptorPath: str, ligand: ocl.Ligand, preparedLigandPath: str, sminaLog: str, outputSmina: str, name: str = "") -> None:
+    def __init__(self, configPath: str, boxFile: str, receptor: ocr.Receptor, preparedReceptorPath: str, ligand: ocl.Ligand, preparedLigandPath: str, sminaLog: str, outputSmina: str, name: str = "", overwriteConfig: bool = False) -> None:
         '''Constructor of the class Smina.
 
         Parameters
@@ -65,7 +65,9 @@ class Smina:
         outputSmina : str
             Path to the output smina file.
         name : str, optional
-            Name of the smina object, by default ""
+            Name of the smina object, by default "".
+        overwriteConfig : bool, optional
+            If the config file should be overwritten, by default False.
 
         Returns
         -------
@@ -108,7 +110,11 @@ class Smina:
         self.sminaLog = str(sminaLog)
         self.outputSmina = str(outputSmina)
         self.sminaCmd = self.__smina_cmd()
-        gen_smina_conf(self.boxFile, self.config, self.preparedReceptor)
+        
+        # Check if config file exists to avoid useless processing
+        if not os.path.isfile(self.config) or overwriteConfig:
+            # Create the conf file
+            gen_smina_conf(self.boxFile, self.config, self.preparedReceptor)
 
     ## Private ##
     def __parse_receptor_path(self, receptor: ocr.Receptor) -> str:

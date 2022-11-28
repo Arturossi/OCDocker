@@ -44,7 +44,7 @@ import OCDocker.Vina as ocvina
 ###############################################################################
 class Vina:
     """Vina object with methods for easy run."""
-    def __init__(self, configPath: str, boxFile: str, receptor: ocr.Receptor, preparedReceptorPath: str, ligand: ocl.Ligand, preparedLigandPath: str, vinaLog: str, outputVina: str, name: str="") -> None:
+    def __init__(self, configPath: str, boxFile: str, receptor: ocr.Receptor, preparedReceptorPath: str, ligand: ocl.Ligand, preparedLigandPath: str, vinaLog: str, outputVina: str, name: str = "", overwriteConfig: bool = False) -> None:
         '''Constructor of the class Vina.
         
         Parameters
@@ -98,8 +98,10 @@ class Vina:
         self.outputVina = str(outputVina)
         self.vinaCmd = [vina, "--config", self.config, "--ligand", self.preparedLigand, "--out", self.outputVina, "--cpu", "1"]
         
-        # Create the box
-        box_to_vina(self.boxFile, self.config, self.preparedReceptor)
+        # Check if the config file exists or if it should be overwritten
+        if not os.path.isfile(self.config) or overwriteConfig:
+            # Create the box
+            box_to_vina(self.boxFile, self.config, self.preparedReceptor)
 
     ## Private ##
 

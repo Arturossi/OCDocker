@@ -45,7 +45,7 @@ import OCDocker.PLANTS as ocplants
 ###############################################################################
 class PLANTS:
     """PLANTS object with methods for easy run."""
-    def __init__(self, configPath: str, boxFile: str, receptor: ocr.Receptor, preparedReceptorPath: str, ligand: ocl.Ligand, preparedLigandPath: str, plantsLog: str, outputPlants: str, name: str = "", boxSpacing: float = 0.33) -> None:
+    def __init__(self, configPath: str, boxFile: str, receptor: ocr.Receptor, preparedReceptorPath: str, ligand: ocl.Ligand, preparedLigandPath: str, plantsLog: str, outputPlants: str, name: str = "", boxSpacing: float = 0.33, overwriteConfig: bool = False) -> None:
         ''' Constructor for the PLANTS object.
         
         Parameters
@@ -69,7 +69,9 @@ class PLANTS:
         name : str, optional
             Name for the PLANTS run, by default ""
         boxSpacing : float, optional
-            Spacing for the PLANTS box, by default 0.33
+            Spacing for the PLANTS box, by default 0.33.
+        overwriteConfig : bool, optional
+            Overwrite the PLANTS config file, by default False.
 
         Returns
         -------
@@ -91,22 +93,26 @@ class PLANTS:
             return None
 
         self.bindingSiteCenter, self.bindingSiteRadius = self.__bindingSite # type: ignore
+        
         # Receptor
         self.inputReceptor = self.__parse_receptor(receptor)
         self.inputReceptorPath = self.__parse_receptor_path(receptor)
         self.preparedReceptor = str(preparedReceptorPath)
         self.prepareReceptorCmd = [spores, "--mode", "complete", self.inputReceptorPath, self.preparedReceptor]
+        
         # Ligand
         self.preparedLigand = str(preparedLigandPath)
         self.inputLigand = self.__parse_ligand(ligand)
         self.inputLigandPath = self.__parse_ligand_path(ligand)
         self.prepareLigandCmd = [spores, "--mode", "complete", self.inputLigandPath, self.preparedLigand]
+        
         # Plants
         self.plantsLog = str(plantsLog)
         self.outputPlants = str(outputPlants)
         self.plantsCmd = [plants, "--mode", "screen", self.config]
+        
         # Check if config file exists to avoid useless processing
-        if not os.path.isfile(self.config):
+        if not os.path.isfile(self.config) or overwriteConfig:
             # Create the box
             self.write_config_file()
 
