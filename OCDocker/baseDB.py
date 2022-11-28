@@ -461,7 +461,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
     # Set the input file name path
     fin = f"{path}/receptor.pdb"
     fout = f"{path}/receptor.mol2"
-    
+
     # Set the prepared receptor name
     preparedReceptorMol2 = f"{path}/receptor_prepared.mol2"
     preparedReceptorPdbqt = f"{path}/receptor_prepared.pdbqt"
@@ -574,7 +574,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
             # Start the lock with statement
             with lock:
                 # Create the smina inputs
-                ocsmina.gen_smina_conf(f"{processDir}/boxes", f"{processDir}/sminaFiles/conf_smina.conf", preparedReceptorPdbqt)
+                ocsmina.gen_smina_conf(f"{processDir}/boxes/box0.pdb", f"{processDir}/sminaFiles/conf_smina.conf", preparedReceptorPdbqt)
         else:
             octools.print_info(f"The protein '{processDir}' already has its smina file generated, skipping its execution.")
 

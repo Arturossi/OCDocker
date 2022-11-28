@@ -461,43 +461,12 @@ def update_DUDEz(overwrite: bool = False, download: bool = True, multiprocess: b
         # Call the single process function NOTE: the extrema files are not being download for now
         __process_dudez_no_parallel(targets, overwrite, "Processing DUDE-Z database")
 
-    # Currently the goldilocks set is not being used, so we will not download it (NOTE: This may change in the future, that's why the code is still here)
-    """
-    # Create the goldilocks folder
-    _ = octools.safe_create_dir(f"{dudez_archive}/goldilocks")
-    # Download the Goldilocks set (it is universal for all targets)
-    octools.download_url(f"{dudez_download}/goldilocks/goldilocks_minus2.smi", f"{dudez_archive}/goldilocks/goldilocks_minus2.smi")
-    octools.download_url(f"{dudez_download}/goldilocks/goldilocks_minus1.smi", f"{dudez_archive}/goldilocks/goldilocks_minus1.smi")
-    octools.download_url(f"{dudez_download}/goldilocks/goldilocks_neutral.smi", f"{dudez_archive}/goldilocks/goldilocks_neutral.smi")
-    octools.download_url(f"{dudez_download}/goldilocks/goldilocks_plus1.smi", f"{dudez_archive}/goldilocks/goldilocks_plus1.smi")
-    octools.download_url(f"{dudez_download}/goldilocks/goldilocks_plus2.smi", f"{dudez_archive}/goldilocks/goldilocks_plus2.smi")
-
-    # Process the goldilocks set
-    octools.printv("Processing the goldilocks set.")
-
-    # Create the process list
-    process_list = [("minus2", "goldilocks_minus2"), ("minus1", "goldilocks_minus1"), ("neutral", "goldilocks_neutral"), ("plus1", "goldilocks_plus1"), ("plus2", "goldilocks_plus2")]
-    # For each data
-    for data in process_list:
-        # Create the ligands folder
-        _ = octools.safe_create_dir(f"{dudez_archive}/goldilocks/{data[0]}")
-        # Process the ligands, splitting them into the multiple files
-        with open(f"{dudez_archive}/goldilocks/{data[1]}.smi", "r") as f:
-            for line in f:
-                # Get the smiles and name of the ligand
-                smiles, name = line.split()
-                # Test if the file exists
-                if not os.path.isfile(f"{dudez_archive}/goldilocks/{data[0]}/{name}.mol2") or overwrite:
-                    # Convert it to mol2
-                    _ = octools.convertMolsFromString(smiles, f"{dudez_archive}/goldilocks/{data[0]}/{name}.mol2")
-    """
-
     # Delete the downloaded file
     octools.printv("Deleting the downloaded file.")
     os.remove(f"{tmpDir}/DUDE-Z_targets")
 
-    # Run p2rank in the DUDEz database
-    #ocdudez.prepare()
+    # Prepare the DUDEz database
+    ocdudez.prepare()
 
     return errors.ok()
 
@@ -600,6 +569,8 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silentMode: 
                         _ = octools.safe_create_dir(f"{destPath}/compounds/ligands")
                         # Create the ligand folder inside the ligands folder (yes, generic name until I find a better one)
                         _ = octools.safe_create_dir(f"{destPath}/compounds/ligands/ligand")
+                        # Create the boxes folder inside the ligand folder
+                        _ = octools.safe_create_dir(f"{destPath}/compounds/ligands/ligand/boxes")
                         
                         # Make a copy of the ligand to serve as reference and then move one of the ligand file to the ligands folder (mol2 and sdf)
                         shutil.copy(f"{destPath}/{filename}_ligand.mol2", f"{destPath}/reference_ligand.mol2")
@@ -634,7 +605,7 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silentMode: 
 
         elif option == "":
             rcode = errors.abort("User aborted the update.")
-            quit(rcode);
+            quit(rcode)
 
         else:
             octools.printv(f"Please use a valid answer!")

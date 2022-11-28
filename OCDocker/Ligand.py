@@ -2479,7 +2479,8 @@ class Ligand:
         else:
             # If the savePath does not exist, warn the user
             if not os.path.exists(savePath):
-                octools.print_error(f"The savePath '{savePath}' does not exist. The box will be saved in the ligand directory.")
+                _ =  errors.dir_does_not_exists(f"The savePath '{savePath}' does not exist. Creating it.", level = "error")
+                os.mkdir(savePath)
 
         # Write out the box file (following the one given in the DUD-E database)
         with open(f"{savePath}/box0.pdb", "w") as f:
