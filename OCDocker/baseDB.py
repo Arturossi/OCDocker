@@ -2400,16 +2400,20 @@ def prepare(archive: str, overwrite: bool = False, spacing: float = 0.33, saniti
     if archive == "dudez":
         chosenArchive = dudez_archive
         label = f"DUDEz proteins"
-        # Get all paths in the database
-        paths = glob(f"{chosenArchive}/*")
     elif archive == "pdbbind":
         chosenArchive = pdbbind_archive
         label = "PDBbind proteins"
         # Get all paths in the database filtering for pdbbind
-        paths = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index']]
     else:
         octools.print_error(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}.")
         return None
+
+    # Get all paths in the database
+    paths = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index']]
+
+    from pprint import pprint
+    pprint(paths)
+    return
 
     # Generate boxes for all receptors
     octools.printv("Generating information regarding possible ligand site.")
