@@ -52,8 +52,9 @@ the user to perform the steps step by step.
 # Functions
 ###############################################################################
 def print_args():
-    print('args:')
+    print("args:")
     pprint(vars(args))
+    print("\n")
 
 
 message = tw.dedent("""\033[1;93m

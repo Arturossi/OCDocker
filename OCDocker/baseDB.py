@@ -299,6 +299,7 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
             _ = octools.safe_create_dir(f"{molPath}/plantsFiles")
             _ = octools.safe_create_dir(f"{molPath}/vinaFiles")
             _ = octools.safe_create_dir(f"{molPath}/sminaFiles")
+
             print(f"m = ocl.Ligand('{mol}', '{molName}', sanitize = {sanitize})")
             try:
                 # Create a lock for multithreading
@@ -418,7 +419,7 @@ def __sub_core_prepare(dirsToProcess: str, dbName: str, overwrite: bool, mols : 
         # Check if the dbName is PDBbind
         if dbName.lower() in ["pdbbind"]:
             # Set the fligand name as the ligand file path
-            fligand = f"{processDir}/ligand.mol2"
+            fligand = f"{processDir}/ligand.sdf"
         else:
             # Set the fligand name as the ligand file path (use mol2)
             fligand = f"{processDir}/ligand.smi"
@@ -427,6 +428,7 @@ def __sub_core_prepare(dirsToProcess: str, dbName: str, overwrite: bool, mols : 
         _ = octools.safe_create_dir(f"{processDir}/vinaFiles")
         _ = octools.safe_create_dir(f"{processDir}/sminaFiles")
         _ = octools.safe_create_dir(f"{processDir}/plantsFiles")
+
         # For each ligand (don't use parallel, since there is no need)
         __prepare_molecule(fligand, overwrite, "ligand", dbName, sanitize = sanitize, targetCentroid = targetCentroid)
     
@@ -493,7 +495,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
         for ref_ligand_ext in ref_ligand_exts:
             # Parameterize the reference ligand path
             ref_ligand = os.path.join(path, f"reference_ligand.{ref_ligand_ext}")
-            
+
             # Check if the reference ligand does not exist (extensions in order: pdb, mol2)
             if os.path.isfile(ref_ligand):
                 try:
