@@ -327,6 +327,7 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                         with lock:
                             # Create the receptor object
                             m = ocr.Receptor(mol[0], molName, mol2Path = mol[1])
+                            print(f"m = ocr.Receptor('{mol[0]}', '{molName}', mol2Path = '{mol[1]}')")
                     except Exception as e:
                         errMsg = f"The molecule '{mol[0]}' could not be parsed! Error {e}"
 
@@ -341,6 +342,7 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                         with lock:
                             # Create the receptor object
                             m = ocr.Receptor(mol, molName)
+                            print(f"ocr.Receptor('{mol}', '{molName}')")
                     except Exception as e:
                         errMsg = f"The molecule '{mol}' could not be parsed! Error {e}"
 
