@@ -483,20 +483,26 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
 
     # Check if there is no target centroid data
     if targetCentroid is None:
-        # Parameterize the reference ligand name (pdb and mol2)
-        ref_ligand_mol2 = os.path.join(f"{path}/reference_ligand.mol2")
-        ref_ligand_pdb = os.path.join(f"{path}/reference_ligand.pdb")
+        # Parameterize the reference ligand extensions in a list (in order of preference)
+        ref_ligand_exts = ["mol2", "sdf", "pdb"]
 
-        # Check if the reference ligand does not exist (extensions in order: pdb, mol2)
-        if os.path.isfile(ref_ligand_mol2):
-            # Set the target centroid as the centroid of the ligand from the mol2 file
-            targetCentroid = ocl.get_centroid(ref_ligand_mol2, sanitize = sanitize)
-        elif os.path.isfile(ref_ligand_pdb):
-            # Set the target centroid as the centroid of the ligand from the pdb file
-            targetCentroid = ocl.get_centroid(ref_ligand_pdb, sanitize = sanitize)
-        else:
-            #octools.print_error_log(f"Could not find the file '{ref_ligand_pdb}' or '{ref_ligand_mol2}' for the molecule '{path}' and a target centroid has not been provided. This molecule will not be processecvcd.", f"{logdir}/{archive}_error_Parse.log")
-            return errors.file_do_not_exist(f"Could not find the file '{ref_ligand_mol2}' or '{ref_ligand_pdb}' for the molecule '{path}' and a target centroid has not been provided. This molecule will not be processed.", level = "error")
+        # Set the target centroid to None
+        targetCentroid = None
+
+        # For each extension in the list
+        for ref_ligand_ext in ref_ligand_exts:
+            # Parameterize the reference ligand path
+            ref_ligand = os.path.join(path, f"reference_ligand.{ref_ligand_ext}")
+            # Check if the reference ligand does not exist (extensions in order: pdb, mol2)
+            if os.path.isfile(ref_ligand):
+                # Set the target centroid as the centroid of the ligand from the mol2 file
+                targetCentroid = ocl.get_centroid(ref_ligand, sanitize = sanitize)
+                # Reference ligand found, break the loop
+                break
+        
+        # Check if the target centroid is still None
+        if targetCentroid is None:
+            return errors.file_do_not_exist(f"Could not find the file '{' or '.join([os.path.join(path, f'reference_ligand.{ref_ligand_ext}') for ref_ligand_ext in ref_ligand_exts])}' for the molecule '{path}' and a target centroid has not been provided. This molecule will not be processed.", level = "error")            
 
     # Create an empty list to hold all dirs to be processed
     processDirs = []

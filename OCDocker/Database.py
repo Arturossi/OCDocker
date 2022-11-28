@@ -570,8 +570,9 @@ def update_PDBbind(deleteTar: bool = True, silentMode: str = "") -> int:
                         # Create the boxes folder inside the ligand folder
                         _ = octools.safe_create_dir(f"{destPath}/compounds/ligands/ligand/boxes")
                         
-                        # Make a copy of the ligand to serve as reference and then move one of the ligand file to the ligands folder (mol2 and sdf)
+                        # Make a copy of the ligands to serve as reference and then move the ligand files to the ligands folder (mol2 and sdf)
                         shutil.copy(f"{destPath}/{filename}_ligand.mol2", f"{destPath}/reference_ligand.mol2")
+                        shutil.copy(f"{destPath}/{filename}_ligand.sdf", f"{destPath}/reference_ligand.sdf")
                         shutil.move(f"{destPath}/{filename}_ligand.mol2", f"{destPath}/compounds/ligands/ligand/ligand.mol2")
                         shutil.move(f"{destPath}/{filename}_ligand.sdf", f"{destPath}/compounds/ligands/ligand/ligand.sdf")
 
