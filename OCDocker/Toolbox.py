@@ -16,7 +16,7 @@ from glob import glob
 from tqdm import tqdm
 from spyrmsd import io, rmsd
 from threading import Lock
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Tuple, Union
 from openbabel import pybel
 from openbabel import openbabel
 
@@ -1044,7 +1044,7 @@ def download_url(url: str , out_path: str) -> None:
         urllib.request.urlretrieve(url, filename=out_path, reporthook=t.update_to)
     return None
 
-def run(cmd: List[str], logFile: str = "", cwd : str = "") -> int:
+def run(cmd: List[str], logFile: str = "", cwd : str = "") -> Union[int, Tuple[int, str]]:
     '''Run the given command (generic).
 
     Parameters
@@ -1060,8 +1060,8 @@ def run(cmd: List[str], logFile: str = "", cwd : str = "") -> int:
 
     Returns
     -------
-    int
-        The exit code of the command (based on the Error.py code table).
+    int | Tuple[int, str]
+        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
     
     Raises
     ------
@@ -1086,13 +1086,16 @@ def run(cmd: List[str], logFile: str = "", cwd : str = "") -> int:
     try:
         if cwd == "":
             with open(logFile, "w") as outfile:
-                subprocess.run(cmd, stdout=outfile)
+                proc = subprocess.run(cmd, stdout = outfile, capture_output = True)
         else:
             with open(logFile, "w") as outfile:
-                subprocess.run(cmd, stdout=outfile, cwd=cwd)
+                proc = subprocess.run(cmd, stdout = outfile, cwd=cwd, capture_output = True)
     except Exception as e:
-        return errors.subprocess(message=f"Found a problem while executing the command '{' '.join(cmd)}': {e}", level="error")
+        return errors.subprocess(message = f"Found a problem while executing the command '{' '.join(cmd)}': {e}", level="error")
 
+    # If the command has not been executed successfully
+    if proc.returncode != 0:
+        return errors.subprocess(message = f"The command '{' '.join(cmd)}' has not been executed successfully!", level = "error"), proc.stderr.decode("utf-8")
     return errors.ok()
 
 def get_rmsd(reference: str, molecule: str) -> Union[List, float]:

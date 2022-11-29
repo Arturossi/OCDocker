@@ -12,8 +12,7 @@ from OCDocker.Initialise import *
 import OCDocker.Toolbox as octools
 
 from Bio.PDB import *
-from glob import glob
-from typing import List, Union
+from typing import Tuple, Union
 
 # License
 ###############################################################################
@@ -277,7 +276,7 @@ class Vina:
 
         return read_vina_log(self.vinaLog)
 
-    def run_vina(self) -> int:
+    def run_vina(self) -> Union[int, Tuple[int, str]]:
         '''Run vina.
 
         Parameters
@@ -286,8 +285,8 @@ class Vina:
 
         Returns
         -------
-        int
-            The exit code of the command (based on the Error.py code table).
+        int | Tuple[int, str]
+            The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
         
         Raises
         ------
@@ -298,7 +297,7 @@ class Vina:
         octools.printv(f"Running vina using the '{self.config}' configurations.")
         return octools.run(self.vinaCmd, logFile=self.vinaLog)
 
-    def run_prepare_ligand(self, logFile: str = "", useOpenBabel: bool = False) -> Union[int, str]:
+    def run_prepare_ligand(self, logFile: str = "", useOpenBabel: bool = False) -> Union[int, str, Tuple[int, str]]:
         '''Run 'prepare_ligand4' or openbabel to prepare the ligand.
 
         Parameters
@@ -310,8 +309,8 @@ class Vina:
         
         Returns
         -------
-        int | str
-            The exit code of the command (based on the Error.py code table). If fails, return the file extension.
+        int | str | Tuple[int, str]
+            The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command. If fails, return the file extension. 
         
         Raises
         ------
@@ -325,7 +324,7 @@ class Vina:
             return octools.convertMols(self.inputLigandPath, self.preparedLigand)
         return octools.run(self.prepareLigandCmd, logFile=logFile, cwd=os.path.dirname(self.inputLigandPath))
 
-    def run_prepare_receptor(self, logFile:str = "", useOpenBabel:bool = False) -> Union[int, str]:
+    def run_prepare_receptor(self, logFile:str = "", useOpenBabel:bool = False) -> Union[int, str, Tuple[int, str]]:
         '''Run 'prepare_receptor4' or openbabel to prepare the receptor.
 
         Parameters
@@ -337,8 +336,8 @@ class Vina:
 
         Returns
         -------
-        int | str
-            The exit code of the command (based on the Error.py code table). If fails, return the file extension.
+        int | str | Tuple[int, str]
+            The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command. If fails, return the file extension.
 
         Raises
         ------

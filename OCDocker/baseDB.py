@@ -849,7 +849,20 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
                     with lock:
                         try:
                             # Run the prepare ligand
-                            _ = vina.run_prepare_ligand(useOpenBabel = False) # useOpenBabel has proven to be a dangerous option, it is better to avoid its use for
+                            result = vina.run_prepare_ligand(useOpenBabel = False) # useOpenBabel has proven to be a dangerous option, it is better to avoid its use for
+                            # If result is a tuple
+                            if isinstance(result, tuple):
+                                # If the result is not 0
+                                if result[0] != 0:
+                                    # Throw the generic Exception
+                                    raise Exception(result[1])
+                            # Otherwise is an int
+                            else:
+                                # If the result is not 0
+                                if result != 0:
+                                    # Throw the generic Exception
+                                    raise Exception("The prepare ligand routine returned an error code different than 0.")
+
                         except Exception as e:
                             errMsg = f"Could not run the prepare ligand routine for the protein in dir '{ligandPath}'. Error found while trying to run the 'vina' docking software. Error: {e}"
 
@@ -871,7 +884,19 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
                     with lock:
                         try:
                             # Run the prepare receptor
-                            _ = vina.run_prepare_receptor(useOpenBabel=False) # useOpenBabel has proven to be a dangerous option, it is better to avoid its use for now
+                            result = vina.run_prepare_receptor(useOpenBabel = False) # useOpenBabel has proven to be a dangerous option, it is better to avoid its use for now
+                            # If result is a tuple
+                            if isinstance(result, tuple):
+                                # If the result is not 0
+                                if result[0] != 0:
+                                    # Throw the generic Exception
+                                    raise Exception(result[1])
+                            # Otherwise is an int
+                            else:
+                                # If the result is not 0
+                                if result != 0:
+                                    # Throw the generic Exception
+                                    raise Exception("The prepare receptor routine returned an error code different than 0.")
                         except Exception as e:
                             errMsg = f"Could not run the prepare receptor routine for the protein in dir '{ligandPath}'. Error found while trying to run the 'vina' docking software. Error: {e}"
 
@@ -999,7 +1024,19 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
                 # Start the lock with statement
                 with lock:
                     # Run the prepare ligand
-                    _ = smina.run_prepare_ligand()
+                    result = smina.run_prepare_ligand()
+                    # If result is a tuple
+                    if isinstance(result, tuple):
+                        # If the result is not 0
+                        if result[0] != 0:
+                            # Throw the generic Exception
+                            raise Exception(result[1])
+                    # Otherwise is an int
+                    else:
+                        # If the result is not 0
+                        if result != 0:
+                            # Throw the generic Exception
+                            raise Exception("The prepare ligand routine returned an error code different than 0.")
 
                 # Check if the generated ligand has size 0 or is invalid
                 if os.path.getsize(smina.preparedLigand) == 0 or not octools.is_molecule_valid(smina.preparedLigand):
@@ -1015,7 +1052,19 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
                 # Start the lock with statement
                 with lock:
                     # Run the prepare receptor
-                    _ = smina.run_prepare_receptor()
+                    result = smina.run_prepare_receptor()
+                    # If result is a tuple
+                    if isinstance(result, tuple):
+                        # If the result is not 0
+                        if result[0] != 0:
+                            # Throw the generic Exception
+                            raise Exception(result[1])
+                    # Otherwise is an int
+                    else:
+                        # If the result is not 0
+                        if result != 0:
+                            # Throw the generic Exception
+                            raise Exception("The prepare receptor routine returned an error code different than 0.")
 
                 # Check if the generated receptor has size 0 or is invalid
                 if os.path.getsize(smina.preparedReceptor) == 0 or not octools.is_molecule_valid(smina.preparedReceptor):
@@ -1151,7 +1200,19 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
                     # Start the lock with statement
                     with lock:
                         # Run the prepare ligand
-                        _ = plants.run_prepare_ligand()
+                        result = plants.run_prepare_ligand()
+                        # If result is a tuple
+                        if isinstance(result, tuple):
+                            # If the result is not 0
+                            if result[0] != 0:
+                                # Throw the generic Exception
+                                raise Exception(result[1])
+                        # Otherwise is an int
+                        else:
+                            # If the result is not 0
+                            if result != 0:
+                                # Throw the generic Exception
+                                raise Exception("The prepare receptor routine returned an error code different than 0.")
 
                     # Check if the generated ligand has size 0 or is invalid
                     if os.path.getsize(plants.preparedLigand) == 0 or not octools.is_molecule_valid(plants.preparedLigand):
@@ -1167,7 +1228,19 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
                     # Start the lock with statement
                     with lock:
                         # Run the prepare receptor
-                        _ = plants.run_prepare_receptor()
+                        result = plants.run_prepare_receptor()
+                        # If result is a tuple
+                        if isinstance(result, tuple):
+                            # If the result is not 0
+                            if result[0] != 0:
+                                # Throw the generic Exception
+                                raise Exception(result[1])
+                        # Otherwise is an int
+                        else:
+                            # If the result is not 0
+                            if result != 0:
+                                # Throw the generic Exception
+                                raise Exception("The prepare receptor routine returned an error code different than 0.")
 
                     # Check if the generated receptor has size 0 or is invalid
                     if os.path.getsize(plants.preparedReceptor) == 0 or not octools.is_molecule_valid(plants.preparedReceptor):
