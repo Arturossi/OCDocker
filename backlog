@@ -12,14 +12,13 @@
 
 ### 1
 - Optimize the file system. | 1
+- Add routines to deal with xplor files, such as '/data/hd4tb/OCDocker/data/ocdb/PDBbind/1lrh/receptor.pdb' from pdbbind
 
 ### 2
 - Add integrity verification for DUDEz. | 2
 - Check previously made functions for DUDEz to update it to the new format. | 2
 - Refactor Ligand class, adding dispatching to dramatically reduce its size. | 2
 - Refactor Receptor class, reducing useless functions and check if dispatching is needed. | 2
-- Organize the code, refactoring the comments to ensure best use of everything. | 2
 
 ### 3
-- Change DUDEz data import from current routines to smiles and change the filesystem tree. | 3
 - Review the pandas merge function when reading results to generate docking result file (.csv) | 3

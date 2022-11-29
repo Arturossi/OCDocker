@@ -344,6 +344,10 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                         lock = Lock()
                         # Start the lock with statement
                         with lock:
+                            # Check if the extension is pdb
+                            if mol[0].endswith(".pdb"):
+                                # Clean the receptor
+                                _ = octools.make_only_ATOM_and_CRYST_pdb(structurePath = mol[0])
                             # Create the receptor object
                             m = ocr.Receptor(mol[0], molName, mol2Path = mol[1])
                     except Exception as e:
