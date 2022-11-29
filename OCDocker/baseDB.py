@@ -496,8 +496,8 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
     fout = f"{path}/receptor.mol2"
 
     # Set the prepared receptor name
-    preparedReceptorMol2 = f"{path}/receptor_prepared.mol2"
-    preparedReceptorPdbqt = f"{path}/receptor_prepared.pdbqt"
+    preparedReceptorMol2 = f"{path}/prepared_receptor.mol2"
+    preparedReceptorPdbqt = f"{path}/prepared_receptor.pdbqt"
 
     # Prepare the receptor
     __prepare_molecule((fin, fout), overwrite, "receptor", archive, sanitize = sanitize)
