@@ -1086,10 +1086,10 @@ def run(cmd: List[str], logFile: str = "", cwd : str = "") -> Union[int, Tuple[i
     try:
         if cwd == "":
             with open(logFile, "w") as outfile:
-                proc = subprocess.run(cmd, stdout = outfile, capture_output = True)
+                proc = subprocess.run(cmd, stdout = outfile, stderr = subprocess.PIPE)
         else:
             with open(logFile, "w") as outfile:
-                proc = subprocess.run(cmd, stdout = outfile, cwd=cwd, capture_output = True)
+                proc = subprocess.run(cmd, stdout = outfile, cwd=cwd, stderr = subprocess.PIPE)
     except Exception as e:
         return errors.subprocess(message = f"Found a problem while executing the command '{' '.join(cmd)}': {e}", level="error")
 
