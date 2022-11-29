@@ -809,7 +809,6 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
             # Read the receptor and the ligand
             receptor = ocr.Receptor(receptorPath, from_json_descriptors = receptorDescriptorPath, name = f"{ptn}_receptor")
             ligand = ocl.Ligand(ligandPath, from_json_descriptors = ligandDescriptorPath, name = f"{ptn}_{lig}_ligand")
-            print(f'receptor = ocr.Receptor("{receptorPath}", from_json_descriptors = "{receptorDescriptorPath}", name = f"{ptn}_receptor")\nligand = ocl.Ligand("{ligandPath}", from_json_descriptors = "{ligandDescriptorPath}", name = f"{ptn}_{lig}_ligand"')
         
         # If receptor and ligand are not null
         if receptor and ligand:
@@ -832,7 +831,6 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
                 with lock:
                     # Create the vina object (the pdbqt files will be in the father directory because it will be used multiple times, let's save some disk space, please)
                     vina = ocvina.Vina(f"{runPath}/conf_vina.conf", boxPath, receptor, preparedReceptorPath, ligand, preparedLigandPath, vinaLog, vinaOutput, name = f"{ptn}_run_{runNumber}", overwriteConfig = overwrite)
-                    print(f'vina = ocvina.Vina("{runPath}/conf_vina.conf", "{boxPath}", receptor, "{preparedReceptorPath}", ligand, "{preparedLigandPath}", "{vinaLog}", "{vinaOutput}", name = "{ptn}_run_{runNumber}", overwriteConfig = {overwrite})')
 
                 # Check if the vina object has been correctly created
                 if not vina:
