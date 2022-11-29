@@ -809,7 +809,6 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
             # Read the receptor and the ligand
             receptor = ocr.Receptor(receptorPath, from_json_descriptors = receptorDescriptorPath, name = f"{ptn}_receptor")
             ligand = ocl.Ligand(ligandPath, from_json_descriptors = ligandDescriptorPath, name = f"{ptn}_{lig}_ligand")
-            print(f'receptor = ocr.Receptor("{receptorPath}", from_json_descriptors = "{receptorDescriptorPath}", name = f"{ptn}_receptor")\nligand = ocl.Ligand("{ligandPath}", from_json_descriptors = "{ligandDescriptorPath}", name = f"{ptn}_{lig}_ligand"')
         
         # If receptor and ligand are not null
         if receptor and ligand:
@@ -832,7 +831,6 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
                 with lock:
                     # Create the vina object (the pdbqt files will be in the father directory because it will be used multiple times, let's save some disk space, please)
                     vina = ocvina.Vina(f"{runPath}/conf_vina.conf", boxPath, receptor, preparedReceptorPath, ligand, preparedLigandPath, vinaLog, vinaOutput, name = f"{ptn}_run_{runNumber}", overwriteConfig = overwrite)
-                    print(f'vina = ocvina.Vina("{runPath}/conf_vina.conf", "{boxPath}", receptor, "{preparedReceptorPath}", ligand, "{preparedLigandPath}", "{vinaLog}", "{vinaOutput}", name = "{ptn}_run_{runNumber}", overwriteConfig = {overwrite})')
 
                 # Check if the vina object has been correctly created
                 if not vina:
@@ -847,8 +845,14 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
                     lock = Lock()
                     # Start the lock with statement
                     with lock:
-                        # Run the prepare ligand
-                        _ = vina.run_prepare_ligand(useOpenBabel = False) # useOpenBabel has proven to be a dangerous option, it is better to avoid its use for
+                        try:
+                            # Run the prepare ligand
+                            _ = vina.run_prepare_ligand(useOpenBabel = False) # useOpenBabel has proven to be a dangerous option, it is better to avoid its use for
+                        except Exception as e:
+                            errMsg = f"Could not run the prepare ligand routine for the protein in dir '{ligandPath}'. Error found while trying to run the 'vina' docking software. Error: {e}"
+
+                            octools.print_error_log(errMsg, f"{logdir}/{archive}_vina_run_report_ERROR.log")
+                            return errors.ligand_not_prepared(errMsg, level = "error")
 
                     # Check again if the generated ligand has size 0 or is invalid
                     if os.path.getsize(vina.preparedLigand) == 0 or not octools.is_molecule_valid(vina.preparedLigand):
@@ -863,8 +867,14 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
                     lock = Lock()
                     # Start the lock with statement
                     with lock:
-                        # Run the prepare receptor
-                        _ = vina.run_prepare_receptor(useOpenBabel=False) # useOpenBabel has proven to be a dangerous option, it is better to avoid its use for now
+                        try:
+                            # Run the prepare receptor
+                            _ = vina.run_prepare_receptor(useOpenBabel=False) # useOpenBabel has proven to be a dangerous option, it is better to avoid its use for now
+                        except Exception as e:
+                            errMsg = f"Could not run the prepare receptor routine for the protein in dir '{ligandPath}'. Error found while trying to run the 'vina' docking software. Error: {e}"
+
+                            octools.print_error_log(errMsg, f"{logdir}/{archive}_vina_run_report_ERROR.log")
+                            return errors.receptor_not_prepared(errMsg, level = "error")
 
                     # Check if the generated receptor has size 0 or is invalid
                     if os.path.getsize(vina.preparedReceptor) == 0 or not octools.is_molecule_valid(vina.preparedReceptor):
