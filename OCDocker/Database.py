@@ -470,7 +470,7 @@ def update_DUDEz(overwrite: bool = False, download: bool = True, multiprocess: b
 
     return errors.ok()
 
-def update_PDBbind(deleteTar: bool = True, silentMode: str = "") -> int:
+def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silentMode: str = "") -> int:
     '''Updates the PDBbind database from the Protein-ligand complexes: The refined set.
 
     Parameters
@@ -578,6 +578,8 @@ def update_PDBbind(deleteTar: bool = True, silentMode: str = "") -> int:
 
                         # Rename the protein file
                         shutil.move(f"{destPath}/{filename}_protein.pdb", f"{destPath}/receptor.pdb")
+
+                        _ = octools.make_only_ATOM_and_CRYST_pdb(f"{destPath}/receptor.pdb")
 
                         # Remove all the unwanted files
                         unwanteds = [("pocket", "pdb")]

@@ -525,7 +525,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
                     # Check if the target centroid is None
                     if not targetCentroid:
                         # Print a warning
-                        print(f"WARNING: The centroid of the reference ligand in path '{path}' could not be calculated. The centroid of the receptor will be used instead.")
+                        octools.print_warning(message = f"WARNING: The centroid of the reference ligand in path '{path}' could not be calculated. The centroid of the receptor will be used instead.")
                         # Force the next iteration
                         continue
 
@@ -537,7 +537,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
         
         # Check if the target centroid is still None
         if targetCentroid is None:
-            return errors.file_do_not_exist(f"Could not find the file '{' or '.join([os.path.join(path, f'reference_ligand.{ref_ligand_ext}') for ref_ligand_ext in ref_ligand_exts])}' for the molecule '{path}' or and a target centroid has not been provided. This molecule will not be processed.", level = "error")            
+            return errors.file_do_not_exist(f"Could not find the file '{' or '.join([os.path.join(path, f'reference_ligand.{ref_ligand_ext}') for ref_ligand_ext in ref_ligand_exts])}' for the molecule '{path}' or the provided files are not valid and a target centroid has not been provided. This molecule will not be processed.", level = "error")            
 
     # Create an empty list to hold all dirs to be processed
     processDirs = []

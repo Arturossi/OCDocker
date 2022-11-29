@@ -510,40 +510,7 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
 
     # Check if file is a PDB file
     if structurePath.endswith(".pdb"):
-        # Initialise hasCryst1 flag
-        hasCryst1 = False
-
-        # List of lines and dssp lines
-        lines = []
-
-        # Check if structurePath is a valid file
-        if os.path.isfile(structurePath):
-            # Open it (for cleaning)
-            with open(structurePath, "r") as pdbFile:
-                # For each line in pdbFile
-                for line in pdbFile:
-                    if not line.startswith("CRYST1") and not hasCryst1:
-                        # Set the hasCryst1 flag to True
-                        hasCryst1 = True
-                        # Add the line to the list
-                        lines.append("CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1\n")
-
-                    # Check if the line starts with ATOM
-                    if line.startswith("ATOM"):
-                        # Check if there is a chain in the line (all the lines should have a chain)
-                        if line[21] == " ":
-                            # Assume that the protein has only one chain and call it A
-                            line = f"{line[:21]}A{line[22:]}"
-                        # Add the line to the list
-                        lines.append(line)
-            # Create a lock for multithreading
-            lock = Lock()
-            # Start the lock with statement
-            with lock:
-                # Write the lines to the file
-                with open(structurePath, "w") as pdbFile:
-                    # Write the lines list to the file
-                    pdbFile.writelines(lines)
+        _ = octools.make_only_ATOM_and_CRYST_pdb(structurePath)
 
     # Load the clean Structure
     #cleanStructure = loadMol(cleanStructurePath)

@@ -15,6 +15,7 @@ import urllib.request
 from glob import glob
 from tqdm import tqdm
 from spyrmsd import io, rmsd
+from threading import Lock
 from typing import Any, Dict, List, Union
 from openbabel import pybel
 from openbabel import openbabel
@@ -1139,6 +1140,63 @@ def get_rmsd(reference: str, molecule: str) -> Union[List, float]:
 
     # Return the symmetric rmsd (account for symmetry because it is important)
     return rmsd.symmrmsd(refCoordinates, molCoordinates, refAtmNum, molAtmNum, refAdjMat, molAdjMat)
+
+def make_only_ATOM_and_CRYST_pdb(structurePath: str) -> int:
+    '''Make a pdb file with only ATOM and CRYST1 records.
+
+    Parameters
+    ----------
+    structurePath : str
+        The path to the structure file.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
+    '''
+
+    # Initialise hasCryst1 flag
+    hasCryst1 = False
+    
+    # List of lines and dssp lines
+    lines = []
+
+    # Check if structurePath is a valid file
+    if os.path.isfile(structurePath):
+        # Open it (for cleaning)
+        with open(structurePath, "r") as pdbFile:
+            # For each line in pdbFile
+            for line in pdbFile:
+                if not line.startswith("CRYST1") and not hasCryst1:
+                    # Set the hasCryst1 flag to True
+                    hasCryst1 = True
+                    # Add the line to the list
+                    lines.append("CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1\n")
+
+                # Check if the line starts with ATOM
+                if line.startswith("ATOM"):
+                    # Check if there is a chain in the line (all the lines should have a chain)
+                    if line[21] == " ":
+                        # Assume that the protein has only one chain and call it A
+                        line = f"{line[:21]}A{line[22:]}"
+                    # Add the line to the list
+                    lines.append(line)
+        # Create a lock for multithreading
+        lock = Lock()
+        # Start the lock with statement
+        with lock:
+            # Write the lines to the file
+            with open(structurePath, "w") as pdbFile:
+                # Write the lines list to the file
+                pdbFile.writelines(lines)
+        
+        return errors.ok()
+    else:
+        return errors.file_do_not_exist(message = f"The file '{structurePath}' does not exist!", level = "error")
 
 
 ### Special functions
