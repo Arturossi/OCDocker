@@ -864,7 +864,7 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
                                     raise Exception("The prepare ligand routine returned an error code different than 0.")
 
                         except Exception as e:
-                            errMsg = f"Could not run the prepare ligand routine for the protein in dir '{ligandPath}'. Error found while trying to run the 'vina' docking software. Error: {e}"
+                            errMsg = f"Could not run the prepare ligand routine for the protein in dir '{vina.inputLigandPath}'. Error found while trying to run the 'vina' docking software. Error: {e}"
 
                             octools.print_error_log(errMsg, f"{logdir}/{archive}_vina_run_report_ERROR.log")
                             return errors.ligand_not_prepared(errMsg, level = "error")
@@ -898,7 +898,7 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
                                     # Throw the generic Exception
                                     raise Exception("The prepare receptor routine returned an error code different than 0.")
                         except Exception as e:
-                            errMsg = f"Could not run the prepare receptor routine for the protein in dir '{ligandPath}'. Error found while trying to run the 'vina' docking software. Error: {e}"
+                            errMsg = f"Could not run the prepare receptor routine for the protein in dir '{vina.inputReceptorPath}'. Error found while trying to run the 'vina' docking software. Error: {e}"
 
                             octools.print_error_log(errMsg, f"{logdir}/{archive}_vina_run_report_ERROR.log")
                             return errors.receptor_not_prepared(errMsg, level = "error")
@@ -1023,24 +1023,30 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
                 lock = Lock()
                 # Start the lock with statement
                 with lock:
-                    # Run the prepare ligand
-                    result = smina.run_prepare_ligand()
-                    # If result is a tuple
-                    if isinstance(result, tuple):
-                        # If the result is not 0
-                        if result[0] != 0:
-                            # Throw the generic Exception
-                            raise Exception(result[1])
-                    # Otherwise is an int
-                    else:
-                        # If the result is not 0
-                        if result != 0:
-                            # Throw the generic Exception
-                            raise Exception("The prepare ligand routine returned an error code different than 0.")
+                    try:
+                        # Run the prepare ligand
+                        result = smina.run_prepare_ligand()
+                        # If result is a tuple
+                        if isinstance(result, tuple):
+                            # If the result is not 0
+                            if result[0] != 0:
+                                # Throw the generic Exception
+                                raise Exception(result[1])
+                        # Otherwise is an int
+                        else:
+                            # If the result is not 0
+                            if result != 0:
+                                # Throw the generic Exception
+                                raise Exception("The prepare ligand routine returned an error code different than 0.")
+                    except Exception as e:
+                        errMsg = f"Could not run the prepare ligand routine for the protein in dir '{smina.inputLigandPath}'. Error found while trying to run the 'smina' docking software. Error: {e}"
+
+                        octools.print_error_log(errMsg, f"{logdir}/{archive}_smina_run_report_ERROR.log")
+                        return errors.ligand_not_prepared(errMsg, level = "error")
 
                 # Check if the generated ligand has size 0 or is invalid
                 if os.path.getsize(smina.preparedLigand) == 0 or not octools.is_molecule_valid(smina.preparedLigand):
-                    errMsg = f"The prepare ligand script has made an output of 0kb again for ligand '{smina.preparedLigand}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(smina.prepareLigandCmd)}"
+                    errMsg = f"The prepare ligand script has made an output of 0kb for ligand '{smina.preparedLigand}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(smina.prepareLigandCmd)}"
 
                     octools.print_error_log(errMsg, f"{logdir}/{archive}_smina_run_report_ERROR.log")
                     return errors.ligand_not_prepared(errMsg, level = "error")
@@ -1051,24 +1057,30 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
                 lock = Lock()
                 # Start the lock with statement
                 with lock:
-                    # Run the prepare receptor
-                    result = smina.run_prepare_receptor()
-                    # If result is a tuple
-                    if isinstance(result, tuple):
-                        # If the result is not 0
-                        if result[0] != 0:
-                            # Throw the generic Exception
-                            raise Exception(result[1])
-                    # Otherwise is an int
-                    else:
-                        # If the result is not 0
-                        if result != 0:
-                            # Throw the generic Exception
-                            raise Exception("The prepare receptor routine returned an error code different than 0.")
+                    try:
+                        # Run the prepare receptor
+                        result = smina.run_prepare_receptor()
+                        # If result is a tuple
+                        if isinstance(result, tuple):
+                            # If the result is not 0
+                            if result[0] != 0:
+                                # Throw the generic Exception
+                                raise Exception(result[1])
+                        # Otherwise is an int
+                        else:
+                            # If the result is not 0
+                            if result != 0:
+                                # Throw the generic Exception
+                                raise Exception("The prepare receptor routine returned an error code different than 0.")
+                    except Exception as e:
+                        errMsg = f"Could not run the prepare receptor routine for the protein in dir '{smina.inputReceptorPath}'. Error found while trying to run the 'smina' docking software. Error: {e}"
+
+                        octools.print_error_log(errMsg, f"{logdir}/{archive}_smina_run_report_ERROR.log")
+                        return errors.ligand_not_prepared(errMsg, level = "error")
 
                 # Check if the generated receptor has size 0 or is invalid
                 if os.path.getsize(smina.preparedReceptor) == 0 or not octools.is_molecule_valid(smina.preparedReceptor):
-                    errMsg = f"The prepare receptor has made an output of 0kb again for receptor '{smina.preparedReceptor}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(smina.prepareReceptorCmd)}"
+                    errMsg = f"The prepare receptor has made an output of 0kb for receptor '{smina.preparedReceptor}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(smina.prepareReceptorCmd)}"
 
                     octools.print_error_log(errMsg, f"{logdir}/{archive}_smina_run_report_ERROR.log")
                     return errors.receptor_not_prepared(errMsg, level = "error")
@@ -1199,20 +1211,26 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
                     lock = Lock()
                     # Start the lock with statement
                     with lock:
-                        # Run the prepare ligand
-                        result = plants.run_prepare_ligand()
-                        # If result is a tuple
-                        if isinstance(result, tuple):
-                            # If the result is not 0
-                            if result[0] != 0:
-                                # Throw the generic Exception
-                                raise Exception(result[1])
-                        # Otherwise is an int
-                        else:
-                            # If the result is not 0
-                            if result != 0:
-                                # Throw the generic Exception
-                                raise Exception("The prepare receptor routine returned an error code different than 0.")
+                        try:
+                            # Run the prepare ligand
+                            result = plants.run_prepare_ligand()
+                            # If result is a tuple
+                            if isinstance(result, tuple):
+                                # If the result is not 0
+                                if result[0] != 0:
+                                    # Throw the generic Exception
+                                    raise Exception(result[1])
+                            # Otherwise is an int
+                            else:
+                                # If the result is not 0
+                                if result != 0:
+                                    # Throw the generic Exception
+                                    raise Exception("The prepare ligand routine returned an error code different than 0.")
+                        except Exception as e:
+                            errMsg = f"Could not run the prepare ligand routine for the protein in dir '{plants.inputLigandPath}'. Error found while trying to run the 'PLANTS' docking software. Error: {e}"
+
+                            octools.print_error_log(errMsg, f"{logdir}/{archive}_plants_run_report_ERROR.log")
+                            return errors.ligand_not_prepared(errMsg, level = "error")
 
                     # Check if the generated ligand has size 0 or is invalid
                     if os.path.getsize(plants.preparedLigand) == 0 or not octools.is_molecule_valid(plants.preparedLigand):
@@ -1227,24 +1245,30 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
                     lock = Lock()
                     # Start the lock with statement
                     with lock:
-                        # Run the prepare receptor
-                        result = plants.run_prepare_receptor()
-                        # If result is a tuple
-                        if isinstance(result, tuple):
-                            # If the result is not 0
-                            if result[0] != 0:
-                                # Throw the generic Exception
-                                raise Exception(result[1])
-                        # Otherwise is an int
-                        else:
-                            # If the result is not 0
-                            if result != 0:
-                                # Throw the generic Exception
-                                raise Exception("The prepare receptor routine returned an error code different than 0.")
+                        try:
+                            # Run the prepare receptor
+                            result = plants.run_prepare_receptor()
+                            # If result is a tuple
+                            if isinstance(result, tuple):
+                                # If the result is not 0
+                                if result[0] != 0:
+                                    # Throw the generic Exception
+                                    raise Exception(result[1])
+                            # Otherwise is an int
+                            else:
+                                # If the result is not 0
+                                if result != 0:
+                                    # Throw the generic Exception
+                                    raise Exception("The prepare receptor routine returned an error code different than 0.")
+                        except Exception as e:
+                            errMsg = f"Could not run the prepare receptor routine for the protein in dir '{plants.inputReceptorPath}'. Error found while trying to run the 'PLANTS' docking software. Error: {e}"
+
+                            octools.print_error_log(errMsg, f"{logdir}/{archive}_plants_run_report_ERROR.log")
+                            return errors.ligand_not_prepared(errMsg, level = "error")
 
                     # Check if the generated receptor has size 0 or is invalid
                     if os.path.getsize(plants.preparedReceptor) == 0 or not octools.is_molecule_valid(plants.preparedReceptor):
-                        errMsg = f"SPORES has made an output of 0kb again for receptor '{plants.preparedReceptor}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(plants.prepareReceptorCmd)}"
+                        errMsg = f"SPORES has made an output of 0kb for receptor '{plants.preparedReceptor}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(plants.prepareReceptorCmd)}"
                         octools.print_error_log(errMsg, f"{logdir}/{archive}_plants_run_report_ERROR.log")
                         return errors.receptor_not_prepared(errMsg, level = "error")
 
