@@ -2367,19 +2367,19 @@ def __merge_descriptors_in_dataframe_parallel_legacy(dirs: List[Tuple[str, str]]
             octools.safe_create_dir(f"{logdir}/read_log_past")
         os.rename(f"{logdir}/plants_read_log_ERROR.log", f"{logdir}/read_log_past/plants_read_log_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
 
-    # Dataframe with all protein data
-    ptndf = vaex.DataFrame()
+    # List with all protein data
+    ptnList = []
 
     # Create a Thread pool with the maximum available_cores
     with Pool(args.available_cores) as p:
         # Perform the multi process
-        for innerData in tqdm(p.imap_unordered(__thread_merge_descriptors_in_dataframe_parallel, arguments), total = len(arguments), desc = desc):
+        for innerData in tqdm(p.imap_unordered(__thread_merge_descriptors_in_dataframe_parallel_legacy, arguments), total = len(arguments), desc = desc):
             # Update the dict with the result from the called function
-            ptndf = vaex.concat([ptndf, innerData])
+            ptnList.append(innerData)
             # Clear the memory
             gc.collect()
 
-    return ptndf
+    return pd.concat(ptnList, ignore_index=True)
 
 def __merge_descriptors_in_dataframe_no_parallel_legacy(dirs: List[Tuple[str, str]], archive: str, desc: str) -> pd.DataFrame:
     '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_read_log function.
@@ -2399,8 +2399,9 @@ def __merge_descriptors_in_dataframe_no_parallel_legacy(dirs: List[Tuple[str, st
     None
     '''
 
-    # Dict to store the read data
-    ptndf = pd.DataFrame()
+    # List to store the read data
+    ptnList = []
+
     # If logfile exists, backup it for vina, smina and plants (for error and warnings)
     if os.path.isfile(f"{logdir}/vina_read_log_ERROR.log"):
         if not os.path.isdir(f"{logdir}/read_log_past"):
@@ -2414,14 +2415,15 @@ def __merge_descriptors_in_dataframe_no_parallel_legacy(dirs: List[Tuple[str, st
         if not os.path.isdir(f"{logdir}/read_log_past"):
             octools.safe_create_dir(f"{logdir}/read_log_past")
         os.rename(f"{logdir}/plants_read_log_ERROR.log", f"{logdir}/read_log_past/plants_read_log_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
+
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         for dir in tqdm(iterable = dirs, total = len(dirs), desc = desc):
             # Call the core read log function (shared between parallel and not parallel) and store the data into the DataFrame
-            ptndf = pd.concat([ptndf, __core_merge_descriptors_in_dataframe_legacy(dir, archive)])
+            ptnList.append(__core_merge_descriptors_in_dataframe_legacy(dir, archive))
             # Clear the memory
             gc.collect()
-    return ptndf
+    return pd.concat(ptnList, ignore_index=True)
 
 
 ### Parse into csv
@@ -3278,6 +3280,8 @@ def run_dock(archive: str, dockingAlgorithm: str, overwrite: bool = False) -> in
     else:
         return __run_dock_no_parallel(complexList, archive, dockingAlgorithm, overwrite, f"Processing {archive}")
 
+# Pandas implementation
+
 def read_logs_legacy(archive: str, picklePath: str = "") -> Union[Dict[str, Dict[str, pd.DataFrame]], None]:
     '''Reads database logfiles returning a dict of dicts of pd.DataFrames.
 
@@ -3715,12 +3719,15 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
             
             # Read the csv from input file
             ptndf = vaex.read_csv(csv_path_in)
+
             # Merge the both DataFrames using the Protein column as a comparer
-            data = vaex.merge(ptndf, data, on=["Protein", "Ligand"], how="left") # TODO: create the left join on Protein Ligand
+            data = ptndf.join(data, on=["Protein", "Ligand"], how="left") 
+
             # If saveCsv is True, save the csv
             if saveCsv:
                 # Write the data to a new csv file
-                data.to_csv(csv_path_out, index=False)
+                data.to_csv(csv_path_out, index = False)
+
             octools.print_success(f"The file '{csv_path_out}' has been successfully written.")
         except Exception as e:
             octools.print_error(f"Could not write the file '{csv_path_out}'. Error: {e}")

@@ -3,6 +3,7 @@
 # Imports
 ###############################################################################
 import os
+import vaex
 
 from glob import glob
 from typing import Dict, List, Union
@@ -103,7 +104,7 @@ def convert_debug_to_production(chosenAlgorithm: str = "ac", strict: bool = Fals
     ocbdb.convert_debug_to_production(pdbbind_archive, chosenAlgorithm = chosenAlgorithm, strict = strict, removeDebug = removeDebug)
     return None
 
-def read_index() -> Union[List[Dict[str, str]], None]:
+def read_index_legacy() -> Union[List[Dict[str, str]], None]:
     '''Read the index file from pdbbind database and returns a list of the data (dict).
 
     Parameters
@@ -178,8 +179,90 @@ def read_index() -> Union[List[Dict[str, str]], None]:
         # There is no file, throw an error
         _ = errors.file_do_not_exist(f"The file {indexFile} does not exist. Please check if the PDBbind database is correctly installed.", level = "error")
         return None
-    # This return should never exist, but here it is
-    return None
+
+def read_index() -> Union[Dict[str, List[str]], None]:
+    '''Read the index file from pdbbind database and returns a list of the data (dict).
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    Dict[str, List[str]] | None
+        A list of dictionaries with the data from the index file. If the file does not exist, it will return None.
+
+    Raises
+    ------
+    None
+    '''
+
+    indexFile = glob(pdbbind_archive + '/index/INDEX_refined_data.*')[0]
+    # If the file exists
+    if os.path.isfile(indexFile):
+        # List to hold the protein data
+        proteinDataOrder = f"{pdbbind_KdKi_order}M"
+        proteinData = {
+                    "Protein": [],
+                    "resolution": [],
+                    "release_year": [],
+                    "-logKd/Ki": [],
+                    "Ki/Kd": [],
+                    "Ki/Kd_value": [],
+                    "Ki/Kd_order": []
+                    }
+        # Open the file in read mode
+        with open(indexFile, "r") as f:
+            # This will loop the entire file (better than load the whole file in memory... imagine a huge file being loaded...)
+            while True:
+                # Read one line
+                line = f.readline()
+                # Check if there is a line
+                if not line:
+                    # If line is none, break the loop
+                    break
+                # If the line starts with a #
+                if line.startswith("#"):
+                    # Skip it (no useful info)
+                    continue
+                # Split the line in spaces
+                splitedLine = line.split()
+                # The columns are listed below (with a sample)
+                # PDB code, resolution, release year, -logKd/Ki, Kd/Ki, reference, ligand name
+                # 2r58  2.00  2007   2.00  Kd=10mM       // 2r58.pdf (MLY)
+                # Separate the type (Kd/Ki) from the value
+                tp, kdki = splitedLine[4].split("=")
+                # Convert all units to the same order (see the variable pdbbind_KdKi_order in initialise.py file for the precise order)
+                if "mM" in kdki: # If mili (10e-3)
+                    kdki = float(kdki.replace("mM", "")) * order[pdbbind_KdKi_order]["m"]
+                elif "uM" in kdki: # If micro (10e-6)
+                    kdki = float(kdki.replace("uM", "")) * order[pdbbind_KdKi_order]["u"]
+                elif "nM" in kdki: # If nano (10e-9)
+                    kdki = float(kdki.replace("nM", "")) * order[pdbbind_KdKi_order]["n"]
+                elif "pM" in kdki: # If pico (10e-12)
+                    kdki = float(kdki.replace("pM", "")) * order[pdbbind_KdKi_order]["p"]
+                elif "fM" in kdki: # If femto (10e-15) not expected to show
+                    kdki = float(kdki.replace("fM", "")) * order[pdbbind_KdKi_order]["f"]
+                elif "cM" in kdki: # If centi (10e-2) not expected to show
+                    kdki = float(kdki.replace("cM", "")) * order[pdbbind_KdKi_order]["c"]
+                else: # Will consider just molar, but this is not expected to show
+                    kdki = float(kdki.replace("M", "")) * order[pdbbind_KdKi_order]["M"]
+
+                # Add to the dict
+                proteinData["Protein"].append(splitedLine[0])
+                proteinData["resolution"].append(splitedLine[1])
+                proteinData["release_year"].append(splitedLine[2])
+                proteinData["-logKd/Ki"].append(splitedLine[3])
+                proteinData["Ki/Kd"].append(tp)
+                proteinData["Ki/Kd_value"].append(kdki)
+                proteinData["Ki/Kd_order"].append(proteinDataOrder)
+
+        # Return the data
+        return proteinData
+    else:
+        # There is no file, throw an error
+        _ = errors.file_do_not_exist(f"The file {indexFile} does not exist. Please check if the PDBbind database is correctly installed.", level = "error")
+        return None
 
 def run_p2rank(overwrite: bool = False) -> None:
     '''Runs P2Rank in the whole database.
@@ -321,7 +404,7 @@ def generate_dock_result_csv(log_dumps: Dict[str, Dict[str, pd.DataFrame]], csv_
     '''
     return ocbdb.generate_dock_result_csv("pdbbind", log_dumps, csv_path, chunksize=chunksize)
 
-def merge_descriptors_in_dataframe(saveCsv: bool = True) -> Union[pd.DataFrame, None]:
+def merge_descriptors_in_dataframe_legacy(saveCsv: bool = True) -> Union[pd.DataFrame, None]:
     '''Reads all the descriptors jsons and return a pd.DataFrame.
 
     Parameters
@@ -340,11 +423,12 @@ def merge_descriptors_in_dataframe(saveCsv: bool = True) -> Union[pd.DataFrame, 
     '''
     
     # Get the dataframe with descriptors and docking scores
-    pdbbinddf = ocbdb.merge_descriptors_in_dataframe("pdbbind", saveCsv=False)
+    pdbbinddf = ocbdb.merge_descriptors_in_dataframe_legacy("pdbbind", saveCsv = saveCsv)
 
     # Check if the pdbbinddf is None
     if not pdbbinddf:
         return None
+
     # Merge the pdbbinddf DataFrame with the metadata from the PDBbind database using the Protein column as a comparer
     pdbbinddf = pd.merge(pdbbinddf, pd.DataFrame(read_index()), on="Protein", how="left")
 
@@ -356,5 +440,44 @@ def merge_descriptors_in_dataframe(saveCsv: bool = True) -> Union[pd.DataFrame, 
             octools.print_warning(f"The file {csv_path_out} already exists, it will be OVERWRITTEN!!")
         # Write the data to a new csv file
         pdbbinddf.to_csv(csv_path_out, index=False)
+
+    return pdbbinddf
+
+def merge_descriptors_in_dataframe(saveCsv: bool = True) -> Union[vaex.DataFrame, None]:
+    '''Reads all the descriptors jsons and return a pd.DataFrame.
+
+    Parameters
+    ----------
+    saveCsv : bool, optional
+        If True, it will save the csv file, by default True.
+
+    Returns
+    -------
+    vaex.DataFrame | None
+        The dataframe with all the complex descriptors.
+
+    Raises
+    ------
+    None
+    '''
+    
+    # Get the dataframe with descriptors and docking scores
+    pdbbinddf = ocbdb.merge_descriptors_in_dataframe("pdbbind", saveCsv = saveCsv)
+
+    # Check if the pdbbinddf is None
+    if not pdbbinddf:
+        return None
+
+    # Merge the pdbbinddf DataFrame with the metadata from the PDBbind database using the Protein column as a comparer
+    pdbbinddf = pdbbinddf.join(vaex.from_dict(read_index()), on = "Protein", how = "left")
+
+    # If the save csv flag is set
+    if saveCsv:
+        # Parameterize the csvs paths
+        csv_path_out = f"{parsed_archive}/PDBbind_complete.csv"
+        if os.path.isfile(csv_path_out):
+            octools.print_warning(f"The file {csv_path_out} already exists, it will be OVERWRITTEN!!")
+        # Write the data to a new csv file
+        pdbbinddf.to_csv(csv_path_out, index = False)
 
     return pdbbinddf

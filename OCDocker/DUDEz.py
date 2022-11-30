@@ -3,6 +3,7 @@
 # Imports
 ###############################################################################
 import os
+import vaex
 import pandas as pd
 
 from typing import Dict, Union
@@ -257,7 +258,7 @@ def generate_dock_result_csv(log_dumps: Dict[str, Dict[str, pd.DataFrame]], csv_
 
     return ocbdb.generate_dock_result_csv("dudez", log_dumps, csv_path, chunksize = chunksize)
 
-def merge_descriptors_in_dataframe(saveCsv=True) -> Union[pd.DataFrame, None]:
+def merge_descriptors_in_dataframe_legacy(saveCsv = True) -> Union[pd.DataFrame, None]:
     '''Reads all the descriptors jsons and return a pd.DataFrame.
 
     Parameters
@@ -276,7 +277,7 @@ def merge_descriptors_in_dataframe(saveCsv=True) -> Union[pd.DataFrame, None]:
     '''
 
     # Get the dataframe with descriptors and docking scores
-    dudezdf = ocbdb.merge_descriptors_in_dataframe("dudez", saveCsv=False)
+    dudezdf = ocbdb.merge_descriptors_in_dataframe_legacy("dudez", saveCsv = saveCsv)
 
     # If the save csv flag is set
     if saveCsv:
@@ -288,6 +289,44 @@ def merge_descriptors_in_dataframe(saveCsv=True) -> Union[pd.DataFrame, None]:
         if dudezdf is not None:
             # Write the data to a new csv file
             dudezdf.to_csv(csv_path_out, index=False)
+        else:
+            octools.print_warning(f"The dataframe is None, no csv will be generated")
+
+    return dudezdf
+
+def merge_descriptors_in_dataframe(saveCsv = True) -> Union[vaex.DataFrame, None]:
+    '''Reads all the descriptors jsons and return a pd.DataFrame.
+
+    Parameters
+    ----------
+    saveCsv : bool, optional
+        If True, saves the dataframe as a csv file, by default True
+
+    Returns
+    -------
+    pd.DataFrame | None
+        A dataframe with all the descriptors or None if any error occur while reading the csv.
+
+    Raises
+    ------
+    None
+    '''
+
+    # Get the dataframe with descriptors and docking scores
+    dudezdf = ocbdb.merge_descriptors_in_dataframe("dudez", saveCsv = saveCsv)
+
+    # If the save csv flag is set
+    if saveCsv:
+        # Parameterize the csvs paths
+        csv_path_out = f"{parsed_archive}/DUDEz_complete.csv"
+        
+        if os.path.isfile(csv_path_out):
+            octools.print_warning(f"The file {csv_path_out} already exists, it will be OVERWRITTEN!!")
+
+        # Check if the dudezdf is not None
+        if dudezdf is not None:
+            # Write the data to a new csv file
+            dudezdf.to_csv(csv_path_out, index = False)
         else:
             octools.print_warning(f"The dataframe is None, no csv will be generated")
 
