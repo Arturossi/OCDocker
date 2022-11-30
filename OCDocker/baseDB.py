@@ -3690,17 +3690,17 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
     for ptnDir in glob(f"{chosenArchive}/*"):
         # Check if is a dir (just in case) and if its name is not one of the ones we want to skip
         if os.path.isdir(ptnDir) and os.path.basename(ptnDir.split(os.path.sep)[-1]) not in ['index']:
-            # Find ptn name
-            ptn = ptnDir.split(os.path.sep)[-1]
-
             # Parameterize paths
             ligands = f"{ptnDir}/compounds/ligands"
             decoys = f"{ptnDir}/compounds/decoys"
             candidates = f"{ptnDir}/compounds/candidates"
 
-            processDirs += [(processDir, f"{ptnDir}/receptor.json") for processDir in glob(f"{ligands}/*") if os.path.isdir(processDir)]
-            processDirs += [(processDir, f"{ptnDir}/receptor.json") for processDir in glob(f"{decoys}/*") if os.path.isdir(processDir)]
-            processDirs += [(processDir, f"{ptnDir}/receptor.json") for processDir in glob(f"{candidates}/*") if os.path.isdir(processDir)]
+            # Parameterize the receptor descriptor path
+            receptor_descriptor_path = f"{ptnDir}/receptor_descriptors.json"
+
+            processDirs += [(processDir, receptor_descriptor_path) for processDir in glob(f"{ligands}/*") if os.path.isdir(processDir)]
+            processDirs += [(processDir, receptor_descriptor_path) for processDir in glob(f"{decoys}/*") if os.path.isdir(processDir)]
+            processDirs += [(processDir, receptor_descriptor_path) for processDir in glob(f"{candidates}/*") if os.path.isdir(processDir)]
 
     # Make data be None (in case of failure)
     data = None
