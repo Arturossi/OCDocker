@@ -2713,6 +2713,7 @@ def __merge_descriptors_in_dataframe_parallel(dirs: List[Tuple[str, str]], archi
 
     # For each file in the glob
     for dir in dirs:
+        print(dir)
         # Append a tuple containing the file name and ovewrite flag to the arguments list
         arguments.append((dir, archive))
 
@@ -3704,6 +3705,7 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
 
     # Make data be None (in case of failure)
     data = None
+    print(processDirs)
     # Decide if multprocessing will be used
     if args.multiprocess:
         data = __merge_descriptors_in_dataframe_parallel(processDirs, archive, f"Processing {archive}")
