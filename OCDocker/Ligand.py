@@ -94,7 +94,7 @@ class Ligand:
         self.boxPath = os.path.join(os.path.dirname(self.path), "boxes/box0.pdb")
         
         # Define everything as None
-        self.name = None
+        self.name = name
 
         #region AUTOCORR descriptors
         self.AUTOCORR2D_1 = None

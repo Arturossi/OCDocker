@@ -12,7 +12,8 @@
 
 ### 1
 - Optimize the file system. | 1
-- Add routines to deal with xplor files, such as '/data/hd4tb/OCDocker/data/ocdb/PDBbind/1lrh/receptor.pdb' from pdbbind
+- Add routines to deal with xplor files, such as '/data/hd4tb/OCDocker/data/ocdb/PDBbind/1lrh/receptor.pdb' from pdbbind.
+- Fix the log generation, sometimes the logs can reach 100mb.
 
 ### 2
 - Add integrity verification for DUDEz. | 2
@@ -21,4 +22,4 @@
 - Refactor Receptor class, reducing useless functions and check if dispatching is needed. | 2
 
 ### 3
-- Review the pandas merge function when reading results to generate docking result file (.csv) | 3
+- Review the pandas merge function when reading results to generate docking result file (.csv). | 3

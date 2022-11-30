@@ -6,7 +6,7 @@ import os
 
 import pandas as pd
 
-from typing import List, Union
+from typing import List, Tuple, Union
 from openbabel import openbabel
 
 import OCDocker.Ligand as ocl
@@ -228,7 +228,7 @@ class Smina:
 
         return read_smina_log(self.sminaLog)
 
-    def run_smina(self, logFile: str = "") -> int:
+    def run_smina(self, logFile: str = "") -> Union[int, Tuple[int, str]]:
         '''Run smina.
 
         Parameters
@@ -238,8 +238,8 @@ class Smina:
         
         Returns
         -------
-        int
-            The exit code of the command (based on the Error.py code table).
+        int | Tuple[int, str]
+            The exit code of the command (based on the Error.py code table).   
 
         Raises
         ------
@@ -248,7 +248,7 @@ class Smina:
 
         return octools.run(self.sminaCmd, logFile=logFile)
 
-    def run_prepare_ligand_from_cmd(self, logFile: str = "") -> int:
+    def run_prepare_ligand_from_cmd(self, logFile: str = "") -> Union[int, Tuple[int, str]]:
         '''Run obabel convert ligand to pdbqt using the 'self.inputLigandPath' attribute. [DEPRECATED]
 
         Parameters
@@ -258,8 +258,8 @@ class Smina:
 
         Returns
         -------
-        int
-            The exit code of the command (based on the Error.py code table).
+        int | Tuple[int, str]
+            The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
 
         Raises
         ------
@@ -268,8 +268,8 @@ class Smina:
 
         return octools.run(self.prepareLigandCmd, logFile=logFile)
 
-    def run_prepare_ligand(self) -> int:
-        '''Run obabel convert ligand to pdbqt using the openbabel python library.
+    def run_prepare_ligand(self) -> Union[int, Tuple[int, str]]:
+        '''Run the convert ligand command to pdbqt.
 
         Parameters
         ----------
@@ -277,8 +277,8 @@ class Smina:
 
         Returns
         -------
-        int
-            The exit code of the command (based on the Error.py code table).
+        int | Tuple[int, str]
+            The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
 
         Raises
         ------
@@ -287,7 +287,7 @@ class Smina:
 
         return run_prepare_ligand(self.inputLigandPath, self.preparedLigand)
 
-    def run_prepare_receptor_from_cmd(self, logFile: str = "") -> int:
+    def run_prepare_receptor_from_cmd(self, logFile: str = "") -> Union[int, Tuple[int, str]]:
         '''Run obabel convert receptor to pdbqt script using the 'self.prepareReceptorCmd' attribute. [DEPRECATED]
 
         Parameters
@@ -297,8 +297,8 @@ class Smina:
 
         Returns
         -------
-        int
-            The exit code of the command (based on the Error.py code table).
+        int | Tuple[int, str]
+            The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
 
         Raises
         ------
@@ -307,7 +307,7 @@ class Smina:
 
         return octools.run(self.prepareReceptorCmd, logFile=logFile)
 
-    def run_prepare_receptor(self) -> int:
+    def run_prepare_receptor(self) -> Union[int, Tuple[int, str]]:
         '''Run obabel convert receptor to pdbqt using the openbabel python library.
 
         Parameters
@@ -316,8 +316,8 @@ class Smina:
 
         Returns
         -------
-        int
-            The exit code of the command (based on the Error.py code table).
+        int | Tuple[int, str]
+            The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
 
         Raises
         ------
@@ -441,7 +441,7 @@ def gen_smina_conf(boxFile: str, confFile: str, receptor: str) -> int:
 
     return errors.ok()
 
-def run_prepare_ligand_from_cmd(inputLigandPath: str, preparedLigand: str, logFile: str = "") -> int:
+def run_prepare_ligand_from_cmd(inputLigandPath: str, preparedLigand: str, logFile: str = "") -> Union[int, Tuple[int, str]]:
     '''Converts the ligand to .pdbqt using obabel. [DEPRECATED]
 
     Parameters
@@ -455,8 +455,8 @@ def run_prepare_ligand_from_cmd(inputLigandPath: str, preparedLigand: str, logFi
 
     Returns
     -------
-    int
-        The exit code of the command (based on the Error.py code table).
+    int | Tuple[int, str]
+        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
 
     Raises
     ------
@@ -469,7 +469,7 @@ def run_prepare_ligand_from_cmd(inputLigandPath: str, preparedLigand: str, logFi
     # Run the command
     return octools.run(cmd, logFile=logFile)
 
-def run_prepare_ligand(inputLigandPath: str, preparedLigand: str) -> int:
+def run_prepare_ligand(inputLigandPath: str, preparedLigand: str) -> Union[int, Tuple[int, str]]:
     '''Run obabel convert ligand to pdbqt using the openbabel python library.
 
     Parameters
@@ -481,8 +481,8 @@ def run_prepare_ligand(inputLigandPath: str, preparedLigand: str) -> int:
 
     Returns
     -------
-    int
-        The exit code of the command (based on the Error.py code table).
+    int | Tuple[int, str]
+        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
 
     Raises
     ------
@@ -515,7 +515,7 @@ def run_prepare_ligand(inputLigandPath: str, preparedLigand: str) -> int:
     except Exception as e:
         return errors.subprocess(message=f"Error while running ligand conversion using obabel python lib. Error: {e}", level="error")
 
-def run_prepare_receptor_from_cmd(inputReceptorPath: str, outputReceptor: str, logFile: str = "") -> int:
+def run_prepare_receptor_from_cmd(inputReceptorPath: str, outputReceptor: str, logFile: str = "") -> Union[int, Tuple[int, str]]:
     '''Converts the receptor to .pdbqt using obabel. [DEPRECATED]
 
     Parameters
@@ -529,8 +529,8 @@ def run_prepare_receptor_from_cmd(inputReceptorPath: str, outputReceptor: str, l
 
     Returns
     -------
-    int
-        The exit code of the command (based on the Error.py code table).
+    int | Tuple[int, str]
+        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
 
     Raises
     ------
@@ -542,7 +542,7 @@ def run_prepare_receptor_from_cmd(inputReceptorPath: str, outputReceptor: str, l
     # Run the command
     return octools.run(cmd, logFile=logFile)
 
-def run_prepare_receptor(inputReceptorPath: str, preparedReceptor: str) -> int:
+def run_prepare_receptor(inputReceptorPath: str, preparedReceptor: str) -> Union[int, Tuple[int, str]]:
     '''Run obabel convert receptor to pdbqt using the openbabel python library.
 
     Parameters
@@ -554,8 +554,8 @@ def run_prepare_receptor(inputReceptorPath: str, preparedReceptor: str) -> int:
 
     Returns
     -------
-    int
-        The exit code of the command (based on the Error.py code table).
+    int | Tuple[int, str]
+        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
 
     Raises
     ------
@@ -577,7 +577,7 @@ def run_prepare_receptor(inputReceptorPath: str, preparedReceptor: str) -> int:
 
     return octools.convertMols(inputReceptorPath, preparedReceptor) # type: ignore
 
-def run_smina(config: str, preparedLigand: str, outputSmina: str, sminaLog: str, logPath: str) -> int:
+def run_smina(config: str, preparedLigand: str, outputSmina: str, sminaLog: str, logPath: str) -> Union[int, Tuple[int, str]]:
     '''Convert a box (DUDE like format) to vina input.
 
     Parameters
@@ -595,8 +595,8 @@ def run_smina(config: str, preparedLigand: str, outputSmina: str, sminaLog: str,
 
     Returns
     -------
-    int
-        The exit code of the command (based on the Error.py code table).
+    int | Tuple[int, str]
+        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
 
     Raises
     ------
@@ -618,6 +618,7 @@ def run_smina(config: str, preparedLigand: str, outputSmina: str, sminaLog: str,
         cmd.append("--minimize_early_term")
 
     cmd.extend(["--out", outputSmina, "--log", sminaLog, "--cpu", "1"])
+    
     # Run the command
     return octools.run(cmd, logFile = logPath)
 

@@ -353,7 +353,7 @@ class Receptor:
         # Create new dict
         properties = dict()
         # Set Name, Path and molecule
-        properties["Name"] = self.name if self.name is not None else "-"
+        properties["Ligand"] = self.name if self.name is not None else "-"
         properties["Path"] = self.path if self.path is not None else "-"
         properties["mol2Path"] = self.mol2Path if self.mol2Path is not None else "-"
         properties["Structure"] = self.structure if self.structure is not None else "-"
@@ -1019,7 +1019,7 @@ def read_descriptors_from_json(path: str, returnDict: bool = False) -> Union[Tup
 
         # Since we have all keys, read them and return their values
         #region Return data
-        return data["Name"],  data["SASA"], data["DipoleMoment"], data["IsoelectricPoint"], data["InstabilityIndex"], data["GRAVY"], data["Aromaticity"], countAA, data["countA"], data["countR"], data["countN"], data["countD"], data["countC"], data["countQ"], data["countE"], data["countG"], data["countH"], data["countI"], data["countL"], data["countK"], data["countM"], data["countF"], data["countP"], data["countS"], data["countT"], data["countW"], data["countY"], data["countV"], data["TotalAALength"], data["AvgAALength"], data["countChain"] # type: ignore
+        return data["Name"], data["SASA"], data["DipoleMoment"], data["IsoelectricPoint"], data["InstabilityIndex"], data["GRAVY"], data["Aromaticity"], countAA, data["countA"], data["countR"], data["countN"], data["countD"], data["countC"], data["countQ"], data["countE"], data["countG"], data["countH"], data["countI"], data["countL"], data["countK"], data["countM"], data["countF"], data["countP"], data["countS"], data["countT"], data["countW"], data["countY"], data["countV"], data["TotalAALength"], data["AvgAALength"], data["countChain"] # type: ignore
 
         #endregion
     # Key error (when there is a missing key)
