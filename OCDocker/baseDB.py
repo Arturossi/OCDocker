@@ -2681,6 +2681,8 @@ def __thread_merge_descriptors_in_dataframe_parallel(arguments: Tuple[Tuple[str,
     None
     '''
 
+    print(arguments)
+
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         # Call the core read log function passing the arguments correctly
@@ -2713,7 +2715,6 @@ def __merge_descriptors_in_dataframe_parallel(dirs: List[Tuple[str, str]], archi
 
     # For each file in the glob
     for dir in dirs:
-        print(dir)
         # Append a tuple containing the file name and ovewrite flag to the arguments list
         arguments.append((dir, archive))
 
@@ -3460,9 +3461,6 @@ def merge_descriptors_in_dataframe_legacy(archive: str, saveCsv: bool = True) ->
     for ptnDir in glob(f"{chosenArchive}/*"):
         # Check if is a dir (just in case) and if its name is not one of the ones we want to skip
         if os.path.isdir(ptnDir) and os.path.basename(ptnDir.split(os.path.sep)[-1]) not in ['index']:
-            # Find ptn name
-            ptn = ptnDir.split(os.path.sep)[-1]
-
             # Parameterize paths
             ligands = f"{ptnDir}/compounds/ligands"
             decoys = f"{ptnDir}/compounds/decoys"
@@ -3705,7 +3703,7 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
 
     # Make data be None (in case of failure)
     data = None
-    print(processDirs)
+    
     # Decide if multprocessing will be used
     if args.multiprocess:
         data = __merge_descriptors_in_dataframe_parallel(processDirs, archive, f"Processing {archive}")
