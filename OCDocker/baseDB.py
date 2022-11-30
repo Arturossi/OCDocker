@@ -2660,10 +2660,8 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str], ar
     all_descriptors = { **all_descriptors, **receptor_descriptors } # type: ignore
     all_descriptors = { **all_descriptors, **ligand_descriptors } # type: ignore
 
-    print(f"all_descriptors: {all_descriptors}")
-    
     # Return the dataframe with a single row
-    return vaex.from_dict(all_descriptors)
+    return vaex.from_dict({key: [value] for key, value in all_descriptors.items()})
 
 def __thread_merge_descriptors_in_dataframe_parallel(arguments: Tuple[Tuple[str, str], str]) -> vaex.DataFrame:
     '''Thread aid function to call __core_merge_descriptors_in_dataframe.
