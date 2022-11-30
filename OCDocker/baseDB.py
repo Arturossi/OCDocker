@@ -2659,6 +2659,8 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str], ar
     # Merge both descriptors dicts
     all_descriptors = { **all_descriptors, **receptor_descriptors } # type: ignore
     all_descriptors = { **all_descriptors, **ligand_descriptors } # type: ignore
+
+    print(f"all_descriptors: {all_descriptors}")
     
     # Return the dataframe with a single row
     return vaex.from_dict(all_descriptors)
@@ -2680,8 +2682,6 @@ def __thread_merge_descriptors_in_dataframe_parallel(arguments: Tuple[Tuple[str,
     ------
     None
     '''
-
-    print(arguments)
 
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
