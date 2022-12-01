@@ -2299,14 +2299,14 @@ def __core_merge_descriptors_in_dataframe_legacy(processDirPackage: Tuple[str, s
     ligand_descriptor_path = f"{processDir}/ligand_descriptors.json"
     # Check if there is the receptor json, if yes, load it
     if os.path.isfile(receptor_descriptor_path):
-        receptor_descriptors = ocr.read_descriptors_from_json(receptor_descriptor_path, returnDict = True)
+        receptor_descriptors = ocr.read_descriptors_from_json(receptor_descriptor_path, returnData = True)
     else:
         _ = errors.file_do_not_exist(f"The file {receptor_descriptor_path} does not exist!")
         receptor_descriptors = {}
 
     # Check if there is the ligand json, if yes, load it
     if os.path.isfile(ligand_descriptor_path):
-        ligand_descriptors = ocl.read_descriptors_from_json(ligand_descriptor_path, returnDict = True)
+        ligand_descriptors = ocl.read_descriptors_from_json(ligand_descriptor_path, returnData = True)
     else:
         _ = errors.file_do_not_exist(f"The file {ligand_descriptor_path} does not exist!")
         ligand_descriptors = {}
@@ -2453,7 +2453,7 @@ def __merge_descriptors_in_dataframe_no_parallel_legacy(dirs: List[Tuple[str, st
 
 
 ### Merge descriptors in dataframe
-def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str], archive: str) -> vaex.DataFrame:
+def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str]) -> vaex.DataFrame:
     '''Reads the descriptor and receptor json then parse them into a dataframe.
 
     Parameters
@@ -2484,30 +2484,31 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str], ar
 
     # Check if there is the receptor json, if yes, load it
     if os.path.isfile(receptor_descriptor_path):
-        receptor_descriptors = ocr.read_descriptors_from_json(receptor_descriptor_path, returnDict = True) # TODO: maybe change this to vaex
+        receptor_descriptors = ocr.read_descriptors_from_json(receptor_descriptor_path, returnVaex = True)
     else:
-        _ = errors.file_do_not_exist(f"The file {receptor_descriptor_path} does not exist!")
-        receptor_descriptors = {}
+        _ = errors.file_do_not_exist(f"The file '{receptor_descriptor_path}' does not exist!")
 
     # Check if there is the ligand json, if yes, load it
     if os.path.isfile(ligand_descriptor_path):
-        ligand_descriptors = ocl.read_descriptors_from_json(ligand_descriptor_path, returnDict = True) # TODO: maybe change this to vaex
+        ligand_descriptors = ocl.read_descriptors_from_json(ligand_descriptor_path, returnVaex = True)
     else:
-        _ = errors.file_do_not_exist(f"The file {ligand_descriptor_path} does not exist!")
-        ligand_descriptors = {}
+        _ = errors.file_do_not_exist(f"The file '{ligand_descriptor_path}' does not exist!")
 
-    # Create new dict
-    all_descriptors = dict()
+    # Initiate the dataframe
+    df = vaex.from_dict({ "Protein": [ptn] })
 
-    # Set Name and Path
-    all_descriptors["Protein"] = ptn
+    # If the receptor descriptor is not empty
+    if receptor_descriptors.shape[0] > 0: # type: ignore
+        # Merge the receptor descriptors
+        df = df.join(receptor_descriptors) # type: ignore
+    
+    # If the ligand descriptor is not empty
+    if ligand_descriptors.shape[0] > 0: # type: ignore
+        # Merge the ligand descriptors
+        df = df.join(ligand_descriptors) # type: ignore
 
-    # Merge both descriptors dicts
-    all_descriptors = { **all_descriptors, **receptor_descriptors } # type: ignore
-    all_descriptors = { **all_descriptors, **ligand_descriptors } # type: ignore
-
-    # Return the dataframe with a single row
-    return vaex.from_dict({key: [value] for key, value in all_descriptors.items()})
+    # Return the single row dataframe
+    return df
 
 def __thread_merge_descriptors_in_dataframe_parallel(arguments: Tuple[Tuple[str, str], str]) -> vaex.DataFrame:
     '''Thread aid function to call __core_merge_descriptors_in_dataframe.
@@ -2530,17 +2531,15 @@ def __thread_merge_descriptors_in_dataframe_parallel(arguments: Tuple[Tuple[str,
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         # Call the core read log function passing the arguments correctly
-        return __core_merge_descriptors_in_dataframe(arguments[0], arguments[1])
+        return __core_merge_descriptors_in_dataframe(arguments[0])
 
-def __merge_descriptors_in_dataframe_parallel(dirs: List[Tuple[str, str]], archive: str, desc: str) -> vaex.DataFrame:
+def __merge_descriptors_in_dataframe_parallel(dirs: List[Tuple[str, str]], desc: str) -> vaex.DataFrame:
     '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
 
     Parameters
     ----------
     dirs : List[Tuple[str, str]]
         Tuple containing the directory where the files are stored and the receptor descriptor json file.
-    archive : str
-        Which archive will be processed. [dudez, pdbbind]
     desc : str
         Description of the process.
 
@@ -2560,7 +2559,7 @@ def __merge_descriptors_in_dataframe_parallel(dirs: List[Tuple[str, str]], archi
     # For each file in the glob
     for dir in dirs:
         # Append a tuple containing the file name and ovewrite flag to the arguments list
-        arguments.append((dir, archive))
+        arguments.append((dir))
 
     # If logfile exists, backup it for vina, smina and plants (for error and warnings)
     if os.path.isfile(f"{logdir}/vina_read_log_ERROR.log"):
@@ -2590,13 +2589,15 @@ def __merge_descriptors_in_dataframe_parallel(dirs: List[Tuple[str, str]], archi
 
     return vaex.concat(ptnList)
 
-def __merge_descriptors_in_dataframe_no_parallel(dirs: List[Tuple[str, str]], archive: str, desc: str) -> vaex.DataFrame:
+def __merge_descriptors_in_dataframe_no_parallel(dirs: List[Tuple[str, str]], desc: str) -> vaex.DataFrame:
     '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_read_log function.
 
     Parameters
     ----------
     dirs : List[Tuple[str, str]]
         Tuple containing the directory where the files are stored and the receptor descriptor json file.
+    desc : str
+        Description of the process.
 
     Returns
     -------
@@ -2629,7 +2630,7 @@ def __merge_descriptors_in_dataframe_no_parallel(dirs: List[Tuple[str, str]], ar
     with octools.redirect_to_tqdm():
         for dir in tqdm(iterable = dirs, total = len(dirs), desc = desc):
             # Call the core read log function (shared between parallel and not parallel) and store the data into the DataFrame
-            ptnList.append(__core_merge_descriptors_in_dataframe(dir, archive))
+            ptnList.append(__core_merge_descriptors_in_dataframe(dir))
             # Clear the memory
             gc.collect()
 
@@ -3519,9 +3520,9 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
     
     # Decide if multprocessing will be used
     if args.multiprocess:
-        data = __merge_descriptors_in_dataframe_parallel(processDirs, archive, f"Processing {archive}")
+        data = __merge_descriptors_in_dataframe_parallel(processDirs, f"Processing {archive}")
     else:
-        data = __merge_descriptors_in_dataframe_no_parallel(processDirs, archive, f"Processing {archive}")
+        data = __merge_descriptors_in_dataframe_no_parallel(processDirs, f"Processing {archive}")
 
     # Check if data is pd.DataFrame type and is not empty
     if type(data) == vaex.DataFrame:
@@ -3540,8 +3541,8 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
             if saveCsv:
                 # Write the data to a new csv file
                 data.to_csv(csv_path_out, index = False)
-
-            octools.print_success(f"The file '{csv_path_out}' has been successfully written.")
+                octools.print_success(f"The file '{csv_path_out}' has been successfully written.")
+                
         except Exception as e:
             octools.print_error(f"Could not write the file '{csv_path_out}'. Error: {e}")
             # Return Nothing

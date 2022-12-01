@@ -7,6 +7,7 @@ from __future__ import annotations
 import os
 import json
 import rdkit
+import vaex
 
 from threading import Lock
 from typing import Dict, List, Tuple, Union
@@ -2768,19 +2769,21 @@ def loadMol(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize: bool = True) 
         _ = errors.unsupported_extension(message=f"Unsupported molecule data. Please support either a molecule path (string) or a rdkit.Chem.rdchem.Mol object.", level="error")
         return "", None
 
-def read_descriptors_from_json(path: str, returnDict: bool = False) -> Union[Dict[str, Union[str, float, int]], Tuple[Union[str, float, int]], None]:
+def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: bool = False) -> Union[Dict[str, Union[str, float, int]], Tuple[Union[str, float, int]], None]:
     '''Read the descriptors from a json file.
 
     Parameters
     ----------
     path : str
         The path to the json file.
-    returnDict : bool, optional
-        If True, the function will return a dictionary with the descriptors. Otherwise, it will return a tuple with the descriptors. The default is False.
+    returnData : bool, optional
+        If True, returns a dictionary with the descriptors. It only works when returnVaex is set to False, by default False.
+    returnVaex : bool, optional
+        If True, returns a vaex DataFrame with the descriptors. Will also behave like when returnData is set to True, by default False.
     
     Returns
     -------
-    dict[str, str | float | int] | tuple[str | float | int] | None
+    Dict[str, str | float | int] | Tuple[str | float | int] | vaex.DataFrame | None
         The descriptors.
 
     Raises
@@ -2809,13 +2812,18 @@ def read_descriptors_from_json(path: str, returnDict: bool = False) -> Union[Dic
                 # Add the missing key to the missing list
                 missing.append(key)
 
+        # If the returnVaex is set
+        if returnVaex:
+            # Convert the data to a vaex DataFrame
+            return vaex.from_dict(data)
+
         # If missing list is not empty
         if missing:
             # Raise a Key error passing the file and the missing keys joined with ', '
             raise KeyError((path, ", ".join(missing)))
 
-        # If the returnDict flag is on
-        if returnDict:
+        # If the returnData flag is on
+        if returnData:
             # Return the entire dict
             return data
 

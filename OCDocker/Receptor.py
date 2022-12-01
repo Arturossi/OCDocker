@@ -2,11 +2,11 @@
 
 # Imports
 ###############################################################################
+import Bio
 import os
 import json
 import math
-
-import Bio
+import vaex
 
 from Bio.PDB import *
 from Bio.PDB.DSSP import DSSP
@@ -943,19 +943,21 @@ def computeInstabilityIndex(residues: str) -> float:
     protein = ProteinAnalysis(__filterSequence(residues))
     return protein.instability_index()
 
-def read_descriptors_from_json(path: str, returnDict: bool = False) -> Union[Tuple[Union[float, str, int]], None]:
+def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: bool = False) -> Union[Dict[str, Union[str, float, int]], Tuple[Union[float, str, int]], vaex.DataFrame, None]:
     '''Read the descriptors from a json file.
 
     Parameters
     ----------
     path : str
         The path to the json file.
-    returnDict : bool, optional
-        If True, returns a dictionary with the descriptors, by default False.
+    returnData : bool, optional
+        If True, returns a dictionary with the descriptors. It only works when returnVaex is set to False, by default False.
+    returnVaex : bool, optional
+        If True, returns a vaex DataFrame with the descriptors. Will also behave like when returnData is set to True, by default False.
 
     Returns
     -------
-    Tuple[Union[float, str, int]] | None
+    Dict[str, str | float | int] | Tuple[float | str | int]] | vaex.DataFrame | None
         The descriptors dictionary or None if any error occurs.
 
     Raises
@@ -1012,8 +1014,13 @@ def read_descriptors_from_json(path: str, returnDict: bool = False) -> Union[Tup
             "V": data["countV"]
         }
 
-        # If the returnDict flag is on
-        if returnDict:
+        # If the returnVaex is set
+        if returnVaex:
+            # Convert the data to a vaex DataFrame
+            return vaex.from_dict(data)
+
+        # If the returnData flag is on
+        if returnData:
             # Return the entire dict
             return data
 
