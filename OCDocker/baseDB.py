@@ -2037,6 +2037,8 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vaex.DataFrame
     None
     '''
 
+    print(processDirData)
+
     # Unpack the tuple
     processDir, tp = processDirData
 
