@@ -424,14 +424,14 @@ def generate_dock_result_csv_legacy(log_dumps: Dict[str, Dict[str, pd.DataFrame]
     '''
     return ocbdb.generate_dock_result_csv_legacy("pdbbind", log_dumps, csv_path, chunksize=chunksize)
 
-def generate_dock_result_csv(csv_path: str, log_dumps: Union[Dict[str, vaex.DataFrame], None] = None, chunksize: int = 500) -> None:
+def generate_dock_result_csv(csv_path: str = "", log_dumps: Union[Dict[str, vaex.DataFrame], None] = None, chunksize: int = 500) -> None:
     '''Uses the structure from read_logs to generate an output for all docking softwares.
 
     Parameters
     ----------
-    csv_path : str
-        The path to the output csv file.
-    log_dumps : Dict[str, pd.DataFrame]
+    csv_path : str, optional
+        The path to the output csv file. If not specified, it will use the default path, by default f"{parsed_archive}/PDBbind.csv".
+    log_dumps : Dict[str, pd.DataFrame], optional
         The parsed data.
     chunksize : int, optional
         The chunksize to use when writing the csv file, by default 500.
@@ -444,6 +444,11 @@ def generate_dock_result_csv(csv_path: str, log_dumps: Union[Dict[str, vaex.Data
     ------
     None
     '''
+
+    # Check if csv_path is empty
+    if csv_path == "":
+        # It is empty, use the default path
+        csv_path = f"{parsed_archive}/PDBbind.csv"
 
     return ocbdb.generate_dock_result_csv("pdbbind", csv_path, log_dumps = log_dumps, chunksize = chunksize)
 

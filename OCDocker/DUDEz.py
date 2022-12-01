@@ -255,13 +255,13 @@ def read_logs(picklePath = "") -> Union[Dict[str, vaex.DataFrame], None]:
 
     return ocbdb.read_logs("dudez", picklePath = picklePath)
 
-def generate_dock_result_csv(csv_path: str, log_dumps: Union[Dict[str, pd.DataFrame], None] = None, chunksize: int = 500) -> None:
+def generate_dock_result_csv(csv_path: str = "", log_dumps: Union[Dict[str, pd.DataFrame], None] = None, chunksize: int = 500) -> None:
     '''Uses the structure from read_logs to generate an output for all docking softwares.
 
     Parameters
     ----------
-    csv_path : str
-        The path to the csv file to be generated.
+    csv_path : str, optional
+        The path to the csv file to be generated. If empty, it will be generated in the current directory, by default "{parsed_archive}/DUDEz.csv".
     log_dumps : Dict[str, pd.DataFrame] | None, optional
         The structure from read_logs. If None, it will be generated, by default None.
     chunksize : int, optional
@@ -275,6 +275,11 @@ def generate_dock_result_csv(csv_path: str, log_dumps: Union[Dict[str, pd.DataFr
     ------
     None
     '''
+
+    # Check if the csv_path is empty
+    if csv_path == "":
+        # Set the csv_path to the default
+        csv_path = f"{parsed_archive}/DUDEz.csv"
 
     return ocbdb.generate_dock_result_csv("dudez", csv_path, log_dumps = log_dumps, chunksize = chunksize) # type: ignore
 
