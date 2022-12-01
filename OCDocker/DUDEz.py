@@ -208,7 +208,7 @@ def run_plants(overwrite: bool = False) -> int:
 
     return ocbdb.run_dock("dudez", "plants", overwrite = overwrite)
 
-def read_logs(picklePath = "") -> Union[Dict[str, Dict[str, pd.DataFrame]], None]:
+def read_logs_legacy(picklePath = "") -> Union[Dict[str, Dict[str, pd.DataFrame]], None]:
     '''Parse the database into multiple serializable objects.
 
     Parameters
@@ -233,17 +233,37 @@ def read_logs(picklePath = "") -> Union[Dict[str, Dict[str, pd.DataFrame]], None
     None
     '''
 
+    return ocbdb.read_logs_legacy("dudez", picklePath = picklePath)
+
+def read_logs(picklePath = "") -> Union[Dict[str, vaex.DataFrame], None]:
+    '''Parse the database into multiple serializable objects.
+
+    Parameters
+    ----------
+    picklePath : str, optional
+        Path to the pickle file, by default "", which means that the pickle file will not be saved.
+
+    Returns
+    -------
+    Dict[str, Dict[str, vaex.DataFrame]] | None
+        A dictionary with the keys being the protein-ligand names and the values being the dataframes.
+
+    Raises
+    ------
+    None
+    '''
+
     return ocbdb.read_logs("dudez", picklePath = picklePath)
 
-def generate_dock_result_csv(log_dumps: Dict[str, Dict[str, pd.DataFrame]], csv_path: str, chunksize: int = 500) -> None:
+def generate_dock_result_csv(csv_path: str, log_dumps: Union[Dict[str, pd.DataFrame], None] = None, chunksize: int = 500) -> None:
     '''Uses the structure from read_logs to generate an output for all docking softwares.
 
     Parameters
     ----------
-    log_dumps : Dict[str, Dict[str, pd.DataFrame]]
-        The structure from read_logs.
     csv_path : str
         The path to the csv file to be generated.
+    log_dumps : Dict[str, pd.DataFrame] | None, optional
+        The structure from read_logs. If None, it will be generated, by default None.
     chunksize : int, optional
         The chunksize to be used in the pandas dataframe, by default 500.
 
@@ -256,7 +276,7 @@ def generate_dock_result_csv(log_dumps: Dict[str, Dict[str, pd.DataFrame]], csv_
     None
     '''
 
-    return ocbdb.generate_dock_result_csv("dudez", log_dumps, csv_path, chunksize = chunksize)
+    return ocbdb.generate_dock_result_csv("dudez", csv_path, log_dumps = log_dumps, chunksize = chunksize) # type: ignore
 
 def merge_descriptors_in_dataframe_legacy(saveCsv = True) -> Union[pd.DataFrame, None]:
     '''Reads all the descriptors jsons and return a pd.DataFrame.
@@ -319,7 +339,7 @@ def merge_descriptors_in_dataframe(saveCsv = True) -> Union[vaex.DataFrame, None
     if saveCsv:
         # Parameterize the csvs paths
         csv_path_out = f"{parsed_archive}/DUDEz_complete.csv"
-        
+
         if os.path.isfile(csv_path_out):
             octools.print_warning(f"The file {csv_path_out} already exists, it will be OVERWRITTEN!!")
 

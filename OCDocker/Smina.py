@@ -6,7 +6,7 @@ import os
 
 import pandas as pd
 
-from typing import List, Tuple, Union
+from typing import Dict, List, Tuple, Union
 from openbabel import openbabel
 
 import OCDocker.Ligand as ocl
@@ -622,7 +622,7 @@ def run_smina(config: str, preparedLigand: str, outputSmina: str, sminaLog: str,
     # Run the command
     return octools.run(cmd, logFile = logPath)
 
-def read_smina_log(path: str) -> Union[pd.DataFrame, int]:
+def read_smina_log_legacy(path: str) -> Union[pd.DataFrame, int]:
     '''Read the smina log path, returning a pd.dataframe with data from complexes.
 
     Parameters
@@ -665,5 +665,55 @@ def read_smina_log(path: str) -> Union[pd.DataFrame, int]:
                 octools.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{logdir}/smina_read_log_ERROR.log")
         # Return the df reversing the order and reseting the index
         return df.reindex(index=df.index[::-1]).reset_index(drop=True)
+    # Throw an error
+    return errors.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
+
+def read_smina_log(path: str) -> Union[Dict[str, List[Union[str, float]]], int]:
+    '''Read the smina log path, returning a pd.dataframe with data from complexes.
+
+    Parameters
+    ----------
+    path : str
+        The path to the smina log file.
+
+    Returns
+    -------
+    Dict[str, List[Union[str, float]]] | int
+        A dictionary with the data from the smina log file. If any error occurs, it will return the exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
+    '''
+
+    # Check if file exists
+    if os.path.isfile(path):
+        # Open the log file
+        with open(path, "r") as f:
+            # Read ALL the lines in file (there should not be lots of lines, so no problem)
+            lines = f.readlines()
+
+        # Create a dictionary to store the info
+        data = {'mode': [], 'affinity': []}
+
+        # Initiate the last line as empty
+        lastLine = ""
+        
+        # For each line from the end to the beggining (reverse iteration since the intresting data is in the end of the file)
+        for i in range(len(lines)-1, -1, -1):
+            # If the line starts with a -
+            if lines[i].startswith("-"):
+                # Stop iteration, because it does not contain useful information and neither the upper lines do
+                break
+            # If useless information is in our way ignore it
+            if lines[i].endswith("-----+"):
+                # Split the last line
+                lastLine = lastLine.split()
+                data["mode"].append(lastLine[0])
+                data["affinity"].append(lastLine[1])
+                break
+
+        # Return the df reversing the order and reseting the index
+        return data
     # Throw an error
     return errors.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")

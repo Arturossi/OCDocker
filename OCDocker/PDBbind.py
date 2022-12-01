@@ -362,7 +362,7 @@ def prepare(overwrite: bool = False) -> None:
 
     return ocbdb.prepare("pdbbind", overwrite = overwrite)
 
-def read_logs(picklePath: str = "") -> Union[Dict[str, Dict[str, pd.DataFrame]], None]:
+def read_logs_legacy(picklePath: str = "") -> Union[Dict[str, Dict[str, pd.DataFrame]], None]:
     '''Parse the database into multiple serializable objects.
 
     Parameters
@@ -380,9 +380,29 @@ def read_logs(picklePath: str = "") -> Union[Dict[str, Dict[str, pd.DataFrame]],
     None
     '''
 
+    return ocbdb.read_logs_legacy("pdbbind", picklePath = picklePath)
+
+def read_logs(picklePath: str = "") -> Union[Dict[str, vaex.DataFrame], None]:
+    '''Parse the database into multiple serializable objects.
+
+    Parameters
+    ----------
+    picklePath : str, optional
+        The path to the pickle file, by default "".
+
+    Returns
+    -------
+    Dict[str, Dict[str, vaex.DataFrame]]
+        The parsed data.
+
+    Raises
+    ------
+    None
+    '''
+
     return ocbdb.read_logs("pdbbind", picklePath = picklePath)
 
-def generate_dock_result_csv(log_dumps: Dict[str, Dict[str, pd.DataFrame]], csv_path: str, chunksize: int = 500) -> None:
+def generate_dock_result_csv_legacy(log_dumps: Dict[str, Dict[str, pd.DataFrame]], csv_path: str, chunksize: int = 500) -> None:
     '''Uses the structure from read_logs to generate an output for all docking softwares.
 
     Parameters
@@ -402,7 +422,30 @@ def generate_dock_result_csv(log_dumps: Dict[str, Dict[str, pd.DataFrame]], csv_
     ------
     None
     '''
-    return ocbdb.generate_dock_result_csv("pdbbind", log_dumps, csv_path, chunksize=chunksize)
+    return ocbdb.generate_dock_result_csv_legacy("pdbbind", log_dumps, csv_path, chunksize=chunksize)
+
+def generate_dock_result_csv(csv_path: str, log_dumps: Union[Dict[str, vaex.DataFrame], None] = None, chunksize: int = 500) -> None:
+    '''Uses the structure from read_logs to generate an output for all docking softwares.
+
+    Parameters
+    ----------
+    csv_path : str
+        The path to the output csv file.
+    log_dumps : Dict[str, pd.DataFrame]
+        The parsed data.
+    chunksize : int, optional
+        The chunksize to use when writing the csv file, by default 500.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
+    '''
+
+    return ocbdb.generate_dock_result_csv("pdbbind", csv_path, log_dumps = log_dumps, chunksize = chunksize)
 
 def merge_descriptors_in_dataframe_legacy(saveCsv: bool = True) -> Union[pd.DataFrame, None]:
     '''Reads all the descriptors jsons and return a pd.DataFrame.

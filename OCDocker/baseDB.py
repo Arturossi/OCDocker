@@ -2021,7 +2021,7 @@ def __generate_dock_result_csv_no_parallel_legacy(processDirs: List[Tuple[str, s
 
 # Vaex implementation
 ### Read logs
-def __core_read_log(processDirData: str) -> Dict[str, Dict[str, vaex.DataFrame]]:
+def __core_read_log(processDirData: str) -> Dict[str, vaex.DataFrame]:
     '''Reads Vina, Smina and PLANTS logs and then return a dict of dataframes.
 
     Parameters
@@ -2031,7 +2031,8 @@ def __core_read_log(processDirData: str) -> Dict[str, Dict[str, vaex.DataFrame]]
 
     Returns
     -------
-    Dict[str, Dict[str, pd.DataFrame]]
+     Dict[str, pd.DataFrame]
+        A dictionary containing the dataframes of the logs.
         A dict of dicts of dataframes. Each element of the first dict is a complex protein-ligand, and each element of the second dict is a docking algorithm results.
 
     Raises
@@ -2043,79 +2044,98 @@ def __core_read_log(processDirData: str) -> Dict[str, Dict[str, vaex.DataFrame]]
     processDir, tp = processDirData
 
     # Get protein and ligand names
-    ptn = processDir.split(os.path.sep)[-3]
+    ptn = processDir.split(os.path.sep)[-4]
     lgd = processDir.split(os.path.sep)[-1]
 
-    # Create Vina, Smina and PLANTS dataframes
-    vinadf = pd.DataFrame(columns=["mode", "affinity", "rmsd_lb_best_mode", "rmsd_ub_best_mode"])
-    sminadf = pd.DataFrame(columns=["mode", "affinity", "rmsd_lb_best_mode", "rmsd_ub_best_mode"])
-    plantsdf = pd.DataFrame(columns=["LIGAND_ENTRY", "TOTAL_SCORE", "SCORE_RB_PEN", "SCORE_NORM_HEVATOMS", "SCORE_NORM_CRT_HEVATOMS", "SCORE_NORM_WEIGHT", "SCORE_NORM_CRT_WEIGHT", "SCORE_RB_PEN_NORM_CRT_HEVATOMS"])
+    # Create Vina, Smina and PLANTS dicts
+    vinadf = {"mode": [], "affinity": []}
+    sminadf = {"mode": [], "affinity": []}
+    plantsdf = {"TOTAL_SCORE": [], "SCORE_RB_PEN": [], "SCORE_NORM_HEVATOMS": [], "SCORE_NORM_CRT_HEVATOMS": [], "SCORE_NORM_WEIGHT": [], "SCORE_NORM_CRT_WEIGHT": [], "SCORE_RB_PEN_NORM_CRT_HEVATOMS": []}
+
+    # Get run number
+    runNumber = 0 # TODO: Add support to multiple runs
+
     # Dict to hold the protein data
     proteinData = {}
 
-    # Get all vina directories (0, 1, 2...)
-    vinaDirs = glob(f"{processDir}/vinaFiles/*")
-    # For each dir in vinaDirs
-    for vinaDir in vinaDirs:
-        # Get run number
-        runNumber = vinaDir.split(os.path.sep)[-1]
-        # Parameterize the log path
-        logPath = f"{vinaDir}/vina_{runNumber}.log"
-        # Check if exists
-        if os.path.isfile(logPath):
-            # Read the log into dataframe
-            df = ocvina.read_vina_log(logPath)
-            # Check if df is a dataframe
-            if isinstance(df, pd.DataFrame):
-                # Concatenate df and vinadf
-                vinadf = pd.concat([vinadf, df], ignore_index=True)
-            else:
-                _ = errors.wrong_type(f"The file '{logPath}' could not be read.")
-        else:
-            _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its vina output.")
-
-    # Get all vina directories (0, 1, 2...)
-    plantsDirs = glob(f"{processDir}/plantsFiles/*")
-    # For each dir in plantsDir
-    for plantsDir in plantsDirs:
-        # Get run number
-        runNumber = plantsDir.split(os.path.sep)[-1]
-        # Parameterize the log path
-        logPath = f"{plantsDir}/run/ranking.csv"
-        # Check if exists
-        if os.path.isfile(logPath):
-            # Read the log into dataframe
-            df = ocplants.read_plants_log(logPath)
-            if isinstance(df, pd.DataFrame):
-                # Concatenate df and plantsdf
-                plantsdf = pd.concat([plantsdf, df], ignore_index=True)
-            else:
-                _ = errors.wrong_type(f"The file '{logPath}' could not be read.")
-        else:
-            _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its PLANTS output.")
-
+    # VINA
+    vinaDir = f"{processDir}/vinaFiles"
     # Parameterize the log path
-    logPath = f"{processDir}/sminaFiles/smina.log"
-    # Check if smina log exists
+    logPath = f"{vinaDir}/vina_{runNumber}.log"
+
+    # Check if exists
     if os.path.isfile(logPath):
         # Read the log into dataframe
+        df = ocvina.read_vina_log(logPath)
+
+        # Check if df is not an int
+        if not isinstance(df, int):
+            # Update the dict
+            vinadf.update(df)
+        else:
+            _ = errors.wrong_type(f"The file '{logPath}' could not be read.")
+    else:
+        _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its vina output.")
+
+    # PLANTS
+    plantsDir = f"{processDir}/plantsFiles"
+    # Parameterize the log path
+    logPath = f"{plantsDir}/run/bestranking.csv"
+
+    # Check if exists
+    if os.path.isfile(logPath):
+        # Read the log into dataframe
+        df = ocplants.read_plants_log(logPath)
+
+        # Check if df is not an int
+        if not isinstance(df, int):
+            # Update the dict
+            plantsdf.update(df)
+        else:
+            _ = errors.wrong_type(f"The file '{logPath}' could not be read.")
+    else:
+        _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its PLANTS output.")
+
+    # SMINA
+    sminaDir = f"{processDir}/sminaFiles"
+    # Parameterize the log path
+    logPath = f"{sminaDir}/smina.log"
+
+    # Check if smina log exists
+    if os.path.isfile(logPath): # TODO: Add support to multiple runs
+        # Read the log into dataframe
         df = ocsmina.read_smina_log(logPath)
-        if isinstance(df, pd.DataFrame):
-            # Concatenate df and plantsdf
-            sminadf = df
+
+        # Check if df is not an int
+        if not isinstance(df, int):
+            # Update the dict
+            sminadf.update(df)
         else:
             _ = errors.wrong_type(f"The file '{logPath}' could not be read.")
     else:
         _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its SMINA output.")
-    # Create a dataFrame to the type
-    df = pd.DataFrame([[ptn, lgd, tp]], columns=['Protein', 'Ligand', 'type'])
-    # Add the protein data to the proteinData dict using ptn as the key
-    proteinData[f"{ptn}-{lgd}"] = {"vina": vinadf, "smina": sminadf, "plants": plantsdf, "type": df}
+
+    # Get the number of elements of the dict with the largest number of elements
+    maxLen = max([len(vinadf["mode"]), len(sminadf["mode"]), len(plantsdf["LIGAND_ENTRY"])])
+    
+    # Add the concatenated the dicts. The single elements are repeated to match the largest dict to the proteinData dict using ptn as the key
+    proteinData[f"{ptn}-{lgd}"] = vaex.from_dict(
+        {
+            **{
+                "Protein": [ptn for _ in range(maxLen)],
+                "Ligand": [lgd for _ in range(maxLen)],
+                "type": [tp for _ in range(maxLen)]
+            },
+            **vinadf,
+            **sminadf,
+            **plantsdf
+        }
+    )
 
     # Return the proteinData dict
     return proteinData
 
-def __thread_read_log_parallel(arguments: Tuple[str]) -> Dict[str, Dict[str, vaex.DataFrame]]:
+def __thread_read_log_parallel(arguments: Tuple[str]) -> Dict[str, vaex.DataFrame]:
     '''Thread aid function to call __core_read_log.
 
     Parameters
@@ -2125,8 +2145,8 @@ def __thread_read_log_parallel(arguments: Tuple[str]) -> Dict[str, Dict[str, vae
 
     Returns
     -------
-    Dict[str, Dict[str, vaexvaex.DataFrame]]
-        A dict of dicts of dataframes. Each element of the first dict is a complex protein-ligand, and each element of the second dict is a docking algorithm results.
+    Dict[str,Dict[str, vaexvaex.DataFrame]
+        A dictionary containing the dataframes of the logs.
 
     Raises
     ------
@@ -2138,7 +2158,7 @@ def __thread_read_log_parallel(arguments: Tuple[str]) -> Dict[str, Dict[str, vae
         # Call the core read log function passing the arguments correctly
         return __core_read_log(arguments[0])
 
-def __read_log_parallel(ptnDirs: List[str], desc: str) -> Dict[str, Dict[str, vaex.DataFrame]]:
+def __read_log_parallel(ptnDirs: List[str], desc: str) -> Dict[str, vaex.DataFrame]:
     '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
 
     Parameters
@@ -2150,8 +2170,8 @@ def __read_log_parallel(ptnDirs: List[str], desc: str) -> Dict[str, Dict[str, va
 
     Returns
     -------
-    Dict[str, Dict[str, vaex.DataFrame]]
-        A dict of dicts of dataframes. Each element of the first dict is a complex protein-ligand, and each element of the second dict is a docking algorithm results.
+    Dict[str, vaex.DataFrame]
+        A dictionary containing the dataframes of the logs.
 
     Raises
     ------
@@ -2191,7 +2211,7 @@ def __read_log_parallel(ptnDirs: List[str], desc: str) -> Dict[str, Dict[str, va
 
     return data
 
-def __read_log_no_parallel(ptnDirs: List[str], desc: str) -> Dict[str, Dict[str, vaex.DataFrame]]:
+def __read_log_no_parallel(ptnDirs: List[str], desc: str) -> Dict[str, vaex.DataFrame]:
     '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_read_log function.
 
     Parameters
@@ -2203,7 +2223,7 @@ def __read_log_no_parallel(ptnDirs: List[str], desc: str) -> Dict[str, Dict[str,
 
     Returns
     -------
-    Dict[str, Dict[str, vaex.DataFrame]]
+    Dict[str, vaex.DataFrame]
         A dictionary with the protein name as the key and a dictionary with the vina, smina and plants dataframes as the value.
     
     Raises
@@ -3507,7 +3527,7 @@ def merge_descriptors_in_dataframe_legacy(archive: str, saveCsv: bool = True) ->
     return data
 
 # Vaex implementation
-def read_logs(archive: str, picklePath: str = "") -> Union[Dict[str, Dict[str, vaex.DataFrame]], None]:
+def read_logs(archive: str, picklePath: str = "") -> Union[Dict[str, vaex.DataFrame], None]:
     '''Reads database logfiles returning a dict of dicts of vaex.DataFrames.
 
     Parameters
@@ -3515,12 +3535,12 @@ def read_logs(archive: str, picklePath: str = "") -> Union[Dict[str, Dict[str, v
     archive : str
         The archive to be prepared. The options are [dudez, pdbbind].
     picklePath : str, optional
-        The path to the pickle file. The default is "". If the picklePath is not empty, the function will write the data to the pickle file.
+        The path to the pickle file. The default is "". If the picklePath is not empty, the function will write the data to the pickle file, otherwise will return the data.
 
     Returns
     -------
-    Dict[str, Dict[str, vaex.DataFrame]] | None
-        A dict of dicts of pd.DataFrames with the data from the logfiles. If fails, will return None.
+    Dict[str, vaex.DataFrame] | None
+        A dict of vaex.DataFrames. If failed, returns None.
 
     Raises
     ------
@@ -3545,9 +3565,6 @@ def read_logs(archive: str, picklePath: str = "") -> Union[Dict[str, Dict[str, v
     for ptnDir in glob(f"{chosenArchive}/*"):
         # Check if is a dir (just in case) and if its name is not one of the ones we want to skip
         if os.path.isdir(ptnDir) and os.path.basename(ptnDir.split(os.path.sep)[-1]) not in ['index']:
-            # Find ptn name
-            ptn = ptnDir.split(os.path.sep)[-1]
-
             ligands = f"{ptnDir}/compounds/ligands"
             decoys = f"{ptnDir}/compounds/decoys"
             candidates = f"{ptnDir}/compounds/candidates"
@@ -3582,17 +3599,17 @@ def read_logs(archive: str, picklePath: str = "") -> Union[Dict[str, Dict[str, v
     # Return the data
     return data
 
-def generate_dock_result_csv(archive: str, log_dumps: Dict[str, Dict[str, vaex.DataFrame]], csv_path: str, chunksize: int = 500) -> None:
+def generate_dock_result_csv(archive: str, csv_path: str, log_dumps: Union[Dict[str, vaex.DataFrame], None] = None, chunksize: int = 500) -> None:
     '''Uses the structure from read_logs to generate an output for all docking softwares.
 
     Parameters
     ----------
     archive : str
         The archive to be prepared. The options are [dudez, pdbbind].
-    log_dumps : Dict[str, Dict[str, vaex.DataFrame]]
-        The data from the logfiles.
     csv_path : str
         The path to the csv file.
+    log_dumps : Dict[str, vaex.DataFrame] | None, optional
+        The data from the logfiles. If None, will use the read_logs function to get the data. The default is None.
     chunksize : int, optional
         The chunksize to be used when writing the csv. The default is 500.
 
@@ -3618,6 +3635,11 @@ def generate_dock_result_csv(archive: str, log_dumps: Dict[str, Dict[str, vaex.D
     else:
         octools.print_error(f"Unknown archive type. Expected one of the following: 'dudez', 'pdbbind' and got {archive}.")
         return None
+    
+    # Check if log_dumps is None
+    if not log_dumps:
+        # Read the log files
+        log_dumps = read_logs(archive)
 
     # For each protein in proteins
     for ptnDir in ptnDirs:
@@ -3627,9 +3649,9 @@ def generate_dock_result_csv(archive: str, log_dumps: Dict[str, Dict[str, vaex.D
         candidates = f"{ptnDir}/compounds/candidates"
         
         # Add all subdirs (one for each ligand) from all 4 folders as a tuple (dir, ligand_name))
-        processDirs += [(d, d.split(os.path.sep)[-3], d.split(os.path.sep)[-1], log_dumps[f"{d.split(os.path.sep)[-3]}-{d.split(os.path.sep)[-1]}"]) for d in glob(f"{ligands}/*") if os.path.isdir(d)]
-        processDirs += [(d, d.split(os.path.sep)[-3], d.split(os.path.sep)[-1], log_dumps[f"{d.split(os.path.sep)[-3]}-{d.split(os.path.sep)[-1]}"]) for d in glob(f"{decoys}/*") if os.path.isdir(d)]
-        processDirs += [(d, d.split(os.path.sep)[-3], d.split(os.path.sep)[-1], log_dumps[f"{d.split(os.path.sep)[-3]}-{d.split(os.path.sep)[-1]}"]) for d in glob(f"{candidates}/*") if os.path.isdir(d)]
+        processDirs += [(d, d.split(os.path.sep)[-3], d.split(os.path.sep)[-1], log_dumps[f"{d.split(os.path.sep)[-3]}-{d.split(os.path.sep)[-1]}"]) for d in glob(f"{ligands}/*") if os.path.isdir(d)] # type: ignore
+        processDirs += [(d, d.split(os.path.sep)[-3], d.split(os.path.sep)[-1], log_dumps[f"{d.split(os.path.sep)[-3]}-{d.split(os.path.sep)[-1]}"]) for d in glob(f"{decoys}/*") if os.path.isdir(d)] # type: ignore
+        processDirs += [(d, d.split(os.path.sep)[-3], d.split(os.path.sep)[-1], log_dumps[f"{d.split(os.path.sep)[-3]}-{d.split(os.path.sep)[-1]}"]) for d in glob(f"{candidates}/*") if os.path.isdir(d)] # type: ignore
         
     # Decide if multprocessing will be used
     if args.multiprocess:
@@ -3719,7 +3741,7 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
             ptndf = vaex.read_csv(csv_path_in)
 
             # Merge the both DataFrames using the Protein column as a comparer
-            data = ptndf.join(data, on=["Protein", "Ligand"], how="left") 
+            data = ptndf.join(data, on=["Protein", "Ligand"], how="left") # type: ignore
 
             # If saveCsv is True, save the csv
             if saveCsv:

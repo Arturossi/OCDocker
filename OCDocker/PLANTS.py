@@ -4,6 +4,7 @@
 ###############################################################################
 import os
 import shutil
+import vaex
 from typing import Dict, List, Tuple, Union
 
 import pandas as pd
@@ -293,7 +294,7 @@ class PLANTS:
 
         return write_config_file(self.config, self.preparedReceptor, self.preparedLigand, self.outputPlants, self.bindingSiteCenter[0], self.bindingSiteCenter[1], self.bindingSiteCenter[2], self.bindingSiteRadius)
 
-    def read_plants_log(self) -> Union[pd.DataFrame, int]:
+    def read_plants_log(self) -> Union[Dict[str, List[Union[str, float]]], int]:
         '''Read the PLANTS log path, returning a pd.dataframe with data from complexes.
 
         Parameters
@@ -302,8 +303,8 @@ class PLANTS:
 
         Returns
         -------
-        pd.DataFrame | int
-            The dataframe with the data from PLANTS. If there is an error, the error code is returned.
+        Dict[str, List[str | float]] | int
+            The dictionary with the data from complexes or the error code.
 
         Raises
         ------
@@ -312,7 +313,7 @@ class PLANTS:
 
         return read_plants_log(self.plantsLog)
 
-    def run_plants(self, overwrite: bool =False) -> int:
+    def run_plants(self, overwrite: bool =False) -> Union[Tuple[int, str], int]:
         '''Run plants.
 
         Parameters
@@ -322,8 +323,8 @@ class PLANTS:
 
         Returns
         -------
-        int
-            The exit code of the command (based on the Error.py code table).
+        Tuple[int, str] | int
+            The exit code of the command (based on the Error.py code table) and the stderr if applied.
 
         Raises
         ------
@@ -365,9 +366,10 @@ class PLANTS:
                 os.remove(badFile)
             except:
                 pass
+
         return output
 
-    def run_prepare_ligand(self, logFile: str = "") -> int:
+    def run_prepare_ligand(self, logFile: str = "") -> Union[Tuple[int, str], int]:
         '''Run SPORES for ligand.
 
         Parameters
@@ -377,8 +379,8 @@ class PLANTS:
 
         Returns
         -------
-        int
-            The exit code of the command (based on the Error.py code table).
+        Tuple[int, str] | int
+            The exit code of the command (based on the Error.py code table) and the stderr if applied.
 
         Raises
         ------
@@ -387,9 +389,10 @@ class PLANTS:
 
         # Print verboosity
         octools.printv(f"Running '{spores}' for '{self.inputLigandPath}'.")
+
         return octools.run(self.prepareLigandCmd, logFile=logFile)
 
-    def run_prepare_receptor(self, logFile: str = "") -> int:
+    def run_prepare_receptor(self, logFile: str = "") -> Union[Tuple[int, str], int]:
         '''Run SPORES for receptor.
 
         Parameters
@@ -399,8 +402,8 @@ class PLANTS:
 
         Returns
         -------
-        int
-            The exit code of the command (based on the Error.py code table).
+        Tuple[int, str] | int
+            The exit code of the command (based on the Error.py code table) and the stderr if applied.
 
         Raises
         ------
@@ -492,7 +495,7 @@ def box_to_plants(boxFile: str, confFile: str, receptor: str, ligand: str, outpu
     # Write the file
     return write_config_file(confFile, receptor, ligand, outputPlants, center[0], center[1], center[2], bindingSiteRadius) # type: ignore
 
-def run_prepare_ligand(inputLigandPath: str, outputLigand: str, logFile: str = "") -> int:
+def run_prepare_ligand(inputLigandPath: str, outputLigand: str, logFile: str = "") -> Union[Tuple[int, str], int]:
     ''' Run SPORES for ligand.
 
     Parameters
@@ -506,8 +509,8 @@ def run_prepare_ligand(inputLigandPath: str, outputLigand: str, logFile: str = "
 
     Returns
     -------
-    int
-        The exit code of the command (based on the Error.py code table).
+    Tuple[int, str] | int
+        The exit code of the command (based on the Error.py code table) and the stderr if applied.
 
     Raises
     ------
@@ -521,7 +524,7 @@ def run_prepare_ligand(inputLigandPath: str, outputLigand: str, logFile: str = "
     # Run the command
     return octools.run(cmd, logFile=logFile)
 
-def run_prepare_receptor(inputReceptorPath: str, outputReceptor: str, logFile: str = "") -> int:
+def run_prepare_receptor(inputReceptorPath: str, outputReceptor: str, logFile: str = "") -> Union[Tuple[int, str], int]:
     ''' Run SPORES for receptor.
 
     Parameters
@@ -535,8 +538,8 @@ def run_prepare_receptor(inputReceptorPath: str, outputReceptor: str, logFile: s
 
     Returns
     -------
-    int
-        The exit code of the command (based on the Error.py code table).
+    Tuple[int, str] | int
+        The exit code of the command (based on the Error.py code table) and the stderr if applied.
 
     Raises
     ------
@@ -549,7 +552,7 @@ def run_prepare_receptor(inputReceptorPath: str, outputReceptor: str, logFile: s
     # Run the command
     return octools.run(cmd, logFile=logFile)
 
-def run_plants(confFile: str, outputPlants: str, overwrite: bool = False, logFile: str = "") -> int:
+def run_plants(confFile: str, outputPlants: str, overwrite: bool = False, logFile: str = "") -> Union[Tuple[int, str], int]:
     '''Run PLANTS.
 
     Parameters
@@ -565,8 +568,8 @@ def run_plants(confFile: str, outputPlants: str, overwrite: bool = False, logFil
 
     Returns
     -------
-    int
-        The exit code of the command (based on the Error.py code table).
+    Tuple[int, str] | int
+        The exit code of the command (based on the Error.py code table) and the stderr if applied.
 
     Raises
     ------
@@ -773,7 +776,7 @@ def generate_plants_files_database(path: str, protein: str, ligand: str, spacing
 
     return None
 
-def read_plants_log(path: str) -> Union[pd.DataFrame, int]:
+def read_plants_log_legacy(path: str) -> Union[pd.DataFrame, int]:
     '''Read the PLANTS log path, returning a pd.dataframe with data from complexes.
 
     Parameters
@@ -805,5 +808,46 @@ def read_plants_log(path: str) -> Union[pd.DataFrame, int]:
         except Exception as e:
             octools.print_error(f"Problems while reading file '{path}'. Error: {e}")
             octools.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{logdir}/PLANTS_read_log_ERROR.log")
+    # Throw an error
+    return errors.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
+
+def read_plants_log(path: str) -> Union[Dict[str, List[Union[str, float]]], int]:
+    '''Read the PLANTS log path, returning a pd.dataframe with data from complexes.
+
+    Parameters
+    ----------
+    path : str
+        The path to the PLANTS log file.
+        
+    Returns
+    -------
+    Dict[str, List[Union[str, float]]] | int
+        A dictionary with the data from the PLANTS log file. If any error occurs, it will return the exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
+    '''
+    
+    # Check if file exists
+    if os.path.isfile(path):
+        try:
+            # Read the csv
+            df = vaex.read_csv(path)
+
+            # Remove EVAL and TIME columns
+            df.drop("EVAL", axis = 1, inplace = True) # type: ignore
+            df.drop("TIME", axis = 1, inplace = True) # type: ignore
+            # Remove also the SCORE_NORM_CONTACT because it was being problematic
+            df.drop("SCORE_NORM_CONTACT", axis = 1, inplace = True) # type: ignore
+
+            # Removing some columns that are not needed (might change in the future)
+            df.drop("LIGAND_ENTRY", axis = 1, inplace = True) # type: ignore
+
+            return df.to_dict() # type: ignore
+        except Exception as e:
+            octools.print_error(f"Problems while reading file '{path}'. Error: {e}")
+            octools.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{logdir}/PLANTS_read_log_ERROR.log")
+
     # Throw an error
     return errors.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")

@@ -7,19 +7,20 @@
 
 ## Log
 ### 0
-- Faster file system. | 0
+- Faster file system. (IN TEST) | 0
 - Add a new blind docking protocol. Maybe using a function to correlate some characteristics of the ligand to the box size. | 0
 
 ### 1
-- Optimize the file system. | 1
+- Optimize the file system. (IN TEST) | 1
 - Add routines to deal with xplor files, such as '/data/hd4tb/OCDocker/data/ocdb/PDBbind/1lrh/receptor.pdb' from pdbbind.
 - Fix the log generation, sometimes the logs can reach 100mb.
+- Move some functions to other files to better separate the packages.
 
 ### 2
-- Add integrity verification for DUDEz. | 2
-- Check previously made functions for DUDEz to update it to the new format. | 2
-- Refactor Ligand class, adding dispatching to dramatically reduce its size. | 2
-- Refactor Receptor class, reducing useless functions and check if dispatching is needed. | 2
+- Add integrity verification for all databases. | 2
+- Check previously made functions for DUDEz to update it to the new format. (IN TEST) | 2
+- Refactor Ligand class, adding dispatching to dramatically reduce its size. (IN TEST) | 2
+- Refactor Receptor class, reducing useless functions and check if dispatching is needed. (IN TEST) | 2
 
 ### 3
-- Review the pandas merge function when reading results to generate docking result file (.csv). | 3
+- Review the pandas merge function when reading results to generate docking result file (.csv). (IN TEST) | 3
