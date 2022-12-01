@@ -2150,6 +2150,7 @@ def __thread_read_log_parallel(arguments: Tuple[str, str]) -> Dict[str, vaex.Dat
     None
     '''
 
+    print(arguments)
 
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
