@@ -3638,8 +3638,6 @@ def generate_dock_result_csv(archive: str, csv_path: str, log_dumps: Union[Dict[
         # Read the log files
         log_dumps = read_logs(archive)
     
-    print(log_dumps)
-
     # For each protein in proteins
     for ptnDir in ptnDirs:
         # Parameterize paths
@@ -3647,10 +3645,14 @@ def generate_dock_result_csv(archive: str, csv_path: str, log_dumps: Union[Dict[
         decoys = f"{ptnDir}/compounds/decoys"
         candidates = f"{ptnDir}/compounds/candidates"
         
+        # Offsets for receptor and ligand
+        offsetReceptor = -4
+        offsetLigand = -1
+        
         # Add all subdirs (one for each ligand) from all 4 folders as a tuple (dir, ligand_name))
-        processDirs += [(d, d.split(os.path.sep)[-3], d.split(os.path.sep)[-1], log_dumps[f"{d.split(os.path.sep)[-3]}-{d.split(os.path.sep)[-1]}"]) for d in glob(f"{ligands}/*") if os.path.isdir(d)] # type: ignore
-        processDirs += [(d, d.split(os.path.sep)[-3], d.split(os.path.sep)[-1], log_dumps[f"{d.split(os.path.sep)[-3]}-{d.split(os.path.sep)[-1]}"]) for d in glob(f"{decoys}/*") if os.path.isdir(d)] # type: ignore
-        processDirs += [(d, d.split(os.path.sep)[-3], d.split(os.path.sep)[-1], log_dumps[f"{d.split(os.path.sep)[-3]}-{d.split(os.path.sep)[-1]}"]) for d in glob(f"{candidates}/*") if os.path.isdir(d)] # type: ignore
+        processDirs += [(d, d.split(os.path.sep)[offsetReceptor], d.split(os.path.sep)[offsetLigand], log_dumps[f"{d.split(os.path.sep)[offsetReceptor]}-{d.split(os.path.sep)[offsetLigand]}"]) for d in glob(f"{ligands}/*") if os.path.isdir(d)] # type: ignore
+        processDirs += [(d, d.split(os.path.sep)[offsetReceptor], d.split(os.path.sep)[offsetLigand], log_dumps[f"{d.split(os.path.sep)[offsetReceptor]}-{d.split(os.path.sep)[offsetLigand]}"]) for d in glob(f"{decoys}/*") if os.path.isdir(d)] # type: ignore
+        processDirs += [(d, d.split(os.path.sep)[offsetReceptor], d.split(os.path.sep)[offsetLigand], log_dumps[f"{d.split(os.path.sep)[offsetReceptor]}-{d.split(os.path.sep)[offsetLigand]}"]) for d in glob(f"{candidates}/*") if os.path.isdir(d)] # type: ignore
         
     # Decide if multprocessing will be used
     if args.multiprocess:
