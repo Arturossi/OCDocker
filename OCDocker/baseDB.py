@@ -3637,6 +3637,8 @@ def generate_dock_result_csv(archive: str, csv_path: str, log_dumps: Union[Dict[
     if not log_dumps:
         # Read the log files
         log_dumps = read_logs(archive)
+    
+    print(log_dumps)
 
     # For each protein in proteins
     for ptnDir in ptnDirs:
