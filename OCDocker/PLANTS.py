@@ -7,6 +7,7 @@ import shutil
 import vaex
 from typing import Dict, List, Tuple, Union
 
+import numpy as np
 import pandas as pd
 
 import OCDocker.Ligand as ocl
@@ -821,7 +822,7 @@ def read_plants_log(path: str) -> Union[Dict[str, List[Union[str, float]]], int]
         
     Returns
     -------
-    Dict[str, List[Union[str, float]]] | int
+    Dict[str, List[str | float]] | int
         A dictionary with the data from the PLANTS log file. If any error occurs, it will return the exit code of the command (based on the Error.py code table).
 
     Raises
@@ -835,16 +836,29 @@ def read_plants_log(path: str) -> Union[Dict[str, List[Union[str, float]]], int]
             # Read the csv
             df = vaex.read_csv(path)
 
-            # Remove EVAL and TIME columns
-            df.drop("EVAL", axis = 1, inplace = True) # type: ignore
-            df.drop("TIME", axis = 1, inplace = True) # type: ignore
-            # Remove also the SCORE_NORM_CONTACT because it was being problematic
-            df.drop("SCORE_NORM_CONTACT", axis = 1, inplace = True) # type: ignore
-
-            # Removing some columns that are not needed (might change in the future)
-            df.drop("LIGAND_ENTRY", axis = 1, inplace = True) # type: ignore
-
-            return df.to_dict() # type: ignore
+            # Check if df is empty or malformed
+            if df is None or df.shape[0] == 0 or df.shape[1] == 0: # type: ignore
+                # Return the dict filled with np.NaN
+                return {
+                    "PLANTS_TOTAL_SCORE": [np.NaN], # type: ignore
+                    "PLANTS_SCORE_RB_PEN": [np.NaN], # type: ignore
+                    "PLANTS_SCORE_NORM_HEVATOMS": [np.NaN], # type: ignore
+                    "PLANTS_SCORE_NORM_CRT_HEVATOMS": [np.NaN], # type: ignore
+                    "PLANTS_SCORE_NORM_WEIGHT": [np.NaN], # type: ignore
+                    "PLANTS_SCORE_NORM_CRT_WEIGHT": [np.NaN], # type: ignore
+                    "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [np.NaN], # type: ignore
+                }
+            else:
+                # Return the built the dictionary
+                return {
+                    "PLANTS_TOTAL_SCORE": [df.TOTAL_SCORE[:1].values[0]], # type: ignore
+                    "PLANTS_SCORE_RB_PEN": [df.SCORE_RB_PEN[:1].values[0]], # type: ignore
+                    "PLANTS_SCORE_NORM_HEVATOMS": [df.SCORE_NORM_HEVATOMS[:1].values[0]], # type: ignore
+                    "PLANTS_SCORE_NORM_CRT_HEVATOMS": [df.SCORE_NORM_CRT_HEVATOMS[:1].values[0]], # type: ignore
+                    "PLANTS_SCORE_NORM_WEIGHT": [df.SCORE_NORM_WEIGHT[:1].values[0]], # type: ignore
+                    "PLANTS_SCORE_NORM_CRT_WEIGHT": [df.SCORE_NORM_CRT_WEIGHT[:1].values[0]], # type: ignore
+                    "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [df.SCORE_RB_PEN_NORM_CRT_HEVATOMS[:1].values[0]], # type: ignore
+                }
         except Exception as e:
             octools.print_error(f"Problems while reading file '{path}'. Error: {e}")
             octools.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{logdir}/PLANTS_read_log_ERROR.log")

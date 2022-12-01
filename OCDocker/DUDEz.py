@@ -313,7 +313,7 @@ def merge_descriptors_in_dataframe_legacy(saveCsv = True) -> Union[pd.DataFrame,
         # Check if the dudezdf is not None
         if dudezdf is not None:
             # Write the data to a new csv file
-            dudezdf.to_csv(csv_path_out, index=False)
+            dudezdf.to_csv(csv_path_out, index = False)
         else:
             octools.print_warning(f"The dataframe is None, no csv will be generated")
 

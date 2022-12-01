@@ -4,6 +4,7 @@
 ###############################################################################
 import os
 
+import numpy as np
 import pandas as pd
 
 from typing import Dict, List, Tuple, Union
@@ -226,7 +227,7 @@ class Smina:
         None
         '''
 
-        return read_smina_log(self.sminaLog)
+        return read_smina_log(self.sminaLog) # type: ignore
 
     def run_smina(self, logFile: str = "") -> Union[int, Tuple[int, str]]:
         '''Run smina.
@@ -694,24 +695,31 @@ def read_smina_log(path: str) -> Union[Dict[str, List[Union[str, float]]], int]:
             lines = f.readlines()
 
         # Create a dictionary to store the info
-        data = {'mode': [], 'affinity': []}
+        data = {"smina_mode": [], "smina_affinity": []}
 
         # Initiate the last line as empty
         lastLine = ""
         
         # For each line from the end to the beggining (reverse iteration since the intresting data is in the end of the file)
         for i in range(len(lines)-1, -1, -1):
-            # If the line starts with a -
-            if lines[i].startswith("-"):
-                # Stop iteration, because it does not contain useful information and neither the upper lines do
-                break
             # If useless information is in our way ignore it
-            if lines[i].endswith("-----+"):
+            if lines[i].startswith("-----+"):
                 # Split the last line
                 lastLine = lastLine.split()
-                data["mode"].append(lastLine[0])
-                data["affinity"].append(lastLine[1])
+                data["smina_mode"].append(lastLine[0])
+                data["smina_affinity"].append(lastLine[1])
                 break
+
+            lastLine = lines[i]
+
+        # Check if the len of the data["smina_mode"] is 0
+        if len(data["smina_mode"]) == 0:
+            # Assign np.Nan to it
+            data["smina_mode"].append(np.NaN)
+
+        # Check if the len of the data["smina_affinity"] is 0
+        if len(data["smina_affinity"]) == 0:
+            data["smina_affinity"].append(np.NaN)
 
         # Return the df reversing the order and reseting the index
         return data

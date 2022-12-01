@@ -430,7 +430,7 @@ def __sub_core_prepare(dirsToProcess: str, dbName: str, overwrite: bool, mols : 
             # Create the dir
             _ = octools.safe_create_dir(f"{mol}/{molName}")
             # Move the molecule to it
-            shutil.move(mol, f"{mol}/{molName}/ligand.{molTmp[-1]}")
+            shutil.move(mol, f"{mol}/{molName}/ligand.{molTmp[-1]}")  # type: ignore
 
     # Get the list of dirs to process
     processDirs = [dirToProcess for dirToProcess in glob(f"{dirsToProcess}/*") if os.path.isdir(dirsToProcess)]
@@ -2046,9 +2046,9 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vaex.DataFrame
     lgd = processSplited[-1]
 
     # Create Vina, Smina and PLANTS dicts
-    vinadf = {"mode": [], "affinity": []}
-    sminadf = {"mode": [], "affinity": []}
-    plantsdf = {"TOTAL_SCORE": [], "SCORE_RB_PEN": [], "SCORE_NORM_HEVATOMS": [], "SCORE_NORM_CRT_HEVATOMS": [], "SCORE_NORM_WEIGHT": [], "SCORE_NORM_CRT_WEIGHT": [], "SCORE_RB_PEN_NORM_CRT_HEVATOMS": []}
+    vinaDict = { "vina_mode": [], "vina_affinity": [] }
+    sminaDict = { "smina_mode": [], "smina_affinity": [] }
+    plantsDict = { "PLANTS_TOTAL_SCORE": [], "PLANTS_SCORE_RB_PEN": [], "PLANTS_SCORE_NORM_HEVATOMS": [], "PLANTS_SCORE_NORM_CRT_HEVATOMS": [], "PLANTS_SCORE_NORM_WEIGHT": [], "PLANTS_SCORE_NORM_CRT_WEIGHT": [], "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [] }
 
     # Get run number
     runNumber = 0 # TODO: Add support to multiple runs
@@ -2063,13 +2063,15 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vaex.DataFrame
 
     # Check if exists
     if os.path.isfile(logPath):
-        # Read the log into dataframe
-        df = ocvina.read_vina_log(logPath)
+        # Read the log into dict
+        gendict = ocvina.read_vina_log(logPath)
 
-        # Check if df is not an int
-        if not isinstance(df, int):
-            # Update the dict
-            vinadf.update(df)
+        # Check if gendict is not an int
+        if not isinstance(gendict, int):
+            # For each key, value in vinaDict
+            for key, value in gendict.items():
+                # Append the value to the vinadf dict
+                vinaDict[key].append(value[0])
         else:
             _ = errors.wrong_type(f"The file '{logPath}' could not be read.")
     else:
@@ -2082,13 +2084,15 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vaex.DataFrame
 
     # Check if exists
     if os.path.isfile(logPath):
-        # Read the log into dataframe
-        df = ocplants.read_plants_log(logPath)
+        # Read the log into dict
+        gendict = ocplants.read_plants_log(logPath)
 
-        # Check if df is not an int
-        if not isinstance(df, int):
-            # Update the dict
-            plantsdf.update(df)
+        # Check if gendict is not an int
+        if not isinstance(gendict, int):
+            # For each key, value in vinaDict
+            for key, value in gendict.items():
+                # Append the value to the vinadf dict
+                plantsDict[key].append(value[0])
         else:
             _ = errors.wrong_type(f"The file '{logPath}' could not be read.")
     else:
@@ -2101,21 +2105,23 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vaex.DataFrame
 
     # Check if smina log exists
     if os.path.isfile(logPath): # TODO: Add support to multiple runs
-        # Read the log into dataframe
-        df = ocsmina.read_smina_log(logPath)
+        # Read the log into dict
+        gendict = ocsmina.read_smina_log(logPath)
 
-        # Check if df is not an int
-        if not isinstance(df, int):
-            # Update the dict
-            sminadf.update(df)
+        # Check if gendict is not an int
+        if not isinstance(gendict, int):
+            # For each key, value in vinaDict
+            for key, value in gendict.items():
+                # Append the value to the vinadf dict
+                sminaDict[key].append(value[0])
         else:
             _ = errors.wrong_type(f"The file '{logPath}' could not be read.")
     else:
         _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its SMINA output.")
 
     # Get the number of elements of the dict with the largest number of elements
-    maxLen = max([len(vinadf["mode"]), len(sminadf["mode"]), len(plantsdf["TOTAL_SCORE"])])
-    
+    maxLen = max([len(vinaDict["vina_mode"]), len(sminaDict["smina_mode"]), len(plantsDict["PLANTS_TOTAL_SCORE"])])
+
     # Add the concatenated the dicts. The single elements are repeated to match the largest dict to the proteinData dict using ptn as the key
     proteinData[f"{ptn}-{lgd}"] = vaex.from_dict(
         {
@@ -2124,14 +2130,14 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vaex.DataFrame
                 "Ligand": [lgd for _ in range(maxLen)],
                 "type": [tp for _ in range(maxLen)]
             },
-            **vinadf,
-            **sminadf,
-            **plantsdf
+            **vinaDict,
+            **sminaDict,
+            **plantsDict
         }
     )
 
     # Return the proteinData dict
-    return proteinData
+    return proteinData # type: ignore
 
 def __thread_read_log_parallel(arguments: Tuple[Tuple[str, str]]) -> Dict[str, vaex.DataFrame]:
     '''Thread aid function to call __core_read_log.
@@ -2444,186 +2450,6 @@ def __merge_descriptors_in_dataframe_no_parallel_legacy(dirs: List[Tuple[str, st
             # Clear the memory
             gc.collect()
     return pd.concat(ptnList, ignore_index=True)
-
-
-### Parse into csv
-def __core_generate_dock_result_csv(processDir: str, log_dump: Dict[str, vaex.DataFrame], ptn: str, ligand: str, archive: str) -> Union[vaex.DataFrame, None]:
-    '''Reads Vina, Smina and PLANTS logs and then return a dict of dataframes.
-
-    Parameters
-    ----------
-    processDir : str
-        The directory where the logs are.
-    log_dump : Dict[str, vaex.DataFrame]
-        The log dump for the complex ptn-ligand.
-    ptn : str
-        The protein name.
-    ligand : str
-        The ligand name.
-    archive : str
-        Which archive will be processed [dudez, pdbbind].
-
-    Returns
-    -------
-    vaex.DataFrame | None
-        A dataframe with the results. None if an error occurs.
-
-    Raises
-    ------
-    None
-    '''
-
-    # Test if the log_dump is None
-    if log_dump is None:
-        # Send a warning message
-        _ = errors.empty(f"Log dump is None for {ptn}-{ligand}")
-        return None
-
-    # List to work with vina/smina/PLANTS data
-    vinaData = []
-    sminaData = []
-    plantsData = []
-
-    # For each software, if not empty, determine which is the minimum value and which index it belongs and then select the corresponding line in the DataFrame
-    if vinaData:
-        vinaList = log_dump['vina']['affinity'].values[0] # type: ignore
-    else:
-        vinaList = np.NaN
-
-    # For each software, if not empty, determine which is the minimum value and which index it belongs and then select the corresponding line in the DataFrame
-    if sminaData:
-        sminaList = log_dump['smina']['affinity'].values[0] # type: ignore
-    else:
-        sminaList = np.NaN
-
-    # For each software, if not empty, determine which is the minimum value and which index it belongs and then select the corresponding line in the DataFrame
-    if plantsData:
-        plantsList = log_dump['plants']["TOTAL_SCORE", "SCORE_RB_PEN", "SCORE_NORM_HEVATOMS", "SCORE_NORM_CRT_HEVATOMS", "SCORE_NORM_WEIGHT", "SCORE_NORM_CRT_WEIGHT", "SCORE_RB_PEN_NORM_CRT_HEVATOMS"].values[0].tolist() # type: ignore
-    else:
-        plantsList = [np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN]
-
-    # Create the dict to store the data
-    data = {"Protein": [ptn], "Ligand": [ligand], "vina_affinity": [vinaList], "smina_affinity": [sminaList], "plants_TOTAL_SCORE": [plantsList[0]], "plants_SCORE_RB_PEN": [plantsList[1]], "plants_SCORE_NORM_HEVATOMS": [plantsList[2]], "plants_SCORE_NORM_CRT_HEVATOMS": [plantsList[3]], "plants_SCORE_NORM_WEIGHT": [plantsList[4]], "plants_SCORE_NORM_CRT_WEIGHT": [plantsList[5]], "plants_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [plantsList[6]]}
-
-    return vaex.from_dict(data)
-
-def __thread_generate_dock_result_csv_parallel(arguments: Tuple[str, Dict[str, vaex.DataFrame], str, str, str]) -> Union[vaex.DataFrame, None]:
-    '''Thread aid function to call __core_generate_dock_result_csv.
-
-    Parameters
-    ----------
-    arguments : Tuple[str, Dict[str, pd.DataFrame], str, str, str]
-        Tuple containing the arguments for the __core_generate_dock_result_csv function. The arguments are: (ptn, ligand, processDir, logdir, archive).
-
-    Returns
-    -------
-    vaex.DataFrame | None
-        DataFrame containing the results of the docking. None if an error occurs.
-
-    Raises
-    ------
-    None
-    '''
-
-    # Redirect all prints to tqdm.write
-    with octools.redirect_to_tqdm():
-        # Call the core read log function passing the arguments correctly
-        return __core_generate_dock_result_csv(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4])
-
-def __generate_dock_result_csv_parallel(processDirs: List[Tuple[str, str, str, Dict[str, vaex.DataFrame]]], archive: str, desc: str) -> Union[vaex.DataFrame, None]:
-    '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
-
-    Parameters
-    ----------
-    processDirs : List[Tuple[str, str, str, Dict[str, pd.DataFrame]]]
-        Dictionary containing the directories to process and the ligands to process. The dictionary is in the format: {ptn-ligand: log_dump}.
-    archive : str
-        Which archive will be processed [dudez, pdbbind].
-    desc : str
-        Description to be displayed in the progress bar.
-
-    Returns
-    -------
-    vaex.DataFrame | None
-        DataFrame containing the results of the docking. None if an error occurs.
-
-    Raises
-    ------
-    None
-    '''
-
-    # If logfile exists, backup it for vina, smina and plants (for error and warnings)
-    if os.path.isfile(f"{logdir}/{archive}_dock_result_ERROR.log"):
-        if not os.path.isdir(f"{logdir}/generate_dock_result_csv_past"):
-            octools.safe_create_dir(f"{logdir}/generate_dock_result_csv_past")
-        os.rename(f"{logdir}/{archive}_dock_result_ERROR.log", f"{logdir}/read_log_past/{archive}_dock_result_ERROR.{time.strftime('%d%m%Y-%H%M%S')}.log")
-
-    # Arguments to pass to each Thread in the Thread Pool
-    arguments = []
-    
-    # For each file in the glob
-    for processDir, ptn, ligand, log_dump in processDirs:
-        # Append a tuple containing the file name and ovewrite flag to the arguments list
-        arguments.append((processDir, log_dump, ptn, ligand, archive))
-
-    # Result DataFrame list
-    dfList = []
-    # Create a Thread pool with the maximum available_cores
-    with Pool(args.available_cores) as p:
-        # Perform the multi process
-        for line in tqdm(p.imap_unordered(__thread_generate_dock_result_csv_parallel, arguments), total = len(arguments), desc = desc):
-            # If the line is not None, append it to the DataFrame list
-            if line is not None:
-                # Append the result to the dataframe list
-                dfList.append(line)
-            # Clear the memory
-            gc.collect()
-
-    return vaex.concat(dfList)
-
-def __generate_dock_result_csv_no_parallel(processDirs: List[Tuple[str, str, str, Dict[str, vaex.DataFrame]]], archive: str, desc: str) -> Union[vaex.DataFrame, None]:
-    '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_generate_dock_result_csv function.
-
-    Parameters
-    ----------
-    processDirs : List[Tuple[str, str, str, Dict[str, pd.DataFrame]]]
-        Dictionary containing the directories to process and the ligands to process. The dictionary is in the format: {ptn: log_dump}.
-    archive : str
-        Which archive will be processed [dudez, pdbbind].
-    desc : str
-        Description to be displayed in the progress bar.
-        
-    Returns
-    -------
-    vaex.DataFrame | None
-        DataFrame containing the results of the docking. None if an error occurs.
-
-    Raises
-    ------
-    None
-    '''
-
-    # If logfile exists, backup it for vina, smina and plants (for error and warnings)
-    if os.path.isfile(f"{logdir}/{archive}_dock_result_ERROR..log"):
-        if not os.path.isdir(f"{logdir}/generate_dock_result_csv_past"):
-            octools.safe_create_dir(f"{logdir}/generate_dock_result_csv_past")
-        os.rename(f"{logdir}/{archive}_dock_result_ERROR.log", f"{logdir}/read_log_past/{archive}_dock_result_ERROR.{time.strftime('%d%m%Y-%H%M%S')}.log")
-
-    # Result DataFrame list
-    dfList = []
-
-    # Redirect all prints to tqdm.write
-    with octools.redirect_to_tqdm():
-        for processDir, ptn, ligand, log_dump in tqdm(iterable = processDirs, total = len(processDirs), desc = desc):
-            result = __core_generate_dock_result_csv(processDir, log_dump, ptn, ligand, archive)
-            # If the line is not None, append it to the DataFrame list
-            if result is not None:
-                # Call the core read log function (shared between parallel and not parallel) and assign it to the line
-                dfList.append(__core_generate_dock_result_csv(processDir, log_dump, ptn, ligand, archive))
-            # Clear the memory
-            gc.collect()
-
-    return vaex.concat(dfList)
 
 
 ### Merge descriptors in dataframe
@@ -3618,50 +3444,16 @@ def generate_dock_result_csv(archive: str, csv_path: str, log_dumps: Union[Dict[
     ------
     None
     '''
-
-    # Create an empty list for all directories to be processed
-    processDirs = []
-
-    # Check which archive is being used
-    if archive == "dudez":
-        # Get protein dirs
-        ptnDirs = [d for d in glob(f"{dudez_archive}/*") if os.path.isdir(d)]
-    elif archive == "pdbbind":
-        # Get protein dirs
-        ptnDirs = [d for d in glob(f"{pdbbind_archive}/*") if os.path.isdir(d)]
-    else:
-        octools.print_error(f"Unknown archive type. Expected one of the following: 'dudez', 'pdbbind' and got {archive}.")
-        return None
-    
+ 
     # Check if log_dumps is None
     if not log_dumps:
         # Read the log files
         log_dumps = read_logs(archive)
-    
-    # For each protein in proteins
-    for ptnDir in ptnDirs:
-        # Parameterize paths
-        ligands = f"{ptnDir}/compounds/ligands"
-        decoys = f"{ptnDir}/compounds/decoys"
-        candidates = f"{ptnDir}/compounds/candidates"
-        
-        # Offsets for receptor and ligand
-        offsetReceptor = -4
-        offsetLigand = -1
-        
-        # Add all subdirs (one for each ligand) from all 4 folders as a tuple (dir, ligand_name))
-        processDirs += [(d, d.split(os.path.sep)[offsetReceptor], d.split(os.path.sep)[offsetLigand], log_dumps[f"{d.split(os.path.sep)[offsetReceptor]}-{d.split(os.path.sep)[offsetLigand]}"]) for d in glob(f"{ligands}/*") if os.path.isdir(d)] # type: ignore
-        processDirs += [(d, d.split(os.path.sep)[offsetReceptor], d.split(os.path.sep)[offsetLigand], log_dumps[f"{d.split(os.path.sep)[offsetReceptor]}-{d.split(os.path.sep)[offsetLigand]}"]) for d in glob(f"{decoys}/*") if os.path.isdir(d)] # type: ignore
-        processDirs += [(d, d.split(os.path.sep)[offsetReceptor], d.split(os.path.sep)[offsetLigand], log_dumps[f"{d.split(os.path.sep)[offsetReceptor]}-{d.split(os.path.sep)[offsetLigand]}"]) for d in glob(f"{candidates}/*") if os.path.isdir(d)] # type: ignore
-        
-    # Decide if multprocessing will be used
-    if args.multiprocess:
-        data = __generate_dock_result_csv_parallel(processDirs, archive, f"Generating docking csv {archive}")
-    else:
-        data = __generate_dock_result_csv_no_parallel(processDirs, archive, f"Generating docking csv {archive}")
+
+    data = vaex.concat(list(log_dumps.values())) # type: ignore
 
     # Check if data is not empty
-    if not data:
+    if data:
         data.export_csv(path = csv_path, index = False, chunksize = chunksize) # type: ignore
 
     return None

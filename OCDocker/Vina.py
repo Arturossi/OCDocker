@@ -4,6 +4,7 @@
 ###############################################################################
 import os
 
+import numpy as np
 import pandas as pd
 
 import OCDocker.Ligand as ocl
@@ -650,24 +651,31 @@ def read_vina_log(path: str) -> Union[Dict[str, List[Union[str, float]]], int]:
             lines = f.readlines()
 
         # Create a dictionary to store the info
-        data = {'mode': [], 'affinity': []}
+        data = {"vina_mode": [], "vina_affinity": []}
 
         # Initiate the last line as empty
         lastLine = ""
-        
+
         # For each line from the end to the beggining (reverse iteration since the intresting data is in the end of the file)
         for i in range(len(lines)-1, -1, -1):
-            # If the line starts with a -
-            if lines[i].startswith("-"):
-                # Stop iteration, because it does not contain useful information and neither the upper lines do
-                break
             # If useless information is in our way ignore it
-            if lines[i].endswith("-----+"):
+            if lines[i].startswith("-----+"):
                 # Split the last line
                 lastLine = lastLine.split()
-                data["mode"].append(lastLine[0])
-                data["affinity"].append(lastLine[1])
+                data["vina_mode"].append(lastLine[0])
+                data["vina_affinity"].append(lastLine[1])
                 break
+
+            lastLine = lines[i]
+
+        # Check if the len of the data["smina_mode"] is 0
+        if len(data["vina_mode"]) == 0:
+            # Assign np.Nan to it
+            data["vina_mode"].append(np.NaN)
+
+        # Check if the len of the data["smina_affinity"] is 0
+        if len(data["vina_affinity"]) == 0:
+            data["vina_affinity"].append(np.NaN)
 
         # Return the df reversing the order and reseting the index
         return data
