@@ -2132,13 +2132,13 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vaex.DataFrame
     # Return the proteinData dict
     return proteinData
 
-def __thread_read_log_parallel(arguments: Tuple[str]) -> Dict[str, vaex.DataFrame]:
+def __thread_read_log_parallel(arguments: Tuple[str, str]) -> Dict[str, vaex.DataFrame]:
     '''Thread aid function to call __core_read_log.
 
     Parameters
     ----------
-    arguments : Tuple[str]
-        A tuple with the directory.
+    arguments : Tuple[str, str]
+        A tuple with the directory and the ligand type (ligand, decoy, candidate).
 
     Returns
     -------
@@ -2149,6 +2149,8 @@ def __thread_read_log_parallel(arguments: Tuple[str]) -> Dict[str, vaex.DataFram
     ------
     None
     '''
+
+    print(arguments)
 
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
