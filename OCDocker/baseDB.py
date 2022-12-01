@@ -2040,6 +2040,8 @@ def __core_read_log(processDirData: str) -> Dict[str, vaex.DataFrame]:
     None
     '''
 
+    print(processDirData)
+
     # Unpack the tuple
     processDir, tp = processDirData
 
@@ -2179,7 +2181,7 @@ def __read_log_parallel(ptnDirs: List[str], desc: str) -> Dict[str, vaex.DataFra
 
     # Arguments to pass to each Thread in the Thread Pool
     arguments = []
-    print(len(ptnDirs))
+    
     # For each file in the glob
     for ptnDir in ptnDirs:
         # Append a tuple containing the file name and ovewrite flag to the arguments list
