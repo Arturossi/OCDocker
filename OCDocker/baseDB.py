@@ -2018,7 +2018,7 @@ def __generate_dock_result_csv_no_parallel_legacy(processDirs: List[Tuple[str, s
 
 # Vaex implementation
 ### Read logs
-def __core_read_log(processDirData: str) -> Dict[str, vaex.DataFrame]:
+def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vaex.DataFrame]:
     '''Reads Vina, Smina and PLANTS logs and then return a dict of dataframes.
 
     Parameters
@@ -2209,13 +2209,13 @@ def __read_log_parallel(ptnDirs: List[Tuple[str, str]], desc: str) -> Dict[str, 
 
     return data
 
-def __read_log_no_parallel(ptnDirs: List[str], desc: str) -> Dict[str, vaex.DataFrame]:
+def __read_log_no_parallel(ptnDirs: List[Tuple[str, str]], desc: str) -> Dict[str, vaex.DataFrame]:
     '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_read_log function.
 
     Parameters
     ----------
-    ptnDirs : List[str]
-        A list of directories to be processed.
+    ptnDirs : List[Tuple[str, str]]
+        A list of tuples with the directory and the ligand type (ligand, decoy, candidate).
     desc : str
         The description to be used in the tqdm progress bar.
 
@@ -3299,7 +3299,6 @@ def run_dock(archive: str, dockingAlgorithm: str, overwrite: bool = False) -> in
         return __run_dock_no_parallel(complexList, archive, dockingAlgorithm, overwrite, f"Processing {archive}")
 
 # Pandas implementation
-
 def read_logs_legacy(archive: str, picklePath: str = "") -> Union[Dict[str, Dict[str, pd.DataFrame]], None]:
     '''Reads database logfiles returning a dict of dicts of pd.DataFrames.
 
@@ -3338,14 +3337,11 @@ def read_logs_legacy(archive: str, picklePath: str = "") -> Union[Dict[str, Dict
     for ptnDir in glob(f"{chosenArchive}/*"):
         # Check if is a dir (just in case) and if its name is not one of the ones we want to skip
         if os.path.isdir(ptnDir) and os.path.basename(ptnDir.split(os.path.sep)[-1]) not in ['index']:
-            # Find ptn name
-            ptn = ptnDir.split(os.path.sep)[-1]
-
             ligands = f"{ptnDir}/compounds/ligands"
             decoys = f"{ptnDir}/compounds/decoys"
             candidates = f"{ptnDir}/compounds/candidates"
 
-            # Add all subdirs (one for each ligand) from all 4 folders as a tuple (dir, ligand_descriptor_path)
+            # Add all subdirs (one for each ligand) from all 3 folders as a tuple (dir, type) to the processDirs list
             processDirs += [(processDir, "ligand") for processDir in glob(f"{ligands}/*") if os.path.isdir(processDir)]
             processDirs += [(processDir, "decoy") for processDir in glob(f"{decoys}/*") if os.path.isdir(processDir)]
             processDirs += [(processDir, "candidate") for processDir in glob(f"{candidates}/*") if os.path.isdir(processDir)]
@@ -3567,14 +3563,14 @@ def read_logs(archive: str, picklePath: str = "") -> Union[Dict[str, vaex.DataFr
             decoys = f"{ptnDir}/compounds/decoys"
             candidates = f"{ptnDir}/compounds/candidates"
 
-            # Add all subdirs (one for each ligand) from all 4 folders as a tuple (dir, ligand_descriptor_path)
-            processDirs += [processDir for processDir in glob(f"{ligands}/*") if os.path.isdir(processDir)]
-            processDirs += [processDir for processDir in glob(f"{decoys}/*") if os.path.isdir(processDir)]
-            processDirs += [processDir for processDir in glob(f"{candidates}/*") if os.path.isdir(processDir)]
+            # Add all subdirs (one for each ligand) from all 3 folders as a tuple (dir, type) to the processDirs list
+            processDirs += [(processDir, "ligand") for processDir in glob(f"{ligands}/*") if os.path.isdir(processDir)]
+            processDirs += [(processDir, "decoy") for processDir in glob(f"{decoys}/*") if os.path.isdir(processDir)]
+            processDirs += [(processDir, "candidate") for processDir in glob(f"{candidates}/*") if os.path.isdir(processDir)]
 
-    print(processDirs)
     # Make data be None (in case of failure)
     data = None
+
     # Decide if multprocessing will be used
     if args.multiprocess:
         data = __read_log_parallel(processDirs, f"Processing {archive}")
