@@ -2132,12 +2132,12 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vaex.DataFrame
     # Return the proteinData dict
     return proteinData
 
-def __thread_read_log_parallel(arguments: Tuple[Tuple[str, str]]) -> Dict[str, vaex.DataFrame]:
+def __thread_read_log_parallel(arguments: Tuple[str, str]) -> Dict[str, vaex.DataFrame]:
     '''Thread aid function to call __core_read_log.
 
     Parameters
     ----------
-    arguments : Tuple[Tuple[str, str]]
+    arguments : Tuple[str, str]
         A tuple with the directory and the ligand type (ligand, decoy, candidate).
 
     Returns
@@ -2181,7 +2181,7 @@ def __read_log_parallel(ptnDirs: List[Tuple[str, str]], desc: str) -> Dict[str, 
     # For each file in the glob
     for ptnDir in ptnDirs:
         # Append a tuple containing the file name and ovewrite flag to the arguments list
-        arguments.append((ptnDir))
+        arguments.append(ptnDir)
 
     # If logfile exists, backup it for vina, smina and plants (for error and warnings)
     if os.path.isfile(f"{logdir}/vina_read_log_ERROR.log"):
@@ -2249,9 +2249,9 @@ def __read_log_no_parallel(ptnDirs: List[Tuple[str, str]], desc: str) -> Dict[st
 
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
-        for ptnDir in tqdm(iterable = ptnDirs, total = len(ptnDirs), desc = desc):
+        for ptnDir, tp in tqdm(iterable = ptnDirs, total = len(ptnDirs), desc = desc):
             # Call the core read log function (shared between parallel and not parallel) and store the data into the data dict
-            data.update(__core_read_log(ptnDir))
+            data.update(__core_read_log((ptnDir, tp)))
             # Clear the memory
             gc.collect()
 
