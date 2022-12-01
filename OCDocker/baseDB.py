@@ -302,7 +302,6 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
             _ = octools.safe_create_dir(f"{molPath}/vinaFiles")
             _ = octools.safe_create_dir(f"{molPath}/sminaFiles")
 
-            print(f"m = ocl.Ligand('{mol}', '{molName}', sanitize = {sanitize})")
             try:
                 # Create a lock for multithreading
                 lock = Lock()
@@ -994,7 +993,6 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
             # Read the receptor and the ligand
             receptor = ocr.Receptor(receptorPath, from_json_descriptors = receptorDescriptorPath, name = f"{ptn}_receptor")
             ligand = ocl.Ligand(ligandPath, from_json_descriptors = ligandDescriptorPath, name = f"{ptn}_ligand")
-            print(f"receptor = ocr.Receptor('{receptorPath}', from_json_descriptors = '{receptorDescriptorPath}', name = '{ptn}_receptor')\nligand = ocl.Ligand('{ligandPath}', from_json_descriptors = '{ligandDescriptorPath}', name = '{ptn}_ligand')")
 
         # If receptor and ligand are not null
         if receptor and ligand:
@@ -1008,7 +1006,6 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
             with lock:
                 # Create the smina object (the pdbqt files will be in the father directory because it will be used multiple times, let's save some disk space, please)
                 smina = ocsmina.Smina(f"{runPath}/conf_smina.conf", boxPath, receptor, preparedReceptorPath, ligand, preparedLigandPath, sminaLog, sminaOutput, name=f"{ptn}_smina", overwriteConfig = overwrite)
-                print(f"smina = ocsmina.Smina('{runPath}/conf_smina.conf', '{boxPath}', receptor, '{preparedReceptorPath}', ligand, '{preparedLigandPath}', '{sminaLog}', '{sminaOutput}', name='{ptn}_smina', overwriteConfig = {overwrite})")
 
             # Check if the smina object has been correctly created
             if not smina:
@@ -1699,7 +1696,7 @@ def __read_log_parallel_legacy(ptnDirs: List[str], desc: str) -> Dict[str, Dict[
     return data
 
 def __read_log_no_parallel_legacy(ptnDirs: List[str], desc: str) -> Dict[str, Dict[str, pd.DataFrame]]:
-    '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_read_log function.
+    '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_read_log_legacy function.
 
     Parameters
     ----------
@@ -2040,8 +2037,6 @@ def __core_read_log(processDirData: str) -> Dict[str, vaex.DataFrame]:
     None
     '''
 
-    print(processDirData)
-
     # Unpack the tuple
     processDir, tp = processDirData
 
@@ -2160,13 +2155,13 @@ def __thread_read_log_parallel(arguments: Tuple[str]) -> Dict[str, vaex.DataFram
         # Call the core read log function passing the arguments correctly
         return __core_read_log(arguments[0])
 
-def __read_log_parallel(ptnDirs: List[str], desc: str) -> Dict[str, vaex.DataFrame]:
+def __read_log_parallel(ptnDirs: List[Tuple[str, str]], desc: str) -> Dict[str, vaex.DataFrame]:
     '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
 
     Parameters
     ----------
-    ptnDirs : List[str]
-        A list of directories to be processed.
+    ptnDirs : List[Tuple[str, str]]
+        A list of tuples with the directory and the ligand type (ligand, decoy, candidate).
     desc : str
         The description to be used in the tqdm progress bar.
 
@@ -2185,7 +2180,7 @@ def __read_log_parallel(ptnDirs: List[str], desc: str) -> Dict[str, vaex.DataFra
     # For each file in the glob
     for ptnDir in ptnDirs:
         # Append a tuple containing the file name and ovewrite flag to the arguments list
-        arguments.append((ptnDir))
+        arguments.append(ptnDir)
 
     # If logfile exists, backup it for vina, smina and plants (for error and warnings)
     if os.path.isfile(f"{logdir}/vina_read_log_ERROR.log"):
@@ -3351,9 +3346,9 @@ def read_logs_legacy(archive: str, picklePath: str = "") -> Union[Dict[str, Dict
             candidates = f"{ptnDir}/compounds/candidates"
 
             # Add all subdirs (one for each ligand) from all 4 folders as a tuple (dir, ligand_descriptor_path)
-            processDirs += [processDir for processDir in glob(f"{ligands}/*") if os.path.isdir(processDir)]
-            processDirs += [processDir for processDir in glob(f"{decoys}/*") if os.path.isdir(processDir)]
-            processDirs += [processDir for processDir in glob(f"{candidates}/*") if os.path.isdir(processDir)]
+            processDirs += [(processDir, "ligand") for processDir in glob(f"{ligands}/*") if os.path.isdir(processDir)]
+            processDirs += [(processDir, "decoy") for processDir in glob(f"{decoys}/*") if os.path.isdir(processDir)]
+            processDirs += [(processDir, "candidate") for processDir in glob(f"{candidates}/*") if os.path.isdir(processDir)]
 
     # Make data be None (in case of failure)
     data = None
