@@ -3532,19 +3532,21 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
             data = data.rename('Name', 'Ligand')
             
             # Read the csv from input file
-            ptndf = vaex.read_csv(csv_path_in)
+            ptndf = vaex.read_csv(csv_path_in, backend = "arrow", progress = True if args.verbose else False)
 
             # Merge the both DataFrames using the Protein column as a comparer
-            data = ptndf.join(data, on=["Protein", "Ligand"], how="left") # type: ignore
+            data = ptndf.join(data, on = ["Protein", "Ligand"], how = "left") # type: ignore
 
             # If saveCsv is True, save the csv
             if saveCsv:
                 # Write the data to a new csv file
-                data.to_csv(csv_path_out, index = False)
+                data.to_csv(csv_path_out, index = False, backend = "arrow", progress = True if args.verbose else False)
+
                 octools.print_success(f"The file '{csv_path_out}' has been successfully written.")
-                
+
         except Exception as e:
             octools.print_error(f"Could not write the file '{csv_path_out}'. Error: {e}")
+            
             # Return Nothing
             return None
     else:
