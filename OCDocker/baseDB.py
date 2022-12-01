@@ -2181,9 +2181,7 @@ def __read_log_parallel(ptnDirs: List[Tuple[str, str]], desc: str) -> Dict[str, 
     # For each file in the glob
     for ptnDir in ptnDirs:
         # Append a tuple containing the file name and ovewrite flag to the arguments list
-        arguments.append(ptnDir)
-
-    print(arguments)
+        arguments.append((ptnDir))
 
     # If logfile exists, backup it for vina, smina and plants (for error and warnings)
     if os.path.isfile(f"{logdir}/vina_read_log_ERROR.log"):
@@ -2201,6 +2199,7 @@ def __read_log_parallel(ptnDirs: List[Tuple[str, str]], desc: str) -> Dict[str, 
 
     # Dict to store the read data
     data = {}
+
     # Create a Thread pool with the maximum available_cores
     with Pool(args.available_cores) as p:
         # Perform the multi process
