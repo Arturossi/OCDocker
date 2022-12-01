@@ -2041,8 +2041,9 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vaex.DataFrame
     processDir, tp = processDirData
 
     # Get protein and ligand names
-    ptn = processDir.split(os.path.sep)[-5]
-    lgd = processDir.split(os.path.sep)[-1]
+    processSplited = processDir.split(os.path.sep)
+    ptn = processSplited[-4]
+    lgd = processSplited[-1]
 
     # Create Vina, Smina and PLANTS dicts
     vinadf = {"mode": [], "affinity": []}
