@@ -2113,7 +2113,7 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vaex.DataFrame
         _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its SMINA output.")
 
     # Get the number of elements of the dict with the largest number of elements
-    maxLen = max([len(vinadf["mode"]), len(sminadf["mode"]), len(plantsdf["LIGAND_ENTRY"])])
+    maxLen = max([len(vinadf["mode"]), len(sminadf["mode"]), len(plantsdf["TOTAL_SCORE"])])
     
     # Add the concatenated the dicts. The single elements are repeated to match the largest dict to the proteinData dict using ptn as the key
     proteinData[f"{ptn}-{lgd}"] = vaex.from_dict(
@@ -2181,8 +2181,6 @@ def __read_log_parallel(ptnDirs: List[Tuple[str, str]], desc: str) -> Dict[str, 
     for ptnDir in ptnDirs:
         # Append a tuple containing the file name and ovewrite flag to the arguments list
         arguments.append((ptnDir, None))
-
-    print(arguments)
 
     # If logfile exists, backup it for vina, smina and plants (for error and warnings)
     if os.path.isfile(f"{logdir}/vina_read_log_ERROR.log"):
