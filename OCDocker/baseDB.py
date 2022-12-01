@@ -2180,9 +2180,10 @@ def __read_log_parallel(ptnDirs: List[Tuple[str, str]], desc: str) -> Dict[str, 
 
     # For each file in the glob
     for ptnDir in ptnDirs:
-        print(ptnDir)
         # Append a tuple containing the file name and ovewrite flag to the arguments list
         arguments.append(ptnDir)
+
+    print(arguments)
 
     # If logfile exists, backup it for vina, smina and plants (for error and warnings)
     if os.path.isfile(f"{logdir}/vina_read_log_ERROR.log"):
