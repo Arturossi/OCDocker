@@ -2150,8 +2150,6 @@ def __thread_read_log_parallel(arguments: Tuple[Tuple[str, str]]) -> Dict[str, v
     None
     '''
 
-    print(arguments)
-
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         # Call the core read log function passing the arguments correctly
@@ -2181,6 +2179,7 @@ def __read_log_parallel(ptnDirs: List[Tuple[str, str]], desc: str) -> Dict[str, 
 
     # For each file in the glob
     for ptnDir in ptnDirs:
+        print(ptnDir)
         # Append a tuple containing the file name and ovewrite flag to the arguments list
         arguments.append((ptnDir))
 
