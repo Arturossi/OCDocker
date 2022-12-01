@@ -2178,10 +2178,9 @@ def __read_log_parallel(ptnDirs: List[Tuple[str, str]], desc: str) -> Dict[str, 
     # Arguments to pass to each Thread in the Thread Pool
     arguments = []
 
-    print(ptnDirs)
-    
     # For each file in the glob
     for ptnDir in ptnDirs:
+        print(ptnDir)
         # Append a tuple containing the file name and ovewrite flag to the arguments list
         arguments.append(ptnDir)
 
