@@ -2037,8 +2037,6 @@ def __core_read_log(processDirData: str) -> Dict[str, vaex.DataFrame]:
     None
     '''
 
-    print(processDirData)
-
     # Unpack the tuple
     processDir, tp = processDirData
 
@@ -3574,6 +3572,7 @@ def read_logs(archive: str, picklePath: str = "") -> Union[Dict[str, vaex.DataFr
             processDirs += [processDir for processDir in glob(f"{decoys}/*") if os.path.isdir(processDir)]
             processDirs += [processDir for processDir in glob(f"{candidates}/*") if os.path.isdir(processDir)]
 
+    print(processDirs)
     # Make data be None (in case of failure)
     data = None
     # Decide if multprocessing will be used
