@@ -258,7 +258,7 @@ def read_logs(picklePath = "") -> Union[Dict[str, vdf.DataFrameLocal], None]:
 
     return ocbdb.read_logs("dudez", picklePath = picklePath)
 
-def generate_dock_result_csv(csv_path: str = "", log_dumps: Union[Dict[str, pd.DataFrame], None] = None, chunksize: int = 500) -> None:
+def generate_dock_result_csv(csv_path: str = "", log_dumps: Union[Dict[str, pd.DataFrame], None] = None) -> None:
     '''Uses the structure from read_logs to generate an output for all docking softwares.
 
     Parameters
@@ -267,8 +267,6 @@ def generate_dock_result_csv(csv_path: str = "", log_dumps: Union[Dict[str, pd.D
         The path to the csv file to be generated. If empty, it will be generated in the current directory, by default "{parsed_archive}/DUDEz.csv".
     log_dumps : Dict[str, pd.DataFrame] | None, optional
         The structure from read_logs. If None, it will be generated, by default None.
-    chunksize : int, optional
-        The chunksize to be used in the pandas dataframe, by default 500.
 
     Returns
     -------
@@ -284,7 +282,7 @@ def generate_dock_result_csv(csv_path: str = "", log_dumps: Union[Dict[str, pd.D
         # Set the csv_path to the default
         csv_path = f"{parsed_archive}/dudez.csv"
 
-    return ocbdb.generate_dock_result_csv("dudez", csv_path, log_dumps = log_dumps, chunksize = chunksize) # type: ignore
+    return ocbdb.generate_dock_result_csv("dudez", csv_path, log_dumps = log_dumps) # type: ignore
 
 def merge_descriptors_in_dataframe_legacy(saveCsv = True) -> Union[pd.DataFrame, None]:
     '''Reads all the descriptors jsons and return a pd.DataFrame.
