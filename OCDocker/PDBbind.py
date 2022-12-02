@@ -514,20 +514,4 @@ def merge_descriptors_in_dataframe(saveCsv: bool = True) -> Union[vdf.DataFrameL
     # Get the dataframe with descriptors and docking scores
     pdbbinddf = ocbdb.merge_descriptors_in_dataframe("pdbbind", saveCsv = saveCsv)
 
-    # Check if the pdbbinddf is None
-    if not pdbbinddf:
-        return None
-
-    # Merge the pdbbinddf DataFrame with the metadata from the PDBbind database using the Protein column as a comparer
-    pdbbinddf = pdbbinddf.join(vaex.from_dict(read_index()), on = "Protein", how = "left")
-
-    # If the save csv flag is set
-    if saveCsv:
-        # Parameterize the csvs paths
-        csv_path_out = f"{parsed_archive}/PDBbind_complete.csv"
-        if os.path.isfile(csv_path_out):
-            octools.print_warning(f"The file {csv_path_out} already exists, it will be OVERWRITTEN!!")
-        # Write the data to a new csv file
-        pdbbinddf.to_csv(csv_path_out, index = False)
-
     return pdbbinddf

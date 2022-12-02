@@ -3530,6 +3530,9 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
     else:
         data = __merge_descriptors_in_dataframe_no_parallel(processDirs, f"Processing {archive}")
 
+    print(type(data))
+    print(data)
+    
     # Check if data is pd.DataFrame type and is not empty
     if type(data) == vdf.DataFrameLocal: # type: ignore
         # Try to write the csv
