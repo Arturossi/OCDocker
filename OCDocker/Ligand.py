@@ -2818,6 +2818,9 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
         if returnVaex:
             # For each key, element in data
             for key, element in data.items():
+                # Rename Name to Ligand
+                if key == "Name":
+                    key = "Ligand"
                 # Make the element for key be a list with only the element
                 data[key] = [element]
             

@@ -2512,8 +2512,6 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str]) ->
     
     # If the ligand descriptor is not empty
     if ligand_descriptors: # type: ignore
-        # Rename the 'Name' column to 'Ligand'
-        ligand_descriptors.rename("Name", "Ligand") # type: ignore
         # Drop the 'Path' column
         ligand_descriptors.drop("Path", inplace = True) # type: ignore
         # Merge the ligand descriptors
