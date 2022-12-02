@@ -975,7 +975,7 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
             # Load the data
             data = json.load(f)
 
-        print("data receptor: " + data)
+        print(data)
 
         # Missing keys list
         missing = []

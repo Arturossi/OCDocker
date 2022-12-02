@@ -2799,7 +2799,7 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
         with open(path, "r") as f:
             # Load the data
             data = json.load(f)
-        print("data ligand: " + data)
+        print(data)
 
         # Missing keys list
         missing = []
