@@ -2813,10 +2813,14 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
             if not key in data:
                 # Add the missing key to the missing list
                 missing.append(key)
-        print(returnVaex)
-
+        
         # If the returnVaex is set
         if returnVaex:
+            # For each key, element in data
+            for key, element in data.items():
+                # Make the element for key be a list with only the element
+                data[key] = [element]
+            
             print(vaex.from_dict(data))
             # Convert the data to a vaex DataFrame
             return vaex.from_dict(data)

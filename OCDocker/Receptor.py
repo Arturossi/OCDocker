@@ -1024,6 +1024,11 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
 
         # If the returnVaex is set
         if returnVaex:
+            # For each key, element in data
+            for key, element in data.items():
+                # Make the element for key be a list with only the element
+                data[key] = [element]
+                
             # Convert the data to a vaex DataFrame
             return vaex.from_dict(data)
 
