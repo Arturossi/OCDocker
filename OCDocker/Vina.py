@@ -7,13 +7,15 @@ import os
 import numpy as np
 import pandas as pd
 
-import OCDocker.Ligand as ocl
-import OCDocker.Receptor as ocr
-from OCDocker.Initialise import *
-import OCDocker.Toolbox as octools
-
 from Bio.PDB import *
 from typing import Dict, List, Tuple, Union
+
+from OCDocker.Initialise import *
+
+import OCDocker.Ligand as ocl
+import OCDocker.Receptor as ocr
+import OCDocker.Toolbox as octools
+
 
 # License
 ###############################################################################

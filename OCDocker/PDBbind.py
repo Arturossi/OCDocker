@@ -5,14 +5,14 @@
 import os
 import vaex
 
+import pandas as pd
+import vaex.dataframe as vdf
+
 from glob import glob
 from typing import Dict, List, Union
-import pandas as pd
-
-import OCDocker.Ligand as ocl
-import OCDocker.Receptor as ocr
 
 from OCDocker.Initialise import *
+
 import OCDocker.baseDB as ocbdb
 import OCDocker.Toolbox as octools
 
@@ -382,7 +382,7 @@ def read_logs_legacy(picklePath: str = "") -> Union[Dict[str, Dict[str, pd.DataF
 
     return ocbdb.read_logs_legacy("pdbbind", picklePath = picklePath)
 
-def read_logs(picklePath: str = "") -> Union[Dict[str, vaex.DataFrame], None]:
+def read_logs(picklePath: str = "") -> Union[Dict[str, vdf.DataFrameLocal], None]:
     '''Parse the database into multiple serializable objects.
 
     Parameters
@@ -392,7 +392,7 @@ def read_logs(picklePath: str = "") -> Union[Dict[str, vaex.DataFrame], None]:
 
     Returns
     -------
-    Dict[str, Dict[str, vaex.DataFrame]]
+    Dict[str, Dict[str, vdf.DataFrameLocal]]
         The parsed data.
 
     Raises
@@ -424,14 +424,14 @@ def generate_dock_result_csv_legacy(log_dumps: Dict[str, Dict[str, pd.DataFrame]
     '''
     return ocbdb.generate_dock_result_csv_legacy("pdbbind", log_dumps, csv_path, chunksize=chunksize)
 
-def generate_dock_result_csv(csv_path: str = "", log_dumps: Union[Dict[str, vaex.DataFrame], None] = None, chunksize: int = 500) -> None:
+def generate_dock_result_csv(csv_path: str = "", log_dumps: Union[Dict[str, vdf.DataFrameLocal], None] = None, chunksize: int = 500) -> None:
     '''Uses the structure from read_logs to generate an output for all docking softwares.
 
     Parameters
     ----------
     csv_path : str, optional
         The path to the output csv file. If not specified, it will use the default path, by default f"{parsed_archive}/PDBbind.csv".
-    log_dumps : Dict[str, pd.DataFrame], optional
+    log_dumps : Dict[str, vdf.DataFrameLocal], optional
         The parsed data.
     chunksize : int, optional
         The chunksize to use when writing the csv file, by default 500.
@@ -448,7 +448,7 @@ def generate_dock_result_csv(csv_path: str = "", log_dumps: Union[Dict[str, vaex
     # Check if csv_path is empty
     if csv_path == "":
         # It is empty, use the default path
-        csv_path = f"{parsed_archive}/PDBbind.csv"
+        csv_path = f"{parsed_archive}/pdbbind.csv"
 
     return ocbdb.generate_dock_result_csv("pdbbind", csv_path, log_dumps = log_dumps, chunksize = chunksize)
 
@@ -483,16 +483,18 @@ def merge_descriptors_in_dataframe_legacy(saveCsv: bool = True) -> Union[pd.Data
     # If the save csv flag is set
     if saveCsv:
         # Parameterize the csvs paths
-        csv_path_out = f"{parsed_archive}/PDBbind_complete.csv"
+        csv_path_out = f"{parsed_archive}/pdbbind_complete.csv"
+
         if os.path.isfile(csv_path_out):
             octools.print_warning(f"The file {csv_path_out} already exists, it will be OVERWRITTEN!!")
+
         # Write the data to a new csv file
         pdbbinddf.to_csv(csv_path_out, index=False)
 
     return pdbbinddf
 
-def merge_descriptors_in_dataframe(saveCsv: bool = True) -> Union[vaex.DataFrame, None]:
-    '''Reads all the descriptors jsons and return a pd.DataFrame.
+def merge_descriptors_in_dataframe(saveCsv: bool = True) -> Union[vdf.DataFrameLocal, None]:
+    '''Reads all the descriptors jsons and return a vdf.DataFrameLocal.
 
     Parameters
     ----------
@@ -501,7 +503,7 @@ def merge_descriptors_in_dataframe(saveCsv: bool = True) -> Union[vaex.DataFrame
 
     Returns
     -------
-    vaex.DataFrame | None
+    vdf.DataFrameLocal | None
         The dataframe with all the complex descriptors.
 
     Raises

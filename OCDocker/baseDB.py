@@ -2,22 +2,25 @@
 
 # Imports
 ###############################################################################
-import os
 import gc
+import os
 import time
-import shutil
 import rdkit
+import shutil
 import vaex
-from glob import glob
-from threading import Lock
-from tqdm import tqdm
-from typing import Dict, List, Tuple, Union
-from multiprocessing import Pool
 
 import numpy as np
 import pandas as pd
+import vaex.dataframe as vdf
+
+from glob import glob
+from multiprocessing import Pool
+from threading import Lock
+from tqdm import tqdm
+from typing import Dict, List, Tuple, Union
 
 from OCDocker.Initialise import *
+
 import OCDocker.Ligand as ocl
 import OCDocker.Vina as ocvina
 import OCDocker.Receptor as ocr
@@ -25,6 +28,7 @@ import OCDocker.Smina as ocsmina
 import OCDocker.PLANTS as ocplants
 import OCDocker.Toolbox as octools
 import OCDocker.ExternalTools.runprank as runprank
+
 
 # License
 ###############################################################################
@@ -2018,7 +2022,7 @@ def __generate_dock_result_csv_no_parallel_legacy(processDirs: List[Tuple[str, s
 
 # Vaex implementation
 ### Read logs
-def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vaex.DataFrame]:
+def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameLocal]:
     '''Reads Vina, Smina and PLANTS logs and then return a dict of dataframes.
 
     Parameters
@@ -2028,7 +2032,7 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vaex.DataFrame
 
     Returns
     -------
-     Dict[str, pd.DataFrame]
+     Dict[str, vdf.DataFrameLocal]
         A dictionary containing the dataframes of the logs.
         A dict of dicts of dataframes. Each element of the first dict is a complex protein-ligand, and each element of the second dict is a docking algorithm results.
 
@@ -2139,7 +2143,7 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vaex.DataFrame
     # Return the proteinData dict
     return proteinData # type: ignore
 
-def __thread_read_log_parallel(arguments: Tuple[Tuple[str, str]]) -> Dict[str, vaex.DataFrame]:
+def __thread_read_log_parallel(arguments: Tuple[Tuple[str, str]]) -> Dict[str, vdf.DataFrameLocal]:
     '''Thread aid function to call __core_read_log.
 
     Parameters
@@ -2149,7 +2153,7 @@ def __thread_read_log_parallel(arguments: Tuple[Tuple[str, str]]) -> Dict[str, v
 
     Returns
     -------
-    Dict[str, vaex.DataFrame]
+    Dict[str, vdf.DataFrameLocal]
         A dictionary containing the dataframes of the logs.
 
     Raises
@@ -2162,7 +2166,7 @@ def __thread_read_log_parallel(arguments: Tuple[Tuple[str, str]]) -> Dict[str, v
         # Call the core read log function passing the arguments correctly
         return __core_read_log(arguments[0])
 
-def __read_log_parallel(ptnDirs: List[Tuple[str, str]], desc: str) -> Dict[str, vaex.DataFrame]:
+def __read_log_parallel(ptnDirs: List[Tuple[str, str]], desc: str) -> Dict[str, vdf.DataFrameLocal]:
     '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
 
     Parameters
@@ -2174,7 +2178,7 @@ def __read_log_parallel(ptnDirs: List[Tuple[str, str]], desc: str) -> Dict[str, 
 
     Returns
     -------
-    Dict[str, vaex.DataFrame]
+    Dict[str, vdf.DataFrameLocal]
         A dictionary containing the dataframes of the logs.
 
     Raises
@@ -2217,7 +2221,7 @@ def __read_log_parallel(ptnDirs: List[Tuple[str, str]], desc: str) -> Dict[str, 
 
     return data
 
-def __read_log_no_parallel(ptnDirs: List[Tuple[str, str]], desc: str) -> Dict[str, vaex.DataFrame]:
+def __read_log_no_parallel(ptnDirs: List[Tuple[str, str]], desc: str) -> Dict[str, vdf.DataFrameLocal]:
     '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_read_log function.
 
     Parameters
@@ -2229,7 +2233,7 @@ def __read_log_no_parallel(ptnDirs: List[Tuple[str, str]], desc: str) -> Dict[st
 
     Returns
     -------
-    Dict[str, vaex.DataFrame]
+    Dict[str, vdf.DataFrameLocal]
         A dictionary with the protein name as the key and a dictionary with the vina, smina and plants dataframes as the value.
     
     Raises
@@ -2453,7 +2457,7 @@ def __merge_descriptors_in_dataframe_no_parallel_legacy(dirs: List[Tuple[str, st
 
 
 ### Merge descriptors in dataframe
-def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str]) -> vaex.DataFrame:
+def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str]) -> vdf.DataFrameLocal:
     '''Reads the descriptor and receptor json then parse them into a dataframe.
 
     Parameters
@@ -2465,7 +2469,7 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str]) ->
 
     Returns
     -------
-    vaex.DataFrame
+    vdf.DataFrameLocal
         DataFrame containing the results of the docking.
 
     Raises
@@ -2510,7 +2514,7 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str]) ->
     # Return the single row dataframe
     return df
 
-def __thread_merge_descriptors_in_dataframe_parallel(arguments: Tuple[Tuple[str, str], str]) -> vaex.DataFrame:
+def __thread_merge_descriptors_in_dataframe_parallel(arguments: Tuple[Tuple[str, str], str]) -> vdf.DataFrameLocal:
     '''Thread aid function to call __core_merge_descriptors_in_dataframe.
 
     Parameters
@@ -2520,7 +2524,7 @@ def __thread_merge_descriptors_in_dataframe_parallel(arguments: Tuple[Tuple[str,
     
     Returns
     -------
-    vaex.DataFrame
+    vdf.DataFrameLocal
         Dataframe with the descriptors of the protein.
 
     Raises
@@ -2533,7 +2537,7 @@ def __thread_merge_descriptors_in_dataframe_parallel(arguments: Tuple[Tuple[str,
         # Call the core read log function passing the arguments correctly
         return __core_merge_descriptors_in_dataframe(arguments[0])
 
-def __merge_descriptors_in_dataframe_parallel(dirs: List[Tuple[str, str]], desc: str) -> vaex.DataFrame:
+def __merge_descriptors_in_dataframe_parallel(dirs: List[Tuple[str, str]], desc: str) -> vdf.DataFrameLocal:
     '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
 
     Parameters
@@ -2545,7 +2549,7 @@ def __merge_descriptors_in_dataframe_parallel(dirs: List[Tuple[str, str]], desc:
 
     Returns
     -------
-    vaex.DataFrame
+    vdf.DataFrameLocal
         Dataframe with the descriptors of the proteins.
 
     Raises
@@ -2587,9 +2591,9 @@ def __merge_descriptors_in_dataframe_parallel(dirs: List[Tuple[str, str]], desc:
             # Clear the memory
             gc.collect()
 
-    return vaex.concat(ptnList)
+    return vaex.concat(ptnList) # type: ignore
 
-def __merge_descriptors_in_dataframe_no_parallel(dirs: List[Tuple[str, str]], desc: str) -> vaex.DataFrame:
+def __merge_descriptors_in_dataframe_no_parallel(dirs: List[Tuple[str, str]], desc: str) -> vdf.DataFrameLocal:
     '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_read_log function.
 
     Parameters
@@ -2601,7 +2605,7 @@ def __merge_descriptors_in_dataframe_no_parallel(dirs: List[Tuple[str, str]], de
 
     Returns
     -------
-    vaex.DataFrame
+    vdf.DataFrameLocal
         Dataframe with the descriptors of the proteins.
 
     Raises
@@ -2634,7 +2638,7 @@ def __merge_descriptors_in_dataframe_no_parallel(dirs: List[Tuple[str, str]], de
             # Clear the memory
             gc.collect()
 
-    return vaex.concat(ptnList)
+    return vaex.concat(ptnList) # type: ignore
 
 
 ## Public ##
@@ -3350,8 +3354,8 @@ def merge_descriptors_in_dataframe_legacy(archive: str, saveCsv: bool = True) ->
     return data
 
 # Vaex implementation
-def read_logs(archive: str, picklePath: str = "") -> Union[Dict[str, vaex.DataFrame], None]:
-    '''Reads database logfiles returning a dict of dicts of vaex.DataFrames.
+def read_logs(archive: str, picklePath: str = "") -> Union[Dict[str, vdf.DataFrameLocal], None]:
+    '''Reads database logfiles returning a dict of dicts of vdf.DataFrameLocal.
 
     Parameters
     ----------
@@ -3362,8 +3366,8 @@ def read_logs(archive: str, picklePath: str = "") -> Union[Dict[str, vaex.DataFr
 
     Returns
     -------
-    Dict[str, vaex.DataFrame] | None
-        A dict of vaex.DataFrames. If failed, returns None.
+    Dict[str, vdf.DataFrameLocal] | None
+        A dict of vdf.DataFrameLocal. If failed, returns None.
 
     Raises
     ------
@@ -3423,7 +3427,7 @@ def read_logs(archive: str, picklePath: str = "") -> Union[Dict[str, vaex.DataFr
     # Return the data
     return data
 
-def generate_dock_result_csv(archive: str, csv_path: str, log_dumps: Union[Dict[str, vaex.DataFrame], None] = None, chunksize: int = 500) -> None:
+def generate_dock_result_csv(archive: str, csv_path: str, log_dumps: Union[Dict[str, vdf.DataFrameLocal], None] = None, chunksize: int = 500) -> None:
     '''Uses the structure from read_logs to generate an output for all docking softwares.
 
     Parameters
@@ -3432,7 +3436,7 @@ def generate_dock_result_csv(archive: str, csv_path: str, log_dumps: Union[Dict[
         The archive to be prepared. The options are [dudez, pdbbind].
     csv_path : str
         The path to the csv file.
-    log_dumps : Dict[str, vaex.DataFrame] | None, optional
+    log_dumps : Dict[str, vdf.DataFrameLocal] | None, optional
         The data from the logfiles. If None, will use the read_logs function to get the data. The default is None.
     chunksize : int, optional
         The chunksize to be used when writing the csv. The default is 500.
@@ -3459,7 +3463,7 @@ def generate_dock_result_csv(archive: str, csv_path: str, log_dumps: Union[Dict[
 
     return None
 
-def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[vaex.DataFrame, None]:
+def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[vdf.DataFrameLocal, None]:
     '''Reads all the descriptors jsons and return a pd.DataFrame.
 
     Parameters
@@ -3471,7 +3475,7 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
     
     Returns
     -------
-    vaex.DataFrame | None
+    vdf.DataFrameLocal | None
         The dataframe with all the descriptors.
 
     Raises
@@ -3525,7 +3529,7 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
         data = __merge_descriptors_in_dataframe_no_parallel(processDirs, f"Processing {archive}")
 
     # Check if data is pd.DataFrame type and is not empty
-    if type(data) == vaex.DataFrame:
+    if type(data) == vdf.DataFrameLocal: # type: ignore
         # Try to write the csv
         try:
             # Rename the name column from data dataframe
@@ -3534,8 +3538,14 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
             # Read the csv from input file
             ptndf = vaex.read_csv(csv_path_in, backend = "arrow", progress = True if args.verbose else False)
 
-            # Merge the both DataFrames using the Protein column as a comparer
-            data = ptndf.join(data, on = ["Protein", "Ligand"], how = "left") # type: ignore
+            # If verbose
+            if args.verbose:
+                with vaex.progress.tree('rich', title="Merging dataframes"): # type: ignore
+                    # Merge the both DataFrames using the Protein column as a comparer
+                    data = ptndf.join(data, on = ["Protein", "Ligand"], how = "left") # type: ignore
+            else:
+                # Merge the both DataFrames using the Protein column as a comparer
+                data = ptndf.join(data, on = ["Protein", "Ligand"], how = "left") # type: ignore
 
             # If saveCsv is True, save the csv
             if saveCsv:
@@ -3546,7 +3556,7 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
 
         except Exception as e:
             octools.print_error(f"Could not write the file '{csv_path_out}'. Error: {e}")
-            
+
             # Return Nothing
             return None
     else:

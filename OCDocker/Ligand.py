@@ -4,13 +4,14 @@
 ###############################################################################
 from __future__ import annotations
 
-import os
 import json
+import os
 import rdkit
 import vaex
 
-from threading import Lock
-from typing import Dict, List, Tuple, Union
+import vaex.dataframe as vdf
+
+from openbabel import openbabel
 from rdkit import Chem
 from rdkit import RDLogger
 from rdkit import DataStructs
@@ -20,10 +21,11 @@ from rdkit.Chem import Descriptors
 from rdkit.Chem import Descriptors3D
 from rdkit.Chem.SaltRemover import SaltRemover
 from rdkit.Chem.rdMolTransforms import ComputeCentroid
-
-from openbabel import openbabel
+from threading import Lock
+from typing import Dict, List, Tuple, Union
 
 from OCDocker.Initialise import *
+
 import OCDocker.Toolbox as octools
 
 
@@ -2769,7 +2771,7 @@ def loadMol(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize: bool = True) 
         _ = errors.unsupported_extension(message=f"Unsupported molecule data. Please support either a molecule path (string) or a rdkit.Chem.rdchem.Mol object.", level="error")
         return "", None
 
-def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: bool = False) -> Union[Dict[str, Union[str, float, int]], Tuple[Union[str, float, int]], None]:
+def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: bool = False) -> Union[Dict[str, Union[str, float, int]], Tuple[Union[str, float, int]], vdf.DataFrameLocal, None]:
     '''Read the descriptors from a json file.
 
     Parameters
@@ -2783,7 +2785,7 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
     
     Returns
     -------
-    Dict[str, str | float | int] | Tuple[str | float | int] | vaex.DataFrame | None
+    Dict[str, str | float | int] | Tuple[str | float | int] | vdf.DataFrameLocal | None
         The descriptors.
 
     Raises

@@ -3,10 +3,12 @@
 # Imports
 ###############################################################################
 import Bio
-import os
 import json
 import math
+import os
 import vaex
+
+import vaex.dataframe as vdf
 
 from Bio.PDB import *
 from Bio.PDB.DSSP import DSSP
@@ -17,6 +19,7 @@ from threading import Lock
 from typing import Dict, List, Tuple, Union
 
 from OCDocker.Initialise import *
+
 import OCDocker.Toolbox as octools
 
 # License
@@ -943,7 +946,7 @@ def computeInstabilityIndex(residues: str) -> float:
     protein = ProteinAnalysis(__filterSequence(residues))
     return protein.instability_index()
 
-def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: bool = False) -> Union[Dict[str, Union[str, float, int]], Tuple[Union[float, str, int]], vaex.DataFrame, None]:
+def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: bool = False) -> Union[Dict[str, Union[str, float, int]], Tuple[Union[float, str, int]], vdf.DataFrameLocal, None]:
     '''Read the descriptors from a json file.
 
     Parameters
@@ -957,7 +960,7 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
 
     Returns
     -------
-    Dict[str, str | float | int] | Tuple[float | str | int]] | vaex.DataFrame | None
+    Dict[str, str | float | int] | Tuple[float | str | int]] | vdf.DataFrameLocal | None
         The descriptors dictionary or None if any error occurs.
 
     Raises

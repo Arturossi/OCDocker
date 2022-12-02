@@ -4,20 +4,23 @@
 ###############################################################################
 import gc
 import os
-import shutil
 import mimetypes
+import shutil
+
 import textwrap as tw
 
 from glob import glob
+from multiprocessing import Pool
 from tqdm import tqdm
 from threading import Lock
 from typing import List, Tuple
-from multiprocessing import Pool
 
 from OCDocker.Initialise import *
+
 import OCDocker.DUDEz as ocdudez
 import OCDocker.PDBbind as ocpdbbind
 import OCDocker.Toolbox as octools
+
 
 # License
 ###############################################################################

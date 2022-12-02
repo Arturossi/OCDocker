@@ -2,32 +2,32 @@
 
 # Imports
 ###############################################################################
+import contextlib
+import datetime
+import inspect
 import os
 import pickle
+import rdkit
 import shutil
-import inspect
-import tarfile
-import datetime
-import contextlib
 import subprocess
+import tarfile
 import urllib.request
 
+from Bio.PDB import * 
 from glob import glob
 from tqdm import tqdm
-from spyrmsd import io, rmsd
-from threading import Lock
-from typing import Any, Dict, List, Tuple, Union
-from openbabel import pybel
 from openbabel import openbabel
-
-import rdkit
-from Bio.PDB import * 
+from openbabel import pybel
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem.rdmolfiles import MolToMolFile
 from rdkit.Chem.SaltRemover import SaltRemover
+from spyrmsd import io, rmsd
+from threading import Lock
+from typing import Any, Dict, List, Tuple, Union
 
 from OCDocker.Initialise import *
+
 
 # Set output levels for openbabel
 pb_log_handler = pybel.ob.OBMessageHandler()

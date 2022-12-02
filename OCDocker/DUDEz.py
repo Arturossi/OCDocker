@@ -3,16 +3,19 @@
 # Imports
 ###############################################################################
 import os
-import vaex
-import pandas as pd
 
-from typing import Dict, Union
+import pandas as pd
+import vaex.dataframe as vdf
+
 from multiprocessing import Pool
+from typing import Dict, Union
 
 from OCDocker.Initialise import *
+
 import OCDocker.Ligand as ocl
 import OCDocker.baseDB as ocbdb
 import OCDocker.Toolbox as octools
+
 
 # License
 ###############################################################################
@@ -235,7 +238,7 @@ def read_logs_legacy(picklePath = "") -> Union[Dict[str, Dict[str, pd.DataFrame]
 
     return ocbdb.read_logs_legacy("dudez", picklePath = picklePath)
 
-def read_logs(picklePath = "") -> Union[Dict[str, vaex.DataFrame], None]:
+def read_logs(picklePath = "") -> Union[Dict[str, vdf.DataFrameLocal], None]:
     '''Parse the database into multiple serializable objects.
 
     Parameters
@@ -245,7 +248,7 @@ def read_logs(picklePath = "") -> Union[Dict[str, vaex.DataFrame], None]:
 
     Returns
     -------
-    Dict[str, Dict[str, vaex.DataFrame]] | None
+    Dict[str, Dict[str, vdf.DataFrameLocal]] | None
         A dictionary with the keys being the protein-ligand names and the values being the dataframes.
 
     Raises
@@ -279,7 +282,7 @@ def generate_dock_result_csv(csv_path: str = "", log_dumps: Union[Dict[str, pd.D
     # Check if the csv_path is empty
     if csv_path == "":
         # Set the csv_path to the default
-        csv_path = f"{parsed_archive}/DUDEz.csv"
+        csv_path = f"{parsed_archive}/dudez.csv"
 
     return ocbdb.generate_dock_result_csv("dudez", csv_path, log_dumps = log_dumps, chunksize = chunksize) # type: ignore
 
@@ -307,7 +310,7 @@ def merge_descriptors_in_dataframe_legacy(saveCsv = True) -> Union[pd.DataFrame,
     # If the save csv flag is set
     if saveCsv:
         # Parameterize the csvs paths
-        csv_path_out = f"{parsed_archive}/DUDEz_complete.csv"
+        csv_path_out = f"{parsed_archive}/dudez_complete.csv"
         if os.path.isfile(csv_path_out):
             octools.print_warning(f"The file {csv_path_out} already exists, it will be OVERWRITTEN!!")
         # Check if the dudezdf is not None
@@ -319,8 +322,8 @@ def merge_descriptors_in_dataframe_legacy(saveCsv = True) -> Union[pd.DataFrame,
 
     return dudezdf
 
-def merge_descriptors_in_dataframe(saveCsv = True) -> Union[vaex.DataFrame, None]:
-    '''Reads all the descriptors jsons and return a pd.DataFrame.
+def merge_descriptors_in_dataframe(saveCsv = True) -> Union[vdf.DataFrameLocal, None]:
+    '''Reads all the descriptors jsons and return a vdf.DataFrameLocal.
 
     Parameters
     ----------
@@ -329,7 +332,7 @@ def merge_descriptors_in_dataframe(saveCsv = True) -> Union[vaex.DataFrame, None
 
     Returns
     -------
-    pd.DataFrame | None
+    vdf.DataFrameLocal | None
         A dataframe with all the descriptors or None if any error occur while reading the csv.
 
     Raises

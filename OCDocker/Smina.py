@@ -8,12 +8,13 @@ import numpy as np
 import pandas as pd
 
 from typing import Dict, List, Tuple, Union
-from openbabel import openbabel
+
+from OCDocker.Initialise import *
 
 import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
-from OCDocker.Initialise import *
 import OCDocker.Toolbox as octools
+
 
 # License
 ###############################################################################
