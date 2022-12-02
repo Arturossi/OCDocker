@@ -2814,23 +2814,30 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
                 # Add the missing key to the missing list
                 missing.append(key)
         
+        # If missing list is not empty
+        if missing:
+            # Raise a Key error passing the file and the missing keys joined with ', '
+            raise KeyError((path, ", ".join(missing)))
+
         # If the returnVaex is set
         if returnVaex:
+            # Check if data has a 'Name' key
+            if "Name" in data:
+                # If it has, change the key name to 'Ligand'
+                data["Ligand"] = data.pop("Name")
+
+            # Check if data has a 'Path' key
+            if "Path" in data:
+                # Remove the entry
+                _ = data.pop("Path")
+
             # For each key, element in data
             for key, element in data.items():
-                # Rename Name to Ligand
-                if key == "Name":
-                    key = "Ligand"
                 # Make the element for key be a list with only the element
                 data[key] = [element]
             
             # Convert the data to a vaex DataFrame
             return vaex.from_dict(data)
-
-        # If missing list is not empty
-        if missing:
-            # Raise a Key error passing the file and the missing keys joined with ', '
-            raise KeyError((path, ", ".join(missing)))
 
         # If the returnData flag is on
         if returnData:
