@@ -344,7 +344,7 @@ def merge_descriptors_in_dataframe(saveCsv = True) -> Union[vdf.DataFrameLocal, 
     # If the save csv flag is set
     if saveCsv:
         # Parameterize the csvs paths
-        csv_path_out = f"{parsed_archive}/DUDEz_complete.csv"
+        csv_path_out = f"{parsed_archive}/dudez_complete.csv"
 
         if os.path.isfile(csv_path_out):
             octools.print_warning(f"The file {csv_path_out} already exists, it will be OVERWRITTEN!!")
