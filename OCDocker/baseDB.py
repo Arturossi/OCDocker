@@ -2500,6 +2500,9 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str]) ->
         ligand_descriptors = None
         _ = errors.file_do_not_exist(f"The file '{ligand_descriptor_path}' does not exist!")
 
+    print("data recepto descr: " + receptor_descriptors)
+    print("data receptor desc: " + ligand_descriptors)
+
     # Initiate the dataframe
     df = vaex.from_dict({ "Protein": [ptn] })
 

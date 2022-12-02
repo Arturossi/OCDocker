@@ -974,6 +974,9 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
         with open(path, "r") as f:
             # Load the data
             data = json.load(f)
+
+        print("data receptor: " + data)
+
         # Missing keys list
         missing = []
         # Expected keys to have in the json file
@@ -1021,7 +1024,7 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
 
         # If the returnVaex is set
         if returnVaex:
-            print(vaex.from_dict(data))
+            
             # Convert the data to a vaex DataFrame
             return vaex.from_dict(data)
 
