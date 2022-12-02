@@ -2799,7 +2799,6 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
         with open(path, "r") as f:
             # Load the data
             data = json.load(f)
-        print(data)
 
         # Missing keys list
         missing = []
@@ -2826,6 +2825,8 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
             # Raise a Key error passing the file and the missing keys joined with ', '
             raise KeyError((path, ", ".join(missing)))
 
+        print(data)
+
         # If the returnData flag is on
         if returnData:
             # Return the entire dict
@@ -2837,12 +2838,10 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
         #endregion
         
     # Key error (when there is a missing key)
-    except KeyError as k:
-        print(f"Error: {missed}")
-        octools.print_error(f"The following keys were not found in the json file '{k}'.")
+    except KeyError as missed:
+        octools.print_error(f"The following keys were not found in the json file '{missed[0]}': {missed[1]}.") # type: ignore
     # General error (call it as problem to read file)
     except Exception as e:
-        print(f"Error: {e}")
         octools.print_error(f"Could not read the file '{path}'. Error: {e}")
 
     return None
