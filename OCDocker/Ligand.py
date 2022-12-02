@@ -2838,11 +2838,11 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
         
     # Key error (when there is a missing key)
     except KeyError as k:
-        print("teste3")
+        print(f"Error: {missed}")
         octools.print_error(f"The following keys were not found in the json file '{k}'.")
     # General error (call it as problem to read file)
     except Exception as e:
-        print("teste4")
+        print(f"Error: {e}")
         octools.print_error(f"Could not read the file '{path}'. Error: {e}")
 
     return None
