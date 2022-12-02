@@ -2563,7 +2563,7 @@ def __merge_descriptors_in_dataframe_parallel(dirs: List[Tuple[str, str]], desc:
     # For each file in the glob
     for dir in dirs:
         # Append a tuple containing the file name and ovewrite flag to the arguments list
-        arguments.append((dir))
+        arguments.append((dir, None))
 
     # If logfile exists, backup it for vina, smina and plants (for error and warnings)
     if os.path.isfile(f"{logdir}/vina_read_log_ERROR.log"):
