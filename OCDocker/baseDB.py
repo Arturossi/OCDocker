@@ -2502,12 +2502,12 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str]) ->
     df = vaex.from_dict({ "Protein": [ptn] })
 
     # If the receptor descriptor is not empty
-    if receptor_descriptors.shape[0] > 0: # type: ignore
+    if receptor_descriptors and receptor_descriptors.shape[0] > 0: # type: ignore
         # Merge the receptor descriptors
         df = df.join(receptor_descriptors) # type: ignore
     
     # If the ligand descriptor is not empty
-    if ligand_descriptors.shape[0] > 0: # type: ignore
+    if ligand_descriptors and ligand_descriptors.shape[0] > 0: # type: ignore
         # Merge the ligand descriptors
         df = df.join(ligand_descriptors) # type: ignore
 
