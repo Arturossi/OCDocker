@@ -2510,6 +2510,8 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str]) ->
     
     # If the ligand descriptor is not empty
     if ligand_descriptors: # type: ignore
+        # Rename the 'Name' column to 'Ligand'
+        ligand_descriptors.rename('Name', 'Ligand') # type: ignore
         # Merge the ligand descriptors
         df = df.join(ligand_descriptors) # type: ignore
 
@@ -3328,8 +3330,6 @@ def merge_descriptors_in_dataframe_legacy(archive: str, saveCsv: bool = True) ->
     if type(data) == pd.DataFrame and not data.empty:
         # Try to write the csv
         try:
-            # Rename the name column from data dataframe
-            data = data.rename(columns={'Name': 'Ligand'})
             # Remove unwanted keys
             for k in ["Path", "mol2Path", "__countAA"]:
                 if k in data:
@@ -3529,8 +3529,6 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
         data = __merge_descriptors_in_dataframe_parallel(processDirs, f"Processing {archive}")
     else:
         data = __merge_descriptors_in_dataframe_no_parallel(processDirs, f"Processing {archive}")
-
-    print(data)
 
     # Check if data is pd.DataFrame type and is not empty
     if type(data) == vdf.DataFrameLocal: # type: ignore
