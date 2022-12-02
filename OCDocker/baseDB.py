@@ -2505,19 +2505,19 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str]) ->
 
     # If the receptor descriptor is not empty
     if receptor_descriptors: # type: ignore
-        print(receptor_descriptors.column_names)
+        # Rename the 'Name' column to 'Protein'
+        ligand_descriptors.rename("Name", "Protein") # type: ignore
         # Merge the receptor descriptors
         df = df.join(receptor_descriptors) # type: ignore
         # Drop the 'Path' column
-        receptor_descriptors.drop('Path', inplace = True) # type: ignore
+        receptor_descriptors.drop("Path", inplace = True) # type: ignore
     
     # If the ligand descriptor is not empty
     if ligand_descriptors: # type: ignore
-        print(ligand_descriptors.column_names)
         # Rename the 'Name' column to 'Ligand'
-        ligand_descriptors.rename('Name', 'Ligand') # type: ignore
+        ligand_descriptors.rename("Name", "Ligand") # type: ignore
         # Drop the 'Path' column
-        ligand_descriptors.drop('Path', inplace = True) # type: ignore
+        ligand_descriptors.drop("Path", inplace = True) # type: ignore
         # Merge the ligand descriptors
         df = df.join(ligand_descriptors) # type: ignore
 
@@ -3340,10 +3340,12 @@ def merge_descriptors_in_dataframe_legacy(archive: str, saveCsv: bool = True) ->
             for k in ["Path", "mol2Path", "__countAA"]:
                 if k in data:
                     del data[k]
+
             # Read the csv from input file
             ptndf = pd.read_csv(csv_path_in)
             # Merge the both DataFrames using the Protein column as a comparer
             data = pd.merge(ptndf, data, on=["Protein", "Ligand"], how="left")
+
             # If saveCsv is True, save the csv
             if saveCsv:
                 # Write the data to a new csv file
