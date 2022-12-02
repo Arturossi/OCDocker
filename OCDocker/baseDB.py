@@ -2489,6 +2489,7 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str]) ->
     # Check if there is the receptor json, if yes, load it
     if os.path.isfile(receptor_descriptor_path):
         receptor_descriptors = ocr.read_descriptors_from_json(receptor_descriptor_path, returnVaex = True)
+        print("data receptor descr: " + receptor_descriptors)
     else:
         receptor_descriptors = None
         _ = errors.file_do_not_exist(f"The file '{receptor_descriptor_path}' does not exist!")
@@ -2496,12 +2497,11 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str]) ->
     # Check if there is the ligand json, if yes, load it
     if os.path.isfile(ligand_descriptor_path):
         ligand_descriptors = ocl.read_descriptors_from_json(ligand_descriptor_path, returnVaex = True)
+        print("data ligand desc: " + ligand_descriptors)
     else:
         ligand_descriptors = None
         _ = errors.file_do_not_exist(f"The file '{ligand_descriptor_path}' does not exist!")
 
-    print("data recepto descr: " + receptor_descriptors)
-    print("data receptor desc: " + ligand_descriptors)
 
     # Initiate the dataframe
     df = vaex.from_dict({ "Protein": [ptn] })
