@@ -3433,7 +3433,7 @@ def read_logs(archive: str, picklePath: str = "") -> Union[Dict[str, vdf.DataFra
     # Return the data
     return data
 
-def generate_dock_result_csv(archive: str, csv_path: str, log_dumps: Union[Dict[str, vdf.DataFrameLocal], None] = None, chunksize: int = 500) -> None:
+def generate_dock_result_csv(archive: str, csv_path: str, log_dumps: Union[Dict[str, vdf.DataFrameLocal], None] = None) -> None:
     '''Uses the structure from read_logs to generate an output for all docking softwares.
 
     Parameters
@@ -3444,8 +3444,6 @@ def generate_dock_result_csv(archive: str, csv_path: str, log_dumps: Union[Dict[
         The path to the csv file.
     log_dumps : Dict[str, vdf.DataFrameLocal] | None, optional
         The data from the logfiles. If None, will use the read_logs function to get the data. The default is None.
-    chunksize : int, optional
-        The chunksize to be used when writing the csv. The default is 500.
 
     Returns
     -------
@@ -3465,7 +3463,7 @@ def generate_dock_result_csv(archive: str, csv_path: str, log_dumps: Union[Dict[
 
     # Check if data is not empty
     if data:
-        data.export_csv(path = csv_path, index = False, chunksize = chunksize) # type: ignore
+        data.export_csv(path = csv_path, backend = 'arrow') # type: ignore
 
     return None
 
@@ -3542,7 +3540,7 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
             data = data.rename('Name', 'Ligand')
             
             # Read the csv from input file
-            ptndf = vaex.read_csv(csv_path_in, backend = "arrow", progress = True if args.verbose else False)
+            ptndf = vaex.read_csv(csv_path_in, progress = True if args.verbose else False)
 
             # If verbose
             if args.verbose:
