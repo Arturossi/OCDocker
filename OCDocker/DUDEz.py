@@ -342,7 +342,7 @@ def merge_descriptors_in_dataframe(saveCsv = True) -> Union[vdf.DataFrameLocal, 
 
     # Get the dataframe with descriptors and docking scores
     dudezdf = ocbdb.merge_descriptors_in_dataframe("dudez", saveCsv = saveCsv)
-
+    
     # If the save csv flag is set
     if saveCsv:
         # Parameterize the csvs paths

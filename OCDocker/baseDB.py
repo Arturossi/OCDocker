@@ -3547,11 +3547,14 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
             # If verbose
             if args.verbose:
                 with vaex.progress.tree('rich', title="Merging dataframes"): # type: ignore
-                    # Merge the both DataFrames using the Protein column as a comparer
+                    # Merge both DataFrames using the Protein column as a comparer
                     data = ptndf.join(data, on = ["Protein", "Ligand"], how = "left") # type: ignore
             else:
-                # Merge the both DataFrames using the Protein column as a comparer
-                data = ptndf.join(data, on = ["Protein", "Ligand"], how = "left") # type: ignore
+                with vaex.progress.tree('rich', title="Merging dataframes"): # type: ignore
+                    # Merge both DataFrames using the Protein column as a comparer
+                    data = ptndf.join(data, on = ["Protein", "Ligand"], how = "left") # type: ignore
+            
+            print(data)
 
             # If saveCsv is True, save the csv
             if saveCsv:
@@ -3566,7 +3569,7 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
             # Return Nothing
             return None
     else:
-        octools.print_warning(f"The data object is not defined! There is no reason to write it as a pickle. Aborting...")
+        octools.print_warning(f"The data object is not defined! There is no reason to write it as a csv. Aborting...")
         # Return nothing
         return None
 
