@@ -2505,6 +2505,7 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str]) ->
 
     # If the receptor descriptor is not empty
     if receptor_descriptors: # type: ignore
+        print(receptor_descriptors.column_names)
         # Merge the receptor descriptors
         df = df.join(receptor_descriptors) # type: ignore
         # Drop the 'Path' column
@@ -2512,6 +2513,7 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str]) ->
     
     # If the ligand descriptor is not empty
     if ligand_descriptors: # type: ignore
+        print(ligand_descriptors.column_names)
         # Rename the 'Name' column to 'Ligand'
         ligand_descriptors.rename('Name', 'Ligand') # type: ignore
         # Drop the 'Path' column
