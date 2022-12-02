@@ -8,6 +8,7 @@ import math
 import os
 import vaex
 
+import numpy as np
 import vaex.dataframe as vdf
 
 from Bio.PDB import *
@@ -996,32 +997,37 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
             # Raise a Key error passing the file and the missing keys joined with ', '
             raise KeyError
 
-        # Create the countAA variable
+        # Create the countAA variable (here np.NaN does not have an exact 
         countAA = {
-            "A": data["countA"],
-            "R": data["countR"],
-            "N": data["countN"],
-            "D": data["countD"],
-            "C": data["countC"],
-            "Q": data["countQ"],
-            "E": data["countE"],
-            "G": data["countG"],
-            "H": data["countH"],
-            "I": data["countI"],
-            "L": data["countL"],
-            "K": data["countK"],
-            "M": data["countM"],
-            "F": data["countF"],
-            "P": data["countP"],
-            "S": data["countS"],
-            "T": data["countT"],
-            "W": data["countW"],
-            "Y": data["countY"],
-            "V": data["countV"]
+            "A": data["countA"] if data["countA"] != np.NaN else 0,
+            "R": data["countR"] if data["countR"] != np.NaN else 0,
+            "N": data["countN"] if data["countN"] != np.NaN else 0,
+            "D": data["countD"] if data["countD"] != np.NaN else 0,
+            "C": data["countC"] if data["countC"] != np.NaN else 0,
+            "Q": data["countQ"] if data["countQ"] != np.NaN else 0,
+            "E": data["countE"] if data["countE"] != np.NaN else 0,
+            "G": data["countG"] if data["countG"] != np.NaN else 0,
+            "H": data["countH"] if data["countH"] != np.NaN else 0,
+            "I": data["countI"] if data["countI"] != np.NaN else 0,
+            "L": data["countL"] if data["countL"] != np.NaN else 0,
+            "K": data["countK"] if data["countK"] != np.NaN else 0,
+            "M": data["countM"] if data["countM"] != np.NaN else 0,
+            "F": data["countF"] if data["countF"] != np.NaN else 0,
+            "P": data["countP"] if data["countP"] != np.NaN else 0,
+            "S": data["countS"] if data["countS"] != np.NaN else 0,
+            "T": data["countT"] if data["countT"] != np.NaN else 0,
+            "W": data["countW"] if data["countW"] != np.NaN else 0,
+            "Y": data["countY"] if data["countY"] != np.NaN else 0,
+            "V": data["countV"] if data["countV"] != np.NaN else 0
         }
 
         # If the returnVaex is set
         if returnVaex:
+            # Check if data has a 'Path' key
+            if "Path" in data:
+                # Remove the entry
+                _ = data.pop("Path")
+
             # For each key, element in data
             for key, element in data.items():
                 # Make the element for key be a list with only the element

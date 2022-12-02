@@ -2453,6 +2453,7 @@ def __merge_descriptors_in_dataframe_no_parallel_legacy(dirs: List[Tuple[str, st
             ptnList.append(__core_merge_descriptors_in_dataframe_legacy(dir, archive))
             # Clear the memory
             gc.collect()
+
     return pd.concat(ptnList, ignore_index=True)
 
 
@@ -2507,13 +2508,9 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str]) ->
     if receptor_descriptors: # type: ignore
         # Merge the receptor descriptors
         df = df.join(receptor_descriptors) # type: ignore
-        # Drop the 'Path' column
-        receptor_descriptors.drop("Path", inplace = True) # type: ignore
     
     # If the ligand descriptor is not empty
     if ligand_descriptors: # type: ignore
-        # Drop the 'Path' column
-        ligand_descriptors.drop("Path", inplace = True) # type: ignore
         # Merge the ligand descriptors
         df = df.join(ligand_descriptors) # type: ignore
 
@@ -3552,8 +3549,6 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
                     # Merge both DataFrames using the Protein column as a comparer
                     data = ptndf.join(data, on = ["Protein", "Ligand"], how = "left") # type: ignore
             
-            print(data)
-
             # If saveCsv is True, save the csv
             if saveCsv:
                 # Write the data to a new csv file
