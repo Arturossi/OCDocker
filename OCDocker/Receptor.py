@@ -985,6 +985,11 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
         #endregion
         # Validate the data
         for key in keys:
+            # Check if data has a 'mol2Path' key
+            if "mol2Path" in data:
+                # Remove the entry
+                _ = data.pop("mol2Path")
+                
             # If key is lacking in data read from json (means malformed json!)
             if not key in data:
                 # Add the missing key to the missing list
