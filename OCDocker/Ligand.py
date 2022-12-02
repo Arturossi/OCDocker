@@ -2813,6 +2813,7 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
             if not key in data:
                 # Add the missing key to the missing list
                 missing.append(key)
+        print(returnVaex)
 
         # If the returnVaex is set
         if returnVaex:
@@ -2824,8 +2825,6 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
         if missing:
             # Raise a Key error passing the file and the missing keys joined with ', '
             raise KeyError((path, ", ".join(missing)))
-
-        print(data)
 
         # If the returnData flag is on
         if returnData:
