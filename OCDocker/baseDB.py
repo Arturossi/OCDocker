@@ -2998,6 +2998,7 @@ def prepare(archive: str, overwrite: bool = False, spacing: float = 0.33, saniti
 
     # Make archive lowercase
     archive = os.path.basename(archive).lower()
+
     # Find which kind of archive it will be
     if archive == "dudez":
         chosenArchive = dudez_archive
@@ -3536,23 +3537,43 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
             # Rename the name column from data dataframe
             data = data.rename('Name', 'Ligand')
             
-            # Read the csv from input file
-            ptndf = vaex.read_csv(csv_path_in, progress = True if args.verbose else False)
-
-            # If verbose
-            if args.verbose:
+            if args.output_level > 2:
                 with vaex.progress.tree('rich', title="Merging dataframes"): # type: ignore
-                    # Merge both DataFrames using the Protein column as a comparer
-                    data = ptndf.join(data, on = ["Protein", "Ligand"], how = "left") # type: ignore
+                    # Read the csv from input file
+                    ptndf = vaex.read_csv(csv_path_in)
             else:
+                # Read the csv from input file
+                ptndf = vaex.read_csv(csv_path_in)
+
+            # Generate the Complex column for ptndf and data from "Protein" and "Ligand" columns
+            ptndf["Complex"] = ptndf['Protein'] + "-" + ptndf['Ligand'] # type: ignore
+            data["Complex"] = data['Protein'] + "-" + data['Ligand'] # type: ignore
+
+            # Materialize the dataframes (since we are going to drop Protein and Ligand columns)
+            ptndf.materialize("Complex", inplace = True) # type: ignore
+            data.materialize("Complex", inplace = True) # type: ignore
+
+            # Drop the Protein and Ligand columns
+            ptndf = ptndf.drop(['Protein', 'Ligand']) # type: ignore
+            data = data.drop(['Protein', 'Ligand']) # type: ignore
+            
+            # If verbose
+            if args.output_level > 2:
                 with vaex.progress.tree('rich', title="Merging dataframes"): # type: ignore
-                    # Merge both DataFrames using the Protein column as a comparer
-                    data = ptndf.join(data, on = ["Protein", "Ligand"], how = "left") # type: ignore
+                    # Merge both DataFrames using the Complex column as a comparer
+                    data = ptndf.join(data, on = "Complex", how = "left") # type: ignore
+            else:
+                # Merge both DataFrames using the Protein column as a comparer
+                data = ptndf.join(data, on = "Complex", how = "left") # type: ignore
             
             # If saveCsv is True, save the csv
             if saveCsv:
-                # Write the data to a new csv file
-                data.to_csv(csv_path_out, index = False, backend = "arrow", progress = True if args.verbose else False)
+                if args.output_level > 2:
+                    with vaex.progress.tree('rich', title="Merging dataframes"): # type: ignore
+                        data.export_csv(csv_path_out, backend = "arrow")
+                else:
+                    # Write the data to a new csv file
+                    data.export_csv(csv_path_out, backend = "arrow")
 
                 octools.print_success(f"The file '{csv_path_out}' has been successfully written.")
 
