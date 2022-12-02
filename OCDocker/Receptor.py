@@ -996,8 +996,6 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
             # Raise a Key error passing the file and the missing keys joined with ', '
             raise KeyError
 
-        print(returnVaex)
-
         # Create the countAA variable
         countAA = {
             "A": data["countA"],
@@ -1028,7 +1026,7 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
             for key, element in data.items():
                 # Make the element for key be a list with only the element
                 data[key] = [element]
-                
+
             # Convert the data to a vaex DataFrame
             return vaex.from_dict(data)
 
