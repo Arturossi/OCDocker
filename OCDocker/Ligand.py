@@ -2816,6 +2816,7 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
 
         # If the returnVaex is set
         if returnVaex:
+            print(vaex.from_dict(data))
             # Convert the data to a vaex DataFrame
             return vaex.from_dict(data)
 
