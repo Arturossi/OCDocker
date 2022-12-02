@@ -2505,8 +2505,6 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str]) ->
 
     # If the receptor descriptor is not empty
     if receptor_descriptors: # type: ignore
-        # Rename the 'Name' column to 'Protein'
-        receptor_descriptors.rename("Name", "Protein") # type: ignore
         # Merge the receptor descriptors
         df = df.join(receptor_descriptors) # type: ignore
         # Drop the 'Path' column
