@@ -98,6 +98,7 @@ class DownloadProgressBar(tqdm):
 ## Public ##
 
 ### Print functions
+
 def printv(message: str) -> None:
     '''Function to print if verbosity mode is set.
 
@@ -521,6 +522,7 @@ def print_sorry()-> None:
     return None
 
 ### Conversion functions
+
 def convertMolsFromString(input: str, output: str, mol: Union[rdkit.Chem.rdchem.Mol, None] = None) -> Union[int, str]: # type: ignore
     '''Currently only works with smiles. TODO: Add support to other formats.
 
@@ -786,6 +788,7 @@ def clear_past_logs() -> None:
     return None
 
 ### Validation functions
+
 def validate_obabel_extension(path: str) -> Union[str, int]:
     '''Validate the input file extension to ensure the compability with obabel lib.
 
@@ -1357,7 +1360,6 @@ def make_only_ATOM_and_CRYST_pdb(structurePath: str) -> int:
         return errors.ok()
     else:
         return errors.file_do_not_exist(message = f"The file '{structurePath}' does not exist!", level = "error")
-
 
 ### Special functions
 
