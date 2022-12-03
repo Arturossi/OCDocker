@@ -927,13 +927,15 @@ def is_molecule_valid(molecule: str) -> bool:
 
 ### File manipulation
 
-def lazyread_mmap(file_name: str) -> Generator[str, None, None]:
+def lazyread_mmap(file_name: str, decode: str = "utf-8") -> Generator[str, None, None]:
     '''Read a file in reverse order using mmap.
 
     Parameters
     ----------
     file_name : str
         The file to be read.
+    decode : str, optional
+        The decode to be used, by default "utf-8"
 
     Returns
     -------
@@ -947,42 +949,20 @@ def lazyread_mmap(file_name: str) -> Generator[str, None, None]:
 
     # Open file for reading in binary mode
     with open(file_name, 'rb') as read_obj:
-        with mmap.mmap(read_obj.fileno(), 0, access=mmap.ACCESS_READ) as mmap_obj:
-            # Move the cursor to the end of the file
-            mmap_obj.seek(0, os.SEEK_END)
-            # Get the current position of pointer i.e eof
-            pointer_location = mmap_obj.tell()
-            # Create a buffer to keep the last read line
-            buffer = bytearray()
-            # Loop till pointer reaches the top of the file
-            while pointer_location <= os.SEEK_END:
-                # Move the file pointer to the location pointed by pointer_location
-                mmap_obj.seek(pointer_location)
-                # Shift pointer location by +1
-                pointer_location = pointer_location + 1
-                # read that byte / character
-                new_byte = mmap_obj.read(1)
-                # If the read byte is new line character then it means one line is read
-                if new_byte == b'\n':
-                    # Fetch the line from buffer and yield it
-                    yield buffer.decode()[::-1]
-                    # Reinitialize the byte array to save next line
-                    buffer = bytearray()
-                else:
-                    # If last read character is not eol then add it in buffer
-                    buffer.extend(new_byte)
-            # As file is read completely, if there is still data in buffer, then its the first line.
-            if len(buffer) > 0:
-                # Yield the first line too
-                yield buffer.decode()[::-1]
+        with mmap.mmap(read_obj.fileno(), 0, access = mmap.ACCESS_READ) as mmap_obj:
+            # Read line by line
+            for line in iter(mmap_obj.readline, b''):
+                yield line.decode(decode)
 
-def lazyread_reverse_order_mmap(file_name: str) -> Generator[str, None, None]:
+def lazyread_reverse_order_mmap(file_name: str, decode: str = "utf-8") -> Generator[str, None, None]:
     '''Read a file in reverse order using mmap.
 
     Parameters
     ----------
     file_name : str
         The file to be read.
+    decode : str, optional
+        The decode to be used, by default "utf-8"
 
     Returns
     -------
@@ -996,7 +976,7 @@ def lazyread_reverse_order_mmap(file_name: str) -> Generator[str, None, None]:
 
     # Open file for reading in binary mode
     with open(file_name, 'rb') as read_obj:
-        with mmap.mmap(read_obj.fileno(), 0, access=mmap.ACCESS_READ) as mmap_obj:
+        with mmap.mmap(read_obj.fileno(), 0, access = mmap.ACCESS_READ) as mmap_obj:
             # Move the cursor to the end of the file
             mmap_obj.seek(0, os.SEEK_END)
             # Get the current position of pointer i.e eof
@@ -1014,7 +994,7 @@ def lazyread_reverse_order_mmap(file_name: str) -> Generator[str, None, None]:
                 # If the read byte is new line character then it means one line is read
                 if new_byte == b'\n':
                     # Fetch the line from buffer and yield it
-                    yield buffer.decode()[::-1]
+                    yield buffer.decode(decode)[::-1]
                     # Reinitialize the byte array to save next line
                     buffer = bytearray()
                 else:
@@ -1023,7 +1003,7 @@ def lazyread_reverse_order_mmap(file_name: str) -> Generator[str, None, None]:
             # As file is read completely, if there is still data in buffer, then its the first line.
             if len(buffer) > 0:
                 # Yield the first line too
-                yield buffer.decode()[::-1]
+                yield buffer.decode(decode)[::-1]
 
 ### Other functions
 
