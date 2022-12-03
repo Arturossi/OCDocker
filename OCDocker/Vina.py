@@ -654,7 +654,7 @@ def read_vina_log(path: str) -> Union[Dict[str, List[Union[str, float]]], int]:
         lastReadLine = ""
 
         # Read the file reversely
-        for line in octools.read_reverse_order_mmap(path):
+        for line in octools.lazyread_reverse_order_mmap(path):
             # If a stop line is found, means that the last read line is the one that is wanted
             if line.startswith("-----+"):
                 # Split the last line
@@ -677,6 +677,6 @@ def read_vina_log(path: str) -> Union[Dict[str, List[Union[str, float]]], int]:
 
         # Return the df reversing the order and reseting the index
         return data
-        
+
     # Throw an error
     return errors.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
