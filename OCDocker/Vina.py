@@ -647,29 +647,25 @@ def read_vina_log(path: str) -> Union[Dict[str, List[Union[str, float]]], int]:
 
     # Check if file exists
     if os.path.isfile(path):
-        # Open the log file
-        with open(path, "r") as f:
-            # Read ALL the lines in file (there should not be lots of lines, so no problem)
-            lines = f.readlines()
-
         # Create a dictionary to store the info
         data = {"vina_mode": [], "vina_affinity": []}
 
-        # Initiate the last line as empty
-        lastLine = ""
+        # Initiate the last read line as empty
+        lastReadLine = ""
 
-        # For each line from the end to the beggining (reverse iteration since the intresting data is in the end of the file)
-        for i in range(len(lines)-1, -1, -1):
-            # If useless information is in our way ignore it
-            if lines[i].startswith("-----+"):
+        # Read the file reversely
+        for line in octools.read_reverse_order_mmap(path):
+            # If a stop line is found, means that the last read line is the one that is wanted
+            if line.startswith("-----+"):
                 # Split the last line
-                lastLine = lastLine.split()
+                lastLine = lastReadLine.split()
                 data["vina_mode"].append(lastLine[0])
                 data["vina_affinity"].append(lastLine[1])
                 break
 
-            lastLine = lines[i]
-
+            # Assign the last read line as the current line
+            lastReadLine = line
+        
         # Check if the len of the data["smina_mode"] is 0
         if len(data["vina_mode"]) == 0:
             # Assign np.Nan to it
@@ -681,5 +677,6 @@ def read_vina_log(path: str) -> Union[Dict[str, List[Union[str, float]]], int]:
 
         # Return the df reversing the order and reseting the index
         return data
+        
     # Throw an error
     return errors.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")

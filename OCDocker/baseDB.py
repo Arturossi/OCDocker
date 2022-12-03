@@ -3550,16 +3550,13 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
                 # Read the csv from input file
                 ptndf = vaex.read_csv(csv_path_in)
 
-            # Generate the Complex column for ptndf and data from "Protein" and "Ligand" columns
+            # Generate and materialize the Complex column for ptndf and data from "Protein" and "Ligand" columns then drop them
             ptndf["Complex"] = ptndf['Protein'] + "-" + ptndf['Ligand'] # type: ignore
-            data["Complex"] = data['Protein'] + "-" + data['Ligand'] # type: ignore
-
-            # Materialize the dataframes (since we are going to drop Protein and Ligand columns)
             ptndf.materialize("Complex", inplace = True) # type: ignore
-            data.materialize("Complex", inplace = True) # type: ignore
-
-            # Drop the Protein and Ligand columns
             ptndf = ptndf.drop(['Protein', 'Ligand']) # type: ignore
+
+            data["Complex"] = data['Protein'] + "-" + data['Ligand'] # type: ignore
+            data.materialize("Complex", inplace = True) # type: ignore
             data = data.drop(['Protein', 'Ligand']) # type: ignore
             
             # If verbose
