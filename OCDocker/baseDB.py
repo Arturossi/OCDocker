@@ -2153,6 +2153,9 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
         }
     )
 
+    # Clean the memory
+    del vinaDict, sminaDict, plantsDict
+
     # Return the proteinData dict
     return proteinData # type: ignore
 
@@ -2220,10 +2223,14 @@ def __read_log_parallel(ptnDirs: List[Tuple[str, str]], desc: str) -> Dict[str, 
         with Pool(args.available_cores) as p:
             # Perform the multi process
             for innerData in tqdm(p.imap_unordered(__thread_read_log_parallel, arguments), total = len(arguments), desc = desc):
-                # Update the dict with the result from the called function
-                data.update(innerData)
-                # Clear the memory
+                # Get the key from innerData
+                key = list(innerData.keys())[0]
+                # Set the value of the key in data to the value of the key in innerData
+                data[key] = innerData[key]
+                # Clean the memory
+                del innerData
                 gc.collect()
+                
     except IOError as e:
         octools.print_error_log(f"Problem while reading logs in parallel. Exception: {e}", f"{logdir}/read_log_ERROR_report.log")
         octools.print_error(f"Problem while reading logs in parallel. Exception: {e}")

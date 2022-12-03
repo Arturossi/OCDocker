@@ -628,7 +628,7 @@ def read_vina_log_legacy(path: str) -> Union[pd.DataFrame, int]:
     return errors.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
 
 def read_vina_log(path: str) -> Union[Dict[str, List[Union[str, float]]], int]:
-    '''Read the vina log path, returning a pd.dataframe with data from complexes.
+    '''Read the vina log path, returning the data from complexes.
 
     Parameters
     ----------
