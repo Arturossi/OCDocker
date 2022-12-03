@@ -24,4 +24,4 @@
 
 ### 3
 - Review the pandas merge function when reading results to generate docking result file (.csv). (IN TEST) | 3
-- Fix broken pipe problem (possible fix help: https://linuxpip.org/broken-pipe-python-error/) | 3
+- Fix broken pipe problem (possible fix help: https://linuxpip.org/broken-pipe-python-error/). (IN TEST) | 3

@@ -171,12 +171,16 @@ def __process_dudez_parallel(targets: List[str], overwrite: bool, desc: str) -> 
     for target in targets:
         # Append a tuple containing the file name and ovewrite flag to the arguments list
         arguments.append((target, overwrite))
-    # Create a Thread pool with the maximum available_cores
-    with Pool(args.available_cores) as p:
-        # Perform the multi process
-        for _ in tqdm(p.imap_unordered(__thread_process_dudez, arguments), total = len(arguments), desc = desc):
-            # Clear the memory
-            gc.collect()
+    try:
+        # Create a Thread pool with the maximum available_cores
+        with Pool(args.available_cores) as p:
+            # Perform the multi process
+            for _ in tqdm(p.imap_unordered(__thread_process_dudez, arguments), total = len(arguments), desc = desc):
+                # Clear the memory
+                gc.collect()
+    except IOError as e:
+        octools.print_error(f"Problem while processing DUDEz in parallel. Exception: {e}")
+
     return None
 
 def __process_dudez_no_parallel(targets: List[str], overwrite: bool, desc: str) -> None:

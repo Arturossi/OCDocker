@@ -215,12 +215,17 @@ def __p2rank_parallel(dirs: List[str], overwrite: bool, archive: str, desc: str)
     for dir in dirs:
         # Append a tuple containing the file name and ovewrite flag to the arguments list
         arguments.append((dir, overwrite, archive))
-    # Create a Thread pool with the maximum available_cores
-    with Pool(args.available_cores) as p:
-        # Perform the multi process
-        for _ in tqdm(p.imap_unordered(__thread_p2rank, arguments), total = len(arguments), desc = desc):
-            # Clear the memory
-            gc.collect()
+    try:
+        # Create a Thread pool with the maximum available_cores
+        with Pool(args.available_cores) as p:
+            # Perform the multi process
+            for _ in tqdm(p.imap_unordered(__thread_p2rank, arguments), total = len(arguments), desc = desc):
+                # Clear the memory
+                gc.collect()
+    except IOError as e:
+        octools.print_error_log(f"Problem while running p2rank in parallel. Exception: {e}", f"{logdir}/{archive}_p2rank_report.log")
+        octools.print_error(f"Problem while running p2rank in parallel. Exception: {e}")
+
     # Return
     return None
 
@@ -694,12 +699,16 @@ def __prepare_parallel(dirs: List[str], overwrite: bool, archive: str, sanitize:
         # Append a tuple containing the file name and ovewrite flag to the arguments list
         arguments.append((dir, overwrite, archive, sanitize, spacing))
 
-    # Create a Thread pool with the maximum available_cores
-    with Pool(args.available_cores) as p:
-        # Perform the multi process
-        for _ in tqdm(p.imap_unordered(__thread_prepare, arguments), total = len(arguments), desc = desc):
-            # Clear the memory
-            gc.collect()
+    try:
+        # Create a Thread pool with the maximum available_cores
+        with Pool(args.available_cores) as p:
+            # Perform the multi process
+            for _ in tqdm(p.imap_unordered(__thread_prepare, arguments), total = len(arguments), desc = desc):
+                # Clear the memory
+                gc.collect()
+    except IOError as e:
+        octools.print_error_log(f"Problem while preparing {archive}. Exception: {e}", f"{logdir}/{archive}_prepare_report.log")
+        octools.print_error(f"Problem while preparing {archive}. Exception: {e}")
     
     return None
 
@@ -1465,12 +1474,16 @@ def __run_dock_parallel(complexList: List[Tuple[str, List[str]]], archive: str, 
             octools.safe_create_dir(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past")
         os.rename(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_WARNING.log", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past/{archive}_{dockingAlgorithm}_run_report_WARNING_{time.strftime('%d%m%Y-%H%M%S')}.log")
 
-    # Create a Thread pool with the maximum available_cores
-    with Pool(args.available_cores) as p:
-        # Perform the multi process
-        for _ in tqdm(p.imap_unordered(__thread_run_dock_parallel, arguments), total = len(arguments), desc = desc):
-            # Clear the memory
-            gc.collect()
+    try:
+        # Create a Thread pool with the maximum available_cores
+        with Pool(args.available_cores) as p:
+            # Perform the multi process
+            for _ in tqdm(p.imap_unordered(__thread_run_dock_parallel, arguments), total = len(arguments), desc = desc):
+                # Clear the memory
+                gc.collect()
+    except IOError as e:
+        octools.print_error_log(f"Problem while running docking software {dockingAlgorithm} in parallel. Exception: {e}", f"{logdir}/{archive}_docking_report.log")
+        return errors.docking_failed(f"Problem while running docking software {dockingAlgorithm} in parallel. Exception: {e}", level = "error")
 
     # Return
     return errors.ok() # FIXME: This should be changed to return the error code in a way to track all docking errors
@@ -2194,30 +2207,26 @@ def __read_log_parallel(ptnDirs: List[Tuple[str, str]], desc: str) -> Dict[str, 
         arguments.append((ptnDir, None))
 
     # If logfile exists, backup it for vina, smina and plants (for error and warnings)
-    if os.path.isfile(f"{logdir}/vina_read_log_ERROR.log"):
+    if os.path.isfile(f"{logdir}/read_log_ERROR.log"):
         if not os.path.isdir(f"{logdir}/read_log_past"):
             octools.safe_create_dir(f"{logdir}/read_log_past")
-        os.rename(f"{logdir}/vina_read_log_ERROR.log", f"{logdir}/read_log_past/vina_read_log_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
-    if os.path.isfile(f"{logdir}/smina_read_log_ERROR.log"):
-        if not os.path.isdir(f"{logdir}/read_log_past"):
-            octools.safe_create_dir(f"{logdir}/read_log_past")
-        os.rename(f"{logdir}/smina_read_log_ERROR.log", f"{logdir}/read_log_past/smina_read_log_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
-    if os.path.isfile(f"{logdir}/plants_read_log_ERROR.log"):
-        if not os.path.isdir(f"{logdir}/read_log_past"):
-            octools.safe_create_dir(f"{logdir}/read_log_past")
-        os.rename(f"{logdir}/plants_read_log_ERROR.log", f"{logdir}/read_log_past/plants_read_log_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
+        os.rename(f"{logdir}/read_log_ERROR.log", f"{logdir}/read_log_past/read_log_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
 
     # Dict to store the read data
     data = {}
 
-    # Create a Thread pool with the maximum available_cores
-    with Pool(args.available_cores) as p:
-        # Perform the multi process
-        for innerData in tqdm(p.imap_unordered(__thread_read_log_parallel, arguments), total = len(arguments), desc = desc):
-            # Update the dict with the result from the called function
-            data.update(innerData)
-            # Clear the memory
-            gc.collect()
+    try:
+        # Create a Thread pool with the maximum available_cores
+        with Pool(args.available_cores) as p:
+            # Perform the multi process
+            for innerData in tqdm(p.imap_unordered(__thread_read_log_parallel, arguments), total = len(arguments), desc = desc):
+                # Update the dict with the result from the called function
+                data.update(innerData)
+                # Clear the memory
+                gc.collect()
+    except IOError as e:
+        octools.print_error_log(f"Problem while reading logs in parallel. Exception: {e}", f"{logdir}/read_log_ERROR_report.log")
+        octools.print_error(f"Problem while reading logs in parallel. Exception: {e}")
 
     return data
 
@@ -2569,30 +2578,26 @@ def __merge_descriptors_in_dataframe_parallel(dirs: List[Tuple[str, str]], desc:
         arguments.append((d, None))
 
     # If logfile exists, backup it for vina, smina and plants (for error and warnings)
-    if os.path.isfile(f"{logdir}/vina_read_log_ERROR.log"):
+    if os.path.isfile(f"{logdir}/read_log_ERROR.log"):
         if not os.path.isdir(f"{logdir}/read_log_past"):
             octools.safe_create_dir(f"{logdir}/read_log_past")
-        os.rename(f"{logdir}/vina_read_log_ERROR.log", f"{logdir}/read_log_past/vina_read_log_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
-    if os.path.isfile(f"{logdir}/smina_read_log_ERROR.log"):
-        if not os.path.isdir(f"{logdir}/read_log_past"):
-            octools.safe_create_dir(f"{logdir}/read_log_past")
-        os.rename(f"{logdir}/smina_read_log_ERROR.log", f"{logdir}/read_log_past/smina_read_log_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
-    if os.path.isfile(f"{logdir}/plants_read_log_ERROR.log"):
-        if not os.path.isdir(f"{logdir}/read_log_past"):
-            octools.safe_create_dir(f"{logdir}/read_log_past")
-        os.rename(f"{logdir}/plants_read_log_ERROR.log", f"{logdir}/read_log_past/plants_read_log_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
+        os.rename(f"{logdir}/read_log_ERROR.log", f"{logdir}/read_log_past/read_log_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
 
     # List with all protein data
     ptnList = []
 
-    # Create a Thread pool with the maximum available_cores
-    with Pool(args.available_cores) as p:
-        # Perform the multi process
-        for innerData in tqdm(p.imap_unordered(__thread_merge_descriptors_in_dataframe_parallel, arguments), total = len(arguments), desc = desc):
-            # Update the dict with the result from the called function
-            ptnList.append(innerData)
-            # Clear the memory
-            gc.collect()
+    try:
+        # Create a Thread pool with the maximum available_cores
+        with Pool(args.available_cores) as p:
+            # Perform the multi process
+            for innerData in tqdm(p.imap_unordered(__thread_merge_descriptors_in_dataframe_parallel, arguments), total = len(arguments), desc = desc):
+                # Update the dict with the result from the called function
+                ptnList.append(innerData)
+                # Clear the memory
+                gc.collect()
+    except IOError as e:
+        octools.print_error_log(f"Problem while mergin descriptors in parallel. Exception: {e}", f"{logdir}/read_log_ERROR_report.log")
+        octools.print_error(f"Problem while mergin descriptors in parallel. Exception: {e}")
 
     return vaex.concat(ptnList) # type: ignore
 
