@@ -34,19 +34,19 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 # Description
 ###############################################################################
 '''
-Sets of classes and functions that are used to prepare smina files and run it.
+Sets of classes and functions that are used to prepare gnina files and run it.
 
 They are imported as:
 
-import OCDocker.Smina as ocsmina
+import OCDocker.Gnina as ocgnina
 '''
 
 # Classes
 ###############################################################################
-class Smina:
-    """Smina object with methods for easy run."""
-    def __init__(self, configPath: str, boxFile: str, receptor: ocr.Receptor, preparedReceptorPath: str, ligand: ocl.Ligand, preparedLigandPath: str, sminaLog: str, outputSmina: str, name: str = "", overwriteConfig: bool = False) -> None:
-        '''Constructor of the class Smina.
+class Gnina:
+    """Gnina object with methods for easy run."""
+    def __init__(self, configPath: str, boxFile: str, receptor: ocr.Receptor, preparedReceptorPath: str, ligand: ocl.Ligand, preparedLigandPath: str, gninaLog: str, outputGnina: str, name: str = "", overwriteConfig: bool = False) -> None:
+        '''Constructor of the class Gnina.
 
         Parameters
         ----------

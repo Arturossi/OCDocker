@@ -3405,7 +3405,7 @@ def read_logs(archive: str, picklePath: str = "") -> Union[Dict[str, vdf.DataFra
     processDirs = []
 
     # For each dir in chosenArchive
-    for ptnDir in glob(f"{chosenArchive}/*"):
+    for ptnDir in glob(f"{chosenArchive}/*")[:4]:
         # Check if is a dir (just in case) and if its name is not one of the ones we want to skip
         if os.path.isdir(ptnDir) and os.path.basename(ptnDir.split(os.path.sep)[-1]) not in ['index']:
             ligands = f"{ptnDir}/compounds/ligands"
@@ -3416,7 +3416,7 @@ def read_logs(archive: str, picklePath: str = "") -> Union[Dict[str, vdf.DataFra
             processDirs += [(processDir, "ligand") for processDir in glob(f"{ligands}/*") if os.path.isdir(processDir)]
             processDirs += [(processDir, "decoy") for processDir in glob(f"{decoys}/*") if os.path.isdir(processDir)]
             processDirs += [(processDir, "candidate") for processDir in glob(f"{candidates}/*") if os.path.isdir(processDir)]
-
+        
     # Make data be None (in case of failure)
     data = None
 
@@ -3518,7 +3518,7 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
     processDirs = []
 
     # For each dir in chosenArchive
-    for ptnDir in glob(f"{chosenArchive}/*"):
+    for ptnDir in glob(f"{chosenArchive}/*")[:4]:
         # Check if is a dir (just in case) and if its name is not one of the ones we want to skip
         if os.path.isdir(ptnDir) and os.path.basename(ptnDir.split(os.path.sep)[-1]) not in ['index']:
             # Parameterize paths
@@ -3532,7 +3532,7 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
             processDirs += [(processDir, receptor_descriptor_path) for processDir in glob(f"{ligands}/*") if os.path.isdir(processDir)]
             processDirs += [(processDir, receptor_descriptor_path) for processDir in glob(f"{decoys}/*") if os.path.isdir(processDir)]
             processDirs += [(processDir, receptor_descriptor_path) for processDir in glob(f"{candidates}/*") if os.path.isdir(processDir)]
-
+    
     # Make data be None (in case of failure)
     data = None
     

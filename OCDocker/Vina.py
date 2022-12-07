@@ -648,7 +648,7 @@ def read_vina_log(path: str) -> Union[Dict[str, List[Union[str, float]]], int]:
     # Check if file exists
     if os.path.isfile(path):
         # Create a dictionary to store the info
-        data = {"vina_mode": [], "vina_affinity": []}
+        data = {"vina_affinity": []}
 
         # Initiate the last read line as empty
         lastReadLine = ""
@@ -659,19 +659,13 @@ def read_vina_log(path: str) -> Union[Dict[str, List[Union[str, float]]], int]:
             if line.startswith("-----+"):
                 # Split the last line
                 lastLine = lastReadLine.split()
-                data["vina_mode"].append(lastLine[0])
                 data["vina_affinity"].append(lastLine[1])
                 break
 
             # Assign the last read line as the current line
             lastReadLine = line
         
-        # Check if the len of the data["smina_mode"] is 0
-        if len(data["vina_mode"]) == 0:
-            # Assign np.Nan to it
-            data["vina_mode"].append(np.NaN)
-
-        # Check if the len of the data["smina_affinity"] is 0
+        # Check if the len of the data["vina_affinity"] is 0
         if len(data["vina_affinity"]) == 0:
             data["vina_affinity"].append(np.NaN)
 
