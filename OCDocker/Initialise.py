@@ -150,7 +150,7 @@ def create_ocdocker_conf() -> None:
     confSmina_custom_scoring_file = "no"
     confSmina_custom_atoms = "no"
     confSmina_local_only = "no"
-    confSmine_minimize = "no"
+    confSmina_minimize = "no"
     confSmina_randomize_only = "no"
     confSmina_minimize_iters = "0"
     confSmina_accurate_line = "yes"
@@ -186,8 +186,8 @@ def create_ocdocker_conf() -> None:
     answer = input(f"Smina local only parameter [yes/no]. Default [{confSmina_local_only}] (press enter to keep default): ")
     confSmina_local_only = confSmina_local_only if not answer else answer.lower()
 
-    answer = input(f"Smina minimize parameter [yes/no]. Default [{confSmine_minimize}] (press enter to keep default): ")
-    confSmine_minimize = confSmine_minimize if not answer else answer.lower()
+    answer = input(f"Smina minimize parameter [yes/no]. Default [{confSmina_minimize}] (press enter to keep default): ")
+    confSmina_minimize = confSmina_minimize if not answer else answer.lower()
 
     answer = input(f"Smina randomize only parameter [yes/no]. Default [{confSmina_randomize_only}] (press enter to keep default): ")
     confSmina_randomize_only = confSmina_randomize_only if not answer else answer.lower()
@@ -195,13 +195,13 @@ def create_ocdocker_conf() -> None:
     answer = input(f"Smina scoring function parameter. Default [{confSmina_minimize_iters}] (press enter to keep default): ")
     confSmina_minimize_iters = confSmina_minimize_iters if not answer else answer
 
-    answer = input(f"Smina scoring function parameter [yes/no]. Default [{confSmina_accurate_line}] (press enter to keep default): ")
+    answer = input(f"Smina use accurate line search parameter [yes/no]. Default [{confSmina_accurate_line}] (press enter to keep default): ")
     confSmina_accurate_line = confSmina_accurate_line if not answer else answer.lower()
 
     answer = input(f"Smina minimize early parameter [yes/no]. Default [{confSmina_minimize_early_term}] (press enter to keep default): ")
     confSmina_minimize_early_term = confSmina_minimize_early_term if not answer else answer.lower()
 
-    answer = input(f"Smina scoring function parameter. Default [{confSmina_approximation}] (press enter to keep default): ")
+    answer = input(f"Smina approximation (linear, spline, or exact) to use parameter parameter. Default [{confSmina_approximation}] (press enter to keep default): ")
     confSmina_approximation = confSmina_approximation if not answer else answer
 
     answer = input(f"Smina factor parameter. Default [{confSmina_factor}] (press enter to keep default): ")
@@ -216,6 +216,94 @@ def create_ocdocker_conf() -> None:
     answer = input(f"Smina user grid lambda parameter. Default [{confSmina_user_grid_lambda}] (press enter to keep default): ")
     confSmina_user_grid_lambda = confSmina_user_grid_lambda if not answer else answer
 
+    #endregion
+
+    #region GNINA variables
+    confGnina = "/data/hd4tb/OCDocker/software/docking/gnina/gnina"
+    confGnina_exhaustiveness = "8"
+    confGnina_num_modes = "9"
+    confGnina_scoring = "default"
+    confGnina_custom_scoring_file = "no"
+    confGnina_custom_atoms = "no"
+    confGnina_local_only = "no"
+    confGnina_minimize = "no"
+    confGnina_randomize_only = "no"
+    confGnina_num_mc_steps = "no"
+    confGnina_max_mc_steps = "no"
+    confGnina_num_mc_saved = "no"
+    confGnina_minimize_iters = "0"
+    confGnina_simple_ascent = "no"
+    confGnina_accurate_line = "yes"
+    confGnina_minimize_early_term = "no"
+    confGnina_approximation = "spline"
+    confGnina_factor = "32"
+    confGnina_force_cap = "10"
+    confGnina_user_grid = "no"
+    confGnina_user_grid_lambda = "-1"
+
+    print("\nGnina configuration")
+    answer = input(f"Path to the Gnina software. Default [{confGnina}] (press enter to keep default): ")
+    confGnina = confGnina if not answer else answer
+
+    answer = input(f"Gnina exhaustiveness parameter. Default [{confGnina_exhaustiveness}] (press enter to keep default): ")
+    confGnina_exhaustiveness = confGnina_exhaustiveness if not answer else answer
+
+    answer = input(f"Gnina num modes parameter. Default [{confGnina_num_modes}] (press enter to keep default): ")
+    confGnina_num_modes = confGnina_num_modes if not answer else answer
+
+    answer = input(f"Gnina scoring function parameter. Default [{confGnina_scoring}] (press enter to keep default): ")
+    confGnina_scoring = confGnina_scoring if not answer else answer
+
+    answer = input(f"Gnina custom scoring file parameter ('no' to ignore this parameter, otherwise provide the path). Default [{confGnina_custom_scoring_file}] (press enter to keep default): ")
+    confGnina_custom_scoring_file = confGnina_custom_scoring_file if not answer else answer
+
+    answer = input(f"Gnina custom atoms file parameter ('no' to ignore this parameter, otherwise provide the path). Default [{confGnina_custom_atoms}] (press enter to keep default): ")
+    confGnina_custom_atoms = confGnina_custom_atoms if not answer else answer
+
+    answer = input(f"Gnina local only parameter [yes/no]. Default [{confGnina_local_only}] (press enter to keep default): ")
+    confGnina_local_only = confGnina_local_only if not answer else answer.lower()
+
+    answer = input(f"Gnina minimize parameter [yes/no]. Default [{confGnina_minimize}] (press enter to keep default): ")
+    confGnina_minimize = confGnina_minimize if not answer else answer.lower()
+
+    answer = input(f"Gnina randomize only parameter [yes/no]. Default [{confGnina_randomize_only}] (press enter to keep default): ")
+    confGnina_randomize_only = confGnina_randomize_only if not answer else answer.lower()
+
+    answer = input(f"Gnina number of monte carlo steps parameter [yes/no]. Default [{confGnina_num_mc_steps}] (press enter to keep default): ")
+    confGnina_num_mc_steps = confGnina_num_mc_steps if not answer else answer.lower()
+
+    answer = input(f"Gnina cap on number of monte carlo steps to take in each chain. Default [{confGnina_max_mc_steps}] (press enter to keep default): ")
+    confGnina_max_mc_steps = confGnina_max_mc_steps if not answer else answer.lower()
+
+    answer = input(f"Gnina number of pose saves in each monte carlo chain parameter [yes/no]. Default [{confGnina_num_mc_saved}] (press enter to keep default): ")
+    confGnina_num_mc_saved = confGnina_num_mc_saved if not answer else answer.lower()
+
+    answer = input(f"Gnina number iterations of steepest descent parameter. Default [{confGnina_minimize_iters}] (press enter to keep default): ")
+    confGnina_minimize_iters = confGnina_minimize_iters if not answer else answer
+
+    answer = input(f"Gnina use simple gradient ascent parameter. Default [{confGnina_simple_ascent}] (press enter to keep default): ")
+    confGnina_simple_ascent = confGnina_simple_ascent if not answer else answer
+
+    answer = input(f"Gnina use accurate line search parameter [yes/no]. Default [{confGnina_accurate_line}] (press enter to keep default): ")
+    confGnina_accurate_line = confGnina_accurate_line if not answer else answer.lower()
+
+    answer = input(f"Gnina minimize early parameter [yes/no]. Default [{confGnina_minimize_early_term}] (press enter to keep default): ")
+    confGnina_minimize_early_term = confGnina_minimize_early_term if not answer else answer.lower()
+
+    answer = input(f"Gnina approximation (linear, spline, or exact) to use parameter. Default [{confGnina_approximation}] (press enter to keep default): ")
+    confGnina_approximation = confGnina_approximation if not answer else answer.lower()
+
+    answer = input(f"Gnina factor parameter. Default [{confGnina_factor}] (press enter to keep default): ")
+    confGnina_factor = confGnina_factor if not answer else answer
+
+    answer = input(f"Gnina force cap parameter. Default [{confGnina_force_cap}] (press enter to keep default): ")
+    confGnina_force_cap = confGnina_force_cap if not answer else answer
+
+    answer = input(f"Gnina user grid parameter ('no' to ignore this parameter, otherwise provide the path). Default [{confGnina_user_grid}] (press enter to keep default): ")
+    confGnina_user_grid = confGnina_user_grid if not answer else answer
+
+    answer = input(f"Gnina user grid lambda parameter. Default [{confGnina_user_grid_lambda}] (press enter to keep default): ")
+    confGnina_user_grid_lambda = confGnina_user_grid_lambda if not answer else answer
     #endregion
 
     #region PLANTS variables
@@ -355,7 +443,7 @@ def create_ocdocker_conf() -> None:
         smina_local_only = """ + str(confSmina_local_only) + """
 
         # Energy minimization
-        smina_minimize = """ + str(confSmine_minimize) + """
+        smina_minimize = """ + str(confSmina_minimize) + """
 
         # Generate random poses, attempting to avoid clashes
         smina_randomize_only = """ + str(confSmina_randomize_only) + """
@@ -397,6 +485,71 @@ def create_ocdocker_conf() -> None:
 
         # Search speed
         plants_search_speed = """ + str(confPlants_search_speed) + """
+
+        ################# GNINA PARAMETERS ##################
+
+        # Gnina path
+        gnina = """ + str(confGnina) + """
+
+        # Exhaustiveness of the global search
+        gnina_exhaustiveness = """ + str(confGnina_exhaustiveness) + """
+
+        # Maximum number of binding modes to generate
+        gnina_num_modes = """ + str(confGnina_num_modes) + """
+
+        # Alternativa scoring function
+        gnina_scoring = """ + str(confGnina_scoring) + """
+
+        # Custom scoring file
+        gnina_custom_scoring = """ + str(confGnina_custom_scoring_file) + """
+
+        # Custom atoms
+        gnina_custom_atoms = """ + str(confGnina_custom_atoms) + """
+
+        # Local search only using autobox (you probably want to use --minimize)
+        gnina_local_only = """ + str(confGnina_local_only) + """
+
+        # Energy minimization
+        gnina_minimize = """ + str(confGnina_minimize) + """
+
+        # Generate random poses, attempting to avoid clashes
+        gnina_randomize_only = """ + str(confGnina_randomize_only) + """
+
+        # Number of monte carlo steps to take in each chain
+        gnina_num_mc_steps = """ + str(confGnina_num_mc_steps) + """
+
+        # Cap on number of monte carlo steps to take in each chain
+        gnina_max_mc_steps = """ + str(confGnina_max_mc_steps) + """
+
+        # Number of top poses saved in each monte carlo chain
+        gnina_randomize_only = """ + str(confGnina_num_mc_saved) + """
+
+        # Number iterations of steepest descent; default scales with rotors and usually isn't sufficient for convergence
+        gnina_minimize_iters = """ + str(confGnina_minimize_iters) + """
+
+        # Use simple gradient ascent
+        gnina_simple_ascent = """ + str(confGnina_simple_ascent) + """
+
+        # Use accurate line search
+        gnina_accurate_line = """ + str(confGnina_accurate_line) + """
+
+        # Stop minimization before convergence conditions are fully met
+        gnina_minimize_early_term = """ + str(confGnina_minimize_early_term) + """
+
+        # Approximation (linear, spline, or exact) to use
+        gnina_approximation = """ + str(confGnina_approximation) + """
+
+        # Approximation factor: higher results in a finer-grained approximation
+        gnina_factor = """ + str(confGnina_factor) + """
+
+        # Max allowed force; lower values more gently minimize clashing structures
+        gnina_force_cap = """ + str(confGnina_force_cap) + """
+
+        # Autodock map file for user grid data based calculations
+        gnina_user_grid = """ + str(confGnina_user_grid) + """
+
+        # Scales user_grid and functional scoring
+        gnina_user_grid_lambda = """ + str(confGnina_user_grid_lambda) + """
 
         ################# DOCK6 PARAMETERS ##################
 
@@ -485,6 +638,29 @@ global smina_factor
 global smina_force_cap
 global smina_user_grid
 global smina_user_grid_lambda
+
+# Gnina parameters
+global gnina
+global gnina_exhaustiveness
+global gnina_num_modes
+global gnina_scoring
+global gnina_custom_scoring_file
+global gnina_custom_atoms
+global gnina_local_only
+global gnina_minimize
+global gnina_randomize_only
+global gnina_num_mc_steps
+global gnina_max_mc_steps
+global gnina_num_mc_saved
+global gnina_minimize_iters
+global gnina_simple_ascent
+global gnina_accurate_line
+global gnina_minimize_early_term
+global gnina_approximation
+global gnina_factor
+global gnina_force_cap
+global gnina_user_grid
+global gnina_user_grid_lambda
 
 # PLANTS parameters
 global plants_cluster_structures
@@ -744,6 +920,48 @@ for line in open(config_file, "r"): # type: ignore
         smina_user_grid = line.split("=")[1].strip()
     elif line.startswith("smina_user_grid_lambda ="):
         smina_user_grid_lambda = line.split("=")[1].strip()
+    elif line.startswith("gnina ="):
+        gnina = line.split("=")[1].strip()
+    elif line.startswith("gnina_exaustiveness ="):
+        gnina_exhaustiveness = line.split("=")[1].strip()
+    elif line.startswith("gnina_num_modes ="):
+        gnina_num_modes = line.split("=")[1].strip()
+    elif line.startswith("gnina_scoring ="):
+        gnina_scoring = line.split("=")[1].strip()
+    elif line.startswith("gnina_custom_scoring ="):
+        gnina_custom_scoring = line.split("=")[1].strip()
+    elif line.startswith("gnina_custom_atoms ="):
+        gnina_custom_atoms = line.split("=")[1].strip()
+    elif line.startswith("gnina_local_only ="):
+        gnina_local_only = line.split("=")[1].strip()
+    elif line.startswith("gnina_minimize ="):
+        gnina_minimize = line.split("=")[1].strip()
+    elif line.startswith("gnina_randomize_only ="):
+        gnina_randomize_only = line.split("=")[1].strip()
+    elif line.startswith("gnina_num_mc_steps ="):
+        gnina_num_mc_steps = line.split("=")[1].strip()
+    elif line.startswith("gnina_max_mc_steps ="):
+        gnina_max_mc_steps = line.split("=")[1].strip()
+    elif line.startswith("gnina_num_mc_saved ="):
+        gnina_num_mc_saved = line.split("=")[1].strip()
+    elif line.startswith("gnina_minimize_iters ="):
+        gnina_minimize_iters = line.split("=")[1].strip()
+    elif line.startswith("gnina_simple_ascent ="):
+        gnina_simple_ascent = line.split("=")[1].strip()
+    elif line.startswith("gnina_accurate_line ="):
+        gnina_accurate_line = line.split("=")[1].strip()
+    elif line.startswith("gnina_minimize_early_term ="):
+        gnina_minimize_early_term = line.split("=")[1].strip()
+    elif line.startswith("gnina_approximation ="):
+        gnina_approximation = line.split("=")[1].strip()
+    elif line.startswith("gnina_factor ="):
+        gnina_factor = line.split("=")[1].strip()
+    elif line.startswith("gnina_force_cap ="):
+        gnina_force_cap = line.split("=")[1].strip()
+    elif line.startswith("gnina_user_grid ="):
+        gnina_user_grid = line.split("=")[1].strip()
+    elif line.startswith("gnina_user_grid_lambda ="):
+        gnina_user_grid_lambda = line.split("=")[1].strip()
     elif line.startswith("plants ="):
         plants = line.split("=")[1].strip()
     elif line.startswith("plants_cluster_structures ="):
