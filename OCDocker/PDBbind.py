@@ -3,7 +3,6 @@
 # Imports
 ###############################################################################
 import os
-import vaex
 
 import pandas as pd
 import vaex.dataframe as vdf
@@ -510,6 +509,4 @@ def merge_descriptors_in_dataframe(saveCsv: bool = True) -> Union[vdf.DataFrameL
     '''
     
     # Get the dataframe with descriptors and docking scores
-    pdbbinddf = ocbdb.merge_descriptors_in_dataframe("pdbbind", saveCsv = saveCsv)
-
-    return pdbbinddf
+    return ocbdb.merge_descriptors_in_dataframe("pdbbind", saveCsv = saveCsv)
