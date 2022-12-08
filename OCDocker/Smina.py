@@ -365,7 +365,7 @@ class Smina:
 
 ## Public ##
 def gen_smina_conf(boxFile: str, confFile: str, receptor: str) -> int:
-    '''Convert a box (DUDE like format) to vina input.
+    '''Convert a box (DUDE like format) to smina input.
 
     Parameters
     ----------
@@ -413,9 +413,11 @@ def gen_smina_conf(boxFile: str, confFile: str, receptor: str) -> int:
     try:
         # Now open the conf file to write
         with open(confFile, 'w') as conf_file:
-            conf_file.write(f"receptor = {receptor}\n\n");
+            conf_file.write(f"receptor = {receptor}\n\n")
+
             if smina_custom_scoring.lower() != "no":
                 conf_file.write(f"custom_scoring = {smina_custom_scoring}\n")
+
             if smina_custom_atoms.lower() != "no":
                 conf_file.write(f"custom_atoms = {smina_custom_atoms}\n")
 
@@ -426,13 +428,17 @@ def gen_smina_conf(boxFile: str, confFile: str, receptor: str) -> int:
             conf_file.write(f"size_y = {lines[1][1]}\n")
             conf_file.write(f"size_z = {lines[1][2]}\n\n")
 
-            conf_file.write(f"minimize_iters = {smina_minimize_iters}\n")
+            if smina_minimize_iters.lower() != "no":
+                conf_file.write(f"minimize_iters = {smina_minimize_iters}\n")
+
             conf_file.write(f"approximation = {smina_approximation}\n")
             conf_file.write(f"factor = {smina_factor}\n")
             conf_file.write(f"force_cap = {smina_force_cap}\n")
 
             if smina_user_grid.lower() != "no":
-                conf_file.write(f"user_grid = {smina_custom_scoring}\n")
+                conf_file.write(f"user_grid = {smina_user_grid}\n")
+
+            if smina_user_grid_lambda.lower() != "no":
                 conf_file.write(f"user_grid_lambda = {smina_user_grid_lambda}\n")
 
             conf_file.write(f"energy_range = {smina_energy_range}\n")

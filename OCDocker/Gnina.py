@@ -62,12 +62,12 @@ class Gnina:
             The ligand object.
         preparedLigandPath : str
             Path to the prepared ligand.
-        sminaLog : str
-            Path to the smina log file.
-        outputSmina : str
-            Path to the output smina file.
+        gninaLog : str
+            Path to the gnina log file.
+        outputGnina : str
+            Path to the output gnina file.
         name : str, optional
-            Name of the smina object, by default "".
+            Name of the gnina object, by default "".
         overwriteConfig : bool, optional
             If the config file should be overwritten, by default False.
 
@@ -94,7 +94,6 @@ class Gnina:
         self.inputReceptorPath = self.__parse_receptor_path(receptor)
         self.preparedReceptor = str(preparedReceptorPath)
         self.prepareReceptorCmd = [pythonsh, prepare_receptor, "-r", self.inputReceptorPath, "-o", self.preparedReceptor, "-A", "hydrogens", "-U", "nphs_lps_waters"]
-        #self.prepareReceptorCmd = [obabel, self.inputReceptorPath, "-xr", "-O", self.preparedReceptor]
 
         # Ligand
         if type(ligand) == ocl.Ligand:
@@ -106,17 +105,16 @@ class Gnina:
         self.inputLigandPath = self.__parse_ligand_path(ligand)
         self.preparedLigand = str(preparedLigandPath)
         self.prepareLigandCmd = [pythonsh, prepare_ligand, "-l", self.inputLigandPath, "-C", "-o", self.preparedLigand]
-        #self.prepareLigandCmd = [obabel, self.inputLigandPath, "-O", self.preparedLigand]
 
         # Vina
-        self.sminaLog = str(sminaLog)
-        self.outputSmina = str(outputSmina)
-        self.sminaCmd = self.__smina_cmd()
+        self.gninaLog = str(gninaLog)
+        self.outputGnina = str(outputGnina)
+        self.gninaCmd = self.__gnina_cmd()
         
         # Check if config file exists to avoid useless processing
         if not os.path.isfile(self.config) or overwriteConfig:
             # Create the conf file
-            gen_smina_conf(self.boxFile, self.config, self.preparedReceptor)
+            gen_gnina_conf(self.boxFile, self.config, self.preparedReceptor)
 
     ## Private ##
     def __parse_receptor_path(self, receptor: ocr.Receptor) -> str:
@@ -177,8 +175,8 @@ class Gnina:
         _ = errors.wrong_type(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.", level="error")
         return ""
 
-    def __smina_cmd(self) -> List[str]:
-        '''Generate the smina command.
+    def __gnina_cmd(self) -> List[str]:
+        '''Generate the gnina command.
 
         Parameters
         ----------
@@ -187,14 +185,14 @@ class Gnina:
         Returns
         -------
         List[str]
-            The smina command.
+            The gnina command.
 
         Raises
         ------
         None
         '''
 
-        cmd = [smina, "--config", self.config, "--ligand", self.preparedLigand]#, "--autobox_ligand", self.preparedLigand]
+        cmd = [gnina, "--config", self.config, "--ligand", self.preparedLigand]#, "--autobox_ligand", self.preparedLigand]
 
         if smina_local_only.lower() in ["y", "ye", "yes"]:
             cmd.append("--score_only")
@@ -207,12 +205,12 @@ class Gnina:
         if smina_minimize_early_term.lower() in ["y", "ye", "yes"]:
             cmd.append("--minimize_early_term")
 
-        cmd.extend(["--out", self.outputSmina, "--log", self.sminaLog, "--cpu", "1"])
+        cmd.extend(["--out", self.outputGnina, "--log", self.gninaLog, "--cpu", "1"])
         return cmd
 
     ## Public ##
-    def read_smina_log(self) -> Union[pd.DataFrame, int]:
-        '''Read the smina log path, returning a pd.dataframe with data from complexes.
+    def read_gnina_log(self) -> Union[pd.DataFrame, int]:
+        '''Read the gnina log path, returning a pd.dataframe with data from complexes.
 
         Parameters
         ----------
@@ -221,17 +219,17 @@ class Gnina:
         Returns
         -------
         pd.DataFrame | int
-            The dataframe with the data from the smina log, or the error code.
+            The dataframe with the data from the gnina log, or the error code.
 
         Raises
         ------
         None
         '''
 
-        return read_smina_log(self.sminaLog) # type: ignore
+        return read_gnina_log(self.gninaLog) # type: ignore
 
-    def run_smina(self, logFile: str = "") -> Union[int, Tuple[int, str]]:
-        '''Run smina.
+    def run_gnina(self, logFile: str = "") -> Union[int, Tuple[int, str]]:
+        '''Run gnina.
 
         Parameters
         ----------
@@ -248,7 +246,7 @@ class Gnina:
         None
         '''
 
-        return octools.run(self.sminaCmd, logFile=logFile)
+        return octools.run(self.gninaCmd, logFile=logFile)
 
     def run_prepare_ligand_from_cmd(self, logFile: str = "") -> Union[int, Tuple[int, str]]:
         '''Run obabel convert ligand to pdbqt using the 'self.inputLigandPath' attribute. [DEPRECATED]
@@ -354,9 +352,9 @@ class Gnina:
         print(f"Input ligand path:           '{self.inputLigandPath if self.inputLigandPath else '-' }'")
         print(f"Prepared ligand path:        '{self.preparedLigand if self.preparedLigand else '-' }'")
         print(f"Prepared ligand command:     '{' '.join(self.prepareLigandCmd) if self.prepareLigandCmd else '-' }'")
-        print(f"Smina execution log path:    '{self.sminaLog if self.sminaLog else '-' }'")
-        print(f"Smina output path:           '{self.outputSmina if self.outputSmina else '-' }'")
-        print(f"Smina command:               '{' '.join(self.sminaCmd) if self.sminaCmd else '-' }'")
+        print(f"Gnina execution log path:    '{self.gninaLog if self.gninaLog else '-' }'")
+        print(f"Gnina output path:           '{self.outputGnina if self.outputGnina else '-' }'")
+        print(f"Gnina command:               '{' '.join(self.gninaCmd) if self.gninaCmd else '-' }'")
         return
 
 # Functions
@@ -364,8 +362,8 @@ class Gnina:
 ## Private ##
 
 ## Public ##
-def gen_smina_conf(boxFile: str, confFile: str, receptor: str) -> int:
-    '''Convert a box (DUDE like format) to vina input.
+def gen_gnina_conf(boxFile: str, confFile: str, receptor: str) -> int:
+    '''Convert a box (DUDE like format) to gnina input.
 
     Parameters
     ----------
@@ -409,15 +407,17 @@ def gen_smina_conf(boxFile: str, confFile: str, receptor: str) -> int:
     except Exception as e:
         return errors.read_file(message=f"Found a problem while reading the box file: {e}", level="error")
 
-    octools.printv(f"Creating smina conf file in the path '{confFile}'.")
+    octools.printv(f"Creating gnina conf file in the path '{confFile}'.")
     try:
         # Now open the conf file to write
         with open(confFile, 'w') as conf_file:
-            conf_file.write(f"receptor = {receptor}\n\n");
-            if smina_custom_scoring.lower() != "no":
-                conf_file.write(f"custom_scoring = {smina_custom_scoring}\n")
-            if smina_custom_atoms.lower() != "no":
-                conf_file.write(f"custom_atoms = {smina_custom_atoms}\n")
+            conf_file.write(f"receptor = {receptor}\n\n")
+
+            if gnina_custom_scoring.lower() != "no":
+                conf_file.write(f"custom_scoring = {gnina_custom_scoring}\n")
+
+            if gnina_custom_atoms.lower() != "no":
+                conf_file.write(f"custom_atoms = {gnina_custom_atoms}\n")
 
             conf_file.write(f"center_x = {lines[0][0]}\n")
             conf_file.write(f"center_y = {lines[0][1]}\n")
@@ -426,18 +426,40 @@ def gen_smina_conf(boxFile: str, confFile: str, receptor: str) -> int:
             conf_file.write(f"size_y = {lines[1][1]}\n")
             conf_file.write(f"size_z = {lines[1][2]}\n\n")
 
-            conf_file.write(f"minimize_iters = {smina_minimize_iters}\n")
-            conf_file.write(f"approximation = {smina_approximation}\n")
-            conf_file.write(f"factor = {smina_factor}\n")
-            conf_file.write(f"force_cap = {smina_force_cap}\n")
+            conf_file.write(f"approximation = {gnina_approximation}\n")
+            conf_file.write(f"factor = {gnina_factor}\n")
+            conf_file.write(f"force_cap = {gnina_force_cap}\n")
 
-            if smina_user_grid.lower() != "no":
-                conf_file.write(f"user_grid = {smina_custom_scoring}\n")
-                conf_file.write(f"user_grid_lambda = {smina_user_grid_lambda}\n")
+            if gnina_user_grid.lower() != "no":
+                conf_file.write(f"user_grid = {gnina_user_grid}\n")
 
-            conf_file.write(f"energy_range = {smina_energy_range}\n")
-            conf_file.write(f"exhaustiveness = {smina_exhaustiveness}\n")
-            conf_file.write(f"num_modes = {smina_num_modes}\n")
+            if gnina_user_grid_lambda.lower() != "no":
+                conf_file.write(f"user_grid_lambda = {gnina_user_grid_lambda}\n")
+            
+            if gnina_num_mc_steps.lower() != "no":
+                conf_file.write(f"num_mc_steps = {gnina_num_mc_steps}\n")
+
+            if gnina_max_mc_steps.lower() != "no":
+                conf_file.write(f"max_mc_steps = {gnina_max_mc_steps}\n")
+
+            if gnina_num_mc_saved.lower() != "no":
+                conf_file.write(f"num_mc_saved = {gnina_num_mc_saved}\n")
+
+            if gnina_approximation.lower() != "no":
+                conf_file.write(f"approximation = {gnina_approximation}\n")
+
+            if smina_local_only.lower() != "no":
+                conf_file.write(f"minimize_iters = {gnina_minimize_iters}\n")
+
+            conf_file.write(f"exhaustiveness = {gnina_exhaustiveness}\n")
+            conf_file.write(f"num_modes = {gnina_num_modes}\n")
+            conf_file.write(f"factor = {gnina_factor}\n")
+            conf_file.write(f"force_cap = {gnina_force_cap}\n")
+
+            if gnina_user_grid.lower() != "no":
+                conf_file.write(f"user_grid = {gnina_user_grid}\n")
+            
+            conf_file.write(f"user_grid_lambda = {gnina_user_grid_lambda}\n")
     except Exception as e:
         return errors.write_file(message=f"Found a problem while opening conf file: {e}.", level="error")
 
@@ -579,7 +601,7 @@ def run_prepare_receptor(inputReceptorPath: str, preparedReceptor: str) -> Union
 
     return octools.convertMols(inputReceptorPath, preparedReceptor) # type: ignore
 
-def run_smina(config: str, preparedLigand: str, outputSmina: str, sminaLog: str, logPath: str) -> Union[int, Tuple[int, str]]:
+def run_gnina(config: str, preparedLigand: str, outputGnina: str, gninaLog: str, logPath: str) -> Union[int, Tuple[int, str]]:
     '''Convert a box (DUDE like format) to vina input.
 
     Parameters
@@ -588,10 +610,10 @@ def run_smina(config: str, preparedLigand: str, outputSmina: str, sminaLog: str,
         The path for the config file.
     preparedLigand : str
         The path for the prepared ligand.
-    outputSmina : str
-        The path for the output smina file.
-    sminaLog : str
-        The path for the smina log file.
+    outputGnina : str
+        The path for the output gnina file.
+    gninaLog : str
+        The path for the gnina log file.
     logPath : str
         The path for the log file.
 
@@ -606,7 +628,7 @@ def run_smina(config: str, preparedLigand: str, outputSmina: str, sminaLog: str,
     '''
 
     # Create the command list
-    cmd = [smina, "--config", config, "--ligand", preparedLigand, "--autobox_ligand", preparedLigand]
+    cmd = [gnina, "--config", config, "--ligand", preparedLigand, "--autobox_ligand", preparedLigand]
 
     if smina_local_only.lower() in ["y", "ye", "yes"]:
         cmd.append("--score_only")
@@ -619,23 +641,23 @@ def run_smina(config: str, preparedLigand: str, outputSmina: str, sminaLog: str,
     if smina_minimize_early_term.lower() in ["y", "ye", "yes"]:
         cmd.append("--minimize_early_term")
 
-    cmd.extend(["--out", outputSmina, "--log", sminaLog, "--cpu", "1"])
+    cmd.extend(["--out", outputGnina, "--log", gninaLog, "--cpu", "1"])
     
     # Run the command
     return octools.run(cmd, logFile = logPath)
 
-def read_smina_log_legacy(path: str) -> Union[pd.DataFrame, int]:
-    '''Read the smina log path, returning a pd.dataframe with data from complexes.
+def read_gnina_log_legacy(path: str) -> Union[pd.DataFrame, int]:
+    '''Read the gnina log path, returning a pd.dataframe with data from complexes.
 
     Parameters
     ----------
     path : str
-        The path for the smina log file.
+        The path for the gnina log file.
 
     Returns
     -------
     pd.DataFrame | int
-        The dataframe with the data from the smina log file or the exit code of the command (based on the Error.py code table).
+        The dataframe with the data from the gnina log file or the exit code of the command (based on the Error.py code table).
 
     Raises
     ------
@@ -664,24 +686,24 @@ def read_smina_log_legacy(path: str) -> Union[pd.DataFrame, int]:
                 df.loc[len(df), df.columns] = lines[i].strip().split() # type: ignore
             except Exception as e:
                 octools.print_error(f"Problems while reading file '{path}'. Error: {e}")
-                octools.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{logdir}/smina_read_log_ERROR.log")
+                octools.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{logdir}/gnina_read_log_ERROR.log")
         # Return the df reversing the order and reseting the index
         return df.reindex(index=df.index[::-1]).reset_index(drop=True)
     # Throw an error
     return errors.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
 
-def read_smina_log(path: str) -> Union[Dict[str, List[Union[str, float]]], int]:
-    '''Read the smina log path, returning the data from complexes.
+def read_gnina_log(path: str) -> Union[Dict[str, List[Union[str, float]]], int]:
+    '''Read the gnina log path, returning the data from complexes.
 
     Parameters
     ----------
     path : str
-        The path to the smina log file.
+        The path to the gnina log file.
 
     Returns
     -------
     Dict[str, List[Union[str, float]]] | int
-        A dictionary with the data from the smina log file. If any error occurs, it will return the exit code of the command (based on the Error.py code table).
+        A dictionary with the data from the gnina log file. If any error occurs, it will return the exit code of the command (based on the Error.py code table).
 
     Raises
     ------
@@ -691,7 +713,7 @@ def read_smina_log(path: str) -> Union[Dict[str, List[Union[str, float]]], int]:
     # Check if file exists
     if os.path.isfile(path):
         # Create a dictionary to store the info
-        data = {"smina_affinity": []}
+        data = {"gnina_affinity": []}
 
         # Initiate the last read line as empty
         lastReadLine = ""
@@ -702,15 +724,15 @@ def read_smina_log(path: str) -> Union[Dict[str, List[Union[str, float]]], int]:
             if line.startswith("-----+"):
                 # Split the last line
                 lastLine = lastReadLine.split()
-                data["smina_affinity"].append(lastLine[1])
+                data["gnina_affinity"].append(lastLine[1])
                 break
 
             # Assign the last read line as the current line
             lastReadLine = line
         
-        # Check if the len of the data["smina_affinity"] is 0
-        if len(data["smina_affinity"]) == 0:
-            data["smina_affinity"].append(np.NaN)
+        # Check if the len of the data["gnina_affinity"] is 0
+        if len(data["gnina_affinity"]) == 0:
+            data["gnina_affinity"].append(np.NaN)
 
         # Return the df reversing the order and reseting the index
         return data
