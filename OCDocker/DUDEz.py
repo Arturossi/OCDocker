@@ -7,12 +7,10 @@ import os
 import pandas as pd
 import vaex.dataframe as vdf
 
-from multiprocessing import Pool
 from typing import Dict, Union
 
 from OCDocker.Initialise import *
 
-import OCDocker.Ligand as ocl
 import OCDocker.baseDB as ocbdb
 import OCDocker.Toolbox as octools
 
