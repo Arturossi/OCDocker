@@ -2511,7 +2511,11 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str]) ->
         else:
             receptor_descriptors = None
             _ = errors.file_do_not_exist(f"The file '{receptor_descriptor_path}' does not exist!")
+    except IOError as e:
+        if e.errno == errno.EPIPE:
+            _ = errors.broken_pipe(message=f"Found a broken PIPE error while reading the file '{receptor_descriptor_path}': {e}")
 
+    try:
         # Check if there is the ligand json, if yes, load it
         if os.path.isfile(ligand_descriptor_path):
             ligand_descriptors = ocl.read_descriptors_from_json(ligand_descriptor_path, returnVaex = True)
@@ -2520,7 +2524,7 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str]) ->
             _ = errors.file_do_not_exist(f"The file '{ligand_descriptor_path}' does not exist!")
     except IOError as e:
         if e.errno == errno.EPIPE:
-            _ = errors.broken_pipe(message=f"Found a broken PIPE error while reading the file '{}': {e}")
+            _ = errors.broken_pipe(message=f"Found a broken PIPE error while reading the file '{ligand_descriptor_path}': {e}")
 
     # Initiate the dataframe
     df = vaex.from_dict({ "Protein": [ptn] })
