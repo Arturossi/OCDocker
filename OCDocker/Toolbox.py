@@ -976,7 +976,7 @@ def lazyread_reverse_order_mmap(file_name: str, decode: str = "utf-8") -> Genera
     ------
     None
     '''
-
+    
     # Open file for reading in binary mode
     with open(file_name, 'rb') as read_obj:
         with mmap.mmap(read_obj.fileno(), 0, access = mmap.ACCESS_READ) as mmap_obj:

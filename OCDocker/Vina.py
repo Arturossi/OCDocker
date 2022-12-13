@@ -2,6 +2,7 @@
 
 # Imports
 ###############################################################################
+import errno
 import os
 
 import numpy as np
@@ -653,17 +654,23 @@ def read_vina_log(path: str) -> Union[Dict[str, List[Union[str, float]]], int]:
         # Initiate the last read line as empty
         lastReadLine = ""
 
-        # Read the file reversely
-        for line in octools.lazyread_reverse_order_mmap(path):
-            # If a stop line is found, means that the last read line is the one that is wanted
-            if line.startswith("-----+"):
-                # Split the last line
-                lastLine = lastReadLine.split()
-                data["vina_affinity"].append(lastLine[1])
-                break
+        # Try except to avoid broken pipe errors
+        try:
+            # Read the file reversely
+            for line in octools.lazyread_reverse_order_mmap(path):
+                # If a stop line is found, means that the last read line is the one that is wanted
+                if line.startswith("-----+"):
+                    # Split the last line
+                    lastLine = lastReadLine.split()
+                    data["vina_affinity"].append(lastLine[1])
+                    break
 
-            # Assign the last read line as the current line
-            lastReadLine = line
+                # Assign the last read line as the current line
+                lastReadLine = line
+        except IOError as e:
+            if e.errno == errno.EPIPE:
+                octools.print_error(f"Problems while reading file '{path}'. Error: {e}")
+                octools.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{logdir}/vina_read_log_ERROR.log")
         
         # Check if the len of the data["vina_affinity"] is 0
         if len(data["vina_affinity"]) == 0:

@@ -2,6 +2,7 @@
 
 # Imports
 ###############################################################################
+import errno
 import gc
 import os
 import time
@@ -2503,19 +2504,23 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str]) ->
     # Find which kind of archive it will be
     ligand_descriptor_path = f"{processDir}/ligand_descriptors.json"
 
-    # Check if there is the receptor json, if yes, load it
-    if os.path.isfile(receptor_descriptor_path):
-        receptor_descriptors = ocr.read_descriptors_from_json(receptor_descriptor_path, returnVaex = True)
-    else:
-        receptor_descriptors = None
-        _ = errors.file_do_not_exist(f"The file '{receptor_descriptor_path}' does not exist!")
+    try:
+        # Check if there is the receptor json, if yes, load it
+        if os.path.isfile(receptor_descriptor_path):
+            receptor_descriptors = ocr.read_descriptors_from_json(receptor_descriptor_path, returnVaex = True)
+        else:
+            receptor_descriptors = None
+            _ = errors.file_do_not_exist(f"The file '{receptor_descriptor_path}' does not exist!")
 
-    # Check if there is the ligand json, if yes, load it
-    if os.path.isfile(ligand_descriptor_path):
-        ligand_descriptors = ocl.read_descriptors_from_json(ligand_descriptor_path, returnVaex = True)
-    else:
-        ligand_descriptors = None
-        _ = errors.file_do_not_exist(f"The file '{ligand_descriptor_path}' does not exist!")
+        # Check if there is the ligand json, if yes, load it
+        if os.path.isfile(ligand_descriptor_path):
+            ligand_descriptors = ocl.read_descriptors_from_json(ligand_descriptor_path, returnVaex = True)
+        else:
+            ligand_descriptors = None
+            _ = errors.file_do_not_exist(f"The file '{ligand_descriptor_path}' does not exist!")
+    except IOError as e:
+        if e.errno == errno.EPIPE:
+            _ = errors.broken_pipe(message=f"Found a broken PIPE error while reading the file '{}': {e}")
 
     # Initiate the dataframe
     df = vaex.from_dict({ "Protein": [ptn] })
@@ -3139,7 +3144,6 @@ def run_dock(archive: str, dockingAlgorithm: str, overwrite: bool = False) -> in
 
         # Append to the complex list the merged ligandAlternative list with the list with ligands, decoys and candidates. This is made because each receptor must have its own list of ligands, decoys and candidates, otherwise the docking could be done with the same ligands, decoys and candidates for all receptors making everything out of control.
         complexList.append((ptnDir, glob(f"{ligands}/*") + glob(f"{decoys}/*") + glob(f"{candidates}/*")))
-        
         
     # Decide if multprocessing will be used
     if args.multiprocess:

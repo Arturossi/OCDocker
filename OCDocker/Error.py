@@ -70,6 +70,7 @@ class Error:
         self.writeFileCode                    = 103
         self.untarFileCode                    = 104
         self.unsupportedExtensionCode         = 105
+        self.brokenPipeCode                   = 106
 
         # Directory errors
         self.dirExistsCode                    = 150
@@ -448,6 +449,30 @@ class Error:
         self.__print_msg(message, level)
 
         return self.unsupportedExtensionCode
+    
+    def broken_pipe(self, message: str = "", level: str = "warn") -> int:
+        '''Return this when a broken pipe occurs.
+
+        Parameters
+        ----------
+        message : string, optional
+            Message to be printed. Default is "".
+        level : string, optional
+            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+
+        Returns
+        -------
+        int
+            The code for unsupported extension error (105).
+
+        Raises
+        ------
+        None
+        '''
+
+        self.__print_msg(message, level)
+
+        return self.brokenPipeCode
 
     # Directory errors
     def dir_exists(self, message: str = "", level: str = "warn") -> int:
@@ -944,6 +969,7 @@ class Error:
         print(f"\t - Write file error:                {self.writeFileCode}")
         print(f"\t - Untar error:                     {self.untarFileCode}")
         print(f"\t - Unsupported extension error:     {self.unsupportedExtensionCode}")
+        print(f"\t - Broken PIPE error:               {self.brokenPipeCode}")
 
         print(f"\n\t~~~~~~~~~~~~~~~ DIRECTORY ERRORS ~~~~~~~~~~~~~~~")
         print(f"\t - Directory exists:                {self.dirExistsCode}")
