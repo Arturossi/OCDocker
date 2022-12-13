@@ -3552,6 +3552,9 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
         try:
             # Rename the name column from data dataframe
             data = data.rename('Name', 'Ligand')
+
+            octools.to_pickle(f"{parsed_archive}/vaex.pickle", data)
+            exit()
             
             if args.output_level > 2:
                 with vaex.progress.tree('rich', title="Merging dataframes"): # type: ignore
@@ -3562,11 +3565,11 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
                 ptndf = vaex.read_csv(csv_path_in)
 
             # Generate and materialize the Complex column for ptndf and data from "Protein" and "Ligand" columns then drop them
-            ptndf["Complex"] = ptndf['Protein'] + "-" + ptndf['Ligand'] # type: ignore
+            ptndf["Complex"] = ptndf['Protein'] + "-" + ptndf["Ligand"] # type: ignore
             ptndf.materialize("Complex", inplace = True) # type: ignore
             ptndf = ptndf.drop(['Protein', 'Ligand']) # type: ignore
 
-            data["Complex"] = data['Protein'] + "-" + data['Ligand'] # type: ignore
+            data["Complex"] = data['Protein'] + "-" + data["Ligand"] # type: ignore
             data.materialize("Complex", inplace = True) # type: ignore
             data = data.drop(['Protein', 'Ligand']) # type: ignore
             

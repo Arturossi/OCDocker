@@ -708,14 +708,14 @@ def split_and_convert(path: str, out_path: str, extension: str, overwrite: bool 
 
 ### Pickle functions
 
-def to_pickle(filePath: str, data: Dict[str, Any]) -> int:
+def to_pickle(filePath: str, data: Any) -> int:
     '''Pickle a dict in a given path.
 
     Parameters
     ----------
     filePath : str
         Path to the pickle file.
-    data : Dict[str, Any]
+    data : Any
         Data to be pickled.
 
     Returns
@@ -735,7 +735,7 @@ def to_pickle(filePath: str, data: Dict[str, Any]) -> int:
         return errors.write_file(f"Problems while pickling the file '{filePath}'. Error: {e}")
     return errors.ok()
 
-def from_pickle(filePath: str) -> Union[int, Dict[str, Any]]:
+def from_pickle(filePath: str) -> Union[int, Any]:
     '''Unpickle a pickle file into a dict.
 
     Parameters
@@ -745,7 +745,7 @@ def from_pickle(filePath: str) -> Union[int, Dict[str, Any]]:
 
     Returns
     -------
-    int | Dict[str, Any]
+    int | Any
         The exit code of the command (based on the Error.py code table) if fails or the unpickled data otherwise.
 
     Raises

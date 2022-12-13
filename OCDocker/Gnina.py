@@ -107,7 +107,7 @@ class Gnina:
         self.preparedLigand = str(preparedLigandPath)
         self.prepareLigandCmd = [pythonsh, prepare_ligand, "-l", self.inputLigandPath, "-C", "-o", self.preparedLigand]
 
-        # Vina
+        # Gnina
         self.gninaLog = str(gninaLog)
         self.outputGnina = str(outputGnina)
         self.gninaCmd = self.__gnina_cmd()
