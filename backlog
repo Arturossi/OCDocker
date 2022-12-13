@@ -11,9 +11,9 @@
 - Add a new blind docking protocol. Maybe using a function to correlate some characteristics of the ligand to the box size. | 0
 
 ### 1
-- Add routines to deal with xplor files, such as '/data/hd4tb/OCDocker/data/ocdb/PDBbind/1lrh/receptor.pdb' from pdbbind.
-- Fix the log generation, sometimes the logs can reach 100mb.
-- Move some functions to other files to better separate the packages.
+- Add routines to deal with xplor files, such as '/data/hd4tb/OCDocker/data/ocdb/PDBbind/1lrh/receptor.pdb' from pdbbind. | 1
+- Fix the log generation, sometimes the logs can reach 100mb. | 1
+- Move some functions to other files to better separate the packages. | 1
 
 ### 2
 - Add integrity verification for all databases. | 2

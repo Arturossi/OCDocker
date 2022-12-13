@@ -1,4 +1,4 @@
-REMARK  Name = /mnt/d/Documents/OCDocker/OCDocker/test/rec.crg.pdb
+REMARK  Name = /data/hd4tb/OCDocker/OCDocker/test_files/rec.crg.pdb
 REMARK  889 active torsions:
 REMARK  status: ('A' for Active; 'I' for Inactive)
 REMARK    1  A    between atoms: CA_2  and  C_3
@@ -3790,7 +3790,7 @@ ENDBRANCH18001801
 ENDBRANCH17991800
 ENDBRANCH 4191799
 TORSDOF 545
-REMARK  Name = /mnt/d/Documents/OCDocker/OCDocker/test/rec.crg.pdb
+REMARK  Name = /data/hd4tb/OCDocker/OCDocker/test_files/rec.crg.pdb
 REMARK  889 active torsions:
 REMARK  status: ('A' for Active; 'I' for Inactive)
 REMARK    1  A    between atoms: CA_2  and  C_3

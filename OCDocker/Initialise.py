@@ -522,7 +522,7 @@ def create_ocdocker_conf() -> None:
         gnina_max_mc_steps = """ + str(confGnina_max_mc_steps) + """
 
         # Number of top poses saved in each monte carlo chain
-        gnina_randomize_only = """ + str(confGnina_num_mc_saved) + """
+        gnina_num_mc_saved = """ + str(confGnina_num_mc_saved) + """
 
         # Number iterations of steepest descent; default scales with rotors and usually isn't sufficient for convergence
         gnina_minimize_iters = """ + str(confGnina_minimize_iters) + """

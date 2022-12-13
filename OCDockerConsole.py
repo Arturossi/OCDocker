@@ -13,6 +13,7 @@ import OCDocker.Toolbox as octools
 
 import OCDocker.Vina as ocvina
 import OCDocker.Smina as ocsmina
+import OCDocker.Gnina as ocgnina
 import OCDocker.PLANTS as ocplants
 import OCDocker.Database as ocdb
 import OCDocker.baseDB as ocbdb
@@ -51,10 +52,23 @@ the user to perform the steps step by step.
 
 # Functions
 ###############################################################################
-def print_args():
+def print_args() -> None:
+    '''Prints the current args variable
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    None
+    '''
+
     print("args:")
     pprint(vars(args))
     print("\n")
+
+    return None
 
 
 message = tw.dedent("""\033[1;93m
@@ -67,7 +81,7 @@ message = tw.dedent("""\033[1;93m
         \033[1;91mWARNING\033[1;0m: This mode is still experimental, some unexpected
         behaviour might occur while using it.
 
-        Please check the args variable to see the current settings.\033[1;93m
+        To check the args variable use print_args() function.\033[1;93m
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 \033[1;0m""")
 
@@ -82,9 +96,7 @@ args.update = False
 
 basePath = "/mnt/e/Documents/OCDocker/OCDocker"
 basePath = "/mnt/sda/artur/OCDocker"
-basePath = "/media/artur/hd4tb/OCDocker/OCDocker"
-
-print_args()
+basePath = "/data/hd4tb/OCDocker/OCDocker"
 
 '''
 dbsampledir = f"{basePath}/data/ocdb/DUDEz/AA2AR"
@@ -107,9 +119,10 @@ for i in range(len(ligands)):
 '''
 
 # Testing the classes and objects
-#receptorTest = ocr.Receptor(f"{basePath}/test/rec.crg.pdb", relativeASAcutoff=0.7, name="Receptor teste")
-#ligandTest = ocl.Ligand(f"{basePath}/test/xtal-lig.pdb", name="Ligante teste")
+#receptorTest = ocr.Receptor(f"{basePath}/test_files/rec.crg.pdb", relativeASAcutoff=0.7, name="Receptor teste")
+#ligandTest = ocl.Ligand(f"{basePath}/test_files/xtal-lig.pdb", name="Ligante teste")
 
-#vinaTest = ocvina.Vina(f"{basePath}/test/conf_vina.txt", f"{basePath}/test/box.pdb", receptorTest, f"{basePath}/test/rec.crg.pdbqt", ligandTest, f"{basePath}/test/xtal-lig.pdbqt", f"{basePath}/test/vina.log", f"{basePath}/test/vina.pdbqt", name="Vina Test")
-#sminaTest = ocsmina.Smina(f"{basePath}/test/conf_smina.txt", receptorTest, f"{basePath}/test/rec.crg2.pdbqt", ligandTest, f"{basePath}/test/xtal-lig2.pdbqt", f"{basePath}/test/smina.log", f"{basePath}/test/smina.pdbqt", name="Smina Test")
-#plantsTest = ocplants.PLANTS(f"{basePath}/test/conf_plants.txt", f"{basePath}/test/box.pdb", receptorTest, f"{basePath}/test/rec.crg2_prepared_spores.mol2", ligandTest, f"{basePath}/test/xtal-lig2_prepared_spores.mol2", f"{basePath}/test/plants.log", f"{basePath}/test/plants.pdb", name="Smina Test")
+#gninaTest = = ocgnina.Gnina(f"{basePath}/test_files/conf_gnina.txt", f"{basePath}/test_files/box.pdb", receptorTest, f"{basePath}/test_files/rec.crg.pdbqt", ligandTest, f"{basePath}/test_files/xtal-lig.pdbqt", f"{basePath}/test_files/gnina.log", f"{basePath}/test_files/gnina.pdbqt", name="Gnina Test")
+#vinaTest = ocvina.Vina(f"{basePath}/test_files/conf_vina.txt", f"{basePath}/test_files/box.pdb", receptorTest, f"{basePath}/test_files/rec.crg.pdbqt", ligandTest, f"{basePath}/test_files/xtal-lig.pdbqt", f"{basePath}/test_files/vina.log", f"{basePath}/test_files/vina.pdbqt", name="Vina Test")
+#sminaTest = ocsmina.Smina(f"{basePath}/test_files/conf_smina.txt", f"{basePath}/test_files/box.pdb", receptorTest, f"{basePath}/test_files/rec.crg2.pdbqt", ligandTest, f"{basePath}/test_files/xtal-lig2.pdbqt", f"{basePath}/test_files/smina.log", f"{basePath}/test_files/smina.pdbqt", name="Smina Test")
+#plantsTest = ocplants.PLANTS(f"{basePath}/test_files/conf_plants.txt", f"{basePath}/test_files/box.pdb", receptorTest, f"{basePath}/test_files/rec.crg2_prepared_spores.mol2", ligandTest, f"{basePath}/test_files/xtal-lig2_prepared_spores.mol2", f"{basePath}/test_files/plants.log", f"{basePath}/test_files/plants.pdb", name="PLANTS Test")

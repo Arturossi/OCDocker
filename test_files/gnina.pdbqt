@@ -1,0 +1,396 @@
+MODEL 1
+REMARK minimizedAffinity -5.11065817REMARK CNNscore 0.842195511REMARK CNNaffinity 5.18312168REMARK  4 active torsions:
+REMARK  status: ('A' for Active; 'I' for Inactive)
+REMARK    1  A    between atoms: C8_8  and  C7_7 
+REMARK    2  A    between atoms: C9_9  and  C8_8 
+REMARK    3  A    between atoms: N10_10  and  C9_9 
+REMARK    4  A    between atoms: C21_21  and  C20_20 
+ROOT
+ATOM      1  N10 ZMA d 401      36.127  21.326  60.661  0.00  0.00    -0.147 NA
+ATOM      2  C11 ZMA d 401      35.321  21.259  61.715  0.00  0.00     0.251 A 
+ATOM      3  N12 ZMA d 401      34.165  21.940  61.760  0.00  0.00    -0.249 NA
+ATOM      4  N13 ZMA d 401      35.726  20.507  62.751  0.00  0.00     0.019 NA
+ATOM      5  C14 ZMA d 401      34.983  20.389  63.857  0.00  0.00     0.521 A 
+ATOM      6  N15 ZMA d 401      35.400  19.629  64.866  0.00  0.00     0.132 N 
+ATOM      7  N16 ZMA d 401      33.774  21.077  63.931  0.00  0.00     0.107 N 
+ATOM      8  N17 ZMA d 401      32.910  21.151  64.806  0.00  0.00     0.129 NA
+ATOM      9  C18 ZMA d 401      33.381  21.861  62.847  0.00  0.00     0.499 A 
+ATOM     10  N19 ZMA d 401      32.212  22.399  63.172  0.00  0.00     0.068 NA
+ATOM     11  C20 ZMA d 401      31.926  21.954  64.397  0.00  0.00     0.443 A 
+ENDROOT
+BRANCH   1  12
+ATOM     12  C9  ZMA d 401      37.370  20.552  60.778  0.00  0.00     0.131 C 
+BRANCH  12  13
+ATOM     13  C8  ZMA d 401      38.482  21.184  59.945  0.00  0.00     0.051 C 
+BRANCH  13  14
+ATOM     14  C7  ZMA d 401      39.639  21.586  60.858  0.00  0.00    -0.020 A 
+ATOM     15  C6  ZMA d 401      39.802  20.962  62.087  0.00  0.00    -0.001 A 
+ATOM     16  C5  ZMA d 401      40.846  21.336  62.923  0.00  0.00     0.042 A 
+ATOM     17  C3  ZMA d 401      41.727  22.336  62.530  0.00  0.00     0.196 A 
+ATOM     18  C2  ZMA d 401      41.561  22.965  61.302  0.00  0.00     0.042 A 
+ATOM     19  O4  ZMA d 401      42.746  22.697  63.352  0.00  0.00    -0.287 OA
+ATOM     20  C1  ZMA d 401      40.515  22.593  60.467  0.00  0.00    -0.001 A 
+ENDBRANCH  13  14
+ENDBRANCH  12  13
+ENDBRANCH   1  12
+BRANCH  11  21
+ATOM     21  C21 ZMA d 401      30.789  22.256  65.135  0.00  0.00     0.235 A 
+ATOM     22  C22 ZMA d 401      30.686  22.933  66.274  0.00  0.00     0.049 A 
+ATOM     23  C23 ZMA d 401      29.399  22.976  66.614  0.00  0.00     0.044 A 
+ATOM     24  C24 ZMA d 401      28.681  22.329  65.694  0.00  0.00     0.180 A 
+ATOM     25  O25 ZMA d 401      29.546  21.862  64.743  0.00  0.00    -0.443 OA
+ENDBRANCH  11  21
+TORSDOF 4
+ENDMDL
+MODEL 2
+REMARK minimizedAffinity -5.72915173REMARK CNNscore 0.841225207REMARK CNNaffinity 4.77514267REMARK  4 active torsions:
+REMARK  status: ('A' for Active; 'I' for Inactive)
+REMARK    1  A    between atoms: C8_8  and  C7_7 
+REMARK    2  A    between atoms: C9_9  and  C8_8 
+REMARK    3  A    between atoms: N10_10  and  C9_9 
+REMARK    4  A    between atoms: C21_21  and  C20_20 
+ROOT
+ATOM      1  N10 ZMA d 401      43.397  54.034  48.961  0.00  0.00    -0.147 NA
+ATOM      2  C11 ZMA d 401      43.920  53.539  50.077  0.00  0.00     0.251 A 
+ATOM      3  N12 ZMA d 401      44.787  52.513  50.054  0.00  0.00    -0.249 NA
+ATOM      4  N13 ZMA d 401      43.522  54.085  51.237  0.00  0.00     0.019 NA
+ATOM      5  C14 ZMA d 401      43.990  53.645  52.411  0.00  0.00     0.521 A 
+ATOM      6  N15 ZMA d 401      43.588  54.211  53.547  0.00  0.00     0.132 N 
+ATOM      7  N16 ZMA d 401      44.896  52.587  52.419  0.00  0.00     0.107 N 
+ATOM      8  N17 ZMA d 401      45.473  51.992  53.330  0.00  0.00     0.129 NA
+ATOM      9  C18 ZMA d 401      45.285  52.029  51.203  0.00  0.00     0.499 A 
+ATOM     10  N19 ZMA d 401      46.139  51.054  51.488  0.00  0.00     0.068 NA
+ATOM     11  C20 ZMA d 401      46.250  51.034  52.818  0.00  0.00     0.443 A 
+ENDROOT
+BRANCH   1  12
+ATOM     12  C9  ZMA d 401      42.440  55.130  49.156  0.00  0.00     0.131 C 
+BRANCH  12  13
+ATOM     13  C8  ZMA d 401      41.102  54.803  48.500  0.00  0.00     0.051 C 
+BRANCH  13  14
+ATOM     14  C7  ZMA d 401      41.217  54.981  46.987  0.00  0.00    -0.020 A 
+ATOM     15  C6  ZMA d 401      41.885  56.081  46.466  0.00  0.00    -0.001 A 
+ATOM     16  C5  ZMA d 401      41.978  56.249  45.091  0.00  0.00     0.042 A 
+ATOM     17  C3  ZMA d 401      41.402  55.318  44.236  0.00  0.00     0.196 A 
+ATOM     18  C2  ZMA d 401      40.729  54.220  44.756  0.00  0.00     0.042 A 
+ATOM     19  O4  ZMA d 401      41.498  55.489  42.891  0.00  0.00    -0.287 OA
+ATOM     20  C1  ZMA d 401      40.632  54.052  46.132  0.00  0.00    -0.001 A 
+ENDBRANCH  13  14
+ENDBRANCH  12  13
+ENDBRANCH   1  12
+BRANCH  11  21
+ATOM     21  C21 ZMA d 401      47.047  50.176  53.563  0.00  0.00     0.235 A 
+ATOM     22  C22 ZMA d 401      47.479  48.957  53.255  0.00  0.00     0.049 A 
+ATOM     23  C23 ZMA d 401      48.216  48.511  54.271  0.00  0.00     0.044 A 
+ATOM     24  C24 ZMA d 401      48.255  49.442  55.226  0.00  0.00     0.180 A 
+ATOM     25  O25 ZMA d 401      47.516  50.510  54.796  0.00  0.00    -0.443 OA
+ENDBRANCH  11  21
+TORSDOF 4
+ENDMDL
+MODEL 3
+REMARK minimizedAffinity -7.69949865REMARK CNNscore 0.798318684REMARK CNNaffinity 5.44259214REMARK  4 active torsions:
+REMARK  status: ('A' for Active; 'I' for Inactive)
+REMARK    1  A    between atoms: C8_8  and  C7_7 
+REMARK    2  A    between atoms: C9_9  and  C8_8 
+REMARK    3  A    between atoms: N10_10  and  C9_9 
+REMARK    4  A    between atoms: C21_21  and  C20_20 
+ROOT
+ATOM      1  N10 ZMA d 401      43.537  30.019  32.102  0.00  0.00    -0.147 NA
+ATOM      2  C11 ZMA d 401      44.098  29.632  33.242  0.00  0.00     0.251 A 
+ATOM      3  N12 ZMA d 401      43.413  29.628  34.397  0.00  0.00    -0.249 NA
+ATOM      4  N13 ZMA d 401      45.392  29.275  33.201  0.00  0.00     0.019 NA
+ATOM      5  C14 ZMA d 401      46.040  28.880  34.302  0.00  0.00     0.521 A 
+ATOM      6  N15 ZMA d 401      47.320  28.520  34.233  0.00  0.00     0.132 N 
+ATOM      7  N16 ZMA d 401      45.355  28.858  35.514  0.00  0.00     0.107 N 
+ATOM      8  N17 ZMA d 401      45.694  28.548  36.657  0.00  0.00     0.129 NA
+ATOM      9  C18 ZMA d 401      44.016  29.245  35.534  0.00  0.00     0.499 A 
+ATOM     10  N19 ZMA d 401      43.607  29.134  36.792  0.00  0.00     0.068 NA
+ATOM     11  C20 ZMA d 401      44.661  28.702  37.488  0.00  0.00     0.443 A 
+ENDROOT
+BRANCH   1  12
+ATOM     12  C9  ZMA d 401      44.427  30.000  30.934  0.00  0.00     0.131 C 
+BRANCH  12  13
+ATOM     13  C8  ZMA d 401      43.970  31.014  29.889  0.00  0.00     0.051 C 
+BRANCH  13  14
+ATOM     14  C7  ZMA d 401      43.278  30.286  28.739  0.00  0.00    -0.020 A 
+ATOM     15  C6  ZMA d 401      44.027  29.538  27.840  0.00  0.00    -0.001 A 
+ATOM     16  C5  ZMA d 401      43.400  28.887  26.786  0.00  0.00     0.042 A 
+ATOM     17  C3  ZMA d 401      42.022  28.984  26.630  0.00  0.00     0.196 A 
+ATOM     18  C2  ZMA d 401      41.272  29.736  27.526  0.00  0.00     0.042 A 
+ATOM     19  O4  ZMA d 401      41.415  28.343  25.597  0.00  0.00    -0.287 OA
+ATOM     20  C1  ZMA d 401      41.900  30.390  28.578  0.00  0.00    -0.001 A 
+ENDBRANCH  13  14
+ENDBRANCH  12  13
+ENDBRANCH   1  12
+BRANCH  11  21
+ATOM     21  C21 ZMA d 401      44.692  28.437  38.851  0.00  0.00     0.235 A 
+ATOM     22  C22 ZMA d 401      45.730  28.442  39.681  0.00  0.00     0.049 A 
+ATOM     23  C23 ZMA d 401      45.287  28.130  40.898  0.00  0.00     0.044 A 
+ATOM     24  C24 ZMA d 401      43.970  27.927  40.846  0.00  0.00     0.180 A 
+ATOM     25  O25 ZMA d 401      43.570  28.116  39.552  0.00  0.00    -0.443 OA
+ENDBRANCH  11  21
+TORSDOF 4
+ENDMDL
+MODEL 4
+REMARK minimizedAffinity -5.59330416REMARK CNNscore 0.776016593REMARK CNNaffinity 4.93049622REMARK  4 active torsions:
+REMARK  status: ('A' for Active; 'I' for Inactive)
+REMARK    1  A    between atoms: C8_8  and  C7_7 
+REMARK    2  A    between atoms: C9_9  and  C8_8 
+REMARK    3  A    between atoms: N10_10  and  C9_9 
+REMARK    4  A    between atoms: C21_21  and  C20_20 
+ROOT
+ATOM      1  N10 ZMA d 401      51.088  30.024  42.758  0.00  0.00    -0.147 NA
+ATOM      2  C11 ZMA d 401      50.279  29.809  41.726  0.00  0.00     0.251 A 
+ATOM      3  N12 ZMA d 401      50.674  30.039  40.463  0.00  0.00    -0.249 NA
+ATOM      4  N13 ZMA d 401      49.036  29.382  41.999  0.00  0.00     0.019 NA
+ATOM      5  C14 ZMA d 401      48.151  29.147  41.023  0.00  0.00     0.521 A 
+ATOM      6  N15 ZMA d 401      46.928  28.714  41.319  0.00  0.00     0.132 N 
+ATOM      7  N16 ZMA d 401      48.532  29.370  39.702  0.00  0.00     0.107 N 
+ATOM      8  N17 ZMA d 401      47.937  29.242  38.631  0.00  0.00     0.129 NA
+ATOM      9  C18 ZMA d 401      49.824  29.824  39.445  0.00  0.00     0.499 A 
+ATOM     10  N19 ZMA d 401      49.927  29.952  38.128  0.00  0.00     0.068 NA
+ATOM     11  C20 ZMA d 401      48.744  29.590  37.626  0.00  0.00     0.443 A 
+ENDROOT
+BRANCH   1  12
+ATOM     12  C9  ZMA d 401      50.499  29.759  44.076  0.00  0.00     0.131 C 
+BRANCH  12  13
+ATOM     13  C8  ZMA d 401      51.578  29.382  45.086  0.00  0.00     0.051 C 
+BRANCH  13  14
+ATOM     14  C7  ZMA d 401      51.675  30.464  46.159  0.00  0.00    -0.020 A 
+ATOM     15  C6  ZMA d 401      51.328  30.174  47.472  0.00  0.00    -0.001 A 
+ATOM     16  C5  ZMA d 401      51.403  31.161  48.444  0.00  0.00     0.042 A 
+ATOM     17  C3  ZMA d 401      51.824  32.441  48.105  0.00  0.00     0.196 A 
+ATOM     18  C2  ZMA d 401      52.167  32.735  46.791  0.00  0.00     0.042 A 
+ATOM     19  O4  ZMA d 401      51.896  33.402  49.063  0.00  0.00    -0.287 OA
+ATOM     20  C1  ZMA d 401      52.089  31.747  45.817  0.00  0.00    -0.001 A 
+ENDBRANCH  13  14
+ENDBRANCH  12  13
+ENDBRANCH   1  12
+BRANCH  11  21
+ATOM     21  C21 ZMA d 401      48.397  29.561  36.282  0.00  0.00     0.235 A 
+ATOM     22  C22 ZMA d 401      47.278  29.977  35.699  0.00  0.00     0.049 A 
+ATOM     23  C23 ZMA d 401      47.387  29.752  34.390  0.00  0.00     0.044 A 
+ATOM     24  C24 ZMA d 401      48.572  29.194  34.138  0.00  0.00     0.180 A 
+ATOM     25  O25 ZMA d 401      49.232  29.063  35.330  0.00  0.00    -0.443 OA
+ENDBRANCH  11  21
+TORSDOF 4
+ENDMDL
+MODEL 5
+REMARK minimizedAffinity -4.92726278REMARK CNNscore 0.73386246REMARK CNNaffinity 4.98728943REMARK  4 active torsions:
+REMARK  status: ('A' for Active; 'I' for Inactive)
+REMARK    1  A    between atoms: C8_8  and  C7_7 
+REMARK    2  A    between atoms: C9_9  and  C8_8 
+REMARK    3  A    between atoms: N10_10  and  C9_9 
+REMARK    4  A    between atoms: C21_21  and  C20_20 
+ROOT
+ATOM      1  N10 ZMA d 401      39.493  21.692  59.817  0.00  0.00    -0.147 NA
+ATOM      2  C11 ZMA d 401      40.286  22.076  58.823  0.00  0.00     0.251 A 
+ATOM      3  N12 ZMA d 401      41.500  22.600  59.054  0.00  0.00    -0.249 NA
+ATOM      4  N13 ZMA d 401      39.810  21.948  57.574  0.00  0.00     0.019 NA
+ATOM      5  C14 ZMA d 401      40.536  22.316  56.512  0.00  0.00     0.521 A 
+ATOM      6  N15 ZMA d 401      40.047  22.169  55.283  0.00  0.00     0.132 N 
+ATOM      7  N16 ZMA d 401      41.803  22.857  56.718  0.00  0.00     0.107 N 
+ATOM      8  N17 ZMA d 401      42.667  23.273  55.945  0.00  0.00     0.129 NA
+ATOM      9  C18 ZMA d 401      42.269  22.991  58.025  0.00  0.00     0.499 A 
+ATOM     10  N19 ZMA d 401      43.482  23.524  57.942  0.00  0.00     0.068 NA
+ATOM     11  C20 ZMA d 401      43.723  23.700  56.641  0.00  0.00     0.443 A 
+ENDROOT
+BRANCH   1  12
+ATOM     12  C9  ZMA d 401      38.184  21.171  59.403  0.00  0.00     0.131 C 
+BRANCH  12  13
+ATOM     13  C8  ZMA d 401      37.574  20.304  60.501  0.00  0.00     0.051 C 
+BRANCH  13  14
+ATOM     14  C7  ZMA d 401      36.073  20.572  60.590  0.00  0.00    -0.020 A 
+ATOM     15  C6  ZMA d 401      35.234  20.170  59.559  0.00  0.00    -0.001 A 
+ATOM     16  C5  ZMA d 401      33.872  20.425  59.634  0.00  0.00     0.042 A 
+ATOM     17  C3  ZMA d 401      33.347  21.085  60.738  0.00  0.00     0.196 A 
+ATOM     18  C2  ZMA d 401      34.186  21.493  61.767  0.00  0.00     0.042 A 
+ATOM     19  O4  ZMA d 401      32.012  21.331  60.804  0.00  0.00    -0.287 OA
+ATOM     20  C1  ZMA d 401      35.550  21.240  61.692  0.00  0.00    -0.001 A 
+ENDBRANCH  13  14
+ENDBRANCH  12  13
+ENDBRANCH   1  12
+BRANCH  11  21
+ATOM     21  C21 ZMA d 401      44.880  24.228  56.085  0.00  0.00     0.235 A 
+ATOM     22  C22 ZMA d 401      45.406  24.009  54.884  0.00  0.00     0.049 A 
+ATOM     23  C23 ZMA d 401      46.522  24.729  54.785  0.00  0.00     0.044 A 
+ATOM     24  C24 ZMA d 401      46.709  25.407  55.918  0.00  0.00     0.180 A 
+ATOM     25  O25 ZMA d 401      45.675  25.101  56.761  0.00  0.00    -0.443 OA
+ENDBRANCH  11  21
+TORSDOF 4
+ENDMDL
+MODEL 6
+REMARK minimizedAffinity -5.47354889REMARK CNNscore 0.719608188REMARK CNNaffinity 5.07339668REMARK  4 active torsions:
+REMARK  status: ('A' for Active; 'I' for Inactive)
+REMARK    1  A    between atoms: C8_8  and  C7_7 
+REMARK    2  A    between atoms: C9_9  and  C8_8 
+REMARK    3  A    between atoms: N10_10  and  C9_9 
+REMARK    4  A    between atoms: C21_21  and  C20_20 
+ROOT
+ATOM      1  N10 ZMA d 401      38.353  20.952  59.644  0.00  0.00    -0.147 NA
+ATOM      2  C11 ZMA d 401      39.462  21.624  59.358  0.00  0.00     0.251 A 
+ATOM      3  N12 ZMA d 401      40.067  21.508  58.165  0.00  0.00    -0.249 NA
+ATOM      4  N13 ZMA d 401      39.974  22.404  60.324  0.00  0.00     0.019 NA
+ATOM      5  C14 ZMA d 401      41.092  23.111  60.128  0.00  0.00     0.521 A 
+ATOM      6  N15 ZMA d 401      41.575  23.885  61.097  0.00  0.00     0.132 N 
+ATOM      7  N16 ZMA d 401      41.740  23.017  58.898  0.00  0.00     0.107 N 
+ATOM      8  N17 ZMA d 401      42.762  23.541  58.453  0.00  0.00     0.129 NA
+ATOM      9  C18 ZMA d 401      41.195  22.192  57.916  0.00  0.00     0.499 A 
+ATOM     10  N19 ZMA d 401      41.994  22.282  56.859  0.00  0.00     0.068 NA
+ATOM     11  C20 ZMA d 401      42.971  23.123  57.202  0.00  0.00     0.443 A 
+ENDROOT
+BRANCH   1  12
+ATOM     12  C9  ZMA d 401      37.832  21.159  61.001  0.00  0.00     0.131 C 
+BRANCH  12  13
+ATOM     13  C8  ZMA d 401      36.836  20.064  61.373  0.00  0.00     0.051 C 
+BRANCH  13  14
+ATOM     14  C7  ZMA d 401      35.593  20.695  61.996  0.00  0.00    -0.020 A 
+ATOM     15  C6  ZMA d 401      35.207  20.343  63.283  0.00  0.00    -0.001 A 
+ATOM     16  C5  ZMA d 401      34.070  20.906  63.845  0.00  0.00     0.042 A 
+ATOM     17  C3  ZMA d 401      33.315  21.820  63.121  0.00  0.00     0.196 A 
+ATOM     18  C2  ZMA d 401      33.697  22.169  61.831  0.00  0.00     0.042 A 
+ATOM     19  O4  ZMA d 401      32.203  22.368  63.678  0.00  0.00    -0.287 OA
+ATOM     20  C1  ZMA d 401      34.833  21.604  61.267  0.00  0.00    -0.001 A 
+ENDBRANCH  13  14
+ENDBRANCH  12  13
+ENDBRANCH   1  12
+BRANCH  11  21
+ATOM     21  C21 ZMA d 401      44.032  23.520  56.399  0.00  0.00     0.235 A 
+ATOM     22  C22 ZMA d 401      44.210  23.334  55.096  0.00  0.00     0.049 A 
+ATOM     23  C23 ZMA d 401      45.373  23.886  54.754  0.00  0.00     0.044 A 
+ATOM     24  C24 ZMA d 401      45.937  24.424  55.837  0.00  0.00     0.180 A 
+ATOM     25  O25 ZMA d 401      45.101  24.202  56.896  0.00  0.00    -0.443 OA
+ENDBRANCH  11  21
+TORSDOF 4
+ENDMDL
+MODEL 7
+REMARK minimizedAffinity -6.61148643REMARK CNNscore 0.718557954REMARK CNNaffinity 5.36811352REMARK  4 active torsions:
+REMARK  status: ('A' for Active; 'I' for Inactive)
+REMARK    1  A    between atoms: C8_8  and  C7_7 
+REMARK    2  A    between atoms: C9_9  and  C8_8 
+REMARK    3  A    between atoms: N10_10  and  C9_9 
+REMARK    4  A    between atoms: C21_21  and  C20_20 
+ROOT
+ATOM      1  N10 ZMA d 401      47.685  29.626  35.946  0.00  0.00    -0.147 NA
+ATOM      2  C11 ZMA d 401      46.675  29.690  35.085  0.00  0.00     0.251 A 
+ATOM      3  N12 ZMA d 401      46.880  29.669  33.758  0.00  0.00    -0.249 NA
+ATOM      4  N13 ZMA d 401      45.439  29.809  35.596  0.00  0.00     0.019 NA
+ATOM      5  C14 ZMA d 401      44.364  29.888  34.804  0.00  0.00     0.521 A 
+ATOM      6  N15 ZMA d 401      43.148  29.994  35.335  0.00  0.00     0.132 N 
+ATOM      7  N16 ZMA d 401      44.543  29.863  33.423  0.00  0.00     0.107 N 
+ATOM      8  N17 ZMA d 401      43.753  29.919  32.480  0.00  0.00     0.129 NA
+ATOM      9  C18 ZMA d 401      45.837  29.751  32.917  0.00  0.00     0.499 A 
+ATOM     10  N19 ZMA d 401      45.728  29.749  31.594  0.00  0.00     0.068 NA
+ATOM     11  C20 ZMA d 401      44.425  29.859  31.328  0.00  0.00     0.443 A 
+ENDROOT
+BRANCH   1  12
+ATOM     12  C9  ZMA d 401      47.301  29.694  37.362  0.00  0.00     0.131 C 
+BRANCH  12  13
+ATOM     13  C8  ZMA d 401      47.375  28.315  38.010  0.00  0.00     0.051 C 
+BRANCH  13  14
+ATOM     14  C7  ZMA d 401      46.372  28.236  39.159  0.00  0.00    -0.020 A 
+ATOM     15  C6  ZMA d 401      45.009  28.216  38.891  0.00  0.00    -0.001 A 
+ATOM     16  C5  ZMA d 401      44.097  28.158  39.936  0.00  0.00     0.042 A 
+ATOM     17  C3  ZMA d 401      44.546  28.120  41.250  0.00  0.00     0.196 A 
+ATOM     18  C2  ZMA d 401      45.909  28.146  41.520  0.00  0.00     0.042 A 
+ATOM     19  O4  ZMA d 401      43.647  28.062  42.268  0.00  0.00    -0.287 OA
+ATOM     20  C1  ZMA d 401      46.822  28.207  40.475  0.00  0.00    -0.001 A 
+ENDBRANCH  13  14
+ENDBRANCH  12  13
+ENDBRANCH   1  12
+BRANCH  11  21
+ATOM     21  C21 ZMA d 401      43.845  29.891  30.067  0.00  0.00     0.235 A 
+ATOM     22  C22 ZMA d 401      42.599  30.204  29.728  0.00  0.00     0.049 A 
+ATOM     23  C23 ZMA d 401      42.492  30.099  28.404  0.00  0.00     0.044 A 
+ATOM     24  C24 ZMA d 401      43.667  29.720  27.899  0.00  0.00     0.180 A 
+ATOM     25  O25 ZMA d 401      44.543  29.581  28.941  0.00  0.00    -0.443 OA
+ENDBRANCH  11  21
+TORSDOF 4
+ENDMDL
+MODEL 8
+REMARK minimizedAffinity -6.29847336REMARK CNNscore 0.706164658REMARK CNNaffinity 4.97618628REMARK  4 active torsions:
+REMARK  status: ('A' for Active; 'I' for Inactive)
+REMARK    1  A    between atoms: C8_8  and  C7_7 
+REMARK    2  A    between atoms: C9_9  and  C8_8 
+REMARK    3  A    between atoms: N10_10  and  C9_9 
+REMARK    4  A    between atoms: C21_21  and  C20_20 
+ROOT
+ATOM      1  N10 ZMA d 401      43.910  53.483  49.339  0.00  0.00    -0.147 NA
+ATOM      2  C11 ZMA d 401      44.478  53.066  50.465  0.00  0.00     0.251 A 
+ATOM      3  N12 ZMA d 401      45.230  51.955  50.503  0.00  0.00    -0.249 NA
+ATOM      4  N13 ZMA d 401      44.242  53.784  51.575  0.00  0.00     0.019 NA
+ATOM      5  C14 ZMA d 401      44.766  53.434  52.755  0.00  0.00     0.521 A 
+ATOM      6  N15 ZMA d 401      44.526  54.169  53.838  0.00  0.00     0.132 N 
+ATOM      7  N16 ZMA d 401      45.557  52.290  52.826  0.00  0.00     0.107 N 
+ATOM      8  N17 ZMA d 401      46.150  51.745  53.757  0.00  0.00     0.129 NA
+ATOM      9  C18 ZMA d 401      45.777  51.554  51.663  0.00  0.00     0.499 A 
+ATOM     10  N19 ZMA d 401      46.551  50.530  52.002  0.00  0.00     0.068 NA
+ATOM     11  C20 ZMA d 401      46.777  50.654  53.312  0.00  0.00     0.443 A 
+ENDROOT
+BRANCH   1  12
+ATOM     12  C9  ZMA d 401      43.090  54.694  49.467  0.00  0.00     0.131 C 
+BRANCH  12  13
+ATOM     13  C8  ZMA d 401      41.612  54.372  49.261  0.00  0.00     0.051 C 
+BRANCH  13  14
+ATOM     14  C7  ZMA d 401      40.793  54.979  50.398  0.00  0.00    -0.020 A 
+ATOM     15  C6  ZMA d 401      39.462  55.316  50.192  0.00  0.00    -0.001 A 
+ATOM     16  C5  ZMA d 401      38.722  55.880  51.222  0.00  0.00     0.042 A 
+ATOM     17  C3  ZMA d 401      39.311  56.108  52.459  0.00  0.00     0.196 A 
+ATOM     18  C2  ZMA d 401      40.645  55.775  52.665  0.00  0.00     0.042 A 
+ATOM     19  O4  ZMA d 401      38.579  56.659  53.463  0.00  0.00    -0.287 OA
+ATOM     20  C1  ZMA d 401      41.387  55.214  51.634  0.00  0.00    -0.001 A 
+ENDBRANCH  13  14
+ENDBRANCH  12  13
+ENDBRANCH   1  12
+BRANCH  11  21
+ATOM     21  C21 ZMA d 401      47.547  49.804  54.095  0.00  0.00     0.235 A 
+ATOM     22  C22 ZMA d 401      47.727  48.492  53.977  0.00  0.00     0.049 A 
+ATOM     23  C23 ZMA d 401      48.548  48.100  54.950  0.00  0.00     0.044 A 
+ATOM     24  C24 ZMA d 401      48.891  49.157  55.688  0.00  0.00     0.180 A 
+ATOM     25  O25 ZMA d 401      48.264  50.253  55.161  0.00  0.00    -0.443 OA
+ENDBRANCH  11  21
+TORSDOF 4
+ENDMDL
+MODEL 9
+REMARK minimizedAffinity -4.94993782REMARK CNNscore 0.696558237REMARK CNNaffinity 5.03245306REMARK  4 active torsions:
+REMARK  status: ('A' for Active; 'I' for Inactive)
+REMARK    1  A    between atoms: C8_8  and  C7_7 
+REMARK    2  A    between atoms: C9_9  and  C8_8 
+REMARK    3  A    between atoms: N10_10  and  C9_9 
+REMARK    4  A    between atoms: C21_21  and  C20_20 
+ROOT
+ATOM      1  N10 ZMA d 401      36.821  21.674  59.002  0.00  0.00    -0.147 NA
+ATOM      2  C11 ZMA d 401      36.766  21.511  57.684  0.00  0.00     0.251 A 
+ATOM      3  N12 ZMA d 401      35.608  21.261  57.054  0.00  0.00    -0.249 NA
+ATOM      4  N13 ZMA d 401      37.925  21.576  57.009  0.00  0.00     0.019 NA
+ATOM      5  C14 ZMA d 401      37.967  21.416  55.682  0.00  0.00     0.521 A 
+ATOM      6  N15 ZMA d 401      39.127  21.495  55.033  0.00  0.00     0.132 N 
+ATOM      7  N16 ZMA d 401      36.781  21.161  54.997  0.00  0.00     0.107 N 
+ATOM      8  N17 ZMA d 401      36.530  20.975  53.806  0.00  0.00     0.129 NA
+ATOM      9  C18 ZMA d 401      35.592  21.087  55.722  0.00  0.00     0.499 A 
+ATOM     10  N19 ZMA d 401      34.627  20.839  54.845  0.00  0.00     0.068 NA
+ATOM     11  C20 ZMA d 401      35.220  20.767  53.651  0.00  0.00     0.443 A 
+ENDROOT
+BRANCH   1  12
+ATOM     12  C9  ZMA d 401      38.165  21.907  59.545  0.00  0.00     0.131 C 
+BRANCH  12  13
+ATOM     13  C8  ZMA d 401      38.404  21.050  60.784  0.00  0.00     0.051 C 
+BRANCH  13  14
+ATOM     14  C7  ZMA d 401      39.687  21.502  61.478  0.00  0.00    -0.020 A 
+ATOM     15  C6  ZMA d 401      39.981  21.050  62.758  0.00  0.00    -0.001 A 
+ATOM     16  C5  ZMA d 401      41.140  21.472  63.394  0.00  0.00     0.042 A 
+ATOM     17  C3  ZMA d 401      42.008  22.347  62.751  0.00  0.00     0.196 A 
+ATOM     18  C2  ZMA d 401      41.713  22.804  61.473  0.00  0.00     0.042 A 
+ATOM     19  O4  ZMA d 401      43.142  22.754  63.380  0.00  0.00    -0.287 OA
+ATOM     20  C1  ZMA d 401      40.551  22.385  60.837  0.00  0.00    -0.001 A 
+ENDBRANCH  13  14
+ENDBRANCH  12  13
+ENDBRANCH   1  12
+BRANCH  11  21
+ATOM     21  C21 ZMA d 401      34.592  20.529  52.436  0.00  0.00     0.235 A 
+ATOM     22  C22 ZMA d 401      33.413  19.963  52.201  0.00  0.00     0.049 A 
+ATOM     23  C23 ZMA d 401      33.219  19.945  50.883  0.00  0.00     0.044 A 
+ATOM     24  C24 ZMA d 401      34.271  20.498  50.278  0.00  0.00     0.180 A 
+ATOM     25  O25 ZMA d 401      35.158  20.876  51.248  0.00  0.00    -0.443 OA
+ENDBRANCH  11  21
+TORSDOF 4
+ENDMDL
