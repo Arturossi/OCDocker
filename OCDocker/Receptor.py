@@ -981,8 +981,8 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
         # Expected keys to have in the json file
         #region keys
         keys = ["Name", "SASA", "DipoleMoment", "IsoelectricPoint", "InstabilityIndex", "GRAVY", "Aromaticity", "countA", "countR", "countN", "countD", "countC", "countQ", "countE", "countG", "countH", "countI", "countL", "countK", "countM", "countF", "countP", "countS", "countT", "countW", "countY", "countV", "TotalAALength", "AvgAALength", "countChain"]
-
         #endregion
+        
         # Validate the data
         for key in keys:
             # Check if data has a 'mol2Path' key
@@ -1002,7 +1002,7 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
             # Raise a Key error passing the file and the missing keys joined with ', '
             raise KeyError
 
-        # Create the countAA variable (here np.NaN does not have an exact 
+        # Create the countAA variable (here np.NaN does have an exact meaning, 0 is a valid value)
         countAA = {
             "A": data["countA"] if data["countA"] != np.NaN else 0,
             "R": data["countR"] if data["countR"] != np.NaN else 0,

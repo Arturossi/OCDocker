@@ -2790,7 +2790,7 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
 
     Raises
     ------
-    None
+    KeyError
     '''
 
     # Try to read the file
@@ -2823,8 +2823,14 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
         if returnVaex:
             # Check if data has a 'Name' key
             if "Name" in data:
-                # If it has, change the key name to 'Ligand'
-                data["Ligand"] = data.pop("Name")
+                # Temporary fix
+                if data["Name"] == "molecule":
+                    # Get the last part of the folder path
+                    data["Ligand"] = os.path.dirname(data["Path"]).split("/")[-1]
+                    _ = data.pop("Name")
+                else:
+                    # If it has, change the key name to 'Ligand'
+                    data["Ligand"] = data.pop("Name")
 
             # Check if data has a 'Path' key
             if "Path" in data:

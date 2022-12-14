@@ -2508,6 +2508,11 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str]) ->
         # Check if there is the receptor json, if yes, load it
         if os.path.isfile(receptor_descriptor_path):
             receptor_descriptors = ocr.read_descriptors_from_json(receptor_descriptor_path, returnVaex = True)
+            # Nasty fix for descriptors with count
+            for descriptor in receptor_descriptors.column_names: # type: ignore
+                if "count" in descriptor and np.isnan(receptor_descriptors[descriptor].values[0]): # type: ignore
+                    # If any count descriptor is NaN then set it to 0
+                    receptor_descriptors[descriptor].values[0] = 0 # type: ignore
         else:
             receptor_descriptors = None
             _ = errors.file_do_not_exist(f"The file '{receptor_descriptor_path}' does not exist!")
@@ -3528,7 +3533,7 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
     # For each dir in chosenArchive
     for ptnDir in glob(f"{chosenArchive}/*")[:4]:
         # Check if is a dir (just in case) and if its name is not one of the ones we want to skip
-        if os.path.isdir(ptnDir) and os.path.basename(ptnDir.split(os.path.sep)[-1]) not in ['index']:
+        if os.path.isdir(ptnDir) and os.path.basename(ptnDir.split(os.path.sep)[-1]) not in ["index"]:
             # Parameterize paths
             ligands = f"{ptnDir}/compounds/ligands"
             decoys = f"{ptnDir}/compounds/decoys"
@@ -3554,14 +3559,14 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
     if type(data) == vdf.DataFrameLocal: # type: ignore
         # Try to write the csv
         try:
-            # Rename the name column from data dataframe
-            data = data.rename('Name', 'Ligand')
-
             octools.to_pickle(f"{parsed_archive}/vaex.pickle", data)
             exit()
+
+            # Rename the name column from data dataframe
+            data.rename("Name", "Ligand")
             
             if args.output_level > 2:
-                with vaex.progress.tree('rich', title="Merging dataframes"): # type: ignore
+                with vaex.progress.tree("rich", title="Merging dataframes"): # type: ignore
                     # Read the csv from input file
                     ptndf = vaex.read_csv(csv_path_in)
             else:
@@ -3569,17 +3574,17 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
                 ptndf = vaex.read_csv(csv_path_in)
 
             # Generate and materialize the Complex column for ptndf and data from "Protein" and "Ligand" columns then drop them
-            ptndf["Complex"] = ptndf['Protein'] + "-" + ptndf["Ligand"] # type: ignore
+            ptndf["Complex"] = ptndf["Protein"] + "-" + ptndf["Ligand"] # type: ignore
             ptndf.materialize("Complex", inplace = True) # type: ignore
-            ptndf = ptndf.drop(['Protein', 'Ligand']) # type: ignore
+            ptndf = ptndf.drop(["Protein", "Ligand"]) # type: ignore
 
-            data["Complex"] = data['Protein'] + "-" + data["Ligand"] # type: ignore
+            data["Complex"] = data["Protein"] + "-" + data["Ligand"] # type: ignore
             data.materialize("Complex", inplace = True) # type: ignore
-            data = data.drop(['Protein', 'Ligand']) # type: ignore
+            data = data.drop(["Protein", "Ligand"]) # type: ignore
             
             # If verbose
             if args.output_level > 2:
-                with vaex.progress.tree('rich', title="Merging dataframes"): # type: ignore
+                with vaex.progress.tree("rich", title="Merging dataframes"): # type: ignore
                     # Merge both DataFrames using the Complex column as a comparer
                     data = ptndf.join(data, on = "Complex", how = "left") # type: ignore
             else:
@@ -3589,7 +3594,7 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
             # If saveCsv is True, save the csv
             if saveCsv:
                 if args.output_level > 2:
-                    with vaex.progress.tree('rich', title="Merging dataframes"): # type: ignore
+                    with vaex.progress.tree("rich", title="Merging dataframes"): # type: ignore
                         data.export_csv(csv_path_out, backend = "arrow")
                 else:
                     # Write the data to a new csv file
