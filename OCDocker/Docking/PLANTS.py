@@ -41,7 +41,7 @@ Sets of classes and functions that are used to prepare dock6 files and run it.
 
 They are imported as:
 
-import OCDocker.PLANTS as ocplants
+import OCDocker.Docking.PLANTS as ocplants
 '''
 
 # Classes
@@ -777,41 +777,6 @@ def generate_plants_files_database(path: str, protein: str, ligand: str, spacing
     box_to_plants(box, confPath, protein, ligand, f"{plantsPath}/run", spacing = spacing)
 
     return None
-
-def read_plants_log_legacy(path: str) -> Union[pd.DataFrame, int]:
-    '''Read the PLANTS log path, returning a pd.dataframe with data from complexes.
-
-    Parameters
-    ----------
-    path : str
-        The path to the PLANTS log file.
-        
-    Returns
-    -------
-    pd.DataFrame | int
-        A pandas dataframe with the data from the PLANTS log file. If there is an error, the error code is returned.
-
-    Raises
-    ------
-    None
-    '''
-    
-    # Check if file exists
-    if os.path.isfile(path):
-        try:
-            # Read the csv
-            df = pd.read_csv(path)
-            # Remove EVAL and TIME columns
-            df.drop("EVAL", axis=1, inplace=True)
-            df.drop("TIME", axis=1, inplace=True)
-            # Remove also the SCORE_NORM_CONTACT because it was being problematic
-            df.drop("SCORE_NORM_CONTACT", axis=1, inplace=True)
-            return df
-        except Exception as e:
-            octools.print_error(f"Problems while reading file '{path}'. Error: {e}")
-            octools.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{logdir}/PLANTS_read_log_ERROR.log")
-    # Throw an error
-    return errors.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
 
 def read_plants_log(path: str) -> Union[Dict[str, List[Union[str, float]]], int]:
     '''Read the PLANTS log path, returning a pd.dataframe with data from complexes.

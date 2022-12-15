@@ -149,6 +149,26 @@ def run_p2rank(overwrite: bool = False) -> None:
 
     return ocbdb.run_p2rank("dudez", overwrite = overwrite)
 
+def run_gnina(overwrite: bool = False) -> int:
+    '''Runs gnina in the whole database.
+
+    Parameters
+    ----------
+    overwrite : bool, optional
+        If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated, by default False.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raise
+    -----
+    None
+    '''
+
+    return ocbdb.run_dock("dudez", "gnina", overwrite = overwrite)
+
 def run_vina(overwrite: bool = False) -> int:
     '''Runs vina in the whole database.
 
@@ -209,33 +229,6 @@ def run_plants(overwrite: bool = False) -> int:
 
     return ocbdb.run_dock("dudez", "plants", overwrite = overwrite)
 
-def read_logs_legacy(picklePath = "") -> Union[Dict[str, Dict[str, pd.DataFrame]], None]:
-    '''Parse the database into multiple serializable objects.
-
-    Parameters
-    ----------
-    picklePath : str, optional
-        Path to the pickle file, by default "", which means that the pickle file will not be saved.
-
-    Returns
-    -------
-    Dict[str, Dict[str, Dict[str, pd.DataFrame]]] | None
-        A dictionary with the following structure or None if the routine fails:
-        {
-            "protein": {
-                "ligand": {
-                    "algorithm": pd.DataFrame
-                }
-            }
-        }
-
-    Raises
-    ------
-    None
-    '''
-
-    return ocbdb.read_logs_legacy("dudez", picklePath = picklePath)
-
 def read_logs(picklePath = "") -> Union[Dict[str, vdf.DataFrameLocal], None]:
     '''Parse the database into multiple serializable objects.
 
@@ -281,42 +274,6 @@ def generate_dock_result_csv(csv_path: str = "", log_dumps: Union[Dict[str, pd.D
         csv_path = f"{parsed_archive}/dudez.csv"
 
     return ocbdb.generate_dock_result_csv("dudez", csv_path, log_dumps = log_dumps) # type: ignore
-
-def merge_descriptors_in_dataframe_legacy(saveCsv = True) -> Union[pd.DataFrame, None]:
-    '''Reads all the descriptors jsons and return a pd.DataFrame.
-
-    Parameters
-    ----------
-    saveCsv : bool, optional
-        If True, saves the dataframe as a csv file, by default True
-
-    Returns
-    -------
-    pd.DataFrame | None
-        A dataframe with all the descriptors or None if any error occur while reading the csv.
-
-    Raises
-    ------
-    None
-    '''
-
-    # Get the dataframe with descriptors and docking scores
-    dudezdf = ocbdb.merge_descriptors_in_dataframe_legacy("dudez", saveCsv = saveCsv)
-
-    # If the save csv flag is set
-    if saveCsv:
-        # Parameterize the csvs paths
-        csv_path_out = f"{parsed_archive}/dudez_complete.csv"
-        if os.path.isfile(csv_path_out):
-            octools.print_warning(f"The file {csv_path_out} already exists, it will be OVERWRITTEN!!")
-        # Check if the dudezdf is not None
-        if dudezdf is not None:
-            # Write the data to a new csv file
-            dudezdf.to_csv(csv_path_out, index = False)
-        else:
-            octools.print_warning(f"The dataframe is None, no csv will be generated")
-
-    return dudezdf
 
 def merge_descriptors_in_dataframe(saveCsv = True) -> Union[vdf.DataFrameLocal, None]:
     '''Reads all the descriptors jsons and return a vdf.DataFrameLocal.

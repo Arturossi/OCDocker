@@ -40,7 +40,7 @@ Sets of classes and functions that are used to prepare vina files and run it.
 
 They are imported as:
 
-import OCDocker.Vina as ocvina
+import OCDocker.Docking.Vina as ocvina
 '''
 
 # Classes
@@ -580,53 +580,6 @@ def generate_vina_files_database(path: str, protein: str, boxPath: str = "") -> 
     box_to_vina(box, confPath, protein)
 
     return None
-
-def read_vina_log_legacy(path: str) -> Union[pd.DataFrame, int]:
-    '''Read the vina log path, returning a pd.dataframe with data from complexes.
-
-    Parameters
-    ----------
-    path : str
-        The path to the vina log file.
-
-    Returns
-    -------
-    pd.DataFrame | int
-        A dataframe with the data from the vina log file. If any error occurs, it will return the exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
-    '''
-
-    # Check if file exists
-    if os.path.isfile(path):
-        # Open the log file
-        with open(path, "r") as f:
-            # Read ALL the lines in file (there should not be lots of lines, so no problem)
-            lines = f.readlines()
-        # Create a dataframe to store the info
-        df = pd.DataFrame(columns=['mode','affinity','rmsd_lb_best_mode','rmsd_ub_best_mode'])
-        # For each line from the end to the beggining (reverse iteration since the intresting data is in the end of the file)
-        for i in range(len(lines)-1, -1, -1):
-            # If the line starts with a -
-            if lines[i].startswith("-"):
-                # Stop iteration, because it does not contain useful information and neither the upper lines do
-                break
-            # If useless information is in our way ignore it
-            if "Writing output ... done." in lines[i]:
-                continue
-            try:
-                # Add the reversed list to the end of
-                #df.loc[len(df), df.columns] = lines[i].strip().split()
-                df.append(pd.DataFrame(lines[i].strip().split(), columns = df.columns))
-            except Exception as e:
-                octools.print_error(f"Problems while reading file '{path}'. Error: {e}")
-                octools.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{logdir}/vina_read_log_ERROR.log")
-        # Return the df reversing the order and reseting the index
-        return df.reindex(index=df.index[::-1]).reset_index(drop=True)
-    # Throw an error
-    return errors.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
 
 def read_vina_log(path: str) -> Union[Dict[str, List[Union[str, float]]], int]:
     '''Read the vina log path, returning the data from complexes.
