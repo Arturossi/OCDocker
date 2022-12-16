@@ -1780,9 +1780,9 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
     lgd = processSplited[-1]
 
     # Create docking dicts
-    vinaDict = { "vina_affinity": [] }
-    gninaDict = { "gnina_affinity": [] }
-    sminaDict = { "smina_affinity": [] }
+    vinaDict = { "vina_pose": [], "vina_affinity": [] }
+    gninaDict = { "gnina_pose": [], "gnina_affinity": [] }
+    sminaDict = { "smina_pose": [], "smina_affinity": [] }
     plantsDict = { "PLANTS_TOTAL_SCORE": [], "PLANTS_SCORE_RB_PEN": [], "PLANTS_SCORE_NORM_HEVATOMS": [], "PLANTS_SCORE_NORM_CRT_HEVATOMS": [], "PLANTS_SCORE_NORM_WEIGHT": [], "PLANTS_SCORE_NORM_CRT_WEIGHT": [], "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [] }
 
     # Get run number
