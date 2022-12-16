@@ -1884,8 +1884,8 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
     
     # Check if the list is not empty
     if len(maxLenList) != 0:
-        # Set the maxLen to 0
-        maxLen = 0
+        # Set the maxLen to 1
+        maxLen = 1
     else:
         # Get the number of elements of the dict with the largest number of elements
         maxLen = max(maxLenList)
