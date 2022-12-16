@@ -1807,6 +1807,9 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
             vinaDict[key].append(value[0])
     else:
         _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its vina output.")
+        # Set the elements in vinaDict as np.NaN
+        vinaDict = { "vina_pose": [np.NaN], "vina_affinity": [np.NaN] }
+
 
     # SMINA
     sminaDir = f"{processDir}/sminaFiles"
@@ -1824,6 +1827,8 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
             sminaDict[key].append(value[0])
     else:
         _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its SMINA output.")
+        # Set the elements in sminaDict as np.NaN
+        sminaDict = { "smina_pose": [np.NaN], "smina_affinity": [np.NaN] }
 
     # GNINA
     gninaDir = f"{processDir}/gninaFiles"
@@ -1841,6 +1846,8 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
             gninaDict[key].append(value[0])
     else:
         _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its gnina output.")
+        # Set the elements in gninaDict as np.NaN
+        gninaDict = { "gnina_pose": [np.NaN], "gnina_affinity": [np.NaN] }
 
     # PLANTS
     plantsDir = f"{processDir}/plantsFiles"
@@ -1858,6 +1865,8 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
             plantsDict[key].append(value[0])
     else:
         _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its PLANTS output.")
+        # Set the elements in plantsDict as np.NaN
+        plantsDict = { "PLANTS_TOTAL_SCORE": [np.NaN], "PLANTS_SCORE_RB_PEN": [np.NaN], "PLANTS_SCORE_NORM_HEVATOMS": [np.NaN], "PLANTS_SCORE_NORM_CRT_HEVATOMS": [np.NaN], "PLANTS_SCORE_NORM_WEIGHT": [np.NaN], "PLANTS_SCORE_NORM_CRT_WEIGHT": [np.NaN], "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [np.NaN] }
 
     # Create the maxLenList
     maxLenList = []
@@ -1872,14 +1881,6 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
     if len(plantsDict["PLANTS_TOTAL_SCORE"]) > 0:
         maxLenList.append(len(plantsDict["PLANTS_TOTAL_SCORE"]))
     
-    print(maxLenList)
-    print(f"Vina Pose: {vinaDict['vina_pose']}\tVina Affinity: {vinaDict['vina_affinity']}")
-    print(f"SMINA Pose: {sminaDict['smina_pose']}\tSMINA Affinity: {sminaDict['smina_affinity']}")
-    print(f"GNINA Pose: {gninaDict['gnina_pose']}\tGNINA Affinity: {gninaDict['gnina_affinity']}")
-    print(f"PLANTS_TOTAL SCORE: {plantsDict['PLANTS_TOTAL_SCORE']}")
-
-    
-   
     # Check if the list is empty
     if len(maxLenList) == 0:
         # Set the maxLen to 1
