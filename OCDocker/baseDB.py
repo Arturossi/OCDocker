@@ -1888,6 +1888,20 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
     else:
         # Get the number of elements of the dict with the largest number of elements
         maxLen = max(maxLenList)
+    
+    # Check if each dict has the same number of elements
+    if len(vinaDict["vina_affinity"]) != maxLen:
+        # Add the missing elements
+        vinaDict["vina_affinity"].extend([np.NaN for _ in range(maxLen - len(vinaDict["vina_affinity"]))])
+    if len(sminaDict["smina_affinity"]) != maxLen:
+        # Add the missing elements
+        sminaDict["smina_affinity"].extend([np.NaN for _ in range(maxLen - len(sminaDict["smina_affinity"]))])
+    if len(plantsDict["PLANTS_TOTAL_SCORE"]) != maxLen:
+        # Add the missing elements
+        plantsDict["PLANTS_TOTAL_SCORE"].extend([np.NaN for _ in range(maxLen - len(plantsDict["PLANTS_TOTAL_SCORE"]))])
+    #if len(gninaDict["gnina_affinity"]) != maxLen:
+    #    # Add the missing elements
+    #    gninaDict["gnina_affinity"].extend([np.NaN for _ in range(maxLen - len(gninaDict["gnina_affinity"]))])
 
     # Add the concatenated the dicts. The single elements are repeated to match the largest dict to the proteinData dict using ptn as the key
     proteinData[f"{ptn}-{lgd}"] = vaex.from_dict(
