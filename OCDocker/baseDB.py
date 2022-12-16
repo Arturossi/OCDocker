@@ -1866,12 +1866,6 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
     # Create the maxLenList
     maxLenList = []
 
-    print(f"processDir: {processDir}")
-    print(f"vinaDict: {vinaDict['vina_affinity']}")
-    print(f"sminaDict: {sminaDict['smina_affinity']}")
-    print(f"plantsDict: {plantsDict['PLANTS_TOTAL_SCORE']}")
-    print(f"gninaDict: {gninaDict['gnina_affinity']}")
-
     # Add each score to the list its len is not 0
     if len(vinaDict["vina_affinity"]) != 0:
         maxLenList.append(len(vinaDict["vina_affinity"]))
@@ -1899,7 +1893,7 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
                 "type": [tp for _ in range(maxLen)]
             },
             **vinaDict,
-            **gninaDict,
+            #**gninaDict,
             **sminaDict,
             **plantsDict
         }
