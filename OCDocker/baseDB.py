@@ -1876,7 +1876,7 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
         _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its SMINA output.")
 
     # Get the number of elements of the dict with the largest number of elements
-    maxLen = max([len(vinaDict["vina_mode"]), len(sminaDict["smina_mode"]), len(plantsDict["PLANTS_TOTAL_SCORE"])])
+    maxLen = max([len(vinaDict["vina_affinity"]), len(sminaDict["smina_affinity"]), len(plantsDict["PLANTS_TOTAL_SCORE"]), len(gninaDict["gnina_affinity"])])
 
     # Add the concatenated the dicts. The single elements are repeated to match the largest dict to the proteinData dict using ptn as the key
     proteinData[f"{ptn}-{lgd}"] = vaex.from_dict(
