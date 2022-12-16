@@ -1874,7 +1874,7 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
     
     print(maxLenList)
     print(f"Vina Pose: {vinaDict['vina_pose']}\tVina Affinity: {len(vinaDict['vina_affinity'])}")
-    print(f"SMINA Pose: {sminaDict['smina_pose')}\tSMINA Affinity: {len(sminaDict['smina_affinity'])}")
+    print(f"SMINA Pose: {sminaDict['smina_pose']}\tSMINA Affinity: {len(sminaDict['smina_affinity'])}")
     print(f"GNINA Pose: {gninaDict['gnina_pose']}\tGNINA Affinity: {len(gninaDict['gnina_affinity'])}")
     print(f"PLANTS Total Score: {plantsDict['PLANTS_TOTAL_SCORE']}\tPLANTS Score RB PEN: {len(plantsDict['PLANTS_SCORE_RB_PEN'])}\tPLANTS Score NORM HEVATOMS: {len(plantsDict['PLANTS_SCORE_NORM_HEVATOMS'])}\tPLANTS Score NORM CRT HEVATOMS: {len(plantsDict['PLANTS_SCORE_NORM_CRT_HEVATOMS'])}\tPLANTS Score NORM WEIGHT: {len(plantsDict['PLANTS_SCORE_NORM_WEIGHT'])}\tPLANTS Score NORM CRT WEIGHT: {len(plantsDict['PLANTS_SCORE_NORM_CRT_WEIGHT'])}\tPLANTS Score RB PEN NORM CRT HEVATOMS: {len(plantsDict['PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS'])}")
    
