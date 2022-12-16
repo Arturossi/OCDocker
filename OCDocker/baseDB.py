@@ -1781,7 +1781,7 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
 
     # Create docking dicts
     vinaDict = { "vina_pose": [], "vina_affinity": [] }
-    #gninaDict = { "gnina_pose": [], "gnina_affinity": [] }
+    gninaDict = { "gnina_pose": [], "gnina_affinity": [] }
     sminaDict = { "smina_pose": [], "smina_affinity": [] }
     plantsDict = { "PLANTS_TOTAL_SCORE": [], "PLANTS_SCORE_RB_PEN": [], "PLANTS_SCORE_NORM_HEVATOMS": [], "PLANTS_SCORE_NORM_CRT_HEVATOMS": [], "PLANTS_SCORE_NORM_WEIGHT": [], "PLANTS_SCORE_NORM_CRT_WEIGHT": [], "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [] }
 
@@ -1808,7 +1808,24 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
     else:
         _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its vina output.")
 
-    '''# GNINA
+    # SMINA
+    sminaDir = f"{processDir}/sminaFiles"
+    # Parameterize the log path
+    logPath = f"{sminaDir}/smina.log"
+
+    # Check if smina log exists
+    if os.path.isfile(logPath): # TODO: Add support to multiple runs
+        # Read the log into dict
+        gendict = ocsmina.read_smina_log(logPath)
+
+        # For each key, value in sminaDict
+        for key, value in gendict.items():
+            # Append the value to the smina dict
+            sminaDict[key].append(value[0])
+    else:
+        _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its SMINA output.")
+
+    # GNINA
     gninaDir = f"{processDir}/gninaFiles"
     # Parameterize the log path
     logPath = f"{gninaDir}/gnina_{runNumber}.log"
@@ -1823,7 +1840,7 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
             # Append the value to the gnina dict
             gninaDict[key].append(value[0])
     else:
-        _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its gnina output.")'''
+        _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its gnina output.")
 
     # PLANTS
     plantsDir = f"{processDir}/plantsFiles"
@@ -1842,39 +1859,24 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
     else:
         _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its PLANTS output.")
 
-    # SMINA
-    sminaDir = f"{processDir}/sminaFiles"
-    # Parameterize the log path
-    logPath = f"{sminaDir}/smina.log"
-
-    # Check if smina log exists
-    if os.path.isfile(logPath): # TODO: Add support to multiple runs
-        # Read the log into dict
-        gendict = ocsmina.read_smina_log(logPath)
-
-        # Check if gendict is not an int
-        if not isinstance(gendict, int):
-            # For each key, value in sminaDict
-            for key, value in gendict.items():
-                # Append the value to the smina dict
-                sminaDict[key].append(value[0])
-        else:
-            _ = errors.wrong_type(f"The file '{logPath}' could not be read.")
-    else:
-        _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its SMINA output.")
-
     # Create the maxLenList
     maxLenList = []
 
-    # Add each score to the list its len is not 0
-    if len(vinaDict["vina_pose"]) != 0:
+    # Add each score to the list its len greater than 0 (never should be negative)
+    if len(vinaDict["vina_pose"]) > 0:
         maxLenList.append(len(vinaDict["vina_pose"]))
-    if len(sminaDict["smina_pose"]) != 0:
+    if len(sminaDict["smina_pose"]) > 0:
         maxLenList.append(len(sminaDict["smina_pose"]))
-    if len(plantsDict["PLANTS_TOTAL_SCORE"]) != 0:
+    if len(gninaDict["gnina_pose"]) > 0:
+        maxLenList.append(len(gninaDict["gnina_pose"]))
+    if len(plantsDict["PLANTS_TOTAL_SCORE"]) > 0:
         maxLenList.append(len(plantsDict["PLANTS_TOTAL_SCORE"]))
-    #if len(gninaDict["gnina_pose"]) != 0:
-    #    maxLenList.append(len(gninaDict["gnina_pose"]))
+    
+    print(maxLenList)
+    print(f"Vina Pose: {len(vinaDict['vina_pose'])}\tVina Affinity: {len(vinaDict['vina_affinity'])}")
+    print(f"SMINA Pose: {len(sminaDict['smina_pose'])}\tSMINA Affinity: {len(sminaDict['smina_affinity'])}")
+    print(f"GNINA Pose: {len(gninaDict['gnina_pose'])}\tGNINA Affinity: {len(gninaDict['gnina_affinity'])}")
+    print(f"PLANTS Total Score: {len(plantsDict['PLANTS_TOTAL_SCORE'])}\tPLANTS Score RB PEN: {len(plantsDict['PLANTS_SCORE_RB_PEN'])}\tPLANTS Score NORM HEVATOMS: {len(plantsDict['PLANTS_SCORE_NORM_HEVATOMS'])}\tPLANTS Score NORM CRT HEVATOMS: {len(plantsDict['PLANTS_SCORE_NORM_CRT_HEVATOMS'])}\tPLANTS Score NORM WEIGHT: {len(plantsDict['PLANTS_SCORE_NORM_WEIGHT'])}\tPLANTS Score NORM CRT WEIGHT: {len(plantsDict['PLANTS_SCORE_NORM_CRT_WEIGHT'])}\tPLANTS Score RB PEN NORM CRT HEVATOMS: {len(plantsDict['PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS'])}")
    
     # Check if the list is empty
     if len(maxLenList) == 0:
@@ -1893,8 +1895,8 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
                 "type": [tp for _ in range(maxLen)]
             },
             **vinaDict,
-            #**gninaDict,
             **sminaDict,
+            **gninaDict,
             **plantsDict
         }
     )
