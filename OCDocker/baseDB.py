@@ -1801,14 +1801,10 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
         # Read the log into dict
         gendict = ocvina.read_vina_log(logPath)
 
-        # Check if gendict is not an int
-        if not isinstance(gendict, int):
-            # For each key, value in vinaDict
-            for key, value in gendict.items():
-                # Append the value to the vina dict
-                vinaDict[key].append(value[0])
-        else:
-            _ = errors.wrong_type(f"The file '{logPath}' could not be read.")
+        # For each key, value in vinaDict
+        for key, value in gendict.items():
+            # Append the value to the vina dict
+            vinaDict[key].append(value[0])
     else:
         _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its vina output.")
 
@@ -1822,14 +1818,10 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
         # Read the log into dict
         gendict = ocgnina.read_gnina_log(logPath)
 
-        # Check if gendict is not an int
-        if not isinstance(gendict, int):
-            # For each key, value in gninaDict
-            for key, value in gendict.items():
-                # Append the value to the gnina dict
-                gninaDict[key].append(value[0])
-        else:
-            _ = errors.wrong_type(f"The file '{logPath}' could not be read.")
+        # For each key, value in gninaDict
+        for key, value in gendict.items():
+            # Append the value to the gnina dict
+            gninaDict[key].append(value[0])
     else:
         _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its gnina output.")
 
@@ -1843,14 +1835,10 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
         # Read the log into dict
         gendict = ocplants.read_plants_log(logPath)
 
-        # Check if gendict is not an int
-        if not isinstance(gendict, int):
-            # For each key, value in plantsDict
-            for key, value in gendict.items():
-                # Append the value to the plants dict
-                plantsDict[key].append(value[0])
-        else:
-            _ = errors.wrong_type(f"The file '{logPath}' could not be read.")
+        # For each key, value in plantsDict
+        for key, value in gendict.items():
+            # Append the value to the plants dict
+            plantsDict[key].append(value[0])
     else:
         _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its PLANTS output.")
 
@@ -1877,6 +1865,12 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
 
     # Create the maxLenList
     maxLenList = []
+
+    print(f"processDir: {processDir}")
+    print(f"vinaDict: {vinaDict}")
+    print(f"sminaDict: {sminaDict}")
+    print(f"plantsDict: {plantsDict}")
+    print(f"gninaDict: {gninaDict}")
 
     # Add each score to the list its len is not 0
     if len(vinaDict["vina_affinity"]) != 0:
