@@ -1877,6 +1877,9 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
     #    maxLenList.append(len(gninaDict["gnina_affinity"]))
 
     print(maxLenList)
+    print(vinaDict["vina_affinity"])
+    print(sminaDict["smina_affinity"])
+    print(plantsDict["PLANTS_TOTAL_SCORE"])
     
     # Check if the list is empty
     if len(maxLenList) == 0:
