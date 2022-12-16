@@ -652,7 +652,7 @@ def read_smina_log(path: str) -> Dict[str, List[Union[str, float]]]:
     # Check if file exists
     if os.path.isfile(path):
         # Create a dictionary to store the info
-        data = {"smina_affinity": []}
+        data = {"smina_pose": [], "smina_affinity": []}
 
         # Initiate the last read line as empty
         lastReadLine = ""
@@ -665,6 +665,7 @@ def read_smina_log(path: str) -> Dict[str, List[Union[str, float]]]:
                 if line.startswith("-----+"):
                     # Split the last line
                     lastLine = lastReadLine.split()
+                    data["smina_pose"].append(lastLine[0])
                     data["smina_affinity"].append(lastLine[1])
                     break
 
@@ -676,7 +677,8 @@ def read_smina_log(path: str) -> Dict[str, List[Union[str, float]]]:
                 octools.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{logdir}/smina_read_log_ERROR.log")
         
         # Check if the len of the data["smina_affinity"] is 0
-        if len(data["smina_affinity"]) == 0:
+        if len(data["smina_pose"]) == 0:
+            data["smina_pose"].append(np.NaN)
             data["smina_affinity"].append(np.NaN)
 
         # Return the df reversing the order and reseting the index
@@ -686,5 +688,5 @@ def read_smina_log(path: str) -> Dict[str, List[Union[str, float]]]:
     _ = errors.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
 
     # Return a dict with a NaN value
-    return {"smina_affinity": [np.NaN]}
+    return {"smina_pose": [np.NaN], "smina_affinity": [np.NaN]}
 

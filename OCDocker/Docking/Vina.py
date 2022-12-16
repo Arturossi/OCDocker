@@ -602,7 +602,7 @@ def read_vina_log(path: str) -> Dict[str, List[Union[str, float]]]:
     # Check if file exists
     if os.path.isfile(path):
         # Create a dictionary to store the info
-        data = {"vina_affinity": []}
+        data = {"vina_pose": [], "vina_affinity": []}
 
         # Initiate the last read line as empty
         lastReadLine = ""
@@ -615,6 +615,7 @@ def read_vina_log(path: str) -> Dict[str, List[Union[str, float]]]:
                 if line.startswith("-----+"):
                     # Split the last line
                     lastLine = lastReadLine.split()
+                    data["vina_pose"].append(lastLine[0])
                     data["vina_affinity"].append(lastLine[1])
                     break
 
@@ -626,7 +627,8 @@ def read_vina_log(path: str) -> Dict[str, List[Union[str, float]]]:
                 octools.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{logdir}/vina_read_log_ERROR.log")
         
         # Check if the len of the data["vina_affinity"] is 0
-        if len(data["vina_affinity"]) == 0:
+        if len(data["vina_pose"]) == 0:
+            data["vina_pose"].append(np.NaN)
             data["vina_affinity"].append(np.NaN)
 
         # Return the df reversing the order and reseting the index
@@ -636,4 +638,4 @@ def read_vina_log(path: str) -> Dict[str, List[Union[str, float]]]:
     _ = errors.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
 
     # Return a dict with a NaN value
-    return {"vina_affinity": [np.NaN]}
+    return {"vina_pose": [np.NaN], "vina_affinity": [np.NaN]}
