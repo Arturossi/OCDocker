@@ -778,7 +778,7 @@ def generate_plants_files_database(path: str, protein: str, ligand: str, spacing
 
     return None
 
-def read_plants_log(path: str) -> Union[Dict[str, List[Union[str, float]]], int]:
+def read_plants_log(path: str) -> Dict[str, List[Union[str, float]]]:
     '''Read the PLANTS log path, returning a pd.dataframe with data from complexes.
 
     Parameters
@@ -788,8 +788,8 @@ def read_plants_log(path: str) -> Union[Dict[str, List[Union[str, float]]], int]
         
     Returns
     -------
-    Dict[str, List[str | float]] | int
-        A dictionary with the data from the PLANTS log file. If any error occurs, it will return the exit code of the command (based on the Error.py code table).
+    Dict[str, List[str | float]]
+        A dictionary with the data from the PLANTS log file.
 
     Raises
     ------
@@ -830,4 +830,15 @@ def read_plants_log(path: str) -> Union[Dict[str, List[Union[str, float]]], int]
             octools.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{logdir}/PLANTS_read_log_ERROR.log")
 
     # Throw an error
-    return errors.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
+    _ = errors.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
+
+    # Return a dict with a NaN value
+    return {
+               "PLANTS_TOTAL_SCORE": [np.NaN], # type: ignore
+               "PLANTS_SCORE_RB_PEN": [np.NaN], # type: ignore
+               "PLANTS_SCORE_NORM_HEVATOMS": [np.NaN], # type: ignore
+               "PLANTS_SCORE_NORM_CRT_HEVATOMS": [np.NaN], # type: ignore
+               "PLANTS_SCORE_NORM_WEIGHT": [np.NaN], # type: ignore
+               "PLANTS_SCORE_NORM_CRT_WEIGHT": [np.NaN], # type: ignore
+               "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [np.NaN], # type: ignore
+           }

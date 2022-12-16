@@ -581,7 +581,7 @@ def generate_vina_files_database(path: str, protein: str, boxPath: str = "") -> 
 
     return None
 
-def read_vina_log(path: str) -> Union[Dict[str, List[Union[str, float]]], int]:
+def read_vina_log(path: str) -> Dict[str, List[Union[str, float]]]:
     '''Read the vina log path, returning the data from complexes.
 
     Parameters
@@ -591,8 +591,8 @@ def read_vina_log(path: str) -> Union[Dict[str, List[Union[str, float]]], int]:
 
     Returns
     -------
-    Dict[str, List[Union[str, float]]] | int
-        A dictionary with the data from the vina log file. If any error occurs, it will return the exit code of the command (based on the Error.py code table).
+    Dict[str, List[str | float]]
+        A dictionary with the data from the vina log file.
 
     Raises
     ------
@@ -633,4 +633,7 @@ def read_vina_log(path: str) -> Union[Dict[str, List[Union[str, float]]], int]:
         return data
 
     # Throw an error
-    return errors.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
+    _ = errors.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
+
+    # Return a dict with a NaN value
+    return {"vina_affinity": [np.NaN]}
