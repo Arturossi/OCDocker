@@ -1781,7 +1781,7 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
 
     # Create docking dicts
     vinaDict = { "vina_pose": [], "vina_affinity": [] }
-    gninaDict = { "gnina_pose": [], "gnina_affinity": [] }
+    #gninaDict = { "gnina_pose": [], "gnina_affinity": [] }
     sminaDict = { "smina_pose": [], "smina_affinity": [] }
     plantsDict = { "PLANTS_TOTAL_SCORE": [], "PLANTS_SCORE_RB_PEN": [], "PLANTS_SCORE_NORM_HEVATOMS": [], "PLANTS_SCORE_NORM_CRT_HEVATOMS": [], "PLANTS_SCORE_NORM_WEIGHT": [], "PLANTS_SCORE_NORM_CRT_WEIGHT": [], "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [] }
 
@@ -1808,7 +1808,7 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
     else:
         _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its vina output.")
 
-    # GNINA
+    '''# GNINA
     gninaDir = f"{processDir}/gninaFiles"
     # Parameterize the log path
     logPath = f"{gninaDir}/gnina_{runNumber}.log"
@@ -1823,7 +1823,7 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
             # Append the value to the gnina dict
             gninaDict[key].append(value[0])
     else:
-        _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its gnina output.")
+        _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its gnina output.")'''
 
     # PLANTS
     plantsDir = f"{processDir}/plantsFiles"
@@ -1873,8 +1873,8 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
         maxLenList.append(len(sminaDict["smina_pose"]))
     if len(plantsDict["PLANTS_TOTAL_SCORE"]) != 0:
         maxLenList.append(len(plantsDict["PLANTS_TOTAL_SCORE"]))
-    if len(gninaDict["gnina_pose"]) != 0:
-        maxLenList.append(len(gninaDict["gnina_pose"]))
+    #if len(gninaDict["gnina_pose"]) != 0:
+    #    maxLenList.append(len(gninaDict["gnina_pose"]))
    
     # Check if the list is empty
     if len(maxLenList) == 0:
@@ -1893,14 +1893,14 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
                 "type": [tp for _ in range(maxLen)]
             },
             **vinaDict,
-            **gninaDict,
+            #**gninaDict,
             **sminaDict,
             **plantsDict
         }
     )
 
     # Clean the memory
-    del vinaDict, sminaDict, plantsDict, gninaDict
+    del vinaDict, sminaDict, plantsDict#, gninaDict
 
     # Return the proteinData dict
     return proteinData # type: ignore
