@@ -1875,8 +1875,26 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
     else:
         _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its SMINA output.")
 
-    # Get the number of elements of the dict with the largest number of elements
-    maxLen = max([len(vinaDict["vina_affinity"]), len(sminaDict["smina_affinity"]), len(plantsDict["PLANTS_TOTAL_SCORE"]), len(gninaDict["gnina_affinity"])])
+    # Create the maxLenList
+    maxLenList = []
+
+    # Add each score to the list its len is not 0
+    if len(vinaDict["vina_affinity"]) != 0:
+        maxLenList.append(len(vinaDict["vina_affinity"]))
+    if len(sminaDict["smina_affinity"]) != 0:
+        maxLenList.append(len(sminaDict["smina_affinity"]))
+    if len(plantsDict["PLANTS_TOTAL_SCORE"]) != 0:
+        maxLenList.append(len(plantsDict["PLANTS_TOTAL_SCORE"]))
+    if len(gninaDict["gnina_affinity"]) != 0:
+        maxLenList.append(len(gninaDict["gnina_affinity"]))
+    
+    # Check if the list is not empty
+    if len(maxLenList) != 0:
+        # Set the maxLen to 0
+        maxLen = 0
+    else:
+        # Get the number of elements of the dict with the largest number of elements
+        maxLen = max(maxLenList)
 
     # Add the concatenated the dicts. The single elements are repeated to match the largest dict to the proteinData dict using ptn as the key
     proteinData[f"{ptn}-{lgd}"] = vaex.from_dict(
