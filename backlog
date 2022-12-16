@@ -17,6 +17,7 @@
 
 ### 2
 - Add integrity verification for all databases. | 2
+- Find a better way to read files. Currently, IO is the big problem which we are dealing with, in terms of time of processing. | 2
 
 ### 3
 - Optimize the current merge function to make it faster | 3
