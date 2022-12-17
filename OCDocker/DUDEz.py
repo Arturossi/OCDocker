@@ -275,18 +275,26 @@ def generate_dock_result_csv(csv_path: str = "", log_dumps: Union[Dict[str, pd.D
 
     return ocbdb.generate_dock_result_csv("dudez", csv_path, log_dumps = log_dumps) # type: ignore
 
-def merge_descriptors_in_dataframe(saveCsv = True) -> Union[vdf.DataFrameLocal, None]:
+def merge_descriptors_in_dataframe(readMode:str = "hdf5", saveMode: str = "hdf5", picklenize: bool = False, returnDf: bool = False, skipMergePicklePath: str = "") -> Union[vdf.DataFrameLocal, None]:
     '''Reads all the descriptors jsons and return a vdf.DataFrameLocal.
 
     Parameters
     ----------
-    saveCsv : bool, optional
-        If True, saves the dataframe as a csv file, by default True
+    readMode : str, optional
+        The read mode for the descriptors. Can be "hdf5" or "csv", by default "hdf5".
+    saveMode : str, optional
+        The save mode for the descriptors. Can be "hdf5", "csv" or "", by default "hdf5". If empty, the dataframe will not be saved.
+    picklenize : bool, optional
+        If True, will save the dataframe as a pickle file in different steps during the execution. The default is False.
+    returnDf : bool, optional
+        If True, will return the dataframe. The default is False.
+    skipMergePicklePath : str, optional
+        The path to the pickle file with the dataframe. If empty, the dataframe will not be loaded from a pickle file. The default is "".
 
     Returns
     -------
     vdf.DataFrameLocal | None
-        A dataframe with all the descriptors or None if any error occur while reading the csv.
+        A dataframe with all the descriptors and affinity results or None if any error occur while reading the input file or if returnDf is set to false.
 
     Raises
     ------
@@ -294,21 +302,5 @@ def merge_descriptors_in_dataframe(saveCsv = True) -> Union[vdf.DataFrameLocal, 
     '''
 
     # Get the dataframe with descriptors and docking scores
-    dudezdf = ocbdb.merge_descriptors_in_dataframe("dudez", saveCsv = saveCsv)
+    return ocbdb.merge_descriptors_in_dataframe("dudez", readMode = readMode, saveMode = saveMode, picklenize = picklenize, returnDf = returnDf, skipMergePicklePath = skipMergePicklePath)
     
-    # If the save csv flag is set
-    if saveCsv:
-        # Parameterize the csvs paths
-        csv_path_out = f"{parsed_archive}/dudez_complete.csv"
-
-        if os.path.isfile(csv_path_out):
-            octools.print_warning(f"The file {csv_path_out} already exists, it will be OVERWRITTEN!!")
-
-        # Check if the dudezdf is not None
-        if dudezdf is not None:
-            # Write the data to a new csv file
-            dudezdf.to_csv(csv_path_out, index = False)
-        else:
-            octools.print_warning(f"The dataframe is None, no csv will be generated")
-
-    return dudezdf

@@ -2830,15 +2830,21 @@ def generate_dock_result_csv(archive: str, csv_path: str, log_dumps: Union[Dict[
 
     return None
 
-def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[vdf.DataFrameLocal, None]:
+def merge_descriptors_in_dataframe(archive: str, readMode:str = "hdf5", saveMode: str = "hdf5", picklenize: bool = False, returnDf: bool = False, skipMergePicklePath: str = "") -> Union[vdf.DataFrameLocal, None]:
     '''Reads all the descriptors jsons and return a pd.DataFrame.
 
     Parameters
     ----------
     archive : str
-        The archive to be prepared. The options are [dudez, pdbbind].
-    saveCsv : bool, optional
-        If True, the csv will be saved. The default is True.
+        The archive to be prepared. Can be "hdf5" or "csv", by default "hdf5".
+    saveMode : str, optional
+        The mode to save the dataframe. Can be "hdf5", "csv" or "", by default "hdf5". If empty, will not save the dataframe.
+    picklenize : bool, optional
+        If True, will save the dataframe as a pickle file in different steps during the execution. The default is False.
+    returnDf : bool, optional
+        If True, will return the dataframe. The default is False.
+    skipMergePicklePath : str, optional
+        If not empty, will skip the merge and will try to read the pickle file. The default is "".
     
     Returns
     -------
@@ -2863,55 +2869,91 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
         octools.print_error(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}.")
         return None
 
-    # Parameterize the csvs paths (parsed_archive is defined in Initialise.py)
-    csv_path_in = f"{parsed_archive}/{archive}.csv"
-    csv_path_out = f"{parsed_archive}/{archive}_complete.csv"
-
-    # Create an empty list for all directories to be processed
-    processDirs = []
-
-    # For each dir in chosenArchive
-    for ptnDir in glob(f"{chosenArchive}/*")[:4]:
-        # Check if is a dir (just in case) and if its name is not one of the ones we want to skip
-        if os.path.isdir(ptnDir) and os.path.basename(ptnDir.split(os.path.sep)[-1]) not in ["index"]:
-            # Parameterize paths
-            ligands = f"{ptnDir}/compounds/ligands"
-            decoys = f"{ptnDir}/compounds/decoys"
-            candidates = f"{ptnDir}/compounds/candidates"
-
-            # Parameterize the receptor descriptor path
-            receptor_descriptor_path = f"{ptnDir}/receptor_descriptors.json"
-
-            processDirs += [(processDir, receptor_descriptor_path) for processDir in glob(f"{ligands}/*") if os.path.isdir(processDir)]
-            processDirs += [(processDir, receptor_descriptor_path) for processDir in glob(f"{decoys}/*") if os.path.isdir(processDir)]
-            processDirs += [(processDir, receptor_descriptor_path) for processDir in glob(f"{candidates}/*") if os.path.isdir(processDir)]
-    
-    # Make data be None (in case of failure)
-    data = None
-    
-    # Decide if multprocessing will be used
-    if args.multiprocess:
-        data = __merge_descriptors_in_dataframe_parallel(processDirs, f"Processing {archive}")
+    # Parameterize the out paths (parsed_archive is defined in Initialise.py)
+    if saveMode.lower() == "hdf5":
+        file_path_out = f"{parsed_archive}/{archive}_complete.hdf5"
+    elif saveMode.lower() == "csv":
+        file_path_out = f"{parsed_archive}/{archive}_complete.csv"
+    elif saveMode == "":
+        file_path_out = ""
     else:
-        data = __merge_descriptors_in_dataframe_no_parallel(processDirs, f"Processing {archive}")
+        octools.print_error(f"Not valid save mode. Expected one of ['csv', 'hdf5', ''] and found {saveMode}.")
+        return None
+    
+    # Parameterize the in paths (parsed_archive is defined in Initialise.py)
+    if readMode.lower() == "hdf5":
+        file_path_in = f"{parsed_archive}/{archive}.hdf5"
+    elif readMode.lower() == "csv":
+        file_path_in = f"{parsed_archive}/{archive}.csv"
+    else:
+        octools.print_error(f"Not valid read mode. Expected one of ['csv', 'hdf5'] and found {readMode}.")
+
+        return None
+    
+    if skipMergePicklePath:
+
+        # Create an empty list for all directories to be processed
+        processDirs = []
+
+        # For each dir in chosenArchive
+        for ptnDir in glob(f"{chosenArchive}/*")[:4]:
+            # Check if is a dir (just in case) and if its name is not one of the ones we want to skip
+            if os.path.isdir(ptnDir) and os.path.basename(ptnDir.split(os.path.sep)[-1]) not in ["index"]:
+                # Parameterize paths
+                ligands = f"{ptnDir}/compounds/ligands"
+                decoys = f"{ptnDir}/compounds/decoys"
+                candidates = f"{ptnDir}/compounds/candidates"
+
+                # Parameterize the receptor descriptor path
+                receptor_descriptor_path = f"{ptnDir}/receptor_descriptors.json"
+
+                processDirs += [(processDir, receptor_descriptor_path) for processDir in glob(f"{ligands}/*") if os.path.isdir(processDir)]
+                processDirs += [(processDir, receptor_descriptor_path) for processDir in glob(f"{decoys}/*") if os.path.isdir(processDir)]
+                processDirs += [(processDir, receptor_descriptor_path) for processDir in glob(f"{candidates}/*") if os.path.isdir(processDir)]
+        
+        # Make data be None (in case of failure)
+        data = None
+        
+        # Decide if multprocessing will be used
+        if args.multiprocess:
+            data = __merge_descriptors_in_dataframe_parallel(processDirs, f"Processing {archive}")
+        else:
+            data = __merge_descriptors_in_dataframe_no_parallel(processDirs, f"Processing {archive}")
+    
+    else:
+        # Try to read the pickle
+        try:
+            data = octools.from_pickle(skipMergePicklePath)
+        except:
+            octools.print_error(f"Could not read the pickle file '{skipMergePicklePath}'.")
+            return None
 
     # Check if data is pd.DataFrame type and is not empty
     if type(data) == vdf.DataFrameLocal: # type: ignore
         # Try to write the csv
         try:
-            octools.to_pickle(f"{parsed_archive}/vaex.pickle", data)
-            exit()
+            # If picklenize is true, save as pickle in this step
+            if picklenize:
+                octools.to_pickle(f"{parsed_archive}/{archive}_merged_descriptors.pickle", data)
 
             # Rename the name column from data dataframe
-            data.rename("Name", "Ligand")
+            data.rename("Name", "Ligand") # type: ignore
             
             if args.output_level > 2:
                 with vaex.progress.tree("rich", title="Merging dataframes"): # type: ignore
-                    # Read the csv from input file
-                    ptndf = vaex.read_csv(csv_path_in)
+                    if readMode == "hdf5":
+                        # Read the hdf5 from input file
+                        ptndf = vaex.open(file_path_in)
+                    else:
+                        # Read the csv from input file
+                        ptndf = vaex.read_csv(file_path_in)
             else:
-                # Read the csv from input file
-                ptndf = vaex.read_csv(csv_path_in)
+                if readMode == "hdf5":
+                    # Read the csv from input file
+                    ptndf = vaex.open(file_path_in)
+                else:
+                    # Read the csv from input file
+                    ptndf = vaex.read_csv(file_path_in)
 
             # Generate and materialize the Complex column for ptndf and data from "Protein" and "Ligand" columns then drop them
             ptndf["Complex"] = ptndf["Protein"] + "-" + ptndf["Ligand"] # type: ignore
@@ -2932,26 +2974,39 @@ def merge_descriptors_in_dataframe(archive: str, saveCsv: bool = True) -> Union[
                 data = ptndf.join(data, on = "Complex", how = "left") # type: ignore
             
             # If saveCsv is True, save the csv
-            if saveCsv:
+            if saveMode:
                 if args.output_level > 2:
-                    with vaex.progress.tree("rich", title="Merging dataframes"): # type: ignore
-                        data.export_csv(csv_path_out, backend = "arrow")
+                    with vaex.progress.tree("rich", title="Saving dataframe"): # type: ignore
+                        if saveMode == "hdf5":
+                            # Write the data to a new hdf5 file
+                            data.export_hdf5(file_path_out)
+                        else:
+                            # Write the data to a new csv file
+                            data.export_csv(file_path_out, backend = "arrow")
                 else:
-                    # Write the data to a new csv file
-                    data.export_csv(csv_path_out, backend = "arrow")
+                    if saveMode == "hdf5":
+                        # Write the data to a new hdf5 file
+                        data.export_hdf5(file_path_out)
+                    else:
+                        # Write the data to a new csv file
+                        data.export_csv(file_path_out, backend = "arrow")
 
-                octools.print_success(f"The file '{csv_path_out}' has been successfully written.")
+                octools.print_success(f"The file '{file_path_out}' has been successfully written.")
 
         except Exception as e:
-            octools.print_error(f"Could not write the file '{csv_path_out}'. Error: {e}")
+            octools.print_error(f"Could not write the file '{file_path_out}'. Error: {e}")
 
             # Return Nothing
             return None
     else:
-        octools.print_warning(f"The data object is not defined! There is no reason to write it as a csv. Aborting...")
+        octools.print_warning(f"The data object is not defined! There is no reason to write it. Aborting...")
+
         # Return nothing
         return None
 
-    # Return the data
-    return data
+    if returnDf:
+        # Return the data
+        return data
+
+    return None
 

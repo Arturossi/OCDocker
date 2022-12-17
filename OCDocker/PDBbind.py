@@ -351,18 +351,26 @@ def generate_dock_result_csv(csv_path: str = "", log_dumps: Union[Dict[str, vdf.
 
     return ocbdb.generate_dock_result_csv("pdbbind", csv_path, log_dumps = log_dumps)
 
-def merge_descriptors_in_dataframe(saveCsv: bool = True) -> Union[vdf.DataFrameLocal, None]:
+def merge_descriptors_in_dataframe(readMode:str = "hdf5", saveMode: str = "hdf5", picklenize: bool = False, returnDf: bool = False, skipMergePicklePath: str = "") -> Union[vdf.DataFrameLocal, None]:
     '''Reads all the descriptors jsons and return a vdf.DataFrameLocal.
 
     Parameters
     ----------
-    saveCsv : bool, optional
-        If True, it will save the csv file, by default True.
+    readMode : str, optional
+        The read mode for the descriptors. Can be "hdf5" or "csv", by default "hdf5".
+    saveMode : str, optional
+        The save mode for the descriptors. Can be "hdf5", "csv" or "", by default "hdf5". If empty, the dataframe will not be saved.
+    picklenize : bool, optional
+        If True, will save the dataframe as a pickle file in different steps during the execution. The default is False.
+    returnDf : bool, optional
+        If True, will return the dataframe. The default is False.
+    skipMergePicklePath : str, optional
+        The path to the pickle file with the dataframe. If empty, the dataframe will not be loaded from a pickle file. The default is "".
 
     Returns
     -------
     vdf.DataFrameLocal | None
-        The dataframe with all the complex descriptors.
+        A dataframe with all the descriptors and affinity results or None if any error occur while reading the input file or if returnDf is set to false.
 
     Raises
     ------
@@ -370,4 +378,4 @@ def merge_descriptors_in_dataframe(saveCsv: bool = True) -> Union[vdf.DataFrameL
     '''
     
     # Get the dataframe with descriptors and docking scores
-    return ocbdb.merge_descriptors_in_dataframe("pdbbind", saveCsv = saveCsv)
+    return ocbdb.merge_descriptors_in_dataframe("pdbbind", readMode = readMode, saveMode = saveMode, picklenize = picklenize, returnDf = returnDf, skipMergePicklePath = skipMergePicklePath)
