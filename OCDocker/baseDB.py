@@ -2890,7 +2890,7 @@ def merge_descriptors_in_dataframe(archive: str, readMode:str = "hdf5", saveMode
 
         return None
     
-    if skipMergePicklePath:
+    if not skipMergePicklePath:
 
         # Create an empty list for all directories to be processed
         processDirs = []
