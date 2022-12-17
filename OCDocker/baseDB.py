@@ -2978,7 +2978,7 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
                 data = ptndf.join(data, on = "Complex", how = "left") # type: ignore
 
             # Drop the poses columns since they are the same for all the rows (will be used when the support to multiple poses is added)
-            data = data.drop(["vina_pose", "smina_pose", "gnina_pose"])
+            data = data.drop(["vina_pose", "smina_pose", "gnina_pose"]) # TODO: Add support for multiple poses and remove this line
             
             # If saveCsv is True, save the csv
             if saveMode:
