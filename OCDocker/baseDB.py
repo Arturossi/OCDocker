@@ -2939,7 +2939,7 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
                 octools.to_pickle(f"{parsed_archive}/{archive}_merged_descriptors.pickle", data)
 
             # Rename the name column from data dataframe
-            data.rename("Name", "Ligand") # type: ignore
+            #data.rename("Name", "Ligand") # type: ignore
             
             if args.output_level > 2 or verboseOperations:
                 with vaex.progress.tree("rich", title="Merging dataframes"): # type: ignore
@@ -2960,12 +2960,12 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
 
             # Generate and materialize the Complex column for ptndf and data from "Protein" and "Ligand" columns then drop them
             ptndf["Complex"] = ptndf["Protein"] + "-" + ptndf["Ligand"] # type: ignore
-            ptndf.materialize("Complex", inplace = True) # type: ignore
+            _ = ptndf.materialize("Complex", inplace = True) # type: ignore
             ptndf = ptndf.drop(["Protein", "Ligand"]) # type: ignore
 
             data["Complex"] = data["Protein"] + "-" + data["Ligand"] # type: ignore
-            data.materialize("Complex", inplace = True) # type: ignore
-            data = data.drop(["Protein", "Ligand"]) # type: ignore
+            _ = data.materialize("Complex", inplace = True) # type: ignore
+            data = data.drop(["Protein", "Ligand", "Name"]) # type: ignore
             
             # If verbose
             if args.output_level > 2 or verboseOperations:
@@ -2976,6 +2976,9 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
                 octools.print_info("Merging dataframes...")
                 # Merge both DataFrames using the Protein column as a comparer
                 data = ptndf.join(data, on = "Complex", how = "left") # type: ignore
+
+            # Drop the poses columns since they are the same for all the rows (will be used when the support to multiple poses is added)
+            data = data.drop(["vina_pose", "smina_pose", "gnina_pose"])
             
             # If saveCsv is True, save the csv
             if saveMode:
