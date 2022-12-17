@@ -2830,7 +2830,7 @@ def generate_dock_result_csv(archive: str, csv_path: str, log_dumps: Union[Dict[
 
     return None
 
-def merge_descriptors_in_dataframe(archive: str, readMode:str = "hdf5", saveMode: str = "hdf5", picklenize: bool = False, returnDf: bool = False, skipMergePicklePath: str = "") -> Union[vdf.DataFrameLocal, None]:
+def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMode: str = "hdf5", picklenize: bool = False, returnDf: bool = False, skipMergePicklePath: str = "", verboseOperations: bool = False) -> Union[vdf.DataFrameLocal, None]:
     '''Reads all the descriptors jsons and return a pd.DataFrame.
 
     Parameters
@@ -2845,6 +2845,8 @@ def merge_descriptors_in_dataframe(archive: str, readMode:str = "hdf5", saveMode
         If True, will return the dataframe. The default is False.
     skipMergePicklePath : str, optional
         If not empty, will skip the merge and will try to read the pickle file. The default is "".
+    verboseOperations : bool, optional
+        If True, will print the operations being done. The default is False. This is useful for debugging.
     
     Returns
     -------
@@ -2939,7 +2941,7 @@ def merge_descriptors_in_dataframe(archive: str, readMode:str = "hdf5", saveMode
             # Rename the name column from data dataframe
             data.rename("Name", "Ligand") # type: ignore
             
-            if args.output_level > 2:
+            if args.output_level > 2 or verboseOperations:
                 with vaex.progress.tree("rich", title="Merging dataframes"): # type: ignore
                     if readMode == "hdf5":
                         # Read the hdf5 from input file
@@ -2948,6 +2950,7 @@ def merge_descriptors_in_dataframe(archive: str, readMode:str = "hdf5", saveMode
                         # Read the csv from input file
                         ptndf = vaex.read_csv(file_path_in)
             else:
+                octools.print_info(f"Reading {file_path_in}...")
                 if readMode == "hdf5":
                     # Read the csv from input file
                     ptndf = vaex.open(file_path_in)
@@ -2965,17 +2968,18 @@ def merge_descriptors_in_dataframe(archive: str, readMode:str = "hdf5", saveMode
             data = data.drop(["Protein", "Ligand"]) # type: ignore
             
             # If verbose
-            if args.output_level > 2:
+            if args.output_level > 2 or verboseOperations:
                 with vaex.progress.tree("rich", title="Merging dataframes"): # type: ignore
                     # Merge both DataFrames using the Complex column as a comparer
                     data = ptndf.join(data, on = "Complex", how = "left") # type: ignore
             else:
+                octools.print_info("Merging dataframes...")
                 # Merge both DataFrames using the Protein column as a comparer
                 data = ptndf.join(data, on = "Complex", how = "left") # type: ignore
             
             # If saveCsv is True, save the csv
             if saveMode:
-                if args.output_level > 2:
+                if args.output_level > 2 or verboseOperations:
                     with vaex.progress.tree("rich", title="Saving dataframe"): # type: ignore
                         if saveMode == "hdf5":
                             # Write the data to a new hdf5 file
@@ -2984,6 +2988,7 @@ def merge_descriptors_in_dataframe(archive: str, readMode:str = "hdf5", saveMode
                             # Write the data to a new csv file
                             data.export_csv(file_path_out, backend = "arrow")
                 else:
+                    octools.print_info(f"Writing the file '{file_path_out}'...")
                     if saveMode == "hdf5":
                         # Write the data to a new hdf5 file
                         data.export_hdf5(file_path_out)

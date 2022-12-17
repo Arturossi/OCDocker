@@ -275,7 +275,7 @@ def generate_dock_result_csv(csv_path: str = "", log_dumps: Union[Dict[str, pd.D
 
     return ocbdb.generate_dock_result_csv("dudez", csv_path, log_dumps = log_dumps) # type: ignore
 
-def merge_descriptors_in_dataframe(readMode:str = "hdf5", saveMode: str = "hdf5", picklenize: bool = False, returnDf: bool = False, skipMergePicklePath: str = "") -> Union[vdf.DataFrameLocal, None]:
+def merge_descriptors_in_dataframe(readMode:str = "hdf5", saveMode: str = "hdf5", picklenize: bool = False, returnDf: bool = False, skipMergePicklePath: str = "", verboseOperations: bool = False) -> Union[vdf.DataFrameLocal, None]:
     '''Reads all the descriptors jsons and return a vdf.DataFrameLocal.
 
     Parameters
@@ -290,6 +290,8 @@ def merge_descriptors_in_dataframe(readMode:str = "hdf5", saveMode: str = "hdf5"
         If True, will return the dataframe. The default is False.
     skipMergePicklePath : str, optional
         The path to the pickle file with the dataframe. If empty, the dataframe will not be loaded from a pickle file. The default is "".
+    verboseOperations : bool, optional
+        If True, will print the operations being done. The default is False. This is useful for debugging.
 
     Returns
     -------
@@ -302,5 +304,5 @@ def merge_descriptors_in_dataframe(readMode:str = "hdf5", saveMode: str = "hdf5"
     '''
 
     # Get the dataframe with descriptors and docking scores
-    return ocbdb.merge_descriptors_in_dataframe("dudez", readMode = readMode, saveMode = saveMode, picklenize = picklenize, returnDf = returnDf, skipMergePicklePath = skipMergePicklePath)
+    return ocbdb.merge_descriptors_in_dataframe("dudez", readMode = readMode, saveMode = saveMode, picklenize = picklenize, returnDf = returnDf, skipMergePicklePath = skipMergePicklePath, verboseOperations = verboseOperations)
     

@@ -351,7 +351,7 @@ def generate_dock_result_csv(csv_path: str = "", log_dumps: Union[Dict[str, vdf.
 
     return ocbdb.generate_dock_result_csv("pdbbind", csv_path, log_dumps = log_dumps)
 
-def merge_descriptors_in_dataframe(readMode:str = "hdf5", saveMode: str = "hdf5", picklenize: bool = False, returnDf: bool = False, skipMergePicklePath: str = "") -> Union[vdf.DataFrameLocal, None]:
+def merge_descriptors_in_dataframe(readMode:str = "hdf5", saveMode: str = "hdf5", picklenize: bool = False, returnDf: bool = False, skipMergePicklePath: str = "", verboseOperations: bool = False) -> Union[vdf.DataFrameLocal, None]:
     '''Reads all the descriptors jsons and return a vdf.DataFrameLocal.
 
     Parameters
@@ -378,4 +378,4 @@ def merge_descriptors_in_dataframe(readMode:str = "hdf5", saveMode: str = "hdf5"
     '''
     
     # Get the dataframe with descriptors and docking scores
-    return ocbdb.merge_descriptors_in_dataframe("pdbbind", readMode = readMode, saveMode = saveMode, picklenize = picklenize, returnDf = returnDf, skipMergePicklePath = skipMergePicklePath)
+    return ocbdb.merge_descriptors_in_dataframe("pdbbind", readMode = readMode, saveMode = saveMode, picklenize = picklenize, returnDf = returnDf, skipMergePicklePath = skipMergePicklePath, verboseOperations = verboseOperations)
