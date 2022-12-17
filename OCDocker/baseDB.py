@@ -2891,9 +2891,9 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
         octools.print_error(f"Not valid read mode. Expected one of ['csv', 'hdf5'] and found {readMode}.")
 
         return None
-    
-    if not skipMergePicklePath:
 
+    # If the user asked to skip the merge passing a pickle path    
+    if not skipMergePicklePath:
         # Create an empty list for all directories to be processed
         processDirs = []
 
@@ -2921,7 +2921,6 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
             data = __merge_descriptors_in_dataframe_parallel(processDirs, f"Processing {archive}")
         else:
             data = __merge_descriptors_in_dataframe_no_parallel(processDirs, f"Processing {archive}")
-    
     else:
         # Try to read the pickle
         try:
