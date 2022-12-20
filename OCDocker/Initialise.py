@@ -240,6 +240,7 @@ def create_ocdocker_conf() -> None:
     confGnina_force_cap = "10"
     confGnina_user_grid = "no"
     confGnina_user_grid_lambda = "-1"
+    confGnina_no_gpu = "no"
 
     print("\nGnina configuration")
     answer = input(f"Path to the Gnina software. Default [{confGnina}] (press enter to keep default): ")
@@ -304,6 +305,8 @@ def create_ocdocker_conf() -> None:
 
     answer = input(f"Gnina user grid lambda parameter. Default [{confGnina_user_grid_lambda}] (press enter to keep default): ")
     confGnina_user_grid_lambda = confGnina_user_grid_lambda if not answer else answer
+
+    answer = input(f"Use CPU instead of GPU? Default [{confGnina_no_gpu}] (press enter to keep default): ")
     #endregion
 
     #region PLANTS variables
@@ -551,6 +554,9 @@ def create_ocdocker_conf() -> None:
         # Scales user_grid and functional scoring
         gnina_user_grid_lambda = """ + str(confGnina_user_grid_lambda) + """
 
+        # Wether to use the GPU or not
+        gnina_no_gpu = """ + str(confGnina_no_gpu) + """
+
         ################# DOCK6 PARAMETERS ##################
 
         # dock6 path
@@ -661,6 +667,7 @@ global gnina_factor
 global gnina_force_cap
 global gnina_user_grid
 global gnina_user_grid_lambda
+global gnina_no_gpu
 
 # PLANTS parameters
 global plants_cluster_structures
@@ -962,6 +969,8 @@ for line in open(config_file, "r"): # type: ignore
         gnina_user_grid = line.split("=")[1].strip()
     elif line.startswith("gnina_user_grid_lambda ="):
         gnina_user_grid_lambda = line.split("=")[1].strip()
+    elif line.startswith("gnina_no_gpu ="):
+        gnina_no_gpu = line.split("=")[1].strip()
     elif line.startswith("plants ="):
         plants = line.split("=")[1].strip()
     elif line.startswith("plants_cluster_structures ="):
