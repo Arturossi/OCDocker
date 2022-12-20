@@ -427,8 +427,6 @@ def gen_gnina_conf(boxFile: str, confFile: str, receptor: str) -> int:
             conf_file.write(f"size_y = {lines[1][1]}\n")
             conf_file.write(f"size_z = {lines[1][2]}\n\n")
 
-            conf_file.write(f"force_cap = {gnina_force_cap}\n")
-
             if gnina_user_grid.lower() != "no":
                 conf_file.write(f"user_grid = {gnina_user_grid}\n")
 
