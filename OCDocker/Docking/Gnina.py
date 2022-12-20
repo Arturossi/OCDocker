@@ -452,11 +452,7 @@ def gen_gnina_conf(boxFile: str, confFile: str, receptor: str) -> int:
             conf_file.write(f"num_modes = {gnina_num_modes}\n")
             conf_file.write(f"factor = {gnina_factor}\n")
             conf_file.write(f"force_cap = {gnina_force_cap}\n")
-
-            if gnina_user_grid.lower() != "no":
-                conf_file.write(f"user_grid = {gnina_user_grid}\n")
             
-            conf_file.write(f"user_grid_lambda = {gnina_user_grid_lambda}\n")
     except Exception as e:
         return errors.write_file(message=f"Found a problem while opening conf file: {e}.", level="error")
 
