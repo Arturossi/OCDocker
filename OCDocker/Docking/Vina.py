@@ -85,14 +85,27 @@ class Vina:
         self.boxFile = str(boxFile)
 
         # Receptor
-        self.inputReceptor = self.__parse_receptor(receptor)
+        if type(receptor) == ocr.Receptor:
+            self.inputReceptor = receptor
+        else:
+            errors.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'ocr.Receptor' but got {type(receptor)} instead.", level="error")
+            return None
+
         self.inputReceptorPath = self.__parse_receptor_path(receptor)
         self.preparedReceptor = str(preparedReceptorPath)
         self.prepareReceptorCmd = [pythonsh, prepare_receptor, "-r", self.inputReceptorPath, "-o", self.preparedReceptor, "-A", "hydrogens", "-U", "nphs_lps_waters"]
 
         # Ligand
         self.preparedLigand = str(preparedLigandPath)
-        self.inputLigand = self.__parse_ligand(ligand)
+        # Check the type of the ligand
+        if type(ligand) == ocl.Ligand:
+            self.inputLigand = ligand
+            # Create the plantsFiles folder
+            _ = octools.safe_create_dir(os.path.join(ligand.path, "plantsFiles"))
+        else:
+            errors.wrong_type(f"The ligand '{ligand}' has not a supported type. Expected 'ocl.Ligand' but got {type(ligand)} instead.", level="error")
+            return None
+
         self.inputLigandPath = self.__parse_ligand_path(ligand)
         self.prepareLigandCmd = [pythonsh, prepare_ligand, "-l", self.inputLigandPath, "-C", "-o", self.preparedLigand]
 
@@ -107,32 +120,6 @@ class Vina:
             box_to_vina(self.boxFile, self.config, self.preparedReceptor)
 
     ## Private ##
-    def __parse_receptor(self, receptor: ocr.Receptor) -> Union[ocr.Receptor, None]:
-        '''Parse the receptor as input, handling its type to validate the object.
-
-        Parameters
-        ----------
-        receptor : ocr.Receptor
-            The path for the receptor or its ocr.Receptor object.
-
-        Returns
-        -------
-        ocr.Receptor | None
-            The ocr.Receptor object if succeed or None if fail.
-        
-        Raises
-        ------
-        None
-        '''
-
-        # Check the type of the receptor
-        if type(receptor) == ocr.Receptor:
-            octools.printv(f"The receptor '{receptor}' has been loaded.")
-            return receptor
-
-        octools.print_warning(f"The receptor '{receptor}' is not the type 'ocr.Receptor'. It is STRONGLY recomended that you provide an 'ocr.Receptor' object.")
-        return None
-
     def __parse_receptor_path(self, receptor: Union[str, ocr.Receptor]) -> str:
         '''Parse the receptor path, handling its type.
         
@@ -165,32 +152,6 @@ class Vina:
 
         _ = errors.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'string' or 'ocr.Receptor' but got {type(receptor)} instead.", level = "error")
         return ""
-
-    def __parse_ligand(self, ligand: ocl.Ligand) -> Union[ocl.Ligand, None]:
-        '''Parse the ligand as input, handling its type.
-
-        Parameters
-        ----------
-        receptor : ocl.Ligand
-            The path for the receptor or its receptor object.
-
-        Returns
-        -------
-        ocl.Ligand | None
-            The ocr.Ligand object if succeed or None if fail.
-        
-        Raises
-        ------
-        None
-        '''
-
-        # Check the type of the ligand
-        if type(ligand) == ocl.Ligand:
-            octools.printv(f"The ligand '{ligand}' has been loaded.")
-            return ligand
-
-        octools.print_warning(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.")
-        return None
 
     def __parse_ligand_path(self, ligand: Union[str, ocl.Ligand]) -> str:
         '''Parse the ligand path, handling its type.

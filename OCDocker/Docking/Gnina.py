@@ -99,6 +99,8 @@ class Gnina:
         # Ligand
         if type(ligand) == ocl.Ligand:
             self.inputLigand = ligand
+            # Create the gninaFiles folder
+            _ = octools.safe_create_dir(os.path.join(ligand.path, "gninaFiles"))
         else:
             errors.wrong_type(f"The ligand '{ligand}' has not a supported type. Expected 'ocl.Ligand' but got {type(ligand)} instead.", level="error")
             return None
@@ -118,12 +120,12 @@ class Gnina:
             gen_gnina_conf(self.boxFile, self.config, self.preparedReceptor)
 
     ## Private ##
-    def __parse_receptor_path(self, receptor: ocr.Receptor) -> str:
+    def __parse_receptor_path(self, receptor: Union[str, ocr.Receptor]) -> str:
         '''Parse the receptor path, handling its type.
 
         Parameters
         ----------
-        receptor : ocr.Receptor
+        receptor : ocr.Receptor | str
             The path for the receptor or its receptor object.
 
         Returns
@@ -138,24 +140,31 @@ class Gnina:
 
         # Check the type of receptor variable
         if type(receptor) == ocr.Receptor:
-            return receptor.path
+            return receptor.path  # type: ignore
+        elif type(receptor) == str:
+            # Since is a string, check if the file exists
+            if os.path.isfile(receptor): # type: ignore
+                # Exists! Return it!
+                return receptor # type: ignore
+            else:
+                _ = errors.file_do_not_exist(message=f"The receptor '{receptor}' has not a valid path.", level="error")
+                return ""
 
-        _ = errors.wrong_type(message=f"The receptor '{receptor}' has not a supported type. Expected 'string' or 'ocr.Receptor' but got {type(receptor)} instead.", level="error")
+        _ = errors.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'string' or 'ocr.Receptor' but got {type(receptor)} instead.", level = "error")
         return ""
 
-    def __parse_ligand_path(self, ligand: ocl.Ligand) -> str:
+    def __parse_ligand_path(self, ligand: Union[str, ocl.Ligand]) -> str:
         '''Parse the ligand path, handling its type.
-
+        
         Parameters
         ----------
-        ligand : ocl.Ligand
-            The path for the ligand or its ligand object.
+        ligand : str | ocl.Ligand
+            The path for the ligand or its ocl.Ligand object.
 
         Returns
         -------
-        str
-            The ligand path.
-
+            The ligand path. If fails, return an empty string.
+        
         Raises
         ------
         None
@@ -163,14 +172,14 @@ class Gnina:
 
         # Check the type of ligand variable
         if type(ligand) == ocl.Ligand:
-            return ligand.path
+            return ligand.path # type: ignore
         elif type(ligand) == str:
             # Since is a string, check if the file exists
             if os.path.isfile(ligand): # type: ignore
                 # Exists! Process it then!
-                return ligand # type: ignore
+                return self.__process_ligand(ligand) # type: ignore
             else:
-                _ = errors.file_do_not_exist(f"The ligand '{ligand}' has not a valid path.", level="error")
+                _ = errors.file_do_not_exist(message=f"The ligand '{ligand}' has not a valid path.", level="error")
                 return ""
 
         _ = errors.wrong_type(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.", level="error")
