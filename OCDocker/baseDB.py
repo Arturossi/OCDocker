@@ -836,6 +836,8 @@ def __run_gnina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
             # Read the receptor and the ligand
             receptor = ocr.Receptor(receptorPath, from_json_descriptors = receptorDescriptorPath, name = f"{ptn}_receptor")
             ligand = ocl.Ligand(ligandPath, from_json_descriptors = ligandDescriptorPath, name = f"{ptn}_{lig}_ligand")
+            print(f"receptor = ocr.Receptor('{receptorPath}', from_json_descriptors = '{receptorDescriptorPath}', name = '{ptn}_receptor')")
+            print(f"ligand = ocl.Ligand('{ligandPath}', from_json_descriptors = '{ligandDescriptorPath}', name = '{ptn}_{lig}_ligand')")
         
         # If receptor and ligand are not null
         if receptor and ligand:
