@@ -836,8 +836,6 @@ def __run_gnina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
             # Read the receptor and the ligand
             receptor = ocr.Receptor(receptorPath, from_json_descriptors = receptorDescriptorPath, name = f"{ptn}_receptor")
             ligand = ocl.Ligand(ligandPath, from_json_descriptors = ligandDescriptorPath, name = f"{ptn}_{lig}_ligand")
-            print(f"receptor = ocr.Receptor('{receptorPath}', from_json_descriptors = '{receptorDescriptorPath}', name = '{ptn}_receptor')")
-            print(f"ligand = ocl.Ligand('{ligandPath}', from_json_descriptors = '{ligandDescriptorPath}', name = '{ptn}_{lig}_ligand')")
         
         # If receptor and ligand are not null
         if receptor and ligand:
@@ -858,7 +856,6 @@ def __run_gnina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
                 lock = Lock()
                 # Start the lock with statement
                 with lock:
-                    print(f'gnina = ocgnina.Gnina(f"{runPath}/conf_gnina.conf", "{boxPath}", receptor, "{preparedReceptorPath}", ligand, "{preparedLigandPath}", "{gninaLog}", "{gninaOutput}", name = f"{ptn}_run_{runNumber}", overwriteConfig = overwrite)')
                     # Create the gnina object (the pdbqt files will be in the father directory because it will be used multiple times, let's save some disk space, please)
                     gnina = ocgnina.Gnina(f"{runPath}/conf_gnina.conf", boxPath, receptor, preparedReceptorPath, ligand, preparedLigandPath, gninaLog, gninaOutput, name = f"{ptn}_run_{runNumber}", overwriteConfig = overwrite)
 
