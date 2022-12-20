@@ -100,7 +100,7 @@ class Gnina:
         if type(ligand) == ocl.Ligand:
             self.inputLigand = ligand
             # Create the gninaFiles folder
-            _ = octools.safe_create_dir(os.path.join(ligand.path, "gninaFiles"))
+            _ = octools.safe_create_dir(os.path.join(os.path.dirname(ligand.path), "plantsFiles"))
         else:
             errors.wrong_type(f"The ligand '{ligand}' has not a supported type. Expected 'ocl.Ligand' but got {type(ligand)} instead.", level="error")
             return None

@@ -101,7 +101,7 @@ class Vina:
         if type(ligand) == ocl.Ligand:
             self.inputLigand = ligand
             # Create the plantsFiles folder
-            _ = octools.safe_create_dir(os.path.join(ligand.path, "plantsFiles"))
+            _ = octools.safe_create_dir(os.path.join(os.path.dirname(ligand.path), "plantsFiles"))
         else:
             errors.wrong_type(f"The ligand '{ligand}' has not a supported type. Expected 'ocl.Ligand' but got {type(ligand)} instead.", level="error")
             return None
