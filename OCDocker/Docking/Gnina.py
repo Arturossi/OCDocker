@@ -202,7 +202,9 @@ class Gnina:
         None
         '''
 
-        cmd = [gnina, "--config", self.config, "--ligand", self.preparedLigand]#, "--autobox_ligand", self.preparedLigand]
+        cmd = [gnina, "--config", self.config, "--ligand", self.preparedLigand]
+
+        
 
         if smina_local_only.lower() in ["y", "ye", "yes"]:
             cmd.append("--score_only")
@@ -214,6 +216,16 @@ class Gnina:
             cmd.append("--accurate_line")
         if smina_minimize_early_term.lower() in ["y", "ye", "yes"]:
             cmd.append("--minimize_early_term")
+        # Check if CUDA_VISIBLE_DEVICES is set
+        if os.environ.get("CUDA_VISIBLE_DEVICES") is not None:
+            # Set the GPU variable
+            CUDA_VISIBLE_DEVICES = os.environ.get("CUDA_VISIBLE_DEVICES")
+            # Check if it is a list
+            if "," in CUDA_VISIBLE_DEVICES: # type: ignore
+                # It is a list, get the first element
+                CUDA_VISIBLE_DEVICES = CUDA_VISIBLE_DEVICES.split(",")[0] # type: ignore
+            # Set the GPU
+            cmd.extend(["--device", CUDA_VISIBLE_DEVICES]) # type: ignore
 
         cmd.extend(["--out", self.outputGnina, "--log", self.gninaLog, "--cpu", "1"])
         return cmd
