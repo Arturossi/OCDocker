@@ -856,6 +856,7 @@ def __run_gnina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
                 lock = Lock()
                 # Start the lock with statement
                 with lock:
+                    print(f'gnina = ocgnina.Gnina(f"{runPath}/conf_gnina.conf", "{boxPath}", receptor, "{preparedReceptorPath}", ligand, "{preparedLigandPath}", "{gninaLog}", "{gninaOutput}", name = f"{ptn}_run_{runNumber}", overwriteConfig = overwrite)')
                     # Create the gnina object (the pdbqt files will be in the father directory because it will be used multiple times, let's save some disk space, please)
                     gnina = ocgnina.Gnina(f"{runPath}/conf_gnina.conf", boxPath, receptor, preparedReceptorPath, ligand, preparedLigandPath, gninaLog, gninaOutput, name = f"{ptn}_run_{runNumber}", overwriteConfig = overwrite)
 
