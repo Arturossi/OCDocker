@@ -564,8 +564,8 @@ def read_vina_log(path: str) -> Dict[str, List[Union[str, float]]]:
     if os.path.isfile(path):
         # Catch any error that might occur
         try:
-            # Check if file is not empty
-            if os.stat(path).st_size != 0:
+            # Check if file is empty
+            if os.stat(path).st_size == 0:
                 # Print the error
                 _ = errors.empty_file(f"The vina log file '{path}' is empty.", "error")
                 # Return the dictionary with invalid default data
