@@ -2898,7 +2898,7 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
         processDirs = []
 
         # For each dir in chosenArchive
-        for ptnDir in glob(f"{chosenArchive}/*")[:4]:
+        for ptnDir in glob(f"{chosenArchive}/*"):
             # Check if is a dir (just in case) and if its name is not one of the ones we want to skip
             if os.path.isdir(ptnDir) and os.path.basename(ptnDir.split(os.path.sep)[-1]) not in ["index"]:
                 # Parameterize paths

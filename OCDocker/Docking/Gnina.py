@@ -204,8 +204,6 @@ class Gnina:
 
         cmd = [gnina, "--config", self.config, "--ligand", self.preparedLigand]
 
-        
-
         if smina_local_only.lower() in ["y", "ye", "yes"]:
             cmd.append("--score_only")
         if smina_minimize.lower() in ["y", "ye", "yes"]:
