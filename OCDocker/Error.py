@@ -71,6 +71,7 @@ class Error:
         self.untarFileCode                    = 104
         self.unsupportedExtensionCode         = 105
         self.brokenPipeCode                   = 106
+        self.emptyFileCode                    = 107
 
         # Directory errors
         self.dirExistsCode                    = 150
@@ -82,7 +83,6 @@ class Error:
         self.wrongTypeCode                    = 200
         self.notSetCode                       = 201
         self.emptyCode                        = 202
-        self.emptyList                        = 203
 
         # Subprocess errors
         self.subprocessCode                   = 300
@@ -100,6 +100,7 @@ class Error:
         self.notSupportedDockingAlgorithmCode = 503
         self.bindingSiteNotFoundCode          = 504
         self.dockingFailedCode                = 505
+        self.readDockingLogError              = 506
 
         # Archive error
         self.notSupportedArchiveCode          = 600
@@ -473,6 +474,30 @@ class Error:
         self.__print_msg(message, level)
 
         return self.brokenPipeCode
+    
+    def empty_file(self, message: str = "", level: str = "warn") -> int:
+        '''Return this when the file is empty.
+
+        Parameters
+        ----------
+        message : string, optional
+            Message to be printed. Default is "".
+        level : string, optional
+            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+
+        Returns
+        -------
+        int
+            The code for unsupported extension error (105).
+
+        Raises
+        ------
+        None
+        '''
+
+        self.__print_msg(message, level)
+
+        return self.emptyFileCode
 
     # Directory errors
     def dir_exists(self, message: str = "", level: str = "warn") -> int:
@@ -910,6 +935,30 @@ class Error:
         self.__print_msg(message, level)
 
         return self.dockingFailedCode
+    
+    def read_docking_log_error(self, message: str = "", level: str = "error") -> int:
+        '''Return this when the docking log had problems to be read.
+
+        Parameters
+        ----------
+        message : string, optional
+            Message to be printed. Default is "".
+        level : string, optional
+            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        
+        Returns
+        -------
+        int
+            The code for receptor or ligand descriptor does not exist error (503).
+
+        Raises
+        ------
+        None
+        '''
+
+        self.__print_msg(message, level)
+
+        return self.readDockingLogError
 
     # Archive errors
     def not_supported_archive(self, message: str = "", level: str = "error") -> int:
@@ -970,6 +1019,7 @@ class Error:
         print(f"\t - Untar error:                     {self.untarFileCode}")
         print(f"\t - Unsupported extension error:     {self.unsupportedExtensionCode}")
         print(f"\t - Broken PIPE error:               {self.brokenPipeCode}")
+        print(f"\t - Empty file:                      {self.emptyFileCode}")
 
         print(f"\n\t~~~~~~~~~~~~~~~ DIRECTORY ERRORS ~~~~~~~~~~~~~~~")
         print(f"\t - Directory exists:                {self.dirExistsCode}")
@@ -1000,7 +1050,8 @@ class Error:
         print(f"\t   descriptor does not exist:       {self.recLigFileDoesNotExistCode}")
         print(f"\t - Not supported docking algoritm:  {self.notSupportedDockingAlgorithmCode}")
         print(f"\t - Binding site not found:          {self.bindingSiteNotFoundCode}")
-        print(f"\t - Docking Failed:                  {self.dockingFailedCode}")
+        print(f"\t - Docking failed:                  {self.dockingFailedCode}")
+        print(f"\t - Docking log failed to be read:   {self.readDockingLogError}")
 
         print(f"\n\t~~~~~~~~~~~~~~~~ ARCHIVE ERRORS ~~~~~~~~~~~~~~~~~")
         print(f"\t - Archive not supported:           {self.notSupportedArchiveCode}")

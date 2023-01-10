@@ -562,38 +562,51 @@ def read_vina_log(path: str) -> Dict[str, List[Union[str, float]]]:
 
     # Check if file exists
     if os.path.isfile(path):
-        # Create a dictionary to store the info
-        data = {"vina_pose": [], "vina_affinity": []}
-
-        # Initiate the last read line as empty
-        lastReadLine = ""
-
-        # Try except to avoid broken pipe errors
+        # Catch any error that might occur
         try:
-            # Read the file reversely
-            for line in octools.lazyread_reverse_order_mmap(path):
-                # If a stop line is found, means that the last read line is the one that is wanted
-                if line.startswith("-----+"):
-                    # Split the last line
-                    lastLine = lastReadLine.split()
-                    data["vina_pose"].append(lastLine[0])
-                    data["vina_affinity"].append(lastLine[1])
-                    break
+            # Check if file is not empty
+            if os.stat(path).st_size != 0:
+                # Print the error
+                _ = errors.empty_file(f"The vina log file '{path}' is empty.", "error")
+                # Return the dictionary with invalid default data
+                return {"vina_pose": [np.NaN], "vina_affinity": [np.NaN]}
 
-                # Assign the last read line as the current line
-                lastReadLine = line
-        except IOError as e:
-            if e.errno == errno.EPIPE:
-                octools.print_error(f"Problems while reading file '{path}'. Error: {e}")
-                octools.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{logdir}/vina_read_log_ERROR.log")
-        
-        # Check if the len of the data["vina_affinity"] is 0
-        if len(data["vina_pose"]) == 0:
-            data["vina_pose"].append(np.NaN)
-            data["vina_affinity"].append(np.NaN)
+            # Create a dictionary to store the info
+            data = {"vina_pose": [], "vina_affinity": []}
 
-        # Return the df reversing the order and reseting the index
-        return data
+            # Initiate the last read line as empty
+            lastReadLine = ""
+
+            # Try except to avoid broken pipe errors
+            try:
+                # Read the file reversely
+                for line in octools.lazyread_reverse_order_mmap(path):
+                    # If a stop line is found, means that the last read line is the one that is wanted
+                    if line.startswith("-----+"):
+                        # Split the last line
+                        lastLine = lastReadLine.split()
+                        data["vina_pose"].append(lastLine[0])
+                        data["vina_affinity"].append(lastLine[1])
+                        break
+
+                    # Assign the last read line as the current line
+                    lastReadLine = line
+            except IOError as e:
+                if e.errno == errno.EPIPE:
+                    octools.print_error(f"Problems while reading file '{path}'. Error: {e}")
+                    octools.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{logdir}/vina_read_log_ERROR.log")
+            
+            # Check if the len of the data["vina_affinity"] is 0
+            if len(data["vina_pose"]) == 0:
+                data["vina_pose"].append(np.NaN)
+                data["vina_affinity"].append(np.NaN)
+
+            # Return the df reversing the order and reseting the index
+            return data
+
+        except Exception as e:
+            _ = errors.read_docking_log_error(f"Problems while reading the vina log file '{path}'. Error: {e}", "error")
+            return {"vina_pose": [np.NaN], "vina_affinity": [np.NaN]}
 
     # Throw an error
     _ = errors.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
