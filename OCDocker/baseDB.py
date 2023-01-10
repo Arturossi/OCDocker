@@ -1779,6 +1779,8 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
     ptn = processSplited[-4]
     lgd = processSplited[-1]
 
+    print(ptn)
+
     # Create docking dicts
     vinaDict = { "vina_pose": [], "vina_affinity": [] }
     gninaDict = { "gnina_pose": [], "gnina_affinity": [] }
@@ -1809,7 +1811,6 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
         _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its vina output.")
         # Set the elements in vinaDict as np.NaN
         vinaDict = { "vina_pose": [np.NaN], "vina_affinity": [np.NaN] }
-
 
     # SMINA
     sminaDir = f"{processDir}/sminaFiles"

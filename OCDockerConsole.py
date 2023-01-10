@@ -65,7 +65,9 @@ def print_args() -> None:
     '''
 
     print("args:")
-    pprint(vars(args))
+    # Iterate over vars(args) dict
+    for key, value in vars(args).items():
+        print(f"{key}:\t\t{value}")
     print("\n")
 
     return None
