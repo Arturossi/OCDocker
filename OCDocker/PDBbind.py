@@ -13,7 +13,7 @@ from typing import Dict, List, Union
 from OCDocker.Initialise import *
 
 import OCDocker.baseDB as ocbdb
-import OCDocker.Toolbox as octools
+import OCDocker.Processing.p2rank as ocp2rank
 
 # License
 ###############################################################################
@@ -65,7 +65,7 @@ def verify_integrity() -> None:
     None
     '''
 
-    ocbdb.verify_integrity(pdbbind_archive)
+    #ocbdb.verify_integrity(pdbbind_archive)
     return None
 
 def convert_debug_to_production(chosenAlgorithm: str = "ac", strict: bool = False, removeDebug: bool = False) -> None:
@@ -100,7 +100,7 @@ def convert_debug_to_production(chosenAlgorithm: str = "ac", strict: bool = Fals
     None
     '''
 
-    ocbdb.convert_debug_to_production(pdbbind_archive, chosenAlgorithm = chosenAlgorithm, strict = strict, removeDebug = removeDebug)
+    ocp2rank.convert_debug_to_production(pdbbind_archive, chosenAlgorithm = chosenAlgorithm, strict = strict, removeDebug = removeDebug)
     return None
 
 def read_index() -> Union[Dict[str, List[str]], None]:

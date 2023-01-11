@@ -46,6 +46,7 @@ import OCDocker.Processing.p2rank as ocp2rank
 
 # Functions
 ###############################################################################
+## Private ##
 def __run_p2rank(dir: str, fin: str, overwrite: bool = False) -> None:
     '''Runs p2rank for a given directory.
 
@@ -156,7 +157,7 @@ def __thread_p2rank(arguments: Tuple[str, bool, str]) -> None:
         # Call core prepare function (shared between thread and no thread)
         return __core_p2rank(arguments[0], arguments[1])
 
-def p2rank_parallel(paths: List[str], overwrite: bool, desc: str) -> None:
+def __p2rank_parallel(paths: List[str], overwrite: bool, desc: str) -> None:
     '''Runs p2rank in parallel.
 
     Parameters
@@ -198,7 +199,7 @@ def p2rank_parallel(paths: List[str], overwrite: bool, desc: str) -> None:
     # Return
     return None
 
-def p2rank_no_parallel(paths: List[str], overwrite: bool, desc: str) -> None:
+def __p2rank_no_parallel(paths: List[str], overwrite: bool, desc: str) -> None:
     '''Runs p2rank in serial.
 
     Parameters
@@ -228,7 +229,7 @@ def p2rank_no_parallel(paths: List[str], overwrite: bool, desc: str) -> None:
             gc.collect()
     return None
 
-def p2rank_single(path: str, overwrite: bool) -> None:
+def __p2rank_single(path: str, overwrite: bool) -> None:
     '''Runs p2rank in a single directory.
 
     TODO: Add the support to custom databases.
@@ -259,6 +260,8 @@ def p2rank_single(path: str, overwrite: bool) -> None:
 
     return None
 
+## Public ##
+
 def run_p2rank(paths: Union[List[str], str], overwrite: bool) -> None:
     '''Runs p2rank.
 
@@ -272,16 +275,21 @@ def run_p2rank(paths: Union[List[str], str], overwrite: bool) -> None:
 
     # If the path is a list
     if isinstance(paths, list):
+        # If logfile exists, backup it
+        octools.backup_log(f"p2rank_report")
+
+        # Set the description
         label = f"Running p2rank"
+        
         # Check if multiprocessing is enabled
         if args.multiprocess:
             # Prepare the pdbbind
-            p2rank_parallel(paths, overwrite, label)
+            __p2rank_parallel(paths, overwrite, label)
         else:
             # Prepare the database
-            p2rank_no_parallel(paths, overwrite, label)
+            __p2rank_no_parallel(paths, overwrite, label)
     else:
-        p2rank_single(paths, overwrite)
+        __p2rank_single(paths, overwrite)
 
 def convert_debug_to_production(chosenArchive: str, chosenAlgorithm: str = "ac", strict: bool = False, removeDebug: bool = False) -> None:
     '''Converts debug folders to production mode. It is required to choose an algorithm which will be used furtherly in the pipeline.

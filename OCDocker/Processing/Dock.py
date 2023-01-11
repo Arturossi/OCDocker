@@ -54,6 +54,7 @@ import OCDocker.Processing.Dock as ocdock
 
 # Functions
 ###############################################################################
+## Private ##
 def __run_gnina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, receptorDescriptorPath: str, boxPath: str, ptn: str, archive: str, overwrite: bool = False, digestFormat: str = "json") -> int:
     '''Runs gnina.
 
@@ -944,7 +945,7 @@ def __thread_run_dock_parallel(arguments: list) -> int:
 
     return returnState
 
-def run_dock_parallel(complexList: List[Tuple[str, List[str]]], archive: str, dockingAlgorithm: str, overwrite: bool, digestFormat: str, desc: str) -> int:
+def __run_dock_parallel(complexList: List[Tuple[str, List[str]]], archive: str, dockingAlgorithm: str, overwrite: bool, digestFormat: str, desc: str) -> int:
     '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
 
     Parameters
@@ -982,17 +983,6 @@ def run_dock_parallel(complexList: List[Tuple[str, List[str]]], archive: str, do
             # Add the arguments to the list (creating one execution for each pair receptor-ligand)
             arguments.append((cl[0], ligandDir, archive, dockingAlgorithm, overwrite, digestFormat))
 
-    # If logfile exists, backup it (for error and warnings)
-    if os.path.isfile(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log"):
-        if not os.path.isdir(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past"):
-            octools.safe_create_dir(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past")
-        os.rename(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past/{archive}_{dockingAlgorithm}_run_report_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
-
-    if os.path.isfile(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_WARNING.log"):
-        if not os.path.isdir(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past"):
-            octools.safe_create_dir(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past")
-        os.rename(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_WARNING.log", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past/{archive}_{dockingAlgorithm}_run_report_WARNING_{time.strftime('%d%m%Y-%H%M%S')}.log")
-
     try:
         # Create a Thread pool with the maximum available_cores
         with Pool(args.available_cores) as p:
@@ -1007,7 +997,7 @@ def run_dock_parallel(complexList: List[Tuple[str, List[str]]], archive: str, do
     # Return
     return errors.ok() # FIXME: This should be changed to return the error code in a way to track all docking errors
 
-def run_dock_no_parallel(complexList: List[Tuple[str, List[str]]], archive: str, dockingAlgorithm: str, overwrite: bool, digestFormat: str, desc: str) -> int:
+def __run_dock_no_parallel(complexList: List[Tuple[str, List[str]]], archive: str, dockingAlgorithm: str, overwrite: bool, digestFormat: str, desc: str) -> int:
     '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_run_dock function.
 
     Parameters
@@ -1035,17 +1025,6 @@ def run_dock_no_parallel(complexList: List[Tuple[str, List[str]]], archive: str,
     None
     '''
 
-    # If logfile exists, backup it (for error and warnings)
-    if os.path.isfile(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log"):
-        if not os.path.isdir(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past"):
-            octools.safe_create_dir(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past")
-        os.rename(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past/{archive}_{dockingAlgorithm}_run_report_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
-
-    if os.path.isfile(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_WARNING.log"):
-        if not os.path.isdir(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past"):
-            octools.safe_create_dir(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past")
-        os.rename(f"{logdir}/{archive}_{dockingAlgorithm}_run_report_WARNING.log", f"{logdir}/{archive}_{dockingAlgorithm}_run_report_past/{archive}_{dockingAlgorithm}_run_report_WARNING_{time.strftime('%d%m%Y-%H%M%S')}.log")
-
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         # For each file in dirs
@@ -1061,8 +1040,10 @@ def run_dock_no_parallel(complexList: List[Tuple[str, List[str]]], archive: str,
 
     return errors.ok() # FIXME: This should be changed to return the error code in a way to track all docking errors
 
+## Public ##
+
 def run_dock(paths: Union[List[Tuple[str, List[str]]], Tuple[str, List[str]]], archive: str, dockingAlgorithm: str, overwrite: bool, digestFormat: str) -> int:
-    '''Runs p2rank.
+    '''Run the docking software in parallel or not, based on the multiprocessing flag and input path.
 
     Parameters
     ----------
@@ -1081,20 +1062,24 @@ def run_dock(paths: Union[List[Tuple[str, List[str]]], Tuple[str, List[str]]], a
     # Set the description
     label = f"Processing {archive}"
 
+    # If logfiles exists, backup them
+    octools.backup_log(f"{archive}_{dockingAlgorithm}_run_report_ERROR")
+    octools.backup_log(f"{archive}_{dockingAlgorithm}_run_report_WARNING")
+    
     # If the path is a list
     if isinstance(paths, list):
         # Check if multiprocessing is enabled
         if args.multiprocess:
             # Prepare the pdbbind
-            return run_dock_parallel(paths, archive, dockingAlgorithm, overwrite, digestFormat, label)
+            return __run_dock_parallel(paths, archive, dockingAlgorithm, overwrite, digestFormat, label)
         else:
             # Prepare the database
-            return run_dock_no_parallel(paths, archive, dockingAlgorithm, overwrite, digestFormat, label)
+            return __run_dock_no_parallel(paths, archive, dockingAlgorithm, overwrite, digestFormat, label)
     else:
         # Check if multiprocessing is enabled
         if args.multiprocess:
             # Prepare the pdbbind
-            return run_dock_parallel([paths], archive, dockingAlgorithm, overwrite, digestFormat, label)
+            return __run_dock_parallel([paths], archive, dockingAlgorithm, overwrite, digestFormat, label)
         else:
             # Prepare the database
-            return run_dock_no_parallel([paths], archive, dockingAlgorithm, overwrite, digestFormat, label)
+            return __run_dock_no_parallel([paths], archive, dockingAlgorithm, overwrite, digestFormat, label)

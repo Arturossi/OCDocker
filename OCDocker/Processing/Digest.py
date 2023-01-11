@@ -8,16 +8,15 @@ import time
 
 from multiprocessing import Pool
 from tqdm import tqdm
-from typing import List, Tuple
-
-
-from OCDocker.Initialise import *
+from typing import List, Tuple, Union
 
 import OCDocker.Toolbox as octools
 import OCDocker.Docking.Gnina as ocgnina
 import OCDocker.Docking.PLANTS as ocplants
 import OCDocker.Docking.Smina as ocsmina
 import OCDocker.Docking.Vina as ocvina
+
+from OCDocker.Initialise import *
 
 # License
 ###############################################################################
@@ -50,6 +49,8 @@ import OCDocker.Processing.Digest as ocdigest
 
 # Functions
 ###############################################################################
+## Private ##
+
 def __core_generate_digest(path: str, ligandDir: str, archive: str, overwrite: bool, digestFormat: str = "json") -> int:
     '''Generate the digest file for a given protein and ligand.
 
@@ -107,12 +108,12 @@ def __core_generate_digest(path: str, ligandDir: str, archive: str, overwrite: b
     return errors.ok()
 
 def __thread_generate_digest(arguments: list) -> int:
-    '''Thread aid function to call __core_run_dock.
+    '''Thread aid function to call __core_generate_digest.
 
     Parameters
     ----------
     arguments : list
-        The arguments to be passed to __core_run_dock.
+        The arguments to be passed to __core_generate_digest.
 
     Returns
     -------
@@ -131,7 +132,7 @@ def __thread_generate_digest(arguments: list) -> int:
 
     return returnState
 
-def generate_digest_parallel(complexList: List[Tuple[str, List[str]]], archive: str, overwrite: bool, digestFormat: str, desc: str) -> int:
+def __generate_digest_parallel(complexList: List[Tuple[str, List[str]]], archive: str, overwrite: bool, digestFormat: str, desc: str) -> int:
     '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
 
     Parameters
@@ -167,17 +168,6 @@ def generate_digest_parallel(complexList: List[Tuple[str, List[str]]], archive: 
             # Add the arguments to the list (creating one execution for each pair receptor-ligand)
             arguments.append((cl[0], ligandDir, archive, overwrite, digestFormat))
 
-    # If logfile exists, backup it (for error and warnings)
-    if os.path.isfile(f"{logdir}/{archive}_docking_digest_report_ERROR.log"):
-        if not os.path.isdir(f"{logdir}/{archive}_docking_digest_report_past"):
-            octools.safe_create_dir(f"{logdir}/{archive}_docking_digest_report_past")
-        os.rename(f"{logdir}/{archive}_docking_digest_report_ERROR.log", f"{logdir}/{archive}_docking_digest_report_past/{archive}_docking_digest_report_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
-
-    if os.path.isfile(f"{logdir}/{archive}_docking_digest_report_WARNING.log"):
-        if not os.path.isdir(f"{logdir}/{archive}_docking_digest_report_past"):
-            octools.safe_create_dir(f"{logdir}/{archive}_docking_digest_report_past")
-        os.rename(f"{logdir}/{archive}_docking_digest_report_WARNING.log", f"{logdir}/{archive}_docking_digest_report_past/{archive}_docking_digest_report_WARNING_{time.strftime('%d%m%Y-%H%M%S')}.log")
-
     try:
         # Create a Thread pool with the maximum available_cores
         with Pool(args.available_cores) as p:
@@ -193,8 +183,8 @@ def generate_digest_parallel(complexList: List[Tuple[str, List[str]]], archive: 
     # Return
     return errors.ok() # FIXME: This should be changed to return the error code in a way to track all docking errors
 
-def generate_digest_no_parallel(complexList: List[Tuple[str, List[str]]], archive: str, overwrite: bool, digestFormat: str, desc: str) -> int:
-    '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_run_dock function.
+def __generate_digest_no_parallel(complexList: List[Tuple[str, List[str]]], archive: str, overwrite: bool, digestFormat: str, desc: str) -> int:
+    '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_generate_digest function.
 
     Parameters
     ----------
@@ -219,17 +209,6 @@ def generate_digest_no_parallel(complexList: List[Tuple[str, List[str]]], archiv
     None
     '''
 
-    # If logfile exists, backup it (for error and warnings)
-    if os.path.isfile(f"{logdir}/{archive}_docking_digest_report_ERROR.log"):
-        if not os.path.isdir(f"{logdir}/{archive}_docking_digest_report_past"):
-            octools.safe_create_dir(f"{logdir}/{archive}_docking_digest_report_past")
-        os.rename(f"{logdir}/{archive}_docking_digest_report_ERROR.log", f"{logdir}/{archive}_docking_digest_report_past/{archive}_docking_digest_report_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
-
-    if os.path.isfile(f"{logdir}/{archive}_docking_digest_report_WARNING.log"):
-        if not os.path.isdir(f"{logdir}/{archive}_docking_digest_report_past"):
-            octools.safe_create_dir(f"{logdir}/{archive}_docking_digest_report_past")
-        os.rename(f"{logdir}/{archive}_docking_digest_report_WARNING.log", f"{logdir}/{archive}_docking_digest_report_past/{archive}_docking_digest_report_WARNING_{time.strftime('%d%m%Y-%H%M%S')}.log")
-
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         # For each file in dirs
@@ -244,3 +223,76 @@ def generate_digest_no_parallel(complexList: List[Tuple[str, List[str]]], archiv
         gc.collect()
 
     return errors.ok() # FIXME: This should be changed to return the error code in a way to track all docking errors
+
+def __generate_digest_single(complex: Tuple[str, List[str]], archive: str, overwrite: bool, digestFormat: str, desc: str) -> int:
+    '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_generate_digest function.
+
+    Parameters
+    ----------
+    complex : List[Tuple[str, List[str]]]
+        A tuple with the path to the protein directory and a list of ligand directories.
+    archive : str
+        Which archive will be processed [dudez, pdbbind].
+    digestFormat : str
+        Which digest format will be used [json].
+    overwrite : bool
+        If the docking output already exists, should it be overwritten?
+    desc : str
+        The description of the progress bar.
+    
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
+    '''
+
+    # For each file in dirs
+    for ligandDir in tqdm(iterable = complex[1], total = len(complex[1]), desc=desc):
+        # Call the core dock function (shared between parallel and not parallel)
+        __core_generate_digest(complex[0], ligandDir, archive, overwrite, digestFormat)
+
+        # Clear the memory
+        gc.collect()
+
+    return errors.ok() # FIXME: This should be changed to return the error code in a way to track all docking errors
+
+## Public ##
+
+def generate_digest(paths: Union[List[Tuple[str, List[str]]], Tuple[str, List[str]]], archive: str, overwrite: bool, digestFormat: str = "json") -> None:
+    '''Generate the digest for the docking output.
+
+    Parameters
+    ----------
+    paths : List[Tuple[str, List[str]]] | Tuple[str, List[str]]
+        The list of directories or the directory to be processed.
+    archive : str
+        The archive name. Options are [dudez, pdbbind].
+    overwrite : bool
+        If the docking output already exists, should it be overwritten?
+    digestFormat : str, optional
+        Which digest format will be used [json], by default "json".
+    '''
+
+    # Set the label
+    label = f"Processing {archive}"
+
+    # If the path is a list
+    if isinstance(paths, list):
+
+        # If logfiles exists, backup them
+        octools.backup_log(f"{archive}_docking_digest_run_report_ERROR")
+
+        # Check if multiprocessing is enabled
+        if args.multiprocess:
+            # Prepare the pdbbind
+            __generate_digest_parallel(paths, archive, overwrite, digestFormat, label)
+        else:
+            # Prepare the database
+            __generate_digest_no_parallel(paths, archive, overwrite, digestFormat, label)
+    else:
+        __generate_digest_single(paths, archive, overwrite, digestFormat, label)
+

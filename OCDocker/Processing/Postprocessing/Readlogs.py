@@ -44,15 +44,16 @@ This module is responsible for digest processing.
 
 It is imported as:
 
-import OCDocker.Processing.Postprocessing.Readlogs as ocreadlogs
+import OCDocker.Processing.Postprocessing.ReadLogs as ocreadlogs
 '''
 
 # Classes
 ###############################################################################
 
-
 # Functions
 ###############################################################################
+## Private ##
+
 def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameLocal]:
     '''Reads Vina, Smina and PLANTS logs and then return a dict of dataframes.
 
@@ -233,7 +234,7 @@ def __thread_read_log_parallel(arguments: Tuple[Tuple[str, str]]) -> Dict[str, v
         # Call the core read log function passing the arguments correctly
         return __core_read_log(arguments[0])
 
-def read_log_parallel(paths: List[Tuple[str, str]], desc: str) -> Dict[str, vdf.DataFrameLocal]:
+def __read_log_parallel(paths: List[Tuple[str, str]], desc: str) -> Dict[str, vdf.DataFrameLocal]:
     '''Read the logs of the ligands in parallel.
 
     Parameters
@@ -260,12 +261,6 @@ def read_log_parallel(paths: List[Tuple[str, str]], desc: str) -> Dict[str, vdf.
         # Append a tuple containing the file name and ovewrite flag to the arguments list
         arguments.append((path, None))
 
-    # If logfile exists, backup it for vina, smina and plants (for error and warnings)
-    if os.path.isfile(f"{logdir}/read_log_ERROR.log"):
-        if not os.path.isdir(f"{logdir}/read_log_past"):
-            octools.safe_create_dir(f"{logdir}/read_log_past")
-        os.rename(f"{logdir}/read_log_ERROR.log", f"{logdir}/read_log_past/read_log_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
-
     # Dict to store the read data
     data = {}
 
@@ -288,7 +283,7 @@ def read_log_parallel(paths: List[Tuple[str, str]], desc: str) -> Dict[str, vdf.
 
     return data
 
-def read_log_no_parallel(paths: List[Tuple[str, str]], desc: str) -> Dict[str, vdf.DataFrameLocal]:
+def __read_log_no_parallel(paths: List[Tuple[str, str]], desc: str) -> Dict[str, vdf.DataFrameLocal]:
     '''Read the logs of the docking results for the ligands in serial.
 
     Parameters
@@ -311,20 +306,6 @@ def read_log_no_parallel(paths: List[Tuple[str, str]], desc: str) -> Dict[str, v
     # Dict to store the read data
     data = {}
 
-    # If logfile exists, backup it for vina, smina and plants (for error and warnings)
-    if os.path.isfile(f"{logdir}/vina_read_log_ERROR.log"):
-        if not os.path.isdir(f"{logdir}/read_log_past"):
-            octools.safe_create_dir(f"{logdir}/read_log_past")
-        os.rename(f"{logdir}/vina_read_log_ERROR.log", f"{logdir}/read_log_past/vina_read_log_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
-    if os.path.isfile(f"{logdir}/smina_read_log_ERROR.log"):
-        if not os.path.isdir(f"{logdir}/read_log_past"):
-            octools.safe_create_dir(f"{logdir}/read_log_past")
-        os.rename(f"{logdir}/smina_read_log_ERROR.log", f"{logdir}/read_log_past/smina_read_log_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
-    if os.path.isfile(f"{logdir}/plants_read_log_ERROR.log"):
-        if not os.path.isdir(f"{logdir}/read_log_past"):
-            octools.safe_create_dir(f"{logdir}/read_log_past")
-        os.rename(f"{logdir}/plants_read_log_ERROR.log", f"{logdir}/read_log_past/plants_read_log_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
-
     # Redirect all prints to tqdm.write
     with octools.redirect_to_tqdm():
         for path, tp in tqdm(iterable = paths, total = len(paths), desc = desc):
@@ -335,8 +316,8 @@ def read_log_no_parallel(paths: List[Tuple[str, str]], desc: str) -> Dict[str, v
 
     return data
 
-def read_log_single(path: Tuple[str, str]) -> Dict[str, vdf.DataFrameLocal]:
-    '''Warper to prepare the jobs, recieves a directory, and pass it to the __core_prepare function.
+def __read_log_single(path: Tuple[str, str]) -> Dict[str, vdf.DataFrameLocal]:
+    '''Warper to prepare the jobs, recieves a directory, and pass it to the __core_read_log function.
 
     TODO: Add the support to custom databases.
 
@@ -358,6 +339,8 @@ def read_log_single(path: Tuple[str, str]) -> Dict[str, vdf.DataFrameLocal]:
     # Read the log
     return __core_read_log(path)
 
+## Public ##
+
 def read_logs(paths: Union[List[Tuple[str, str]], List[Tuple[str, str]]], archive: str) -> None:
     '''Read the logs of the docking results for the ligands.
 
@@ -371,13 +354,19 @@ def read_logs(paths: Union[List[Tuple[str, str]], List[Tuple[str, str]]], archiv
 
     # If the path is a list
     if isinstance(paths, list):
+
+        # If logfile exists, backup it
+        octools.backup_log("read_log_ERROR_report")
+
+        # Set the label
         label = f"Processing {archive}"
+
         # Check if multiprocessing is enabled
         if args.multiprocess:
             # Prepare the pdbbind
-            read_log_parallel(paths, label)
+            __read_log_parallel(paths, label)
         else:
             # Prepare the database
-            read_log_no_parallel(paths, label)
+            __read_log_no_parallel(paths, label)
     else:
-        read_log_single(paths)
+        __read_log_single(paths)

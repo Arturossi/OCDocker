@@ -2,35 +2,24 @@
 
 # Imports
 ###############################################################################
-import errno
-import gc
 import os
-import time
 import vaex
 
-import numpy as np
 import vaex.dataframe as vdf
 
 from glob import glob
 from multiprocessing import Pool
-from tqdm import tqdm
-from typing import Dict, List, Tuple, Union
+from typing import Dict, Union
 
 from OCDocker.Initialise import *
 
-import OCDocker.Ligand as ocl
-import OCDocker.Receptor as ocr
 import OCDocker.Toolbox as octools
-import OCDocker.Docking.Gnina as ocgnina
-import OCDocker.Docking.PLANTS as ocplants
-import OCDocker.Docking.Smina as ocsmina
-import OCDocker.Docking.Vina as ocvina
 import OCDocker.Processing.Dock as ocdock
 import OCDocker.Processing.Digest as ocdigest
 import OCDocker.Processing.Prepare as ocprepare
 import OCDocker.Processing.p2rank as ocp2rank
-import OCDocker.Processing.Postprocessing.Readlogs as ocreadlogs
-
+import OCDocker.Processing.Postprocessing.ReadLogs as ocreadlogs
+import OCDocker.Processing.Postprocessing.MergeLogs as ocmergelogs
 
 
 # License
@@ -65,203 +54,6 @@ import OCDocker.baseDB as ocbdb
 # Functions
 ###############################################################################
 ## Private ##
-### Read logs
-
-### Merge descriptors in dataframe
-def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str]) -> vdf.DataFrameLocal:
-    '''Reads the descriptor and receptor json then parse them into a dataframe.
-
-    Parameters
-    ----------
-    processDirPackage : Tuple(str, str)
-        Tuple containing the processDir and the package. The tuple is in the format: (processDir, receptor_descriptor_path).
-    archive : str
-        Which archive will be processed [dudez, pdbbind].
-
-    Returns
-    -------
-    vdf.DataFrameLocal
-        DataFrame containing the results of the docking.
-
-    Raises
-    ------
-    None
-    '''
-
-    # Unpack the tuple
-    processDir, receptor_descriptor_path = processDirPackage
-
-    # Find ptn name
-    ptn = os.path.dirname(receptor_descriptor_path).split(os.path.sep)[-1]
-
-    # Find which kind of archive it will be
-    ligand_descriptor_path = f"{processDir}/ligand_descriptors.json"
-
-    try:
-        # Check if there is the receptor json, if yes, load it
-        if os.path.isfile(receptor_descriptor_path):
-            receptor_descriptors = ocr.read_descriptors_from_json(receptor_descriptor_path, returnVaex = True)
-            # Nasty fix for descriptors with count
-            for descriptor in receptor_descriptors.column_names: # type: ignore
-                if "count" in descriptor and np.isnan(receptor_descriptors[descriptor].values[0]): # type: ignore
-                    # If any count descriptor is NaN then set it to 0
-                    receptor_descriptors[descriptor].values[0] = 0 # type: ignore
-        else:
-            receptor_descriptors = None
-            _ = errors.file_do_not_exist(f"The file '{receptor_descriptor_path}' does not exist!")
-    except IOError as e:
-        if e.errno == errno.EPIPE:
-            _ = errors.broken_pipe(message=f"Found a broken PIPE error while reading the file '{receptor_descriptor_path}': {e}")
-
-    try:
-        # Check if there is the ligand json, if yes, load it
-        if os.path.isfile(ligand_descriptor_path):
-            ligand_descriptors = ocl.read_descriptors_from_json(ligand_descriptor_path, returnVaex = True)
-        else:
-            ligand_descriptors = None
-            _ = errors.file_do_not_exist(f"The file '{ligand_descriptor_path}' does not exist!")
-    except IOError as e:
-        if e.errno == errno.EPIPE:
-            _ = errors.broken_pipe(message=f"Found a broken PIPE error while reading the file '{ligand_descriptor_path}': {e}")
-
-    # Initiate the dataframe
-    df = vaex.from_dict({ "Protein": [ptn] })
-
-    # If the receptor descriptor is not empty
-    if receptor_descriptors: # type: ignore
-        # Merge the receptor descriptors
-        df = df.join(receptor_descriptors) # type: ignore
-    
-    # If the ligand descriptor is not empty
-    if ligand_descriptors: # type: ignore
-        # Merge the ligand descriptors
-        df = df.join(ligand_descriptors) # type: ignore
-
-    # Return the single row dataframe
-    return df
-
-def __thread_merge_descriptors_in_dataframe_parallel(arguments: Tuple[Tuple[str, str], str]) -> vdf.DataFrameLocal:
-    '''Thread aid function to call __core_merge_descriptors_in_dataframe.
-
-    Parameters
-    ----------
-    arguments : Tuple[Tuple[str, str], str]
-        Tuple containing the directory where the files are stored and the receptor descriptor json file and the archive type.
-    
-    Returns
-    -------
-    vdf.DataFrameLocal
-        Dataframe with the descriptors of the protein.
-
-    Raises
-    ------
-    None
-    '''
-
-    # Redirect all prints to tqdm.write
-    with octools.redirect_to_tqdm():
-        # Call the core read log function passing the arguments correctly
-        return __core_merge_descriptors_in_dataframe(arguments[0])
-
-def __merge_descriptors_in_dataframe_parallel(dirs: List[Tuple[str, str]], desc: str) -> vdf.DataFrameLocal:
-    '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
-
-    Parameters
-    ----------
-    dirs : List[Tuple[str, str]]
-        Tuple containing the directory where the files are stored and the receptor descriptor json file.
-    desc : str
-        Description of the process.
-
-    Returns
-    -------
-    vdf.DataFrameLocal
-        Dataframe with the descriptors of the proteins.
-
-    Raises
-    ------
-    None
-    '''
-
-    # Arguments to pass to each Thread in the Thread Pool
-    arguments = []
-
-    # For each file in the glob
-    for d in dirs:
-        # Append a tuple containing the file name and ovewrite flag to the arguments list
-        arguments.append((d, None))
-
-    # If logfile exists, backup it for vina, smina and plants (for error and warnings)
-    if os.path.isfile(f"{logdir}/read_log_ERROR.log"):
-        if not os.path.isdir(f"{logdir}/read_log_past"):
-            octools.safe_create_dir(f"{logdir}/read_log_past")
-        os.rename(f"{logdir}/read_log_ERROR.log", f"{logdir}/read_log_past/read_log_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
-
-    # List with all protein data
-    ptnList = []
-
-    try:
-        # Create a Thread pool with the maximum available_cores
-        with Pool(args.available_cores) as p:
-            # Perform the multi process
-            for innerData in tqdm(p.imap_unordered(__thread_merge_descriptors_in_dataframe_parallel, arguments), total = len(arguments), desc = desc):
-                # Update the dict with the result from the called function
-                ptnList.append(innerData)
-                # Clear the memory
-                gc.collect()
-    except IOError as e:
-        octools.print_error_log(f"Problem while mergin descriptors in parallel. Exception: {e}", f"{logdir}/read_log_ERROR_report.log")
-        octools.print_error(f"Problem while mergin descriptors in parallel. Exception: {e}")
-
-    return vaex.concat(ptnList) # type: ignore
-
-def __merge_descriptors_in_dataframe_no_parallel(dirs: List[Tuple[str, str]], desc: str) -> vdf.DataFrameLocal:
-    '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_read_log function.
-
-    Parameters
-    ----------
-    dirs : List[Tuple[str, str]]
-        Tuple containing the directory where the files are stored and the receptor descriptor json file.
-    desc : str
-        Description of the process.
-
-    Returns
-    -------
-    vdf.DataFrameLocal
-        Dataframe with the descriptors of the proteins.
-
-    Raises
-    ------
-    None
-    '''
-
-    # List to store the read data
-    ptnList = []
-
-    # If logfile exists, backup it for vina, smina and plants (for error and warnings)
-    if os.path.isfile(f"{logdir}/vina_read_log_ERROR.log"):
-        if not os.path.isdir(f"{logdir}/read_log_past"):
-            octools.safe_create_dir(f"{logdir}/read_log_past")
-        os.rename(f"{logdir}/vina_read_log_ERROR.log", f"{logdir}/read_log_past/vina_read_log_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
-    if os.path.isfile(f"{logdir}/smina_read_log_ERROR.log"):
-        if not os.path.isdir(f"{logdir}/read_log_past"):
-            octools.safe_create_dir(f"{logdir}/read_log_past")
-        os.rename(f"{logdir}/smina_read_log_ERROR.log", f"{logdir}/read_log_past/smina_read_log_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
-    if os.path.isfile(f"{logdir}/plants_read_log_ERROR.log"):
-        if not os.path.isdir(f"{logdir}/read_log_past"):
-            octools.safe_create_dir(f"{logdir}/read_log_past")
-        os.rename(f"{logdir}/plants_read_log_ERROR.log", f"{logdir}/read_log_past/plants_read_log_ERROR_{time.strftime('%d%m%Y-%H%M%S')}.log")
-
-    # Redirect all prints to tqdm.write
-    with octools.redirect_to_tqdm():
-        for dir in tqdm(iterable = dirs, total = len(dirs), desc = desc):
-            # Call the core read log function (shared between parallel and not parallel) and store the data into the DataFrame
-            ptnList.append(__core_merge_descriptors_in_dataframe(dir))
-            # Clear the memory
-            gc.collect()
-
-    return vaex.concat(ptnList) # type: ignore
-
 
 ## Public ##
 """def verify_integrity(chosenArchive: str, spacing: float = 0.33) -> None:
@@ -507,17 +299,11 @@ def prepare(archive: str, overwrite: bool = False, spacing: float = 0.33, saniti
     None
     '''
 
-    # Make archive lowercase
-    archive = os.path.basename(archive).lower()
-
     # Find which kind of archive it will be
-    if archive == "dudez":
+    if archive.lower() == "dudez":
         chosenArchive = dudez_archive
-        label = f"DUDEz proteins"
-    elif archive == "pdbbind":
+    elif archive.lower() == "pdbbind":
         chosenArchive = pdbbind_archive
-        label = "PDBbind proteins"
-        # Get all paths in the database filtering for pdbbind
     else:
         octools.print_error(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}.")
         return None
@@ -760,17 +546,14 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
     None
     '''
 
-    # Make archive lowercase
-    archive = os.path.basename(archive).lower()
-
     # Find which kind of archive it will be
-    if archive == "dudez":
+    if archive.lower() == "dudez":
         chosenArchive = dudez_archive
         # Parameterize the csvs paths
-    elif archive == "pdbbind":
+    elif archive.lower() == "pdbbind":
         chosenArchive = pdbbind_archive
     else:
-        octools.print_error(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}.")
+        octools.print_error(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found '{archive}'.")
         return None
 
     # Parameterize the out paths (parsed_archive is defined in Initialise.py)
@@ -815,14 +598,9 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
                 processDirs += [(processDir, receptor_descriptor_path) for processDir in glob(f"{decoys}/*") if os.path.isdir(processDir)]
                 processDirs += [(processDir, receptor_descriptor_path) for processDir in glob(f"{candidates}/*") if os.path.isdir(processDir)]
         
-        # Make data be None (in case of failure)
-        data = None
-        
-        # Decide if multprocessing will be used
-        if args.multiprocess:
-            data = __merge_descriptors_in_dataframe_parallel(processDirs, f"Processing {archive}")
-        else:
-            data = __merge_descriptors_in_dataframe_no_parallel(processDirs, f"Processing {archive}")
+        # Merge the descriptors
+        data = ocmergelogs.merge_descriptors_in_dataframe(processDirs, archive)
+
     else:
         # Try to read the pickle
         try:

@@ -13,6 +13,7 @@ import rdkit
 import shutil
 import subprocess
 import tarfile
+import time
 import urllib.request
 
 import numpy as np
@@ -792,6 +793,30 @@ def clear_past_logs() -> None:
         if pastLog.endswith("past"):
             # Remove all the folder
             shutil.rmtree(pastLog)
+    return None
+
+def backup_log(logname: str) -> None:
+    '''Backup the current log.
+
+    Parameters
+    ----------
+    logname : str
+        Name of the log to be backed up.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    None
+    '''
+
+    if os.path.isfile(f"{logdir}/{logname}.log"):
+        if not os.path.isdir(f"{logdir}/read_log_past"):
+            safe_create_dir(f"{logdir}/read_log_past")
+        os.rename(f"{logdir}/{logname}.log", f"{logdir}/read_log_past/{logname}_{time.strftime('%d%m%Y-%H%M%S')}.log")
+    
     return None
 
 ### Validation functions

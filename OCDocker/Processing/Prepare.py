@@ -55,6 +55,8 @@ import OCDocker.Processing.Prepare as ocprepare
 
 # Functions
 ###############################################################################
+## Private ##
+
 def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str, dbName: str, sanitize: bool, molName: str = "", targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None, alternativeLigand: rdkit.Chem.rdchem.Mol = None) -> None: # type: ignore
     '''Prepares a molecule, generating output to docking software.
 
@@ -468,7 +470,7 @@ def __thread_prepare(arguments: Tuple[str, bool, str, bool, float]) -> int:
         # Call core prepare function (shared between thread and no thread)
         return __core_prepare(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4])
 
-def prepare_parallel(paths: List[str], overwrite: bool, archive: str, sanitize: bool, spacing: float, desc: str) -> None:
+def __prepare_parallel(paths: List[str], overwrite: bool, archive: str, sanitize: bool, spacing: float, desc: str) -> None:
     '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
 
     TODO: Add the support to custom databases.
@@ -513,12 +515,13 @@ def prepare_parallel(paths: List[str], overwrite: bool, archive: str, sanitize: 
                 # Clear the memory
                 gc.collect()
     except IOError as e:
-        octools.print_error_log(f"Problem while preparing {archive}. Exception: {e}", f"{logdir}/{archive}_prepare_report.log")
-        octools.print_error(f"Problem while preparing {archive}. Exception: {e}")
+        errMsg = f"Problem while preparing {archive}. Exception: {e}"
+        octools.print_error_log(errMsg, f"{logdir}/{archive}_prepare_report.log")
+        octools.print_error(errMsg)
     
     return None
 
-def prepare_no_parallel(paths: List[str], overwrite: bool, archive: str, sanitize: bool, spacing: float, desc: str) -> None:
+def __prepare_no_parallel(paths: List[str], overwrite: bool, archive: str, sanitize: bool, spacing: float, desc: str) -> None:
     '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_prepare function.
 
     TODO: Add the support to custom databases.
@@ -557,7 +560,7 @@ def prepare_no_parallel(paths: List[str], overwrite: bool, archive: str, sanitiz
 
     return None
 
-def prepare_single(path: str, overwrite: bool, archive: str, sanitize: bool, spacing: float) -> None:
+def __prepare_single(path: str, overwrite: bool, archive: str, sanitize: bool, spacing: float) -> None:
     '''Warper to prepare the jobs, recieves a directory, and pass it to the __core_prepare function.
 
     TODO: Add the support to custom databases.
@@ -589,6 +592,8 @@ def prepare_single(path: str, overwrite: bool, archive: str, sanitize: bool, spa
 
     return None
 
+## Public ##
+
 def prepare(paths: Union[List[str], str], overwrite: bool, archive: str, sanitize: bool, spacing: float) -> None:
     '''Prepare the files to be used in the docking process.
 
@@ -608,13 +613,18 @@ def prepare(paths: Union[List[str], str], overwrite: bool, archive: str, sanitiz
 
     # If the path is a list
     if isinstance(paths, list):
+        # Backup log
+        octools.backup_log(f"{archive}_prepare_report")
+        
+        # Set the description
         label = f"Preparing {archive}"
+
         # Check if multiprocessing is enabled
         if args.multiprocess:
             # Prepare the pdbbind
-            prepare_parallel(paths, overwrite, archive, sanitize, spacing, label)
+            __prepare_parallel(paths, overwrite, archive, sanitize, spacing, label)
         else:
             # Prepare the database
-            prepare_no_parallel(paths, overwrite, archive, sanitize, spacing, label)
+            __prepare_no_parallel(paths, overwrite, archive, sanitize, spacing, label)
     else:
-        prepare_single(paths, overwrite, archive, sanitize, spacing)
+        __prepare_single(paths, overwrite, archive, sanitize, spacing)
