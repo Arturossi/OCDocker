@@ -3,6 +3,7 @@
 # Imports
 ###############################################################################
 import os
+import json
 import shutil
 import vaex
 
@@ -256,7 +257,7 @@ class PLANTS:
 
         return write_config_file(self.config, self.preparedReceptor, self.preparedLigand, self.outputPlants, self.bindingSiteCenter[0], self.bindingSiteCenter[1], self.bindingSiteCenter[2], self.bindingSiteRadius)
 
-    def read_plants_log(self) -> Union[Dict[str, List[Union[str, float]]], int]:
+    def read_log(self) -> Union[Dict[str, List[Union[str, float]]], int]:
         '''Read the PLANTS log path, returning a pd.dataframe with data from complexes.
 
         Parameters
@@ -273,7 +274,7 @@ class PLANTS:
         None
         '''
 
-        return read_plants_log(self.plantsLog)
+        return read_log(self.plantsLog)
 
     def run_plants(self, overwrite: bool =False) -> Union[Tuple[int, str], int]:
         '''Run plants.
@@ -738,7 +739,7 @@ def generate_plants_files_database(path: str, protein: str, ligand: str, spacing
 
     return None
 
-def read_plants_log(path: str) -> Dict[str, List[Union[str, float]]]:
+def read_log(path: str) -> Dict[str, List[Union[str, float]]]:
     '''Read the PLANTS log path, returning a pd.dataframe with data from complexes.
 
     Parameters
@@ -766,13 +767,13 @@ def read_plants_log(path: str) -> Dict[str, List[Union[str, float]]]:
             if df is None or df.shape[0] == 0 or df.shape[1] == 0: # type: ignore
                 # Return the dict filled with np.NaN
                 return {
-                    "PLANTS_TOTAL_SCORE": [np.NaN], # type: ignore
-                    "PLANTS_SCORE_RB_PEN": [np.NaN], # type: ignore
-                    "PLANTS_SCORE_NORM_HEVATOMS": [np.NaN], # type: ignore
-                    "PLANTS_SCORE_NORM_CRT_HEVATOMS": [np.NaN], # type: ignore
-                    "PLANTS_SCORE_NORM_WEIGHT": [np.NaN], # type: ignore
-                    "PLANTS_SCORE_NORM_CRT_WEIGHT": [np.NaN], # type: ignore
-                    "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [np.NaN], # type: ignore
+                    "PLANTS_TOTAL_SCORE": [np.NaN],
+                    "PLANTS_SCORE_RB_PEN": [np.NaN],
+                    "PLANTS_SCORE_NORM_HEVATOMS": [np.NaN],
+                    "PLANTS_SCORE_NORM_CRT_HEVATOMS": [np.NaN], 
+                    "PLANTS_SCORE_NORM_WEIGHT": [np.NaN],
+                    "PLANTS_SCORE_NORM_CRT_WEIGHT": [np.NaN],
+                    "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [np.NaN],
                 }
             else:
                 # Return the built the dictionary
@@ -794,11 +795,89 @@ def read_plants_log(path: str) -> Dict[str, List[Union[str, float]]]:
 
     # Return a dict with a NaN value
     return {
-               "PLANTS_TOTAL_SCORE": [np.NaN], # type: ignore
-               "PLANTS_SCORE_RB_PEN": [np.NaN], # type: ignore
-               "PLANTS_SCORE_NORM_HEVATOMS": [np.NaN], # type: ignore
-               "PLANTS_SCORE_NORM_CRT_HEVATOMS": [np.NaN], # type: ignore
-               "PLANTS_SCORE_NORM_WEIGHT": [np.NaN], # type: ignore
-               "PLANTS_SCORE_NORM_CRT_WEIGHT": [np.NaN], # type: ignore
-               "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [np.NaN], # type: ignore
+               "PLANTS_TOTAL_SCORE": [np.NaN],
+               "PLANTS_SCORE_RB_PEN": [np.NaN],
+               "PLANTS_SCORE_NORM_HEVATOMS": [np.NaN],
+               "PLANTS_SCORE_NORM_CRT_HEVATOMS": [np.NaN],
+               "PLANTS_SCORE_NORM_WEIGHT": [np.NaN],
+               "PLANTS_SCORE_NORM_CRT_WEIGHT": [np.NaN],
+               "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [np.NaN],
            }
+
+def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, digestFormat : str = "json") -> int:
+    """Generate the docking digest.
+    
+    Parameters
+    ----------
+    digestPath : str
+        Where to store the digest file.
+    logPath : str
+        The log path.
+    overwrite : bool, optional
+        If True, overwrites the output files if they already exist. (default is False)
+    digestFormat : str, optional
+        The format of the digest file. The options are: [ json (default), hdf5 (not implemented) ]
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
+    """
+
+    # Check if the file does not exists or if the overwrite flag is true
+    if not os.path.isdir(digestPath) or overwrite:
+        # Check if the digest extension is supported
+        if octools.validate_digest_extension(digestPath, digestFormat):
+        
+            # Create the digest variable
+            digest = None
+
+            # Check if the file exists
+            if os.path.isfile(digestPath):
+                # Read it
+                if digestFormat == "json":
+                    # Read the json file
+                    try:
+                        # Open the json file in read mode
+                        with open(digestPath, "r") as f:
+                            # Load the data
+                            digest = json.load(f)
+                            # Check if the digest variable is fine
+                            if not isinstance(digest, dict):
+                                return errors.wrong_type(f"The digest file '{digestPath}' is not valid.", "error")
+                    except Exception as e:
+                        return errors.file_do_not_exist(f"Could not read the digest file '{digestPath}'.", "error")
+            else:
+                # Since it does not exists, create it
+                digest = octools.empty_digest(digestPath, overwrite)
+
+            # Read the docking object log to generate the docking digest
+            dockingDigest = read_log(logPath)
+
+            # Check if the digest variable is fine
+            if not isinstance(digest, dict):
+                return errors.wrong_type(f"The docking digest file '{digestPath}' is not valid.", "error")
+            
+            # Merge the digest and the docking digest
+            digest = { **digest, **dockingDigest } # type: ignore
+
+            # Write the digest file
+            if digestFormat == "json":
+                # Write the json file
+                try:
+                    # Open the json file in write mode
+                    with open(digestPath, "w") as f:
+                        # Dump the data
+                        json.dump(digest, f)
+                except Exception as e:
+                    return errors.write_file(f"Could not write the digest file '{digestPath}'.", "error")
+
+            return errors.ok()
+        return errors.unsupported_extension(f"The provided extension '{digestFormat}' is not supported.", "error")
+    
+    return errors.file_exists(f"The file '{digestPath}' already exists. If you want to overwrite it yse the overwrite flag.", "warn")
+    

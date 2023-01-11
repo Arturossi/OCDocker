@@ -5,6 +5,7 @@
 import contextlib
 import datetime
 import inspect
+import json
 import os
 import mmap
 import pickle
@@ -13,6 +14,12 @@ import shutil
 import subprocess
 import tarfile
 import urllib.request
+
+import numpy as np
+import OCDocker.Docking.Gnina as ocgnina
+import OCDocker.Docking.PLANTS as ocplants
+import OCDocker.Docking.Smina as ocsmina
+import OCDocker.Docking.Vina as ocvina
 
 from Bio.PDB import * 
 from glob import glob
@@ -1083,6 +1090,95 @@ def lazyread_reverse_order(file_name: str, decode: str = "utf-8") -> Generator[s
         if len(buffer) > 0:
             # Yield the first line too
             yield buffer.decode(decode)[::-1]
+
+### Docking result manipulations functions
+def validate_digest_extension(digestPath: str, digestFormat: str) -> bool:
+    """Validates the digest extension.
+
+    Parameters
+    ----------
+    digestPath : str
+        The digest file path.
+    digestFormat : str
+        The format of the digest file. The options are: [ json (default), hdf5 (not implemented) ]
+
+    Returns
+    -------
+    bool
+        If the extension is supported or not.
+    """
+
+    # Supported extensions for digest file
+    supportedExtensions = ["json"]
+
+    # Check if the format options is valid
+    if not digestFormat.lower() in supportedExtensions:
+        print_warning(f"The format '{digestFormat}' is not supported. Trying to determine its extension from the file '{digestPath}'.")
+        # Get the extension from the file
+        digestFormat = digestPath.split(".")[-1]
+        # Check if the extension is valid
+        if not digestFormat.lower() in supportedExtensions:
+            print_error(f"The format '{digestFormat}' is not supported. The supported formats are: {supportedExtensions}")
+            return False
+        return True
+    return False
+
+def empty_digest(digestPath: str, overwrite: bool = False, digestFormat : str = "") -> Union[Dict[str, List[float]], int]:
+    """Create an empty digest file.
+
+    Parameters
+    ----------
+    digestPath : str
+        Where to store the digest file.
+    overwrite : bool, optional
+        If True, overwrites the output files if they already exist. (default is False)
+    digestFormat : str, optional
+        The format of the digest file. The options are: [ '' (no output, default), json, hdf5 (not implemented) ]
+
+    Returns
+    -------
+    Dict[str, List[float]] | int
+        The empty digest object or the error code.
+
+    Raises
+    ------
+    None
+    """
+
+    # Create the empty digest variable
+    digest = {
+        "gnina_pose": [np.NaN],
+        "gnina_affinity": [np.NaN],
+        "smina_pose": [np.NaN],
+        "smina_affinity": [np.NaN], 
+        "PLANTS_TOTAL_SCORE": [np.NaN],
+        "PLANTS_SCORE_RB_PEN": [np.NaN],
+        "PLANTS_SCORE_NORM_HEVATOMS": [np.NaN],
+        "PLANTS_SCORE_NORM_CRT_HEVATOMS": [np.NaN], 
+        "PLANTS_SCORE_NORM_WEIGHT": [np.NaN],
+        "PLANTS_SCORE_NORM_CRT_WEIGHT": [np.NaN],
+        "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [np.NaN],
+        "vina_pose": [np.NaN],
+        "vina_affinity": [np.NaN]
+        }
+
+    # Check if the digest format is not empty
+    if digestFormat != "":
+        # Check if the file does not exists or if the overwrite flag is true
+        if not os.path.isdir(digestPath) or overwrite:
+            # Check if the digest extension is supported
+            if validate_digest_extension(digestPath, digestFormat):
+                # Write the digest file
+                if digestFormat == "json":
+                    # Write the json file
+                    try:
+                        # Open the json file in write mode
+                        with open(digestPath, "w") as f:
+                            # Dump the data
+                            json.dump(digest, f)
+                    except Exception as e:
+                        return errors.write_file(f"Could not write the digest file '{digestPath}'.", "error")
+    return digest
 
 ### Other functions
 
