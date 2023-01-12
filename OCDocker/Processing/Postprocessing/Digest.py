@@ -1,5 +1,15 @@
 #!/usr/lib/python3
 
+# Description
+###############################################################################
+'''
+This module is responsible for digest processing.
+
+It is imported as:
+
+import OCDocker.Processing.Postprocessing.Digest as ocdigest
+'''
+
 # Imports
 ###############################################################################
 import gc
@@ -10,11 +20,13 @@ from multiprocessing import Pool
 from tqdm import tqdm
 from typing import List, Tuple, Union
 
-import OCDocker.Toolbox as octools
 import OCDocker.Docking.Gnina as ocgnina
 import OCDocker.Docking.PLANTS as ocplants
 import OCDocker.Docking.Smina as ocsmina
 import OCDocker.Docking.Vina as ocvina
+import OCDocker.Toolbox.Basetools as ocbasetools
+import OCDocker.Toolbox.Logging as oclogging
+import OCDocker.Toolbox.Printing as ocprint
 
 from OCDocker.Initialise import *
 
@@ -33,19 +45,8 @@ E-mail address: arturossi10@gmail.com
 This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 '''
 
-# Description
-###############################################################################
-'''
-This module is responsible for digest processing.
-
-It is imported as:
-
-import OCDocker.Processing.Digest as ocdigest
-'''
-
 # Classes
 ###############################################################################
-
 
 # Functions
 ###############################################################################
@@ -102,7 +103,7 @@ def __core_generate_digest(path: str, ligandDir: str, archive: str, overwrite: b
         _ = ocplants.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat)
     else:
         errMsg = f"There is no ligand descriptor json file for the protein in the path '{ligandDescriptorPath}'."
-        octools.print_error_log(errMsg, f"{logdir}/{archive}_docking_digest_run_report_ERROR.log")
+        ocprint.print_error_log(errMsg, f"{logdir}/{archive}_docking_digest_run_report_ERROR.log")
         return errors.receptor_or_ligand_descriptor_does_not_exist(errMsg, level = "error")
 
     return errors.ok()
@@ -126,7 +127,7 @@ def __thread_generate_digest(arguments: list) -> int:
     '''
 
     # Redirect all prints to tqdm.write
-    with octools.redirect_to_tqdm():
+    with ocbasetools.redirect_to_tqdm():
         # Call the core dock function passing the arguments correctly
         returnState = __core_generate_digest(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4])
 
@@ -177,7 +178,7 @@ def __generate_digest_parallel(complexList: List[Tuple[str, List[str]]], archive
                 gc.collect()
     except IOError as e:
         errMsg = f"Problem while generating docking digest in parallel. Exception: {e}"
-        octools.print_error_log(errMsg, f"{logdir}/{archive}_docking_report.log")
+        ocprint.print_error_log(errMsg, f"{logdir}/{archive}_docking_report.log")
         return errors.docking_failed(errMsg, level = "error")
 
     # Return
@@ -210,7 +211,7 @@ def __generate_digest_no_parallel(complexList: List[Tuple[str, List[str]]], arch
     '''
 
     # Redirect all prints to tqdm.write
-    with octools.redirect_to_tqdm():
+    with ocbasetools.redirect_to_tqdm():
         # For each file in dirs
         for cl in tqdm(iterable = complexList, total = len(complexList), desc=desc):
             for ligandDir in cl[1]:
@@ -284,7 +285,7 @@ def generate_digest(paths: Union[List[Tuple[str, List[str]]], Tuple[str, List[st
     if isinstance(paths, list):
 
         # If logfiles exists, backup them
-        octools.backup_log(f"{archive}_docking_digest_run_report_ERROR")
+        oclogging.backup_log(f"{archive}_docking_digest_run_report_ERROR")
 
         # Check if multiprocessing is enabled
         if args.multiprocess:

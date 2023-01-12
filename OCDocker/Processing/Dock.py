@@ -1,11 +1,20 @@
 #!/usr/lib/python3
 
+# Description
+###############################################################################
+'''
+This module is responsible for docking running.
+
+It is imported as:
+
+import OCDocker.Processing.Dock as ocdock
+'''
+
 # Imports
 ###############################################################################
 import gc
 import os
 import shutil
-import time
 
 from multiprocessing import Pool
 from threading import Lock
@@ -16,12 +25,14 @@ from OCDocker.Initialise import *
 
 import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
-import OCDocker.Toolbox as octools
 import OCDocker.Docking.Gnina as ocgnina
 import OCDocker.Docking.PLANTS as ocplants
 import OCDocker.Docking.Smina as ocsmina
 import OCDocker.Docking.Vina as ocvina
-
+import OCDocker.Toolbox.Basetools as ocbasetools
+import OCDocker.Toolbox.Logging as oclogging
+import OCDocker.Toolbox.Printing as ocprint
+import OCDocker.Toolbox.Validation as ocvalidation
 
 # License
 ###############################################################################
@@ -38,19 +49,8 @@ E-mail address: arturossi10@gmail.com
 This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 '''
 
-# Description
-###############################################################################
-'''
-This module is responsible for digest processing.
-
-It is imported as:
-
-import OCDocker.Processing.Dock as ocdock
-'''
-
 # Classes
 ###############################################################################
-
 
 # Functions
 ###############################################################################
@@ -98,7 +98,7 @@ def __run_gnina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
     if not os.path.isdir(f"{ligandDir}/gninaFiles"):
         errMsg = f"The directory '{ligandDir}/gninaFiles/' does not exist! Please ensure its existance before running this function. NOTE: You may need to run the verify_integrity routine to help to ensure that all files are ok."
 
-        octools.print_error_log(errMsg, f"{logdir}/{archive}_gnina_run_report_ERROR.log")
+        ocprint.print_error_log(errMsg, f"{logdir}/{archive}_gnina_run_report_ERROR.log")
         return errors.dir_does_not_exists(errMsg, level = "error")
 
     # Get the folder for each run
@@ -152,11 +152,11 @@ def __run_gnina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
                 if not gnina:
                     errMsg = f"Could not generate gnina object for the protein in dir '{ligandPath}'. Error found while trying to run the 'gnina' docking software."
 
-                    octools.print_error_log(errMsg, f"{logdir}/{archive}_gnina_run_report_ERROR.log")
+                    ocprint.print_error_log(errMsg, f"{logdir}/{archive}_gnina_run_report_ERROR.log")
                     return errors.docking_object_not_generated(errMsg, level = "error")
 
                 # If prepared ligand has the overwrite flag on, does not exists, has size 0 or is not valid
-                if overwrite or not os.path.isfile(gnina.preparedLigand) or os.path.getsize(gnina.preparedLigand) == 0 or not octools.is_molecule_valid(gnina.preparedLigand):
+                if overwrite or not os.path.isfile(gnina.preparedLigand) or os.path.getsize(gnina.preparedLigand) == 0 or not ocvalidation.is_molecule_valid(gnina.preparedLigand):
                     # Create a lock for multithreading
                     lock = Lock()
                     # Start the lock with statement
@@ -180,18 +180,18 @@ def __run_gnina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
                         except Exception as e:
                             errMsg = f"Could not run the prepare ligand routine for the protein in dir '{gnina.inputLigandPath}'. Error found while trying to run the 'gnina' docking software. Error: {e}"
 
-                            octools.print_error_log(errMsg, f"{logdir}/{archive}_gnina_run_report_ERROR.log")
+                            ocprint.print_error_log(errMsg, f"{logdir}/{archive}_gnina_run_report_ERROR.log")
                             return errors.ligand_not_prepared(errMsg, level = "error")
 
                     # Check again if the generated ligand has size 0 or is invalid
-                    if os.path.getsize(gnina.preparedLigand) == 0 or not octools.is_molecule_valid(gnina.preparedLigand):
+                    if os.path.getsize(gnina.preparedLigand) == 0 or not ocvalidation.is_molecule_valid(gnina.preparedLigand):
                         errMsg = f"The prepare ligand script has made an output of 0kb again for ligand '{gnina.preparedLigand}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(gnina.prepareLigandCmd)}"
 
-                        octools.print_error_log(errMsg, f"{logdir}/{archive}_gnina_run_report_ERROR.log")
+                        ocprint.print_error_log(errMsg, f"{logdir}/{archive}_gnina_run_report_ERROR.log")
                         return errors.ligand_not_prepared(errMsg, level = "error")
 
                 # If prepared receptor has the overwrite flag on, does not exists, has size 0 or is not valid
-                if overwrite or not os.path.isfile(gnina.preparedReceptor) or os.path.getsize(gnina.preparedReceptor) == 0 or not octools.is_molecule_valid(gnina.preparedReceptor):
+                if overwrite or not os.path.isfile(gnina.preparedReceptor) or os.path.getsize(gnina.preparedReceptor) == 0 or not ocvalidation.is_molecule_valid(gnina.preparedReceptor):
                     # Create a lock for multithreading
                     lock = Lock()
                     # Start the lock with statement
@@ -214,14 +214,14 @@ def __run_gnina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
                         except Exception as e:
                             errMsg = f"Could not run the prepare receptor routine for the protein in dir '{gnina.inputReceptorPath}'. Error found while trying to run the 'gnina' docking software. Error: {e}"
 
-                            octools.print_error_log(errMsg, f"{logdir}/{archive}_gnina_run_report_ERROR.log")
+                            ocprint.print_error_log(errMsg, f"{logdir}/{archive}_gnina_run_report_ERROR.log")
                             return errors.receptor_not_prepared(errMsg, level = "error")
 
                     # Check if the generated receptor has size 0 or is invalid
-                    if os.path.getsize(gnina.preparedReceptor) == 0 or not octools.is_molecule_valid(gnina.preparedReceptor):
+                    if os.path.getsize(gnina.preparedReceptor) == 0 or not ocvalidation.is_molecule_valid(gnina.preparedReceptor):
                         errMsg = f"The prepare receptor has made an output of 0kb for receptor '{gnina.preparedReceptor}' or is not valid... Here is its command line so you might be able to debug it by hand.\n{' '.join(gnina.prepareReceptorCmd)}"
 
-                        octools.print_error_log(errMsg, f"{logdir}/{archive}_gnina_run_report_ERROR.log")
+                        ocprint.print_error_log(errMsg, f"{logdir}/{archive}_gnina_run_report_ERROR.log")
                         return errors.receptor_not_prepared(errMsg, level = "error")
 
                 # Check if gnina output exists
@@ -238,18 +238,18 @@ def __run_gnina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
                 else:
                     errMsg = f"The gnina output for '{ptn}' run '{runNumber}' is already generated and you can check it at the '{runPath}/gnina_{runNumber}.log' path. Gnina execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true"
 
-                    octools.print_warning_log(errMsg, f"{logdir}/{archive}_gnina_run_report_WARNING.log")
-                    octools.print_warning(errMsg)
+                    ocprint.print_warning_log(errMsg, f"{logdir}/{archive}_gnina_run_report_WARNING.log")
+                    ocprint.print_warning(errMsg)
         else:
             errMsg = f"Could not generate receptor or ligand object for the protein in dir '{ligandPath}'. Error found while trying to run the 'gnina' docking software."
 
-            octools.print_error_log(errMsg, f"{logdir}/{archive}_gnina_run_report_ERROR.log")
+            ocprint.print_error_log(errMsg, f"{logdir}/{archive}_gnina_run_report_ERROR.log")
             return errors.receptor_or_ligand_not_generated(errMsg, level = "error")
     else:
         errMsg = f"The gnina output for '{ptn}' for all boxes is already generated and you can check it at the '{ligandPath}/gninaFiles/*/gnina_<runNumber>.log' path. Gnina execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true."
 
-        octools.print_warning_log(errMsg, f"{logdir}/{archive}_gnina_run_report_WARNING.log")
-        octools.print_warning(errMsg)
+        ocprint.print_warning_log(errMsg, f"{logdir}/{archive}_gnina_run_report_WARNING.log")
+        ocprint.print_warning(errMsg)
 
     return errors.ok()
 
@@ -296,7 +296,7 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
     if not os.path.isdir(f"{ligandDir}/vinaFiles"):
         errMsg = f"The directory '{ligandDir}/vinaFiles/' does not exist! Please ensure its existance before running this function. NOTE: You may need to run the verify_integrity routine to help to ensure that all files are ok."
 
-        octools.print_error_log(errMsg, f"{logdir}/{archive}_vina_run_report_ERROR.log")
+        ocprint.print_error_log(errMsg, f"{logdir}/{archive}_vina_run_report_ERROR.log")
         return errors.dir_does_not_exists(errMsg, level = "error")
 
     # Get the folder for each run
@@ -350,11 +350,11 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
                 if not vina:
                     errMsg = f"Could not generate vina object for the protein in dir '{ligandPath}'. Error found while trying to run the 'vina' docking software."
 
-                    octools.print_error_log(errMsg, f"{logdir}/{archive}_vina_run_report_ERROR.log")
+                    ocprint.print_error_log(errMsg, f"{logdir}/{archive}_vina_run_report_ERROR.log")
                     return errors.docking_object_not_generated(errMsg, level = "error")
 
                 # If prepared ligand has the overwrite flag on, does not exists, has size 0 or is not valid
-                if overwrite or not os.path.isfile(vina.preparedLigand) or os.path.getsize(vina.preparedLigand) == 0 or not octools.is_molecule_valid(vina.preparedLigand):
+                if overwrite or not os.path.isfile(vina.preparedLigand) or os.path.getsize(vina.preparedLigand) == 0 or not ocvalidation.is_molecule_valid(vina.preparedLigand):
                     # Create a lock for multithreading
                     lock = Lock()
                     # Start the lock with statement
@@ -378,18 +378,18 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
                         except Exception as e:
                             errMsg = f"Could not run the prepare ligand routine for the protein in dir '{vina.inputLigandPath}'. Error found while trying to run the 'vina' docking software. Error: {e}"
 
-                            octools.print_error_log(errMsg, f"{logdir}/{archive}_vina_run_report_ERROR.log")
+                            ocprint.print_error_log(errMsg, f"{logdir}/{archive}_vina_run_report_ERROR.log")
                             return errors.ligand_not_prepared(errMsg, level = "error")
 
                     # Check again if the generated ligand has size 0 or is invalid
-                    if os.path.getsize(vina.preparedLigand) == 0 or not octools.is_molecule_valid(vina.preparedLigand):
+                    if os.path.getsize(vina.preparedLigand) == 0 or not ocvalidation.is_molecule_valid(vina.preparedLigand):
                         errMsg = f"The prepare ligand script has made an output of 0kb again for ligand '{vina.preparedLigand}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(vina.prepareLigandCmd)}"
 
-                        octools.print_error_log(errMsg, f"{logdir}/{archive}_vina_run_report_ERROR.log")
+                        ocprint.print_error_log(errMsg, f"{logdir}/{archive}_vina_run_report_ERROR.log")
                         return errors.ligand_not_prepared(errMsg, level = "error")
 
                 # If prepared receptor has the overwrite flag on, does not exists, has size 0 or is not valid
-                if overwrite or not os.path.isfile(vina.preparedReceptor) or os.path.getsize(vina.preparedReceptor) == 0 or not octools.is_molecule_valid(vina.preparedReceptor):
+                if overwrite or not os.path.isfile(vina.preparedReceptor) or os.path.getsize(vina.preparedReceptor) == 0 or not ocvalidation.is_molecule_valid(vina.preparedReceptor):
                     # Create a lock for multithreading
                     lock = Lock()
                     # Start the lock with statement
@@ -412,14 +412,14 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
                         except Exception as e:
                             errMsg = f"Could not run the prepare receptor routine for the protein in dir '{vina.inputReceptorPath}'. Error found while trying to run the 'vina' docking software. Error: {e}"
 
-                            octools.print_error_log(errMsg, f"{logdir}/{archive}_vina_run_report_ERROR.log")
+                            ocprint.print_error_log(errMsg, f"{logdir}/{archive}_vina_run_report_ERROR.log")
                             return errors.receptor_not_prepared(errMsg, level = "error")
 
                     # Check if the generated receptor has size 0 or is invalid
-                    if os.path.getsize(vina.preparedReceptor) == 0 or not octools.is_molecule_valid(vina.preparedReceptor):
+                    if os.path.getsize(vina.preparedReceptor) == 0 or not ocvalidation.is_molecule_valid(vina.preparedReceptor):
                         errMsg = f"The prepare receptor has made an output of 0kb for receptor '{vina.preparedReceptor}' or is not valid... Here is its command line so you might be able to debug it by hand.\n{' '.join(vina.prepareReceptorCmd)}"
 
-                        octools.print_error_log(errMsg, f"{logdir}/{archive}_vina_run_report_ERROR.log")
+                        ocprint.print_error_log(errMsg, f"{logdir}/{archive}_vina_run_report_ERROR.log")
                         return errors.receptor_not_prepared(errMsg, level = "error")
 
                 # Check if vina output exists
@@ -436,18 +436,18 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
                 else:
                     errMsg = f"The vina output for '{ptn}' run '{runNumber}' is already generated and you can check it at the '{runPath}/vina_{runNumber}.log' path. Vina execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true"
 
-                    octools.print_warning_log(errMsg, f"{logdir}/{archive}_vina_run_report_WARNING.log")
-                    octools.print_warning(errMsg)
+                    ocprint.print_warning_log(errMsg, f"{logdir}/{archive}_vina_run_report_WARNING.log")
+                    ocprint.print_warning(errMsg)
         else:
             errMsg = f"Could not generate receptor or ligand object for the protein in dir '{ligandPath}'. Error found while trying to run the 'vina' docking software."
 
-            octools.print_error_log(errMsg, f"{logdir}/{archive}_vina_run_report_ERROR.log")
+            ocprint.print_error_log(errMsg, f"{logdir}/{archive}_vina_run_report_ERROR.log")
             return errors.receptor_or_ligand_not_generated(errMsg, level = "error")
     else:
         errMsg = f"The vina output for '{ptn}' for all boxes is already generated and you can check it at the '{ligandPath}/vinaFiles/*/vina_<runNumber>.log' path. Vina execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true."
 
-        octools.print_warning_log(errMsg, f"{logdir}/{archive}_vina_run_report_WARNING.log")
-        octools.print_warning(errMsg)
+        ocprint.print_warning_log(errMsg, f"{logdir}/{archive}_vina_run_report_WARNING.log")
+        ocprint.print_warning(errMsg)
 
     return errors.ok()
 
@@ -499,7 +499,7 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
     if not os.path.isdir(runPath):
         errMsg = f"The directory '{runPath}' does not exist! Please ensure its existance before running this function. NOTE: You may need to run the verify_integrity routine to help to ensure that all files are ok."
 
-        octools.print_error_log(errMsg, f"{logdir}/{archive}_smina_run_report_ERROR.log")
+        ocprint.print_error_log(errMsg, f"{logdir}/{archive}_smina_run_report_ERROR.log")
         return errors.dir_does_not_exists(errMsg, level = "error")
 
     # If is needed to run (overwrite is set or no output is produced)
@@ -531,11 +531,11 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
             if not smina:
                 errMsg = f"Could not generate smina object for the protein in dir '{ligandPath}'. Error found while trying to run the 'smina' docking software."
 
-                octools.print_error_log(errMsg, f"{logdir}/{archive}_smina_run_report_ERROR.log")
+                ocprint.print_error_log(errMsg, f"{logdir}/{archive}_smina_run_report_ERROR.log")
                 return errors.docking_object_not_generated(errMsg, level = "error")
 
             # If prepared ligand has the overwrite flag on, does not exists, has size 0 or is not valid
-            if overwrite or not os.path.isfile(smina.preparedLigand) or os.path.getsize(smina.preparedLigand) == 0 or not octools.is_molecule_valid(smina.preparedLigand):
+            if overwrite or not os.path.isfile(smina.preparedLigand) or os.path.getsize(smina.preparedLigand) == 0 or not ocvalidation.is_molecule_valid(smina.preparedLigand):
                 # Create a lock for multithreading
                 lock = Lock()
                 # Start the lock with statement
@@ -558,18 +558,18 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
                     except Exception as e:
                         errMsg = f"Could not run the prepare ligand routine for the protein in dir '{smina.inputLigandPath}'. Error found while trying to run the 'smina' docking software. Error: {e}"
 
-                        octools.print_error_log(errMsg, f"{logdir}/{archive}_smina_run_report_ERROR.log")
+                        ocprint.print_error_log(errMsg, f"{logdir}/{archive}_smina_run_report_ERROR.log")
                         return errors.ligand_not_prepared(errMsg, level = "error")
 
                 # Check if the generated ligand has size 0 or is invalid
-                if os.path.getsize(smina.preparedLigand) == 0 or not octools.is_molecule_valid(smina.preparedLigand):
+                if os.path.getsize(smina.preparedLigand) == 0 or not ocvalidation.is_molecule_valid(smina.preparedLigand):
                     errMsg = f"The prepare ligand script has made an output of 0kb for ligand '{smina.preparedLigand}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(smina.prepareLigandCmd)}"
 
-                    octools.print_error_log(errMsg, f"{logdir}/{archive}_smina_run_report_ERROR.log")
+                    ocprint.print_error_log(errMsg, f"{logdir}/{archive}_smina_run_report_ERROR.log")
                     return errors.ligand_not_prepared(errMsg, level = "error")
                     
             # If prepared receptor has the overwrite flag on, does not exists, has size 0 or is not valid
-            if overwrite or not os.path.isfile(smina.preparedReceptor) or os.path.getsize(smina.preparedReceptor) == 0 or not octools.is_molecule_valid(smina.preparedReceptor):
+            if overwrite or not os.path.isfile(smina.preparedReceptor) or os.path.getsize(smina.preparedReceptor) == 0 or not ocvalidation.is_molecule_valid(smina.preparedReceptor):
                 # Create a lock for multithreading
                 lock = Lock()
                 # Start the lock with statement
@@ -592,14 +592,14 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
                     except Exception as e:
                         errMsg = f"Could not run the prepare receptor routine for the protein in dir '{smina.inputReceptorPath}'. Error found while trying to run the 'smina' docking software. Error: {e}"
 
-                        octools.print_error_log(errMsg, f"{logdir}/{archive}_smina_run_report_ERROR.log")
+                        ocprint.print_error_log(errMsg, f"{logdir}/{archive}_smina_run_report_ERROR.log")
                         return errors.ligand_not_prepared(errMsg, level = "error")
 
                 # Check if the generated receptor has size 0 or is invalid
-                if os.path.getsize(smina.preparedReceptor) == 0 or not octools.is_molecule_valid(smina.preparedReceptor):
+                if os.path.getsize(smina.preparedReceptor) == 0 or not ocvalidation.is_molecule_valid(smina.preparedReceptor):
                     errMsg = f"The prepare receptor has made an output of 0kb for receptor '{smina.preparedReceptor}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(smina.prepareReceptorCmd)}"
 
-                    octools.print_error_log(errMsg, f"{logdir}/{archive}_smina_run_report_ERROR.log")
+                    ocprint.print_error_log(errMsg, f"{logdir}/{archive}_smina_run_report_ERROR.log")
                     return errors.receptor_not_prepared(errMsg, level = "error")
 
             # Create a lock for multithreading
@@ -614,13 +614,13 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
         else:
             errMsg = f"Could not generate receptor or ligand object for the protein in dir '{ligandPath}'. Error found while trying to run the 'smina' docking software."
 
-            octools.print_error_log(errMsg, f"{logdir}/{archive}_smina_run_report_ERROR.log")
+            ocprint.print_error_log(errMsg, f"{logdir}/{archive}_smina_run_report_ERROR.log")
             return errors.receptor_or_ligand_not_generated(errMsg, level = "error")
     else:
         errMsg = f"The smina output for '{ptn}' is already generated and you can check it at the '{sminaLog}' path. Smina execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true."
 
-        octools.print_warning_log(errMsg, f"{logdir}/{archive}_smina_run_report_WARNING.log")
-        octools.print_warning(errMsg)
+        ocprint.print_warning_log(errMsg, f"{logdir}/{archive}_smina_run_report_WARNING.log")
+        ocprint.print_warning(errMsg)
     
     return errors.ok()
 
@@ -665,7 +665,7 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
     if not os.path.isdir(f"{ligandDir}/plantsFiles/"):
         errMsg = f"The directory '{ligandDir}/plantsFiles/' does not exist! Please ensure its existance before running this function. NOTE: You may need to run the verify_integrity routine to help to ensure that all files are ok."
 
-        octools.print_error_log(errMsg, f"{logdir}/{archive}_plants_run_report_ERROR.log")
+        ocprint.print_error_log(errMsg, f"{logdir}/{archive}_plants_run_report_ERROR.log")
         return errors.dir_does_not_exists(errMsg, level = "error")
 
     # Flag to denote if its needed to run this protein through plants
@@ -724,11 +724,11 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
                 if not plants:
                     errMsg = f"Could not generate plants object for the protein in dir '{ligandDir}'. Error found while trying to run the 'PLANTS' docking software."
 
-                    octools.print_error_log(errMsg, f"{logdir}/{archive}_plants_run_report_ERROR.log")
+                    ocprint.print_error_log(errMsg, f"{logdir}/{archive}_plants_run_report_ERROR.log")
                     return errors.docking_object_not_generated(errMsg, level = "error")
 
                 # If prepared ligand has the overwrite flag on, does not exists, has size 0 or is not valid
-                if overwrite or not os.path.isfile(plants.preparedLigand) or os.path.getsize(plants.preparedLigand) == 0 or not octools.is_molecule_valid(plants.preparedLigand):
+                if overwrite or not os.path.isfile(plants.preparedLigand) or os.path.getsize(plants.preparedLigand) == 0 or not ocvalidation.is_molecule_valid(plants.preparedLigand):
                     # Create a lock for multithreading
                     lock = Lock()
                     # Start the lock with statement
@@ -751,18 +751,18 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
                         except Exception as e:
                             errMsg = f"Could not run the prepare ligand routine for the protein in dir '{plants.inputLigandPath}'. Error found while trying to run the 'PLANTS' docking software. Error: {e}"
 
-                            octools.print_error_log(errMsg, f"{logdir}/{archive}_plants_run_report_ERROR.log")
+                            ocprint.print_error_log(errMsg, f"{logdir}/{archive}_plants_run_report_ERROR.log")
                             return errors.ligand_not_prepared(errMsg, level = "error")
 
                     # Check if the generated ligand has size 0 or is invalid
-                    if os.path.getsize(plants.preparedLigand) == 0 or not octools.is_molecule_valid(plants.preparedLigand):
+                    if os.path.getsize(plants.preparedLigand) == 0 or not ocvalidation.is_molecule_valid(plants.preparedLigand):
                         errMsg = f"SPORES has made an output of 0kb again for ligand '{plants.preparedLigand}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(plants.prepareLigandCmd)}"
 
-                        octools.print_error_log(errMsg, f"{logdir}/{archive}_plants_run_report_ERROR.log")
+                        ocprint.print_error_log(errMsg, f"{logdir}/{archive}_plants_run_report_ERROR.log")
                         return errors.ligand_not_prepared(errMsg, level = "error")
 
                 # If prepared receptor has the overwrite flag on, does not exists, has size 0 or is not valid
-                if overwrite or not os.path.isfile(plants.preparedReceptor) or os.path.getsize(plants.preparedReceptor) == 0 or not octools.is_molecule_valid(plants.preparedReceptor):
+                if overwrite or not os.path.isfile(plants.preparedReceptor) or os.path.getsize(plants.preparedReceptor) == 0 or not ocvalidation.is_molecule_valid(plants.preparedReceptor):
                     # Create a lock for multithreading
                     lock = Lock()
                     # Start the lock with statement
@@ -785,13 +785,13 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
                         except Exception as e:
                             errMsg = f"Could not run the prepare receptor routine for the protein in dir '{plants.inputReceptorPath}'. Error found while trying to run the 'PLANTS' docking software. Error: {e}"
 
-                            octools.print_error_log(errMsg, f"{logdir}/{archive}_plants_run_report_ERROR.log")
+                            ocprint.print_error_log(errMsg, f"{logdir}/{archive}_plants_run_report_ERROR.log")
                             return errors.ligand_not_prepared(errMsg, level = "error")
 
                     # Check if the generated receptor has size 0 or is invalid
-                    if os.path.getsize(plants.preparedReceptor) == 0 or not octools.is_molecule_valid(plants.preparedReceptor):
+                    if os.path.getsize(plants.preparedReceptor) == 0 or not ocvalidation.is_molecule_valid(plants.preparedReceptor):
                         errMsg = f"SPORES has made an output of 0kb for receptor '{plants.preparedReceptor}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(plants.prepareReceptorCmd)}"
-                        octools.print_error_log(errMsg, f"{logdir}/{archive}_plants_run_report_ERROR.log")
+                        ocprint.print_error_log(errMsg, f"{logdir}/{archive}_plants_run_report_ERROR.log")
                         return errors.receptor_not_prepared(errMsg, level = "error")
 
                 # Check if PLANTS output exists and its size is not 0
@@ -813,18 +813,18 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
                 else:
                     errMsg = f"The PLANTS output for '{ptn}' run '{runNumber}' is already generated and you can check it at the '*/run/plants_<runNumber>.log' path. PLANTS execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true."
 
-                    octools.print_warning_log(errMsg, f"{logdir}/{archive}_plants_run_report_WARNING.log")
-                    octools.print_warning(errMsg)
+                    ocprint.print_warning_log(errMsg, f"{logdir}/{archive}_plants_run_report_WARNING.log")
+                    ocprint.print_warning(errMsg)
         else:
             errMsg = f"Could not generate receptor or ligand object for the protein in dir '{ligandDir}'. Error found while trying to run the 'plants' docking software."
 
-            octools.print_error_log(errMsg, f"{logdir}/{archive}_plants_run_report_ERROR.log")
+            ocprint.print_error_log(errMsg, f"{logdir}/{archive}_plants_run_report_ERROR.log")
             return errors.receptor_or_ligand_not_generated(errMsg, level = "error")
     else:
         errMsg = f"The PLANTS output for '{ptn}' is already generated and you can check it at the '{ligandDir}/plantsFiles' path. PLANTS execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true."
 
-        octools.print_warning_log(errMsg, f"{logdir}/{archive}_plants_run_report_WARNING.log")
-        octools.print_warning(errMsg)
+        ocprint.print_warning_log(errMsg, f"{logdir}/{archive}_plants_run_report_WARNING.log")
+        ocprint.print_warning(errMsg)
     
     return errors.ok()
         
@@ -897,17 +897,17 @@ def __core_run_dock(path: str, ligandDir: str, archive: str, dockingAlgorithm: s
         else:
             errMsg = f"Wrong docking algorithm. Expected ['gnina', 'vina', 'smina', 'plants'] and got '{dockingAlgorithm}'."
 
-            octools.print_error_log(errMsg, f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
+            ocprint.print_error_log(errMsg, f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
             return errors.receptor_or_ligand_descriptor_does_not_exist(errMsg, level = "error")
     else:
         if not os.path.isfile(receptorDescriptorPath):
             errMsg = f"There is no receptor descriptor json file for the protein in the path '{receptorDescriptorPath}'. Error found while trying to run the '{dockingAlgorithm}' docking software."
-            octools.print_error_log(errMsg, f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
+            ocprint.print_error_log(errMsg, f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
             _ = errors.receptor_or_ligand_descriptor_does_not_exist(errMsg, level = "error")
 
         if not os.path.isfile(ligandDescriptorPath):
             errMsg = f"There is no ligand descriptor json file for the protein in the path '{ligandDescriptorPath}'. Error found while trying to run the '{dockingAlgorithm}' docking software."
-            octools.print_error_log(errMsg, f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
+            ocprint.print_error_log(errMsg, f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
             _ = errors.receptor_or_ligand_descriptor_does_not_exist(errMsg, level = "error")
         return errors.receptor_or_ligand_descriptor_does_not_exist()
 
@@ -915,7 +915,7 @@ def __core_run_dock(path: str, ligandDir: str, archive: str, dockingAlgorithm: s
     if returnState != 0:
         errMsg = f"Error found while trying to run the '{dockingAlgorithm}' docking software."
 
-        octools.print_error_log(errMsg, f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
+        ocprint.print_error_log(errMsg, f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
         return errors.docking_failed(errMsg, level = "error")
 
     return errors.ok()
@@ -939,7 +939,7 @@ def __thread_run_dock_parallel(arguments: list) -> int:
     '''
 
     # Redirect all prints to tqdm.write
-    with octools.redirect_to_tqdm():
+    with ocbasetools.redirect_to_tqdm():
         # Call the core dock function passing the arguments correctly
         returnState = __core_run_dock(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4],  arguments[5])
 
@@ -991,7 +991,7 @@ def __run_dock_parallel(complexList: List[Tuple[str, List[str]]], archive: str, 
                 # Clear the memory
                 gc.collect()
     except IOError as e:
-        octools.print_error_log(f"Problem while running docking software {dockingAlgorithm} in parallel. Exception: {e}", f"{logdir}/{archive}_docking_report.log")
+        ocprint.print_error_log(f"Problem while running docking software {dockingAlgorithm} in parallel. Exception: {e}", f"{logdir}/{archive}_docking_report.log")
         return errors.docking_failed(f"Problem while running docking software {dockingAlgorithm} in parallel. Exception: {e}", level = "error")
 
     # Return
@@ -1026,7 +1026,7 @@ def __run_dock_no_parallel(complexList: List[Tuple[str, List[str]]], archive: st
     '''
 
     # Redirect all prints to tqdm.write
-    with octools.redirect_to_tqdm():
+    with ocbasetools.redirect_to_tqdm():
         # For each file in dirs
         for cl in tqdm(iterable = complexList, total = len(complexList), desc=desc):
             for ligandDir in cl[1]:
@@ -1063,8 +1063,8 @@ def run_dock(paths: Union[List[Tuple[str, List[str]]], Tuple[str, List[str]]], a
     label = f"Processing {archive}"
 
     # If logfiles exists, backup them
-    octools.backup_log(f"{archive}_{dockingAlgorithm}_run_report_ERROR")
-    octools.backup_log(f"{archive}_{dockingAlgorithm}_run_report_WARNING")
+    oclogging.backup_log(f"{archive}_{dockingAlgorithm}_run_report_ERROR")
+    oclogging.backup_log(f"{archive}_{dockingAlgorithm}_run_report_WARNING")
     
     # If the path is a list
     if isinstance(paths, list):

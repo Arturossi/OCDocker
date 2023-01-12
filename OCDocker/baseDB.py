@@ -1,5 +1,16 @@
 #!/usr/lib/python3
 
+# Description
+###############################################################################
+'''
+Sets of classes and functions that are used as base for all databases. It
+contains functions that are common to all databases.
+
+They are imported as:
+
+import OCDocker.baseDB as ocbdb
+'''
+
 # Imports
 ###############################################################################
 import os
@@ -13,15 +24,15 @@ from typing import Dict, Union
 
 from OCDocker.Initialise import *
 
-import OCDocker.Toolbox as octools
 import OCDocker.Processing.Dock as ocdock
-import OCDocker.Processing.Digest as ocdigest
-import OCDocker.Processing.Prepare as ocprepare
-import OCDocker.Processing.p2rank as ocp2rank
+import OCDocker.Processing.Postprocessing.Digest as ocdigest
+import OCDocker.Processing.Preprocessing.Prepare as ocprepare
+import OCDocker.Processing.Preprocessing.p2rank as ocp2rank
 import OCDocker.Processing.Postprocessing.ReadLogs as ocreadlogs
 import OCDocker.Processing.Postprocessing.MergeLogs as ocmergelogs
 
-
+import OCDocker.Toolbox.FilesFolders as ocff
+import OCDocker.Toolbox.Printing as ocprint
 # License
 ###############################################################################
 '''
@@ -35,17 +46,6 @@ Av. Carlos Chagas Filho 373 - CCS - bloco G1-19,
 Cidade Universitária - Rio de Janeiro, RJ, CEP: 21941-902
 E-mail address: arturossi10@gmail.com
 This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
-'''
-
-# Description
-###############################################################################
-'''
-Sets of classes and functions that are used as base for all databases. It
-contains functions that are common to all databases.
-
-They are imported as:
-
-import OCDocker.baseDB as ocbdb
 '''
 
 # Classes
@@ -76,7 +76,7 @@ import OCDocker.baseDB as ocbdb
     '''
 
     # Verify the integrity of the database
-    octools.printv(f"Verifiying the integrity of the {chosenArchive} database")
+    ocprint.printv(f"Verifiying the integrity of the {chosenArchive} database")
 
     # Get all dirs paths in the database
     dirs = glob(f"{chosenArchive}/*")
@@ -121,57 +121,57 @@ import OCDocker.baseDB as ocbdb
                 fin = f"{dir}/{ptn}_protein.pdb"
                 ligand = f"{dir}/{ptn}_ligand.mol2"
             else:
-                octools.print_error(f"Unknown archive type, expected one of the following ['dudez', 'pdbbind'] and got '{archive}'.")
+                ocprint.print_error(f"Unknown archive type, expected one of the following ['dudez', 'pdbbind'] and got '{archive}'.")
                 return
 
-            octools.printv(f"Checking directories for the protein '{dir}'.")
+            ocprint.printv(f"Checking directories for the protein '{dir}'.")
 
             # If has no p2rank dir
             if not os.path.isdir(p2rankDir):
-                octools.print_warning(f"The protein '{dir}' has no p2rank folder. Trying to fix...")
+                ocprint.print_warning(f"The protein '{dir}' has no p2rank folder. Trying to fix...")
 
                 # Create the p2rank output dir
                 errorCode = octools.safe_create_dir(p2rankDir)
 
                 if os.path.isdir(p2rankDir):
-                    octools.print_success(f"The p2rank dir has been generated for '{dir}'.")
+                    ocprint.print_success(f"The p2rank dir has been generated for '{dir}'.")
                 else:
-                    octools.print_error(f"Unable to generate the p2rank dir for '{dir}'... Error code {errorCode}.")
-                    octools.print_error_log(f"Unable to generate the p2rank dir for '{dir}'... Error code {errorCode}.", f"{logdir}/{archive}_integrity_report.log")
+                    ocprint.print_error(f"Unable to generate the p2rank dir for '{dir}'... Error code {errorCode}.")
+                    ocprint.print_error_log(f"Unable to generate the p2rank dir for '{dir}'... Error code {errorCode}.", f"{logdir}/{archive}_integrity_report.log")
                     failed = failed + 1
                     continue
 
             # If has no vinaFiles dir
             if not os.path.isdir(vinaDir):
-                octools.print_warning(f"The protein '{dir}' has no vinaFiles folder. Trying to fix...")
+                ocprint.print_warning(f"The protein '{dir}' has no vinaFiles folder. Trying to fix...")
 
                 # Create the p2rank output dir
                 errorCode = octools.safe_create_dir(vinaDir)
 
                 if os.path.isdir(vinaDir):
-                    octools.print_success(f"The vinaFiles dir has been generated for '{dir}'.")
+                    ocprint.print_success(f"The vinaFiles dir has been generated for '{dir}'.")
                 else:
-                    octools.print_error(f"Unable to generate the vinaFiles dir for '{dir}'... Error code {errorCode}.")
-                    octools.print_error_log(f"Unable to generate the vinaFiles dir for '{dir}'... Error code {errorCode}.", f"{logdir}/{archive}_integrity_report.log")
+                    ocprint.print_error(f"Unable to generate the vinaFiles dir for '{dir}'... Error code {errorCode}.")
+                    ocprint.print_error_log(f"Unable to generate the vinaFiles dir for '{dir}'... Error code {errorCode}.", f"{logdir}/{archive}_integrity_report.log")
                     failed = failed + 1
                     continue
 
             # If has no plantsFiles dir
             if not os.path.isdir(plantsDir):
-                octools.print_warning(f"The protein '{dir}' has no plantsFiles folder. Trying to fix...")
+                ocprint.print_warning(f"The protein '{dir}' has no plantsFiles folder. Trying to fix...")
 
                 # Create the p2rank output dir
                 errorCode = octools.safe_create_dir(plantsDir)
 
                 if os.path.isdir(plantsDir):
-                    octools.print_success(f"The plantsFiles dir has been generated for '{dir}'.")
+                    ocprint.print_success(f"The plantsFiles dir has been generated for '{dir}'.")
                 else:
-                    octools.print_error(f"Unable to generate the plantsFiles dir for '{dir}'... Error code {errorCode}.")
-                    octools.print_error_log(f"Unable to generate the plantsFiles dir for '{dir}'... Error code {errorCode}.", f"{logdir}/{archive}_integrity_report.log")
+                    ocprint.print_error(f"Unable to generate the plantsFiles dir for '{dir}'... Error code {errorCode}.")
+                    ocprint.print_error_log(f"Unable to generate the plantsFiles dir for '{dir}'... Error code {errorCode}.", f"{logdir}/{archive}_integrity_report.log")
                     failed = failed + 1
                     continue
 
-            octools.printv(f"Checking files for the protein '{dir}'")
+            ocprint.printv(f"Checking files for the protein '{dir}'")
 
             # Check how many boxes are in the p2rankDir
             boxes = glob(f"{p2rankDir}/box*.pdb")
@@ -179,7 +179,7 @@ import OCDocker.baseDB as ocbdb
 
             # If there is no box in the p2rank output, p2rank will run
             if boxCount == 0:
-                octools.print_warning(f"The protein '{dir}' has no box file. Trying to fix...")
+                ocprint.print_warning(f"The protein '{dir}' has no box file. Trying to fix...")
 
                 # Run p2rank
                 ocp2rank.p2rank_no_parallel([dir], False, desc = "Running p2rank")
@@ -189,16 +189,16 @@ import OCDocker.baseDB as ocbdb
                 boxCount = len(boxes)
 
                 if boxCount > 0:
-                    octools.print_success(f"Box files generated for '{dir}'.")
+                    ocprint.print_success(f"Box files generated for '{dir}'.")
                 else:
-                    octools.print_error(f"The protein '{dir}' still has no box file.")
-                    octools.print_error_log(f"The protein '{dir}' still has no box file.", f"{logdir}/{archive}_integrity_report.log")
+                    ocprint.print_error(f"The protein '{dir}' still has no box file.")
+                    ocprint.print_error_log(f"The protein '{dir}' still has no box file.", f"{logdir}/{archive}_integrity_report.log")
                     failed = failed + 1
                     continue
 
             # If there is not the same amount of box files as folders in vinaFiles folder
             if len([d for d in glob(f"{vinaDir}/*") if os.path.isdir(d)]) < boxCount:
-                octools.print_warning(f"The protein '{dir}' has not the same amount of vina conf files as the amount of box files. Trying to fix...")
+                ocprint.print_warning(f"The protein '{dir}' has not the same amount of vina conf files as the amount of box files. Trying to fix...")
                 # If vina is needed, the input should be the prepared receptor
                 preparedReceptor = f"{dir}/{ptn}_protein.pdbqt"
 
@@ -213,16 +213,16 @@ import OCDocker.baseDB as ocbdb
 
                 # If there is not the same amount of box files as folders in vinaFiles folder (again)
                 if len([d for d in glob(f"{vinaDir}/*") if os.path.isdir(d)]) == boxCount:
-                    octools.print_success(f"Conf files generated for '{dir}'.")
+                    ocprint.print_success(f"Conf files generated for '{dir}'.")
                 else:
-                    octools.print_error(f"Unable to generate the vina conf files for '{dir}'...")
-                    octools.print_error_log(f"Unable to generate the vina conf files for '{dir}'...", f"{logdir}/{archive}_integrity_report.log")
+                    ocprint.print_error(f"Unable to generate the vina conf files for '{dir}'...")
+                    ocprint.print_error_log(f"Unable to generate the vina conf files for '{dir}'...", f"{logdir}/{archive}_integrity_report.log")
                     failed = failed + 1
                     continue
 
             # If there is not the same amount of box files as folders in plantsFiles folder
             if len([d for d in glob(f"{plantsDir}/*") if os.path.isdir(d)]) < boxCount:
-                octools.print_warning(f"The protein '{dir}' has not the same amount of PLANTS conf files as the amount of box files. Trying to fix...")
+                ocprint.print_warning(f"The protein '{dir}' has not the same amount of PLANTS conf files as the amount of box files. Trying to fix...")
                 # If PLANTS is needed, the input should be the prepared receptor and ligand
                 preparedReceptor = f"{dir}/{ptn}_protein_prepared.mol2"
                 preparedLigand = f"{dir}/{ptn}_ligand_prepared.mol2"
@@ -238,10 +238,10 @@ import OCDocker.baseDB as ocbdb
 
                 # If there is not the same amount of box files as folders in vinaFiles folder (again)
                 if len([d for d in glob(f"{plantsDir}/*") if os.path.isdir(d)]):
-                    octools.print_success(f"PLANTS conf files generated for '{dir}'.")
+                    ocprint.print_success(f"PLANTS conf files generated for '{dir}'.")
                 else:
-                    octools.print_error(f"Unable to generate the PLANTS conf files for '{dir}'...")
-                    octools.print_error_log(f"Unable to generate the PLANTS conf files for '{dir}'...", f"{logdir}/{archive}_integrity_report.log")
+                    ocprint.print_error(f"Unable to generate the PLANTS conf files for '{dir}'...")
+                    ocprint.print_error_log(f"Unable to generate the PLANTS conf files for '{dir}'...", f"{logdir}/{archive}_integrity_report.log")
                     failed = failed + 1
                     continue
 
@@ -255,8 +255,8 @@ import OCDocker.baseDB as ocbdb
                     # If the file still does not exists...
                     if not os.path.isfile(f"{dir}/ligand_descriptors.json") or os.path.getsize(f"{dir}/ligand_descriptors.json") == 0:
                         # REPORT
-                        octools.print_error(f"Unable to generate the ligand descriptor file for '{dir}'...")
-                        octools.print_error_log(f"Unable to generate the ligand descriptor file dir for '{dir}'...", f"{logdir}/{archive}_integrity_report.log")
+                        ocprint.print_error(f"Unable to generate the ligand descriptor file for '{dir}'...")
+                        ocprint.print_error_log(f"Unable to generate the ligand descriptor file dir for '{dir}'...", f"{logdir}/{archive}_integrity_report.log")
                         failed = failed + 1
                         continue
 
@@ -267,12 +267,12 @@ import OCDocker.baseDB as ocbdb
                     # If the file still does not exists...
                     if not os.path.isfile(f"{dir}/{ptn}_protein_descriptors.json") or os.path.getsize(f"{dir}/{ptn}_protein_descriptors.json") == 0:
                         # REPORT
-                        octools.print_error(f"Unable to generate the receptor descriptor file for '{dir}'...")
-                        octools.print_error_log(f"Unable to generate the receptor descriptor file dir for '{dir}'...", f"{logdir}/{archive}_integrity_report.log")
+                        ocprint.print_error(f"Unable to generate the receptor descriptor file for '{dir}'...")
+                        ocprint.print_error_log(f"Unable to generate the receptor descriptor file dir for '{dir}'...", f"{logdir}/{archive}_integrity_report.log")
                         failed = failed + 1
                         continue
 
-    octools.printv(f"Integrity check of the PDBbind database accomplished. Success rate: {((lenDirs - failed) / lenDirs) * 100}% ({(lenDirs - failed)}/{lenDirs})")
+    ocprint.printv(f"Integrity check of the PDBbind database accomplished. Success rate: {((lenDirs - failed) / lenDirs) * 100}% ({(lenDirs - failed)}/{lenDirs})")
     return None
 """
 
@@ -305,14 +305,14 @@ def prepare(archive: str, overwrite: bool = False, spacing: float = 0.33, saniti
     elif archive.lower() == "pdbbind":
         chosenArchive = pdbbind_archive
     else:
-        octools.print_error(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}.")
+        ocprint.print_error(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}.")
         return None
 
     # Get all paths in the database
     paths = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index']]
 
     # Generate boxes for all receptors
-    octools.printv("Generating information regarding possible ligand site.")
+    ocprint.printv("Generating information regarding possible ligand site.")
 
     # Prepare it
     ocprepare.prepare(paths, overwrite, archive, sanitize, spacing)
@@ -344,14 +344,14 @@ def run_p2rank(archive: str, overwrite: bool = False) -> None:
     elif archive.lower() == "pdbbind":
         chosenArchive = pdbbind_archive
     else:
-        octools.print_error(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}.")
+        ocprint.print_error(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}.")
         return None
 
     # Get all paths paths in the database
     paths = glob(f"{chosenArchive}/*")
 
     # Generate boxes for all receptors
-    octools.printv("Generating P2Rank files.")
+    ocprint.printv("Generating P2Rank files.")
     # Run p2rank
     ocp2rank.run_p2rank(paths, overwrite)
 
@@ -445,7 +445,7 @@ def read_logs(archive: str, picklePath: str = "") -> Union[Dict[str, vdf.DataFra
     elif archive == "pdbbind":
         chosenArchive = pdbbind_archive
     else:
-        octools.print_error(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}.")
+        ocprint.print_error(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}.")
         return None
         
     # Create an empty list for all directories to be processed
@@ -473,12 +473,12 @@ def read_logs(archive: str, picklePath: str = "") -> Union[Dict[str, vdf.DataFra
         if data:
             # Try to write it
             try:
-                octools.to_pickle(picklePath, data)
-                octools.print_success(f"The file '{picklePath}' has been successfully written.")
+                ocff.to_pickle(picklePath, data)
+                ocprint.print_success(f"The file '{picklePath}' has been successfully written.")
             except Exception as e:
-                octools.print_error(f"Could not write the file '{picklePath}'. Error: {e}")
+                ocprint.print_error(f"Could not write the file '{picklePath}'. Error: {e}")
         else:
-            octools.print_warning(f"The data object is not defined! There is no reason to write it as a pickle. Aborting...")
+            ocprint.print_warning(f"The data object is not defined! There is no reason to write it as a pickle. Aborting...")
         # Return nothing
         return None
     # Return the data
@@ -553,7 +553,7 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
     elif archive.lower() == "pdbbind":
         chosenArchive = pdbbind_archive
     else:
-        octools.print_error(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found '{archive}'.")
+        ocprint.print_error(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found '{archive}'.")
         return None
 
     # Parameterize the out paths (parsed_archive is defined in Initialise.py)
@@ -564,7 +564,7 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
     elif saveMode == "":
         file_path_out = ""
     else:
-        octools.print_error(f"Not valid save mode. Expected one of ['csv', 'hdf5', ''] and found {saveMode}.")
+        ocprint.print_error(f"Not valid save mode. Expected one of ['csv', 'hdf5', ''] and found {saveMode}.")
         return None
     
     # Parameterize the in paths (parsed_archive is defined in Initialise.py)
@@ -573,7 +573,7 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
     elif readMode.lower() == "csv":
         file_path_in = f"{parsed_archive}/{archive}.csv"
     else:
-        octools.print_error(f"Not valid read mode. Expected one of ['csv', 'hdf5'] and found {readMode}.")
+        ocprint.print_error(f"Not valid read mode. Expected one of ['csv', 'hdf5'] and found {readMode}.")
 
         return None
 
@@ -604,9 +604,9 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
     else:
         # Try to read the pickle
         try:
-            data = octools.from_pickle(skipMergePicklePath)
+            data = ocff.from_pickle(skipMergePicklePath)
         except:
-            octools.print_error(f"Could not read the pickle file '{skipMergePicklePath}'.")
+            ocprint.print_error(f"Could not read the pickle file '{skipMergePicklePath}'.")
             return None
 
     # Check if data is pd.DataFrame type and is not empty
@@ -615,7 +615,7 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
         try:
             # If picklenize is true, save as pickle in this step
             if picklenize:
-                octools.to_pickle(f"{parsed_archive}/{archive}_merged_descriptors.pickle", data)
+                ocff.to_pickle(f"{parsed_archive}/{archive}_merged_descriptors.pickle", data)
 
             # Rename the name column from data dataframe
             #data.rename("Name", "Ligand") # type: ignore
@@ -629,7 +629,7 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
                         # Read the csv from input file
                         ptndf = vaex.read_csv(file_path_in)
             else:
-                octools.print_info(f"Reading {file_path_in}...")
+                ocprint.print_info(f"Reading {file_path_in}...")
                 if readMode == "hdf5":
                     # Read the csv from input file
                     ptndf = vaex.open(file_path_in)
@@ -652,7 +652,7 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
                     # Merge both DataFrames using the Complex column as a comparer
                     data = ptndf.join(data, on = "Complex", how = "left") # type: ignore
             else:
-                octools.print_info("Merging dataframes...")
+                ocprint.print_info("Merging dataframes...")
                 # Merge both DataFrames using the Protein column as a comparer
                 data = ptndf.join(data, on = "Complex", how = "left") # type: ignore
 
@@ -670,7 +670,7 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
                             # Write the data to a new csv file
                             data.export_csv(file_path_out, backend = "arrow")
                 else:
-                    octools.print_info(f"Writing the file '{file_path_out}'...")
+                    ocprint.print_info(f"Writing the file '{file_path_out}'...")
                     if saveMode == "hdf5":
                         # Write the data to a new hdf5 file
                         data.export_hdf5(file_path_out)
@@ -678,15 +678,15 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
                         # Write the data to a new csv file
                         data.export_csv(file_path_out, backend = "arrow")
 
-                octools.print_success(f"The file '{file_path_out}' has been successfully written.")
+                ocprint.print_success(f"The file '{file_path_out}' has been successfully written.")
 
         except Exception as e:
-            octools.print_error(f"Could not write the file '{file_path_out}'. Error: {e}")
+            ocprint.print_error(f"Could not write the file '{file_path_out}'. Error: {e}")
 
             # Return Nothing
             return None
     else:
-        octools.print_warning(f"The data object is not defined! There is no reason to write it. Aborting...")
+        ocprint.print_warning(f"The data object is not defined! There is no reason to write it. Aborting...")
 
         # Return nothing
         return None

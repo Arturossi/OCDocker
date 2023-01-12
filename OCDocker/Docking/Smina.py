@@ -1,5 +1,15 @@
 #!/usr/lib/python3
 
+# Description
+###############################################################################
+'''
+Sets of classes and functions that are used to prepare smina files and run it.
+
+They are imported as:
+
+import OCDocker.Docking.Smina as ocsmina
+'''
+
 # Imports
 ###############################################################################
 import errno
@@ -15,8 +25,12 @@ from OCDocker.Initialise import *
 
 import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
-import OCDocker.Toolbox as octools
-
+import OCDocker.Toolbox.Conversion as occonversion
+import OCDocker.Toolbox.FilesFolders as ocff
+import OCDocker.Toolbox.IO as ocio
+import OCDocker.Toolbox.Printing as ocprint
+import OCDocker.Toolbox.Running as ocrun
+import OCDocker.Toolbox.Validation as ocvalidation
 
 # License
 ###############################################################################
@@ -31,16 +45,6 @@ Av. Carlos Chagas Filho 373 - CCS - bloco G1-19,
 Cidade Universitária - Rio de Janeiro, RJ, CEP: 21941-902
 E-mail address: arturossi10@gmail.com
 This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
-'''
-
-# Description
-###############################################################################
-'''
-Sets of classes and functions that are used to prepare smina files and run it.
-
-They are imported as:
-
-import OCDocker.Docking.Smina as ocsmina
 '''
 
 # Classes
@@ -103,7 +107,7 @@ class Smina:
         if type(ligand) == ocl.Ligand:
             self.inputLigand = ligand
             # Create the sminaFiles folder
-            _ = octools.safe_create_dir(os.path.join(os.path.dirname(ligand.path), "plantsFiles"))
+            _ = ocff.safe_create_dir(os.path.join(os.path.dirname(ligand.path), "plantsFiles"))
         else:
             errors.wrong_type(f"The ligand '{ligand}' has not a supported type. Expected 'ocl.Ligand' but got {type(ligand)} instead.", level="error")
             return None
@@ -260,7 +264,7 @@ class Smina:
         None
         '''
 
-        return octools.run(self.sminaCmd, logFile=logFile)
+        return ocrun.run(self.sminaCmd, logFile=logFile)
 
     def run_prepare_ligand_from_cmd(self, logFile: str = "") -> Union[int, Tuple[int, str]]:
         '''Run obabel convert ligand to pdbqt using the 'self.inputLigandPath' attribute. [DEPRECATED]
@@ -280,7 +284,7 @@ class Smina:
         None
         '''
 
-        return octools.run(self.prepareLigandCmd, logFile=logFile)
+        return ocrun.run(self.prepareLigandCmd, logFile=logFile)
 
     def run_prepare_ligand(self) -> Union[int, Tuple[int, str]]:
         '''Run the convert ligand command to pdbqt.
@@ -319,7 +323,7 @@ class Smina:
         None
         '''
 
-        return octools.run(self.prepareReceptorCmd, logFile=logFile)
+        return ocrun.run(self.prepareReceptorCmd, logFile=logFile)
 
     def run_prepare_receptor(self) -> Union[int, Tuple[int, str]]:
         '''Run obabel convert receptor to pdbqt using the openbabel python library.
@@ -421,7 +425,7 @@ def gen_smina_conf(boxFile: str, confFile: str, receptor: str) -> int:
     except Exception as e:
         return errors.read_file(message=f"Found a problem while reading the box file: {e}", level="error")
 
-    octools.printv(f"Creating smina conf file in the path '{confFile}'.")
+    ocprint.printv(f"Creating smina conf file in the path '{confFile}'.")
     try:
         # Now open the conf file to write
         with open(confFile, 'w') as conf_file:
@@ -487,7 +491,7 @@ def run_prepare_ligand_from_cmd(inputLigandPath: str, preparedLigand: str, logFi
     cmd = [obabel, inputLigandPath, "-O", preparedLigand]
 
     # Run the command
-    return octools.run(cmd, logFile=logFile)
+    return ocrun.run(cmd, logFile=logFile)
 
 def run_prepare_ligand(inputLigandPath: str, preparedLigand: str) -> Union[int, Tuple[int, str]]:
     '''Run obabel convert ligand to pdbqt using the openbabel python library.
@@ -510,28 +514,28 @@ def run_prepare_ligand(inputLigandPath: str, preparedLigand: str) -> Union[int, 
     '''
 
     # Find the extension for input and output
-    extension = octools.validate_obabel_extension(inputLigandPath)
+    extension = ocvalidation.validate_obabel_extension(inputLigandPath)
     outExtension = os.path.splitext(preparedLigand)[1]
 
     # Check if the extension is valid
     if type(extension) != str:
-        octools.print_error(f"Problems while reading the ligand file '{inputLigandPath}'.")
+        ocprint.print_error(f"Problems while reading the ligand file '{inputLigandPath}'.")
         return extension # type: ignore
 
     # Discover if the output extension is pdbqt (to warn user if it is not)
     if outExtension != ".pdbqt":
-        octools.print_warning(f"The output extension is not '.pdbqt', is {outExtension}. This function converts {clrs['r']}ONLY{clrs['n']} to '.pdbqt'. Please pay attention, since this might be a problem in the future for you!")
+        ocprint.print_warning(f"The output extension is not '.pdbqt', is {outExtension}. This function converts {clrs['r']}ONLY{clrs['n']} to '.pdbqt'. Please pay attention, since this might be a problem in the future for you!")
 
     try:
         if extension in ["smi", "smiles"]:
-            octools.print_warning(f"The input ligand is a smiles file, it is supposed that there will be also a mol2 file within the same folder, so I am changing the file extension to '.mol2' to be able to read it.")
+            ocprint.print_warning(f"The input ligand is a smiles file, it is supposed that there will be also a mol2 file within the same folder, so I am changing the file extension to '.mol2' to be able to read it.")
             # Change it to mol2 in the inputLigandPath
             # get the path
             inputLigandPath = f"{os.path.dirname(inputLigandPath)}/ligand.mol2"
         
         # Create the command list
         cmd = [pythonsh, prepare_ligand, "-l", inputLigandPath, "-C", "-o", preparedLigand]
-        return octools.run(cmd, cwd = os.path.dirname(inputLigandPath))
+        return ocrun.run(cmd, cwd = os.path.dirname(inputLigandPath))
     except Exception as e:
         return errors.subprocess(message=f"Error while running ligand conversion using obabel python lib. Error: {e}", level="error")
 
@@ -560,7 +564,7 @@ def run_prepare_receptor_from_cmd(inputReceptorPath: str, outputReceptor: str, l
     # Create the command list
     cmd = [obabel, inputReceptorPath, "-xr", "-O", outputReceptor]
     # Run the command
-    return octools.run(cmd, logFile=logFile)
+    return ocrun.run(cmd, logFile=logFile)
 
 def run_prepare_receptor(inputReceptorPath: str, preparedReceptor: str) -> Union[int, Tuple[int, str]]:
     '''Run obabel convert receptor to pdbqt using the openbabel python library.
@@ -583,19 +587,19 @@ def run_prepare_receptor(inputReceptorPath: str, preparedReceptor: str) -> Union
     '''
 
     # Find the extension for input and output
-    extension = octools.validate_obabel_extension(inputReceptorPath)
+    extension = ocvalidation.validate_obabel_extension(inputReceptorPath)
     outExtension = os.path.splitext(preparedReceptor)[1]
 
     # Check if the extension is valid
     if type(extension) != str:
-        octools.print_error(f"Problems while reading the receptor file '{inputReceptorPath}'.")
+        ocprint.print_error(f"Problems while reading the receptor file '{inputReceptorPath}'.")
         return extension # type: ignore
 
     # Discover if the output extension is pdbqt (to warn user if it is not)
     if outExtension != ".pdbqt":
-        octools.print_warning(f"The output extension is not '.pdbqt', is {outExtension}. This function converts {clrs['r']}ONLY{clrs['n']} to '.pdbqt'. Please pay attention, since this might be a problem in the future for you!")
+        ocprint.print_warning(f"The output extension is not '.pdbqt', is {outExtension}. This function converts {clrs['r']}ONLY{clrs['n']} to '.pdbqt'. Please pay attention, since this might be a problem in the future for you!")
 
-    return octools.convertMols(inputReceptorPath, preparedReceptor) # type: ignore
+    return occonversion.convertMols(inputReceptorPath, preparedReceptor) # type: ignore
 
 def run_smina(config: str, preparedLigand: str, outputSmina: str, sminaLog: str, logPath: str) -> Union[int, Tuple[int, str]]:
     '''Convert a box (DUDE like format) to vina input.
@@ -640,7 +644,7 @@ def run_smina(config: str, preparedLigand: str, outputSmina: str, sminaLog: str,
     cmd.extend(["--out", outputSmina, "--log", sminaLog, "--cpu", "1"])
     
     # Run the command
-    return octools.run(cmd, logFile = logPath)
+    return ocrun.run(cmd, logFile = logPath)
 
 def read_log(path: str) -> Dict[str, List[Union[str, float]]]:
     '''Read the smina log path, returning the data from complexes.
@@ -680,7 +684,7 @@ def read_log(path: str) -> Dict[str, List[Union[str, float]]]:
             # Try except to avoid broken pipe errors
             try:
                 # Read the file reversely
-                for line in octools.lazyread_reverse_order_mmap(path):
+                for line in ocio.lazyread_reverse_order_mmap(path):
                     # If a stop line is found, means that the last read line is the one that is wanted
                     if line.startswith("-----+"):
                         # Split the last line
@@ -693,8 +697,8 @@ def read_log(path: str) -> Dict[str, List[Union[str, float]]]:
                     lastReadLine = line
             except IOError as e:
                 if e.errno == errno.EPIPE:
-                    octools.print_error(f"Problems while reading file '{path}'. Error: {e}")
-                    octools.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{logdir}/smina_read_log_ERROR.log")
+                    ocprint.print_error(f"Problems while reading file '{path}'. Error: {e}")
+                    ocprint.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{logdir}/smina_read_log_ERROR.log")
             
             # Check if the len of the data["smina_affinity"] is 0
             if len(data["smina_pose"]) == 0:
@@ -741,7 +745,7 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
     # Check if the file does not exists or if the overwrite flag is true
     if not os.path.isdir(digestPath) or overwrite:
         # Check if the digest extension is supported
-        if octools.validate_digest_extension(digestPath, digestFormat):
+        if ocvalidation.validate_digest_extension(digestPath, digestFormat):
         
             # Create the digest variable
             digest = None
@@ -763,7 +767,7 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
                         return errors.file_do_not_exist(f"Could not read the digest file '{digestPath}'.", "error")
             else:
                 # Since it does not exists, create it
-                digest = octools.empty_digest(digestPath, overwrite)
+                digest = ocff.empty_docking_digest(digestPath, overwrite)
 
             # Read the docking object log to generate the docking digest
             dockingDigest = read_log(logPath)

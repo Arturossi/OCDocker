@@ -8,7 +8,6 @@ import shutil
 import vaex
 
 import numpy as np
-import pandas as pd
 
 from Bio.PDB import *
 from glob import glob
@@ -18,7 +17,11 @@ from OCDocker.Initialise import *
 
 import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
-import OCDocker.Toolbox as octools
+import OCDocker.Toolbox.Conversion as occonversion
+import OCDocker.Toolbox.FilesFolders as ocff
+import OCDocker.Toolbox.Printing as ocprint
+import OCDocker.Toolbox.Running as ocrun
+import OCDocker.Toolbox.Validation as ocvalidation
 
 # License
 ###############################################################################
@@ -114,7 +117,7 @@ class PLANTS:
         if type(ligand) == ocl.Ligand:
             self.inputLigand = ligand
             # Create the vinaFiles folder
-            _ = octools.safe_create_dir(os.path.join(os.path.dirname(ligand.path), "plantsFiles"))
+            _ = ocff.safe_create_dir(os.path.join(os.path.dirname(ligand.path), "plantsFiles"))
         else:
             errors.wrong_type(f"The ligand '{ligand}' has not a supported type. Expected 'ocl.Ligand' but got {type(ligand)} instead.", level="error")
             return None
@@ -182,23 +185,23 @@ class PLANTS:
                 else:
                     mol2Path = f"{os.path.splitext(receptor.path)[0]}.mol2"
                     # Create the mol2Path
-                    octools.print_warning(f"No mol2 file for '{receptor.path}' trying to generate in '{mol2Path}'.")
+                    ocprint.print_warning(f"No mol2 file for '{receptor.path}' trying to generate in '{mol2Path}'.")
                     # Convert the molecule
-                    _ = octools.convertMols(receptor.path, mol2Path)
+                    _ = occonversion.convertMols(receptor.path, mol2Path)
                     # Check if it is generated
                     if os.path.isfile(mol2Path):
                         # Set the mol2path in the receptor object
                         receptor.mol2Path = mol2Path
                         return receptor.mol2Path
                     else:
-                        _ = octools.print_error(f"The mol2 file could not be generated for '{receptor.path}'.")
+                        _ = ocprint.print_error(f"The mol2 file could not be generated for '{receptor.path}'.")
                         return None
             else:
                 # Check if the object has a valid path
                 if receptor.path:
                     return receptor.path
                 else:
-                    _ = octools.print_error(f"Invalid receptor path for the following path: '{receptor.path}'.")
+                    _ = ocprint.print_error(f"Invalid receptor path for the following path: '{receptor.path}'.")
                     return None
         elif type(receptor) == str:
             # Since is a string, check if the file exists
@@ -308,11 +311,11 @@ class PLANTS:
                 os.rmdir(self.outputPlants)
 
         # Print verboosity
-        octools.printv(f"Running PLANTS using the '{self.config}' configurations.")
+        ocprint.printv(f"Running PLANTS using the '{self.config}' configurations.")
         # Cd to tmpDir (because PLANTS keeps spamming annoying files)
         os.chdir(tmpDir)
         # Run plants
-        output = octools.run(self.plantsCmd, logFile=self.plantsLog)
+        output = ocrun.run(self.plantsCmd, logFile=self.plantsLog)
         # Check if there is a PLANTS-*.pid file
         for pidFile in glob(f"{tmpDir}/PLANTS-*.pid"):
             # This try is to avoid errors when the file does not exist
@@ -351,9 +354,9 @@ class PLANTS:
         '''
 
         # Print verboosity
-        octools.printv(f"Running '{spores}' for '{self.inputLigandPath}'.")
+        ocprint.printv(f"Running '{spores}' for '{self.inputLigandPath}'.")
 
-        return octools.run(self.prepareLigandCmd, logFile=logFile)
+        return ocrun.run(self.prepareLigandCmd, logFile=logFile)
 
     def run_prepare_receptor(self, logFile: str = "") -> Union[Tuple[int, str], int]:
         '''Run SPORES for receptor.
@@ -374,8 +377,8 @@ class PLANTS:
         '''
 
         # Print verboosity
-        octools.printv(f"Running '{spores}' for '{self.inputReceptorPath}'.")
-        return octools.run(self.prepareReceptorCmd, logFile=logFile)
+        ocprint.printv(f"Running '{spores}' for '{self.inputReceptorPath}'.")
+        return ocrun.run(self.prepareReceptorCmd, logFile=logFile)
 
     def print_attributes(self) -> None:
         '''Print the class attributes.
@@ -442,7 +445,7 @@ def box_to_plants(boxFile: str, confFile: str, receptor: str, ligand: str, outpu
     None
     '''
 
-    octools.printv(f"Converting the box file '{boxFile}' to PLANTS conf file as '{confFile}' file.")
+    ocprint.printv(f"Converting the box file '{boxFile}' to PLANTS conf file as '{confFile}' file.")
 
     # Check if the center and the radius are given
     if center is None or bindingSiteRadius is None:
@@ -483,9 +486,9 @@ def run_prepare_ligand(inputLigandPath: str, outputLigand: str, logFile: str = "
     # Create the command list
     cmd = [spores, "--mode", "complete", inputLigandPath, outputLigand]
     # Print verboosity
-    octools.printv(f"Running '{spores}' for '{inputLigandPath}'.")
+    ocprint.printv(f"Running '{spores}' for '{inputLigandPath}'.")
     # Run the command
-    return octools.run(cmd, logFile=logFile)
+    return ocrun.run(cmd, logFile=logFile)
 
 def run_prepare_receptor(inputReceptorPath: str, outputReceptor: str, logFile: str = "") -> Union[Tuple[int, str], int]:
     ''' Run SPORES for receptor.
@@ -511,9 +514,9 @@ def run_prepare_receptor(inputReceptorPath: str, outputReceptor: str, logFile: s
     # Create the command list
     cmd = [spores, "--mode", "complete", inputReceptorPath, outputReceptor]
     # Print verboosity
-    octools.printv(f"Running '{spores}' for '{inputReceptorPath}'.")
+    ocprint.printv(f"Running '{spores}' for '{inputReceptorPath}'.")
     # Run the command
-    return octools.run(cmd, logFile=logFile)
+    return ocrun.run(cmd, logFile=logFile)
 
 def run_plants(confFile: str, outputPlants: str, overwrite: bool = False, logFile: str = "") -> Union[Tuple[int, str], int]:
     '''Run PLANTS.
@@ -555,9 +558,9 @@ def run_plants(confFile: str, outputPlants: str, overwrite: bool = False, logFil
     # Create the command list
     cmd = [plants, "--mode", "screen", confFile]
     # Print verboosity
-    octools.printv(f"Running PLANTS using the '{confFile}' configurations.")
+    ocprint.printv(f"Running PLANTS using the '{confFile}' configurations.")
     # Run the command
-    return octools.run(cmd, logFile = logFile)
+    return ocrun.run(cmd, logFile = logFile)
 
 def write_config_file(confFile: str, preparedReceptor: str, preparedLigand: str, outputPlants: str, bindingSiteCenterX: float, bindingSiteCenterY: float, bindingSiteCenterZ: float, bindingSiteRadius: float) -> int:
     '''Write the config file.
@@ -635,7 +638,7 @@ def get_binding_site(boxFile: str, spacing: float = 2.9) -> Union[Tuple[Tuple[fl
     None
     '''
 
-    octools.printv(f"Parsing '{boxFile}' to binding center data.")
+    ocprint.printv(f"Parsing '{boxFile}' to binding center data.")
     # Test if the file boxFile exists
     if not os.path.exists(boxFile):
         return errors.file_do_not_exist(message=f"The box file in the path {boxFile} does not exists! Please ensure that the box file exists and the path is correct.", level="error")
@@ -727,7 +730,7 @@ def generate_plants_files_database(path: str, protein: str, ligand: str, spacing
       # Set is as the path + p2rank
       boxPath = f"{path}/p2rank"
     # Create the PLANTS folder inside protein's directory
-    _ = octools.safe_create_dir(plantsPath)
+    _ = ocff.safe_create_dir(plantsPath)
 
     # TODO: Implement multiple box support here
     # Set the box file path
@@ -787,8 +790,8 @@ def read_log(path: str) -> Dict[str, List[Union[str, float]]]:
                     "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [df.SCORE_RB_PEN_NORM_CRT_HEVATOMS[:1].values[0]], # type: ignore
                 }
         except Exception as e:
-            octools.print_error(f"Problems while reading file '{path}'. Error: {e}")
-            octools.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{logdir}/PLANTS_read_log_ERROR.log")
+            ocprint.print_error(f"Problems while reading file '{path}'. Error: {e}")
+            ocprint.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{logdir}/PLANTS_read_log_ERROR.log")
 
     # Throw an error
     _ = errors.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
@@ -831,7 +834,7 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
     # Check if the file does not exists or if the overwrite flag is true
     if not os.path.isdir(digestPath) or overwrite:
         # Check if the digest extension is supported
-        if octools.validate_digest_extension(digestPath, digestFormat):
+        if ocvalidation.validate_digest_extension(digestPath, digestFormat):
         
             # Create the digest variable
             digest = None
@@ -853,7 +856,7 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
                         return errors.file_do_not_exist(f"Could not read the digest file '{digestPath}'.", "error")
             else:
                 # Since it does not exists, create it
-                digest = octools.empty_digest(digestPath, overwrite)
+                digest = ocff.empty_docking_digest(digestPath, overwrite)
 
             # Read the docking object log to generate the docking digest
             dockingDigest = read_log(logPath)

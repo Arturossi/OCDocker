@@ -1,27 +1,38 @@
 #!/usr/lib/python3
 
+# Description
+###############################################################################
+'''
+This module is responsible for digest processing.
+
+It is imported as:
+
+import OCDocker.Processing.Postprocessing.ReadLogs as ocreadlogs
+'''
+
 # Imports
 ###############################################################################
 import gc
 import os
-import time
 import vaex
 
 import numpy as np
 import vaex.dataframe as vdf
 
-from glob import glob
 from multiprocessing import Pool
 from tqdm import tqdm
 from typing import Dict, List, Tuple, Union
 
 from OCDocker.Initialise import *
 
-import OCDocker.Toolbox as octools
 import OCDocker.Docking.Gnina as ocgnina
 import OCDocker.Docking.PLANTS as ocplants
 import OCDocker.Docking.Smina as ocsmina
 import OCDocker.Docking.Vina as ocvina
+import OCDocker.Toolbox.Basetools as ocbasetools
+import OCDocker.Toolbox.Logging as oclogging
+import OCDocker.Toolbox.Printing as ocprint
+
 # License
 ###############################################################################
 '''
@@ -35,16 +46,6 @@ Av. Carlos Chagas Filho 373 - CCS - bloco G1-19,
 Cidade Universitária - Rio de Janeiro, RJ, CEP: 21941-902
 E-mail address: arturossi10@gmail.com
 This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
-'''
-
-# Description
-###############################################################################
-'''
-This module is responsible for digest processing.
-
-It is imported as:
-
-import OCDocker.Processing.Postprocessing.ReadLogs as ocreadlogs
 '''
 
 # Classes
@@ -230,7 +231,7 @@ def __thread_read_log_parallel(arguments: Tuple[Tuple[str, str]]) -> Dict[str, v
     '''
 
     # Redirect all prints to tqdm.write
-    with octools.redirect_to_tqdm():
+    with ocbasetools.redirect_to_tqdm():
         # Call the core read log function passing the arguments correctly
         return __core_read_log(arguments[0])
 
@@ -278,8 +279,8 @@ def __read_log_parallel(paths: List[Tuple[str, str]], desc: str) -> Dict[str, vd
                 gc.collect()
                 
     except IOError as e:
-        octools.print_error_log(f"Problem while reading logs in parallel. Exception: {e}", f"{logdir}/read_log_ERROR_report.log")
-        octools.print_error(f"Problem while reading logs in parallel. Exception: {e}")
+        ocprint.print_error_log(f"Problem while reading logs in parallel. Exception: {e}", f"{logdir}/read_log_ERROR_report.log")
+        ocprint.print_error(f"Problem while reading logs in parallel. Exception: {e}")
 
     return data
 
@@ -307,7 +308,7 @@ def __read_log_no_parallel(paths: List[Tuple[str, str]], desc: str) -> Dict[str,
     data = {}
 
     # Redirect all prints to tqdm.write
-    with octools.redirect_to_tqdm():
+    with ocbasetools.redirect_to_tqdm():
         for path, tp in tqdm(iterable = paths, total = len(paths), desc = desc):
             # Call the core read log function (shared between parallel and not parallel) and store the data into the data dict
             data.update(__core_read_log((path, tp)))
@@ -356,7 +357,7 @@ def read_logs(paths: Union[List[Tuple[str, str]], List[Tuple[str, str]]], archiv
     if isinstance(paths, list):
 
         # If logfile exists, backup it
-        octools.backup_log("read_log_ERROR_report")
+        oclogging.backup_log("read_log_ERROR_report")
 
         # Set the label
         label = f"Processing {archive}"

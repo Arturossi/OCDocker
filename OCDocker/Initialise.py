@@ -1,5 +1,17 @@
 #!/usr/lib/python3
 
+# Description
+###############################################################################
+'''
+Sets of primordial variables and functions that are used to initialise the
+OCDocker library.\n
+All scripts that use OCDocker must import this file.
+
+They are imported as:
+
+from OCDocker.Initialise import *
+'''
+
 # Imports
 ###############################################################################
 import argparse
@@ -27,9 +39,9 @@ E-mail address: arturossi10@gmail.com
 This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 '''
 
-# Description, version & clear tmp
+# Splash, version & clear tmp
 ###############################################################################
-ocVersion = "0.4.5"
+ocVersion = "0.6.5"
 
 description = tw.dedent("""\033[1;93m
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+

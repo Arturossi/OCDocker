@@ -1,5 +1,16 @@
 #!/usr/lib/python3
 
+# Description
+###############################################################################
+'''
+Sets of classes and functions that are used to process all content related to
+the ligand.
+
+They are imported as:
+
+import OCDocker.Ligand as ocl
+'''
+
 # Imports
 ###############################################################################
 from __future__ import annotations
@@ -26,8 +37,10 @@ from typing import Dict, List, Tuple, Union
 
 from OCDocker.Initialise import *
 
-import OCDocker.Toolbox as octools
-
+import OCDocker.Toolbox.Conversion as occonversion
+import OCDocker.Toolbox.FilesFolders as ocff
+import OCDocker.Toolbox.Printing as ocprint
+import OCDocker.Toolbox.Validation as ocvalidation
 
 # Set output levels for openbabel
 ob_log_handler = openbabel.OBMessageHandler()
@@ -48,17 +61,6 @@ Av. Carlos Chagas Filho 373 - CCS - bloco G1-19,
 Cidade Universitária - Rio de Janeiro, RJ, CEP: 21941-902
 E-mail address: arturossi10@gmail.com
 This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
-'''
-
-# Description
-###############################################################################
-'''
-Sets of classes and functions that are used to process all content related to
-the ligand.
-
-They are imported as:
-
-import OCDocker.Ligand as ocl
 '''
 
 # Classes
@@ -640,7 +642,7 @@ class Ligand:
             data = read_descriptors_from_json(from_json_descriptors)
             # If data is None, a problem occurred while reading the json file
             if not data:
-                octools.print_error(f"Problems while parsing json file: '{from_json_descriptors}'")
+                ocprint.print_error(f"Problems while parsing json file: '{from_json_descriptors}'")
                 return None
             
             #region assign
@@ -650,7 +652,7 @@ class Ligand:
         else:
             # Check if the name is empty
             if not name:
-                octools.print_error("The Ligand name should not be empty!")
+                ocprint.print_error("The Ligand name should not be empty!")
                 return None
             self.name = name.replace(" ", "_")
 
@@ -2480,7 +2482,7 @@ class Ligand:
             # If the savePath does not exist
             if not os.path.exists(savePath):
                 # Create it
-                _ = octools.safe_create_dir(savePath)
+                _ = ocff.safe_create_dir(savePath)
         else:
             # If the savePath does not exist, warn the user
             if not os.path.exists(savePath):
@@ -2536,7 +2538,7 @@ def splitMolecules(molecule: str, outputDir: str = "", prefix: str = "ligand") -
     # Initialise an empty list to hold all files paths
     ligand_files = []
     # Grab the extension and path
-    extension = octools.validate_obabel_extension(molecule)
+    extension = ocvalidation.validate_obabel_extension(molecule)
 
     # If the outputDir is not defined
     if not outputDir:
@@ -2545,7 +2547,7 @@ def splitMolecules(molecule: str, outputDir: str = "", prefix: str = "ligand") -
 
     # Check if the extension is valid
     if type(extension) != str:
-        octools.print_error(f"Problems while reading the ligand file '{molecule}'.")
+        ocprint.print_error(f"Problems while reading the ligand file '{molecule}'.")
     else:
         # Create the conversion object
         obConversion = openbabel.OBConversion()
@@ -2673,7 +2675,7 @@ def loadMol(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize: bool = True) 
                 # Only process if is not smiles format, because it demands a different approach
                 if extension not in [".smi", ".smiles"]:
                     # Process the ligand
-                    octools.convertMols(molecule, outputMoleculePath)
+                    occonversion.convertMols(molecule, outputMoleculePath)
 
                 if extension == ".pdb":
                     # If sanitize is off
@@ -2694,7 +2696,7 @@ def loadMol(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize: bool = True) 
                         # Load the molecule (Since the sdf file can hold more than one molecule...)
                         mol = rdkit.Chem.rdmolfiles.SDMolSupplier(molecule, sanitize = False) # type: ignore
                         if len(mol) > 1:
-                            octools.print_warning("This sdf has more than one molecule!! If you want to parse all the molecules within this file use the function splitMolecules to split the ligand into multiple ligand files. Otherwise just the first molecule will be processed.")
+                            ocprint.print_warning("This sdf has more than one molecule!! If you want to parse all the molecules within this file use the function splitMolecules to split the ligand into multiple ligand files. Otherwise just the first molecule will be processed.")
                         # Get the first molecule
                         m = mol[0]
                         # Turn off the property cache
@@ -2708,7 +2710,7 @@ def loadMol(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize: bool = True) 
                     mols = rdkit.Chem.rdmolfiles.SDMolSupplier(molecule, sanitize = True) # type: ignore
                     # If has multiple molecules, indicate the user to use the right function
                     if len(mols) > 1:
-                        octools.print_warning("This sdf has more than one molecule!! If you want to parse all the molecules within this file use the function splitMolecules to split the ligand into multiple ligand files. Otherwise just the first molecule will be processed.")
+                        ocprint.print_warning("This sdf has more than one molecule!! If you want to parse all the molecules within this file use the function splitMolecules to split the ligand into multiple ligand files. Otherwise just the first molecule will be processed.")
 
                     # Return just the first molecule
                     return outputMoleculePath, mols[0]
@@ -2742,7 +2744,7 @@ def loadMol(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize: bool = True) 
                     # Optimize the molecule
                     _ = AllChem.UFFOptimizeMolecule(m) # type: ignore
 
-                    octools.convertMolsFromString("", outputMoleculePath, mol = m)
+                    occonversion.convertMolsFromString("", outputMoleculePath, mol = m)
                     
                     # Find its name (without extension)
                     name = os.path.splitext(os.path.basename(molecule))[0]
@@ -2857,10 +2859,10 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
         
     # Key error (when there is a missing key)
     except KeyError as missed:
-        octools.print_error(f"The following keys were not found in the json file '{missed[0]}': {missed[1]}.") # type: ignore
+        ocprint.print_error(f"The following keys were not found in the json file '{missed[0]}': {missed[1]}.") # type: ignore
     # General error (call it as problem to read file)
     except Exception as e:
-        octools.print_error(f"Could not read the file '{path}'. Error: {e}")
+        ocprint.print_error(f"Could not read the file '{path}'. Error: {e}")
 
     return None
 

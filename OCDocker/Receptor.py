@@ -1,5 +1,16 @@
 #!/usr/lib/python3
 
+# Description
+###############################################################################
+'''
+Sets of classes and functions that are used to process all content related to
+the ligand.
+
+They are imported as:
+
+import OCDocker.Receptor as ocr
+'''
+
 # Imports
 ###############################################################################
 import Bio
@@ -21,7 +32,11 @@ from typing import Dict, List, Tuple, Union
 
 from OCDocker.Initialise import *
 
-import OCDocker.Toolbox as octools
+import OCDocker.Toolbox.Conversion as occonversion
+import OCDocker.Toolbox.MoleculeProcessing as ocmolproc
+import OCDocker.Toolbox.Printing as ocprint
+import OCDocker.Toolbox.Running as ocrun
+import OCDocker.Toolbox.Validation as ocvalidation
 
 # License
 ###############################################################################
@@ -36,17 +51,6 @@ Av. Carlos Chagas Filho 373 - CCS - bloco G1-19,
 Cidade Universitária - Rio de Janeiro, RJ, CEP: 21941-902
 E-mail address: arturossi10@gmail.com
 This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
-'''
-
-# Description
-###############################################################################
-'''
-Sets of classes and functions that are used to process all content related to
-the ligand.
-
-They are imported as:
-
-import OCDocker.Receptor as ocr
 '''
 
 # Classes
@@ -149,7 +153,7 @@ class Receptor:
             data = read_descriptors_from_json(from_json_descriptors)
             # If data is None, a problem occurred while reading the json file
             if not data:
-                octools.print_error(f"Problems while parsing json file: '{from_json_descriptors}'")
+                ocprint.print_error(f"Problems while parsing json file: '{from_json_descriptors}'")
                 return None
             #region assign
             self.name, self.sasa, self.dipoleMoment, self.isoelectricPoint, self.instabilityIndex,self.GRAVY, self.aromaticity, self.__countAA, self.countA, self.countR, self.countN, self.countD, self.countC, self.countQ, self.countE, self.countG, self.countH, self.countI, self.countL, self.countK, self.countM, self.countF, self.countP, self.countS, self.countT, self.countW, self.countY, self.countV, self.totalAALength, self.avgAALength, self.countChain = data #type: ignore
@@ -158,7 +162,7 @@ class Receptor:
         else:
             # Check if the name is empty
             if not name:
-                octools.print_error("The Receptor name should not be empty!")
+                ocprint.print_error("The Receptor name should not be empty!")
                 return None
             self.name = name.replace(" ", "_")
 
@@ -167,7 +171,7 @@ class Receptor:
             if self.__AAdata:
                 self.totalAALength, self.avgAALength, self.countChain = self.__AAdata
             else:
-                octools.print_error("Problems while counting AAs and chains!")
+                ocprint.print_error("Problems while counting AAs and chains!")
                 return None
 
             self.sasa = self.structure.sasa
@@ -445,7 +449,7 @@ def __filterSequence(residues: str) -> str:
     residues = residues.upper()
 
     if 'X' in residues:
-        octools.print_warning(f"The gravy function does not supports the 'X' (unknown) amino acid. Stripping it to compute the GRAVY descriptor ({residues.count('X')} occurrences of {len(residues)} AAs).")
+        ocprint.print_warning(f"The gravy function does not supports the 'X' (unknown) amino acid. Stripping it to compute the GRAVY descriptor ({residues.count('X')} occurrences of {len(residues)} AAs).")
         return residues.replace('X', '')
 
     return residues
@@ -475,7 +479,7 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
     None
     '''
 
-    octools.printv(f"Counting how many of each of the 20 standard AAs from the structure '{structurePath}' are in the surface. Exposure cutoff is {cutoff}.")
+    ocprint.printv(f"Counting how many of each of the 20 standard AAs from the structure '{structurePath}' are in the surface. Exposure cutoff is {cutoff}.")
     if not structurePath:
         _ = errors.not_set(f"The structure path is not set!", level = "error")
         return None #type: ignore
@@ -506,15 +510,15 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
 
     # Force the cutoff to be between 0 and 1
     if cutoff > 1:
-        octools.print_warning(f"Cutoff maximum value is 1 but the value {cutoff} has been provided instead. The value of 1 will be used!")
+        ocprint.print_warning(f"Cutoff maximum value is 1 but the value {cutoff} has been provided instead. The value of 1 will be used!")
         cutoff = 1
     elif cutoff < 0:
-        octools.print_warning(f"Cutoff minimum value is 0 but the value {cutoff} has been provided instead. The value of 0 will be used!")
+        ocprint.print_warning(f"Cutoff minimum value is 0 but the value {cutoff} has been provided instead. The value of 0 will be used!")
         cutoff = 0
 
     # Check if file is a PDB file
     if structurePath.endswith(".pdb"):
-        _ = octools.make_only_ATOM_and_CRYST_pdb(structurePath)
+        _ = ocmolproc.make_only_ATOM_and_CRYST_pdb(structurePath)
 
     # Load the clean Structure
     #cleanStructure = loadMol(cleanStructurePath)
@@ -531,7 +535,7 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
     # If the length of the dssp dictionary is 0, try to run DSSP again calling the command directly without using biopython
     if len(dsspData.property_dict) == 0:
         # Print a warning telling that the DSSP failed and that will trying to run it again without using biopython
-        octools.print_warning(f"The DSSP failed to run for the structure '{structurePath}'. Trying to run it again without using biopython.")
+        ocprint.print_warning(f"The DSSP failed to run for the structure '{structurePath}'. Trying to run it again without using biopython.")
         # Get the structure name from path and remove the extension
         structureName = os.path.splitext(os.path.basename(structurePath))[0]
         # Get the structure path from structurePath
@@ -540,7 +544,7 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
         # Create the dssp command
         dssp_command = [dssp, "-i", structurePath, "-o", f"{structureDirName}/{structureName}.dssp"]
         # Run the command
-        _ = octools.run(dssp_command)
+        _ = ocrun.run(dssp_command)
         # Load the dssp file into dsspData variable
         dsspData = DSSP(structure[0], f"{structureDirName}/{structureName}.dssp", file_type="DSSP")
         # Delete the dssp file
@@ -598,7 +602,7 @@ def count_AAs_and_chains(structure: Bio.PDB.Structure.Structure) -> Union[Tuple[
                     res_no += 1
     # Check if the number of chains is not 0
     if chains == 0:
-        octools.print_error("The number of chains for the provided model is 0. This is not acceptable!")
+        ocprint.print_error("The number of chains for the provided model is 0. This is not acceptable!")
         return None
 
     return res_no, res_no/chains, chains
@@ -622,7 +626,7 @@ def compute_sasa(model: Bio.PDB.Structure.Structure, n_points: int = 1000) -> No
     None
     '''
 
-    octools.printv(f"Computing SASA for protein '{model.id}'.")
+    ocprint.printv(f"Computing SASA for protein '{model.id}'.")
     sr = SASA.ShrakeRupley(n_points = n_points)
     sr.compute(model, level="S")
     return None
@@ -645,7 +649,7 @@ def getRes(model: Bio.PDB.Structure.Structure) -> str: #type: ignore
     None
     '''
 
-    octools.printv(f"Converting the protein '{model.id}' to single letter amino acid sequence.")
+    ocprint.printv(f"Converting the protein '{model.id}' to single letter amino acid sequence.")
     # Empty list to hold the residues
     residues = []
     # For each residue in the structure
@@ -682,7 +686,7 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
     None
     '''
 
-    octools.printv(f"Trying to load protein '{structure}'.")
+    ocprint.printv(f"Trying to load protein '{structure}'.")
     # Check if the type of the variable structure is a string or a Bio.PDB.Structure.Structure
     if type(structure) == Bio.PDB.Structure.Structure: #type: ignore
         # Check if SASA should be computed
@@ -712,7 +716,7 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
             else:
                 # The file extension is not supported, print data
                 supportedExtensions = [".pdb", ".cif"]
-                octools.print_error(f"The receptor {structure} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supportedExtensions)}.")
+                ocprint.print_error(f"The receptor {structure} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supportedExtensions)}.")
                 return "", None
 
             # Compute the SASA value of the structure
@@ -726,13 +730,13 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
             # If there is a mol2 path and the file does not exist
             if mol2Path and (not os.path.isfile(mol2Path) or overwrite):
                 # Convert the molecule
-                _ = octools.convertMols(structure, mol2Path)
+                _ = occonversion.convertMols(structure, mol2Path)
 
             # Check if SASA should be computed
             if computeSASA:
                 compute_sasa(tmpStructure)
 
-            octools.print_success(f"Successfully loaded the molecule '{structure}'")
+            ocprint.print_success(f"Successfully loaded the molecule '{structure}'")
             # Return the structure using selected parser
             return structure, tmpStructure
         else:
@@ -741,7 +745,7 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
             return "", None
     else:
         # The variable is not in a supported data format
-        octools.print_error("Unsupported molecule data. Please support either a molecule path (string) or an 'rdkit.Chem.rdchem.Mol' object.")
+        ocprint.print_error("Unsupported molecule data. Please support either a molecule path (string) or an 'rdkit.Chem.rdchem.Mol' object.")
         return "", None
 
 def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str = "") -> Bio.PDB.Structure.Structure: #type: ignore
@@ -816,14 +820,14 @@ def computeDipoleMoment(structure: Bio.PDB.Structure.Structure, cModel: str = "g
     None
     '''
 
-    octools.printv(f"Computing Dipole moment for protein '{structure}'.")
+    ocprint.printv(f"Computing Dipole moment for protein '{structure}'.")
     # Grab the extension and path
-    extension = octools.validate_obabel_extension(structure)
+    extension = ocvalidation.validate_obabel_extension(structure)
     # Set the moment as None
     moment = None
     # Check if the extension is valid
     if type(extension) != str:
-        octools.print_error(f"Problems while reading the ligand file '{structure}'.")
+        ocprint.print_error(f"Problems while reading the ligand file '{structure}'.")
     else:
         # Create the conversion object
         obConversion = openbabel.OBConversion()
@@ -862,7 +866,7 @@ def computeIsoelectricPoint(residues: str) -> float:
     None
     '''
 
-    octools.printv(f"Computing the isoelectric point for protein with amino acid sequence of '{residues}'.")
+    ocprint.printv(f"Computing the isoelectric point for protein with amino acid sequence of '{residues}'.")
     protein = ProteinAnalysis(residues)
     return protein.isoelectric_point()
 
@@ -893,7 +897,7 @@ def computeGravy(residues: str, scale: str = "KyteDoolitle") -> float:
     None
     '''
 
-    octools.printv(f"Computing the GRAVY (Grand Average of Hydropathy) for protein with amino acid sequence of '{residues}'.")
+    ocprint.printv(f"Computing the GRAVY (Grand Average of Hydropathy) for protein with amino acid sequence of '{residues}'.")
     protein = ProteinAnalysis(__filterSequence(residues))
     return protein.gravy(scale = scale)
 
@@ -915,7 +919,7 @@ def computeAromaticity(residues: str) -> float:
     None
     '''
 
-    octools.printv(f"Computing the Aromaticity for protein with amino acid sequence of '{residues}'.")
+    ocprint.printv(f"Computing the Aromaticity for protein with amino acid sequence of '{residues}'.")
     protein = ProteinAnalysis(residues.upper())
     return protein.aromaticity()
 
@@ -943,7 +947,7 @@ def computeInstabilityIndex(residues: str) -> float:
     None
     '''
 
-    octools.printv(f"Computing the Instability Index for protein with amino acid sequence of '{residues}'.")
+    ocprint.printv(f"Computing the Instability Index for protein with amino acid sequence of '{residues}'.")
     protein = ProteinAnalysis(__filterSequence(residues))
     return protein.instability_index()
 
@@ -1053,8 +1057,8 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
         #endregion
     # Key error (when there is a missing key)
     except KeyError as missed:
-        octools.print_error(f"The following keys were not found in the json file '{missed[0]}': {missed[1]}.") # type: ignore
+        ocprint.print_error(f"The following keys were not found in the json file '{missed[0]}': {missed[1]}.") # type: ignore
     # General error (call it as problem to read file)
     except Exception as e:
-        octools.print_error(f"Could not read the file '{path}'. Error: {e}")
+        ocprint.print_error(f"Could not read the file '{path}'. Error: {e}")
     return None

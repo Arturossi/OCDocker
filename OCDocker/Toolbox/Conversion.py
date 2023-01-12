@@ -1,0 +1,243 @@
+#!/usr/lib/python3
+
+# Description
+###############################################################################
+'''
+Sets of classes and functions that are used to convert informations such as
+molecules.
+
+They are imported as:
+
+import OCDocker.Toolbox.Conversion as occonversion
+'''
+
+# Imports
+###############################################################################
+import os
+import rdkit
+
+from Bio.PDB import * 
+from openbabel import openbabel
+from openbabel import pybel
+from rdkit import Chem
+from rdkit.Chem import AllChem
+from rdkit.Chem.rdmolfiles import MolToMolFile
+from rdkit.Chem.SaltRemover import SaltRemover
+from typing import Union
+
+import OCDocker.Toolbox.Printing as ocprint
+import OCDocker.Toolbox.Validation as ocvalidation
+
+from OCDocker.Initialise import *
+
+# Set output levels for openbabel
+pb_log_handler = pybel.ob.OBMessageHandler()
+ob_log_handler = openbabel.OBMessageHandler()
+pb_log_handler.SetOutputLevel(args.output_level)
+ob_log_handler.SetOutputLevel(args.output_level)
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Torres, P.H.M.;
+[The Federal University of Rio de Janeiro]
+Contact info:
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+Av. Carlos Chagas Filho 373 - CCS - bloco G1-19,
+Cidade Universitária - Rio de Janeiro, RJ, CEP: 21941-902
+E-mail address: arturossi10@gmail.com
+This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
+'''
+
+# Classes
+###############################################################################
+
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##
+def convertMolsFromString(input: str, output: str, mol: Union[rdkit.Chem.rdchem.Mol, None] = None) -> Union[int, str]: # type: ignore
+    '''Currently only works with smiles. TODO: Add support to other formats.
+
+    Parameters
+    ----------
+    input : str
+        Input file content as string.
+    output : str
+        Output file name.
+    mol : rdkit.Chem.rdchem.Mol | None, optional
+        The molecule object to be used to convert the input string to a file. If None, it will be created. (default is None)
+
+    Returns
+    -------
+    int | str
+        The exit code of the command (based on the Error.py code table) if fails or the extension of the input file otherwise returns the extension itself.
+
+    Raises
+    ------
+    None
+    '''
+
+    # Get the in and out extensions 
+    inExtension = "smi" # TODO: Add support to other formats
+    outExtension = ocvalidation.validate_obabel_extension(output)
+
+    # Check if the output extension is valid
+    if type(outExtension) != str:
+        ocprint.print_error(f"Problems while pre-processing the molecule from output file '{output}'.")
+        return outExtension
+
+    try:
+        # If mol is undefined, create it
+        if not mol:
+            # Initializ e the salt remover
+            remover = SaltRemover()
+            # Load the molecule
+            mol = rdkit.Chem.rdmolfiles.MolFromSmiles(input) # type: ignore
+            # Remove the salts
+            mol = remover.StripMol(mol)
+            # Add the hydrogens
+            mol = Chem.AddHs(mol) # type: ignore
+            # Embed the molecule
+            _ = AllChem.EmbedMolecule(mol, AllChem.ETKDG()) # type: ignore
+            # Optimize the molecule
+            _ = AllChem.UFFOptimizeMolecule(mol) # type: ignore
+        
+        # Check if the output is mol
+        if outExtension == "mol":
+            # Write the molecule to the output file
+            MolToMolFile(mol, output)
+            return errors.ok()
+        
+        # Replace the extension to to mol
+        tmpOutput = f"{os.path.splitext(output)[0]}_tmp.mol"
+        
+        # Write the molecule to the output file
+        MolToMolFile(mol, tmpOutput)
+
+        # Convert it to the desired format (This will not cause an infinite loop since the input extension is always mol)
+        convertMols(tmpOutput, output)
+        
+    except Exception as e:
+        return errors.subprocess(message=f"Error while running molecule conversion from {inExtension} to {outExtension} using obabel python lib. Error: {e}", level="error")
+
+    return errors.ok()
+
+def convertMols(input: str, output: str) -> Union[int, str]:
+    '''Convert a molecule file between two extensions which obabel supports.
+
+    Parameters
+    ----------
+    input : str
+        Input file name.
+    output : str
+        Output file name.
+
+    Returns
+    -------
+    int | str
+        The exit code of the command (based on the Error.py code table) if fails or the extension of the input file otherwise.
+        
+    Raises
+    ------
+    None
+    '''
+
+    # Find the extension for input and output
+    inExtension = ocvalidation.validate_obabel_extension(input)
+    outExtension = ocvalidation.validate_obabel_extension(output)
+
+    # Print verboosity
+    ocprint.printv(f"Converting '{input}' to '.{outExtension}'.")
+
+    # Check if the input extension is valid
+    if type(inExtension) != str:
+        ocprint.print_error(f"Problems while reading the molecule from input file '{input}'.")
+        # inExtension SHOULD be an int in this case
+        return inExtension
+
+    # Check if the output extension is valid
+    if type(outExtension) != str:
+        ocprint.print_error(f"Problems while pre-processing the molecule from output file '{output}'.")
+        # outExtension SHOULD be an int in this case
+        return outExtension
+
+    # Check if the output exists, if so, no need to convert
+    if os.path.isfile(output):
+        return errors.file_exists(message=f"The file '{output}' already exists, aborting conversion.", level="warn")
+
+    # Check if input is a smiles file
+    if inExtension == "smi":
+        # Read the smiles file into string
+        with open(input, 'r') as file:
+            data = file.read().strip()
+        # Convert the string to the output file
+        return convertMolsFromString(data, output)
+
+    # Try to convert (if fails, throw exception for subprocess failing)
+    try:
+        # Create a conversor object
+        obConversion = openbabel.OBConversion()
+        # Set the conversion from the extension to pdbqt
+        obConversion.SetInAndOutFormats(inExtension, outExtension)
+        # Create an empty OBMol object
+        mol = openbabel.OBMol()
+        # Load the input file to the prebiusly loaded OBMol object
+        obConversion.ReadFile(mol, input)
+        # Write the mol object to the output performing the conversion
+        obConversion.WriteFile(mol, output)
+    except Exception as e:
+        return errors.subprocess(message=f"Error while running molecule conversion from {inExtension} to {outExtension} using obabel python lib. Error: {e}", level="error")
+    return errors.ok()
+
+def split_and_convert(path: str, out_path: str, extension: str, overwrite: bool = False) -> int:
+    '''Splits a multi-molecule file then save the output in multiple single-molecule file with the desired extension. (Supported by openbabel)
+
+    Parameters
+    ----------
+    path : str
+        Path to the multi-molecule file.
+    out_path : str
+        Path to the output folder.
+    extension : str
+        Extension of the output files.
+    overwrite : bool, optional
+        If True, overwrites the output files if they already exist. (default is False)
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
+    '''
+
+    # Finds the input extension
+    extensionIn = ocvalidation.validate_obabel_extension(path)
+
+    # If input extension is not valid
+    if type(extension) != str:
+        # Return the unsupported_extension
+        return errors.unsupported_extension(f"Unsupported extension provided while spliting '{path}' file. Supported extensions are the one supported by OpenBabel.", "error")
+
+    # For each molecule in input file
+    for mol in pybel.readfile(extensionIn, path):
+        # Get its name and remove the "none string", strip blank spaces and then replace the remaining blank spaces for underscores
+        molName = mol.title.replace("none", "").strip().replace(" ", "_")
+        # Set the output file name
+        outfile = f"{out_path}/{molName}.{extension}"
+        # Try to convert
+        try:
+            # Write the file with the right extension
+            mol.write(extension, outfile, overwrite=overwrite)
+        # If fails
+        except Exception as e:
+            # Return write file error
+            return errors.write_file(f"Problems while writing the file '{outfile}'. Error: {e}")
+    # Since everything gone ok, return the ok code
+    return errors.ok()

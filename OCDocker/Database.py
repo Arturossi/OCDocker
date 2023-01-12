@@ -1,5 +1,15 @@
 #!/usr/lib/python3
 
+# Description
+###############################################################################
+'''
+Sets of classes and functions that are used to update the OCDocker database.
+
+They are imported as:
+
+import OCDocker.Database as ocdb
+'''
+
 # Imports
 ###############################################################################
 import gc
@@ -19,8 +29,13 @@ from OCDocker.Initialise import *
 
 import OCDocker.DUDEz as ocdudez
 import OCDocker.PDBbind as ocpdbbind
+import OCDocker.Toolbox.Basetools as ocbasetools
+import OCDocker.Toolbox.Conversion as occonversion
 import OCDocker.Toolbox as octools
-
+import OCDocker.Toolbox.Downloading as ocdown
+import OCDocker.Toolbox.FilesFolders as ocff
+import OCDocker.Toolbox.MoleculeProcessing as ocmolproc
+import OCDocker.Toolbox.Printing as ocprint
 
 # License
 ###############################################################################
@@ -37,24 +52,14 @@ E-mail address: arturossi10@gmail.com
 This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 '''
 
-# Description
-###############################################################################
-'''
-Sets of classes and functions that are used to update the OCDocker database
-They are imported as:
-import OCDocker.Database as ocdb
-'''
-
 # Classes
 ###############################################################################
-
 
 # Functions
 ###############################################################################
 ## Private ##
 
-### DUDEz 
-#### Process
+#### Process DUDEz
 def __core_process_dudez(target: str, overwrite: bool) -> None:
     '''Core function to process the DUDEz database.
 
@@ -77,19 +82,19 @@ def __core_process_dudez(target: str, overwrite: bool) -> None:
     # Get the target name
     target_name = os.path.basename(target)
     # Process the ligands
-    octools.printv(f"Processing the ligands for {target_name}")
+    ocprint.printv(f"Processing the ligands for {target_name}")
     # Parameterize the compounds path
     targetc = os.path.join(target, "compounds")
     # Create the compound folder (will hold all compounds, no matter if they are ligand or decoy)
-    _ = octools.safe_create_dir(targetc)
+    _ = ocff.safe_create_dir(targetc)
     # List to hold the tuples for each processing that will be made
     process_list = ["ligands", "decoys"]
     # For each data
     for data in process_list:
         # Print which file is being processed
-        octools.printv(f"Processing {target}/{data}.smi")
+        ocprint.printv(f"Processing {target}/{data}.smi")
         # Create the ligands folder
-        _ = octools.safe_create_dir(f"{targetc}/{data}")
+        _ = ocff.safe_create_dir(f"{targetc}/{data}")
         # Create a lock for multithreading
         lock = Lock()
         # Start the lock with statement
@@ -101,10 +106,10 @@ def __core_process_dudez(target: str, overwrite: bool) -> None:
                     smiles, name = line.split()
                     # Check if there is already a folder with the ligand name (to warn the user)
                     if os.path.isdir(f"{targetc}/{data}/{name}"):
-                        octools.print_warning(f"The ligand {name} already exists in the {data[0]} dataser. You may not need to process the {data[1]}.smi file again. By the way... I am just warning you.")
+                        ocprint.print_warning(f"The ligand {name} already exists in the {data[0]} dataser. You may not need to process the {data[1]}.smi file again. By the way... I am just warning you.")
 
                     # Create the ligand folder using its name
-                    _ = octools.safe_create_dir(f"{targetc}/{data}/{name}")
+                    _ = ocff.safe_create_dir(f"{targetc}/{data}/{name}")
                     
                     # Test if the file exists
                     if overwrite or not os.path.isfile(f"{targetc}/{data}/{name}/ligand.mol2"):
@@ -113,12 +118,12 @@ def __core_process_dudez(target: str, overwrite: bool) -> None:
                             # Remove the file
                             os.remove(f"{targetc}/{data}/{name}/ligand.mol2")
                         # Convert it to mol2 (NOTE: There are many molecules with SAME name... currently I am not handling this. I am just accounting the first molecule and discarding the others. IMPORTANT: Error messages WILL pop while processing the data here! They may be safe to ignore, I guess...)
-                        _ = octools.convertMolsFromString(smiles, f"{targetc}/{data}/{name}/ligand.mol2")
+                        _ = occonversion.convertMolsFromString(smiles, f"{targetc}/{data}/{name}/ligand.mol2")
                         # Save a smiles file (to avoid compatibility issues)
                         with open(f"{targetc}/{data}/{name}/ligand.smi", "w") as f:
                             f.write(f"{smiles}")
                     else:
-                        octools.print_warning(f"File '{targetc}/{data}/{name}/ligand.mol2' already exists. Skipping...")
+                        ocprint.print_warning(f"File '{targetc}/{data}/{name}/ligand.mol2' already exists. Skipping...")
 
     return None
 
@@ -140,7 +145,7 @@ def __thread_process_dudez(arguments: Tuple[str, bool]) -> None:
     '''
 
     # Redirect all prints to tqdm.write
-    with octools.redirect_to_tqdm():
+    with ocbasetools.redirect_to_tqdm():
         # Call core prepare function (shared between thread and no thread)
         return __core_process_dudez(arguments[0], arguments[1])
 
@@ -179,7 +184,7 @@ def __process_dudez_parallel(targets: List[str], overwrite: bool, desc: str) -> 
                 # Clear the memory
                 gc.collect()
     except IOError as e:
-        octools.print_error(f"Problem while processing DUDEz in parallel. Exception: {e}")
+        ocprint.print_error(f"Problem while processing DUDEz in parallel. Exception: {e}")
 
     return None
 
@@ -205,7 +210,7 @@ def __process_dudez_no_parallel(targets: List[str], overwrite: bool, desc: str) 
     '''
 
     # Redirect all prints to tqdm.write
-    with octools.redirect_to_tqdm():
+    with ocbasetools.redirect_to_tqdm():
         for target in tqdm(iterable=targets, total=len(targets), desc=desc):
             # Call the core prepare function
             __core_process_dudez(target, overwrite)
@@ -213,7 +218,7 @@ def __process_dudez_no_parallel(targets: List[str], overwrite: bool, desc: str) 
             gc.collect()
     return None
 
-#### Download
+#### Download DUDEz
 def __core_download_dudez(target: str, overwrite: bool) -> None:
     '''Downloads the DUDEz database.
 
@@ -240,34 +245,34 @@ def __core_download_dudez(target: str, overwrite: bool) -> None:
         target2 = target
 
     # Create a folder for the target in the archive
-    _ = octools.safe_create_dir(f"{dudez_archive}/{target2}")
+    _ = ocff.safe_create_dir(f"{dudez_archive}/{target2}")
 
     # Check if the target receptor does not exists or the user wants to overwrite it
     if not os.path.isfile(f"{dudez_archive}/{target2}/receptor.pdb") or overwrite:
         # Download the target receptor
-        octools.download_url(f"{dudez_download}/DOCKING_GRIDS_AND_POSES/{target2}/rec.crg.pdb", f"{dudez_archive}/{target2}/receptor.pdb")
+        ocdown.download_url(f"{dudez_download}/DOCKING_GRIDS_AND_POSES/{target2}/rec.crg.pdb", f"{dudez_archive}/{target2}/receptor.pdb")
 
     # Check if the reference ligand does not exists or the user wants to overwrite it
     if not os.path.isfile(f"{dudez_archive}/{target2}/ligand.mol2") or overwrite:
         # Download the target receptor
-        octools.download_url(f"{dudez_download}/DOCKING_GRIDS_AND_POSES/{target2}/xtal-lig.pdb", f"{dudez_archive}/{target2}/reference_ligand.pdb")
+        ocdown.download_url(f"{dudez_download}/DOCKING_GRIDS_AND_POSES/{target2}/xtal-lig.pdb", f"{dudez_archive}/{target2}/reference_ligand.pdb")
 
     # Check if the target dudez ligands does not exists or the user wants to overwrite it
     if not os.path.isfile(f"{dudez_archive}/{target2}/ligands.smi") or overwrite:
         # Download the dudeZ ligands
-        octools.download_url(f"{dudez_download}/DUDE-Z-benchmark-grids/{target}/ligands.smi", f"{dudez_archive}/{target2}/ligands.smi")
+        ocdown.download_url(f"{dudez_download}/DUDE-Z-benchmark-grids/{target}/ligands.smi", f"{dudez_archive}/{target2}/ligands.smi")
 
     # Check if the target dudez decoys does not exists or the user wants to overwrite it
     if not os.path.isfile(f"{dudez_archive}/{target2}/decoys.smi") or overwrite:
         # Download the dudeZ ligands
-        octools.download_url(f"{dudez_download}/DUDE-Z-benchmark-grids/{target}/decoys.smi", f"{dudez_archive}/{target2}/decoys.smi")
+        ocdown.download_url(f"{dudez_download}/DUDE-Z-benchmark-grids/{target}/decoys.smi", f"{dudez_archive}/{target2}/decoys.smi")
 
     # Download the Extrema set TODO: Currently not used
-    #octools.download_url(f"{dudez_download}/extrema/{target}/minus2/{target}_minus2.smi", f"{dudez_archive}/{target2}/extrema_minus2.smi")
-    #octools.download_url(f"{dudez_download}/extrema/{target}/minus1/{target}_minus1.smi", f"{dudez_archive}/{target2}/extrema_minus1.smi")
-    #octools.download_url(f"{dudez_download}/extrema/{target}/neutral/{target}_neutral.smi", f"{dudez_archive}/{target2}/extrema_neutral.smi")
-    #octools.download_url(f"{dudez_download}/extrema/{target}/plus1/{target}_plus1.smi", f"{dudez_archive}/{target2}/extrema_plus1.smi")
-    #octools.download_url(f"{dudez_download}/extrema/{target}/plus2/{target}_plus2.smi", f"{dudez_archive}/{target2}/extrema_plus2.smi")
+    #ocdown.download_url(f"{dudez_download}/extrema/{target}/minus2/{target}_minus2.smi", f"{dudez_archive}/{target2}/extrema_minus2.smi")
+    #ocdown.download_url(f"{dudez_download}/extrema/{target}/minus1/{target}_minus1.smi", f"{dudez_archive}/{target2}/extrema_minus1.smi")
+    #ocdown.download_url(f"{dudez_download}/extrema/{target}/neutral/{target}_neutral.smi", f"{dudez_archive}/{target2}/extrema_neutral.smi")
+    #ocdown.download_url(f"{dudez_download}/extrema/{target}/plus1/{target}_plus1.smi", f"{dudez_archive}/{target2}/extrema_plus1.smi")
+    #ocdown.download_url(f"{dudez_download}/extrema/{target}/plus2/{target}_plus2.smi", f"{dudez_archive}/{target2}/extrema_plus2.smi")
 
     return None
 
@@ -289,7 +294,7 @@ def __thread_download_dudez(arguments: Tuple[str, bool]) -> None:
     '''
 
     # Redirect all prints to tqdm.write
-    with octools.redirect_to_tqdm():
+    with ocbasetools.redirect_to_tqdm():
         # Call core prepare function (shared between thread and no thread)
         return __core_download_dudez(arguments[0], arguments[1])
 
@@ -351,7 +356,7 @@ def __download_dudez_no_parallel(targets: List[str], overwrite: bool, desc: str)
     '''
 
     # Redirect all prints to tqdm.write
-    with octools.redirect_to_tqdm():
+    with ocbasetools.redirect_to_tqdm():
         for target in tqdm(iterable=targets, total=len(targets), desc=desc):
             # Call the core prepare function
             __core_download_dudez(target, overwrite)
@@ -378,13 +383,13 @@ def create_directories() -> None:
     '''
 
     # Create the base dir
-    _ = octools.safe_create_dir(ocdb_path)
+    _ = ocff.safe_create_dir(ocdb_path)
     # Create the pdbbind dir
-    _ = octools.safe_create_dir(pdbbind_archive)
+    _ = ocff.safe_create_dir(pdbbind_archive)
     # Create the dudez dir
-    _ = octools.safe_create_dir(dudez_archive)
+    _ = ocff.safe_create_dir(dudez_archive)
     # Create the Parsed dir
-    _ = octools.safe_create_dir(parsed_archive)
+    _ = ocff.safe_create_dir(parsed_archive)
 
     return None
 
@@ -416,12 +421,12 @@ def update_DUDEz(overwrite: bool = False, download: bool = True, multiprocess: b
         mimetypes.init()
 
     # Create tmp dir for download
-    _ = octools.safe_create_dir("./tmp")
+    _ = ocff.safe_create_dir("./tmp")
 
-    octools.printv("Downloading the DUDE-Z database")
+    ocprint.printv("Downloading the DUDE-Z database")
 
     # Download the benchmark grids indexes
-    octools.download_url(f"{dudez_download}/DUDE-Z-benchmark-grids/DUDE-Z_targets", f"{tmpDir}/DUDE-Z_targets")
+    ocdown.download_url(f"{dudez_download}/DUDE-Z-benchmark-grids/DUDE-Z_targets", f"{tmpDir}/DUDE-Z_targets")
 
     # Initialize an empty list to store the targets
     targets = []
@@ -436,7 +441,7 @@ def update_DUDEz(overwrite: bool = False, download: bool = True, multiprocess: b
     # If the download flag is set
     if download:
         # Download all sets
-        octools.printv("Downloading the datasets.")
+        ocprint.printv("Downloading the datasets.")
 
         # Check multiprocessing is enabled
         if multiprocess:
@@ -469,7 +474,7 @@ def update_DUDEz(overwrite: bool = False, download: bool = True, multiprocess: b
         __process_dudez_no_parallel(targets, overwrite, "Processing DUDE-Z database")
 
     # Delete the downloaded file
-    octools.printv("Deleting the downloaded file.")
+    ocprint.printv("Deleting the downloaded file.")
     os.remove(f"{tmpDir}/DUDE-Z_targets")
 
     # Prepare the DUDEz database
@@ -544,12 +549,12 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silentMode: 
 
         # If the option in lowercase is in the continue list (traductions may enter here)
         if opt.lower() in ["continue", "continuar"]:
-            octools.printv("Continuing the update proces...")
+            ocprint.printv("Continuing the update proces...")
             # Find the pdbbindTar file
             pdbbindTar = glob(f"{pdbbind_archive}/*.tar.gz")[0]
 
             # Since everything is right, start to untar/ungz them and delete source .tar.gz file
-            _ = octools.untar(pdbbindTar, out_path = f"{pdbbind_archive}", delete = deleteTar)
+            _ = ocff.untar(pdbbindTar, out_path = f"{pdbbind_archive}", delete = deleteTar)
 
             # Check if there is a refined-set folder
             if os.path.isdir(f"{pdbbind_archive}/refined-set"):
@@ -569,13 +574,13 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silentMode: 
                     # If is not index (it is a special folder)
                     if filename != "index":
                         # Create the compounds folder inside the protein folder
-                        _ = octools.safe_create_dir(f"{destPath}/compounds")
+                        _ = ocff.safe_create_dir(f"{destPath}/compounds")
                         # Create the ligands folder inside the compounds folder (PDBbind only has one ligand per protein)
-                        _ = octools.safe_create_dir(f"{destPath}/compounds/ligands")
+                        _ = ocff.safe_create_dir(f"{destPath}/compounds/ligands")
                         # Create the ligand folder inside the ligands folder (yes, generic name until I find a better one)
-                        _ = octools.safe_create_dir(f"{destPath}/compounds/ligands/ligand")
+                        _ = ocff.safe_create_dir(f"{destPath}/compounds/ligands/ligand")
                         # Create the boxes folder inside the ligand folder
-                        _ = octools.safe_create_dir(f"{destPath}/compounds/ligands/ligand/boxes")
+                        _ = ocff.safe_create_dir(f"{destPath}/compounds/ligands/ligand/boxes")
                         
                         # Make a copy of the ligands to serve as reference and then move the ligand files to the ligands folder (mol2 and sdf)
                         shutil.copy(f"{destPath}/{filename}_ligand.mol2", f"{destPath}/reference_ligand.mol2")
@@ -586,7 +591,7 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silentMode: 
                         # Rename the protein file
                         shutil.move(f"{destPath}/{filename}_protein.pdb", f"{destPath}/receptor.pdb")
 
-                        _ = octools.make_only_ATOM_and_CRYST_pdb(f"{destPath}/receptor.pdb")
+                        _ = ocmolproc.make_only_ATOM_and_CRYST_pdb(f"{destPath}/receptor.pdb")
 
                         # Remove all the unwanted files
                         unwanteds = [("pocket", "pdb")]
@@ -608,7 +613,7 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silentMode: 
             break
 
         elif opt.lower() in ["skip", "pular"]:
-            octools.printv(f"The user decided to skip this update. Skipping!!!")
+            ocprint.printv(f"The user decided to skip this update. Skipping!!!")
             return errors.ok()
 
         elif opt == "":
@@ -616,10 +621,10 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silentMode: 
             quit(rcode)
 
         else:
-            octools.printv(f"Please use a valid answer!")
-            octools.printv("- 'continue': To continue.")
-            octools.printv("- 'skip':     To skip.")
-            octools.printv("- '':         To quit.")
+            ocprint.printv(f"Please use a valid answer!")
+            ocprint.printv("- 'continue': To continue.")
+            ocprint.printv("- 'skip':     To skip.")
+            ocprint.printv("- '':         To quit.")
             continue
 
     # Prepare the PDBbind database

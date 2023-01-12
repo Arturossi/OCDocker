@@ -1,5 +1,15 @@
 #!/usr/lib/python3
 
+# Description
+###############################################################################
+'''
+Sets of classes and functions that are used to process the PDBbind dataset.
+
+They are imported as:
+
+import OCDocker.PDBbind as ocpdbbind
+'''
+
 # Imports
 ###############################################################################
 import os
@@ -13,7 +23,7 @@ from typing import Dict, List, Union
 from OCDocker.Initialise import *
 
 import OCDocker.baseDB as ocbdb
-import OCDocker.Processing.p2rank as ocp2rank
+import OCDocker.Processing.Preprocessing.p2rank as ocp2rank
 
 # License
 ###############################################################################
@@ -30,19 +40,8 @@ E-mail address: arturossi10@gmail.com
 This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 '''
 
-# Description
-###############################################################################
-'''
-Sets of classes and functions that are used to process the PDBbind dataset.
-
-They are imported as:
-
-import OCDocker.PDBbind as ocpdbbind
-'''
-
 # Classes
 ###############################################################################
-
 
 # Functions
 ###############################################################################

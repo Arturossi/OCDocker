@@ -1,5 +1,15 @@
 #!/usr/lib/python3
 
+# Description
+###############################################################################
+'''
+Sets of classes and functions that are used to process the DUDE-Z dataset.
+
+They are imported as:
+
+import OCDocker.DUDEz as ocdudez
+'''
+
 # Imports
 ###############################################################################
 import os
@@ -12,8 +22,7 @@ from typing import Dict, Union
 from OCDocker.Initialise import *
 
 import OCDocker.baseDB as ocbdb
-import OCDocker.Toolbox as octools
-
+import OCDocker.Processing.Preprocessing.p2rank as ocp2rank
 
 # License
 ###############################################################################
@@ -30,19 +39,8 @@ E-mail address: arturossi10@gmail.com
 This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 '''
 
-# Description
-###############################################################################
-'''
-Sets of classes and functions that are used to process the DUDE-Z dataset.
-
-They are imported as:
-
-import OCDocker.DUDEz as ocdudez
-'''
-
 # Classes
 ###############################################################################
-
 
 # Functions
 ###############################################################################
@@ -98,7 +96,7 @@ def convert_debug_to_production(chosenAlgorithm: str = "ac", strict: bool = Fals
     None
     '''
 
-    ocbdb.convert_debug_to_production(dudez_archive, chosenAlgorithm = chosenAlgorithm, strict = strict, removeDebug = removeDebug)
+    ocp2rank.convert_debug_to_production(dudez_archive, chosenAlgorithm = chosenAlgorithm, strict = strict, removeDebug = removeDebug)
 
     return None
 

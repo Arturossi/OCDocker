@@ -1,5 +1,15 @@
 #!/usr/lib/python3
 
+# Description
+###############################################################################
+'''
+This module is responsible for digest processing.
+
+It is imported as:
+
+import OCDocker.Processing.Preprocessing.p2rank as ocp2rank
+'''
+
 # Imports
 ###############################################################################
 import gc
@@ -12,8 +22,12 @@ from typing import List, Tuple, Union
 
 from OCDocker.Initialise import *
 
-import OCDocker.Toolbox as octools
 import OCDocker.ExternalTools.runprank as runprank
+import OCDocker.Toolbox.Basetools as ocbasetools
+import OCDocker.Toolbox.FilesFolders as ocff
+import OCDocker.Toolbox.Logging as oclogging
+import OCDocker.Toolbox.Printing as ocprint
+import OCDocker.Toolbox.Validation as ocvalidation
 
 # License
 ###############################################################################
@@ -28,16 +42,6 @@ Av. Carlos Chagas Filho 373 - CCS - bloco G1-19,
 Cidade Universitária - Rio de Janeiro, RJ, CEP: 21941-902
 E-mail address: arturossi10@gmail.com
 This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
-'''
-
-# Description
-###############################################################################
-'''
-This module is responsible for digest processing.
-
-It is imported as:
-
-import OCDocker.Processing.p2rank as ocp2rank
 '''
 
 # Classes
@@ -93,7 +97,7 @@ def __run_p2rank(dir: str, fin: str, overwrite: bool = False) -> None:
             # Run p2rank
             runprank.run_prank(fin, fout, algorithms, prank = prank, threads = args.cpu_cores, debug = False, boxMaxCutoff = p2rank_boxMaxCutoff, pocketCutoff = p2rank_pocketCutoff, verbose = True if args.output_level >= 3 else False, overwrite = overwrite)
         except Exception as e:
-            octools.print_warning(f"The protein '{dir}' had a problem while running p2rank. Retrying to run p2rank. Exception: {e}")
+            ocprint.print_warning(f"The protein '{dir}' had a problem while running p2rank. Retrying to run p2rank. Exception: {e}")
             runprank.run_prank(fin, fout, algorithms, prank = prank, threads = args.cpu_cores, debug = False, boxMaxCutoff = p2rank_boxMaxCutoff, pocketCutoff = p2rank_pocketCutoff, verbose = True if args.output_level >= 3 else False, overwrite = overwrite)
 
     return None
@@ -121,7 +125,7 @@ def __core_p2rank(dir: str, overwrite: bool) -> None:
     fout = f"{dir}/p2rank"
 
     # Create the p2rank output dir
-    _ = octools.safe_create_dir(fout)
+    _ = ocff.safe_create_dir(fout)
 
     # Parameterizing box count
     boxCount = len(glob(f"{fout}/box*.pdb"))
@@ -131,7 +135,7 @@ def __core_p2rank(dir: str, overwrite: bool) -> None:
         # Run p2rank
         __run_p2rank(dir, f"{dir}/receptor.pdb", overwrite=overwrite) 
     else:
-        octools.print_info(f"The protein '{dir}' already has its p2rank output generated, skipping its execution.")
+        ocprint.print_info(f"The protein '{dir}' already has its p2rank output generated, skipping its execution.")
 
     return None
 
@@ -153,7 +157,7 @@ def __thread_p2rank(arguments: Tuple[str, bool, str]) -> None:
     '''
 
     # Redirect all prints to tqdm.write
-    with octools.redirect_to_tqdm():
+    with ocbasetools.redirect_to_tqdm():
         # Call core prepare function (shared between thread and no thread)
         return __core_p2rank(arguments[0], arguments[1])
 
@@ -193,8 +197,8 @@ def __p2rank_parallel(paths: List[str], overwrite: bool, desc: str) -> None:
                 gc.collect()
     except IOError as e:
         errMsg = f"Problem while running p2rank in parallel. Exception: {e}"
-        octools.print_error_log(errMsg, f"{logdir}/p2rank_report.log")
-        octools.print_error(errMsg)
+        ocprint.print_error_log(errMsg, f"{logdir}/p2rank_report.log")
+        ocprint.print_error(errMsg)
 
     # Return
     return None
@@ -221,7 +225,7 @@ def __p2rank_no_parallel(paths: List[str], overwrite: bool, desc: str) -> None:
     '''
 
     # Redirect all prints to tqdm.write
-    with octools.redirect_to_tqdm():
+    with ocbasetools.redirect_to_tqdm():
         for path in tqdm(iterable=paths, total=len(paths), desc=desc):
             # Call the core p2rank function
             __core_p2rank(path, overwrite)
@@ -276,7 +280,7 @@ def run_p2rank(paths: Union[List[str], str], overwrite: bool) -> None:
     # If the path is a list
     if isinstance(paths, list):
         # If logfile exists, backup it
-        octools.backup_log(f"p2rank_report")
+        oclogging.backup_log(f"p2rank_report")
 
         # Set the description
         label = f"Running p2rank"
@@ -318,17 +322,17 @@ def convert_debug_to_production(chosenArchive: str, chosenAlgorithm: str = "ac",
     '''
 
     # Generate boxes for all receptors
-    octools.printv("Converting p2rank debug to production file tree.")
+    ocprint.printv("Converting p2rank debug to production file tree.")
 
     # Get all dirs paths in the DUDEz database
     dirs = glob(f"{chosenArchive}/*")
 
     # Redirect output to tqdm.write
-    with octools.redirect_to_tqdm():
+    with ocbasetools.redirect_to_tqdm():
         # For each directory in the database folder
         for dir in tqdm(iterable=dirs, total=len(dirs)):
             # Print text
-            octools.printv(f"Processing '{dir}'.")
+            ocprint.printv(f"Processing '{dir}'.")
 
             # Parameterize the p2rank dir
             p2rankDir = f"{dir}/p2rank"
@@ -337,7 +341,7 @@ def convert_debug_to_production(chosenArchive: str, chosenAlgorithm: str = "ac",
             hasDir = False
 
             # Get all the dirs which are in the allowed values
-            p2rankFiles = [d for d in glob(f"{p2rankDir}/*") if octools.is_algorithm_allowed(d) and os.path.isdir(d)]
+            p2rankFiles = [d for d in glob(f"{p2rankDir}/*") if ocvalidation.is_algorithm_allowed(d) and os.path.isdir(d)]
 
             # Parameterize the amount of dirs
             p2rankFilesLen = len(p2rankFiles)
@@ -346,15 +350,15 @@ def convert_debug_to_production(chosenArchive: str, chosenAlgorithm: str = "ac",
             if p2rankFilesLen > 0:
                 # If there is only one file
                 if p2rankFilesLen == 1 and not strict:
-                    octools.print_info(f"There is only one file.")
+                    ocprint.print_info(f"There is only one file.")
                     # Set the hasDir as true
                     hasDir = True
                     # Get the boxes
                     boxes = glob(f"{p2rankFiles[0]}/*")
                     # If no box is found (folders WILL NOT BE REMOVED)
                     if len(boxes) < 1:
-                        octools.print_error(f"The protein '{dir}' has no box!!!!!")
-                        octools.print_error_log(f"The protein '{dir}' has no box!!!!!", f"{logdir}/{chosenArchive}_conversion_report.log")
+                        ocprint.print_error(f"The protein '{dir}' has no box!!!!!")
+                        ocprint.print_error_log(f"The protein '{dir}' has no box!!!!!", f"{logdir}/{chosenArchive}_conversion_report.log")
                         continue
                     # Get the algorithm name
                     algorithm = p2rankFiles[0].split(os.path.sep)[-1]
@@ -375,8 +379,8 @@ def convert_debug_to_production(chosenArchive: str, chosenAlgorithm: str = "ac",
                             boxes = glob(f"{p2rankFile}/*")
                             # If no box is found (folders WILL NOT BE REMOVED)
                             if len(boxes) < 1:
-                                octools.print_error(f"The protein '{dir}' has no box!!!!!")
-                                octools.print_error_log(f"The protein '{dir}' has no box!!!!!", f"{logdir}/{chosenArchive}_conversion_report.log")
+                                ocprint.print_error(f"The protein '{dir}' has no box!!!!!")
+                                ocprint.print_error_log(f"The protein '{dir}' has no box!!!!!", f"{logdir}/{chosenArchive}_conversion_report.log")
                                 continue
                             # Get the algorithm name
                             algorithm = p2rankFile.split(os.path.sep)[-1]
@@ -385,15 +389,15 @@ def convert_debug_to_production(chosenArchive: str, chosenAlgorithm: str = "ac",
                     # Check if remove is set
                     if removeDebug:
                         # Print to the user the information
-                        octools.print_info(f"Removing files for '{dir}'")
+                        ocprint.print_info(f"Removing files for '{dir}'")
                         # For each file
                         for p2rankFile in p2rankFiles:
                             # Remove the folder and its contets
                             shutil.rmtree(p2rankFile)
                 else:
-                    octools.print_error(f"The algorithm '{chosenAlgorithm}' has not been found for the protein '{dir}'.")
-                    octools.print_error_log(f"The algorithm '{chosenAlgorithm}' has not been found for the protein '{dir}'.", f"{logdir}/{chosenArchive}_conversion_report.log")
+                    ocprint.print_error(f"The algorithm '{chosenAlgorithm}' has not been found for the protein '{dir}'.")
+                    ocprint.print_error_log(f"The algorithm '{chosenAlgorithm}' has not been found for the protein '{dir}'.", f"{logdir}/{chosenArchive}_conversion_report.log")
             else:
-                octools.printv(f"Nothing to convert for '{dir}'. Skipping...")
+                ocprint.printv(f"Nothing to convert for '{dir}'. Skipping...")
                 continue
     return None

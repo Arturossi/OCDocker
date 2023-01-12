@@ -1,5 +1,15 @@
 #!/usr/lib/python3
 
+# Description
+###############################################################################
+'''
+This module is responsible for digest processing.
+
+It is imported as:
+
+import OCDocker.Processing.Preprocessing.Prepare as ocprepare
+'''
+
 # Imports
 ###############################################################################
 import gc
@@ -17,12 +27,15 @@ from OCDocker.Initialise import *
 
 import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
-import OCDocker.Toolbox as octools
 import OCDocker.Docking.Gnina as ocgnina
 import OCDocker.Docking.PLANTS as ocplants
 import OCDocker.Docking.Smina as ocsmina
 import OCDocker.Docking.Vina as ocvina
-
+import OCDocker.Toolbox.Basetools as ocbasetools
+import OCDocker.Toolbox.FilesFolders as ocff
+import OCDocker.Toolbox.Logging as oclogging
+import OCDocker.Toolbox.MoleculeProcessing as ocmolproc
+import OCDocker.Toolbox.Printing as ocprint
 
 # License
 ###############################################################################
@@ -37,16 +50,6 @@ Av. Carlos Chagas Filho 373 - CCS - bloco G1-19,
 Cidade Universitária - Rio de Janeiro, RJ, CEP: 21941-902
 E-mail address: arturossi10@gmail.com
 This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
-'''
-
-# Description
-###############################################################################
-'''
-This module is responsible for digest processing.
-
-It is imported as:
-
-import OCDocker.Processing.Prepare as ocprepare
 '''
 
 # Classes
@@ -102,10 +105,10 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
     if overwrite or not os.path.isfile(f"{molPath}/{moltype}_descriptors.json"):
         if moltype == "ligand":
             # Safe create dockingFiles dirs
-            _ = octools.safe_create_dir(f"{molPath}/plantsFiles")
-            _ = octools.safe_create_dir(f"{molPath}/vinaFiles")
-            _ = octools.safe_create_dir(f"{molPath}/sminaFiles")
-            _ = octools.safe_create_dir(f"{molPath}/gninaFiles")
+            _ = ocff.safe_create_dir(f"{molPath}/plantsFiles")
+            _ = ocff.safe_create_dir(f"{molPath}/vinaFiles")
+            _ = ocff.safe_create_dir(f"{molPath}/sminaFiles")
+            _ = ocff.safe_create_dir(f"{molPath}/gninaFiles")
 
             try:
                 # Create a lock for multithreading
@@ -117,7 +120,7 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                     # Test if the Radius of Gyration is None
                     if not m.RadiusOfGyration:
                         # Print a warning
-                        octools.print_warning(f"The ligand '{molName}' has a Radius of Gyration of None, trying to load its alternative ligand.")
+                        ocprint.print_warning(f"The ligand '{molName}' has a Radius of Gyration of None, trying to load its alternative ligand.")
                         # If so, try to load the alternative ligand
                         if alternativeLigand:
                             # Create the ligand object
@@ -125,10 +128,10 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                             # Check the radius of gyration again
                             if not m.RadiusOfGyration:
                                 # If it is still None, print a warning and return
-                                octools.print_warning(f"The ligand '{molName}' has a Radius of Gyration of None, even with the alternative ligand, skipping.")
+                                ocprint.print_warning(f"The ligand '{molName}' has a Radius of Gyration of None, even with the alternative ligand, skipping.")
                         else:
                             # Print a warning
-                            octools.print_warning(f"The ligand '{molName}' has a Radius of Gyration of None and no alternative ligand was provided.")
+                            ocprint.print_warning(f"The ligand '{molName}' has a Radius of Gyration of None and no alternative ligand was provided.")
 
                     # Create a box around the ligand
                     m.create_box(centroid = targetCentroid, overwrite = overwrite)
@@ -137,7 +140,7 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                 errMsg = f"The molecule '{mol}' could not be parsed!"
 
                 _ = errors.parse_molecule(errMsg, "error")
-                octools.print_error_log(errMsg, f"{logdir}/{dbName}_error_Parse.log")
+                ocprint.print_error_log(errMsg, f"{logdir}/{dbName}_error_Parse.log")
                 return None
 
         elif moltype == "receptor":
@@ -151,14 +154,14 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                             # Check if the extension is pdb
                             if mol[0].endswith(".pdb"):
                                 # Clean the receptor
-                                _ = octools.make_only_ATOM_and_CRYST_pdb(structurePath = mol[0])
+                                _ = ocmolproc.make_only_ATOM_and_CRYST_pdb(structurePath = mol[0])
                             # Create the receptor object
                             m = ocr.Receptor(mol[0], molName, mol2Path = mol[1])
                     except Exception as e:
                         errMsg = f"The molecule '{mol[0]}' could not be parsed! Error {e}"
 
                         _ = errors.parse_molecule(errMsg, "error")
-                        octools.print_error_log(errMsg, f"{logdir}/{dbName}_error_Parse.log")
+                        ocprint.print_error_log(errMsg, f"{logdir}/{dbName}_error_Parse.log")
                         return None
                 else:
                     try:
@@ -172,7 +175,7 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                         errMsg = f"The molecule '{mol}' could not be parsed! Error {e}"
 
                         _ = errors.parse_molecule(errMsg, "error")
-                        octools.print_error_log(errMsg, f"{logdir}/{dbName}_error_Parse.log")
+                        ocprint.print_error_log(errMsg, f"{logdir}/{dbName}_error_Parse.log")
                         return None
         else:
             _ = errors.unknown("Unknown molecule type", "error")
@@ -183,7 +186,7 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
             errMsg = f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!"
 
             _ = errors.malformed_molecule(errMsg, "error")
-            octools.print_error_log(errMsg, f"{logdir}/{dbName}_error_Parse.log")
+            ocprint.print_error_log(errMsg, f"{logdir}/{dbName}_error_Parse.log")
         else:
             # Export its descriptors
             _ = m.to_json(overwrite)
@@ -233,7 +236,7 @@ def __sub_core_prepare(dirsToProcess: str, dbName: str, overwrite: bool, mols : 
             else:
                 molName = molTmp[0]
             # Create the dir
-            _ = octools.safe_create_dir(f"{mol}/{molName}")
+            _ = ocff.safe_create_dir(f"{mol}/{molName}")
             # Move the molecule to it
             shutil.move(mol, f"{mol}/{molName}/ligand.{molTmp[-1]}")  # type: ignore
 
@@ -243,10 +246,10 @@ def __sub_core_prepare(dirsToProcess: str, dbName: str, overwrite: bool, mols : 
     # For each directory (check to see if it is needed to generate descriptors)
     for processDir in processDirs:
         # Safe create docking Files dirs
-        _ = octools.safe_create_dir(f"{processDir}/plantsFiles")
-        _ = octools.safe_create_dir(f"{processDir}/vinaFiles")
-        _ = octools.safe_create_dir(f"{processDir}/sminaFiles")
-        _ = octools.safe_create_dir(f"{processDir}/gninaFiles")
+        _ = ocff.safe_create_dir(f"{processDir}/plantsFiles")
+        _ = ocff.safe_create_dir(f"{processDir}/vinaFiles")
+        _ = ocff.safe_create_dir(f"{processDir}/sminaFiles")
+        _ = ocff.safe_create_dir(f"{processDir}/gninaFiles")
 
         # Check if the dbName is PDBbind
         if dbName.lower() in ["pdbbind"]:
@@ -334,7 +337,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
                     # Check if the target centroid is None
                     if not targetCentroid:
                         # Print a warning
-                        octools.print_warning(message = f"WARNING: The centroid of the reference ligand in path '{path}' could not be calculated. The centroid of the receptor will be used instead.")
+                        ocprint.print_warning(message = f"WARNING: The centroid of the reference ligand in path '{path}' could not be calculated. The centroid of the receptor will be used instead.")
                         # Force the next iteration
                         continue
 
@@ -342,7 +345,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
                     break
                 except Exception as e:
                     # Print the error
-                    octools.print_error(f"Problems parsing the reference ligand file: {ref_ligand}. Error: {e}")
+                    ocprint.print_error(f"Problems parsing the reference ligand file: {ref_ligand}. Error: {e}")
         
         # Check if the target centroid is still None
         if targetCentroid is None:
@@ -384,7 +387,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
     # Set the output path
     fout = f"{path}/p2rank"
     # Create the p2rank output dir
-    _ = octools.safe_create_dir(fout)
+    _ = ocff.safe_create_dir(fout)
     # Parameterizing box count
     boxCount = len(glob(f"{fout}/box*.pdb"))
     # If overwrite mode is on or there is no box in the p2rank output, p2rank will run
@@ -392,7 +395,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
         # Run p2rank
         __run_p2rank(path, fin, overwrite=overwrite)
     else:
-        octools.print_info(f"The protein '{path}' already has its p2rank output generated, skipping its execution.")
+        ocprint.print_info(f"The protein '{path}' already has its p2rank output generated, skipping its execution.")
     '''
 
     # For each dir to be processed
@@ -409,7 +412,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
                 # Create the vina inputs from the boxes
                 ocgnina.gen_gnina_conf(f"{processDir}/boxes/box0.pdb", f"{processDir}/sminaFiles/conf_smina.conf", preparedReceptorPdbqt)
         else:
-            octools.print_info(f"The protein '{processDir}' already has its gnina file generated, skipping its execution.")
+            ocprint.print_info(f"The protein '{processDir}' already has its gnina file generated, skipping its execution.")
         
         # If overwrite mode is on or there is not the same amount of box files as folders in vinaFiles folder
         if boxCount == 0 or len(glob(f"{processDir}/vinaFiles/*")) != boxCount or len(glob(f"{processDir}/vinaFiles/*")) == 0 or overwrite:
@@ -420,7 +423,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
                 # Create the vina inputs from the boxes
                 ocvina.generate_vina_files_database(processDir, preparedReceptorPdbqt, boxPath = f"{processDir}/boxes")
         else:
-            octools.print_info(f"The protein '{processDir}' already has its vina file generated, skipping its execution.")
+            ocprint.print_info(f"The protein '{processDir}' already has its vina file generated, skipping its execution.")
 
         # If overwrite mode is on or there is not the same amount of box files as folders in plantsFiles folder
         if boxCount == 0 or len(glob(f"{processDir}/plantsFiles/*")) != boxCount or len(glob(f"{processDir}/plantsFiles/*")) == 0 or overwrite:
@@ -433,7 +436,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
                 # Create the PLANTS inputs from the boxes
                 ocplants.generate_plants_files_database(processDir, preparedReceptorMol2, fligand, spacing, boxPath = f"{processDir}/boxes")
         else:
-            octools.print_info(f"The protein '{processDir}' already has its PLANTS file generated, skipping its execution.")
+            ocprint.print_info(f"The protein '{processDir}' already has its PLANTS file generated, skipping its execution.")
 
         # If overwrite mode is on or there not any conf file in the sminaFiles folder
         if len(glob(f"{processDir}/sminaFiles/*.conf")) == 0 or overwrite:
@@ -444,7 +447,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
                 # Create the smina inputs
                 ocsmina.gen_smina_conf(f"{processDir}/boxes/box0.pdb", f"{processDir}/sminaFiles/conf_smina.conf", preparedReceptorPdbqt)
         else:
-            octools.print_info(f"The protein '{processDir}' already has its smina file generated, skipping its execution.")
+            ocprint.print_info(f"The protein '{processDir}' already has its smina file generated, skipping its execution.")
 
     return errors.ok()
 
@@ -466,7 +469,7 @@ def __thread_prepare(arguments: Tuple[str, bool, str, bool, float]) -> int:
     None
     '''
     # Redirect all prints to tqdm.write
-    with octools.redirect_to_tqdm():
+    with ocbasetools.redirect_to_tqdm():
         # Call core prepare function (shared between thread and no thread)
         return __core_prepare(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4])
 
@@ -516,8 +519,8 @@ def __prepare_parallel(paths: List[str], overwrite: bool, archive: str, sanitize
                 gc.collect()
     except IOError as e:
         errMsg = f"Problem while preparing {archive}. Exception: {e}"
-        octools.print_error_log(errMsg, f"{logdir}/{archive}_prepare_report.log")
-        octools.print_error(errMsg)
+        ocprint.print_error_log(errMsg, f"{logdir}/{archive}_prepare_report.log")
+        ocprint.print_error(errMsg)
     
     return None
 
@@ -551,7 +554,7 @@ def __prepare_no_parallel(paths: List[str], overwrite: bool, archive: str, sanit
     '''
 
     # Redirect all prints to tqdm.write
-    with octools.redirect_to_tqdm():
+    with ocbasetools.redirect_to_tqdm():
         for path in tqdm(iterable=paths, total=len(paths), desc=desc):
             # Call the core prepare function
             __core_prepare(path, overwrite, archive, sanitize, spacing)
@@ -614,7 +617,7 @@ def prepare(paths: Union[List[str], str], overwrite: bool, archive: str, sanitiz
     # If the path is a list
     if isinstance(paths, list):
         # Backup log
-        octools.backup_log(f"{archive}_prepare_report")
+        oclogging.backup_log(f"{archive}_prepare_report")
         
         # Set the description
         label = f"Preparing {archive}"

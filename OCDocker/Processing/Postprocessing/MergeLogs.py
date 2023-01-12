@@ -5,7 +5,6 @@
 import errno
 import gc
 import os
-import time
 import vaex
 
 import numpy as np
@@ -20,7 +19,9 @@ from OCDocker.Initialise import *
 
 import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
-import OCDocker.Toolbox as octools
+import OCDocker.Toolbox.Basetools as ocbasetools
+import OCDocker.Toolbox.Logging as oclogging
+import OCDocker.Toolbox.Printing as ocprint
 
 # License
 ###############################################################################
@@ -49,7 +50,6 @@ import OCDocker.Processing.Postprocessing.MergeLogs as ocmergelogs
 
 # Classes
 ###############################################################################
-
 
 # Functions
 ###############################################################################
@@ -146,7 +146,7 @@ def __thread_merge_descriptors_in_dataframe_parallel(arguments: Tuple[Tuple[str,
     '''
 
     # Redirect all prints to tqdm.write
-    with octools.redirect_to_tqdm():
+    with ocbasetools.redirect_to_tqdm():
         # Call the core read log function passing the arguments correctly
         return __core_merge_descriptors_in_dataframe(arguments[0])
 
@@ -191,8 +191,8 @@ def __merge_descriptors_in_dataframe_parallel(dirs: List[Tuple[str, str]], desc:
                 # Clear the memory
                 gc.collect()
     except IOError as e:
-        octools.print_error_log(f"Problem while mergin descriptors in parallel. Exception: {e}", f"{logdir}/read_log_ERROR_report.log")
-        octools.print_error(f"Problem while mergin descriptors in parallel. Exception: {e}")
+        ocprint.print_error_log(f"Problem while mergin descriptors in parallel. Exception: {e}", f"{logdir}/read_log_ERROR_report.log")
+        ocprint.print_error(f"Problem while mergin descriptors in parallel. Exception: {e}")
 
     return vaex.concat(ptnList) # type: ignore
 
@@ -220,7 +220,7 @@ def __merge_descriptors_in_dataframe_no_parallel(dirs: List[Tuple[str, str]], de
     ptnList = []
 
     # Redirect all prints to tqdm.write
-    with octools.redirect_to_tqdm():
+    with ocbasetools.redirect_to_tqdm():
         for dir in tqdm(iterable = dirs, total = len(dirs), desc = desc):
             # Call the core read log function (shared between parallel and not parallel) and store the data into the DataFrame
             ptnList.append(__core_merge_descriptors_in_dataframe(dir))
@@ -273,7 +273,7 @@ def merge_descriptors_in_dataframe(paths: Union[List[Tuple[str, str]], List[Tupl
     # If the path is a list
     if isinstance(paths, list):
         # If logfile exists, backup it
-        octools.backup_log("read_log_ERROR_report")
+        oclogging.backup_log("read_log_ERROR_report")
 
         # Set the label
         label = f"Processing {archive}"

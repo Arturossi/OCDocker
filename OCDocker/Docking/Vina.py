@@ -1,5 +1,15 @@
 #!/usr/lib/python3
 
+# Description
+###############################################################################
+'''
+Sets of classes and functions that are used to prepare vina files and run it.
+
+They are imported as:
+
+import OCDocker.Docking.Vina as ocvina
+'''
+
 # Imports
 ###############################################################################
 import errno
@@ -7,7 +17,6 @@ import json
 import os
 
 import numpy as np
-import pandas as pd
 
 from Bio.PDB import *
 from typing import Dict, List, Tuple, Union
@@ -16,8 +25,12 @@ from OCDocker.Initialise import *
 
 import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
-import OCDocker.Toolbox as octools
-
+import OCDocker.Toolbox.Conversion as occonversion
+import OCDocker.Toolbox.FilesFolders as ocff
+import OCDocker.Toolbox.IO as ocio
+import OCDocker.Toolbox.Printing as ocprint
+import OCDocker.Toolbox.Running as ocrun
+import OCDocker.Toolbox.Validation as ocvalidation
 
 # License
 ###############################################################################
@@ -32,16 +45,6 @@ Av. Carlos Chagas Filho 373 - CCS - bloco G1-19,
 Cidade Universitária - Rio de Janeiro, RJ, CEP: 21941-902
 E-mail address: arturossi10@gmail.com
 This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
-'''
-
-# Description
-###############################################################################
-'''
-Sets of classes and functions that are used to prepare vina files and run it.
-
-They are imported as:
-
-import OCDocker.Docking.Vina as ocvina
 '''
 
 # Classes
@@ -102,7 +105,7 @@ class Vina:
         if type(ligand) == ocl.Ligand:
             self.inputLigand = ligand
             # Create the plantsFiles folder
-            _ = octools.safe_create_dir(os.path.join(os.path.dirname(ligand.path), "plantsFiles"))
+            _ = ocff.safe_create_dir(os.path.join(os.path.dirname(ligand.path), "plantsFiles"))
         else:
             errors.wrong_type(f"The ligand '{ligand}' has not a supported type. Expected 'ocl.Ligand' but got {type(ligand)} instead.", level="error")
             return None
@@ -216,7 +219,7 @@ class Vina:
         outputLigandPath = f"{os.path.dirname(ligandPath)}/{os.path.splitext(os.path.basename(ligandPath))[0]}.mol2"
 
         # Process the ligand
-        octools.convertMols(ligandPath, outputLigandPath)
+        occonversion.convertMols(ligandPath, outputLigandPath)
 
         return outputLigandPath
 
@@ -259,8 +262,8 @@ class Vina:
         '''
 
         # Print verboosity
-        octools.printv(f"Running vina using the '{self.config}' configurations.")
-        return octools.run(self.vinaCmd, logFile=self.vinaLog)
+        ocprint.printv(f"Running vina using the '{self.config}' configurations.")
+        return ocrun.run(self.vinaCmd, logFile=self.vinaLog)
 
     def run_prepare_ligand(self, logFile: str = "", useOpenBabel: bool = False) -> Union[int, str, Tuple[int, str]]:
         '''Run 'prepare_ligand4' or openbabel to prepare the ligand.
@@ -283,11 +286,11 @@ class Vina:
         '''
 
         # Print verboosity
-        octools.printv(f"Running '{prepare_ligand}' for '{self.inputLigandPath}'.")
+        ocprint.printv(f"Running '{prepare_ligand}' for '{self.inputLigandPath}'.")
         # If True, use openbabel
         if useOpenBabel:
-            return octools.convertMols(self.inputLigandPath, self.preparedLigand)
-        return octools.run(self.prepareLigandCmd, logFile=logFile, cwd=os.path.dirname(self.inputLigandPath))
+            return occonversion.convertMols(self.inputLigandPath, self.preparedLigand)
+        return ocrun.run(self.prepareLigandCmd, logFile=logFile, cwd=os.path.dirname(self.inputLigandPath))
 
     def run_prepare_receptor(self, logFile:str = "", useOpenBabel:bool = False) -> Union[int, str, Tuple[int, str]]:
         '''Run 'prepare_receptor4' or openbabel to prepare the receptor.
@@ -310,11 +313,11 @@ class Vina:
         '''
 
         # Print verboosity
-        octools.printv(f"Running '{prepare_receptor}' for '{self.inputReceptorPath}'.")
+        ocprint.printv(f"Running '{prepare_receptor}' for '{self.inputReceptorPath}'.")
         # If True, use openbabel
         if useOpenBabel:
-            return octools.convertMols(self.inputReceptorPath, self.preparedReceptor)
-        return octools.run(self.prepareReceptorCmd, logFile=logFile, cwd=os.path.dirname(self.inputReceptorPath))
+            return occonversion.convertMols(self.inputReceptorPath, self.preparedReceptor)
+        return ocrun.run(self.prepareReceptorCmd, logFile=logFile, cwd=os.path.dirname(self.inputReceptorPath))
 
     def print_attributes(self) -> None:
         '''Print the class attributes.
@@ -376,7 +379,7 @@ def box_to_vina(boxFile: str, confFile: str, receptor: str) -> int:
     None
     '''
 
-    octools.printv(f"Converting the box file '{boxFile}' to Vina conf file as '{confFile}' file.")
+    ocprint.printv(f"Converting the box file '{boxFile}' to Vina conf file as '{confFile}' file.")
     # Test if the file boxFile exists
     if not os.path.exists(boxFile):
         return errors.file_do_not_exist(message=f"The box file in the path {boxFile} does not exist! Please ensure that the file exists and the path is correct.", level="error")
@@ -442,9 +445,9 @@ def run_prepare_ligand(inputLigandPath: str, outputLigand: str, logFile: str = "
     # Create the command list
     cmd = [pythonsh, prepare_ligand, "-l", inputLigandPath, "-C", "-o", outputLigand]
     # Print verboosity
-    octools.printv(f"Running '{prepare_ligand}' for '{inputLigandPath}'.")
+    ocprint.printv(f"Running '{prepare_ligand}' for '{inputLigandPath}'.")
     # Run the command
-    return octools.run(cmd, logFile=logFile, cwd = os.path.dirname(inputLigandPath))
+    return ocrun.run(cmd, logFile=logFile, cwd = os.path.dirname(inputLigandPath))
 
 def run_prepare_receptor(inputReceptorPath: str, outputReceptor: str, logFile: str = ""):
     '''Convert a box (DUDE like format) to vina input.
@@ -471,9 +474,9 @@ def run_prepare_receptor(inputReceptorPath: str, outputReceptor: str, logFile: s
     # Create the command list
     cmd = [pythonsh, prepare_receptor, "-r", inputReceptorPath, "-o", outputReceptor, "-A", "hydrogens", "-U", "nphs_lps_waters"]
     # Print verboosity
-    octools.printv(f"Running '{prepare_receptor}' for '{inputReceptorPath}'.")
+    ocprint.printv(f"Running '{prepare_receptor}' for '{inputReceptorPath}'.")
     # Run the command
-    return octools.run(cmd, logFile=logFile)
+    return ocrun.run(cmd, logFile=logFile)
 
 def run_vina(confFile: str, ligand: str, outpath: str, logFile: str = ""):
     '''Run vina.
@@ -502,9 +505,9 @@ def run_vina(confFile: str, ligand: str, outpath: str, logFile: str = ""):
     # Create the command list
     cmd = [vina, "--config", confFile, "--ligand", ligand, "--out", outpath, "--cpu", "1"]
     # Print verboosity
-    octools.printv(f"Running vina using the '{confFile}' configurations.")
+    ocprint.printv(f"Running vina using the '{confFile}' configurations.")
     # Run the command
-    return octools.run(cmd, logFile=logFile)
+    return ocrun.run(cmd, logFile=logFile)
 
 def generate_vina_files_database(path: str, protein: str, boxPath: str = "") -> None:
     '''Generate all vina required files for provided protein.
@@ -534,7 +537,7 @@ def generate_vina_files_database(path: str, protein: str, boxPath: str = "") -> 
       # Set is as the path + p2rank
       boxPath = f"{path}/p2rank"
     # Create the vina folder inside protein's directory
-    _ = octools.safe_create_dir(vinaPath)
+    _ = ocff.safe_create_dir(vinaPath)
     
     # TODO: Implement multiple box support here
     box = f"{boxPath}/box0.pdb"
@@ -581,7 +584,7 @@ def read_log(path: str) -> Dict[str, List[Union[str, float]]]:
             # Try except to avoid broken pipe errors
             try:
                 # Read the file reversely
-                for line in octools.lazyread_reverse_order_mmap(path):
+                for line in ocio.lazyread_reverse_order_mmap(path):
                     # If a stop line is found, means that the last read line is the one that is wanted
                     if line.startswith("-----+"):
                         # Split the last line
@@ -594,8 +597,8 @@ def read_log(path: str) -> Dict[str, List[Union[str, float]]]:
                     lastReadLine = line
             except IOError as e:
                 if e.errno == errno.EPIPE:
-                    octools.print_error(f"Problems while reading file '{path}'. Error: {e}")
-                    octools.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{logdir}/vina_read_log_ERROR.log")
+                    ocprint.print_error(f"Problems while reading file '{path}'. Error: {e}")
+                    ocprint.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{logdir}/vina_read_log_ERROR.log")
             
             # Check if the len of the data["vina_affinity"] is 0
             if len(data["vina_pose"]) == 0:
@@ -642,7 +645,7 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
     # Check if the file does not exists or if the overwrite flag is true
     if not os.path.isdir(digestPath) or overwrite:
         # Check if the digest extension is supported
-        if octools.validate_digest_extension(digestPath, digestFormat):
+        if ocvalidation.validate_digest_extension(digestPath, digestFormat):
         
             # Create the digest variable
             digest = None
@@ -664,7 +667,7 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
                         return errors.file_do_not_exist(f"Could not read the digest file '{digestPath}'.", "error")
             else:
                 # Since it does not exists, create it
-                digest = octools.empty_digest(digestPath, overwrite)
+                digest = ocff.empty_docking_digest(digestPath, overwrite)
 
             # Read the docking object log to generate the docking digest
             dockingDigest = read_log(logPath)

@@ -1,0 +1,254 @@
+#!/usr/lib/python3
+
+# Description
+###############################################################################
+'''
+Sets of classes and functions that are used to manipulate and create files and
+folders.
+
+They are imported as:
+
+import OCDocker.Toolbox.FilesFolders as ocff
+'''
+
+# Imports
+###############################################################################
+import json
+import os
+import pickle
+import tarfile
+
+import numpy as np
+
+from Bio.PDB import * 
+from tqdm import tqdm
+from typing import Any, Dict, List, Union
+
+import OCDocker.Toolbox.Basetools as ocbasetools
+import OCDocker.Toolbox.Validation as ocvalidation
+import OCDocker.Toolbox.Printing as ocprint
+
+from OCDocker.Initialise import *
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Torres, P.H.M.;
+[The Federal University of Rio de Janeiro]
+Contact info:
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+Av. Carlos Chagas Filho 373 - CCS - bloco G1-19,
+Cidade Universitária - Rio de Janeiro, RJ, CEP: 21941-902
+E-mail address: arturossi10@gmail.com
+This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
+'''
+
+# Classes
+###############################################################################
+
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##
+def empty_docking_digest(digestPath: str, overwrite: bool = False, digestFormat : str = "") -> Union[Dict[str, List[float]], int]:
+    """Create an empty digest file.
+
+    Parameters
+    ----------
+    digestPath : str
+        Where to store the digest file.
+    overwrite : bool, optional
+        If True, overwrites the output files if they already exist. (default is False)
+    digestFormat : str, optional
+        The format of the digest file. The options are: [ '' (no output, default), json, hdf5 (not implemented) ]
+
+    Returns
+    -------
+    Dict[str, List[float]] | int
+        The empty digest object or the error code.
+
+    Raises
+    ------
+    None
+    """
+
+    # Create the empty digest variable
+    digest = {
+        "gnina_pose": [np.NaN],
+        "gnina_affinity": [np.NaN],
+        "smina_pose": [np.NaN],
+        "smina_affinity": [np.NaN], 
+        "PLANTS_TOTAL_SCORE": [np.NaN],
+        "PLANTS_SCORE_RB_PEN": [np.NaN],
+        "PLANTS_SCORE_NORM_HEVATOMS": [np.NaN],
+        "PLANTS_SCORE_NORM_CRT_HEVATOMS": [np.NaN], 
+        "PLANTS_SCORE_NORM_WEIGHT": [np.NaN],
+        "PLANTS_SCORE_NORM_CRT_WEIGHT": [np.NaN],
+        "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [np.NaN],
+        "vina_pose": [np.NaN],
+        "vina_affinity": [np.NaN]
+        }
+
+    # Check if the digest format is not empty
+    if digestFormat != "":
+        # Check if the file does not exists or if the overwrite flag is true
+        if not os.path.isdir(digestPath) or overwrite:
+            # Check if the digest extension is supported
+            if ocvalidation.validate_digest_extension(digestPath, digestFormat):
+                # Write the digest file
+                if digestFormat == "json":
+                    # Write the json file
+                    try:
+                        # Open the json file in write mode
+                        with open(digestPath, "w") as f:
+                            # Dump the data
+                            json.dump(digest, f)
+                    except Exception as e:
+                        return errors.write_file(f"Could not write the digest file '{digestPath}'.", "error")
+    return digest
+
+def to_pickle(filePath: str, data: Any) -> int:
+    '''Pickle a dict in a given path.
+
+    Parameters
+    ----------
+    filePath : str
+        Path to the pickle file.
+    data : Any
+        Data to be pickled.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
+    '''
+
+    try:
+        with open(filePath, 'wb') as handle:
+            pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    except Exception as e:
+        return errors.write_file(f"Problems while pickling the file '{filePath}'. Error: {e}")
+    return errors.ok()
+
+def from_pickle(filePath: str) -> Union[int, Any]:
+    '''Unpickle a pickle file into a dict.
+
+    Parameters
+    ----------
+    filePath : str
+        Path to the pickle file.
+
+    Returns
+    -------
+    int | Any
+        The exit code of the command (based on the Error.py code table) if fails or the unpickled data otherwise.
+
+    Raises
+    ------
+    None
+    '''
+
+    data = None
+    try:
+        with open(filePath, 'rb') as handle:
+            data = pickle.load(handle)
+    except Exception as e:
+        return errors.read_file(f"Problems while unpickling the file '{filePath}'. Error: {e}")
+    return data
+
+
+def safe_create_dir(dirname: str) -> int:
+    '''Create a dir if not exists.
+
+    Parameters
+    ----------
+    dirname : str
+        The dir to be created.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
+    '''
+
+    # Try to create
+    try:
+        # If file does not exists
+        if not os.path.isdir(dirname):
+            # Create it
+            os.mkdir(dirname)
+            # Print verbosity
+            if args.output_level >= 3:
+                return errors.ok(f"Successfully created the directory {dirname}")
+            return errors.ok()
+        else:
+            # It exists
+            return errors.dir_exists(message=f"The dir '{dirname}' already exists!", level="warn")
+    except Exception as e:
+        # Some error has occurred
+        return errors.create_dir(message=f"Problem found while creating the dir {dirname}: {e}", level="error")
+    # This should never appear since all the other paths ends in some kind of return
+    return errors.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while creating a dir safetly.", level="error")
+
+def untar(fname: str, out_path: str = ".", delete: bool = False) -> int:
+    '''Untar a file.
+
+    Parameters
+    ----------
+    fname : str
+        The file to be untarred.
+    out_path : str, optional
+        The path where the file will be untarred.
+        Default is the current directory.
+    delete : bool, optional
+        If True, the tar file will be deleted after the untar process.
+        Default is False.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
+    '''
+
+    # Print verboosity
+    ocprint.printv(f"Untarring file '{fname}' to the output '{out_path}'")
+    # Check if the file has the right extensions
+    if fname.endswith("tar.gz") or fname.endswith(".tgz") or fname.endswith(".gz"):
+        try:
+            ocprint.printv("Preparing to untar the file...")
+            # open your tar.gz file
+            with tarfile.open(name=fname) as tar:
+                # Redirect output to tqdm.write
+                with ocbasetools.redirect_to_tqdm():
+                    # Go over each member
+                    for member in tqdm(iterable=tar.getmembers(), total=len(tar.getmembers())):
+                        # Extract member
+                        tar.extract(member=member, path=out_path)
+            # Report success on untarring the file
+            _ = errors.ok(f"The file {fname} has been {clrs['g']}successfully{clrs['n']} untarred to the dir {out_path}!")
+            # If delete flag is set, delete file
+            if delete:
+                #shutil.rmtree(fname) # remove the files
+                os.remove(fname) # remove the files
+                return errors.ok(f"The file {fname} has been {clrs['y']}deleted!{clrs['n']}") # Report success on deleting the file
+            return errors.ok()
+        except Exception as e:
+            return errors.untar_file(message=f"{clrs['r']}Failed{clrs['n']} to untar the file {fname}.\n\n{clrs['r']}Error{clrs['n']}: {e}", level="error")
+    else:
+        # No supported extension has been provided
+        return errors.unsupported_extension(message=f"The file {fname} is not a tar.gz file. {clrs['y']}Aborting execution{clrs['n']}", level="error")
