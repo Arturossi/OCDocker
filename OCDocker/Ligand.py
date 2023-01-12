@@ -2229,7 +2229,7 @@ class Ligand:
                 lock = Lock()
                 with lock:
                     # Open the file for writing
-                    with open(outputJson, "w") as outfile:
+                    with open(outputJson, 'w') as outfile:
                         # Write the json file
                         json.dump(self.__safe_to_dict(), outfile)
                 return errors.ok()
@@ -2490,7 +2490,7 @@ class Ligand:
                 os.mkdir(savePath)
 
         # Write out the box file (following the one given in the DUD-E database)
-        with open(f"{savePath}/box0.pdb", "w") as f:
+        with open(f"{savePath}/box0.pdb", 'w') as f:
             f.write(f"HEADER    CORNERS OF BOX      {min_x}{min_y}{min_z}{max_x}{max_y}{max_z}\n")
             f.write(f"REMARK    CENTER (X Y Z)      {center_x}{center_y}{center_z}\n")
             f.write(f"REMARK    DIMENSIONS (X Y Z)  {dim_x}{dim_y}{dim_z}\n")
@@ -2798,7 +2798,7 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
     # Try to read the file
     try:
         # Open the json file in read mode
-        with open(path, "r") as f:
+        with open(path, 'r') as f:
             # Load the data
             data = json.load(f)
 

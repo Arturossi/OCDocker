@@ -133,7 +133,7 @@ def read_index() -> Union[Dict[str, List[str]], None]:
                     "Ki/Kd_order": []
                     }
         # Open the file in read mode
-        with open(indexFile, "r") as f:
+        with open(indexFile, 'r') as f:
             # This will loop the entire file (better than load the whole file in memory... imagine a huge file being loaded...)
             while True:
                 # Read one line

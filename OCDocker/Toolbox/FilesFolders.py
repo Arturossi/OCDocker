@@ -15,6 +15,7 @@ import OCDocker.Toolbox.FilesFolders as ocff
 ###############################################################################
 import json
 import os
+import h5py
 import pickle
 import tarfile
 
@@ -24,8 +25,8 @@ from tqdm import tqdm
 from typing import Any, Dict, List, Union
 
 import OCDocker.Toolbox.Basetools as ocbasetools
-import OCDocker.Toolbox.Validation as ocvalidation
 import OCDocker.Toolbox.Printing as ocprint
+import OCDocker.Toolbox.Validation as ocvalidation
 
 from OCDocker.Initialise import *
 
@@ -102,15 +103,89 @@ def empty_docking_digest(digestPath: str, overwrite: bool = False, digestFormat 
                     # Write the json file
                     try:
                         # Open the json file in write mode
-                        with open(digestPath, "w") as f:
+                        with open(digestPath, 'w') as f:
                             # Dump the data
                             json.dump(digest, f)
                     except Exception as e:
                         return errors.write_file(f"Could not write the digest file '{digestPath}'.", "error")
     return digest
 
+def to_hdf5(filePath: str, data: Any) -> int:
+    '''Save a data in a hdf5 file. If the data is a dict, use its keys as hdf5 key files. If is a list or tuple, use its indexes as keys. Otherwise, use the key 'data'.
+
+    Parameters
+    ----------
+    filePath : str
+        Path to the hdf5 file.
+    data : Any
+        Data to be saved.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
+    '''
+
+    try:
+        with h5py.File(filePath, 'wb') as hf:
+            # Check if the data is a dict
+            if isinstance(data, dict):
+                # Iterate over the keys
+                for key in data:
+                    # Save the data
+                    hf.create_dataset(key, data = data[key])
+            elif isinstance(data, (list, tuple)):
+                # Iterate over the indexes
+                for i in range(len(data)):
+                    # Save the data
+                    hf.create_dataset(str(i), data = data[i])
+            else:
+                # Save the data
+                hf.create_dataset("data", data = data)
+    except Exception as e:
+        return errors.write_file(f"Problems while saving the hdf5 file '{filePath}'. Error: {e}")
+    return errors.ok()
+    
+def from_hdf5(filePath: str) -> Union[None, Any]:
+    '''Read a data from a hdf5 file.
+
+    Parameters
+    ----------
+    filePath : str
+        Path to the hdf5 file.
+
+    Returns
+    -------
+    None | Any
+        The data read from the file or None if there was an error.
+
+    Raises
+    ------
+    None
+    '''
+
+    # Check if the file does not exists
+    if not os.path.isfile(filePath):
+        # Verbose its inexistence
+        ocprint.printv(f"The hdf5 file '{filePath}' does not exists.")
+        # Return an empty dict
+        return {}
+
+    data = None
+    try:
+        with h5py.File(filePath, 'rb') as hf:
+            # Read the whole file
+            data = hf[:]
+    except Exception as e:
+        _ = errors.read_file(f"Problems while reading the hdf5 file '{filePath}'. Error: {e}")
+    return data
+
 def to_pickle(filePath: str, data: Any) -> int:
-    '''Pickle a dict in a given path.
+    '''Pickle an object in a given path.
 
     Parameters
     ----------
@@ -136,8 +211,8 @@ def to_pickle(filePath: str, data: Any) -> int:
         return errors.write_file(f"Problems while pickling the file '{filePath}'. Error: {e}")
     return errors.ok()
 
-def from_pickle(filePath: str) -> Union[int, Any]:
-    '''Unpickle a pickle file into a dict.
+def from_pickle(filePath: str) -> Union[None, Any]:
+    '''Unpickle a pickle file into an object.
 
     Parameters
     ----------
@@ -146,8 +221,8 @@ def from_pickle(filePath: str) -> Union[int, Any]:
 
     Returns
     -------
-    int | Any
-        The exit code of the command (based on the Error.py code table) if fails or the unpickled data otherwise.
+    None | Any
+        The object if success or None otherwise.
 
     Raises
     ------
@@ -159,9 +234,8 @@ def from_pickle(filePath: str) -> Union[int, Any]:
         with open(filePath, 'rb') as handle:
             data = pickle.load(handle)
     except Exception as e:
-        return errors.read_file(f"Problems while unpickling the file '{filePath}'. Error: {e}")
+        _ = errors.read_file(f"Problems while unpickling the file '{filePath}'. Error: {e}")
     return data
-
 
 def safe_create_dir(dirname: str) -> int:
     '''Create a dir if not exists.

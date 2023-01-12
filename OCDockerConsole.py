@@ -105,7 +105,7 @@ dbsampledir = f"{basePath}/data/ocdb/DUDEz/AA2AR"
 
 import pickle
 ligands = []
-with (open("ligands.pickle", "rb")) as openfile:
+with (open("ligands.pickle", 'rb')) as openfile:
     while True:
         try:
             ligands = pickle.load(openfile)

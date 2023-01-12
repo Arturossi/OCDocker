@@ -416,15 +416,17 @@ def run_dock(archive: str, dockingAlgorithm: str, digestFormat: str = "json", ov
     # Run docking
     return ocdock.run_dock(complexList, archive, dockingAlgorithm, overwrite, digestFormat)
 
-def read_logs(archive: str, picklePath: str = "") -> Union[Dict[str, vdf.DataFrameLocal], None]:
+def read_logs(archive: str, saveChunk: int = 100, overwrite: bool = False) -> Union[Dict[str, vdf.DataFrameLocal], None]:
     '''Reads database logfiles returning a dict of dicts of vdf.DataFrameLocal.
 
     Parameters
     ----------
     archive : str
         The archive to be prepared. The options are [dudez, pdbbind].
-    picklePath : str, optional
-        The path to the pickle file. The default is "". If the picklePath is not empty, the function will write the data to the pickle file, otherwise will return the data.
+    saveChunk : int, optional
+        The number of lines to be read before saving the data. The default is 100.
+    overwrite : bool, optional
+        If True overwrites the files, if False does not overwrite the files. The default is False.
 
     Returns
     -------
@@ -446,12 +448,14 @@ def read_logs(archive: str, picklePath: str = "") -> Union[Dict[str, vdf.DataFra
     else:
         ocprint.print_error(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}.")
         return None
+    
+    data = []
         
-    # Create an empty list for all directories to be processed
-    processDirs = []
-
     # For each dir in chosenArchive
     for ptnDir in glob(f"{chosenArchive}/*"):
+        # Create an empty list for all directories to be processed
+        processDirs = []
+
         # Check if is a dir (just in case) and if its name is not one of the ones we want to skip
         if os.path.isdir(ptnDir) and os.path.basename(ptnDir.split(os.path.sep)[-1]) not in ['index']:
             ligands = f"{ptnDir}/compounds/ligands"
@@ -463,23 +467,21 @@ def read_logs(archive: str, picklePath: str = "") -> Union[Dict[str, vdf.DataFra
             processDirs += [(processDir, "decoy") for processDir in glob(f"{decoys}/*") if os.path.isdir(processDir)]
             processDirs += [(processDir, "candidate") for processDir in glob(f"{candidates}/*") if os.path.isdir(processDir)]
         
-    # Read the logs
-    data = ocreadlogs.read_logs(processDirs, archive)
+        # Read the logs and concatenate the results with data
+        innerData = ocreadlogs.read_logs(processDirs, archive, saveChunk = saveChunk, overwrite = overwrite)
 
-    # If user asked for a pickle file
-    if picklePath:
         # Check if data is not empty
-        if data:
+        if innerData:
             # Try to write it
             try:
-                ocff.to_pickle(picklePath, data)
-                ocprint.print_success(f"The file '{picklePath}' has been successfully written.")
+                ocff.to_pickle(pickleDir, innerData)
+                ocprint.print_success(f"The file '{pickleDir}' has been successfully written.")
             except Exception as e:
-                ocprint.print_error(f"Could not write the file '{picklePath}'. Error: {e}")
+                ocprint.print_error(f"Could not write the file '{pickleDir}'. Error: {e}")
         else:
-            ocprint.print_warning(f"The data object is not defined! There is no reason to write it as a pickle. Aborting...")
-        # Return nothing
-        return None
+            ocprint.print_warning(f"The data object is not defined! There is no reason to write it as a pickle. Skipping...")
+            continue
+
     # Return the data
     return data
 

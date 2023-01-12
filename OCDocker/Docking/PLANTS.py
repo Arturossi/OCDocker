@@ -594,7 +594,7 @@ def write_config_file(confFile: str, preparedReceptor: str, preparedLigand: str,
     '''
 
     try:
-        with open(confFile, "w") as f:
+        with open(confFile, 'w') as f:
             #f.write("# scoring function and search settings\n")
             f.write("scoring_function chemplp\n")
             f.write(f"search_speed {plants_search_speed}\n")
@@ -661,7 +661,7 @@ def get_binding_site(boxFile: str, spacing: float = 2.9) -> Union[Tuple[Tuple[fl
         
     try:
         # Open the box file
-        with open(str(boxFile), "r") as box_file:
+        with open(str(boxFile), 'r') as box_file:
             # For each line in the file
             for line in box_file:
                 # If it starts with REMARK
@@ -845,7 +845,7 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
                     # Read the json file
                     try:
                         # Open the json file in read mode
-                        with open(digestPath, "r") as f:
+                        with open(digestPath, 'r') as f:
                             # Load the data
                             digest = json.load(f)
                             # Check if the digest variable is fine
@@ -872,7 +872,7 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
                 # Write the json file
                 try:
                     # Open the json file in write mode
-                    with open(digestPath, "w") as f:
+                    with open(digestPath, 'w') as f:
                         # Dump the data
                         json.dump(digest, f)
                 except Exception as e:

@@ -423,7 +423,7 @@ def gen_gnina_conf(boxFile: str, confFile: str, receptor: str) -> int:
 
     try:
         # Open the box file
-        with open(str(boxFile), "r") as box_file:
+        with open(str(boxFile), 'r') as box_file:
             # For each line in the file
             for line in box_file:
                 # If it starts with REMARK
@@ -781,7 +781,7 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
                     # Read the json file
                     try:
                         # Open the json file in read mode
-                        with open(digestPath, "r") as f:
+                        with open(digestPath, 'r') as f:
                             # Load the data
                             digest = json.load(f)
                             # Check if the digest variable is fine
@@ -808,7 +808,7 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
                 # Write the json file
                 try:
                     # Open the json file in write mode
-                    with open(digestPath, "w") as f:
+                    with open(digestPath, 'w') as f:
                         # Dump the data
                         json.dump(digest, f)
                 except Exception as e:

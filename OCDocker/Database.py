@@ -99,7 +99,7 @@ def __core_process_dudez(target: str, overwrite: bool) -> None:
         # Start the lock with statement
         with lock:
             # Process the ligands, splitting them into the multiple files
-            with open(f"{target}/{data}.smi", "r") as f:
+            with open(f"{target}/{data}.smi", 'r') as f:
                 for line in f:
                     # Get the smiles and name of the ligand
                     smiles, name = line.split()
@@ -119,7 +119,7 @@ def __core_process_dudez(target: str, overwrite: bool) -> None:
                         # Convert it to mol2 (NOTE: There are many molecules with SAME name... currently I am not handling this. I am just accounting the first molecule and discarding the others. IMPORTANT: Error messages WILL pop while processing the data here! They may be safe to ignore, I guess...)
                         _ = occonversion.convertMolsFromString(smiles, f"{targetc}/{data}/{name}/ligand.mol2")
                         # Save a smiles file (to avoid compatibility issues)
-                        with open(f"{targetc}/{data}/{name}/ligand.smi", "w") as f:
+                        with open(f"{targetc}/{data}/{name}/ligand.smi", 'w') as f:
                             f.write(f"{smiles}")
                     else:
                         ocprint.print_warning(f"File '{targetc}/{data}/{name}/ligand.mol2' already exists. Skipping...")
@@ -430,7 +430,7 @@ def update_DUDEz(overwrite: bool = False, download: bool = True, multiprocess: b
     # Initialize an empty list to store the targets
     targets = []
     # Read the targets into a list
-    with open(f"{tmpDir}/DUDE-Z_targets", "r") as f:
+    with open(f"{tmpDir}/DUDE-Z_targets", 'r') as f:
         targets = f.read().splitlines()
 
     # Check if the target list is empty

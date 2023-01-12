@@ -401,7 +401,7 @@ def __process_cluster(clustering, coordinates, fout, suffix = "", coordSystem = 
         center_z = " " * (8 - len(str(round(center_z, 3)))) + str(round(center_z, 3))
 
         # Write out the box file (following the one given in the DUD-E database)
-        with open(f"{fout}{folder}/box{index}{suffix}.pdb", "w") as f:
+        with open(f"{fout}{folder}/box{index}{suffix}.pdb", 'w') as f:
             f.write(f"HEADER    CORNERS OF BOX      {min_x}{min_y}{min_z}{max_x}{max_y}{max_z}\n")
             f.write(f"REMARK    CENTER (X Y Z)      {center_x}{center_y}{center_z}\n")
             f.write(f"REMARK    DIMENSIONS (X Y Z)  {dim_x}{dim_y}{dim_z}\n")
@@ -537,7 +537,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
         firstProbability = preatoms[0][1]
 
     # Read the .pdb file to capture the x/y/z coordinates
-    with open(filein, "r") as f:
+    with open(filein, 'r') as f:
         # For each line in the file
         for line in f:
             # If line start with the ATOM label
@@ -627,7 +627,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
 
         if debug:
             suffix = "na"
-            with open(f"{outpath}/statistics.txt", "a") as f:
+            with open(f"{outpath}/statistics.txt", 'a') as f:
                 f.write(f"{suffix}\t0\n")
         if verbose:
             print(f"No processing, the execution time is 0s.")
@@ -635,7 +635,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
         __process_cluster(None, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = 3 * spacing, boxMaxCutoff = boxMaxCutoff, boxMinCutoff = boxMinCutoff, percentCutoff = percentCutoff, volumeCutoff = volumeCutoff)
 
         if debug:
-            with open(f"{outpath}/statistics.txt", "a") as f:
+            with open(f"{outpath}/statistics.txt", 'a') as f:
                 f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
         if verbose:
             print(f"File processing time: {round(time.time() - start_time, 2)}s.\n")
@@ -647,7 +647,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
 
             if debug:
                 suffix = "na"
-                with open(f"{outpath}/statistics.txt", "a") as f:
+                with open(f"{outpath}/statistics.txt", 'a') as f:
                     f.write(f"{suffix}\t0\n")
             if verbose:
                 print(f"No processing, the execution time is 0s.")
@@ -655,7 +655,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
             __process_cluster(None, coordinates, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff, boxMinCutoff = boxMinCutoff, percentCutoff = percentCutoff, volumeCutoff = volumeCutoff)
 
             if debug:
-                with open(f"{outpath}/statistics.txt", "a") as f:
+                with open(f"{outpath}/statistics.txt", 'a') as f:
                     f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
             if verbose:
                 print(f"File processing time: {round(time.time() - start_time, 2)}s.\n")
@@ -674,7 +674,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
 
             if debug:
                 suffix = "ap"
-                with open(f"{outpath}/statistics.txt", "a") as f:
+                with open(f"{outpath}/statistics.txt", 'a') as f:
                     f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
             if verbose:
                 print(f"Affinity Propagation execution time: {round(time.time() - start_time, 2)}s.")
@@ -682,7 +682,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
             __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff, volumeCutoff = volumeCutoff)
 
             if debug:
-                with open(f"{outpath}/statistics.txt", "a") as f:
+                with open(f"{outpath}/statistics.txt", 'a') as f:
                     f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
             if verbose:
                 print(f"Total execution time for Affinity Propagation: {round(time.time() - start_time, 2)}s.\n")
@@ -701,7 +701,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
 
             if debug:
                 suffix = "ac"
-                with open(f"{outpath}/statistics.txt", "a") as f:
+                with open(f"{outpath}/statistics.txt", 'a') as f:
                     f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
             if verbose:
                 print(f" Agglomerative Clustering execution time: {round(time.time() - start_time, 2)}s.")
@@ -709,7 +709,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
             __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff, volumeCutoff = volumeCutoff)
 
             if debug:
-                with open(f"{outpath}/statistics.txt", "a") as f:
+                with open(f"{outpath}/statistics.txt", 'a') as f:
                     f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
             if verbose:
                 print(f"Total execution time for Agglomerative Clustering: {round(time.time() - start_time, 2)}s.\n")
@@ -728,7 +728,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
 
             if debug:
                 suffix = "bi"
-                with open(f"{outpath}/statistics.txt", "a") as f:
+                with open(f"{outpath}/statistics.txt", 'a') as f:
                     f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
             if verbose:
                 print(f"Birch execution time: {round(time.time() - start_time, 2)}s.")
@@ -736,7 +736,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
             __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff, volumeCutoff = volumeCutoff)
 
             if debug:
-                with open(f"{outpath}/statistics.txt", "a") as f:
+                with open(f"{outpath}/statistics.txt", 'a') as f:
                     f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
             if verbose:
                 print(f"Total execution time for Birch: {round(time.time() - start_time, 2)}s.\n")
@@ -755,7 +755,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
 
             if debug:
                 suffix = "db"
-                with open(f"{outpath}/statistics.txt", "a") as f:
+                with open(f"{outpath}/statistics.txt", 'a') as f:
                     f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
             if verbose:
                 print(f"DBSCAN execution time: {round(time.time() - start_time, 2)}s.")
@@ -763,7 +763,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
             __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff, volumeCutoff = volumeCutoff)
 
             if debug:
-                with open(f"{outpath}/statistics.txt", "a") as f:
+                with open(f"{outpath}/statistics.txt", 'a') as f:
                     f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
             if verbose:
                 print(f"Total execution time for DBSCAN: {round(time.time() - start_time, 2)}s.\n")
@@ -782,7 +782,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
 
             if debug:
                 suffix = "km"
-                with open(f"{outpath}/statistics.txt", "a") as f:
+                with open(f"{outpath}/statistics.txt", 'a') as f:
                     f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
             if verbose:
                 print(f"KMeans execution time: {round(time.time() - start_time, 2)}s.")
@@ -790,7 +790,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
             __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff, volumeCutoff = volumeCutoff)
 
             if debug:
-                with open(f"{outpath}/statistics.txt", "a") as f:
+                with open(f"{outpath}/statistics.txt", 'a') as f:
                     f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
             if verbose:
                 print(f"Total execution time for KMeans: {round(time.time() - start_time, 2)}s.\n")
@@ -810,7 +810,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
 
             if debug:
                 suffix = "ms"
-                with open(f"{outpath}/statistics.txt", "a") as f:
+                with open(f"{outpath}/statistics.txt", 'a') as f:
                     f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
             if verbose:
                 print(f"Mean Shift execution time: {round(time.time() - start_time, 2)}s.")
@@ -818,7 +818,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
             __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff, volumeCutoff = volumeCutoff)
 
             if debug:
-                with open(f"{outpath}/statistics.txt", "a") as f:
+                with open(f"{outpath}/statistics.txt", 'a') as f:
                     f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
             if verbose:
                 print(f"Total execution time for Mean Shift: {round(time.time() - start_time, 2)}s.\n")
@@ -837,7 +837,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
 
             if debug:
                 suffix = "mb"
-                with open(f"{outpath}/statistics.txt", "a") as f:
+                with open(f"{outpath}/statistics.txt", 'a') as f:
                     f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
             if verbose:
                 print(f"Mini Batch KMeans execution time: {round(time.time() - start_time, 2)}s.")
@@ -845,7 +845,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
             __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff, volumeCutoff = volumeCutoff)
 
             if debug:
-                with open(f"{outpath}/statistics.txt", "a") as f:
+                with open(f"{outpath}/statistics.txt", 'a') as f:
                     f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
             if verbose:
                 print(f"Total execution time for Mini Batch KMeans: {round(time.time() - start_time, 2)}s.\n")
@@ -864,7 +864,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
 
             if debug:
                 suffix = "op"
-                with open(f"{outpath}/statistics.txt", "a") as f:
+                with open(f"{outpath}/statistics.txt", 'a') as f:
                     f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
             if verbose:
                 print(f"OPTICS execution time: {round(time.time() - start_time, 2)}s.")
@@ -872,7 +872,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
             __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff, volumeCutoff = volumeCutoff)
 
             if debug:
-                with open(f"{outpath}/statistics.txt", "a") as f:
+                with open(f"{outpath}/statistics.txt", 'a') as f:
                     f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
             if verbose:
                 print(f"Total execution time for OPTICS: {round(time.time() - start_time, 2)}s.\n")
@@ -891,7 +891,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
 
             if debug:
                 suffix = "sc"
-                with open(f"{outpath}/statistics.txt", "a") as f:
+                with open(f"{outpath}/statistics.txt", 'a') as f:
                     f.write(f"{suffix}\t{round(time.time() - start_time, 2)}\n")
             if verbose:
                 print(f"Spectral Clustering execution time: {round(time.time() - start_time, 2)}s.")
@@ -899,7 +899,7 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
             __process_cluster(clustering, coordinatesFull, outpath, suffix = suffix, coordSystem = coordSystem, spacing = spacing, boxMaxCutoff = boxMaxCutoff, volumeCutoff = volumeCutoff)
 
             if debug:
-                with open(f"{outpath}/statistics.txt", "a") as f:
+                with open(f"{outpath}/statistics.txt", 'a') as f:
                     f.write(f"{suffix}+fp\t{round(time.time() - start_time, 2)}\n")
             if verbose:
                 print(f"Total execution time for Spectral Clustering: {round(time.time() - start_time, 2)}s.\n")

@@ -117,7 +117,7 @@ def make_only_ATOM_and_CRYST_pdb(structurePath: str) -> int:
     # Check if structurePath is a valid file
     if os.path.isfile(structurePath):
         # Open it (for cleaning)
-        with open(structurePath, "r") as pdbFile:
+        with open(structurePath, 'r') as pdbFile:
             # For each line in pdbFile
             for line in pdbFile:
                 if not line.startswith("CRYST1") and not hasCryst1:
@@ -139,7 +139,7 @@ def make_only_ATOM_and_CRYST_pdb(structurePath: str) -> int:
         # Start the lock with statement
         with lock:
             # Write the lines to the file
-            with open(structurePath, "w") as pdbFile:
+            with open(structurePath, 'w') as pdbFile:
                 # Write the lines list to the file
                 pdbFile.writelines(lines)
         

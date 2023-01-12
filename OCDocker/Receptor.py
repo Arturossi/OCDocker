@@ -192,7 +192,7 @@ class Receptor:
             self.__countAA = count_surface_AA(self.structure, self.path, self.__relativeASAcutoff)
 
             self.countA = self.__countAA["A"]
-            self.countR = self.__countAA["R"]
+            self.countR = self.__countAA['r']
             self.countN = self.__countAA["N"]
             self.countD = self.__countAA["D"]
             self.countC = self.__countAA["C"]
@@ -208,7 +208,7 @@ class Receptor:
             self.countP = self.__countAA["P"]
             self.countS = self.__countAA["S"]
             self.countT = self.__countAA["T"]
-            self.countW = self.__countAA["W"]
+            self.countW = self.__countAA['w']
             self.countY = self.__countAA["Y"]
             self.countV = self.__countAA["V"]
 
@@ -393,7 +393,7 @@ class Receptor:
             if os.path.isfile(outputJson):
                 _ = errors.file_exists(f"The file '{outputJson}' already exists. It will be OVERWRITED!!!")
             try:
-                with open(outputJson, "w") as outfile:
+                with open(outputJson, 'w') as outfile:
                     json.dump(self.__safe_to_dict(), outfile)
                 return errors.ok()
             except Exception as e:
@@ -486,7 +486,7 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
 
     aas = {
         "A": 0, 
-        "R": 0,
+        'r': 0,
         "N": 0,
         "D": 0,
         "C": 0,
@@ -502,7 +502,7 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
         "P": 0,
         "S": 0,
         "T": 0,
-        "W": 0,
+        'w': 0,
         "Y": 0,
         "V": 0,
         "X": 0
@@ -555,7 +555,7 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
         # Check if the relative ASA is valid and is above the cutoff
         if value[3] != "NA" and float(value[3]) >= cutoff:
             # If so, check if the amino acid is one of the 20 standard ones
-            if value[1] in ["A", "R", "N", "D", "C", "Q", "E", "G", "H", "I", "L", "K", "M", "F", "P", "S", "T", "W", "Y", "V"]:
+            if value[1] in ["A", 'r', "N", "D", "C", "Q", "E", "G", "H", "I", "L", "K", "M", "F", "P", "S", "T", 'w', "Y", "V"]:
                 # Add 1 to its count
                 aas[value[1]] += 1
             # If not, add to an 'others' (X) position
@@ -976,7 +976,7 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
     # Try to read the file
     try:
         # Open the json file in read mode
-        with open(path, "r") as f:
+        with open(path, 'r') as f:
             # Load the data
             data = json.load(f)
 
@@ -1009,7 +1009,7 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
         # Create the countAA variable (here np.NaN does have an exact meaning, 0 is a valid value)
         countAA = {
             "A": data["countA"] if data["countA"] != np.NaN else 0,
-            "R": data["countR"] if data["countR"] != np.NaN else 0,
+            'r': data["countR"] if data["countR"] != np.NaN else 0,
             "N": data["countN"] if data["countN"] != np.NaN else 0,
             "D": data["countD"] if data["countD"] != np.NaN else 0,
             "C": data["countC"] if data["countC"] != np.NaN else 0,
@@ -1025,7 +1025,7 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
             "P": data["countP"] if data["countP"] != np.NaN else 0,
             "S": data["countS"] if data["countS"] != np.NaN else 0,
             "T": data["countT"] if data["countT"] != np.NaN else 0,
-            "W": data["countW"] if data["countW"] != np.NaN else 0,
+            'w': data["countW"] if data["countW"] != np.NaN else 0,
             "Y": data["countY"] if data["countY"] != np.NaN else 0,
             "V": data["countV"] if data["countV"] != np.NaN else 0
         }

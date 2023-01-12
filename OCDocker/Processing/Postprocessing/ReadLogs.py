@@ -21,7 +21,7 @@ import vaex.dataframe as vdf
 
 from multiprocessing import Pool
 from tqdm import tqdm
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, TypeVar, Union
 
 from OCDocker.Initialise import *
 
@@ -29,9 +29,17 @@ import OCDocker.Docking.Gnina as ocgnina
 import OCDocker.Docking.PLANTS as ocplants
 import OCDocker.Docking.Smina as ocsmina
 import OCDocker.Docking.Vina as ocvina
+import OCDocker.Toolbox.FilesFolders as ocff
 import OCDocker.Toolbox.Basetools as ocbasetools
 import OCDocker.Toolbox.Logging as oclogging
 import OCDocker.Toolbox.Printing as ocprint
+
+# Typevars
+###############################################################################
+TvinaData = TypeVar('TvinaData', bound='vinaData')
+TgninaData = TypeVar('TgninaData', bound='gninaData')
+TsminaData = TypeVar('TsminaData', bound='sminaData')
+TplantsData = TypeVar('TplantsData', bound='plantsData')
 
 # License
 ###############################################################################
@@ -50,6 +58,317 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 
 # Classes
 ###############################################################################
+class vinaData:
+    '''Class to hold the data of the Vina log files.'''
+
+    def __init__(self, vina_pose: List[float] = [], vina_affinity: List[float] = [], withNaN: bool = False) -> None:
+        '''Initializes the class.
+
+        Parameters
+        ----------
+        vina_pose : List[float], optional
+            A list of the poses of the ligand in the Vina log files. (default is [])
+        vina_affinity : List[float], optional
+            A list of the affinities of the ligand in the Vina log files. (default is [])
+        withNaN : bool, optional
+            If True, the class will be initialized with np.NaN values. (default is False)
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        None
+        '''
+        
+        if withNaN:
+            self.empty_with_nan()
+        else:
+            self.vina_pose = vina_pose
+            self.vina_affinity = vina_affinity
+    
+        return None
+
+    def __to_dict__(self) -> Dict[str, List[float]]:
+        '''Returns a dict of the class.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        Dict[str, List[float]]
+            A dict of the class.
+
+        Raises
+        ------
+        None
+        '''
+
+        return { "vina_pose": self.vina_pose, "vina_affinity": self.vina_affinity }
+
+    def empty_with_nan(self: TvinaData) -> TvinaData:
+        ''' Empties the class using the np.NaN value.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        TvinaData
+            The class with the np.NaN values.
+
+        Raises
+        ------
+        None
+        '''
+
+        self.vina_pose = [np.NaN]
+        self.vina_affinity = [np.NaN]
+
+        return self
+
+class gninaData:
+    '''Class to hold the data of the Gnina log files.'''
+
+    def __init__(self, gnina_pose: List[float] = [], gnina_affinity: List[float] = [], withNaN: bool = False) -> None:
+        '''Initializes the class.
+
+        Parameters
+        ----------
+        gnina_pose : List[float], optional
+            A list of the poses of the ligand in the Gnina log files. (default is [])
+        gnina_affinity : List[float], optional
+            A list of the affinities of the ligand in the Gnina log files. (default is [])
+        withNaN : bool, optional
+            If True, the class will be initialized with np.NaN values. (default is False)
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        None
+        '''
+        
+        if withNaN:
+            self.empty_with_nan()
+        else:
+            self.gnina_pose = gnina_pose
+            self.gnina_affinity = gnina_affinity
+    
+        return None
+
+    def __to_dict__(self) -> Dict[str, List[float]]:
+        '''Returns a dict of the class.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        Dict[str, List[float]]
+            A dict of the class.
+
+        Raises
+        ------
+        None
+        '''
+
+        return { "gnina_pose": self.gnina_pose, "gnina_affinity": self.gnina_affinity }
+
+    def empty_with_nan(self: TgninaData) -> TgninaData:
+        ''' Empties the class using the np.NaN value.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        TgninaData
+            The class with the np.NaN values.
+
+        Raises
+        ------
+        None
+        '''
+
+        self.gnina_pose = [np.NaN]
+        self.gnina_affinity = [np.NaN]
+
+        return self
+
+class sminaData:
+    '''Class to hold the data of the Smina log files.'''
+
+    def __init__(self, smina_pose: List[float] = [], smina_affinity: List[float] = [], withNaN: bool = False) -> None:
+        '''Initializes the class.
+
+        Parameters
+        ----------
+        smina_pose : List[float], optional
+            A list of the poses of the ligand in the Smina log files. (default is [])
+        smina_affinity : List[float], optional
+            A list of the affinities of the ligand in the Smina log files. (default is [])
+        withNaN : bool, optional
+            If True, the class will be initialized with np.NaN values. (default is False)
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        None
+        '''
+        
+        if withNaN:
+            self.empty_with_nan()
+        else:
+            self.smina_pose = smina_pose
+            self.smina_affinity = smina_affinity
+    
+        return None
+
+    def __to_dict__(self) -> Dict[str, List[float]]:
+        '''Returns a dict of the class.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        Dict[str, List[float]]
+            A dict of the class.
+
+        Raises
+        ------
+        None
+        '''
+
+        return { "smina_pose": self.smina_pose, "smina_affinity": self.smina_affinity }
+
+    def empty_with_nan(self: TsminaData) -> TsminaData:
+        ''' Empties the class using the np.NaN value.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        TsminaData
+            The class with the np.NaN values.
+
+        Raises
+        ------
+        None
+        '''
+
+        self.smina_pose = [np.NaN]
+        self.smina_affinity = [np.NaN]
+
+        return self
+
+class plantsData:
+    '''Class to hold the data of the PLANTS log files.'''
+
+    def __init__(self, PLANTS_TOTAL_SCORE: List[float] = [], PLANTS_SCORE_RB_PEN: List[float] = [], PLANTS_SCORE_NORM_HEVATOMS: List[float] = [], PLANTS_SCORE_NORM_CRT_HEVATOMS: List[float] = [], PLANTS_SCORE_NORM_WEIGHT: List[float] = [], PLANTS_SCORE_NORM_CRT_WEIGHT: List[float] = [], PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS: List[float] = [], withNaN: bool = False) -> None:
+        '''Initializes the class.
+
+        Parameters
+        ----------
+        PLANTS_TOTAL_SCORE : List[float], optional
+            A list of the total scores of the ligand in the PLANTS log files. (default is [])
+        PLANTS_SCORE_RB_PEN : List[float], optional
+            A list of the rigid body penalty scores of the ligand in the PLANTS log files. (default is [])
+        PLANTS_SCORE_NORM_HEVATOMS : List[float], optional
+            A list of the normalized heavy atoms scores of the ligand in the PLANTS log files. (default is [])
+        PLANTS_SCORE_NORM_CRT_HEVATOMS : List[float], optional
+            A list of the normalized critical heavy atoms scores of the ligand in the PLANTS log files. (default is [])
+        PLANTS_SCORE_NORM_WEIGHT : List[float], optional
+            A list of the normalized weight scores of the ligand in the PLANTS log files. (default is [])
+        PLANTS_SCORE_NORM_CRT_WEIGHT : List[float], optional
+            A list of the normalized critical weight scores of the ligand in the PLANTS log files. (default is [])
+        PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS : List[float], optional
+            A list of the rigid body penalty normalized critical heavy atoms scores of the ligand in the PLANTS log files. (default is [])
+        withNaN : bool, optional
+            If True, the class will be initialized with np.NaN values. (default is False)
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        None
+        '''
+        
+        if withNaN:
+            self.empty_with_nan()
+        else:
+            self.PLANTS_TOTAL_SCORE = PLANTS_TOTAL_SCORE
+            self.PLANTS_SCORE_RB_PEN = PLANTS_SCORE_RB_PEN
+            self.PLANTS_SCORE_NORM_HEVATOMS = PLANTS_SCORE_NORM_HEVATOMS
+            self.PLANTS_SCORE_NORM_CRT_HEVATOMS = PLANTS_SCORE_NORM_CRT_HEVATOMS
+            self.PLANTS_SCORE_NORM_WEIGHT = PLANTS_SCORE_NORM_WEIGHT
+            self.PLANTS_SCORE_NORM_CRT_WEIGHT = PLANTS_SCORE_NORM_CRT_WEIGHT
+            self.PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS = PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS
+        
+        return None
+    
+    def __to_dict__(self) -> Dict[str, List[float]]:
+        '''Returns a dict of the class.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        Dict[str, List[float]]
+            A dict of the class.
+
+        Raises
+        ------
+        None
+        '''
+
+        return { "PLANTS_TOTAL_SCORE": self.PLANTS_TOTAL_SCORE, "PLANTS_SCORE_RB_PEN": self.PLANTS_SCORE_RB_PEN, "PLANTS_SCORE_NORM_HEVATOMS": self.PLANTS_SCORE_NORM_HEVATOMS, "PLANTS_SCORE_NORM_CRT_HEVATOMS": self.PLANTS_SCORE_NORM_CRT_HEVATOMS, "PLANTS_SCORE_NORM_WEIGHT": self.PLANTS_SCORE_NORM_WEIGHT, "PLANTS_SCORE_NORM_CRT_WEIGHT": self.PLANTS_SCORE_NORM_CRT_WEIGHT, "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": self.PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS }
+
+    def empty_with_nan(self: TplantsData) -> TplantsData:
+        ''' Empties the class using the np.NaN value.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        TplantsData
+            The class with the np.NaN values.
+
+        Raises
+        ------
+        None
+        '''
+
+        self.PLANTS_TOTAL_SCORE = [np.NaN]
+        self.PLANTS_SCORE_RB_PEN = [np.NaN]
+        self.PLANTS_SCORE_NORM_HEVATOMS = [np.NaN]
+        self.PLANTS_SCORE_NORM_CRT_HEVATOMS = [np.NaN]
+        self.PLANTS_SCORE_NORM_WEIGHT = [np.NaN]
+        self.PLANTS_SCORE_NORM_CRT_WEIGHT = [np.NaN]
+        self.PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS = [np.NaN]
+
+        return self
 
 # Functions
 ###############################################################################
@@ -82,11 +401,8 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
     ptn = processSplited[-4]
     lgd = processSplited[-1]
 
-    # Create docking dicts
-    vinaDict = { "vina_pose": [], "vina_affinity": [] }
-    gninaDict = { "gnina_pose": [], "gnina_affinity": [] }
-    sminaDict = { "smina_pose": [], "smina_affinity": [] }
-    plantsDict = { "PLANTS_TOTAL_SCORE": [], "PLANTS_SCORE_RB_PEN": [], "PLANTS_SCORE_NORM_HEVATOMS": [], "PLANTS_SCORE_NORM_CRT_HEVATOMS": [], "PLANTS_SCORE_NORM_WEIGHT": [], "PLANTS_SCORE_NORM_CRT_WEIGHT": [], "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [] }
+    # Create docking objects
+    dt = { "vina": vinaData(), "gnina": gninaData(), "smina": sminaData(), "plants": plantsData() }
 
     # Get run number
     runNumber = 0 # TODO: Add support to multiple runs
@@ -94,102 +410,38 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
     # Dict to hold the protein data
     proteinData = { f"{ptn}-{lgd}": None }
 
-    # VINA
-    vinaDir = f"{processDir}/vinaFiles"
-    # Parameterize the log path
-    logPath = f"{vinaDir}/vina_{runNumber}.log"
-
-    # Check if exists
-    if os.path.isfile(logPath):
-        # Read the log into dict
-        gendict = ocvina.read_log(logPath)
-
-        # For each key, value in vinaDict
-        for key, value in gendict.items():
-            # Append the value to the vina dict
-            vinaDict[key].append(value[0])
-    else:
-        _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its vina output.")
-        # Set the elements in vinaDict as np.NaN
-        vinaDict = { "vina_pose": [np.NaN], "vina_affinity": [np.NaN] }
-
-    # SMINA
-    sminaDir = f"{processDir}/sminaFiles"
-    # Parameterize the log path
-    logPath = f"{sminaDir}/smina.log"
-
-    # Check if smina log exists
-    if os.path.isfile(logPath): # TODO: Add support to multiple runs
-        # Read the log into dict
-        gendict = ocsmina.read_log(logPath)
-
-        # For each key, value in sminaDict
-        for key, value in gendict.items():
-            # Append the value to the smina dict
-            sminaDict[key].append(value[0])
-    else:
-        _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its SMINA output.")
-        # Set the elements in sminaDict as np.NaN
-        sminaDict = { "smina_pose": [np.NaN], "smina_affinity": [np.NaN] }
-
-    # GNINA
-    gninaDir = f"{processDir}/gninaFiles"
-    # Parameterize the log path
-    logPath = f"{gninaDir}/gnina_{runNumber}.log"
-
-    # Check if exists
-    if os.path.isfile(logPath):
-        # Read the log into dict
-        gendict = ocgnina.read_log(logPath)
-
-        # For each key, value in gninaDict
-        for key, value in gendict.items():
-            # Append the value to the gnina dict
-            gninaDict[key].append(value[0])
-    else:
-        _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its gnina output.")
-        # Set the elements in gninaDict as np.NaN
-        gninaDict = { "gnina_pose": [np.NaN], "gnina_affinity": [np.NaN] }
-
-    # PLANTS
-    plantsDir = f"{processDir}/plantsFiles"
-    # Parameterize the log path
-    logPath = f"{plantsDir}/run/bestranking.csv"
-
-    # Check if exists
-    if os.path.isfile(logPath):
-        # Read the log into dict
-        gendict = ocplants.read_log(logPath)
-
-        # For each key, value in plantsDict
-        for key, value in gendict.items():
-            # Append the value to the plants dict
-            plantsDict[key].append(value[0])
-    else:
-        _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its PLANTS output.")
-        # Set the elements in plantsDict as np.NaN
-        plantsDict = { "PLANTS_TOTAL_SCORE": [np.NaN], "PLANTS_SCORE_RB_PEN": [np.NaN], "PLANTS_SCORE_NORM_HEVATOMS": [np.NaN], "PLANTS_SCORE_NORM_CRT_HEVATOMS": [np.NaN], "PLANTS_SCORE_NORM_WEIGHT": [np.NaN], "PLANTS_SCORE_NORM_CRT_WEIGHT": [np.NaN], "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [np.NaN] }
-
     # Create the maxLenList
-    maxLenList = []
+    maxLen = 1
 
-    # Add each score to the list its len greater than 0 (never should be negative)
-    if len(vinaDict["vina_pose"]) > 0:
-        maxLenList.append(len(vinaDict["vina_pose"]))
-    if len(sminaDict["smina_pose"]) > 0:
-        maxLenList.append(len(sminaDict["smina_pose"]))
-    if len(gninaDict["gnina_pose"]) > 0:
-        maxLenList.append(len(gninaDict["gnina_pose"]))
-    if len(plantsDict["PLANTS_TOTAL_SCORE"]) > 0:
-        maxLenList.append(len(plantsDict["PLANTS_TOTAL_SCORE"]))
-    
-    # Check if the list is empty
-    if len(maxLenList) == 0:
-        # Set the maxLen to 1
-        maxLen = 1
-    else:
-        # Get the number of elements of the dict with the largest number of elements
-        maxLen = max(maxLenList)
+    # For each key, value in dt
+    for key, value in dt.items():
+        # Get the log path
+        logPath = f"{processDir}/{key}/{key}_{runNumber}.log"
+        # Check if exists
+        if os.path.isfile(logPath):
+            # Read the log into dict
+            gendict = ocvina.read_log(logPath)
+
+            # First loop iteration flag
+            first = True
+
+            # For each key, value in vinaDict
+            for key, value in gendict.items():
+                # Get the attribute based on the key
+                attribute = getattr(value, key)
+                # Append the new value to it
+                attribute.append(value[0])
+                # Set it back in the class
+                setattr(value, key, attribute)
+                if first:
+                    # Set the maxLen as the biggest size among the current maxLen and the len of the first class attribute
+                    maxLen = max(maxLen, len(attribute))
+                    # Turn the flag off
+                    first = False
+        else:
+            _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its {key} output.")
+            # Set the elements in value as np.NaN
+            value = value.empty_with_nan()
 
     # Add the concatenated the dicts. The single elements are repeated to match the largest dict to the proteinData dict using ptn as the key
     proteinData[f"{ptn}-{lgd}"] = vaex.from_dict(
@@ -199,15 +451,15 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
                 "Ligand": [lgd for _ in range(maxLen)],
                 "type": [tp for _ in range(maxLen)]
             },
-            **vinaDict,
-            **sminaDict,
-            **gninaDict,
-            **plantsDict
+            **dt["vina"].__to_dict__(),
+            **dt["smina"].__to_dict__(),
+            **dt["gnina"].__to_dict__(),
+            **dt["plants"].__to_dict__()
         }
     )
 
     # Clean the memory
-    del vinaDict, sminaDict, plantsDict#, gninaDict
+    del dt
 
     # Return the proteinData dict
     return proteinData # type: ignore
@@ -235,7 +487,7 @@ def __thread_read_log_parallel(arguments: Tuple[Tuple[str, str]]) -> Dict[str, v
         # Call the core read log function passing the arguments correctly
         return __core_read_log(arguments[0])
 
-def __read_log_parallel(paths: List[Tuple[str, str]], desc: str) -> Dict[str, vdf.DataFrameLocal]:
+def __read_log_parallel(paths: List[Tuple[str, str]], desc: str, saveChunk: int, overwrite: bool) -> Dict[str, vdf.DataFrameLocal]:
     '''Read the logs of the ligands in parallel.
 
     Parameters
@@ -284,7 +536,7 @@ def __read_log_parallel(paths: List[Tuple[str, str]], desc: str) -> Dict[str, vd
 
     return data
 
-def __read_log_no_parallel(paths: List[Tuple[str, str]], desc: str) -> Dict[str, vdf.DataFrameLocal]:
+def __read_log_no_parallel(paths: List[Tuple[str, str]], desc: str, saveChunk: int, overwrite: bool) -> Dict[str, vdf.DataFrameLocal]:
     '''Read the logs of the docking results for the ligands in serial.
 
     Parameters
@@ -311,13 +563,11 @@ def __read_log_no_parallel(paths: List[Tuple[str, str]], desc: str) -> Dict[str,
     with ocbasetools.redirect_to_tqdm():
         for path, tp in tqdm(iterable = paths, total = len(paths), desc = desc):
             # Call the core read log function (shared between parallel and not parallel) and store the data into the data dict
-            data.update(__core_read_log((path, tp)))
+            data.update(__read_log_single((path, tp), overwrite = False)) # TODO: finish this
             # Clear the memory
             gc.collect()
 
-    return data
-
-def __read_log_single(path: Tuple[str, str]) -> Dict[str, vdf.DataFrameLocal]:
+def __read_log_single(path: Tuple[str, str], overwrite: bool) -> Dict[str, vdf.DataFrameLocal]:
     '''Warper to prepare the jobs, recieves a directory, and pass it to the __core_read_log function.
 
     TODO: Add the support to custom databases.
@@ -337,12 +587,63 @@ def __read_log_single(path: Tuple[str, str]) -> Dict[str, vdf.DataFrameLocal]:
     None
     '''
 
-    # Read the log
-    return __core_read_log(path)
+    # Split the tuple
+    processPath, tp = path
+
+    # Get protein and ligand names
+    pathSplited = processPath.split(os.path.sep)
+    ptn = pathSplited[-4]
+    lgd = pathSplited[-1]
+
+    # Parameterize the hdf5 path
+    hdf5Path = f"{path}/{ptn}_docking_results.hdf5"
+
+    # Load the hdf5 file
+    dockingResults = ocff.from_hdf5(hdf5Path)
+
+    # Create the key
+    key = f"{ptn}-{lgd}"
+
+    # Check if the dockingResults is not None
+    if dockingResults is not None:
+        # Check if the key from data is in the hdf5 file or if overwrite is True
+        if key not in list(dockingResults.keys()) or overwrite:
+            # Read the log (only read if is necessary)
+            data = __core_read_log(path)
+
+            # Update the dockingResults with the data
+            dockingResults[key] = data[key]
+            # Save the dockingResults to the hdf5 file
+            ocff.to_hdf5(dockingResults, hdf5Path)
+
+            # Read the log
+            return data
+        # Return the already computed data
+        return dockingResults[key]
+    
+    # Instantiate all the classes with np.NaN
+    vina = vinaData(withNaN = True)
+    smina = sminaData(withNaN = True)
+    gnina = gninaData(withNaN = True)
+    plants = plantsData(withNaN = True)
+    
+    return vaex.from_dict(
+        {
+            **{
+                "Protein": [ptn],
+                "Ligand": [lgd],
+                "type": [tp]
+            },
+            **vina.__to_dict__(),
+            **smina.__to_dict__(),
+            **gnina.__to_dict__(),
+            **plants.__to_dict__()
+        }
+    )
 
 ## Public ##
 
-def read_logs(paths: Union[List[Tuple[str, str]], List[Tuple[str, str]]], archive: str) -> None:
+def read_logs(paths: Union[List[Tuple[str, str]], List[Tuple[str, str]]], archive: str, saveChunk: int = 100, overwrite: bool = False) -> None:
     '''Read the logs of the docking results for the ligands.
 
     Parameters
@@ -351,6 +652,10 @@ def read_logs(paths: Union[List[Tuple[str, str]], List[Tuple[str, str]]], archiv
         The list of directories or the directory to be processed.
     archive : str
         The archive name. Options are [dudez, pdbbind].
+    saveChunk : int, optional
+        The number of lines to be read before saving the data. The default is 100. (Not applicable if the paths is not a list!)
+    overwrite : bool, optional
+        If True overwrites the files, if False does not overwrite the files. The default is False.
     '''
 
     # If the path is a list
@@ -365,9 +670,9 @@ def read_logs(paths: Union[List[Tuple[str, str]], List[Tuple[str, str]]], archiv
         # Check if multiprocessing is enabled
         if args.multiprocess:
             # Prepare the pdbbind
-            __read_log_parallel(paths, label)
+            __read_log_parallel(paths, label, saveChunk = saveChunk, overwrite = overwrite)
         else:
             # Prepare the database
-            __read_log_no_parallel(paths, label)
+            __read_log_no_parallel(paths, label, saveChunk = saveChunk, overwrite = overwrite)
     else:
-        __read_log_single(paths)
+        __read_log_single(paths, overwrite = overwrite)
