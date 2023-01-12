@@ -1,15 +1,11 @@
 """
-OCDocker - Open Consensus Docker
+The main OCDocker package
 
-Authors: Rossi, A.D.; Torres, P.H.M.
+Packages
+--------
+- Docking: Docking routines.
+- ExternalTools: External tools used by OCDocker.
+- Processing: From pre to post processing data in OCDocker.
+- Toolbox: 
 
-[The Federal University of Rio de Janeiro]
-
-Contact info:
-    Carlos Chagas Filho Institute of Biophysics\n
-    LMDM - Laboratory for Molecular Modeling and Dynamics\n
-    Carlos Chagas Filho Av. 373 - Rio de Janeiro - RJ - Brazil\n
-    Health Sciences Centre - block G1-19,
-
-A library of molecular docking automation and scoring functions consensus.
 """
