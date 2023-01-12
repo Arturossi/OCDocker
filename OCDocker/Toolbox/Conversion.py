@@ -16,7 +16,6 @@ import OCDocker.Toolbox.Conversion as occonversion
 import os
 import rdkit
 
-from Bio.PDB import * 
 from openbabel import openbabel
 from openbabel import pybel
 from rdkit import Chem

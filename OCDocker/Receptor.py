@@ -22,13 +22,13 @@ import vaex
 import numpy as np
 import vaex.dataframe as vdf
 
-from Bio.PDB import *
+from Bio.PDB import MMCIFParser, PDBParser, PDBIO, SASA
 from Bio.PDB.DSSP import DSSP
 from Bio.SeqUtils import seq1
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
 from openbabel import openbabel
 from threading import Lock
-from typing import Dict, List, Tuple, Union
+from typing import Dict, Tuple, Union
 
 from OCDocker.Initialise import *
 

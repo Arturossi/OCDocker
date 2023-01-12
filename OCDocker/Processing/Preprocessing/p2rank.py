@@ -13,6 +13,8 @@ import OCDocker.Processing.Preprocessing.p2rank as ocp2rank
 # Imports
 ###############################################################################
 import gc
+import os
+import shutil
 
 from glob import glob
 from multiprocessing import Pool

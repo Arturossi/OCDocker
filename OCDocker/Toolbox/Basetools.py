@@ -15,10 +15,7 @@ import OCDocker.Toolbox.Basetools as ocbasetools
 import contextlib
 import inspect
 
-from Bio.PDB import * 
 from tqdm import tqdm
-
-from OCDocker.Initialise import *
 
 # License
 ###############################################################################

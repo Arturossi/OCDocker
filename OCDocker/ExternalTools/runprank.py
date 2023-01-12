@@ -543,16 +543,16 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
             # If line start with the ATOM label
             if line.startswith("ATOM"):
                 # If the atom ID is in the atom list or if the whole protein is included
-                if wholeProt or line[7:11].strip() in atoms:
+                if wholeProt or line[7:11].strip() in atoms: # type: ignore
                     # If the whole protein is not being processed, the index in the atom list must be accounted
                     if not wholeProt:
                         # Finds if the atom index is in the atom list (again to ensure that the right probability is assigned to the right atom)
-                        idx = atoms.index(line[7:11].strip())
+                        idx = atoms.index(line[7:11].strip()) # type: ignore
 
                     # Assume that is cartesian (which is plain text read ans MUST be done anyaway)
-                    v1 = line[30:38].strip()
-                    v2 = line[38:46].strip()
-                    v3 = line[46:54].strip()
+                    v1 = float(line[30:38].strip())
+                    v2 = float(line[38:46].strip())
+                    v3 = float(line[46:54].strip())
 
                     # Check and convert (if needed) the coordinates cartesian/polar/spherical
                     if coordSystem.lower() == "cartesian": # if is cartesian, do nothing
@@ -571,11 +571,11 @@ def run_prank(filein, outpath, algorithms={"AffinityPropagation": False, "Agglom
                         # Add the same data to a bigger array containing also the probabilities (fixed at 1.0) and residue (6th index)
                         coordinatesFull = np.append(coordinatesFull, np.array([[v1, v2, v3, 1.0, 1.0, line[23:26]]], float), axis=0)
                     # If the probability is above the pocketCutoff value or the probability is the same as the probability of the first pocket in file (this is possibile due to the fact that the first line of p2rank result file will always have the highest probability.)
-                    elif probabilities[idx] >= pocketCutoff or probabilities[idx] >= float(firstProbability):
+                    elif probabilities[idx] >= pocketCutoff or probabilities[idx] >= float(firstProbability): # type: ignore
                         # Add the data to the numpy array as a list containing the coordinates + extra data [X, Y, Z]/[therta, rho, z]/[az, el, r]
-                        coordinates = np.append(coordinates, np.array([[v1, v2, v3, rank[idx]]], float), axis=0)
+                        coordinates = np.append(coordinates, np.array([[v1, v2, v3, rank[idx]]], float), axis=0) # type: ignore
                         # Add the same data to a bigger array containing also the probabilities (4th index) and residue (6th index)
-                        coordinatesFull = np.append(coordinatesFull, np.array([[v1, v2, v3, probabilities[idx], rank[idx], line[23:26]]], float), axis=0)
+                        coordinatesFull = np.append(coordinatesFull, np.array([[v1, v2, v3, probabilities[idx], rank[idx], line[23:26]]], float), axis=0) # type: ignore
 
     # Set the first rank as the first in the list
     lastRank = coordinates[0][3]

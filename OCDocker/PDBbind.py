@@ -14,7 +14,6 @@ import OCDocker.PDBbind as ocpdbbind
 ###############################################################################
 import os
 
-import pandas as pd
 import vaex.dataframe as vdf
 
 from glob import glob

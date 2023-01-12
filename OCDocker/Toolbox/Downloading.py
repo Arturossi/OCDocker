@@ -15,12 +15,9 @@ import OCDocker.Toolbox.Downloading as ocdown
 import os
 import urllib.request
 
-from Bio.PDB import * 
 from tqdm import tqdm
 
 import OCDocker.Toolbox.Printing as ocprint
-
-from OCDocker.Initialise import *
 
 # License
 ###############################################################################

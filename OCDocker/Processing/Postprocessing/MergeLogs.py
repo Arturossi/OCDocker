@@ -1,5 +1,15 @@
 #!/usr/lib/python3
 
+# Description
+###############################################################################
+'''
+This module is responsible for digest processing.
+
+It is imported as:
+
+import OCDocker.Processing.Postprocessing.MergeLogs as ocmergelogs
+'''
+
 # Imports
 ###############################################################################
 import errno
@@ -10,10 +20,9 @@ import vaex
 import numpy as np
 import vaex.dataframe as vdf
 
-from glob import glob
 from multiprocessing import Pool
 from tqdm import tqdm
-from typing import Dict, List, Tuple, Union
+from typing import List, Tuple, Union
 
 from OCDocker.Initialise import *
 
@@ -36,16 +45,6 @@ Av. Carlos Chagas Filho 373 - CCS - bloco G1-19,
 Cidade Universitária - Rio de Janeiro, RJ, CEP: 21941-902
 E-mail address: arturossi10@gmail.com
 This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
-'''
-
-# Description
-###############################################################################
-'''
-This module is responsible for digest processing.
-
-It is imported as:
-
-import OCDocker.Processing.Postprocessing.MergeLogs as ocmergelogs
 '''
 
 # Classes

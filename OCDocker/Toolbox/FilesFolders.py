@@ -20,7 +20,6 @@ import tarfile
 
 import numpy as np
 
-from Bio.PDB import * 
 from tqdm import tqdm
 from typing import Any, Dict, List, Union
 

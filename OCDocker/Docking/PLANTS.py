@@ -1,5 +1,15 @@
 #!/usr/lib/python3
 
+# Description
+###############################################################################
+'''
+Sets of classes and functions that are used to prepare dock6 files and run it.
+
+They are imported as:
+
+import OCDocker.Docking.PLANTS as ocplants
+'''
+
 # Imports
 ###############################################################################
 import os
@@ -9,7 +19,6 @@ import vaex
 
 import numpy as np
 
-from Bio.PDB import *
 from glob import glob
 from typing import Dict, List, Tuple, Union
 
@@ -36,16 +45,6 @@ Av. Carlos Chagas Filho 373 - CCS - bloco G1-19,
 Cidade Universitária - Rio de Janeiro, RJ, CEP: 21941-902
 E-mail address: arturossi10@gmail.com
 This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
-'''
-
-# Description
-###############################################################################
-'''
-Sets of classes and functions that are used to prepare dock6 files and run it.
-
-They are imported as:
-
-import OCDocker.Docking.PLANTS as ocplants
 '''
 
 # Classes

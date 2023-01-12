@@ -31,7 +31,6 @@ import OCDocker.DUDEz as ocdudez
 import OCDocker.PDBbind as ocpdbbind
 import OCDocker.Toolbox.Basetools as ocbasetools
 import OCDocker.Toolbox.Conversion as occonversion
-import OCDocker.Toolbox as octools
 import OCDocker.Toolbox.Downloading as ocdown
 import OCDocker.Toolbox.FilesFolders as ocff
 import OCDocker.Toolbox.MoleculeProcessing as ocmolproc

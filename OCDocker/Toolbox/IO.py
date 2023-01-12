@@ -15,10 +15,7 @@ import OCDocker.Toolbox.IO as ocio
 import os
 import mmap
 
-from Bio.PDB import * 
 from typing import Generator
-
-from OCDocker.Initialise import *
 
 # License
 ###############################################################################

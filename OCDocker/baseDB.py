@@ -19,7 +19,6 @@ import vaex
 import vaex.dataframe as vdf
 
 from glob import glob
-from multiprocessing import Pool
 from typing import Dict, Union
 
 from OCDocker.Initialise import *

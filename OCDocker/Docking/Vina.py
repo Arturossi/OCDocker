@@ -18,7 +18,6 @@ import os
 
 import numpy as np
 
-from Bio.PDB import *
 from typing import Dict, List, Tuple, Union
 
 from OCDocker.Initialise import *

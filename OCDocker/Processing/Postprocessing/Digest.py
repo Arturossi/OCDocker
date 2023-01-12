@@ -14,7 +14,6 @@ import OCDocker.Processing.Postprocessing.Digest as ocdigest
 ###############################################################################
 import gc
 import os
-import time
 
 from multiprocessing import Pool
 from tqdm import tqdm

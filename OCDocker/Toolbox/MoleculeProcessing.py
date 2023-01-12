@@ -15,10 +15,9 @@ import OCDocker.Toolbox.MoleculeProcessing as ocmolproc
 ###############################################################################
 import os
 
-from Bio.PDB import * 
 from spyrmsd import io, rmsd
 from threading import Lock
-from typing import  List, Union
+from typing import List, Union
 
 from OCDocker.Initialise import *
 
