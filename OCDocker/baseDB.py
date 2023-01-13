@@ -449,7 +449,7 @@ def read_logs(archive: str, saveChunk: int = 100, overwrite: bool = False) -> Un
         ocprint.print_error(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}.")
         return None
     
-    data = []
+    data = {}
         
     # For each dir in chosenArchive
     for ptnDir in glob(f"{chosenArchive}/*"):
@@ -472,14 +472,10 @@ def read_logs(archive: str, saveChunk: int = 100, overwrite: bool = False) -> Un
 
         # Check if data is not empty
         if innerData:
-            # Try to write it
-            try:
-                ocff.to_pickle(pickleDir, innerData)
-                ocprint.print_success(f"The file '{pickleDir}' has been successfully written.")
-            except Exception as e:
-                ocprint.print_error(f"Could not write the file '{pickleDir}'. Error: {e}")
+            # Merge innerData into data
+            data = {**data, **innerData}
         else:
-            ocprint.print_warning(f"The data object is not defined! There is no reason to write it as a pickle. Skipping...")
+            ocprint.print_warning(f"The data object is not defined! There is no reason to append it to data list. Skipping...")
             continue
 
     # Return the data
