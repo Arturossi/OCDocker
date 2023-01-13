@@ -526,9 +526,10 @@ def __read_log_parallel(paths: List[Tuple[str, str]], desc: str, saveChunk: int,
     # Counter for the iterations
     i = 0
 
-    # Parameterize the hdf5 path (This routine should be called for the same receptor)
-    path = paths[0]
-    ptn = path[0][-4]
+    # Parameterize the hdf5 path (This routine should be called for the same receptor) removing the last three directories of the path
+    path = os.path.sep.join(paths[0][0].split(os.path.sep)[:-3])
+    ptn = path.split(os.path.sep)[-1]
+    
     hdf5Path = f"{path}/{ptn}_docking_results.hdf5"
 
     # For each file in the glob
@@ -614,11 +615,12 @@ def __read_log_no_parallel(paths: List[Tuple[str, str]], desc: str, saveChunk: i
     # Counter for the iterations
     i = 0
 
-    # Parameterize the hdf5 path (This routine should be called for the same receptor)
-    path = paths[0]
-    ptn = path[0][-4]
+    # Parameterize the hdf5 path (This routine should be called for the same receptor) removing the last three directories of the path
+    path = os.path.sep.join(paths[0][0].split(os.path.sep)[:-3])
+    ptn = path.split(os.path.sep)[-1]
     
-    # Get the hdf5 file path removing
+    # Get the hdf5 file path removing the last three parts of the path
+    
     hdf5Path = f"{path}/{ptn}_docking_results.hdf5"
 
     # Redirect all prints to tqdm.write
