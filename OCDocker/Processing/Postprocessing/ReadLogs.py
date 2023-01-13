@@ -419,8 +419,19 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
         logPath = f"{processDir}/{key}/{key}_{runNumber}.log"
         # Check if exists
         if os.path.isfile(logPath):
-            # Read the log into dict
-            gendict = ocvina.read_log(logPath)
+            gendict = {}
+            if key == "vina":
+                # Read the log into dict
+                gendict = ocvina.read_log(logPath)
+            elif key == "gnina":
+                # Read the log into dict
+                gendict = ocgnina.read_log(logPath)
+            elif key == "smina":
+                # Read the log into dict
+                gendict = ocsmina.read_log(logPath)
+            elif key == "plants":
+                # Read the log into dict
+                gendict = ocplants.read_log(logPath)
 
             # First loop iteration flag
             first = True
@@ -506,16 +517,46 @@ def __read_log_parallel(paths: List[Tuple[str, str]], desc: str, saveChunk: int,
     ------
     '''
 
+    # Dict to store the read data
+    data = {}
+
     # Arguments to pass to each Thread in the Thread Pool
     arguments = []
 
+    # Counter for the iterations
+    i = 0
+
+    # Parameterize the hdf5 path (This routine should be called for the same receptor)
+    path = paths[0]
+    ptn = path[0][-4]
+    hdf5Path = f"{path}/{ptn}_docking_results.hdf5"
+
     # For each file in the glob
     for path in paths:
-        # Append a tuple containing the file name and ovewrite flag to the arguments list
-        arguments.append((path, None))
+        # Get protein and ligand names
+        pathSplited = path[0].split(os.path.sep)
+        lgd = pathSplited[-1]
 
-    # Dict to store the read data
-    data = {}
+        # Load the hdf5 file
+        dockingResults = ocff.from_hdf5(hdf5Path)
+
+        # Create the key
+        key = f"{ptn}-{lgd}"
+
+        # Check if the dockingResults is not None
+        if dockingResults is not None:
+            # Check if the key from data is in the hdf5 file or if overwrite is True
+            if key not in list(dockingResults.keys()) or overwrite:
+                # Append a tuple containing the file name and ovewrite flag to the arguments list
+                arguments.append((path, None))
+            else:
+                # Update the data with information from the hdf5 file
+                data.update(dockingResults[key])
+        else:
+            errMsg = f"Problem while reading the hdf5 file '{hdf5Path}'."
+            # Log the error
+            ocprint.print_error(errMsg)
+            ocprint.print_error_log(errMsg, f"{logdir}/read_log_ERROR_report.log")
 
     try:
         # Create a Thread pool with the maximum available_cores
@@ -525,16 +566,27 @@ def __read_log_parallel(paths: List[Tuple[str, str]], desc: str, saveChunk: int,
                 # Get the key from innerData
                 key = list(innerData.keys())[0]
                 # Set the value of the key in data to the value of the key in innerData
-                data[key] = innerData[key]
+                data[key] = innerData[key] # type: ignore
                 # Clean the memory
                 del innerData
+                # Increment the counter
+                i += 1
+                # Check if the counter is greater or equal of saveChunk
+                if i >= saveChunk:
+                    # Save the data
+                    ocff.to_hdf5(data, hdf5Path) # type: ignore
+                    # Reset the counter
+                    i = 0
+                # Clean the memory
+                del data # type: ignore
                 gc.collect()
                 
     except IOError as e:
-        ocprint.print_error_log(f"Problem while reading logs in parallel. Exception: {e}", f"{logdir}/read_log_ERROR_report.log")
-        ocprint.print_error(f"Problem while reading logs in parallel. Exception: {e}")
+        errMsg = f"Problem while reading logs in parallel. Exception: {e}"
+        ocprint.print_error_log(errMsg, f"{logdir}/read_log_ERROR_report.log")
+        ocprint.print_error(errMsg)
 
-    return data
+    return data # type: ignore
 
 def __read_log_no_parallel(paths: List[Tuple[str, str]], desc: str, saveChunk: int, overwrite: bool) -> Dict[str, vdf.DataFrameLocal]:
     '''Read the logs of the docking results for the ligands in serial.
@@ -559,13 +611,56 @@ def __read_log_no_parallel(paths: List[Tuple[str, str]], desc: str, saveChunk: i
     # Dict to store the read data
     data = {}
 
+    # Counter for the iterations
+    i = 0
+
+    # Parameterize the hdf5 path (This routine should be called for the same receptor)
+    path = paths[0]
+    ptn = path[0][-4]
+    
+    # Get the hdf5 file path removing
+    hdf5Path = f"{path}/{ptn}_docking_results.hdf5"
+
     # Redirect all prints to tqdm.write
     with ocbasetools.redirect_to_tqdm():
         for path, tp in tqdm(iterable = paths, total = len(paths), desc = desc):
-            # Call the core read log function (shared between parallel and not parallel) and store the data into the data dict
-            data.update(__read_log_single((path, tp), overwrite = False)) # TODO: finish this
+            # Get protein and ligand names
+            pathSplited = path.split(os.path.sep)
+            lgd = pathSplited[-1]
+
+            # Load the hdf5 file
+            dockingResults = ocff.from_hdf5(hdf5Path)
+
+            # Create the key
+            key = f"{ptn}-{lgd}"
+
+            # Check if the dockingResults is not None
+            if dockingResults is not None:
+                # Check if the key from data is in the hdf5 file or if overwrite is True
+                if key not in list(dockingResults.keys()) or overwrite:
+                    # Add 1 to the counter
+                    i += 1
+                    # Call the core read log function (shared between parallel and not parallel) and store the data into the data dict
+                    data.update(__core_read_log((path, tp)))
+                    # Check if the counter is greater or equal of saveChunk
+                    if i >= saveChunk:
+                        # Save the data
+                        ocff.to_hdf5(hdf5Path, data)
+                        # Reset the counter
+                        i = 0
+                else:
+                    # Update the data with information from the hdf5 file
+                    data.update(dockingResults[key])
+            else:
+                errMsg = f"Problem while reading the hdf5 file '{hdf5Path}'."
+                # Log the error
+                ocprint.print_error(errMsg)
+                ocprint.print_error_log(errMsg, f"{logdir}/read_log_ERROR_report.log")
+                return {}
+
             # Clear the memory
             gc.collect()
+    return data
 
 def __read_log_single(path: Tuple[str, str], overwrite: bool) -> Dict[str, vdf.DataFrameLocal]:
     '''Warper to prepare the jobs, recieves a directory, and pass it to the __core_read_log function.
@@ -621,13 +716,37 @@ def __read_log_single(path: Tuple[str, str], overwrite: bool) -> Dict[str, vdf.D
         # Return the already computed data
         return dockingResults[key]
     
+    return get_vaex_empty_log_data(ptn, lgd, tp)
+
+## Public ##
+
+def get_vaex_empty_log_data(ptn: str, lgd: str, tp: str) -> Dict[str, vdf.DataFrameLocal]:
+    '''Get an empty vaex dataframe with the columns of the data.
+
+    Parameters
+    ----------
+    ptn : str
+        The protein name.
+    lgd : str
+        The ligand name.
+    tp : str
+        The ligand type (ligand, decoy, candidate).
+
+    Returns
+    -------
+    vdf.DataFrameLocal
+        A dictionary with the protein name as the key and a dictionary with the vina, smina and plants dataframes as the value.
+    '''
+
     # Instantiate all the classes with np.NaN
     vina = vinaData(withNaN = True)
     smina = sminaData(withNaN = True)
     gnina = gninaData(withNaN = True)
     plants = plantsData(withNaN = True)
-    
-    return vaex.from_dict(
+
+    proteinData = {}
+
+    proteinData[f"{ptn}-{lgd}"] = vaex.from_dict(
         {
             **{
                 "Protein": [ptn],
@@ -640,11 +759,13 @@ def __read_log_single(path: Tuple[str, str], overwrite: bool) -> Dict[str, vdf.D
             **plants.__to_dict__()
         }
     )
+    
+    return proteinData
 
-## Public ##
-
-def read_logs(paths: Union[List[Tuple[str, str]], List[Tuple[str, str]]], archive: str, saveChunk: int = 100, overwrite: bool = False) -> None:
-    '''Read the logs of the docking results for the ligands.
+def read_logs(paths: Union[List[Tuple[str, str]], List[Tuple[str, str]]], archive: str, saveChunk: int = 100, overwrite: bool = False) -> Dict[str, vdf.DataFrameLocal]:
+    '''Read the logs of the docking results for the ligands. 
+    
+    IMPORTANT: If passing a list, ensure that all the paths are related to the same receptor.
 
     Parameters
     ----------
@@ -656,6 +777,12 @@ def read_logs(paths: Union[List[Tuple[str, str]], List[Tuple[str, str]]], archiv
         The number of lines to be read before saving the data. The default is 100. (Not applicable if the paths is not a list!)
     overwrite : bool, optional
         If True overwrites the files, if False does not overwrite the files. The default is False.
+    
+    Returns
+    -------
+    Dict[str, vdf.DataFrameLocal]
+        A dictionary with the protein name as the key and a dictionary with the vina, smina and plants dataframes as the value.
+
     '''
 
     # If the path is a list
@@ -670,9 +797,9 @@ def read_logs(paths: Union[List[Tuple[str, str]], List[Tuple[str, str]]], archiv
         # Check if multiprocessing is enabled
         if args.multiprocess:
             # Prepare the pdbbind
-            __read_log_parallel(paths, label, saveChunk = saveChunk, overwrite = overwrite)
+            return __read_log_parallel(paths, label, saveChunk = saveChunk, overwrite = overwrite)
         else:
             # Prepare the database
-            __read_log_no_parallel(paths, label, saveChunk = saveChunk, overwrite = overwrite)
+            return __read_log_no_parallel(paths, label, saveChunk = saveChunk, overwrite = overwrite)
     else:
-        __read_log_single(paths, overwrite = overwrite)
+        return __read_log_single(paths, overwrite = overwrite)
