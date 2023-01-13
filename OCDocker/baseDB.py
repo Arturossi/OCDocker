@@ -467,8 +467,11 @@ def read_logs(archive: str, saveChunk: int = 100, overwrite: bool = False) -> Un
             processDirs += [(processDir, "decoy") for processDir in glob(f"{decoys}/*") if os.path.isdir(processDir)]
             processDirs += [(processDir, "candidate") for processDir in glob(f"{candidates}/*") if os.path.isdir(processDir)]
         
+        # Get the protein name out from the path
+        proteinName = os.path.basename(ptnDir)
+        
         # Read the logs and concatenate the results with data
-        innerData = ocreadlogs.read_logs(processDirs, archive, saveChunk = saveChunk, overwrite = overwrite)
+        innerData = ocreadlogs.read_logs(processDirs, archive, proteinName, saveChunk = saveChunk, overwrite = overwrite)
 
         # Check if data is not empty
         if innerData:

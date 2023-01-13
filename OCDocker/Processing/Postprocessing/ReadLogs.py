@@ -498,7 +498,7 @@ def __thread_read_log_parallel(arguments: Tuple[Tuple[str, str]]) -> Dict[str, v
         # Call the core read log function passing the arguments correctly
         return __core_read_log(arguments[0])
 
-def __read_log_parallel(paths: List[Tuple[str, str]], desc: str, saveChunk: int, overwrite: bool) -> Dict[str, vdf.DataFrameLocal]:
+def __read_log_parallel(paths: List[Tuple[str, str]], desc: str, ptn: str, saveChunk: int, hdf5Path: str, overwrite: bool) -> Dict[str, vdf.DataFrameLocal]:
     '''Read the logs of the ligands in parallel.
 
     Parameters
@@ -507,6 +507,14 @@ def __read_log_parallel(paths: List[Tuple[str, str]], desc: str, saveChunk: int,
         A list of tuples with the directory and the ligand type (ligand, decoy, candidate).
     desc : str
         The description to be used in the tqdm progress bar.
+    ptn : str
+        The protein name.
+    saveChunk : int
+        The number of iterations to perform before saving the data.
+    hdf5Path : str
+        The path to the hdf5 file.
+    overwrite : bool
+        A flag to indicate if the data should be overwritten.
 
     Returns
     -------
@@ -525,12 +533,6 @@ def __read_log_parallel(paths: List[Tuple[str, str]], desc: str, saveChunk: int,
 
     # Counter for the iterations
     i = 0
-
-    # Parameterize the hdf5 path (This routine should be called for the same receptor) removing the last three directories of the path
-    path = os.path.sep.join(paths[0][0].split(os.path.sep)[:-3])
-    ptn = path.split(os.path.sep)[-1]
-    
-    hdf5Path = f"{path}/{ptn}_docking_results.hdf5"
 
     # For each file in the glob
     for path in paths:
@@ -589,15 +591,23 @@ def __read_log_parallel(paths: List[Tuple[str, str]], desc: str, saveChunk: int,
 
     return data # type: ignore
 
-def __read_log_no_parallel(paths: List[Tuple[str, str]], desc: str, saveChunk: int, overwrite: bool) -> Dict[str, vdf.DataFrameLocal]:
+def __read_log_no_parallel(paths: List[Tuple[str, str]], desc: str, ptn: str, saveChunk: int, hdf5Path: str, overwrite: bool) -> Dict[str, vdf.DataFrameLocal]:
     '''Read the logs of the docking results for the ligands in serial.
 
     Parameters
     ----------
-    ptnDirs : List[Tuple[str, str]]
+    paths : List[Tuple[str, str]]
         A list of tuples with the directory and the ligand type (ligand, decoy, candidate).
     desc : str
         The description to be used in the tqdm progress bar.
+    ptn : str
+        The protein name.
+    saveChunk : int
+        The number of iterations to perform before saving the data.
+    hdf5Path : str
+        The path to the hdf5 file.
+    overwrite : bool
+        A flag to indicate if the data should be overwritten.
 
     Returns
     -------
@@ -614,14 +624,6 @@ def __read_log_no_parallel(paths: List[Tuple[str, str]], desc: str, saveChunk: i
 
     # Counter for the iterations
     i = 0
-
-    # Parameterize the hdf5 path (This routine should be called for the same receptor) removing the last three directories of the path
-    path = os.path.sep.join(paths[0][0].split(os.path.sep)[:-3])
-    ptn = path.split(os.path.sep)[-1]
-    
-    # Get the hdf5 file path removing the last three parts of the path
-    
-    hdf5Path = f"{path}/{ptn}_docking_results.hdf5"
 
     # Redirect all prints to tqdm.write
     with ocbasetools.redirect_to_tqdm():
@@ -664,7 +666,7 @@ def __read_log_no_parallel(paths: List[Tuple[str, str]], desc: str, saveChunk: i
             gc.collect()
     return data
 
-def __read_log_single(path: Tuple[str, str], overwrite: bool) -> Dict[str, vdf.DataFrameLocal]:
+def __read_log_single(path: Tuple[str, str], ptn: str, hdf5Path: str, overwrite: bool) -> Dict[str, vdf.DataFrameLocal]:
     '''Warper to prepare the jobs, recieves a directory, and pass it to the __core_read_log function.
 
     TODO: Add the support to custom databases.
@@ -673,6 +675,12 @@ def __read_log_single(path: Tuple[str, str], overwrite: bool) -> Dict[str, vdf.D
     ----------
     path : Tuple[str, str]
         A tuple with the directory and the ligand type (ligand, decoy, candidate).
+    ptn : str
+        The protein name.
+    hdf5Path : str
+        The path to the hdf5 file.
+    overwrite : bool
+        If True, the hdf5 file will be overwritten.
 
     Returns
     -------
@@ -687,13 +695,10 @@ def __read_log_single(path: Tuple[str, str], overwrite: bool) -> Dict[str, vdf.D
     # Split the tuple
     processPath, tp = path
 
-    # Get protein and ligand names
+    # Parameterize the hdf5 path (This routine should be called for the same receptor) removing the last three directories of the path
     pathSplited = processPath.split(os.path.sep)
     ptn = pathSplited[-4]
     lgd = pathSplited[-1]
-
-    # Parameterize the hdf5 path
-    hdf5Path = f"{path}/{ptn}_docking_results.hdf5"
 
     # Load the hdf5 file
     dockingResults = ocff.from_hdf5(hdf5Path)
@@ -764,7 +769,7 @@ def get_vaex_empty_log_data(ptn: str, lgd: str, tp: str) -> Dict[str, vdf.DataFr
     
     return proteinData
 
-def read_logs(paths: Union[List[Tuple[str, str]], List[Tuple[str, str]]], archive: str, saveChunk: int = 100, overwrite: bool = False) -> Dict[str, vdf.DataFrameLocal]:
+def read_logs(paths: Union[List[Tuple[str, str]], List[Tuple[str, str]]], archive: str, ptn: str, saveChunk: int = 100, overwrite: bool = False) -> Dict[str, vdf.DataFrameLocal]:
     '''Read the logs of the docking results for the ligands. 
     
     IMPORTANT: If passing a list, ensure that all the paths are related to the same receptor.
@@ -775,6 +780,8 @@ def read_logs(paths: Union[List[Tuple[str, str]], List[Tuple[str, str]]], archiv
         The list of directories or the directory to be processed.
     archive : str
         The archive name. Options are [dudez, pdbbind].
+    ptn : str
+        The protein name.
     saveChunk : int, optional
         The number of lines to be read before saving the data. The default is 100. (Not applicable if the paths is not a list!)
     overwrite : bool, optional
@@ -796,12 +803,18 @@ def read_logs(paths: Union[List[Tuple[str, str]], List[Tuple[str, str]]], archiv
         # Set the label
         label = f"Processing {archive}"
 
+        # Get the first path of paths and then remove the last 3 directories
+        hdf5Path = os.path.dirname(os.path.dirname(os.path.dirname(paths[0][0])))
+
         # Check if multiprocessing is enabled
         if args.multiprocess:
             # Prepare the pdbbind
-            return __read_log_parallel(paths, label, saveChunk = saveChunk, overwrite = overwrite)
+            return __read_log_parallel(paths, label, ptn, saveChunk, hdf5Path, overwrite)
         else:
             # Prepare the database
-            return __read_log_no_parallel(paths, label, saveChunk = saveChunk, overwrite = overwrite)
+            return __read_log_no_parallel(paths, label, ptn, saveChunk, hdf5Path, overwrite)
     else:
-        return __read_log_single(paths, overwrite = overwrite)
+        # Get the first path of paths and then remove the last 3 directories
+        hdf5Path = os.path.dirname(os.path.dirname(os.path.dirname(paths[0])))
+
+        return __read_log_single(paths, ptn, hdf5Path, overwrite)
