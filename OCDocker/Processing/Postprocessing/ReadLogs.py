@@ -580,8 +580,6 @@ def __read_log_parallel(paths: List[Tuple[str, str]], desc: str, ptn: str, saveC
                     ocff.to_hdf5(data, hdf5Path) # type: ignore
                     # Reset the counter
                     i = 0
-                # Clean the memory
-                del data # type: ignore
                 gc.collect()
                 
     except IOError as e:
