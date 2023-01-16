@@ -198,3 +198,6 @@ rundock.py
  
 # Ignore vscode files
 .vscode/
+
+# Ignore docs (for now)
+docs/

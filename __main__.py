@@ -2,12 +2,7 @@
 
 # Imports
 ###############################################################################
-import os
-import glob
-from multiprocessing import cpu_count
-
 from OCDocker.Initialise import *
-from OCDocker.Database import update_databases
 
 # License
 ###############################################################################

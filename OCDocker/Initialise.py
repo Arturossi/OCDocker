@@ -41,7 +41,7 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 
 # Splash, version & clear tmp
 ###############################################################################
-ocVersion = "0.6.5"
+ocVersion = "0.7.0"
 
 description = tw.dedent("""\033[1;93m
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -798,32 +798,14 @@ def argument_parsing() -> argparse.Namespace:
     # Add the arguments
     parser.add_argument("--version",
                         action="version",
+                        default=False,
                         version=f"%(prog)s {ocVersion}")
-
-    parser.add_argument("-f", "--file",
-                        dest="input_file",
-                        type=str,
-                        metavar="",
-                        help=".pdb file to input")
 
     parser.add_argument("--multiprocess",
                         dest="multiprocess",
                         action="store_true",
-                        default=False,
+                        default=True,
                         help="Defines whether python multiprocessing should be enabled for compatible lenghty tasks")
-
-    parser.add_argument("--generate-report",
-                        dest="generate_report",
-                        action="store_true",
-                        default=False,
-                        help="Creates a final HTML report for each generated model (forces -a MIG and --plot-topologies)")
-
-    parser.add_argument("-z", "--zip-output",
-                        dest="zip_output",
-                        type=int,
-                        default=0,
-                        metavar="",
-                        help="Defines the compression level. [0] No compression, [1] partial compression, [2] full compression")
 
     parser.add_argument("-u", "--update-databases",
                         dest="update",

@@ -225,13 +225,15 @@ def run_plants(overwrite: bool = False) -> int:
 
     return ocbdb.run_dock("dudez", "plants", overwrite = overwrite)
 
-def read_logs(picklePath = "") -> Union[Dict[str, vdf.DataFrameLocal], None]:
+def read_logs(saveChunk: int = 100, overwrite: bool = False) -> Union[Dict[str, vdf.DataFrameLocal], None]:
     '''Parse the database into multiple serializable objects.
 
     Parameters
     ----------
-    picklePath : str, optional
-        Path to the pickle file, by default "", which means that the pickle file will not be saved.
+    saveChunk : int, optional
+        The number of files to be parsed before saving the data, by default 100.
+    overwrite : bool, optional
+        If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated, by default False.
 
     Returns
     -------
@@ -243,7 +245,7 @@ def read_logs(picklePath = "") -> Union[Dict[str, vdf.DataFrameLocal], None]:
     None
     '''
 
-    return ocbdb.read_logs("dudez", picklePath = picklePath)
+    return ocbdb.read_logs("dudez", saveChunk = saveChunk, overwrite = overwrite)
 
 def generate_dock_result_csv(csv_path: str = "", log_dumps: Union[Dict[str, pd.DataFrame], None] = None) -> None:
     '''Uses the structure from read_logs to generate an output for all docking softwares.

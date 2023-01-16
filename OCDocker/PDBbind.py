@@ -303,13 +303,15 @@ def prepare(overwrite: bool = False) -> None:
 
     return ocbdb.prepare("pdbbind", overwrite = overwrite)
 
-def read_logs(picklePath: str = "") -> Union[Dict[str, vdf.DataFrameLocal], None]:
+def read_logs(saveChunk: int = 100, overwrite: bool = False) -> Union[Dict[str, vdf.DataFrameLocal], None]:
     '''Parse the database into multiple serializable objects.
 
     Parameters
     ----------
-    picklePath : str, optional
-        The path to the pickle file, by default "".
+    saveChunk : int, optional
+        The number of lines to save in each chunk, by default 100.
+    overwrite : bool, optional
+        If True, it will overwrite the results. If False, it will not run the preparation if the results already exist, by default False.
 
     Returns
     -------
@@ -321,7 +323,7 @@ def read_logs(picklePath: str = "") -> Union[Dict[str, vdf.DataFrameLocal], None
     None
     '''
 
-    return ocbdb.read_logs("pdbbind", picklePath = picklePath)
+    return ocbdb.read_logs("pdbbind", saveChunk = saveChunk, overwrite = overwrite)
 
 def generate_dock_result_csv(csv_path: str = "", log_dumps: Union[Dict[str, vdf.DataFrameLocal], None] = None) -> None:
     '''Uses the structure from read_logs to generate an output for all docking softwares.
