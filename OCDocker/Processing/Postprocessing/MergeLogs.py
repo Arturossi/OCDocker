@@ -191,7 +191,7 @@ def __merge_descriptors_in_dataframe_parallel(paths: List[Tuple[str, str]], rece
 
         # Check the datafile format
         df = __check_datafile_format(datafileFormat, receptorDataFile)
-        
+        print(df)
         if df is None:
             errMsg = f"Problem while reading the receptor file data '{receptorDataFile}'."
             # Log the error
