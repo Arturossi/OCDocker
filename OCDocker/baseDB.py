@@ -608,9 +608,9 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
         ptn = os.path.basename(ptnDir.split(os.path.sep)[-1])
 
         print(f"processDirs = {processDirs[:10]}")
-        print(f"ocmergelogs.merge_descriptors_in_dataframe(processDirs, '{file_path_out}', '{ptn}', '{archive}', saveChunk = {saveChunk}, datafileFormat = '{datafileFormat}', overwrite = {overwrite})")
+        print(f"ocmergelogs.merge_descriptors_in_dataframe(processDirs, '{ptnDir}/{ptn}.{datafileFormat}', '{ptn}', '{archive}', saveChunk = {saveChunk}, datafileFormat = '{datafileFormat}', overwrite = {overwrite})")
         # Merge the descriptors and append its results to the data list
-        data.append(ocmergelogs.merge_descriptors_in_dataframe(processDirs, file_path_out, ptn, archive, saveChunk = saveChunk, datafileFormat = datafileFormat, overwrite = overwrite))
+        data.append(ocmergelogs.merge_descriptors_in_dataframe(processDirs, f"{ptnDir}/{ptn}.{datafileFormat}", ptn, archive, saveChunk = saveChunk, datafileFormat = datafileFormat, overwrite = overwrite))
 
         # Merge the list elements into a single vaex df
         data = vaex.concat(data)
