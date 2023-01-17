@@ -166,7 +166,7 @@ def __merge_descriptors_in_dataframe_parallel(paths: List[Tuple[str, str]], rece
     desc : str
         Description of the process.
     datafileFormat : str, optional
-        Format of the datafile, by default "hdf5".
+        Format of the datafile, by default "hdf5". TODO: Add support for csv.
     overwrite : bool, optional
         If True, then it will overwrite the datafile, by default False.
 
@@ -190,8 +190,8 @@ def __merge_descriptors_in_dataframe_parallel(paths: List[Tuple[str, str]], rece
         lgd = pathSplited[-1]
 
         # Check the datafile format
-        df = __check_datafile_format(receptorDataFile, datafileFormat)
-        print(df)
+        df = __check_datafile_format(datafileFormat, receptorDataFile)
+        
         if df is None:
             errMsg = f"Problem while reading the receptor file data '{receptorDataFile}'."
             # Log the error
