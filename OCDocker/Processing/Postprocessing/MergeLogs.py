@@ -185,14 +185,13 @@ def __merge_descriptors_in_dataframe_parallel(paths: List[Tuple[str, str]], rece
 
     # For each file in the glob
     for path in paths:
-        print(path)
         # Get protein and ligand names
         pathSplited = path[0].split(os.path.sep)
         lgd = pathSplited[-1]
 
         # Check the datafile format
         df = __check_datafile_format(receptorDataFile, datafileFormat)
-        print(df)
+        
         if df is None:
             errMsg = f"Problem while reading the receptor file data '{receptorDataFile}'."
             # Log the error
@@ -391,7 +390,7 @@ def __merge_descriptors_in_dataframe_single(path: Tuple[str, str], receptorDataF
         return df
 
 def __check_datafile_format(datafileFormat: str, receptorDataFile: str) -> Union[vdf.DataFrameLocal, None]:
-    '''Check if the datafile format is supported.
+    '''Check if the datafile format is supported. If the file does not exist and has a valid extension, then it will create it.
 
     Parameters
     ----------
@@ -410,7 +409,11 @@ def __check_datafile_format(datafileFormat: str, receptorDataFile: str) -> Union
     '''
 
     # Check the datafile format
-    if datafileFormat == "hdf5":
+    if datafileFormat.lower() == "hdf5":
+        if not os.path.isfile(receptorDataFile):
+            # Create the file
+            ocff.to_hdf5(receptorDataFile, vaex.from_dict({}))
+            return vaex.from_dict({})
         # Read the hdf5 file
         return ocff.from_hdf5(receptorDataFile)
     else:   	
@@ -457,11 +460,9 @@ def merge_descriptors_in_dataframe(paths: Union[List[Tuple[str, str]], Tuple[str
 
         # Check if multiprocessing is enabled
         if args.multiprocess:
-            print(f"{label} in parallel mode...")
             # Prepare the pdbbind
             return __merge_descriptors_in_dataframe_parallel(paths, receptorDataFile, ptn, saveChunk , label, datafileFormat = datafileFormat, overwrite = overwrite)
         else:
-            print(f"{label} in not parallel mode...")
             # Prepare the database
             return __merge_descriptors_in_dataframe_no_parallel(paths, receptorDataFile, ptn, saveChunk , label, datafileFormat = datafileFormat, overwrite = overwrite)
     else:
