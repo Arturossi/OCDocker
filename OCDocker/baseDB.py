@@ -604,14 +604,14 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
             processDirs += [(processDir, receptor_descriptor_path) for processDir in glob(f"{decoys}/*") if os.path.isdir(processDir)]
             processDirs += [(processDir, receptor_descriptor_path) for processDir in glob(f"{candidates}/*") if os.path.isdir(processDir)]
     
+        from pprint import pprint
+        pprint(processDirs)
+
         # Extract the ptn name
         ptn = os.path.basename(ptnDir.split(os.path.sep)[-1])
 
         # Merge the descriptors and append its results to the data list
         data.append(ocmergelogs.merge_descriptors_in_dataframe(processDirs, file_path_out, ptn, archive, saveChunk = saveChunk, datafileFormat = datafileFormat, overwrite = overwrite))
-
-        from pprint import pprint
-        pprint(data)
 
         # Merge the list elements into a single vaex df
         data = vaex.concat(data)
