@@ -185,13 +185,14 @@ def __merge_descriptors_in_dataframe_parallel(paths: List[Tuple[str, str]], rece
 
     # For each file in the glob
     for path in paths:
+        print(path)
         # Get protein and ligand names
         pathSplited = path[0].split(os.path.sep)
         lgd = pathSplited[-1]
 
         # Check the datafile format
         df = __check_datafile_format(receptorDataFile, datafileFormat)
-
+        print(df)
         if df is None:
             errMsg = f"Problem while reading the receptor file data '{receptorDataFile}'."
             # Log the error
@@ -445,11 +446,6 @@ def merge_descriptors_in_dataframe(paths: Union[List[Tuple[str, str]], Tuple[str
     vdf.DataFrameLocal
         Dataframe with the descriptors of the proteins.
     '''
-
-    from pprint import pprint
-    pprint(paths)
-
-    print(type(paths))
 
     # If the path is a list
     if isinstance(paths, list):
