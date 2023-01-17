@@ -29,6 +29,7 @@ from OCDocker.Initialise import *
 import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
 import OCDocker.Toolbox.Basetools as ocbasetools
+import OCDocker.Toolbox.FilesFolders as ocff
 import OCDocker.Toolbox.Logging as oclogging
 import OCDocker.Toolbox.Printing as ocprint
 
@@ -149,15 +150,25 @@ def __thread_merge_descriptors_in_dataframe_parallel(arguments: Tuple[Tuple[str,
         # Call the core read log function passing the arguments correctly
         return __core_merge_descriptors_in_dataframe(arguments[0])
 
-def __merge_descriptors_in_dataframe_parallel(dirs: List[Tuple[str, str]], desc: str) -> vdf.DataFrameLocal:
+def __merge_descriptors_in_dataframe_parallel(paths: List[Tuple[str, str]], receptorDataFile: str, ptn: str, saveChunk: int, desc: str, datafileFormat: str = "hdf5", overwrite: bool = False) -> vdf.DataFrameLocal:
     '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
 
     Parameters
     ----------
-    dirs : List[Tuple[str, str]]
+    paths : List[Tuple[str, str]]
         Tuple containing the directory where the files are stored and the receptor descriptor json file.
+    receptorDataFile : str
+        Path to the receptor data file.
+    ptn : str
+        Protein name.
+    saveChunk : int
+        The number of iterations to perform before saving the data.
     desc : str
         Description of the process.
+    datafileFormat : str, optional
+        Format of the datafile, by default "hdf5".
+    overwrite : bool, optional
+        If True, then it will overwrite the datafile, by default False.
 
     Returns
     -------
@@ -173,12 +184,41 @@ def __merge_descriptors_in_dataframe_parallel(dirs: List[Tuple[str, str]], desc:
     arguments = []
 
     # For each file in the glob
-    for d in dirs:
-        # Append a tuple containing the file name and ovewrite flag to the arguments list
-        arguments.append((d, None))
+    for path in paths:
+        # Get protein and ligand names
+        pathSplited = path[0].split(os.path.sep)
+        lgd = pathSplited[-1]
+
+        # Check the datafile format
+        df = __check_datafile_format(receptorDataFile, datafileFormat)
+
+        if df is None:
+            errMsg = f"Problem while reading the receptor file data '{receptorDataFile}'."
+            # Log the error
+            ocprint.print_error(errMsg)
+            ocprint.print_error_log(errMsg, f"{logdir}/merge_log_ERROR_report.log")
+            return vaex.from_dict({})
+
+        # Found flag
+        found = False
+
+        # For each line in the vaex dataframe
+        for i in range(len(df)): # type: ignore
+            # Check if the protein and ligand are the same as the ones in the datafile
+            if df["Protein"][i] == ptn and df["Ligand"][i] == lgd: # type: ignore
+                found = True
+                break
+
+        if not found or overwrite:
+            # Append a tuple containing the file name and ovewrite flag to the arguments list
+            arguments.append((path, None))
+        
 
     # List with all protein data
     ptnList = []
+
+    # Counter for the iterations
+    i = 0
 
     try:
         # Create a Thread pool with the maximum available_cores
@@ -186,24 +226,42 @@ def __merge_descriptors_in_dataframe_parallel(dirs: List[Tuple[str, str]], desc:
             # Perform the multi process
             for innerData in tqdm(p.imap_unordered(__thread_merge_descriptors_in_dataframe_parallel, arguments), total = len(arguments), desc = desc):
                 # Update the dict with the result from the called function
-                ptnList.append(innerData)
+                ptnList.append(innerData)# Increment the counter
+                i += 1
+                # Check if the counter is greater or equal of saveChunk
+                if i >= saveChunk:
+                    # Save the data
+                    ocff.to_hdf5(ptnList, receptorDataFile) # type: ignore
+                    # Reset the counter
+                    i = 0
                 # Clear the memory
                 gc.collect()
     except IOError as e:
-        ocprint.print_error_log(f"Problem while mergin descriptors in parallel. Exception: {e}", f"{logdir}/read_log_ERROR_report.log")
-        ocprint.print_error(f"Problem while mergin descriptors in parallel. Exception: {e}")
+        errMsg = f"Problem while merging descriptors in parallel. Exception: {e}"
+        ocprint.print_error_log(errMsg, f"{logdir}/read_log_ERROR_report.log")
+        ocprint.print_error(errMsg)
 
     return vaex.concat(ptnList) # type: ignore
 
-def __merge_descriptors_in_dataframe_no_parallel(dirs: List[Tuple[str, str]], desc: str) -> vdf.DataFrameLocal:
+def __merge_descriptors_in_dataframe_no_parallel(paths: List[Tuple[str, str]], receptorDataFile: str, ptn: str, saveChunk: int, desc: str, datafileFormat: str = "hdf5", overwrite: bool = False) -> vdf.DataFrameLocal:
     '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_read_log function.
 
     Parameters
     ----------
-    dirs : List[Tuple[str, str]]
+    paths : List[Tuple[str, str]]
         Tuple containing the directory where the files are stored and the receptor descriptor json file.
+    receptorDataFile : str
+        Path to the receptor data file.
+    ptn : str
+        Protein name.
+    saveChunk : int
+        The number of iterations to perform before saving the data.
     desc : str
         Description of the process.
+    datafileFormat : str, optional
+        Format of the datafile, by default "hdf5".
+    overwrite : bool, optional
+        If True, then it will overwrite the datafile, by default False.
 
     Returns
     -------
@@ -215,20 +273,59 @@ def __merge_descriptors_in_dataframe_no_parallel(dirs: List[Tuple[str, str]], de
     None
     '''
 
+    # Check the datafile format
+    df = __check_datafile_format(receptorDataFile, datafileFormat)
+
+    # If df is None
+    if df is None:
+        errMsg = f"Problem while reading the receptor file data '{receptorDataFile}'."
+        # Log the error
+        ocprint.print_error(errMsg)
+        ocprint.print_error_log(errMsg, f"{logdir}/merge_log_ERROR_report.log")
+        # Return an empty vaex dict
+        return vaex.from_dict({})
+
     # List to store the read data
     ptnList = []
 
+    # Counter for the iterations
+    i = 0
+
     # Redirect all prints to tqdm.write
     with ocbasetools.redirect_to_tqdm():
-        for dir in tqdm(iterable = dirs, total = len(dirs), desc = desc):
-            # Call the core read log function (shared between parallel and not parallel) and store the data into the DataFrame
-            ptnList.append(__core_merge_descriptors_in_dataframe(dir))
+        for path in tqdm(iterable = paths, total = len(paths), desc = desc):
+            # Get the ligand type
+            pathSplited = path[0].split(os.path.sep)
+            lgd = pathSplited[-1]
+            
+            # Found flag
+            found = False
+
+            # For each line in the vaex dataframe
+            for i in range(len(df)): # type: ignore
+                # Check if the protein and ligand are the same as the ones in the datafile
+                if df["Protein"][i] == ptn and df["Ligand"][i] == lgd: # type: ignore
+                    found = True
+                    break
+
+            if not found or overwrite:
+                # Add 1 to the counter
+                i += 1
+                # Call the core read log function (shared between parallel and not parallel) and store the data into the DataFrame
+                ptnList.append(__core_merge_descriptors_in_dataframe(path))
+                # Check if the counter is greater or equal of saveChunk
+                if i >= saveChunk:
+                    # Save the data
+                    ocff.to_hdf5(receptorDataFile, ptnList)
+                    # Reset the counter
+                    i = 0
+            
             # Clear the memory
             gc.collect()
 
     return vaex.concat(ptnList) # type: ignore
 
-def __merge_descriptors_in_dataframe_single(path: Tuple[str, str]) -> vdf.DataFrameLocal:
+def __merge_descriptors_in_dataframe_single(path: Tuple[str, str], receptorDataFile: str, ptn: str, saveChunk: int, datafileFormat: str = "hdf5", overwrite: bool = False) -> vdf.DataFrameLocal:
     '''Warper to prepare the jobs, recieves a directory, and pass it to the __core_prepare function.
 
     TODO: Add the support to custom databases.
@@ -237,6 +334,16 @@ def __merge_descriptors_in_dataframe_single(path: Tuple[str, str]) -> vdf.DataFr
     ----------
     path : Tuple[str, str]
         A tuple with the directory and the ligand type (ligand, decoy, candidate).
+    receptorDataFile : str
+        Path to the receptor data file.
+    ptn : str
+        Protein name.
+    saveChunk : int
+        The number of iterations to perform before saving the data.
+    datafileFormat : str, optional
+        Format of the datafile, by default "hdf5".
+    overwrite : bool, optional
+        If True, then it will overwrite the datafile, by default False.
 
     Returns
     -------
@@ -248,20 +355,87 @@ def __merge_descriptors_in_dataframe_single(path: Tuple[str, str]) -> vdf.DataFr
     None
     '''
 
-    # Read the log
-    return __core_merge_descriptors_in_dataframe(path)
+    # Check the datafile format
+    df = __check_datafile_format(receptorDataFile, datafileFormat)
+
+    # If df is None
+    if df is None:
+        errMsg = f"Problem while reading the receptor file data '{receptorDataFile}'."
+        # Log the error
+        ocprint.print_error(errMsg)
+        ocprint.print_error_log(errMsg, f"{logdir}/merge_log_ERROR_report.log")
+        # Return an empty vaex dict
+        return vaex.from_dict({})
+    
+    # Get the ligand type
+    pathSplited = path[0].split(os.path.sep)
+    lgd = pathSplited[-1]
+
+    # Found flag
+    found = False
+    
+    # For each line in the vaex dataframe
+    for i in range(len(df)): # type: ignore
+        # Check if the protein and ligand are the same as the ones in the datafile
+        if df["Protein"][i] == ptn and df["Ligand"][i] == lgd: # type: ignore
+            found = True
+            break
+
+    if not found or overwrite:
+        # Call the core read log function
+        return __core_merge_descriptors_in_dataframe(path)
+    else:
+        # Update the data with information from the hdf5 file
+        return df
+
+def __check_datafile_format(datafileFormat: str, receptorDataFile: str) -> Union[vdf.DataFrameLocal, None]:
+    '''Check if the datafile format is supported.
+
+    Parameters
+    ----------
+    datafileFormat : str
+        Format of the datafile.
+
+    Returns
+    -------
+    vdf.DataFrameLocal | None
+        Dataframe with the descriptors of the proteins. If unsupported, then it will return None.
+
+    Raises
+    ------
+    ValueError
+        If the datafile format is not supported.
+    '''
+
+    # Check the datafile format
+    if datafileFormat == "hdf5":
+        # Read the hdf5 file
+        return ocff.from_hdf5(receptorDataFile)
+    else:   	
+        _ = errors.unsupported_extension(f"Unsupported datafile format: {datafileFormat}. Supported formats are: [hdf5].")
+        return None
 
 ## Public ##
 
-def merge_descriptors_in_dataframe(paths: Union[List[Tuple[str, str]], List[Tuple[str, str]]], archive: str) -> vdf.DataFrameLocal:
+def merge_descriptors_in_dataframe(paths: Union[List[Tuple[str, str]], List[Tuple[str, str]]], receptorDataFile: str, ptn: str, archive: str, saveChunk: int = 100, datafileFormat: str = "hdf5", overwrite: bool = False) -> vdf.DataFrameLocal:
     '''Merge the descriptors with the result for the log files.
 
     Parameters
     ----------
     paths : List[Tuple[str, str]] | Tuple[str, str]
         The list of tuples or a single tuple containing the directories and the receptor descriptor path.
+    receptorDataFile : str
+        Path to the receptor data file.
+    ptn : str
+        Protein name.
     archive : str
         The archive name. Options are [dudez, pdbbind].
+    saveChunk : int, optional
+        The number of iterations to perform before saving the data, by default 100.
+    datafileFormat : str, optional
+        The format of the datafile. Options are [hdf5, csv], by default "hdf5"
+    overwrite : bool, optional
+        If True, then it will overwrite the datafile, by default False.
 
     Returns
     -------
@@ -280,9 +454,9 @@ def merge_descriptors_in_dataframe(paths: Union[List[Tuple[str, str]], List[Tupl
         # Check if multiprocessing is enabled
         if args.multiprocess:
             # Prepare the pdbbind
-            return __merge_descriptors_in_dataframe_parallel(paths, label)
+            return __merge_descriptors_in_dataframe_parallel(paths, receptorDataFile, ptn, saveChunk , label, datafileFormat = datafileFormat, overwrite = overwrite)
         else:
             # Prepare the database
-            return __merge_descriptors_in_dataframe_no_parallel(paths, label)
+            return __merge_descriptors_in_dataframe_no_parallel(paths, receptorDataFile, ptn, saveChunk , label, datafileFormat = datafileFormat, overwrite = overwrite)
     else:
-        return __merge_descriptors_in_dataframe_single(paths)
+        return __merge_descriptors_in_dataframe_single(paths, receptorDataFile, ptn, saveChunk, datafileFormat = datafileFormat, overwrite = overwrite)
