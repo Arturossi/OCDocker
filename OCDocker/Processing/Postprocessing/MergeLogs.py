@@ -185,7 +185,7 @@ def __merge_descriptors_in_dataframe_parallel(paths: List[Tuple[str, str]], rece
 
     # Check the datafile format
     df = __check_datafile_format(datafileFormat, receptorDataFile)
-    print(df)
+
     if df is None:
         errMsg = f"Problem while reading the receptor file data '{receptorDataFile}'."
         # Log the error
@@ -203,12 +203,14 @@ def __merge_descriptors_in_dataframe_parallel(paths: List[Tuple[str, str]], rece
         # Found flag
         found = False
 
-        # For each line in the vaex dataframe
-        for i in range(len(df)): # type: ignore
-            # Check if the protein and ligand are the same as the ones in the datafile
-            if df["Protein"][i] == ptn and df["Ligand"][i] == lgd: # type: ignore
-                found = True
-                break
+        # Check if the file exists
+        if type(df) != int:
+            # For each line in the vaex dataframe
+            for i in range(len(df)): # type: ignore
+                # Check if the protein and ligand are the same as the ones in the datafile
+                if df["Protein"][i] == ptn and df["Ligand"][i] == lgd: # type: ignore
+                    found = True
+                    break
 
         if not found or overwrite:
             # Append a tuple containing the file name and ovewrite flag to the arguments list
@@ -306,12 +308,14 @@ def __merge_descriptors_in_dataframe_no_parallel(paths: List[Tuple[str, str]], r
             # Found flag
             found = False
 
-            # For each line in the vaex dataframe
-            for i in range(len(df)): # type: ignore
-                # Check if the protein and ligand are the same as the ones in the datafile
-                if df["Protein"][i] == ptn and df["Ligand"][i] == lgd: # type: ignore
-                    found = True
-                    break
+            # Check if the file exists
+            if type(df) != int:
+                # For each line in the vaex dataframe
+                for i in range(len(df)): # type: ignore
+                    # Check if the protein and ligand are the same as the ones in the datafile
+                    if df["Protein"][i] == ptn and df["Ligand"][i] == lgd: # type: ignore
+                        found = True
+                        break
 
             if not found or overwrite:
                 # Add 1 to the counter
@@ -385,21 +389,26 @@ def __merge_descriptors_in_dataframe_single(path: Tuple[str, str], receptorDataF
     # Found flag
     found = False
     
-    # For each line in the vaex dataframe
-    for i in range(len(df)): # type: ignore
-        # Check if the protein and ligand are the same as the ones in the datafile
-        if df["Protein"][i] == ptn and df["Ligand"][i] == lgd: # type: ignore
-            found = True
-            break
+    # Check if the file exists
+    if type(df) != int:
+        # For each line in the vaex dataframe
+        for i in range(len(df)): # type: ignore
+            # Check if the protein and ligand are the same as the ones in the datafile
+            if df["Protein"][i] == ptn and df["Ligand"][i] == lgd: # type: ignore
+                found = True
+                break
+    else:
+        # If the file does not exist, then the empty dataframe that will be concatenated
+        df = vaex.from_dict({})
 
     if not found or overwrite:
         # Call the core read log function and concatenate its results to the vaex dataframe
         return vaex.concat([df, __core_merge_descriptors_in_dataframe(path)]) # type: ignore
     else:
         # Update the data with information from the hdf5 file
-        return df
+        return df # type: ignore
 
-def __check_datafile_format(datafileFormat: str, receptorDataFile: str) -> Union[vdf.DataFrameLocal, None]:
+def __check_datafile_format(datafileFormat: str, receptorDataFile: str) -> Union[vdf.DataFrameLocal, int, None]:
     '''Check if the datafile format is supported. If the file does not exist and has a valid extension, then it will create it.
 
     Parameters
@@ -409,8 +418,8 @@ def __check_datafile_format(datafileFormat: str, receptorDataFile: str) -> Union
 
     Returns
     -------
-    vdf.DataFrameLocal | None
-        Dataframe with the descriptors of the proteins. If unsupported, then it will return None.
+    vdf.DataFrameLocal | int | None
+        Dataframe with the descriptors of the proteins. If no file exists, will return an int (errors.fileDoNotExistCode). If unsupported, then it will return None.
 
     Raises
     ------
@@ -422,7 +431,7 @@ def __check_datafile_format(datafileFormat: str, receptorDataFile: str) -> Union
     if datafileFormat.lower() == "hdf5":
         # If the file does not exist, return an empty dataframe
         if not os.path.isfile(receptorDataFile):
-            return vaex.from_dict({})
+            return errors.file_do_not_exist(f"File '{receptorDataFile}' does not exist.", level = "warn")
         # Read the hdf5 file
         return vaex.open(receptorDataFile)
     else:   	
