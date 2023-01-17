@@ -474,7 +474,7 @@ def merge_descriptors_in_dataframe(paths: Union[List[Tuple[str, str]], Tuple[str
         oclogging.backup_log("read_log_ERROR_report")
 
         # Set the label
-        label = f"Processing the '{archive}'"
+        label = f"Processing the '{archive} protein {ptn}'"
 
         # Check if multiprocessing is enabled
         if args.multiprocess:
