@@ -420,14 +420,9 @@ def __check_datafile_format(datafileFormat: str, receptorDataFile: str) -> Union
 
     # Check the datafile format
     if datafileFormat.lower() == "hdf5":
+        # If the file does not exist, return an empty dataframe
         if not os.path.isfile(receptorDataFile):
-            emptyDf = vaex.from_dict({})
-
-            # Write the vaex dataframe to the hdf5 file
-            emptyDf.export_hdf5(receptorDataFile)
-
-            return emptyDf
-            
+            return vaex.from_dict({})
         # Read the hdf5 file
         return vaex.open(receptorDataFile)
     else:   	
