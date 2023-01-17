@@ -230,10 +230,15 @@ def __merge_descriptors_in_dataframe_parallel(paths: List[Tuple[str, str]], rece
                 i += 1
                 # Check if the counter is greater or equal of saveChunk
                 if i >= saveChunk:
-                    # Save the data
-                    ocff.to_hdf5(receptorDataFile, vaex.concat(ptnList))
+                    # Convert the ptnList to a dataframe
+                    df = vaex.concat(ptnList)
+
+                    # Save it
+                    df.export_hdf5(receptorDataFile)
+
                     # Reset the counter
                     i = 0
+
                 # Clear the memory
                 gc.collect()
     except IOError as e:
@@ -315,8 +320,12 @@ def __merge_descriptors_in_dataframe_no_parallel(paths: List[Tuple[str, str]], r
                 ptnList.append(__core_merge_descriptors_in_dataframe(path))
                 # Check if the counter is greater or equal of saveChunk
                 if i >= saveChunk:
+                    # Convert the ptnList to a dataframe
+                    innerdf = vaex.concat(ptnList)
+
                     # Save the data
-                    ocff.to_hdf5(receptorDataFile, vaex.concat(ptnList))
+                    innerdf.export_hdf5(receptorDataFile)
+
                     # Reset the counter
                     i = 0
             
@@ -413,8 +422,12 @@ def __check_datafile_format(datafileFormat: str, receptorDataFile: str) -> Union
     if datafileFormat.lower() == "hdf5":
         if not os.path.isfile(receptorDataFile):
             emptyDf = vaex.from_dict({})
-            emptyDf.to_hdf5(receptorDataFile)
+
+            # Write the vaex dataframe to the hdf5 file
+            emptyDf.export_hdf5(receptorDataFile)
+
             return emptyDf
+            
         # Read the hdf5 file
         return vaex.open(receptorDataFile)
     else:   	
