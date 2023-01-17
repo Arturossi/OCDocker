@@ -213,7 +213,6 @@ def __merge_descriptors_in_dataframe_parallel(paths: List[Tuple[str, str]], rece
             # Append a tuple containing the file name and ovewrite flag to the arguments list
             arguments.append((path, None))
         
-
     # List with all protein data
     ptnList = []
 
@@ -231,7 +230,7 @@ def __merge_descriptors_in_dataframe_parallel(paths: List[Tuple[str, str]], rece
                 # Check if the counter is greater or equal of saveChunk
                 if i >= saveChunk:
                     # Save the data
-                    ocff.to_hdf5(ptnList, receptorDataFile) # type: ignore
+                    ocff.to_hdf5(receptorDataFile, vaex.concat(ptnList))
                     # Reset the counter
                     i = 0
                 # Clear the memory
@@ -316,7 +315,7 @@ def __merge_descriptors_in_dataframe_no_parallel(paths: List[Tuple[str, str]], r
                 # Check if the counter is greater or equal of saveChunk
                 if i >= saveChunk:
                     # Save the data
-                    ocff.to_hdf5(receptorDataFile, ptnList)
+                    ocff.to_hdf5(receptorDataFile, vaex.concat(ptnList))
                     # Reset the counter
                     i = 0
             
@@ -325,7 +324,7 @@ def __merge_descriptors_in_dataframe_no_parallel(paths: List[Tuple[str, str]], r
 
     return vaex.concat(ptnList) # type: ignore
 
-def __merge_descriptors_in_dataframe_single(path: Tuple[str, str], receptorDataFile: str, ptn: str, saveChunk: int, datafileFormat: str = "hdf5", overwrite: bool = False) -> vdf.DataFrameLocal:
+def __merge_descriptors_in_dataframe_single(path: Tuple[str, str], receptorDataFile: str, ptn: str, saveChunk: int, datafileFormat: str = "hdf5", overwrite: bool = False, savedf: bool = False) -> vdf.DataFrameLocal:
     '''Warper to prepare the jobs, recieves a directory, and pass it to the __core_prepare function.
 
     TODO: Add the support to custom databases.
@@ -344,6 +343,8 @@ def __merge_descriptors_in_dataframe_single(path: Tuple[str, str], receptorDataF
         Format of the datafile, by default "hdf5".
     overwrite : bool, optional
         If True, then it will overwrite the datafile, by default False.
+    savedf : bool, optional
+        If True, then it will save the dataframe, by default False.
 
     Returns
     -------
@@ -382,8 +383,8 @@ def __merge_descriptors_in_dataframe_single(path: Tuple[str, str], receptorDataF
             break
 
     if not found or overwrite:
-        # Call the core read log function
-        return __core_merge_descriptors_in_dataframe(path)
+        # Call the core read log function and concatenate its results to the vaex dataframe
+        return vaex.concat([df, __core_merge_descriptors_in_dataframe(path)]) # type: ignore
     else:
         # Update the data with information from the hdf5 file
         return df
@@ -417,7 +418,7 @@ def __check_datafile_format(datafileFormat: str, receptorDataFile: str) -> Union
 
 ## Public ##
 
-def merge_descriptors_in_dataframe(paths: Union[List[Tuple[str, str]], List[Tuple[str, str]]], receptorDataFile: str, ptn: str, archive: str, saveChunk: int = 100, datafileFormat: str = "hdf5", overwrite: bool = False) -> vdf.DataFrameLocal:
+def merge_descriptors_in_dataframe(paths: Union[List[Tuple[str, str]], Tuple[str, str]], receptorDataFile: str, ptn: str, archive: str, saveChunk: int = 100, datafileFormat: str = "hdf5", overwrite: bool = False, savedf: bool = False) -> vdf.DataFrameLocal:
     '''Merge the descriptors with the result for the log files.
 
     Parameters
@@ -436,6 +437,8 @@ def merge_descriptors_in_dataframe(paths: Union[List[Tuple[str, str]], List[Tupl
         The format of the datafile. Options are [hdf5, csv], by default "hdf5"
     overwrite : bool, optional
         If True, then it will overwrite the datafile, by default False.
+    savedf : bool, optional
+        If True, then it will save the dataframe, by default False. Only works if paths is not a list of tuples.
 
     Returns
     -------
@@ -459,4 +462,4 @@ def merge_descriptors_in_dataframe(paths: Union[List[Tuple[str, str]], List[Tupl
             # Prepare the database
             return __merge_descriptors_in_dataframe_no_parallel(paths, receptorDataFile, ptn, saveChunk , label, datafileFormat = datafileFormat, overwrite = overwrite)
     else:
-        return __merge_descriptors_in_dataframe_single(paths, receptorDataFile, ptn, saveChunk, datafileFormat = datafileFormat, overwrite = overwrite)
+        return __merge_descriptors_in_dataframe_single(paths, receptorDataFile, ptn, saveChunk, datafileFormat = datafileFormat, overwrite = overwrite, savedf = savedf)
