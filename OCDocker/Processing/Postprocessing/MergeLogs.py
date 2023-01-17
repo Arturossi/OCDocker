@@ -446,6 +446,11 @@ def merge_descriptors_in_dataframe(paths: Union[List[Tuple[str, str]], Tuple[str
         Dataframe with the descriptors of the proteins.
     '''
 
+    from pprint import pprint
+    pprint(paths)
+
+    print(type(paths))
+
     # If the path is a list
     if isinstance(paths, list):
         # If logfile exists, backup it
