@@ -518,7 +518,7 @@ def generate_dock_result_csv(archive: str, csv_path: str, log_dumps: Union[Dict[
 
     return None
 
-def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMode: str = "hdf5", picklenize: bool = False, returnDf: bool = False, skipMergePicklePath: str = "", verboseOperations: bool = False) -> Union[vdf.DataFrameLocal, None]:
+def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMode: str = "hdf5", picklenize: bool = False, returnDf: bool = False, skipMergePicklePath: str = "", saveChunk: int = 100, datafileFormat: str = "hdf5", verboseOperations: bool = False, overwrite: bool = False) -> Union[vdf.DataFrameLocal, None]:
     '''Reads all the descriptors jsons and return a pd.DataFrame.
 
     Parameters
@@ -533,8 +533,14 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
         If True, will return the dataframe. The default is False.
     skipMergePicklePath : str, optional
         If not empty, will skip the merge and will try to read the pickle file. The default is "".
+    saveChunk : int, optional
+        The chunk size to save the dataframe. The default is 100.
+    datafileFormat : str, optional
+        The format of the data file. The default is "hdf5". TODO: Add csv support.
     verboseOperations : bool, optional
         If True, will print the operations being done. The default is False. This is useful for debugging.
+    overwrite : bool, optional
+        If True, will overwrite the database files. The default is False.
     
     Returns
     -------
@@ -574,40 +580,38 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
         file_path_in = f"{parsed_archive}/{archive}.csv"
     else:
         ocprint.print_error(f"Not valid read mode. Expected one of ['csv', 'hdf5'] and found {readMode}.")
-
         return None
 
-    # If the user asked to skip the merge passing a pickle path    
-    if not skipMergePicklePath:
-        # Create an empty list for all directories to be processed
-        processDirs = []
+    # Create an empty list for all directories to be processed
+    processDirs = []
 
-        # For each dir in chosenArchive
-        for ptnDir in glob(f"{chosenArchive}/*"):
-            # Check if is a dir (just in case) and if its name is not one of the ones we want to skip
-            if os.path.isdir(ptnDir) and os.path.basename(ptnDir.split(os.path.sep)[-1]) not in ["index"]:
-                # Parameterize paths
-                ligands = f"{ptnDir}/compounds/ligands"
-                decoys = f"{ptnDir}/compounds/decoys"
-                candidates = f"{ptnDir}/compounds/candidates"
+    # Create the data list
+    data = []
 
-                # Parameterize the receptor descriptor path
-                receptor_descriptor_path = f"{ptnDir}/receptor_descriptors.json"
+    # For each dir in chosenArchive
+    for ptnDir in glob(f"{chosenArchive}/*"):
+        # Check if is a dir (just in case) and if its name is not one of the ones we want to skip
+        if os.path.isdir(ptnDir) and os.path.basename(ptnDir.split(os.path.sep)[-1]) not in ["index"]:
+            # Parameterize paths
+            ligands = f"{ptnDir}/compounds/ligands"
+            decoys = f"{ptnDir}/compounds/decoys"
+            candidates = f"{ptnDir}/compounds/candidates"
 
-                processDirs += [(processDir, receptor_descriptor_path) for processDir in glob(f"{ligands}/*") if os.path.isdir(processDir)]
-                processDirs += [(processDir, receptor_descriptor_path) for processDir in glob(f"{decoys}/*") if os.path.isdir(processDir)]
-                processDirs += [(processDir, receptor_descriptor_path) for processDir in glob(f"{candidates}/*") if os.path.isdir(processDir)]
-        
-        # Merge the descriptors
-        data = ocmergelogs.merge_descriptors_in_dataframe(processDirs, archive)
+            # Parameterize the receptor descriptor path
+            receptor_descriptor_path = f"{ptnDir}/receptor_descriptors.json"
 
-    else:
-        # Try to read the pickle
-        try:
-            data = ocff.from_pickle(skipMergePicklePath)
-        except:
-            ocprint.print_error(f"Could not read the pickle file '{skipMergePicklePath}'.")
-            return None
+            processDirs += [(processDir, receptor_descriptor_path) for processDir in glob(f"{ligands}/*") if os.path.isdir(processDir)]
+            processDirs += [(processDir, receptor_descriptor_path) for processDir in glob(f"{decoys}/*") if os.path.isdir(processDir)]
+            processDirs += [(processDir, receptor_descriptor_path) for processDir in glob(f"{candidates}/*") if os.path.isdir(processDir)]
+    
+        # Extract the ptn name
+        ptn = os.path.basename(ptnDir.split(os.path.sep)[-1])
+
+        # Merge the descriptors and append its results to the data list
+        data.append(ocmergelogs.merge_descriptors_in_dataframe(processDirs, file_path_out, ptn, archive, saveChunk = saveChunk, datafileFormat = datafileFormat, overwrite = overwrite))
+
+        # Merge the list elements into a single vaex df
+        data = vaex.concat(data)
 
     # Check if data is pd.DataFrame type and is not empty
     if type(data) == vdf.DataFrameLocal: # type: ignore
@@ -615,7 +619,7 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
         try:
             # If picklenize is true, save as pickle in this step
             if picklenize:
-                ocff.to_pickle(f"{parsed_archive}/{archive}_merged_descriptors.pickle", data)
+                ocff.to_pickle(f"{parsed_archive}/{archive}_merged_descriptors.pickle", data) # type: ignore
 
             # Rename the name column from data dataframe
             #data.rename("Name", "Ligand") # type: ignore
