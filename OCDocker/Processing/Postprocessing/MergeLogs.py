@@ -274,7 +274,7 @@ def __merge_descriptors_in_dataframe_no_parallel(paths: List[Tuple[str, str]], r
     '''
 
     # Check the datafile format
-    df = __check_datafile_format(receptorDataFile, datafileFormat)
+    df = __check_datafile_format(datafileFormat, receptorDataFile)
 
     # If df is None
     if df is None:
@@ -358,7 +358,7 @@ def __merge_descriptors_in_dataframe_single(path: Tuple[str, str], receptorDataF
     '''
 
     # Check the datafile format
-    df = __check_datafile_format(receptorDataFile, datafileFormat)
+    df = __check_datafile_format(datafileFormat, receptorDataFile)
 
     # If df is None
     if df is None:
