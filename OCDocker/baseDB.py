@@ -610,6 +610,9 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
         # Merge the descriptors and append its results to the data list
         data.append(ocmergelogs.merge_descriptors_in_dataframe(processDirs, file_path_out, ptn, archive, saveChunk = saveChunk, datafileFormat = datafileFormat, overwrite = overwrite))
 
+        from pprint import pprint
+        pprint(data)
+
         # Merge the list elements into a single vaex df
         data = vaex.concat(data)
 
