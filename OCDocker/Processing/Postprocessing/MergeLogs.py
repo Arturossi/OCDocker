@@ -183,21 +183,22 @@ def __merge_descriptors_in_dataframe_parallel(paths: List[Tuple[str, str]], rece
     # Arguments to pass to each Thread in the Thread Pool
     arguments = []
 
+    # Check the datafile format
+    df = __check_datafile_format(datafileFormat, receptorDataFile)
+    print(df)
+    if df is None:
+        errMsg = f"Problem while reading the receptor file data '{receptorDataFile}'."
+        # Log the error
+        ocprint.print_error(errMsg)
+        ocprint.print_error_log(errMsg, f"{logdir}/merge_log_ERROR_report.log")
+        return vaex.from_dict({})
+
     # For each file in the glob
     for path in paths:
         # Get protein and ligand names
         pathSplited = path[0].split(os.path.sep)
         lgd = pathSplited[-1]
-
-        # Check the datafile format
-        df = __check_datafile_format(datafileFormat, receptorDataFile)
-        print(df)
-        if df is None:
-            errMsg = f"Problem while reading the receptor file data '{receptorDataFile}'."
-            # Log the error
-            ocprint.print_error(errMsg)
-            ocprint.print_error_log(errMsg, f"{logdir}/merge_log_ERROR_report.log")
-            return vaex.from_dict({})
+        print(path)
 
         # Found flag
         found = False
@@ -411,11 +412,11 @@ def __check_datafile_format(datafileFormat: str, receptorDataFile: str) -> Union
     # Check the datafile format
     if datafileFormat.lower() == "hdf5":
         if not os.path.isfile(receptorDataFile):
-            # Create the file
-            ocff.to_hdf5(receptorDataFile, vaex.from_dict({}))
-            return vaex.from_dict({})
+            emptyDf = vaex.from_dict({})
+            emptyDf.to_hdf5(receptorDataFile)
+            return emptyDf
         # Read the hdf5 file
-        return ocff.from_hdf5(receptorDataFile)
+        return vaex.open(receptorDataFile)
     else:   	
         _ = errors.unsupported_extension(f"Unsupported datafile format: {datafileFormat}. Supported formats are: [hdf5].")
         return None
