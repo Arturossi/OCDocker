@@ -453,14 +453,17 @@ def merge_descriptors_in_dataframe(paths: Union[List[Tuple[str, str]], Tuple[str
         oclogging.backup_log("read_log_ERROR_report")
 
         # Set the label
-        label = f"Processing {archive}"
+        label = f"Processing the '{archive}'"
 
         # Check if multiprocessing is enabled
         if args.multiprocess:
+            print(f"{label} in parallel mode...")
             # Prepare the pdbbind
             return __merge_descriptors_in_dataframe_parallel(paths, receptorDataFile, ptn, saveChunk , label, datafileFormat = datafileFormat, overwrite = overwrite)
         else:
+            print(f"{label} in not parallel mode...")
             # Prepare the database
             return __merge_descriptors_in_dataframe_no_parallel(paths, receptorDataFile, ptn, saveChunk , label, datafileFormat = datafileFormat, overwrite = overwrite)
     else:
+        print(f"Processing the '{archive}' in single mode...")
         return __merge_descriptors_in_dataframe_single(paths, receptorDataFile, ptn, saveChunk, datafileFormat = datafileFormat, overwrite = overwrite, savedf = savedf)
