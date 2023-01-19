@@ -96,35 +96,20 @@ args.generate_report = False
 args.zip_output = False
 args.update = False
 
-basePath = "/mnt/e/Documents/OCDocker/OCDocker"
-basePath = "/mnt/sda/artur/OCDocker"
-basePath = "/data/hd4tb/OCDocker/OCDocker"
-
 '''
-dbsampledir = f"{basePath}/data/ocdb/DUDEz/AA2AR"
+basePath = dudez_archive
+ptn = "AA2AR"
+lig = "CHEMBL181981"
+baseProtPath = f"{basePath}/{ptn}"
+baseLigPath = f"{baseProtPath}/compounds/ligands"
+baseDecPath = f"{baseProtPath}/compounds/decoys"
+baseCanPath = f"{baseProtPath}/compounds/candidates"
 
-import pickle
-ligands = []
-with (open("ligands.pickle", 'rb')) as openfile:
-    while True:
-        try:
-            ligands = pickle.load(openfile)
-        except EOFError:
-            break
-arguments = []
-for i in range(len(ligands)):
-    innerToCompare = []
-    for j in range(i + 1, len(ligands)):
-        innerToCompare.append(ligands[j])
-    if innerToCompare:
-        arguments.append((ligands[i], innerToCompare))
+receptorTest = ocr.Receptor(f"{baseProtPath}/receptor.pdb", relativeASAcutoff=0.7, name=f"{ptn}")
+ligandTest = ocl.Ligand(f"{baseLigPath}/{lig}/ligand.smi", name="{lig}")
+
+gninaTest = ocgnina.Gnina(f"{baseLigPath}/{lig}/gninaFiles/conf_gnina.txt", f"{baseLigPath}/{lig}/boxes/box0.pdb", receptorTest, f"{baseProtPath}/prepared_receptor.pdbqt", ligandTest, f"{baseLigPath}/{lig}/prepared_ligand.pdbqt", f"{baseLigPath}/{lig}/gninaFiles/gnina_0.log", f"{baseLigPath}/{lig}/gninaFiles/gnina_0.pdbqt", name=f"Gnina {ptn}-{lig}")
+vinaTest = ocvina.Vina(f"{baseLigPath}/{lig}/vinaFiles/conf_vina.txt", f"{baseLigPath}/{lig}/boxes/box0.pdb", receptorTest, f"{baseProtPath}/prepared_receptor.pdbqt", ligandTest, f"{baseLigPath}/{lig}/prepared_ligand.pdbqt", f"{baseLigPath}/{lig}/vinaFiles/vina_0.log", f"{baseLigPath}/{lig}/vinaFiles/vina_0.pdbqt", name=f"Vina {ptn}-{lig}")
+sminaTest = ocsmina.Smina(f"{baseLigPath}/{lig}/sminaFiles/conf_smina.txt", f"{baseLigPath}/{lig}/boxes/box0.pdb", receptorTest, f"{baseProtPath}/prepared_receptor.pdbqt", ligandTest, f"{baseLigPath}/{lig}/prepared_ligand.pdbqt", f"{baseLigPath}/{lig}/sminaFiles/smina_0.log", f"{baseLigPath}/{lig}/sminaFiles/smina_0.pdbqt", name=f"Smina {ptn}-{lig}")
+plantsTest = ocplants.PLANTS(f"{baseLigPath}/{lig}/plantsFiles/conf_plants.txt", f"{baseLigPath}/{lig}/boxes/box0.pdb", receptorTest, f"{baseProtPath}/prepared_receptor.mol2", ligandTest, f"{baseLigPath}/{lig}/prepared_ligand.mol2", f"{baseLigPath}/{lig}/plantsFiles/plants_0.log", f"{baseLigPath}/{lig}/plantsFiles/", name=f"PLANTS {ptn}-{lig}")
 '''
-
-# Testing the classes and objects
-#receptorTest = ocr.Receptor(f"{basePath}/test_files/rec.crg.pdb", relativeASAcutoff=0.7, name="Receptor teste")
-#ligandTest = ocl.Ligand(f"{basePath}/test_files/xtal-lig.pdb", name="Ligante teste")
-
-#gninaTest = ocgnina.Gnina(f"{basePath}/test_files/conf_gnina.txt", f"{basePath}/test_files/box.pdb", receptorTest, f"{basePath}/test_files/rec.crg.pdbqt", ligandTest, f"{basePath}/test_files/xtal-lig.pdbqt", f"{basePath}/test_files/gnina.log", f"{basePath}/test_files/gnina.pdbqt", name="Gnina Test")
-#vinaTest = ocvina.Vina(f"{basePath}/test_files/conf_vina.txt", f"{basePath}/test_files/box.pdb", receptorTest, f"{basePath}/test_files/rec.crg.pdbqt", ligandTest, f"{basePath}/test_files/xtal-lig.pdbqt", f"{basePath}/test_files/vina.log", f"{basePath}/test_files/vina.pdbqt", name="Vina Test")
-#sminaTest = ocsmina.Smina(f"{basePath}/test_files/conf_smina.txt", f"{basePath}/test_files/box.pdb", receptorTest, f"{basePath}/test_files/rec.crg2.pdbqt", ligandTest, f"{basePath}/test_files/xtal-lig2.pdbqt", f"{basePath}/test_files/smina.log", f"{basePath}/test_files/smina.pdbqt", name="Smina Test")
-#plantsTest = ocplants.PLANTS(f"{basePath}/test_files/conf_plants.txt", f"{basePath}/test_files/box.pdb", receptorTest, f"{basePath}/test_files/rec.crg2_prepared_spores.mol2", ligandTest, f"{basePath}/test_files/xtal-lig2_prepared_spores.mol2", f"{basePath}/test_files/plants.log", f"{basePath}/test_files/plants.pdb", name="PLANTS Test")

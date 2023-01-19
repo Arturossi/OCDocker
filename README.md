@@ -1,10 +1,7 @@
-OCDocker installation instructions Step-by-step
-===============================================
-
 ![OCDocker](./OCDocker.png "OCDocker")
 
-Easy OCDocker installation
---------------------------
+OCDocker installation
+=================
 
 Go to OCDocker dir and execute the install.sh file with the following command. (Yes, need to be sudo... sorry :/)
 
@@ -23,7 +20,7 @@ Install the conda OCDocker env
 Or perform each software installation manually with the below steps.
 
 Download and install MGLTools (or ADFR, which is still being tested)
---------------------------------------------------------------------
+------------------------------------------------------------------------------------
 
 To install it, you have 3 options:
 
@@ -124,7 +121,7 @@ $ wget https://ccsb.scripps.edu/adfr/download/1028/ --no-check-certificate -O ad
 
 
 Install DSSP
-=========================
+---------------
 
 To install DSSP in Ubuntu 18.04+:
 
@@ -136,7 +133,7 @@ As default, the dssp path will be '/usr/bin/dssp'.
 
 
 Download and install Autodock VINA
-==================================
+---------------
 
 To install it, you have 2 options:
 
@@ -159,7 +156,7 @@ OBS: The vina executable will be in the following dir: ``installation_dir/vina/b
 
 
 Download and install SMINA
-==========================
+---------------
 
 First of all make sure that you have all required libs installed (openbabel must be v3+).
 
@@ -175,6 +172,132 @@ $ git clone https://git.code.sf.net/p/smina/code smina-code && cd smina-code && 
 
 
 Download and install PLANTS
-===========================
+---------------
 
 Go to http://www.tcd.uni-konstanz.de/plants_download/ and demand a license
+
+Download and install GNINA
+---------------
+
+Go to https://github.com/gnina/gnina/releases and download the latest build.
+
+If somehow you need or want to build your own code, follow the instructions from this link: https://github.com/gnina/gnina
+
+
+EXPLAINING THE OCDOCKER FILE STRUCTURE
+============
+
+OCDocker has been designed to use the following structure of files:
+
+```
+└── receptor
+    └── compounds
+        ├── candidates
+        │   ├── molecule_1
+        │   └── molecule_2
+        ├── decoys
+        │   ├── molecule_A
+        │   └── Molecule_B
+        └── ligands
+            ├── molecule_a
+            └── molecule_b
+```
+
+| Folder | Description |
+| ------------ | ------------ |
+| receptor | Contains the receptor file (.pdb). |
+| compounds | Used to keep things organized. Contains just the next three folders. |
+| candidates | Any folder inside this folder will be flagged as a candidate compound, which means that it is not known the nature of its interaction with the receptor. (In a real world VS, only this folder will be populated.) |
+| decoys | Any folder inside this folder will be flagged as a decoy. (This folder is used to validate ML results, probably not being used for real VS.) |
+| ligands | Any folder inside this folder will be flagged as a ligand. (This folder is used to train and validate ML results, probably not being used for real VS.) |
+
+USAGE
+======
+
+> :warning: To perform docking using the OCDocker library docking functions you must first install the abovementioned software.
+
+In OCDocker the docking routines are oriented towards a Receptor and a Ligand, therefore, first of all, it is needed to create the receptor and ligand objects.
+
+Here is an example of receptor and multiple ligand creations using files found in test_files folder:
+
+```python
+# Receptor import and creation
+import OCDocker.Receptor as ocr
+receptor = ocr.Receptor("./test_files/receptor.pdb", name="Receptor")
+
+# Ligand import and creation
+import OCDocker.Ligand as ocl
+ligand = ocl.Ligand("./test_files/compounds/ligands/ligand/ligand.smi", name="Ligand")
+decoy =  ocl.Ligand("./test_files/compounds/decoys/ZINC000000000015/ligand.smi", name="ZINC000000000015")
+decoy2 =  ocl.Ligand("./test_files/compounds/decoys/ZINC000000000024/ligand.smi", name="ZINC000000000024")
+decoy3 =  ocl.Ligand("./test_files/compounds/decoys/ZINC000000000030/ligand.smi", name="ZINC000000000030")
+```
+
+Now we can create the docking objects, here how is it done:
+
+Pre steps
+-------
+
+```python
+# Parameterize the path to make easier
+ligandPath = f"./test_files/compounds/ligands/ligand"
+```
+
+GNINA
+------
+```python3
+# Import
+import OCDocker.Docking.Gnina as ocgnina
+
+# Create object
+gnina_ligand = ocgnina.Gnina(f"{ligandPath}/gninaFiles/conf_gnina.txt", f"{ligandPath}boxes/box.pdb", receptor, f"./test_files/prepared_receptor.pdbqt", ligand, f"{ligandPath}/prepared_ligand.pdbqt", f"{ligandPath}/gninaFiles/gnina.log", f"{ligandPath}/gninaFiles/gnina.pdbqt", name=f"Gnina receptor-ligand")
+
+# Prepare receptor
+gnina_ligand.run_prepare_receptor()
+
+# Prepare ligand
+gnina_ligand.run_prepare_ligand()
+
+# Run docking
+gnina_ligand.run_dock()
+```
+
+SMINA
+------
+```python3
+# Import
+import OCDocker.Docking.Smina as ocsmina
+
+# Create object
+smina_ligand = ocgnina.Smina(f"{ligandPath}/sminaFiles/conf_smina.txt", f"{ligandPath}boxes/box.pdb", receptor, f"./test_files/prepared_receptor.pdbqt", ligand, f"{ligandPath}/prepared_ligand.pdbqt", f{ligandPath}/sminaFiles/smina.log", f"{ligandPath}/sminaFiles/smina.pdbqt", name=f"Smina receptor-ligand")
+
+# Prepare receptor
+smina_ligand.run_prepare_receptor()
+
+# Prepare ligand
+smina_ligand.run_prepare_ligand()
+
+# Run docking
+smina_ligand.run_dock()
+```
+
+Vina
+------
+```python3
+# Import
+import OCDocker.Docking.Vina as ocvina
+
+# Create object
+vina_ligand = ocvina.Vina(f"{ligandPath}/vinaFiles/conf_vina.txt", f"{ligandPath}boxes/box.pdb", receptor, f"./test_files/prepared_receptor.pdbqt", ligand, f"{ligandPath}/prepared_ligand.pdbqt", f"{ligandPath}/vinaFiles/vina.log", f"{ligandPath}/vinaFiles/vina.pdbqt", name=f"Vina receptor-ligand")
+
+# Prepare receptor
+vina_ligand.run_prepare_receptor()
+
+# Prepare ligand
+vina_ligand.run_prepare_ligand()
+
+# Run docking
+vina_ligand.run_dock()
+```
+
+These steps will be the sabe for any pairs receptor-ligand!

@@ -19,6 +19,7 @@ import vaex
 import vaex.dataframe as vdf
 
 from glob import glob
+from tqdm import tqdm
 from typing import Dict, Union
 
 from OCDocker.Initialise import *
@@ -586,10 +587,15 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
     processDirs = []
 
     # Create the data list
-    data = []
+    dataList = []
+    data = None
+
+    # Get the protein directories
+    ptnDirs = glob(f"{chosenArchive}/*")
 
     # For each dir in chosenArchive
-    for ptnDir in glob(f"{chosenArchive}/*"):
+    for ptnDir in tqdm(iterable = ptnDirs, total = len(ptnDirs), desc = f"Processing {archive}"):
+        
         # Check if is a dir (just in case) and if its name is not one of the ones we want to skip
         if os.path.isdir(ptnDir) and os.path.basename(ptnDir.split(os.path.sep)[-1]) not in ["index"]:
             # Parameterize paths
@@ -607,13 +613,11 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
         # Extract the ptn name
         ptn = os.path.basename(ptnDir.split(os.path.sep)[-1])
 
-        print(f"processDirs = {processDirs[:10]}")
-        print(f"ocmergelogs.merge_descriptors_in_dataframe(processDirs, '{ptnDir}/{ptn}.{datafileFormat}', '{ptn}', '{archive}', saveChunk = {saveChunk}, datafileFormat = '{datafileFormat}', overwrite = {overwrite})")
         # Merge the descriptors and append its results to the data list
-        data.append(ocmergelogs.merge_descriptors_in_dataframe(processDirs, f"{ptnDir}/{ptn}.{datafileFormat}", ptn, archive, saveChunk = saveChunk, datafileFormat = datafileFormat, overwrite = overwrite))
+        dataList.append(ocmergelogs.merge_descriptors_in_dataframe(processDirs, f"{ptnDir}/{ptn}.{datafileFormat}", ptn, archive, saveChunk = saveChunk, datafileFormat = datafileFormat, overwrite = overwrite))
 
         # Merge the list elements into a single vaex df
-        data = vaex.concat(data)
+        data = vaex.concat(dataList)
 
     # Check if data is pd.DataFrame type and is not empty
     if type(data) == vdf.DataFrameLocal: # type: ignore

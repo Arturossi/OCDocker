@@ -194,11 +194,10 @@ def __merge_descriptors_in_dataframe_parallel(paths: List[Tuple[str, str]], rece
         return vaex.from_dict({})
 
     # For each file in the glob
-    for path in paths:
+    for path in tqdm(iterable = paths, total = len(paths), desc = f"Pre processing protein '{ptn}' paths."):
         # Get protein and ligand names
         pathSplited = path[0].split(os.path.sep)
         lgd = pathSplited[-1]
-        print(path)
 
         # Found flag
         found = False
@@ -208,7 +207,7 @@ def __merge_descriptors_in_dataframe_parallel(paths: List[Tuple[str, str]], rece
             # For each line in the vaex dataframe
             for i in range(len(df)): # type: ignore
                 # Check if the protein and ligand are the same as the ones in the datafile
-                if df["Protein"][i] == ptn and df["Ligand"][i] == lgd: # type: ignore
+                if df["Protein"].values[i].as_py() == ptn and df["Ligand"].values[i].as_py() == lgd: # type: ignore
                     found = True
                     break
 
@@ -313,7 +312,7 @@ def __merge_descriptors_in_dataframe_no_parallel(paths: List[Tuple[str, str]], r
                 # For each line in the vaex dataframe
                 for i in range(len(df)): # type: ignore
                     # Check if the protein and ligand are the same as the ones in the datafile
-                    if df["Protein"][i] == ptn and df["Ligand"][i] == lgd: # type: ignore
+                    if df["Protein"].values[i].as_py() == ptn and df["Ligand"].values[i].as_py() == lgd: # type: ignore
                         found = True
                         break
 
@@ -394,7 +393,7 @@ def __merge_descriptors_in_dataframe_single(path: Tuple[str, str], receptorDataF
         # For each line in the vaex dataframe
         for i in range(len(df)): # type: ignore
             # Check if the protein and ligand are the same as the ones in the datafile
-            if df["Protein"][i] == ptn and df["Ligand"][i] == lgd: # type: ignore
+            if df["Protein"].values[i].as_py() == ptn and df["Ligand"].values[i].as_py() == lgd: # type: ignore
                 found = True
                 break
     else:
@@ -428,7 +427,7 @@ def __check_datafile_format(datafileFormat: str, receptorDataFile: str) -> Union
     '''
 
     # Check the datafile format
-    if datafileFormat.lower() == "hdf5":
+    if datafileFormat.lower() in ["hdf5"]:
         # If the file does not exist, return an empty dataframe
         if not os.path.isfile(receptorDataFile):
             return errors.file_do_not_exist(f"File '{receptorDataFile}' does not exist.", level = "warn")
@@ -474,7 +473,7 @@ def merge_descriptors_in_dataframe(paths: Union[List[Tuple[str, str]], Tuple[str
         oclogging.backup_log("read_log_ERROR_report")
 
         # Set the label
-        label = f"Processing the '{archive} protein {ptn}'"
+        label = f"Processing {ptn}"
 
         # Check if multiprocessing is enabled
         if args.multiprocess:
@@ -484,5 +483,4 @@ def merge_descriptors_in_dataframe(paths: Union[List[Tuple[str, str]], Tuple[str
             # Prepare the database
             return __merge_descriptors_in_dataframe_no_parallel(paths, receptorDataFile, ptn, saveChunk , label, datafileFormat = datafileFormat, overwrite = overwrite)
     else:
-        print(f"Processing the '{archive}' in single mode...")
         return __merge_descriptors_in_dataframe_single(paths, receptorDataFile, ptn, saveChunk, datafileFormat = datafileFormat, overwrite = overwrite, savedf = savedf)

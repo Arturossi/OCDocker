@@ -174,7 +174,7 @@ def validate_digest_extension(digestPath: str, digestFormat: str) -> bool:
             ocprint.print_error(f"The format '{digestFormat}' is not supported. The supported formats are: {supportedExtensions}")
             return False
         return True
-    return False
+    return True
 
 def validate_obabel_extension(path: str) -> Union[str, int]:
     '''Validate the input file extension to ensure the compability with obabel lib.

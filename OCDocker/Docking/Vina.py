@@ -693,3 +693,7 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
         return errors.unsupported_extension(f"The provided extension '{digestFormat}' is not supported.", "error")
     
     return errors.file_exists(f"The file '{digestPath}' already exists. If you want to overwrite it yse the overwrite flag.", "warn")
+
+# Aliases
+###############################################################################
+run_dock = run_vina
