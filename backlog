@@ -17,7 +17,7 @@
 
 ### 2
 - Add integrity verification for all databases. | 2
-- Find a better way to read files. Currently, IO is the big problem which we are dealing with, in terms of time of processing. | 2
+- Find a better way to read files. Currently, IO is the big problem which we are dealing with, in terms of time of processing. This should has something with broken pipe problem. | 2
 - GNINA does not works with nohup, maybe it has something to do with GPU visibility for nohup. | 2
 - Add a cleanPDB routine to produce less PDB errors in the pipeline. | 2
 

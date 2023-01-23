@@ -242,6 +242,13 @@ def __merge_descriptors_in_dataframe_parallel(paths: List[Tuple[str, str]], rece
 
                 # Clear the memory
                 gc.collect()
+            # If on finish and i is not 0
+            if i != 0:
+                # Convert the ptnList to a dataframe
+                innerdf = vaex.concat(ptnList)
+
+                # Save the data
+                innerdf.export_hdf5(receptorDataFile)
     except IOError as e:
         errMsg = f"Problem while merging descriptors in parallel. Exception: {e}"
         ocprint.print_error_log(errMsg, f"{logdir}/read_log_ERROR_report.log")
@@ -334,6 +341,13 @@ def __merge_descriptors_in_dataframe_no_parallel(paths: List[Tuple[str, str]], r
             
             # Clear the memory
             gc.collect()
+        # If on finish and i is not 0
+        if i != 0:
+            # Convert the ptnList to a dataframe
+            innerdf = vaex.concat(ptnList)
+
+            # Save the data
+            innerdf.export_hdf5(receptorDataFile)
 
     return vaex.concat(ptnList) # type: ignore
 
