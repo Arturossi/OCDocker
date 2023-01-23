@@ -221,6 +221,8 @@ def __merge_descriptors_in_dataframe_parallel(paths: List[Tuple[str, str]], rece
     # Counter for the iterations
     i = 0
 
+    # Check if arguments has any elements
+    if len(arguments) > 0:
     try:
         # Create a Thread pool with the maximum available_cores
         with Pool(args.available_cores) as p:
@@ -242,6 +244,7 @@ def __merge_descriptors_in_dataframe_parallel(paths: List[Tuple[str, str]], rece
 
                 # Clear the memory
                 gc.collect()
+
             # If on finish and i is not 0
             if i != 0:
                 # Convert the ptnList to a dataframe
@@ -249,12 +252,14 @@ def __merge_descriptors_in_dataframe_parallel(paths: List[Tuple[str, str]], rece
 
                 # Save the data
                 innerdf.export_hdf5(receptorDataFile)
-    except IOError as e:
-        errMsg = f"Problem while merging descriptors in parallel. Exception: {e}"
-        ocprint.print_error_log(errMsg, f"{logdir}/read_log_ERROR_report.log")
-        ocprint.print_error(errMsg)
+        except IOError as e:
+            errMsg = f"Problem while merging descriptors in parallel. Exception: {e}"
+            ocprint.print_error_log(errMsg, f"{logdir}/read_log_ERROR_report.log")
+            ocprint.print_error(errMsg)
 
-    return vaex.concat(ptnList) # type: ignore
+        return vaex.concat(ptnList) # type: ignore
+
+    return df # type: ignore
 
 def __merge_descriptors_in_dataframe_no_parallel(paths: List[Tuple[str, str]], receptorDataFile: str, ptn: str, saveChunk: int, desc: str, datafileFormat: str = "hdf5", overwrite: bool = False) -> vdf.DataFrameLocal:
     '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_read_log function.
