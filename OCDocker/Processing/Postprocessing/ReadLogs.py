@@ -809,6 +809,8 @@ def read_logs(paths: Union[List[Tuple[str, str]], List[Tuple[str, str]]], archiv
 
         # Get the first path of paths and then remove the last 3 directories
         hdf5Path = f"{os.path.dirname(os.path.dirname(os.path.dirname(paths[0][0])))}/{ptn}_docking_results.hdf5"
+        print(hdf5Path)
+        return # type: ignore
 
         # Check if multiprocessing is enabled
         if args.multiprocess:
