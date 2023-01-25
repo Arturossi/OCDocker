@@ -416,7 +416,12 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
     # For each key, value in dt
     for key, value in dt.items():
         # Get the log path
-        logPath = f"{processDir}/{key}/{key}_{runNumber}.log"
+        if key in ["smina"]:
+            logPath = f"{processDir}/{key}Files/{key}.log"
+        elif key in ["plants"]:
+            logPath = f"{processDir}/{key}Files/run/bestranking.csv"
+        else:
+            logPath = f"{processDir}/{key}Files/{key}_{runNumber}.log"
         # Check if exists
         if os.path.isfile(logPath):
             gendict = {}
@@ -437,16 +442,12 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
             first = True
 
             # For each key, value in vinaDict
-            for key, value in gendict.items():
-                # Get the attribute based on the key
-                attribute = getattr(value, key)
-                # Append the new value to it
-                attribute.append(value[0])
+            for key2, value2 in gendict.items():
                 # Set it back in the class
-                setattr(value, key, attribute)
+                setattr(dt[key], key2, [value2[runNumber]])
                 if first:
                     # Set the maxLen as the biggest size among the current maxLen and the len of the first class attribute
-                    maxLen = max(maxLen, len(attribute))
+                    maxLen = max(maxLen, len([value2[runNumber]]))
                     # Turn the flag off
                     first = False
         else:
