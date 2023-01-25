@@ -488,7 +488,7 @@ def read_logs(archive: str, saveChunk: int = 100, overwrite: bool = False) -> Un
             continue
 
     # Return the data
-    return data
+    return data # type: ignore
 
 def generate_dock_result_csv(archive: str, csv_path: str, log_dumps: Union[Dict[str, vdf.DataFrameLocal], None] = None) -> None:
     '''Uses the structure from read_logs to generate an output for all docking softwares.
