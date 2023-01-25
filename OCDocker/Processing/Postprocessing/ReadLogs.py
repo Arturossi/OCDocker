@@ -456,12 +456,13 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
             value = value.empty_with_nan()
 
     # Add the concatenated the dicts. The single elements are repeated to match the largest dict to the proteinData dict using ptn as the key
-    proteinData[f"{ptn}-{lgd}"] = vaex.from_dict(
+    proteinData = vaex.from_dict(
         {
             **{
                 "Protein": [ptn for _ in range(maxLen)],
                 "Ligand": [lgd for _ in range(maxLen)],
-                "type": [tp for _ in range(maxLen)]
+                "type": [tp for _ in range(maxLen)],
+                "Complex": [f"{ptn}-{lgd}" for _ in range(maxLen)]
             },
             **dt["vina"].__to_dict__(),
             **dt["smina"].__to_dict__(),
@@ -567,6 +568,7 @@ def __read_log_parallel(paths: List[Tuple[str, str]], desc: str, ptn: str, saveC
         with Pool(args.available_cores) as p:
             # Perform the multi process
             for innerData in tqdm(p.imap_unordered(__thread_read_log_parallel, arguments), total = len(arguments), desc = desc):
+                # TODO: concatenate vaex dataframes here
                 # Get the key from innerData
                 key = list(innerData.keys())[0]
                 # Set the value of the key in data to the value of the key in innerData

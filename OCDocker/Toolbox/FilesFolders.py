@@ -178,8 +178,8 @@ def from_hdf5(filePath: str) -> Union[None, Any]:
     data = None
     try:
         with h5py.File(filePath, 'r') as hf:
-            # Read the whole file
-            data = hf[:]
+            # Read the hdf5 file with h5py
+            data = {key: hf[key][:] for key in hf.keys()}
     except Exception as e:
         _ = errors.read_file(f"Problems while reading the hdf5 file '{filePath}'. Error: {e}")
     return data
