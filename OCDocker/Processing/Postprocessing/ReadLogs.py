@@ -592,7 +592,7 @@ def __read_log_parallel(paths: List[Tuple[str, str]], desc: str, ptn: str, saveC
         ocprint.print_error_log(errMsg, f"{logdir}/read_log_ERROR_report.log")
         ocprint.print_error(errMsg)
 
-    return data # type: ignore
+    return dockingResults # type: ignore
 
 def __read_log_no_parallel(paths: List[Tuple[str, str]], desc: str, ptn: str, saveChunk: int, hdf5Path: str, overwrite: bool) -> Dict[str, vdf.DataFrameLocal]:
     '''Read the logs of the docking results for the ligands in serial.
