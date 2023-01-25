@@ -553,7 +553,7 @@ def __read_log_parallel(paths: List[Tuple[str, str]], desc: str, ptn: str, saveC
         # Check if the dockingResults is not None
         if dockingResults is not None:
             # Check if the key is not in the Complex coulmn
-            if key not in dockingResults["Complex"]:
+            if key not in dockingResults["Complex"].values.to_pylist():
                 # Append a tuple containing the file name and ovewrite flag to the arguments list
                 arguments.append((path, None))
         else:
@@ -644,7 +644,7 @@ def __read_log_no_parallel(paths: List[Tuple[str, str]], desc: str, ptn: str, sa
             key = f"{ptn}-{lgd}"
 
             # Check if the key from data is in the hdf5 file or if overwrite is True
-            if dockingResults is None or key not in dockingResults["Complex"] or overwrite: # type: ignore
+            if dockingResults is None or key not in dockingResults["Complex"].values.to_pylist() or overwrite: # type: ignore
                 # Add 1 to the counter
                 i += 1
                 # Check if the dockingResults is None
