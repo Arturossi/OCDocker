@@ -131,7 +131,7 @@ def to_hdf5(filePath: str, data: Any) -> int:
     '''
 
     try:
-        with h5py.File(filePath, 'wb') as hf:
+        with h5py.File(filePath, 'w') as hf:
             # Check if the data is a dict
             if isinstance(data, dict):
                 # Iterate over the keys
@@ -177,7 +177,7 @@ def from_hdf5(filePath: str) -> Union[None, Any]:
 
     data = None
     try:
-        with h5py.File(filePath, 'rb') as hf:
+        with h5py.File(filePath, 'r') as hf:
             # Read the whole file
             data = hf[:]
     except Exception as e:
