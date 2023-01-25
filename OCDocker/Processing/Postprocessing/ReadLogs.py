@@ -525,7 +525,7 @@ def __read_log_parallel(paths: List[Tuple[str, str]], desc: str, ptn: str, saveC
     ------
     '''
 
-    print(f"paths={paths}, desc='{desc}', ptn='{ptn}', saveChunk={saveChunk}, hdf5Path='{hdf5Path}'; overwrite={overwrite}")
+    print(f"paths={paths[:10]}; desc='{desc}'; ptn='{ptn}'; saveChunk={saveChunk}; hdf5Path='{hdf5Path}'; overwrite={overwrite}")
 
     # Dict to store the read data
     data = {}
