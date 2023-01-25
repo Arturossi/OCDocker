@@ -450,7 +450,7 @@ def read_logs(archive: str, saveChunk: int = 100, overwrite: bool = False) -> Un
         ocprint.print_error(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}.")
         return None
     
-    data = {}
+    data = None
         
     # For each dir in chosenArchive
     for ptnDir in glob(f"{chosenArchive}/*"):
@@ -476,8 +476,13 @@ def read_logs(archive: str, saveChunk: int = 100, overwrite: bool = False) -> Un
 
         # Check if data is not empty
         if innerData:
-            # Merge innerData into data
-            data = {**data, **innerData}
+            # Check if data is None
+            if data is None:
+                # If it is, set it to innerData
+                data = innerData
+            else:
+                # Concatenate vaex dataframes
+                data = vaex.concat([data, innerData])
         else:
             ocprint.print_warning(f"The data object is not defined! There is no reason to append it to data list. Skipping...")
             continue
