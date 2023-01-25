@@ -527,8 +527,13 @@ def __read_log_parallel(paths: List[Tuple[str, str]], desc: str, ptn: str, saveC
     ------
     '''
 
-    # Dict to store the read data
-    data = {}
+    # Check if the hdf5 file exists or if the overwrite flag is True
+    if os.path.isfile(hdf5Path) or overwrite:
+        # Load the hdf5 file
+        dockingResults = vaex.open(hdf5Path)
+    else:
+        # Set the dockingResults as None
+        dockingResults = None
 
     # Arguments to pass to each Thread in the Thread Pool
     arguments = []
@@ -542,51 +547,45 @@ def __read_log_parallel(paths: List[Tuple[str, str]], desc: str, ptn: str, saveC
         pathSplited = path[0].split(os.path.sep)
         lgd = pathSplited[-1]
 
-        # Load the hdf5 file
-        dockingResults = ocff.from_hdf5(hdf5Path)
-
         # Create the key
         key = f"{ptn}-{lgd}"
 
         # Check if the dockingResults is not None
         if dockingResults is not None:
-            # Check if the key from data is in the hdf5 file or if overwrite is True
-            if key not in list(dockingResults.keys()) or overwrite:
+            # Check if the key is not in the Complex coulmn
+            if key not in dockingResults["Complex"]:
                 # Append a tuple containing the file name and ovewrite flag to the arguments list
                 arguments.append((path, None))
-            else:
-                # Update the data with information from the hdf5 file
-                data.update(dockingResults[key])
         else:
-            errMsg = f"Problem while reading the hdf5 file '{hdf5Path}'."
-            # Log the error
-            ocprint.print_error(errMsg)
-            ocprint.print_error_log(errMsg, f"{logdir}/read_log_ERROR_report.log")
+            # Append a tuple containing the file name and ovewrite flag to the arguments list
+            arguments.append((path, None))
 
     try:
         # Create a Thread pool with the maximum available_cores
         with Pool(args.available_cores) as p:
             # Perform the multi process
-            for innerData in tqdm(p.imap_unordered(__thread_read_log_parallel, arguments), total = len(arguments), desc = desc):
-                # TODO: concatenate vaex dataframes here
-                # Get the key from innerData
-                key = list(innerData.keys())[0]
-                # Set the value of the key in data to the value of the key in innerData
-                data[key] = innerData[key] # type: ignore
+            for data in tqdm(p.imap_unordered(__thread_read_log_parallel, arguments), total = len(arguments), desc = desc):
+                # Check if the dockingResults is None
+                if dockingResults is None:
+                    # Set the dockingResults as the data
+                    dockingResults = data
+                else:
+                    # Concatenate the data
+                    dockingResults = vaex.concat([dockingResults, data])
                 # Clean the memory
-                del innerData
+                del data
                 # Increment the counter
                 i += 1
                 # Check if the counter is greater or equal of saveChunk
                 if i >= saveChunk:
-                    # Save the data
-                    ocff.to_hdf5(hdf5Path, data) # type: ignore
+                    # Save the dockingResults
+                    dockingResults.export_hdf5(hdf5Path) # type: ignore
                     # Reset the counter
                     i = 0
                 gc.collect()
             if i > 0:
                 # Save the data
-                ocff.to_hdf5(hdf5Path, data) # type: ignore
+                dockingResults.export_hdf5(hdf5Path) # type: ignore
                 
     except IOError as e:
         errMsg = f"Problem while reading logs in parallel. Exception: {e}"
@@ -623,8 +622,13 @@ def __read_log_no_parallel(paths: List[Tuple[str, str]], desc: str, ptn: str, sa
     None
     '''
 
-    # Dict to store the read data
-    data = {}
+    # Check if the hdf5 file exists or if the overwrite flag is True
+    if os.path.isfile(hdf5Path) or overwrite:
+        # Load the hdf5 file
+        dockingResults = vaex.open(hdf5Path)
+    else:
+        # Set the dockingResults as None
+        dockingResults = None
 
     # Counter for the iterations
     i = 0
@@ -636,42 +640,33 @@ def __read_log_no_parallel(paths: List[Tuple[str, str]], desc: str, ptn: str, sa
             pathSplited = path.split(os.path.sep)
             lgd = pathSplited[-1]
 
-            # Load the hdf5 file
-            dockingResults = ocff.from_hdf5(hdf5Path)
-
             # Create the key
             key = f"{ptn}-{lgd}"
 
-            # Check if the dockingResults is not None
-            if dockingResults is not None:
-                # Check if the key from data is in the hdf5 file or if overwrite is True
-                if key not in list(dockingResults.keys()) or overwrite:
-                    # Add 1 to the counter
-                    i += 1
-                    # Call the core read log function (shared between parallel and not parallel) and store the data into the data dict
-                    data.update(__core_read_log((path, tp)))
-                    # Check if the counter is greater or equal of saveChunk
-                    if i >= saveChunk:
-                        # Save the data
-                        ocff.to_hdf5(hdf5Path, data)
-                        # Reset the counter
-                        i = 0
+            # Check if the key from data is in the hdf5 file or if overwrite is True
+            if dockingResults is None or key not in dockingResults["Complex"] or overwrite: # type: ignore
+                # Add 1 to the counter
+                i += 1
+                # Check if the dockingResults is None
+                if dockingResults is None:
+                    # Set the dockingResults as the data
+                    dockingResults = __core_read_log((path, tp))
                 else:
-                    # Update the data with information from the hdf5 file
-                    data.update(dockingResults[key])
-            else:
-                errMsg = f"Problem while reading the hdf5 file '{hdf5Path}'."
-                # Log the error
-                ocprint.print_error(errMsg)
-                ocprint.print_error_log(errMsg, f"{logdir}/read_log_ERROR_report.log")
-                return {}
+                    # Concatenate the data
+                    dockingResults = vaex.concat([dockingResults, __core_read_log((path, tp))]) 
+                # Check if the counter is greater or equal of saveChunk
+                if i >= saveChunk:
+                    # Save the data
+                    dockingResults.export_hdf5(hdf5Path) # type: ignore
+                    # Reset the counter
+                    i = 0
             if i > 0:
                 # Save the data
-                ocff.to_hdf5(hdf5Path, data)
+                dockingResults.export_hdf5(hdf5Path) # type: ignore
 
             # Clear the memory
             gc.collect()
-    return data
+    return dockingResults # type: ignore
 
 def __read_log_single(path: Tuple[str, str], ptn: str, hdf5Path: str, overwrite: bool) -> Dict[str, vdf.DataFrameLocal]:
     '''Warper to prepare the jobs, recieves a directory, and pass it to the __core_read_log function.
