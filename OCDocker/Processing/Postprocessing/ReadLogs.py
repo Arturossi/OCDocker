@@ -577,10 +577,13 @@ def __read_log_parallel(paths: List[Tuple[str, str]], desc: str, ptn: str, saveC
                 # Check if the counter is greater or equal of saveChunk
                 if i >= saveChunk:
                     # Save the data
-                    ocff.to_hdf5(data, hdf5Path) # type: ignore
+                    ocff.to_hdf5(hdf5Path, data) # type: ignore
                     # Reset the counter
                     i = 0
                 gc.collect()
+            if i > 0:
+                # Save the data
+                ocff.to_hdf5(hdf5Path, data) # type: ignore
                 
     except IOError as e:
         errMsg = f"Problem while reading logs in parallel. Exception: {e}"
@@ -659,6 +662,9 @@ def __read_log_no_parallel(paths: List[Tuple[str, str]], desc: str, ptn: str, sa
                 ocprint.print_error(errMsg)
                 ocprint.print_error_log(errMsg, f"{logdir}/read_log_ERROR_report.log")
                 return {}
+            if i > 0:
+                # Save the data
+                ocff.to_hdf5(hdf5Path, data)
 
             # Clear the memory
             gc.collect()
