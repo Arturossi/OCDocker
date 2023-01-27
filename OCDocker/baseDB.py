@@ -417,8 +417,8 @@ def run_dock(archive: str, dockingAlgorithm: str, digestFormat: str = "json", ov
     # Run docking
     return ocdock.run_dock(complexList, archive, dockingAlgorithm, overwrite, digestFormat)
 
-def read_logs(archive: str, saveChunk: int = 100, overwrite: bool = False) -> Union[Dict[str, vdf.DataFrameLocal], None]:
-    '''Reads database logfiles returning a dict of dicts of vdf.DataFrameLocal.
+def read_logs(archive: str, saveChunk: int = 100, overwrite: bool = False) -> Union[vdf.DataFrameLocal, None]:
+    '''Reads database logfiles returning a vdf.DataFrameLocal.
 
     Parameters
     ----------
@@ -431,8 +431,8 @@ def read_logs(archive: str, saveChunk: int = 100, overwrite: bool = False) -> Un
 
     Returns
     -------
-    Dict[str, vdf.DataFrameLocal] | None
-        A dict of vdf.DataFrameLocal. If failed, returns None.
+    vdf.DataFrameLocal | None
+        A vdf.DataFrameLocal. If failed, returns None.
 
     Raises
     ------
@@ -490,7 +490,7 @@ def read_logs(archive: str, saveChunk: int = 100, overwrite: bool = False) -> Un
     # Return the data
     return data # type: ignore
 
-def generate_dock_result_csv(archive: str, csv_path: str, log_dumps: Union[Dict[str, vdf.DataFrameLocal], None] = None) -> None:
+def generate_dock_result_csv(archive: str, csv_path: str, log_dumps: Union[vdf.DataFrameLocal, None] = None) -> None:
     '''Uses the structure from read_logs to generate an output for all docking softwares.
 
     Parameters
@@ -499,7 +499,7 @@ def generate_dock_result_csv(archive: str, csv_path: str, log_dumps: Union[Dict[
         The archive to be prepared. The options are [dudez, pdbbind].
     csv_path : str
         The path to the csv file.
-    log_dumps : Dict[str, vdf.DataFrameLocal] | None, optional
+    log_dumps : vdf.DataFrameLocal | None, optional
         The data from the logfiles. If None, will use the read_logs function to get the data. The default is None.
 
     Returns
@@ -516,11 +516,11 @@ def generate_dock_result_csv(archive: str, csv_path: str, log_dumps: Union[Dict[
         # Read the log files
         log_dumps = read_logs(archive)
 
-    data = vaex.concat(list(log_dumps.values())) # type: ignore
+    #data = vaex.concat(log_dumps.values()) # type: ignore
 
     # Check if data is not empty
-    if data:
-        data.export_csv(path = csv_path, backend = 'arrow') # type: ignore
+    if log_dumps:
+        log_dumps.export_csv(path = csv_path, backend = 'arrow') # type: ignore
 
     return None
 
@@ -619,7 +619,7 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
         ptn = os.path.basename(ptnDir.split(os.path.sep)[-1])
 
         # Merge the descriptors and append its results to the data list
-        dataList.append(ocmergelogs.merge_descriptors_in_dataframe(processDirs, f"{ptnDir}/{ptn}.{datafileFormat}", ptn, archive, saveChunk = saveChunk, datafileFormat = datafileFormat, overwrite = overwrite))
+        dataList.append(ocmergelogs.merge_descriptors_in_dataframe(processDirs, f"{ptnDir}/{ptn}_descriptors.{datafileFormat}", ptn, archive, saveChunk = saveChunk, datafileFormat = datafileFormat, overwrite = overwrite))
 
         # Merge the list elements into a single vaex df
         data = vaex.concat(dataList)

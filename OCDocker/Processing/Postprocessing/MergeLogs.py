@@ -78,8 +78,11 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str]) ->
     # Unpack the tuple
     processDir, receptor_descriptor_path = processDirPackage
 
-    # Find ptn name
+    # Find the protein name
     ptn = os.path.dirname(receptor_descriptor_path).split(os.path.sep)[-1]
+
+    # Find the ligand name
+    lgd = processDir.split(os.path.sep)[-1]
 
     # Find which kind of archive it will be
     ligand_descriptor_path = f"{processDir}/ligand_descriptors.json"
@@ -112,7 +115,7 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str]) ->
             _ = errors.broken_pipe(message=f"Found a broken PIPE error while reading the file '{ligand_descriptor_path}': {e}")
 
     # Initiate the dataframe
-    df = vaex.from_dict({ "Protein": [ptn] })
+    df = vaex.from_dict({ "Complex": [f"{ptn}-{lgd}"] })
 
     # If the receptor descriptor is not empty
     if receptor_descriptors: # type: ignore
@@ -203,11 +206,12 @@ def __merge_descriptors_in_dataframe_parallel(paths: List[Tuple[str, str]], rece
         found = False
 
         # Check if the file exists
-        if type(df) != int:
+        if df is not None and type(df) != int:
             # For each line in the vaex dataframe
             for i in range(len(df)): # type: ignore
                 # Check if the protein and ligand are the same as the ones in the datafile
-                if df["Protein"].values[i].as_py() == ptn and df["Ligand"].values[i].as_py() == lgd: # type: ignore
+                #if df["Protein"].values[i].as_py() == ptn and df["Ligand"].values[i].as_py() == lgd: # type: ignore
+                if df["Complex"].values[i].as_py() == f"{ptn}-{lgd}": # type: ignore
                     found = True
                     break
 
