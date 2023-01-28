@@ -588,9 +588,6 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
         ocprint.print_error(f"Not valid read mode. Expected one of ['csv', 'hdf5'] and found {readMode}.")
         return None
 
-    # Create an empty list for all directories to be processed
-    processDirs = []
-
     # Create the data list
     dataList = []
     data = None
@@ -600,6 +597,9 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
 
     # For each dir in chosenArchive
     for ptnDir in tqdm(iterable = ptnDirs, total = len(ptnDirs), desc = f"Processing {archive}"):
+        
+        # Create an empty list for all directories to be processed
+        processDirs = []
         
         # Check if is a dir (just in case) and if its name is not one of the ones we want to skip
         if os.path.isdir(ptnDir) and os.path.basename(ptnDir.split(os.path.sep)[-1]) not in ["index"]:
