@@ -225,7 +225,7 @@ def run_plants(overwrite: bool = False) -> int:
 
     return ocbdb.run_dock("dudez", "plants", overwrite = overwrite)
 
-def read_logs(saveChunk: int = 100, overwrite: bool = False) -> Union[Dict[str, vdf.DataFrameLocal], None]:
+def read_logs(saveChunk: int = 100, overwrite: bool = False) -> Union[vdf.DataFrameLocal, None]:
     '''Parse the database into multiple serializable objects.
 
     Parameters
@@ -237,7 +237,7 @@ def read_logs(saveChunk: int = 100, overwrite: bool = False) -> Union[Dict[str, 
 
     Returns
     -------
-    Dict[str, Dict[str, vdf.DataFrameLocal]] | None
+    vdf.DataFrameLocal | None
         A dictionary with the keys being the protein-ligand names and the values being the dataframes.
 
     Raises

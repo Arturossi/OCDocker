@@ -14,6 +14,7 @@ import OCDocker.Processing.Postprocessing.ReadLogs as ocreadlogs
 ###############################################################################
 import gc
 import os
+import time
 import vaex
 
 import numpy as np
@@ -592,6 +593,8 @@ def __read_log_parallel(paths: List[Tuple[str, str]], desc: str, ptn: str, saveC
         ocprint.print_error_log(errMsg, f"{logdir}/read_log_ERROR_report.log")
         ocprint.print_error(errMsg)
 
+    # Sleep for 1 second
+    time.sleep(1)
     return dockingResults # type: ignore
 
 def __read_log_no_parallel(paths: List[Tuple[str, str]], desc: str, ptn: str, saveChunk: int, hdf5Path: str, overwrite: bool) -> Dict[str, vdf.DataFrameLocal]:
