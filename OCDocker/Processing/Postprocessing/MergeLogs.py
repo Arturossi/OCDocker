@@ -462,8 +462,16 @@ def __check_datafile_format(datafileFormat: str, receptorDataFile: str) -> Union
         # If the file does not exist, return an empty dataframe
         if not os.path.isfile(receptorDataFile):
             return errors.file_do_not_exist(f"File '{receptorDataFile}' does not exist.", level = "warn")
-        # Read the hdf5 file
-        return vaex.open(receptorDataFile)
+        # Open the dataframe
+        recdf = vaex.open(receptorDataFile)
+        # Convert it to a pandas dataframe
+        pandas_recdf = recdf.to_pandas_df()
+        # Close the dataframe
+        recdf.close()
+        # Delete the dataframe
+        del recdf
+        # Convert the pandas dataframe to a vaex dataframe
+        return vaex.from_pandas(pandas_recdf)
     else:   	
         _ = errors.unsupported_extension(f"Unsupported datafile format: {datafileFormat}. Supported formats are: [hdf5].")
         return None

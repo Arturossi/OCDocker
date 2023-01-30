@@ -530,6 +530,7 @@ def __read_log_parallel(paths: List[Tuple[str, str]], desc: str, ptn: str, saveC
     # Check if the hdf5 file exists or if the overwrite flag is True
     if os.path.isfile(hdf5Path) or overwrite:
         # TODO: Fix this -> This is a temporary fix to avoid the error "Errno 24 Too many open files with vaex"
+        # Added to avoid memory leaks (possibly?)
         # Load the hdf5 file
         dockingResultsFile = vaex.open(hdf5Path)
         # Convert the data to pandas
@@ -581,7 +582,14 @@ def __read_log_parallel(paths: List[Tuple[str, str]], desc: str, ptn: str, saveC
                 else:
                     # Concatenate the data
                     dockingResults = vaex.concat([dockingResults, data])
-                    #
+                    # Convert the data to pandas
+                    dockingResultsPandas = dockingResults.to_pandas_df()
+                    # Close the hdf5 file
+                    dockingResults.close()
+                    # Delete the dockingResultsFile
+                    del dockingResults
+                    # Convert back to vaex
+                    dockingResults = vaex.from_pandas(dockingResultsPandas)
                 # Clean the memory
                 del data
                 # Increment the counter
@@ -671,8 +679,17 @@ def __read_log_no_parallel(paths: List[Tuple[str, str]], desc: str, ptn: str, sa
                     # Set the dockingResults as the data
                     dockingResults = __core_read_log((path, tp))
                 else:
+                    # TODO: Fix this -> This is a temporary fix to avoid the error "Errno 24 Too many open files with vaex"
                     # Concatenate the data
                     dockingResults = vaex.concat([dockingResults, __core_read_log((path, tp))]) 
+                    # Convert the data to pandas
+                    dockingResultsPandas = dockingResults.to_pandas_df()
+                    # Close the hdf5 file
+                    dockingResults.close()
+                    # Delete the dockingResultsFile
+                    del dockingResults
+                    # Convert back to vaex
+                    dockingResults = vaex.from_pandas(dockingResultsPandas)
                 # Check if the counter is greater or equal of saveChunk
                 if i >= saveChunk:
                     # Save the data
