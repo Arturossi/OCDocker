@@ -239,6 +239,14 @@ def __merge_descriptors_in_dataframe_parallel(paths: List[Tuple[str, str]], rece
                     if i >= saveChunk:
                         # Convert the ptnList to a dataframe
                         df = vaex.concat(ptnList)
+                        # TODO: Change this in the future to a more efficient way
+                        # Added to avoid memory leaks (possibly?)
+                        # Convert to pandas dataframe
+                        pdData = df.to_pandas_df()
+                        # Delete the vaex dataframe
+                        del df
+                        # Convert back to vaex dataframe
+                        df = vaex.from_pandas(pdData)
 
                         # Save it
                         df.export_hdf5(receptorDataFile)

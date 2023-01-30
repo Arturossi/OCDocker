@@ -450,15 +450,19 @@ def read_logs(archive: str, saveChunk: int = 100, overwrite: bool = False) -> Un
         ocprint.print_error(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}.")
         return None
     
+    # Data to be concatenated
     data = None
-        
+    
+    # Get all dirs paths in the database
+    ptnDirs = [ptn for ptn in glob(f"{chosenArchive}/*") if os.path.basename(ptn.split(os.path.sep)[-1]) not in ['index']]
+
     # For each dir in chosenArchive
-    for ptnDir in glob(f"{chosenArchive}/*"):
+    for ptnDir in tqdm(iterable = ptnDirs, total = len(ptnDirs), desc = f"Processing {archive}"):
         # Create an empty list for all directories to be processed
         processDirs = []
 
         # Check if is a dir (just in case) and if its name is not one of the ones we want to skip
-        if os.path.isdir(ptnDir) and os.path.basename(ptnDir.split(os.path.sep)[-1]) not in ['index']:
+        if os.path.isdir(ptnDir):
             ligands = f"{ptnDir}/compounds/ligands"
             decoys = f"{ptnDir}/compounds/decoys"
             candidates = f"{ptnDir}/compounds/candidates"
@@ -483,6 +487,14 @@ def read_logs(archive: str, saveChunk: int = 100, overwrite: bool = False) -> Un
             else:
                 # Concatenate vaex dataframes
                 data = vaex.concat([data, innerData])
+                # TODO: Change this in the future to a more efficient way
+                # Added to avoid memory leaks (possibly?)
+                # Convert to pandas dataframe
+                pdData = data.to_pandas_df()
+                # Delete the vaex dataframe
+                del data
+                # Convert back to vaex dataframe
+                data = vaex.from_pandas(pdData)
         else:
             ocprint.print_warning(f"The data object is not defined! There is no reason to append it to data list. Skipping...")
             continue

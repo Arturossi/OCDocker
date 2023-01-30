@@ -14,7 +14,6 @@ import OCDocker.Processing.Postprocessing.ReadLogs as ocreadlogs
 ###############################################################################
 import gc
 import os
-import time
 import vaex
 
 import numpy as np
@@ -530,8 +529,17 @@ def __read_log_parallel(paths: List[Tuple[str, str]], desc: str, ptn: str, saveC
 
     # Check if the hdf5 file exists or if the overwrite flag is True
     if os.path.isfile(hdf5Path) or overwrite:
+        # TODO: Fix this -> This is a temporary fix to avoid the error "Errno 24 Too many open files with vaex"
         # Load the hdf5 file
-        dockingResults = vaex.open(hdf5Path)
+        dockingResultsFile = vaex.open(hdf5Path)
+        # Convert the data to pandas
+        dockingResultsFilePandas = dockingResultsFile.to_pandas_df()
+        # Close the hdf5 file
+        dockingResultsFile.close()
+        # Delete the dockingResultsFile
+        del dockingResultsFile
+        # Convert back to vaex
+        dockingResults = vaex.from_pandas(dockingResultsFilePandas)
     else:
         # Set the dockingResults as None
         dockingResults = None
@@ -573,6 +581,7 @@ def __read_log_parallel(paths: List[Tuple[str, str]], desc: str, ptn: str, saveC
                 else:
                     # Concatenate the data
                     dockingResults = vaex.concat([dockingResults, data])
+                    #
                 # Clean the memory
                 del data
                 # Increment the counter
@@ -581,20 +590,18 @@ def __read_log_parallel(paths: List[Tuple[str, str]], desc: str, ptn: str, saveC
                 if i >= saveChunk:
                     # Save the dockingResults
                     dockingResults.export_hdf5(hdf5Path) # type: ignore
+                    
                     # Reset the counter
                     i = 0
                 gc.collect()
             if i > 0:
                 # Save the data
                 dockingResults.export_hdf5(hdf5Path) # type: ignore
-                
     except IOError as e:
         errMsg = f"Problem while reading logs in parallel. Exception: {e}"
         ocprint.print_error_log(errMsg, f"{logdir}/read_log_ERROR_report.log")
         ocprint.print_error(errMsg)
 
-    # Sleep for 0.33 second
-    time.sleep(0.33)
     return dockingResults # type: ignore
 
 def __read_log_no_parallel(paths: List[Tuple[str, str]], desc: str, ptn: str, saveChunk: int, hdf5Path: str, overwrite: bool) -> Dict[str, vdf.DataFrameLocal]:
@@ -627,8 +634,17 @@ def __read_log_no_parallel(paths: List[Tuple[str, str]], desc: str, ptn: str, sa
 
     # Check if the hdf5 file exists or if the overwrite flag is True
     if os.path.isfile(hdf5Path) or overwrite:
+        # TODO: Fix this -> This is a temporary fix to avoid the error "Errno 24 Too many open files with vaex"
         # Load the hdf5 file
-        dockingResults = vaex.open(hdf5Path)
+        dockingResultsFile = vaex.open(hdf5Path)
+        # Convert the data to pandas
+        dockingResultsFilePandas = dockingResultsFile.to_pandas_df()
+        # Close the hdf5 file
+        dockingResultsFile.close()
+        # Delete the dockingResultsFile
+        del dockingResultsFile
+        # Convert back to vaex
+        dockingResults = vaex.from_pandas(dockingResultsFilePandas)
     else:
         # Set the dockingResults as None
         dockingResults = None
