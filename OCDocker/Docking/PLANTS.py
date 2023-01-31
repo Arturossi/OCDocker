@@ -689,8 +689,8 @@ def get_binding_site(boxFile: str, spacing: float = 2.9) -> Union[Tuple[Tuple[fl
     xMax = max(abs(center['x'] - positions['min_x']), abs(positions['max_x'] - center['x'])) # type: ignore
     yMax = max(abs(center['y'] - positions['min_y']), abs(positions['max_y'] - center['y'])) # type: ignore
     zMax = max(abs(center['z'] - positions['min_z']), abs(positions['max_z'] - center['z'])) # type: ignore
-    # Get the biggest value among the coordinates, divide for 2 (because its a size)
-    radius = max(xMax, yMax, zMax)/2
+    # Get the biggest value among the coordinates (do not divide it, to allow more space for the protein)
+    radius = max(xMax, yMax, zMax) 
     # Add some extra space
     radius += round(spacing * radius, 3)
     # Return the data
