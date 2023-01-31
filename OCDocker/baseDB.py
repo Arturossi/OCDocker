@@ -610,6 +610,13 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
     # For each dir in chosenArchive
     for ptnDir in tqdm(iterable = ptnDirs, total = len(ptnDirs), desc = f"Processing {archive}"):
         
+        # Extract the ptn name
+        ptn = os.path.basename(ptnDir.split(os.path.sep)[-1])
+
+        # Will be used just for generate results for validation with the previous analysis TODO: Remove this ASAP
+        if ptn != "NRAM":
+            continue
+
         # Create an empty list for all directories to be processed
         processDirs = []
         
@@ -627,11 +634,19 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
             processDirs += [(processDir, receptor_descriptor_path) for processDir in glob(f"{decoys}/*") if os.path.isdir(processDir)]
             processDirs += [(processDir, receptor_descriptor_path) for processDir in glob(f"{candidates}/*") if os.path.isdir(processDir)]
 
-        # Extract the ptn name
-        ptn = os.path.basename(ptnDir.split(os.path.sep)[-1])
+        # Get the element
+        merged = ocmergelogs.merge_descriptors_in_dataframe(processDirs, f"{ptnDir}/{ptn}_descriptors.{datafileFormat}", ptn, archive, saveChunk = saveChunk, datafileFormat = datafileFormat, overwrite = overwrite)
+
+        # Check if it is int
+        if type(merged) == int:
+            # If it is int, it means that there was an error
+            errMsg = f"Error merging descriptors for {ptnDir}. Skipping this protein. Error code: {merged}"
+            ocprint.print_error(errMsg)
+            ocprint.print_error_log(errMsg, f"{logdir}/merge_descriptors_error.log")
+            continue
 
         # Merge the descriptors and append its results to the data list
-        dataList.append(ocmergelogs.merge_descriptors_in_dataframe(processDirs, f"{ptnDir}/{ptn}_descriptors.{datafileFormat}", ptn, archive, saveChunk = saveChunk, datafileFormat = datafileFormat, overwrite = overwrite))
+        dataList.append(merged)
 
         # Merge the list elements into a single vaex df
         data = vaex.concat(dataList)
