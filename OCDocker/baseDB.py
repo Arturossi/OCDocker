@@ -613,10 +613,6 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
         # Extract the ptn name
         ptn = os.path.basename(ptnDir.split(os.path.sep)[-1])
 
-        # Will be used just for generate results for validation with the previous analysis TODO: Remove this ASAP
-        if ptn != "HIVPR":
-            continue
-
         # Create an empty list for all directories to be processed
         processDirs = []
         
