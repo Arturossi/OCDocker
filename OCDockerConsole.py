@@ -97,16 +97,16 @@ args.zip_output = False
 args.update = False
 
 '''
-basePath = dudez_archive
-ptn = "AA2AR"
-lig = "CHEMBL181981"
+basePath = f"/data/hd4tb/OCDocker/OCDocker/test_files"
+ptn = "test_ptn1"
+lig = "ligand"
 baseProtPath = f"{basePath}/{ptn}"
 baseLigPath = f"{baseProtPath}/compounds/ligands"
 baseDecPath = f"{baseProtPath}/compounds/decoys"
 baseCanPath = f"{baseProtPath}/compounds/candidates"
 
 receptorTest = ocr.Receptor(f"{baseProtPath}/receptor.pdb", relativeASAcutoff=0.7, name=f"{ptn}")
-ligandTest = ocl.Ligand(f"{baseLigPath}/{lig}/ligand.smi", name="{lig}")
+ligandTest = ocl.Ligand(f"{baseLigPath}/{lig}/ligand.mol2", name="{lig}")
 
 gninaTest = ocgnina.Gnina(f"{baseLigPath}/{lig}/gninaFiles/conf_gnina.txt", f"{baseLigPath}/{lig}/boxes/box0.pdb", receptorTest, f"{baseProtPath}/prepared_receptor.pdbqt", ligandTest, f"{baseLigPath}/{lig}/prepared_ligand.pdbqt", f"{baseLigPath}/{lig}/gninaFiles/gnina_0.log", f"{baseLigPath}/{lig}/gninaFiles/gnina_0.pdbqt", name=f"Gnina {ptn}-{lig}")
 vinaTest = ocvina.Vina(f"{baseLigPath}/{lig}/vinaFiles/conf_vina.txt", f"{baseLigPath}/{lig}/boxes/box0.pdb", receptorTest, f"{baseProtPath}/prepared_receptor.pdbqt", ligandTest, f"{baseLigPath}/{lig}/prepared_ligand.pdbqt", f"{baseLigPath}/{lig}/vinaFiles/vina_0.log", f"{baseLigPath}/{lig}/vinaFiles/vina_0.pdbqt", name=f"Vina {ptn}-{lig}")

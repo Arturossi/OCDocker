@@ -1,0 +1,11 @@
+scoring_function chemplp
+search_speed speed1
+protein_file /data/hd4tb/OCDocker/OCDocker/test_files/test_ptn1/prepared_receptor.mol2
+ligand_file /data/hd4tb/OCDocker/OCDocker/test_files/test_ptn1/compounds/ligands/ligand/prepared_ligand.mol2
+keep_original_mol2_description 0
+output_dir /data/hd4tb/OCDocker/OCDocker/test_files/test_ptn1/compounds/ligands/ligand/plantsFiles/run
+write_multi_mol2 0
+bindingsite_center 36.552 39.252 51.291
+bindingsite_radius 23.965
+cluster_structures 10
+cluster_rmsd 2.0

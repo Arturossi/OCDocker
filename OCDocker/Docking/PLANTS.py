@@ -296,18 +296,21 @@ class PLANTS:
         None
         '''
 
+        # Set the run folder name
+        runfolder = f"{self.outputPlants}/run"
+
         # If overwrite is set
         if overwrite:
             # Check if there is an output
-            if os.path.isdir(self.outputPlants):
+            if os.path.isdir(runfolder):
                 # Remove it
-                shutil.rmtree(self.outputPlants)
+                shutil.rmtree(runfolder)
         # Check if there is an output
-        elif os.path.isdir(self.outputPlants):
+        elif os.path.isdir(runfolder):
             # Check if the dir is empty or no output file has been generated (the double of the number of cluster structures, being 2 for each structure)
-            if len(os.listdir(self.outputPlants)) == 0 or (len(glob(f"{self.outputPlants}/{self.inputLigand.name}*.mol2")) < plants_cluster_structures * 2): # type: ignore
+            if len(os.listdir(runfolder)) == 0 or (len(glob(f"{runfolder}/{self.inputLigand.name}*.mol2")) < plants_cluster_structures * 2): # type: ignore
                 # Remove it
-                os.rmdir(self.outputPlants)
+                os.rmdir(runfolder)
 
         # Print verboosity
         ocprint.printv(f"Running PLANTS using the '{self.config}' configurations.")
@@ -603,7 +606,7 @@ def write_config_file(confFile: str, preparedReceptor: str, preparedLigand: str,
             f.write(f"ligand_file {preparedLigand}\n")
             #f.write("# output\n")
             f.write(f"keep_original_mol2_description 0\n") # important to avoid problems in output generation
-            f.write(f"output_dir {outputPlants}\n")
+            f.write(f"output_dir {outputPlants}\run\n")
             #f.write("# write single mol2 files (e.g. for RMSD calculation)\n")
             f.write("write_multi_mol2 0\n")
             #f.write("# binding site definition\n")
