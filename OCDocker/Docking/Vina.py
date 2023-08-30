@@ -18,6 +18,7 @@ import os
 
 import numpy as np
 
+from glob import glob
 from typing import Dict, List, Tuple, Union
 
 from OCDocker.Initialise import *
@@ -100,6 +101,7 @@ class Vina:
 
         # Ligand
         self.preparedLigand = str(preparedLigandPath)
+        
         # Check the type of the ligand
         if type(ligand) == ocl.Ligand:
             self.inputLigand = ligand
@@ -318,6 +320,36 @@ class Vina:
             return occonversion.convertMols(self.inputReceptorPath, self.preparedReceptor)
         return ocrun.run(self.prepareReceptorCmd, logFile=logFile, cwd=os.path.dirname(self.inputReceptorPath))
 
+    def run_rescore(self, logFile: str = "") -> None:
+        '''Run vina to rescore the ligand.
+
+        Parameters
+        ----------
+        logFile : str
+            Path to the logFile. If empty, suppress the output.
+
+        Returns
+        -------
+        int | Tuple[int, str]
+            The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
+
+        Raises
+        ------
+        None
+        '''
+
+        # Get the ligand name
+        ligandName = os.path.splitext(os.path.basename(self.preparedLigand))[0]
+
+        # For each scoring function
+        for scoring_function in vina_scoring_functions:
+            # If it is not the one used to find the pose
+            if scoring_function != vina_scoring:
+                # Run vina to rescore
+                _ = run_vina_rescoring(self.config, self.preparedLigand, self.outputVina, scoring_function, logFile=logFile)
+
+        return None
+
     def print_attributes(self) -> None:
         '''Print the class attributes.
 
@@ -415,6 +447,7 @@ def box_to_vina(boxFile: str, confFile: str, receptor: str) -> int:
             conf_file.write(f"energy_range = {vina_energy_range}\n")
             conf_file.write(f"exhaustiveness = {vina_exhaustiveness}\n")
             conf_file.write(f"num_modes = {vina_num_modes}\n")
+            conf_file.write(f"scoring = {vina_scoring}\n")
     except Exception as e:
         return errors.write_file(message=f"Found a problem while opening conf file: {e}.", level="error")
     return errors.ok()
@@ -507,6 +540,62 @@ def run_vina(confFile: str, ligand: str, outpath: str, logFile: str = ""):
     ocprint.printv(f"Running vina using the '{confFile}' configurations.")
     # Run the command
     return ocrun.run(cmd, logFile=logFile)
+
+def run_vina_rescoring(confFile: str, ligand: str, outpath: str, scoring_function: str, logFile: str = ""):
+    '''Run vina to rescore the ligand.
+
+    Parameters
+    ----------
+    confFile : str
+        The path to the vina configuration file.
+    ligand : str
+        The path to the ligand file.
+    outpath : str
+        The path to the output file.
+    scoring_function : str
+        The scoring function to use.
+    logFile : str
+        The path to the log file. If empty, suppress the output.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
+    '''
+
+    # Get the ligand name
+    ligandName = os.path.splitext(os.path.basename(ligand))[0]
+    
+    # Split the input ligand
+    cmd = [vina_split, "--input", ligand, "--flex", "", "--ligand", f"{outpath}/{ligandName}_split_"]
+
+    # Run the command
+    _ = ocrun.run(cmd, logFile = logFile)
+
+    # Get the splited ligands name list
+    ligandList = glob(f"{outpath}/{ligandName}_split_*")
+
+    # For each splited ligand
+    for split_ligand in ligandList:
+        # Get the splited ligand name
+        split_ligand_name = os.path.splitext(os.path.basename(split_ligand))[0]
+
+
+        # Create the command list
+        cmd = [vina, "--scoring", scoring_function, "--score_only", "--config", confFile, "--ligand", split_ligand, "--out", f"{outpath}/{split_ligand_name}_{scoring_function}.log", "--cpu", "1"]
+
+        # Run the command
+        _ = ocrun.run(cmd, logFile = logFile)
+
+        # Print verboosity
+        ocprint.printv(f"Running vina using the '{confFile}' configurations and scoring function '{scoring_function}'.")
+    
+    # Think about how can this be done to deal with multiple runs
+    return None
 
 def generate_vina_files_database(path: str, protein: str, boxPath: str = "") -> None:
     '''Generate all vina required files for provided protein.
@@ -616,6 +705,62 @@ def read_log(path: str) -> Dict[str, List[Union[str, float]]]:
 
     # Return a dict with a NaN value
     return {"vina_pose": [np.NaN], "vina_affinity": [np.NaN]}
+
+def read_rescoring_log(path: str) -> float:
+    '''Read the vina rescoring log path, returning the computed affinity.
+
+    Parameters
+    ----------
+    path : str
+        The path to the vina rescoring log file.
+
+    Returns
+    -------
+    float
+        The affinity of the ligand.
+
+    Raises
+    ------
+    None
+    '''
+
+    # Check if file exists
+    if os.path.isfile(path):
+        # Catch any error that might occur
+        try:
+            # Check if file is empty
+            if os.stat(path).st_size == 0:
+                # Print the error
+                _ = errors.empty_file(f"The vina rescoring log file '{path}' is empty.", "error")
+                # Return NaN
+                return np.NaN
+
+            # Try except to avoid broken pipe errors
+            try:
+                # Read the file reversely
+                for line in ocio.lazyread_reverse_order_mmap(path):
+                    # If the line starts with "Estimated Free Energy of Binding" means that its the correct line
+                    if line.startswith("Estimated Free Energy of Binding"):
+                        # Parse the value from the line
+                        value = line.split("Estimated Free Energy of Binding")[1].split("(kcal/mol)")[0].strip().split(" ")[-1]
+                        # Convert the value to float then return it
+                        return float(value)
+            except IOError as e:
+                if e.errno == errno.EPIPE:
+                    ocprint.print_error(f"Problems while reading file '{path}'. Error: {e}")
+                    ocprint.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{logdir}/vina_read_log_ERROR.log")
+            
+            return np.NaN
+
+        except Exception as e:
+            _ = errors.read_docking_log_error(f"Problems while reading the vina log file '{path}'. Error: {e}", "error")
+            return np.NaN
+
+    # Throw an error
+    _ = errors.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
+
+    # Return NaN
+    return np.NaN
 
 def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, digestFormat : str = "json") -> int:
     """Generate the docking digest.

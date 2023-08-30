@@ -2657,7 +2657,7 @@ def loadMol(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize: bool = True) 
                     # Load the molecule
                     m = rdkit.Chem.rdmolfiles.MolFromMol2File(molecule, sanitize = False) # type: ignore
                     try:
-                        # Turn off the property cache
+                        # Turn off the property cachea
                         m.UpdatePropertyCache(strict = False)
                         # Perform a partial sanitization (THIS IS VERY IMPORTANT!!!!)
                         Chem.SanitizeMol(m, Chem.SanitizeFlags.SANITIZE_FINDRADICALS|Chem.SanitizeFlags.SANITIZE_KEKULIZE|Chem.SanitizeFlags.SANITIZE_SETAROMATICITY|Chem.SanitizeFlags.SANITIZE_SETCONJUGATION|Chem.SanitizeFlags.SANITIZE_SETHYBRIDIZATION|Chem.SanitizeFlags.SANITIZE_SYMMRINGS, catcherrors=True) # type: ignore

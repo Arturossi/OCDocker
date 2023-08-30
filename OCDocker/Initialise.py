@@ -41,7 +41,7 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 
 # Splash, version & clear tmp
 ###############################################################################
-ocVersion = "0.7.0"
+ocVersion = "0.8.0"
 
 description = tw.dedent("""\033[1;93m
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -134,6 +134,8 @@ def create_ocdocker_conf() -> None:
 
     #region Vina config
     confVina = "/usr/bin/vina"
+    confVina = "/usr/bin/vina_split"
+    confVina_split = "/usr/bin/vina_split"
     confVina_energy_range = "10"
     confVina_exhaustiveness = "5"
     confVina_num_modes = "3"
@@ -422,6 +424,9 @@ def create_ocdocker_conf() -> None:
         # Vina path
         vina = """ + str(confVina) + """
 
+        # Vina_split path
+        vina_split = """ + str(confVina_split) + """
+
         # Maximum energy difference between the best binding mode and the worst one displayed (kcal/mol)
         vina_energy_range = """ + str(confVina_energy_range) + """
 
@@ -619,9 +624,11 @@ global pdbbind_KdKi_order
 # Data from .cfg
 global ocdb_path
 global vina
+global vina_split
 global dock6
 global prank
 global smina
+global gnina
 global obabel
 global plants
 global dudez_download
@@ -634,6 +641,8 @@ global p2rank_boxMaxCutoff
 global p2rank_pocketCutoff
 
 # Vina parameters
+global vina_scoring
+global vina_scoring_functions
 global vina_num_modes
 global vina_energy_range
 global vina_exhaustiveness
@@ -658,7 +667,6 @@ global smina_user_grid
 global smina_user_grid_lambda
 
 # Gnina parameters
-global gnina
 global gnina_exhaustiveness
 global gnina_num_modes
 global gnina_scoring
@@ -795,6 +803,7 @@ def argument_parsing() -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="OCDocker",
                                      formatter_class=argparse.RawDescriptionHelpFormatter,
                                      description=description)
+    
     # Add the arguments
     parser.add_argument("--version",
                         action="version",
@@ -879,8 +888,14 @@ for line in open(config_file, 'r'): # type: ignore
         p2rank_pocketCutoff = float(line.split("=")[1].strip())
     elif line.startswith("vina ="):
         vina = line.split("=")[1].strip()
+    elif line.startswith("vina_split ="):
+        vina_split = line.split("=")[1].strip()
     elif line.startswith("vina_energy_range ="):
         vina_energy_range = line.split("=")[1].strip()
+    elif line.startswith("vina_scoring ="):
+        vina_scoring = line.split("=")[1].strip()
+    elif line.startswith("vina_scoring_functions ="):
+        vina_scoring_functions = line.split("=")[1].strip().split(",")
     elif line.startswith("vina_exhaustiveness ="):
         vina_exhaustiveness = int(line.split("=")[1].strip())
     elif line.startswith("vina_num_modes ="):
@@ -1017,10 +1032,12 @@ if not os.path.isdir(logdir):
 # Remove tmp path then create it again
 tmpDir = f"{ocdocker_path}/tmp"
 
-# If the dir exists, remove it
+# If the dir exists
 if os.path.isdir(tmpDir):
+    # Remove it with all its contents
     shutil.rmtree(tmpDir)
 
+# Then create it since it does not exist
 os.mkdir(tmpDir)
 
 # Get number of CPUs (minus one) with a minimum of one

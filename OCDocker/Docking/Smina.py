@@ -117,7 +117,7 @@ class Smina:
         self.prepareLigandCmd = [pythonsh, prepare_ligand, "-l", self.inputLigandPath, "-C", "-o", self.preparedLigand]
         #self.prepareLigandCmd = [obabel, self.inputLigandPath, "-O", self.preparedLigand]
 
-        # Vina
+        # Smina
         self.sminaLog = str(sminaLog)
         self.outputSmina = str(outputSmina)
         self.sminaCmd = self.__smina_cmd()
