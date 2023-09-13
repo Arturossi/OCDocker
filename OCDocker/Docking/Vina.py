@@ -346,7 +346,7 @@ class Vina:
             # If it is not the one used to find the pose
             if scoring_function != vina_scoring:
                 # Run vina to rescore
-                _ = run_vina_rescoring(self.config, self.preparedLigand, self.outputVina, scoring_function, logFile=logFile)
+                _ = run_rescore(self.config, self.preparedLigand, self.outputVina, scoring_function, logFile=logFile)
 
         return None
 
@@ -541,7 +541,7 @@ def run_vina(confFile: str, ligand: str, outpath: str, logFile: str = ""):
     # Run the command
     return ocrun.run(cmd, logFile=logFile)
 
-def run_vina_rescoring(confFile: str, ligand: str, outpath: str, scoring_function: str, logFile: str = ""):
+def run_rescore(confFile: str, ligand: str, outpath: str, scoring_function: str, logFile: str = ""):
     '''Run vina to rescore the ligand.
 
     Parameters
@@ -583,7 +583,6 @@ def run_vina_rescoring(confFile: str, ligand: str, outpath: str, scoring_functio
     for split_ligand in ligandList:
         # Get the splited ligand name
         split_ligand_name = os.path.splitext(os.path.basename(split_ligand))[0]
-
 
         # Create the command list
         cmd = [vina, "--scoring", scoring_function, "--score_only", "--config", confFile, "--ligand", split_ligand, "--out", f"{outpath}/{split_ligand_name}_{scoring_function}.log", "--cpu", "1"]
