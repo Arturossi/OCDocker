@@ -382,6 +382,36 @@ class PLANTS:
         ocprint.printv(f"Running '{spores}' for '{self.inputReceptorPath}'.")
         return ocrun.run(self.prepareReceptorCmd, logFile=logFile)
 
+    def run_rescore(self, logFile: str = "") -> None:
+        '''Run smina to rescore the ligand.
+
+        Parameters
+        ----------
+        logFile : str
+            Path to the logFile. If empty, suppress the output.
+
+        Returns
+        -------
+        int | Tuple[int, str]
+            The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
+
+        Raises
+        ------
+        None
+        '''
+
+        # Get the ligand name
+        ligandName = os.path.splitext(os.path.basename(self.preparedLigand))[0]
+
+        # For each scoring function
+        for scoring_function in vina_scoring_functions:
+            # If it is not the one used to find the pose
+            if scoring_function != vina_scoring:
+                # Run vina to rescore
+                _ = run_rescore(self.config, self.preparedLigand, self.outputPlants, scoring_function, logFile=logFile)
+
+        return None
+
     def print_attributes(self) -> None:
         '''Print the class attributes.
 
@@ -564,7 +594,66 @@ def run_plants(confFile: str, outputPlants: str, overwrite: bool = False, logFil
     # Run the command
     return ocrun.run(cmd, logFile = logFile)
 
-def write_config_file(confFile: str, preparedReceptor: str, preparedLigand: str, outputPlants: str, bindingSiteCenterX: float, bindingSiteCenterY: float, bindingSiteCenterZ: float, bindingSiteRadius: float) -> int:
+def run_rescore(ligands: Union[List[str], str], outpath: str, scoring_function: str, logFile: str = "") -> None:
+    '''Run PLANTS to rescore the ligand.
+
+    Parameters
+    ----------
+    ligands : Union[List[str], str]
+        The path to a List of ligand files or the ligand file.
+    outpath : str
+        The path to the output file.
+    scoring_function : str
+        The scoring function to use.
+    logFile : str
+        The path to the log file. If empty, suppress the output.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
+    '''
+
+    # Check if the ligands is a string
+    if isinstance(ligands, str):
+        # Convert to list
+        ligands = [ligands]
+
+    # For each ligand
+    for ligand in ligands:
+        # Get the ligand base path and file name
+        ligandBasePath = os.path.splitext(ligand)[0]
+
+        # Get the ligand name
+        ligandName = os.path.splitext(os.path.basename(ligand))[0]
+
+        # Get the conf file name
+        confFile = f"{outpath}/{ligandName}_{scoring_function}.conf"
+
+        # Get the protein file name
+        proteinFile = f"{outpath}/{ligandName}_protein.mol2"
+
+        # Create the conf file
+        _ = write_config_file(confFile, proteinFile, ) # TODO: Continue from here
+    
+        # Create the command list
+        cmd = [plants, "--mode", "rescore", confFile]
+
+        # Run the command
+        _ = ocrun.run(cmd, logFile = logFile)
+
+        # Print verboosity
+        ocprint.printv(f"Running smina using the '{confFile}' configurations and scoring function '{scoring_function}'.")
+    
+    # Think about how can this be done to deal with multiple runs
+    return None
+
+
+def write_config_file(confFile: str, preparedReceptor: str, preparedLigand: str, outputPlants: str, bindingSiteCenterX: float, bindingSiteCenterY: float, bindingSiteCenterZ: float, bindingSiteRadius: float, scoringFunction: str = "chemplp") -> int:
     '''Write the config file.
 
     Parameters
@@ -585,6 +674,8 @@ def write_config_file(confFile: str, preparedReceptor: str, preparedLigand: str,
         The Z coordinate of the binding site center.
     bindingSiteRadius : float
         The radius of the binding site.
+    scoringFunction : str, optional
+        The scoring function to use. Default is "chemplp". Options are plp, plp95 or chemplp
 
     Returns
     -------
@@ -599,7 +690,7 @@ def write_config_file(confFile: str, preparedReceptor: str, preparedLigand: str,
     try:
         with open(confFile, 'w') as f:
             #f.write("# scoring function and search settings\n")
-            f.write("scoring_function chemplp\n")
+            f.write(f"scoring_function {scoringFunction}\n")
             f.write(f"search_speed {plants_search_speed}\n")
             #f.write("# input\n")
             f.write(f"protein_file {preparedReceptor}\n")

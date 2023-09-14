@@ -139,6 +139,9 @@ def create_ocdocker_conf() -> None:
     confVina_energy_range = "10"
     confVina_exhaustiveness = "5"
     confVina_num_modes = "3"
+    confVina_scoring = "vina"
+    confVina_scoring_functions = "ad4,vina,vinardo"
+
 
     print("\nVina configuration")
     answer = input(f"Path to the Vina software. Default [{confVina}] (press enter to keep default): ")
@@ -152,6 +155,12 @@ def create_ocdocker_conf() -> None:
 
     answer = input(f"Vina num modes parameter. Default [{confVina_num_modes}] (press enter to keep default): ")
     confVina_num_modes = confVina_num_modes if not answer else answer
+
+    answer = input(f"Vina scoring function. Default [{confVina_scoring}] (press enter to keep default): ")
+    confVina_scoring = confVina_scoring if not answer else answer
+
+    answer = input(f"Vina available scoring functions (separated by ','). Default [{confVina_scoring_functions}] (press enter to keep default): ")
+    confVina_scoring_functions = confVina_scoring_functions if not answer else answer
 
     #endregion
 
@@ -190,6 +199,9 @@ def create_ocdocker_conf() -> None:
 
     answer = input(f"Smina scoring function parameter. Default [{confSmina_scoring}] (press enter to keep default): ")
     confSmina_scoring = confSmina_scoring if not answer else answer
+
+    answer = input(f"Smina available scoring functions (separated by ','). Default [{confSmina_scoring_functions}] (press enter to keep default): ")
+    confSmina_scoring_functions = confSmina_scoring_functions if not answer else answer
 
     answer = input(f"Smina custom scoring file parameter ('no' to ignore this parameter, otherwise provide the path). Default [{confSmina_custom_scoring_file}] (press enter to keep default): ")
     confSmina_custom_scoring_file = confSmina_custom_scoring_file if not answer else answer
@@ -450,8 +462,10 @@ def create_ocdocker_conf() -> None:
         # Maximum number of binding modes to generate
         smina_num_modes = """ + str(confSmina_num_modes) + """
 
-        # Alternativa scoring function
+        # Alternative scoring function
         smina_scoring = """ + str(confSmina_scoring) + """
+
+        # Dis
 
         # Custom scoring file
         smina_custom_scoring = """ + str(confSmina_custom_scoring_file) + """
@@ -652,6 +666,7 @@ global smina_num_modes
 global smina_energy_range
 global smina_exhaustiveness
 global smina_scoring
+global smina_scoring_functions
 global smina_custom_scoring
 global smina_custom_atoms
 global smina_local_only
@@ -895,7 +910,7 @@ for line in open(config_file, 'r'): # type: ignore
     elif line.startswith("vina_scoring ="):
         vina_scoring = line.split("=")[1].strip()
     elif line.startswith("vina_scoring_functions ="):
-        vina_scoring_functions = line.split("=")[1].strip().split(",")
+        vina_scoring_functions = [l.strip() for l in line.split("=")[1].strip().split(",")]
     elif line.startswith("vina_exhaustiveness ="):
         vina_exhaustiveness = int(line.split("=")[1].strip())
     elif line.startswith("vina_num_modes ="):

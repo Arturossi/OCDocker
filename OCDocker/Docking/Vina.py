@@ -338,15 +338,15 @@ class Vina:
         None
         '''
 
-        # Get the ligand name
-        ligandName = os.path.splitext(os.path.basename(self.preparedLigand))[0]
-
         # For each scoring function
         for scoring_function in vina_scoring_functions:
             # If it is not the one used to find the pose
             if scoring_function != vina_scoring:
+                # Get the ligand files using the rule self.outputVina + "/vina_(number).pdbqt"
+                ligands = glob(f"{self.outputVina}/vina_[0-9]+.pdbqt")
+                
                 # Run vina to rescore
-                _ = run_rescore(self.config, self.preparedLigand, self.outputVina, scoring_function, logFile=logFile)
+                _ = run_rescore(self.config, ligands, self.outputVina, scoring_function, logFile=logFile)
 
         return None
 
@@ -541,15 +541,15 @@ def run_vina(confFile: str, ligand: str, outpath: str, logFile: str = ""):
     # Run the command
     return ocrun.run(cmd, logFile=logFile)
 
-def run_rescore(confFile: str, ligand: str, outpath: str, scoring_function: str, logFile: str = ""):
+def run_rescore(confFile: str, ligands: Union[List[str], str], outpath: str, scoring_function: str, logFile: str = "") -> None:
     '''Run vina to rescore the ligand.
 
     Parameters
     ----------
     confFile : str
         The path to the vina configuration file.
-    ligand : str
-        The path to the ligand file.
+    ligands : Union[List[str], str]
+        The path to a List of ligand files or the ligand file.
     outpath : str
         The path to the output file.
     scoring_function : str
@@ -567,31 +567,38 @@ def run_rescore(confFile: str, ligand: str, outpath: str, scoring_function: str,
     None
     '''
 
-    # Get the ligand name
-    ligandName = os.path.splitext(os.path.basename(ligand))[0]
+    # Check if the ligands is a string
+    if isinstance(ligands, str):
+        # Convert to list
+        ligands = [ligands]
     
-    # Split the input ligand
-    cmd = [vina_split, "--input", ligand, "--flex", "", "--ligand", f"{outpath}/{ligandName}_split_"]
-
-    # Run the command
-    _ = ocrun.run(cmd, logFile = logFile)
-
-    # Get the splited ligands name list
-    ligandList = glob(f"{outpath}/{ligandName}_split_*")
-
-    # For each splited ligand
-    for split_ligand in ligandList:
-        # Get the splited ligand name
-        split_ligand_name = os.path.splitext(os.path.basename(split_ligand))[0]
-
-        # Create the command list
-        cmd = [vina, "--scoring", scoring_function, "--score_only", "--config", confFile, "--ligand", split_ligand, "--out", f"{outpath}/{split_ligand_name}_{scoring_function}.log", "--cpu", "1"]
+    # For each ligand
+    for ligand in ligands:
+        # Get the ligand name
+        ligandName = os.path.splitext(os.path.basename(ligand))[0]
+        
+        # Split the input ligand
+        cmd = [vina_split, "--input", ligand, "--flex", "", "--ligand", f"{outpath}/{ligandName}_split_"]
 
         # Run the command
         _ = ocrun.run(cmd, logFile = logFile)
 
-        # Print verboosity
-        ocprint.printv(f"Running vina using the '{confFile}' configurations and scoring function '{scoring_function}'.")
+        # Get the splited ligands name list
+        ligandList = glob(f"{outpath}/{ligandName}_split_*")
+
+        # For each splited ligand
+        for split_ligand in ligandList:
+            # Get the splited ligand name
+            split_ligand_name = os.path.splitext(os.path.basename(split_ligand))[0]
+
+            # Create the command list
+            cmd = [vina, "--scoring", scoring_function, "--score_only", "--config", confFile, "--ligand", split_ligand, "--out", f"{outpath}/{split_ligand_name}_{scoring_function}.log", "--cpu", "1"]
+
+            # Run the command
+            _ = ocrun.run(cmd, logFile = logFile)
+
+            # Print verboosity
+            ocprint.printv(f"Running vina using the '{confFile}' configurations and scoring function '{scoring_function}'.")
     
     # Think about how can this be done to deal with multiple runs
     return None

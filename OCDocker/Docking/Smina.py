@@ -344,7 +344,7 @@ class Smina:
         '''
 
         return run_prepare_receptor(self.inputReceptorPath, self.preparedReceptor)
-
+    
     def run_rescore(self, logFile: str = "") -> None:
         '''Run smina to rescore the ligand.
 
@@ -363,15 +363,14 @@ class Smina:
         None
         '''
 
-        # Get the ligand name
-        ligandName = os.path.splitext(os.path.basename(self.preparedLigand))[0]
-
         # For each scoring function
         for scoring_function in vina_scoring_functions:
             # If it is not the one used to find the pose
             if scoring_function != vina_scoring:
+                # Get the ligand files using the rule self.outputSmina + "/smina.pdbqt"
+                ligands = glob(f"{self.outputSmina}/smina.pdbqt")
                 # Run vina to rescore
-                _ = run_rescore(self.config, self.preparedLigand, self.outputSmina, scoring_function, logFile=logFile)
+                _ = run_rescore(self.config, ligands, self.outputSmina, scoring_function, logFile=logFile)
 
         return None
 
@@ -633,7 +632,7 @@ def run_prepare_receptor(inputReceptorPath: str, preparedReceptor: str) -> Union
     return occonversion.convertMols(inputReceptorPath, preparedReceptor) # type: ignore
 
 def run_smina(config: str, preparedLigand: str, outputSmina: str, sminaLog: str, logPath: str) -> Union[int, Tuple[int, str]]:
-    '''Convert a box (DUDE like format) to vina input.
+    '''Convert a box (DUDE like format) to smina input.
 
     Parameters
     ----------
@@ -677,15 +676,15 @@ def run_smina(config: str, preparedLigand: str, outputSmina: str, sminaLog: str,
     # Run the command
     return ocrun.run(cmd, logFile = logPath)
 
-def run_rescore(confFile: str, ligand: str, outpath: str, scoring_function: str, logFile: str = ""):
+def run_rescore(confFile: str, ligands: Union[List[str], str], outpath: str, scoring_function: str, logFile: str = "") -> None:
     '''Run Smina to rescore the ligand.
 
     Parameters
     ----------
     confFile : str
-        The path to the vina configuration file.
-    ligand : str
-        The path to the ligand file.
+        The path to the smina configuration file.
+    ligands : Union[List[str], str]
+        The path to a List of ligand files or the ligand file.
     outpath : str
         The path to the output file.
     scoring_function : str
@@ -703,31 +702,38 @@ def run_rescore(confFile: str, ligand: str, outpath: str, scoring_function: str,
     None
     '''
 
-    # Get the ligand name
-    ligandName = os.path.splitext(os.path.basename(ligand))[0]
+    # Check if the ligands is a string
+    if isinstance(ligands, str):
+        # Convert to list
+        ligands = [ligands]
     
-    # Split the input ligand (it is vinasplit, even for smina)
-    cmd = [vina_split, "--input", ligand, "--flex", "", "--ligand", f"{outpath}/{ligandName}_split_"]
-
-    # Run the command
-    _ = ocrun.run(cmd, logFile = logFile)
-
-    # Get the splited ligands name list
-    ligandList = glob(f"{outpath}/{ligandName}_split_*")
-
-    # For each splited ligand
-    for split_ligand in ligandList:
-        # Get the splited ligand name
-        split_ligand_name = os.path.splitext(os.path.basename(split_ligand))[0]
-
-        # Create the command list
-        cmd = [smina, "--scoring", scoring_function, "--score_only", "--config", confFile, "--ligand", split_ligand, "--out", f"{outpath}/{split_ligand_name}_{scoring_function}.log", "--cpu", "1"]
+    # For each ligand
+    for ligand in ligands:
+        # Get the ligand name
+        ligandName = os.path.splitext(os.path.basename(ligand))[0]
+        
+        # Split the input ligand (it is vinasplit, even for smina)
+        cmd = [vina_split, "--input", ligand, "--flex", "", "--ligand", f"{outpath}/{ligandName}_split_"]
 
         # Run the command
         _ = ocrun.run(cmd, logFile = logFile)
 
-        # Print verboosity
-        ocprint.printv(f"Running smina using the '{confFile}' configurations and scoring function '{scoring_function}'.")
+        # Get the splited ligands name list
+        ligandList = glob(f"{outpath}/{ligandName}_split_*")
+
+        # For each splited ligand
+        for split_ligand in ligandList:
+            # Get the splited ligand name
+            split_ligand_name = os.path.splitext(os.path.basename(split_ligand))[0]
+
+            # Create the command list
+            cmd = [smina, "--scoring", scoring_function, "--score_only", "--config", confFile, "--ligand", split_ligand, "--out", f"{outpath}/{split_ligand_name}_{scoring_function}.log", "--cpu", "1"]
+
+            # Run the command
+            _ = ocrun.run(cmd, logFile = logFile)
+
+            # Print verboosity
+            ocprint.printv(f"Running smina using the '{confFile}' configurations and scoring function '{scoring_function}'.")
     
     # Think about how can this be done to deal with multiple runs
     return None
@@ -795,7 +801,7 @@ def read_log(path: str) -> Dict[str, List[Union[str, float]]]:
             return data
         
         except Exception as e:
-            _ = errors.read_docking_log_error(f"Problems while reading the vina log file '{path}'. Error: {e}", "error")
+            _ = errors.read_docking_log_error(f"Problems while reading the smina log file '{path}'. Error: {e}", "error")
             return {"smina_pose": [np.NaN], "smina_affinity": [np.NaN]}
 
     # Throw an error
@@ -805,12 +811,12 @@ def read_log(path: str) -> Dict[str, List[Union[str, float]]]:
     return {"smina_pose": [np.NaN], "smina_affinity": [np.NaN]}
 
 def read_rescoring_log(path: str) -> float:
-    '''Read the vina rescoring log path, returning the computed affinity.
+    '''Read the smina rescoring log path, returning the computed affinity.
 
     Parameters
     ----------
     path : str
-        The path to the vina rescoring log file.
+        The path to the smina rescoring log file.
 
     Returns
     -------
@@ -829,7 +835,7 @@ def read_rescoring_log(path: str) -> float:
             # Check if file is empty
             if os.stat(path).st_size == 0:
                 # Print the error
-                _ = errors.empty_file(f"The vina rescoring log file '{path}' is empty.", "error")
+                _ = errors.empty_file(f"The smina rescoring log file '{path}' is empty.", "error")
                 # Return NaN
                 return np.NaN
 
@@ -846,9 +852,9 @@ def read_rescoring_log(path: str) -> float:
             except IOError as e:
                 if e.errno == errno.EPIPE:
                     ocprint.print_error(f"Problems while reading file '{path}'. Error: {e}")
-                    ocprint.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{logdir}/vina_read_log_ERROR.log")
+                    ocprint.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{logdir}/smina_read_log_ERROR.log")
         except Exception as e:
-            _ = errors.read_docking_log_error(f"Problems while reading the vina log file '{path}'. Error: {e}", "error")
+            _ = errors.read_docking_log_error(f"Problems while reading the smina log file '{path}'. Error: {e}", "error")
         return np.NaN
 
     # Throw an error
