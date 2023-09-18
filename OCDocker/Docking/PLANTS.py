@@ -51,7 +51,7 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 ###############################################################################
 class PLANTS:
     """PLANTS object with methods for easy run."""
-    def __init__(self, configPath: str, boxFile: str, receptor: ocr.Receptor, preparedReceptorPath: str, ligand: ocl.Ligand, preparedLigandPath: str, plantsLog: str, outputPlants: str, name: str = "", boxSpacing: float = 0.33, overwriteConfig: bool = False) -> None:
+    def __init__(self, configPath: str, boxFile: str, receptor: ocr.Receptor, preparedReceptorPath: str, ligand: ocl.Ligand, preparedLigandPath: str, plantsLog: str, outputPlants: str, name: str = "", boxSpacing: float = 2.9, overwriteConfig: bool = False) -> None:
         ''' Constructor for the PLANTS object.
         
         Parameters
@@ -98,6 +98,9 @@ class PLANTS:
             _ = errors.binding_site_not_found(f"The binding site was not found in the box file '{self.boxFile}'.", level="error")
             return None
 
+        # Check if the folder where the configPath is located exists (remove the file name from the path)
+        _ = ocff.safe_create_dir(os.path.dirname(self.config))
+
         self.bindingSiteCenter, self.bindingSiteRadius = self.__bindingSite # type: ignore
         
         # Receptor
@@ -115,7 +118,7 @@ class PLANTS:
         # Check the type of the ligand
         if type(ligand) == ocl.Ligand:
             self.inputLigand = ligand
-            # Create the vinaFiles folder
+            # Create the plantsFiles folder
             _ = ocff.safe_create_dir(os.path.join(os.path.dirname(ligand.path), "plantsFiles"))
         else:
             errors.wrong_type(f"The ligand '{ligand}' has not a supported type. Expected 'ocl.Ligand' but got {type(ligand)} instead.", level="error")
@@ -408,7 +411,7 @@ class PLANTS:
             # If it is not the one used to find the pose
             if scoring_function != vina_scoring:
                 # Run vina to rescore
-                _ = run_rescore(self.config, self.preparedLigand, self.outputPlants, scoring_function, logFile=logFile)
+                _ = run_rescore(self.preparedLigand, self.outputPlants, scoring_function, logFile = logFile, sanitize = self.inputLigand.sanitize, radiusExpansion = self.boxSpacing)
 
         return None
 
@@ -594,11 +597,13 @@ def run_plants(confFile: str, outputPlants: str, overwrite: bool = False, logFil
     # Run the command
     return ocrun.run(cmd, logFile = logFile)
 
-def run_rescore(ligands: Union[List[str], str], outpath: str, scoring_function: str, logFile: str = "") -> None:
+def run_rescore(ligands: Union[List[str], str], outpath: str, scoring_function: str, logFile: str = "", sanitize: bool = True, boxSpacing: float = 2.9) -> None:
     '''Run PLANTS to rescore the ligand.
 
     Parameters
     ----------
+    boxFile : str
+        The path to the box file.
     ligands : Union[List[str], str]
         The path to a List of ligand files or the ligand file.
     outpath : str
@@ -607,6 +612,10 @@ def run_rescore(ligands: Union[List[str], str], outpath: str, scoring_function: 
         The scoring function to use.
     logFile : str
         The path to the log file. If empty, suppress the output.
+    sanitize : bool, optional
+        Sanitize the ligand before running PLANTS. Default is True.
+    radiusExpansion : float, optional
+        The radius expansion factor. Default is 3.
 
     Returns
     -------
@@ -625,9 +634,6 @@ def run_rescore(ligands: Union[List[str], str], outpath: str, scoring_function: 
 
     # For each ligand
     for ligand in ligands:
-        # Get the ligand base path and file name
-        ligandBasePath = os.path.splitext(ligand)[0]
-
         # Get the ligand name
         ligandName = os.path.splitext(os.path.basename(ligand))[0]
 
@@ -637,8 +643,14 @@ def run_rescore(ligands: Union[List[str], str], outpath: str, scoring_function: 
         # Get the protein file name
         proteinFile = f"{outpath}/{ligandName}_protein.mol2"
 
+        # Get the centroid of the ligand
+        bindingSiteCenterX, bindingSiteCenterY, bindingSiteCenterZ = ocl.get_centroid(ligand, sanitize = sanitize)
+
+        # Get boxSpacing times the gyration radius of the ligand
+        bindingSiteRadius = ocl.findRadiusOfGyration(ligand) * boxSpacing # type: ignore
+
         # Create the conf file
-        _ = write_config_file(confFile, proteinFile, ) # TODO: Continue from here
+        _ = write_config_file(confFile, proteinFile, ligand, outpath, bindingSiteCenterX, bindingSiteCenterY, bindingSiteCenterZ, bindingSiteRadius, scoringFunction = scoring_function)
     
         # Create the command list
         cmd = [plants, "--mode", "rescore", confFile]
@@ -647,11 +659,10 @@ def run_rescore(ligands: Union[List[str], str], outpath: str, scoring_function: 
         _ = ocrun.run(cmd, logFile = logFile)
 
         # Print verboosity
-        ocprint.printv(f"Running smina using the '{confFile}' configurations and scoring function '{scoring_function}'.")
+        ocprint.printv(f"Running PLANTS using the '{confFile}' configurations and scoring function '{scoring_function}'.")
     
     # Think about how can this be done to deal with multiple runs
     return None
-
 
 def write_config_file(confFile: str, preparedReceptor: str, preparedLigand: str, outputPlants: str, bindingSiteCenterX: float, bindingSiteCenterY: float, bindingSiteCenterZ: float, bindingSiteRadius: float, scoringFunction: str = "chemplp") -> int:
     '''Write the config file.
@@ -786,7 +797,7 @@ def get_binding_site(boxFile: str, spacing: float = 2.9) -> Union[Tuple[Tuple[fl
     # Get the biggest value among the coordinates (do not divide it, to allow more space for the protein)
     radius = max(xMax, yMax, zMax) 
     # Add some extra space
-    radius += round(spacing * radius, 3)
+    radius += round(spacing * radius, 3) # type: ignore
     # Return the data
     return ((center['x'], center['y'], center['z']), radius) # type: ignore
 
@@ -979,4 +990,4 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
 
 # Aliases
 ###############################################################################
-run_dock = run_plants
+run_docking = run_plants

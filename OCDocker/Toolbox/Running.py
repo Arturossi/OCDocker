@@ -52,11 +52,9 @@ def run(cmd: List[str], logFile: str = "", cwd : str = "") -> Union[int, Tuple[i
     cmd : List[str]
         The command to be run.
     logFile : str, optional
-        The file where the output will be saved.
-        Default is "".
+        The file where the output will be saved. Default is "".
     cwd : str, optional
-        The current working directory.
-        Default is "".
+        The current working directory. Default is "".
 
     Returns
     -------

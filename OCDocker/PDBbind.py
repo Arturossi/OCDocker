@@ -222,7 +222,7 @@ def run_gnina(overwrite: bool = False) -> int:
     None
     '''
 
-    return ocbdb.run_dock("pdbbind", "gnina", overwrite = overwrite)
+    return ocbdb.run_docking("pdbbind", "gnina", overwrite = overwrite)
 
 def run_vina(overwrite: bool = False) -> int:
     '''Runs vina in the whole database.
@@ -242,7 +242,7 @@ def run_vina(overwrite: bool = False) -> int:
     None
     '''
 
-    return ocbdb.run_dock("pdbbind", "vina", overwrite = overwrite)
+    return ocbdb.run_docking("pdbbind", "vina", overwrite = overwrite)
 
 def run_smina(overwrite: bool = False) -> int:
     '''Runs smina in the whole database.
@@ -262,7 +262,7 @@ def run_smina(overwrite: bool = False) -> int:
     None
     '''
 
-    return ocbdb.run_dock("pdbbind", "smina", overwrite = overwrite)
+    return ocbdb.run_docking("pdbbind", "smina", overwrite = overwrite)
 
 def run_plants(overwrite: bool = False) -> int:
     '''Runs PLANTS in the whole database.
@@ -282,7 +282,7 @@ def run_plants(overwrite: bool = False) -> int:
     None
     '''
 
-    return ocbdb.run_dock("pdbbind", "plants", overwrite = overwrite)
+    return ocbdb.run_docking("pdbbind", "plants", overwrite = overwrite)
 
 def prepare(overwrite: bool = False) -> None:
     '''Prepares the PDBbind database.

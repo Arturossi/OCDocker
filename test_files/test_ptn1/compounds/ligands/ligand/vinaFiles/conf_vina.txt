@@ -1,4 +1,4 @@
-receptor = /data/hd4tb/OCDocker/OCDocker/test_files/rec.crg.pdbqt
+receptor = /data/hd4tb/OCDocker/OCDocker/test_files/test_ptn1/prepared_receptor.pdbqt
 
 center_x = 36.552
 center_y = 39.252
@@ -11,3 +11,4 @@ size_z = 102.582
 energy_range = 10
 exhaustiveness = 5
 num_modes = 3
+scoring = vina

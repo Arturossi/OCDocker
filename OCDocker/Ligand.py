@@ -94,7 +94,7 @@ class Ligand:
         '''
 
         # Set the path and structure (NEVER SHOUD BE NONE)
-        self.path, self.molecule = loadMol(molecule, sanitize)
+        self.path, self.molecule = loadMol(molecule, sanitize) # type: ignore
         # Set the boxPath (removing the file from the path)
         self.boxPath = os.path.join(os.path.dirname(self.path), "boxes/box0.pdb")
         

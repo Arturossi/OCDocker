@@ -357,7 +357,7 @@ def run_p2rank(archive: str, overwrite: bool = False) -> None:
 
     return None
 
-def run_dock(archive: str, dockingAlgorithm: str, digestFormat: str = "json", overwrite: bool = False) -> int:
+def run_docking(archive: str, dockingAlgorithm: str, digestFormat: str = "json", overwrite: bool = False) -> int:
     '''Run docking.
 
     Parameters
@@ -415,7 +415,7 @@ def run_dock(archive: str, dockingAlgorithm: str, digestFormat: str = "json", ov
         complexList.append((ptnDir, glob(f"{ligands}/*") + glob(f"{decoys}/*") + glob(f"{candidates}/*")))
     
     # Run docking
-    return ocdock.run_dock(complexList, archive, dockingAlgorithm, overwrite, digestFormat)
+    return ocdock.run_docking(complexList, archive, dockingAlgorithm, overwrite, digestFormat)
 
 def read_logs(archive: str, saveChunk: int = 100, overwrite: bool = False) -> Union[vdf.DataFrameLocal, None]:
     '''Reads database logfiles returning a vdf.DataFrameLocal.

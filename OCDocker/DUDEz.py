@@ -163,7 +163,7 @@ def run_gnina(overwrite: bool = False) -> int:
     None
     '''
 
-    return ocbdb.run_dock("dudez", "gnina", overwrite = overwrite)
+    return ocbdb.run_docking("dudez", "gnina", overwrite = overwrite)
 
 def run_vina(overwrite: bool = False) -> int:
     '''Runs vina in the whole database.
@@ -183,7 +183,7 @@ def run_vina(overwrite: bool = False) -> int:
     None
     '''
 
-    return ocbdb.run_dock("dudez", "vina", overwrite = overwrite)
+    return ocbdb.run_docking("dudez", "vina", overwrite = overwrite)
 
 def run_smina(overwrite: bool = False) -> int:
     '''Runs smina in the whole database.
@@ -203,7 +203,7 @@ def run_smina(overwrite: bool = False) -> int:
     None
     '''
 
-    return ocbdb.run_dock("dudez", "smina", overwrite = overwrite)
+    return ocbdb.run_docking("dudez", "smina", overwrite = overwrite)
 
 def run_plants(overwrite: bool = False) -> int:
     '''Runs PLANTS in the whole database.
@@ -223,7 +223,7 @@ def run_plants(overwrite: bool = False) -> int:
     None
     '''
 
-    return ocbdb.run_dock("dudez", "plants", overwrite = overwrite)
+    return ocbdb.run_docking("dudez", "plants", overwrite = overwrite)
 
 def read_logs(saveChunk: int = 100, overwrite: bool = False) -> Union[vdf.DataFrameLocal, None]:
     '''Parse the database into multiple serializable objects.

@@ -1083,3 +1083,7 @@ def run_dock(paths: Union[List[Tuple[str, List[str]]], Tuple[str, List[str]]], a
         else:
             # Prepare the database
             return __run_dock_no_parallel([paths], archive, dockingAlgorithm, overwrite, digestFormat, label)
+
+# Aliases
+###############################################################################
+run_docking = run_dock

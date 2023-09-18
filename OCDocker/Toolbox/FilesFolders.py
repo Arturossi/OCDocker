@@ -179,7 +179,7 @@ def from_hdf5(filePath: str) -> Union[None, Any]:
     try:
         with h5py.File(filePath, 'r') as hf:
             # Read the hdf5 file with h5py
-            data = {key: hf[key][:] for key in hf.keys()}
+            data = {key: hf[key][:] for key in hf.keys()} # type: ignore
     except Exception as e:
         _ = errors.read_file(f"Problems while reading the hdf5 file '{filePath}'. Error: {e}")
     return data
@@ -273,6 +273,44 @@ def safe_create_dir(dirname: str) -> int:
         return errors.create_dir(message=f"Problem found while creating the dir {dirname}: {e}", level="error")
     # This should never appear since all the other paths ends in some kind of return
     return errors.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while creating a dir safetly.", level="error")
+
+def safe_remove_file(filePath: str) -> int:
+    '''Remove a file if exists.
+
+    Parameters
+    ----------
+    filePath : str
+        The file to be removed.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+
+    Raises
+    ------
+    None
+    '''
+
+    # Check if the file exists
+    if os.path.isfile(filePath):
+        # Try to remove
+        try:
+            # Remove it
+            os.remove(filePath)
+            # Print verbosity
+            if args.output_level >= 3:
+                return errors.ok(f"Successfully removed the file '{filePath}'")
+            return errors.ok()
+        except Exception as e:
+            # Some error has occurred
+            return errors.unknown(message=f"Problem found while removing the file '{filePath}': {e}", level="error")
+    else:
+        # Return file not found error
+        return errors.file_do_not_exist(message=f"The file '{filePath}' does not exists!", level="warn")
+    # This should never appear since all the other paths ends in some kind of return
+    return errors.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while removing a file safetly.", level="error")
+
 
 def untar(fname: str, out_path: str = ".", delete: bool = False) -> int:
     '''Untar a file.

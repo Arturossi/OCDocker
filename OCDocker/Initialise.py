@@ -183,6 +183,8 @@ def create_ocdocker_conf() -> None:
     confSmina_force_cap = "10"
     confSmina_user_grid = "no"
     confSmina_user_grid_lambda = "-1"
+    confSmina_scoring = "vina"
+    confSmina_scoring_functions = "vina,vinardo,dkoes_scoring,dkoes_scoring_old,dkoes_fast,ad4_scoring"
 
     print("\nSmina configuration")
     answer = input(f"Path to the Smina software. Default [{confSmina}] (press enter to keep default): ")

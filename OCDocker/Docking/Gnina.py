@@ -821,4 +821,4 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
 
 # Aliases
 ###############################################################################
-run_dock = run_gnina
+run_docking = run_gnina
