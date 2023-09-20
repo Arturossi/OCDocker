@@ -125,15 +125,15 @@ def convertMolsFromString(input: str, output: str, mol: Union[rdkit.Chem.rdchem.
 
     return errors.ok()
 
-def convertMols(input: str, output: str) -> Union[int, str]:
+def convertMols(input_file: str, output_file: str) -> Union[int, str]:
     '''Convert a molecule file between two extensions which obabel supports.
 
     Parameters
     ----------
-    input : str
-        Input file name.
-    output : str
-        Output file name.
+    input_file : str
+        Input file path.
+    output_file : str
+        Output file path.
 
     Returns
     -------
@@ -146,35 +146,35 @@ def convertMols(input: str, output: str) -> Union[int, str]:
     '''
 
     # Find the extension for input and output
-    inExtension = ocvalidation.validate_obabel_extension(input)
-    outExtension = ocvalidation.validate_obabel_extension(output)
+    inExtension = ocvalidation.validate_obabel_extension(input_file)
+    outExtension = ocvalidation.validate_obabel_extension(output_file)
 
     # Print verboosity
-    ocprint.printv(f"Converting '{input}' to '.{outExtension}'.")
+    ocprint.printv(f"Converting '{input_file}' to '.{outExtension}'.")
 
     # Check if the input extension is valid
     if type(inExtension) != str:
-        ocprint.print_error(f"Problems while reading the molecule from input file '{input}'.")
+        ocprint.print_error(f"Problems while reading the molecule from input file '{input_file}'.")
         # inExtension SHOULD be an int in this case
         return inExtension
 
     # Check if the output extension is valid
     if type(outExtension) != str:
-        ocprint.print_error(f"Problems while pre-processing the molecule from output file '{output}'.")
+        ocprint.print_error(f"Problems while pre-processing the molecule from output file '{output_file}'.")
         # outExtension SHOULD be an int in this case
         return outExtension
 
     # Check if the output exists, if so, no need to convert
-    if os.path.isfile(output):
-        return errors.file_exists(message=f"The file '{output}' already exists, aborting conversion.", level="warn")
+    if os.path.isfile(output_file):
+        return errors.file_exists(message=f"The file '{output_file}' already exists, aborting conversion.", level="warn")
 
     # Check if input is a smiles file
     if inExtension == "smi":
         # Read the smiles file into string
-        with open(input, 'r') as file:
+        with open(input_file, 'r') as file:
             data = file.read().strip()
         # Convert the string to the output file
-        return convertMolsFromString(data, output)
+        return convertMolsFromString(data, output_file)
 
     # Try to convert (if fails, throw exception for subprocess failing)
     try:
@@ -185,9 +185,11 @@ def convertMols(input: str, output: str) -> Union[int, str]:
         # Create an empty OBMol object
         mol = openbabel.OBMol()
         # Load the input file to the prebiusly loaded OBMol object
-        obConversion.ReadFile(mol, input)
+        obConversion.ReadFile(mol, input_file)
         # Write the mol object to the output performing the conversion
-        obConversion.WriteFile(mol, output)
+        obConversion.WriteFile(mol, output_file)
+        # Remove the temporary file
+        os.remove(input_file)
     except Exception as e:
         return errors.subprocess(message=f"Error while running molecule conversion from {inExtension} to {outExtension} using obabel python lib. Error: {e}", level="error")
     return errors.ok()

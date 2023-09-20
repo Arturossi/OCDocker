@@ -149,6 +149,7 @@ clean_test_files(baseProtPath, baseLigPath, baseDecPath, baseCanPath)
 ## Ligand and Receptor #
 ########################
 
+# Create the Receptor and Ligand objects
 receptorTest = ocr.Receptor(f"{baseProtPath}/receptor.pdb", relativeASAcutoff=0.7, name=f"{ptn}")
 ligandTest = ocl.Ligand(f"{baseLigPath}/{lig}/ligand.smi", name=f"{lig}")
 # Get receptor descriptors
@@ -162,7 +163,7 @@ ligandDescriptors = ligandTest.get_descriptors()
 ##############
 
 # Create the object
-vinaTest = ocvina.Vina(f"{baseLigPath}/{lig}/vinaFiles/conf_vina.txt", f"{baseLigPath}/{lig}/boxes/box0.pdb", receptorTest, f"{baseProtPath}/prepared_receptor.pdbqt", ligandTest, f"{baseLigPath}/{lig}/prepared_ligand.pdbqt", f"{baseLigPath}/{lig}/vinaFiles/vina_0.log", f"{baseLigPath}/{lig}/vinaFiles/vina_0.pdbqt", name=f"Vina {ptn}-{lig}")
+vinaTest = ocvina.Vina(f"{baseLigPath}/{lig}/vinaFiles/conf_vina.txt", f"{baseLigPath}/{lig}/boxes/box0.pdb", receptorTest, f"{baseProtPath}/prepared_receptor.pdbqt", ligandTest, f"{baseLigPath}/{lig}/prepared_ligand.pdbqt", f"{baseLigPath}/{lig}/vinaFiles/{lig}.log", f"{baseLigPath}/{lig}/vinaFiles/{lig}.pdbqt", name=f"Vina {ptn}-{lig}")
 # Prepare the receptor
 vinaTest.run_prepare_receptor()
 # Prepare the ligand
@@ -181,12 +182,46 @@ rescoringResult = vinaTest.read_rescore_logs(f"{baseLigPath}/{lig}/vinaFiles")
 ##   Smina    #
 ###############
 
-# Smina
-sminaTest = ocsmina.Smina(f"{baseLigPath}/{lig}/sminaFiles/conf_smina.txt", f"{baseLigPath}/{lig}/boxes/box0.pdb", receptorTest, f"{baseProtPath}/prepared_receptor.pdbqt", ligandTest, f"{baseLigPath}/{lig}/prepared_ligand.pdbqt", f"{baseLigPath}/{lig}/sminaFiles/smina_0.log", f"{baseLigPath}/{lig}/sminaFiles/smina_0.pdbqt", name=f"Smina {ptn}-{lig}")
+# Create the object
+sminaTest = ocsmina.Smina(f"{baseLigPath}/{lig}/sminaFiles/conf_smina.txt", f"{baseLigPath}/{lig}/boxes/box0.pdb", receptorTest, f"{baseProtPath}/prepared_receptor.pdbqt", ligandTest, f"{baseLigPath}/{lig}/prepared_ligand.pdbqt", f"{baseLigPath}/{lig}/sminaFiles/{lig}.log", f"{baseLigPath}/{lig}/sminaFiles/{lig}.pdbqt", name=f"Smina {ptn}-{lig}")
+
+## If you will run smina only for rescoring (no docking), skip this block! (ideally we can skip if the docking is already done using the same kind of search algorithm, like vina-smina-gnina)
+###########################################################################
+
+# Prepare the receptor (check if the receptor is already prepared before to avoid unnecessary work)
+if not os.path.isfile(f"{baseProtPath}/prepared_receptor.pdbqt"):
+    sminaTest.run_prepare_receptor()
+# Prepare the ligand (check if the ligand is already prepared before to avoid unnecessary work)
+if not os.path.isfile(f"{baseLigPath}/{lig}/prepared_ligand.pdbqt"):
+    sminaTest.run_prepare_ligand()
+# Run the docking
+sminaTest.run_docking()
+# Run the rescoring with smina
+sminaTest.run_rescore(f"{baseLigPath}/{lig}/sminaFiles")
+# Get Docking results
+dockingResult = sminaTest.read_log()
+
+## If you will run smina only for rescoring (no docking), run this block!
+##########################################################################
+
+# Get the docking results from the vinaTest (example) object
+dockingPoses = glob(f"{os.path.dirname(vinaTest.outputVina)}/*_split_*.pdbqt")
+
+# Process each scoring function
+for scoring_function in smina_scoring_functions:
+    ocsmina.run_rescore(sminaTest.config, dockingPoses, os.path.dirname(sminaTest.outputSmina), scoring_function, splitLigand = False)
+
+
+## Now you can get the rescoring results
+###########################################
+
+# Get Rescoring results
+rescoringResult = sminaTest.read_rescore_logs(f"{baseLigPath}/{lig}/sminaFiles")
+
 
 # PLANTS
-plantsTest = ocplants.PLANTS(f"{baseLigPath}/{lig}/plantsFiles/conf_plants.txt", f"{baseLigPath}/{lig}/boxes/box0.pdb", receptorTest, f"{baseProtPath}/prepared_receptor.mol2", ligandTest, f"{baseLigPath}/{lig}/prepared_ligand.mol2", f"{baseLigPath}/{lig}/plantsFiles/plants_0.log", f"{baseLigPath}/{lig}/plantsFiles/", name=f"PLANTS {ptn}-{lig}")
+plantsTest = ocplants.PLANTS(f"{baseLigPath}/{lig}/plantsFiles/conf_plants.txt", f"{baseLigPath}/{lig}/boxes/box0.pdb", receptorTest, f"{baseProtPath}/prepared_receptor.mol2", ligandTest, f"{baseLigPath}/{lig}/prepared_ligand.mol2", f"{baseLigPath}/{lig}/plantsFiles/{lig}.log", f"{baseLigPath}/{lig}/plantsFiles/", name=f"PLANTS {ptn}-{lig}")
 
 # Gnina
-gninaTest = ocgnina.Gnina(f"{baseLigPath}/{lig}/gninaFiles/conf_gnina.txt", f"{baseLigPath}/{lig}/boxes/box0.pdb", receptorTest, f"{baseProtPath}/prepared_receptor.pdbqt", ligandTest, f"{baseLigPath}/{lig}/prepared_ligand.pdbqt", f"{baseLigPath}/{lig}/gninaFiles/gnina_0.log", f"{baseLigPath}/{lig}/gninaFiles/gnina_0.pdbqt", name=f"Gnina {ptn}-{lig}")
+gninaTest = ocgnina.Gnina(f"{baseLigPath}/{lig}/gninaFiles/conf_gnina.txt", f"{baseLigPath}/{lig}/boxes/box0.pdb", receptorTest, f"{baseProtPath}/prepared_receptor.pdbqt", ligandTest, f"{baseLigPath}/{lig}/prepared_ligand.pdbqt", f"{baseLigPath}/{lig}/gninaFiles/{lig}.log", f"{baseLigPath}/{lig}/gninaFiles/{lig}.pdbqt", name=f"Gnina {ptn}-{lig}")
 '''

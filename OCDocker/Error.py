@@ -60,7 +60,7 @@ class Error:
         # Common errors
         self.okCode                           = 0
         self.abortCode                        = 1
-        self.unknownCode                       = -666
+        self.unknownCode                      = -666
 
         # File errors
         self.fileExistsCode                   = 100

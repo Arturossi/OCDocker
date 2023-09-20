@@ -379,10 +379,7 @@ class Vina:
             A list with the paths for the rescoring log files.
         '''
 
-        # Get the output name from the original log
-        outputName = os.path.splitext(os.path.basename(self.vinaLog))[0]
-
-        return [f for f in glob(f"{outPath}/{outputName}_split_*.log") if os.path.isfile(f)]
+        return [f for f in glob(f"{outPath}/*_split_*.log") if os.path.isfile(f)]
     
     def read_rescore_logs(self, outPath: str, onlyBest: bool = True) -> Dict[str, List[Union[str, float]]]:
         ''' Reads the data from the rescore log files.
@@ -656,6 +653,9 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
         # Convert to list
         ligands = [ligands]
     
+    # Ligand name list
+    ligandNames = []
+    
     # For each ligand
     for ligand in ligands:
         # Get the ligand name
@@ -672,37 +672,44 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
             # Run the command
             _ = ocrun.run(cmd, logFile = logFile)
 
-        # Get the splited ligands name list
-        ligandList = glob(f"{outPath}/{ligandName}_split_*")
+            # Add the ligand name to the list
+            ligandNames.append(ligandName)
+        
+    # If splitLigand or overwrite is True means that it is needed to get the splited ligands again
+    if splitLigand or overwrite:
+        # Reset the ligand list
+        ligands = []
+        # Append the splited ligands to the ligands list (using the glob function)
+        ligands.extend(glob(f"{outPath}/*_split_*.pdbqt"))
 
-        # For each splited ligand
-        for split_ligand in ligandList:
-            # Get the splited ligand name
-            split_ligand_name = os.path.splitext(os.path.basename(split_ligand))[0]
+    # For each ligand in the ligands list (newly splited ligands)
+    for ligand in ligands:
+        # Get the splited ligand name
+        ligand_name = os.path.splitext(os.path.basename(ligand))[0]
 
-            # Create the command list
-            cmd = [vina, "--scoring", scoring_function, "--autobox", "--score_only", "--config", confFile, "--ligand", split_ligand, "--dir", f"{outPath}", "--cpu", "1"]
+        # Create the command list
+        cmd = [vina, "--scoring", scoring_function, "--autobox", "--score_only", "--config", confFile, "--ligand", ligand, "--dir", f"{outPath}", "--cpu", "1"]
 
-            # Create the log file path
-            logFile = f"{outPath}/{split_ligand_name}_{scoring_function}.log"
+        # Create the log file path
+        logFile = f"{outPath}/{ligand_name}_{scoring_function}.log"
 
-            # If the logFile already exists, check also if the user wants to overwrite it
-            if not os.path.isfile(logFile) or overwrite:
-                # Print verboosity
-                ocprint.printv(f"Running vina using the '{confFile}' configurations and scoring function '{scoring_function}'.")
+        # If the logFile already exists, check also if the user wants to overwrite it
+        if not os.path.isfile(logFile) or overwrite:
+            # Print verboosity
+            ocprint.printv(f"Running vina using the '{confFile}' configurations and scoring function '{scoring_function}'.")
 
-                # Run the command
-                _ = ocrun.run(cmd, logFile = logFile)
+            # Run the command
+            _ = ocrun.run(cmd, logFile = logFile)
 
-                # Check if the logFile exists and it has the string "Estimated Free Energy of Binding" inside it
-                if not os.path.isfile(logFile) or not "Estimated Free Energy of Binding" in open(logFile).read():
-                    # Print an error
-                    ocprint.print_error(f"Problems while running vina for the ligand '{split_ligand}' using the scoring function '{scoring_function}'.")
-                    # Remove the file
-                    _ = ocff.safe_remove_file(logFile)
-            else:
-                # Print verboosity
-                ocprint.printv(f"The log file '{logFile}' already exists. Skipping the vina run for the ligand '{split_ligand}' using the scoring function '{scoring_function}'.")
+            # Check if the logFile exists and it has the string "Estimated Free Energy of Binding" inside it
+            if not os.path.isfile(logFile) or not "Estimated Free Energy of Binding" in open(logFile).read():
+                # Print an error
+                ocprint.print_error(f"Problems while running vina for the ligand '{ligand_name}' using the scoring function '{scoring_function}'.")
+                # Remove the file
+                _ = ocff.safe_remove_file(logFile)
+        else:
+            # Print verboosity
+            ocprint.printv(f"The log file '{logFile}' already exists. Skipping the vina run for the ligand '{ligand_name}' using the scoring function '{scoring_function}'.")
     
     # Think about how can this be done to deal with multiple runs
     return None

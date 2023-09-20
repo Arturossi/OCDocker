@@ -142,7 +142,6 @@ def create_ocdocker_conf() -> None:
     confVina_scoring = "vina"
     confVina_scoring_functions = "ad4,vina,vinardo"
 
-
     print("\nVina configuration")
     answer = input(f"Path to the Vina software. Default [{confVina}] (press enter to keep default): ")
     confVina = confVina if not answer else answer
@@ -170,6 +169,7 @@ def create_ocdocker_conf() -> None:
     confSmina_exhaustiveness = "5"
     confSmina_num_modes = "3"
     confSmina_scoring = "vinardo"
+    confSmina_scoring_functions = "vina,vinardo,dkoes_scoring,dkoes_scoring_old,dkoes_fast,ad4_scoring"
     confSmina_custom_scoring_file = "no"
     confSmina_custom_atoms = "no"
     confSmina_local_only = "no"
@@ -183,8 +183,6 @@ def create_ocdocker_conf() -> None:
     confSmina_force_cap = "10"
     confSmina_user_grid = "no"
     confSmina_user_grid_lambda = "-1"
-    confSmina_scoring = "vina"
-    confSmina_scoring_functions = "vina,vinardo,dkoes_scoring,dkoes_scoring_old,dkoes_fast,ad4_scoring"
 
     print("\nSmina configuration")
     answer = input(f"Path to the Smina software. Default [{confSmina}] (press enter to keep default): ")
@@ -450,6 +448,12 @@ def create_ocdocker_conf() -> None:
         # Maximum number of binding modes to generate
         vina_num_modes = """ + str(confVina_num_modes) + """
 
+        # Default scoring function
+        vina_scoring = """ + str(confVina_scoring) + """
+
+        # Available scoring functions
+        vina_scoring_functions = """ + str(confVina_scoring_functions) + """
+
         ################# SMINA PARAMETERS ##################
 
         # Smina path
@@ -467,7 +471,8 @@ def create_ocdocker_conf() -> None:
         # Alternative scoring function
         smina_scoring = """ + str(confSmina_scoring) + """
 
-        # Dis
+        # Available scoring functions
+        smina_scoring_functions = """ + str(confSmina_scoring_functions) + """
 
         # Custom scoring file
         smina_custom_scoring = """ + str(confSmina_custom_scoring_file) + """
@@ -927,6 +932,8 @@ for line in open(config_file, 'r'): # type: ignore
         smina_num_modes = line.split("=")[1].strip()
     elif line.startswith("smina_scoring ="):
         smina_scoring = line.split("=")[1].strip()
+    elif line.startswith("smina_scoring_functions ="):
+        smina_scoring_functions = [l.strip() for l in line.split("=")[1].strip().split(",")]
     elif line.startswith("smina_custom_scoring ="):
         smina_custom_scoring = line.split("=")[1].strip()
     elif line.startswith("smina_custom_atoms ="):
