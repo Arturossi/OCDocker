@@ -80,10 +80,6 @@ class Gnina:
         Returns
         -------
         None
-
-        Raises
-        ------
-        None
         '''
 
         self.name = str(name)
@@ -137,10 +133,6 @@ class Gnina:
         -------
         str
             The receptor path.
-
-        Raises
-        ------
-        None
         '''
 
         # Check the type of receptor variable
@@ -169,10 +161,7 @@ class Gnina:
         Returns
         -------
             The ligand path. If fails, return an empty string.
-        
-        Raises
-        ------
-        None
+    
         '''
 
         # Check the type of ligand variable
@@ -201,10 +190,6 @@ class Gnina:
         -------
         List[str]
             The gnina command.
-
-        Raises
-        ------
-        None
         '''
 
         cmd = [gnina, "--config", self.config, "--ligand", self.preparedLigand]
@@ -251,10 +236,6 @@ class Gnina:
         -------
         pd.DataFrame | int
             The dataframe with the data from the gnina log, or the error code.
-
-        Raises
-        ------
-        None
         '''
 
         return read_log(self.gninaLog) # type: ignore
@@ -271,10 +252,6 @@ class Gnina:
         -------
         int | Tuple[int, str]
             The exit code of the command (based on the Error.py code table).   
-
-        Raises
-        ------
-        None
         '''
 
         return ocrun.run(self.gninaCmd, logFile=logFile)
@@ -291,10 +268,6 @@ class Gnina:
         -------
         int | Tuple[int, str]
             The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
-
-        Raises
-        ------
-        None
         '''
 
         return ocrun.run(self.prepareLigandCmd, logFile=logFile)
@@ -310,10 +283,6 @@ class Gnina:
         -------
         int | Tuple[int, str]
             The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
-
-        Raises
-        ------
-        None
         '''
 
         return run_prepare_ligand(self.inputLigandPath, self.preparedLigand)
@@ -330,10 +299,6 @@ class Gnina:
         -------
         int | Tuple[int, str]
             The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
-
-        Raises
-        ------
-        None
         '''
 
         return ocrun.run(self.prepareReceptorCmd, logFile=logFile)
@@ -349,10 +314,6 @@ class Gnina:
         -------
         int | Tuple[int, str]
             The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
-
-        Raises
-        ------
-        None
         '''
 
         return run_prepare_receptor(self.inputReceptorPath, self.preparedReceptor)
@@ -366,10 +327,6 @@ class Gnina:
 
         Returns
         -------
-        None
-
-        Raises
-        ------
         None
         '''
 
@@ -410,9 +367,6 @@ def gen_gnina_conf(boxFile: str, confFile: str, receptor: str) -> int:
     int
         The exit code of the command (based on the Error.py code table).
 
-    Raises
-    ------
-    None
     '''
 
     # Test if the file boxFile exists
@@ -505,9 +459,6 @@ def run_prepare_ligand_from_cmd(inputLigandPath: str, preparedLigand: str, logFi
     int | Tuple[int, str]
         The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
 
-    Raises
-    ------
-    None
     '''
 
     # Create the command list
@@ -531,9 +482,6 @@ def run_prepare_ligand(inputLigandPath: str, preparedLigand: str) -> Union[int, 
     int | Tuple[int, str]
         The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
 
-    Raises
-    ------
-    None
     '''
 
     # Find the extension for input and output
@@ -579,9 +527,6 @@ def run_prepare_receptor_from_cmd(inputReceptorPath: str, outputReceptor: str, l
     int | Tuple[int, str]
         The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
 
-    Raises
-    ------
-    None
     '''
 
     # Create the command list
@@ -604,9 +549,6 @@ def run_prepare_receptor(inputReceptorPath: str, preparedReceptor: str) -> Union
     int | Tuple[int, str]
         The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
 
-    Raises
-    ------
-    None
     '''
 
     # Find the extension for input and output
@@ -645,9 +587,6 @@ def run_gnina(config: str, preparedLigand: str, outputGnina: str, gninaLog: str,
     int | Tuple[int, str]
         The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
 
-    Raises
-    ------
-    None
     '''
 
     # Create the command list
@@ -682,9 +621,6 @@ def read_log(path: str) -> Dict[str, List[Union[str, float]]]:
     str, List[str | float]
         A dictionary with the data from the gnina log file.
 
-    Raises
-    ------
-    None
     '''
 
     # Check if file exists
@@ -761,9 +697,6 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
     int
         The exit code of the command (based on the Error.py code table).
 
-    Raises
-    ------
-    None
     """
 
     # Check if the file does not exists or if the overwrite flag is true

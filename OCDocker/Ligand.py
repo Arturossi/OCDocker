@@ -70,7 +70,7 @@ class Ligand:
     (pdb/sdf/mol/mol2) or a rdkit.Chem.rdchem.Mol object. A name to indentify
     the molecule can be provided aswell."""
 
-    def __init__(self, molecule: Union[str, rdkit.Chem.rdchem.Mol], name: str, sanitize: bool = True, from_json_descriptors: str = "") -> None: # type: ignore
+    def __init__(self, molecule: Union[str, rdkit.Chem.rdchem.Mol], name: str, sanitize: bool = True, from_json_descriptors: str = "") -> Union[int, None]: # type: ignore
         ''' Constructor for the Ligand class.
         
         Parameters
@@ -86,11 +86,8 @@ class Ligand:
 
         Returns
         -------
-        None
-
-        Raises
-        ------
-        None
+        int | None
+            Returns None if the molecule was loaded successfully, otherwise an error code.
         '''
 
         # Set the path and structure (NEVER SHOUD BE NONE)
@@ -98,8 +95,11 @@ class Ligand:
         # Set the boxPath (removing the file from the path)
         self.boxPath = os.path.join(os.path.dirname(self.path), "boxes/box0.pdb")
         
-        # Define everything as None
-        self.name = name
+        # Define everything as None, except for the name
+        if not "_split_" in name:
+            self.name = name
+        else:
+            return errors.invalid_molecule_name("The name of the ligand cannot contain the string '_split_'")
 
         #region AUTOCORR descriptors
         self.AUTOCORR2D_1 = None
@@ -1126,10 +1126,6 @@ class Ligand:
         -------
         Dict[str, int | float]
             The properties of the Ligand object.
-
-        Raises
-        ------
-        None
         '''
 
         # Create new dict
@@ -1152,10 +1148,6 @@ class Ligand:
 
         Returns
         -------
-        None
-
-        Raises
-        ------
         None
         '''
 
@@ -1667,10 +1659,6 @@ class Ligand:
         -------
         Dict[str, Union[int, float]]
             A dictionary of the descriptors for the Ligand object.
-
-        Raises
-        ------
-        None
         '''
 
         descriptors = {
@@ -2179,10 +2167,6 @@ class Ligand:
         -------
         Dict[str, Union[int, float, str]]
             A dictionary of all the properties for the Ligand object.
-
-        Raises
-        ------
-        None
         '''
 
         # Create new dict
@@ -2206,10 +2190,6 @@ class Ligand:
         -------
         int
             The exit code of the command (based on the Error.py code table).
-
-        Raises
-        ------
-        None
         '''
 
         try:
@@ -2249,10 +2229,6 @@ class Ligand:
         -------
         bool
             True if the Ligand object is valid, False otherwise.
-
-        Raises
-        ------
-        None
         '''
 
         #region if any attribute is None (will check for every attribute in the ligand object)
@@ -2273,10 +2249,6 @@ class Ligand:
         -------
         str | int
             The smiles of the molecule, if fails the exit code of the command (based on the Error.py code table).
-
-        Raises
-        ------
-        None
         '''
 
         return get_smiles(self.molecule)
@@ -2335,10 +2307,6 @@ class Ligand:
         -------
         bool | int
             If both molecules are the same, return True. If both molecules are not the same, return False. If fails, return an error code.
-
-        Raises
-        ------
-        None
         '''
 
         # Get the smiles for the ligand object
@@ -2385,10 +2353,6 @@ class Ligand:
         -------
         rdkit.Geometry.rdGeometry.Point3D
             The centroid of the molecule.
-
-        Raises
-        ------
-        None
         '''
 
         # Compute the centroid of the molecule and return it
@@ -2412,10 +2376,6 @@ class Ligand:
         -------
         int | None
             If the box file was created, return None. If fails, return the exit code of the command (based on the Error.py code table).
-
-        Raises
-        ------
-        None
         '''
 
         # Check if the box file already exists
@@ -2486,7 +2446,7 @@ class Ligand:
         else:
             # If the savePath does not exist, warn the user
             if not os.path.exists(savePath):
-                _ =  errors.dir_does_not_exists(f"The savePath '{savePath}' does not exist. Creating it.", level = "error")
+                _ =  errors.dir_does_not_exist(f"The savePath '{savePath}' does not exist. Creating it.", level = "error")
                 os.mkdir(savePath)
 
         # Write out the box file (following the one given in the DUD-E database)
@@ -2587,10 +2547,6 @@ def multipleMoleculesSDF(molecule: rdkit.Chem.rdchem.Mol) -> List[Ligand]: # typ
     -------
     List[Ligand]
         A list of ligands.
-
-    Raises
-    ------
-    None
     '''
 
     # List to hold multiple Ligand objects
@@ -2634,10 +2590,6 @@ def loadMol(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize: bool = True) 
     -------
     rdkit.Chem.rdchem.Mol
         The molecule object.
-
-    Raises
-    ------
-    None
     '''
 
     # Check if the type of the variable molecule is a string or a rdkit.Chem.rdchem.Mol
@@ -2731,7 +2683,7 @@ def loadMol(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize: bool = True) 
                     # Read the smiles file into a string
                     with open(molecule, 'r') as file:
                       smiles = file.read().strip()
-                    # Initialize the salt remover
+                    # Initialise the salt remover
                     remover = SaltRemover()
                     # Load the molecule
                     m = rdkit.Chem.rdmolfiles.MolFromSmiles(smiles, sanitize = sanitize) # type: ignore
@@ -2878,10 +2830,6 @@ def get_smiles(molecule: rdkit.Chem.rdchem.Mol) -> Union[str, int]: # type: igno
     -------
     str | int
         The smiles of the molecule or the error code or the exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -2905,10 +2853,6 @@ def get_centroid(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize = True) -
     -------
     rdkit.Geometry.rdGeometry.Point3D
         The centroid of the molecule.
-
-    Raises
-    ------
-    None
     '''
 
     # Check if the molecule is a string (means that it is a path)
@@ -2938,10 +2882,6 @@ def findAUTOCORR2D_1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     -------
     float | None
         The autocorrelation2D_1 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -2965,10 +2905,6 @@ def findAUTOCORR2D_2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     -------
     float | None
         The autocorrelation2D_2 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -2992,10 +2928,6 @@ def findAUTOCORR2D_3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     -------
     float | None
         The autocorrelation2D_3 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -3019,10 +2951,6 @@ def findAUTOCORR2D_4(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     -------
     float | None
         The autocorrelation2D_4 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3046,10 +2974,6 @@ def findAUTOCORR2D_5(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     -------
     float | None
         The autocorrelation2D_5 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3073,10 +2997,6 @@ def findAUTOCORR2D_6(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     -------
     float | None
         The autocorrelation2D_6 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -3100,10 +3020,6 @@ def findAUTOCORR2D_7(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     -------
     float | None
         The autocorrelation2D_7 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3127,10 +3043,6 @@ def findAUTOCORR2D_8(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     -------
     float | None
         The autocorrelation2D_8 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3154,10 +3066,6 @@ def findAUTOCORR2D_9(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     -------
     float | None
         The autocorrelation2D_9 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3181,10 +3089,6 @@ def findAUTOCORR2D_10(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_10 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3208,10 +3112,6 @@ def findAUTOCORR2D_11(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_11 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3235,10 +3135,6 @@ def findAUTOCORR2D_12(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_12 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3262,10 +3158,6 @@ def findAUTOCORR2D_13(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_13 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3290,10 +3182,6 @@ def findAUTOCORR2D_14(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_14 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3317,10 +3205,6 @@ def findAUTOCORR2D_15(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_15 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3344,10 +3228,6 @@ def findAUTOCORR2D_16(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_16 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3371,10 +3251,6 @@ def findAUTOCORR2D_17(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_17 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3398,10 +3274,6 @@ def findAUTOCORR2D_18(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_18 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3425,10 +3297,6 @@ def findAUTOCORR2D_19(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_19 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3452,10 +3320,6 @@ def findAUTOCORR2D_20(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_20 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3479,10 +3343,6 @@ def findAUTOCORR2D_21(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_21 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3506,10 +3366,6 @@ def findAUTOCORR2D_22(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_22 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3533,10 +3389,6 @@ def findAUTOCORR2D_23(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_23 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3560,10 +3412,6 @@ def findAUTOCORR2D_24(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_24 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3587,10 +3435,6 @@ def findAUTOCORR2D_25(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_25 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3614,10 +3458,6 @@ def findAUTOCORR2D_26(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_26 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3641,10 +3481,6 @@ def findAUTOCORR2D_27(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_27 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3668,10 +3504,6 @@ def findAUTOCORR2D_28(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_28 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3695,10 +3527,6 @@ def findAUTOCORR2D_29(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_29 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3722,10 +3550,6 @@ def findAUTOCORR2D_30(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_30 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3749,10 +3573,6 @@ def findAUTOCORR2D_31(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_31 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3776,10 +3596,6 @@ def findAUTOCORR2D_32(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_32 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3803,10 +3619,6 @@ def findAUTOCORR2D_33(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_33 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3830,10 +3642,6 @@ def findAUTOCORR2D_34(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_34 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3857,10 +3665,6 @@ def findAUTOCORR2D_35(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_35 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3884,10 +3688,6 @@ def findAUTOCORR2D_36(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_36 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3911,10 +3711,6 @@ def findAUTOCORR2D_37(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_37 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3938,10 +3734,6 @@ def findAUTOCORR2D_38(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_38 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3965,10 +3757,6 @@ def findAUTOCORR2D_39(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_39 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -3992,10 +3780,6 @@ def findAUTOCORR2D_40(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_40 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4019,10 +3803,6 @@ def findAUTOCORR2D_41(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_41 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4046,10 +3826,6 @@ def findAUTOCORR2D_42(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_42 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4073,10 +3849,6 @@ def findAUTOCORR2D_43(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_43 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4100,10 +3872,6 @@ def findAUTOCORR2D_44(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_44 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4127,10 +3895,6 @@ def findAUTOCORR2D_45(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_45 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4154,10 +3918,6 @@ def findAUTOCORR2D_46(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_46 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4181,10 +3941,6 @@ def findAUTOCORR2D_47(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_47 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4208,10 +3964,6 @@ def findAUTOCORR2D_48(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_48 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4235,10 +3987,6 @@ def findAUTOCORR2D_49(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_49 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4262,10 +4010,6 @@ def findAUTOCORR2D_50(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_50 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4289,10 +4033,6 @@ def findAUTOCORR2D_51(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_51 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4316,10 +4056,6 @@ def findAUTOCORR2D_52(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_52 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4343,10 +4079,6 @@ def findAUTOCORR2D_53(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_53 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4370,10 +4102,6 @@ def findAUTOCORR2D_54(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_54 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4397,10 +4125,6 @@ def findAUTOCORR2D_55(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_55 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4424,10 +4148,6 @@ def findAUTOCORR2D_56(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_56 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4451,10 +4171,6 @@ def findAUTOCORR2D_57(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_57 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4478,10 +4194,6 @@ def findAUTOCORR2D_58(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_58 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4505,10 +4217,6 @@ def findAUTOCORR2D_59(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_59 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4532,10 +4240,6 @@ def findAUTOCORR2D_60(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_60 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4559,10 +4263,6 @@ def findAUTOCORR2D_61(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_61 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     if molecule:
         if type(molecule) == Chem.rdchem.Mol:
@@ -4585,10 +4285,6 @@ def findAUTOCORR2D_62(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_62 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4612,10 +4308,6 @@ def findAUTOCORR2D_63(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_63 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4639,10 +4331,6 @@ def findAUTOCORR2D_64(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_64 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4666,10 +4354,6 @@ def findAUTOCORR2D_65(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_65 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4693,10 +4377,6 @@ def findAUTOCORR2D_66(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_66 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4720,10 +4400,6 @@ def findAUTOCORR2D_67(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_67 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4747,10 +4423,6 @@ def findAUTOCORR2D_68(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_68 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4774,10 +4446,6 @@ def findAUTOCORR2D_69(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_69 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4801,10 +4469,6 @@ def findAUTOCORR2D_70(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_70 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4828,10 +4492,6 @@ def findAUTOCORR2D_71(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_71 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4855,10 +4515,6 @@ def findAUTOCORR2D_72(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_72 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4882,10 +4538,6 @@ def findAUTOCORR2D_73(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_73 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4909,10 +4561,6 @@ def findAUTOCORR2D_74(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_74 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4936,10 +4584,6 @@ def findAUTOCORR2D_75(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_75 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4963,10 +4607,6 @@ def findAUTOCORR2D_76(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_76 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -4990,10 +4630,6 @@ def findAUTOCORR2D_77(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_77 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5017,10 +4653,6 @@ def findAUTOCORR2D_78(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_78 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5044,10 +4676,6 @@ def findAUTOCORR2D_79(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_79 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5071,10 +4699,6 @@ def findAUTOCORR2D_80(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_80 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5098,10 +4722,6 @@ def findAUTOCORR2D_81(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_81 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5125,10 +4745,6 @@ def findAUTOCORR2D_82(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_82 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5152,10 +4768,6 @@ def findAUTOCORR2D_83(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_83 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5179,10 +4791,6 @@ def findAUTOCORR2D_84(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_84 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5206,10 +4814,6 @@ def findAUTOCORR2D_85(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_85 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -5233,10 +4837,6 @@ def findAUTOCORR2D_86(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_86 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5260,10 +4860,6 @@ def findAUTOCORR2D_87(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_87 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5287,10 +4883,6 @@ def findAUTOCORR2D_88(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_88 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5314,10 +4906,6 @@ def findAUTOCORR2D_89(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_89 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5341,10 +4929,6 @@ def findAUTOCORR2D_90(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_90 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5368,10 +4952,6 @@ def findAUTOCORR2D_91(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_91 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5395,10 +4975,6 @@ def findAUTOCORR2D_92(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_92 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5422,10 +4998,6 @@ def findAUTOCORR2D_93(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_93 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5449,10 +5021,6 @@ def findAUTOCORR2D_94(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_94 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5476,10 +5044,6 @@ def findAUTOCORR2D_95(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_95 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5503,10 +5067,6 @@ def findAUTOCORR2D_96(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_96 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5530,10 +5090,6 @@ def findAUTOCORR2D_97(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_97 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5557,10 +5113,6 @@ def findAUTOCORR2D_98(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_98 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5584,10 +5136,6 @@ def findAUTOCORR2D_99(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The autocorrelation2D_99 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5611,10 +5159,6 @@ def findAUTOCORR2D_100(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_100 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5638,10 +5182,6 @@ def findAUTOCORR2D_101(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_101 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5665,10 +5205,6 @@ def findAUTOCORR2D_102(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_102 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5692,10 +5228,6 @@ def findAUTOCORR2D_103(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_103 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5719,10 +5251,6 @@ def findAUTOCORR2D_104(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_104 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5746,10 +5274,6 @@ def findAUTOCORR2D_105(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_105 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5773,10 +5297,6 @@ def findAUTOCORR2D_106(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_106 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5800,10 +5320,6 @@ def findAUTOCORR2D_107(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_107 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5827,10 +5343,6 @@ def findAUTOCORR2D_108(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_108 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5854,10 +5366,6 @@ def findAUTOCORR2D_109(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_109 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5881,10 +5389,6 @@ def findAUTOCORR2D_110(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_110 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5908,10 +5412,6 @@ def findAUTOCORR2D_111(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_111 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5935,10 +5435,6 @@ def findAUTOCORR2D_112(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_112 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5962,10 +5458,6 @@ def findAUTOCORR2D_113(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_113 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -5989,10 +5481,6 @@ def findAUTOCORR2D_114(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_114 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6016,10 +5504,6 @@ def findAUTOCORR2D_115(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_115 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6043,10 +5527,6 @@ def findAUTOCORR2D_116(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_116 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6070,10 +5550,6 @@ def findAUTOCORR2D_117(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_117 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6097,10 +5573,6 @@ def findAUTOCORR2D_118(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_118 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6124,10 +5596,6 @@ def findAUTOCORR2D_119(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_119 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -6151,10 +5619,6 @@ def findAUTOCORR2D_120(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_120 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6178,10 +5642,6 @@ def findAUTOCORR2D_121(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_121 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6205,10 +5665,6 @@ def findAUTOCORR2D_122(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_122 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -6232,10 +5688,6 @@ def findAUTOCORR2D_123(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_123 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6259,10 +5711,6 @@ def findAUTOCORR2D_124(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_124 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6286,10 +5734,6 @@ def findAUTOCORR2D_125(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_125 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6313,10 +5757,6 @@ def findAUTOCORR2D_126(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_126 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6340,10 +5780,6 @@ def findAUTOCORR2D_127(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_127 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6367,10 +5803,6 @@ def findAUTOCORR2D_128(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_128 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6394,10 +5826,6 @@ def findAUTOCORR2D_129(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_129 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6421,10 +5849,6 @@ def findAUTOCORR2D_130(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_130 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6448,10 +5872,6 @@ def findAUTOCORR2D_131(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_131 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6475,10 +5895,6 @@ def findAUTOCORR2D_132(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_132 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6502,10 +5918,6 @@ def findAUTOCORR2D_133(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_133 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6529,10 +5941,6 @@ def findAUTOCORR2D_134(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_134 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6556,10 +5964,6 @@ def findAUTOCORR2D_135(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_135 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6583,10 +5987,6 @@ def findAUTOCORR2D_136(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_136 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6610,10 +6010,6 @@ def findAUTOCORR2D_137(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_137 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6637,10 +6033,6 @@ def findAUTOCORR2D_138(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_138 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6664,10 +6056,6 @@ def findAUTOCORR2D_139(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_139 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6691,10 +6079,6 @@ def findAUTOCORR2D_140(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_140 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6718,10 +6102,6 @@ def findAUTOCORR2D_141(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_141 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6745,10 +6125,6 @@ def findAUTOCORR2D_142(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_142 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6772,10 +6148,6 @@ def findAUTOCORR2D_143(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_143 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6799,10 +6171,6 @@ def findAUTOCORR2D_144(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_144 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6826,10 +6194,6 @@ def findAUTOCORR2D_145(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_145 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6853,10 +6217,6 @@ def findAUTOCORR2D_146(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_146 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6880,10 +6240,6 @@ def findAUTOCORR2D_147(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_147 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6907,10 +6263,6 @@ def findAUTOCORR2D_148(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_148 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6934,10 +6286,6 @@ def findAUTOCORR2D_149(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_149 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6961,10 +6309,6 @@ def findAUTOCORR2D_150(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_150 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -6988,10 +6332,6 @@ def findAUTOCORR2D_151(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_151 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7015,10 +6355,6 @@ def findAUTOCORR2D_152(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_152 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7042,10 +6378,6 @@ def findAUTOCORR2D_153(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_153 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7069,10 +6401,6 @@ def findAUTOCORR2D_154(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_154 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7096,10 +6424,6 @@ def findAUTOCORR2D_155(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_155 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7123,10 +6447,6 @@ def findAUTOCORR2D_156(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_156 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7150,10 +6470,6 @@ def findAUTOCORR2D_157(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_157 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7177,10 +6493,6 @@ def findAUTOCORR2D_158(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_158 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7204,10 +6516,6 @@ def findAUTOCORR2D_159(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_159 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7231,10 +6539,6 @@ def findAUTOCORR2D_160(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_160 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7258,10 +6562,6 @@ def findAUTOCORR2D_161(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_161 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7285,10 +6585,6 @@ def findAUTOCORR2D_162(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_162 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7312,10 +6608,6 @@ def findAUTOCORR2D_163(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_163 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7339,10 +6631,6 @@ def findAUTOCORR2D_164(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_164 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7366,10 +6654,6 @@ def findAUTOCORR2D_165(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_165 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7393,10 +6677,6 @@ def findAUTOCORR2D_166(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_166 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7420,10 +6700,6 @@ def findAUTOCORR2D_167(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_167 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7447,10 +6723,6 @@ def findAUTOCORR2D_168(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_168 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7474,10 +6746,6 @@ def findAUTOCORR2D_169(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_169 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -7501,10 +6769,6 @@ def findAUTOCORR2D_170(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_170 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7528,10 +6792,6 @@ def findAUTOCORR2D_171(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_171 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7555,10 +6815,6 @@ def findAUTOCORR2D_172(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_172 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7582,10 +6838,6 @@ def findAUTOCORR2D_173(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_173 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7609,10 +6861,6 @@ def findAUTOCORR2D_174(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_174 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7636,10 +6884,6 @@ def findAUTOCORR2D_175(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_175 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7663,10 +6907,6 @@ def findAUTOCORR2D_176(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_176 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7690,10 +6930,6 @@ def findAUTOCORR2D_177(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_177 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7717,10 +6953,6 @@ def findAUTOCORR2D_178(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_178 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7744,10 +6976,6 @@ def findAUTOCORR2D_179(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_179 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7771,10 +6999,6 @@ def findAUTOCORR2D_180(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_180 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7798,10 +7022,6 @@ def findAUTOCORR2D_181(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_181 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7825,10 +7045,6 @@ def findAUTOCORR2D_182(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_182 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7852,10 +7068,6 @@ def findAUTOCORR2D_183(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_183 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7879,10 +7091,6 @@ def findAUTOCORR2D_184(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_184 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7906,10 +7114,6 @@ def findAUTOCORR2D_185(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_185 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7933,10 +7137,6 @@ def findAUTOCORR2D_186(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_186 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7960,10 +7160,6 @@ def findAUTOCORR2D_187(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_187 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -7987,10 +7183,6 @@ def findAUTOCORR2D_188(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_188 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -8014,10 +7206,6 @@ def findAUTOCORR2D_189(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_189 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -8041,10 +7229,6 @@ def findAUTOCORR2D_190(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_190 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -8068,10 +7252,6 @@ def findAUTOCORR2D_191(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_191 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -8095,10 +7275,6 @@ def findAUTOCORR2D_192(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The autocorrelation2D_192 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -8125,10 +7301,6 @@ def findBCUT2D_CHGHI(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     -------
     float | None
         The BCUT2D_CHGHI value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -8152,10 +7324,6 @@ def findBCUT2D_CHGLO(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     -------
     float | None
         The BCUT2D_CHGLO value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -8179,10 +7347,6 @@ def findBCUT2D_LOGPHI(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The BCUT2D_LOGPHI value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -8206,10 +7370,6 @@ def findBCUT2D_LOGPLOW(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The BCUT2D_LOGPLOW value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -8251,10 +7411,6 @@ def findBCUT2D_MRLOW(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     -------
     float | None
         The BCUT2D_MRLOW value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -8278,10 +7434,6 @@ def findBCUT2D_MWHI(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     -------
     float | None
         The BCUT2D_MWHI value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -8305,10 +7457,6 @@ def findBCUT2D_MWLOW(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     -------
     float | None
         The BCUT2D_MWLOW value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -8334,10 +7482,6 @@ def findBalabanJ(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type:
     -------
     float | None
         The BalabanJ value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -8361,10 +7505,6 @@ def findBertzCT(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: 
     -------
     float | None
         The BertzCT value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -8389,10 +7529,6 @@ def findChi0(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ign
     -------
     float | None
         The Chi0 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -8416,10 +7552,6 @@ def findChi0n(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     -------
     float | None
         The Chi0n value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -8443,10 +7575,6 @@ def findChi0v(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     -------
     float | None
         The Chi0v value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -8470,10 +7598,6 @@ def findChi1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ign
     -------
     float | None
         The Chi1 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -8497,10 +7621,6 @@ def findChi1n(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     -------
     float | None
         The Chi1n value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -8524,10 +7644,6 @@ def findChi1v(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     -------
     float | None
         The Chi1v value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -8551,10 +7667,6 @@ def findChi2n(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     -------
     float | None
         The Chi2n value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -8578,10 +7690,6 @@ def findChi2v(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     -------
     float | None
         The Chi2v value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -8605,10 +7713,6 @@ def findChi3n(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     -------
     float | None
         The Chi3n value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -8632,10 +7736,6 @@ def findChi3v(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     -------
     float | None
         The Chi3v value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -8659,10 +7759,6 @@ def findChi4n(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     -------
     float | None
         The Chi4n value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -8686,10 +7782,6 @@ def findChi4v(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     -------
     float | None
         The Chi4v value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -8716,10 +7808,6 @@ def findEState_VSA1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     -------
     float | None
         The EState_VSA1 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -8743,10 +7831,6 @@ def findEState_VSA2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     -------
     float | None
         The EState_VSA2 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -8770,10 +7854,6 @@ def findEState_VSA3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     -------
     float | None
         The EState_VSA3 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -8797,10 +7877,6 @@ def findEState_VSA4(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     -------
     float | None
         The EState_VSA4 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -8824,10 +7900,6 @@ def findEState_VSA5(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     -------
     float | None
         The EState_VSA5 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -8851,10 +7923,6 @@ def findEState_VSA6(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     -------
     float | None
         The EState_VSA6 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -8878,10 +7946,6 @@ def findEState_VSA7(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     -------
     float | None
         The EState_VSA7 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -8905,10 +7969,6 @@ def findEState_VSA8(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     -------
     float | None
         The EState_VSA8 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -8932,10 +7992,6 @@ def findEState_VSA9(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     -------
     float | None
         The EState_VSA9 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -8959,10 +8015,6 @@ def findEState_VSA10(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     -------
     float | None
         The EState_VSA10 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -8986,10 +8038,6 @@ def findEState_VSA11(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     -------
     float | None
         The EState_VSA11 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -9013,10 +8061,6 @@ def findMaxAbsEStateIndex(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]
     -------
     float | None
         The MaxAbsEStateIndex value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -9040,10 +8084,6 @@ def findMaxEStateIndex(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The MaxEStateIndex value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -9067,10 +8107,6 @@ def findMinAbsEStateIndex(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]
     -------
     float | None
         The MinAbsEStateIndex value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -9094,10 +8130,6 @@ def findMinEStateIndex(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The MinEStateIndex value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -9123,10 +8155,6 @@ def findExactMolWt(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     -------
     float | None
         The exact molecular weight of the molecule or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -9150,10 +8178,6 @@ def findFpDensityMorgan1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]:
     -------
     float | None
         The Morgan fingerprint, radius 1 descriptor or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -9177,10 +8201,6 @@ def findFpDensityMorgan2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]:
     -------
     float | None
         The Morgan fingerprint, radius 2 descriptor or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -9204,10 +8224,6 @@ def findFpDensityMorgan3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]:
     -------
     float | None
         The Morgan fingerprint, radius 3 descriptor or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -9232,10 +8248,6 @@ def findfr_Al_COO(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: 
     -------
     int | None
         The fr_Al_COO value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -9259,10 +8271,6 @@ def findfr_Al_OH(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     -------
     int | None
         The fr_Al_OH value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -9286,10 +8294,6 @@ def findfr_Al_OH_noTert(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # 
     -------
     int | None
         The fr_Al_OH_noTert value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -9313,10 +8317,6 @@ def findfr_ArN(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ign
     -------
     int | None
         The fr_ArN value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -9340,10 +8340,6 @@ def findfr_Ar_COO(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: 
     -------
     int | None
         The fr_Ar_COO value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -9367,10 +8363,6 @@ def findfr_Ar_N(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ig
     -------
     int | None
         The fr_Ar_N value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -9394,10 +8386,6 @@ def findfr_Ar_NH(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     -------
     int | None
         The fr_Ar_NH value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -9421,10 +8409,6 @@ def findfr_Ar_OH(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     -------
     int | None
         The fr_Ar_OH value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -9448,10 +8432,6 @@ def findfr_COO(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ign
     -------
     int | None
         The fr_COO value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -9475,10 +8455,6 @@ def findfr_COO2(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ig
     -------
     int | None
         The fr_COO2 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -9502,10 +8478,6 @@ def findfr_C_O(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ign
     -------
     int | None
         The fr_C_O value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -9529,10 +8501,6 @@ def findfr_C_O_noCOO(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # typ
     -------
     int | None
         The fr_C_O_noCOO value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -9556,10 +8524,6 @@ def findfr_C_S(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ign
     -------
     int | None
         The fr_C_S value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -9583,10 +8547,6 @@ def findfr_HOCCN(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     -------
     int | None
         The fr_HOCCN value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -9610,10 +8570,6 @@ def findfr_Imine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     -------
     int | None
         The fr_Imine value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -9637,10 +8593,6 @@ def findfr_NH0(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ign
     -------
     int | None
         The fr_NH0 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -9664,10 +8616,6 @@ def findfr_NH1(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ign
     -------
     int | None
         The fr_NH1 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -9691,10 +8639,6 @@ def findfr_NH2(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ign
     -------
     int | None
         The fr_NH2 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -9718,10 +8662,6 @@ def findfr_N_O(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ign
     -------
     int | None
         The fr_N_O value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -9745,10 +8685,6 @@ def findfr_Ndealkylation1(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: 
     -------
     int | None
         The fr_Ndealkylation1 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -9772,10 +8708,6 @@ def findfr_Ndealkylation2(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: 
     -------
     int | None
         The fr_Ndealkylation2 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -9799,10 +8731,6 @@ def findfr_Nhpyrrole(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # typ
     -------
     int | None
         The fr_Nhpyrrole value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -9826,10 +8754,6 @@ def findfr_SH(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: igno
     -------
     int | None
         The fr_SH value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -9853,10 +8777,6 @@ def findfr_aldehyde(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type
     -------
     int | None
         The fr_aldehyde value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -9880,10 +8800,6 @@ def findfr_alkyl_carbamate(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]:
     -------
     int | None
         The fr_alkyl_carbamate value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -9907,10 +8823,6 @@ def findfr_alkyl_halide(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # 
     -------
     int | None
         The fr_alkyl_halide value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -9934,10 +8846,6 @@ def findfr_allylic_oxid(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # 
     -------
     int | None
         The fr_allylic_oxid value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -9961,10 +8869,6 @@ def findfr_amide(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     -------
     int | None
         The fr_amide value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -9988,10 +8892,6 @@ def findfr_amidine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     -------
     int | None
         The fr_amidine value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10015,10 +8915,6 @@ def findfr_aniline(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     -------
     int | None
         The fr_aniline value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10042,10 +8938,6 @@ def findfr_aryl_methyl(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # t
     -------
     int | None
         The fr_aryl_methyl value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10069,10 +8961,6 @@ def findfr_azide(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     -------
     int | None
         The fr_azide value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10096,10 +8984,6 @@ def findfr_azo(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ign
     -------
     int | None
         The fr_azo value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10123,10 +9007,6 @@ def findfr_barbitur(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type
     -------
     int | None
         The fr_barbitur value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10150,10 +9030,6 @@ def findfr_benzene(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     -------
     int | None
         The fr_benzene value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10177,10 +9053,6 @@ def findfr_benzodiazepine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: 
     -------
     int | None
         The fr_benzodiazepine value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10204,10 +9076,6 @@ def findfr_bicyclic(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type
     -------
     int | None
         The fr_bicyclic value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10231,10 +9099,6 @@ def findfr_diazo(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     -------
     int | None
         The fr_diazo value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10258,10 +9122,6 @@ def findfr_dihydropyridine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]:
     -------
     int | None
         The fr_dihydropyridine value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10285,10 +9145,6 @@ def findfr_epoxide(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     -------
     int | None
         The fr_epoxide value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10312,10 +9168,6 @@ def findfr_ester(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     -------
     int | None
         The fr_ester value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10339,10 +9191,6 @@ def findfr_ether(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     -------
     int | None
         The fr_ether value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10366,10 +9214,6 @@ def findfr_furan(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     -------
     int | None
         The fr_furan value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10393,10 +9237,6 @@ def findfr_guanido(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     -------
     int | None
         The fr_guanido value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10420,10 +9260,6 @@ def findfr_halogen(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     -------
     int | None
         The fr_halogen value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10447,10 +9283,6 @@ def findfr_hdrzine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     -------
     int | None
         The fr_hdrzine value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10474,10 +9306,6 @@ def findfr_hdrzone(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     -------
     int | None
         The fr_hdrzone value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10501,10 +9329,6 @@ def findfr_imidazole(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # typ
     -------
     int | None
         The fr_imidazole value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10528,10 +9352,6 @@ def findfr_imide(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     -------
     int | None
         The fr_imide value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10555,10 +9375,6 @@ def findfr_isocyan(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     -------
     int | None
         The fr_isocyan value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10582,10 +9398,6 @@ def findfr_isothiocyan(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # t
     -------
     int | None
         The fr_isothiocyan value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10609,10 +9421,6 @@ def findfr_ketone(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: 
     -------
     int | None
         The fr_ketone value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10636,10 +9444,6 @@ def findfr_ketone_Topliss(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: 
     -------
     int | None
         The fr_ketone_Topliss value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10663,10 +9467,6 @@ def findfr_lactam(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: 
     -------
     int | None
         The fr_lactam value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10690,10 +9490,6 @@ def findfr_lactone(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     -------
     int | None
         The fr_lactone value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10717,10 +9513,6 @@ def findfr_methoxy(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     -------
     int | None
         The fr_methoxy value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10744,10 +9536,6 @@ def findfr_morpholine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # ty
     -------
     int | None
         The fr_morpholine value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10771,10 +9559,6 @@ def findfr_nitrile(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     -------
     int | None
         The fr_nitrile value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10798,10 +9582,6 @@ def findfr_nitro(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     -------
     int | None
         The fr_nitro value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10825,10 +9605,6 @@ def findfr_nitro_arom(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # ty
     -------
     int | None
         The fr_nitro_arom value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10852,10 +9628,6 @@ def findfr_nitro_arom_nonortho(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, No
     -------
     int | None
         The fr_nitro_arom_nonortho value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10879,10 +9651,6 @@ def findfr_nitroso(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     -------
     int | None
         The fr_nitroso value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10906,10 +9674,6 @@ def findfr_oxazole(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     -------
     int | None
         The fr_oxazole value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10933,10 +9697,6 @@ def findfr_oxime(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     -------
     int | None
         The fr_oxime value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10960,10 +9720,6 @@ def findfr_para_hydroxylation(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, Non
     -------
     int | None
         The fr_para_hydroxylation value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -10987,10 +9743,6 @@ def findfr_phenol(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: 
     -------
     int | None
         The fr_phenol value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11014,10 +9766,6 @@ def findfr_phenol_noOrthoHbond(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, No
     -------
     int | None
         The fr_phenol_noOrthoHbond value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11041,10 +9789,6 @@ def findfr_phos_acid(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # typ
     -------
     int | None
         The fr_phos_acid value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11068,10 +9812,6 @@ def findfr_phos_ester(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # ty
     -------
     int | None
         The fr_phos_ester value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11095,10 +9835,6 @@ def findfr_piperdine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # typ
     -------
     int | None
         The fr_piperdine value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11122,10 +9858,6 @@ def findfr_piperzine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # typ
     -------
     int | None
         The fr_piperzine value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11149,10 +9881,6 @@ def findfr_priamide(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type
     -------
     int | None
         The fr_priamide value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11176,10 +9904,6 @@ def findfr_prisulfonamd(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # 
     -------
     int | None
         The fr_prisulfonamd value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11203,10 +9927,6 @@ def findfr_pyridine(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type
     -------
     int | None
         The fr_pyridine value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11230,10 +9950,6 @@ def findfr_quatN(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: i
     -------
     int | None
         The fr_quatN value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11257,10 +9973,6 @@ def findfr_sulfide(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     -------
     int | None
         The fr_sulfide value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11284,10 +9996,6 @@ def findfr_sulfonamd(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # typ
     -------
     int | None
         The fr_sulfonamd value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11311,10 +10019,6 @@ def findfr_sulfone(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     -------
     int | None
         The fr_sulfone value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11338,10 +10042,6 @@ def findfr_term_acetylene(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: 
     -------
     int | None
         The fr_term_acetylene value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11365,10 +10065,6 @@ def findfr_tetrazole(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # typ
     -------
     int | None
         The fr_tetrazole value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11392,10 +10088,6 @@ def findfr_thiazole(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type
     -------
     int | None
         The fr_thiazole value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11419,10 +10111,6 @@ def findfr_thiocyan(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type
     -------
     int | None
         The fr_thiocyan value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11446,10 +10134,6 @@ def findfr_thiophene(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # typ
     -------
     int | None
         The fr_thiophene value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11473,10 +10157,6 @@ def findfr_unbrch_alkane(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: #
     -------
     int | None
         The fr_unbrch_alkane value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11500,10 +10180,6 @@ def findfr_urea(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ig
     -------
     int | None
         The fr_urea value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11529,10 +10205,6 @@ def findFractionCSP3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     -------
     float | None
         The FractionCSP3 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11556,10 +10228,6 @@ def findHallKierAlpha(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # 
     -------
     float | None
         The HallKierAlpha value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11583,10 +10251,6 @@ def findHeavyAtomMolWt(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: #
     -------
     float | None
         The heavy atom molecular weight of the molecule or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11610,10 +10274,6 @@ def findHeavyAtomCount(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # t
     -------
     int | None
         The HeavyAtomCount value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11637,10 +10297,6 @@ def findIpc(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: igno
     -------
     float | None
         The Ipc value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11665,10 +10321,6 @@ def findKappa1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: i
     -------
     float | None
         The Kappa1 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11692,10 +10344,6 @@ def findKappa2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: i
     -------
     float | None
         The Kappa2 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11719,10 +10367,6 @@ def findKappa3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: i
     -------
     float | None
         The Kappa3 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11748,10 +10392,6 @@ def findLabuteASA(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     -------
     float | None
         The LabuteASA value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11775,10 +10415,6 @@ def findMaxAbsPartialCharge(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, Non
     -------
     float | None
         The maximum absolute partial charge of the molecule or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11802,10 +10438,6 @@ def findMaxPartialCharge(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]:
     -------
     float | None
         The absolute partial charge of the molecule or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11829,10 +10461,6 @@ def findMinAbsPartialCharge(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, Non
     -------
     float | None
         The minimum absolute partial charge of the molecule or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11856,10 +10484,6 @@ def findMinPartialCharge(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]:
     -------
     float | None
         The minimum partial charge of the molecule or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11883,10 +10507,6 @@ def findMolLogP(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: 
     -------
     float | None
         The MolLogP value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11910,10 +10530,6 @@ def findMolMR(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     -------
     float | None
         The MolMR value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11937,10 +10553,6 @@ def findMolWt(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ig
     -------
     float | None
         The molecular weight of the molecule or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
 
     if molecule:
@@ -11965,10 +10577,6 @@ def findNHOHCount(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: 
     -------
     int | None
         The NHOHCount value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -11992,10 +10600,6 @@ def findNOCount(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: ig
     -------
     int | None
         The NOCount value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12019,10 +10623,6 @@ def findNumAliphaticCarbocycles(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, N
     -------
     int | None
         The NumAliphaticCarbocycles value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12046,10 +10646,6 @@ def findNumAliphaticHeterocycles(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, 
     -------
     int | None
         The NumAliphaticHeterocycles value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12073,10 +10669,6 @@ def findNumAliphaticRings(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: 
     -------
     int | None
         The NumAliphaticRings value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12100,10 +10692,6 @@ def findNumAromaticCarbocycles(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, No
     -------
     int | None
         The NumAromaticCarbocycles value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12127,10 +10715,6 @@ def findNumAromaticHeterocycles(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, N
     -------
     int | None
         The NumAromaticHeterocycles value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12154,10 +10738,6 @@ def findNumAromaticRings(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: #
     -------
     int | None
         The NumAromaticRings value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12181,10 +10761,6 @@ def findNumHAcceptors(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # ty
     -------
     int | None
         The NumHAcceptors value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12208,10 +10784,6 @@ def findNumHDonors(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type:
     -------
     int | None
         The NumHDonors value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12235,10 +10807,6 @@ def findNumHeteroatoms(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # t
     -------
     int | None
         The NumHeteroatoms value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12262,10 +10830,6 @@ def findNumRadicalElectrons(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]
     -------
     int | None
         The number of radical electrons in the molecule or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12289,10 +10853,6 @@ def findNumRotatableBonds(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: 
     -------
     int | None
         The NumRotatableBonds value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12316,10 +10876,6 @@ def findNumSaturatedCarbocycles(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, N
     -------
     int | None
         The NumSaturatedCarbocycles value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12343,10 +10899,6 @@ def findNumSaturatedHeterocycles(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, 
     -------
     int | None
         The NumSaturatedHeterocycles value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12370,10 +10922,6 @@ def findNumSaturatedRings(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: 
     -------
     int | None
         The NumSaturatedRings value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12397,10 +10945,6 @@ def findNumValenceElectrons(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]
     -------
     int | None
         The number of valence electrons in the moleculeor None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12424,10 +10968,6 @@ def findRingCount(molecule: rdkit.Chem.rdchem.Mol) -> Union[int, None]: # type: 
     -------
     int | None
         The RingCount value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12453,10 +10993,6 @@ def findPEOE_VSA1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     -------
     float | None
         The PEOE_VSA1 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12480,10 +11016,6 @@ def findPEOE_VSA2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     -------
     float | None
         The PEOE_VSA2 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12507,10 +11039,6 @@ def findPEOE_VSA3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     -------
     float | None
         The PEOE_VSA3 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12534,10 +11062,6 @@ def findPEOE_VSA4(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     -------
     float | None
         The PEOE_VSA4 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12561,10 +11085,6 @@ def findPEOE_VSA5(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     -------
     float | None
         The PEOE_VSA5 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12588,10 +11108,6 @@ def findPEOE_VSA6(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     -------
     float | None
         The PEOE_VSA6 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12615,10 +11131,6 @@ def findPEOE_VSA7(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     -------
     float | None
         The PEOE_VSA7 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12642,10 +11154,6 @@ def findPEOE_VSA8(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     -------
     float | None
         The PEOE_VSA8 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12669,10 +11177,6 @@ def findPEOE_VSA9(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     -------
     float | None
         The PEOE_VSA9 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12696,10 +11200,6 @@ def findPEOE_VSA10(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     -------
     float | None
         The PEOE_VSA10 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12723,10 +11223,6 @@ def findPEOE_VSA11(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     -------
     float | None
         The PEOE_VSA11 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12750,10 +11246,6 @@ def findPEOE_VSA12(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     -------
     float | None
         The PEOE_VSA12 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12777,10 +11269,6 @@ def findPEOE_VSA13(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     -------
     float | None
         The PEOE_VSA13 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12804,10 +11292,6 @@ def findPEOE_VSA14(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     -------
     float | None
         The PEOE_VSA14 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12832,10 +11316,6 @@ def findqed(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: igno
     -------
     float | None
         The qed value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12860,10 +11340,6 @@ def findSMR_VSA1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type:
     -------
     float | None
         The SMR_VSA1 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12887,10 +11363,6 @@ def findSMR_VSA2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type:
     -------
     float | None
         The SMR_VSA2 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12914,10 +11386,6 @@ def findSMR_VSA3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type:
     -------
     float | None
         The SMR_VSA3 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12941,10 +11409,6 @@ def findSMR_VSA4(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type:
     -------
     float | None
         The SMR_VSA4 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12968,10 +11432,6 @@ def findSMR_VSA5(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type:
     -------
     float | None
         The SMR_VSA5 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -12995,10 +11455,6 @@ def findSMR_VSA6(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type:
     -------
     float | None
         The SMR_VSA6 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13022,10 +11478,6 @@ def findSMR_VSA7(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type:
     -------
     float | None
         The SMR_VSA7 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13049,10 +11501,6 @@ def findSMR_VSA8(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type:
     -------
     float | None
         The SMR_VSA8 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13076,10 +11524,6 @@ def findSMR_VSA9(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type:
     -------
     float | None
         The SMR_VSA9 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13103,10 +11547,6 @@ def findSMR_VSA10(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type
     -------
     float | None
         The SMR_VSA10 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13132,10 +11572,6 @@ def findSlogP_VSA1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     -------
     float | None
         The SlogP_VSA1 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13159,10 +11595,6 @@ def findSlogP_VSA2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     -------
     float | None
         The SlogP_VSA2 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13186,10 +11618,6 @@ def findSlogP_VSA3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     -------
     float | None
         The SlogP_VSA3 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13213,10 +11641,6 @@ def findSlogP_VSA4(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     -------
     float | None
         The SlogP_VSA4 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13240,10 +11664,6 @@ def findSlogP_VSA5(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     -------
     float | None
         The SlogP_VSA5 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13267,10 +11687,6 @@ def findSlogP_VSA6(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     -------
     float | None
         The SlogP_VSA6 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13294,10 +11710,6 @@ def findSlogP_VSA7(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     -------
     float | None
         The SlogP_VSA7 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13321,10 +11733,6 @@ def findSlogP_VSA8(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     -------
     float | None
         The SlogP_VSA8 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13348,10 +11756,6 @@ def findSlogP_VSA9(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # typ
     -------
     float | None
         The SlogP_VSA9 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13375,10 +11779,6 @@ def findSlogP_VSA10(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     -------
     float | None
         The SlogP_VSA10 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13402,10 +11802,6 @@ def findSlogP_VSA11(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     -------
     float | None
         The SlogP_VSA11 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13429,10 +11825,6 @@ def findSlogP_VSA12(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     -------
     float | None
         The SlogP_VSA12 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13457,10 +11849,6 @@ def findTPSA(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ign
     -------
     float | None
         The TPSA value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13485,10 +11873,6 @@ def findVSA_EState1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     -------
     float | None
         The VSA_EState1 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13512,10 +11896,6 @@ def findVSA_EState2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     -------
     float | None
         The VSA_EState2 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13539,10 +11919,6 @@ def findVSA_EState3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     -------
     float | None
         The VSA_EState3 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13566,10 +11942,6 @@ def findVSA_EState4(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     -------
     float | None
         The VSA_EState4 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13593,10 +11965,6 @@ def findVSA_EState5(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     -------
     float | None
         The VSA_EState5 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13620,10 +11988,6 @@ def findVSA_EState6(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     -------
     float | None
         The VSA_EState6 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13647,10 +12011,6 @@ def findVSA_EState7(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     -------
     float | None
         The VSA_EState7 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13674,10 +12034,6 @@ def findVSA_EState8(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     -------
     float | None
         The VSA_EState8 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13701,10 +12057,6 @@ def findVSA_EState9(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     -------
     float | None
         The VSA_EState9 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13728,10 +12080,6 @@ def findVSA_EState10(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     -------
     float | None
         The VSA_EState10 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13757,10 +12105,6 @@ def findAUTOCORR3D(molecule: rdkit.Chem.rdchem.Mol) -> Union[List[float], None]:
     -------
     List[float] | None
         The AUTOCORR3D values or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13785,10 +12129,6 @@ def findAsphericity(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # ty
     -------
     float | None
         The Asphericity value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13812,10 +12152,6 @@ def findEccentricity(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # t
     -------
     float | None
         The Eccentricity value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13839,10 +12175,6 @@ def findInertialShapeFactor(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, Non
     -------
     float | None
         The InertialShapeFactor value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13866,10 +12198,6 @@ def findNPR1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ign
     -------
     float | None
         The NPR1 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13893,10 +12221,6 @@ def findNPR2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ign
     -------
     float | None
         The NPR2 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13920,10 +12244,6 @@ def findPMI1(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ign
     -------
     float | None
         The PMI1 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13947,10 +12267,6 @@ def findPMI2(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ign
     -------
     float | None
         The PMI2 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -13974,10 +12290,6 @@ def findPMI3(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ign
     -------
     float | None
         The PMI3 value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -14001,10 +12313,6 @@ def findRadiusOfGyration(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]:
     -------
     float | None
         The RadiusOfGyration value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:
@@ -14028,10 +12336,6 @@ def findSpherocityIndex(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: 
     -------
     float | None
         The SpherocityIndex value or None if parsing the descriptor fails.
-
-    Raises
-    ------
-    None
     '''
     
     if molecule:

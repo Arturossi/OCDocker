@@ -54,10 +54,6 @@ class DownloadProgressBar(tqdm):
         Returns
         -------
         None
-
-        Raises
-        ------
-        None
         '''
 
         if tsize is not None:

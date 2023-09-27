@@ -85,10 +85,6 @@ class Receptor:
         Returns
         -------
         None
-
-        Raises
-        ------
-        None
         '''
 
         # Name must come first
@@ -224,10 +220,6 @@ class Receptor:
         -------
         Dict
             A dictionary with all the properties (except the molecule object) for the Receptor object.
-
-        Raises
-        ------
-        None
         '''
 
         # Create new dict
@@ -249,10 +241,6 @@ class Receptor:
 
         Returns
         -------
-        None
-
-        Raises
-        ------
         None
         '''
 
@@ -302,10 +290,6 @@ class Receptor:
         -------
         Dict[str, float | int]
             The descriptors for the Receptor object.
-
-        Raises
-        ------
-        None
         '''
 
         descriptors = {
@@ -352,10 +336,6 @@ class Receptor:
         -------
         Dict[str, float | int]
             The properties for the Receptor object.
-
-        Raises
-        ------
-        None
         '''
 
         # Create new dict
@@ -380,10 +360,6 @@ class Receptor:
         -------
         int
             The exit code of the command (based on the Error.py code table).
-
-        Raises
-        ------
-        None
         '''
 
         try:
@@ -412,10 +388,6 @@ class Receptor:
         -------
         bool
             True if the Ligand object is valid, False otherwise.
-
-        Raises
-        ------
-        None
         '''
 
         #region if any attribute is None
@@ -838,7 +810,7 @@ def computeDipoleMoment(structure: Bio.PDB.Structure.Structure, cModel: str = "g
         # Load the input file to the previously loaded OBMol object
         obConversion.ReadFile(mol, structure)
         # Create the charge model object
-        chargeModel = openbabel.OBChargeModel_FindType(cModel)
+        chargeModel = openbabel.OBChargeModel.FindType(cModel)
         # Compute the mol object charges using the charge model
         chargeModel.ComputeCharges(mol)
         # Get the dipile moment from the molecule

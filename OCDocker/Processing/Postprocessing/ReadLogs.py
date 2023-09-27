@@ -62,7 +62,7 @@ class vinaData:
     '''Class to hold the data of the Vina log files.'''
 
     def __init__(self, vina_pose: List[float] = [], vina_affinity: List[float] = [], withNaN: bool = False) -> None:
-        '''Initializes the class.
+        '''Initialises the class.
 
         Parameters
         ----------
@@ -71,14 +71,10 @@ class vinaData:
         vina_affinity : List[float], optional
             A list of the affinities of the ligand in the Vina log files. (default is [])
         withNaN : bool, optional
-            If True, the class will be initialized with np.NaN values. (default is False)
+            If True, the class will be initialised with np.NaN values. (default is False)
 
         Returns
         -------
-        None
-
-        Raises
-        ------
         None
         '''
         
@@ -101,10 +97,6 @@ class vinaData:
         -------
         Dict[str, List[float]]
             A dict of the class.
-
-        Raises
-        ------
-        None
         '''
 
         return { "vina_pose": self.vina_pose, "vina_affinity": self.vina_affinity }
@@ -120,10 +112,6 @@ class vinaData:
         -------
         TvinaData
             The class with the np.NaN values.
-
-        Raises
-        ------
-        None
         '''
 
         self.vina_pose = [np.NaN]
@@ -135,7 +123,7 @@ class gninaData:
     '''Class to hold the data of the Gnina log files.'''
 
     def __init__(self, gnina_pose: List[float] = [], gnina_affinity: List[float] = [], withNaN: bool = False) -> None:
-        '''Initializes the class.
+        '''Initialises the class.
 
         Parameters
         ----------
@@ -144,14 +132,10 @@ class gninaData:
         gnina_affinity : List[float], optional
             A list of the affinities of the ligand in the Gnina log files. (default is [])
         withNaN : bool, optional
-            If True, the class will be initialized with np.NaN values. (default is False)
+            If True, the class will be initialised with np.NaN values. (default is False)
 
         Returns
         -------
-        None
-
-        Raises
-        ------
         None
         '''
         
@@ -174,10 +158,6 @@ class gninaData:
         -------
         Dict[str, List[float]]
             A dict of the class.
-
-        Raises
-        ------
-        None
         '''
 
         return { "gnina_pose": self.gnina_pose, "gnina_affinity": self.gnina_affinity }
@@ -193,10 +173,6 @@ class gninaData:
         -------
         TgninaData
             The class with the np.NaN values.
-
-        Raises
-        ------
-        None
         '''
 
         self.gnina_pose = [np.NaN]
@@ -208,7 +184,7 @@ class sminaData:
     '''Class to hold the data of the Smina log files.'''
 
     def __init__(self, smina_pose: List[float] = [], smina_affinity: List[float] = [], withNaN: bool = False) -> None:
-        '''Initializes the class.
+        '''Initialises the class.
 
         Parameters
         ----------
@@ -217,14 +193,10 @@ class sminaData:
         smina_affinity : List[float], optional
             A list of the affinities of the ligand in the Smina log files. (default is [])
         withNaN : bool, optional
-            If True, the class will be initialized with np.NaN values. (default is False)
+            If True, the class will be initialised with np.NaN values. (default is False)
 
         Returns
         -------
-        None
-
-        Raises
-        ------
         None
         '''
         
@@ -247,10 +219,6 @@ class sminaData:
         -------
         Dict[str, List[float]]
             A dict of the class.
-
-        Raises
-        ------
-        None
         '''
 
         return { "smina_pose": self.smina_pose, "smina_affinity": self.smina_affinity }
@@ -266,10 +234,6 @@ class sminaData:
         -------
         TsminaData
             The class with the np.NaN values.
-
-        Raises
-        ------
-        None
         '''
 
         self.smina_pose = [np.NaN]
@@ -281,7 +245,7 @@ class plantsData:
     '''Class to hold the data of the PLANTS log files.'''
 
     def __init__(self, PLANTS_TOTAL_SCORE: List[float] = [], PLANTS_SCORE_RB_PEN: List[float] = [], PLANTS_SCORE_NORM_HEVATOMS: List[float] = [], PLANTS_SCORE_NORM_CRT_HEVATOMS: List[float] = [], PLANTS_SCORE_NORM_WEIGHT: List[float] = [], PLANTS_SCORE_NORM_CRT_WEIGHT: List[float] = [], PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS: List[float] = [], withNaN: bool = False) -> None:
-        '''Initializes the class.
+        '''Initialises the class.
 
         Parameters
         ----------
@@ -300,14 +264,10 @@ class plantsData:
         PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS : List[float], optional
             A list of the rigid body penalty normalized critical heavy atoms scores of the ligand in the PLANTS log files. (default is [])
         withNaN : bool, optional
-            If True, the class will be initialized with np.NaN values. (default is False)
+            If True, the class will be initialised with np.NaN values. (default is False)
 
         Returns
         -------
-        None
-
-        Raises
-        ------
         None
         '''
         
@@ -335,10 +295,6 @@ class plantsData:
         -------
         Dict[str, List[float]]
             A dict of the class.
-
-        Raises
-        ------
-        None
         '''
 
         return { "PLANTS_TOTAL_SCORE": self.PLANTS_TOTAL_SCORE, "PLANTS_SCORE_RB_PEN": self.PLANTS_SCORE_RB_PEN, "PLANTS_SCORE_NORM_HEVATOMS": self.PLANTS_SCORE_NORM_HEVATOMS, "PLANTS_SCORE_NORM_CRT_HEVATOMS": self.PLANTS_SCORE_NORM_CRT_HEVATOMS, "PLANTS_SCORE_NORM_WEIGHT": self.PLANTS_SCORE_NORM_WEIGHT, "PLANTS_SCORE_NORM_CRT_WEIGHT": self.PLANTS_SCORE_NORM_CRT_WEIGHT, "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": self.PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS }
@@ -354,10 +310,6 @@ class plantsData:
         -------
         TplantsData
             The class with the np.NaN values.
-
-        Raises
-        ------
-        None
         '''
 
         self.PLANTS_TOTAL_SCORE = [np.NaN]
@@ -834,7 +786,6 @@ def read_logs(paths: Union[List[Tuple[str, str]], List[Tuple[str, str]]], archiv
 
     # If the path is a list
     if isinstance(paths, list):
-
         # If logfile exists, backup it
         oclogging.backup_log("read_log_ERROR_report")
 

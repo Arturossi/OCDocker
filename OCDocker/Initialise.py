@@ -23,6 +23,11 @@ import textwrap as tw
 
 import OCDocker.Error as ocerror
 
+from glob import glob
+from oddt.scoring.functions.RFScore import rfscore
+from oddt.scoring.functions.NNScore import nnscore
+from oddt.scoring.functions.PLECscore import PLECscore
+
 
 # License
 ###############################################################################
@@ -66,6 +71,67 @@ description = tw.dedent("""\033[1;93m
 
 # Functions
 ###############################################################################
+def __inner_initialise_models(oddt_sf: str):
+    '''Inner function that initialises the scoring functions from the ODDT
+
+    Parameters
+    ----------
+    oddt_sf : str
+        The scoring function to be initialised
+
+    Returns
+    -------
+    None
+    '''
+
+    # Warn the user that the pickled model will be created
+    print(f"{clrs['y']}WARNING{clrs['n']}: {oddt_sf} model is not pickled, it will be created now.")
+
+    # Discover the scoring function
+    if oddt_sf.lower().startswith('rfscore'):
+        # Create the new kwargs dict
+        new_kwargs = {}
+        # For each bit in the oddt_sf string
+        for bit in oddt_sf.lower().split('_'):
+            # Fill the kwargs dict
+            if bit.startswith('pdbbind'):
+                new_kwargs['pdbbind_version'] = int(bit.replace('pdbbind', ''))
+            elif bit.startswith('v'):
+                new_kwargs['version'] = int(bit.replace('v', ''))
+        # Load the scoring function (this will create the pickled model)
+        _ = rfscore.load(**new_kwargs)
+    elif oddt_sf.lower().startswith('nnscore'):
+        # Create the new kwargs dict
+        new_kwargs = {}
+        # For each bit in the oddt_sf string
+        for bit in oddt_sf.lower().split('_'):
+            # Fill the kwargs dict
+            if bit.startswith('pdbbind'):
+                new_kwargs['pdbbind_version'] = int(bit.replace('pdbbind', ''))
+        # Load the scoring function (this will create the pickled model)
+        _ = nnscore.load(**new_kwargs)
+    elif oddt_sf.lower().startswith('plec'):
+        # Create the new kwargs dict
+        new_kwargs = {}
+        # For each bit in the oddt_sf string
+        for bit in oddt_sf.lower().split('_'):
+            # Fill the kwargs dict
+            if bit.startswith('pdbbind'):
+                new_kwargs['pdbbind_version'] = int(bit.replace('pdbbind', ''))
+            elif bit.startswith('plec'):
+                new_kwargs['version'] = bit.replace('plec', '')
+            elif bit.startswith('p'):
+                new_kwargs['depth_protein'] = int(bit.replace('p', ''))
+            elif bit.startswith('l'):
+                new_kwargs['depth_ligand'] = int(bit.replace('l', ''))
+            elif bit.startswith('s'):
+                new_kwargs['size'] = int(bit.replace('s', ''))
+        # Load the scoring function (this will create the pickled model)
+        _ = PLECscore.load(**new_kwargs)
+
+    # Return
+    return None
+
 def create_ocdocker_conf() -> None:
     '''Creates the 'ocdocker.conf' file.
 
@@ -94,6 +160,10 @@ def create_ocdocker_conf() -> None:
     answer = ""
     while answer not in ["Y", "Z", "E", "P", "T", "G", "M", "k", "un", "c", "m", "u", "n", "pf", "a", "z", "y"]:
         answer = input(f"The default pdbbind KiKd magnitude [Y, Z, E, P, T, G, M, k, un, c, m, u, n, pf, a, z, y] (follow the unit prefix table). Default [{confPDBbind_KdKi_order}] (press enter to keep default): ")
+        # If the enter has been pressed (answer == "")
+        if answer == "":
+            # Set the default value
+            answer = "u"
         confPDBbind_KdKi_order = confPDBbind_KdKi_order if not answer else answer
 
     #endregion
@@ -377,6 +447,31 @@ def create_ocdocker_conf() -> None:
 
     #endregion
 
+    #region ODDT variables
+    try:
+        confODDT = os.popen("which oddt_cli").read().replace('\n', '').strip()
+    except:
+        confODDT = "/usr/bin/oddt_cli"
+    
+    confODDT_scoring_functions = "rfscore_v1_pdbbind2016,rfscore_v2_pdbbind2016,rfscore_v3_pdbbind2016,nnscore_pdbbind2016,plecrf_pdbbind2016"
+    confODDT_seed = 42
+    confODDT_chunk_size = 100
+
+    print("\nODDT configuration")
+    answer = input(f"Path to the ODDT file/command. Default [{confODDT}] (press enter to keep default): ")
+    confODDT = confODDT if not answer else answer
+
+    answer = input(f"ODDT seed parameter. Default [{confODDT_seed}] (press enter to keep default): ")
+    confODDT_seed = confODDT_seed if not answer else answer
+
+    answer = input(f"ODDT chunk size parameter. Default [{confODDT_chunk_size}] (press enter to keep default): ")
+    confODDT_chunk_size = confODDT_chunk_size if not answer else answer
+
+    answer = input(f"ODDT available scoring functions (separated by ',') (The supported scoring functions are: rfscore_v1_pdbbind2016, rfscore_v2_pdbbind2016, rfscore_v3_pdbbind2016, nnscore_pdbbind2016, plecrf_pdbbind2016). Default [{confODDT_scoring_functions}] (press enter to keep default): ")
+    confODDT_scoring_functions = confODDT_scoring_functions if not answer else answer
+
+    #endregion
+
     #region Other variables
     confDssp = "/usr/bin/dssp"
     confObabel = "/usr/bin/obabel"
@@ -609,6 +704,20 @@ def create_ocdocker_conf() -> None:
         # Path to the flex drive file
         dock6_flex_drive_file = """ + str(confDock6_flex_drive_file) + """
 
+        ################## ODDT PARAMETERS ##################
+
+        # Path to the oddt_cli file
+        oddt = """ + str(confODDT) + """
+
+        # Seed for the ODDT software
+        oddt_seed = """ + str(confODDT_seed) + """
+
+        # Seed for the ODDT chunk size
+        oddt_chunk_size = """ + str(confODDT_chunk_size) + """
+
+        # Alternative scoring function
+        oddt_scoring_functions = """ + str(confODDT_scoring_functions) + """
+
         ################## OTHER SOFTWARE ###################
 
         # MSMS program for the surface calculation
@@ -627,6 +736,50 @@ def create_ocdocker_conf() -> None:
     print(f"{clrs['g']}Configuration file created!{clrs['n']} If you need to change the paths you might want to {clrs['y']}EDIT ITS CONTENTS{clrs['n']} or delete the file and execute this routine again so that your environment variables are correctly set. To ensure that all variables are correctly set, please restart OCDocker.")
     return
 
+def initialise_oddt_models(oddt_models_dir: str, oddt_scoring_functions_aux: list) -> None:
+    '''Initialise the ODDT models.
+
+    Parameters
+    ----------
+    oddt_models_dir : str
+        The path to the ODDT models directory.
+    oddt_scoring_functions_aux : list
+        The list of scoring functions to initialise.
+
+    Returns
+    -------
+    None
+    '''
+
+    # Flag to print the warning only once
+    warning_flag = True
+
+    # Find which models are already pickled
+    oddt_models = glob(f"{oddt_models_dir}/*.pickle")
+
+    # For each model, check if it is in the list of scoring functions
+    for oddt_scoring_function_aux in oddt_scoring_functions_aux:
+        # Process the scoring function names to match the ODDT models
+        processedNames = [".".join(oddt_model.split(os.path.sep)[-1].split(".")[:-1]).lower() if "plecrf" not in oddt_model.lower() else "plecrf" for oddt_model in oddt_models]
+        # If the scoring function is not in the list of models or if it is plecrf and the plecrf model is not in the list of models
+        if oddt_scoring_function_aux not in processedNames and (oddt_scoring_function_aux.startswith("plecrf") and "plecrf" not in processedNames):
+            # If the flag is True, print the warning
+            if warning_flag:
+                # Warn the user that this could take some time
+                print(f"{clrs['c']}INFO{clrs['n']}: Generating ODDT models for the first time can take a while, please be patient.")
+                # Set the flag to False
+                warning_flag = False
+                # Save the current dir in a variable
+                current_dir = os.getcwd()
+            # Change to the ODDT models dir
+            os.chdir(oddt_models_dir)
+            # Initialise the model
+            __inner_initialise_models(oddt_scoring_function_aux)
+            # Return to the previous dir
+            os.chdir(current_dir) # type: ignore
+    # Return
+    return None
+
 # Define Global Variables
 ###############################################################################
 # General variables
@@ -637,6 +790,7 @@ global workdir
 global errors
 global logdir
 global tmpdir
+global oddt_models_dir
 
 # Order variable
 global order
@@ -720,6 +874,12 @@ global plants_search_speed
 global dock6_vdw_defn_file
 global dock6_flex_defn_file
 global dock6_flex_drive_file
+
+# ODDT parameters
+global oddt
+global oddt_seed
+global oddt_chunk_size
+global oddt_scoring_functions
 
 # Database + OCDocker variables
 global dudez_archive
@@ -1020,6 +1180,14 @@ for line in open(config_file, 'r'): # type: ignore
         dock6_flex_defn_file = line.split("=")[1].strip()
     elif line.startswith("dock6_flex_drive_file ="):
         dock6_flex_drive_file = line.split("=")[1].strip()
+    elif line.startswith("oddt ="):
+        oddt = line.split("=")[1].strip()
+    elif line.startswith("oddt_seed ="):
+        oddt_seed = line.split("=")[1].strip()
+    elif line.startswith("oddt_chunk_size ="):
+        oddt_chunk_size = line.split("=")[1].strip()
+    elif line.startswith("oddt_scoring_functions ="):
+        oddt_scoring_functions = [l.strip() for l in line.split("=")[1].strip().split(",")]
     elif line.startswith("dssp ="):
         dssp = line.split("=")[1].strip()
     elif line.startswith("obabel ="):
@@ -1049,9 +1217,16 @@ parsed_archive = os.path.join(ocdb_path, "Parsed")
 # Set the log directory
 logdir = f"{os.path.abspath(os.path.join(os.path.dirname(ocerror.__file__), os.pardir))}/logs"
 
+# Set the oddt model directory
+oddt_models_dir = f"{os.path.abspath(os.path.join(os.path.dirname(ocerror.__file__), os.pardir))}/ODDT_models"
+
 # Check if logdir exists, if not, create-it
 if not os.path.isdir(logdir):
     os.mkdir(logdir)
+
+# Check if oddt_models_dir exists, if not, create-it
+if not os.path.isdir(oddt_models_dir):
+    os.mkdir(oddt_models_dir)
 
 # Remove tmp path then create it again
 tmpDir = f"{ocdocker_path}/tmp"
@@ -1076,5 +1251,8 @@ if args.output_level > 4:
     args.output_level = 4
 elif args.output_level < 0:
     args.output_level = 0
-    
+
+# Create the ODDT models
+initialise_oddt_models(oddt_models_dir, oddt_scoring_functions) # type: ignore
+
 #TODO: Colocar uma lista de parâmetros do OCDocker

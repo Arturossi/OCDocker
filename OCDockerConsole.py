@@ -26,6 +26,7 @@ import OCDocker.Docking.Smina as ocsmina
 import OCDocker.Docking.Gnina as ocgnina
 import OCDocker.Docking.PLANTS as ocplants
 import OCDocker.ExternalTools.runprank as runprank
+import OCDocker.Rescoring.ODDT as ocoddt
 
 # License
 ###############################################################################
@@ -107,7 +108,6 @@ def clean_test_files(baseProtPath, baseLigPath, baseDecPath, baseCanPath) -> Non
             
 
     return None
-
 
 message = tw.dedent("""\033[1;93m
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\033[1;96m
@@ -205,12 +205,11 @@ dockingResult = sminaTest.read_log()
 ##########################################################################
 
 # Get the docking results from the vinaTest (example) object
-dockingPoses = glob(f"{os.path.dirname(vinaTest.outputVina)}/*_split_*.pdbqt")
+dockingPoses = vinaTest.get_docking_poses()
 
 # Process each scoring function
 for scoring_function in smina_scoring_functions:
     ocsmina.run_rescore(sminaTest.config, dockingPoses, os.path.dirname(sminaTest.outputSmina), scoring_function, splitLigand = False)
-
 
 ## Now you can get the rescoring results
 ###########################################
@@ -219,8 +218,42 @@ for scoring_function in smina_scoring_functions:
 rescoringResult = sminaTest.read_rescore_logs(f"{baseLigPath}/{lig}/sminaFiles")
 
 
-# PLANTS
-plantsTest = ocplants.PLANTS(f"{baseLigPath}/{lig}/plantsFiles/conf_plants.txt", f"{baseLigPath}/{lig}/boxes/box0.pdb", receptorTest, f"{baseProtPath}/prepared_receptor.mol2", ligandTest, f"{baseLigPath}/{lig}/prepared_ligand.mol2", f"{baseLigPath}/{lig}/plantsFiles/{lig}.log", f"{baseLigPath}/{lig}/plantsFiles/", name=f"PLANTS {ptn}-{lig}")
+###############
+##   PLANTS   #
+###############
+
+# Create the object
+plantsTest = ocplants.PLANTS(f"{baseLigPath}/{lig}/plantsFiles/conf_plants.txt", f"{baseLigPath}/{lig}/boxes/box0.pdb", receptorTest, f"{baseProtPath}/prepared_receptor.mol2", ligandTest, f"{baseLigPath}/{lig}/prepared_ligand.mol2", f"{baseLigPath}/{lig}/plantsFiles/{lig}.log", f"{baseLigPath}/{lig}/plantsFiles", name=f"PLANTS {ptn}-{lig}")
+
+# Prepare the receptor
+plantsTest.run_prepare_receptor()
+# Prepare the ligand
+plantsTest.run_prepare_ligand()
+# Run the docking
+plantsTest.run_docking()
+
+### TODO: Working to make rescoring with PLANTS work properly!
+
+
+#############
+##   ODDT   #
+#############
+
+## WARNING: The ODDT is used only for rescoring, so it is REQUIRED that you run at least one docking before rescoring with ODDT. The following example will use vina as the docking algorithm.
+
+# Run ODDT and get the result as a dataframe
+df = ocoddt.run_oddt(vinaTest.preparedReceptor, vinaTest.get_docked_poses(), vinaTest.inputLigand.name, f"{vinaTest.get_input_ligand_path()}/oddt")
+
+# If you want a dict, you can convert with this function
+dt = ocoddt.df_to_dict(df)
+
+
+
+##############
+##   Gnina   #
+##############
+
+## TODO: Fix the entire Gnina
 
 # Gnina
 gninaTest = ocgnina.Gnina(f"{baseLigPath}/{lig}/gninaFiles/conf_gnina.txt", f"{baseLigPath}/{lig}/boxes/box0.pdb", receptorTest, f"{baseProtPath}/prepared_receptor.pdbqt", ligandTest, f"{baseLigPath}/{lig}/prepared_ligand.pdbqt", f"{baseLigPath}/{lig}/gninaFiles/{lig}.log", f"{baseLigPath}/{lig}/gninaFiles/{lig}.pdbqt", name=f"Gnina {ptn}-{lig}")

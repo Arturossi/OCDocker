@@ -81,10 +81,6 @@ class Smina:
         Returns
         -------
         None
-
-        Raises
-        ------
-        None
         '''
 
         self.name = str(name)
@@ -148,10 +144,6 @@ class Smina:
         -------
         str
             The receptor path.
-
-        Raises
-        ------
-        None
         '''
 
         # Check the type of receptor variable
@@ -180,10 +172,6 @@ class Smina:
         Returns
         -------
             The ligand path. If fails, return an empty string.
-        
-        Raises
-        ------
-        None
         '''
 
         # Check the type of ligand variable
@@ -212,10 +200,6 @@ class Smina:
         -------
         List[str]
             The smina command.
-
-        Raises
-        ------
-        None
         '''
 
         cmd = [smina, "--config", self.config, "--ligand", self.preparedLigand]#, "--autobox_ligand", self.preparedLigand]
@@ -246,10 +230,6 @@ class Smina:
         -------
         pd.DataFrame | int
             The dataframe with the data from the smina log, or the error code.
-
-        Raises
-        ------
-        None
         '''
 
         return read_log(self.sminaLog) # type: ignore
@@ -266,10 +246,6 @@ class Smina:
         -------
         int | Tuple[int, str]
             The exit code of the command (based on the Error.py code table).   
-
-        Raises
-        ------
-        None
         '''
 
         return ocrun.run(self.sminaCmd, logFile=logFile)
@@ -286,10 +262,6 @@ class Smina:
         -------
         int | Tuple[int, str]
             The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
-
-        Raises
-        ------
-        None
         '''
 
         return ocrun.run(self.prepareLigandCmd, logFile=logFile)
@@ -305,10 +277,6 @@ class Smina:
         -------
         int | Tuple[int, str]
             The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
-
-        Raises
-        ------
-        None
         '''
 
         return run_prepare_ligand(self.inputLigandPath, self.preparedLigand)
@@ -325,10 +293,6 @@ class Smina:
         -------
         int | Tuple[int, str]
             The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
-
-        Raises
-        ------
-        None
         '''
 
         return ocrun.run(self.prepareReceptorCmd, logFile=logFile)
@@ -344,10 +308,6 @@ class Smina:
         -------
         int | Tuple[int, str]
             The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
-
-        Raises
-        ------
-        None
         '''
 
         return run_prepare_receptor(self.inputReceptorPath, self.preparedReceptor)
@@ -368,10 +328,6 @@ class Smina:
         -------
         int | Tuple[int, str]
             The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
-
-        Raises
-        ------
-        None
         '''
 
         # Set the splitLigand as True
@@ -405,6 +361,51 @@ class Smina:
 
         return [f for f in glob(f"{outPath}/*_split_*.log") if os.path.isfile(f)]
     
+    def get_docked_poses(self) -> List[str]:
+        '''Get the paths for the docked poses.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        List[str]
+            A list with the paths for the docked poses.
+        '''
+
+        return get_docked_poses(os.path.dirname(self.outputSmina))
+
+    def get_input_ligand_path(self) -> str:
+        ''' Get the input ligand path.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        str
+            The input ligand path.
+        '''
+
+        return os.path.dirname(self.inputLigandPath)
+    
+    def get_input_receptor_path(self) -> str:
+        ''' Get the input receptor path.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        str
+            The input receptor path.
+        '''
+
+        return os.path.dirname(self.inputReceptorPath)
+
     def read_rescore_logs(self, outPath: str, onlyBest: bool = True) -> Dict[str, List[Union[str, float]]]:
         ''' Reads the data from the rescore log files.
 
@@ -456,10 +457,6 @@ class Smina:
 
         Returns
         -------
-        None
-
-        Raises
-        ------
         None
         '''
 
@@ -792,11 +789,11 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
     
     # For each ligand
     for ligand in ligands:
-        # Get the ligand name
-        ligandName = os.path.splitext(os.path.basename(ligand))[0]
-        
         # If need to split the ligand or overwrite is True
         if splitLigand or overwrite:
+            # Get the ligand name
+            ligandName = os.path.splitext(os.path.basename(ligand))[0]
+
             # Split the input ligand (since smina is a vina fork, it uses the vina_split)
             cmd = [vina_split, "--input", ligand, "--flex", "", "--ligand", f"{outPath}/{ligandName}_split_"]
 
@@ -1041,6 +1038,30 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
         return errors.unsupported_extension(f"The provided extension '{digestFormat}' is not supported.", "error")
     
     return errors.file_exists(f"The file '{digestPath}' already exists. If you want to overwrite it yse the overwrite flag.", "warn")
+
+def get_docked_poses(posesPath: str) -> List[str]:
+    '''Get the docked poses from the poses path.
+
+    Parameters
+    ----------
+    posesPath : str
+        The path to the poses folder.
+
+    Returns
+    -------
+    List[str]
+        A list with the paths to the docked poses.
+    '''
+
+    # Check if the posesPath exists
+    if os.path.isdir(posesPath):
+        return [d for d in glob(f"{posesPath}/*_split_*.pdbqt") if os.path.isfile(d)]
+    
+    # Print an error message
+    _ = errors.dir_does_not_exist(message=f"The poses path '{posesPath}' does not exist.", level="error")
+    
+    # Return an empty list
+    return []
 
 # Aliases
 ###############################################################################

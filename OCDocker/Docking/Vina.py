@@ -78,10 +78,6 @@ class Vina:
         Returns
         -------
         None
-
-        Raises
-        ------
-        None
         '''
 
         self.name = str(name)
@@ -145,10 +141,6 @@ class Vina:
         -------
         str
             The receptor path.
-
-        Raises
-        ------
-        None
         '''
 
         # Check the type of receptor variable
@@ -177,10 +169,6 @@ class Vina:
         Returns
         -------
             The ligand path. If fails, return an empty string.
-        
-        Raises
-        ------
-        None
         '''
 
         # Check the type of ligand variable
@@ -210,10 +198,6 @@ class Vina:
         -------
         str
             The Path of the ligand with mol2 extension.
-
-        Raises
-        ------
-        None
         '''
 
         # Get the extension
@@ -235,7 +219,7 @@ class Vina:
     ## Public ##
 
     def read_log(self) -> Union[Dict[str, List[Union[str, float]]], int]:
-        '''Read the vina log path, returning a pd.dataframe with data from complexes.
+        '''Read the vina log path, returning a dict with data from complexes.
 
         Parameters
         ----------
@@ -245,10 +229,6 @@ class Vina:
         -------
         Dict[str, List[Union[str, float]]] | int
             A dictionary with the data from the vina log file. If any error occurs, it will return the exit code of the command (based on the Error.py code table).
-        
-        Raises
-        ------
-        None
         '''
 
         return read_log(self.vinaLog)
@@ -264,10 +244,6 @@ class Vina:
         -------
         int | Tuple[int, str]
             The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
-        
-        Raises
-        ------
-        None
         '''
 
         # Print verboosity
@@ -288,10 +264,6 @@ class Vina:
         -------
         int | str | Tuple[int, str]
             The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command. If fails, return the file extension. 
-        
-        Raises
-        ------
-        None
         '''
 
         # Print verboosity
@@ -315,10 +287,6 @@ class Vina:
         -------
         int | str | Tuple[int, str]
             The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command. If fails, return the file extension.
-
-        Raises
-        ------
-        None
         '''
 
         # Print verboosity
@@ -326,7 +294,7 @@ class Vina:
         # If True, use openbabel
         if useOpenBabel:
             return occonversion.convertMols(self.inputReceptorPath, self.preparedReceptor)
-        return ocrun.run(self.prepareReceptorCmd, logFile=logFile, cwd=os.path.dirname(self.inputReceptorPath))
+        return ocrun.run(self.prepareReceptorCmd, logFile=logFile, cwd=self.get_input_receptor_path())
 
     def run_rescore(self, outPath: str, logFile: str = "", overwrite = False) -> None:
         '''Run vina to rescore the ligand.
@@ -344,10 +312,6 @@ class Vina:
         -------
         int | Tuple[int, str]
             The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
-
-        Raises
-        ------
-        None
         '''
 
         # Set the splitLigand as True
@@ -380,6 +344,51 @@ class Vina:
         '''
 
         return [f for f in glob(f"{outPath}/*_split_*.log") if os.path.isfile(f)]
+    
+    def get_docked_poses(self) -> List[str]:
+        '''Get the paths for the docked poses.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        List[str]
+            A list with the paths for the docked poses.
+        '''
+
+        return get_docked_poses(os.path.dirname(self.outputVina))
+
+    def get_input_ligand_path(self) -> str:
+        ''' Get the input ligand path.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        str
+            The input ligand path.
+        '''
+
+        return os.path.dirname(self.inputLigandPath)
+    
+    def get_input_receptor_path(self) -> str:
+        ''' Get the input receptor path.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        str
+            The input receptor path.
+        '''
+
+        return os.path.dirname(self.inputReceptorPath)
     
     def read_rescore_logs(self, outPath: str, onlyBest: bool = True) -> Dict[str, List[Union[str, float]]]:
         ''' Reads the data from the rescore log files.
@@ -432,10 +441,6 @@ class Vina:
 
         Returns
         -------
-        None
-
-        Raises
-        ------
         None
         '''
 
@@ -658,11 +663,11 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
     
     # For each ligand
     for ligand in ligands:
-        # Get the ligand name
-        ligandName = os.path.splitext(os.path.basename(ligand))[0]
-        
         # If need to split the ligand or overwrite is True
         if splitLigand or overwrite:
+            # Get the ligand name
+            ligandName = os.path.splitext(os.path.basename(ligand))[0]
+            
             # Split the input ligand
             cmd = [vina_split, "--input", ligand, "--flex", "", "--ligand", f"{outPath}/{ligandName}_split_"]
 
@@ -955,6 +960,31 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
         return errors.unsupported_extension(f"The provided extension '{digestFormat}' is not supported.", "error")
     
     return errors.file_exists(f"The file '{digestPath}' already exists. If you want to overwrite it yse the overwrite flag.", "warn")
+
+def get_docked_poses(posesPath: str) -> List[str]:
+    '''Get the docked poses from the poses path.
+
+    Parameters
+    ----------
+    posesPath : str
+        The path to the poses folder.
+
+    Returns
+    -------
+    List[str]
+        A list with the paths to the docked poses.
+    '''
+
+    # Check if the posesPath exists
+    if os.path.isdir(posesPath):
+        return [d for d in glob(f"{posesPath}/*_split_*.pdbqt") if os.path.isfile(d)]
+    
+    # Print an error message
+    _ = errors.dir_does_not_exist(message=f"The poses path '{posesPath}' does not exist.", level="error")
+    
+    # Return an empty list
+    return []
+
 
 # Aliases
 ###############################################################################

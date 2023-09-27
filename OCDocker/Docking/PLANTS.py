@@ -82,10 +82,6 @@ class PLANTS:
         Returns
         -------
         None
-
-        Raises
-        ------
-        None
         '''
         
         self.name = str(name)
@@ -136,6 +132,10 @@ class PLANTS:
         if not os.path.isfile(self.config) or overwriteConfig:
             # Create the box
             self.write_config_file()
+        
+        # Aliases
+        ############
+        self.run_docking = self.run_plants
 
     ## Private ##
     def __get_binding_site(self) -> Union[Tuple[Tuple[float, float, float], float], int]:
@@ -149,11 +149,8 @@ class PLANTS:
         -------
         Tuple[Tuple[float, float, float], float] | int
             Tuple with the center and radius of the binding site. If there is an error, the error code is returned.
-
-        Raises
-        ------
-        None
         '''
+
         return get_binding_site(self.boxFile, self.boxSpacing)
 
     def __parse_receptor_path(self, receptor: ocr.Receptor, forceMol2: bool = False):
@@ -170,10 +167,6 @@ class PLANTS:
         -------
         str
             The path for the receptor.
-
-        Raises
-        ------
-        None
         '''
 
         # Check the type of receptor variable
@@ -229,10 +222,6 @@ class PLANTS:
         -------
         str
             The path for the ligand.
-
-        Raises
-        ------
-        None
         '''
 
         # Check the type of ligand variable
@@ -254,10 +243,7 @@ class PLANTS:
         -------
         int
             The exit code of the command (based on the Error.py code table).
-        
-        Raises
-        ------
-        None
+    
         '''
 
         return write_config_file(self.config, self.preparedReceptor, self.preparedLigand, self.outputPlants, self.bindingSiteCenter[0], self.bindingSiteCenter[1], self.bindingSiteCenter[2], self.bindingSiteRadius)
@@ -273,10 +259,6 @@ class PLANTS:
         -------
         Dict[str, List[str | float]] | int
             The dictionary with the data from complexes or the error code.
-
-        Raises
-        ------
-        None
         '''
 
         return read_log(self.plantsLog)
@@ -293,10 +275,6 @@ class PLANTS:
         -------
         Tuple[int, str] | int
             The exit code of the command (based on the Error.py code table) and the stderr if applied.
-
-        Raises
-        ------
-        None
         '''
 
         # Set the run folder name
@@ -352,10 +330,6 @@ class PLANTS:
         -------
         Tuple[int, str] | int
             The exit code of the command (based on the Error.py code table) and the stderr if applied.
-
-        Raises
-        ------
-        None
         '''
 
         # Print verboosity
@@ -375,46 +349,149 @@ class PLANTS:
         -------
         Tuple[int, str] | int
             The exit code of the command (based on the Error.py code table) and the stderr if applied.
-
-        Raises
-        ------
-        None
         '''
 
         # Print verboosity
         ocprint.printv(f"Running '{spores}' for '{self.inputReceptorPath}'.")
         return ocrun.run(self.prepareReceptorCmd, logFile=logFile)
 
-    def run_rescore(self, logFile: str = "") -> None:
+    def run_rescore(self, posePath: str, outPath: str, logFile: str = "", sanitize: bool = True, overwrite: bool = False) -> None:
         '''Run smina to rescore the ligand.
 
         Parameters
         ----------
+        outPath : str
+            Path to the output folder.
+        posePath : str
+            Path to the pose file.
         logFile : str
             Path to the logFile. If empty, suppress the output.
+        sanitize : bool, optional
+            If True, sanitize the ligand. Default is True.
+        overwrite : bool, optional
+            If True, overwrite the logFile. Default is False.
 
         Returns
         -------
         int | Tuple[int, str]
             The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
-
-        Raises
-        ------
-        None
         '''
-
-        # Get the ligand name
-        ligandName = os.path.splitext(os.path.basename(self.preparedLigand))[0]
 
         # For each scoring function
         for scoring_function in vina_scoring_functions:
             # If it is not the one used to find the pose
             if scoring_function != vina_scoring:
                 # Run vina to rescore
-                _ = run_rescore(self.preparedLigand, self.outputPlants, scoring_function, logFile = logFile, sanitize = self.inputLigand.sanitize, radiusExpansion = self.boxSpacing)
+                _ = run_rescore(self.preparedLigand, posePath, outPath, scoring_function, logFile = logFile, boxSpacing = self.boxSpacing, sanitize = sanitize, overwrite = overwrite)
 
         return None
+    
+    """
 
+    def get_rescore_log_paths(self, outPath: str) -> List[str]:
+        ''' Get the paths for the rescore log files.
+
+        Parameters
+        ----------
+        outPath : str
+            Path to the output folder where the rescoring logs are located.
+
+        Returns
+        -------
+        List[str]
+            A list with the paths for the rescoring log files.
+        '''
+
+        return [f for f in glob(f"{outPath}/*_split_*.log") if os.path.isfile(f)]
+    
+    def get_docked_poses(self) -> List[str]:
+        '''Get the paths for the docked poses.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        List[str]
+            A list with the paths for the docked poses.
+        '''
+
+        return get_docked_poses(os.path.dirname(self.outputSmina))
+
+    def get_input_ligand_path(self) -> str:
+        ''' Get the input ligand path.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        str
+            The input ligand path.
+        '''
+
+        return os.path.dirname(self.inputLigandPath)
+    
+    def get_input_receptor_path(self) -> str:
+        ''' Get the input receptor path.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        str
+            The input receptor path.
+        '''
+
+        return os.path.dirname(self.inputReceptorPath)
+
+    def read_rescore_logs(self, outPath: str, onlyBest: bool = True) -> Dict[str, List[Union[str, float]]]:
+        ''' Reads the data from the rescore log files.
+
+        Parameters
+        ----------
+        outPath : str
+            Path to the output folder where the rescoring logs are located.
+        onlyBest : bool, optional
+            If True, only the best pose will be returned. By default True.
+
+        Returns
+        -------
+        Dict[str, List[Union[str, float]]]
+            A dictionary with the data from the rescore log files.
+        '''
+
+        # Get the rescore log paths
+        rescoreLogPaths = self.get_rescore_log_paths(outPath)
+
+        # Create the dictionary
+        rescoreLogData = {}
+
+        # For each rescore log path
+        for rescoreLogPath in rescoreLogPaths:
+            # Get the filename from the log path
+            filename = os.path.splitext(os.path.basename(rescoreLogPath))[0]
+            # Split the filename using the split string as delimiter then grab the end of the string
+            filename = filename.split("_split_")[-1]
+            # Remove the extension from the filename
+            filename = os.path.splitext(filename)[0]
+            # If onlyBest is True and the filename does not start with "1"
+            if onlyBest and not filename.startswith("1"):
+                # Skip this iteration
+                continue
+            # Reverse the filename with the delimiter as the underscore
+            filename = "_".join(reversed(filename.split("_")))
+            # Get the rescore log data
+            rescoreLogData[filename] = read_rescoring_log(rescoreLogPath)
+        
+        # Return the dictionary
+        return rescoreLogData
+    
+    """
     def print_attributes(self) -> None:
         '''Print the class attributes.
 
@@ -597,25 +674,27 @@ def run_plants(confFile: str, outputPlants: str, overwrite: bool = False, logFil
     # Run the command
     return ocrun.run(cmd, logFile = logFile)
 
-def run_rescore(ligands: Union[List[str], str], outpath: str, scoring_function: str, logFile: str = "", sanitize: bool = True, boxSpacing: float = 2.9) -> None:
+def run_rescore(ligands: Union[List[str], str], posePath: str, outpath: str, scoring_function: str, logFile: str = "", boxSpacing: float = 2.9, sanitize: bool = True, overwrite: bool = False) -> None:
     '''Run PLANTS to rescore the ligand.
 
     Parameters
     ----------
-    boxFile : str
-        The path to the box file.
     ligands : Union[List[str], str]
         The path to a List of ligand files or the ligand file.
+    posePath : str
+        The path to the pose file.
     outpath : str
         The path to the output file.
     scoring_function : str
         The scoring function to use.
     logFile : str
         The path to the log file. If empty, suppress the output.
+    boxSpacing : float, optional
+        The spacing to be used to expand the box. Default is 2.9.
     sanitize : bool, optional
-        Sanitize the ligand before running PLANTS. Default is True.
-    radiusExpansion : float, optional
-        The radius expansion factor. Default is 3.
+        If True, sanitize the ligand. Default is True.
+    overwrite : bool, optional
+        If True, overwrite the logFile. Default is False.
 
     Returns
     -------
@@ -649,11 +728,12 @@ def run_rescore(ligands: Union[List[str], str], outpath: str, scoring_function: 
         # Get boxSpacing times the gyration radius of the ligand
         bindingSiteRadius = ocl.findRadiusOfGyration(ligand) * boxSpacing # type: ignore
 
-        # Create the conf file
+        # Create the conf file (yes... again...)
         _ = write_config_file(confFile, proteinFile, ligand, outpath, bindingSiteCenterX, bindingSiteCenterY, bindingSiteCenterZ, bindingSiteRadius, scoringFunction = scoring_function)
     
         # Create the command list
         cmd = [plants, "--mode", "rescore", confFile]
+
 
         # Run the command
         _ = ocrun.run(cmd, logFile = logFile)
@@ -664,7 +744,7 @@ def run_rescore(ligands: Union[List[str], str], outpath: str, scoring_function: 
     # Think about how can this be done to deal with multiple runs
     return None
 
-def write_config_file(confFile: str, preparedReceptor: str, preparedLigand: str, outputPlants: str, bindingSiteCenterX: float, bindingSiteCenterY: float, bindingSiteCenterZ: float, bindingSiteRadius: float, scoringFunction: str = "chemplp") -> int:
+def write_config_file(confFile: str, preparedReceptor: str, preparedLigand: str, outputPlants: str, bindingSiteCenterX: float, bindingSiteCenterY: float, bindingSiteCenterZ: float, bindingSiteRadius: float, scoringFunction: str = "chemplp", rescoringMode: bool = False) -> int:
     '''Write the config file.
 
     Parameters
@@ -687,6 +767,8 @@ def write_config_file(confFile: str, preparedReceptor: str, preparedLigand: str,
         The radius of the binding site.
     scoringFunction : str, optional
         The scoring function to use. Default is "chemplp". Options are plp, plp95 or chemplp
+    rescoringMode : bool, optional
+        If True, the config file will be written for rescoring. Default is False.
 
     Returns
     -------
@@ -698,27 +780,43 @@ def write_config_file(confFile: str, preparedReceptor: str, preparedLigand: str,
     None
     '''
 
-    try:
-        with open(confFile, 'w') as f:
-            #f.write("# scoring function and search settings\n")
-            f.write(f"scoring_function {scoringFunction}\n")
-            f.write(f"search_speed {plants_search_speed}\n")
-            #f.write("# input\n")
-            f.write(f"protein_file {preparedReceptor}\n")
-            f.write(f"ligand_file {preparedLigand}\n")
-            #f.write("# output\n")
-            f.write(f"keep_original_mol2_description 0\n") # important to avoid problems in output generation
-            f.write(f"output_dir {outputPlants}\run\n")
-            #f.write("# write single mol2 files (e.g. for RMSD calculation)\n")
-            f.write("write_multi_mol2 0\n")
-            #f.write("# binding site definition\n")
-            f.write(f"bindingsite_center {bindingSiteCenterX} {bindingSiteCenterY} {bindingSiteCenterZ}\n")
-            f.write(f"bindingsite_radius {round(bindingSiteRadius, 3)}\n")
-            #f.write("# cluster algorithm\n")
-            f.write(f"cluster_structures {plants_cluster_structures}\n")
-            f.write(f"cluster_rmsd {plants_cluster_rmsd}")
-    except Exception as e:
-        return errors.write_file(f"Problems while writing the file {confFile}: {e}")
+    if rescoringMode:
+        try:
+            with open(confFile, 'w') as f:
+                #f.write("# scoring function and search settings\n")
+                f.write(f"scoring_function {scoringFunction}\n")
+                #f.write("# input\n")
+                f.write(f"protein_file {preparedReceptor}\n")
+                f.write(f"ligand_file {preparedLigand}\n")
+                #f.write("# output\n")
+                f.write(f"keep_original_mol2_description 0\n") # important to avoid problems in output generation
+                f.write(f"output_dir {outputPlants}/run\n")
+                #f.write(f"# Rescoring mode parameter\n")
+                f.write(f"rescoring_mode simplex\n")
+        except Exception as e:
+            return errors.write_file(f"Problems while writing the file {confFile}: {e}")
+    else:
+        try:
+            with open(confFile, 'w') as f:
+                #f.write("# scoring function and search settings\n")
+                f.write(f"scoring_function {scoringFunction}\n")
+                f.write(f"search_speed {plants_search_speed}\n")
+                #f.write("# input\n")
+                f.write(f"protein_file {preparedReceptor}\n")
+                f.write(f"ligand_file {preparedLigand}\n")
+                #f.write("# output\n")
+                f.write(f"keep_original_mol2_description 0\n") # important to avoid problems in output generation
+                f.write(f"output_dir {outputPlants}/run\n")
+                #f.write("# write single mol2 files (e.g. for RMSD calculation)\n")
+                f.write("write_multi_mol2 0\n")
+                #f.write("# binding site definition\n")
+                f.write(f"bindingsite_center {bindingSiteCenterX} {bindingSiteCenterY} {bindingSiteCenterZ}\n")
+                f.write(f"bindingsite_radius {round(bindingSiteRadius, 3)}\n")
+                #f.write("# cluster algorithm\n")
+                f.write(f"cluster_structures {plants_cluster_structures}\n")
+                f.write(f"cluster_rmsd {plants_cluster_rmsd}")
+        except Exception as e:
+            return errors.write_file(f"Problems while writing the file {confFile}: {e}")
 
     return errors.ok()
 

@@ -427,7 +427,7 @@ def update_DUDEz(overwrite: bool = False, download: bool = True, multiprocess: b
     # Download the benchmark grids indexes
     ocdown.download_url(f"{dudez_download}/DUDE-Z-benchmark-grids/DUDE-Z_targets", f"{tmpDir}/DUDE-Z_targets")
 
-    # Initialize an empty list to store the targets
+    # Initialise an empty list to store the targets
     targets = []
     # Read the targets into a list
     with open(f"{tmpDir}/DUDE-Z_targets", 'r') as f:

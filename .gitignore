@@ -199,5 +199,8 @@ rundock.py
 # Ignore vscode files
 .vscode/
 
+# Ignore the ODDT_models folder
+ODDT_models/
+
 # Ignore docs (for now)
 docs/

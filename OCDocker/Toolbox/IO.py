@@ -108,7 +108,7 @@ def lazyread_reverse_order_mmap(file_name: str, decode: str = "utf-8") -> Genera
                 if new_byte == b'\n':
                     # Fetch the line from buffer and yield it
                     yield buffer.decode(decode)[::-1]
-                    # Reinitialize the byte array to save next line
+                    # Reinitialise the byte array to save next line
                     buffer = bytearray()
                 else:
                     # If last read character is not eol then add it in buffer
@@ -184,7 +184,7 @@ def lazyread_reverse_order(file_name: str, decode: str = "utf-8") -> Generator[s
             if new_byte == b'\n':
                 # Fetch the line from buffer and yield it
                 yield buffer.decode(decode)[::-1]
-                # Reinitialize the byte array to save next line
+                # Reinitialie the byte array to save next line
                 buffer = bytearray()
             else:
                 # If last read character is not eol then add it in buffer

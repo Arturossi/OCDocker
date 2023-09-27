@@ -48,10 +48,7 @@ class Error:
         Returns
         -------
         None
-        
-        Raises
-        ------
-        None
+    
         '''
 
         # OCDocker arguments
@@ -60,6 +57,7 @@ class Error:
         # Common errors
         self.okCode                           = 0
         self.abortCode                        = 1
+        self.skipCode                         = 2
         self.unknownCode                      = -666
 
         # File errors
@@ -91,6 +89,7 @@ class Error:
         self.malformedMoleculeCode            = 401
         self.ligandNotPreparedCode            = 402
         self.receptorNotPreparedCode          = 403
+        self.invalidMoleculeName              = 404
 
         # Docking error
         self.dockingObjectNotGeneratedCode    = 500
@@ -104,6 +103,11 @@ class Error:
         # Archive error
         self.notSupportedArchiveCode          = 600
 
+        # Scoring and rescoring error
+        self.unsupportedScoringFunctionCode   = 700
+        self.rescoringFailedCode              = 701
+        self.missingOddtModel                 = 702
+
     ## Private ##
     def __print_info(self, message: str) -> None:
         '''Function to print info.
@@ -115,10 +119,6 @@ class Error:
 
         Returns
         -------
-        None
-
-        Raises
-        ------
         None
         '''
 
@@ -139,10 +139,6 @@ class Error:
 
         Returns
         -------
-        None
-
-        Raises
-        ------
         None
         '''
 
@@ -165,10 +161,6 @@ class Error:
         Returns
         -------
         None
-
-        Raises
-        ------
-        None
         '''
         
         today = datetime.datetime.now()
@@ -189,10 +181,6 @@ class Error:
 
         Returns
         -------
-        None
-
-        Raises
-        ------
         None
         '''
 
@@ -216,10 +204,6 @@ class Error:
 
         Returns
         -------
-        None
-
-        Raises
-        ------
         None
         '''
 
@@ -249,10 +233,6 @@ class Error:
         -------
         int
             The code for ok (0).
-
-        Raises
-        ------
-        None
         '''
 
         self.__print_msg(message, "success")
@@ -271,15 +251,31 @@ class Error:
         -------
         int
             The code for abort (1).
-
-        Raises
-        ------
-        None
         '''
 
         self.__print_msg(message, "warn")
 
         return self.okCode
+    
+    def skip(self, message: str = "", level: str = "info") -> int:
+        '''Return this when process has been skipped.
+
+        Parameters
+        ----------
+        message : string, optional
+            Message to be printed. Default is "".
+        level : string, optional
+            Level of message to be printed. Default is 'info'.
+
+        Returns
+        -------
+        int
+            The code for skip (2).
+        '''
+
+        self.__print_msg(message, level)
+
+        return self.skipCode
 
     def unknown(self, message: str = "", level: str = "warn") -> int:
         '''Return when the error is unknown.
@@ -295,10 +291,6 @@ class Error:
         -------
         int
             The code for unkown error (-666).
-
-        Raises
-        ------
-        None
         '''
 
         self.__print_msg(message, level)
@@ -320,10 +312,6 @@ class Error:
         -------
         int
             The code for file exists error (100).
-
-        Raises
-        ------
-        None
         '''
 
         self.__print_msg(message, level)
@@ -344,10 +332,6 @@ class Error:
         -------
         int
             The code for file do not exist error (101).
-
-        Raises
-        ------
-        None
         '''
         
         self.__print_msg(message, level)
@@ -368,10 +352,6 @@ class Error:
         -------
         int
             The code for read file error (102).
-
-        Raises
-        ------
-        None
         '''
 
         self.__print_msg(message, level)
@@ -392,10 +372,6 @@ class Error:
         -------
         int
             The code for write file error (103).
-
-        Raises
-        ------
-        None
         '''
 
         self.__print_msg(message, level)
@@ -416,10 +392,6 @@ class Error:
         -------
         int
             The code for untar file error (104).
-
-        Raises
-        ------
-        None
         '''
 
         self.__print_msg(message, level)
@@ -440,10 +412,6 @@ class Error:
         -------
         int
             The code for unsupported extension error (105).
-
-        Raises
-        ------
-        None
         '''
 
         self.__print_msg(message, level)
@@ -464,10 +432,6 @@ class Error:
         -------
         int
             The code for unsupported extension error (105).
-
-        Raises
-        ------
-        None
         '''
 
         self.__print_msg(message, level)
@@ -488,10 +452,6 @@ class Error:
         -------
         int
             The code for unsupported extension error (105).
-
-        Raises
-        ------
-        None
         '''
 
         self.__print_msg(message, level)
@@ -513,10 +473,7 @@ class Error:
         -------
         int
             The code for create directory error (151).
-        
-        Raises
-        ------
-        None
+    
         '''
 
         self.__print_msg(message, level)
@@ -537,17 +494,14 @@ class Error:
         -------
         int
             The code for create directory error (151).
-        
-        Raises
-        ------
-        None
+    
         '''
 
         self.__print_msg(message, level)
 
         return self.createDirCode
 
-    def dir_does_not_exists(self, message: str = "", level: str = "warn") -> int:
+    def dir_does_not_exist(self, message: str = "", level: str = "warn") -> int:
         '''Return this when the directory does not exists.
 
         Parameters
@@ -561,10 +515,6 @@ class Error:
         -------
         int
             The code for directory does not exists error (152).
-
-        Raises
-        ------
-        None
         '''
 
         self.__print_msg(message, level)
@@ -585,10 +535,6 @@ class Error:
         -------
         int
             The code for directory unallowed (153).
-
-        Raises
-        ------
-        None
         '''
 
         self.__print_msg(message, level)
@@ -610,10 +556,6 @@ class Error:
         -------
         int
             The code for wrong type error (200).
-
-        Raises
-        ------
-        None
         '''
 
         self.__print_msg(message, level)
@@ -634,10 +576,6 @@ class Error:
         -------
         int
             The code for not set error (201).
-
-        Raises
-        ------
-        None
         '''
 
         self.__print_msg(message, level)
@@ -658,10 +596,6 @@ class Error:
         -------
         int
             The code for empty error (202).
-
-        Raises
-        ------
-        None
         '''
 
         self.__print_msg(message, level)
@@ -683,10 +617,7 @@ class Error:
         -------
         int
             The code for subprocess error (300).
-        
-        Raises
-        ------
-        None
+    
         '''
 
         self.__print_msg(message, level)
@@ -708,10 +639,6 @@ class Error:
         -------
         int
             The code for parse molecule error (400).
-
-        Raises
-        ------
-        None
         '''
 
         self.__print_msg(message, level)
@@ -732,10 +659,6 @@ class Error:
         -------
         int
             The code for malformed molecule error (401).
-
-        Raises
-        ------
-        None
         '''
 
         self.__print_msg(message, level)
@@ -756,10 +679,6 @@ class Error:
         -------
         int
             The code for ligand not prepared error (402).
-
-        Raises
-        ------
-        None
         '''
 
         self.__print_msg(message, level)
@@ -780,16 +699,32 @@ class Error:
         -------
         int
             The code for receptor not prepared error (403).
-
-        Raises
-        ------
-        None
         '''
 
         self.__print_msg(message, level)
 
         return self.receptorNotPreparedCode
 
+    def invalid_molecule_name(self, message: str = "", level: str = "error") -> int:
+        '''Return this when me molecule has an invalid name.
+
+        Parameters
+        ----------
+        message : string, optional
+            Message to be printed. Default is "".
+        level : string, optional
+            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+
+        Returns
+        -------
+        int
+            The code for invalid molecule name error (404).
+        '''
+
+        self.__print_msg(message, level)
+
+        return self.invalidMoleculeName
+    
     # Docking errors
     def docking_object_not_generated(self, message: str = "", level: str = "warn") -> int:
         '''Return this when a docking object has not been generated.
@@ -805,10 +740,6 @@ class Error:
         -------
         int
             The code for docking object not generated error (500).
-
-        Raises
-        ------
-        None
         '''
 
         self.__print_msg(message, level)
@@ -829,10 +760,6 @@ class Error:
         -------
         int
             The code for receptor or ligand not generated error (501).
-
-        Raises
-        ------
-        None
         '''
 
         self.__print_msg(message, level)
@@ -853,10 +780,6 @@ class Error:
         -------
         int
             The code for receptor or ligand descriptor does not exist error (502).
-
-        Raises
-        ------
-        None
         '''
 
         self.__print_msg(message, level)
@@ -877,10 +800,6 @@ class Error:
         -------
         int
             The code for receptor or ligand descriptor does not exist error (503).
-
-        Raises
-        ------
-        None
         '''
 
         self.__print_msg(message, level)
@@ -901,10 +820,6 @@ class Error:
         -------
         int
             The code for receptor or ligand descriptor does not exist error (503).
-
-        Raises
-        ------
-        None
         '''
 
         self.__print_msg(message, level)
@@ -925,10 +840,6 @@ class Error:
         -------
         int
             The code for receptor or ligand descriptor does not exist error (503).
-
-        Raises
-        ------
-        None
         '''
 
         self.__print_msg(message, level)
@@ -949,10 +860,6 @@ class Error:
         -------
         int
             The code for receptor or ligand descriptor does not exist error (503).
-
-        Raises
-        ------
-        None
         '''
 
         self.__print_msg(message, level)
@@ -974,15 +881,72 @@ class Error:
         -------
         int
             The code for receptor or ligand descriptor does not exist error (600).
-
-        Raises
-        ------
-        None
         '''
 
         self.__print_msg(message, level)
 
         return self.notSupportedArchiveCode
+    
+    # Scoring and rescoring errors
+    def unsupported_scoring_function(self, message: str = "", level: str = "error") -> int:
+        '''Return this when the scoring function is not supported.
+
+        Parameters
+        ----------
+        message : string, optional
+            Message to be printed. Default is "".
+        level : string, optional
+            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        
+        Returns
+        -------
+        int
+            The code for receptor or ligand descriptor does not exist error (700).
+        '''
+
+        self.__print_msg(message, level)
+
+        return self.unsupportedScoringFunctionCode
+    
+    def rescoring_failed(self, message: str = "", level: str = "error") -> int:
+        '''Return this when the rescoring has failed.
+
+        Parameters
+        ----------
+        message : string, optional
+            Message to be printed. Default is "".
+        level : string, optional.
+            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        
+        Returns
+        -------
+        int
+            The code for rescoring failed error (701).
+        '''
+
+        self.__print_msg(message, level)
+
+        return self.rescoringFailedCode
+    
+    def missing_oddt_models(self, message: str = "", level: str = "error") -> int:
+        '''Return this when no ODDt model has been found.
+
+        Parameters
+        ----------
+        message : string, optional
+            Message to be printed. Default is "".
+        level : string, optional.
+            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        
+        Returns
+        -------
+        int
+            The code for rescoring failed error (702).
+        '''
+
+        self.__print_msg(message, level)
+
+        return self.missingOddtModel
 
     # Debug functions
     def print_attributes(self) -> None:
@@ -995,10 +959,6 @@ class Error:
         Returns
         -------
         None
-
-        Raises
-        ------
-        None
         '''
         
         print(f"\t+----------------------------------------------+")
@@ -1008,6 +968,7 @@ class Error:
         print(f"\n\t~~~~~~~~~~~~~~~~ GENERAL ERRORS ~~~~~~~~~~~~~~~~")
         print(f"\t - No error:                        {self.okCode}")
         print(f"\t - Abortion:                        {self.abortCode}")
+        print(f"\t - Skip:                            {self.skipCode}")
         print(f"\t - Unknown error:                   {self.unknownCode}")
 
         print(f"\n\t~~~~~~~~~~~~~~~~~~ FILE ERRORS ~~~~~~~~~~~~~~~~~")
@@ -1039,6 +1000,7 @@ class Error:
         print(f"\t - Malformed molecule error:        {self.malformedMoleculeCode}")
         print(f"\t - Ligand not prepared:             {self.ligandNotPreparedCode}")
         print(f"\t - Receptor not prepared:           {self.receptorNotPreparedCode}")
+        print(f"\t - Invalid molecule name:           {self.invalidMoleculeName}")
 
         print(f"\n\t~~~~~~~~~~~~~~~~ DOCKING ERRORS ~~~~~~~~~~~~~~~~~")
         print(f"\t - Docking Object Generation")
@@ -1054,6 +1016,11 @@ class Error:
 
         print(f"\n\t~~~~~~~~~~~~~~~~ ARCHIVE ERRORS ~~~~~~~~~~~~~~~~~")
         print(f"\t - Archive not supported:           {self.notSupportedArchiveCode}")
+
+        print(f"\n\t~~~~~~~~~~~~~~~ RESCORING ERRORS ~~~~~~~~~~~~~~~~")
+        print(f"\t - Unsupported scoring function:    {self.unsupportedScoringFunctionCode}")
+        print(f"\t - Rescoring failed:                {self.rescoringFailedCode}")
+        print(f"\t - Missing ODDT model:              {self.missingOddtModel}")
 
         return None
 
