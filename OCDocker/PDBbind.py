@@ -57,10 +57,6 @@ def verify_integrity() -> None:
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
     #ocbdb.verify_integrity(pdbbind_archive)
@@ -92,10 +88,6 @@ def convert_debug_to_production(chosenAlgorithm: str = "ac", strict: bool = Fals
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
     ocp2rank.convert_debug_to_production(pdbbind_archive, chosenAlgorithm = chosenAlgorithm, strict = strict, removeDebug = removeDebug)
@@ -112,10 +104,6 @@ def read_index() -> Union[Dict[str, List[str]], None]:
     -------
     Dict[str, List[str]] | None
         A list of dictionaries with the data from the index file. If the file does not exist, it will return None.
-
-    Raises
-    ------
-    None
     '''
 
     indexFile = glob(pdbbind_archive + '/index/INDEX_refined_data.*')[0]
@@ -196,10 +184,6 @@ def run_p2rank(overwrite: bool = False) -> None:
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
     return ocbdb.run_p2rank("pdbbind", overwrite = overwrite)
@@ -236,10 +220,6 @@ def run_vina(overwrite: bool = False) -> int:
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     return ocbdb.run_docking("pdbbind", "vina", overwrite = overwrite)
@@ -256,10 +236,6 @@ def run_smina(overwrite: bool = False) -> int:
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     return ocbdb.run_docking("pdbbind", "smina", overwrite = overwrite)
@@ -276,10 +252,6 @@ def run_plants(overwrite: bool = False) -> int:
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     return ocbdb.run_docking("pdbbind", "plants", overwrite = overwrite)
@@ -294,10 +266,6 @@ def prepare(overwrite: bool = False) -> None:
 
     Returns
     -------
-    None
-
-    Raises
-    ------
     None
     '''
 
@@ -317,10 +285,6 @@ def read_logs(saveChunk: int = 100, overwrite: bool = False) -> Union[Dict[str, 
     -------
     Dict[str, Dict[str, vdf.DataFrameLocal]]
         The parsed data.
-
-    Raises
-    ------
-    None
     '''
 
     return ocbdb.read_logs("pdbbind", saveChunk = saveChunk, overwrite = overwrite)
@@ -337,10 +301,6 @@ def generate_dock_result_csv(csv_path: str = "", log_dumps: Union[Dict[str, vdf.
 
     Returns
     -------
-    None
-
-    Raises
-    ------
     None
     '''
 
@@ -371,10 +331,6 @@ def merge_descriptors_in_dataframe(readMode:str = "hdf5", saveMode: str = "hdf5"
     -------
     vdf.DataFrameLocal | None
         A dataframe with all the descriptors and affinity results or None if any error occur while reading the input file or if returnDf is set to false.
-
-    Raises
-    ------
-    None
     '''
     
     # Get the dataframe with descriptors and docking scores

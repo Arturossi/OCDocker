@@ -142,10 +142,6 @@ def create_ocdocker_conf() -> None:
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
     #region General config
@@ -225,7 +221,7 @@ def create_ocdocker_conf() -> None:
     answer = input(f"Vina num modes parameter. Default [{confVina_num_modes}] (press enter to keep default): ")
     confVina_num_modes = confVina_num_modes if not answer else answer
 
-    answer = input(f"Vina scoring function. Default [{confVina_scoring}] (press enter to keep default): ")
+    answer = input(f"Vina default scoring function. Default [{confVina_scoring}] (press enter to keep default): ")
     confVina_scoring = confVina_scoring if not answer else answer
 
     answer = input(f"Vina available scoring functions (separated by ','). Default [{confVina_scoring_functions}] (press enter to keep default): ")
@@ -267,7 +263,7 @@ def create_ocdocker_conf() -> None:
     answer = input(f"Smina num modes parameter. Default [{confSmina_num_modes}] (press enter to keep default): ")
     confSmina_num_modes = confSmina_num_modes if not answer else answer
 
-    answer = input(f"Smina scoring function parameter. Default [{confSmina_scoring}] (press enter to keep default): ")
+    answer = input(f"Smina default scoring function parameter. Default [{confSmina_scoring}] (press enter to keep default): ")
     confSmina_scoring = confSmina_scoring if not answer else answer
 
     answer = input(f"Smina available scoring functions (separated by ','). Default [{confSmina_scoring_functions}] (press enter to keep default): ")
@@ -410,6 +406,9 @@ def create_ocdocker_conf() -> None:
     confPlants_cluster_structures = 10
     confPlants_cluster_rmsd = 2.0
     confPlants_search_speed = "speed1"
+    confPlants_scoring = "chemplp"
+    confPlants_scoring_functions = "chemplp,plp,plp95"
+    confPlants_rescoring_mode = "simplex"
 
     print("\nPLANTS configuration")
     answer = input(f"Path to the Plants software. Default [{confPlants}] (press enter to keep default): ")
@@ -423,6 +422,15 @@ def create_ocdocker_conf() -> None:
 
     answer = input(f"PLANTS search speed parameter. Default [{confPlants_search_speed}] (press enter to keep default): ")
     confPlants_search_speed = confPlants_search_speed if not answer else answer
+
+    answer = input(f"PLANTS default scoring function. Default [{confPlants_scoring}] (press enter to keep default): ")
+    confPlants_scoring = confPlants_scoring if not answer else answer
+
+    answer = input(f"PLANTS available scoring functions (separated by ','). Default [{confPlants_scoring_functions}] (press enter to keep default): ")
+    confPlants_scoring_functions = confPlants_scoring_functions if not answer else answer
+
+    answer = input(f"PLANTS rescoring mode parameter. Default [{confPlants_rescoring_mode}] (press enter to keep default): ")
+    confPlants_rescoring_mode = confPlants_rescoring_mode if not answer else answer
 
     #endregion
 
@@ -563,7 +571,7 @@ def create_ocdocker_conf() -> None:
         # Maximum number of binding modes to generate
         smina_num_modes = """ + str(confSmina_num_modes) + """
 
-        # Alternative scoring function
+        # Default scoring function
         smina_scoring = """ + str(confSmina_scoring) + """
 
         # Available scoring functions
@@ -621,6 +629,15 @@ def create_ocdocker_conf() -> None:
 
         # Search speed
         plants_search_speed = """ + str(confPlants_search_speed) + """
+
+        # Default scoring function
+        plants_scoring = """ + str(confPlants_scoring) + """
+
+        # Available scoring functions
+        plants_scoring_functions = """ + str(confPlants_scoring_functions) + """
+
+        # Plants rescoring mode
+        plants_rescoring_mode = """ + str(confPlants_rescoring_mode) + """
 
         ################# GNINA PARAMETERS ##################
 
@@ -869,6 +886,8 @@ global gnina_no_gpu
 global plants_cluster_structures
 global plants_cluster_rmsd
 global plants_search_speed
+global plants_scoring
+global plants_scoring_functions
 
 # Dock6 parameters
 global dock6_vdw_defn_file
@@ -975,10 +994,6 @@ def argument_parsing() -> argparse.Namespace:
     -------
     argparse.Namespace
         Namespace object containing the arguments.
-
-    Raises
-    ------
-    None
     '''
     
     # Create the parser
@@ -1172,6 +1187,12 @@ for line in open(config_file, 'r'): # type: ignore
         plants_cluster_rmsd = line.split("=")[1].strip()
     elif line.startswith("plants_search_speed ="):
         plants_search_speed = line.split("=")[1].strip()
+    elif line.startswith("plants_scoring ="):
+        plants_scoring = line.split("=")[1].strip()
+    elif line.startswith("plants_scoring_functions ="):
+        plants_scoring_functions = [l.strip() for l in line.split("=")[1].strip().split(",")]
+    elif line.startswith("plants_rescoring_mode ="):
+        plants_rescoring_mode = line.split("=")[1].strip()
     elif line.startswith("dock6 ="):
         dock6 = line.split("=")[1].strip()
     elif line.startswith("dock6_vdw_defn_file ="):

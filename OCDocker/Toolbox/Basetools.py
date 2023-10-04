@@ -53,10 +53,6 @@ def redirect_to_tqdm():
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
     # Store builtin print

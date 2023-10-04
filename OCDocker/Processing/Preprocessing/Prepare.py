@@ -85,10 +85,6 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
     # Find its name and path
@@ -216,10 +212,6 @@ def __sub_core_prepare(dirsToProcess: str, dbName: str, overwrite: bool, mols : 
     -------
     List[str]
         List of molecule directories.
-
-    Raises
-    ------
-    None
     '''
 
     # Check if mols is empty
@@ -288,10 +280,6 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Check if the basename of the working directory is not in the list of ignored directories
@@ -463,10 +451,6 @@ def __thread_prepare(arguments: Tuple[str, bool, str, bool, float]) -> int:
     -------
     int
         The error code. See octools.error_codes for more information.
-
-    Raises
-    ------
-    None
     '''
     # Redirect all prints to tqdm.write
     with ocbasetools.redirect_to_tqdm():
@@ -495,10 +479,6 @@ def __prepare_parallel(paths: List[str], overwrite: bool, archive: str, sanitize
     
     Returns
     -------
-    None
-
-    Raises
-    ------
     None
     '''
 
@@ -547,10 +527,6 @@ def __prepare_no_parallel(paths: List[str], overwrite: bool, archive: str, sanit
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
     # Redirect all prints to tqdm.write
@@ -583,10 +559,6 @@ def __prepare_single(path: str, overwrite: bool, archive: str, sanitize: bool, s
 
     Returns
     -------
-    None
-
-    Raises
-    ------
     None
     '''
 

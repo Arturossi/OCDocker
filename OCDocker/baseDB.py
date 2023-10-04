@@ -69,10 +69,6 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
     # Verify the integrity of the database
@@ -293,10 +289,6 @@ def prepare(archive: str, overwrite: bool = False, spacing: float = 0.33, saniti
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
     # Find which kind of archive it will be
@@ -331,10 +323,6 @@ def run_p2rank(archive: str, overwrite: bool = False) -> None:
 
     Returns
     -------
-    None
-
-    Raises
-    ------
     None
     '''
 
@@ -375,10 +363,6 @@ def run_docking(archive: str, dockingAlgorithm: str, digestFormat: str = "json",
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Make archive lowercase
@@ -433,10 +417,6 @@ def read_logs(archive: str, saveChunk: int = 100, overwrite: bool = False) -> Un
     -------
     vdf.DataFrameLocal | None
         A vdf.DataFrameLocal. If failed, returns None.
-
-    Raises
-    ------
-    None
     '''
 
     # Make archive lowercase
@@ -517,10 +497,6 @@ def generate_dock_result_csv(archive: str, csv_path: str, log_dumps: Union[vdf.D
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
  
     # Check if log_dumps is None
@@ -564,10 +540,6 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
     -------
     vdf.DataFrameLocal | None
         The dataframe with all the descriptors.
-
-    Raises
-    ------
-    None
     '''
 
     # Find which kind of archive it will be

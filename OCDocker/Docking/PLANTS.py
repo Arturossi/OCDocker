@@ -126,6 +126,7 @@ class PLANTS:
         # Plants
         self.plantsLog = str(plantsLog)
         self.outputPlants = str(outputPlants)
+        self.outputCsv = f"{self.outputPlants}/run/ranking.csv"
         self.plantsCmd = [plants, "--mode", "screen", self.config]
         
         # Check if config file exists to avoid useless processing
@@ -153,7 +154,7 @@ class PLANTS:
 
         return get_binding_site(self.boxFile, self.boxSpacing)
 
-    def __parse_receptor_path(self, receptor: ocr.Receptor, forceMol2: bool = False):
+    def __parse_receptor_path(self, receptor: ocr.Receptor, forceMol2: bool = False) -> Union[str, None]:
         '''Parse the receptor path, handling its type.
 
         Parameters
@@ -248,12 +249,13 @@ class PLANTS:
 
         return write_config_file(self.config, self.preparedReceptor, self.preparedLigand, self.outputPlants, self.bindingSiteCenter[0], self.bindingSiteCenter[1], self.bindingSiteCenter[2], self.bindingSiteRadius)
 
-    def read_log(self) -> Union[Dict[str, List[Union[str, float]]], int]:
+    def read_log(self, onlyBest = True) -> Union[Dict[str, List[Union[str, float]]], int]:
         '''Read the PLANTS log path, returning a pd.dataframe with data from complexes.
 
         Parameters
         ----------
-        None
+        onlyBest : bool, optional
+            If True, only the best pose will be returned. By default True.
 
         Returns
         -------
@@ -261,7 +263,7 @@ class PLANTS:
             The dictionary with the data from complexes or the error code.
         '''
 
-        return read_log(self.plantsLog)
+        return read_log(self.outputCsv, onlyBest = onlyBest)
 
     def run_plants(self, overwrite: bool =False) -> Union[Tuple[int, str], int]:
         '''Run plants.
@@ -355,19 +357,15 @@ class PLANTS:
         ocprint.printv(f"Running '{spores}' for '{self.inputReceptorPath}'.")
         return ocrun.run(self.prepareReceptorCmd, logFile=logFile)
 
-    def run_rescore(self, posePath: str, outPath: str, logFile: str = "", sanitize: bool = True, overwrite: bool = False) -> None:
-        '''Run smina to rescore the ligand.
+    def run_rescore(self, pose_list: str, logFile: str = "", overwrite: bool = False) -> None:
+        '''Run PLANTS to rescore the ligand.
 
         Parameters
         ----------
-        outPath : str
-            Path to the output folder.
-        posePath : str
-            Path to the pose file.
+        pose_list : str
+            The path to the ligand poses list file.
         logFile : str
             Path to the logFile. If empty, suppress the output.
-        sanitize : bool, optional
-            If True, sanitize the ligand. Default is True.
         overwrite : bool, optional
             If True, overwrite the logFile. Default is False.
 
@@ -378,31 +376,44 @@ class PLANTS:
         '''
 
         # For each scoring function
-        for scoring_function in vina_scoring_functions:
+        for scoring_function in plants_scoring_functions:
+            # Set the output path
+            outPath = f"{self.outputPlants}/run_{scoring_function}"
+            # Set the config file
+            confFile = f"{self.outputPlants}/{self.inputLigand.name}_rescoring_{scoring_function}.txt"
             # If it is not the one used to find the pose
-            if scoring_function != vina_scoring:
+            if scoring_function != plants_scoring:
                 # Run vina to rescore
-                _ = run_rescore(self.preparedLigand, posePath, outPath, scoring_function, logFile = logFile, boxSpacing = self.boxSpacing, sanitize = sanitize, overwrite = overwrite)
+                _ = run_rescore(confFile, pose_list, outPath, self.preparedReceptor, scoring_function, logFile = logFile, overwrite = overwrite) # type: ignore
 
         return None
     
-    """
-
-    def get_rescore_log_paths(self, outPath: str) -> List[str]:
-        ''' Get the paths for the rescore log files.
+    def get_rescore_log_paths(self) -> List[str]:
+        ''' Get the paths for the rescore csv file.
 
         Parameters
         ----------
-        outPath : str
-            Path to the output folder where the rescoring logs are located.
+        None
 
         Returns
         -------
         List[str]
-            A list with the paths for the rescoring log files.
+            List of rescoring logs.
         '''
 
-        return [f for f in glob(f"{outPath}/*_split_*.log") if os.path.isfile(f)]
+        # Create the rescoring logs list
+        rescoring_logs = []
+
+        # For each scoring function
+        for scoring_function in plants_scoring_functions:
+            # Set the output path
+            outPath = f"{self.outputPlants}/run_{scoring_function}"
+            # If the file exists
+            if os.path.isfile(f"{outPath}/ranking.csv"):
+                # Append the data to the rescoring_logs list
+                rescoring_logs.append(f"{outPath}/ranking.csv")
+
+        return rescoring_logs
     
     def get_docked_poses(self) -> List[str]:
         '''Get the paths for the docked poses.
@@ -417,8 +428,8 @@ class PLANTS:
             A list with the paths for the docked poses.
         '''
 
-        return get_docked_poses(os.path.dirname(self.outputSmina))
-
+        return get_docked_poses(f"{self.outputPlants}/run")
+    
     def get_input_ligand_path(self) -> str:
         ''' Get the input ligand path.
 
@@ -432,7 +443,7 @@ class PLANTS:
             The input ligand path.
         '''
 
-        return os.path.dirname(self.inputLigandPath)
+        return self.inputLigandPath if self.inputLigandPath else ""
     
     def get_input_receptor_path(self) -> str:
         ''' Get the input receptor path.
@@ -447,15 +458,13 @@ class PLANTS:
             The input receptor path.
         '''
 
-        return os.path.dirname(self.inputReceptorPath)
-
-    def read_rescore_logs(self, outPath: str, onlyBest: bool = True) -> Dict[str, List[Union[str, float]]]:
+        return self.inputReceptorPath if self.inputReceptorPath else ""
+    
+    def read_rescore_logs(self, onlyBest: bool = True) -> Dict[str, List[Union[str, float]]]:
         ''' Reads the data from the rescore log files.
 
         Parameters
         ----------
-        outPath : str
-            Path to the output folder where the rescoring logs are located.
         onlyBest : bool, optional
             If True, only the best pose will be returned. By default True.
 
@@ -466,7 +475,7 @@ class PLANTS:
         '''
 
         # Get the rescore log paths
-        rescoreLogPaths = self.get_rescore_log_paths(outPath)
+        rescoreLogPaths = self.get_rescore_log_paths()
 
         # Create the dictionary
         rescoreLogData = {}
@@ -474,24 +483,46 @@ class PLANTS:
         # For each rescore log path
         for rescoreLogPath in rescoreLogPaths:
             # Get the filename from the log path
-            filename = os.path.splitext(os.path.basename(rescoreLogPath))[0]
-            # Split the filename using the split string as delimiter then grab the end of the string
-            filename = filename.split("_split_")[-1]
-            # Remove the extension from the filename
-            filename = os.path.splitext(filename)[0]
+            filename = os.path.basename(os.path.dirname(rescoreLogPath))
             # If onlyBest is True and the filename does not start with "1"
             if onlyBest and not filename.startswith("1"):
                 # Skip this iteration
                 continue
-            # Reverse the filename with the delimiter as the underscore
-            filename = "_".join(reversed(filename.split("_")))
             # Get the rescore log data
-            rescoreLogData[filename] = read_rescoring_log(rescoreLogPath)
+            rescoreLogData[filename] = read_log(rescoreLogPath)
         
         # Return the dictionary
         return rescoreLogData
     
-    """
+    def write_pose_list(self, overwrite: bool = False) -> Union[str, None]:
+        ''' Write the pose_list file.
+
+        Parameters
+        ----------
+        overwrite : bool, optional
+            If True, overwrite the pose_list file. Default is False.
+
+        Returns
+        -------
+        str | None
+            The path for the pose_list file. If the file already exists and overwrite is False, return None.
+        '''
+
+        # Get the docked poses file paths
+        dockedPoses = self.get_docked_poses()
+
+        # Parameterize the pose_list file path
+        poseListPath = f"{self.outputPlants}/pose_list.txt"
+
+        # Check if the pose_list file exists
+        if not os.path.isfile(poseListPath) or overwrite:
+            # Create the pose_list file
+            with open(poseListPath, "w") as poseListFile:
+                # Write the docked poses
+                poseListFile.write("\n".join(dockedPoses))
+            return poseListPath
+        return None
+
     def print_attributes(self) -> None:
         '''Print the class attributes.
 
@@ -517,6 +548,7 @@ class PLANTS:
         print(f"Prepared ligand command:     '{' '.join(self.prepareLigandCmd) if self.prepareLigandCmd else '-' }'")
         print(f"PLANTS execution log path:   '{self.plantsLog if self.plantsLog else '-' }'")
         print(f"PLANTS output path:          '{self.outputPlants if self.outputPlants else '-' }'")
+        print(f"PLANTS output csv path:      '{self.outputCsv if self.outputCsv else '-' }'")
         print(f"PLANTS command:              '{' '.join(self.plantsCmd) if self.plantsCmd else '-' }'")
         return None
 
@@ -551,10 +583,6 @@ def box_to_plants(boxFile: str, confFile: str, receptor: str, ligand: str, outpu
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     ocprint.printv(f"Converting the box file '{boxFile}' to PLANTS conf file as '{confFile}' file.")
@@ -589,10 +617,6 @@ def run_prepare_ligand(inputLigandPath: str, outputLigand: str, logFile: str = "
     -------
     Tuple[int, str] | int
         The exit code of the command (based on the Error.py code table) and the stderr if applied.
-
-    Raises
-    ------
-    None
     '''
 
     # Create the command list
@@ -618,10 +642,6 @@ def run_prepare_receptor(inputReceptorPath: str, outputReceptor: str, logFile: s
     -------
     Tuple[int, str] | int
         The exit code of the command (based on the Error.py code table) and the stderr if applied.
-
-    Raises
-    ------
-    None
     '''
     # Create the command list
     cmd = [spores, "--mode", "complete", inputReceptorPath, outputReceptor]
@@ -648,10 +668,6 @@ def run_plants(confFile: str, outputPlants: str, overwrite: bool = False, logFil
     -------
     Tuple[int, str] | int
         The exit code of the command (based on the Error.py code table) and the stderr if applied.
-
-    Raises
-    ------
-    None
     '''
 
     # If overwrite is set
@@ -674,25 +690,23 @@ def run_plants(confFile: str, outputPlants: str, overwrite: bool = False, logFil
     # Run the command
     return ocrun.run(cmd, logFile = logFile)
 
-def run_rescore(ligands: Union[List[str], str], posePath: str, outpath: str, scoring_function: str, logFile: str = "", boxSpacing: float = 2.9, sanitize: bool = True, overwrite: bool = False) -> None:
+def run_rescore(confFile: str, pose_list: str, outPath: str, proteinFile: str, scoring_function: str, logFile: str = "", overwrite: bool = False) -> int:
     '''Run PLANTS to rescore the ligand.
 
     Parameters
     ----------
-    ligands : Union[List[str], str]
-        The path to a List of ligand files or the ligand file.
-    posePath : str
-        The path to the pose file.
-    outpath : str
+    confFile : str
+        The path to the PLANTS configuration file.
+    pose_list : str
+        The path to the ligand poses list file.
+    outPath : str
         The path to the output file.
+    proteinFile : str
+        The path to the protein file which will be used as receptor.
     scoring_function : str
         The scoring function to use.
     logFile : str
         The path to the log file. If empty, suppress the output.
-    boxSpacing : float, optional
-        The spacing to be used to expand the box. Default is 2.9.
-    sanitize : bool, optional
-        If True, sanitize the ligand. Default is True.
     overwrite : bool, optional
         If True, overwrite the logFile. Default is False.
 
@@ -700,51 +714,41 @@ def run_rescore(ligands: Union[List[str], str], posePath: str, outpath: str, sco
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
-    # Check if the ligands is a string
-    if isinstance(ligands, str):
-        # Convert to list
-        ligands = [ligands]
-
-    # For each ligand
-    for ligand in ligands:
-        # Get the ligand name
-        ligandName = os.path.splitext(os.path.basename(ligand))[0]
-
-        # Get the conf file name
-        confFile = f"{outpath}/{ligandName}_{scoring_function}.conf"
-
-        # Get the protein file name
-        proteinFile = f"{outpath}/{ligandName}_protein.mol2"
-
-        # Get the centroid of the ligand
-        bindingSiteCenterX, bindingSiteCenterY, bindingSiteCenterZ = ocl.get_centroid(ligand, sanitize = sanitize)
-
-        # Get boxSpacing times the gyration radius of the ligand
-        bindingSiteRadius = ocl.findRadiusOfGyration(ligand) * boxSpacing # type: ignore
+    # Check if the conf file exists
+    if not os.path.isfile(confFile) or overwrite:
+        # Get the output folder
+        plants_outputFolder = f"{outPath}/run_{scoring_function}"
+        # Check if the folder exists
+        if os.path.isdir(plants_outputFolder):
+            # If overwrite is set
+            if overwrite:
+                # Remove it
+                ocff.safe_remove_dir(plants_outputFolder)
+            else:
+                # Print verboosity
+                return errors.dir_exists(f"The folder '{plants_outputFolder}' already exists. Skipping the PLANTS run.", level="warning")
 
         # Create the conf file (yes... again...)
-        _ = write_config_file(confFile, proteinFile, ligand, outpath, bindingSiteCenterX, bindingSiteCenterY, bindingSiteCenterZ, bindingSiteRadius, scoringFunction = scoring_function)
-    
+        _ = write_rescoring_config_file(confFile, proteinFile, pose_list, outPath, scoringFunction = scoring_function, rescoringMode = plants_rescoring_mode)
+
         # Create the command list
         cmd = [plants, "--mode", "rescore", confFile]
-
 
         # Run the command
         _ = ocrun.run(cmd, logFile = logFile)
 
         # Print verboosity
         ocprint.printv(f"Running PLANTS using the '{confFile}' configurations and scoring function '{scoring_function}'.")
-    
-    # Think about how can this be done to deal with multiple runs
+        return errors.ok()
+    else:
+        # Print verboosity
+        return errors.file_exists(f"The file '{confFile}' already exists. Skipping the PLANTS run.", level="warning")
+        
     return None
 
-def write_config_file(confFile: str, preparedReceptor: str, preparedLigand: str, outputPlants: str, bindingSiteCenterX: float, bindingSiteCenterY: float, bindingSiteCenterZ: float, bindingSiteRadius: float, scoringFunction: str = "chemplp", rescoringMode: bool = False) -> int:
+def write_config_file(confFile: str, preparedReceptor: str, preparedLigand: str, outputPlants: str, bindingSiteCenterX: float, bindingSiteCenterY: float, bindingSiteCenterZ: float, bindingSiteRadius: float, scoringFunction: str = "chemplp") -> int:
     '''Write the config file.
 
     Parameters
@@ -767,56 +771,75 @@ def write_config_file(confFile: str, preparedReceptor: str, preparedLigand: str,
         The radius of the binding site.
     scoringFunction : str, optional
         The scoring function to use. Default is "chemplp". Options are plp, plp95 or chemplp
-    rescoringMode : bool, optional
-        If True, the config file will be written for rescoring. Default is False.
 
     Returns
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
-    if rescoringMode:
-        try:
-            with open(confFile, 'w') as f:
-                #f.write("# scoring function and search settings\n")
-                f.write(f"scoring_function {scoringFunction}\n")
-                #f.write("# input\n")
-                f.write(f"protein_file {preparedReceptor}\n")
-                f.write(f"ligand_file {preparedLigand}\n")
-                #f.write("# output\n")
-                f.write(f"keep_original_mol2_description 0\n") # important to avoid problems in output generation
-                f.write(f"output_dir {outputPlants}/run\n")
-                #f.write(f"# Rescoring mode parameter\n")
-                f.write(f"rescoring_mode simplex\n")
-        except Exception as e:
-            return errors.write_file(f"Problems while writing the file {confFile}: {e}")
-    else:
-        try:
-            with open(confFile, 'w') as f:
-                #f.write("# scoring function and search settings\n")
-                f.write(f"scoring_function {scoringFunction}\n")
-                f.write(f"search_speed {plants_search_speed}\n")
-                #f.write("# input\n")
-                f.write(f"protein_file {preparedReceptor}\n")
-                f.write(f"ligand_file {preparedLigand}\n")
-                #f.write("# output\n")
-                f.write(f"keep_original_mol2_description 0\n") # important to avoid problems in output generation
-                f.write(f"output_dir {outputPlants}/run\n")
-                #f.write("# write single mol2 files (e.g. for RMSD calculation)\n")
-                f.write("write_multi_mol2 0\n")
-                #f.write("# binding site definition\n")
-                f.write(f"bindingsite_center {bindingSiteCenterX} {bindingSiteCenterY} {bindingSiteCenterZ}\n")
-                f.write(f"bindingsite_radius {round(bindingSiteRadius, 3)}\n")
-                #f.write("# cluster algorithm\n")
-                f.write(f"cluster_structures {plants_cluster_structures}\n")
-                f.write(f"cluster_rmsd {plants_cluster_rmsd}")
-        except Exception as e:
-            return errors.write_file(f"Problems while writing the file {confFile}: {e}")
+    try:
+        with open(confFile, 'w') as f:
+            #f.write("# scoring function and search settings\n")
+            f.write(f"scoring_function {scoringFunction}\n")
+            f.write(f"search_speed {plants_search_speed}\n")
+            #f.write("# input\n")
+            f.write(f"protein_file {preparedReceptor}\n")
+            f.write(f"ligand_file {preparedLigand}\n")
+            #f.write("# output\n")
+            f.write(f"keep_original_mol2_description 0\n") # important to avoid problems in output generation
+            f.write(f"output_dir {outputPlants}/run\n")
+            #f.write("# write single mol2 files (e.g. for RMSD calculation)\n")
+            f.write("write_multi_mol2 0\n")
+            #f.write("# binding site definition\n")
+            f.write(f"bindingsite_center {bindingSiteCenterX} {bindingSiteCenterY} {bindingSiteCenterZ}\n")
+            f.write(f"bindingsite_radius {round(bindingSiteRadius, 3)}\n")
+            #f.write("# cluster algorithm\n")
+            f.write(f"cluster_structures {plants_cluster_structures}\n")
+            f.write(f"cluster_rmsd {plants_cluster_rmsd}")
+    except Exception as e:
+        return errors.write_file(f"Problems while writing the file {confFile}: {e}")
+
+    return errors.ok()
+
+def write_rescoring_config_file(confFile: str, preparedReceptor: str, ligandListPath: str, outputPlants: str, scoringFunction: str = "chemplp", rescoringMode: str = "simplex") -> int:
+    '''Write the config file to be used in rescoring mode.
+
+    Parameters
+    ----------
+    confFile : str
+        The path to the PLANTS configuration file.
+    preparedReceptor : str
+        The path to the prepared receptor.
+    ligandListPath : str
+        The path to the ligand pose_list file.
+    outputPlants : str
+        The path to the PLANTS output directory.
+    scoringFunction : str, optional
+        The scoring function to use. Default is "chemplp". Options are plp, plp95 or chemplp
+    rescoringMode : str, optional
+        The rescoring mode to use. Default is "simplex". Options are simplex or no_simplex.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+    '''
+
+    try:
+        with open(confFile, 'w') as f:
+            #f.write("# scoring function and search settings\n")
+            f.write(f"scoring_function {scoringFunction}\n")
+            #f.write("# input\n")
+            f.write(f"protein_file {preparedReceptor}\n")
+            f.write(f"ligand_list {ligandListPath}\n")
+            #f.write("# output\n")
+            f.write(f"keep_original_mol2_description 0\n") # important to avoid problems in output generation
+            f.write(f"output_dir {outputPlants}\n")
+            #f.write(f"# Rescoring mode parameter\n")
+            f.write(f"rescoring_mode {rescoringMode}\n")
+    except Exception as e:
+        return errors.write_file(f"Problems while writing the file {confFile}: {e}")
 
     return errors.ok()
 
@@ -834,10 +857,6 @@ def get_binding_site(boxFile: str, spacing: float = 2.9) -> Union[Tuple[Tuple[fl
     -------
     Tuple[Tuple[float, float, float], float] | int
         The center of the binding site and the radius of the binding site. If there is an error, the error code is returned.
-
-    Raises
-    ------
-    None
     '''
 
     ocprint.printv(f"Parsing '{boxFile}' to binding center data.")
@@ -919,10 +938,6 @@ def generate_plants_files_database(path: str, protein: str, ligand: str, spacing
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Parameterize the PLANTS and p2rank paths
@@ -944,22 +959,20 @@ def generate_plants_files_database(path: str, protein: str, ligand: str, spacing
 
     return None
 
-def read_log(path: str) -> Dict[str, List[Union[str, float]]]:
-    '''Read the PLANTS log path, returning a pd.dataframe with data from complexes.
+def read_log(path: str, onlyBest: bool = True) -> Dict[str, List[Union[str, float]]]:
+    '''Read the PLANTS log path, returning a dict with data from complexes.
 
     Parameters
     ----------
     path : str
         The path to the PLANTS log file.
+    onlyBest : bool, optional
+        If True, only the best pose will be returned. By default True.
         
     Returns
     -------
     Dict[str, List[str | float]]
         A dictionary with the data from the PLANTS log file.
-
-    Raises
-    ------
-    None
     '''
     
     # Check if file exists
@@ -981,16 +994,35 @@ def read_log(path: str) -> Dict[str, List[Union[str, float]]]:
                     "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [np.NaN],
                 }
             else:
-                # Return the built the dictionary
-                return {
-                    "PLANTS_TOTAL_SCORE": [df.TOTAL_SCORE[:1].values[0]], # type: ignore
-                    "PLANTS_SCORE_RB_PEN": [df.SCORE_RB_PEN[:1].values[0]], # type: ignore
-                    "PLANTS_SCORE_NORM_HEVATOMS": [df.SCORE_NORM_HEVATOMS[:1].values[0]], # type: ignore
-                    "PLANTS_SCORE_NORM_CRT_HEVATOMS": [df.SCORE_NORM_CRT_HEVATOMS[:1].values[0]], # type: ignore
-                    "PLANTS_SCORE_NORM_WEIGHT": [df.SCORE_NORM_WEIGHT[:1].values[0]], # type: ignore
-                    "PLANTS_SCORE_NORM_CRT_WEIGHT": [df.SCORE_NORM_CRT_WEIGHT[:1].values[0]], # type: ignore
-                    "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [df.SCORE_RB_PEN_NORM_CRT_HEVATOMS[:1].values[0]], # type: ignore
-                }
+                # If onlyBest is True
+                if onlyBest:
+                    # Return the built the dictionary
+                    return {
+                        "PLANTS_TOTAL_SCORE": [df.TOTAL_SCORE[:1].values[0]], # type: ignore
+                        "PLANTS_SCORE_RB_PEN": [df.SCORE_RB_PEN[:1].values[0]], # type: ignore
+                        "PLANTS_SCORE_NORM_HEVATOMS": [df.SCORE_NORM_HEVATOMS[:1].values[0]], # type: ignore
+                        "PLANTS_SCORE_NORM_CRT_HEVATOMS": [df.SCORE_NORM_CRT_HEVATOMS[:1].values[0]], # type: ignore
+                        "PLANTS_SCORE_NORM_WEIGHT": [df.SCORE_NORM_WEIGHT[:1].values[0]], # type: ignore
+                        "PLANTS_SCORE_NORM_CRT_WEIGHT": [df.SCORE_NORM_CRT_WEIGHT[:1].values[0]], # type: ignore
+                        "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [df.SCORE_RB_PEN_NORM_CRT_HEVATOMS[:1].values[0]], # type: ignore
+                    }
+                else:
+                    # Create the dict
+                    data = {}
+                    # For each row
+                    for _, row in df.iterrows(): # type: ignore
+                        # Add the data to the dict
+                        data[row['LIGAND_ENTRY']] = {
+                            "PLANTS_TOTAL_SCORE": row['TOTAL_SCORE'], # type: ignore
+                            "PLANTS_SCORE_RB_PEN": row['SCORE_RB_PEN'], # type: ignore
+                            "PLANTS_SCORE_NORM_HEVATOMS": row['SCORE_NORM_HEVATOMS'], # type: ignore
+                            "PLANTS_SCORE_NORM_CRT_HEVATOMS": row['SCORE_NORM_CRT_HEVATOMS'], # type: ignore
+                            "PLANTS_SCORE_NORM_WEIGHT": row['SCORE_NORM_WEIGHT'], # type: ignore
+                            "PLANTS_SCORE_NORM_CRT_WEIGHT": row['SCORE_NORM_CRT_WEIGHT'], # type: ignore
+                            "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": row['SCORE_RB_PEN_NORM_CRT_HEVATOMS'], # type: ignore
+                        }
+                    # Return the dict
+                    return data
         except Exception as e:
             ocprint.print_error(f"Problems while reading file '{path}'. Error: {e}")
             ocprint.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{logdir}/PLANTS_read_log_ERROR.log")
@@ -1027,10 +1059,6 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     """
 
     # Check if the file does not exists or if the overwrite flag is true
@@ -1086,6 +1114,32 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
     
     return errors.file_exists(f"The file '{digestPath}' already exists. If you want to overwrite it yse the overwrite flag.", "warn")
 
+def get_docked_poses(posesPath: str) -> List[str]:
+    '''Get the docked poses from the poses path.
+
+    Parameters
+    ----------
+    posesPath : str
+        The path to the poses folder.
+
+    Returns
+    -------
+    List[str]
+        A list with the paths to the docked poses.
+    '''
+
+    # Check if the posesPath exists
+    if os.path.isdir(posesPath):
+        # Get the docked poses removing the protein and fixed files
+        return [d for d in glob(f"{posesPath}/*.mol2") if os.path.isfile(d) and not d.endswith("_protein.mol2") and not d.endswith("_fixed.mol2")]
+    
+    # Print an error message
+    _ = errors.dir_does_not_exist(message=f"The poses path '{posesPath}' does not exist.", level="error")
+    
+    # Return an empty list
+    return []
+
 # Aliases
 ###############################################################################
 run_docking = run_plants
+read_rescoring_log = read_log

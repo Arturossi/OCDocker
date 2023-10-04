@@ -74,10 +74,6 @@ def convertMolsFromString(input: str, output: str, mol: Union[rdkit.Chem.rdchem.
     -------
     int | str
         The exit code of the command (based on the Error.py code table) if fails or the extension of the input file otherwise returns the extension itself.
-
-    Raises
-    ------
-    None
     '''
 
     # Get the in and out extensions 
@@ -139,10 +135,6 @@ def convertMols(input_file: str, output_file: str) -> Union[int, str]:
     -------
     int | str
         The exit code of the command (based on the Error.py code table) if fails or the extension of the input file otherwise.
-        
-    Raises
-    ------
-    None
     '''
 
     # Find the extension for input and output
@@ -212,10 +204,6 @@ def split_and_convert(path: str, out_path: str, extension: str, overwrite: bool 
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Finds the input extension

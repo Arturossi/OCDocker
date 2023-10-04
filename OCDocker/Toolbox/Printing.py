@@ -51,10 +51,6 @@ def printv(message: str) -> None:
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
     if args.output_level >= 5:
@@ -74,10 +70,6 @@ def print_info(message: str, force = False) -> None:
 
     Returns
     -------
-    None
-
-    Raises
-    ------
     None
     '''
 
@@ -102,10 +94,6 @@ def print_success(message: str, force: bool = False) -> None:
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
     if args.output_level >= 3 or force:
@@ -128,10 +116,6 @@ def print_warning(message: str, force: bool = False) -> None:
         
     Returns
     -------
-    None
-
-    Raises
-    ------
     None
     '''
 
@@ -156,10 +140,7 @@ def print_error(message: str, force: bool = False) -> None:
     Returns
     -------
     None
-    
-    Raises
-    ------
-    None
+
     '''
 
     if args.output_level > 0 or force:
@@ -185,10 +166,6 @@ def print_info_log(message: str, logfile:str, mode: str = 'a') -> None:
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
     today = datetime.datetime.now()
@@ -210,10 +187,6 @@ def print_success_log(message: str, logfile: str, mode: str = 'a') -> None:
 
     Returns
     -------
-    None
-
-    Raises
-    ------
     None
     '''
 
@@ -237,10 +210,6 @@ def print_warning_log(message: str, logfile: str, mode: str = 'a') -> None:
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
     today = datetime.datetime.now()
@@ -263,10 +232,6 @@ def print_error_log(message: str, logfile: str, mode: str = 'a') -> None:
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
     today = datetime.datetime.now()
@@ -288,10 +253,6 @@ def print_section(n: int, name: str, logName = "OCDocker_Progress.out") -> None:
 
     Returns
     -------
-    None
-
-    Raises
-    ------
     None
     '''
 
@@ -334,10 +295,6 @@ def section(n: int, name: str) -> str:
     -------
     str
         Section header.
-
-    Raises
-    ------
-    None
     '''
 
     # Create a nice section header to return
@@ -371,10 +328,6 @@ def print_subsection(n: int, name: str, logName: str = "OCDocker_Progess.out") -
 
     Returns
     -------
-    None
-
-    Raises
-    ------
     None
     '''
 
@@ -414,10 +367,6 @@ def subsection(n: int, name: str) -> str:
     -------
     str
         Subsection header.
-
-    Raises
-    ------
-    None
     '''
 
     # Create a nice subsection header to return
@@ -448,10 +397,6 @@ def print_sorry()-> None:
 
     Returns
     -------
-    None
-
-    Raises
-    ------
     None
     '''
 

@@ -411,10 +411,6 @@ def __filterSequence(residues: str) -> str:
     -------
     str
         The filtered sequence.
-
-    Raises
-    ------
-    None
     '''
 
     # Makke it all uppercase, just in case...
@@ -445,10 +441,6 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
     -------
     Dict[str, int]
         A dictionary with the count of each AA.
-
-    Raises
-    ------
-    None
     '''
 
     ocprint.printv(f"Counting how many of each of the 20 standard AAs from the structure '{structurePath}' are in the surface. Exposure cutoff is {cutoff}.")
@@ -548,10 +540,6 @@ def count_AAs_and_chains(structure: Bio.PDB.Structure.Structure) -> Union[Tuple[
     -------
     Tuple[int, float, int] | None
         The total length, the average length and the number of chains. If the structure is not valid, returns None.
-
-    Raises
-    ------
-    None
     '''
 
     # If the model is not set
@@ -592,10 +580,6 @@ def compute_sasa(model: Bio.PDB.Structure.Structure, n_points: int = 1000) -> No
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
     ocprint.printv(f"Computing SASA for protein '{model.id}'.")
@@ -615,10 +599,6 @@ def getRes(model: Bio.PDB.Structure.Structure) -> str: #type: ignore
     -------
     str
         The amino acid one letter sequence for the receptor.
-
-    Raises
-    ------
-    None
     '''
 
     ocprint.printv(f"Converting the protein '{model.id}' to single letter amino acid sequence.")
@@ -652,10 +632,6 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
     -------
     Tuple[str, Bio.PDB.Structure.Structure]
         The path to the structure and the structure object. Will return a tuple of ("", None) if the structure is not valid.
-
-    Raises
-    ------
-    None
     '''
 
     ocprint.printv(f"Trying to load protein '{structure}'.")
@@ -734,10 +710,6 @@ def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str
     -------
     Bio.PDB.Structure.Structure
         The renumbered structure.
-
-    Raises
-    ------
-    None
     '''
 
     try:
@@ -786,10 +758,6 @@ def computeDipoleMoment(structure: Bio.PDB.Structure.Structure, cModel: str = "g
     -------
     float
         The dipole moment of the receptor.
-
-    Raises
-    ------
-    None
     '''
 
     ocprint.printv(f"Computing Dipole moment for protein '{structure}'.")
@@ -832,10 +800,6 @@ def computeIsoelectricPoint(residues: str) -> float:
     -------
     float
         The isoelectric point of the protein.
-
-    Raises
-    ------
-    None
     '''
 
     ocprint.printv(f"Computing the isoelectric point for protein with amino acid sequence of '{residues}'.")
@@ -863,10 +827,6 @@ def computeGravy(residues: str, scale: str = "KyteDoolitle") -> float:
     -------
     float
         The GRAVY of the protein.
-
-    Raises
-    ------
-    None
     '''
 
     ocprint.printv(f"Computing the GRAVY (Grand Average of Hydropathy) for protein with amino acid sequence of '{residues}'.")
@@ -885,10 +845,6 @@ def computeAromaticity(residues: str) -> float:
     -------
     float
         The aromaticity of the protein.
-
-    Raises
-    ------
-    None
     '''
 
     ocprint.printv(f"Computing the Aromaticity for protein with amino acid sequence of '{residues}'.")
@@ -913,10 +869,6 @@ def computeInstabilityIndex(residues: str) -> float:
     -------
     float
         The instability index of the protein.
-
-    Raises
-    ------
-    None
     '''
 
     ocprint.printv(f"Computing the Instability Index for protein with amino acid sequence of '{residues}'.")

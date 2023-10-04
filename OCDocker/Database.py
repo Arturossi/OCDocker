@@ -72,10 +72,6 @@ def __core_process_dudez(target: str, overwrite: bool) -> None:
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
     # Get the target name
@@ -137,10 +133,6 @@ def __thread_process_dudez(arguments: Tuple[str, bool]) -> None:
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
     # Redirect all prints to tqdm.write
@@ -162,10 +154,6 @@ def __process_dudez_parallel(targets: List[str], overwrite: bool, desc: str) -> 
 
     Returns
     -------
-    None
-
-    Raises
-    ------
     None
     '''
 
@@ -202,10 +190,6 @@ def __process_dudez_no_parallel(targets: List[str], overwrite: bool, desc: str) 
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
     # Redirect all prints to tqdm.write
@@ -230,10 +214,6 @@ def __core_download_dudez(target: str, overwrite: bool) -> None:
 
     Returns
     -------
-    None
-
-    Raises
-    ------
     None
     '''
 
@@ -286,10 +266,6 @@ def __thread_download_dudez(arguments: Tuple[str, bool]) -> None:
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
     # Redirect all prints to tqdm.write
@@ -311,10 +287,6 @@ def __download_dudez_parallel(targets: List[str], overwrite: bool, desc: str) ->
 
     Returns
     -------
-    None
-
-    Raises
-    ------
     None
     '''
 
@@ -348,10 +320,6 @@ def __download_dudez_no_parallel(targets: List[str], overwrite: bool, desc: str)
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
     # Redirect all prints to tqdm.write
@@ -374,10 +342,6 @@ def create_directories() -> None:
 
     Returns
     -------
-    None
-
-    Raises
-    ------
     None
     '''
 
@@ -408,10 +372,6 @@ def update_DUDEz(overwrite: bool = False, download: bool = True, multiprocess: b
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # If mimetypes are not inited yet
@@ -495,10 +455,6 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silentMode: 
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # If mimetypes are not inited yet
@@ -640,10 +596,6 @@ def update_databases() -> None:
 
     Returns
     -------
-    None
-
-    Raises
-    ------
     None
     '''
     

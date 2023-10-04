@@ -483,10 +483,6 @@ def box_to_vina(boxFile: str, confFile: str, receptor: str) -> int:
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     ocprint.printv(f"Converting the box file '{boxFile}' to Vina conf file as '{confFile}' file.")
@@ -547,10 +543,6 @@ def run_prepare_ligand(inputLigandPath: str, outputLigand: str, logFile: str = "
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Create the command list
@@ -576,10 +568,6 @@ def run_prepare_receptor(inputReceptorPath: str, outputReceptor: str, logFile: s
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Create the command list
@@ -607,10 +595,6 @@ def run_vina(confFile: str, ligand: str, outpath: str, logFile: str = ""):
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
     
     # Create the command list
@@ -644,10 +628,6 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Print verboosity
@@ -734,10 +714,6 @@ def generate_vina_files_database(path: str, protein: str, boxPath: str = "") -> 
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
     
     # Parameterize the vina and p2rank paths
@@ -768,10 +744,6 @@ def read_log(path: str) -> Dict[str, List[Union[str, float]]]:
     -------
     Dict[str, List[str | float]]
         A dictionary with the data from the vina log file.
-
-    Raises
-    ------
-    None
     '''
 
     # Check if file exists
@@ -840,10 +812,6 @@ def read_rescoring_log(path: str) -> float:
     -------
     float
         The affinity of the ligand.
-
-    Raises
-    ------
-    None
     '''
 
     # Check if file exists
@@ -902,10 +870,6 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     """
 
     # Check if the file does not exists or if the overwrite flag is true

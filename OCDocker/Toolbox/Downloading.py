@@ -79,10 +79,6 @@ def download_url(url: str , out_path: str) -> None:
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
     # Print verboosity

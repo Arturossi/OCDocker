@@ -58,10 +58,6 @@ def get_rmsd(reference: str, molecule: str) -> Union[List, float]:
     -------
     List | float
         The rmsd between the reference and the molecule file.
-
-    Raises
-    ------
-    None
     '''
 
     # Load reference
@@ -102,10 +98,6 @@ def make_only_ATOM_and_CRYST_pdb(structurePath: str) -> int:
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Initialise hasCryst1 flag

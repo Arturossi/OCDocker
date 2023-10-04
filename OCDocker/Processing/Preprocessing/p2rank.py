@@ -68,10 +68,6 @@ def __run_p2rank(dir: str, fin: str, overwrite: bool = False) -> None:
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
     # Set the output path
@@ -117,10 +113,6 @@ def __core_p2rank(dir: str, overwrite: bool) -> None:
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
     # Set the output path
@@ -152,10 +144,6 @@ def __thread_p2rank(arguments: Tuple[str, bool, str]) -> None:
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
     # Redirect all prints to tqdm.write
@@ -177,10 +165,6 @@ def __p2rank_parallel(paths: List[str], overwrite: bool, desc: str) -> None:
 
     Returns
     -------
-    None
-
-    Raises
-    ------
     None
     '''
 
@@ -220,10 +204,6 @@ def __p2rank_no_parallel(paths: List[str], overwrite: bool, desc: str) -> None:
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
     # Redirect all prints to tqdm.write
@@ -251,10 +231,6 @@ def __p2rank_single(path: str, overwrite: bool) -> None:
 
     Returns
     -------
-    None
-
-    Raises
-    ------
     None
     '''
 

@@ -71,10 +71,6 @@ def __core_generate_digest(path: str, ligandDir: str, archive: str, overwrite: b
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Get the protein name (which is the last directory in the path)
@@ -119,10 +115,6 @@ def __thread_generate_digest(arguments: list) -> int:
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Redirect all prints to tqdm.write
@@ -152,10 +144,6 @@ def __generate_digest_parallel(complexList: List[Tuple[str, List[str]]], archive
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Arguments to pass to each Thread in the Thread Pool
@@ -203,10 +191,6 @@ def __generate_digest_no_parallel(complexList: List[Tuple[str, List[str]]], arch
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Redirect all prints to tqdm.write
@@ -244,10 +228,6 @@ def __generate_digest_single(complex: Tuple[str, List[str]], archive: str, overw
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # For each file in dirs

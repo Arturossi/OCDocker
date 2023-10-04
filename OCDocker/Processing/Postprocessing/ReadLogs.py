@@ -339,10 +339,6 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
      Dict[str, vdf.DataFrameLocal]
         A dictionary containing the dataframes of the logs.
         A dict of dicts of dataframes. Each element of the first dict is a complex protein-ligand, and each element of the second dict is a docking algorithm results.
-
-    Raises
-    ------
-    None
     '''
 
     # Unpack the tuple
@@ -441,10 +437,6 @@ def __thread_read_log_parallel(arguments: Tuple[Tuple[str, str]]) -> Dict[str, v
     -------
     Dict[str, vdf.DataFrameLocal]
         A dictionary containing the dataframes of the logs.
-
-    Raises
-    ------
-    None
     '''
 
     # Redirect all prints to tqdm.write
@@ -586,10 +578,7 @@ def __read_log_no_parallel(paths: List[Tuple[str, str]], desc: str, ptn: str, sa
     -------
     Dict[str, vdf.DataFrameLocal]
         A dictionary with the protein name as the key and a dictionary with the vina, smina and plants dataframes as the value.
-    
-    Raises
-    ------
-    None
+
     '''
 
     # Check if the hdf5 file exists or if the overwrite flag is True
@@ -676,10 +665,6 @@ def __read_log_single(path: Tuple[str, str], ptn: str, hdf5Path: str, overwrite:
     -------
     Dict[str, vdf.DataFrameLocal]
         A dictionary with the protein name as the key and a dictionary with the vina, smina and plants dataframes as the value.
-
-    Raises
-    ------
-    None
     '''
 
     # Split the tuple

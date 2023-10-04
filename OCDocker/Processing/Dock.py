@@ -83,10 +83,6 @@ def __run_gnina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Get the ligand Dir
@@ -281,10 +277,6 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Get the ligand Dir
@@ -479,10 +471,6 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Get the ligand Dir
@@ -652,10 +640,6 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Get the ligand Dir
@@ -850,10 +834,6 @@ def __core_run_dock(path: str, ligandDir: str, archive: str, dockingAlgorithm: s
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Get the protein name (which is the last directory in the path)
@@ -932,10 +912,6 @@ def __thread_run_dock_parallel(arguments: list) -> int:
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Redirect all prints to tqdm.write
@@ -967,10 +943,6 @@ def __run_dock_parallel(complexList: List[Tuple[str, List[str]]], archive: str, 
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Arguments to pass to each Thread in the Thread Pool
@@ -1019,10 +991,6 @@ def __run_dock_no_parallel(complexList: List[Tuple[str, List[str]]], archive: st
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Redirect all prints to tqdm.write

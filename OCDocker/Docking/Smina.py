@@ -496,10 +496,6 @@ def gen_smina_conf(boxFile: str, confFile: str, receptor: str) -> int:
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Test if the file boxFile exists
@@ -581,10 +577,6 @@ def run_prepare_ligand_from_cmd(inputLigandPath: str, preparedLigand: str, logFi
     -------
     int | Tuple[int, str]
         The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
-
-    Raises
-    ------
-    None
     '''
 
     # Create the command list
@@ -607,10 +599,6 @@ def run_prepare_ligand(inputLigandPath: str, preparedLigand: str) -> Union[int, 
     -------
     int | Tuple[int, str]
         The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
-
-    Raises
-    ------
-    None
     '''
 
     # Find the extension for input and output
@@ -655,10 +643,6 @@ def run_prepare_receptor_from_cmd(inputReceptorPath: str, outputReceptor: str, l
     -------
     int | Tuple[int, str]
         The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
-
-    Raises
-    ------
-    None
     '''
 
     # Create the command list
@@ -680,10 +664,6 @@ def run_prepare_receptor(inputReceptorPath: str, preparedReceptor: str) -> Union
     -------
     int | Tuple[int, str]
         The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
-
-    Raises
-    ------
-    None
     '''
 
     # Find the extension for input and output
@@ -721,10 +701,6 @@ def run_smina(config: str, preparedLigand: str, outputSmina: str, sminaLog: str,
     -------
     int | Tuple[int, str]
         The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
-
-    Raises
-    ------
-    None
     '''
 
     # Create the command list
@@ -770,10 +746,6 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Print verboosity
@@ -846,10 +818,6 @@ def read_log(path: str) -> Dict[str, List[Union[str, float]]]:
     -------
     Dict[str, List[str | float]]
         A dictionary with the data from the smina log file.
-
-    Raises
-    ------
-    None
     '''
 
     # Check if file exists
@@ -918,10 +886,6 @@ def read_rescoring_log(path: str) -> float:
     -------
     float
         The affinity of the ligand.
-
-    Raises
-    ------
-    None
     '''
 
     # Check if file exists
@@ -980,10 +944,6 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     """
 
     # Check if the file does not exists or if the overwrite flag is true

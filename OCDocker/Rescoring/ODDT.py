@@ -12,12 +12,9 @@ import OCDocker.Rescoring.ODDT as ocoddt
 
 # Imports
 ###############################################################################
-import errno
-import json
 import os
 import six
 
-import numpy as np
 import oddt as od
 import pandas as pd
 
@@ -31,12 +28,9 @@ from OCDocker.Initialise import *
 
 import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
-import OCDocker.Toolbox.Conversion as occonversion
 import OCDocker.Toolbox.FilesFolders as ocff
-import OCDocker.Toolbox.IO as ocio
 import OCDocker.Toolbox.Printing as ocprint
 import OCDocker.Toolbox.Running as ocrun
-import OCDocker.Toolbox.Validation as ocvalidation
 
 # License
 ###############################################################################
@@ -116,7 +110,7 @@ def get_models(outputPath: str) -> List[str]:
     return models
 
 def run_oddt_from_cli(receptor: Union[ocr.Receptor, str], ligand: Union[ocl.Ligand, str], outputPath: str, overwrite: bool = False, logFile: str = "", cleanModels: bool = False) -> Union[int, Tuple[int, str]]:
-    '''Run ODDT using the oddt_cli command.
+    '''Run ODDT using the oddt_cli command. UNSTABLE FUNCTION.
 
     Parameters
     ----------

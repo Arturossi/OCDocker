@@ -69,10 +69,6 @@ def empty_docking_digest(digestPath: str, overwrite: bool = False, digestFormat 
     -------
     Dict[str, List[float]] | int
         The empty digest object or the error code.
-
-    Raises
-    ------
-    None
     """
 
     # Create the empty digest variable
@@ -124,10 +120,6 @@ def to_hdf5(filePath: str, data: Any) -> int:
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     try:
@@ -162,10 +154,6 @@ def from_hdf5(filePath: str) -> Union[None, Any]:
     -------
     None | Any
         The data read from the file or None if there was an error.
-
-    Raises
-    ------
-    None
     '''
 
     # Check if the file does not exists
@@ -198,10 +186,6 @@ def to_pickle(filePath: str, data: Any) -> int:
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     try:
@@ -223,10 +207,6 @@ def from_pickle(filePath: str) -> Union[None, Any]:
     -------
     None | Any
         The object if success or None otherwise.
-
-    Raises
-    ------
-    None
     '''
 
     data = None
@@ -249,10 +229,6 @@ def safe_create_dir(dirname: str) -> int:
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Try to create
@@ -263,16 +239,50 @@ def safe_create_dir(dirname: str) -> int:
             os.mkdir(dirname)
             # Print verbosity
             if args.output_level >= 3:
-                return errors.ok(f"Successfully created the directory {dirname}")
+                return errors.ok(f"Successfully created the directory '{dirname}'")
             return errors.ok()
         else:
             # It exists
             return errors.dir_exists(message=f"The dir '{dirname}' already exists!", level="warn")
     except Exception as e:
         # Some error has occurred
-        return errors.create_dir(message=f"Problem found while creating the dir {dirname}: {e}", level="error")
+        return errors.create_dir(message=f"Problem found while creating the dir '{dirname}': {e}", level="error")
     # This should never appear since all the other paths ends in some kind of return
     return errors.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while creating a dir safetly.", level="error")
+
+def safe_remove_dir(dirname: str) -> int:
+    ''' Remove a dir if exists.
+
+    Parameters
+    ----------
+    dirname : str
+        The dir to be removed.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+    '''
+
+    # Try to create
+    try:
+        # If file does exists
+        if os.path.isdir(dirname):
+            # Remove it
+            shutil.rmtree(dirname)
+            # Print verbosity
+            if args.output_level >= 3:
+                return errors.ok(f"Successfully removed the directory '{dirname}'")
+            return errors.ok()
+        else:
+            # It exists
+            return errors.dir_exists(message=f"The dir '{dirname}' does not exist!", level="warn")
+    except Exception as e:
+        # Some error has occurred
+        return errors.remove_dir(message=f"Problem found while removing the dir '{dirname}': {e}", level="error")
+    # This should never appear since all the other paths ends in some kind of return
+    return errors.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while creating a dir safetly.", level="error")
+
 
 def safe_remove_file(filePath: str) -> int:
     '''Remove a file if exists.
@@ -286,10 +296,6 @@ def safe_remove_file(filePath: str) -> int:
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Check if the file exists
@@ -311,7 +317,6 @@ def safe_remove_file(filePath: str) -> int:
     # This should never appear since all the other paths ends in some kind of return
     return errors.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while removing a file safetly.", level="error")
 
-
 def untar(fname: str, out_path: str = ".", delete: bool = False) -> int:
     '''Untar a file.
 
@@ -330,10 +335,6 @@ def untar(fname: str, out_path: str = ".", delete: bool = False) -> int:
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Print verboosity

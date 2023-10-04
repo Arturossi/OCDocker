@@ -55,10 +55,6 @@ def clear_past_logs() -> None:
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
     
     # For each dir in the log dir
@@ -79,10 +75,6 @@ def backup_log(logname: str) -> None:
 
     Returns
     -------
-    None
-
-    Raises
-    ------
     None
     '''
 

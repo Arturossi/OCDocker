@@ -208,8 +208,7 @@ dockingResult = sminaTest.read_log()
 dockingPoses = vinaTest.get_docking_poses()
 
 # Process each scoring function
-for scoring_function in smina_scoring_functions:
-    ocsmina.run_rescore(sminaTest.config, dockingPoses, os.path.dirname(sminaTest.outputSmina), scoring_function, splitLigand = False)
+ocsmina.run_rescore(sminaTest.config, dockingPoses, splitLigand = False)
 
 ## Now you can get the rescoring results
 ###########################################
@@ -232,7 +231,20 @@ plantsTest.run_prepare_ligand()
 # Run the docking
 plantsTest.run_docking()
 
-### TODO: Working to make rescoring with PLANTS work properly!
+# Get Docking results
+dockingResult = plantsTest.read_log()
+
+# Get Docking poses
+dockingPoses = plantsTest.get_docked_poses()
+
+# Write the pose_list file for rescoring
+pose_list = plantsTest.write_pose_list(dockingPoses)
+
+# Run the rescoring (will create the config file and the output folder)
+plantsTest.run_rescore(pose_list, logFile = "", overwrite = False)
+
+# Get Rescoring results
+rescoringResult = plantsTest.read_rescore_logs(onlyBest = False)
 
 
 #############

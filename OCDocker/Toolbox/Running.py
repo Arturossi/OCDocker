@@ -60,10 +60,6 @@ def run(cmd: List[str], logFile: str = "", cwd : str = "") -> Union[int, Tuple[i
     -------
     int | Tuple[int, str]
         The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
-    
-    Raises
-    ------
-    None
     '''
 
     if not cmd:

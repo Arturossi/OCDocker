@@ -54,10 +54,6 @@ def lazyread_mmap(file_name: str, decode: str = "utf-8") -> Generator[str, None,
     -------
     Generator[str, None, None]
         A generator with the lines of the file in sequential order.
-
-    Raises
-    ------
-    None
     '''
 
     # Open file for reading in binary mode
@@ -81,10 +77,6 @@ def lazyread_reverse_order_mmap(file_name: str, decode: str = "utf-8") -> Genera
     -------
     Generator[str, None, None]
         A generator with the lines of the file in reverse order.
-
-    Raises
-    ------
-    None
     '''
     
     # Open file for reading in binary mode
@@ -132,10 +124,6 @@ def lazyread(file_name: str, decode: str = "utf-8") -> Generator[str, None, None
     -------
     Generator[str, None, None]
         A generator with the lines of the file in sequential order.
-
-    Raises
-    ------
-    None
     '''
 
     # Open file for reading in binary mode
@@ -158,10 +146,6 @@ def lazyread_reverse_order(file_name: str, decode: str = "utf-8") -> Generator[s
     -------
     Generator[str, None, None]
         A generator with the lines of the file in reverse order.
-
-    Raises
-    ------
-    None
     '''
 
     # Open file for reading in binary mode

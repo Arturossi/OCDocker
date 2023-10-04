@@ -73,8 +73,9 @@ class Error:
         # Directory errors
         self.dirExistsCode                    = 150
         self.createDirCode                    = 151
-        self.dirDoesNotExistsCode             = 152
-        self.dirUnallowedCode                 = 153
+        self.removeDirCode                    = 152
+        self.dirDoesNotExistsCode             = 153
+        self.dirUnallowedCode                 = 154
 
         # Variable errors
         self.wrongTypeCode                    = 200
@@ -431,7 +432,7 @@ class Error:
         Returns
         -------
         int
-            The code for unsupported extension error (105).
+            The code for unsupported extension error (106).
         '''
 
         self.__print_msg(message, level)
@@ -451,7 +452,7 @@ class Error:
         Returns
         -------
         int
-            The code for unsupported extension error (105).
+            The code for unsupported extension error (107).
         '''
 
         self.__print_msg(message, level)
@@ -472,7 +473,7 @@ class Error:
         Returns
         -------
         int
-            The code for create directory error (151).
+            The code for create directory error (150).
     
         '''
 
@@ -501,6 +502,27 @@ class Error:
 
         return self.createDirCode
 
+    def remove_dir(self, message: str = "", level: str = "warn") -> int:
+        '''Return this when the directory remotion fails.
+
+        Parameters
+        ----------
+        message : string, optional
+            Message to be printed. Default is "".
+        level : string, optional
+            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+
+        Returns
+        -------
+        int
+            The code for remove directory error (152).
+    
+        '''
+
+        self.__print_msg(message, level)
+
+        return self.removeDirCode
+
     def dir_does_not_exist(self, message: str = "", level: str = "warn") -> int:
         '''Return this when the directory does not exists.
 
@@ -514,7 +536,7 @@ class Error:
         Returns
         -------
         int
-            The code for directory does not exists error (152).
+            The code for directory does not exists error (153).
         '''
 
         self.__print_msg(message, level)
@@ -534,7 +556,7 @@ class Error:
         Returns
         -------
         int
-            The code for directory unallowed (153).
+            The code for directory unallowed (154).
         '''
 
         self.__print_msg(message, level)
@@ -984,6 +1006,7 @@ class Error:
         print(f"\n\t~~~~~~~~~~~~~~~ DIRECTORY ERRORS ~~~~~~~~~~~~~~~")
         print(f"\t - Directory exists:                {self.dirExistsCode}")
         print(f"\t - Directory creation error:        {self.createDirCode}")
+        print(f"\t - Directory remotion error:        {self.removeDirCode}")
         print(f"\t - Directory does not exist:        {self.dirDoesNotExistsCode}")
         print(f"\t - Directory access not allowed:    {self.dirUnallowedCode}")
 

@@ -69,10 +69,6 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str]) ->
     -------
     vdf.DataFrameLocal
         DataFrame containing the results of the docking.
-
-    Raises
-    ------
-    None
     '''
 
     # Unpack the tuple
@@ -142,10 +138,6 @@ def __thread_merge_descriptors_in_dataframe_parallel(arguments: Tuple[Tuple[str,
     -------
     vdf.DataFrameLocal
         Dataframe with the descriptors of the protein.
-
-    Raises
-    ------
-    None
     '''
 
     # Redirect all prints to tqdm.write
@@ -177,10 +169,6 @@ def __merge_descriptors_in_dataframe_parallel(paths: List[Tuple[str, str]], rece
     -------
     vdf.DataFrameLocal
         Dataframe with the descriptors of the proteins.
-
-    Raises
-    ------
-    None
     '''
 
     # Arguments to pass to each Thread in the Thread Pool
@@ -297,10 +285,6 @@ def __merge_descriptors_in_dataframe_no_parallel(paths: List[Tuple[str, str]], r
     -------
     vdf.DataFrameLocal
         Dataframe with the descriptors of the proteins.
-
-    Raises
-    ------
-    None
     '''
 
     # Check the datafile format
@@ -394,10 +378,6 @@ def __merge_descriptors_in_dataframe_single(path: Tuple[str, str], receptorDataF
     -------
     vdf.DataFrameLocal
         Dataframe with the descriptors of the proteins.
-
-    Raises
-    ------
-    None
     '''
 
     # Check the datafile format

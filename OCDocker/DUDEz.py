@@ -239,10 +239,6 @@ def read_logs(saveChunk: int = 100, overwrite: bool = False) -> Union[vdf.DataFr
     -------
     vdf.DataFrameLocal | None
         A dictionary with the keys being the protein-ligand names and the values being the dataframes.
-
-    Raises
-    ------
-    None
     '''
 
     return ocbdb.read_logs("dudez", saveChunk = saveChunk, overwrite = overwrite)
@@ -259,10 +255,6 @@ def generate_dock_result_csv(csv_path: str = "", log_dumps: Union[Dict[str, pd.D
 
     Returns
     -------
-    None
-
-    Raises
-    ------
     None
     '''
 
@@ -301,10 +293,6 @@ def merge_descriptors_in_dataframe(readMode:str = "hdf5", saveMode: str = "hdf5"
     -------
     vdf.DataFrameLocal | None
         A dataframe with all the descriptors and affinity results or None if any error occur while reading the input file or if returnDf is set to false.
-
-    Raises
-    ------
-    None
     '''
 
     # Get the dataframe with descriptors and docking scores

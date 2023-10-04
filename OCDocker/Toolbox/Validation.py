@@ -69,10 +69,6 @@ def is_algorithm_allowed(path: str) -> bool:
     -------
     bool
         True if the dir is an allowed algorithm, False otherwise.
-
-    Raises
-    ------
-    None
     '''
 
     # Allowed algorithms
@@ -91,10 +87,6 @@ def is_molecule_valid(molecule: str) -> bool:
     -------
     bool
         True if the molecule is valid, False otherwise.
-
-    Raises
-    ------
-    None
     '''
 
     # Check if file exists
@@ -188,10 +180,6 @@ def validate_obabel_extension(path: str) -> Union[str, int]:
     -------
     str | int
         The exit code of the command (based on the Error.py code table) if fails or the extension otherwise.
-
-    Raises
-    ------
-    None
     '''
 
     supportedExtensions = [
