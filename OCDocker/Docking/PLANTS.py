@@ -357,7 +357,7 @@ class PLANTS:
         ocprint.printv(f"Running '{spores}' for '{self.inputReceptorPath}'.")
         return ocrun.run(self.prepareReceptorCmd, logFile=logFile)
 
-    def run_rescore(self, pose_list: str, logFile: str = "", overwrite: bool = False) -> None:
+    def run_rescore(self, pose_list: str, logFile: str = "", skipDefaultScoring: bool = False, overwrite: bool = False) -> None:
         '''Run PLANTS to rescore the ligand.
 
         Parameters
@@ -366,6 +366,8 @@ class PLANTS:
             The path to the ligand poses list file.
         logFile : str
             Path to the logFile. If empty, suppress the output.
+        skipDefaultScoring : bool, optional
+            If True, skip the default scoring function. By default False.
         overwrite : bool, optional
             If True, overwrite the logFile. Default is False.
 
@@ -381,8 +383,8 @@ class PLANTS:
             outPath = f"{self.outputPlants}/run_{scoring_function}"
             # Set the config file
             confFile = f"{self.outputPlants}/{self.inputLigand.name}_rescoring_{scoring_function}.txt"
-            # If it is not the one used to find the pose
-            if scoring_function != plants_scoring:
+            # If is the default scoring function and skipDefaultScoring is True
+            if not (scoring_function == plants_scoring and skipDefaultScoring):
                 # Run vina to rescore
                 _ = run_rescore(confFile, pose_list, outPath, self.preparedReceptor, scoring_function, logFile = logFile, overwrite = overwrite) # type: ignore
 

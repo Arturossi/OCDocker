@@ -1,0 +1,6 @@
+scoring_function plp
+protein_file /data/hd4tb/OCDocker/OCDocker/test_files/test_ptn1/prepared_receptor.mol2
+ligand_list /data/hd4tb/OCDocker/OCDocker/test_files/test_ptn1/compounds/ligands/ligand/plantsFiles/pose_list.txt
+keep_original_mol2_description 0
+output_dir /data/hd4tb/OCDocker/OCDocker/test_files/test_ptn1/compounds/ligands/ligand/plantsFiles/run_plp
+rescoring_mode simplex

@@ -296,7 +296,7 @@ class Vina:
             return occonversion.convertMols(self.inputReceptorPath, self.preparedReceptor)
         return ocrun.run(self.prepareReceptorCmd, logFile=logFile, cwd=self.get_input_receptor_path())
 
-    def run_rescore(self, outPath: str, logFile: str = "", overwrite = False) -> None:
+    def run_rescore(self, outPath: str, logFile: str = "", skipDefaultScoring: bool = False, overwrite = False) -> None:
         '''Run vina to rescore the ligand.
 
         Parameters
@@ -305,6 +305,8 @@ class Vina:
             Path to the output folder.
         logFile : str, optional
             Path to the logFile. If empty, suppress the output. By default "".
+        skipDefaultScoring : bool, optional
+            If True, skip the default scoring function. By default False.
         overwrite : bool, optional
             If True, overwrite the logFile. By default False.
 
@@ -319,9 +321,9 @@ class Vina:
 
         # For each scoring function
         for scoring_function in vina_scoring_functions:
-            # If it is not the one used to find the pose
-            if scoring_function != vina_scoring:
-                # Run vina to rescore
+            # If is the default scoring function and skipDefaultScoring is True
+            if not (scoring_function == smina_scoring and skipDefaultScoring):
+                # Run smina to rescore
                 _ = run_rescore(self.config, self.outputVina, outPath, scoring_function, logFile = logFile, splitLigand = splitLigand, overwrite = overwrite)
 
                 # Set the splitLigand as False (to avoid running it again without need)
@@ -390,7 +392,7 @@ class Vina:
 
         return os.path.dirname(self.inputReceptorPath)
     
-    def read_rescore_logs(self, outPath: str, onlyBest: bool = True) -> Dict[str, List[Union[str, float]]]:
+    def read_rescore_logs(self, outPath: str, onlyBest: bool = False) -> Dict[str, List[Union[str, float]]]:
         ''' Reads the data from the rescore log files.
 
         Parameters
@@ -398,7 +400,7 @@ class Vina:
         outPath : str
             Path to the output folder where the rescoring logs are located.
         onlyBest : bool, optional
-            If True, only the best pose will be returned. By default True.
+            If True, only the best pose will be returned. By default False.
 
         Returns
         -------
@@ -732,7 +734,74 @@ def generate_vina_files_database(path: str, protein: str, boxPath: str = "") -> 
 
     return None
 
-def read_log(path: str) -> Dict[str, List[Union[str, float]]]:
+def read_log(path: str, onlyBest: bool = False) -> Dict[str, List[Union[str, float]]]:
+    '''Read the vina log path, returning the data from complexes.
+
+    Parameters
+    ----------
+    path : str
+        The path to the vina log file.
+    onlyBest : bool, optional
+        If True, only the best pose will be returned. By default False.
+
+    Returns
+    -------
+    Dict[str, List[str | float]]
+        A dictionary with the data from the vina log file.
+    '''
+
+    # Create a dictionary to store the info
+    data = {}
+
+    # Check if file exists
+    if os.path.isfile(path):
+        # Catch any error that might occur
+        try:
+            # Check if file is empty
+            if os.stat(path).st_size == 0:
+                # Print the error
+                _ = errors.empty_file(f"The vina log file '{path}' is empty.", "error")
+                # Return the dictionary with invalid default data
+                return data
+
+            # Try except to avoid broken pipe errors
+            try:
+                # Read the file reversely
+                for line in ocio.lazyread_reverse_order_mmap(path):
+                    # While the line does not start with "-----+"
+                    while not line.startswith("-----+"):
+                        # Split the last line
+                        splitLine = line.split()
+                        # Check if there are 4 elements in the splitLine
+                        if len(splitLine) == 4:
+                            # Assign the data in the dictionary with the pose as key and the affinity as value
+                            data[splitLine[0]] = {vina_scoring: splitLine[1]}
+                # If onlyBest is True
+                if onlyBest:
+                    # Return only the best pose (-1 since the data is reversed)
+                    return {list(data.keys())[-1]: list(data.values())[-1]}
+                # Otherwise return the data
+                return data
+
+            except IOError as e:
+                if e.errno == errno.EPIPE:
+                    ocprint.print_error(f"Problems while reading file '{path}'. Error: {e}")
+                    ocprint.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{logdir}/vina_read_log_ERROR.log")
+            
+            # Return the df reversing the order and reseting the index
+            return data
+
+        except Exception as e:
+            _ = errors.read_docking_log_error(f"Problems while reading the vina log file '{path}'. Error: {e}", "error")
+            return data
+
+    # Throw an error
+    _ = errors.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
+
+    # Return a dict with a NaN value
+    return data
+
+def read_log_legacy(path: str) -> Dict[str, List[Union[str, float]]]:
     '''Read the vina log path, returning the data from complexes.
 
     Parameters

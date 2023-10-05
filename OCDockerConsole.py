@@ -171,10 +171,10 @@ vinaTest.run_prepare_ligand()
 # Run the docking
 vinaTest.run_docking()
 # Run the rescoring with vina
-vinaTest.run_rescore(f"{baseLigPath}/{lig}/vinaFiles")
+vinaTest.run_rescore(f"{baseLigPath}/{lig}/vinaFiles", skipDefaultScoring = True)
 # Get Docking results
 dockingResult = vinaTest.read_log()
-# Get Rescoring results
+# Get Rescoring results (skip the default scoring function)
 rescoringResult = vinaTest.read_rescore_logs(f"{baseLigPath}/{lig}/vinaFiles")
 
 
@@ -197,7 +197,7 @@ if not os.path.isfile(f"{baseLigPath}/{lig}/prepared_ligand.pdbqt"):
 # Run the docking
 sminaTest.run_docking()
 # Run the rescoring with smina
-sminaTest.run_rescore(f"{baseLigPath}/{lig}/sminaFiles")
+sminaTest.run_rescore(f"{baseLigPath}/{lig}/sminaFiles", skipDefaultScoring = True)
 # Get Docking results
 dockingResult = sminaTest.read_log()
 
@@ -205,10 +205,11 @@ dockingResult = sminaTest.read_log()
 ##########################################################################
 
 # Get the docking results from the vinaTest (example) object
-dockingPoses = vinaTest.get_docking_poses()
+dockingPoses = vinaTest.get_docked_poses()
 
 # Process each scoring function
-ocsmina.run_rescore(sminaTest.config, dockingPoses, splitLigand = False)
+for sf in smina_scoring_functions:
+    ocsmina.run_rescore(sminaTest.config, dockingPoses, f"{baseLigPath}/{lig}/sminaFiles", sf, splitLigand = False)
 
 ## Now you can get the rescoring results
 ###########################################
