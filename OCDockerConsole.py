@@ -27,7 +27,9 @@ import OCDocker.Docking.Smina as ocsmina
 import OCDocker.Docking.Gnina as ocgnina
 import OCDocker.Docking.PLANTS as ocplants
 import OCDocker.ExternalTools.runprank as runprank
+import OCDocker.Processing.Preprocessing.RmsdClustering as ocrmsdclust
 import OCDocker.Rescoring.ODDT as ocoddt
+import OCDocker.Toolbox.MoleculeProcessing as ocmolproc
 
 # License
 ###############################################################################
@@ -262,6 +264,26 @@ df = ocoddt.run_oddt(vinaTest.preparedReceptor, vinaTest.get_docked_poses(), vin
 dt = ocoddt.df_to_dict(df)
 
 
+
+###############
+## Clustering #
+###############
+
+# Get the docked poses for vina and plants
+vinaPoses = vinaTest.get_docked_poses()
+plantsPoses = plantsTest.get_docked_poses()
+
+# Make them one single list
+poses_list = vinaPoses + plantsPoses
+
+# Get the rmsd matrix from the poses list
+rmsdMatrix = ocmolproc.get_rmsd_matrix(poses_list)
+
+# Get the medoids (The plot is just for visualization, it is not required)
+medoids = ocrmsdclust.get_medoids(rmsdMatrix, algorithm = 'agglomerativeClustering', outputPlot = f"{basePath}/medoids.png")
+
+# Find which medoid has the lowest energy
+# TODO: implement
 
 ##############
 ##   Gnina   #

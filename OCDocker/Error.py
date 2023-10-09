@@ -55,59 +55,62 @@ class Error:
         self.args = args
 
         # Common errors
-        self.okCode                           = 0
-        self.abortCode                        = 1
-        self.skipCode                         = 2
-        self.unknownCode                      = -666
+        self.okCode                             = 0
+        self.abortCode                          = 1
+        self.skipCode                           = 2
+        self.unknownCode                        = -666
 
         # File errors
-        self.fileExistsCode                   = 100
-        self.fileDoNotExistCode               = 101
-        self.readFileCode                     = 102
-        self.writeFileCode                    = 103
-        self.untarFileCode                    = 104
-        self.unsupportedExtensionCode         = 105
-        self.brokenPipeCode                   = 106
-        self.emptyFileCode                    = 107
+        self.fileExistsCode                     = 100
+        self.fileDoNotExistCode                 = 101
+        self.readFileCode                       = 102
+        self.writeFileCode                      = 103
+        self.untarFileCode                      = 104
+        self.unsupportedExtensionCode           = 105
+        self.brokenPipeCode                     = 106
+        self.emptyFileCode                      = 107
 
         # Directory errors
-        self.dirExistsCode                    = 150
-        self.createDirCode                    = 151
-        self.removeDirCode                    = 152
-        self.dirDoesNotExistsCode             = 153
-        self.dirUnallowedCode                 = 154
+        self.dirExistsCode                      = 150
+        self.createDirCode                      = 151
+        self.removeDirCode                      = 152
+        self.dirDoesNotExistsCode               = 153
+        self.dirUnallowedCode                   = 154
 
         # Variable errors
-        self.wrongTypeCode                    = 200
-        self.notSetCode                       = 201
-        self.emptyCode                        = 202
+        self.wrongTypeCode                      = 200
+        self.notSetCode                         = 201
+        self.emptyCode                          = 202
 
         # Subprocess errors
-        self.subprocessCode                   = 300
+        self.subprocessCode                     = 300
 
         # Molecule error
-        self.parseMoleculeCode                = 400
-        self.malformedMoleculeCode            = 401
-        self.ligandNotPreparedCode            = 402
-        self.receptorNotPreparedCode          = 403
-        self.invalidMoleculeName              = 404
+        self.parseMoleculeCode                  = 400
+        self.malformedMoleculeCode              = 401
+        self.ligandNotPreparedCode              = 402
+        self.receptorNotPreparedCode            = 403
+        self.invalidMoleculeName                = 404
 
         # Docking error
-        self.dockingObjectNotGeneratedCode    = 500
-        self.recLigObjectNotGeneratedCode     = 501
-        self.recLigFileDoesNotExistCode       = 502
-        self.notSupportedDockingAlgorithmCode = 503
-        self.bindingSiteNotFoundCode          = 504
-        self.dockingFailedCode                = 505
-        self.readDockingLogError              = 506
+        self.dockingObjectNotGeneratedCode      = 500
+        self.recLigObjectNotGeneratedCode       = 501
+        self.recLigFileDoesNotExistCode         = 502
+        self.notSupportedDockingAlgorithmCode   = 503
+        self.bindingSiteNotFoundCode            = 504
+        self.dockingFailedCode                  = 505
+        self.readDockingLogError                = 506
 
         # Archive error
-        self.notSupportedArchiveCode          = 600
+        self.notSupportedArchiveCode            = 600
 
         # Scoring and rescoring error
-        self.unsupportedScoringFunctionCode   = 700
-        self.rescoringFailedCode              = 701
-        self.missingOddtModel                 = 702
+        self.unsupportedScoringFunctionCode     = 700
+        self.rescoringFailedCode                = 701
+        self.missingOddtModel                   = 702
+
+        # Clustering error
+        self.unsupportedClusteringAlgorithmCode = 750
 
     ## Private ##
     def __print_info(self, message: str) -> None:
@@ -432,7 +435,7 @@ class Error:
         Returns
         -------
         int
-            The code for unsupported extension error (106).
+            The code for broken pipe error (106).
         '''
 
         self.__print_msg(message, level)
@@ -452,7 +455,7 @@ class Error:
         Returns
         -------
         int
-            The code for unsupported extension error (107).
+            The code for empty file error (107).
         '''
 
         self.__print_msg(message, level)
@@ -969,6 +972,26 @@ class Error:
         self.__print_msg(message, level)
 
         return self.missingOddtModel
+    
+    def unsupported_clustering_algorithm(self, message: str = "", level: str = "error") -> int:
+        '''Return this when the user has provied an unsupported clustering algorithm.
+
+        Parameters
+        ----------
+        message : string, optional
+            Message to be printed. Default is "".
+        level : string, optional.
+            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        
+        Returns
+        -------
+        int
+            The code for unsupported clustering algorithm error (702).
+        '''
+
+        self.__print_msg(message, level)
+
+        return self.unsupportedClusteringAlgorithmCode
 
     # Debug functions
     def print_attributes(self) -> None:
@@ -1044,6 +1067,11 @@ class Error:
         print(f"\t - Unsupported scoring function:    {self.unsupportedScoringFunctionCode}")
         print(f"\t - Rescoring failed:                {self.rescoringFailedCode}")
         print(f"\t - Missing ODDT model:              {self.missingOddtModel}")
+
+        print(f"\n\t~~~~~~~~~~~~~~~ CLUSTERING ERRORS ~~~~~~~~~~~~~~~")
+        print(f"\t - Unsupported clustering")
+        print(f"\t   algorithm:                       {self.unsupportedClusteringAlgorithmCode}")
+
 
         return None
 
