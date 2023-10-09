@@ -651,7 +651,7 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
             ligandName = os.path.splitext(os.path.basename(ligand))[0]
             
             # Split the input ligand
-            cmd = [vina_split, "--input", ligand, "--flex", "", "--ligand", f"{outPath}/{ligandName}_split_"]
+            cmd = [vina_split, "--input", ligand, "--flex", "''", "--ligand", f"{outPath}/{ligandName}_split_"]
 
             # Print verbosity
             ocprint.printv(f"Spliting the ligand '{ligand}'.")
@@ -763,19 +763,20 @@ def read_log(path: str, onlyBest: bool = False) -> Dict[str, List[Union[str, flo
                 _ = errors.empty_file(f"The vina log file '{path}' is empty.", "error")
                 # Return the dictionary with invalid default data
                 return data
-
+            
             # Try except to avoid broken pipe errors
             try:
                 # Read the file reversely
                 for line in ocio.lazyread_reverse_order_mmap(path):
                     # While the line does not start with "-----+"
-                    while not line.startswith("-----+"):
-                        # Split the last line
-                        splitLine = line.split()
-                        # Check if there are 4 elements in the splitLine
-                        if len(splitLine) == 4:
-                            # Assign the data in the dictionary with the pose as key and the affinity as value
-                            data[splitLine[0]] = {vina_scoring: splitLine[1]}
+                    if line.startswith("-----+"):
+                        break
+                    # Split the last line
+                    splitLine = line.split()
+                    # Check if there are 4 elements in the splitLine
+                    if len(splitLine) == 4:
+                        # Assign the data in the dictionary with the pose as key and the affinity as value
+                        data[splitLine[0]] = {vina_scoring: splitLine[1]}
                 # If onlyBest is True
                 if onlyBest:
                     # Return only the best pose (-1 since the data is reversed)

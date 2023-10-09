@@ -126,7 +126,7 @@ class PLANTS:
         # Plants
         self.plantsLog = str(plantsLog)
         self.outputPlants = str(outputPlants)
-        self.outputCsv = f"{self.outputPlants}/run/ranking.csv"
+        self.outputCsv = f"{self.outputPlants}/run"
         self.plantsCmd = [plants, "--mode", "screen", self.config]
         
         # Check if config file exists to avoid useless processing
@@ -263,7 +263,14 @@ class PLANTS:
             The dictionary with the data from complexes or the error code.
         '''
 
-        return read_log(self.outputCsv, onlyBest = onlyBest)
+        # If onlyBest is set
+        if onlyBest:
+            # The ranking file will be called bestranking
+            rankingFile = "bestranking.csv"
+        else:
+            # The ranking file will be called ranking
+            rankingFile = "ranking.csv"
+        return read_log(f"{self.outputCsv}/{rankingFile}", onlyBest = onlyBest)
 
     def run_plants(self, overwrite: bool =False) -> Union[Tuple[int, str], int]:
         '''Run plants.
@@ -390,12 +397,13 @@ class PLANTS:
 
         return None
     
-    def get_rescore_log_paths(self) -> List[str]:
+    def get_rescore_log_paths(self, onlyBest: bool = False) -> List[str]:
         ''' Get the paths for the rescore csv file.
 
         Parameters
         ----------
-        None
+        onlyBest : bool, optional
+            If True, only the best pose will be returned. By default False.
 
         Returns
         -------
@@ -406,14 +414,22 @@ class PLANTS:
         # Create the rescoring logs list
         rescoring_logs = []
 
+        # If onlyBest is set
+        if onlyBest:
+            # The ranking file will be called bestranking
+            rankingFile = "bestranking.csv"
+        else:
+            # The ranking file will be called ranking
+            rankingFile = "ranking.csv"
+
         # For each scoring function
         for scoring_function in plants_scoring_functions:
             # Set the output path
             outPath = f"{self.outputPlants}/run_{scoring_function}"
             # If the file exists
-            if os.path.isfile(f"{outPath}/ranking.csv"):
+            if os.path.isfile(f"{outPath}/{rankingFile}"):
                 # Append the data to the rescoring_logs list
-                rescoring_logs.append(f"{outPath}/ranking.csv")
+                rescoring_logs.append(f"{outPath}/{rankingFile}")
 
         return rescoring_logs
     
@@ -462,13 +478,13 @@ class PLANTS:
 
         return self.inputReceptorPath if self.inputReceptorPath else ""
     
-    def read_rescore_logs(self, onlyBest: bool = True) -> Dict[str, List[Union[str, float]]]:
+    def read_rescore_logs(self, onlyBest: bool = False) -> Dict[str, List[Union[str, float]]]:
         ''' Reads the data from the rescore log files.
 
         Parameters
         ----------
         onlyBest : bool, optional
-            If True, only the best pose will be returned. By default True.
+            If True, only the best pose will be returned. By default False.
 
         Returns
         -------
@@ -477,7 +493,7 @@ class PLANTS:
         '''
 
         # Get the rescore log paths
-        rescoreLogPaths = self.get_rescore_log_paths()
+        rescoreLogPaths = self.get_rescore_log_paths(onlyBest = onlyBest)
 
         # Create the dictionary
         rescoreLogData = {}
@@ -486,12 +502,8 @@ class PLANTS:
         for rescoreLogPath in rescoreLogPaths:
             # Get the filename from the log path
             filename = os.path.basename(os.path.dirname(rescoreLogPath))
-            # If onlyBest is True and the filename does not start with "1"
-            if onlyBest and not filename.startswith("1"):
-                # Skip this iteration
-                continue
             # Get the rescore log data
-            rescoreLogData[filename] = read_log(rescoreLogPath)
+            rescoreLogData[filename] = read_log(rescoreLogPath, onlyBest = onlyBest)
         
         # Return the dictionary
         return rescoreLogData
@@ -961,7 +973,7 @@ def generate_plants_files_database(path: str, protein: str, ligand: str, spacing
 
     return None
 
-def read_log(path: str, onlyBest: bool = True) -> Dict[str, List[Union[str, float]]]:
+def read_log(path: str, onlyBest: bool = False) -> Dict[str, List[Union[str, float]]]:
     '''Read the PLANTS log path, returning a dict with data from complexes.
 
     Parameters
@@ -969,7 +981,7 @@ def read_log(path: str, onlyBest: bool = True) -> Dict[str, List[Union[str, floa
     path : str
         The path to the PLANTS log file.
     onlyBest : bool, optional
-        If True, only the best pose will be returned. By default True.
+        If True, only the best pose will be returned. By default False.
         
     Returns
     -------

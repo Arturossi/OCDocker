@@ -2,6 +2,7 @@
 
 # Imports
 ###############################################################################
+import inspect
 import shutil
 import os
 
@@ -133,7 +134,7 @@ args.zip_output = False
 args.update = False
 
 '''
-basePath = f"/data/hd4tb/OCDocker/OCDocker/test_files"
+basePath = f"{os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))}/test_files"
 ptn = "test_ptn1"
 lig = "ligand"
 baseProtPath = f"{basePath}/{ptn}"
@@ -233,7 +234,7 @@ plantsTest.run_prepare_ligand()
 plantsTest.run_docking()
 
 # Get Docking results
-dockingResult = plantsTest.read_log()
+dockingResult = plantsTest.read_log(onlyBest = False)
 
 # Get Docking poses
 dockingPoses = plantsTest.get_docked_poses()

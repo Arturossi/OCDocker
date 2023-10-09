@@ -809,19 +809,19 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
     return None
 
 def read_log(path: str, onlyBest: bool = False) -> Dict[str, List[Union[str, float]]]:
-    '''Read the smina log path, returning the data from complexes.
+    '''Read the SMINA log path, returning the data from complexes.
 
     Parameters
     ----------
     path : str
-        The path to the vina log file.
+        The path to the SMINA log file.
     onlyBest : bool, optional
         If True, only the best pose will be returned. By default False.
 
     Returns
     -------
     Dict[str, List[str | float]]
-        A dictionary with the data from the vina log file.
+        A dictionary with the data from the SMINA log file.
     '''
 
     # Create a dictionary to store the info
@@ -834,22 +834,23 @@ def read_log(path: str, onlyBest: bool = False) -> Dict[str, List[Union[str, flo
             # Check if file is empty
             if os.stat(path).st_size == 0:
                 # Print the error
-                _ = errors.empty_file(f"The vina log file '{path}' is empty.", "error")
+                _ = errors.empty_file(f"The SMINA log file '{path}' is empty.", "error")
                 # Return the dictionary with invalid default data
                 return data
-
+            
             # Try except to avoid broken pipe errors
             try:
                 # Read the file reversely
                 for line in ocio.lazyread_reverse_order_mmap(path):
                     # While the line does not start with "-----+"
-                    while not line.startswith("-----+"):
-                        # Split the last line
-                        splitLine = line.split()
-                        # Check if there are 4 elements in the splitLine
-                        if len(splitLine) == 4:
-                            # Assign the data in the dictionary with the pose as key and the affinity as value
-                            data[splitLine[0]] = {smina_scoring: splitLine[1]}
+                    if line.startswith("-----+"):
+                        break
+                    # Split the last line
+                    splitLine = line.split()
+                    # Check if there are 4 elements in the splitLine
+                    if len(splitLine) == 4:
+                        # Assign the data in the dictionary with the pose as key and the affinity as value
+                        data[splitLine[0]] = {smina_scoring: splitLine[1]}
                 # If onlyBest is True
                 if onlyBest:
                     # Return only the best pose (-1 since the data is reversed)
@@ -860,13 +861,13 @@ def read_log(path: str, onlyBest: bool = False) -> Dict[str, List[Union[str, flo
             except IOError as e:
                 if e.errno == errno.EPIPE:
                     ocprint.print_error(f"Problems while reading file '{path}'. Error: {e}")
-                    ocprint.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{logdir}/vina_read_log_ERROR.log")
+                    ocprint.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{logdir}/smina_read_log_ERROR.log")
             
             # Return the df reversing the order and reseting the index
             return data
 
         except Exception as e:
-            _ = errors.read_docking_log_error(f"Problems while reading the vina log file '{path}'. Error: {e}", "error")
+            _ = errors.read_docking_log_error(f"Problems while reading the SMINA log file '{path}'. Error: {e}", "error")
             return data
 
     # Throw an error

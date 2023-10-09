@@ -200,17 +200,19 @@ def create_ocdocker_conf() -> None:
 
     #region Vina config
     confVina = "/usr/bin/vina"
-    confVina = "/usr/bin/vina_split"
     confVina_split = "/usr/bin/vina_split"
     confVina_energy_range = "10"
     confVina_exhaustiveness = "5"
     confVina_num_modes = "3"
     confVina_scoring = "vina"
-    confVina_scoring_functions = "ad4,vina,vinardo"
+    confVina_scoring_functions = "vina,vinardo"
 
     print("\nVina configuration")
     answer = input(f"Path to the Vina software. Default [{confVina}] (press enter to keep default): ")
     confVina = confVina if not answer else answer
+
+    answer = input(f"Path to the Vina split software. Default [{confVina_split}] (press enter to keep default): ")
+    confVina_split = confVina_split if not answer else answer
 
     answer = input(f"Vina energy parameter. Default [{confVina_energy_range}] (press enter to keep default): ")
     confVina_energy_range = confVina_energy_range if not answer else answer
@@ -403,7 +405,7 @@ def create_ocdocker_conf() -> None:
 
     #region PLANTS variables
     confPlants = "/mnt/e/Documents/OCDocker/software/docking/plants/PLANTS1.2_64bit"
-    confPlants_cluster_structures = 10
+    confPlants_cluster_structures = 3
     confPlants_cluster_rmsd = 2.0
     confPlants_search_speed = "speed1"
     confPlants_scoring = "chemplp"
@@ -440,7 +442,7 @@ def create_ocdocker_conf() -> None:
     confDock6_flex_defn_file = "/mnt/e/Documents/OCDocker/software/docking/dock6/flex.defn"
     confDock6_flex_drive_file = "/mnt/e/Documents/OCDocker/software/docking/dock6/flex_drive.tbl"
 
-    #print("\nVina configuration")
+    #print("\nDock6 configuration")
     answer = input(f"Path to the DOCK6 software. Default [{confDock6}] (press enter to keep default): ")
     confDock6 = confDock6 if not answer else answer
 
@@ -507,248 +509,248 @@ def create_ocdocker_conf() -> None:
     # Create the conf file
     with open(conf_file, 'w') as cf:
         cf.write(tw.dedent("""# Root directory for the OCDocker Database
-        ocdb = """ + str(confOcdb) + """
+ocdb = """ + str(confOcdb) + """
 
-        # The default pdbbind KiKd magnitude [Y, Z, E, P, T, G, M, k, un, c, m, u, n, pf, a, z, y] (follow the unit prefix table)
-        pdbbind_KdKi_order = """ + str(confPDBbind_KdKi_order) + """
+# The default pdbbind KiKd magnitude [Y, Z, E, P, T, G, M, k, un, c, m, u, n, pf, a, z, y] (follow the unit prefix table)
+pdbbind_KdKi_order = """ + str(confPDBbind_KdKi_order) + """
 
-        ################# MGLTools PARAMETERS #################
+################# MGLTools PARAMETERS #################
 
-        # MGLTools's pythonsh path
-        pythonsh = """ + str(confPythonsh) + """
+# MGLTools's pythonsh path
+pythonsh = """ + str(confPythonsh) + """
 
-        # prepare_ligand4 path
-        prepare_ligand = """ + str(confPrepare_ligand) + """
+# prepare_ligand4 path
+prepare_ligand = """ + str(confPrepare_ligand) + """
 
-        # prepare_receptor4 path
-        prepare_receptor = """ + str(confPrepare_receptor) + """
+# prepare_receptor4 path
+prepare_receptor = """ + str(confPrepare_receptor) + """
 
-        ################# P2RANK PARAMETERS #################
+################# P2RANK PARAMETERS #################
 
-        # P2Rank path
-        prank = """ + str(confPrank) + """
+# P2Rank path
+prank = """ + str(confPrank) + """
 
-        # p2rank box cutoff
-        boxMaxCutoff = """ + str(confP2rankBoxMaxCutoff) + """
+# p2rank box cutoff
+boxMaxCutoff = """ + str(confP2rankBoxMaxCutoff) + """
 
-        # p2rank pocket cutoff
-        pocketCutoff = """ + str(confP2RankPocketCutoff) + """
+# p2rank pocket cutoff
+pocketCutoff = """ + str(confP2RankPocketCutoff) + """
 
-        ################## VINA PARAMETERS ##################
+################## VINA PARAMETERS ##################
 
-        # Vina path
-        vina = """ + str(confVina) + """
+# Vina path
+vina = """ + str(confVina) + """
 
-        # Vina_split path
-        vina_split = """ + str(confVina_split) + """
+# Vina_split path
+vina_split = """ + str(confVina_split) + """
 
-        # Maximum energy difference between the best binding mode and the worst one displayed (kcal/mol)
-        vina_energy_range = """ + str(confVina_energy_range) + """
+# Maximum energy difference between the best binding mode and the worst one displayed (kcal/mol)
+vina_energy_range = """ + str(confVina_energy_range) + """
 
-        # Exhaustiveness of the global search
-        vina_exhaustiveness = """ + str(confVina_exhaustiveness) + """
+# Exhaustiveness of the global search
+vina_exhaustiveness = """ + str(confVina_exhaustiveness) + """
 
-        # Maximum number of binding modes to generate
-        vina_num_modes = """ + str(confVina_num_modes) + """
+# Maximum number of binding modes to generate
+vina_num_modes = """ + str(confVina_num_modes) + """
 
-        # Default scoring function
-        vina_scoring = """ + str(confVina_scoring) + """
+# Default scoring function
+vina_scoring = """ + str(confVina_scoring) + """
 
-        # Available scoring functions
-        vina_scoring_functions = """ + str(confVina_scoring_functions) + """
+# Available scoring functions
+vina_scoring_functions = """ + str(confVina_scoring_functions) + """
 
-        ################# SMINA PARAMETERS ##################
+################# SMINA PARAMETERS ##################
 
-        # Smina path
-        smina = """ + str(confSmina) + """
+# Smina path
+smina = """ + str(confSmina) + """
 
-        # Maximum energy difference between the best binding mode and the worst one displayed (kcal/mol)
-        smina_energy_range = """ + str(confSmina_energy_range) + """
+# Maximum energy difference between the best binding mode and the worst one displayed (kcal/mol)
+smina_energy_range = """ + str(confSmina_energy_range) + """
 
-        # Exhaustiveness of the global search
-        smina_exhaustiveness = """ + str(confSmina_exhaustiveness) + """
+# Exhaustiveness of the global search
+smina_exhaustiveness = """ + str(confSmina_exhaustiveness) + """
 
-        # Maximum number of binding modes to generate
-        smina_num_modes = """ + str(confSmina_num_modes) + """
+# Maximum number of binding modes to generate
+smina_num_modes = """ + str(confSmina_num_modes) + """
 
-        # Default scoring function
-        smina_scoring = """ + str(confSmina_scoring) + """
+# Default scoring function
+smina_scoring = """ + str(confSmina_scoring) + """
 
-        # Available scoring functions
-        smina_scoring_functions = """ + str(confSmina_scoring_functions) + """
+# Available scoring functions
+smina_scoring_functions = """ + str(confSmina_scoring_functions) + """
 
-        # Custom scoring file
-        smina_custom_scoring = """ + str(confSmina_custom_scoring_file) + """
+# Custom scoring file
+smina_custom_scoring = """ + str(confSmina_custom_scoring_file) + """
 
-        # Custom atoms
-        smina_custom_atoms = """ + str(confSmina_custom_atoms) + """
+# Custom atoms
+smina_custom_atoms = """ + str(confSmina_custom_atoms) + """
 
-        # Local search only using autobox (you probably want to use --minimize)
-        smina_local_only = """ + str(confSmina_local_only) + """
+# Local search only using autobox (you probably want to use --minimize)
+smina_local_only = """ + str(confSmina_local_only) + """
 
-        # Energy minimization
-        smina_minimize = """ + str(confSmina_minimize) + """
+# Energy minimization
+smina_minimize = """ + str(confSmina_minimize) + """
 
-        # Generate random poses, attempting to avoid clashes
-        smina_randomize_only = """ + str(confSmina_randomize_only) + """
+# Generate random poses, attempting to avoid clashes
+smina_randomize_only = """ + str(confSmina_randomize_only) + """
 
-        # Number iterations of steepest descent; default scales with rotors and usually isn't sufficient for convergence
-        smina_minimize_iters = """ + str(confSmina_minimize_iters) + """
+# Number iterations of steepest descent; default scales with rotors and usually isn't sufficient for convergence
+smina_minimize_iters = """ + str(confSmina_minimize_iters) + """
 
-        # Use accurate line search
-        smina_accurate_line = """ + str(confSmina_accurate_line) + """
+# Use accurate line search
+smina_accurate_line = """ + str(confSmina_accurate_line) + """
 
-        # Stop minimization before convergence conditions are fully met
-        smina_minimize_early_term = """ + str(confSmina_minimize_early_term) + """
+# Stop minimization before convergence conditions are fully met
+smina_minimize_early_term = """ + str(confSmina_minimize_early_term) + """
 
-        # Approximation (linear, spline, or exact) to use
-        smina_approximation = """ + str(confSmina_approximation) + """
+# Approximation (linear, spline, or exact) to use
+smina_approximation = """ + str(confSmina_approximation) + """
 
-        # Approximation factor: higher results in a finer-grained approximation
-        smina_factor = """ + str(confSmina_factor) + """
+# Approximation factor: higher results in a finer-grained approximation
+smina_factor = """ + str(confSmina_factor) + """
 
-        # Max allowed force; lower values more gently minimize clashing structures
-        smina_force_cap = """ + str(confSmina_force_cap) + """
+# Max allowed force; lower values more gently minimize clashing structures
+smina_force_cap = """ + str(confSmina_force_cap) + """
 
-        # Autodock map file for user grid data based calculations
-        smina_user_grid = """ + str(confSmina_user_grid) + """
+# Autodock map file for user grid data based calculations
+smina_user_grid = """ + str(confSmina_user_grid) + """
 
-        # Scales user_grid and functional scoring
-        smina_user_grid_lambda = """ + str(confSmina_user_grid_lambda) + """
+# Scales user_grid and functional scoring
+smina_user_grid_lambda = """ + str(confSmina_user_grid_lambda) + """
 
-        ################# PLANTS PARAMETERS ##################
+################# PLANTS PARAMETERS ##################
 
-        # PLANTS path
-        plants = """ + str(confPlants) + """
+# PLANTS path
+plants = """ + str(confPlants) + """
 
-        # Number of cluster structures
-        plants_cluster_structures = """ + str(confPlants_cluster_structures) + """
+# Number of cluster structures
+plants_cluster_structures = """ + str(confPlants_cluster_structures) + """
 
-        # RMSD value for plants
-        plants_cluster_rmsd = """ + str(confPlants_cluster_rmsd) + """
+# RMSD value for plants
+plants_cluster_rmsd = """ + str(confPlants_cluster_rmsd) + """
 
-        # Search speed
-        plants_search_speed = """ + str(confPlants_search_speed) + """
+# Search speed
+plants_search_speed = """ + str(confPlants_search_speed) + """
 
-        # Default scoring function
-        plants_scoring = """ + str(confPlants_scoring) + """
+# Default scoring function
+plants_scoring = """ + str(confPlants_scoring) + """
 
-        # Available scoring functions
-        plants_scoring_functions = """ + str(confPlants_scoring_functions) + """
+# Available scoring functions
+plants_scoring_functions = """ + str(confPlants_scoring_functions) + """
 
-        # Plants rescoring mode
-        plants_rescoring_mode = """ + str(confPlants_rescoring_mode) + """
+# Plants rescoring mode
+plants_rescoring_mode = """ + str(confPlants_rescoring_mode) + """
 
-        ################# GNINA PARAMETERS ##################
+################# GNINA PARAMETERS ##################
 
-        # Gnina path
-        gnina = """ + str(confGnina) + """
+# Gnina path
+gnina = """ + str(confGnina) + """
 
-        # Exhaustiveness of the global search
-        gnina_exhaustiveness = """ + str(confGnina_exhaustiveness) + """
+# Exhaustiveness of the global search
+gnina_exhaustiveness = """ + str(confGnina_exhaustiveness) + """
 
-        # Maximum number of binding modes to generate
-        gnina_num_modes = """ + str(confGnina_num_modes) + """
+# Maximum number of binding modes to generate
+gnina_num_modes = """ + str(confGnina_num_modes) + """
 
-        # Alternativa scoring function
-        gnina_scoring = """ + str(confGnina_scoring) + """
+# Alternativa scoring function
+gnina_scoring = """ + str(confGnina_scoring) + """
 
-        # Custom scoring file
-        gnina_custom_scoring = """ + str(confGnina_custom_scoring_file) + """
+# Custom scoring file
+gnina_custom_scoring = """ + str(confGnina_custom_scoring_file) + """
 
-        # Custom atoms
-        gnina_custom_atoms = """ + str(confGnina_custom_atoms) + """
+# Custom atoms
+gnina_custom_atoms = """ + str(confGnina_custom_atoms) + """
 
-        # Local search only using autobox (you probably want to use --minimize)
-        gnina_local_only = """ + str(confGnina_local_only) + """
+# Local search only using autobox (you probably want to use --minimize)
+gnina_local_only = """ + str(confGnina_local_only) + """
 
-        # Energy minimization
-        gnina_minimize = """ + str(confGnina_minimize) + """
+# Energy minimization
+gnina_minimize = """ + str(confGnina_minimize) + """
 
-        # Generate random poses, attempting to avoid clashes
-        gnina_randomize_only = """ + str(confGnina_randomize_only) + """
+# Generate random poses, attempting to avoid clashes
+gnina_randomize_only = """ + str(confGnina_randomize_only) + """
 
-        # Number of monte carlo steps to take in each chain
-        gnina_num_mc_steps = """ + str(confGnina_num_mc_steps) + """
+# Number of monte carlo steps to take in each chain
+gnina_num_mc_steps = """ + str(confGnina_num_mc_steps) + """
 
-        # Cap on number of monte carlo steps to take in each chain
-        gnina_max_mc_steps = """ + str(confGnina_max_mc_steps) + """
+# Cap on number of monte carlo steps to take in each chain
+gnina_max_mc_steps = """ + str(confGnina_max_mc_steps) + """
 
-        # Number of top poses saved in each monte carlo chain
-        gnina_num_mc_saved = """ + str(confGnina_num_mc_saved) + """
+# Number of top poses saved in each monte carlo chain
+gnina_num_mc_saved = """ + str(confGnina_num_mc_saved) + """
 
-        # Number iterations of steepest descent; default scales with rotors and usually isn't sufficient for convergence
-        gnina_minimize_iters = """ + str(confGnina_minimize_iters) + """
+# Number iterations of steepest descent; default scales with rotors and usually isn't sufficient for convergence
+gnina_minimize_iters = """ + str(confGnina_minimize_iters) + """
 
-        # Use simple gradient ascent
-        gnina_simple_ascent = """ + str(confGnina_simple_ascent) + """
+# Use simple gradient ascent
+gnina_simple_ascent = """ + str(confGnina_simple_ascent) + """
 
-        # Use accurate line search
-        gnina_accurate_line = """ + str(confGnina_accurate_line) + """
+# Use accurate line search
+gnina_accurate_line = """ + str(confGnina_accurate_line) + """
 
-        # Stop minimization before convergence conditions are fully met
-        gnina_minimize_early_term = """ + str(confGnina_minimize_early_term) + """
+# Stop minimization before convergence conditions are fully met
+gnina_minimize_early_term = """ + str(confGnina_minimize_early_term) + """
 
-        # Approximation (linear, spline, or exact) to use
-        gnina_approximation = """ + str(confGnina_approximation) + """
+# Approximation (linear, spline, or exact) to use
+gnina_approximation = """ + str(confGnina_approximation) + """
 
-        # Approximation factor: higher results in a finer-grained approximation
-        gnina_factor = """ + str(confGnina_factor) + """
+# Approximation factor: higher results in a finer-grained approximation
+gnina_factor = """ + str(confGnina_factor) + """
 
-        # Max allowed force; lower values more gently minimize clashing structures
-        gnina_force_cap = """ + str(confGnina_force_cap) + """
+# Max allowed force; lower values more gently minimize clashing structures
+gnina_force_cap = """ + str(confGnina_force_cap) + """
 
-        # Autodock map file for user grid data based calculations
-        gnina_user_grid = """ + str(confGnina_user_grid) + """
+# Autodock map file for user grid data based calculations
+gnina_user_grid = """ + str(confGnina_user_grid) + """
 
-        # Scales user_grid and functional scoring
-        gnina_user_grid_lambda = """ + str(confGnina_user_grid_lambda) + """
+# Scales user_grid and functional scoring
+gnina_user_grid_lambda = """ + str(confGnina_user_grid_lambda) + """
 
-        # Wether to use the GPU or not
-        gnina_no_gpu = """ + str(confGnina_no_gpu) + """
+# Wether to use the GPU or not
+gnina_no_gpu = """ + str(confGnina_no_gpu) + """
 
-        ################# DOCK6 PARAMETERS ##################
+################# DOCK6 PARAMETERS ##################
 
-        # dock6 path
-        dock6 = """ + str(confDock6) + """
+# dock6 path
+dock6 = """ + str(confDock6) + """
 
-        # Path to the vdw defn file
-        dock6_vdw_defn_file = """ + str(confDock6_vdw_defn_file) + """
+# Path to the vdw defn file
+dock6_vdw_defn_file = """ + str(confDock6_vdw_defn_file) + """
 
-        # Path to the flex defn file
-        dock6_flex_defn_file = """ + str(confDock6_flex_defn_file) + """
+# Path to the flex defn file
+dock6_flex_defn_file = """ + str(confDock6_flex_defn_file) + """
 
-        # Path to the flex drive file
-        dock6_flex_drive_file = """ + str(confDock6_flex_drive_file) + """
+# Path to the flex drive file
+dock6_flex_drive_file = """ + str(confDock6_flex_drive_file) + """
 
-        ################## ODDT PARAMETERS ##################
+################## ODDT PARAMETERS ##################
 
-        # Path to the oddt_cli file
-        oddt = """ + str(confODDT) + """
+# Path to the oddt_cli file
+oddt = """ + str(confODDT) + """
 
-        # Seed for the ODDT software
-        oddt_seed = """ + str(confODDT_seed) + """
+# Seed for the ODDT software
+oddt_seed = """ + str(confODDT_seed) + """
 
-        # Seed for the ODDT chunk size
-        oddt_chunk_size = """ + str(confODDT_chunk_size) + """
+# Seed for the ODDT chunk size
+oddt_chunk_size = """ + str(confODDT_chunk_size) + """
 
-        # Alternative scoring function
-        oddt_scoring_functions = """ + str(confODDT_scoring_functions) + """
+# Alternative scoring function
+oddt_scoring_functions = """ + str(confODDT_scoring_functions) + """
 
-        ################## OTHER SOFTWARE ###################
+################## OTHER SOFTWARE ###################
 
-        # MSMS program for the surface calculation
-        dssp = """ + str(confDssp) + """
+# MSMS program for the surface calculation
+dssp = """ + str(confDssp) + """
 
-        # Open Babel path
-        obabel = """ + str(confObabel) + """
+# Open Babel path
+obabel = """ + str(confObabel) + """
 
-        # SPORES path
-        spores = """ + str(confSpores) + """
+# SPORES path
+spores = """ + str(confSpores) + """
 
-        # DUDEz download link
-        DUDEz = """ + str(confDUDEz) + """
-        """))
+# DUDEz download link
+DUDEz = """ + str(confDUDEz) + """
+"""))
 
     print(f"{clrs['g']}Configuration file created!{clrs['n']} If you need to change the paths you might want to {clrs['y']}EDIT ITS CONTENTS{clrs['n']} or delete the file and execute this routine again so that your environment variables are correctly set. To ensure that all variables are correctly set, please restart OCDocker.")
     return
@@ -774,12 +776,13 @@ def initialise_oddt_models(oddt_models_dir: str, oddt_scoring_functions_aux: lis
     # Find which models are already pickled
     oddt_models = glob(f"{oddt_models_dir}/*.pickle")
 
+    # Process the scoring function names to match the ODDT models
+    processedNames = [".".join(oddt_model.split(os.path.sep)[-1].split(".")[:-1]).lower() if "plecrf" not in oddt_model.lower() else "plecrf" for oddt_model in oddt_models]
+
     # For each model, check if it is in the list of scoring functions
     for oddt_scoring_function_aux in oddt_scoring_functions_aux:
-        # Process the scoring function names to match the ODDT models
-        processedNames = [".".join(oddt_model.split(os.path.sep)[-1].split(".")[:-1]).lower() if "plecrf" not in oddt_model.lower() else "plecrf" for oddt_model in oddt_models]
         # If the scoring function is not in the list of models or if it is plecrf and the plecrf model is not in the list of models
-        if oddt_scoring_function_aux not in processedNames and (oddt_scoring_function_aux.startswith("plecrf") and "plecrf" not in processedNames):
+        if (not oddt_scoring_function_aux.startswith("plecrf") and oddt_scoring_function_aux not in processedNames) or (oddt_scoring_function_aux.startswith("plecrf") and "plecrf" not in processedNames):
             # If the flag is True, print the warning
             if warning_flag:
                 # Warn the user that this could take some time
