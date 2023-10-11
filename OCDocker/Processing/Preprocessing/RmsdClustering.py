@@ -52,7 +52,67 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 ## Private ##
 
 ## Public ##
-def get_medoids(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorithm: str = 'agglomerativeClustering', outputPlot: str = "") -> Union[List[str], int]:
+def get_medoids(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], clusters: np.ndarray, onlyBiggest: bool = True) -> List[str]:
+    '''Get the medoids of the clusters.
+
+    Parameters
+    ----------
+    data : Union[Dict[str, Dict[str, float]], pd.DataFrame]
+        The rmsd matrix.
+    clusters : np.ndarray
+        The clusters.
+    onlyBiggest : bool, optional
+        If True, only the medoid of the biggest clusters are returned. The default is True.
+
+    Returns
+    -------
+    List[str]
+        The paths to the medoids.
+    '''
+
+    # Check if the data is a dict
+    if isinstance(data, dict):
+        # Convert the dict to a DataFrame
+        data = pd.DataFrame(data)
+    
+    # If onlyBiggest is True
+    if onlyBiggest:
+        # Get the size of each cluster
+        cluster_sizes = np.bincount(clusters)
+
+        # Get the label of the biggest clusters (may be more than one)
+        unique_clusters = np.where(cluster_sizes == np.max(cluster_sizes))[0]
+    else:
+        # Get the unique clusters
+        unique_clusters = np.unique(clusters)
+
+    # Initialize a list to store medoids
+    medoids = []
+
+    # Calculate medoid for each cluster
+    for cluster in unique_clusters:
+        # Select data points belonging to the current cluster
+        cluster_data = data[clusters == cluster]
+
+        # Calculate pairwise distances within the cluster
+        distances = pairwise_distances(cluster_data, metric='euclidean')
+
+        # Calculate the sum of distances for each data point
+        sum_distances = np.sum(distances, axis=1)
+        
+        # Find the index of the data point with the smallest sum of distances
+        medoid_index = np.argmin(sum_distances)
+
+        # Get the index name
+        medoid_index_label = cluster_data.index[medoid_index]
+        
+        # Append the medoid to the list of medoids
+        medoids.append(medoid_index_label)
+
+    # Return the medoid paths
+    return medoids
+
+def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorithm: str = 'agglomerativeClustering', distance_threshold: float = 20.0, outputPlot: str = "") -> Union[np.ndarray, int]:
     '''Cluster molecules based on their rmsd.
 
     Parameters
@@ -61,13 +121,15 @@ def get_medoids(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorith
         The rmsd matrix.
     algorithm : str, optional
         The clustering algorithm to be used. The default is 'agglomerativeClustering'. The options are: 'agglomerativeClustering'.
+    distance_threshold : float, optional
+        The distance threshold for the agglomerative clustering. The default is 20.0.
     outputPlot : str, optional
         The path to the output plot. The default is "". If it is "", the plot is not saved.
 
     Returns
     -------
-    List[str] | int
-        The medoids of the clusters if no errros occur. Otherwise, the error code.
+    np.ndarray | int
+        The clusters or the error code.
     '''
 
     # Check if the data is a dict
@@ -79,8 +141,8 @@ def get_medoids(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorith
     if data.shape[0] == 1:
         # Print the warning
         ocprint.print_warning(f"The shape of the data is {data.shape}. There is no need to cluster it.")
-        # Return the only column
-        return data.columns.tolist()
+        # Return the only column as a single cluster (np.array with 0.0)
+        return np.array([0.0])
 
     # Convert the dataframe into numpy arrays to be used by the clustering algorithm
     npdata = data.to_numpy()
@@ -90,20 +152,10 @@ def get_medoids(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorith
         # Ignore the cluster warning (the matrices are too small, thus the warning keeps popping up)
         simplefilter("ignore", ClusterWarning)
 
-        # Initialise the results and scores
-        results = []
-        scores = []
-
-        # Use elbow method to find the best number of clusters
-        for i in range(2, npdata.shape[0]):
-            # Perform the clustering
-            analysis = AgglomerativeClustering(n_clusters = i).fit_predict(npdata)
-            # Get the silhouette score
-            silhouette_avg = silhouette_score(npdata, analysis)
-
-            # Append the results and scores
-            results.append(analysis)
-            scores.append(silhouette_avg)
+        # Perform the clustering
+        results = AgglomerativeClustering(n_clusters = None, distance_threshold = distance_threshold).fit_predict(npdata)
+        # Get the silhouette score
+        scores = silhouette_score(npdata, results)
         
         # If the outputPlot is not ""
         if outputPlot != "":
@@ -113,40 +165,18 @@ def get_medoids(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorith
             plt.title('Agglomerative Clustering Dendrogram')
             plt.xlabel('Data Points')
             plt.ylabel('Distance')
-            plt.tight_layout()
+            # Extend the y-axis limits, adding a bit of buffer at the top to allow the text to fit
+            plt.ylim(0, max(linkage_matrix[:, 2]) * 1.2)
+            # Add a red line at the distance threshold
+            plt.axhline(y=distance_threshold, color='r', linestyle='--')
+            # Add the silhouette score (left, top) rounded to 2 decimals
+            plt.text(0.05, 0.95, f"Silhouette Score: ~{round(scores, 2)}", transform=plt.gca().transAxes, size=10, verticalalignment='top', horizontalalignment='left')
+            # Add a label to the distance threshold below the silhouette score
+            plt.text(0.05, 0.9, f"Distance Threshold: {distance_threshold}", transform=plt.gca().transAxes, size=10, verticalalignment='top', horizontalalignment='left')
             plt.savefig(outputPlot)
         
         # Get the best result
-        clusters = results[scores.index(max(scores))]
-
-        # Get the unique clusters
-        unique_clusters = np.unique(clusters)
-
-        # Initialize a list to store medoids
-        medoids = []
-
-        # Calculate medoid for each cluster
-        for cluster in unique_clusters:
-            # Select data points belonging to the current cluster
-            cluster_data = data[clusters == cluster]
-
-            # Calculate pairwise distances within the cluster
-            distances = pairwise_distances(cluster_data, metric='euclidean')
-
-            # Calculate the sum of distances for each data point
-            sum_distances = np.sum(distances, axis=1)
-            
-            # Find the index of the data point with the smallest sum of distances
-            medoid_index = np.argmin(sum_distances)
-
-            # Get the index name
-            medoid_index_label = cluster_data.index[medoid_index]
-            
-            # Append the medoid to the list of medoids
-            medoids.append(medoid_index_label)
-
-        # Return the medoid paths
-        return medoids
-
+        return results
+    
     else:
         return errors.unsupported_clustering_algorithm(f"The clustering algorithm '{algorithm}' is not supported. Currently the supported algorithms are: 'agglomerativeClustering'.")

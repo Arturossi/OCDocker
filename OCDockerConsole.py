@@ -173,10 +173,12 @@ vinaTest.run_prepare_receptor()
 vinaTest.run_prepare_ligand()
 # Run the docking
 vinaTest.run_docking()
+# Split the docking results into multiple files
+vinaTest.split_poses(f"{baseLigPath}/{lig}/vinaFiles", logFile = "")
 # Run the rescoring with vina
 vinaTest.run_rescore(f"{baseLigPath}/{lig}/vinaFiles", skipDefaultScoring = True)
 # Get Docking results
-dockingResult = vinaTest.read_log()
+vinaDockingResult = vinaTest.read_log()
 # Get Rescoring results (skip the default scoring function)
 rescoringResult = vinaTest.read_rescore_logs(f"{baseLigPath}/{lig}/vinaFiles")
 
@@ -202,7 +204,7 @@ sminaTest.run_docking()
 # Run the rescoring with smina
 sminaTest.run_rescore(f"{baseLigPath}/{lig}/sminaFiles", skipDefaultScoring = True)
 # Get Docking results
-dockingResult = sminaTest.read_log()
+sminaDockingResult = sminaTest.read_log()
 
 ## If you will run smina only for rescoring (no docking), run this block!
 ##########################################################################
@@ -236,7 +238,7 @@ plantsTest.run_prepare_ligand()
 plantsTest.run_docking()
 
 # Get Docking results
-dockingResult = plantsTest.read_log(onlyBest = False)
+plantsDockingResult = plantsTest.read_log(onlyBest = False)
 
 # Get Docking poses
 dockingPoses = plantsTest.get_docked_poses()
@@ -264,7 +266,6 @@ df = ocoddt.run_oddt(vinaTest.preparedReceptor, vinaTest.get_docked_poses(), vin
 dt = ocoddt.df_to_dict(df)
 
 
-
 ###############
 ## Clustering #
 ###############
@@ -279,11 +280,29 @@ poses_list = vinaPoses + plantsPoses
 # Get the rmsd matrix from the poses list
 rmsdMatrix = ocmolproc.get_rmsd_matrix(poses_list)
 
-# Get the medoids (The plot is just for visualization, it is not required)
-medoids = ocrmsdclust.get_medoids(rmsdMatrix, algorithm = 'agglomerativeClustering', outputPlot = f"{basePath}/medoids.png")
+# Get the clusters
+clusters = ocrmsdclust.cluster_rmsd(rmsdMatrix, algorithm = 'agglomerativeClustering', outputPlot = f"{basePath}/medoids.png")
 
-# Find which medoid has the lowest energy
-# TODO: implement
+# Get the medoids (The plot is just for visualization, it is not required)
+medoids = ocrmsdclust.get_medoids(rmsdMatrix, clusters, onlyBiggest = True)
+
+# Dictionary with the medoids and its docking method (to be correctly parsed by the next function)
+medoidsDict = {}
+
+## Find which medoid has the lowest energy
+# For each medoid
+for medoid in medoids:
+    # Check if it is contained in vinaPoses list
+    if medoid in vinaPoses:
+        # Add it to the medoidsDict as a list with vina as the key
+        medoidsDict[medoid] = vinaDockingResult[ocvina.get_pose_index_from_file_path(medoid)]
+    # Check if it is contained in plantsPoses list
+    elif medoid in plantsPoses:
+        # Add it to the medoidsDict as a list with plants as the key
+        medoidsDict[medoid] = plantsDockingResult[ocplants.get_pose_index_from_file_path(medoid)]
+
+# TODO: Find a way to compare PLANTS score with Vina/Smina/Gnina.....
+
 
 ##############
 ##   Gnina   #

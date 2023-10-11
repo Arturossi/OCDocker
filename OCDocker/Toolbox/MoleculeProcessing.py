@@ -17,9 +17,11 @@ import os
 
 from spyrmsd import io, rmsd
 from threading import Lock
-from typing import Dict, List, Union
+from typing import Dict, List, Tuple, Union
 
 from OCDocker.Initialise import *
+import OCDocker.Toolbox.Printing as ocprint
+import OCDocker.Toolbox.Running as ocrun
 
 # License
 ###############################################################################
@@ -44,6 +46,37 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 ## Private ##
 
 ## Public ##
+def split_poses(ligand: str, ligandName: str, outPath: str, suffix: str = "", logFile: str = "") -> Union[int, Tuple[int, str]]:
+    '''Split the input ligand into its poses.
+
+    Parameters
+    ----------
+    ligand : str
+        The path to the input ligand.
+    ligandName : str
+        The name of the input ligand.
+    outPath : str
+        The path to the output folder.
+    suffix : str, optional
+        The suffix to be added to the output files, by default "".
+    logFile : str, optional
+        The path to the log file, by default "".
+    
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+    '''
+
+    # Split the input ligand
+    cmd = [vina_split, "--input", ligand, "--flex", "''", "--ligand", f"{outPath}/{ligandName}{suffix}"]
+
+    # Print verbosity
+    ocprint.printv(f"Spliting the ligand '{ligand}'.")
+
+    # Run the command
+    return ocrun.run(cmd, logFile = logFile)
+
 def get_rmsd_matrix(molecules: List[str]) -> Dict[str, Dict[str, float]]:
     '''Get the rmsd matrix between a list of molecules.
 

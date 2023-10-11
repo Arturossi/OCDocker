@@ -28,6 +28,7 @@ import OCDocker.Receptor as ocr
 import OCDocker.Toolbox.Conversion as occonversion
 import OCDocker.Toolbox.FilesFolders as ocff
 import OCDocker.Toolbox.IO as ocio
+import OCDocker.Toolbox.MoleculeProcessing as ocmolproc
 import OCDocker.Toolbox.Printing as ocprint
 import OCDocker.Toolbox.Running as ocrun
 import OCDocker.Toolbox.Validation as ocvalidation
@@ -218,20 +219,21 @@ class Vina:
 
     ## Public ##
 
-    def read_log(self) -> Union[Dict[str, List[Union[str, float]]], int]:
+    def read_log(self, onlyBest = False) -> Dict[int, Dict[int, float]]:
         '''Read the vina log path, returning a dict with data from complexes.
 
         Parameters
         ----------
-        None
+        onlyBest : bool, optional
+            If True, only the best pose will be returned. By default False.
 
         Returns
         -------
-        Dict[str, List[Union[str, float]]] | int
+        Dict[int, Dict[int, float]] | int
             A dictionary with the data from the vina log file. If any error occurs, it will return the exit code of the command (based on the Error.py code table).
         '''
 
-        return read_log(self.vinaLog)
+        return read_log(self.vinaLog, onlyBest = onlyBest)
 
     def run_vina(self) -> Union[int, Tuple[int, str]]:
         '''Run vina.
@@ -248,7 +250,9 @@ class Vina:
 
         # Print verboosity
         ocprint.printv(f"Running vina using the '{self.config}' configurations.")
-        return ocrun.run(self.vinaCmd, logFile=self.vinaLog)
+
+        # Run the command
+        return ocrun.run(self.vinaCmd, logFile = self.vinaLog)
 
     def run_prepare_ligand(self, logFile: str = "", useOpenBabel: bool = False) -> Union[int, str, Tuple[int, str]]:
         '''Run 'prepare_ligand4' or openbabel to prepare the ligand.
@@ -434,6 +438,24 @@ class Vina:
         # Return the dictionary
         return rescoreLogData
 
+    def split_poses(self, outPath: str, logFile: str = "") -> int:
+        '''Split the ligand resulted from vina into its poses.
+
+        Parameters
+        ----------
+        outPath : str
+            Path to the output folder.
+        logFile : str, optional
+            Path to the logFile. If empty, suppress the output. By default "".
+
+        Returns
+        -------
+        int
+            The exit code of the command (based on the Error.py code table).
+        '''
+
+        return ocmolproc.split_poses(self.outputVina, self.inputLigand.name, outPath, logFile = logFile, suffix = "_split_") # type: ignore
+        
     def print_attributes(self) -> None:
         '''Print the class attributes.
 
@@ -579,7 +601,7 @@ def run_prepare_receptor(inputReceptorPath: str, outputReceptor: str, logFile: s
     # Run the command
     return ocrun.run(cmd, logFile=logFile)
 
-def run_vina(confFile: str, ligand: str, outpath: str, logFile: str = ""):
+def run_vina(confFile: str, ligand: str, outPath: str, logFile: str = ""):
     '''Run vina.
 
     Parameters
@@ -588,7 +610,7 @@ def run_vina(confFile: str, ligand: str, outpath: str, logFile: str = ""):
         The path to the vina configuration file.
     ligand : str
         The path to the ligand file.
-    outpath : str
+    outPath : str
         The path to the output file.
     logFile : str
         The path to the log file. If empty, suppress the output.
@@ -600,11 +622,13 @@ def run_vina(confFile: str, ligand: str, outpath: str, logFile: str = ""):
     '''
     
     # Create the command list
-    cmd = [vina, "--config", confFile, "--ligand", ligand, "--out", outpath, "--cpu", "1"]
+    cmd = [vina, "--config", confFile, "--ligand", ligand, "--out", outPath, "--cpu", "1"]
+
     # Print verboosity
     ocprint.printv(f"Running vina using the '{confFile}' configurations.")
-    # Run the command
-    return ocrun.run(cmd, logFile=logFile)
+
+    # Get the result of the command
+    return ocrun.run(cmd, logFile = logFile)
 
 def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, scoring_function: str, logFile: str = "", splitLigand: bool = True, overwrite: bool = False) -> None:
     '''Run vina to rescore the ligand.
@@ -650,14 +674,7 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
             # Get the ligand name
             ligandName = os.path.splitext(os.path.basename(ligand))[0]
             
-            # Split the input ligand
-            cmd = [vina_split, "--input", ligand, "--flex", "''", "--ligand", f"{outPath}/{ligandName}_split_"]
-
-            # Print verbosity
-            ocprint.printv(f"Spliting the ligand '{ligand}'.")
-
-            # Run the command
-            _ = ocrun.run(cmd, logFile = logFile)
+            _ = ocmolproc.split_poses(ligand, ligandName, outPath, logFile = "", suffix = "_split_")
 
             # Add the ligand name to the list
             ligandNames.append(ligandName)
@@ -734,7 +751,7 @@ def generate_vina_files_database(path: str, protein: str, boxPath: str = "") -> 
 
     return None
 
-def read_log(path: str, onlyBest: bool = False) -> Dict[str, List[Union[str, float]]]:
+def read_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
     '''Read the vina log path, returning the data from complexes.
 
     Parameters
@@ -746,7 +763,7 @@ def read_log(path: str, onlyBest: bool = False) -> Dict[str, List[Union[str, flo
 
     Returns
     -------
-    Dict[str, List[str | float]]
+    Dict[int, Dict[int, float]]
         A dictionary with the data from the vina log file.
     '''
 
@@ -776,11 +793,11 @@ def read_log(path: str, onlyBest: bool = False) -> Dict[str, List[Union[str, flo
                     # Check if there are 4 elements in the splitLine
                     if len(splitLine) == 4:
                         # Assign the data in the dictionary with the pose as key and the affinity as value
-                        data[splitLine[0]] = {vina_scoring: splitLine[1]}
+                        data[int(splitLine[0])] = {vina_scoring: splitLine[1]}
                 # If onlyBest is True
                 if onlyBest:
                     # Return only the best pose (-1 since the data is reversed)
-                    return {list(data.keys())[-1]: list(data.values())[-1]}
+                    return { list(data.keys())[-1]: list(data.values())[-1] }
                 # Otherwise return the data
                 return data
 
@@ -1019,6 +1036,26 @@ def get_docked_poses(posesPath: str) -> List[str]:
     # Return an empty list
     return []
 
+def get_pose_index_from_file_path(filePath: str) -> int:
+    '''Get the pose index from the file path.
+
+    Parameters
+    ----------
+    filePath : str
+        The path to the file.
+
+    Returns
+    -------
+    int
+        The pose index.
+    '''
+
+    # Get the filename from the file path
+    filename = os.path.splitext(os.path.basename(filePath))[0]
+    # Split the filename using the '_split_' string as delimiter then grab the end of the string
+    filename = filename.split("_split_")[-1]
+    # Return the filename
+    return int(filename)
 
 # Aliases
 ###############################################################################

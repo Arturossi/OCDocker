@@ -249,7 +249,7 @@ class PLANTS:
 
         return write_config_file(self.config, self.preparedReceptor, self.preparedLigand, self.outputPlants, self.bindingSiteCenter[0], self.bindingSiteCenter[1], self.bindingSiteCenter[2], self.bindingSiteRadius)
 
-    def read_log(self, onlyBest = True) -> Union[Dict[str, List[Union[str, float]]], int]:
+    def read_log(self, onlyBest = True) -> Dict[int, Dict[int, float]]:
         '''Read the PLANTS log path, returning a pd.dataframe with data from complexes.
 
         Parameters
@@ -259,8 +259,8 @@ class PLANTS:
 
         Returns
         -------
-        Dict[str, List[str | float]] | int
-            The dictionary with the data from complexes or the error code.
+        Dict[int, Dict[int, float]]
+            The dictionary with the data from complexes.
         '''
 
         # If onlyBest is set
@@ -270,6 +270,7 @@ class PLANTS:
         else:
             # The ranking file will be called ranking
             rankingFile = "ranking.csv"
+            
         return read_log(f"{self.outputCsv}/{rankingFile}", onlyBest = onlyBest)
 
     def run_plants(self, overwrite: bool =False) -> Union[Tuple[int, str], int]:
@@ -973,7 +974,7 @@ def generate_plants_files_database(path: str, protein: str, ligand: str, spacing
 
     return None
 
-def read_log(path: str, onlyBest: bool = False) -> Dict[str, List[Union[str, float]]]:
+def read_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
     '''Read the PLANTS log path, returning a dict with data from complexes.
 
     Parameters
@@ -985,10 +986,10 @@ def read_log(path: str, onlyBest: bool = False) -> Dict[str, List[Union[str, flo
         
     Returns
     -------
-    Dict[str, List[str | float]]
+    Dict[int, Dict[int, float]]
         A dictionary with the data from the PLANTS log file.
     '''
-    
+   
     # Check if file exists
     if os.path.isfile(path):
         try:
@@ -997,28 +998,21 @@ def read_log(path: str, onlyBest: bool = False) -> Dict[str, List[Union[str, flo
 
             # Check if df is empty or malformed
             if df is None or df.shape[0] == 0 or df.shape[1] == 0: # type: ignore
-                # Return the dict filled with np.NaN
-                return {
-                    "PLANTS_TOTAL_SCORE": [np.NaN],
-                    "PLANTS_SCORE_RB_PEN": [np.NaN],
-                    "PLANTS_SCORE_NORM_HEVATOMS": [np.NaN],
-                    "PLANTS_SCORE_NORM_CRT_HEVATOMS": [np.NaN], 
-                    "PLANTS_SCORE_NORM_WEIGHT": [np.NaN],
-                    "PLANTS_SCORE_NORM_CRT_WEIGHT": [np.NaN],
-                    "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [np.NaN],
-                }
+                # Return an empty dict
+                return {}
             else:
                 # If onlyBest is True
                 if onlyBest:
                     # Return the built the dictionary
-                    return {
-                        "PLANTS_TOTAL_SCORE": [df.TOTAL_SCORE[:1].values[0]], # type: ignore
-                        "PLANTS_SCORE_RB_PEN": [df.SCORE_RB_PEN[:1].values[0]], # type: ignore
-                        "PLANTS_SCORE_NORM_HEVATOMS": [df.SCORE_NORM_HEVATOMS[:1].values[0]], # type: ignore
-                        "PLANTS_SCORE_NORM_CRT_HEVATOMS": [df.SCORE_NORM_CRT_HEVATOMS[:1].values[0]], # type: ignore
-                        "PLANTS_SCORE_NORM_WEIGHT": [df.SCORE_NORM_WEIGHT[:1].values[0]], # type: ignore
-                        "PLANTS_SCORE_NORM_CRT_WEIGHT": [df.SCORE_NORM_CRT_WEIGHT[:1].values[0]], # type: ignore
-                        "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [df.SCORE_RB_PEN_NORM_CRT_HEVATOMS[:1].values[0]], # type: ignore
+                    return { 1: {
+                            "PLANTS_TOTAL_SCORE": [df.TOTAL_SCORE[:1].values[0]], # type: ignore
+                            "PLANTS_SCORE_RB_PEN": [df.SCORE_RB_PEN[:1].values[0]], # type: ignore
+                            "PLANTS_SCORE_NORM_HEVATOMS": [df.SCORE_NORM_HEVATOMS[:1].values[0]], # type: ignore
+                            "PLANTS_SCORE_NORM_CRT_HEVATOMS": [df.SCORE_NORM_CRT_HEVATOMS[:1].values[0]], # type: ignore
+                            "PLANTS_SCORE_NORM_WEIGHT": [df.SCORE_NORM_WEIGHT[:1].values[0]], # type: ignore
+                            "PLANTS_SCORE_NORM_CRT_WEIGHT": [df.SCORE_NORM_CRT_WEIGHT[:1].values[0]], # type: ignore
+                            "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [df.SCORE_RB_PEN_NORM_CRT_HEVATOMS[:1].values[0]], # type: ignore
+                        }
                     }
                 else:
                     # Create the dict
@@ -1026,7 +1020,7 @@ def read_log(path: str, onlyBest: bool = False) -> Dict[str, List[Union[str, flo
                     # For each row
                     for _, row in df.iterrows(): # type: ignore
                         # Add the data to the dict
-                        data[row['LIGAND_ENTRY']] = {
+                        data[get_pose_index_from_file_path(row['LIGAND_ENTRY'])] = {
                             "PLANTS_TOTAL_SCORE": row['TOTAL_SCORE'], # type: ignore
                             "PLANTS_SCORE_RB_PEN": row['SCORE_RB_PEN'], # type: ignore
                             "PLANTS_SCORE_NORM_HEVATOMS": row['SCORE_NORM_HEVATOMS'], # type: ignore
@@ -1044,16 +1038,8 @@ def read_log(path: str, onlyBest: bool = False) -> Dict[str, List[Union[str, flo
     # Throw an error
     _ = errors.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
 
-    # Return a dict with a NaN value
-    return {
-               "PLANTS_TOTAL_SCORE": [np.NaN],
-               "PLANTS_SCORE_RB_PEN": [np.NaN],
-               "PLANTS_SCORE_NORM_HEVATOMS": [np.NaN],
-               "PLANTS_SCORE_NORM_CRT_HEVATOMS": [np.NaN],
-               "PLANTS_SCORE_NORM_WEIGHT": [np.NaN],
-               "PLANTS_SCORE_NORM_CRT_WEIGHT": [np.NaN],
-               "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [np.NaN],
-           }
+    # Return an empty dict
+    return {}
 
 def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, digestFormat : str = "json") -> int:
     """Generate the docking digest.
@@ -1152,6 +1138,27 @@ def get_docked_poses(posesPath: str) -> List[str]:
     
     # Return an empty list
     return []
+
+def get_pose_index_from_file_path(filePath: str) -> int:
+    '''Get the pose index from the file path.
+
+    Parameters
+    ----------
+    filePath : str
+        The path to the file.
+
+    Returns
+    -------
+    int
+        The pose index.
+    '''
+
+    # Get the filename from the file path
+    filename = os.path.splitext(os.path.basename(filePath))[0]
+    # Split the filename using the '_' string as delimiter then grab the end of the string
+    filename = filename.split("_")[-1]
+    # Return the filename
+    return int(filename)
 
 # Aliases
 ###############################################################################

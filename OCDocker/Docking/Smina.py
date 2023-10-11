@@ -219,20 +219,21 @@ class Smina:
         return cmd
 
     ## Public ##
-    def read_log(self) -> Union[pd.DataFrame, int]:
-        '''Read the smina log path, returning a pd.dataframe with data from complexes.
+    def read_log(self, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
+        '''Read the SMINA log path, returning a dict with data from complexes.
 
         Parameters
         ----------
-        None
+        onlyBest : bool, optional
+            If True, only the best pose will be returned. By default False.
 
         Returns
         -------
-        pd.DataFrame | int
-            The dataframe with the data from the smina log, or the error code.
+        Dict[int, Dict[int, float]]
+            A dictionary with the data from the SMINA log file. If any error occurs, it will return the exit code of the command (based on the Error.py code table).
         '''
 
-        return read_log(self.sminaLog) # type: ignore
+        return read_log(self.sminaLog, onlyBest = onlyBest) # type: ignore
 
     def run_smina(self, logFile: str = "") -> Union[int, Tuple[int, str]]:
         '''Run smina.
@@ -808,7 +809,7 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
     # Think about how can this be done to deal with multiple runs
     return None
 
-def read_log(path: str, onlyBest: bool = False) -> Dict[str, List[Union[str, float]]]:
+def read_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
     '''Read the SMINA log path, returning the data from complexes.
 
     Parameters
@@ -820,7 +821,7 @@ def read_log(path: str, onlyBest: bool = False) -> Dict[str, List[Union[str, flo
 
     Returns
     -------
-    Dict[str, List[str | float]]
+    Dict[int, Dict[int, float]]
         A dictionary with the data from the SMINA log file.
     '''
 
@@ -850,7 +851,7 @@ def read_log(path: str, onlyBest: bool = False) -> Dict[str, List[Union[str, flo
                     # Check if there are 4 elements in the splitLine
                     if len(splitLine) == 4:
                         # Assign the data in the dictionary with the pose as key and the affinity as value
-                        data[splitLine[0]] = {smina_scoring: splitLine[1]}
+                        data[int(splitLine[0])] = {smina_scoring: splitLine[1]}
                 # If onlyBest is True
                 if onlyBest:
                     # Return only the best pose (-1 since the data is reversed)
@@ -1092,6 +1093,27 @@ def get_docked_poses(posesPath: str) -> List[str]:
     
     # Return an empty list
     return []
+
+def get_pose_index_from_file_path(filePath: str) -> int:
+    '''Get the pose index from the file path.
+
+    Parameters
+    ----------
+    filePath : str
+        The path to the file.
+
+    Returns
+    -------
+    int
+        The pose index.
+    '''
+
+    # Get the filename from the file path
+    filename = os.path.splitext(os.path.basename(filePath))[0]
+    # Split the filename using the '_split_' string as delimiter then grab the end of the string
+    filename = filename.split("_split_")[-1]
+    # Return the filename
+    return int(filename)
 
 # Aliases
 ###############################################################################
