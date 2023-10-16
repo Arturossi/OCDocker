@@ -81,6 +81,7 @@ class Error:
         self.wrongTypeCode                      = 200
         self.notSetCode                         = 201
         self.emptyCode                          = 202
+        self.valueErrorCode                     = 203
 
         # Subprocess errors
         self.subprocessCode                     = 300
@@ -111,6 +112,7 @@ class Error:
 
         # Clustering error
         self.unsupportedClusteringAlgorithmCode = 750
+        self.clusterNotConvergedCode            = 751
 
     ## Private ##
     def __print_info(self, message: str) -> None:
@@ -627,6 +629,26 @@ class Error:
 
         return self.emptyCode
 
+    def value_error(self, message: str = "", level: str = "warn") -> int:
+        '''Return this when the variable has a value error.
+
+        Parameters
+        ----------
+        message : string, optional
+            Message to be printed. Default is "".
+        level : string, optional
+            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+
+        Returns
+        -------
+        int
+            The code for value error (203).
+        '''
+
+        self.__print_msg(message, level)
+
+        return self.valueErrorCode
+
     # Subprocess errors
     def subprocess(self, message: str = "", level: str = "warn") -> int:
         '''Return this when there is a problem runing a subprocess.
@@ -986,12 +1008,32 @@ class Error:
         Returns
         -------
         int
-            The code for unsupported clustering algorithm error (702).
+            The code for unsupported clustering algorithm error (750).
         '''
 
         self.__print_msg(message, level)
 
         return self.unsupportedClusteringAlgorithmCode
+
+    def cluster_not_converged(self, message: str = "", level: str = "error") -> int:
+        '''Return this when the cluster has not converged.
+
+        Parameters
+        ----------
+        message : string, optional
+            Message to be printed. Default is "".
+        level : string, optional.
+            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        
+        Returns
+        -------
+        int
+            The code for cluster not converged error (751).
+        '''
+
+        self.__print_msg(message, level)
+
+        return self.clusterNotConvergedCode
 
     # Debug functions
     def print_attributes(self) -> None:
@@ -1037,6 +1079,7 @@ class Error:
         print(f"\t - Wrong type:                      {self.wrongTypeCode}")
         print(f"\t - Not set:                         {self.notSetCode}")
         print(f"\t - Empty:                           {self.emptyCode}")
+        print(f"\t - Value error:                     {self.valueErrorCode}")
 
         print(f"\n\t~~~~~~~~~~~~~~~~ PROCESS ERRORS ~~~~~~~~~~~~~~~~")
         print(f"\t - Subprocess error:                {self.subprocessCode}")
@@ -1071,6 +1114,7 @@ class Error:
         print(f"\n\t~~~~~~~~~~~~~~~ CLUSTERING ERRORS ~~~~~~~~~~~~~~~")
         print(f"\t - Unsupported clustering")
         print(f"\t   algorithm:                       {self.unsupportedClusteringAlgorithmCode}")
+        print(f"\t   Cluster not converged:           {self.cluster_not_converged}")
 
 
         return None

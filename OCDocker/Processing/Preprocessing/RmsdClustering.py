@@ -112,7 +112,7 @@ def get_medoids(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], clusters
     # Return the medoid paths
     return medoids
 
-def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorithm: str = 'agglomerativeClustering', distance_threshold: float = 20.0, outputPlot: str = "") -> Union[np.ndarray, int]:
+def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorithm: str = 'agglomerativeClustering', max_distance_threshold: float = 20.0, min_distance_threshold: float = 10.0, threshold_step: float = 0.1, outputPlot: str = "") -> Union[np.ndarray, int]:
     '''Cluster molecules based on their rmsd.
 
     Parameters
@@ -121,16 +121,25 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
         The rmsd matrix.
     algorithm : str, optional
         The clustering algorithm to be used. The default is 'agglomerativeClustering'. The options are: 'agglomerativeClustering'.
-    distance_threshold : float, optional
-        The distance threshold for the agglomerative clustering. The default is 20.0.
+    min_distance_threshold : float, optional
+        The minimum distance threshold for the agglomerative clustering. The default is 10.0.
+    max_distance_threshold : float, optional
+        The maximum distance threshold for the agglomerative clustering. The default is 20.0.
+    threshold_step : float, optional
+        The step to perform the distance threshold search. The default is 0.1.
     outputPlot : str, optional
         The path to the output plot. The default is "". If it is "", the plot is not saved.
 
     Returns
     -------
     np.ndarray | int
-        The clusters or the error code.
+        The clusters or the error code. IMPORTANT: The error code 751 means that the cluster could not determine any consensus among the poses. This means that the poses are too different from each other. In this case, the poses should be discarded.
     '''
+
+    # Check if max_distance_threshold is smaller than min_distance_threshold
+    if max_distance_threshold < min_distance_threshold:
+        # Return the value error
+        return errors.value_error(f"The max_distance_threshold ({max_distance_threshold}) is smaller than the min_distance_threshold ({min_distance_threshold}).")
 
     # Check if the data is a dict
     if isinstance(data, dict):
@@ -152,11 +161,54 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
         # Ignore the cluster warning (the matrices are too small, thus the warning keeps popping up)
         simplefilter("ignore", ClusterWarning)
 
-        # Perform the clustering
-        results = AgglomerativeClustering(n_clusters = None, distance_threshold = distance_threshold).fit_predict(npdata)
-        # Get the silhouette score
-        scores = silhouette_score(npdata, results)
-        
+        # Define the scores and distance_threshold as -1
+        scores = -1
+        distance_threshold = -1
+
+        # Define the last computed result
+        last_result = np.array([])
+
+        # Create the loop to iterate from max_distance_threshold to min_distance_threshold using step threshold_step
+        for distance_threshold in np.arange(max_distance_threshold, min_distance_threshold, -threshold_step):
+            # Perform the clustering
+            results = AgglomerativeClustering(n_clusters = None, distance_threshold = distance_threshold).fit_predict(npdata)
+
+            # Get the number oe elements in each cluster
+            cluster_sizes = np.bincount(results)
+
+            # Get the unique clusters
+            unique_clusters = np.unique(results)
+
+            # If the length of the unique clusters is the same as the shape of the data (every element is a cluster)
+            if len(unique_clusters) == data.shape[0]:
+                # If last_result is not empty
+                if last_result.size != 0:
+                    # Set the results to the last result
+                    results = last_result
+                    # Break the loop
+                    break
+                else:
+                    # Print the message, returning the error code
+                    return errors.cluster_not_converged(f"The clustering algorithm did not converge. The distance threshold is {distance_threshold}.")
+
+            # Find the biggest cluster (may be more than one)
+            biggest_cluster = np.where(cluster_sizes == np.max(cluster_sizes))[0]
+
+            # If the biggest cluster is 1
+            if len(biggest_cluster) == 1:
+                # Get the silhouette score
+                scores = silhouette_score(npdata, results)
+                # Break the loop
+                break
+            else:
+                # Set the last result to the current result
+                last_result = results
+
+        # If the scores is -1
+        if scores == -1:
+            # Print the message, returning the error code
+            return errors.cluster_not_converged(f"The clustering algorithm did not converge. The distance threshold is {distance_threshold}.")
+
         # If the outputPlot is not ""
         if outputPlot != "":
             # Create a dendrogram for visualization
@@ -172,11 +224,11 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
             # Add the silhouette score (left, top) rounded to 2 decimals
             plt.text(0.05, 0.95, f"Silhouette Score: ~{round(scores, 2)}", transform=plt.gca().transAxes, size=10, verticalalignment='top', horizontalalignment='left')
             # Add a label to the distance threshold below the silhouette score
-            plt.text(0.05, 0.9, f"Distance Threshold: {distance_threshold}", transform=plt.gca().transAxes, size=10, verticalalignment='top', horizontalalignment='left')
+            plt.text(0.05, 0.9, f"Distance Threshold: {round(distance_threshold, 2)}", transform=plt.gca().transAxes, size=10, verticalalignment='top', horizontalalignment='left')
             plt.savefig(outputPlot)
         
-        # Get the best result
-        return results
+        # Return the results
+        return results # type: ignore
     
     else:
         return errors.unsupported_clustering_algorithm(f"The clustering algorithm '{algorithm}' is not supported. Currently the supported algorithms are: 'agglomerativeClustering'.")

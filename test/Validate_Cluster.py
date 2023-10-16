@@ -6,29 +6,17 @@ import inspect
 import shutil
 import os
 
-import textwrap as tw
-from pprint import pprint
 from glob import glob
 
 from OCDocker.Initialise import *
 
 args.output_level = 0
 
-import OCDocker.Toolbox as octools
-
-import OCDocker.Database as ocdb
-import OCDocker.baseDB as ocbdb
-import OCDocker.DUDEz as ocdudez
-import OCDocker.PDBbind as ocpdbbind
 import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
 import OCDocker.Docking.Vina as ocvina
-import OCDocker.Docking.Smina as ocsmina
-import OCDocker.Docking.Gnina as ocgnina
 import OCDocker.Docking.PLANTS as ocplants
-import OCDocker.ExternalTools.runprank as runprank
 import OCDocker.Processing.Preprocessing.RmsdClustering as ocrmsdclust
-import OCDocker.Rescoring.ODDT as ocoddt
 import OCDocker.Toolbox.MoleculeProcessing as ocmolproc
 
 # License
@@ -88,8 +76,6 @@ def clean_test_files(baseProtPath, baseLigPath, baseDecPath, baseCanPath) -> Non
             # If the file is a folder and not the boxes folder
             elif os.path.isdir(f) and not f.endswith("boxes"):
                 shutil.rmtree(f)
-            
-
     return None
 
 args.cpu_cores = 18
@@ -119,22 +105,29 @@ clean_test_files(baseProtPath, baseLigPath, baseDecPath, baseCanPath)
 receptorTest = ocr.Receptor(f"{baseProtPath}/receptor.pdb", relativeASAcutoff=0.7, name=f"{ptn}")
 ligandTest = ocl.Ligand(f"{baseLigPath}/{lig}/ligand.smi", name=f"{lig}")
 
-# Continue from here
-
-# Create the object
+# Run Vina routines to get the needed files and variables
 vinaTest = ocvina.Vina(f"{baseLigPath}/{lig}/vinaFiles/conf_vina.txt", f"{baseLigPath}/{lig}/boxes/box0.pdb", receptorTest, f"{baseProtPath}/prepared_receptor.pdbqt", ligandTest, f"{baseLigPath}/{lig}/prepared_ligand.pdbqt", f"{baseLigPath}/{lig}/vinaFiles/{lig}.log", f"{baseLigPath}/{lig}/vinaFiles/{lig}.pdbqt", name=f"Vina {ptn}-{lig}")
-plantsTest = ocplants.PLANTS(f"{baseLigPath}/{lig}/plantsFiles/conf_plants.txt", f"{baseLigPath}/{lig}/boxes/box0.pdb", receptorTest, f"{baseProtPath}/prepared_receptor.mol2", ligandTest, f"{baseLigPath}/{lig}/prepared_ligand.mol2", f"{baseLigPath}/{lig}/plantsFiles/{lig}.log", f"{baseLigPath}/{lig}/plantsFiles", name=f"PLANTS {ptn}-{lig}")
+vinaTest.run_prepare_ligand()
+vinaTest.run_prepare_receptor()
+vinaTest.run_docking()
+vinaTest.split_poses(os.path.dirname(vinaTest.outputVina))
 vinaPoses = vinaTest.get_docked_poses()
+
+# Run PLANTS routines to get the needed files and variables
+plantsTest = ocplants.PLANTS(f"{baseLigPath}/{lig}/plantsFiles/conf_plants.txt", f"{baseLigPath}/{lig}/boxes/box0.pdb", receptorTest, f"{baseProtPath}/prepared_receptor.mol2", ligandTest, f"{baseLigPath}/{lig}/prepared_ligand.mol2", f"{baseLigPath}/{lig}/plantsFiles/{lig}.log", f"{baseLigPath}/{lig}/plantsFiles", name=f"PLANTS {ptn}-{lig}")
+plantsTest.run_prepare_ligand()
+plantsTest.run_prepare_receptor()
+plantsTest.run_docking()
 plantsPoses = plantsTest.get_docked_poses()
+
 # Make them one single list
 poses_list = vinaPoses + plantsPoses
+
 # Get the rmsd matrix from the poses list
 rmsdMatrix = ocmolproc.get_rmsd_matrix(poses_list)
-# Get the clusters
-clusters = ocrmsdclust.cluster_rmsd(rmsdMatrix, algorithm = 'agglomerativeClustering', outputPlot = f"{basePath}/medoids.png")
-# Get the medoids (The plot is just for visualization, it is not required)
+
+# Get the clusters (The plot is just for visualization, it is not required)
+clusters = ocrmsdclust.cluster_rmsd(rmsdMatrix, algorithm = 'agglomerativeClustering', outputPlot = f"{basePath}/test_ptn1/medoids.png")
+
+# Get the medoids
 medoids = ocrmsdclust.get_medoids(rmsdMatrix, clusters, onlyBiggest = True) # type: ignore
-# Find th
-# Get the docking results for both approaches (to find the one with the lowest energy)
-plantsDockingResult = plantsTest.read_log(onlyBest = False)
-vinaDockingResult = vinaTest.read_log(onlyBest = False)

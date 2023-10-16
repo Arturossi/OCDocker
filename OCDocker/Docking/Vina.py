@@ -438,13 +438,13 @@ class Vina:
         # Return the dictionary
         return rescoreLogData
 
-    def split_poses(self, outPath: str, logFile: str = "") -> int:
+    def split_poses(self, outPath: str = "", logFile: str = "") -> int:
         '''Split the ligand resulted from vina into its poses.
 
         Parameters
         ----------
-        outPath : str
-            Path to the output folder.
+        outPath : str, optional
+            Path to the output folder. By default "". If empty, the poses will be saved in the same folder as the vina output.
         logFile : str, optional
             Path to the logFile. If empty, suppress the output. By default "".
 
@@ -453,6 +453,11 @@ class Vina:
         int
             The exit code of the command (based on the Error.py code table).
         '''
+
+        # If the outPath is empty
+        if not outPath:
+            # Set the outPath as the same folder as the vina output
+            outPath = os.path.dirname(self.outputVina)
 
         return ocmolproc.split_poses(self.outputVina, self.inputLigand.name, outPath, logFile = logFile, suffix = "_split_") # type: ignore
         
