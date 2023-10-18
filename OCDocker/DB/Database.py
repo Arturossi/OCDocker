@@ -27,8 +27,8 @@ from typing import List, Tuple
 
 from OCDocker.Initialise import *
 
-import OCDocker.DUDEz as ocdudez
-import OCDocker.PDBbind as ocpdbbind
+import OCDocker.DB.DUDEz as ocdudez
+import OCDocker.DB.PDBbind as ocpdbbind
 import OCDocker.Toolbox.Basetools as ocbasetools
 import OCDocker.Toolbox.Conversion as occonversion
 import OCDocker.Toolbox.Downloading as ocdown

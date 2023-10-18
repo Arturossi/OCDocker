@@ -16,17 +16,16 @@ args.output_level = 0
 
 import OCDocker.Toolbox as octools
 
-import OCDocker.Database as ocdb
-import OCDocker.baseDB as ocbdb
-import OCDocker.DUDEz as ocdudez
-import OCDocker.PDBbind as ocpdbbind
+import OCDocker.DB.Database as ocdb
+import OCDocker.DB.baseDB as ocbdb
+import OCDocker.DB.DUDEz as ocdudez
+import OCDocker.DB.PDBbind as ocpdbbind
 import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
 import OCDocker.Docking.Vina as ocvina
 import OCDocker.Docking.Smina as ocsmina
 import OCDocker.Docking.Gnina as ocgnina
 import OCDocker.Docking.PLANTS as ocplants
-import OCDocker.ExternalTools.runprank as runprank
 import OCDocker.Processing.Preprocessing.RmsdClustering as ocrmsdclust
 import OCDocker.Rescoring.ODDT as ocoddt
 import OCDocker.Toolbox.MoleculeProcessing as ocmolproc

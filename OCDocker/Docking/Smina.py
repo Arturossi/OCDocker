@@ -347,22 +347,6 @@ class Smina:
                 splitLigand = False
 
         return None
-
-    def get_rescore_log_paths(self, outPath: str) -> List[str]:
-        ''' Get the paths for the rescore log files.
-
-        Parameters
-        ----------
-        outPath : str
-            Path to the output folder where the rescoring logs are located.
-
-        Returns
-        -------
-        List[str]
-            A list with the paths for the rescoring log files.
-        '''
-
-        return [f for f in glob(f"{outPath}/*_split_*.log") if os.path.isfile(f)]
     
     def get_docked_poses(self) -> List[str]:
         '''Get the paths for the docked poses.
@@ -409,7 +393,7 @@ class Smina:
 
         return os.path.dirname(self.inputReceptorPath)
 
-    def read_rescore_logs(self, outPath: str, onlyBest: bool = True) -> Dict[str, List[Union[str, float]]]:
+    def read_rescore_logs(self, outPath: str, onlyBest: bool = False) -> Dict[str, List[Union[str, float]]]:
         ''' Reads the data from the rescore log files.
 
         Parameters
@@ -417,7 +401,7 @@ class Smina:
         outPath : str
             Path to the output folder where the rescoring logs are located.
         onlyBest : bool, optional
-            If True, only the best pose will be returned. By default True.
+            If True, only the best pose will be returned. By default False.
 
         Returns
         -------
@@ -426,30 +410,10 @@ class Smina:
         '''
 
         # Get the rescore log paths
-        rescoreLogPaths = self.get_rescore_log_paths(outPath)
+        rescoreLogPaths = get_rescore_log_paths(outPath)
 
-        # Create the dictionary
-        rescoreLogData = {}
-
-        # For each rescore log path
-        for rescoreLogPath in rescoreLogPaths:
-            # Get the filename from the log path
-            filename = os.path.splitext(os.path.basename(rescoreLogPath))[0]
-            # Split the filename using the split string as delimiter then grab the end of the string
-            filename = filename.split("_split_")[-1]
-            # Remove the extension from the filename
-            filename = os.path.splitext(filename)[0]
-            # If onlyBest is True and the filename does not start with "1"
-            if onlyBest and not filename.startswith("1"):
-                # Skip this iteration
-                continue
-            # Reverse the filename with the delimiter as the underscore
-            filename = "_".join(reversed(filename.split("_")))
-            # Get the rescore log data
-            rescoreLogData[filename] = read_rescoring_log(rescoreLogPath)
-        
-        # Return the dictionary
-        return rescoreLogData
+        # Call the function
+        return read_rescore_logs(rescoreLogPaths, onlyBest = onlyBest)
 
     def print_attributes(self) -> None:
         '''Print the class attributes.
@@ -794,7 +758,7 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
         ligand_name = os.path.splitext(os.path.basename(ligand))[0]
 
         # Create the command list
-        cmd = [smina, "--scoring", scoring_function, "--score_only", "--config", confFile, "--ligand", ligand, "--log", f"{outPath}/{ligand_name}_{scoring_function}.log", "--cpu", "1"]
+        cmd = [smina, "--scoring", scoring_function, "--score_only", "--config", confFile, "--ligand", ligand, "--log", f"{outPath}/{ligand_name}_{scoring_function}_rescoring.log", "--cpu", "1"]
 
         # Run the command
         _ = ocrun.run(cmd, logFile = logFile)
@@ -1114,6 +1078,66 @@ def get_pose_index_from_file_path(filePath: str) -> int:
     filename = filename.split("_split_")[-1]
     # Return the filename
     return int(filename)
+
+def get_rescore_log_paths(outPath: str) -> List[str]:
+    ''' Get the paths for the rescore log files.
+
+    Parameters
+    ----------
+    outPath : str
+        Path to the output folder where the rescoring logs are located.
+
+    Returns
+    -------
+    List[str]
+        A list with the paths for the rescoring log files.
+    '''
+
+    return [f for f in glob(f"{outPath}/*.log") if os.path.isfile(f)]
+
+def read_rescore_logs(rescoreLogPaths: Union[List[str], str], onlyBest: bool = False) -> Dict[str, List[Union[str, float]]]:
+    ''' Reads the data from the rescore log files.
+
+    Parameters
+    ----------
+    rescoreLogPaths : List[str] | str
+        A list with the paths for the rescoring log files.
+    onlyBest : bool, optional
+        If True, only the best pose will be returned. By default False.
+
+    Returns
+    -------
+    Dict[str, List[Union[str, float]]]
+        A dictionary with the data from the rescore log files.
+    '''
+
+    # Create the dictionary
+    rescoreLogData = {}
+
+    # If the rescoreLogPaths is not a list
+    if not isinstance(rescoreLogPaths, list):
+        # Make it a list
+        rescoreLogPaths = [rescoreLogPaths]
+
+    # For each rescore log path
+    for rescoreLogPath in rescoreLogPaths:
+        # Get the filename from the log path
+        filename = os.path.splitext(os.path.basename(rescoreLogPath))[0]
+        # Split the filename using the split string as delimiter then grab the end of the string
+        filename = filename.split("_split_")[-1]
+        # Remove the extension from the filename
+        filename = os.path.splitext(filename)[0]
+        # If onlyBest is True and the filename does not start with "1"
+        if onlyBest and not filename.startswith("1"):
+            # Skip this iteration
+            continue
+        # Reverse the filename with the delimiter as the underscore
+        filename = "_".join(reversed(filename.split("_")))
+        # Get the rescore log data
+        rescoreLogData[filename] = read_rescoring_log(rescoreLogPath)
+    
+    # Return the dictionary
+    return rescoreLogData
 
 # Aliases
 ###############################################################################

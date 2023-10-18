@@ -529,14 +529,8 @@ class PLANTS:
         # Parameterize the pose_list file path
         poseListPath = f"{self.outputPlants}/pose_list.txt"
 
-        # Check if the pose_list file exists
-        if not os.path.isfile(poseListPath) or overwrite:
-            # Create the pose_list file
-            with open(poseListPath, "w") as poseListFile:
-                # Write the docked poses
-                poseListFile.write("\n".join(dockedPoses))
-            return poseListPath
-        return None
+        # Call write_pose_list
+        return write_pose_list(dockedPoses, poseListPath, overwrite = overwrite)
 
     def print_attributes(self) -> None:
         '''Print the class attributes.
@@ -1160,7 +1154,34 @@ def get_pose_index_from_file_path(filePath: str) -> int:
     # Return the filename
     return int(filename)
 
+def write_pose_list(dockedPoses: List[str], poseListPath: str, overwrite: bool = False) -> Union[str, None]:
+    ''' Write the pose_list file.
+
+    Parameters
+    ----------
+    dockedPoses : List[str]
+        The list with the docked poses.
+    poseListPath : str
+        The path to the pose_list file.
+    overwrite : bool, optional
+        If True, overwrite the pose_list file. Default is False.
+
+    Returns
+    -------
+    str | None
+        The path for the pose_list file. If the file already exists and overwrite is False, return None.
+    '''
+
+    # Check if the pose_list file exists
+    if not os.path.isfile(poseListPath) or overwrite:
+        # Create the pose_list file
+        with open(poseListPath, "w") as poseListFile:
+            # Write the docked poses
+            poseListFile.write("\n".join(dockedPoses))
+        return poseListPath
+    return None
+
 # Aliases
 ###############################################################################
 run_docking = run_plants
-read_rescoring_log = read_log
+read_rescore_logs = read_log

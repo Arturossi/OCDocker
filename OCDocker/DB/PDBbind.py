@@ -21,7 +21,7 @@ from typing import Dict, List, Union
 
 from OCDocker.Initialise import *
 
-import OCDocker.baseDB as ocbdb
+import OCDocker.DB.baseDB as ocbdb
 import OCDocker.Processing.Preprocessing.p2rank as ocp2rank
 
 # License
