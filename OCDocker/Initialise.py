@@ -18,6 +18,7 @@ import argparse
 import multiprocessing
 import os
 import shutil
+import sys
 
 import textwrap as tw
 
@@ -986,7 +987,7 @@ order = {
 
 # Parse command line arguments
 ###############################################################################
-def argument_parsing() -> argparse.Namespace:
+def argument_parsing(noArgs: bool = False) -> argparse.Namespace:
     '''Get data to generate vina conf file from box file.
     
     Parameters
@@ -1034,11 +1035,19 @@ def argument_parsing() -> argparse.Namespace:
                         default=1,
                         metavar="",
                         help="Define the log level:\n\t0: Critical\n\t1: Warning (default)\n\t2: Info\n\t3: Verbose mode\n\t4: Debug")
+    # If noArgs is True, do not parse the arguments
+    if noArgs:
+        return parser.parse_args([])
+
     # Return the parser
     return parser.parse_args()
 
-# Set the args variable as the args from the argument_parsing function
-args = argument_parsing()
+# If there is noArgs in sys.argv do not load it
+if "--noArgs" in sys.argv:
+    args = argument_parsing(noArgs = True)
+else:
+    # Set the args variable as the args from the argument_parsing function
+    args = argument_parsing(noArgs = False)
 
 # Create error class object (making all errors standard)
 errors = ocerror.Error(args)

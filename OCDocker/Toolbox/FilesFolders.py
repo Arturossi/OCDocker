@@ -283,7 +283,6 @@ def safe_remove_dir(dirname: str) -> int:
     # This should never appear since all the other paths ends in some kind of return
     return errors.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while creating a dir safetly.", level="error")
 
-
 def safe_remove_file(filePath: str) -> int:
     '''Remove a file if exists.
 
