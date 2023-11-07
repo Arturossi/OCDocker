@@ -1,4 +1,4 @@
-#!/usr/lib/python3
+#!/usr/bin/env python3
 
 # Description
 ###############################################################################
@@ -73,7 +73,7 @@ def __build_cmd(receptorPath: str, ligandPath: str, outputFile: str) -> Union[Li
 
     # Check if the output file is a csv
     if not outputFile.endswith(".csv"):
-        return errors.unsupported_extension("The output file must be a csv file.", level = "error")
+        return ocerror.Error.unsupported_extension("The output file must be a csv file.", level = ocerror.ReportLevel.ERROR)
 
     # Start building the command
     cmd = [oddt, ligandPath, "-O", outputFile, "--receptor", receptorPath, "-i", "pdbqt", "-n", "1"]
@@ -135,7 +135,7 @@ def run_oddt_from_cli(receptor: Union[ocr.Receptor, str], ligand: Union[ocl.Liga
 
     # Check if the output dir exists
     if not os.path.isdir(outputPath):
-        return errors.dir_does_not_exist(f"The output directory '{outputPath}' does not exist.", level = "error")
+        return ocerror.Error.dir_does_not_exist(f"The output directory '{outputPath}' does not exist.", level = ocerror.ReportLevel.ERROR)
     
     # Check if the receptor is an ocr.Receptor object
     if isinstance(receptor, ocr.Receptor):
@@ -146,7 +146,7 @@ def run_oddt_from_cli(receptor: Union[ocr.Receptor, str], ligand: Union[ocl.Liga
         # Get the receptor path
         receptorPath = receptor
     else:
-        return errors.wrong_type(f"The receptor must be a string or an ocr.Receptor object. The type {type(receptor)} was given.", level = "error")
+        return ocerror.Error.wrong_type(f"The receptor must be a string or an ocr.Receptor object. The type {type(receptor)} was given.", level = ocerror.ReportLevel.ERROR)
     
     # Check if the ligand is an ocl.Ligand object
     if isinstance(ligand, ocl.Ligand):
@@ -163,19 +163,19 @@ def run_oddt_from_cli(receptor: Union[ocr.Receptor, str], ligand: Union[ocl.Liga
         # Output file name
         outputFile = f"{outputPath}/{ligandName}.csv"
     else:
-        return errors.wrong_type(f"The ligand must be a string or an ocl.Ligand object. The type {type(ligand)} was given.", level = "error")
+        return ocerror.Error.wrong_type(f"The ligand must be a string or an ocl.Ligand object. The type {type(ligand)} was given.", level = ocerror.ReportLevel.ERROR)
     
     # Check if the output file exists
     if os.path.isfile(outputFile) and not overwrite:
-        return errors.file_exists(f"The output file '{outputFile}' already exists. Please use the overwrite option if you want to overwrite it.", level = "error")
+        return ocerror.Error.file_exists(f"The output file '{outputFile}' already exists. Please use the overwrite option if you want to overwrite it.", level = ocerror.ReportLevel.ERROR)
     
     # Check if the receptor exists
     if not os.path.isfile(receptorPath):
-        return errors.file_do_not_exist(f"The receptor file '{receptorPath}' does not exist.", level = "error")
+        return ocerror.Error.file_do_not_exist(f"The receptor file '{receptorPath}' does not exist.", level = ocerror.ReportLevel.ERROR)
 
     # Check if the ligand exists
     if not os.path.isfile(ligandPath):
-        return errors.file_do_not_exist(f"The ligand file '{ligandPath}' does not exist.", level = "error")
+        return ocerror.Error.file_do_not_exist(f"The ligand file '{ligandPath}' does not exist.", level = ocerror.ReportLevel.ERROR)
     
     # Create the output file path
     
@@ -233,7 +233,7 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
         try:
             _ = ocff.safe_create_dir(outputPath)
         except Exception as e:
-            return errors.dir_does_not_exist(f"The output directory '{outputPath}' does not exist.", level = "error")
+            return ocerror.Error.dir_does_not_exist(f"The output directory '{outputPath}' does not exist.", level = ocerror.ReportLevel.ERROR)
         
     # If the ligand path is a string
     if isinstance(preparedLigandPath, str):
@@ -245,19 +245,19 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
 
     # Check if are there any model
     if len(models) <= 0:
-        return errors.missing_oddt_models("There are no models in the models folder. Please run the initialise_oddt() function (with proper arguments) to download the models.", level = "error")
+        return ocerror.Error.missing_oddt_models("There are no models in the models folder. Please run the initialise_oddt() function (with proper arguments) to download the models.", level = ocerror.ReportLevel.ERROR)
     
     # Check if the receptor is a string
     if not isinstance(preparedReceptorPath, str):
-        return errors.wrong_type(f"The receptor must be a string. The type {type(preparedReceptorPath)} was given.", level = "error")
+        return ocerror.Error.wrong_type(f"The receptor must be a string. The type {type(preparedReceptorPath)} was given.", level = ocerror.ReportLevel.ERROR)
     
     # Check if the receptor exists
     if not os.path.isfile(preparedReceptorPath):
-        return errors.file_do_not_exist(f"The receptor file '{preparedReceptorPath}' does not exist.", level = "error")
+        return ocerror.Error.file_do_not_exist(f"The receptor file '{preparedReceptorPath}' does not exist.", level = ocerror.ReportLevel.ERROR)
     
     # Check if the ligand is not a string
     if not isinstance(preparedLigandPath, list):
-        return errors.wrong_type(f"The ligand must be a string or a list. The type {type(preparedLigandPath)} was given.", level = "error")
+        return ocerror.Error.wrong_type(f"The ligand must be a string or a list. The type {type(preparedLigandPath)} was given.", level = ocerror.ReportLevel.ERROR)
     
     # Set the output file name
     outputFile = f"{outputPath}/{ligandName}.csv"
@@ -271,7 +271,7 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
             # Return the data
             return df
         else:
-            return errors.file_exists(f"The output file '{outputFile}' already exists. Please use the overwrite option if you want to overwrite it.", level = "error")
+            return ocerror.Error.file_exists(f"The output file '{outputFile}' already exists. Please use the overwrite option if you want to overwrite it.", level = ocerror.ReportLevel.ERROR)
     
     # Create the vs object
     pipeline = vs()
@@ -284,7 +284,7 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
     for ligand in preparedLigandPath:
         # Check if the ligand exists
         if not os.path.isfile(ligand):
-            return errors.file_do_not_exist(f"The ligand file '{ligand}' does not exist.", level = "error")
+            return ocerror.Error.file_do_not_exist(f"The ligand file '{ligand}' does not exist.", level = ocerror.ReportLevel.ERROR)
 
         # Load the ligand
         pipeline.load_ligands(ligand.split('.')[-1], ligand)
@@ -322,14 +322,14 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
             # Check if there is anything in the data dict
             if len(data) <= 0:
                 # Show an error
-                return errors.rescoring_failed(f"The rescoring of the ligand '{ligandName}' failed.", level = "error")
+                return ocerror.Error.rescoring_failed(f"The rescoring of the ligand '{ligandName}' failed.", level = ocerror.ReportLevel.ERROR)
         
         # Append the data to the datas list
         datas.append(data)
 
     # Check if datas is empty
     if len(datas) <= 0:
-        return errors.rescoring_failed(f"The rescoring of the ligand '{ligandName}' failed.", level = "error")
+        return ocerror.Error.rescoring_failed(f"The rescoring of the ligand '{ligandName}' failed.", level = ocerror.ReportLevel.ERROR)
     
     # Create the dataframe
     df = pd.DataFrame(datas)
@@ -359,7 +359,7 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
         return df
     
     # Just return an ok code
-    return errors.ok()
+    return ocerror.Error.ok()
 
 def df_to_dict(data: pd.DataFrame) -> Dict[str, Dict[str, float]]:
     '''Convert the data from a pandas dataframe to a dict.
@@ -377,7 +377,7 @@ def df_to_dict(data: pd.DataFrame) -> Dict[str, Dict[str, float]]:
 
     # Check if the data is a dataframe
     if not isinstance(data, pd.DataFrame):
-        return errors.wrong_type(f"The data must be a pandas dataframe. The type {type(data)} was given.", level = "error") # type: ignore
+        return ocerror.Error.wrong_type(f"The data must be a pandas dataframe. The type {type(data)} was given.", level = ocerror.ReportLevel.ERROR) # type: ignore
     
     # Convert the dataframe to dict, one row per index
     return data.to_dict(orient = "index") # type: ignore
@@ -405,7 +405,7 @@ def read_log(path: str) -> Union[pd.DataFrame, None]:
         return data
 
     # Throw an error
-    _ = errors.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
+    _ = ocerror.Error.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
 
     # Return None
     return None

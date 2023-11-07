@@ -1,0 +1,6 @@
+scoring_function plp95
+protein_file /mnt/e/Documents/OCDocker/OCDocker/test_files/test_ptn1/prepared_receptor.mol2
+ligand_list /mnt/e/Documents/OCDocker/OCDocker/test_files/test_ptn1/compounds/ligands/ligand/plantsFiles/pose_list.txt
+keep_original_mol2_description 0
+output_dir /mnt/e/Documents/OCDocker/OCDocker/test_files/test_ptn1/compounds/ligands/ligand/plantsFiles/run_plp95
+rescoring_mode simplex

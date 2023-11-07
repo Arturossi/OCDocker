@@ -1,4 +1,4 @@
-#!/usr/lib/python3
+#!/usr/bin/env python3
 
 # Imports
 ###############################################################################
@@ -8,9 +8,11 @@ import os
 
 from glob import glob
 
+os.environ['OCDOCKER_CONFIG'] = 'OCDocker.cfg'
+
 from OCDocker.Initialise import *
 
-args.output_level = 0
+output_level = ocerror.ReportLevel.NONE
 
 import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
@@ -78,12 +80,10 @@ def clean_test_files(baseProtPath, baseLigPath, baseDecPath, baseCanPath) -> Non
                 shutil.rmtree(f)
     return None
 
-args.cpu_cores = 18
-args.available_cores = args.cpu_cores - 1
-args.multiprocess = 1
-args.generate_report = False
-args.zip_output = False
-args.update = False
+cpu_cores = 18
+available_cores = cpu_cores - 1
+multiprocess = 1
+update = False
 
 basePath = f"{os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))}/test_files" # type: ignore
 ptn = "test_ptn1"

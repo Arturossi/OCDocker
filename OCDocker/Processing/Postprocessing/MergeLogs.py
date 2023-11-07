@@ -1,4 +1,4 @@
-#!/usr/lib/python3
+#!/usr/bin/env python3
 
 # Description
 ###############################################################################
@@ -94,10 +94,10 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str]) ->
                     receptor_descriptors[descriptor].values[0] = 0 # type: ignore
         else:
             receptor_descriptors = None
-            _ = errors.file_do_not_exist(f"The file '{receptor_descriptor_path}' does not exist!")
+            _ = ocerror.Error.file_do_not_exist(f"The file '{receptor_descriptor_path}' does not exist!")
     except IOError as e:
         if e.errno == errno.EPIPE:
-            _ = errors.broken_pipe(message=f"Found a broken PIPE error while reading the file '{receptor_descriptor_path}': {e}")
+            _ = ocerror.Error.broken_pipe(message=f"Found a broken PIPE error while reading the file '{receptor_descriptor_path}': {e}")
 
     try:
         # Check if there is the ligand json, if yes, load it
@@ -105,10 +105,10 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str]) ->
             ligand_descriptors = ocl.read_descriptors_from_json(ligand_descriptor_path, returnVaex = True)
         else:
             ligand_descriptors = None
-            _ = errors.file_do_not_exist(f"The file '{ligand_descriptor_path}' does not exist!")
+            _ = ocerror.Error.file_do_not_exist(f"The file '{ligand_descriptor_path}' does not exist!")
     except IOError as e:
         if e.errno == errno.EPIPE:
-            _ = errors.broken_pipe(message=f"Found a broken PIPE error while reading the file '{ligand_descriptor_path}': {e}")
+            _ = ocerror.Error.broken_pipe(message=f"Found a broken PIPE error while reading the file '{ligand_descriptor_path}': {e}")
 
     # Initiate the dataframe
     df = vaex.from_dict({ "Complex": [f"{ptn}-{lgd}"] })
@@ -217,7 +217,7 @@ def __merge_descriptors_in_dataframe_parallel(paths: List[Tuple[str, str]], rece
     if len(arguments) > 0:
         try:
             # Create a Thread pool with the maximum available_cores
-            with Pool(args.available_cores) as p:
+            with Pool(available_cores) as p:
                 # Perform the multi process
                 for innerData in tqdm(p.imap_unordered(__thread_merge_descriptors_in_dataframe_parallel, arguments), total = len(arguments), desc = desc):
                     # Update the dict with the result from the called function
@@ -429,7 +429,7 @@ def __check_datafile_format(datafileFormat: str, receptorDataFile: str) -> Union
     Returns
     -------
     vdf.DataFrameLocal | int | None
-        Dataframe with the descriptors of the proteins. If no file exists, will return an int (errors.fileDoNotExistCode). If unsupported, then it will return None.
+        Dataframe with the descriptors of the proteins. If no file exists, will return an int (ocerror.Error.fileDoNotExistCode). If unsupported, then it will return None.
 
     Raises
     ------
@@ -441,7 +441,7 @@ def __check_datafile_format(datafileFormat: str, receptorDataFile: str) -> Union
     if datafileFormat.lower() in ["hdf5"]:
         # If the file does not exist, return an empty dataframe
         if not os.path.isfile(receptorDataFile):
-            return errors.file_do_not_exist(f"File '{receptorDataFile}' does not exist.", level = "warn")
+            return ocerror.Error.file_do_not_exist(f"File '{receptorDataFile}' does not exist.", level = ocerror.ReportLevel.ERROR)
         # Open the dataframe
         recdf = vaex.open(receptorDataFile)
         # Convert it to a pandas dataframe
@@ -453,7 +453,7 @@ def __check_datafile_format(datafileFormat: str, receptorDataFile: str) -> Union
         # Convert the pandas dataframe to a vaex dataframe
         return vaex.from_pandas(pandas_recdf)
     else:   	
-        _ = errors.unsupported_extension(f"Unsupported datafile format: {datafileFormat}. Supported formats are: [hdf5].")
+        _ = ocerror.Error.unsupported_extension(f"Unsupported datafile format: {datafileFormat}. Supported formats are: [hdf5].")
         return None
 
 ## Public ##
@@ -495,7 +495,7 @@ def merge_descriptors_in_dataframe(paths: Union[List[Tuple[str, str]], Tuple[str
         label = f"Processing {ptn}"
 
         # Check if multiprocessing is enabled
-        if args.multiprocess:
+        if multiprocess:
             # Prepare the pdbbind
             return __merge_descriptors_in_dataframe_parallel(paths, receptorDataFile, ptn, saveChunk , label, datafileFormat = datafileFormat, overwrite = overwrite)
         else:

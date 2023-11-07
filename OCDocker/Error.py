@@ -1,4 +1,4 @@
-#!/usr/lib/python3
+#!/usr/bin/env python3
 
 # Description
 ###############################################################################
@@ -13,9 +13,11 @@ import OCDocker.Error as ocerror
 
 # Imports
 ###############################################################################
-import argparse
 import inspect
 import datetime
+
+from enum import IntEnum
+from typing import Union
 
 # License
 ###############################################################################
@@ -34,201 +36,278 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 
 # Classes
 ###############################################################################
-class Error:
-    """Class to handle errors and standarize them across the whole code."""
+class ErrorCode(IntEnum):
+    '''Class with all error codes used in OCDocker.'''
 
-    def __init__(self, args: argparse.Namespace) -> None:
-        '''Constructor for the Error class.
-        
+    # Common errors
+    OK = 0
+    ABORT = 1
+    SKIP = 2
+    UNKNOWN = -666
+
+    # File errors
+    FILE_EXISTS = 100
+    FILE_NOT_EXIST = 101
+    READ_FILE = 102
+    WRITE_FILE = 103
+    UNTAR_FILE = 104
+    UNSUPPORTED_EXTENSION = 105
+    BROKEN_PIPE = 106
+    EMPTY_FILE = 107
+
+    # Directory errors
+    DIR_EXISTS = 150
+    CREATE_DIR = 151
+    REMOVE_DIR = 152
+    DIR_NOT_EXIST = 153
+    UNALLOWED_DIR = 154
+
+    # Variable errors
+    WRONG_TYPE = 200
+    NOT_SET = 201
+    EMPTY = 202
+    VALUE_ERROR = 203
+
+    # Subprocess errors
+    SUBPROCESS_ERROR = 300
+
+    # Molecule error
+    PARSE_MOLECULE = 400
+    MALFORMED_MOLECULE = 401
+    LIGAND_NOT_PREPARED = 402
+    RECEPTOR_NOT_PREPARED = 403
+    INVALID_MOLECULE_NAME = 404
+
+    # Docking error
+    DOCKING_OBJECT_NOT_GENERATED = 500
+    RECEPTOR_OR_LIGAND_NOT_GENERATED = 501
+    RECEPTOR_OR_LIGAND_DESCRIPTOR_NOT_EXIST = 502
+    NOT_SUPPORTED_DOCKING_ALGORITHM = 503
+    BINDING_SITE_NOT_FOUND = 504
+    DOCKING_FAILED = 505
+    READ_DOCKING_LOG_ERROR = 506
+
+    # Archive error
+    NOT_SUPPORTED_ARCHIVE = 600
+
+    # Scoring and rescoring error
+    UNSUPPORTED_SCORING_FUNCTION = 700
+    RESCORING_FAILED = 701
+    MISSING_ODDT_MODELS = 702
+
+    # Clustering error
+    UNSUPPORTED_CLUSTERING_ALGORITHM = 750
+    CLUSTER_NOT_CONVERGED = 751
+
+class ReportLevel(IntEnum):
+    DEBUG = 5
+    SUCCESS = 4
+    INFO = 3
+    WARNING = 2
+    ERROR = 1
+    NONE = 0
+
+class Error:
+    '''Class to handle errors and standarize them across the whole code.'''
+
+    output_level = ReportLevel.INFO
+
+    @classmethod
+    def set_output_level(cls, level: Union[ReportLevel, int]):
+        ''' Set the output level of the error messages.
+
         Parameters
         ----------
-        args : argparse.Namespace
-            Arguments from the command line.
-        
-        Returns
-        -------
-        None
-    
+        level : ReportLevel or int
+            The level of the messages to be printed, options are:
+                - ReportLevel.DEBUG   (5)
+                - ReportLevel.SUCCESS (4)
+                - ReportLevel.INFO    (3)
+                - ReportLevel.WARNING (2)
+                - ReportLevel.ERROR   (1)
+                - ReportLevel.NONE    (0)
         '''
+        
+        # If the level is a ReportLevel, just set it
+        if isinstance(level, ReportLevel):
+            cls.output_level = level
+            return None
+        elif isinstance(level, int):
+            # If the level is an int, check if it is valid
+            if level >= ReportLevel.NONE and level <= ReportLevel.DEBUG:
+                cls.output_level = ReportLevel(level)
+                return None
+            else:
+                raise ValueError(f"Invalid output level: {level}.")
+        else:
+            raise TypeError(f"Invalid type for output level: {type(level)}.")
 
-        # OCDocker arguments
-        self.args = args
+    @classmethod
+    def get_output_level(cls):
+        return cls.output_level
 
-        # Common errors
-        self.okCode                             = 0
-        self.abortCode                          = 1
-        self.skipCode                           = 2
-        self.unknownCode                        = -666
-
-        # File errors
-        self.fileExistsCode                     = 100
-        self.fileDoNotExistCode                 = 101
-        self.readFileCode                       = 102
-        self.writeFileCode                      = 103
-        self.untarFileCode                      = 104
-        self.unsupportedExtensionCode           = 105
-        self.brokenPipeCode                     = 106
-        self.emptyFileCode                      = 107
-
-        # Directory errors
-        self.dirExistsCode                      = 150
-        self.createDirCode                      = 151
-        self.removeDirCode                      = 152
-        self.dirDoesNotExistsCode               = 153
-        self.dirUnallowedCode                   = 154
-
-        # Variable errors
-        self.wrongTypeCode                      = 200
-        self.notSetCode                         = 201
-        self.emptyCode                          = 202
-        self.valueErrorCode                     = 203
-
-        # Subprocess errors
-        self.subprocessCode                     = 300
-
-        # Molecule error
-        self.parseMoleculeCode                  = 400
-        self.malformedMoleculeCode              = 401
-        self.ligandNotPreparedCode              = 402
-        self.receptorNotPreparedCode            = 403
-        self.invalidMoleculeName                = 404
-
-        # Docking error
-        self.dockingObjectNotGeneratedCode      = 500
-        self.recLigObjectNotGeneratedCode       = 501
-        self.recLigFileDoesNotExistCode         = 502
-        self.notSupportedDockingAlgorithmCode   = 503
-        self.bindingSiteNotFoundCode            = 504
-        self.dockingFailedCode                  = 505
-        self.readDockingLogError                = 506
-
-        # Archive error
-        self.notSupportedArchiveCode            = 600
-
-        # Scoring and rescoring error
-        self.unsupportedScoringFunctionCode     = 700
-        self.rescoringFailedCode                = 701
-        self.missingOddtModel                   = 702
-
-        # Clustering error
-        self.unsupportedClusteringAlgorithmCode = 750
-        self.clusterNotConvergedCode            = 751
+    @staticmethod
+    def get_time():
+        return datetime.datetime.now().strftime('%d-%m-%Y|%H:%M:%S')
 
     ## Private ##
-    def __print_info(self, message: str) -> None:
-        '''Function to print info.
 
-        Parameters
-        ----------
-        message : str
-            Message to be printed.
-
-        Returns
-        -------
-        None
-        '''
-
-        today = datetime.datetime.now()
-        if self.args.output_level >= 4:
-            print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;96mINFO\033[1;0m: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.") # type: ignore
-        else:
-            print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;96mINFO\033[1;0m: {message}")
-        return None
-
-    def __print_success(self, message: str) -> None:
-        '''Print success.
-
-        Parameters
-        ----------
-        message : str
-            Message to be printed.
-
-        Returns
-        -------
-        None
-        '''
-
-        today = datetime.datetime.now()
-        if self.args.output_level >= 4:
-            print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;92mSUCCESS\033[1;0m: {message} In function '{inspect.currentframe().f_back.f_back.f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_back.f_back.f_lineno} from file '{inspect.currentframe().f_back.f_back.f_back.f_code.co_filename}'.") # type: ignore
-        else:
-            print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;92mSUCCESS\033[1;0m: {message}")
-
-        return None
-
-    def __print_warning(self, message: str) -> None:
-        '''Function to print warning.
-
-        Parameters
-        ----------
-        message : str
-            Message to be printed.
-
-        Returns
-        -------
-        None
-        '''
-        
-        today = datetime.datetime.now()
-        if self.args.output_level >= 3:
-            print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;93mWARNING\033[1;0m: {message} In function '{inspect.currentframe().f_back.f_back.f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_back.f_back.f_lineno} from file '{inspect.currentframe().f_back.f_back.f_back.f_code.co_filename}'.") # type: ignore
-        else:
-            print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;93mWARNING\033[1;0m: {message}")
-
-        return None
-
-    def __print_error(self, message: str) -> None:
-        '''Print error.
+    ## Public ##
+    @staticmethod
+    def print_message(message: str, level: ReportLevel) -> None:
+        ''' Print a message with a specific level.
 
         Parameters
         ----------
         message : string
-            Message to be printed.
-
-        Returns
-        -------
-        None
+            The message to be printed.
+        level : ReportLevel
+            The level of the message to be printed, options are:
+                - ReportLevel.DEBUG
+                - ReportLevel.SUCCESS
+                - ReportLevel.INFO
+                - ReportLevel.WARNING
+                - ReportLevel.ERROR
         '''
 
-        today = datetime.datetime.now()
-        if self.args.output_level >= 3:
-            print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;91mERROR\033[1;0m: {message} In function '{inspect.currentframe().f_back.f_back.f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_back.f_back.f_lineno} from file '{inspect.currentframe().f_back.f_back.f_back.f_code.co_filename}'.") # type: ignore
+        color = {
+            ReportLevel.INFO: '1;96',
+            ReportLevel.SUCCESS: '1;92',
+            ReportLevel.WARNING: '1;93',
+            ReportLevel.ERROR: '1;91',
+            ReportLevel.DEBUG: '1;95',
+        }.get(level, '1;0')
+
+        time_str = Error.get_time()
+        base_message = f"[{time_str}] {level.name}: {message}"
+
+        if Error.output_level >= ReportLevel.DEBUG:
+            current_frame = inspect.currentframe()
+            caller_frame = current_frame.f_back.f_back.f_back # type: ignore
+            detailed_message = (f"In function '{caller_frame.f_code.co_name}' " # type: ignore
+                                f"line {caller_frame.f_lineno} " # type: ignore
+                                f"from file '{caller_frame.f_code.co_filename}'.") # type: ignore
+            print(f"\033[{color}m{base_message} {detailed_message}\033[1;0m")
         else:
-            print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] \033[1;91mERROR\033[1;0m: {message}")
+            print(f"\033[{color}m{base_message}\033[1;0m")
 
-        return None
-
-    def __print_msg(self, message: str = "", level: str = "warn") -> None:
-        '''Prints a message based on level.
+    @staticmethod
+    def report(code: ErrorCode, message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
+        '''Report an error based on the given code.
 
         Parameters
         ----------
+        code : ErrorCode
+            The error code.
         message : string, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.WARNING.
+
+        Returns
+        -------
+        int
+            The integer value of the error code.
+        '''
+
+        Error.print_message(message, level)
+        return code.value
+
+    # Debug functions
+    @staticmethod
+    def print_attributes() -> None:
+        ''' Print the class attributes.
+
+        Parameters
+        ----------
+        None
 
         Returns
         -------
         None
         '''
+        
+        # Mapping sections to their corresponding attributes and codes
+        error_sections = {
+            "GENERAL ERRORS": [
+                ("No error", ErrorCode.OK),
+                ("Abortion", ErrorCode.ABORT),
+                ("Skip", ErrorCode.SKIP),
+                ("Unknown error", ErrorCode.UNKNOWN),
+            ],
+            "FILE ERRORS": [
+                ("File exists", ErrorCode.FILE_EXISTS),
+                ("File does not exist", ErrorCode.FILE_NOT_EXIST),
+                ("Read file error", ErrorCode.READ_FILE),
+                ("Write file error", ErrorCode.WRITE_FILE),
+                ("Untar error", ErrorCode.UNTAR_FILE),
+                ("Unsupported extension", ErrorCode.UNSUPPORTED_EXTENSION),
+                ("Broken PIPE", ErrorCode.BROKEN_PIPE),
+                ("Empty file", ErrorCode.EMPTY_FILE),
+            ],
+            "DIRECTORY ERRORS": [
+                ("Directory exists", ErrorCode.DIR_EXISTS),
+                ("Directory creation error", ErrorCode.CREATE_DIR),
+                ("Directory remotion error", ErrorCode.REMOVE_DIR),
+                ("Directory does not exist", ErrorCode.DIR_NOT_EXIST),
+                ("Directory access not allowed", ErrorCode.UNALLOWED_DIR),
+            ],
+            "VARIABLE ERRORS": [
+                ("Wrong type", ErrorCode.WRONG_TYPE),
+                ("Not set", ErrorCode.NOT_SET),
+                ("Empty", ErrorCode.EMPTY),
+                ("Value error", ErrorCode.VALUE_ERROR),
+            ],
+            "PROCESS ERRORS": [
+                ("Subprocess error", ErrorCode.SUBPROCESS_ERROR),
+            ],
+            "MOLECULE ERRORS": [
+                ("Molecule parse error", ErrorCode.PARSE_MOLECULE),
+                ("Malformed molecule", ErrorCode.MALFORMED_MOLECULE),
+                ("Ligand not prepared", ErrorCode.LIGAND_NOT_PREPARED),
+                ("Receptor not prepared", ErrorCode.RECEPTOR_NOT_PREPARED),
+                ("Invalid molecule name", ErrorCode.INVALID_MOLECULE_NAME),
+            ],
+            "DOCKING ERRORS": [
+                ("Docking Object Not Generated", ErrorCode.DOCKING_OBJECT_NOT_GENERATED),
+                ("Receptor or Ligand Not Generated", ErrorCode.RECEPTOR_OR_LIGAND_NOT_GENERATED),
+                ("Receptor or Ligand Descriptor Does Not Exist", ErrorCode.RECEPTOR_OR_LIGAND_DESCRIPTOR_NOT_EXIST),
+                ("Not Supported Docking Algorithm", ErrorCode.NOT_SUPPORTED_DOCKING_ALGORITHM),
+                ("Binding Site Not Found", ErrorCode.BINDING_SITE_NOT_FOUND),
+                ("Docking Failed", ErrorCode.DOCKING_FAILED),
+                ("Read Docking Log Error", ErrorCode.READ_DOCKING_LOG_ERROR),
+            ],
+            "ARCHIVE ERRORS": [
+                ("Not Supported Archive", ErrorCode.NOT_SUPPORTED_ARCHIVE),
+            ],
+            "SCORING AND RESCORING ERRORS": [
+                ("Unsupported Scoring Function", ErrorCode.UNSUPPORTED_SCORING_FUNCTION),
+                ("Rescoring Failed", ErrorCode.RESCORING_FAILED),
+                ("Missing ODDt Models", ErrorCode.MISSING_ODDT_MODELS),
+            ],
+            "CLUSTERING ERRORS": [
+                ("Unsupported Clustering Algorithm", ErrorCode.UNSUPPORTED_CLUSTERING_ALGORITHM),
+                ("Cluster Not Converged", ErrorCode.CLUSTER_NOT_CONVERGED),
+            ],
+        }
 
-        if message:
-            if level == "warn" and self.args.output_level >= 1:
-                self.__print_warning(message)
-            elif level == "error" and self.args.output_level >= 0:
-                self.__print_error(message)
-            elif level == "success" and self.args.output_level >= 3:
-                self.__print_success(message)
-            elif level == "info" and self.args.output_level >= 2:
-                self.__print_info(message)
+        # Print header
+        print(f"\t+----------------------------------------------+")
+        print(f"\t|            OCDocker Return codes             |")
+        print(f"\t+----------------------------------------------+")
+
+        # Iterate and print each section and its attributes
+        for section_name, errors in error_sections.items():
+            print(f"\n\t~~~~~~~~~~~~~~~~ {section_name} ~~~~~~~~~~~~~~~~")
+            for error_description, error_code in errors:
+                print(f"\t - {error_description}: {error_code}")
 
         return None
-
-    ## Public ##
+    
     # Common errors
-    def ok(self, message: str = "") -> int:
-        '''Return this when no error appears.
+    @staticmethod
+    def ok(message: str = "") -> int:
+        ''' Return this when no error appears.
 
         Parameters
         ----------
@@ -241,12 +320,11 @@ class Error:
             The code for ok (0).
         '''
 
-        self.__print_msg(message, "success")
+        return Error.report(ErrorCode.OK, message, ReportLevel.SUCCESS)
 
-        return self.okCode
-
-    def abort(self, message: str = "") -> int:
-        '''Return this when process has been aborted.
+    @staticmethod
+    def abort(message: str = "") -> int:
+        ''' Return this when the process has been aborted.
 
         Parameters
         ----------
@@ -259,19 +337,18 @@ class Error:
             The code for abort (1).
         '''
 
-        self.__print_msg(message, "warn")
+        return Error.report(ErrorCode.ABORT, message, ReportLevel.WARNING)
 
-        return self.okCode
-    
-    def skip(self, message: str = "", level: str = "info") -> int:
-        '''Return this when process has been skipped.
+    @staticmethod
+    def skip(message: str = "", level: ReportLevel = ReportLevel.INFO) -> int:
+        ''' Return this when the process has been skipped.
 
         Parameters
         ----------
         message : string, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'info'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.INFO.
 
         Returns
         -------
@@ -279,40 +356,38 @@ class Error:
             The code for skip (2).
         '''
 
-        self.__print_msg(message, level)
+        return Error.report(ErrorCode.SKIP, message, level)
 
-        return self.skipCode
-
-    def unknown(self, message: str = "", level: str = "warn") -> int:
-        '''Return when the error is unknown.
+    @staticmethod
+    def unknown(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
+        ''' Return this when the error is unknown.
 
         Parameters
         ----------
         message : string, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.WARNING.
 
         Returns
         -------
         int
-            The code for unkown error (-666).
+            The code for unknown error (-666).
         '''
 
-        self.__print_msg(message, level)
-
-        return self.unknownCode
+        return Error.report(ErrorCode.UNKNOWN, message, level)
 
     # File errors
-    def file_exists(self, message: str = "", level: str = "warn") -> int:
-        '''Return when the file already exists.
+    @staticmethod
+    def file_exists(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
+        ''' Return when the file already exists.
 
         Parameters
         ----------
         message : string, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.WARNING.
 
         Returns
         -------
@@ -320,39 +395,37 @@ class Error:
             The code for file exists error (100).
         '''
 
-        self.__print_msg(message, level)
+        return Error.report(ErrorCode.FILE_EXISTS, message, level)
 
-        return self.fileExistsCode
-
-    def file_do_not_exist(self, message: str = "", level: str = "warn") -> int:
-        '''Return this when the file do not exist.
+    @staticmethod
+    def file_do_not_exist(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
+        ''' Return this when the file do not exist.
 
         Parameters
         ----------
         message : string, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.WARNING.
 
         Returns
         -------
         int
             The code for file do not exist error (101).
         '''
-        
-        self.__print_msg(message, level)
 
-        return self.fileDoNotExistCode
+        return Error.report(ErrorCode.FILE_NOT_EXIST, message, level)
 
-    def read_file(self, message: str = "", level: str = "warn") -> int:
-        '''Return this when a file could not be read.
+    @staticmethod
+    def read_file(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
+        ''' Return this when a file could not be read.
 
         Parameters
         ----------
         message : string, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.WARNING.
 
         Returns
         -------
@@ -360,19 +433,18 @@ class Error:
             The code for read file error (102).
         '''
 
-        self.__print_msg(message, level)
+        return Error.report(ErrorCode.READ_FILE, message, level)
 
-        return self.readFileCode
-
-    def write_file(self, message: str = "", level: str = "warn") -> int:
-        '''Return this when a file could not be written.
+    @staticmethod
+    def write_file(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
+        ''' Return this when a file could not be written.
 
         Parameters
         ----------
         message : string, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.WARNING.
 
         Returns
         -------
@@ -380,19 +452,18 @@ class Error:
             The code for write file error (103).
         '''
 
-        self.__print_msg(message, level)
+        return Error.report(ErrorCode.WRITE_FILE, message, level)
 
-        return self.writeFileCode
-
-    def untar_file(self, message: str = "", level: str = "warn") -> int:
-        '''Return this when the untar action fails.
+    @staticmethod
+    def untar_file(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
+        ''' Return this when the untar action fails.
 
         Parameters
         ----------
         message : string, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.WARNING.
 
         Returns
         -------
@@ -400,19 +471,18 @@ class Error:
             The code for untar file error (104).
         '''
 
-        self.__print_msg(message, level)
+        return Error.report(ErrorCode.UNTAR_FILE, message, level)
 
-        return self.untarFileCode
-
-    def unsupported_extension(self, message: str = "", level: str = "warn") -> int:
-        '''Return this when the extension is not supported.
+    @staticmethod
+    def unsupported_extension(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
+        ''' Return this when the extension is not supported.
 
         Parameters
         ----------
         message : string, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.WARNING.
 
         Returns
         -------
@@ -420,19 +490,18 @@ class Error:
             The code for unsupported extension error (105).
         '''
 
-        self.__print_msg(message, level)
+        return Error.report(ErrorCode.UNSUPPORTED_EXTENSION, message, level)
 
-        return self.unsupportedExtensionCode
-    
-    def broken_pipe(self, message: str = "", level: str = "warn") -> int:
-        '''Return this when a broken pipe occurs.
+    @staticmethod
+    def broken_pipe(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
+        ''' Return this when a broken pipe occurs.
 
         Parameters
         ----------
         message : string, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.WARNING.
 
         Returns
         -------
@@ -440,19 +509,18 @@ class Error:
             The code for broken pipe error (106).
         '''
 
-        self.__print_msg(message, level)
+        return Error.report(ErrorCode.BROKEN_PIPE, message, level)
 
-        return self.brokenPipeCode
-    
-    def empty_file(self, message: str = "", level: str = "warn") -> int:
-        '''Return this when the file is empty.
+    @staticmethod
+    def empty_file(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
+        ''' Return this when the file is empty.
 
         Parameters
         ----------
         message : string, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.WARNING.
 
         Returns
         -------
@@ -460,103 +528,94 @@ class Error:
             The code for empty file error (107).
         '''
 
-        self.__print_msg(message, level)
-
-        return self.emptyFileCode
+        return Error.report(ErrorCode.EMPTY_FILE, message, level)
 
     # Directory errors
-    def dir_exists(self, message: str = "", level: str = "warn") -> int:
-        '''Return this when the directory already exists.
+    @staticmethod
+    def dir_exists(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
+        ''' Return this when the directory already exists.
 
         Parameters
         ----------
         message : string, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.WARNING.
 
         Returns
         -------
         int
-            The code for create directory error (150).
-    
+            The code for directory already exists error (150).
         '''
+        return Error.report(ErrorCode.DIR_EXISTS, message, level)
 
-        self.__print_msg(message, level)
-
-        return self.dirExistsCode
-
-    def create_dir(self, message: str = "", level: str = "warn") -> int:
-        '''Return this when the directory creation fails.
+    @staticmethod
+    def create_dir(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
+        ''' Return this when the directory creation fails.
 
         Parameters
         ----------
         message : string, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.WARNING.
 
         Returns
         -------
         int
-            The code for create directory error (151).
-    
+            The code for directory creation error (151).
         '''
 
-        self.__print_msg(message, level)
+        return Error.report(ErrorCode.CREATE_DIR, message, level)
 
-        return self.createDirCode
-
-    def remove_dir(self, message: str = "", level: str = "warn") -> int:
-        '''Return this when the directory remotion fails.
+    @staticmethod
+    def remove_dir(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
+        ''' Return this when the directory removal fails.
 
         Parameters
         ----------
         message : string, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.WARNING.
 
         Returns
         -------
         int
-            The code for remove directory error (152).
-    
+            The code for directory removal error (152).
         '''
 
-        self.__print_msg(message, level)
+        return Error.report(ErrorCode.REMOVE_DIR, message, level)
 
-        return self.removeDirCode
-
-    def dir_does_not_exist(self, message: str = "", level: str = "warn") -> int:
-        '''Return this when the directory does not exists.
+    @staticmethod
+    def dir_does_not_exist(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
+        ''' Return this when the directory does not exist.
 
         Parameters
         ----------
         message : string, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.WARNING.
 
         Returns
         -------
         int
-            The code for directory does not exists error (153).
+            The code for directory does not exist error (153).
         '''
 
-        self.__print_msg(message, level)
+        return Error.report(ErrorCode.DIR_NOT_EXIST, message, level)
 
-        return self.dirDoesNotExistsCode
-
-    def unnalowed_dir(self, message: str = "", level: str = "warn") -> int:
-        '''Return this when the accessed dir is not allowed for any reason.
+    @staticmethod
+    def unnalowed_dir(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
+        ''' Return this when the accessed directory is not allowed for any reason.
 
         Parameters
         ----------
         message : string, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.WARNING.
 
         Returns
         -------
@@ -564,20 +623,19 @@ class Error:
             The code for directory unallowed (154).
         '''
 
-        self.__print_msg(message, level)
-
-        return self.dirUnallowedCode
+        return Error.report(ErrorCode.UNALLOWED_DIR, message, level)
 
     # Variable errors
-    def wrong_type(self, message: str = "", level: str = "warn") -> int:
-        '''Return this when the variable has wrong type.
+    @staticmethod
+    def wrong_type(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
+        ''' Return this when the variable has the wrong type.
 
         Parameters
         ----------
         message : string, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.WARNING.
 
         Returns
         -------
@@ -585,19 +643,18 @@ class Error:
             The code for wrong type error (200).
         '''
 
-        self.__print_msg(message, level)
+        return Error.report(ErrorCode.WRONG_TYPE, message, level)
 
-        return self.wrongTypeCode
-
-    def not_set(self, message: str = "", level: str = "warn") -> int:
-        '''Return this when the variable is not set.
+    @staticmethod
+    def not_set(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
+        ''' Return this when the variable is not set.
 
         Parameters
         ----------
         message : string, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.WARNING.
 
         Returns
         -------
@@ -605,19 +662,18 @@ class Error:
             The code for not set error (201).
         '''
 
-        self.__print_msg(message, level)
+        return Error.report(ErrorCode.NOT_SET, message, level)
 
-        return self.notSetCode
-
-    def empty(self, message: str = "", level: str = "warn") -> int:
-        '''Return this when the variable is empty.
+    @staticmethod
+    def empty(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
+        ''' Return this when the variable is empty.
 
         Parameters
         ----------
         message : string, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.WARNING.
 
         Returns
         -------
@@ -625,19 +681,18 @@ class Error:
             The code for empty error (202).
         '''
 
-        self.__print_msg(message, level)
+        return Error.report(ErrorCode.EMPTY, message, level)
 
-        return self.emptyCode
-
-    def value_error(self, message: str = "", level: str = "warn") -> int:
-        '''Return this when the variable has a value error.
+    @staticmethod
+    def value_error(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
+        ''' Return this when the variable has a value error.
 
         Parameters
         ----------
         message : string, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.WARNING.
 
         Returns
         -------
@@ -645,62 +700,58 @@ class Error:
             The code for value error (203).
         '''
 
-        self.__print_msg(message, level)
-
-        return self.valueErrorCode
+        return Error.report(ErrorCode.VALUE_ERROR, message, level)
 
     # Subprocess errors
-    def subprocess(self, message: str = "", level: str = "warn") -> int:
-        '''Return this when there is a problem runing a subprocess.
+    @staticmethod
+    def subprocess(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
+        ''' Return this when there is a problem running a subprocess.
 
         Parameters
         ----------
-        message : string, optional
+        message : str, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.WARNING.
 
         Returns
         -------
         int
             The code for subprocess error (300).
-    
         '''
 
-        self.__print_msg(message, level)
-
-        return self.subprocessCode
+        return Error.report(ErrorCode.SUBPROCESS_ERROR, message, level)
 
     # Molecules errors
-    def parse_molecule(self, message: str = "", level: str = "warn") -> int:
-        '''Return this when a molecule could not be parsed.
+    @staticmethod
+    def parse_molecule(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
+        ''' Return this when a molecule could not be parsed.
 
         Parameters
         ----------
-        message : string, optional
+        message : str, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
-
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.WARNING.
+        
         Returns
         -------
         int
             The code for parse molecule error (400).
         '''
 
-        self.__print_msg(message, level)
+        return Error.report(ErrorCode.PARSE_MOLECULE, message, level)
 
-        return self.parseMoleculeCode
-
-    def malformed_molecule(self, message: str = "", level: str = "warn") -> int:
-        '''Return this when a molecule is malformed.
+    @staticmethod
+    def malformed_molecule(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
+        ''' Return this when a molecule is malformed.
 
         Parameters
         ----------
-        message : string, optional
+        message : str, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.WARNING.
 
         Returns
         -------
@@ -708,19 +759,18 @@ class Error:
             The code for malformed molecule error (401).
         '''
 
-        self.__print_msg(message, level)
+        return Error.report(ErrorCode.MALFORMED_MOLECULE, message, level)
 
-        return self.malformedMoleculeCode
-
-    def ligand_not_prepared(self, message: str = "", level: str = "warn") -> int:
-        '''Return this when a ligand could not be prepared.
+    @staticmethod
+    def ligand_not_prepared(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
+        ''' Return this when a ligand could not be prepared.
 
         Parameters
         ----------
-        message : string, optional
+        message : str, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.WARNING.
 
         Returns
         -------
@@ -728,19 +778,18 @@ class Error:
             The code for ligand not prepared error (402).
         '''
 
-        self.__print_msg(message, level)
+        return Error.report(ErrorCode.LIGAND_NOT_PREPARED, message, level)
 
-        return self.ligandNotPreparedCode
-
-    def receptor_not_prepared(self, message: str = "", level: str = "warn") -> int:
-        '''Return this when a receptor could not be prepared.
+    @staticmethod
+    def receptor_not_prepared(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
+        ''' Return this when a receptor could not be prepared.
 
         Parameters
         ----------
-        message : string, optional
+        message : str, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.WARNING.
 
         Returns
         -------
@@ -748,19 +797,18 @@ class Error:
             The code for receptor not prepared error (403).
         '''
 
-        self.__print_msg(message, level)
+        return Error.report(ErrorCode.RECEPTOR_NOT_PREPARED, message, level)
 
-        return self.receptorNotPreparedCode
-
-    def invalid_molecule_name(self, message: str = "", level: str = "error") -> int:
-        '''Return this when me molecule has an invalid name.
+    @staticmethod
+    def invalid_molecule_name(message: str = "", level: ReportLevel = ReportLevel.ERROR) -> int:
+        ''' Return this when a molecule has an invalid name.
 
         Parameters
         ----------
-        message : string, optional
+        message : str, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.ERROR.
 
         Returns
         -------
@@ -768,20 +816,19 @@ class Error:
             The code for invalid molecule name error (404).
         '''
 
-        self.__print_msg(message, level)
-
-        return self.invalidMoleculeName
+        return Error.report(ErrorCode.INVALID_MOLECULE_NAME, message, level)
     
     # Docking errors
-    def docking_object_not_generated(self, message: str = "", level: str = "warn") -> int:
-        '''Return this when a docking object has not been generated.
-
+    @staticmethod
+    def docking_object_not_generated(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
+        ''' Return this when a docking object has not been generated.
+        
         Parameters
         ----------
-        message : string, optional
+        message : str, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.WARNING.
 
         Returns
         -------
@@ -789,19 +836,18 @@ class Error:
             The code for docking object not generated error (500).
         '''
 
-        self.__print_msg(message, level)
+        return Error.report(ErrorCode.DOCKING_OBJECT_NOT_GENERATED, message, level)
 
-        return self.dockingObjectNotGeneratedCode
-
-    def receptor_or_ligand_not_generated(self, message: str = "", level: str = "warn") -> int:
-        '''Return this when a receptor or ligand object has not been generated.
-
+    @staticmethod
+    def receptor_or_ligand_not_generated(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
+        ''' Return this when a receptor or ligand object has not been generated.
+        
         Parameters
         ----------
-        message : string, optional
+        message : str, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.WARNING.
 
         Returns
         -------
@@ -809,315 +855,219 @@ class Error:
             The code for receptor or ligand not generated error (501).
         '''
 
-        self.__print_msg(message, level)
+        return Error.report(ErrorCode.RECEPTOR_OR_LIGAND_NOT_GENERATED, message, level)
 
-        return self.recLigObjectNotGeneratedCode
-
-    def receptor_or_ligand_descriptor_does_not_exist(self, message: str = "", level: str = "warn") -> int:
-        '''Return this when a receptor or ligand has no descriptor file.
-
+    @staticmethod
+    def receptor_or_ligand_descriptor_does_not_exist(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
+        ''' Return this when a receptor or ligand has no descriptor file.
+        
         Parameters
         ----------
-        message : string, optional
+        message : str, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
-        
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.WARNING.
+
         Returns
         -------
         int
             The code for receptor or ligand descriptor does not exist error (502).
         '''
 
-        self.__print_msg(message, level)
+        return Error.report(ErrorCode.RECEPTOR_OR_LIGAND_DESCRIPTOR_NOT_EXIST, message, level)
 
-        return self.recLigFileDoesNotExistCode
-    
-    def not_supported_docking_algorithm(self, message: str = "", level: str = "error") -> int:
-        '''Return this when the docking algorithm is not supported.
-
+    @staticmethod
+    def not_supported_docking_algorithm(message: str = "", level: ReportLevel = ReportLevel.ERROR) -> int:
+        ''' Return this when the docking algorithm is not supported.
+        
         Parameters
         ----------
-        message : string, optional
+        message : str, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
-        
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.ERROR.
+
         Returns
         -------
         int
-            The code for receptor or ligand descriptor does not exist error (503).
+            The code for not supported docking algorithm error (503).
         '''
 
-        self.__print_msg(message, level)
+        return Error.report(ErrorCode.NOT_SUPPORTED_DOCKING_ALGORITHM, message, level)
 
-        return self.notSupportedDockingAlgorithmCode
-    
-    def binding_site_not_found(self, message: str = "", level: str = "error") -> int:
-        '''Return this when the binding site has not been found.
-
+    @staticmethod
+    def binding_site_not_found(message: str = "", level: ReportLevel = ReportLevel.ERROR) -> int:
+        ''' Return this when the binding site has not been found.
+        
         Parameters
         ----------
-        message : string, optional
+        message : str, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
-        
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.ERROR.
+
         Returns
         -------
         int
-            The code for receptor or ligand descriptor does not exist error (503).
+            The code for binding site not found error (503).
         '''
 
-        self.__print_msg(message, level)
+        return Error.report(ErrorCode.BINDING_SITE_NOT_FOUND, message, level)
 
-        return self.bindingSiteNotFoundCode
-    
-    def docking_failed(self, message: str = "", level: str = "error") -> int:
-        '''Return this when the docking run has failed.
-
+    @staticmethod
+    def docking_failed(message: str = "", level: ReportLevel = ReportLevel.ERROR) -> int:
+        ''' Return this when the docking run has failed.
+        
         Parameters
         ----------
-        message : string, optional
+        message : str, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
-        
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.ERROR.
+
         Returns
         -------
         int
-            The code for receptor or ligand descriptor does not exist error (503).
+            The code for docking failed error (503).
         '''
 
-        self.__print_msg(message, level)
+        return Error.report(ErrorCode.DOCKING_FAILED, message, level)
 
-        return self.dockingFailedCode
-    
-    def read_docking_log_error(self, message: str = "", level: str = "error") -> int:
-        '''Return this when the docking log had problems to be read.
-
+    @staticmethod
+    def read_docking_log_error(message: str = "", level: ReportLevel = ReportLevel.ERROR) -> int:
+        ''' Return this when the docking log had problems to be read.
+        
         Parameters
         ----------
-        message : string, optional
+        message : str, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
-        
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.ERROR.
+
         Returns
         -------
         int
-            The code for receptor or ligand descriptor does not exist error (503).
+            The code for read docking log error (503).
         '''
 
-        self.__print_msg(message, level)
-
-        return self.readDockingLogError
+        return Error.report(ErrorCode.READ_DOCKING_LOG_ERROR, message, level)
 
     # Archive errors
-    def not_supported_archive(self, message: str = "", level: str = "error") -> int:
-        '''Return this when the archive is not supported. NOTE: SHOULD be removed in the future.
-
+    @staticmethod
+    def not_supported_archive(message: str = "", level: ReportLevel = ReportLevel.ERROR) -> int:
+        ''' Return this when the archive format is not supported.
+        
         Parameters
         ----------
-        message : string, optional
+        message : str, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.ERROR.
         
         Returns
         -------
         int
-            The code for receptor or ligand descriptor does not exist error (600).
+            The code for not supported archive error.
         '''
 
-        self.__print_msg(message, level)
+        return Error.report(ErrorCode.NOT_SUPPORTED_ARCHIVE, message, level)
 
-        return self.notSupportedArchiveCode
-    
     # Scoring and rescoring errors
-    def unsupported_scoring_function(self, message: str = "", level: str = "error") -> int:
-        '''Return this when the scoring function is not supported.
-
+    @staticmethod
+    def unsupported_scoring_function(message: str = "", level: ReportLevel = ReportLevel.ERROR) -> int:
+        ''' Return this when the scoring function is not supported.
+        
         Parameters
         ----------
-        message : string, optional
+        message : str, optional
             Message to be printed. Default is "".
-        level : string, optional
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.ERROR.
         
         Returns
         -------
         int
-            The code for receptor or ligand descriptor does not exist error (700).
+            The code for unsupported scoring function error.
         '''
 
-        self.__print_msg(message, level)
+        return Error.report(ErrorCode.UNSUPPORTED_SCORING_FUNCTION, message, level)
 
-        return self.unsupportedScoringFunctionCode
-    
-    def rescoring_failed(self, message: str = "", level: str = "error") -> int:
-        '''Return this when the rescoring has failed.
-
+    @staticmethod
+    def rescoring_failed(message: str = "", level: ReportLevel = ReportLevel.ERROR) -> int:
+        ''' Return this when the rescoring process has failed.
+        
         Parameters
         ----------
-        message : string, optional
+        message : str, optional
             Message to be printed. Default is "".
-        level : string, optional.
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.ERROR.
         
         Returns
         -------
         int
-            The code for rescoring failed error (701).
+            The code for rescoring failed error.
         '''
 
-        self.__print_msg(message, level)
+        return Error.report(ErrorCode.RESCORING_FAILED, message, level)
 
-        return self.rescoringFailedCode
-    
-    def missing_oddt_models(self, message: str = "", level: str = "error") -> int:
-        '''Return this when no ODDt model has been found.
-
+    @staticmethod
+    def missing_oddt_models(message: str = "", level: ReportLevel = ReportLevel.ERROR) -> int:
+        ''' Return this when no ODDt models are available.
+        
         Parameters
         ----------
-        message : string, optional
+        message : str, optional
             Message to be printed. Default is "".
-        level : string, optional.
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.ERROR.
         
         Returns
         -------
         int
-            The code for rescoring failed error (702).
+            The code for missing ODDt models error.
         '''
 
-        self.__print_msg(message, level)
+        return Error.report(ErrorCode.MISSING_ODDT_MODELS, message, level)
 
-        return self.missingOddtModel
-    
-    def unsupported_clustering_algorithm(self, message: str = "", level: str = "error") -> int:
-        '''Return this when the user has provied an unsupported clustering algorithm.
-
+    @staticmethod
+    def unsupported_clustering_algorithm(message: str = "", level: ReportLevel = ReportLevel.ERROR) -> int:
+        ''' Return this when an unsupported clustering algorithm is specified.
+        
         Parameters
         ----------
-        message : string, optional
+        message : str, optional
             Message to be printed. Default is "".
-        level : string, optional.
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.ERROR.
         
         Returns
         -------
         int
-            The code for unsupported clustering algorithm error (750).
+            The code for unsupported clustering algorithm error.
         '''
 
-        self.__print_msg(message, level)
+        return Error.report(ErrorCode.UNSUPPORTED_CLUSTERING_ALGORITHM, message, level)
 
-        return self.unsupportedClusteringAlgorithmCode
-
-    def cluster_not_converged(self, message: str = "", level: str = "error") -> int:
-        '''Return this when the cluster has not converged.
-
+    @staticmethod
+    def cluster_not_converged(message: str = "", level: ReportLevel = ReportLevel.ERROR) -> int:
+        ''' Return this when the clustering process has not converged.
+        
         Parameters
         ----------
-        message : string, optional
+        message : str, optional
             Message to be printed. Default is "".
-        level : string, optional.
-            Level of message to be printed. Default is 'warn'. Other options are 'info', 'success', 'error'.
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.ERROR.
         
         Returns
         -------
         int
-            The code for cluster not converged error (751).
+            The code for cluster not converged error.
         '''
 
-        self.__print_msg(message, level)
+        return Error.report(ErrorCode.CLUSTER_NOT_CONVERGED, message, level)
 
-        return self.clusterNotConvergedCode
-
-    # Debug functions
-    def print_attributes(self) -> None:
-        '''Print the class attributes.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        '''
-        
-        print(f"\t+----------------------------------------------+")
-        print(f"\t|            OCDocker Return codes             |")
-        print(f"\t+----------------------------------------------+")
-
-        print(f"\n\t~~~~~~~~~~~~~~~~ GENERAL ERRORS ~~~~~~~~~~~~~~~~")
-        print(f"\t - No error:                        {self.okCode}")
-        print(f"\t - Abortion:                        {self.abortCode}")
-        print(f"\t - Skip:                            {self.skipCode}")
-        print(f"\t - Unknown error:                   {self.unknownCode}")
-
-        print(f"\n\t~~~~~~~~~~~~~~~~~~ FILE ERRORS ~~~~~~~~~~~~~~~~~")
-        print(f"\t - File exists:                     {self.fileExistsCode}")
-        print(f"\t - File does not exists:            {self.fileDoNotExistCode}")
-        print(f"\t - Read file error:                 {self.readFileCode}")
-        print(f"\t - Write file error:                {self.writeFileCode}")
-        print(f"\t - Untar error:                     {self.untarFileCode}")
-        print(f"\t - Unsupported extension error:     {self.unsupportedExtensionCode}")
-        print(f"\t - Broken PIPE error:               {self.brokenPipeCode}")
-        print(f"\t - Empty file:                      {self.emptyFileCode}")
-
-        print(f"\n\t~~~~~~~~~~~~~~~ DIRECTORY ERRORS ~~~~~~~~~~~~~~~")
-        print(f"\t - Directory exists:                {self.dirExistsCode}")
-        print(f"\t - Directory creation error:        {self.createDirCode}")
-        print(f"\t - Directory remotion error:        {self.removeDirCode}")
-        print(f"\t - Directory does not exist:        {self.dirDoesNotExistsCode}")
-        print(f"\t - Directory access not allowed:    {self.dirUnallowedCode}")
-
-        print(f"\n\t~~~~~~~~~~~~~~~ VARIABLE ERRORS ~~~~~~~~~~~~~~~~")
-        print(f"\t - Wrong type:                      {self.wrongTypeCode}")
-        print(f"\t - Not set:                         {self.notSetCode}")
-        print(f"\t - Empty:                           {self.emptyCode}")
-        print(f"\t - Value error:                     {self.valueErrorCode}")
-
-        print(f"\n\t~~~~~~~~~~~~~~~~ PROCESS ERRORS ~~~~~~~~~~~~~~~~")
-        print(f"\t - Subprocess error:                {self.subprocessCode}")
-
-        print(f"\n\t~~~~~~~~~~~~~~~ MOLECULE ERRORS ~~~~~~~~~~~~~~~~")
-        print(f"\t - Molecule parse error:            {self.parseMoleculeCode}")
-        print(f"\t - Malformed molecule error:        {self.malformedMoleculeCode}")
-        print(f"\t - Ligand not prepared:             {self.ligandNotPreparedCode}")
-        print(f"\t - Receptor not prepared:           {self.receptorNotPreparedCode}")
-        print(f"\t - Invalid molecule name:           {self.invalidMoleculeName}")
-
-        print(f"\n\t~~~~~~~~~~~~~~~~ DOCKING ERRORS ~~~~~~~~~~~~~~~~~")
-        print(f"\t - Docking Object Generation")
-        print(f"\t   error:                           {self.dockingObjectNotGeneratedCode}")
-        print(f"\t - Receptor/Ligand Object")
-        print(f"\t   Generation error:                {self.recLigObjectNotGeneratedCode}")
-        print(f"\t - Receptor/Ligand File")
-        print(f"\t   descriptor does not exist:       {self.recLigFileDoesNotExistCode}")
-        print(f"\t - Not supported docking algoritm:  {self.notSupportedDockingAlgorithmCode}")
-        print(f"\t - Binding site not found:          {self.bindingSiteNotFoundCode}")
-        print(f"\t - Docking failed:                  {self.dockingFailedCode}")
-        print(f"\t - Docking log failed to be read:   {self.readDockingLogError}")
-
-        print(f"\n\t~~~~~~~~~~~~~~~~ ARCHIVE ERRORS ~~~~~~~~~~~~~~~~~")
-        print(f"\t - Archive not supported:           {self.notSupportedArchiveCode}")
-
-        print(f"\n\t~~~~~~~~~~~~~~~ RESCORING ERRORS ~~~~~~~~~~~~~~~~")
-        print(f"\t - Unsupported scoring function:    {self.unsupportedScoringFunctionCode}")
-        print(f"\t - Rescoring failed:                {self.rescoringFailedCode}")
-        print(f"\t - Missing ODDT model:              {self.missingOddtModel}")
-
-        print(f"\n\t~~~~~~~~~~~~~~~ CLUSTERING ERRORS ~~~~~~~~~~~~~~~")
-        print(f"\t - Unsupported clustering")
-        print(f"\t   algorithm:                       {self.unsupportedClusteringAlgorithmCode}")
-        print(f"\t   Cluster not converged:           {self.cluster_not_converged}")
-
-
-        return None
 
 # Functions
 ###############################################################################

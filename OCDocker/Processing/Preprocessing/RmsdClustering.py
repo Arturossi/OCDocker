@@ -1,4 +1,4 @@
-#!/usr/lib/python3
+#!/usr/bin/env python3
 
 # Description
 ###############################################################################
@@ -139,7 +139,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
     # Check if max_distance_threshold is smaller than min_distance_threshold
     if max_distance_threshold < min_distance_threshold:
         # Return the value error
-        return errors.value_error(f"The max_distance_threshold ({max_distance_threshold}) is smaller than the min_distance_threshold ({min_distance_threshold}).")
+        return ocerror.Error.value_error(f"The max_distance_threshold ({max_distance_threshold}) is smaller than the min_distance_threshold ({min_distance_threshold}).")
 
     # Check if the data is a dict
     if isinstance(data, dict):
@@ -189,7 +189,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                     break
                 else:
                     # Print the message, returning the error code
-                    return errors.cluster_not_converged(f"The clustering algorithm did not converge. The distance threshold is {distance_threshold}.")
+                    return ocerror.Error.cluster_not_converged(f"The clustering algorithm did not converge. The distance threshold is {distance_threshold}.")
 
             # Find the biggest cluster (may be more than one)
             biggest_cluster = np.where(cluster_sizes == np.max(cluster_sizes))[0]
@@ -207,7 +207,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
         # If the scores is -1
         if scores == -1:
             # Print the message, returning the error code
-            return errors.cluster_not_converged(f"The clustering algorithm did not converge. The distance threshold is {distance_threshold}.")
+            return ocerror.Error.cluster_not_converged(f"The clustering algorithm did not converge. The distance threshold is {distance_threshold}.")
 
         # If the outputPlot is not ""
         if outputPlot != "":
@@ -231,4 +231,4 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
         return results # type: ignore
     
     else:
-        return errors.unsupported_clustering_algorithm(f"The clustering algorithm '{algorithm}' is not supported. Currently the supported algorithms are: 'agglomerativeClustering'.")
+        return ocerror.Error.unsupported_clustering_algorithm(f"The clustering algorithm '{algorithm}' is not supported. Currently the supported algorithms are: 'agglomerativeClustering'.")

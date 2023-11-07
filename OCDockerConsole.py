@@ -1,4 +1,4 @@
-#!/usr/lib/python3
+#!/usr/bin/env python3
 
 # Imports
 ###############################################################################
@@ -10,9 +10,12 @@ import textwrap as tw
 from pprint import pprint
 from glob import glob
 
+# The environment variable OCDOCKER_CONFIG must be set to the OCDocker.cfg file before importing OCDocker
+os.environ['OCDOCKER_CONFIG'] = 'OCDocker.cfg'
+
 from OCDocker.Initialise import *
 
-args.output_level = 0
+output_level = ocerror.ReportLevel.NONE
 
 import OCDocker.Toolbox as octools
 
@@ -28,6 +31,7 @@ import OCDocker.Docking.Gnina as ocgnina
 import OCDocker.Docking.PLANTS as ocplants
 import OCDocker.Processing.Preprocessing.RmsdClustering as ocrmsdclust
 import OCDocker.Rescoring.ODDT as ocoddt
+import OCDocker.Toolbox.Conversion as occonversion
 import OCDocker.Toolbox.MoleculeProcessing as ocmolproc
 
 # License
@@ -127,12 +131,14 @@ message = tw.dedent("""\033[1;93m
 
 print(message)
 
-args.cpu_cores = 18
-args.available_cores = args.cpu_cores - 1
-args.multiprocess = 1
-args.generate_report = False
-args.zip_output = False
-args.update = False
+if __name__ == "__main__":
+    # Set the variables based on args
+    set_argparse()
+else:
+    cpu_cores = 18
+    available_cores = cpu_cores - 1
+    multiprocess = True
+    update = False
 
 '''
 basePath = f"{os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))}/test_files"

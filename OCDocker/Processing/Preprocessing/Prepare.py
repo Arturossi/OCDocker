@@ -1,4 +1,4 @@
-#!/usr/lib/python3
+#!/usr/bin/env python3
 
 # Description
 ###############################################################################
@@ -135,7 +135,7 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
             except Exception as e:
                 errMsg = f"The molecule '{mol}' could not be parsed!"
 
-                _ = errors.parse_molecule(errMsg, "error")
+                _ = ocerror.Error.parse_molecule(errMsg, level = ocerror.ReportLevel.ERROR)
                 ocprint.print_error_log(errMsg, f"{logdir}/{dbName}_error_Parse.log")
                 return None
 
@@ -156,7 +156,7 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                     except Exception as e:
                         errMsg = f"The molecule '{mol[0]}' could not be parsed! Error {e}"
 
-                        _ = errors.parse_molecule(errMsg, "error")
+                        _ = ocerror.Error.parse_molecule(errMsg, level = ocerror.ReportLevel.ERROR)
                         ocprint.print_error_log(errMsg, f"{logdir}/{dbName}_error_Parse.log")
                         return None
                 else:
@@ -170,18 +170,18 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                     except Exception as e:
                         errMsg = f"The molecule '{mol}' could not be parsed! Error {e}"
 
-                        _ = errors.parse_molecule(errMsg, "error")
+                        _ = ocerror.Error.parse_molecule(errMsg, level = ocerror.ReportLevel.ERROR)
                         ocprint.print_error_log(errMsg, f"{logdir}/{dbName}_error_Parse.log")
                         return None
         else:
-            _ = errors.unknown("Unknown molecule type", "error")
+            _ = ocerror.Error.unknown("Unknown molecule type", level = ocerror.ReportLevel.ERROR)
             return None
 
         # Test if the molecule is valid
         if not m or not m.is_valid():
             errMsg = f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!"
 
-            _ = errors.malformed_molecule(errMsg, "error")
+            _ = ocerror.Error.malformed_molecule(errMsg, level = ocerror.ReportLevel.ERROR)
             ocprint.print_error_log(errMsg, f"{logdir}/{dbName}_error_Parse.log")
         else:
             # Export its descriptors
@@ -285,7 +285,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
     # Check if the basename of the working directory is not in the list of ignored directories
     if os.path.basename(path) in ['index']:
         # Skip it
-        return errors.unnalowed_dir()
+        return ocerror.Error.unnalowed_dir()
 
     # Set the input file name path
     fin = f"{path}/receptor.pdb"
@@ -337,7 +337,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
         
         # Check if the target centroid is still None
         if targetCentroid is None:
-            return errors.file_do_not_exist(f"Could not find the file '{' or '.join([os.path.join(path, f'reference_ligand.{ref_ligand_ext}') for ref_ligand_ext in ref_ligand_exts])}' for the molecule '{path}' or the provided files are not valid and a target centroid has not been provided. This molecule will not be processed.", level = "error")            
+            return ocerror.Error.file_do_not_exist(f"Could not find the file '{' or '.join([os.path.join(path, f'reference_ligand.{ref_ligand_ext}') for ref_ligand_ext in ref_ligand_exts])}' for the molecule '{path}' or the provided files are not valid and a target centroid has not been provided. This molecule will not be processed.", level = ocerror.ReportLevel.ERROR)            
 
     # Create an empty list to hold all dirs to be processed
     processDirs = []
@@ -437,7 +437,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
         else:
             ocprint.print_info(f"The protein '{processDir}' already has its smina file generated, skipping its execution.")
 
-    return errors.ok()
+    return ocerror.Error.ok()
 
 def __thread_prepare(arguments: Tuple[str, bool, str, bool, float]) -> int:
     '''Thread aid function to call __core_prepare.
@@ -492,7 +492,7 @@ def __prepare_parallel(paths: List[str], overwrite: bool, archive: str, sanitize
 
     try:
         # Create a Thread pool with the maximum available_cores
-        with Pool(args.available_cores) as p:
+        with Pool(available_cores) as p:
             # Perform the multi process
             for _ in tqdm(p.imap_unordered(__thread_prepare, arguments), total = len(arguments), desc = desc):
                 # Clear the memory
@@ -595,7 +595,7 @@ def prepare(paths: Union[List[str], str], overwrite: bool, archive: str, sanitiz
         label = f"Preparing {archive}"
 
         # Check if multiprocessing is enabled
-        if args.multiprocess:
+        if multiprocess:
             # Prepare the pdbbind
             __prepare_parallel(paths, overwrite, archive, sanitize, spacing, label)
         else:

@@ -1,4 +1,4 @@
-#!/usr/lib/python3
+#!/usr/bin/env python3
 
 # Description
 ###############################################################################
@@ -103,7 +103,7 @@ def empty_docking_digest(digestPath: str, overwrite: bool = False, digestFormat 
                             # Dump the data
                             json.dump(digest, f)
                     except Exception as e:
-                        return errors.write_file(f"Could not write the digest file '{digestPath}'.", "error")
+                        return ocerror.Error.write_file(f"Could not write the digest file '{digestPath}'.", level = ocerror.ReportLevel.ERROR)
     return digest
 
 def to_hdf5(filePath: str, data: Any) -> int:
@@ -139,8 +139,8 @@ def to_hdf5(filePath: str, data: Any) -> int:
                 # Save the data
                 hf.create_dataset("data", data = data)
     except Exception as e:
-        return errors.write_file(f"Problems while saving the hdf5 file '{filePath}'. Error: {e}")
-    return errors.ok()
+        return ocerror.Error.write_file(f"Problems while saving the hdf5 file '{filePath}'. Error: {e}")
+    return ocerror.Error.ok()
     
 def from_hdf5(filePath: str) -> Union[None, Any]:
     '''Read a data from a hdf5 file.
@@ -169,7 +169,7 @@ def from_hdf5(filePath: str) -> Union[None, Any]:
             # Read the hdf5 file with h5py
             data = {key: hf[key][:] for key in hf.keys()} # type: ignore
     except Exception as e:
-        _ = errors.read_file(f"Problems while reading the hdf5 file '{filePath}'. Error: {e}")
+        _ = ocerror.Error.read_file(f"Problems while reading the hdf5 file '{filePath}'. Error: {e}")
     return data
 
 def to_pickle(filePath: str, data: Any) -> int:
@@ -192,8 +192,8 @@ def to_pickle(filePath: str, data: Any) -> int:
         with open(filePath, 'wb') as handle:
             pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
     except Exception as e:
-        return errors.write_file(f"Problems while pickling the file '{filePath}'. Error: {e}")
-    return errors.ok()
+        return ocerror.Error.write_file(f"Problems while pickling the file '{filePath}'. Error: {e}")
+    return ocerror.Error.ok()
 
 def from_pickle(filePath: str) -> Union[None, Any]:
     '''Unpickle a pickle file into an object.
@@ -214,7 +214,7 @@ def from_pickle(filePath: str) -> Union[None, Any]:
         with open(filePath, 'rb') as handle:
             data = pickle.load(handle)
     except Exception as e:
-        _ = errors.read_file(f"Problems while unpickling the file '{filePath}'. Error: {e}")
+        _ = ocerror.Error.read_file(f"Problems while unpickling the file '{filePath}'. Error: {e}")
     return data
 
 def safe_create_dir(dirname: str) -> int:
@@ -238,17 +238,17 @@ def safe_create_dir(dirname: str) -> int:
             # Create it
             os.mkdir(dirname)
             # Print verbosity
-            if args.output_level >= 3:
-                return errors.ok(f"Successfully created the directory '{dirname}'")
-            return errors.ok()
+            if ocerror.Error.output_level >= ocerror.ReportLevel.SUCCESS:
+                return ocerror.Error.ok(f"Successfully created the directory '{dirname}'")
+            return ocerror.Error.ok()
         else:
             # It exists
-            return errors.dir_exists(message=f"The dir '{dirname}' already exists!", level="warn")
+            return ocerror.Error.dir_exists(message=f"The dir '{dirname}' already exists!", level = ocerror.ReportLevel.WARNING)
     except Exception as e:
         # Some error has occurred
-        return errors.create_dir(message=f"Problem found while creating the dir '{dirname}': {e}", level="error")
+        return ocerror.Error.create_dir(message=f"Problem found while creating the dir '{dirname}': {e}", level = ocerror.ReportLevel.ERROR)
     # This should never appear since all the other paths ends in some kind of return
-    return errors.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while creating a dir safetly.", level="error")
+    return ocerror.Error.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while creating a dir safetly.", level = ocerror.ReportLevel.ERROR)
 
 def safe_remove_dir(dirname: str) -> int:
     ''' Remove a dir if exists.
@@ -271,17 +271,17 @@ def safe_remove_dir(dirname: str) -> int:
             # Remove it
             shutil.rmtree(dirname)
             # Print verbosity
-            if args.output_level >= 3:
-                return errors.ok(f"Successfully removed the directory '{dirname}'")
-            return errors.ok()
+            if ocerror.Error.output_level >= ocerror.ReportLevel.SUCCESS:
+                return ocerror.Error.ok(f"Successfully removed the directory '{dirname}'")
+            return ocerror.Error.ok()
         else:
             # It exists
-            return errors.dir_exists(message=f"The dir '{dirname}' does not exist!", level="warn")
+            return ocerror.Error.dir_exists(message=f"The dir '{dirname}' does not exist!", level = ocerror.ReportLevel.WARNING)
     except Exception as e:
         # Some error has occurred
-        return errors.remove_dir(message=f"Problem found while removing the dir '{dirname}': {e}", level="error")
+        return ocerror.Error.remove_dir(message=f"Problem found while removing the dir '{dirname}': {e}", level = ocerror.ReportLevel.ERROR)
     # This should never appear since all the other paths ends in some kind of return
-    return errors.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while creating a dir safetly.", level="error")
+    return ocerror.Error.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while creating a dir safetly.", level = ocerror.ReportLevel.ERROR)
 
 def safe_remove_file(filePath: str) -> int:
     '''Remove a file if exists.
@@ -304,17 +304,17 @@ def safe_remove_file(filePath: str) -> int:
             # Remove it
             os.remove(filePath)
             # Print verbosity
-            if args.output_level >= 3:
-                return errors.ok(f"Successfully removed the file '{filePath}'")
-            return errors.ok()
+            if ocerror.Error.output_level >= ocerror.ReportLevel.SUCCESS:
+                return ocerror.Error.ok(f"Successfully removed the file '{filePath}'")
+            return ocerror.Error.ok()
         except Exception as e:
             # Some error has occurred
-            return errors.unknown(message=f"Problem found while removing the file '{filePath}': {e}", level="error")
+            return ocerror.Error.unknown(message=f"Problem found while removing the file '{filePath}': {e}", level = ocerror.ReportLevel.ERROR)
     else:
         # Return file not found error
-        return errors.file_do_not_exist(message=f"The file '{filePath}' does not exists!", level="warn")
+        return ocerror.Error.file_do_not_exist(message=f"The file '{filePath}' does not exists!", level = ocerror.ReportLevel.WARNING)
     # This should never appear since all the other paths ends in some kind of return
-    return errors.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while removing a file safetly.", level="error")
+    return ocerror.Error.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while removing a file safetly.", level = ocerror.ReportLevel.ERROR)
 
 def untar(fname: str, out_path: str = ".", delete: bool = False) -> int:
     '''Untar a file.
@@ -351,15 +351,15 @@ def untar(fname: str, out_path: str = ".", delete: bool = False) -> int:
                         # Extract member
                         tar.extract(member=member, path=out_path)
             # Report success on untarring the file
-            _ = errors.ok(f"The file {fname} has been {clrs['g']}successfully{clrs['n']} untarred to the dir {out_path}!")
+            _ = ocerror.Error.ok(f"The file {fname} has been {clrs['g']}successfully{clrs['n']} untarred to the dir {out_path}!")
             # If delete flag is set, delete file
             if delete:
                 #shutil.rmtree(fname) # remove the files
                 os.remove(fname) # remove the files
-                return errors.ok(f"The file {fname} has been {clrs['y']}deleted!{clrs['n']}") # Report success on deleting the file
-            return errors.ok()
+                return ocerror.Error.ok(f"The file {fname} has been {clrs['y']}deleted!{clrs['n']}") # Report success on deleting the file
+            return ocerror.Error.ok()
         except Exception as e:
-            return errors.untar_file(message=f"{clrs['r']}Failed{clrs['n']} to untar the file {fname}.\n\n{clrs['r']}Error{clrs['n']}: {e}", level="error")
+            return ocerror.Error.untar_file(message=f"{clrs['r']}Failed{clrs['n']} to untar the file {fname}.\n\n{clrs['r']}Error{clrs['n']}: {e}", level = ocerror.ReportLevel.ERROR)
     else:
         # No supported extension has been provided
-        return errors.unsupported_extension(message=f"The file {fname} is not a tar.gz file. {clrs['y']}Aborting execution{clrs['n']}", level="error")
+        return ocerror.Error.unsupported_extension(message=f"The file {fname} is not a tar.gz file. {clrs['y']}Aborting execution{clrs['n']}", level = ocerror.ReportLevel.ERROR)

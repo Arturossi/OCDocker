@@ -1,4 +1,4 @@
-#!/usr/lib/python3
+#!/usr/bin/env python3
 
 # Description
 ###############################################################################
@@ -399,7 +399,7 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
                     # Turn the flag off
                     first = False
         else:
-            _ = errors.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its {key} output.")
+            _ = ocerror.Error.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its {key} output.")
             # Set the elements in value as np.NaN
             value = value.empty_with_nan()
 
@@ -516,7 +516,7 @@ def __read_log_parallel(paths: List[Tuple[str, str]], desc: str, ptn: str, saveC
 
     try:
         # Create a Thread pool with the maximum available_cores
-        with Pool(args.available_cores) as p:
+        with Pool(available_cores) as p:
             # Perform the multi process
             for data in tqdm(p.imap_unordered(__thread_read_log_parallel, arguments), total = len(arguments), desc = desc):
                 # Check if the dockingResults is None
@@ -781,7 +781,7 @@ def read_logs(paths: Union[List[Tuple[str, str]], List[Tuple[str, str]]], archiv
         hdf5Path = f"{os.path.dirname(os.path.dirname(os.path.dirname(paths[0][0])))}/{ptn}_docking_results.hdf5"
 
         # Check if multiprocessing is enabled
-        if args.multiprocess:
+        if multiprocess:
             # Prepare the pdbbind
             return __read_log_parallel(paths, label, ptn, saveChunk, hdf5Path, overwrite)
         else:

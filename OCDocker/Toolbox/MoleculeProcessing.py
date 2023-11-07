@@ -1,4 +1,4 @@
-#!/usr/lib/python3
+#!/usr/bin/env python3
 
 # Description
 ###############################################################################
@@ -208,6 +208,6 @@ def make_only_ATOM_and_CRYST_pdb(structurePath: str) -> int:
                 # Write the lines list to the file
                 pdbFile.writelines(lines)
         
-        return errors.ok()
+        return ocerror.Error.ok()
     else:
-        return errors.file_do_not_exist(message = f"The file '{structurePath}' does not exist!", level = "error")
+        return ocerror.Error.file_do_not_exist(message = f"The file '{structurePath}' does not exist!", level = ocerror.ReportLevel.ERROR)

@@ -1,4 +1,4 @@
-#!/usr/lib/python3
+#!/usr/bin/env python3
 
 # Description
 ###############################################################################
@@ -170,7 +170,7 @@ def read_index() -> Union[Dict[str, List[str]], None]:
         return proteinData
     else:
         # There is no file, throw an error
-        _ = errors.file_do_not_exist(f"The file {indexFile} does not exist. Please check if the PDBbind database is correctly installed.", level = "error")
+        _ = ocerror.Error.file_do_not_exist(f"The file {indexFile} does not exist. Please check if the PDBbind database is correctly installed.", level = ocerror.ReportLevel.WARNING)
         return None
 
 def run_p2rank(overwrite: bool = False) -> None:

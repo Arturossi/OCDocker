@@ -1,4 +1,4 @@
-#!/usr/lib/python3
+#!/usr/bin/env python3
 
 # Description
 ###############################################################################
@@ -89,14 +89,15 @@ def __run_p2rank(dir: str, fin: str, overwrite: bool = False) -> None:
 
     # Create a lock for multithreading
     lock = Lock()
+    
     # Start the lock with statement
     with lock:
         try:
             # Run p2rank
-            runprank.run_prank(fin, fout, algorithms, prank = prank, threads = args.cpu_cores, debug = False, boxMaxCutoff = p2rank_boxMaxCutoff, pocketCutoff = p2rank_pocketCutoff, verbose = True if args.output_level >= 3 else False, overwrite = overwrite)
+            runprank.run_prank(fin, fout, algorithms, prank = prank, threads = cpu_cores, debug = False, boxMaxCutoff = p2rank_boxMaxCutoff, pocketCutoff = p2rank_pocketCutoff, verbose = True if ocerror.ReportLevel.INFO else False, overwrite = overwrite)
         except Exception as e:
             ocprint.print_warning(f"The protein '{dir}' had a problem while running p2rank. Retrying to run p2rank. Exception: {e}")
-            runprank.run_prank(fin, fout, algorithms, prank = prank, threads = args.cpu_cores, debug = False, boxMaxCutoff = p2rank_boxMaxCutoff, pocketCutoff = p2rank_pocketCutoff, verbose = True if args.output_level >= 3 else False, overwrite = overwrite)
+            runprank.run_prank(fin, fout, algorithms, prank = prank, threads = cpu_cores, debug = False, boxMaxCutoff = p2rank_boxMaxCutoff, pocketCutoff = p2rank_pocketCutoff, verbose = True if ocerror.ReportLevel.INFO else False, overwrite = overwrite)
 
     return None
 
@@ -176,7 +177,7 @@ def __p2rank_parallel(paths: List[str], overwrite: bool, desc: str) -> None:
         arguments.append((path, overwrite))
     try:
         # Create a Thread pool with the maximum available_cores
-        with Pool(args.available_cores) as p:
+        with Pool(available_cores) as p:
             # Perform the multi process
             for _ in tqdm(p.imap_unordered(__thread_p2rank, arguments), total = len(arguments), desc = desc):
                 # Clear the memory
@@ -264,7 +265,7 @@ def run_p2rank(paths: Union[List[str], str], overwrite: bool) -> None:
         label = f"Running p2rank"
         
         # Check if multiprocessing is enabled
-        if args.multiprocess:
+        if multiprocess:
             # Prepare the pdbbind
             __p2rank_parallel(paths, overwrite, label)
         else:

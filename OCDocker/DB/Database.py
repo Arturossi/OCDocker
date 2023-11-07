@@ -1,4 +1,4 @@
-#!/usr/lib/python3
+#!/usr/bin/env python3
 
 # Description
 ###############################################################################
@@ -165,7 +165,7 @@ def __process_dudez_parallel(targets: List[str], overwrite: bool, desc: str) -> 
         arguments.append((target, overwrite))
     try:
         # Create a Thread pool with the maximum available_cores
-        with Pool(args.available_cores) as p:
+        with Pool(available_cores) as p:
             # Perform the multi process
             for _ in tqdm(p.imap_unordered(__thread_process_dudez, arguments), total = len(arguments), desc = desc):
                 # Clear the memory
@@ -297,7 +297,7 @@ def __download_dudez_parallel(targets: List[str], overwrite: bool, desc: str) ->
         # Append a tuple containing the file name and ovewrite flag to the arguments list
         arguments.append((target, overwrite))
     # Create a Thread pool with the maximum available_cores
-    with Pool(args.available_cores) as p:
+    with Pool(available_cores) as p:
         # Perform the multi process
         for _ in tqdm(p.imap_unordered(__thread_download_dudez, arguments), total = len(arguments), desc = desc):
             # Clear the memory
@@ -395,7 +395,7 @@ def update_DUDEz(overwrite: bool = False, download: bool = True, multiprocess: b
 
     # Check if the target list is empty
     if len(targets) == 0:
-        return errors.file_do_not_exist("The target list is empty. Something went wrong with the download.", "error")
+        return ocerror.Error.file_do_not_exist("The target list is empty. Something went wrong with the download.", ocerror.ReportLevel.ERROR)
 
     # If the download flag is set
     if download:
@@ -439,7 +439,7 @@ def update_DUDEz(overwrite: bool = False, download: bool = True, multiprocess: b
     # Prepare the DUDEz database
     ocdudez.prepare()
 
-    return errors.ok()
+    return ocerror.Error.ok()
 
 def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silentMode: str = "") -> int:
     '''Updates the PDBbind database from the Protein-ligand complexes: The refined set.
@@ -569,10 +569,10 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silentMode: 
 
         elif opt.lower() in ["skip", "pular"]:
             ocprint.printv(f"The user decided to skip this update. Skipping!!!")
-            return errors.ok()
+            return ocerror.Error.ok()
 
         elif opt == "":
-            rcode = errors.abort("User aborted the update.")
+            rcode = ocerror.Error.abort("User aborted the update.")
             quit(rcode)
 
         else:
@@ -585,7 +585,7 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silentMode: 
     # Prepare the PDBbind database
     ocpdbbind.prepare()
 
-    return errors.ok()
+    return ocerror.Error.ok()
 
 def update_databases() -> None:
     '''Calls all the database update functions sequentially.
@@ -610,7 +610,7 @@ def update_databases() -> None:
     print("\n\nDone updating PDBbind!\n")
 
     print("Updating DUDEz database...")
-    _ = update_DUDEz(overwrite = args.overwrite, multiprocess = args.multiprocess)
+    _ = update_DUDEz(overwrite = overwrite, multiprocess = multiprocess)
     print("\n\nDone updating DUDEz!\n")
 
     print("\n\nDone updating ALL databases.\n")

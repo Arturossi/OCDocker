@@ -1,4 +1,4 @@
-#!/usr/lib/python3
+#!/usr/bin/env python3
 
 # Description
 ###############################################################################
@@ -375,12 +375,12 @@ def run_docking(archive: str, dockingAlgorithm: str, digestFormat: str = "json",
     elif archive == "pdbbind":
         chosenArchive = pdbbind_archive
     else:
-        return errors.not_supported_archive(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}.")
+        return ocerror.Error.not_supported_archive(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}.")
 
     # TODO: add support to more docking algorithms
     # Check if the docking algorithm is valid
     if dockingAlgorithm not in ["gnina", "vina", "smina", "plants"]:
-        return errors.not_supported_docking_algorithm(f"Docking software not recognized. Expected ('gnina', 'vina', 'smina', 'plants') and got '{dockingAlgorithm}'.")
+        return ocerror.Error.not_supported_docking_algorithm(f"Docking software not recognized. Expected ('gnina', 'vina', 'smina', 'plants') and got '{dockingAlgorithm}'.")
 
     # Get all dirs paths in the database
     ptnDirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index']]
@@ -630,7 +630,7 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
             # Rename the name column from data dataframe
             #data.rename("Name", "Ligand") # type: ignore
             
-            if args.output_level > 2 or verboseOperations:
+            if ocerror.Error.output_level > ocerror.ReportLevel.WARNING or verboseOperations:
                 with vaex.progress.tree("rich", title="Merging dataframes"): # type: ignore
                     if readMode == "hdf5":
                         # Read the hdf5 from input file
@@ -657,7 +657,7 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
             data = data.drop(["Protein", "Ligand", "Name"]) # type: ignore
             
             # If verbose
-            if args.output_level > 2 or verboseOperations:
+            if ocerror.Error.output_level > ocerror.ReportLevel.WARNING or verboseOperations:
                 with vaex.progress.tree("rich", title="Merging dataframes"): # type: ignore
                     # Merge both DataFrames using the Complex column as a comparer
                     data = ptndf.join(data, on = "Complex", how = "left") # type: ignore
@@ -671,7 +671,7 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
             
             # If saveCsv is True, save the csv
             if saveMode:
-                if args.output_level > 2 or verboseOperations:
+                if ocerror.Error.output_level > ocerror.ReportLevel.WARNING or verboseOperations:
                     with vaex.progress.tree("rich", title="Saving dataframe"): # type: ignore
                         if saveMode == "hdf5":
                             # Write the data to a new hdf5 file

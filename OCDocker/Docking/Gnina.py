@@ -1,4 +1,4 @@
-#!/usr/lib/python3
+#!/usr/bin/env python3
 
 # Description
 ###############################################################################
@@ -90,7 +90,7 @@ class Gnina:
         if type(receptor) == ocr.Receptor:
             self.inputReceptor = receptor
         else:
-            errors.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'ocr.Receptor' but got {type(receptor)} instead.", level="error")
+            ocerror.Error.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR)
             return None
 
         self.inputReceptorPath = self.__parse_receptor_path(receptor)
@@ -103,7 +103,7 @@ class Gnina:
             # Create the gninaFiles folder
             _ = ocff.safe_create_dir(os.path.join(os.path.dirname(ligand.path), "plantsFiles"))
         else:
-            errors.wrong_type(f"The ligand '{ligand}' has not a supported type. Expected 'ocl.Ligand' but got {type(ligand)} instead.", level="error")
+            ocerror.Error.wrong_type(f"The ligand '{ligand}' has not a supported type. Expected 'ocl.Ligand' but got {type(ligand)} instead.", level = ocerror.ReportLevel.ERROR)
             return None
 
         self.inputLigandPath = self.__parse_ligand_path(ligand)
@@ -144,10 +144,10 @@ class Gnina:
                 # Exists! Return it!
                 return receptor # type: ignore
             else:
-                _ = errors.file_do_not_exist(message=f"The receptor '{receptor}' has not a valid path.", level="error")
+                _ = ocerror.Error.file_do_not_exist(message=f"The receptor '{receptor}' has not a valid path.", level = ocerror.ReportLevel.ERROR)
                 return ""
 
-        _ = errors.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'string' or 'ocr.Receptor' but got {type(receptor)} instead.", level = "error")
+        _ = ocerror.Error.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'string' or 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR)
         return ""
 
     def __parse_ligand_path(self, ligand: Union[str, ocl.Ligand]) -> str:
@@ -173,10 +173,10 @@ class Gnina:
                 # Exists! Process it then!
                 return self.__process_ligand(ligand) # type: ignore
             else:
-                _ = errors.file_do_not_exist(message=f"The ligand '{ligand}' has not a valid path.", level="error")
+                _ = ocerror.Error.file_do_not_exist(message=f"The ligand '{ligand}' has not a valid path.", level = ocerror.ReportLevel.ERROR)
                 return ""
 
-        _ = errors.wrong_type(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.", level="error")
+        _ = ocerror.Error.wrong_type(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.", level = ocerror.ReportLevel.ERROR)
         return ""
 
     def __gnina_cmd(self) -> List[str]:
@@ -371,7 +371,7 @@ def gen_gnina_conf(boxFile: str, confFile: str, receptor: str) -> int:
 
     # Test if the file boxFile exists
     if not os.path.exists(boxFile):
-        return errors.file_do_not_exist(message=f"The box file in the path {boxFile} does not exist! Please ensure that the file exists and the path is correct.", level="error")
+        return ocerror.Error.file_do_not_exist(message=f"The box file in the path {boxFile} does not exist! Please ensure that the file exists and the path is correct.", level = ocerror.ReportLevel.ERROR)
     # List to hold all the data
     lines = []
 
@@ -390,7 +390,7 @@ def gen_gnina_conf(boxFile: str, confFile: str, receptor: str) -> int:
                         # Break the loop (optimization)
                         break
     except Exception as e:
-        return errors.read_file(message=f"Found a problem while reading the box file: {e}", level="error")
+        return ocerror.Error.read_file(message=f"Found a problem while reading the box file: {e}", level = ocerror.ReportLevel.ERROR)
 
     ocprint.printv(f"Creating gnina conf file in the path '{confFile}'.")
     try:
@@ -438,9 +438,9 @@ def gen_gnina_conf(boxFile: str, confFile: str, receptor: str) -> int:
             conf_file.write(f"force_cap = {gnina_force_cap}\n")
             
     except Exception as e:
-        return errors.write_file(message=f"Found a problem while opening conf file: {e}.", level="error")
+        return ocerror.Error.write_file(message=f"Found a problem while opening conf file: {e}.", level = ocerror.ReportLevel.ERROR)
 
-    return errors.ok()
+    return ocerror.Error.ok()
 
 def run_prepare_ligand_from_cmd(inputLigandPath: str, preparedLigand: str, logFile: str = "") -> Union[int, Tuple[int, str]]:
     '''Converts the ligand to .pdbqt using obabel. [DEPRECATED]
@@ -508,7 +508,7 @@ def run_prepare_ligand(inputLigandPath: str, preparedLigand: str) -> Union[int, 
         cmd = [pythonsh, prepare_ligand, "-l", inputLigandPath, "-C", "-o", preparedLigand]
         return ocrun.run(cmd, cwd = os.path.dirname(inputLigandPath))
     except Exception as e:
-        return errors.subprocess(message=f"Error while running ligand conversion using obabel python lib. Error: {e}", level="error")
+        return ocerror.Error.subprocess(message=f"Error while running ligand conversion using obabel python lib. Error: {e}", level = ocerror.ReportLevel.ERROR)
 
 def run_prepare_receptor_from_cmd(inputReceptorPath: str, outputReceptor: str, logFile: str = "") -> Union[int, Tuple[int, str]]:
     '''Converts the receptor to .pdbqt using obabel. [DEPRECATED]
@@ -630,7 +630,7 @@ def read_log(path: str) -> Dict[str, List[Union[str, float]]]:
             # Check if file is empty
             if os.stat(path).st_size == 0:
                 # Print the error
-                _ = errors.empty_file(f"The gnina log file '{path}' is empty.", "error")
+                _ = ocerror.Error.empty_file(f"The gnina log file '{path}' is empty.", level = ocerror.ReportLevel.ERROR)
                 # Return the dictionary with invalid default data
                 return {"gnina_pose": [np.NaN], "gnina_affinity": [np.NaN]}
 
@@ -640,7 +640,7 @@ def read_log(path: str) -> Dict[str, List[Union[str, float]]]:
             # Initiate the last read line as empty
             lastReadLine = ""
 
-            # Try except to avoid broken pipe errors
+            # Try except to avoid broken pipe ocerror.Error
             try:
                 # Read the file reversely
                 for line in ocio.lazyread_reverse_order_mmap(path):
@@ -668,12 +668,12 @@ def read_log(path: str) -> Dict[str, List[Union[str, float]]]:
             return data
 
         except Exception as e:
-            _ = errors.read_docking_log_error(f"Problems while reading the gnina log file '{path}'. Error: {e}", "error")
+            _ = ocerror.Error.read_docking_log_error(f"Problems while reading the gnina log file '{path}'. Error: {e}", level = ocerror.ReportLevel.ERROR)
             # Return the dictionary with invalid default data
             return {"gnina_pose": [np.NaN], "gnina_affinity": [np.NaN]}
 
     # Throw an error
-    _ = errors.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
+    _ = ocerror.Error.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
 
     # Return a dict with a NaN value
     return {"gnina_pose": [np.NaN], "gnina_affinity": [np.NaN]}
@@ -719,9 +719,9 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
                             digest = json.load(f)
                             # Check if the digest variable is fine
                             if not isinstance(digest, dict):
-                                return errors.wrong_type(f"The digest file '{digestPath}' is not valid.", "error")
+                                return ocerror.Error.wrong_type(f"The digest file '{digestPath}' is not valid.", level = ocerror.ReportLevel.ERROR)
                     except Exception as e:
-                        return errors.file_do_not_exist(f"Could not read the digest file '{digestPath}'.", "error")
+                        return ocerror.Error.file_do_not_exist(f"Could not read the digest file '{digestPath}'.", level = ocerror.ReportLevel.ERROR)
             else:
                 # Since it does not exists, create it
                 digest = ocff.empty_docking_digest(digestPath, overwrite)
@@ -731,7 +731,7 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
 
             # Check if the digest variable is fine
             if not isinstance(digest, dict):
-                return errors.wrong_type(f"The docking digest file '{digestPath}' is not valid.", "error")
+                return ocerror.Error.wrong_type(f"The docking digest file '{digestPath}' is not valid.", level = ocerror.ReportLevel.ERROR)
             
             # Merge the digest and the docking digest
             digest = { **digest, **dockingDigest } # type: ignore
@@ -745,12 +745,12 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
                         # Dump the data
                         json.dump(digest, f)
                 except Exception as e:
-                    return errors.write_file(f"Could not write the digest file '{digestPath}'.", "error")
+                    return ocerror.Error.write_file(f"Could not write the digest file '{digestPath}'.", level = ocerror.ReportLevel.ERROR)
 
-            return errors.ok()
-        return errors.unsupported_extension(f"The provided extension '{digestFormat}' is not supported.", "error")
+            return ocerror.Error.ok()
+        return ocerror.Error.unsupported_extension(f"The provided extension '{digestFormat}' is not supported.", level = ocerror.ReportLevel.ERROR)
     
-    return errors.file_exists(f"The file '{digestPath}' already exists. If you want to overwrite it yse the overwrite flag.", "warn")
+    return ocerror.Error.file_exists(f"The file '{digestPath}' already exists. If you want to overwrite it yse the overwrite flag.", level = ocerror.ReportLevel.WARNING)
 
 # Aliases
 ###############################################################################

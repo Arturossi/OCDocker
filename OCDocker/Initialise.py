@@ -1,4 +1,4 @@
-#!/usr/lib/python3
+#!/usr/bin/env python3
 
 # Description
 ###############################################################################
@@ -132,6 +132,64 @@ def __inner_initialise_models(oddt_sf: str):
 
     # Return
     return None
+
+def argument_parsing() -> argparse.Namespace:
+    '''Get data to generate vina conf file from box file.
+    
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    argparse.Namespace
+        Namespace object containing the arguments.
+    '''
+    
+    # Create the parser
+    parser = argparse.ArgumentParser(prog="OCDocker",
+                                     formatter_class=argparse.RawDescriptionHelpFormatter,
+                                     description=description)
+    
+    # Add the arguments
+    parser.add_argument("--version",
+                        action="version",
+                        default=False,
+                        version=f"%(prog)s {ocVersion}")
+
+    parser.add_argument("--multiprocess",
+                        dest="multiprocess",
+                        action="store_true",
+                        default=True,
+                        help="Defines whether python multiprocessing should be enabled for compatible lenghty tasks")
+
+    parser.add_argument("-u", "--update-databases",
+                        dest="update",
+                        action="store_true",
+                        default=False,
+                        help="Updates databases")
+
+    parser.add_argument("--conf",
+                        dest="config_file",
+                        type=str,
+                        metavar="",
+                        help="Configuration file containing external executable paths")
+
+    parser.add_argument("--output-level",
+                        dest="output_level",
+                        type=int,
+                        default=1,
+                        metavar="",
+                        help="Define the log level:\n\t0: Silent\n\t1: Critical\n\t2: Warning (default)\n\t3: Info\n\t4: Verbose mode\n\t5: Debug")
+    
+    parser.add_argument("--overwrite",
+                        dest="overwrite",
+                        action="store_true",
+                        default=False,
+                        help="Defines if OCDocker should overwrite existing files")
+
+    # Return the parser
+    return parser.parse_args()
 
 def create_ocdocker_conf() -> None:
     '''Creates the 'ocdocker.conf' file.
@@ -801,6 +859,37 @@ def initialise_oddt_models(oddt_models_dir: str, oddt_scoring_functions_aux: lis
     # Return
     return None
 
+def set_argparse() -> None:
+    '''Parse the arguments and set them to the global variables.
+    '''
+
+    # Call the argument parser
+    args = argument_parsing()
+
+    global multiprocess
+    global update
+    global config_file
+    global output_level
+    global overwrite
+
+    # Set the global variables
+    multiprocess = args.multiprocess
+    update = args.update
+    config_file = args.config
+    output_level = ocerror.ReportLevel(args.output_level)
+    overwrite = args.overwrite
+
+def set_log_level(level: ocerror.ReportLevel) -> None:
+    '''Set the log level.
+
+    Parameters
+    ----------
+    level : ocerror.ReportLevel
+        The level of the log.
+    '''
+
+    ocerror.Error.set_output_level(ocerror.ReportLevel.WARNING)
+
 # Define Global Variables
 ###############################################################################
 # General variables
@@ -808,10 +897,17 @@ global args
 global clrs
 global widgets
 global workdir
-global errors
+
 global logdir
 global tmpdir
 global oddt_models_dir
+global cpu_cores
+global available_cores
+global multiprocess
+global update
+global config_file
+global output_level
+global overwrite
 
 # Order variable
 global order
@@ -924,7 +1020,7 @@ clrs = {
     "b": "\033[1;94m",  # blue
     "p": "\033[1;95m",  # purple
     "c": "\033[1;96m",  # cyan
-    "n": "\033[1;0m"   # default
+    "n": "\033[1;0m"    # default
     }
 
 # This structure is to define which will be used order, the first index will be the default magnitude and the other is element magnitude [Y, Z, E, P, T, G, M, k, un, c, m, u, n, p, f, a, z, y]
@@ -987,77 +1083,20 @@ order = {
 
 # Parse command line arguments
 ###############################################################################
-def argument_parsing(noArgs: bool = False) -> argparse.Namespace:
-    '''Get data to generate vina conf file from box file.
-    
-    Parameters
-    ----------
-    None
 
-    Returns
-    -------
-    argparse.Namespace
-        Namespace object containing the arguments.
-    '''
-    
-    # Create the parser
-    parser = argparse.ArgumentParser(prog="OCDocker",
-                                     formatter_class=argparse.RawDescriptionHelpFormatter,
-                                     description=description)
-    
-    # Add the arguments
-    parser.add_argument("--version",
-                        action="version",
-                        default=False,
-                        version=f"%(prog)s {ocVersion}")
-
-    parser.add_argument("--multiprocess",
-                        dest="multiprocess",
-                        action="store_true",
-                        default=True,
-                        help="Defines whether python multiprocessing should be enabled for compatible lenghty tasks")
-
-    parser.add_argument("-u", "--update-databases",
-                        dest="update",
-                        action="store_true",
-                        default=False,
-                        help="Updates databases")
-
-    parser.add_argument("--conf",
-                        dest="config_file",
-                        type=str,
-                        metavar="",
-                        help="Configuration file containing external executable paths")
-
-    parser.add_argument("--output-level",
-                        dest="output_level",
-                        type=int,
-                        default=1,
-                        metavar="",
-                        help="Define the log level:\n\t0: Critical\n\t1: Warning (default)\n\t2: Info\n\t3: Verbose mode\n\t4: Debug")
-    # If noArgs is True, do not parse the arguments
-    if noArgs:
-        return parser.parse_args([])
-
-    # Return the parser
-    return parser.parse_args()
-
-# If there is noArgs in sys.argv do not load it
-if "--noArgs" in sys.argv:
-    args = argument_parsing(noArgs = True)
-else:
-    # Set the args variable as the args from the argument_parsing function
-    args = argument_parsing(noArgs = False)
-
-# Create error class object (making all errors standard)
-errors = ocerror.Error(args)
+#args = argument_parsing()
+multiprocess = True
+update = False
+config_file = os.getenv('OCDOCKER_CONFIG', 'OCDocker.cfg')
+output_level = ocerror.ReportLevel.INFO
+overwrite = False
 
 # Initialise
 ###############################################################################
 print(description)
 
 # Retrieve the paths from provided configuration file
-if (not args.config_file or not os.path.isfile(args.config_file)) and not os.path.isfile("OCDocker.cfg"):
+if (not config_file or not os.path.isfile(config_file)) and not os.path.isfile("OCDocker.cfg"):
     print("OCDocker configuration file has not been found in the provided path")
     create_config = input("Do you wish to create it? (y/n) ")
     if create_config.lower() in ["y", "ye", "yes"]:
@@ -1067,12 +1106,12 @@ if (not args.config_file or not os.path.isfile(args.config_file)) and not os.pat
         print("\n\nNo positive confirmation, please provide a valid configuration file.\n")
         quit()
 
-elif not args.config_file and os.path.isfile("OCDocker.cfg"):
+elif not config_file and os.path.isfile("OCDocker.cfg"):
     config_file = "OCDocker.cfg"
 
-elif args.config_file:
-    assert os.path.isfile(args.config_file), f"{clrs['r']}\n\n Not able to find configuration file.\n\n Does \"{args.config_file}\" exist?{clrs['n']}"
-    config_file = args.config_file
+elif config_file:
+    assert os.path.isfile(config_file), f"{clrs['r']}\n\n Not able to find configuration file.\n\n Does \"{config_file}\" exist?{clrs['n']}"
+    config_file = config_file
 
 # Set the ocdb path as an empty string
 ocdb_path = ""
@@ -1235,7 +1274,7 @@ ocdocker_path = os.path.dirname(os.path.abspath( __file__ ))
 
 # Check if the ocdb_path is defined in the config file (empty string means not defined)
 if not ocdb_path:
-    print(f"{clrs['r']}ERROR{clrs['n']}: The variable ocdb_path is not set in the config file '{args.config_file}'")
+    print(f"{clrs['r']}ERROR{clrs['n']}: The variable ocdb_path is not set in the config file '{config_file}'")
     quit()
 
 # Directory containing the dudez archive
@@ -1273,17 +1312,20 @@ if os.path.isdir(tmpDir):
 os.mkdir(tmpDir)
 
 # Get number of CPUs (minus one) with a minimum of one
-if args.multiprocess:
+if multiprocess:
     n_cpu = multiprocessing.cpu_count() - 1
-    args.available_cores = n_cpu if n_cpu > 1 else 1
+    available_cores = n_cpu if n_cpu > 1 else 1
 else:
-    args.available_cores = 1
+    available_cores = 1
 
 # Limit the output_level between acceptable values [0-4]
-if args.output_level > 4:
-    args.output_level = 4
-elif args.output_level < 0:
-    args.output_level = 0
+if output_level > ocerror.ReportLevel.DEBUG:
+    output_level = ocerror.ReportLevel.DEBUG
+elif output_level < ocerror.ReportLevel.NONE:
+    output_level = ocerror.ReportLevel.NONE
+
+# Create error class object (making all errors standard)
+ocerror.Error.set_output_level(output_level)
 
 # Create the ODDT models
 initialise_oddt_models(oddt_models_dir, oddt_scoring_functions) # type: ignore

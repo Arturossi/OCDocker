@@ -1,0 +1,1 @@
+/mnt/e/Documents/OCDocker/OCDocker/test_files/test_ptn1/compounds/ligands/ligand/plantsFiles/run/prepared_ligand_entry_00001_conf_01_prepared.mol2
