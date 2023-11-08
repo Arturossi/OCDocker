@@ -241,8 +241,19 @@ class Error(metaclass = ErrorMeta):
     # Class attributes
     output_level = ReportLevel.INFO
 
+    color = {
+        ReportLevel.INFO: "\033[1;96m",
+        ReportLevel.SUCCESS: "\033[1;92m",
+        ReportLevel.WARNING: "\033[1;93m",
+        ReportLevel.ERROR: "\033[1;91m",
+        ReportLevel.DEBUG: "\033[1;95m",
+    }
+
     @classmethod
     def _add_error_methods(cls):
+        ''' Add error methods to the Error class.
+        '''
+        
         # Iterate through the ErrorCode enumeration
         for code in ErrorCode:
             # Get the description and default level of the error code from ErrorMessages
@@ -292,8 +303,31 @@ class Error(metaclass = ErrorMeta):
         return cls.output_level
 
     @staticmethod
-    def get_time():
-        return datetime.datetime.now().strftime('%d-%m-%Y|%H:%M:%S')
+    def get_time(level: ReportLevel = ReportLevel.NONE) -> str:
+        ''' Get the current time.
+
+        Parameters
+        ----------
+        level : ReportLevel, optional
+            The level of the message to be printed, options are:
+                - ReportLevel.DEBUG
+                - ReportLevel.SUCCESS
+                - ReportLevel.INFO
+                - ReportLevel.WARNING
+                - ReportLevel.ERROR
+                - ReportLevel.NONE
+
+        Returns
+        -------
+        string
+            The current time in the format 'dd-mm-YYYY|HH:MM:SS'.
+        '''
+
+        # Get the current time
+        today = datetime.datetime.now()
+
+        # Return the current time
+        return f"\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m"
 
     ## Private ##
 
@@ -315,16 +349,16 @@ class Error(metaclass = ErrorMeta):
                 - ReportLevel.ERROR
         '''
 
-        color = {
-            ReportLevel.INFO: '1;96',
-            ReportLevel.SUCCESS: '1;92',
-            ReportLevel.WARNING: '1;93',
-            ReportLevel.ERROR: '1;91',
-            ReportLevel.DEBUG: '1;95',
-        }.get(level, '1;0')
+        # If there is no message, return
+        if not message:
+            return None
 
-        time_str = Error.get_time()
-        base_message = f"[{time_str}] {level.name}: {message}"
+        # Get the color for the level
+        setcolor = Error.color.get(level, '\033[1;0m')
+
+        # Get the current time
+        time_str = Error.get_time(level)
+        base_message = f"[{time_str}] {setcolor}{level.name}\033[1;0m: {message}"
 
         if Error.output_level >= ReportLevel.DEBUG:
             current_frame = inspect.currentframe()
@@ -332,9 +366,11 @@ class Error(metaclass = ErrorMeta):
             detailed_message = (f"In function '{caller_frame.f_code.co_name}' " # type: ignore
                                 f"line {caller_frame.f_lineno} " # type: ignore
                                 f"from file '{caller_frame.f_code.co_filename}'.") # type: ignore
-            print(f"\033[{color}m{base_message} {detailed_message}\033[1;0m")
+            print(f"{base_message} {detailed_message}")
         else:
-            print(f"\033[{color}m{base_message}\033[1;0m")
+            print(f"{base_message}")
+        
+        return None
 
     @staticmethod
     def report(code: ErrorCode, message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
