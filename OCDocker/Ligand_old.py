@@ -33,7 +33,7 @@ from rdkit.Chem import Descriptors3D
 from rdkit.Chem.SaltRemover import SaltRemover
 from rdkit.Chem.rdMolTransforms import ComputeCentroid
 from threading import Lock
-from typing import Any, Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 from OCDocker.Initialise import *
 
@@ -70,38 +70,6 @@ class Ligand:
     (pdb/sdf/mol/mol2) or a rdkit.Chem.rdchem.Mol object. A name to indentify
     the molecule can be provided aswell."""
 
-    # Declare the descriptors names as class attributes
-    descriptors_names = {
-        'AUTOCORR2D_': range(1, 193),
-        'BCUT2D_': ["CHGHI", "CHGLO", "LOGPHI", "LOGPLOW", "MRHI", "MRLOW", "MWHI", "MWLOW"],
-        'fr_': ["Al_COO", "Al_OH", "Al_OH_noTert", "ArN", "Ar_COO", "Ar_N", "Ar_NH", "Ar_OH", "COO", "COO2", "C_O", "C_O_noCOO", "C_S", "HOCCN", "Imine", "NH0", "NH1", "NH2", "N_O", "Ndealkylation1", "Ndealkylation2", "Nhpyrrole", "SH", "aldehyde", "alkyl_carbamate", "alkyl_halide", "allylic_oxid", "amide", "amidine", "aniline", "aryl_methyl", "azide", "azo", "barbitur", "benzene", "benzodiazepine", "bicyclic", "diazo", "dihydropyridine", "epoxide", "ester", "ether", "furan", "guanido", "halogen", "hdrzine", "hdrzone", "imidazole", "imide", "isocyan", "isothiocyan", "ketone", "ketone_Topliss", "lactam", "lactone", "methoxy", "morpholine", "nitrile", "nitro", "nitro_arom", "nitro_arom_nonortho", "nitroso", "oxazole", "oxime", "para_hydroxylation", "phenol", "phenol_noOrthoHbond", "phos_acid", "phos_ester", "piperdine", "piperzine", "priamide", "prisulfonamd", "pyridine", "quatN", "sulfide", "sulfonamd", "sulfone", "term_acetylene", "tetrazole", "thiazole", "thiocyan", "thiophene", "unbrch_alkane", "urea"],
-        'AUTOCORR3D_': range(1, 81),
-        'Chi': [str(j) + i if j < 2 else f"{j}{i}" for j in range(5) for i in ('', 'v', 'n') if not (j >= 2 and i == '')],
-        'EState_VSA': range(1, 12),
-        'FpDensityMorgan': range(1, 4),
-        'Kappa': range(1, 4),
-        'Mol': ["LogP", "MR", "Wt"],
-        'Num': ["AliphaticCarbocycles", "AliphaticHeterocycles", "AliphaticRings", "AromaticCarbocycles", "AromaticHeterocycles", "AromaticRings", "HAcceptors", "HDonors", "Heteroatoms", "RadicalElectrons", "RotatableBonds", "SaturatedCarbocycles", "SaturatedHeterocycles", "SaturatedRings", "ValenceElectrons"],
-        'NPR': range(1, 3),
-        'PMI': range(1, 4),
-        'PEOE_VSA': range(1, 15),
-        'SMR_VSA': range(1, 11),
-        'SlogP_VSA': range(1, 13),
-        'VSA_EState': range(1, 11),
-    }
-
-    # Declare the single descriptors names as class attributes
-    single_descriptors = [
-        'BalabanJ', 'BertzCT', 'ExactMolWt', 'FractionCSP3', 'HallKierAlpha', 'HeavyAtomMolWt', 
-        'HeavyAtomCount', 'Ipc', 'LabuteASA', 'TPSA', 'MaxAbsEStateIndex', 'MaxEStateIndex', 
-        'MinAbsEStateIndex', 'MinEStateIndex', 'MaxAbsPartialCharge', 'MaxPartialCharge', 
-        'MinAbsPartialCharge', 'MinPartialCharge', 'qed', 'RingCount', 'Asphericity', 'Eccentricity',
-        'InertialShapeFactor', 'RadiusOfGyration', 'SpherocityIndex', 'NHOHCount', 'NOCount'
-    ]
-
-    # Create all the descriptors to be class attributes
-    allDescriptors = [f'{desc_prefix}{i}' for desc_prefix, desc_indices in descriptors_names.items() for i in desc_indices] + single_descriptors
-
     def __init__(self, molecule: Union[str, rdkit.Chem.rdchem.Mol], name: str, sanitize: bool = True, from_json_descriptors: str = "") -> Union[int, None]: # type: ignore
         ''' Constructor for the Ligand class.
         
@@ -133,25 +101,128 @@ class Ligand:
         else:
             return ocerror.Error.invalid_molecule_name("The name of the ligand cannot contain the string '_split_'")
 
-        # All attribute initializations
-        for desc in Ligand.allDescriptors:
-            setattr(self, desc, None)
+        #region AUTOCORR descriptors 1 to 192
+        for i in range(1, 193):
+            setattr(self, f'AUTOCORR2D_{i}', None)
+        #endregion
+
+        #region BCUT2D descriptors
+        for i in ["CHGHI", "CHGLO", "LOGPHI", "LOGPLOW", "MRHI", "MRLOW", "MWHI", "MWLOW"]:
+            setattr(self, f'BCUT2D_{i}', None)
+        #endregion
+
+        self.BalabanJ = None
+        self.BertzCT = None
+
+        #region Chi descriptors 0 to 4
+        for i in range(0, 5):
+            setattr(self, f'Chi{i}', None)
+            setattr(self, f'Chi{i}n', None)
+            setattr(self, f'Chi{i}v', None)
+        #endregion
+
+        #region EState descriptors 1 to 11 + others
+        for i in range(1, 12):
+            setattr(self, f'EState_VSA{i}', None)
+
+        self.MaxAbsEStateIndex = None
+        self.MaxEStateIndex = None
+        self.MinAbsEStateIndex = None
+        self.MinEStateIndex = None
+        #endregion
+
+        self.ExactMolWt = None
+
+        #region FpDensityMorgan descriptors 1 to 3
+        for i in range(1, 4):
+            setattr(self, f'FpDensityMorgan{i}', None)
+        #endregion
+        
+        #region fr_ descriptors
+        for i in ["Al_COO", "Al_OH", "Al_OH_noTert", "ArN", "Ar_COO", "Ar_N", "Ar_NH", "Ar_OH", "COO", "COO2", "C_O", "C_O_noCOO", "C_S", "HOCCN", "Imine", "NH0", "NH1", "NH2", "N_O", "Ndealkylation1", "Ndealkylation2", "Nhpyrrole", "SH", "aldehyde", "alkyl_carbamate", "alkyl_halide", "allylic_oxid", "amide", "amidine", "aniline", "aryl_methyl", "azide", "azo", "barbitur", "benzene", "benzodiazepine", "bicyclic", "diazo", "dihydropyridine", "epoxide", "ester", "ether", "furan", "guanido", "halogen", "hdrzine", "hdrzone", "imidazole", "imide", "isocyan", "isothiocyan", "ketone", "ketone_Topliss", "lactam", "lactone", "methoxy", "morpholine", "nitrile", "nitro", "nitro_arom", "nitro_arom_nonortho", "nitroso", "oxazole", "oxime", "para_hydroxylation", "phenol", "phenol_noOrthoHbond", "phos_acid", "phos_ester", "piperdine", "piperzine", "priamide", "prisulfonamd", "pyridine", "quatN", "sulfide", "sulfonamd", "sulfone", "term_acetylene", "tetrazole", "thiazole", "thiocyan", "thiophene", "unbrch_alkane", "urea"]:
+            setattr(self, f'fr_{i}', None)
+        #endregion
+
+        self.FractionCSP3 = None
+        self.HallKierAlpha = None
+        self.HeavyAtomMolWt = None
+        self.HeavyAtomCount = None
+        self.Ipc = None
+
+        #region Kappa descriptors 1 to 3
+        for i in range(1, 4):
+            setattr(self, f'Kappa{i}', None)
+        #endregion
+
+        self.LabuteASA = None
+        self.MaxAbsPartialCharge = None
+        self.MaxPartialCharge = None
+        self.MinAbsPartialCharge = None
+        self.MinPartialCharge = None
+        self.MolLogP = None
+        self.MolMR = None
+        self.MolWt = None
+        self.NHOHCount = None
+        self.NOCount = None
+
+        #region 'count' descriptors
+        for i in ["AliphaticCarbocycles", "AliphaticHeterocycles", "AliphaticRings", "AromaticCarbocycles", "AromaticHeterocycles", "AromaticRings", "HAcceptors", "HDonors", "Heteroatoms", "RadicalElectrons", "RotatableBonds", "SaturatedCarbocycles", "SaturatedHeterocycles", "SaturatedRings", "ValenceElectrons"]:
+            setattr(self, f'Num{i}', None)
+        #endregion
+
+        #region PEOE_VSA descriptors 1 to 14
+        for i in range(1, 15):
+            setattr(self, f'PEOE_VSA{i}', None)
+        #endregion
+
+        self.qed = None
+        self.RingCount = None
+
+        #region SMR_VSA descriptors
+        for i in range(1, 11):
+            setattr(self, f'SMR_VSA{i}', None)
+        #endregion
+
+        #region SlogP_VSA descriptors
+        for i in range(1, 13):
+            setattr(self, f'SlogP_VSA{i}', None)
+        #endregion
+
+        self.TPSA = None
+
+        #region VSA_EState descriptors
+        for i in range(1, 11):
+            setattr(self, f'VSA_EState{i}', None)
+        #endregion
+
+        #region 3D descriptors 1 to 80
+        for i in range(1, 81):
+            setattr(self, f'AUTOCORR3D_{i}', None)
+
+        self.Asphericity = None
+        self.Eccentricity = None
+        self.InertialShapeFactor = None
+        self.NPR1 = None
+        self.NPR2 = None
+        self.PMI1 = None
+        self.PMI2 = None
+        self.PMI3 = None
+        self.RadiusOfGyration = None
+        self.SpherocityIndex = None
+
+        #endregion
 
         # If user pass a json
         if from_json_descriptors:
             # Read the descriptors from it
-            data = read_descriptors_from_json(from_json_descriptors, return_data = True)
+            data = read_descriptors_from_json(from_json_descriptors)
             # If data is None, a problem occurred while reading the json file
             if not data:
                 ocprint.print_error(f"Problems while parsing json file: '{from_json_descriptors}'")
                 return None
             
             #region assign
-            self.name = data["Name"] # type: ignore
-
-            # All attribute initializations
-            for desc in Ligand.allDescriptors:
-                setattr(self, desc, f'{data[desc]}') # type: ignore
+            self.name, self.AUTOCORR2D_1, self.AUTOCORR2D_2, self.AUTOCORR2D_3, self.AUTOCORR2D_4, self.AUTOCORR2D_5, self.AUTOCORR2D_6, self.AUTOCORR2D_7, self.AUTOCORR2D_8, self.AUTOCORR2D_9, self.AUTOCORR2D_10, self.AUTOCORR2D_11, self.AUTOCORR2D_12, self.AUTOCORR2D_13, self.AUTOCORR2D_14, self.AUTOCORR2D_15, self.AUTOCORR2D_16, self.AUTOCORR2D_17, self.AUTOCORR2D_18, self.AUTOCORR2D_19, self.AUTOCORR2D_20, self.AUTOCORR2D_21, self.AUTOCORR2D_22, self.AUTOCORR2D_23, self.AUTOCORR2D_24, self.AUTOCORR2D_25, self.AUTOCORR2D_26, self.AUTOCORR2D_27, self.AUTOCORR2D_28, self.AUTOCORR2D_29, self.AUTOCORR2D_30, self.AUTOCORR2D_31, self.AUTOCORR2D_32, self.AUTOCORR2D_33, self.AUTOCORR2D_34, self.AUTOCORR2D_35, self.AUTOCORR2D_36, self.AUTOCORR2D_37, self.AUTOCORR2D_38, self.AUTOCORR2D_39, self.AUTOCORR2D_40, self.AUTOCORR2D_41, self.AUTOCORR2D_42, self.AUTOCORR2D_43, self.AUTOCORR2D_44, self.AUTOCORR2D_45, self.AUTOCORR2D_46, self.AUTOCORR2D_47, self.AUTOCORR2D_48, self.AUTOCORR2D_49, self.AUTOCORR2D_50, self.AUTOCORR2D_51, self.AUTOCORR2D_52, self.AUTOCORR2D_53, self.AUTOCORR2D_54, self.AUTOCORR2D_55, self.AUTOCORR2D_56, self.AUTOCORR2D_57, self.AUTOCORR2D_58, self.AUTOCORR2D_59, self.AUTOCORR2D_60, self.AUTOCORR2D_61, self.AUTOCORR2D_62, self.AUTOCORR2D_63, self.AUTOCORR2D_64, self.AUTOCORR2D_65, self.AUTOCORR2D_66, self.AUTOCORR2D_67, self.AUTOCORR2D_68, self.AUTOCORR2D_69, self.AUTOCORR2D_70, self.AUTOCORR2D_71, self.AUTOCORR2D_72, self.AUTOCORR2D_73, self.AUTOCORR2D_74, self.AUTOCORR2D_75, self.AUTOCORR2D_76, self.AUTOCORR2D_77, self.AUTOCORR2D_78, self.AUTOCORR2D_79, self.AUTOCORR2D_80, self.AUTOCORR2D_81, self.AUTOCORR2D_82, self.AUTOCORR2D_83, self.AUTOCORR2D_84, self.AUTOCORR2D_85, self.AUTOCORR2D_86, self.AUTOCORR2D_87, self.AUTOCORR2D_88, self.AUTOCORR2D_89, self.AUTOCORR2D_90, self.AUTOCORR2D_91, self.AUTOCORR2D_92, self.AUTOCORR2D_93, self.AUTOCORR2D_94, self.AUTOCORR2D_95, self.AUTOCORR2D_96, self.AUTOCORR2D_97, self.AUTOCORR2D_98, self.AUTOCORR2D_99, self.AUTOCORR2D_100, self.AUTOCORR2D_101, self.AUTOCORR2D_102, self.AUTOCORR2D_103, self.AUTOCORR2D_104, self.AUTOCORR2D_105, self.AUTOCORR2D_106, self.AUTOCORR2D_107, self.AUTOCORR2D_108, self.AUTOCORR2D_109, self.AUTOCORR2D_110, self.AUTOCORR2D_111, self.AUTOCORR2D_112, self.AUTOCORR2D_113, self.AUTOCORR2D_114, self.AUTOCORR2D_115, self.AUTOCORR2D_116, self.AUTOCORR2D_117, self.AUTOCORR2D_118, self.AUTOCORR2D_119, self.AUTOCORR2D_120, self.AUTOCORR2D_121, self.AUTOCORR2D_122, self.AUTOCORR2D_123, self.AUTOCORR2D_124, self.AUTOCORR2D_125, self.AUTOCORR2D_126, self.AUTOCORR2D_127, self.AUTOCORR2D_128, self.AUTOCORR2D_129, self.AUTOCORR2D_130, self.AUTOCORR2D_131, self.AUTOCORR2D_132, self.AUTOCORR2D_133, self.AUTOCORR2D_134, self.AUTOCORR2D_135, self.AUTOCORR2D_136, self.AUTOCORR2D_137, self.AUTOCORR2D_138, self.AUTOCORR2D_139, self.AUTOCORR2D_140, self.AUTOCORR2D_141, self.AUTOCORR2D_142, self.AUTOCORR2D_143, self.AUTOCORR2D_144, self.AUTOCORR2D_145, self.AUTOCORR2D_146, self.AUTOCORR2D_147, self.AUTOCORR2D_148, self.AUTOCORR2D_149, self.AUTOCORR2D_150, self.AUTOCORR2D_151, self.AUTOCORR2D_152, self.AUTOCORR2D_153, self.AUTOCORR2D_154, self.AUTOCORR2D_155, self.AUTOCORR2D_156, self.AUTOCORR2D_157, self.AUTOCORR2D_158, self.AUTOCORR2D_159, self.AUTOCORR2D_160, self.AUTOCORR2D_161, self.AUTOCORR2D_162, self.AUTOCORR2D_163, self.AUTOCORR2D_164, self.AUTOCORR2D_165, self.AUTOCORR2D_166, self.AUTOCORR2D_167, self.AUTOCORR2D_168, self.AUTOCORR2D_169, self.AUTOCORR2D_170, self.AUTOCORR2D_171, self.AUTOCORR2D_172, self.AUTOCORR2D_173, self.AUTOCORR2D_174, self.AUTOCORR2D_175, self.AUTOCORR2D_176, self.AUTOCORR2D_177, self.AUTOCORR2D_178, self.AUTOCORR2D_179, self.AUTOCORR2D_180, self.AUTOCORR2D_181, self.AUTOCORR2D_182, self.AUTOCORR2D_183, self.AUTOCORR2D_184, self.AUTOCORR2D_185, self.AUTOCORR2D_186, self.AUTOCORR2D_187, self.AUTOCORR2D_188, self.AUTOCORR2D_189, self.AUTOCORR2D_190, self.AUTOCORR2D_191, self.AUTOCORR2D_192, self.BCUT2D_CHGHI, self.BCUT2D_CHGLO, self.BCUT2D_LOGPHI, self.BCUT2D_LOGPLOW, self.BCUT2D_MRHI, self.BCUT2D_MRLOW, self.BCUT2D_MWHI, self.BCUT2D_MWLOW, self.BalabanJ, self.BertzCT, self.Chi0, self.Chi0n, self.Chi0v, self.Chi1, self.Chi1n, self.Chi1v, self.Chi2n, self.Chi2v, self.Chi3n, self.Chi3v, self.Chi4n, self.Chi4v, self.EState_VSA1, self.EState_VSA2, self.EState_VSA3, self.EState_VSA4, self.EState_VSA5, self.EState_VSA6, self.EState_VSA7, self.EState_VSA8, self.EState_VSA9, self.EState_VSA10, self.EState_VSA11, self.MaxAbsEStateIndex, self.MaxEStateIndex, self.MinAbsEStateIndex, self.MinEStateIndex, self.ExactMolWt, self.FpDensityMorgan1, self.FpDensityMorgan2, self.FpDensityMorgan3, self.fr_Al_COO, self.fr_Al_OH, self.fr_Al_OH_noTert, self.fr_ArN, self.fr_Ar_COO, self.fr_Ar_N, self.fr_Ar_NH, self.fr_Ar_OH, self.fr_COO, self.fr_COO2, self.fr_C_O, self.fr_C_O_noCOO, self.fr_C_S, self.fr_HOCCN, self.fr_Imine, self.fr_NH0, self.fr_NH1, self.fr_NH2, self.fr_N_O, self.fr_Ndealkylation1, self.fr_Ndealkylation2, self.fr_Nhpyrrole, self.fr_SH, self.fr_aldehyde, self.fr_alkyl_carbamate, self.fr_alkyl_halide, self.fr_allylic_oxid, self.fr_amide, self.fr_amidine, self.fr_aniline, self.fr_aryl_methyl, self.fr_azide, self.fr_azo, self.fr_barbitur, self.fr_benzene, self.fr_benzodiazepine, self.fr_bicyclic, self.fr_diazo, self.fr_dihydropyridine, self.fr_epoxide, self.fr_ester, self.fr_ether, self.fr_furan, self.fr_guanido, self.fr_halogen, self.fr_hdrzine, self.fr_hdrzone, self.fr_imidazole, self.fr_imide, self.fr_isocyan, self.fr_isothiocyan, self.fr_ketone, self.fr_ketone_Topliss, self.fr_lactam, self.fr_lactone, self.fr_methoxy, self.fr_morpholine, self.fr_nitrile, self.fr_nitro, self.fr_nitro_arom, self.fr_nitro_arom_nonortho, self.fr_nitroso, self.fr_oxazole, self.fr_oxime, self.fr_para_hydroxylation, self.fr_phenol, self.fr_phenol_noOrthoHbond, self.fr_phos_acid, self.fr_phos_ester, self.fr_piperdine, self.fr_piperzine, self.fr_priamide, self.fr_prisulfonamd, self.fr_pyridine, self.fr_quatN, self.fr_sulfide, self.fr_sulfonamd, self.fr_sulfone, self.fr_term_acetylene, self.fr_tetrazole, self.fr_thiazole, self.fr_thiocyan, self.fr_thiophene, self.fr_unbrch_alkane, self.fr_urea, self.FractionCSP3, self.HallKierAlpha, self.HeavyAtomMolWt, self.HeavyAtomCount, self.Ipc, self.Kappa1, self.Kappa2, self.Kappa3, self.LabuteASA, self.MaxAbsPartialCharge, self.MaxPartialCharge, self.MinAbsPartialCharge, self.MinPartialCharge, self.MolLogP, self.MolMR, self.MolWt, self.NHOHCount, self.NOCount, self.NumAliphaticCarbocycles, self.NumAliphaticHeterocycles, self.NumAliphaticRings, self.NumAromaticCarbocycles, self.NumAromaticHeterocycles, self.NumAromaticRings, self.NumHAcceptors, self.NumHDonors, self.NumHeteroatoms, self.NumRadicalElectrons, self.NumRotatableBonds, self.NumSaturatedCarbocycles, self.NumSaturatedHeterocycles, self.NumSaturatedRings, self.NumValenceElectrons, self.PEOE_VSA1, self.PEOE_VSA2, self.PEOE_VSA3, self.PEOE_VSA4, self.PEOE_VSA5, self.PEOE_VSA6, self.PEOE_VSA7, self.PEOE_VSA8, self.PEOE_VSA9, self.PEOE_VSA10, self.PEOE_VSA11, self.PEOE_VSA12, self.PEOE_VSA13, self.PEOE_VSA14, self.qed, self.RingCount, self.SMR_VSA1, self.SMR_VSA2, self.SMR_VSA3, self.SMR_VSA4, self.SMR_VSA5, self.SMR_VSA6, self.SMR_VSA7, self.SMR_VSA8, self.SMR_VSA9, self.SMR_VSA10, self.SlogP_VSA1, self.SlogP_VSA2, self.SlogP_VSA3, self.SlogP_VSA4, self.SlogP_VSA5, self.SlogP_VSA6, self.SlogP_VSA7, self.SlogP_VSA8, self.SlogP_VSA9, self.SlogP_VSA10, self.SlogP_VSA11, self.SlogP_VSA12, self.TPSA, self.VSA_EState1, self.VSA_EState2, self.VSA_EState3, self.VSA_EState4, self.VSA_EState5, self.VSA_EState6, self.VSA_EState7, self.VSA_EState8, self.VSA_EState9, self.VSA_EState10, self.AUTOCORR3D_1, self.AUTOCORR3D_2, self.AUTOCORR3D_3, self.AUTOCORR3D_4, self.AUTOCORR3D_5, self.AUTOCORR3D_6, self.AUTOCORR3D_7, self.AUTOCORR3D_8, self.AUTOCORR3D_9, self.AUTOCORR3D_10, self.AUTOCORR3D_11, self.AUTOCORR3D_12, self.AUTOCORR3D_13, self.AUTOCORR3D_14, self.AUTOCORR3D_15, self.AUTOCORR3D_16, self.AUTOCORR3D_17, self.AUTOCORR3D_18, self.AUTOCORR3D_19, self.AUTOCORR3D_20, self.AUTOCORR3D_21, self.AUTOCORR3D_22, self.AUTOCORR3D_23, self.AUTOCORR3D_24, self.AUTOCORR3D_25, self.AUTOCORR3D_26, self.AUTOCORR3D_27, self.AUTOCORR3D_28, self.AUTOCORR3D_29, self.AUTOCORR3D_30, self.AUTOCORR3D_31, self.AUTOCORR3D_32, self.AUTOCORR3D_33, self.AUTOCORR3D_34, self.AUTOCORR3D_35, self.AUTOCORR3D_36, self.AUTOCORR3D_37, self.AUTOCORR3D_38, self.AUTOCORR3D_39, self.AUTOCORR3D_40, self.AUTOCORR3D_41, self.AUTOCORR3D_42, self.AUTOCORR3D_43, self.AUTOCORR3D_44, self.AUTOCORR3D_45, self.AUTOCORR3D_46, self.AUTOCORR3D_47, self.AUTOCORR3D_48, self.AUTOCORR3D_49, self.AUTOCORR3D_50, self.AUTOCORR3D_51, self.AUTOCORR3D_52, self.AUTOCORR3D_53, self.AUTOCORR3D_54, self.AUTOCORR3D_55, self.AUTOCORR3D_56, self.AUTOCORR3D_57, self.AUTOCORR3D_58, self.AUTOCORR3D_59, self.AUTOCORR3D_60, self.AUTOCORR3D_61, self.AUTOCORR3D_62, self.AUTOCORR3D_63, self.AUTOCORR3D_64, self.AUTOCORR3D_65, self.AUTOCORR3D_66, self.AUTOCORR3D_67, self.AUTOCORR3D_68, self.AUTOCORR3D_69, self.AUTOCORR3D_70, self.AUTOCORR3D_71, self.AUTOCORR3D_72, self.AUTOCORR3D_73, self.AUTOCORR3D_74, self.AUTOCORR3D_75, self.AUTOCORR3D_76, self.AUTOCORR3D_77, self.AUTOCORR3D_78, self.AUTOCORR3D_79, self.AUTOCORR3D_80, self.Asphericity, self.Eccentricity, self.InertialShapeFactor, self.NPR1, self.NPR2, self.PMI1, self.PMI2, self.PMI3, self.RadiusOfGyration, self.SpherocityIndex = data # type: ignore
             #endregion
 
         else:
@@ -161,21 +232,462 @@ class Ligand:
                 return None
             self.name = name.replace(" ", "_")
 
-            # Single attribute initializations
-            for desc in Ligand.allDescriptors:
-                # Check if the descriptor is AUTOCORR3D
-                if not desc.startswith("AUTOCORR3D_"):
-                    result = globals()[f'find{desc}'](self.molecule)
-                    setattr(self, f'{desc}', result)
+            #region AUTOCORR descriptors
+            self.AUTOCORR2D_1 = findAUTOCORR2D_1(self.molecule)
+            self.AUTOCORR2D_2 = findAUTOCORR2D_2(self.molecule)
+            self.AUTOCORR2D_3 = findAUTOCORR2D_3(self.molecule)
+            self.AUTOCORR2D_4 = findAUTOCORR2D_4(self.molecule)
+            self.AUTOCORR2D_5 = findAUTOCORR2D_5(self.molecule)
+            self.AUTOCORR2D_6 = findAUTOCORR2D_6(self.molecule)
+            self.AUTOCORR2D_7 = findAUTOCORR2D_7(self.molecule)
+            self.AUTOCORR2D_8 = findAUTOCORR2D_8(self.molecule)
+            self.AUTOCORR2D_9 = findAUTOCORR2D_9(self.molecule)
+            self.AUTOCORR2D_10 = findAUTOCORR2D_10(self.molecule)
+            self.AUTOCORR2D_11 = findAUTOCORR2D_11(self.molecule)
+            self.AUTOCORR2D_12 = findAUTOCORR2D_12(self.molecule)
+            self.AUTOCORR2D_13 = findAUTOCORR2D_13(self.molecule)
+            self.AUTOCORR2D_14 = findAUTOCORR2D_14(self.molecule)
+            self.AUTOCORR2D_15 = findAUTOCORR2D_15(self.molecule)
+            self.AUTOCORR2D_16 = findAUTOCORR2D_16(self.molecule)
+            self.AUTOCORR2D_17 = findAUTOCORR2D_17(self.molecule)
+            self.AUTOCORR2D_18 = findAUTOCORR2D_18(self.molecule)
+            self.AUTOCORR2D_19 = findAUTOCORR2D_19(self.molecule)
+            self.AUTOCORR2D_20 = findAUTOCORR2D_20(self.molecule)
+            self.AUTOCORR2D_21 = findAUTOCORR2D_21(self.molecule)
+            self.AUTOCORR2D_22 = findAUTOCORR2D_22(self.molecule)
+            self.AUTOCORR2D_23 = findAUTOCORR2D_23(self.molecule)
+            self.AUTOCORR2D_24 = findAUTOCORR2D_24(self.molecule)
+            self.AUTOCORR2D_25 = findAUTOCORR2D_25(self.molecule)
+            self.AUTOCORR2D_26 = findAUTOCORR2D_26(self.molecule)
+            self.AUTOCORR2D_27 = findAUTOCORR2D_27(self.molecule)
+            self.AUTOCORR2D_28 = findAUTOCORR2D_28(self.molecule)
+            self.AUTOCORR2D_29 = findAUTOCORR2D_29(self.molecule)
+            self.AUTOCORR2D_30 = findAUTOCORR2D_30(self.molecule)
+            self.AUTOCORR2D_31 = findAUTOCORR2D_31(self.molecule)
+            self.AUTOCORR2D_32 = findAUTOCORR2D_32(self.molecule)
+            self.AUTOCORR2D_33 = findAUTOCORR2D_33(self.molecule)
+            self.AUTOCORR2D_34 = findAUTOCORR2D_34(self.molecule)
+            self.AUTOCORR2D_35 = findAUTOCORR2D_35(self.molecule)
+            self.AUTOCORR2D_36 = findAUTOCORR2D_36(self.molecule)
+            self.AUTOCORR2D_37 = findAUTOCORR2D_37(self.molecule)
+            self.AUTOCORR2D_38 = findAUTOCORR2D_38(self.molecule)
+            self.AUTOCORR2D_39 = findAUTOCORR2D_39(self.molecule)
+            self.AUTOCORR2D_40 = findAUTOCORR2D_40(self.molecule)
+            self.AUTOCORR2D_41 = findAUTOCORR2D_41(self.molecule)
+            self.AUTOCORR2D_42 = findAUTOCORR2D_42(self.molecule)
+            self.AUTOCORR2D_43 = findAUTOCORR2D_43(self.molecule)
+            self.AUTOCORR2D_44 = findAUTOCORR2D_44(self.molecule)
+            self.AUTOCORR2D_45 = findAUTOCORR2D_45(self.molecule)
+            self.AUTOCORR2D_46 = findAUTOCORR2D_46(self.molecule)
+            self.AUTOCORR2D_47 = findAUTOCORR2D_47(self.molecule)
+            self.AUTOCORR2D_48 = findAUTOCORR2D_48(self.molecule)
+            self.AUTOCORR2D_49 = findAUTOCORR2D_49(self.molecule)
+            self.AUTOCORR2D_50 = findAUTOCORR2D_50(self.molecule)
+            self.AUTOCORR2D_51 = findAUTOCORR2D_51(self.molecule)
+            self.AUTOCORR2D_52 = findAUTOCORR2D_52(self.molecule)
+            self.AUTOCORR2D_53 = findAUTOCORR2D_53(self.molecule)
+            self.AUTOCORR2D_54 = findAUTOCORR2D_54(self.molecule)
+            self.AUTOCORR2D_55 = findAUTOCORR2D_55(self.molecule)
+            self.AUTOCORR2D_56 = findAUTOCORR2D_56(self.molecule)
+            self.AUTOCORR2D_57 = findAUTOCORR2D_57(self.molecule)
+            self.AUTOCORR2D_58 = findAUTOCORR2D_58(self.molecule)
+            self.AUTOCORR2D_59 = findAUTOCORR2D_59(self.molecule)
+            self.AUTOCORR2D_60 = findAUTOCORR2D_60(self.molecule)
+            self.AUTOCORR2D_61 = findAUTOCORR2D_61(self.molecule)
+            self.AUTOCORR2D_62 = findAUTOCORR2D_62(self.molecule)
+            self.AUTOCORR2D_63 = findAUTOCORR2D_63(self.molecule)
+            self.AUTOCORR2D_64 = findAUTOCORR2D_64(self.molecule)
+            self.AUTOCORR2D_65 = findAUTOCORR2D_65(self.molecule)
+            self.AUTOCORR2D_66 = findAUTOCORR2D_66(self.molecule)
+            self.AUTOCORR2D_67 = findAUTOCORR2D_67(self.molecule)
+            self.AUTOCORR2D_68 = findAUTOCORR2D_68(self.molecule)
+            self.AUTOCORR2D_69 = findAUTOCORR2D_69(self.molecule)
+            self.AUTOCORR2D_70 = findAUTOCORR2D_70(self.molecule)
+            self.AUTOCORR2D_71 = findAUTOCORR2D_71(self.molecule)
+            self.AUTOCORR2D_72 = findAUTOCORR2D_72(self.molecule)
+            self.AUTOCORR2D_73 = findAUTOCORR2D_73(self.molecule)
+            self.AUTOCORR2D_74 = findAUTOCORR2D_74(self.molecule)
+            self.AUTOCORR2D_75 = findAUTOCORR2D_75(self.molecule)
+            self.AUTOCORR2D_76 = findAUTOCORR2D_76(self.molecule)
+            self.AUTOCORR2D_77 = findAUTOCORR2D_77(self.molecule)
+            self.AUTOCORR2D_78 = findAUTOCORR2D_78(self.molecule)
+            self.AUTOCORR2D_79 = findAUTOCORR2D_79(self.molecule)
+            self.AUTOCORR2D_80 = findAUTOCORR2D_80(self.molecule)
+            self.AUTOCORR2D_81 = findAUTOCORR2D_81(self.molecule)
+            self.AUTOCORR2D_82 = findAUTOCORR2D_82(self.molecule)
+            self.AUTOCORR2D_83 = findAUTOCORR2D_83(self.molecule)
+            self.AUTOCORR2D_84 = findAUTOCORR2D_84(self.molecule)
+            self.AUTOCORR2D_85 = findAUTOCORR2D_85(self.molecule)
+            self.AUTOCORR2D_86 = findAUTOCORR2D_86(self.molecule)
+            self.AUTOCORR2D_87 = findAUTOCORR2D_87(self.molecule)
+            self.AUTOCORR2D_88 = findAUTOCORR2D_88(self.molecule)
+            self.AUTOCORR2D_89 = findAUTOCORR2D_89(self.molecule)
+            self.AUTOCORR2D_90 = findAUTOCORR2D_90(self.molecule)
+            self.AUTOCORR2D_91 = findAUTOCORR2D_91(self.molecule)
+            self.AUTOCORR2D_92 = findAUTOCORR2D_92(self.molecule)
+            self.AUTOCORR2D_93 = findAUTOCORR2D_93(self.molecule)
+            self.AUTOCORR2D_94 = findAUTOCORR2D_94(self.molecule)
+            self.AUTOCORR2D_95 = findAUTOCORR2D_95(self.molecule)
+            self.AUTOCORR2D_96 = findAUTOCORR2D_96(self.molecule)
+            self.AUTOCORR2D_97 = findAUTOCORR2D_97(self.molecule)
+            self.AUTOCORR2D_98 = findAUTOCORR2D_98(self.molecule)
+            self.AUTOCORR2D_99 = findAUTOCORR2D_99(self.molecule)
+            self.AUTOCORR2D_100 = findAUTOCORR2D_100(self.molecule)
+            self.AUTOCORR2D_101 = findAUTOCORR2D_101(self.molecule)
+            self.AUTOCORR2D_102 = findAUTOCORR2D_102(self.molecule)
+            self.AUTOCORR2D_103 = findAUTOCORR2D_103(self.molecule)
+            self.AUTOCORR2D_104 = findAUTOCORR2D_104(self.molecule)
+            self.AUTOCORR2D_105 = findAUTOCORR2D_105(self.molecule)
+            self.AUTOCORR2D_106 = findAUTOCORR2D_106(self.molecule)
+            self.AUTOCORR2D_107 = findAUTOCORR2D_107(self.molecule)
+            self.AUTOCORR2D_108 = findAUTOCORR2D_108(self.molecule)
+            self.AUTOCORR2D_109 = findAUTOCORR2D_109(self.molecule)
+            self.AUTOCORR2D_110 = findAUTOCORR2D_110(self.molecule)
+            self.AUTOCORR2D_111 = findAUTOCORR2D_111(self.molecule)
+            self.AUTOCORR2D_112 = findAUTOCORR2D_112(self.molecule)
+            self.AUTOCORR2D_113 = findAUTOCORR2D_113(self.molecule)
+            self.AUTOCORR2D_114 = findAUTOCORR2D_114(self.molecule)
+            self.AUTOCORR2D_115 = findAUTOCORR2D_115(self.molecule)
+            self.AUTOCORR2D_116 = findAUTOCORR2D_116(self.molecule)
+            self.AUTOCORR2D_117 = findAUTOCORR2D_117(self.molecule)
+            self.AUTOCORR2D_118 = findAUTOCORR2D_118(self.molecule)
+            self.AUTOCORR2D_119 = findAUTOCORR2D_119(self.molecule)
+            self.AUTOCORR2D_120 = findAUTOCORR2D_120(self.molecule)
+            self.AUTOCORR2D_121 = findAUTOCORR2D_121(self.molecule)
+            self.AUTOCORR2D_122 = findAUTOCORR2D_122(self.molecule)
+            self.AUTOCORR2D_123 = findAUTOCORR2D_123(self.molecule)
+            self.AUTOCORR2D_124 = findAUTOCORR2D_124(self.molecule)
+            self.AUTOCORR2D_125 = findAUTOCORR2D_125(self.molecule)
+            self.AUTOCORR2D_126 = findAUTOCORR2D_126(self.molecule)
+            self.AUTOCORR2D_127 = findAUTOCORR2D_127(self.molecule)
+            self.AUTOCORR2D_128 = findAUTOCORR2D_128(self.molecule)
+            self.AUTOCORR2D_129 = findAUTOCORR2D_129(self.molecule)
+            self.AUTOCORR2D_130 = findAUTOCORR2D_130(self.molecule)
+            self.AUTOCORR2D_131 = findAUTOCORR2D_131(self.molecule)
+            self.AUTOCORR2D_132 = findAUTOCORR2D_132(self.molecule)
+            self.AUTOCORR2D_133 = findAUTOCORR2D_133(self.molecule)
+            self.AUTOCORR2D_134 = findAUTOCORR2D_134(self.molecule)
+            self.AUTOCORR2D_135 = findAUTOCORR2D_135(self.molecule)
+            self.AUTOCORR2D_136 = findAUTOCORR2D_136(self.molecule)
+            self.AUTOCORR2D_137 = findAUTOCORR2D_137(self.molecule)
+            self.AUTOCORR2D_138 = findAUTOCORR2D_138(self.molecule)
+            self.AUTOCORR2D_139 = findAUTOCORR2D_139(self.molecule)
+            self.AUTOCORR2D_140 = findAUTOCORR2D_140(self.molecule)
+            self.AUTOCORR2D_141 = findAUTOCORR2D_141(self.molecule)
+            self.AUTOCORR2D_142 = findAUTOCORR2D_142(self.molecule)
+            self.AUTOCORR2D_143 = findAUTOCORR2D_143(self.molecule)
+            self.AUTOCORR2D_144 = findAUTOCORR2D_144(self.molecule)
+            self.AUTOCORR2D_145 = findAUTOCORR2D_145(self.molecule)
+            self.AUTOCORR2D_146 = findAUTOCORR2D_146(self.molecule)
+            self.AUTOCORR2D_147 = findAUTOCORR2D_147(self.molecule)
+            self.AUTOCORR2D_148 = findAUTOCORR2D_148(self.molecule)
+            self.AUTOCORR2D_149 = findAUTOCORR2D_149(self.molecule)
+            self.AUTOCORR2D_150 = findAUTOCORR2D_150(self.molecule)
+            self.AUTOCORR2D_151 = findAUTOCORR2D_151(self.molecule)
+            self.AUTOCORR2D_152 = findAUTOCORR2D_152(self.molecule)
+            self.AUTOCORR2D_153 = findAUTOCORR2D_153(self.molecule)
+            self.AUTOCORR2D_154 = findAUTOCORR2D_154(self.molecule)
+            self.AUTOCORR2D_155 = findAUTOCORR2D_155(self.molecule)
+            self.AUTOCORR2D_156 = findAUTOCORR2D_156(self.molecule)
+            self.AUTOCORR2D_157 = findAUTOCORR2D_157(self.molecule)
+            self.AUTOCORR2D_158 = findAUTOCORR2D_158(self.molecule)
+            self.AUTOCORR2D_159 = findAUTOCORR2D_159(self.molecule)
+            self.AUTOCORR2D_160 = findAUTOCORR2D_160(self.molecule)
+            self.AUTOCORR2D_161 = findAUTOCORR2D_161(self.molecule)
+            self.AUTOCORR2D_162 = findAUTOCORR2D_162(self.molecule)
+            self.AUTOCORR2D_163 = findAUTOCORR2D_163(self.molecule)
+            self.AUTOCORR2D_164 = findAUTOCORR2D_164(self.molecule)
+            self.AUTOCORR2D_165 = findAUTOCORR2D_165(self.molecule)
+            self.AUTOCORR2D_166 = findAUTOCORR2D_166(self.molecule)
+            self.AUTOCORR2D_167 = findAUTOCORR2D_167(self.molecule)
+            self.AUTOCORR2D_168 = findAUTOCORR2D_168(self.molecule)
+            self.AUTOCORR2D_169 = findAUTOCORR2D_169(self.molecule)
+            self.AUTOCORR2D_170 = findAUTOCORR2D_170(self.molecule)
+            self.AUTOCORR2D_171 = findAUTOCORR2D_171(self.molecule)
+            self.AUTOCORR2D_172 = findAUTOCORR2D_172(self.molecule)
+            self.AUTOCORR2D_173 = findAUTOCORR2D_173(self.molecule)
+            self.AUTOCORR2D_174 = findAUTOCORR2D_174(self.molecule)
+            self.AUTOCORR2D_175 = findAUTOCORR2D_175(self.molecule)
+            self.AUTOCORR2D_176 = findAUTOCORR2D_176(self.molecule)
+            self.AUTOCORR2D_177 = findAUTOCORR2D_177(self.molecule)
+            self.AUTOCORR2D_178 = findAUTOCORR2D_178(self.molecule)
+            self.AUTOCORR2D_179 = findAUTOCORR2D_179(self.molecule)
+            self.AUTOCORR2D_180 = findAUTOCORR2D_180(self.molecule)
+            self.AUTOCORR2D_181 = findAUTOCORR2D_181(self.molecule)
+            self.AUTOCORR2D_182 = findAUTOCORR2D_182(self.molecule)
+            self.AUTOCORR2D_183 = findAUTOCORR2D_183(self.molecule)
+            self.AUTOCORR2D_184 = findAUTOCORR2D_184(self.molecule)
+            self.AUTOCORR2D_185 = findAUTOCORR2D_185(self.molecule)
+            self.AUTOCORR2D_186 = findAUTOCORR2D_186(self.molecule)
+            self.AUTOCORR2D_187 = findAUTOCORR2D_187(self.molecule)
+            self.AUTOCORR2D_188 = findAUTOCORR2D_188(self.molecule)
+            self.AUTOCORR2D_189 = findAUTOCORR2D_189(self.molecule)
+            self.AUTOCORR2D_190 = findAUTOCORR2D_190(self.molecule)
+            self.AUTOCORR2D_191 = findAUTOCORR2D_191(self.molecule)
+            self.AUTOCORR2D_192 = findAUTOCORR2D_192(self.molecule)
+            #endregion
+
+            #region BCUT2D descriptors
+            self.BCUT2D_CHGHI = findBCUT2D_CHGHI(self.molecule)
+            self.BCUT2D_CHGLO = findBCUT2D_CHGLO(self.molecule)
+            self.BCUT2D_LOGPHI = findBCUT2D_LOGPHI(self.molecule)
+            self.BCUT2D_LOGPLOW = findBCUT2D_LOGPLOW(self.molecule)
+            self.BCUT2D_MRHI = findBCUT2D_MRHI(self.molecule)
+            self.BCUT2D_MRLOW = findBCUT2D_MRLOW(self.molecule)
+            self.BCUT2D_MWHI = findBCUT2D_MWHI(self.molecule)
+            self.BCUT2D_MWLOW = findBCUT2D_MWLOW(self.molecule)
+            #endregion
+
+            self.BalabanJ = findBalabanJ(self.molecule)
+            self.BertzCT = findBertzCT(self.molecule)
+
+            #region Chi descriptors
+            self.Chi0 = findChi0(self.molecule)
+            self.Chi0n = findChi0n(self.molecule)
+            self.Chi0v = findChi0v(self.molecule)
+            self.Chi1 = findChi1(self.molecule)
+            self.Chi1n = findChi1n(self.molecule)
+            self.Chi1v = findChi1v(self.molecule)
+            self.Chi2n = findChi2n(self.molecule)
+            self.Chi2v = findChi2v(self.molecule)
+            self.Chi3n = findChi3n(self.molecule)
+            self.Chi3v = findChi3v(self.molecule)
+            self.Chi4n = findChi4n(self.molecule)
+            self.Chi4v = findChi4v(self.molecule)
+            #endregion
+
+            #region EState descriptors
+            self.EState_VSA1 = findEState_VSA1(self.molecule)
+            self.EState_VSA2 = findEState_VSA2(self.molecule)
+            self.EState_VSA3 = findEState_VSA3(self.molecule)
+            self.EState_VSA4 = findEState_VSA4(self.molecule)
+            self.EState_VSA5 = findEState_VSA5(self.molecule)
+            self.EState_VSA6 = findEState_VSA6(self.molecule)
+            self.EState_VSA7 = findEState_VSA7(self.molecule)
+            self.EState_VSA8 = findEState_VSA8(self.molecule)
+            self.EState_VSA9 = findEState_VSA9(self.molecule)
+            self.EState_VSA10 = findEState_VSA10(self.molecule)
+            self.EState_VSA11 = findEState_VSA11(self.molecule)
+
+            self.MaxAbsEStateIndex = findMaxAbsEStateIndex(self.molecule)
+            self.MaxEStateIndex = findMaxEStateIndex(self.molecule)
+            self.MinAbsEStateIndex = findMinAbsEStateIndex(self.molecule)
+            self.MinEStateIndex = findMinEStateIndex(self.molecule)
+            #endregion
+
+            self.ExactMolWt = findExactMolWt(self.molecule)
+            self.FpDensityMorgan1 = findFpDensityMorgan1(self.molecule)
+            self.FpDensityMorgan2 = findFpDensityMorgan2(self.molecule)
+            self.FpDensityMorgan3 = findFpDensityMorgan3(self.molecule)
+
+            #region fr_ descriptors
+            self.fr_Al_COO = findfr_Al_COO(self.molecule)
+            self.fr_Al_OH = findfr_Al_OH(self.molecule)
+            self.fr_Al_OH_noTert = findfr_Al_OH_noTert(self.molecule)
+            self.fr_ArN = findfr_ArN(self.molecule)
+            self.fr_Ar_COO = findfr_Ar_COO(self.molecule)
+            self.fr_Ar_N = findfr_Ar_N(self.molecule)
+            self.fr_Ar_NH = findfr_Ar_NH(self.molecule)
+            self.fr_Ar_OH = findfr_Ar_OH(self.molecule)
+            self.fr_COO = findfr_COO(self.molecule)
+            self.fr_COO2 = findfr_COO2(self.molecule)
+            self.fr_C_O = findfr_C_O(self.molecule)
+            self.fr_C_O_noCOO = findfr_C_O_noCOO(self.molecule)
+            self.fr_C_S = findfr_C_S(self.molecule)
+            self.fr_HOCCN = findfr_HOCCN(self.molecule)
+            self.fr_Imine = findfr_Imine(self.molecule)
+            self.fr_NH0 = findfr_NH0(self.molecule)
+            self.fr_NH1 = findfr_NH1(self.molecule)
+            self.fr_NH2 = findfr_NH2(self.molecule)
+            self.fr_N_O = findfr_N_O(self.molecule)
+            self.fr_Ndealkylation1 = findfr_Ndealkylation1(self.molecule)
+            self.fr_Ndealkylation2 = findfr_Ndealkylation2(self.molecule)
+            self.fr_Nhpyrrole = findfr_Nhpyrrole(self.molecule)
+            self.fr_SH = findfr_SH(self.molecule)
+            self.fr_aldehyde = findfr_aldehyde(self.molecule)
+            self.fr_alkyl_carbamate = findfr_alkyl_carbamate(self.molecule)
+            self.fr_alkyl_halide = findfr_alkyl_halide(self.molecule)
+            self.fr_allylic_oxid = findfr_allylic_oxid(self.molecule)
+            self.fr_amide = findfr_amide(self.molecule)
+            self.fr_amidine = findfr_amidine(self.molecule)
+            self.fr_aniline = findfr_aniline(self.molecule)
+            self.fr_aryl_methyl = findfr_aryl_methyl(self.molecule)
+            self.fr_azide = findfr_azide(self.molecule)
+            self.fr_azo = findfr_azo(self.molecule)
+            self.fr_barbitur = findfr_barbitur(self.molecule)
+            self.fr_benzene = findfr_benzene(self.molecule)
+            self.fr_benzodiazepine = findfr_benzodiazepine(self.molecule)
+            self.fr_bicyclic = findfr_bicyclic(self.molecule)
+            self.fr_diazo = findfr_diazo(self.molecule)
+            self.fr_dihydropyridine = findfr_dihydropyridine(self.molecule)
+            self.fr_epoxide = findfr_epoxide(self.molecule)
+            self.fr_ester = findfr_ester(self.molecule)
+            self.fr_ether = findfr_ether(self.molecule)
+            self.fr_furan = findfr_furan(self.molecule)
+            self.fr_guanido = findfr_guanido(self.molecule)
+            self.fr_halogen = findfr_halogen(self.molecule)
+            self.fr_hdrzine = findfr_hdrzine(self.molecule)
+            self.fr_hdrzone = findfr_hdrzone(self.molecule)
+            self.fr_imidazole = findfr_imidazole(self.molecule)
+            self.fr_imide = findfr_imide(self.molecule)
+            self.fr_isocyan = findfr_isocyan(self.molecule)
+            self.fr_isothiocyan = findfr_isothiocyan(self.molecule)
+            self.fr_ketone = findfr_ketone(self.molecule)
+            self.fr_ketone_Topliss = findfr_ketone_Topliss(self.molecule)
+            self.fr_lactam = findfr_lactam(self.molecule)
+            self.fr_lactone = findfr_lactone(self.molecule)
+            self.fr_methoxy = findfr_methoxy(self.molecule)
+            self.fr_morpholine = findfr_morpholine(self.molecule)
+            self.fr_nitrile = findfr_nitrile(self.molecule)
+            self.fr_nitro = findfr_nitro(self.molecule)
+            self.fr_nitro_arom = findfr_nitro_arom(self.molecule)
+            self.fr_nitro_arom_nonortho = findfr_nitro_arom_nonortho(self.molecule)
+            self.fr_nitroso = findfr_nitroso(self.molecule)
+            self.fr_oxazole = findfr_oxazole(self.molecule)
+            self.fr_oxime = findfr_oxime(self.molecule)
+            self.fr_para_hydroxylation = findfr_para_hydroxylation(self.molecule)
+            self.fr_phenol = findfr_phenol(self.molecule)
+            self.fr_phenol_noOrthoHbond = findfr_phenol_noOrthoHbond(self.molecule)
+            self.fr_phos_acid = findfr_phos_acid(self.molecule)
+            self.fr_phos_ester = findfr_phos_ester(self.molecule)
+            self.fr_piperdine = findfr_piperdine(self.molecule)
+            self.fr_piperzine = findfr_piperzine(self.molecule)
+            self.fr_priamide = findfr_priamide(self.molecule)
+            self.fr_prisulfonamd = findfr_prisulfonamd(self.molecule)
+            self.fr_pyridine = findfr_pyridine(self.molecule)
+            self.fr_quatN = findfr_quatN(self.molecule)
+            self.fr_sulfide = findfr_sulfide(self.molecule)
+            self.fr_sulfonamd = findfr_sulfonamd(self.molecule)
+            self.fr_sulfone = findfr_sulfone(self.molecule)
+            self.fr_term_acetylene = findfr_term_acetylene(self.molecule)
+            self.fr_tetrazole = findfr_tetrazole(self.molecule)
+            self.fr_thiazole = findfr_thiazole(self.molecule)
+            self.fr_thiocyan = findfr_thiocyan(self.molecule)
+            self.fr_thiophene = findfr_thiophene(self.molecule)
+            self.fr_unbrch_alkane = findfr_unbrch_alkane(self.molecule)
+            self.fr_urea = findfr_urea(self.molecule)
+            #endregion
+
+            self.FractionCSP3 = findFractionCSP3(self.molecule)
+            self.HallKierAlpha = findHallKierAlpha(self.molecule)
+            self.HeavyAtomMolWt = findHeavyAtomMolWt(self.molecule)
+            self.HeavyAtomCount = findHeavyAtomCount(self.molecule)
+            self.Ipc = findIpc(self.molecule)
+
+            #region Kappa descriptors
+            self.Kappa1 = findKappa1(self.molecule)
+            self.Kappa2 = findKappa2(self.molecule)
+            self.Kappa3 = findKappa3(self.molecule)
+            #endregion
+
+            self.LabuteASA = findLabuteASA(self.molecule)
+            self.MaxAbsPartialCharge = findMaxAbsPartialCharge(self.molecule)
+            self.MaxPartialCharge = findMaxPartialCharge(self.molecule)
+            self.MinAbsPartialCharge = findMinAbsPartialCharge(self.molecule)
+            self.MinPartialCharge = findMinPartialCharge(self.molecule)
+            self.MolLogP = findMolWt(self.molecule)
+            self.MolMR = findMolMR(self.molecule)
+            self.MolWt = findMolWt(self.molecule)
+
+            #region 'count' descriptors
+            self.NHOHCount = findNHOHCount(self.molecule)
+            self.NOCount = findNOCount(self.molecule)
+            self.NumAliphaticHeterocycles = findNumAliphaticHeterocycles(self.molecule)
+            self.NumAliphaticRings = findNumAliphaticRings(self.molecule)
+            self.NumAromaticCarbocycles = findNumAromaticCarbocycles(self.molecule)
+            self.NumAromaticHeterocycles = findNumAromaticHeterocycles(self.molecule)
+            self.NumAromaticRings = findNumAromaticRings(self.molecule)
+            self.NumHAcceptors = findNumHAcceptors(self.molecule)
+            self.NumHDonors = findNumHDonors(self.molecule)
+            self.NumHeteroatoms = findNumHeteroatoms(self.molecule)
+            self.NumRadicalElectrons = findNumRadicalElectrons(self.molecule)
+            self.NumRotatableBonds = findNumRotatableBonds(self.molecule)
+            self.NumSaturatedCarbocycles = findNumSaturatedCarbocycles(self.molecule)
+            self.NumSaturatedHeterocycles = findNumSaturatedHeterocycles(self.molecule)
+            self.NumSaturatedRings = findNumSaturatedRings(self.molecule)
+            self.NumValenceElectrons = findNumValenceElectrons(self.molecule)
+            self.NumAliphaticCarbocycles = findNumAliphaticCarbocycles(self.molecule)
+            self.RingCount = findRingCount(self.molecule)
+            #endregion
+
+            #region PEOE_VSA descriptors
+            self.PEOE_VSA1 = findPEOE_VSA1(self.molecule)
+            self.PEOE_VSA2 = findPEOE_VSA2(self.molecule)
+            self.PEOE_VSA3 = findPEOE_VSA3(self.molecule)
+            self.PEOE_VSA4 = findPEOE_VSA4(self.molecule)
+            self.PEOE_VSA5 = findPEOE_VSA5(self.molecule)
+            self.PEOE_VSA6 = findPEOE_VSA6(self.molecule)
+            self.PEOE_VSA7 = findPEOE_VSA7(self.molecule)
+            self.PEOE_VSA8 = findPEOE_VSA8(self.molecule)
+            self.PEOE_VSA9 = findPEOE_VSA9(self.molecule)
+            self.PEOE_VSA10 = findPEOE_VSA10(self.molecule)
+            self.PEOE_VSA11 = findPEOE_VSA11(self.molecule)
+            self.PEOE_VSA12 = findPEOE_VSA12(self.molecule)
+            self.PEOE_VSA13 = findPEOE_VSA13(self.molecule)
+            self.PEOE_VSA14 = findPEOE_VSA14(self.molecule)
+            #endregion
+
+            self.qed = findqed(self.molecule)
+
+            #region SMR_VSA descriptors
+            self.SMR_VSA1 = findSMR_VSA1(self.molecule)
+            self.SMR_VSA2 = findSMR_VSA2(self.molecule)
+            self.SMR_VSA3 = findSMR_VSA3(self.molecule)
+            self.SMR_VSA4 = findSMR_VSA4(self.molecule)
+            self.SMR_VSA5 = findSMR_VSA5(self.molecule)
+            self.SMR_VSA6 = findSMR_VSA6(self.molecule)
+            self.SMR_VSA7 = findSMR_VSA7(self.molecule)
+            self.SMR_VSA8 = findSMR_VSA8(self.molecule)
+            self.SMR_VSA9 = findSMR_VSA9(self.molecule)
+            self.SMR_VSA10 = findSMR_VSA10(self.molecule)
+            #endregion
+
+            #region SlogP_VSA descriptors
+            self.SlogP_VSA1 = findSlogP_VSA1(self.molecule)
+            self.SlogP_VSA2 = findSlogP_VSA2(self.molecule)
+            self.SlogP_VSA3 = findSlogP_VSA3(self.molecule)
+            self.SlogP_VSA4 = findSlogP_VSA4(self.molecule)
+            self.SlogP_VSA5 = findSlogP_VSA5(self.molecule)
+            self.SlogP_VSA6 = findSlogP_VSA6(self.molecule)
+            self.SlogP_VSA7 = findSlogP_VSA7(self.molecule)
+            self.SlogP_VSA8 = findSlogP_VSA8(self.molecule)
+            self.SlogP_VSA9 = findSlogP_VSA9(self.molecule)
+            self.SlogP_VSA10 = findSlogP_VSA10(self.molecule)
+            self.SlogP_VSA11 = findSlogP_VSA11(self.molecule)
+            self.SlogP_VSA12 = findSlogP_VSA12(self.molecule)
+            #endregion
+
+            self.TPSA = findTPSA(self.molecule)
+
+            #region VSA_EState descriptors
+            self.VSA_EState1 = findVSA_EState1(self.molecule)
+            self.VSA_EState2 = findVSA_EState2(self.molecule)
+            self.VSA_EState3 = findVSA_EState3(self.molecule)
+            self.VSA_EState4 = findVSA_EState4(self.molecule)
+            self.VSA_EState5 = findVSA_EState5(self.molecule)
+            self.VSA_EState6 = findVSA_EState6(self.molecule)
+            self.VSA_EState7 = findVSA_EState7(self.molecule)
+            self.VSA_EState8 = findVSA_EState8(self.molecule)
+            self.VSA_EState9 = findVSA_EState9(self.molecule)
+            self.VSA_EState10 = findVSA_EState10(self.molecule)
+            #endregion
 
             #region 3D descriptors
             self._AUTOCORR3D = findAUTOCORR3D(self.molecule)
 
-            # If AUTOCORR3D is not None
             if self._AUTOCORR3D:
-                # Get the values from the list and assign them to the respective attributes 1 to 80
-                for i in range(1, 81):
-                    setattr(self, f'AUTOCORR3D_{i}', self._AUTOCORR3D[i-1])
+                self.AUTOCORR3D_1,  self.AUTOCORR3D_2,  self.AUTOCORR3D_3,  self.AUTOCORR3D_4,  self.AUTOCORR3D_5,  self.AUTOCORR3D_6,  self.AUTOCORR3D_7,  self.AUTOCORR3D_8,  self.AUTOCORR3D_9,  self.AUTOCORR3D_10, self.AUTOCORR3D_11, self.AUTOCORR3D_12, self.AUTOCORR3D_13, self.AUTOCORR3D_14, self.AUTOCORR3D_15, self.AUTOCORR3D_16, self.AUTOCORR3D_17, self.AUTOCORR3D_18, self.AUTOCORR3D_19, self.AUTOCORR3D_20, self.AUTOCORR3D_21, self.AUTOCORR3D_22, self.AUTOCORR3D_23, self.AUTOCORR3D_24, self.AUTOCORR3D_25, self.AUTOCORR3D_26, self.AUTOCORR3D_27, self.AUTOCORR3D_28, self.AUTOCORR3D_29, self.AUTOCORR3D_30, self.AUTOCORR3D_31, self.AUTOCORR3D_32, self.AUTOCORR3D_33, self.AUTOCORR3D_34, self.AUTOCORR3D_35, self.AUTOCORR3D_36, self.AUTOCORR3D_37, self.AUTOCORR3D_38, self.AUTOCORR3D_39, self.AUTOCORR3D_40, self.AUTOCORR3D_41, self.AUTOCORR3D_42, self.AUTOCORR3D_43, self.AUTOCORR3D_44, self.AUTOCORR3D_45, self.AUTOCORR3D_46, self.AUTOCORR3D_47, self.AUTOCORR3D_48, self.AUTOCORR3D_49, self.AUTOCORR3D_50, self.AUTOCORR3D_51, self.AUTOCORR3D_52, self.AUTOCORR3D_53, self.AUTOCORR3D_54, self.AUTOCORR3D_55, self.AUTOCORR3D_56, self.AUTOCORR3D_57, self.AUTOCORR3D_58, self.AUTOCORR3D_59, self.AUTOCORR3D_60, self.AUTOCORR3D_61, self.AUTOCORR3D_62, self.AUTOCORR3D_63, self.AUTOCORR3D_64, self.AUTOCORR3D_65, self.AUTOCORR3D_66, self.AUTOCORR3D_67, self.AUTOCORR3D_68, self.AUTOCORR3D_69, self.AUTOCORR3D_70, self.AUTOCORR3D_71, self.AUTOCORR3D_72, self.AUTOCORR3D_73, self.AUTOCORR3D_74, self.AUTOCORR3D_75, self.AUTOCORR3D_76, self.AUTOCORR3D_77, self.AUTOCORR3D_78, self.AUTOCORR3D_79, self.AUTOCORR3D_80 = self._AUTOCORR3D
+
+            self.Asphericity = findAsphericity(self.molecule)
+            self.Eccentricity = findEccentricity(self.molecule)
+            self.InertialShapeFactor = findInertialShapeFactor(self.molecule)
+            self.NPR1 = findNPR1(self.molecule)
+            self.NPR2 = findNPR2(self.molecule)
+            self.PMI1 = findPMI1(self.molecule)
+            self.PMI2 = findPMI2(self.molecule)
+            self.PMI3 = findPMI3(self.molecule)
+            self.RadiusOfGyration = findRadiusOfGyration(self.molecule)
+            self.SpherocityIndex = findSpherocityIndex(self.molecule)
             #endregion
 
     ## Private ##
@@ -216,26 +728,501 @@ class Ligand:
         '''
 
         #region prints
-        
-        # Initialize descriptors in each category
-        # Calculate maximum length of descriptor names for both categories
-        max_length = max(
-            max(len(desc) for desc in Ligand.allDescriptors),
-            len("Name"),
-            len("Molecule")
-        ) + 5
-
-        print(f"{'Name'.ljust(max_length)}: '{self.name if self.name is not None else '-'}'")
-        print(f"{'Molecule'.ljust(max_length)}: '{self.molecule if self.molecule is not None else '-'}'")
-
-        # All attribute initializations
-        for desc in Ligand.allDescriptors:
-            attribute = getattr(self, desc)
-            # Pad the attribute name to align
-            print(f"{desc.ljust(max_length)}: '{attribute if attribute is not None else '-'}'")
+        print(f"Name:                     '{self.name if self.name is not None else '-' }'")
+        print(f"Molecule:                 '{self.molecule if self.molecule is not None else '-' }'")
+        print(f"AUTOCORR2D_1:             '{self.AUTOCORR2D_1 if self.AUTOCORR2D_1 is not None else '-' }'")
+        print(f"AUTOCORR2D_2:             '{self.AUTOCORR2D_2 if self.AUTOCORR2D_2 is not None else '-' }'")
+        print(f"AUTOCORR2D_3:             '{self.AUTOCORR2D_3 if self.AUTOCORR2D_3 is not None else '-' }'")
+        print(f"AUTOCORR2D_4:             '{self.AUTOCORR2D_4 if self.AUTOCORR2D_4 is not None else '-' }'")
+        print(f"AUTOCORR2D_5:             '{self.AUTOCORR2D_5 if self.AUTOCORR2D_5 is not None else '-' }'")
+        print(f"AUTOCORR2D_6:             '{self.AUTOCORR2D_6 if self.AUTOCORR2D_6 is not None else '-' }'")
+        print(f"AUTOCORR2D_7:             '{self.AUTOCORR2D_7 if self.AUTOCORR2D_7 is not None else '-' }'")
+        print(f"AUTOCORR2D_8:             '{self.AUTOCORR2D_8 if self.AUTOCORR2D_8 is not None else '-' }'")
+        print(f"AUTOCORR2D_9:             '{self.AUTOCORR2D_9 if self.AUTOCORR2D_9 is not None else '-' }'")
+        print(f"AUTOCORR2D_10:            '{self.AUTOCORR2D_10 if self.AUTOCORR2D_10 is not None else '-' }'")
+        print(f"AUTOCORR2D_11:            '{self.AUTOCORR2D_11 if self.AUTOCORR2D_11 is not None else '-' }'")
+        print(f"AUTOCORR2D_12:            '{self.AUTOCORR2D_12 if self.AUTOCORR2D_12 is not None else '-' }'")
+        print(f"AUTOCORR2D_13:            '{self.AUTOCORR2D_13 if self.AUTOCORR2D_13 is not None else '-' }'")
+        print(f"AUTOCORR2D_14:            '{self.AUTOCORR2D_14 if self.AUTOCORR2D_14 is not None else '-' }'")
+        print(f"AUTOCORR2D_15:            '{self.AUTOCORR2D_15 if self.AUTOCORR2D_15 is not None else '-' }'")
+        print(f"AUTOCORR2D_16:            '{self.AUTOCORR2D_16 if self.AUTOCORR2D_16 is not None else '-' }'")
+        print(f"AUTOCORR2D_17:            '{self.AUTOCORR2D_17 if self.AUTOCORR2D_17 is not None else '-' }'")
+        print(f"AUTOCORR2D_18:            '{self.AUTOCORR2D_18 if self.AUTOCORR2D_18 is not None else '-' }'")
+        print(f"AUTOCORR2D_19:            '{self.AUTOCORR2D_19 if self.AUTOCORR2D_19 is not None else '-' }'")
+        print(f"AUTOCORR2D_20:            '{self.AUTOCORR2D_20 if self.AUTOCORR2D_20 is not None else '-' }'")
+        print(f"AUTOCORR2D_21:            '{self.AUTOCORR2D_21 if self.AUTOCORR2D_21 is not None else '-' }'")
+        print(f"AUTOCORR2D_22:            '{self.AUTOCORR2D_22 if self.AUTOCORR2D_22 is not None else '-' }'")
+        print(f"AUTOCORR2D_23:            '{self.AUTOCORR2D_23 if self.AUTOCORR2D_23 is not None else '-' }'")
+        print(f"AUTOCORR2D_24:            '{self.AUTOCORR2D_24 if self.AUTOCORR2D_24 is not None else '-' }'")
+        print(f"AUTOCORR2D_25:            '{self.AUTOCORR2D_25 if self.AUTOCORR2D_25 is not None else '-' }'")
+        print(f"AUTOCORR2D_26:            '{self.AUTOCORR2D_26 if self.AUTOCORR2D_26 is not None else '-' }'")
+        print(f"AUTOCORR2D_27:            '{self.AUTOCORR2D_27 if self.AUTOCORR2D_27 is not None else '-' }'")
+        print(f"AUTOCORR2D_28:            '{self.AUTOCORR2D_28 if self.AUTOCORR2D_28 is not None else '-' }'")
+        print(f"AUTOCORR2D_29:            '{self.AUTOCORR2D_29 if self.AUTOCORR2D_29 is not None else '-' }'")
+        print(f"AUTOCORR2D_30:            '{self.AUTOCORR2D_30 if self.AUTOCORR2D_30 is not None else '-' }'")
+        print(f"AUTOCORR2D_31:            '{self.AUTOCORR2D_31 if self.AUTOCORR2D_31 is not None else '-' }'")
+        print(f"AUTOCORR2D_32:            '{self.AUTOCORR2D_32 if self.AUTOCORR2D_32 is not None else '-' }'")
+        print(f"AUTOCORR2D_33:            '{self.AUTOCORR2D_33 if self.AUTOCORR2D_33 is not None else '-' }'")
+        print(f"AUTOCORR2D_34:            '{self.AUTOCORR2D_34 if self.AUTOCORR2D_34 is not None else '-' }'")
+        print(f"AUTOCORR2D_35:            '{self.AUTOCORR2D_35 if self.AUTOCORR2D_35 is not None else '-' }'")
+        print(f"AUTOCORR2D_36:            '{self.AUTOCORR2D_36 if self.AUTOCORR2D_36 is not None else '-' }'")
+        print(f"AUTOCORR2D_37:            '{self.AUTOCORR2D_37 if self.AUTOCORR2D_37 is not None else '-' }'")
+        print(f"AUTOCORR2D_38:            '{self.AUTOCORR2D_38 if self.AUTOCORR2D_38 is not None else '-' }'")
+        print(f"AUTOCORR2D_39:            '{self.AUTOCORR2D_39 if self.AUTOCORR2D_39 is not None else '-' }'")
+        print(f"AUTOCORR2D_40:            '{self.AUTOCORR2D_40 if self.AUTOCORR2D_40 is not None else '-' }'")
+        print(f"AUTOCORR2D_41:            '{self.AUTOCORR2D_41 if self.AUTOCORR2D_41 is not None else '-' }'")
+        print(f"AUTOCORR2D_42:            '{self.AUTOCORR2D_42 if self.AUTOCORR2D_42 is not None else '-' }'")
+        print(f"AUTOCORR2D_43:            '{self.AUTOCORR2D_43 if self.AUTOCORR2D_43 is not None else '-' }'")
+        print(f"AUTOCORR2D_44:            '{self.AUTOCORR2D_44 if self.AUTOCORR2D_44 is not None else '-' }'")
+        print(f"AUTOCORR2D_45:            '{self.AUTOCORR2D_45 if self.AUTOCORR2D_45 is not None else '-' }'")
+        print(f"AUTOCORR2D_46:            '{self.AUTOCORR2D_46 if self.AUTOCORR2D_46 is not None else '-' }'")
+        print(f"AUTOCORR2D_47:            '{self.AUTOCORR2D_47 if self.AUTOCORR2D_47 is not None else '-' }'")
+        print(f"AUTOCORR2D_48:            '{self.AUTOCORR2D_48 if self.AUTOCORR2D_48 is not None else '-' }'")
+        print(f"AUTOCORR2D_49:            '{self.AUTOCORR2D_49 if self.AUTOCORR2D_49 is not None else '-' }'")
+        print(f"AUTOCORR2D_50:            '{self.AUTOCORR2D_50 if self.AUTOCORR2D_50 is not None else '-' }'")
+        print(f"AUTOCORR2D_51:            '{self.AUTOCORR2D_51 if self.AUTOCORR2D_51 is not None else '-' }'")
+        print(f"AUTOCORR2D_52:            '{self.AUTOCORR2D_52 if self.AUTOCORR2D_52 is not None else '-' }'")
+        print(f"AUTOCORR2D_53:            '{self.AUTOCORR2D_53 if self.AUTOCORR2D_53 is not None else '-' }'")
+        print(f"AUTOCORR2D_54:            '{self.AUTOCORR2D_54 if self.AUTOCORR2D_54 is not None else '-' }'")
+        print(f"AUTOCORR2D_55:            '{self.AUTOCORR2D_55 if self.AUTOCORR2D_55 is not None else '-' }'")
+        print(f"AUTOCORR2D_56:            '{self.AUTOCORR2D_56 if self.AUTOCORR2D_56 is not None else '-' }'")
+        print(f"AUTOCORR2D_57:            '{self.AUTOCORR2D_57 if self.AUTOCORR2D_57 is not None else '-' }'")
+        print(f"AUTOCORR2D_58:            '{self.AUTOCORR2D_58 if self.AUTOCORR2D_58 is not None else '-' }'")
+        print(f"AUTOCORR2D_59:            '{self.AUTOCORR2D_59 if self.AUTOCORR2D_59 is not None else '-' }'")
+        print(f"AUTOCORR2D_60:            '{self.AUTOCORR2D_60 if self.AUTOCORR2D_60 is not None else '-' }'")
+        print(f"AUTOCORR2D_61:            '{self.AUTOCORR2D_61 if self.AUTOCORR2D_61 is not None else '-' }'")
+        print(f"AUTOCORR2D_62:            '{self.AUTOCORR2D_62 if self.AUTOCORR2D_62 is not None else '-' }'")
+        print(f"AUTOCORR2D_63:            '{self.AUTOCORR2D_63 if self.AUTOCORR2D_63 is not None else '-' }'")
+        print(f"AUTOCORR2D_64:            '{self.AUTOCORR2D_64 if self.AUTOCORR2D_64 is not None else '-' }'")
+        print(f"AUTOCORR2D_65:            '{self.AUTOCORR2D_65 if self.AUTOCORR2D_65 is not None else '-' }'")
+        print(f"AUTOCORR2D_66:            '{self.AUTOCORR2D_66 if self.AUTOCORR2D_66 is not None else '-' }'")
+        print(f"AUTOCORR2D_67:            '{self.AUTOCORR2D_67 if self.AUTOCORR2D_67 is not None else '-' }'")
+        print(f"AUTOCORR2D_68:            '{self.AUTOCORR2D_68 if self.AUTOCORR2D_68 is not None else '-' }'")
+        print(f"AUTOCORR2D_69:            '{self.AUTOCORR2D_69 if self.AUTOCORR2D_69 is not None else '-' }'")
+        print(f"AUTOCORR2D_70:            '{self.AUTOCORR2D_70 if self.AUTOCORR2D_70 is not None else '-' }'")
+        print(f"AUTOCORR2D_71:            '{self.AUTOCORR2D_71 if self.AUTOCORR2D_71 is not None else '-' }'")
+        print(f"AUTOCORR2D_72:            '{self.AUTOCORR2D_72 if self.AUTOCORR2D_72 is not None else '-' }'")
+        print(f"AUTOCORR2D_73:            '{self.AUTOCORR2D_73 if self.AUTOCORR2D_73 is not None else '-' }'")
+        print(f"AUTOCORR2D_74:            '{self.AUTOCORR2D_74 if self.AUTOCORR2D_74 is not None else '-' }'")
+        print(f"AUTOCORR2D_75:            '{self.AUTOCORR2D_75 if self.AUTOCORR2D_75 is not None else '-' }'")
+        print(f"AUTOCORR2D_76:            '{self.AUTOCORR2D_76 if self.AUTOCORR2D_76 is not None else '-' }'")
+        print(f"AUTOCORR2D_77:            '{self.AUTOCORR2D_77 if self.AUTOCORR2D_77 is not None else '-' }'")
+        print(f"AUTOCORR2D_78:            '{self.AUTOCORR2D_78 if self.AUTOCORR2D_78 is not None else '-' }'")
+        print(f"AUTOCORR2D_79:            '{self.AUTOCORR2D_79 if self.AUTOCORR2D_79 is not None else '-' }'")
+        print(f"AUTOCORR2D_80:            '{self.AUTOCORR2D_80 if self.AUTOCORR2D_80 is not None else '-' }'")
+        print(f"AUTOCORR2D_81:            '{self.AUTOCORR2D_81 if self.AUTOCORR2D_81 is not None else '-' }'")
+        print(f"AUTOCORR2D_82:            '{self.AUTOCORR2D_82 if self.AUTOCORR2D_82 is not None else '-' }'")
+        print(f"AUTOCORR2D_83:            '{self.AUTOCORR2D_83 if self.AUTOCORR2D_83 is not None else '-' }'")
+        print(f"AUTOCORR2D_84:            '{self.AUTOCORR2D_84 if self.AUTOCORR2D_84 is not None else '-' }'")
+        print(f"AUTOCORR2D_85:            '{self.AUTOCORR2D_85 if self.AUTOCORR2D_85 is not None else '-' }'")
+        print(f"AUTOCORR2D_86:            '{self.AUTOCORR2D_86 if self.AUTOCORR2D_86 is not None else '-' }'")
+        print(f"AUTOCORR2D_87:            '{self.AUTOCORR2D_87 if self.AUTOCORR2D_87 is not None else '-' }'")
+        print(f"AUTOCORR2D_88:            '{self.AUTOCORR2D_88 if self.AUTOCORR2D_88 is not None else '-' }'")
+        print(f"AUTOCORR2D_89:            '{self.AUTOCORR2D_89 if self.AUTOCORR2D_89 is not None else '-' }'")
+        print(f"AUTOCORR2D_90:            '{self.AUTOCORR2D_90 if self.AUTOCORR2D_90 is not None else '-' }'")
+        print(f"AUTOCORR2D_91:            '{self.AUTOCORR2D_91 if self.AUTOCORR2D_91 is not None else '-' }'")
+        print(f"AUTOCORR2D_92:            '{self.AUTOCORR2D_92 if self.AUTOCORR2D_92 is not None else '-' }'")
+        print(f"AUTOCORR2D_93:            '{self.AUTOCORR2D_93 if self.AUTOCORR2D_93 is not None else '-' }'")
+        print(f"AUTOCORR2D_94:            '{self.AUTOCORR2D_94 if self.AUTOCORR2D_94 is not None else '-' }'")
+        print(f"AUTOCORR2D_95:            '{self.AUTOCORR2D_95 if self.AUTOCORR2D_95 is not None else '-' }'")
+        print(f"AUTOCORR2D_96:            '{self.AUTOCORR2D_96 if self.AUTOCORR2D_96 is not None else '-' }'")
+        print(f"AUTOCORR2D_97:            '{self.AUTOCORR2D_97 if self.AUTOCORR2D_97 is not None else '-' }'")
+        print(f"AUTOCORR2D_98:            '{self.AUTOCORR2D_98 if self.AUTOCORR2D_98 is not None else '-' }'")
+        print(f"AUTOCORR2D_99:            '{self.AUTOCORR2D_99 if self.AUTOCORR2D_99 is not None else '-' }'")
+        print(f"AUTOCORR2D_100:           '{self.AUTOCORR2D_100 if self.AUTOCORR2D_100 is not None else '-' }'")
+        print(f"AUTOCORR2D_101:           '{self.AUTOCORR2D_101 if self.AUTOCORR2D_101 is not None else '-' }'")
+        print(f"AUTOCORR2D_102:           '{self.AUTOCORR2D_102 if self.AUTOCORR2D_102 is not None else '-' }'")
+        print(f"AUTOCORR2D_103:           '{self.AUTOCORR2D_103 if self.AUTOCORR2D_103 is not None else '-' }'")
+        print(f"AUTOCORR2D_104:           '{self.AUTOCORR2D_104 if self.AUTOCORR2D_104 is not None else '-' }'")
+        print(f"AUTOCORR2D_105:           '{self.AUTOCORR2D_105 if self.AUTOCORR2D_105 is not None else '-' }'")
+        print(f"AUTOCORR2D_106:           '{self.AUTOCORR2D_106 if self.AUTOCORR2D_106 is not None else '-' }'")
+        print(f"AUTOCORR2D_107:           '{self.AUTOCORR2D_107 if self.AUTOCORR2D_107 is not None else '-' }'")
+        print(f"AUTOCORR2D_108:           '{self.AUTOCORR2D_108 if self.AUTOCORR2D_108 is not None else '-' }'")
+        print(f"AUTOCORR2D_109:           '{self.AUTOCORR2D_109 if self.AUTOCORR2D_109 is not None else '-' }'")
+        print(f"AUTOCORR2D_110:           '{self.AUTOCORR2D_110 if self.AUTOCORR2D_110 is not None else '-' }'")
+        print(f"AUTOCORR2D_111:           '{self.AUTOCORR2D_111 if self.AUTOCORR2D_111 is not None else '-' }'")
+        print(f"AUTOCORR2D_112:           '{self.AUTOCORR2D_112 if self.AUTOCORR2D_112 is not None else '-' }'")
+        print(f"AUTOCORR2D_113:           '{self.AUTOCORR2D_113 if self.AUTOCORR2D_113 is not None else '-' }'")
+        print(f"AUTOCORR2D_114:           '{self.AUTOCORR2D_114 if self.AUTOCORR2D_114 is not None else '-' }'")
+        print(f"AUTOCORR2D_115:           '{self.AUTOCORR2D_115 if self.AUTOCORR2D_115 is not None else '-' }'")
+        print(f"AUTOCORR2D_116:           '{self.AUTOCORR2D_116 if self.AUTOCORR2D_116 is not None else '-' }'")
+        print(f"AUTOCORR2D_117:           '{self.AUTOCORR2D_117 if self.AUTOCORR2D_117 is not None else '-' }'")
+        print(f"AUTOCORR2D_118:           '{self.AUTOCORR2D_118 if self.AUTOCORR2D_118 is not None else '-' }'")
+        print(f"AUTOCORR2D_119:           '{self.AUTOCORR2D_119 if self.AUTOCORR2D_119 is not None else '-' }'")
+        print(f"AUTOCORR2D_120:           '{self.AUTOCORR2D_120 if self.AUTOCORR2D_120 is not None else '-' }'")
+        print(f"AUTOCORR2D_121:           '{self.AUTOCORR2D_121 if self.AUTOCORR2D_121 is not None else '-' }'")
+        print(f"AUTOCORR2D_122:           '{self.AUTOCORR2D_122 if self.AUTOCORR2D_122 is not None else '-' }'")
+        print(f"AUTOCORR2D_123:           '{self.AUTOCORR2D_123 if self.AUTOCORR2D_123 is not None else '-' }'")
+        print(f"AUTOCORR2D_124:           '{self.AUTOCORR2D_124 if self.AUTOCORR2D_124 is not None else '-' }'")
+        print(f"AUTOCORR2D_125:           '{self.AUTOCORR2D_125 if self.AUTOCORR2D_125 is not None else '-' }'")
+        print(f"AUTOCORR2D_126:           '{self.AUTOCORR2D_126 if self.AUTOCORR2D_126 is not None else '-' }'")
+        print(f"AUTOCORR2D_127:           '{self.AUTOCORR2D_127 if self.AUTOCORR2D_127 is not None else '-' }'")
+        print(f"AUTOCORR2D_128:           '{self.AUTOCORR2D_128 if self.AUTOCORR2D_128 is not None else '-' }'")
+        print(f"AUTOCORR2D_129:           '{self.AUTOCORR2D_129 if self.AUTOCORR2D_129 is not None else '-' }'")
+        print(f"AUTOCORR2D_130:           '{self.AUTOCORR2D_130 if self.AUTOCORR2D_130 is not None else '-' }'")
+        print(f"AUTOCORR2D_131:           '{self.AUTOCORR2D_131 if self.AUTOCORR2D_131 is not None else '-' }'")
+        print(f"AUTOCORR2D_132:           '{self.AUTOCORR2D_132 if self.AUTOCORR2D_132 is not None else '-' }'")
+        print(f"AUTOCORR2D_133:           '{self.AUTOCORR2D_133 if self.AUTOCORR2D_133 is not None else '-' }'")
+        print(f"AUTOCORR2D_134:           '{self.AUTOCORR2D_134 if self.AUTOCORR2D_134 is not None else '-' }'")
+        print(f"AUTOCORR2D_135:           '{self.AUTOCORR2D_135 if self.AUTOCORR2D_135 is not None else '-' }'")
+        print(f"AUTOCORR2D_136:           '{self.AUTOCORR2D_136 if self.AUTOCORR2D_136 is not None else '-' }'")
+        print(f"AUTOCORR2D_137:           '{self.AUTOCORR2D_137 if self.AUTOCORR2D_137 is not None else '-' }'")
+        print(f"AUTOCORR2D_138:           '{self.AUTOCORR2D_138 if self.AUTOCORR2D_138 is not None else '-' }'")
+        print(f"AUTOCORR2D_139:           '{self.AUTOCORR2D_139 if self.AUTOCORR2D_139 is not None else '-' }'")
+        print(f"AUTOCORR2D_140:           '{self.AUTOCORR2D_140 if self.AUTOCORR2D_140 is not None else '-' }'")
+        print(f"AUTOCORR2D_141:           '{self.AUTOCORR2D_141 if self.AUTOCORR2D_141 is not None else '-' }'")
+        print(f"AUTOCORR2D_142:           '{self.AUTOCORR2D_142 if self.AUTOCORR2D_142 is not None else '-' }'")
+        print(f"AUTOCORR2D_143:           '{self.AUTOCORR2D_143 if self.AUTOCORR2D_143 is not None else '-' }'")
+        print(f"AUTOCORR2D_144:           '{self.AUTOCORR2D_144 if self.AUTOCORR2D_144 is not None else '-' }'")
+        print(f"AUTOCORR2D_145:           '{self.AUTOCORR2D_145 if self.AUTOCORR2D_145 is not None else '-' }'")
+        print(f"AUTOCORR2D_146:           '{self.AUTOCORR2D_146 if self.AUTOCORR2D_146 is not None else '-' }'")
+        print(f"AUTOCORR2D_147:           '{self.AUTOCORR2D_147 if self.AUTOCORR2D_147 is not None else '-' }'")
+        print(f"AUTOCORR2D_148:           '{self.AUTOCORR2D_148 if self.AUTOCORR2D_148 is not None else '-' }'")
+        print(f"AUTOCORR2D_149:           '{self.AUTOCORR2D_149 if self.AUTOCORR2D_149 is not None else '-' }'")
+        print(f"AUTOCORR2D_150:           '{self.AUTOCORR2D_150 if self.AUTOCORR2D_150 is not None else '-' }'")
+        print(f"AUTOCORR2D_151:           '{self.AUTOCORR2D_151 if self.AUTOCORR2D_151 is not None else '-' }'")
+        print(f"AUTOCORR2D_152:           '{self.AUTOCORR2D_152 if self.AUTOCORR2D_152 is not None else '-' }'")
+        print(f"AUTOCORR2D_153:           '{self.AUTOCORR2D_153 if self.AUTOCORR2D_153 is not None else '-' }'")
+        print(f"AUTOCORR2D_154:           '{self.AUTOCORR2D_154 if self.AUTOCORR2D_154 is not None else '-' }'")
+        print(f"AUTOCORR2D_155:           '{self.AUTOCORR2D_155 if self.AUTOCORR2D_155 is not None else '-' }'")
+        print(f"AUTOCORR2D_156:           '{self.AUTOCORR2D_156 if self.AUTOCORR2D_156 is not None else '-' }'")
+        print(f"AUTOCORR2D_157:           '{self.AUTOCORR2D_157 if self.AUTOCORR2D_157 is not None else '-' }'")
+        print(f"AUTOCORR2D_158:           '{self.AUTOCORR2D_158 if self.AUTOCORR2D_158 is not None else '-' }'")
+        print(f"AUTOCORR2D_159:           '{self.AUTOCORR2D_159 if self.AUTOCORR2D_159 is not None else '-' }'")
+        print(f"AUTOCORR2D_160:           '{self.AUTOCORR2D_160 if self.AUTOCORR2D_160 is not None else '-' }'")
+        print(f"AUTOCORR2D_161:           '{self.AUTOCORR2D_161 if self.AUTOCORR2D_161 is not None else '-' }'")
+        print(f"AUTOCORR2D_162:           '{self.AUTOCORR2D_162 if self.AUTOCORR2D_162 is not None else '-' }'")
+        print(f"AUTOCORR2D_163:           '{self.AUTOCORR2D_163 if self.AUTOCORR2D_163 is not None else '-' }'")
+        print(f"AUTOCORR2D_164:           '{self.AUTOCORR2D_164 if self.AUTOCORR2D_164 is not None else '-' }'")
+        print(f"AUTOCORR2D_165:           '{self.AUTOCORR2D_165 if self.AUTOCORR2D_165 is not None else '-' }'")
+        print(f"AUTOCORR2D_166:           '{self.AUTOCORR2D_166 if self.AUTOCORR2D_166 is not None else '-' }'")
+        print(f"AUTOCORR2D_167:           '{self.AUTOCORR2D_167 if self.AUTOCORR2D_167 is not None else '-' }'")
+        print(f"AUTOCORR2D_168:           '{self.AUTOCORR2D_168 if self.AUTOCORR2D_168 is not None else '-' }'")
+        print(f"AUTOCORR2D_169:           '{self.AUTOCORR2D_169 if self.AUTOCORR2D_169 is not None else '-' }'")
+        print(f"AUTOCORR2D_170:           '{self.AUTOCORR2D_170 if self.AUTOCORR2D_170 is not None else '-' }'")
+        print(f"AUTOCORR2D_171:           '{self.AUTOCORR2D_171 if self.AUTOCORR2D_171 is not None else '-' }'")
+        print(f"AUTOCORR2D_172:           '{self.AUTOCORR2D_172 if self.AUTOCORR2D_172 is not None else '-' }'")
+        print(f"AUTOCORR2D_173:           '{self.AUTOCORR2D_173 if self.AUTOCORR2D_173 is not None else '-' }'")
+        print(f"AUTOCORR2D_174:           '{self.AUTOCORR2D_174 if self.AUTOCORR2D_174 is not None else '-' }'")
+        print(f"AUTOCORR2D_175:           '{self.AUTOCORR2D_175 if self.AUTOCORR2D_175 is not None else '-' }'")
+        print(f"AUTOCORR2D_176:           '{self.AUTOCORR2D_176 if self.AUTOCORR2D_176 is not None else '-' }'")
+        print(f"AUTOCORR2D_177:           '{self.AUTOCORR2D_177 if self.AUTOCORR2D_177 is not None else '-' }'")
+        print(f"AUTOCORR2D_178:           '{self.AUTOCORR2D_178 if self.AUTOCORR2D_178 is not None else '-' }'")
+        print(f"AUTOCORR2D_179:           '{self.AUTOCORR2D_179 if self.AUTOCORR2D_179 is not None else '-' }'")
+        print(f"AUTOCORR2D_180:           '{self.AUTOCORR2D_180 if self.AUTOCORR2D_180 is not None else '-' }'")
+        print(f"AUTOCORR2D_181:           '{self.AUTOCORR2D_181 if self.AUTOCORR2D_181 is not None else '-' }'")
+        print(f"AUTOCORR2D_182:           '{self.AUTOCORR2D_182 if self.AUTOCORR2D_182 is not None else '-' }'")
+        print(f"AUTOCORR2D_183:           '{self.AUTOCORR2D_183 if self.AUTOCORR2D_183 is not None else '-' }'")
+        print(f"AUTOCORR2D_184:           '{self.AUTOCORR2D_184 if self.AUTOCORR2D_184 is not None else '-' }'")
+        print(f"AUTOCORR2D_185:           '{self.AUTOCORR2D_185 if self.AUTOCORR2D_185 is not None else '-' }'")
+        print(f"AUTOCORR2D_186:           '{self.AUTOCORR2D_186 if self.AUTOCORR2D_186 is not None else '-' }'")
+        print(f"AUTOCORR2D_187:           '{self.AUTOCORR2D_187 if self.AUTOCORR2D_187 is not None else '-' }'")
+        print(f"AUTOCORR2D_188:           '{self.AUTOCORR2D_188 if self.AUTOCORR2D_188 is not None else '-' }'")
+        print(f"AUTOCORR2D_189:           '{self.AUTOCORR2D_189 if self.AUTOCORR2D_189 is not None else '-' }'")
+        print(f"AUTOCORR2D_190:           '{self.AUTOCORR2D_190 if self.AUTOCORR2D_190 is not None else '-' }'")
+        print(f"AUTOCORR2D_191:           '{self.AUTOCORR2D_191 if self.AUTOCORR2D_191 is not None else '-' }'")
+        print(f"AUTOCORR2D_192:           '{self.AUTOCORR2D_192 if self.AUTOCORR2D_192 is not None else '-' }'")
+        print(f"BCUT2D_CHGHI:             '{self.BCUT2D_CHGHI if self.BCUT2D_CHGHI is not None else '-' }'")
+        print(f"BCUT2D_CHGLO:             '{self.BCUT2D_CHGLO if self.BCUT2D_CHGLO is not None else '-' }'")
+        print(f"BCUT2D_LOGPHI:            '{self.BCUT2D_LOGPHI if self.BCUT2D_LOGPHI is not None else '-' }'")
+        print(f"BCUT2D_LOGPLOW:           '{self.BCUT2D_LOGPLOW if self.BCUT2D_LOGPLOW is not None else '-' }'")
+        print(f"BCUT2D_MRHI:              '{self.BCUT2D_MRHI if self.BCUT2D_MRHI is not None else '-' }'")
+        print(f"BCUT2D_MRLOW:             '{self.BCUT2D_MRLOW if self.BCUT2D_MRLOW is not None else '-' }'")
+        print(f"BCUT2D_MWHI:              '{self.BCUT2D_MWHI if self.BCUT2D_MWHI is not None else '-' }'")
+        print(f"BCUT2D_MWLOW:             '{self.BCUT2D_MWLOW if self.BCUT2D_MWLOW is not None else '-' }'")
+        print(f"BalabanJ:                 '{self.BalabanJ if self.BalabanJ is not None else '-' }'")
+        print(f"BertzCT:                  '{self.BertzCT if self.BertzCT is not None else '-' }'")
+        print(f"Chi0:                     '{self.Chi0 if self.Chi0 is not None else '-' }'")
+        print(f"Chi0n:                    '{self.Chi0n if self.Chi0n is not None else '-' }'")
+        print(f"Chi0v:                    '{self.Chi0v if self.Chi0v is not None else '-' }'")
+        print(f"Chi1:                     '{self.Chi1 if self.Chi1 is not None else '-' }'")
+        print(f"Chi1n:                    '{self.Chi1n if self.Chi1n is not None else '-' }'")
+        print(f"Chi1v:                    '{self.Chi1v if self.Chi1v is not None else '-' }'")
+        print(f"Chi2n:                    '{self.Chi2n if self.Chi2n is not None else '-' }'")
+        print(f"Chi2v:                    '{self.Chi2v if self.Chi2v is not None else '-' }'")
+        print(f"Chi3n:                    '{self.Chi3n if self.Chi3n is not None else '-' }'")
+        print(f"Chi3v:                    '{self.Chi3v if self.Chi3v is not None else '-' }'")
+        print(f"Chi4n:                    '{self.Chi4n if self.Chi4n is not None else '-' }'")
+        print(f"Chi4v:                    '{self.Chi4v if self.Chi4v is not None else '-' }'")
+        print(f"EState_VSA1:              '{self.EState_VSA1 if self.EState_VSA1 is not None else '-' }'")
+        print(f"EState_VSA2:              '{self.EState_VSA2 if self.EState_VSA2 is not None else '-' }'")
+        print(f"EState_VSA3:              '{self.EState_VSA3 if self.EState_VSA3 is not None else '-' }'")
+        print(f"EState_VSA4:              '{self.EState_VSA4 if self.EState_VSA4 is not None else '-' }'")
+        print(f"EState_VSA5:              '{self.EState_VSA5 if self.EState_VSA5 is not None else '-' }'")
+        print(f"EState_VSA6:              '{self.EState_VSA6 if self.EState_VSA6 is not None else '-' }'")
+        print(f"EState_VSA7:              '{self.EState_VSA7 if self.EState_VSA7 is not None else '-' }'")
+        print(f"EState_VSA8:              '{self.EState_VSA8 if self.EState_VSA8 is not None else '-' }'")
+        print(f"EState_VSA9:              '{self.EState_VSA9 if self.EState_VSA9 is not None else '-' }'")
+        print(f"EState_VSA10:             '{self.EState_VSA10 if self.EState_VSA10 is not None else '-' }'")
+        print(f"EState_VSA11:             '{self.EState_VSA11 if self.EState_VSA11 is not None else '-' }'")
+        print(f"MaxAbsEStateIndex:        '{self.MaxAbsEStateIndex if self.MaxAbsEStateIndex is not None else '-' }'")
+        print(f"MaxEStateIndex:           '{self.MaxEStateIndex if self.MaxEStateIndex is not None else '-' }'")
+        print(f"MinAbsEStateIndex:        '{self.MinAbsEStateIndex if self.MinAbsEStateIndex is not None else '-' }'")
+        print(f"MinEStateIndex:           '{self.MinEStateIndex if self.MinEStateIndex is not None else '-' }'")
+        print(f"ExactMolWt:               '{self.ExactMolWt if self.ExactMolWt is not None else '-' }'")
+        print(f"FpDensityMorgan1:         '{self.FpDensityMorgan1 if self.FpDensityMorgan1 is not None else '-' }'")
+        print(f"FpDensityMorgan2:         '{self.FpDensityMorgan2 if self.FpDensityMorgan2 is not None else '-' }'")
+        print(f"FpDensityMorgan3:         '{self.FpDensityMorgan3 if self.FpDensityMorgan3 is not None else '-' }'")
+        print(f"fr_Al_COO:                '{self.fr_Al_COO if self.fr_Al_COO is not None else '-' }'")
+        print(f"fr_Al_OH:                 '{self.fr_Al_OH if self.fr_Al_OH is not None else '-' }'")
+        print(f"fr_Al_OH_noTert:          '{self.fr_Al_OH_noTert if self.fr_Al_OH_noTert is not None else '-' }'")
+        print(f"fr_ArN:                   '{self.fr_ArN if self.fr_ArN is not None else '-' }'")
+        print(f"fr_Ar_COO:                '{self.fr_Ar_COO if self.fr_Ar_COO is not None else '-' }'")
+        print(f"fr_Ar_N:                  '{self.fr_Ar_N if self.fr_Ar_N is not None else '-' }'")
+        print(f"fr_Ar_NH:                 '{self.fr_Ar_NH if self.fr_Ar_NH is not None else '-' }'")
+        print(f"fr_Ar_OH:                 '{self.fr_Ar_OH if self.fr_Ar_OH is not None else '-' }'")
+        print(f"fr_COO:                   '{self.fr_COO if self.fr_COO is not None else '-' }'")
+        print(f"fr_COO2:                  '{self.fr_COO2 if self.fr_COO2 is not None else '-' }'")
+        print(f"fr_C_O:                   '{self.fr_C_O if self.fr_C_O is not None else '-' }'")
+        print(f"fr_C_O_noCOO:             '{self.fr_C_O_noCOO if self.fr_C_O_noCOO is not None else '-' }'")
+        print(f"fr_C_S:                   '{self.fr_C_S if self.fr_C_S is not None else '-' }'")
+        print(f"fr_HOCCN:                 '{self.fr_HOCCN if self.fr_HOCCN is not None else '-' }'")
+        print(f"fr_Imine:                 '{self.fr_Imine if self.fr_Imine is not None else '-' }'")
+        print(f"fr_NH0:                   '{self.fr_NH0 if self.fr_NH0 is not None else '-' }'")
+        print(f"fr_NH1:                   '{self.fr_NH1 if self.fr_NH1 is not None else '-' }'")
+        print(f"fr_NH2:                   '{self.fr_NH2 if self.fr_NH2 is not None else '-' }'")
+        print(f"fr_N_O:                   '{self.fr_N_O if self.fr_N_O is not None else '-' }'")
+        print(f"fr_Ndealkylation1:        '{self.fr_Ndealkylation1 if self.fr_Ndealkylation1 is not None else '-' }'")
+        print(f"fr_Ndealkylation2:        '{self.fr_Ndealkylation2 if self.fr_Ndealkylation2 is not None else '-' }'")
+        print(f"fr_Nhpyrrole:             '{self.fr_Nhpyrrole if self.fr_Nhpyrrole is not None else '-' }'")
+        print(f"fr_SH:                    '{self.fr_SH if self.fr_SH is not None else '-' }'")
+        print(f"fr_aldehyde:              '{self.fr_aldehyde if self.fr_aldehyde is not None else '-' }'")
+        print(f"fr_alkyl_carbamate:       '{self.fr_alkyl_carbamate if self.fr_alkyl_carbamate is not None else '-' }'")
+        print(f"fr_alkyl_halide:          '{self.fr_alkyl_halide if self.fr_alkyl_halide is not None else '-' }'")
+        print(f"fr_allylic_oxid:          '{self.fr_allylic_oxid if self.fr_allylic_oxid is not None else '-' }'")
+        print(f"fr_amide:                 '{self.fr_amide if self.fr_amide is not None else '-' }'")
+        print(f"fr_amidine:               '{self.fr_amidine if self.fr_amidine is not None else '-' }'")
+        print(f"fr_aniline:               '{self.fr_aniline if self.fr_aniline is not None else '-' }'")
+        print(f"fr_aryl_methyl:           '{self.fr_aryl_methyl if self.fr_aryl_methyl is not None else '-' }'")
+        print(f"fr_azide:                 '{self.fr_azide if self.fr_azide is not None else '-' }'")
+        print(f"fr_azo:                   '{self.fr_azo if self.fr_azo is not None else '-' }'")
+        print(f"fr_barbitur:              '{self.fr_barbitur if self.fr_barbitur is not None else '-' }'")
+        print(f"fr_benzene:               '{self.fr_benzene if self.fr_benzene is not None else '-' }'")
+        print(f"fr_benzodiazepine:        '{self.fr_benzodiazepine if self.fr_benzodiazepine is not None else '-' }'")
+        print(f"fr_bicyclic:              '{self.fr_bicyclic if self.fr_bicyclic is not None else '-' }'")
+        print(f"fr_diazo:                 '{self.fr_diazo if self.fr_diazo is not None else '-' }'")
+        print(f"fr_dihydropyridine:       '{self.fr_dihydropyridine if self.fr_dihydropyridine is not None else '-' }'")
+        print(f"fr_epoxide:               '{self.fr_epoxide if self.fr_epoxide is not None else '-' }'")
+        print(f"fr_ester:                 '{self.fr_ester if self.fr_ester is not None else '-' }'")
+        print(f"fr_ether:                 '{self.fr_ether if self.fr_ether is not None else '-' }'")
+        print(f"fr_furan:                 '{self.fr_furan if self.fr_furan is not None else '-' }'")
+        print(f"fr_guanido:               '{self.fr_guanido if self.fr_guanido is not None else '-' }'")
+        print(f"fr_halogen:               '{self.fr_halogen if self.fr_halogen is not None else '-' }'")
+        print(f"fr_hdrzine:               '{self.fr_hdrzine if self.fr_hdrzine is not None else '-' }'")
+        print(f"fr_hdrzone:               '{self.fr_hdrzone if self.fr_hdrzone is not None else '-' }'")
+        print(f"fr_imidazole:             '{self.fr_imidazole if self.fr_imidazole is not None else '-' }'")
+        print(f"fr_imide:                 '{self.fr_imide if self.fr_imide is not None else '-' }'")
+        print(f"fr_isocyan:               '{self.fr_isocyan if self.fr_isocyan is not None else '-' }'")
+        print(f"fr_isothiocyan:           '{self.fr_isothiocyan if self.fr_isothiocyan is not None else '-' }'")
+        print(f"fr_ketone:                '{self.fr_ketone if self.fr_ketone is not None else '-' }'")
+        print(f"fr_ketone_Topliss:        '{self.fr_ketone_Topliss if self.fr_ketone_Topliss is not None else '-' }'")
+        print(f"fr_lactam:                '{self.fr_lactam if self.fr_lactam is not None else '-' }'")
+        print(f"fr_lactone:               '{self.fr_lactone if self.fr_lactone is not None else '-' }'")
+        print(f"fr_methoxy:               '{self.fr_methoxy if self.fr_methoxy is not None else '-' }'")
+        print(f"fr_morpholine:            '{self.fr_morpholine if self.fr_morpholine is not None else '-' }'")
+        print(f"fr_nitrile:               '{self.fr_nitrile if self.fr_nitrile is not None else '-' }'")
+        print(f"fr_nitro:                 '{self.fr_nitro if self.fr_nitro is not None else '-' }'")
+        print(f"fr_nitro_arom:            '{self.fr_nitro_arom if self.fr_nitro_arom is not None else '-' }'")
+        print(f"fr_nitro_arom_nonortho:   '{self.fr_nitro_arom_nonortho if self.fr_nitro_arom_nonortho is not None else '-' }'")
+        print(f"fr_nitroso:               '{self.fr_nitroso if self.fr_nitroso is not None else '-' }'")
+        print(f"fr_oxazole:               '{self.fr_oxazole if self.fr_oxazole is not None else '-' }'")
+        print(f"fr_oxime:                 '{self.fr_oxime if self.fr_oxime is not None else '-' }'")
+        print(f"fr_para_hydroxylation:    '{self.fr_para_hydroxylation if self.fr_para_hydroxylation is not None else '-' }'")
+        print(f"fr_phenol:                '{self.fr_phenol if self.fr_phenol is not None else '-' }'")
+        print(f"fr_phenol_noOrthoHbond:   '{self.fr_phenol_noOrthoHbond if self.fr_phenol_noOrthoHbond is not None else '-' }'")
+        print(f"fr_phos_acid:             '{self.fr_phos_acid if self.fr_phos_acid is not None else '-' }'")
+        print(f"fr_phos_ester:            '{self.fr_phos_ester if self.fr_phos_ester is not None else '-' }'")
+        print(f"fr_piperdine:             '{self.fr_piperdine if self.fr_piperdine is not None else '-' }'")
+        print(f"fr_piperzine:             '{self.fr_piperzine if self.fr_piperzine is not None else '-' }'")
+        print(f"fr_priamide:              '{self.fr_priamide if self.fr_priamide is not None else '-' }'")
+        print(f"fr_prisulfonamd:          '{self.fr_prisulfonamd if self.fr_prisulfonamd is not None else '-' }'")
+        print(f"fr_pyridine:              '{self.fr_pyridine if self.fr_pyridine is not None else '-' }'")
+        print(f"fr_quatN:                 '{self.fr_quatN if self.fr_quatN is not None else '-' }'")
+        print(f"fr_sulfide:               '{self.fr_sulfide if self.fr_sulfide is not None else '-' }'")
+        print(f"fr_sulfonamd:             '{self.fr_sulfonamd if self.fr_sulfonamd is not None else '-' }'")
+        print(f"fr_sulfone:               '{self.fr_sulfone if self.fr_sulfone is not None else '-' }'")
+        print(f"fr_term_acetylene:        '{self.fr_term_acetylene if self.fr_term_acetylene is not None else '-' }'")
+        print(f"fr_tetrazole:             '{self.fr_tetrazole if self.fr_tetrazole is not None else '-' }'")
+        print(f"fr_thiazole:              '{self.fr_thiazole if self.fr_thiazole is not None else '-' }'")
+        print(f"fr_thiocyan:              '{self.fr_thiocyan if self.fr_thiocyan is not None else '-' }'")
+        print(f"fr_thiophene:             '{self.fr_thiophene if self.fr_thiophene is not None else '-' }'")
+        print(f"fr_unbrch_alkane:         '{self.fr_unbrch_alkane if self.fr_unbrch_alkane is not None else '-' }'")
+        print(f"fr_urea:                  '{self.fr_urea if self.fr_urea is not None else '-' }'")
+        print(f"FractionCSP3:             '{self.FractionCSP3 if self.FractionCSP3 is not None else '-' }'")
+        print(f"HallKierAlpha:            '{self.HallKierAlpha if self.HallKierAlpha is not None else '-' }'")
+        print(f"HeavyAtomMolWt:           '{self.HeavyAtomMolWt if self.HeavyAtomMolWt is not None else '-' }'")
+        print(f"HeavyAtomCount:           '{self.HeavyAtomCount if self.HeavyAtomCount is not None else '-' }'")
+        print(f"Ipc:                      '{self.Ipc if self.Ipc is not None else '-' }'")
+        print(f"Kappa1:                   '{self.Kappa1 if self.Kappa1 is not None else '-' }'")
+        print(f"Kappa2:                   '{self.Kappa2 if self.Kappa2 is not None else '-' }'")
+        print(f"Kappa3:                   '{self.Kappa3 if self.Kappa3 is not None else '-' }'")
+        print(f"LabuteASA:                '{self.LabuteASA if self.LabuteASA is not None else '-' }'")
+        print(f"MaxAbsPartialCharge:      '{self.MaxAbsPartialCharge if self.MaxAbsPartialCharge is not None else '-' }'")
+        print(f"MaxPartialCharge:         '{self.MaxPartialCharge if self.MaxPartialCharge is not None else '-' }'")
+        print(f"MinAbsPartialCharge:      '{self.MinAbsPartialCharge if self.MinAbsPartialCharge is not None else '-' }'")
+        print(f"MinPartialCharge:         '{self.MinPartialCharge if self.MinPartialCharge is not None else '-' }'")
+        print(f"MolLogP:                  '{self.MolLogP if self.MolLogP is not None else '-' }'")
+        print(f"MolMR:                    '{self.MolMR if self.MolMR is not None else '-' }'")
+        print(f"MolWt:                    '{self.MolWt if self.MolWt is not None else '-' }'")
+        print(f"NHOHCount:                '{self.NHOHCount if self.NHOHCount is not None else '-' }'")
+        print(f"NOCount:                  '{self.NOCount if self.NOCount is not None else '-' }'")
+        print(f"NumAliphaticCarbocycles:  '{self.NumAliphaticCarbocycles if self.NumAliphaticCarbocycles is not None else '-' }'")
+        print(f"NumAliphaticHeterocycles: '{self.NumAliphaticHeterocycles if self.NumAliphaticHeterocycles is not None else '-' }'")
+        print(f"NumAliphaticRings:        '{self.NumAliphaticRings if self.NumAliphaticRings is not None else '-' }'")
+        print(f"NumAromaticCarbocycles:   '{self.NumAromaticCarbocycles if self.NumAromaticCarbocycles is not None else '-' }'")
+        print(f"NumAromaticHeterocycles:  '{self.NumAromaticHeterocycles if self.NumAromaticHeterocycles is not None else '-' }'")
+        print(f"NumAromaticRings:         '{self.NumAromaticRings if self.NumAromaticRings is not None else '-' }'")
+        print(f"NumHAcceptors:            '{self.NumHAcceptors if self.NumHAcceptors is not None else '-' }'")
+        print(f"NumHDonors:               '{self.NumHDonors if self.NumHDonors is not None else '-' }'")
+        print(f"NumHeteroatoms:           '{self.NumHeteroatoms if self.NumHeteroatoms is not None else '-' }'")
+        print(f"NumRadicalElectrons:      '{self.NumRadicalElectrons if self.NumRadicalElectrons is not None else '-' }'")
+        print(f"NumRotatableBonds:        '{self.NumRotatableBonds if self.NumRotatableBonds is not None else '-' }'")
+        print(f"NumSaturatedCarbocycles:  '{self.NumSaturatedCarbocycles if self.NumSaturatedCarbocycles is not None else '-' }'")
+        print(f"NumSaturatedHeterocycles: '{self.NumSaturatedHeterocycles if self.NumSaturatedHeterocycles is not None else '-' }'")
+        print(f"NumSaturatedRings:        '{self.NumSaturatedRings if self.NumSaturatedRings is not None else '-' }'")
+        print(f"NumValenceElectrons:      '{self.NumValenceElectrons if self.NumValenceElectrons is not None else '-' }'")
+        print(f"PEOE_VSA1:                '{self.PEOE_VSA1 if self.PEOE_VSA1 is not None else '-' }'")
+        print(f"PEOE_VSA2:                '{self.PEOE_VSA2 if self.PEOE_VSA2 is not None else '-' }'")
+        print(f"PEOE_VSA3:                '{self.PEOE_VSA3 if self.PEOE_VSA3 is not None else '-' }'")
+        print(f"PEOE_VSA4:                '{self.PEOE_VSA4 if self.PEOE_VSA4 is not None else '-' }'")
+        print(f"PEOE_VSA5:                '{self.PEOE_VSA5 if self.PEOE_VSA5 is not None else '-' }'")
+        print(f"PEOE_VSA6:                '{self.PEOE_VSA6 if self.PEOE_VSA6 is not None else '-' }'")
+        print(f"PEOE_VSA7:                '{self.PEOE_VSA7 if self.PEOE_VSA7 is not None else '-' }'")
+        print(f"PEOE_VSA8:                '{self.PEOE_VSA8 if self.PEOE_VSA8 is not None else '-' }'")
+        print(f"PEOE_VSA9:                '{self.PEOE_VSA9 if self.PEOE_VSA9 is not None else '-' }'")
+        print(f"PEOE_VSA10:               '{self.PEOE_VSA10 if self.PEOE_VSA10 is not None else '-' }'")
+        print(f"PEOE_VSA11:               '{self.PEOE_VSA11 if self.PEOE_VSA11 is not None else '-' }'")
+        print(f"PEOE_VSA12:               '{self.PEOE_VSA12 if self.PEOE_VSA12 is not None else '-' }'")
+        print(f"PEOE_VSA13:               '{self.PEOE_VSA13 if self.PEOE_VSA13 is not None else '-' }'")
+        print(f"PEOE_VSA14:               '{self.PEOE_VSA14 if self.PEOE_VSA14 is not None else '-' }'")
+        print(f"qed:                      '{self.qed if self.qed is not None else '-' }'")
+        print(f"RingCount:                '{self.RingCount if self.RingCount is not None else '-' }'")
+        print(f"SMR_VSA1:                 '{self.SMR_VSA1 if self.SMR_VSA1 is not None else '-' }'")
+        print(f"SMR_VSA2:                 '{self.SMR_VSA2 if self.SMR_VSA2 is not None else '-' }'")
+        print(f"SMR_VSA3:                 '{self.SMR_VSA3 if self.SMR_VSA3 is not None else '-' }'")
+        print(f"SMR_VSA4:                 '{self.SMR_VSA4 if self.SMR_VSA4 is not None else '-' }'")
+        print(f"SMR_VSA5:                 '{self.SMR_VSA5 if self.SMR_VSA5 is not None else '-' }'")
+        print(f"SMR_VSA6:                 '{self.SMR_VSA6 if self.SMR_VSA6 is not None else '-' }'")
+        print(f"SMR_VSA7:                 '{self.SMR_VSA7 if self.SMR_VSA7 is not None else '-' }'")
+        print(f"SMR_VSA8:                 '{self.SMR_VSA8 if self.SMR_VSA8 is not None else '-' }'")
+        print(f"SMR_VSA9:                 '{self.SMR_VSA9 if self.SMR_VSA9 is not None else '-' }'")
+        print(f"SMR_VSA10:                '{self.SMR_VSA10 if self.SMR_VSA10 is not None else '-' }'")
+        print(f"SlogP_VSA1:               '{self.SlogP_VSA1 if self.SlogP_VSA1 is not None else '-' }'")
+        print(f"SlogP_VSA2:               '{self.SlogP_VSA2 if self.SlogP_VSA2 is not None else '-' }'")
+        print(f"SlogP_VSA3:               '{self.SlogP_VSA3 if self.SlogP_VSA3 is not None else '-' }'")
+        print(f"SlogP_VSA4:               '{self.SlogP_VSA4 if self.SlogP_VSA4 is not None else '-' }'")
+        print(f"SlogP_VSA5:               '{self.SlogP_VSA5 if self.SlogP_VSA5 is not None else '-' }'")
+        print(f"SlogP_VSA6:               '{self.SlogP_VSA6 if self.SlogP_VSA6 is not None else '-' }'")
+        print(f"SlogP_VSA7:               '{self.SlogP_VSA7 if self.SlogP_VSA7 is not None else '-' }'")
+        print(f"SlogP_VSA8:               '{self.SlogP_VSA8 if self.SlogP_VSA8 is not None else '-' }'")
+        print(f"SlogP_VSA9:               '{self.SlogP_VSA9 if self.SlogP_VSA9 is not None else '-' }'")
+        print(f"SlogP_VSA10:              '{self.SlogP_VSA10 if self.SlogP_VSA10 is not None else '-' }'")
+        print(f"SlogP_VSA11:              '{self.SlogP_VSA11 if self.SlogP_VSA11 is not None else '-' }'")
+        print(f"SlogP_VSA12:              '{self.SlogP_VSA12 if self.SlogP_VSA12 is not None else '-' }'")
+        print(f"TPSA:                     '{self.TPSA if self.TPSA is not None else '-' }'")
+        print(f"VSA_EState1:              '{self.VSA_EState1 if self.VSA_EState1 is not None else '-' }'")
+        print(f"VSA_EState2:              '{self.VSA_EState2 if self.VSA_EState2 is not None else '-' }'")
+        print(f"VSA_EState3:              '{self.VSA_EState3 if self.VSA_EState3 is not None else '-' }'")
+        print(f"VSA_EState4:              '{self.VSA_EState4 if self.VSA_EState4 is not None else '-' }'")
+        print(f"VSA_EState5:              '{self.VSA_EState5 if self.VSA_EState5 is not None else '-' }'")
+        print(f"VSA_EState6:              '{self.VSA_EState6 if self.VSA_EState6 is not None else '-' }'")
+        print(f"VSA_EState7:              '{self.VSA_EState7 if self.VSA_EState7 is not None else '-' }'")
+        print(f"VSA_EState8:              '{self.VSA_EState8 if self.VSA_EState8 is not None else '-' }'")
+        print(f"VSA_EState9:              '{self.VSA_EState9 if self.VSA_EState9 is not None else '-' }'")
+        print(f"VSA_EState10:             '{self.VSA_EState10 if self.VSA_EState10 is not None else '-' }'")
+        print(f"AUTOCORR3D_1:             '{self.AUTOCORR3D_1 if self.AUTOCORR3D_1 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_2:             '{self.AUTOCORR3D_2 if self.AUTOCORR3D_2 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_3:             '{self.AUTOCORR3D_3 if self.AUTOCORR3D_3 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_4:             '{self.AUTOCORR3D_4 if self.AUTOCORR3D_4 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_5:             '{self.AUTOCORR3D_5 if self.AUTOCORR3D_5 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_6:             '{self.AUTOCORR3D_6 if self.AUTOCORR3D_6 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_7:             '{self.AUTOCORR3D_7 if self.AUTOCORR3D_7 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_8:             '{self.AUTOCORR3D_8 if self.AUTOCORR3D_8 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_9:             '{self.AUTOCORR3D_9 if self.AUTOCORR3D_9 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_10:            '{self.AUTOCORR3D_10 if self.AUTOCORR3D_10 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_11:            '{self.AUTOCORR3D_11 if self.AUTOCORR3D_11 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_12:            '{self.AUTOCORR3D_12 if self.AUTOCORR3D_12 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_13:            '{self.AUTOCORR3D_13 if self.AUTOCORR3D_13 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_14:            '{self.AUTOCORR3D_14 if self.AUTOCORR3D_14 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_15:            '{self.AUTOCORR3D_15 if self.AUTOCORR3D_15 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_16:            '{self.AUTOCORR3D_16 if self.AUTOCORR3D_16 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_17:            '{self.AUTOCORR3D_17 if self.AUTOCORR3D_17 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_18:            '{self.AUTOCORR3D_18 if self.AUTOCORR3D_18 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_19:            '{self.AUTOCORR3D_19 if self.AUTOCORR3D_19 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_20:            '{self.AUTOCORR3D_20 if self.AUTOCORR3D_20 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_21:            '{self.AUTOCORR3D_21 if self.AUTOCORR3D_21 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_22:            '{self.AUTOCORR3D_22 if self.AUTOCORR3D_22 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_23:            '{self.AUTOCORR3D_23 if self.AUTOCORR3D_23 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_24:            '{self.AUTOCORR3D_24 if self.AUTOCORR3D_24 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_25:            '{self.AUTOCORR3D_25 if self.AUTOCORR3D_25 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_26:            '{self.AUTOCORR3D_26 if self.AUTOCORR3D_26 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_27:            '{self.AUTOCORR3D_27 if self.AUTOCORR3D_27 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_28:            '{self.AUTOCORR3D_28 if self.AUTOCORR3D_28 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_29:            '{self.AUTOCORR3D_29 if self.AUTOCORR3D_29 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_30:            '{self.AUTOCORR3D_30 if self.AUTOCORR3D_30 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_31:            '{self.AUTOCORR3D_31 if self.AUTOCORR3D_31 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_32:            '{self.AUTOCORR3D_32 if self.AUTOCORR3D_32 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_33:            '{self.AUTOCORR3D_33 if self.AUTOCORR3D_33 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_34:            '{self.AUTOCORR3D_34 if self.AUTOCORR3D_34 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_35:            '{self.AUTOCORR3D_35 if self.AUTOCORR3D_35 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_36:            '{self.AUTOCORR3D_36 if self.AUTOCORR3D_36 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_37:            '{self.AUTOCORR3D_37 if self.AUTOCORR3D_37 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_38:            '{self.AUTOCORR3D_38 if self.AUTOCORR3D_38 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_39:            '{self.AUTOCORR3D_39 if self.AUTOCORR3D_39 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_40:            '{self.AUTOCORR3D_40 if self.AUTOCORR3D_40 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_41:            '{self.AUTOCORR3D_41 if self.AUTOCORR3D_41 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_42:            '{self.AUTOCORR3D_42 if self.AUTOCORR3D_42 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_43:            '{self.AUTOCORR3D_43 if self.AUTOCORR3D_43 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_44:            '{self.AUTOCORR3D_44 if self.AUTOCORR3D_44 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_45:            '{self.AUTOCORR3D_45 if self.AUTOCORR3D_45 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_46:            '{self.AUTOCORR3D_46 if self.AUTOCORR3D_46 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_47:            '{self.AUTOCORR3D_47 if self.AUTOCORR3D_47 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_48:            '{self.AUTOCORR3D_48 if self.AUTOCORR3D_48 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_49:            '{self.AUTOCORR3D_49 if self.AUTOCORR3D_49 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_50:            '{self.AUTOCORR3D_50 if self.AUTOCORR3D_50 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_51:            '{self.AUTOCORR3D_51 if self.AUTOCORR3D_51 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_52:            '{self.AUTOCORR3D_52 if self.AUTOCORR3D_52 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_53:            '{self.AUTOCORR3D_53 if self.AUTOCORR3D_53 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_54:            '{self.AUTOCORR3D_54 if self.AUTOCORR3D_54 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_55:            '{self.AUTOCORR3D_55 if self.AUTOCORR3D_55 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_56:            '{self.AUTOCORR3D_56 if self.AUTOCORR3D_56 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_57:            '{self.AUTOCORR3D_57 if self.AUTOCORR3D_57 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_58:            '{self.AUTOCORR3D_58 if self.AUTOCORR3D_58 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_59:            '{self.AUTOCORR3D_59 if self.AUTOCORR3D_59 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_60:            '{self.AUTOCORR3D_60 if self.AUTOCORR3D_60 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_61:            '{self.AUTOCORR3D_61 if self.AUTOCORR3D_61 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_62:            '{self.AUTOCORR3D_62 if self.AUTOCORR3D_62 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_63:            '{self.AUTOCORR3D_63 if self.AUTOCORR3D_63 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_64:            '{self.AUTOCORR3D_64 if self.AUTOCORR3D_64 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_65:            '{self.AUTOCORR3D_65 if self.AUTOCORR3D_65 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_66:            '{self.AUTOCORR3D_66 if self.AUTOCORR3D_66 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_67:            '{self.AUTOCORR3D_67 if self.AUTOCORR3D_67 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_68:            '{self.AUTOCORR3D_68 if self.AUTOCORR3D_68 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_69:            '{self.AUTOCORR3D_69 if self.AUTOCORR3D_69 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_70:            '{self.AUTOCORR3D_70 if self.AUTOCORR3D_70 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_71:            '{self.AUTOCORR3D_71 if self.AUTOCORR3D_71 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_72:            '{self.AUTOCORR3D_72 if self.AUTOCORR3D_72 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_73:            '{self.AUTOCORR3D_73 if self.AUTOCORR3D_73 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_74:            '{self.AUTOCORR3D_74 if self.AUTOCORR3D_74 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_75:            '{self.AUTOCORR3D_75 if self.AUTOCORR3D_75 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_76:            '{self.AUTOCORR3D_76 if self.AUTOCORR3D_76 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_77:            '{self.AUTOCORR3D_77 if self.AUTOCORR3D_77 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_78:            '{self.AUTOCORR3D_78 if self.AUTOCORR3D_78 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_79:            '{self.AUTOCORR3D_79 if self.AUTOCORR3D_79 is not None else 0.0 }'")
+        print(f"AUTOCORR3D_80:            '{self.AUTOCORR3D_80 if self.AUTOCORR3D_80 is not None else 0.0 }'")
+        print(f"Asphericity:              '{self.Asphericity if self.Asphericity is not None else 0.0 }'")
+        print(f"Eccentricity:             '{self.Eccentricity if self.Eccentricity is not None else 0.0 }'")
+        print(f"InertialShapeFactor:      '{self.InertialShapeFactor if self.InertialShapeFactor is not None else 0.0 }'")
+        print(f"NPR1:                     '{self.NPR1 if self.NPR1 is not None else 0.0 }'")
+        print(f"NPR2:                     '{self.NPR2 if self.NPR2 is not None else 0.0 }'")
+        print(f"PMI1:                     '{self.PMI1 if self.PMI1 is not None else 0.0 }'")
+        print(f"PMI2:                     '{self.PMI2 if self.PMI2 is not None else 0.0 }'")
+        print(f"PMI3:                     '{self.PMI3 if self.PMI3 is not None else 0.0 }'")
+        print(f"RadiusOfGyration:         '{self.RadiusOfGyration if self.RadiusOfGyration is not None else 0.0 }'")
+        print(f"SpherocityIndex:          '{self.SpherocityIndex if self.SpherocityIndex is not None else 0.0 }'")
         #endregion
 
-        return None
+        return
 
     def get_descriptors(self) -> Dict[str, Union[int, float]]:
         '''Return the descriptors for the Ligand object.
@@ -250,12 +1237,498 @@ class Ligand:
             A dictionary of the descriptors for the Ligand object.
         '''
 
-        descriptors = {}
-
-        # All attribute initializations
-        for desc in Ligand.allDescriptors:
-            attribute = getattr(self, desc)
-            descriptors[desc] = attribute if attribute is not None else 0.0
+        descriptors = {
+          "AUTOCORR2D_1": self.AUTOCORR2D_1 if self.AUTOCORR2D_1 is not None else 0.0,
+          "AUTOCORR2D_2": self.AUTOCORR2D_2 if self.AUTOCORR2D_2 is not None else 0.0,
+          "AUTOCORR2D_3": self.AUTOCORR2D_3 if self.AUTOCORR2D_3 is not None else 0.0,
+          "AUTOCORR2D_4": self.AUTOCORR2D_4 if self.AUTOCORR2D_4 is not None else 0.0,
+          "AUTOCORR2D_5": self.AUTOCORR2D_5 if self.AUTOCORR2D_5 is not None else 0.0,
+          "AUTOCORR2D_6": self.AUTOCORR2D_6 if self.AUTOCORR2D_6 is not None else 0.0,
+          "AUTOCORR2D_7": self.AUTOCORR2D_7 if self.AUTOCORR2D_7 is not None else 0.0,
+          "AUTOCORR2D_8": self.AUTOCORR2D_8 if self.AUTOCORR2D_8 is not None else 0.0,
+          "AUTOCORR2D_9": self.AUTOCORR2D_9 if self.AUTOCORR2D_9 is not None else 0.0,
+          "AUTOCORR2D_10": self.AUTOCORR2D_10 if self.AUTOCORR2D_10 is not None else 0.0,
+          "AUTOCORR2D_11": self.AUTOCORR2D_11 if self.AUTOCORR2D_11 is not None else 0.0,
+          "AUTOCORR2D_12": self.AUTOCORR2D_12 if self.AUTOCORR2D_12 is not None else 0.0,
+          "AUTOCORR2D_13": self.AUTOCORR2D_13 if self.AUTOCORR2D_13 is not None else 0.0,
+          "AUTOCORR2D_14": self.AUTOCORR2D_14 if self.AUTOCORR2D_14 is not None else 0.0,
+          "AUTOCORR2D_15": self.AUTOCORR2D_15 if self.AUTOCORR2D_15 is not None else 0.0,
+          "AUTOCORR2D_16": self.AUTOCORR2D_16 if self.AUTOCORR2D_16 is not None else 0.0,
+          "AUTOCORR2D_17": self.AUTOCORR2D_17 if self.AUTOCORR2D_17 is not None else 0.0,
+          "AUTOCORR2D_18": self.AUTOCORR2D_18 if self.AUTOCORR2D_18 is not None else 0.0,
+          "AUTOCORR2D_19": self.AUTOCORR2D_19 if self.AUTOCORR2D_19 is not None else 0.0,
+          "AUTOCORR2D_20": self.AUTOCORR2D_20 if self.AUTOCORR2D_20 is not None else 0.0,
+          "AUTOCORR2D_21": self.AUTOCORR2D_21 if self.AUTOCORR2D_21 is not None else 0.0,
+          "AUTOCORR2D_22": self.AUTOCORR2D_22 if self.AUTOCORR2D_22 is not None else 0.0,
+          "AUTOCORR2D_23": self.AUTOCORR2D_23 if self.AUTOCORR2D_23 is not None else 0.0,
+          "AUTOCORR2D_24": self.AUTOCORR2D_24 if self.AUTOCORR2D_24 is not None else 0.0,
+          "AUTOCORR2D_25": self.AUTOCORR2D_25 if self.AUTOCORR2D_25 is not None else 0.0,
+          "AUTOCORR2D_26": self.AUTOCORR2D_26 if self.AUTOCORR2D_26 is not None else 0.0,
+          "AUTOCORR2D_27": self.AUTOCORR2D_27 if self.AUTOCORR2D_27 is not None else 0.0,
+          "AUTOCORR2D_28": self.AUTOCORR2D_28 if self.AUTOCORR2D_28 is not None else 0.0,
+          "AUTOCORR2D_29": self.AUTOCORR2D_29 if self.AUTOCORR2D_29 is not None else 0.0,
+          "AUTOCORR2D_30": self.AUTOCORR2D_30 if self.AUTOCORR2D_30 is not None else 0.0,
+          "AUTOCORR2D_31": self.AUTOCORR2D_31 if self.AUTOCORR2D_31 is not None else 0.0,
+          "AUTOCORR2D_32": self.AUTOCORR2D_32 if self.AUTOCORR2D_32 is not None else 0.0,
+          "AUTOCORR2D_33": self.AUTOCORR2D_33 if self.AUTOCORR2D_33 is not None else 0.0,
+          "AUTOCORR2D_34": self.AUTOCORR2D_34 if self.AUTOCORR2D_34 is not None else 0.0,
+          "AUTOCORR2D_35": self.AUTOCORR2D_35 if self.AUTOCORR2D_35 is not None else 0.0,
+          "AUTOCORR2D_36": self.AUTOCORR2D_36 if self.AUTOCORR2D_36 is not None else 0.0,
+          "AUTOCORR2D_37": self.AUTOCORR2D_37 if self.AUTOCORR2D_37 is not None else 0.0,
+          "AUTOCORR2D_38": self.AUTOCORR2D_38 if self.AUTOCORR2D_38 is not None else 0.0,
+          "AUTOCORR2D_39": self.AUTOCORR2D_39 if self.AUTOCORR2D_39 is not None else 0.0,
+          "AUTOCORR2D_40": self.AUTOCORR2D_40 if self.AUTOCORR2D_40 is not None else 0.0,
+          "AUTOCORR2D_41": self.AUTOCORR2D_41 if self.AUTOCORR2D_41 is not None else 0.0,
+          "AUTOCORR2D_42": self.AUTOCORR2D_42 if self.AUTOCORR2D_42 is not None else 0.0,
+          "AUTOCORR2D_43": self.AUTOCORR2D_43 if self.AUTOCORR2D_43 is not None else 0.0,
+          "AUTOCORR2D_44": self.AUTOCORR2D_44 if self.AUTOCORR2D_44 is not None else 0.0,
+          "AUTOCORR2D_45": self.AUTOCORR2D_45 if self.AUTOCORR2D_45 is not None else 0.0,
+          "AUTOCORR2D_46": self.AUTOCORR2D_46 if self.AUTOCORR2D_46 is not None else 0.0,
+          "AUTOCORR2D_47": self.AUTOCORR2D_47 if self.AUTOCORR2D_47 is not None else 0.0,
+          "AUTOCORR2D_48": self.AUTOCORR2D_48 if self.AUTOCORR2D_48 is not None else 0.0,
+          "AUTOCORR2D_49": self.AUTOCORR2D_49 if self.AUTOCORR2D_49 is not None else 0.0,
+          "AUTOCORR2D_50": self.AUTOCORR2D_50 if self.AUTOCORR2D_50 is not None else 0.0,
+          "AUTOCORR2D_51": self.AUTOCORR2D_51 if self.AUTOCORR2D_51 is not None else 0.0,
+          "AUTOCORR2D_52": self.AUTOCORR2D_52 if self.AUTOCORR2D_52 is not None else 0.0,
+          "AUTOCORR2D_53": self.AUTOCORR2D_53 if self.AUTOCORR2D_53 is not None else 0.0,
+          "AUTOCORR2D_54": self.AUTOCORR2D_54 if self.AUTOCORR2D_54 is not None else 0.0,
+          "AUTOCORR2D_55": self.AUTOCORR2D_55 if self.AUTOCORR2D_55 is not None else 0.0,
+          "AUTOCORR2D_56": self.AUTOCORR2D_56 if self.AUTOCORR2D_56 is not None else 0.0,
+          "AUTOCORR2D_57": self.AUTOCORR2D_57 if self.AUTOCORR2D_57 is not None else 0.0,
+          "AUTOCORR2D_58": self.AUTOCORR2D_58 if self.AUTOCORR2D_58 is not None else 0.0,
+          "AUTOCORR2D_59": self.AUTOCORR2D_59 if self.AUTOCORR2D_59 is not None else 0.0,
+          "AUTOCORR2D_60": self.AUTOCORR2D_60 if self.AUTOCORR2D_60 is not None else 0.0,
+          "AUTOCORR2D_61": self.AUTOCORR2D_61 if self.AUTOCORR2D_61 is not None else 0.0,
+          "AUTOCORR2D_62": self.AUTOCORR2D_62 if self.AUTOCORR2D_62 is not None else 0.0,
+          "AUTOCORR2D_63": self.AUTOCORR2D_63 if self.AUTOCORR2D_63 is not None else 0.0,
+          "AUTOCORR2D_64": self.AUTOCORR2D_64 if self.AUTOCORR2D_64 is not None else 0.0,
+          "AUTOCORR2D_65": self.AUTOCORR2D_65 if self.AUTOCORR2D_65 is not None else 0.0,
+          "AUTOCORR2D_66": self.AUTOCORR2D_66 if self.AUTOCORR2D_66 is not None else 0.0,
+          "AUTOCORR2D_67": self.AUTOCORR2D_67 if self.AUTOCORR2D_67 is not None else 0.0,
+          "AUTOCORR2D_68": self.AUTOCORR2D_68 if self.AUTOCORR2D_68 is not None else 0.0,
+          "AUTOCORR2D_69": self.AUTOCORR2D_69 if self.AUTOCORR2D_69 is not None else 0.0,
+          "AUTOCORR2D_70": self.AUTOCORR2D_70 if self.AUTOCORR2D_70 is not None else 0.0,
+          "AUTOCORR2D_71": self.AUTOCORR2D_71 if self.AUTOCORR2D_71 is not None else 0.0,
+          "AUTOCORR2D_72": self.AUTOCORR2D_72 if self.AUTOCORR2D_72 is not None else 0.0,
+          "AUTOCORR2D_73": self.AUTOCORR2D_73 if self.AUTOCORR2D_73 is not None else 0.0,
+          "AUTOCORR2D_74": self.AUTOCORR2D_74 if self.AUTOCORR2D_74 is not None else 0.0,
+          "AUTOCORR2D_75": self.AUTOCORR2D_75 if self.AUTOCORR2D_75 is not None else 0.0,
+          "AUTOCORR2D_76": self.AUTOCORR2D_76 if self.AUTOCORR2D_76 is not None else 0.0,
+          "AUTOCORR2D_77": self.AUTOCORR2D_77 if self.AUTOCORR2D_77 is not None else 0.0,
+          "AUTOCORR2D_78": self.AUTOCORR2D_78 if self.AUTOCORR2D_78 is not None else 0.0,
+          "AUTOCORR2D_79": self.AUTOCORR2D_79 if self.AUTOCORR2D_79 is not None else 0.0,
+          "AUTOCORR2D_80": self.AUTOCORR2D_80 if self.AUTOCORR2D_80 is not None else 0.0,
+          "AUTOCORR2D_81": self.AUTOCORR2D_81 if self.AUTOCORR2D_81 is not None else 0.0,
+          "AUTOCORR2D_82": self.AUTOCORR2D_82 if self.AUTOCORR2D_82 is not None else 0.0,
+          "AUTOCORR2D_83": self.AUTOCORR2D_83 if self.AUTOCORR2D_83 is not None else 0.0,
+          "AUTOCORR2D_84": self.AUTOCORR2D_84 if self.AUTOCORR2D_84 is not None else 0.0,
+          "AUTOCORR2D_85": self.AUTOCORR2D_85 if self.AUTOCORR2D_85 is not None else 0.0,
+          "AUTOCORR2D_86": self.AUTOCORR2D_86 if self.AUTOCORR2D_86 is not None else 0.0,
+          "AUTOCORR2D_87": self.AUTOCORR2D_87 if self.AUTOCORR2D_87 is not None else 0.0,
+          "AUTOCORR2D_88": self.AUTOCORR2D_88 if self.AUTOCORR2D_88 is not None else 0.0,
+          "AUTOCORR2D_89": self.AUTOCORR2D_89 if self.AUTOCORR2D_89 is not None else 0.0,
+          "AUTOCORR2D_90": self.AUTOCORR2D_90 if self.AUTOCORR2D_90 is not None else 0.0,
+          "AUTOCORR2D_91": self.AUTOCORR2D_91 if self.AUTOCORR2D_91 is not None else 0.0,
+          "AUTOCORR2D_92": self.AUTOCORR2D_92 if self.AUTOCORR2D_92 is not None else 0.0,
+          "AUTOCORR2D_93": self.AUTOCORR2D_93 if self.AUTOCORR2D_93 is not None else 0.0,
+          "AUTOCORR2D_94": self.AUTOCORR2D_94 if self.AUTOCORR2D_94 is not None else 0.0,
+          "AUTOCORR2D_95": self.AUTOCORR2D_95 if self.AUTOCORR2D_95 is not None else 0.0,
+          "AUTOCORR2D_96": self.AUTOCORR2D_96 if self.AUTOCORR2D_96 is not None else 0.0,
+          "AUTOCORR2D_97": self.AUTOCORR2D_97 if self.AUTOCORR2D_97 is not None else 0.0,
+          "AUTOCORR2D_98": self.AUTOCORR2D_98 if self.AUTOCORR2D_98 is not None else 0.0,
+          "AUTOCORR2D_99": self.AUTOCORR2D_99 if self.AUTOCORR2D_99 is not None else 0.0,
+          "AUTOCORR2D_100": self.AUTOCORR2D_100 if self.AUTOCORR2D_100 is not None else 0.0,
+          "AUTOCORR2D_101": self.AUTOCORR2D_101 if self.AUTOCORR2D_101 is not None else 0.0,
+          "AUTOCORR2D_102": self.AUTOCORR2D_102 if self.AUTOCORR2D_102 is not None else 0.0,
+          "AUTOCORR2D_103": self.AUTOCORR2D_103 if self.AUTOCORR2D_103 is not None else 0.0,
+          "AUTOCORR2D_104": self.AUTOCORR2D_104 if self.AUTOCORR2D_104 is not None else 0.0,
+          "AUTOCORR2D_105": self.AUTOCORR2D_105 if self.AUTOCORR2D_105 is not None else 0.0,
+          "AUTOCORR2D_106": self.AUTOCORR2D_106 if self.AUTOCORR2D_106 is not None else 0.0,
+          "AUTOCORR2D_107": self.AUTOCORR2D_107 if self.AUTOCORR2D_107 is not None else 0.0,
+          "AUTOCORR2D_108": self.AUTOCORR2D_108 if self.AUTOCORR2D_108 is not None else 0.0,
+          "AUTOCORR2D_109": self.AUTOCORR2D_109 if self.AUTOCORR2D_109 is not None else 0.0,
+          "AUTOCORR2D_110": self.AUTOCORR2D_110 if self.AUTOCORR2D_110 is not None else 0.0,
+          "AUTOCORR2D_111": self.AUTOCORR2D_111 if self.AUTOCORR2D_111 is not None else 0.0,
+          "AUTOCORR2D_112": self.AUTOCORR2D_112 if self.AUTOCORR2D_112 is not None else 0.0,
+          "AUTOCORR2D_113": self.AUTOCORR2D_113 if self.AUTOCORR2D_113 is not None else 0.0,
+          "AUTOCORR2D_114": self.AUTOCORR2D_114 if self.AUTOCORR2D_114 is not None else 0.0,
+          "AUTOCORR2D_115": self.AUTOCORR2D_115 if self.AUTOCORR2D_115 is not None else 0.0,
+          "AUTOCORR2D_116": self.AUTOCORR2D_116 if self.AUTOCORR2D_116 is not None else 0.0,
+          "AUTOCORR2D_117": self.AUTOCORR2D_117 if self.AUTOCORR2D_117 is not None else 0.0,
+          "AUTOCORR2D_118": self.AUTOCORR2D_118 if self.AUTOCORR2D_118 is not None else 0.0,
+          "AUTOCORR2D_119": self.AUTOCORR2D_119 if self.AUTOCORR2D_119 is not None else 0.0,
+          "AUTOCORR2D_120": self.AUTOCORR2D_120 if self.AUTOCORR2D_120 is not None else 0.0,
+          "AUTOCORR2D_121": self.AUTOCORR2D_121 if self.AUTOCORR2D_121 is not None else 0.0,
+          "AUTOCORR2D_122": self.AUTOCORR2D_122 if self.AUTOCORR2D_122 is not None else 0.0,
+          "AUTOCORR2D_123": self.AUTOCORR2D_123 if self.AUTOCORR2D_123 is not None else 0.0,
+          "AUTOCORR2D_124": self.AUTOCORR2D_124 if self.AUTOCORR2D_124 is not None else 0.0,
+          "AUTOCORR2D_125": self.AUTOCORR2D_125 if self.AUTOCORR2D_125 is not None else 0.0,
+          "AUTOCORR2D_126": self.AUTOCORR2D_126 if self.AUTOCORR2D_126 is not None else 0.0,
+          "AUTOCORR2D_127": self.AUTOCORR2D_127 if self.AUTOCORR2D_127 is not None else 0.0,
+          "AUTOCORR2D_128": self.AUTOCORR2D_128 if self.AUTOCORR2D_128 is not None else 0.0,
+          "AUTOCORR2D_129": self.AUTOCORR2D_129 if self.AUTOCORR2D_129 is not None else 0.0,
+          "AUTOCORR2D_130": self.AUTOCORR2D_130 if self.AUTOCORR2D_130 is not None else 0.0,
+          "AUTOCORR2D_131": self.AUTOCORR2D_131 if self.AUTOCORR2D_131 is not None else 0.0,
+          "AUTOCORR2D_132": self.AUTOCORR2D_132 if self.AUTOCORR2D_132 is not None else 0.0,
+          "AUTOCORR2D_133": self.AUTOCORR2D_133 if self.AUTOCORR2D_133 is not None else 0.0,
+          "AUTOCORR2D_134": self.AUTOCORR2D_134 if self.AUTOCORR2D_134 is not None else 0.0,
+          "AUTOCORR2D_135": self.AUTOCORR2D_135 if self.AUTOCORR2D_135 is not None else 0.0,
+          "AUTOCORR2D_136": self.AUTOCORR2D_136 if self.AUTOCORR2D_136 is not None else 0.0,
+          "AUTOCORR2D_137": self.AUTOCORR2D_137 if self.AUTOCORR2D_137 is not None else 0.0,
+          "AUTOCORR2D_138": self.AUTOCORR2D_138 if self.AUTOCORR2D_138 is not None else 0.0,
+          "AUTOCORR2D_139": self.AUTOCORR2D_139 if self.AUTOCORR2D_139 is not None else 0.0,
+          "AUTOCORR2D_140": self.AUTOCORR2D_140 if self.AUTOCORR2D_140 is not None else 0.0,
+          "AUTOCORR2D_141": self.AUTOCORR2D_141 if self.AUTOCORR2D_141 is not None else 0.0,
+          "AUTOCORR2D_142": self.AUTOCORR2D_142 if self.AUTOCORR2D_142 is not None else 0.0,
+          "AUTOCORR2D_143": self.AUTOCORR2D_143 if self.AUTOCORR2D_143 is not None else 0.0,
+          "AUTOCORR2D_144": self.AUTOCORR2D_144 if self.AUTOCORR2D_144 is not None else 0.0,
+          "AUTOCORR2D_145": self.AUTOCORR2D_145 if self.AUTOCORR2D_145 is not None else 0.0,
+          "AUTOCORR2D_146": self.AUTOCORR2D_146 if self.AUTOCORR2D_146 is not None else 0.0,
+          "AUTOCORR2D_147": self.AUTOCORR2D_147 if self.AUTOCORR2D_147 is not None else 0.0,
+          "AUTOCORR2D_148": self.AUTOCORR2D_148 if self.AUTOCORR2D_148 is not None else 0.0,
+          "AUTOCORR2D_149": self.AUTOCORR2D_149 if self.AUTOCORR2D_149 is not None else 0.0,
+          "AUTOCORR2D_150": self.AUTOCORR2D_150 if self.AUTOCORR2D_150 is not None else 0.0,
+          "AUTOCORR2D_151": self.AUTOCORR2D_151 if self.AUTOCORR2D_151 is not None else 0.0,
+          "AUTOCORR2D_152": self.AUTOCORR2D_152 if self.AUTOCORR2D_152 is not None else 0.0,
+          "AUTOCORR2D_153": self.AUTOCORR2D_153 if self.AUTOCORR2D_153 is not None else 0.0,
+          "AUTOCORR2D_154": self.AUTOCORR2D_154 if self.AUTOCORR2D_154 is not None else 0.0,
+          "AUTOCORR2D_155": self.AUTOCORR2D_155 if self.AUTOCORR2D_155 is not None else 0.0,
+          "AUTOCORR2D_156": self.AUTOCORR2D_156 if self.AUTOCORR2D_156 is not None else 0.0,
+          "AUTOCORR2D_157": self.AUTOCORR2D_157 if self.AUTOCORR2D_157 is not None else 0.0,
+          "AUTOCORR2D_158": self.AUTOCORR2D_158 if self.AUTOCORR2D_158 is not None else 0.0,
+          "AUTOCORR2D_159": self.AUTOCORR2D_159 if self.AUTOCORR2D_159 is not None else 0.0,
+          "AUTOCORR2D_160": self.AUTOCORR2D_160 if self.AUTOCORR2D_160 is not None else 0.0,
+          "AUTOCORR2D_161": self.AUTOCORR2D_161 if self.AUTOCORR2D_161 is not None else 0.0,
+          "AUTOCORR2D_162": self.AUTOCORR2D_162 if self.AUTOCORR2D_162 is not None else 0.0,
+          "AUTOCORR2D_163": self.AUTOCORR2D_163 if self.AUTOCORR2D_163 is not None else 0.0,
+          "AUTOCORR2D_164": self.AUTOCORR2D_164 if self.AUTOCORR2D_164 is not None else 0.0,
+          "AUTOCORR2D_165": self.AUTOCORR2D_165 if self.AUTOCORR2D_165 is not None else 0.0,
+          "AUTOCORR2D_166": self.AUTOCORR2D_166 if self.AUTOCORR2D_166 is not None else 0.0,
+          "AUTOCORR2D_167": self.AUTOCORR2D_167 if self.AUTOCORR2D_167 is not None else 0.0,
+          "AUTOCORR2D_168": self.AUTOCORR2D_168 if self.AUTOCORR2D_168 is not None else 0.0,
+          "AUTOCORR2D_169": self.AUTOCORR2D_169 if self.AUTOCORR2D_169 is not None else 0.0,
+          "AUTOCORR2D_170": self.AUTOCORR2D_170 if self.AUTOCORR2D_170 is not None else 0.0,
+          "AUTOCORR2D_171": self.AUTOCORR2D_171 if self.AUTOCORR2D_171 is not None else 0.0,
+          "AUTOCORR2D_172": self.AUTOCORR2D_172 if self.AUTOCORR2D_172 is not None else 0.0,
+          "AUTOCORR2D_173": self.AUTOCORR2D_173 if self.AUTOCORR2D_173 is not None else 0.0,
+          "AUTOCORR2D_174": self.AUTOCORR2D_174 if self.AUTOCORR2D_174 is not None else 0.0,
+          "AUTOCORR2D_175": self.AUTOCORR2D_175 if self.AUTOCORR2D_175 is not None else 0.0,
+          "AUTOCORR2D_176": self.AUTOCORR2D_176 if self.AUTOCORR2D_176 is not None else 0.0,
+          "AUTOCORR2D_177": self.AUTOCORR2D_177 if self.AUTOCORR2D_177 is not None else 0.0,
+          "AUTOCORR2D_178": self.AUTOCORR2D_178 if self.AUTOCORR2D_178 is not None else 0.0,
+          "AUTOCORR2D_179": self.AUTOCORR2D_179 if self.AUTOCORR2D_179 is not None else 0.0,
+          "AUTOCORR2D_180": self.AUTOCORR2D_180 if self.AUTOCORR2D_180 is not None else 0.0,
+          "AUTOCORR2D_181": self.AUTOCORR2D_181 if self.AUTOCORR2D_181 is not None else 0.0,
+          "AUTOCORR2D_182": self.AUTOCORR2D_182 if self.AUTOCORR2D_182 is not None else 0.0,
+          "AUTOCORR2D_183": self.AUTOCORR2D_183 if self.AUTOCORR2D_183 is not None else 0.0,
+          "AUTOCORR2D_184": self.AUTOCORR2D_184 if self.AUTOCORR2D_184 is not None else 0.0,
+          "AUTOCORR2D_185": self.AUTOCORR2D_185 if self.AUTOCORR2D_185 is not None else 0.0,
+          "AUTOCORR2D_186": self.AUTOCORR2D_186 if self.AUTOCORR2D_186 is not None else 0.0,
+          "AUTOCORR2D_187": self.AUTOCORR2D_187 if self.AUTOCORR2D_187 is not None else 0.0,
+          "AUTOCORR2D_188": self.AUTOCORR2D_188 if self.AUTOCORR2D_188 is not None else 0.0,
+          "AUTOCORR2D_189": self.AUTOCORR2D_189 if self.AUTOCORR2D_189 is not None else 0.0,
+          "AUTOCORR2D_190": self.AUTOCORR2D_190 if self.AUTOCORR2D_190 is not None else 0.0,
+          "AUTOCORR2D_191": self.AUTOCORR2D_191 if self.AUTOCORR2D_191 is not None else 0.0,
+          "AUTOCORR2D_192": self.AUTOCORR2D_192 if self.AUTOCORR2D_192 is not None else 0.0,
+          "BCUT2D_CHGHI": self.BCUT2D_CHGHI if self.BCUT2D_CHGHI is not None else 0.0,
+          "BCUT2D_CHGLO": self.BCUT2D_CHGLO if self.BCUT2D_CHGLO is not None else 0.0,
+          "BCUT2D_LOGPHI": self.BCUT2D_LOGPHI if self.BCUT2D_LOGPHI is not None else 0.0,
+          "BCUT2D_LOGPLOW": self.BCUT2D_LOGPLOW if self.BCUT2D_LOGPLOW is not None else 0.0,
+          "BCUT2D_MRHI": self.BCUT2D_MRHI if self.BCUT2D_MRHI is not None else 0.0,
+          "BCUT2D_MRLOW": self.BCUT2D_MRLOW if self.BCUT2D_MRLOW is not None else 0.0,
+          "BCUT2D_MWHI": self.BCUT2D_MWHI if self.BCUT2D_MWHI is not None else 0.0,
+          "BCUT2D_MWLOW": self.BCUT2D_MWLOW if self.BCUT2D_MWLOW is not None else 0.0,
+          "BalabanJ": self.BalabanJ if self.BalabanJ is not None else 0.0,
+          "BertzCT": self.BertzCT if self.BertzCT is not None else 0.0,
+          "Chi0": self.Chi0 if self.Chi0 is not None else 0.0,
+          "Chi0n": self.Chi0n if self.Chi0n is not None else 0.0,
+          "Chi0v": self.Chi0v if self.Chi0v is not None else 0.0,
+          "Chi1": self.Chi1 if self.Chi1 is not None else 0.0,
+          "Chi1n": self.Chi1n if self.Chi1n is not None else 0.0,
+          "Chi1v": self.Chi1v if self.Chi1v is not None else 0.0,
+          "Chi2n": self.Chi2n if self.Chi2n is not None else 0.0,
+          "Chi2v": self.Chi2v if self.Chi2v is not None else 0.0,
+          "Chi3n": self.Chi3n if self.Chi3n is not None else 0.0,
+          "Chi3v": self.Chi3v if self.Chi3v is not None else 0.0,
+          "Chi4n": self.Chi4n if self.Chi4n is not None else 0.0,
+          "Chi4v": self.Chi4v if self.Chi4v is not None else 0.0,
+          "EState_VSA1": self.EState_VSA1 if self.EState_VSA1 is not None else 0.0,
+          "EState_VSA2": self.EState_VSA2 if self.EState_VSA2 is not None else 0.0,
+          "EState_VSA3": self.EState_VSA3 if self.EState_VSA3 is not None else 0.0,
+          "EState_VSA4": self.EState_VSA4 if self.EState_VSA4 is not None else 0.0,
+          "EState_VSA5": self.EState_VSA5 if self.EState_VSA5 is not None else 0.0,
+          "EState_VSA6": self.EState_VSA6 if self.EState_VSA6 is not None else 0.0,
+          "EState_VSA7": self.EState_VSA7 if self.EState_VSA7 is not None else 0.0,
+          "EState_VSA8": self.EState_VSA8 if self.EState_VSA8 is not None else 0.0,
+          "EState_VSA9": self.EState_VSA9 if self.EState_VSA9 is not None else 0.0,
+          "EState_VSA10": self.EState_VSA10 if self.EState_VSA10 is not None else 0.0,
+          "EState_VSA11": self.EState_VSA11 if self.EState_VSA11 is not None else 0.0,
+          "MaxAbsEStateIndex": self.MaxAbsEStateIndex if self.MaxAbsEStateIndex is not None else 0.0,
+          "MaxEStateIndex": self.MaxEStateIndex if self.MaxEStateIndex is not None else 0.0,
+          "MinAbsEStateIndex": self.MinAbsEStateIndex if self.MinAbsEStateIndex is not None else 0.0,
+          "MinEStateIndex": self.MinEStateIndex if self.MinEStateIndex is not None else 0.0,
+          "ExactMolWt": self.ExactMolWt if self.ExactMolWt is not None else 0.0,
+          "FpDensityMorgan1": self.FpDensityMorgan1 if self.FpDensityMorgan1 is not None else 0,
+          "FpDensityMorgan2": self.FpDensityMorgan2 if self.FpDensityMorgan2 is not None else 0,
+          "FpDensityMorgan3": self.FpDensityMorgan3 if self.FpDensityMorgan3 is not None else 0,
+          "fr_Al_COO": self.fr_Al_COO if self.fr_Al_COO is not None else 0,
+          "fr_Al_OH": self.fr_Al_OH if self.fr_Al_OH is not None else 0,
+          "fr_Al_OH_noTert": self.fr_Al_OH_noTert if self.fr_Al_OH_noTert is not None else 0,
+          "fr_ArN": self.fr_ArN if self.fr_ArN is not None else 0,
+          "fr_Ar_COO": self.fr_Ar_COO if self.fr_Ar_COO is not None else 0,
+          "fr_Ar_N": self.fr_Ar_N if self.fr_Ar_N is not None else 0,
+          "fr_Ar_NH": self.fr_Ar_NH if self.fr_Ar_NH is not None else 0,
+          "fr_Ar_OH": self.fr_Ar_OH if self.fr_Ar_OH is not None else 0,
+          "fr_COO": self.fr_COO if self.fr_COO is not None else 0,
+          "fr_COO2": self.fr_COO2 if self.fr_COO2 is not None else 0,
+          "fr_C_O": self.fr_C_O if self.fr_C_O is not None else 0,
+          "fr_C_O_noCOO": self.fr_C_O_noCOO if self.fr_C_O_noCOO is not None else 0,
+          "fr_C_S": self.fr_C_S if self.fr_C_S is not None else 0,
+          "fr_HOCCN": self.fr_HOCCN if self.fr_HOCCN is not None else 0,
+          "fr_Imine": self.fr_Imine if self.fr_Imine is not None else 0,
+          "fr_NH0": self.fr_NH0 if self.fr_NH0 is not None else 0,
+          "fr_NH1": self.fr_NH1 if self.fr_NH1 is not None else 0,
+          "fr_NH2": self.fr_NH2 if self.fr_NH2 is not None else 0,
+          "fr_N_O": self.fr_N_O if self.fr_N_O is not None else 0,
+          "fr_Ndealkylation1": self.fr_Ndealkylation1 if self.fr_Ndealkylation1 is not None else 0,
+          "fr_Ndealkylation2": self.fr_Ndealkylation2 if self.fr_Ndealkylation2 is not None else 0,
+          "fr_Nhpyrrole": self.fr_Nhpyrrole if self.fr_Nhpyrrole is not None else 0,
+          "fr_SH": self.fr_SH if self.fr_SH is not None else 0,
+          "fr_aldehyde": self.fr_aldehyde if self.fr_aldehyde is not None else 0,
+          "fr_alkyl_carbamate": self.fr_alkyl_carbamate if self.fr_alkyl_carbamate is not None else 0,
+          "fr_alkyl_halide": self.fr_alkyl_halide if self.fr_alkyl_halide is not None else 0,
+          "fr_allylic_oxid": self.fr_allylic_oxid if self.fr_allylic_oxid is not None else 0,
+          "fr_amide": self.fr_amide if self.fr_amide is not None else 0,
+          "fr_amidine": self.fr_amidine if self.fr_amidine is not None else 0,
+          "fr_aniline": self.fr_aniline if self.fr_aniline is not None else 0,
+          "fr_aryl_methyl": self.fr_aryl_methyl if self.fr_aryl_methyl is not None else 0,
+          "fr_azide": self.fr_azide if self.fr_azide is not None else 0,
+          "fr_azo": self.fr_azo if self.fr_azo is not None else 0,
+          "fr_barbitur": self.fr_barbitur if self.fr_barbitur is not None else 0,
+          "fr_benzene": self.fr_benzene if self.fr_benzene is not None else 0,
+          "fr_benzodiazepine": self.fr_benzodiazepine if self.fr_benzodiazepine is not None else 0,
+          "fr_bicyclic": self.fr_bicyclic if self.fr_bicyclic is not None else 0,
+          "fr_diazo": self.fr_diazo if self.fr_diazo is not None else 0,
+          "fr_dihydropyridine": self.fr_dihydropyridine if self.fr_dihydropyridine is not None else 0,
+          "fr_epoxide": self.fr_epoxide if self.fr_epoxide is not None else 0,
+          "fr_ester": self.fr_ester if self.fr_ester is not None else 0,
+          "fr_ether": self.fr_ether if self.fr_ether is not None else 0,
+          "fr_furan": self.fr_furan if self.fr_furan is not None else 0,
+          "fr_guanido": self.fr_guanido if self.fr_guanido is not None else 0,
+          "fr_halogen": self.fr_halogen if self.fr_halogen is not None else 0,
+          "fr_hdrzine": self.fr_hdrzine if self.fr_hdrzine is not None else 0,
+          "fr_hdrzone": self.fr_hdrzone if self.fr_hdrzone is not None else 0,
+          "fr_imidazole": self.fr_imidazole if self.fr_imidazole is not None else 0,
+          "fr_imide": self.fr_imide if self.fr_imide is not None else 0,
+          "fr_isocyan": self.fr_isocyan if self.fr_isocyan is not None else 0,
+          "fr_isothiocyan": self.fr_isothiocyan if self.fr_isothiocyan is not None else 0,
+          "fr_ketone": self.fr_ketone if self.fr_ketone is not None else 0,
+          "fr_ketone_Topliss": self.fr_ketone_Topliss if self.fr_ketone_Topliss is not None else 0,
+          "fr_lactam": self.fr_lactam if self.fr_lactam is not None else 0,
+          "fr_lactone": self.fr_lactone if self.fr_lactone is not None else 0,
+          "fr_methoxy": self.fr_methoxy if self.fr_methoxy is not None else 0,
+          "fr_morpholine": self.fr_morpholine if self.fr_morpholine is not None else 0,
+          "fr_nitrile": self.fr_nitrile if self.fr_nitrile is not None else 0,
+          "fr_nitro": self.fr_nitro if self.fr_nitro is not None else 0,
+          "fr_nitro_arom": self.fr_nitro_arom if self.fr_nitro_arom is not None else 0,
+          "fr_nitro_arom_nonortho": self.fr_nitro_arom_nonortho if self.fr_nitro_arom_nonortho is not None else 0,
+          "fr_nitroso": self.fr_nitroso if self.fr_nitroso is not None else 0,
+          "fr_oxazole": self.fr_oxazole if self.fr_oxazole is not None else 0,
+          "fr_oxime": self.fr_oxime if self.fr_oxime is not None else 0,
+          "fr_para_hydroxylation": self.fr_para_hydroxylation if self.fr_para_hydroxylation is not None else 0,
+          "fr_phenol": self.fr_phenol if self.fr_phenol is not None else 0,
+          "fr_phenol_noOrthoHbond": self.fr_phenol_noOrthoHbond if self.fr_phenol_noOrthoHbond is not None else 0,
+          "fr_phos_acid": self.fr_phos_acid if self.fr_phos_acid is not None else 0,
+          "fr_phos_ester": self.fr_phos_ester if self.fr_phos_ester is not None else 0,
+          "fr_piperdine": self.fr_piperdine if self.fr_piperdine is not None else 0,
+          "fr_piperzine": self.fr_piperzine if self.fr_piperzine is not None else 0,
+          "fr_priamide": self.fr_priamide if self.fr_priamide is not None else 0,
+          "fr_prisulfonamd": self.fr_prisulfonamd if self.fr_prisulfonamd is not None else 0,
+          "fr_pyridine": self.fr_pyridine if self.fr_pyridine is not None else 0,
+          "fr_quatN": self.fr_quatN if self.fr_quatN is not None else 0,
+          "fr_sulfide": self.fr_sulfide if self.fr_sulfide is not None else 0,
+          "fr_sulfonamd": self.fr_sulfonamd if self.fr_sulfonamd is not None else 0,
+          "fr_sulfone": self.fr_sulfone if self.fr_sulfone is not None else 0,
+          "fr_term_acetylene": self.fr_term_acetylene if self.fr_term_acetylene is not None else 0,
+          "fr_tetrazole": self.fr_tetrazole if self.fr_tetrazole is not None else 0,
+          "fr_thiazole": self.fr_thiazole if self.fr_thiazole is not None else 0,
+          "fr_thiocyan": self.fr_thiocyan if self.fr_thiocyan is not None else 0,
+          "fr_thiophene": self.fr_thiophene if self.fr_thiophene is not None else 0,
+          "fr_unbrch_alkane": self.fr_unbrch_alkane if self.fr_unbrch_alkane is not None else 0,
+          "fr_urea": self.fr_urea if self.fr_urea is not None else 0,
+          "FractionCSP3": self.FractionCSP3 if self.FractionCSP3 is not None else 0.0,
+          "HallKierAlpha": self.HallKierAlpha if self.HallKierAlpha is not None else 0.0,
+          "HeavyAtomMolWt": self.HeavyAtomMolWt if self.HeavyAtomMolWt is not None else 0.0,
+          "HeavyAtomCount": self.HeavyAtomCount if self.HeavyAtomCount is not None else 0,
+          "Ipc": self.Ipc if self.Ipc is not None else 0.0,
+          "Kappa1": self.Kappa1 if self.Kappa1 is not None else 0.0,
+          "Kappa2": self.Kappa2 if self.Kappa2 is not None else 0.0,
+          "Kappa3": self.Kappa3 if self.Kappa3 is not None else 0.0,
+          "LabuteASA": self.LabuteASA if self.LabuteASA is not None else 0.0,
+          "MaxAbsPartialCharge": self.MaxAbsPartialCharge if self.MaxAbsPartialCharge is not None else 0.0,
+          "MaxPartialCharge": self.MaxPartialCharge if self.MaxPartialCharge is not None else 0.0,
+          "MinAbsPartialCharge": self.MinAbsPartialCharge if self.MinAbsPartialCharge is not None else 0.0,
+          "MinPartialCharge": self.MinPartialCharge if self.MinPartialCharge is not None else 0.0,
+          "MolLogP": self.MolLogP if self.MolLogP is not None else 0.0,
+          "MolMR": self.MolMR if self.MolMR is not None else 0.0,
+          "MolWt": self.MolWt if self.MolWt is not None else 0.0,
+          "NHOHCount": self.NHOHCount if self.NHOHCount is not None else 0,
+          "NOCount": self.NOCount if self.NOCount is not None else 0,
+          "NumAliphaticCarbocycles": self.NumAliphaticCarbocycles if self.NumAliphaticCarbocycles is not None else 0,
+          "NumAliphaticHeterocycles": self.NumAliphaticHeterocycles if self.NumAliphaticHeterocycles is not None else 0,
+          "NumAliphaticRings": self.NumAliphaticRings if self.NumAliphaticRings is not None else 0,
+          "NumAromaticCarbocycles": self.NumAromaticCarbocycles if self.NumAromaticCarbocycles is not None else 0,
+          "NumAromaticHeterocycles": self.NumAromaticHeterocycles if self.NumAromaticHeterocycles is not None else 0,
+          "NumAromaticRings": self.NumAromaticRings if self.NumAromaticRings is not None else 0,
+          "NumHAcceptors": self.NumHAcceptors if self.NumHAcceptors is not None else 0,
+          "NumHDonors": self.NumHDonors if self.NumHDonors is not None else 0,
+          "NumHeteroatoms": self.NumHeteroatoms if self.NumHeteroatoms is not None else 0,
+          "NumRadicalElectrons": self.NumRadicalElectrons if self.NumRadicalElectrons is not None else 0,
+          "NumRotatableBonds": self.NumRotatableBonds if self.NumRotatableBonds is not None else 0,
+          "NumSaturatedCarbocycles": self.NumSaturatedCarbocycles if self.NumSaturatedCarbocycles is not None else 0,
+          "NumSaturatedHeterocycles": self.NumSaturatedHeterocycles if self.NumSaturatedHeterocycles is not None else 0,
+          "NumSaturatedRings": self.NumSaturatedRings if self.NumSaturatedRings is not None else 0,
+          "NumValenceElectrons": self.NumValenceElectrons if self.NumValenceElectrons is not None else 0,
+          "PEOE_VSA1": self.PEOE_VSA1 if self.PEOE_VSA1 is not None else 0.0,
+          "PEOE_VSA2": self.PEOE_VSA2 if self.PEOE_VSA2 is not None else 0.0,
+          "PEOE_VSA3": self.PEOE_VSA3 if self.PEOE_VSA3 is not None else 0.0,
+          "PEOE_VSA4": self.PEOE_VSA4 if self.PEOE_VSA4 is not None else 0.0,
+          "PEOE_VSA5": self.PEOE_VSA5 if self.PEOE_VSA5 is not None else 0.0,
+          "PEOE_VSA6": self.PEOE_VSA6 if self.PEOE_VSA6 is not None else 0.0,
+          "PEOE_VSA7": self.PEOE_VSA7 if self.PEOE_VSA7 is not None else 0.0,
+          "PEOE_VSA8": self.PEOE_VSA8 if self.PEOE_VSA8 is not None else 0.0,
+          "PEOE_VSA9": self.PEOE_VSA9 if self.PEOE_VSA9 is not None else 0.0,
+          "PEOE_VSA10": self.PEOE_VSA10 if self.PEOE_VSA10 is not None else 0.0,
+          "PEOE_VSA11": self.PEOE_VSA11 if self.PEOE_VSA11 is not None else 0.0,
+          "PEOE_VSA12": self.PEOE_VSA12 if self.PEOE_VSA12 is not None else 0.0,
+          "PEOE_VSA13": self.PEOE_VSA13 if self.PEOE_VSA13 is not None else 0.0,
+          "PEOE_VSA14": self.PEOE_VSA14 if self.PEOE_VSA14 is not None else 0.0,
+          "qed": self.qed if self.qed is not None else 0.0,
+          "RingCount": self.RingCount if self.RingCount is not None else 0,
+          "SMR_VSA1": self.SMR_VSA1 if self.SMR_VSA1 is not None else 0.0,
+          "SMR_VSA2": self.SMR_VSA2 if self.SMR_VSA2 is not None else 0.0,
+          "SMR_VSA3": self.SMR_VSA3 if self.SMR_VSA3 is not None else 0.0,
+          "SMR_VSA4": self.SMR_VSA4 if self.SMR_VSA4 is not None else 0.0,
+          "SMR_VSA5": self.SMR_VSA5 if self.SMR_VSA5 is not None else 0.0,
+          "SMR_VSA6": self.SMR_VSA6 if self.SMR_VSA6 is not None else 0.0,
+          "SMR_VSA7": self.SMR_VSA7 if self.SMR_VSA7 is not None else 0.0,
+          "SMR_VSA8": self.SMR_VSA8 if self.SMR_VSA8 is not None else 0.0,
+          "SMR_VSA9": self.SMR_VSA9 if self.SMR_VSA9 is not None else 0.0,
+          "SMR_VSA10": self.SMR_VSA10 if self.SMR_VSA10 is not None else 0.0,
+          "SlogP_VSA1": self.SlogP_VSA1 if self.SlogP_VSA1 is not None else 0.0,
+          "SlogP_VSA2": self.SlogP_VSA2 if self.SlogP_VSA2 is not None else 0.0,
+          "SlogP_VSA3": self.SlogP_VSA3 if self.SlogP_VSA3 is not None else 0.0,
+          "SlogP_VSA4": self.SlogP_VSA4 if self.SlogP_VSA4 is not None else 0.0,
+          "SlogP_VSA5": self.SlogP_VSA5 if self.SlogP_VSA5 is not None else 0.0,
+          "SlogP_VSA6": self.SlogP_VSA6 if self.SlogP_VSA6 is not None else 0.0,
+          "SlogP_VSA7": self.SlogP_VSA7 if self.SlogP_VSA7 is not None else 0.0,
+          "SlogP_VSA8": self.SlogP_VSA8 if self.SlogP_VSA8 is not None else 0.0,
+          "SlogP_VSA9": self.SlogP_VSA9 if self.SlogP_VSA9 is not None else 0.0,
+          "SlogP_VSA10": self.SlogP_VSA10 if self.SlogP_VSA10 is not None else 0.0,
+          "SlogP_VSA11": self.SlogP_VSA11 if self.SlogP_VSA11 is not None else 0.0,
+          "SlogP_VSA12": self.SlogP_VSA12 if self.SlogP_VSA12 is not None else 0.0,
+          "TPSA": self.TPSA if self.TPSA is not None else 0.0,
+          "VSA_EState1": self.VSA_EState1 if self.VSA_EState1 is not None else 0.0,
+          "VSA_EState2": self.VSA_EState2 if self.VSA_EState2 is not None else 0.0,
+          "VSA_EState3": self.VSA_EState3 if self.VSA_EState3 is not None else 0.0,
+          "VSA_EState4": self.VSA_EState4 if self.VSA_EState4 is not None else 0.0,
+          "VSA_EState5": self.VSA_EState5 if self.VSA_EState5 is not None else 0.0,
+          "VSA_EState6": self.VSA_EState6 if self.VSA_EState6 is not None else 0.0,
+          "VSA_EState7": self.VSA_EState7 if self.VSA_EState7 is not None else 0.0,
+          "VSA_EState8": self.VSA_EState8 if self.VSA_EState8 is not None else 0.0,
+          "VSA_EState9": self.VSA_EState9 if self.VSA_EState9 is not None else 0.0,
+          "VSA_EState10": self.VSA_EState10 if self.VSA_EState10 is not None else 0.0,
+          "AUTOCORR3D_1": self.AUTOCORR3D_1 if self.AUTOCORR3D_1 is not None else 0.0,
+          "AUTOCORR3D_2": self.AUTOCORR3D_2 if self.AUTOCORR3D_2 is not None else 0.0,
+          "AUTOCORR3D_3": self.AUTOCORR3D_3 if self.AUTOCORR3D_3 is not None else 0.0,
+          "AUTOCORR3D_4": self.AUTOCORR3D_4 if self.AUTOCORR3D_4 is not None else 0.0,
+          "AUTOCORR3D_5": self.AUTOCORR3D_5 if self.AUTOCORR3D_5 is not None else 0.0,
+          "AUTOCORR3D_6": self.AUTOCORR3D_6 if self.AUTOCORR3D_6 is not None else 0.0,
+          "AUTOCORR3D_7": self.AUTOCORR3D_7 if self.AUTOCORR3D_7 is not None else 0.0,
+          "AUTOCORR3D_8": self.AUTOCORR3D_8 if self.AUTOCORR3D_8 is not None else 0.0,
+          "AUTOCORR3D_9": self.AUTOCORR3D_9 if self.AUTOCORR3D_9 is not None else 0.0,
+          "AUTOCORR3D_10": self.AUTOCORR3D_10 if self.AUTOCORR3D_10 is not None else 0.0,
+          "AUTOCORR3D_11": self.AUTOCORR3D_11 if self.AUTOCORR3D_11 is not None else 0.0,
+          "AUTOCORR3D_12": self.AUTOCORR3D_12 if self.AUTOCORR3D_12 is not None else 0.0,
+          "AUTOCORR3D_13": self.AUTOCORR3D_13 if self.AUTOCORR3D_13 is not None else 0.0,
+          "AUTOCORR3D_14": self.AUTOCORR3D_14 if self.AUTOCORR3D_14 is not None else 0.0,
+          "AUTOCORR3D_15": self.AUTOCORR3D_15 if self.AUTOCORR3D_15 is not None else 0.0,
+          "AUTOCORR3D_16": self.AUTOCORR3D_16 if self.AUTOCORR3D_16 is not None else 0.0,
+          "AUTOCORR3D_17": self.AUTOCORR3D_17 if self.AUTOCORR3D_17 is not None else 0.0,
+          "AUTOCORR3D_18": self.AUTOCORR3D_18 if self.AUTOCORR3D_18 is not None else 0.0,
+          "AUTOCORR3D_19": self.AUTOCORR3D_19 if self.AUTOCORR3D_19 is not None else 0.0,
+          "AUTOCORR3D_20": self.AUTOCORR3D_20 if self.AUTOCORR3D_20 is not None else 0.0,
+          "AUTOCORR3D_21": self.AUTOCORR3D_21 if self.AUTOCORR3D_21 is not None else 0.0,
+          "AUTOCORR3D_22": self.AUTOCORR3D_22 if self.AUTOCORR3D_22 is not None else 0.0,
+          "AUTOCORR3D_23": self.AUTOCORR3D_23 if self.AUTOCORR3D_23 is not None else 0.0,
+          "AUTOCORR3D_24": self.AUTOCORR3D_24 if self.AUTOCORR3D_24 is not None else 0.0,
+          "AUTOCORR3D_25": self.AUTOCORR3D_25 if self.AUTOCORR3D_25 is not None else 0.0,
+          "AUTOCORR3D_26": self.AUTOCORR3D_26 if self.AUTOCORR3D_26 is not None else 0.0,
+          "AUTOCORR3D_27": self.AUTOCORR3D_27 if self.AUTOCORR3D_27 is not None else 0.0,
+          "AUTOCORR3D_28": self.AUTOCORR3D_28 if self.AUTOCORR3D_28 is not None else 0.0,
+          "AUTOCORR3D_29": self.AUTOCORR3D_29 if self.AUTOCORR3D_29 is not None else 0.0,
+          "AUTOCORR3D_30": self.AUTOCORR3D_30 if self.AUTOCORR3D_30 is not None else 0.0,
+          "AUTOCORR3D_31": self.AUTOCORR3D_31 if self.AUTOCORR3D_31 is not None else 0.0,
+          "AUTOCORR3D_32": self.AUTOCORR3D_32 if self.AUTOCORR3D_32 is not None else 0.0,
+          "AUTOCORR3D_33": self.AUTOCORR3D_33 if self.AUTOCORR3D_33 is not None else 0.0,
+          "AUTOCORR3D_34": self.AUTOCORR3D_34 if self.AUTOCORR3D_34 is not None else 0.0,
+          "AUTOCORR3D_35": self.AUTOCORR3D_35 if self.AUTOCORR3D_35 is not None else 0.0,
+          "AUTOCORR3D_36": self.AUTOCORR3D_36 if self.AUTOCORR3D_36 is not None else 0.0,
+          "AUTOCORR3D_37": self.AUTOCORR3D_37 if self.AUTOCORR3D_37 is not None else 0.0,
+          "AUTOCORR3D_38": self.AUTOCORR3D_38 if self.AUTOCORR3D_38 is not None else 0.0,
+          "AUTOCORR3D_39": self.AUTOCORR3D_39 if self.AUTOCORR3D_39 is not None else 0.0,
+          "AUTOCORR3D_40": self.AUTOCORR3D_40 if self.AUTOCORR3D_40 is not None else 0.0,
+          "AUTOCORR3D_41": self.AUTOCORR3D_41 if self.AUTOCORR3D_41 is not None else 0.0,
+          "AUTOCORR3D_42": self.AUTOCORR3D_42 if self.AUTOCORR3D_42 is not None else 0.0,
+          "AUTOCORR3D_43": self.AUTOCORR3D_43 if self.AUTOCORR3D_43 is not None else 0.0,
+          "AUTOCORR3D_44": self.AUTOCORR3D_44 if self.AUTOCORR3D_44 is not None else 0.0,
+          "AUTOCORR3D_45": self.AUTOCORR3D_45 if self.AUTOCORR3D_45 is not None else 0.0,
+          "AUTOCORR3D_46": self.AUTOCORR3D_46 if self.AUTOCORR3D_46 is not None else 0.0,
+          "AUTOCORR3D_47": self.AUTOCORR3D_47 if self.AUTOCORR3D_47 is not None else 0.0,
+          "AUTOCORR3D_48": self.AUTOCORR3D_48 if self.AUTOCORR3D_48 is not None else 0.0,
+          "AUTOCORR3D_49": self.AUTOCORR3D_49 if self.AUTOCORR3D_49 is not None else 0.0,
+          "AUTOCORR3D_50": self.AUTOCORR3D_50 if self.AUTOCORR3D_50 is not None else 0.0,
+          "AUTOCORR3D_51": self.AUTOCORR3D_51 if self.AUTOCORR3D_51 is not None else 0.0,
+          "AUTOCORR3D_52": self.AUTOCORR3D_52 if self.AUTOCORR3D_52 is not None else 0.0,
+          "AUTOCORR3D_53": self.AUTOCORR3D_53 if self.AUTOCORR3D_53 is not None else 0.0,
+          "AUTOCORR3D_54": self.AUTOCORR3D_54 if self.AUTOCORR3D_54 is not None else 0.0,
+          "AUTOCORR3D_55": self.AUTOCORR3D_55 if self.AUTOCORR3D_55 is not None else 0.0,
+          "AUTOCORR3D_56": self.AUTOCORR3D_56 if self.AUTOCORR3D_56 is not None else 0.0,
+          "AUTOCORR3D_57": self.AUTOCORR3D_57 if self.AUTOCORR3D_57 is not None else 0.0,
+          "AUTOCORR3D_58": self.AUTOCORR3D_58 if self.AUTOCORR3D_58 is not None else 0.0,
+          "AUTOCORR3D_59": self.AUTOCORR3D_59 if self.AUTOCORR3D_59 is not None else 0.0,
+          "AUTOCORR3D_60": self.AUTOCORR3D_60 if self.AUTOCORR3D_60 is not None else 0.0,
+          "AUTOCORR3D_61": self.AUTOCORR3D_61 if self.AUTOCORR3D_61 is not None else 0.0,
+          "AUTOCORR3D_62": self.AUTOCORR3D_62 if self.AUTOCORR3D_62 is not None else 0.0,
+          "AUTOCORR3D_63": self.AUTOCORR3D_63 if self.AUTOCORR3D_63 is not None else 0.0,
+          "AUTOCORR3D_64": self.AUTOCORR3D_64 if self.AUTOCORR3D_64 is not None else 0.0,
+          "AUTOCORR3D_65": self.AUTOCORR3D_65 if self.AUTOCORR3D_65 is not None else 0.0,
+          "AUTOCORR3D_66": self.AUTOCORR3D_66 if self.AUTOCORR3D_66 is not None else 0.0,
+          "AUTOCORR3D_67": self.AUTOCORR3D_67 if self.AUTOCORR3D_67 is not None else 0.0,
+          "AUTOCORR3D_68": self.AUTOCORR3D_68 if self.AUTOCORR3D_68 is not None else 0.0,
+          "AUTOCORR3D_69": self.AUTOCORR3D_69 if self.AUTOCORR3D_69 is not None else 0.0,
+          "AUTOCORR3D_70": self.AUTOCORR3D_70 if self.AUTOCORR3D_70 is not None else 0.0,
+          "AUTOCORR3D_71": self.AUTOCORR3D_71 if self.AUTOCORR3D_71 is not None else 0.0,
+          "AUTOCORR3D_72": self.AUTOCORR3D_72 if self.AUTOCORR3D_72 is not None else 0.0,
+          "AUTOCORR3D_73": self.AUTOCORR3D_73 if self.AUTOCORR3D_73 is not None else 0.0,
+          "AUTOCORR3D_74": self.AUTOCORR3D_74 if self.AUTOCORR3D_74 is not None else 0.0,
+          "AUTOCORR3D_75": self.AUTOCORR3D_75 if self.AUTOCORR3D_75 is not None else 0.0,
+          "AUTOCORR3D_76": self.AUTOCORR3D_76 if self.AUTOCORR3D_76 is not None else 0.0,
+          "AUTOCORR3D_77": self.AUTOCORR3D_77 if self.AUTOCORR3D_77 is not None else 0.0,
+          "AUTOCORR3D_78": self.AUTOCORR3D_78 if self.AUTOCORR3D_78 is not None else 0.0,
+          "AUTOCORR3D_79": self.AUTOCORR3D_79 if self.AUTOCORR3D_79 is not None else 0.0,
+          "AUTOCORR3D_80": self.AUTOCORR3D_80 if self.AUTOCORR3D_80 is not None else 0.0,
+          "Asphericity": self.Asphericity if self.Asphericity is not None else 0.0,
+          "Eccentricity": self.Eccentricity if self.Eccentricity is not None else 0.0,
+          "InertialShapeFactor": self.InertialShapeFactor if self.InertialShapeFactor is not None else 0.0,
+          "NPR1": self.NPR1 if self.NPR1 is not None else 0.0,
+          "NPR2": self.NPR2 if self.NPR2 is not None else 0.0,
+          "PMI1": self.PMI1 if self.PMI1 is not None else 0.0,
+          "PMI2": self.PMI2 if self.PMI2 is not None else 0.0,
+          "PMI3": self.PMI3 if self.PMI3 is not None else 0.0,
+          "RadiusOfGyration": self.RadiusOfGyration if self.RadiusOfGyration is not None else 0.0,
+          "SpherocityIndex": self.SpherocityIndex if self.SpherocityIndex is not None else 0.0
+        }
         
         return descriptors # type: ignore
 
@@ -334,10 +1807,8 @@ class Ligand:
             True if the Ligand object is valid, False otherwise.
         '''
 
-        print([getattr(self, attr) for attr in Ligand.allDescriptors])
-
         #region if any attribute is None (will check for every attribute in the ligand object)
-        if any(getattr(self, attr) is None for attr in Ligand.allDescriptors):
+        if None in [self.name, self.path, self.AUTOCORR2D_1, self.AUTOCORR2D_2, self.AUTOCORR2D_3, self.AUTOCORR2D_4, self.AUTOCORR2D_5, self.AUTOCORR2D_6, self.AUTOCORR2D_7, self.AUTOCORR2D_8, self.AUTOCORR2D_9, self.AUTOCORR2D_10, self.AUTOCORR2D_11, self.AUTOCORR2D_12, self.AUTOCORR2D_13, self.AUTOCORR2D_14, self.AUTOCORR2D_15, self.AUTOCORR2D_16, self.AUTOCORR2D_17, self.AUTOCORR2D_18, self.AUTOCORR2D_19, self.AUTOCORR2D_20, self.AUTOCORR2D_21, self.AUTOCORR2D_22, self.AUTOCORR2D_23, self.AUTOCORR2D_24, self.AUTOCORR2D_25, self.AUTOCORR2D_26, self.AUTOCORR2D_27, self.AUTOCORR2D_28, self.AUTOCORR2D_29, self.AUTOCORR2D_30, self.AUTOCORR2D_31, self.AUTOCORR2D_32, self.AUTOCORR2D_33, self.AUTOCORR2D_34, self.AUTOCORR2D_35, self.AUTOCORR2D_36, self.AUTOCORR2D_37, self.AUTOCORR2D_38, self.AUTOCORR2D_39, self.AUTOCORR2D_40, self.AUTOCORR2D_41, self.AUTOCORR2D_42, self.AUTOCORR2D_43, self.AUTOCORR2D_44, self.AUTOCORR2D_45, self.AUTOCORR2D_46, self.AUTOCORR2D_47, self.AUTOCORR2D_48, self.AUTOCORR2D_49, self.AUTOCORR2D_50, self.AUTOCORR2D_51, self.AUTOCORR2D_52, self.AUTOCORR2D_53, self.AUTOCORR2D_54, self.AUTOCORR2D_55, self.AUTOCORR2D_56, self.AUTOCORR2D_57, self.AUTOCORR2D_58, self.AUTOCORR2D_59, self.AUTOCORR2D_60, self.AUTOCORR2D_61, self.AUTOCORR2D_62, self.AUTOCORR2D_63, self.AUTOCORR2D_64, self.AUTOCORR2D_65, self.AUTOCORR2D_66, self.AUTOCORR2D_67, self.AUTOCORR2D_68, self.AUTOCORR2D_69, self.AUTOCORR2D_70, self.AUTOCORR2D_71, self.AUTOCORR2D_72, self.AUTOCORR2D_73, self.AUTOCORR2D_74, self.AUTOCORR2D_75, self.AUTOCORR2D_76, self.AUTOCORR2D_77, self.AUTOCORR2D_78, self.AUTOCORR2D_79, self.AUTOCORR2D_80, self.AUTOCORR2D_81, self.AUTOCORR2D_82, self.AUTOCORR2D_83, self.AUTOCORR2D_84, self.AUTOCORR2D_85, self.AUTOCORR2D_86, self.AUTOCORR2D_87, self.AUTOCORR2D_88, self.AUTOCORR2D_89, self.AUTOCORR2D_90, self.AUTOCORR2D_91, self.AUTOCORR2D_92, self.AUTOCORR2D_93, self.AUTOCORR2D_94, self.AUTOCORR2D_95, self.AUTOCORR2D_96, self.AUTOCORR2D_97, self.AUTOCORR2D_98, self.AUTOCORR2D_99, self.AUTOCORR2D_100, self.AUTOCORR2D_101, self.AUTOCORR2D_102, self.AUTOCORR2D_103, self.AUTOCORR2D_104, self.AUTOCORR2D_105, self.AUTOCORR2D_106, self.AUTOCORR2D_107, self.AUTOCORR2D_108, self.AUTOCORR2D_109, self.AUTOCORR2D_110, self.AUTOCORR2D_111, self.AUTOCORR2D_112, self.AUTOCORR2D_113, self.AUTOCORR2D_114, self.AUTOCORR2D_115, self.AUTOCORR2D_116, self.AUTOCORR2D_117, self.AUTOCORR2D_118, self.AUTOCORR2D_119, self.AUTOCORR2D_120, self.AUTOCORR2D_121, self.AUTOCORR2D_122, self.AUTOCORR2D_123, self.AUTOCORR2D_124, self.AUTOCORR2D_125, self.AUTOCORR2D_126, self.AUTOCORR2D_127, self.AUTOCORR2D_128, self.AUTOCORR2D_129, self.AUTOCORR2D_130, self.AUTOCORR2D_131, self.AUTOCORR2D_132, self.AUTOCORR2D_133, self.AUTOCORR2D_134, self.AUTOCORR2D_135, self.AUTOCORR2D_136, self.AUTOCORR2D_137, self.AUTOCORR2D_138, self.AUTOCORR2D_139, self.AUTOCORR2D_140, self.AUTOCORR2D_141, self.AUTOCORR2D_142, self.AUTOCORR2D_143, self.AUTOCORR2D_144, self.AUTOCORR2D_145, self.AUTOCORR2D_146, self.AUTOCORR2D_147, self.AUTOCORR2D_148, self.AUTOCORR2D_149, self.AUTOCORR2D_150, self.AUTOCORR2D_151, self.AUTOCORR2D_152, self.AUTOCORR2D_153, self.AUTOCORR2D_154, self.AUTOCORR2D_155, self.AUTOCORR2D_156, self.AUTOCORR2D_157, self.AUTOCORR2D_158, self.AUTOCORR2D_159, self.AUTOCORR2D_160, self.AUTOCORR2D_161, self.AUTOCORR2D_162, self.AUTOCORR2D_163, self.AUTOCORR2D_164, self.AUTOCORR2D_165, self.AUTOCORR2D_166, self.AUTOCORR2D_167, self.AUTOCORR2D_168, self.AUTOCORR2D_169, self.AUTOCORR2D_170, self.AUTOCORR2D_171, self.AUTOCORR2D_172, self.AUTOCORR2D_173, self.AUTOCORR2D_174, self.AUTOCORR2D_175, self.AUTOCORR2D_176, self.AUTOCORR2D_177, self.AUTOCORR2D_178, self.AUTOCORR2D_179, self.AUTOCORR2D_180, self.AUTOCORR2D_181, self.AUTOCORR2D_182, self.AUTOCORR2D_183, self.AUTOCORR2D_184, self.AUTOCORR2D_185, self.AUTOCORR2D_186, self.AUTOCORR2D_187, self.AUTOCORR2D_188, self.AUTOCORR2D_189, self.AUTOCORR2D_190, self.AUTOCORR2D_191, self.AUTOCORR2D_192, self.BCUT2D_CHGHI, self.BCUT2D_CHGLO, self.BCUT2D_LOGPHI, self.BCUT2D_LOGPLOW, self.BCUT2D_MRHI, self.BCUT2D_MRLOW, self.BCUT2D_MWHI, self.BCUT2D_MWLOW, self.BalabanJ, self.BertzCT, self.Chi0, self.Chi0n, self.Chi0v, self.Chi1, self.Chi1n, self.Chi1v, self.Chi2n, self.Chi2v, self.Chi3n, self.Chi3v, self.Chi4n, self.Chi4v, self.EState_VSA1, self.EState_VSA2, self.EState_VSA3, self.EState_VSA4, self.EState_VSA5, self.EState_VSA6, self.EState_VSA7, self.EState_VSA8, self.EState_VSA9, self.EState_VSA10, self.EState_VSA11, self.MaxAbsEStateIndex, self.MaxEStateIndex, self.MinAbsEStateIndex, self.MinEStateIndex, self.ExactMolWt, self.FpDensityMorgan1, self.FpDensityMorgan2, self.FpDensityMorgan3, self.fr_Al_COO, self.fr_Al_OH, self.fr_Al_OH_noTert, self.fr_ArN, self.fr_Ar_COO, self.fr_Ar_N, self.fr_Ar_NH, self.fr_Ar_OH, self.fr_COO, self.fr_COO2, self.fr_C_O, self.fr_C_O_noCOO, self.fr_C_S, self.fr_HOCCN, self.fr_Imine, self.fr_NH0, self.fr_NH1, self.fr_NH2, self.fr_N_O, self.fr_Ndealkylation1, self.fr_Ndealkylation2, self.fr_Nhpyrrole, self.fr_SH, self.fr_aldehyde, self.fr_alkyl_carbamate, self.fr_alkyl_halide, self.fr_allylic_oxid, self.fr_amide, self.fr_amidine, self.fr_aniline, self.fr_aryl_methyl, self.fr_azide, self.fr_azo, self.fr_barbitur, self.fr_benzene, self.fr_benzodiazepine, self.fr_bicyclic, self.fr_diazo, self.fr_dihydropyridine, self.fr_epoxide, self.fr_ester, self.fr_ether, self.fr_furan, self.fr_guanido, self.fr_halogen, self.fr_hdrzine, self.fr_hdrzone, self.fr_imidazole, self.fr_imide, self.fr_isocyan, self.fr_isothiocyan, self.fr_ketone, self.fr_ketone_Topliss, self.fr_lactam, self.fr_lactone, self.fr_methoxy, self.fr_morpholine, self.fr_nitrile, self.fr_nitro, self.fr_nitro_arom, self.fr_nitro_arom_nonortho, self.fr_nitroso, self.fr_oxazole, self.fr_oxime, self.fr_para_hydroxylation, self.fr_phenol, self.fr_phenol_noOrthoHbond, self.fr_phos_acid, self.fr_phos_ester, self.fr_piperdine, self.fr_piperzine, self.fr_priamide, self.fr_prisulfonamd, self.fr_pyridine, self.fr_quatN, self.fr_sulfide, self.fr_sulfonamd, self.fr_sulfone, self.fr_term_acetylene, self.fr_tetrazole, self.fr_thiazole, self.fr_thiocyan, self.fr_thiophene, self.fr_unbrch_alkane, self.fr_urea, self.FractionCSP3, self.HallKierAlpha, self.HeavyAtomMolWt, self.HeavyAtomCount, self.Ipc, self.Kappa1, self.Kappa2, self.Kappa3, self.LabuteASA, self.MaxAbsPartialCharge, self.MaxPartialCharge, self.MinAbsPartialCharge, self.MinPartialCharge, self.MolLogP, self.MolMR, self.MolWt, self.NHOHCount, self.NOCount, self.NumAliphaticCarbocycles, self.NumAliphaticHeterocycles, self.NumAliphaticRings, self.NumAromaticCarbocycles, self.NumAromaticHeterocycles, self.NumAromaticRings, self.NumHAcceptors, self.NumHDonors, self.NumHeteroatoms, self.NumRadicalElectrons, self.NumRotatableBonds, self.NumSaturatedCarbocycles, self.NumSaturatedHeterocycles, self.NumSaturatedRings, self.NumValenceElectrons, self.PEOE_VSA1, self.PEOE_VSA2, self.PEOE_VSA3, self.PEOE_VSA4, self.PEOE_VSA5, self.PEOE_VSA6, self.PEOE_VSA7, self.PEOE_VSA8, self.PEOE_VSA9, self.PEOE_VSA10, self.PEOE_VSA11, self.PEOE_VSA12, self.PEOE_VSA13, self.PEOE_VSA14, self.qed, self.RingCount, self.SMR_VSA1, self.SMR_VSA2, self.SMR_VSA3, self.SMR_VSA4, self.SMR_VSA5, self.SMR_VSA6, self.SMR_VSA7, self.SMR_VSA8, self.SMR_VSA9, self.SMR_VSA10, self.SlogP_VSA1, self.SlogP_VSA2, self.SlogP_VSA3, self.SlogP_VSA4, self.SlogP_VSA5, self.SlogP_VSA6, self.SlogP_VSA7, self.SlogP_VSA8, self.SlogP_VSA9, self.SlogP_VSA10, self.SlogP_VSA11, self.SlogP_VSA12, self.TPSA, self.VSA_EState1, self.VSA_EState2, self.VSA_EState3, self.VSA_EState4, self.VSA_EState5, self.VSA_EState6, self.VSA_EState7, self.VSA_EState8, self.VSA_EState9, self.VSA_EState10]:
             return False
         #endregion
 
@@ -420,9 +1891,9 @@ class Ligand:
         if type(molecule) == Ligand:
             # If yes, use the to_smiles Ligand method
             targetMolSmiles = molecule.to_smiles()
-            targetMolMorganFp1 = molecule.FpDensityMorgan1 # type: ignore
-            targetMolMorganFp2 = molecule.FpDensityMorgan2 # type: ignore
-            targetMolMorganFp3 = molecule.FpDensityMorgan3 # type: ignore
+            targetMolMorganFp1 = molecule.FpDensityMorgan1
+            targetMolMorganFp2 = molecule.FpDensityMorgan2
+            targetMolMorganFp3 = molecule.FpDensityMorgan3
 
         # Otherwise check if it is a Chem.rdchem.Mol object
         elif type(molecule) == Chem.rdchem.Mol:
@@ -438,7 +1909,7 @@ class Ligand:
             # Return an error
             return ocerror.Error.wrong_type(f"The provided variable is a '{type(molecule)}' and was expected a 'rdkit.Chem.rdchem.Mol' or 'ocl.Ligand'.")
         # Check if both smiles and MorganFp 1, 2 and 3 are the same
-        if molSmiles == targetMolSmiles and  self.FpDensityMorgan1 == targetMolMorganFp1 and self.FpDensityMorgan2 == targetMolMorganFp2 and self.FpDensityMorgan3 == targetMolMorganFp3: # type: ignore
+        if molSmiles == targetMolSmiles and self.FpDensityMorgan1 == targetMolMorganFp1 and self.FpDensityMorgan2 == targetMolMorganFp2 and self.FpDensityMorgan3 == targetMolMorganFp3:
             # If they are the same, return True
             return True
         # Otherwise (they are not the same)
@@ -683,8 +2154,8 @@ def multipleMoleculesSDF(molecule: rdkit.Chem.rdchem.Mol) -> List[Ligand]: # typ
 
     return ligands
 
-def loadMol(molecule: Union[str, Chem.rdchem.Mol], sanitize: bool = True) -> Tuple[str, Union[Chem.rdchem.Mol, None]]:
-    ''' Load a molecule pdb/sdf/mol/mol2 if a path is provided or just assign the Mol object to the molecule.
+def loadMol(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize: bool = True) -> rdkit.Chem.rdchem.Mol: # type: ignore
+    '''Load a molecule pdb/sdf/mol/mol2 if a path is provided or just assign the Mol object to the molecule.
 
     Parameters
     ----------
@@ -693,176 +2164,233 @@ def loadMol(molecule: Union[str, Chem.rdchem.Mol], sanitize: bool = True) -> Tup
 
     Returns
     -------
-    Tuple[str, Chem.rdchem.Mol | None]
-        The molecule object and the path to the molecule.
+    rdkit.Chem.rdchem.Mol
+        The molecule object.
     '''
 
     # Check if the type of the variable molecule is a string or a rdkit.Chem.rdchem.Mol
-    if isinstance(molecule, Chem.rdchem.Mol):
+    if type(molecule) == rdkit.Chem.rdchem.Mol: # type: ignore
         # Since is already a molecule, assign it to the class
         return "", molecule
-
-    if isinstance(molecule, str):
+    elif type(molecule) == str:
         # Check if file exists
-        if not os.path.isfile(molecule):
+        if os.path.isfile(molecule):
+            # Now its a file path, check which is its extension to use the correct function
+            extension = os.path.splitext(molecule)[1]
+
+            # Check the extension to see if its needed to convert to mol2
+            if extension == ".mol2":
+                # If sanitize is off
+                if not sanitize:
+                    # Load the molecule
+                    m = rdkit.Chem.rdmolfiles.MolFromMol2File(molecule, sanitize = False) # type: ignore
+                    try:
+                        # Turn off the property cachea
+                        m.UpdatePropertyCache(strict = False)
+                        # Perform a partial sanitization (THIS IS VERY IMPORTANT!!!!)
+                        Chem.SanitizeMol(m, Chem.SanitizeFlags.SANITIZE_FINDRADICALS|Chem.SanitizeFlags.SANITIZE_KEKULIZE|Chem.SanitizeFlags.SANITIZE_SETAROMATICITY|Chem.SanitizeFlags.SANITIZE_SETCONJUGATION|Chem.SanitizeFlags.SANITIZE_SETHYBRIDIZATION|Chem.SanitizeFlags.SANITIZE_SYMMRINGS, catcherrors=True) # type: ignore
+                        # Return the sanitized molecule
+                        return molecule, m
+                    except Exception as e:
+                        _ = ocerror.Error.parse_molecule(f"The molecule '{molecule}' could not be parsed. Error: {e}", ocerror.ReportLevel.WARNING)
+                        return molecule, None
+
+                return molecule, rdkit.Chem.rdmolfiles.MolFromMol2File(molecule, sanitize = True) # type: ignore
+            else:
+                # Since is needed to convert the ligand, create the output path
+                outputMoleculePath = f"{os.path.dirname(molecule)}/ligand.mol2"
+
+                # Only process if is not smiles format, because it demands a different approach
+                if extension not in [".smi", ".smiles"]:
+                    # Process the ligand
+                    occonversion.convertMols(molecule, outputMoleculePath)
+
+                if extension == ".pdb":
+                    # If sanitize is off
+                    if not sanitize:
+                        # Load the molecule
+                        m = rdkit.Chem.rdmolfiles.MolFromPDBFile(molecule, sanitize = False) # type: ignore
+                        # Turn off the property cache
+                        m.UpdatePropertyCache(strict = False)
+                        # Perform a partial sanitization (THIS IS VERY IMPORTANT!!!!)
+                        Chem.SanitizeMol(m, Chem.SanitizeFlags.SANITIZE_FINDRADICALS|Chem.SanitizeFlags.SANITIZE_KEKULIZE|Chem.SanitizeFlags.SANITIZE_SETAROMATICITY|Chem.SanitizeFlags.SANITIZE_SETCONJUGATION|Chem.SanitizeFlags.SANITIZE_SETHYBRIDIZATION|Chem.SanitizeFlags.SANITIZE_SYMMRINGS, catcherrors=True) # type: ignore
+                        # Return the sanitized molecule
+                        return molecule, m
+
+                    return outputMoleculePath, rdkit.Chem.rdmolfiles.MolFromPDBFile(molecule, sanitize = True) # type: ignore
+                elif extension == ".sdf":
+                    # If sanitize is off
+                    if not sanitize:
+                        # Load the molecule (Since the sdf file can hold more than one molecule...)
+                        mol = rdkit.Chem.rdmolfiles.SDMolSupplier(molecule, sanitize = False) # type: ignore
+                        if len(mol) > 1:
+                            ocprint.print_warning("This sdf has more than one molecule!! If you want to parse all the molecules within this file use the function splitMolecules to split the ligand into multiple ligand files. Otherwise just the first molecule will be processed.")
+                        # Get the first molecule
+                        m = mol[0]
+                        # Turn off the property cache
+                        m.UpdatePropertyCache(strict = False)
+                        # Perform a partial sanitization (THIS IS VERY IMPORTANT!!!!)
+                        Chem.SanitizeMol(m, Chem.SanitizeFlags.SANITIZE_FINDRADICALS|Chem.SanitizeFlags.SANITIZE_KEKULIZE|Chem.SanitizeFlags.SANITIZE_SETAROMATICITY|Chem.SanitizeFlags.SANITIZE_SETCONJUGATION|Chem.SanitizeFlags.SANITIZE_SETHYBRIDIZATION|Chem.SanitizeFlags.SANITIZE_SYMMRINGS, catcherrors=True) # type: ignore
+                        # Return the sanitized molecule
+                        return molecule, m
+
+                    # Since the sdf file can hold more than one molecule...
+                    mols = rdkit.Chem.rdmolfiles.SDMolSupplier(molecule, sanitize = True) # type: ignore
+                    # If has multiple molecules, indicate the user to use the right function
+                    if len(mols) > 1:
+                        ocprint.print_warning("This sdf has more than one molecule!! If you want to parse all the molecules within this file use the function splitMolecules to split the ligand into multiple ligand files. Otherwise just the first molecule will be processed.")
+
+                    # Return just the first molecule
+                    return outputMoleculePath, mols[0]
+                elif extension == ".mol":
+                    # If sanitize is off
+                    if not sanitize:
+                        # Load the molecule
+                        m = rdkit.Chem.rdmolfiles.MolFromMolFile(molecule, sanitize = False) # type: ignore
+                        # Turn off the property cache
+                        m.UpdatePropertyCache(strict = False)
+                        # Perform a partial sanitization (THIS IS VERY IMPORTANT!!!!)
+                        Chem.SanitizeMol(m, Chem.SanitizeFlags.SANITIZE_FINDRADICALS|Chem.SanitizeFlags.SANITIZE_KEKULIZE|Chem.SanitizeFlags.SANITIZE_SETAROMATICITY|Chem.SanitizeFlags.SANITIZE_SETCONJUGATION|Chem.SanitizeFlags.SANITIZE_SETHYBRIDIZATION|Chem.SanitizeFlags.SANITIZE_SYMMRINGS, catcherrors=True) # type: ignore
+                        # Return the sanitized molecule
+                        return molecule, m
+
+                    return outputMoleculePath, rdkit.Chem.rdmolfiles.MolFromMolFile(molecule, sanitize = True) # type: ignore
+                elif extension in [".smi", ".smiles"]:
+                    # Read the smiles file into a string
+                    with open(molecule, 'r') as file:
+                      smiles = file.read().strip()
+                    # Initialise the salt remover
+                    remover = SaltRemover()
+                    # Load the molecule
+                    m = rdkit.Chem.rdmolfiles.MolFromSmiles(smiles, sanitize = sanitize) # type: ignore
+                    # Remove the salts
+                    m = remover.StripMol(m)
+                    # Add the hydrogens
+                    m = Chem.AddHs(m) # type: ignore
+                    # Embed the molecule
+                    _ = AllChem.EmbedMolecule(m, AllChem.ETKDG()) # type: ignore
+                    # Optimize the molecule
+                    _ = AllChem.UFFOptimizeMolecule(m) # type: ignore
+
+                    occonversion.convertMolsFromString("", outputMoleculePath, mol = m)
+                    
+                    # Find its name (without extension)
+                    name = os.path.splitext(os.path.basename(molecule))[0]
+                    # Set its name
+                    m.SetProp("_Name", name)
+                    # If sanitize is off
+                    if not sanitize:
+                        # Turn off the property cache
+                        m.UpdatePropertyCache(strict = False)
+                        # Perform a partial sanitization (THIS IS VERY IMPORTANT!!!!)
+                        Chem.SanitizeMol(m, Chem.SanitizeFlags.SANITIZE_FINDRADICALS|Chem.SanitizeFlags.SANITIZE_KEKULIZE|Chem.SanitizeFlags.SANITIZE_SETAROMATICITY|Chem.SanitizeFlags.SANITIZE_SETCONJUGATION|Chem.SanitizeFlags.SANITIZE_SETHYBRIDIZATION|Chem.SanitizeFlags.SANITIZE_SYMMRINGS, catcherrors=True) # type: ignore
+                    # Return the molecule
+                    return outputMoleculePath, m
+                else:
+                    # The file extension is not supported, print data
+                    supportedExtensions = ['.pdb', '.sdf', '.mol', '.mol2']
+                    # This case the return code is suppressed because it is needed to return None in case of failure
+                    _ = ocerror.Error.unsupported_extension(message=f"The ligand {molecule} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supportedExtensions)}.", level=ocerror.ReportLevel.WARNING)
+                    return "", None
+        else:
             # File does not exist
-            _ = ocerror.Error.file_do_not_exist(message=f"The file '{molecule}' does not exist!", level = ocerror.ReportLevel.WARNING)
+            _ = ocerror.Error.file_do_not_exist(message=f"The file '{molecule}' does not exist!", level=ocerror.ReportLevel.WARNING)
             return "", None
+    else:
+        # The variable is not in a supported data format
+        _ = ocerror.Error.unsupported_extension(message=f"Unsupported molecule data. Please support either a molecule path (string) or a rdkit.Chem.rdchem.Mol object.", level=ocerror.ReportLevel.WARNING)
+        return "", None
 
-        # Determine the extension and use appropriate RDKit functions
-        extension = os.path.splitext(molecule)[1].lower()
-        supported_extensions = ['.pdb', '.sdf', '.mol', '.mol2', '.smi', '.smiles']
-
-        # The file extension is not supported, print data
-        if extension not in supported_extensions:
-            # This case the return code is suppressed because it is needed to return None in case of failure
-            _ = ocerror.Error.unsupported_extension(message=f"The ligand {molecule} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supported_extensions)}.", level = ocerror.ReportLevel.WARNING)
-            return "", None
-
-        # Function map for file extension to RDKit loading function
-        load_functions = {
-            ".pdb": Chem.rdmolfiles.MolFromPDBFile, # type: ignore
-            ".sdf": Chem.rdmolfiles.SDMolSupplier, # type: ignore
-            ".mol": Chem.rdmolfiles.MolFromMolFile, # type: ignore
-            ".mol2": Chem.rdmolfiles.MolFromMol2File, # type: ignore
-        }
-
-        # Load the molecule with appropriate loader
-        if extension in load_functions:
-            # Get the function to load the molecule
-            load_func = load_functions[extension]
-            # Load the molecule
-            mol = load_func(molecule, sanitize = sanitize)
-        elif extension in ['.smi', '.smiles']:
-            # Read the smiles file into a string
-            with open(molecule, 'r') as file:
-                smiles = file.read().strip()
-            # Load the molecule
-            mol = Chem.MolFromSmiles(smiles, sanitize = sanitize) # type: ignore
-            # If the molecule was loaded
-            if mol:
-                # Find its name (without extension)
-                name = os.path.splitext(os.path.basename(molecule))[0]
-                # Set its name
-                mol.SetProp("_Name", name)
-                # Remove the salts
-                mol = SaltRemover().StripMol(mol)
-                # Add the hydrogens
-                mol = Chem.AddHs(mol) # type: ignore
-                # Embed the molecule
-                AllChem.EmbedMolecule(mol, AllChem.ETKDG()) # type: ignore
-                # Optimize the molecule
-                AllChem.UFFOptimizeMolecule(mol) # type: ignore
-            else:
-                # The molecule could not be loaded
-                _ = ocerror.Error.parse_molecule(f"The molecule '{molecule}' could not be parsed from smiles.", level = ocerror.ReportLevel.WARNING)
-                return "", None
-
-        # Handling of multiple molecules in a .sdf file
-        if isinstance(mol, rdmolfiles.SDMolSupplier): # type: ignore
-            mol_list = list(mol) # type: ignore
-            if len(mol_list) > 1:
-                print("Warning: The .sdf file contains more than one molecule. Only the first will be processed.")
-            mol = mol_list[0] if mol_list else None
-
-        # Check if the molecule was loaded
-        if mol is None: # type: ignore
-            _ = ocerror.Error.parse_molecule(f"The molecule '{molecule}' could not be parsed.", level = ocerror.ReportLevel.WARNING)
-            return "", None
-
-        # If sanitize is off
-        if not sanitize:
-            # Turn off the property cache
-            mol.UpdatePropertyCache(strict=False) # type: ignore
-            # Perform a partial sanitization (THIS IS VERY IMPORTANT!!!!)
-            Chem.SanitizeMol( # type: ignore
-                mol, # type: ignore
-                Chem.SANITIZE_FINDRADICALS | # type: ignore
-                Chem.SANITIZE_KEKULIZE | # type: ignore
-                Chem.SANITIZE_SETAROMATICITY | # type: ignore
-                Chem.SANITIZE_SETCONJUGATION | # type: ignore
-                Chem.SANITIZE_SETHYBRIDIZATION | # type: ignore
-                Chem.SANITIZE_SYMMRINGS, # type: ignore
-                catchErrors=True
-            )
-        
-        # If the molecule is not in mol2 format
-        if extension != ".mol2":
-            # Since is needed to convert the ligand, create the output path
-            outputMoleculePath = f"{os.path.dirname(molecule)}/ligand.mol2"
-            
-            # Check if it is not a smiles file
-            if extension not in [".smi", ".smiles"]:
-                # Convert the molecule
-                occonversion.convertMols(molecule, outputMoleculePath)
-            else:
-                # Convert the molecule
-                occonversion.convertMolsFromString("", outputMoleculePath, mol = mol) # type: ignore
-            
-            # Return the molecule
-            return outputMoleculePath, mol # type: ignore
-
-        # Return the molecule
-        return molecule, mol # type: ignore
-
-    # The variable is not in a supported data format
-    _ = ocerror.Error.unsupported_extension(message=f"Unsupported molecule data. Please support either a molecule path (string) or a rdkit.Chem.rdchem.Mol object.", level=ocerror.ReportLevel.WARNING)
-
-    return "", None
-
-def read_descriptors_from_json(path: str, return_data: bool = False, return_vaex: bool = False) -> Union[Dict[str, Union[str, float, int]], Tuple[Union[str, float, int]], vdf.DataFrameLocal, None]:
-    ''' Read the descriptors from a JSON file.
+def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: bool = False) -> Union[Dict[str, Union[str, float, int]], Tuple[Union[str, float, int]], vdf.DataFrameLocal, None]:
+    '''Read the descriptors from a json file.
 
     Parameters
     ----------
     path : str
-        The path to the JSON file.
-    return_data : bool, optional
-        If True, returns a dictionary with the descriptors. It only works when return_vaex is False. Default is False.
-    return_vaex : bool, optional
-        If True, returns a vaex DataFrame with the descriptors. Will also behave like when return_data is True. Default is False.
+        The path to the json file.
+    returnData : bool, optional
+        If True, returns a dictionary with the descriptors. It only works when returnVaex is set to False, by default False.
+    returnVaex : bool, optional
+        If True, returns a vaex DataFrame with the descriptors. Will also behave like when returnData is set to True, by default False.
     
     Returns
     -------
-    Dict[str, str | float | int]] | Tuple[str | float | int]] | vdf.DataFrameLocal | None
-        The descriptors or None if an error occurs.
-    
+    Dict[str, str | float | int] | Tuple[str | float | int] | vdf.DataFrameLocal | None
+        The descriptors.
+
     Raises
     ------
     KeyError
-        If the expected keys are not found in the JSON file.
     '''
+
+    # Try to read the file
     try:
+        # Open the json file in read mode
         with open(path, 'r') as f:
+            # Load the data
             data = json.load(f)
+
+        # Missing keys list
+        missing = []
+        # Expected keys to have in the json file
+        #region keys
+        keys = ["Name", "AUTOCORR2D_1", "AUTOCORR2D_2", "AUTOCORR2D_3", "AUTOCORR2D_4", "AUTOCORR2D_5", "AUTOCORR2D_6", "AUTOCORR2D_7", "AUTOCORR2D_8", "AUTOCORR2D_9", "AUTOCORR2D_10", "AUTOCORR2D_11", "AUTOCORR2D_12", "AUTOCORR2D_13", "AUTOCORR2D_14", "AUTOCORR2D_15", "AUTOCORR2D_16", "AUTOCORR2D_17", "AUTOCORR2D_18", "AUTOCORR2D_19", "AUTOCORR2D_20", "AUTOCORR2D_21", "AUTOCORR2D_22", "AUTOCORR2D_23", "AUTOCORR2D_24", "AUTOCORR2D_25", "AUTOCORR2D_26", "AUTOCORR2D_27", "AUTOCORR2D_28", "AUTOCORR2D_29", "AUTOCORR2D_30", "AUTOCORR2D_31", "AUTOCORR2D_32", "AUTOCORR2D_33", "AUTOCORR2D_34", "AUTOCORR2D_35", "AUTOCORR2D_36", "AUTOCORR2D_37", "AUTOCORR2D_38", "AUTOCORR2D_39", "AUTOCORR2D_40", "AUTOCORR2D_41", "AUTOCORR2D_42", "AUTOCORR2D_43", "AUTOCORR2D_44", "AUTOCORR2D_45", "AUTOCORR2D_46", "AUTOCORR2D_47", "AUTOCORR2D_48", "AUTOCORR2D_49", "AUTOCORR2D_50", "AUTOCORR2D_51", "AUTOCORR2D_52", "AUTOCORR2D_53", "AUTOCORR2D_54", "AUTOCORR2D_55", "AUTOCORR2D_56", "AUTOCORR2D_57", "AUTOCORR2D_58", "AUTOCORR2D_59", "AUTOCORR2D_60", "AUTOCORR2D_61", "AUTOCORR2D_62", "AUTOCORR2D_63", "AUTOCORR2D_64", "AUTOCORR2D_65", "AUTOCORR2D_66", "AUTOCORR2D_67", "AUTOCORR2D_68", "AUTOCORR2D_69", "AUTOCORR2D_70", "AUTOCORR2D_71", "AUTOCORR2D_72", "AUTOCORR2D_73", "AUTOCORR2D_74", "AUTOCORR2D_75", "AUTOCORR2D_76", "AUTOCORR2D_77", "AUTOCORR2D_78", "AUTOCORR2D_79", "AUTOCORR2D_80", "AUTOCORR2D_81", "AUTOCORR2D_82", "AUTOCORR2D_83", "AUTOCORR2D_84", "AUTOCORR2D_85", "AUTOCORR2D_86", "AUTOCORR2D_87", "AUTOCORR2D_88", "AUTOCORR2D_89", "AUTOCORR2D_90", "AUTOCORR2D_91", "AUTOCORR2D_92", "AUTOCORR2D_93", "AUTOCORR2D_94", "AUTOCORR2D_95", "AUTOCORR2D_96", "AUTOCORR2D_97", "AUTOCORR2D_98", "AUTOCORR2D_99", "AUTOCORR2D_100", "AUTOCORR2D_101", "AUTOCORR2D_102", "AUTOCORR2D_103", "AUTOCORR2D_104", "AUTOCORR2D_105", "AUTOCORR2D_106", "AUTOCORR2D_107", "AUTOCORR2D_108", "AUTOCORR2D_109", "AUTOCORR2D_110", "AUTOCORR2D_111", "AUTOCORR2D_112", "AUTOCORR2D_113", "AUTOCORR2D_114", "AUTOCORR2D_115", "AUTOCORR2D_116", "AUTOCORR2D_117", "AUTOCORR2D_118", "AUTOCORR2D_119", "AUTOCORR2D_120", "AUTOCORR2D_121", "AUTOCORR2D_122", "AUTOCORR2D_123", "AUTOCORR2D_124", "AUTOCORR2D_125", "AUTOCORR2D_126", "AUTOCORR2D_127", "AUTOCORR2D_128", "AUTOCORR2D_129", "AUTOCORR2D_130", "AUTOCORR2D_131", "AUTOCORR2D_132", "AUTOCORR2D_133", "AUTOCORR2D_134", "AUTOCORR2D_135", "AUTOCORR2D_136", "AUTOCORR2D_137", "AUTOCORR2D_138", "AUTOCORR2D_139", "AUTOCORR2D_140", "AUTOCORR2D_141", "AUTOCORR2D_142", "AUTOCORR2D_143", "AUTOCORR2D_144", "AUTOCORR2D_145", "AUTOCORR2D_146", "AUTOCORR2D_147", "AUTOCORR2D_148", "AUTOCORR2D_149", "AUTOCORR2D_150", "AUTOCORR2D_151", "AUTOCORR2D_152", "AUTOCORR2D_153", "AUTOCORR2D_154", "AUTOCORR2D_155", "AUTOCORR2D_156", "AUTOCORR2D_157", "AUTOCORR2D_158", "AUTOCORR2D_159", "AUTOCORR2D_160", "AUTOCORR2D_161", "AUTOCORR2D_162", "AUTOCORR2D_163", "AUTOCORR2D_164", "AUTOCORR2D_165", "AUTOCORR2D_166", "AUTOCORR2D_167", "AUTOCORR2D_168", "AUTOCORR2D_169", "AUTOCORR2D_170", "AUTOCORR2D_171", "AUTOCORR2D_172", "AUTOCORR2D_173", "AUTOCORR2D_174", "AUTOCORR2D_175", "AUTOCORR2D_176", "AUTOCORR2D_177", "AUTOCORR2D_178", "AUTOCORR2D_179", "AUTOCORR2D_180", "AUTOCORR2D_181", "AUTOCORR2D_182", "AUTOCORR2D_183", "AUTOCORR2D_184", "AUTOCORR2D_185", "AUTOCORR2D_186", "AUTOCORR2D_187", "AUTOCORR2D_188", "AUTOCORR2D_189", "AUTOCORR2D_190", "AUTOCORR2D_191", "AUTOCORR2D_192", "BCUT2D_CHGHI", "BCUT2D_CHGLO", "BCUT2D_LOGPHI", "BCUT2D_LOGPLOW", "BCUT2D_MRHI", "BCUT2D_MRLOW", "BCUT2D_MWHI", "BCUT2D_MWLOW", "BalabanJ", "BertzCT", "Chi0", "Chi0n", "Chi0v", "Chi1", "Chi1n", "Chi1v", "Chi2n", "Chi2v", "Chi3n", "Chi3v", "Chi4n", "Chi4v", "EState_VSA1", "EState_VSA2", "EState_VSA3", "EState_VSA4", "EState_VSA5", "EState_VSA6", "EState_VSA7", "EState_VSA8", "EState_VSA9", "EState_VSA10", "EState_VSA11", "MaxAbsEStateIndex", "MaxEStateIndex", "MinAbsEStateIndex", "MinEStateIndex", "ExactMolWt", "FpDensityMorgan1", "FpDensityMorgan2", "FpDensityMorgan3", "fr_Al_COO", "fr_Al_OH", "fr_Al_OH_noTert", "fr_ArN", "fr_Ar_COO", "fr_Ar_N", "fr_Ar_NH", "fr_Ar_OH", "fr_COO", "fr_COO2", "fr_C_O", "fr_C_O_noCOO", "fr_C_S", "fr_HOCCN", "fr_Imine", "fr_NH0", "fr_NH1", "fr_NH2", "fr_N_O", "fr_Ndealkylation1", "fr_Ndealkylation2", "fr_Nhpyrrole", "fr_SH", "fr_aldehyde", "fr_alkyl_carbamate", "fr_alkyl_halide", "fr_allylic_oxid", "fr_amide", "fr_amidine", "fr_aniline", "fr_aryl_methyl", "fr_azide", "fr_azo", "fr_barbitur", "fr_benzene", "fr_benzodiazepine", "fr_bicyclic", "fr_diazo", "fr_dihydropyridine", "fr_epoxide", "fr_ester", "fr_ether", "fr_furan", "fr_guanido", "fr_halogen", "fr_hdrzine", "fr_hdrzone", "fr_imidazole", "fr_imide", "fr_isocyan", "fr_isothiocyan", "fr_ketone", "fr_ketone_Topliss", "fr_lactam", "fr_lactone", "fr_methoxy", "fr_morpholine", "fr_nitrile", "fr_nitro", "fr_nitro_arom", "fr_nitro_arom_nonortho", "fr_nitroso", "fr_oxazole", "fr_oxime", "fr_para_hydroxylation", "fr_phenol", "fr_phenol_noOrthoHbond", "fr_phos_acid", "fr_phos_ester", "fr_piperdine", "fr_piperzine", "fr_priamide", "fr_prisulfonamd", "fr_pyridine", "fr_quatN", "fr_sulfide", "fr_sulfonamd", "fr_sulfone", "fr_term_acetylene", "fr_tetrazole", "fr_thiazole", "fr_thiocyan", "fr_thiophene", "fr_unbrch_alkane", "fr_urea", "FractionCSP3", "HallKierAlpha", "HeavyAtomMolWt", "HeavyAtomCount", "Ipc", "Kappa1", "Kappa2", "Kappa3", "LabuteASA", "MaxAbsPartialCharge", "MaxPartialCharge", "MinAbsPartialCharge", "MinPartialCharge", "MolLogP", "MolMR", "MolWt", "NHOHCount", "NOCount", "NumAliphaticCarbocycles", "NumAliphaticHeterocycles", "NumAliphaticRings", "NumAromaticCarbocycles", "NumAromaticHeterocycles", "NumAromaticRings", "NumHAcceptors", "NumHDonors", "NumHeteroatoms", "NumRadicalElectrons", "NumRotatableBonds", "NumSaturatedCarbocycles", "NumSaturatedHeterocycles", "NumSaturatedRings", "NumValenceElectrons", "PEOE_VSA1", "PEOE_VSA2", "PEOE_VSA3", "PEOE_VSA4", "PEOE_VSA5", "PEOE_VSA6", "PEOE_VSA7", "PEOE_VSA8", "PEOE_VSA9", "PEOE_VSA10", "PEOE_VSA11", "PEOE_VSA12", "PEOE_VSA13", "PEOE_VSA14", "qed", "RingCount", "SMR_VSA1", "SMR_VSA2", "SMR_VSA3", "SMR_VSA4", "SMR_VSA5", "SMR_VSA6", "SMR_VSA7", "SMR_VSA8", "SMR_VSA9", "SMR_VSA10", "SlogP_VSA1", "SlogP_VSA2", "SlogP_VSA3", "SlogP_VSA4", "SlogP_VSA5", "SlogP_VSA6", "SlogP_VSA7", "SlogP_VSA8", "SlogP_VSA9", "SlogP_VSA10", "SlogP_VSA11", "SlogP_VSA12", "TPSA", "VSA_EState1", "VSA_EState2", "VSA_EState3", "VSA_EState4", "VSA_EState5", "VSA_EState6", "VSA_EState7", "VSA_EState8", "VSA_EState9", "VSA_EState10", "AUTOCORR3D_1", "AUTOCORR3D_2", "AUTOCORR3D_3", "AUTOCORR3D_4", "AUTOCORR3D_5", "AUTOCORR3D_6", "AUTOCORR3D_7", "AUTOCORR3D_8", "AUTOCORR3D_9", "AUTOCORR3D_10", "AUTOCORR3D_11", "AUTOCORR3D_12", "AUTOCORR3D_13", "AUTOCORR3D_14", "AUTOCORR3D_15", "AUTOCORR3D_16", "AUTOCORR3D_17", "AUTOCORR3D_18", "AUTOCORR3D_19", "AUTOCORR3D_20", "AUTOCORR3D_21", "AUTOCORR3D_22", "AUTOCORR3D_23", "AUTOCORR3D_24", "AUTOCORR3D_25", "AUTOCORR3D_26", "AUTOCORR3D_27", "AUTOCORR3D_28", "AUTOCORR3D_29", "AUTOCORR3D_30", "AUTOCORR3D_31", "AUTOCORR3D_32", "AUTOCORR3D_33", "AUTOCORR3D_34", "AUTOCORR3D_35", "AUTOCORR3D_36", "AUTOCORR3D_37", "AUTOCORR3D_38", "AUTOCORR3D_39", "AUTOCORR3D_40", "AUTOCORR3D_41", "AUTOCORR3D_42", "AUTOCORR3D_43", "AUTOCORR3D_44", "AUTOCORR3D_45", "AUTOCORR3D_46", "AUTOCORR3D_47", "AUTOCORR3D_48", "AUTOCORR3D_49", "AUTOCORR3D_50", "AUTOCORR3D_51", "AUTOCORR3D_52", "AUTOCORR3D_53", "AUTOCORR3D_54", "AUTOCORR3D_55", "AUTOCORR3D_56", "AUTOCORR3D_57", "AUTOCORR3D_58", "AUTOCORR3D_59", "AUTOCORR3D_60", "AUTOCORR3D_61", "AUTOCORR3D_62", "AUTOCORR3D_63", "AUTOCORR3D_64", "AUTOCORR3D_65", "AUTOCORR3D_66", "AUTOCORR3D_67", "AUTOCORR3D_68", "AUTOCORR3D_69", "AUTOCORR3D_70", "AUTOCORR3D_71", "AUTOCORR3D_72", "AUTOCORR3D_73", "AUTOCORR3D_74", "AUTOCORR3D_75", "AUTOCORR3D_76", "AUTOCORR3D_77", "AUTOCORR3D_78", "AUTOCORR3D_79", "AUTOCORR3D_80", "Asphericity", "Eccentricity", "InertialShapeFactor", "NPR1", "NPR2", "PMI1", "PMI2", "PMI3", "RadiusOfGyration", "SpherocityIndex"]
+        #endregion
+
+        # Validate the data
+        for key in keys:
+            # If key is lacking in data read from json (means malformed json!)
+            if not key in data:
+                # Add the missing key to the missing list
+                missing.append(key)
         
-        # Construct the list of expected keys
-        keys = ["Name"] + Ligand.allDescriptors
+        # If missing list is not empty
+        if missing:
+            # Raise a Key error passing the file and the missing keys joined with ', '
+            raise KeyError((path, ", ".join(missing)))
 
-        # Check for missing keys
-        missing_keys = [key for key in keys if key not in data]
-        if missing_keys:
-            raise KeyError(f"Missing keys in JSON file '{path}': {', '.join(missing_keys)}")
+        # If the returnVaex is set
+        if returnVaex:
+            # Check if data has a 'Name' key
+            if "Name" in data:
+                # Temporary fix
+                if data["Name"] == "molecule":
+                    # Get the last part of the folder path
+                    data["Ligand"] = os.path.dirname(data["Path"]).split("/")[-1]
+                    _ = data.pop("Name")
+                else:
+                    # If it has, change the key name to 'Ligand'
+                    data["Ligand"] = data.pop("Name")
 
-        if return_vaex or return_data:
-            # Rename 'Name' to 'Ligand' and remove 'Path' if they exist
-            if 'Name' in data:
-                data['Ligand'] = data.pop('Name')
-            data.pop('Path', None)  # Remove 'Path' if it exists
+            # Check if data has a 'Path' key
+            if "Path" in data:
+                # Remove the entry
+                _ = data.pop("Path")
 
-            if return_vaex:
-                data = { key: [value] for key, value in data.items() }  # Convert values to lists
-                return vaex.from_dict(data)
+            # For each key, element in data
+            for key, element in data.items():
+                # Make the element for key be a list with only the element
+                data[key] = [element]
+            
+            # Convert the data to a vaex DataFrame
+            return vaex.from_dict(data)
 
+        # If the returnData flag is on
+        if returnData:
+            # Return the entire dict
             return data
 
-        # If not returning as data or vaex, return tuple of values
-        return tuple(data[key] for key in keys) # type: ignore
-
-    except KeyError as e:
-        print(f"Error: {e}")  # Replace with your logging mechanism
+        # Since we have all keys, read them and return their values
+        #region Return the data
+        return data["Name"], data["AUTOCORR2D_1"], data["AUTOCORR2D_2"], data["AUTOCORR2D_3"], data["AUTOCORR2D_4"], data["AUTOCORR2D_5"], data["AUTOCORR2D_6"], data["AUTOCORR2D_7"], data["AUTOCORR2D_8"], data["AUTOCORR2D_9"], data["AUTOCORR2D_10"], data["AUTOCORR2D_11"], data["AUTOCORR2D_12"], data["AUTOCORR2D_13"], data["AUTOCORR2D_14"], data["AUTOCORR2D_15"], data["AUTOCORR2D_16"], data["AUTOCORR2D_17"], data["AUTOCORR2D_18"], data["AUTOCORR2D_19"], data["AUTOCORR2D_20"], data["AUTOCORR2D_21"], data["AUTOCORR2D_22"], data["AUTOCORR2D_23"], data["AUTOCORR2D_24"], data["AUTOCORR2D_25"], data["AUTOCORR2D_26"], data["AUTOCORR2D_27"], data["AUTOCORR2D_28"], data["AUTOCORR2D_29"], data["AUTOCORR2D_30"], data["AUTOCORR2D_31"], data["AUTOCORR2D_32"], data["AUTOCORR2D_33"], data["AUTOCORR2D_34"], data["AUTOCORR2D_35"], data["AUTOCORR2D_36"], data["AUTOCORR2D_37"], data["AUTOCORR2D_38"], data["AUTOCORR2D_39"], data["AUTOCORR2D_40"], data["AUTOCORR2D_41"], data["AUTOCORR2D_42"], data["AUTOCORR2D_43"], data["AUTOCORR2D_44"], data["AUTOCORR2D_45"], data["AUTOCORR2D_46"], data["AUTOCORR2D_47"], data["AUTOCORR2D_48"], data["AUTOCORR2D_49"], data["AUTOCORR2D_50"], data["AUTOCORR2D_51"], data["AUTOCORR2D_52"], data["AUTOCORR2D_53"], data["AUTOCORR2D_54"], data["AUTOCORR2D_55"], data["AUTOCORR2D_56"], data["AUTOCORR2D_57"], data["AUTOCORR2D_58"], data["AUTOCORR2D_59"], data["AUTOCORR2D_60"], data["AUTOCORR2D_61"], data["AUTOCORR2D_62"], data["AUTOCORR2D_63"], data["AUTOCORR2D_64"], data["AUTOCORR2D_65"], data["AUTOCORR2D_66"], data["AUTOCORR2D_67"], data["AUTOCORR2D_68"], data["AUTOCORR2D_69"], data["AUTOCORR2D_70"], data["AUTOCORR2D_71"], data["AUTOCORR2D_72"], data["AUTOCORR2D_73"], data["AUTOCORR2D_74"], data["AUTOCORR2D_75"], data["AUTOCORR2D_76"], data["AUTOCORR2D_77"], data["AUTOCORR2D_78"], data["AUTOCORR2D_79"], data["AUTOCORR2D_80"], data["AUTOCORR2D_81"], data["AUTOCORR2D_82"], data["AUTOCORR2D_83"], data["AUTOCORR2D_84"], data["AUTOCORR2D_85"], data["AUTOCORR2D_86"], data["AUTOCORR2D_87"], data["AUTOCORR2D_88"], data["AUTOCORR2D_89"], data["AUTOCORR2D_90"], data["AUTOCORR2D_91"], data["AUTOCORR2D_92"], data["AUTOCORR2D_93"], data["AUTOCORR2D_94"], data["AUTOCORR2D_95"], data["AUTOCORR2D_96"], data["AUTOCORR2D_97"], data["AUTOCORR2D_98"], data["AUTOCORR2D_99"], data["AUTOCORR2D_100"], data["AUTOCORR2D_101"], data["AUTOCORR2D_102"], data["AUTOCORR2D_103"], data["AUTOCORR2D_104"], data["AUTOCORR2D_105"], data["AUTOCORR2D_106"], data["AUTOCORR2D_107"], data["AUTOCORR2D_108"], data["AUTOCORR2D_109"], data["AUTOCORR2D_110"], data["AUTOCORR2D_111"], data["AUTOCORR2D_112"], data["AUTOCORR2D_113"], data["AUTOCORR2D_114"], data["AUTOCORR2D_115"], data["AUTOCORR2D_116"], data["AUTOCORR2D_117"], data["AUTOCORR2D_118"], data["AUTOCORR2D_119"], data["AUTOCORR2D_120"], data["AUTOCORR2D_121"], data["AUTOCORR2D_122"], data["AUTOCORR2D_123"], data["AUTOCORR2D_124"], data["AUTOCORR2D_125"], data["AUTOCORR2D_126"], data["AUTOCORR2D_127"], data["AUTOCORR2D_128"], data["AUTOCORR2D_129"], data["AUTOCORR2D_130"], data["AUTOCORR2D_131"], data["AUTOCORR2D_132"], data["AUTOCORR2D_133"], data["AUTOCORR2D_134"], data["AUTOCORR2D_135"], data["AUTOCORR2D_136"], data["AUTOCORR2D_137"], data["AUTOCORR2D_138"], data["AUTOCORR2D_139"], data["AUTOCORR2D_140"], data["AUTOCORR2D_141"], data["AUTOCORR2D_142"], data["AUTOCORR2D_143"], data["AUTOCORR2D_144"], data["AUTOCORR2D_145"], data["AUTOCORR2D_146"], data["AUTOCORR2D_147"], data["AUTOCORR2D_148"], data["AUTOCORR2D_149"], data["AUTOCORR2D_150"], data["AUTOCORR2D_151"], data["AUTOCORR2D_152"], data["AUTOCORR2D_153"], data["AUTOCORR2D_154"], data["AUTOCORR2D_155"], data["AUTOCORR2D_156"], data["AUTOCORR2D_157"], data["AUTOCORR2D_158"], data["AUTOCORR2D_159"], data["AUTOCORR2D_160"], data["AUTOCORR2D_161"], data["AUTOCORR2D_162"], data["AUTOCORR2D_163"], data["AUTOCORR2D_164"], data["AUTOCORR2D_165"], data["AUTOCORR2D_166"], data["AUTOCORR2D_167"], data["AUTOCORR2D_168"], data["AUTOCORR2D_169"], data["AUTOCORR2D_170"], data["AUTOCORR2D_171"], data["AUTOCORR2D_172"], data["AUTOCORR2D_173"], data["AUTOCORR2D_174"], data["AUTOCORR2D_175"], data["AUTOCORR2D_176"], data["AUTOCORR2D_177"], data["AUTOCORR2D_178"], data["AUTOCORR2D_179"], data["AUTOCORR2D_180"], data["AUTOCORR2D_181"], data["AUTOCORR2D_182"], data["AUTOCORR2D_183"], data["AUTOCORR2D_184"], data["AUTOCORR2D_185"], data["AUTOCORR2D_186"], data["AUTOCORR2D_187"], data["AUTOCORR2D_188"], data["AUTOCORR2D_189"], data["AUTOCORR2D_190"], data["AUTOCORR2D_191"], data["AUTOCORR2D_192"], data["BCUT2D_CHGHI"], data["BCUT2D_CHGLO"], data["BCUT2D_LOGPHI"], data["BCUT2D_LOGPLOW"], data["BCUT2D_MRHI"], data["BCUT2D_MRLOW"], data["BCUT2D_MWHI"], data["BCUT2D_MWLOW"], data["BalabanJ"], data["BertzCT"], data["Chi0"], data["Chi0n"], data["Chi0v"], data["Chi1"], data["Chi1n"], data["Chi1v"], data["Chi2n"], data["Chi2v"], data["Chi3n"], data["Chi3v"], data["Chi4n"], data["Chi4v"], data["EState_VSA1"], data["EState_VSA2"], data["EState_VSA3"], data["EState_VSA4"], data["EState_VSA5"], data["EState_VSA6"], data["EState_VSA7"], data["EState_VSA8"], data["EState_VSA9"], data["EState_VSA10"], data["EState_VSA11"], data["MaxAbsEStateIndex"], data["MaxEStateIndex"], data["MinAbsEStateIndex"], data["MinEStateIndex"], data["ExactMolWt"], data["FpDensityMorgan1"], data["FpDensityMorgan2"], data["FpDensityMorgan3"], data["fr_Al_COO"], data["fr_Al_OH"], data["fr_Al_OH_noTert"], data["fr_ArN"], data["fr_Ar_COO"], data["fr_Ar_N"], data["fr_Ar_NH"], data["fr_Ar_OH"], data["fr_COO"], data["fr_COO2"], data["fr_C_O"], data["fr_C_O_noCOO"], data["fr_C_S"], data["fr_HOCCN"], data["fr_Imine"], data["fr_NH0"], data["fr_NH1"], data["fr_NH2"], data["fr_N_O"], data["fr_Ndealkylation1"], data["fr_Ndealkylation2"], data["fr_Nhpyrrole"], data["fr_SH"], data["fr_aldehyde"], data["fr_alkyl_carbamate"], data["fr_alkyl_halide"], data["fr_allylic_oxid"], data["fr_amide"], data["fr_amidine"], data["fr_aniline"], data["fr_aryl_methyl"], data["fr_azide"], data["fr_azo"], data["fr_barbitur"], data["fr_benzene"], data["fr_benzodiazepine"], data["fr_bicyclic"], data["fr_diazo"], data["fr_dihydropyridine"], data["fr_epoxide"], data["fr_ester"], data["fr_ether"], data["fr_furan"], data["fr_guanido"], data["fr_halogen"], data["fr_hdrzine"], data["fr_hdrzone"], data["fr_imidazole"], data["fr_imide"], data["fr_isocyan"], data["fr_isothiocyan"], data["fr_ketone"], data["fr_ketone_Topliss"], data["fr_lactam"], data["fr_lactone"], data["fr_methoxy"], data["fr_morpholine"], data["fr_nitrile"], data["fr_nitro"], data["fr_nitro_arom"], data["fr_nitro_arom_nonortho"], data["fr_nitroso"], data["fr_oxazole"], data["fr_oxime"], data["fr_para_hydroxylation"], data["fr_phenol"], data["fr_phenol_noOrthoHbond"], data["fr_phos_acid"], data["fr_phos_ester"], data["fr_piperdine"], data["fr_piperzine"], data["fr_priamide"], data["fr_prisulfonamd"], data["fr_pyridine"], data["fr_quatN"], data["fr_sulfide"], data["fr_sulfonamd"], data["fr_sulfone"], data["fr_term_acetylene"], data["fr_tetrazole"], data["fr_thiazole"], data["fr_thiocyan"], data["fr_thiophene"], data["fr_unbrch_alkane"], data["fr_urea"], data["FractionCSP3"], data["HallKierAlpha"], data["HeavyAtomMolWt"], data["HeavyAtomCount"], data["Ipc"], data["Kappa1"], data["Kappa2"], data["Kappa3"], data["LabuteASA"], data["MaxAbsPartialCharge"], data["MaxPartialCharge"], data["MinAbsPartialCharge"], data["MinPartialCharge"], data["MolLogP"], data["MolMR"], data["MolWt"], data["NHOHCount"], data["NOCount"], data["NumAliphaticCarbocycles"], data["NumAliphaticHeterocycles"], data["NumAliphaticRings"], data["NumAromaticCarbocycles"], data["NumAromaticHeterocycles"], data["NumAromaticRings"], data["NumHAcceptors"], data["NumHDonors"], data["NumHeteroatoms"], data["NumRadicalElectrons"], data["NumRotatableBonds"], data["NumSaturatedCarbocycles"], data["NumSaturatedHeterocycles"], data["NumSaturatedRings"], data["NumValenceElectrons"], data["PEOE_VSA1"], data["PEOE_VSA2"], data["PEOE_VSA3"], data["PEOE_VSA4"], data["PEOE_VSA5"], data["PEOE_VSA6"], data["PEOE_VSA7"], data["PEOE_VSA8"], data["PEOE_VSA9"], data["PEOE_VSA10"], data["PEOE_VSA11"], data["PEOE_VSA12"], data["PEOE_VSA13"], data["PEOE_VSA14"], data["qed"], data["RingCount"], data["SMR_VSA1"], data["SMR_VSA2"], data["SMR_VSA3"], data["SMR_VSA4"], data["SMR_VSA5"], data["SMR_VSA6"], data["SMR_VSA7"], data["SMR_VSA8"], data["SMR_VSA9"], data["SMR_VSA10"], data["SlogP_VSA1"], data["SlogP_VSA2"], data["SlogP_VSA3"], data["SlogP_VSA4"], data["SlogP_VSA5"], data["SlogP_VSA6"], data["SlogP_VSA7"], data["SlogP_VSA8"], data["SlogP_VSA9"], data["SlogP_VSA10"], data["SlogP_VSA11"], data["SlogP_VSA12"], data["TPSA"], data["VSA_EState1"], data["VSA_EState2"], data["VSA_EState3"], data["VSA_EState4"], data["VSA_EState5"], data["VSA_EState6"], data["VSA_EState7"], data["VSA_EState8"], data["VSA_EState9"], data["VSA_EState10"], data["AUTOCORR3D_1"], data["AUTOCORR3D_2"], data["AUTOCORR3D_3"], data["AUTOCORR3D_4"], data["AUTOCORR3D_5"], data["AUTOCORR3D_6"], data["AUTOCORR3D_7"], data["AUTOCORR3D_8"], data["AUTOCORR3D_9"], data["AUTOCORR3D_10"], data["AUTOCORR3D_11"], data["AUTOCORR3D_12"], data["AUTOCORR3D_13"], data["AUTOCORR3D_14"], data["AUTOCORR3D_15"], data["AUTOCORR3D_16"], data["AUTOCORR3D_17"], data["AUTOCORR3D_18"], data["AUTOCORR3D_19"], data["AUTOCORR3D_20"], data["AUTOCORR3D_21"], data["AUTOCORR3D_22"], data["AUTOCORR3D_23"], data["AUTOCORR3D_24"], data["AUTOCORR3D_25"], data["AUTOCORR3D_26"], data["AUTOCORR3D_27"], data["AUTOCORR3D_28"], data["AUTOCORR3D_29"], data["AUTOCORR3D_30"], data["AUTOCORR3D_31"], data["AUTOCORR3D_32"], data["AUTOCORR3D_33"], data["AUTOCORR3D_34"], data["AUTOCORR3D_35"], data["AUTOCORR3D_36"], data["AUTOCORR3D_37"], data["AUTOCORR3D_38"], data["AUTOCORR3D_39"], data["AUTOCORR3D_40"], data["AUTOCORR3D_41"], data["AUTOCORR3D_42"], data["AUTOCORR3D_43"], data["AUTOCORR3D_44"], data["AUTOCORR3D_45"], data["AUTOCORR3D_46"], data["AUTOCORR3D_47"], data["AUTOCORR3D_48"], data["AUTOCORR3D_49"], data["AUTOCORR3D_50"], data["AUTOCORR3D_51"], data["AUTOCORR3D_52"], data["AUTOCORR3D_53"], data["AUTOCORR3D_54"], data["AUTOCORR3D_55"], data["AUTOCORR3D_56"], data["AUTOCORR3D_57"], data["AUTOCORR3D_58"], data["AUTOCORR3D_59"], data["AUTOCORR3D_60"], data["AUTOCORR3D_61"], data["AUTOCORR3D_62"], data["AUTOCORR3D_63"], data["AUTOCORR3D_64"], data["AUTOCORR3D_65"], data["AUTOCORR3D_66"], data["AUTOCORR3D_67"], data["AUTOCORR3D_68"], data["AUTOCORR3D_69"], data["AUTOCORR3D_70"], data["AUTOCORR3D_71"], data["AUTOCORR3D_72"], data["AUTOCORR3D_73"], data["AUTOCORR3D_74"], data["AUTOCORR3D_75"], data["AUTOCORR3D_76"], data["AUTOCORR3D_77"], data["AUTOCORR3D_78"], data["AUTOCORR3D_79"], data["AUTOCORR3D_80"], data["Asphericity"], data["Eccentricity"], data["InertialShapeFactor"], data["NPR1"], data["NPR2"], data["PMI1"], data["PMI2"], data["PMI3"], data["RadiusOfGyration"], data["SpherocityIndex"] # type: ignore
+        #endregion
+        
+    # Key error (when there is a missing key)
+    except KeyError as missed:
+        ocprint.print_error(f"The following keys were not found in the json file '{missed[0]}': {missed[1]}.") # type: ignore
+    # General error (call it as problem to read file)
     except Exception as e:
-        print(f"Could not read the file '{path}'. Error: {e}")  # Replace with your logging mechanism
+        ocprint.print_error(f"Could not read the file '{path}'. Error: {e}")
 
     return None
 
