@@ -130,7 +130,7 @@ class Ligand:
         if not "_split_" in name:
             self.name = name
         else:
-            return ocerror.Error.invalid_molecule_name("The name of the ligand cannot contain the string '_split_'")
+            return ocerror.Error.invalid_molecule_name("The name of the ligand cannot contain the string '_split_'") # type: ignore
 
         # All attribute initializations
         for desc in Ligand.allDescriptors:
@@ -290,9 +290,9 @@ class Ligand:
                 # Check if the user wants to overwrite the file
                 if not overwrite:
                     # If the file exists and overwrite is False, return the file exists error
-                    return ocerror.Error.file_exists(f"The file {outputJson} already exists and the overwrite flag is set to False, no file will be generated or overwrited.", ocerror.ReportLevel.WARNING)
+                    return ocerror.Error.file_exists(f"The file {outputJson} already exists and the overwrite flag is set to False, no file will be generated or overwrited.", ocerror.ReportLevel.WARNING) # type: ignore
                 # Warns the user that the file will be overwritten
-                _ = ocerror.Error.file_exists(f"The file '{outputJson}' already exists. It will be OVERWRITED!!!")
+                _ = ocerror.Error.file_exists(f"The file '{outputJson}' already exists. It will be OVERWRITED!!!") # type: ignore
 
             try:
                 # Create a lock for multithreading
@@ -302,11 +302,11 @@ class Ligand:
                     with open(outputJson, 'w') as outfile:
                         # Write the json file
                         json.dump(self.__safe_to_dict(), outfile)
-                return ocerror.Error.ok()
+                return ocerror.Error.ok() # type: ignore
             except Exception as e:
-                return ocerror.Error.write_file(f"Problems while writing the file '{outputJson}' Error: {e}.")
+                return ocerror.Error.write_file(f"Problems while writing the file '{outputJson}' Error: {e}.") # type: ignore
         except Exception as e:
-            return ocerror.Error.unknown(f"Unknown error while converting the ligand {self.name} to json.\nError: {e}", ocerror.ReportLevel.WARNING)
+            return ocerror.Error.unknown(f"Unknown error while converting the ligand {self.name} to json.\nError: {e}", ocerror.ReportLevel.WARNING) # type: ignore
 
     def is_valid(self) -> bool:
         '''Check if a Ligand object is valid.
@@ -375,7 +375,7 @@ class Ligand:
         # If is neither both types above
         else:
             # Return an error
-            return ocerror.Error.wrong_type(f"The provided variable is a '{type(molecule)}' and was expected a 'rdkit.Chem.rdchem.Mol' or 'ocl.Ligand'.")
+            return ocerror.Error.wrong_type(f"The provided variable is a '{type(molecule)}' and was expected a 'rdkit.Chem.rdchem.Mol' or 'ocl.Ligand'.") # type: ignore
         # Check if the Fingerprints are the same using the Tanimoto similarity
         if DataStructs.FingerprintSimilarity(ligandMACCSSKeys, targetMACCSSKeys) == 1.0:
             # If they are the same, return True
@@ -420,7 +420,7 @@ class Ligand:
                     findFpDensityMorgan3(mol), # type: ignore
                 )
             else:
-                _ = ocerror.Error.wrong_type(f"The provided variable is of type '{type(molecule)}'; expected 'rdkit.Chem.rdchem.Mol' or 'ocl.Ligand'.")
+                _ = ocerror.Error.wrong_type(f"The provided variable is of type '{type(molecule)}'; expected 'rdkit.Chem.rdchem.Mol' or 'ocl.Ligand'.") # type: ignore
                 return False
 
             # Compare SMILES first to short-circuit if they are different
@@ -436,7 +436,7 @@ class Ligand:
 
             return self_mol_morgan_fps == target_mol_morgan_fps
         except Exception as e:
-            _ = ocerror.Error.unknown(str(e))
+            _ = ocerror.Error.unknown(f"Unknown error while checking smiles: {str(e)}") # type: ignore
             return False
 
     def get_centroid(self, sanitize: bool = True) -> rdkit.Geometry.rdGeometry.Point3D: # type: ignore
@@ -479,7 +479,7 @@ class Ligand:
         # Check if the box file already exists
         if os.path.isfile(savePath) and not overwrite:
             # If it exists and the overwrite flag is False, return an error
-            return ocerror.Error.file_exists(f"The box file '{savePath}' already exists. If you want to overwrite it, set the 'overwrite' flag to True.")
+            return ocerror.Error.file_exists(f"The box file '{savePath}' already exists. If you want to overwrite it, set the 'overwrite' flag to True.") # type: ignore
             
         # If the centroid is not defined
         if not centroid:
@@ -544,7 +544,7 @@ class Ligand:
         else:
             # If the savePath does not exist, warn the user
             if not os.path.exists(savePath):
-                _ =  ocerror.Error.dir_does_not_exist(f"The savePath '{savePath}' does not exist. Creating it.", level = ocerror.ReportLevel.WARNING)
+                _ =  ocerror.Error.dir_does_not_exist(f"The savePath '{savePath}' does not exist. Creating it.", level = ocerror.ReportLevel.WARNING) # type: ignore
                 os.mkdir(savePath)
 
         # Write out the box file (following the one given in the DUD-E database)
@@ -666,13 +666,13 @@ def multipleMoleculesSDF(molecule: rdkit.Chem.rdchem.Mol) -> List[Ligand]: # typ
                     ligands.append(Ligand(molPath, name=name))
             else:
                 # This case the return code is suppressed because it is needed to return None in case of failure
-                _ = ocerror.Error.wrong_type(message=f"The molecule file MUST be the .sdf format!", level=ocerror.ReportLevel.WARNING)
+                _ = ocerror.Error.wrong_type(message=f"The molecule file MUST be the .sdf format!", level=ocerror.ReportLevel.WARNING) # type: ignore
         else:
             # File does not exist
-            _ = ocerror.Error.file_do_not_exist(message=f"The file '{molecule}' does not exist!", level=ocerror.ReportLevel.WARNING)
+            _ = ocerror.Error.file_do_not_exist(message=f"The file '{molecule}' does not exist!", level=ocerror.ReportLevel.WARNING) # type: ignore
     else:
         # This case the return code is suppressed because it is needed to return None in case of failure
-        _ = ocerror.Error.wrong_type(message=f"The molecule file path MUST be a string!", level=ocerror.ReportLevel.WARNING)
+        _ = ocerror.Error.wrong_type(message=f"The molecule file path MUST be a string!", level=ocerror.ReportLevel.WARNING) # type: ignore
 
     return ligands
 
@@ -699,7 +699,7 @@ def loadMol(molecule: Union[str, Chem.rdchem.Mol], sanitize: bool = True) -> Tup
         # Check if file exists
         if not os.path.isfile(molecule):
             # File does not exist
-            _ = ocerror.Error.file_do_not_exist(message=f"The file '{molecule}' does not exist!", level = ocerror.ReportLevel.WARNING)
+            _ = ocerror.Error.file_do_not_exist(message=f"The file '{molecule}' does not exist!", level = ocerror.ReportLevel.WARNING) # type: ignore
             return "", None
 
         # Determine the extension and use appropriate RDKit functions
@@ -709,7 +709,7 @@ def loadMol(molecule: Union[str, Chem.rdchem.Mol], sanitize: bool = True) -> Tup
         # The file extension is not supported, print data
         if extension not in supported_extensions:
             # This case the return code is suppressed because it is needed to return None in case of failure
-            _ = ocerror.Error.unsupported_extension(message=f"The ligand {molecule} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supported_extensions)}.", level = ocerror.ReportLevel.WARNING)
+            _ = ocerror.Error.unsupported_extension(message=f"The ligand {molecule} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supported_extensions)}.", level = ocerror.ReportLevel.WARNING) # type: ignore
             return "", None
 
         # Function map for file extension to RDKit loading function
@@ -748,7 +748,7 @@ def loadMol(molecule: Union[str, Chem.rdchem.Mol], sanitize: bool = True) -> Tup
                 AllChem.UFFOptimizeMolecule(mol) # type: ignore
             else:
                 # The molecule could not be loaded
-                _ = ocerror.Error.parse_molecule(f"The molecule '{molecule}' could not be parsed from smiles.", level = ocerror.ReportLevel.WARNING)
+                _ = ocerror.Error.parse_molecule(f"The molecule '{molecule}' could not be parsed from smiles.", level = ocerror.ReportLevel.WARNING) # type: ignore
                 return "", None
 
         # Handling of multiple molecules in a .sdf file
@@ -760,7 +760,7 @@ def loadMol(molecule: Union[str, Chem.rdchem.Mol], sanitize: bool = True) -> Tup
 
         # Check if the molecule was loaded
         if mol is None: # type: ignore
-            _ = ocerror.Error.parse_molecule(f"The molecule '{molecule}' could not be parsed.", level = ocerror.ReportLevel.WARNING)
+            _ = ocerror.Error.parse_molecule(f"The molecule '{molecule}' could not be parsed.", level = ocerror.ReportLevel.WARNING) # type: ignore
             return "", None
 
         # If sanitize is off
@@ -799,7 +799,7 @@ def loadMol(molecule: Union[str, Chem.rdchem.Mol], sanitize: bool = True) -> Tup
         return molecule, mol # type: ignore
 
     # The variable is not in a supported data format
-    _ = ocerror.Error.unsupported_extension(message=f"Unsupported molecule data. Please support either a molecule path (string) or a rdkit.Chem.rdchem.Mol object.", level=ocerror.ReportLevel.WARNING)
+    _ = ocerror.Error.unsupported_extension(message=f"Unsupported molecule data. Please support either a molecule path (string) or a rdkit.Chem.rdchem.Mol object.", level=ocerror.ReportLevel.WARNING) # type: ignore
 
     return "", None
 
@@ -876,9 +876,9 @@ def get_smiles(molecule: rdkit.Chem.rdchem.Mol) -> Union[str, int]: # type: igno
     if molecule:
         if type(molecule) == rdkit.Chem.rdchem.Mol: # type: ignore
             return Chem.MolToSmiles(molecule) # type: ignore
-        return ocerror.Error.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
+        return ocerror.Error.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'") # type: ignore
 
-    return ocerror.Error.not_set(f"The variable is not set.")
+    return ocerror.Error.not_set(f"The variable is not set.") # type: ignore
 
 def get_centroid(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize = True) -> rdkit.Geometry.rdGeometry.Point3D: # type: ignore
     ''' Get the centroid of the molecule.
@@ -934,11 +934,11 @@ def __descriptor_function_factory(descriptor_name: str) -> Callable[[rdkit.Chem.
                 try:
                     return descriptor_func(molecule)
                 except Exception as e:
-                    _ = ocerror.Error.unknown(f"Error while creating the function in factory: {str(e)}")
+                    _ = ocerror.Error.unknown(f"Error while creating the function in factory: {str(e)}") # type: ignore
             else:
-                _ = ocerror.Error.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
+                _ = ocerror.Error.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'") # type: ignore
         else:
-            _ = ocerror.Error.not_set("The molecule is not set.")
+            _ = ocerror.Error.not_set("The molecule is not set.") # type: ignore
         return None
 
     return __compute_descriptor
@@ -977,11 +977,11 @@ def __descriptor_function_factory_class(descriptor_name: str) -> Callable[[rdkit
                     # Return the function
                     return descriptor_func(molecule)
                 except Exception as e:
-                    _ = ocerror.Error.unknown(f"Error while creating the functin in factory: {str(e)}")
+                    _ = ocerror.Error.unknown(f"Error while creating the functin in factory: {str(e)}") # type: ignore
             else:
-                _ = ocerror.Error.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
+                _ = ocerror.Error.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'") # type: ignore
         else:
-            _ = ocerror.Error.not_set("The molecule is not set.")
+            _ = ocerror.Error.not_set("The molecule is not set.") # type: ignore
         return None
 
     return __compute_descriptor_class
