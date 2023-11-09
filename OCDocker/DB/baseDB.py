@@ -8,7 +8,7 @@ contains functions that are common to all databases.
 
 They are imported as:
 
-import OCDocker.baseDB as ocbdb
+import OCDocker.DB.baseDB as ocbdb
 '''
 
 # Imports
@@ -375,12 +375,12 @@ def run_docking(archive: str, dockingAlgorithm: str, digestFormat: str = "json",
     elif archive == "pdbbind":
         chosenArchive = pdbbind_archive
     else:
-        return ocerror.Error.not_supported_archive(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}.")
+        return ocerror.Error.not_supported_archive(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}.") # type: ignore
 
     # TODO: add support to more docking algorithms
     # Check if the docking algorithm is valid
     if dockingAlgorithm not in ["gnina", "vina", "smina", "plants"]:
-        return ocerror.Error.not_supported_docking_algorithm(f"Docking software not recognized. Expected ('gnina', 'vina', 'smina', 'plants') and got '{dockingAlgorithm}'.")
+        return ocerror.Error.not_supported_docking_algorithm(f"Docking software not recognized. Expected ('gnina', 'vina', 'smina', 'plants') and got '{dockingAlgorithm}'.") # type: ignore
 
     # Get all dirs paths in the database
     ptnDirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index']]

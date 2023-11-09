@@ -210,4 +210,4 @@ def make_only_ATOM_and_CRYST_pdb(structurePath: str) -> int:
         
         return ocerror.Error.ok()
     else:
-        return ocerror.Error.file_do_not_exist(message = f"The file '{structurePath}' does not exist!", level = ocerror.ReportLevel.ERROR)
+        return ocerror.Error.file_not_exist(message = f"The file '{structurePath}' does not exist!", level = ocerror.ReportLevel.ERROR)

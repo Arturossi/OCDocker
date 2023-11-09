@@ -91,7 +91,7 @@ class PLANTS:
         self.__bindingSite = self.__get_binding_site()
 
         if type(self.__bindingSite) == int:
-            _ = ocerror.Error.binding_site_not_found(f"The binding site was not found in the box file '{self.boxFile}'.", level = ocerror.ReportLevel.ERROR)
+            _ = ocerror.Error.binding_site_not_found(f"The binding site was not found in the box file '{self.boxFile}'.", level = ocerror.ReportLevel.ERROR) # type: ignore
             return None
 
         # Check if the folder where the configPath is located exists (remove the file name from the path)
@@ -103,7 +103,7 @@ class PLANTS:
         if type(receptor) == ocr.Receptor:
             self.inputReceptor = receptor
         else:
-            ocerror.Error.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR)
+            ocerror.Error.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR) # type: ignore
             return None
         self.inputReceptorPath = self.__parse_receptor_path(receptor)
         self.preparedReceptor = str(preparedReceptorPath)
@@ -117,7 +117,7 @@ class PLANTS:
             # Create the plantsFiles folder
             _ = ocff.safe_create_dir(os.path.join(os.path.dirname(ligand.path), "plantsFiles"))
         else:
-            ocerror.Error.wrong_type(f"The ligand '{ligand}' has not a supported type. Expected 'ocl.Ligand' but got {type(ligand)} instead.", level = ocerror.ReportLevel.ERROR)
+            ocerror.Error.wrong_type(f"The ligand '{ligand}' has not a supported type. Expected 'ocl.Ligand' but got {type(ligand)} instead.", level = ocerror.ReportLevel.ERROR) # type: ignore
             return None
 
         self.inputLigandPath = self.__parse_ligand_path(ligand)
@@ -205,10 +205,10 @@ class PLANTS:
                 # Exists! Return it!
                 return receptor
             else:
-                _ = ocerror.Error.file_do_not_exist(message=f"The receptor '{receptor}' has not a valid path.", level = ocerror.ReportLevel.ERROR)
+                _ = ocerror.Error.file_not_exist(message=f"The receptor '{receptor}' has not a valid path.", level = ocerror.ReportLevel.ERROR) # type: ignore
                 return ""
 
-        _ = ocerror.Error.wrong_type(message=f"The receptor '{receptor}' has not a supported type. Expected 'string' or 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR)
+        _ = ocerror.Error.wrong_type(message=f"The receptor '{receptor}' has not a supported type. Expected 'string' or 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR) # type: ignore
         return ""
 
     def __parse_ligand_path(self, ligand: ocl.Ligand) -> str:
@@ -229,7 +229,7 @@ class PLANTS:
         if type(ligand) == ocl.Ligand:
             return ligand.path
         
-        _ = ocerror.Error.wrong_type(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.", level = ocerror.ReportLevel.ERROR)
+        _ = ocerror.Error.wrong_type(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.", level = ocerror.ReportLevel.ERROR) # type: ignore
         return ""
 
     ## Public ##
@@ -737,7 +737,7 @@ def run_rescore(confFile: str, pose_list: str, outPath: str, proteinFile: str, s
                 ocff.safe_remove_dir(plants_outputFolder)
             else:
                 # Print verboosity
-                return ocerror.Error.dir_exists(f"The folder '{plants_outputFolder}' already exists. Skipping the PLANTS run.", level = ocerror.ReportLevel.WARNING)
+                return ocerror.Error.dir_exists(f"The folder '{plants_outputFolder}' already exists. Skipping the PLANTS run.", level = ocerror.ReportLevel.WARNING) # type: ignore
 
         # Create the conf file (yes... again...)
         _ = write_rescoring_config_file(confFile, proteinFile, pose_list, outPath, scoringFunction = scoring_function, rescoringMode = plants_rescoring_mode)
@@ -750,12 +750,12 @@ def run_rescore(confFile: str, pose_list: str, outPath: str, proteinFile: str, s
 
         # Print verboosity
         ocprint.printv(f"Running PLANTS using the '{confFile}' configurations and scoring function '{scoring_function}'.")
-        return ocerror.Error.ok()
+        return ocerror.Error.ok() # type: ignore
     else:
         # Print verboosity
-        return ocerror.Error.file_exists(f"The file '{confFile}' already exists. Skipping the PLANTS run.", level = ocerror.ReportLevel.WARNING)
+        return ocerror.Error.file_exists(f"The file '{confFile}' already exists. Skipping the PLANTS run.", level = ocerror.ReportLevel.WARNING) # type: ignore
         
-    return None
+    return None 
 
 def write_config_file(confFile: str, preparedReceptor: str, preparedLigand: str, outputPlants: str, bindingSiteCenterX: float, bindingSiteCenterY: float, bindingSiteCenterZ: float, bindingSiteRadius: float, scoringFunction: str = "chemplp") -> int:
     '''Write the config file.
@@ -807,9 +807,9 @@ def write_config_file(confFile: str, preparedReceptor: str, preparedLigand: str,
             f.write(f"cluster_structures {plants_cluster_structures}\n")
             f.write(f"cluster_rmsd {plants_cluster_rmsd}")
     except Exception as e:
-        return ocerror.Error.write_file(f"Problems while writing the file {confFile}: {e}")
+        return ocerror.Error.write_file(f"Problems while writing the file {confFile}: {e}") # type: ignore
 
-    return ocerror.Error.ok()
+    return ocerror.Error.ok() # type: ignore
 
 def write_rescoring_config_file(confFile: str, preparedReceptor: str, ligandListPath: str, outputPlants: str, scoringFunction: str = "chemplp", rescoringMode: str = "simplex") -> int:
     '''Write the config file to be used in rescoring mode.
@@ -848,9 +848,9 @@ def write_rescoring_config_file(confFile: str, preparedReceptor: str, ligandList
             #f.write(f"# Rescoring mode parameter\n")
             f.write(f"rescoring_mode {rescoringMode}\n")
     except Exception as e:
-        return ocerror.Error.write_file(f"Problems while writing the file {confFile}: {e}")
+        return ocerror.Error.write_file(f"Problems while writing the file {confFile}: {e}") # type: ignore
 
-    return ocerror.Error.ok()
+    return ocerror.Error.ok() # type: ignore
 
 def get_binding_site(boxFile: str, spacing: float = 2.9) -> Union[Tuple[Tuple[float, float, float], float], int]:
     '''Get the binding site from a box file.
@@ -871,7 +871,7 @@ def get_binding_site(boxFile: str, spacing: float = 2.9) -> Union[Tuple[Tuple[fl
     ocprint.printv(f"Parsing '{boxFile}' to binding center data.")
     # Test if the file boxFile exists
     if not os.path.exists(boxFile):
-        return ocerror.Error.file_do_not_exist(message=f"The box file in the path {boxFile} does not exists! Please ensure that the box file exists and the path is correct.", level = ocerror.ReportLevel.ERROR)
+        return ocerror.Error.file_not_exist(message=f"The box file in the path {boxFile} does not exists! Please ensure that the box file exists and the path is correct.", level = ocerror.ReportLevel.ERROR) # type: ignore
 
     # Dict to hold the center data
     center: Dict[str, Union[float, None]] = {
@@ -914,7 +914,7 @@ def get_binding_site(boxFile: str, spacing: float = 2.9) -> Union[Tuple[Tuple[fl
                     positions['max_z'] = float(line[70:78])
 
     except Exception as e:
-        return ocerror.Error.read_file(message=f"Found a problem while reading the box file: {e}", level = ocerror.ReportLevel.ERROR)
+        return ocerror.Error.read_file(message=f"Found a problem while reading the box file: {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
         
     # Find which is the biggest value in each coordinate
     xMax = max(abs(center['x'] - positions['min_x']), abs(positions['max_x'] - center['x'])) # type: ignore
@@ -1030,7 +1030,7 @@ def read_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
             ocprint.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{logdir}/PLANTS_read_log_ERROR.log")
 
     # Throw an error
-    _ = ocerror.Error.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
+    _ = ocerror.Error.file_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.") # type: ignore
 
     # Return an empty dict
     return {}
@@ -1075,9 +1075,9 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
                             digest = json.load(f)
                             # Check if the digest variable is fine
                             if not isinstance(digest, dict):
-                                return ocerror.Error.wrong_type(f"The digest file '{digestPath}' is not valid.", ocerror.ReportLevel.ERROR)
+                                return ocerror.Error.wrong_type(f"The digest file '{digestPath}' is not valid.", ocerror.ReportLevel.ERROR) # type: ignore
                     except Exception as e:
-                        return ocerror.Error.file_do_not_exist(f"Could not read the digest file '{digestPath}'.", ocerror.ReportLevel.ERROR)
+                        return ocerror.Error.file_not_exist(f"Could not read the digest file '{digestPath}'.", ocerror.ReportLevel.ERROR) # type: ignore
             else:
                 # Since it does not exists, create it
                 digest = ocff.empty_docking_digest(digestPath, overwrite)
@@ -1087,7 +1087,7 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
 
             # Check if the digest variable is fine
             if not isinstance(digest, dict):
-                return ocerror.Error.wrong_type(f"The docking digest file '{digestPath}' is not valid.", ocerror.ReportLevel.ERROR)
+                return ocerror.Error.wrong_type(f"The docking digest file '{digestPath}' is not valid.", ocerror.ReportLevel.ERROR) # type: ignore
             
             # Merge the digest and the docking digest
             digest = { **digest, **dockingDigest } # type: ignore
@@ -1101,12 +1101,12 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
                         # Dump the data
                         json.dump(digest, f)
                 except Exception as e:
-                    return ocerror.Error.write_file(f"Could not write the digest file '{digestPath}'.", ocerror.ReportLevel.ERROR)
+                    return ocerror.Error.write_file(f"Could not write the digest file '{digestPath}'.", ocerror.ReportLevel.ERROR) # type: ignore
 
-            return ocerror.Error.ok()
-        return ocerror.Error.unsupported_extension(f"The provided extension '{digestFormat}' is not supported.", ocerror.ReportLevel.ERROR)
+            return ocerror.Error.ok() # type: ignore
+        return ocerror.Error.unsupported_extension(f"The provided extension '{digestFormat}' is not supported.", ocerror.ReportLevel.ERROR) # type: ignore
     
-    return ocerror.Error.file_exists(f"The file '{digestPath}' already exists. If you want to overwrite it yse the overwrite flag.", level = ocerror.ReportLevel.WARNING)
+    return ocerror.Error.file_exists(f"The file '{digestPath}' already exists. If you want to overwrite it yse the overwrite flag.", level = ocerror.ReportLevel.WARNING) # type: ignore
 
 def get_docked_poses(posesPath: str) -> List[str]:
     '''Get the docked poses from the poses path.
@@ -1128,7 +1128,7 @@ def get_docked_poses(posesPath: str) -> List[str]:
         return [d for d in glob(f"{posesPath}/*.mol2") if os.path.isfile(d) and not d.endswith("_protein.mol2") and not d.endswith("_fixed.mol2")]
     
     # Print an error message
-    _ = ocerror.Error.dir_does_not_exist(message=f"The poses path '{posesPath}' does not exist.", level = ocerror.ReportLevel.ERROR)
+    _ = ocerror.Error.dir_does_not_exist(message=f"The poses path '{posesPath}' does not exist.", level = ocerror.ReportLevel.ERROR) # type: ignore
     
     # Return an empty list
     return []

@@ -395,7 +395,7 @@ def update_DUDEz(overwrite: bool = False, download: bool = True, multiprocess: b
 
     # Check if the target list is empty
     if len(targets) == 0:
-        return ocerror.Error.file_do_not_exist("The target list is empty. Something went wrong with the download.", ocerror.ReportLevel.ERROR)
+        return ocerror.Error.file_not_exist("The target list is empty. Something went wrong with the download.", ocerror.ReportLevel.ERROR) # type: ignore
 
     # If the download flag is set
     if download:
@@ -439,7 +439,7 @@ def update_DUDEz(overwrite: bool = False, download: bool = True, multiprocess: b
     # Prepare the DUDEz database
     ocdudez.prepare()
 
-    return ocerror.Error.ok()
+    return ocerror.Error.ok() # type: ignore
 
 def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silentMode: str = "") -> int:
     '''Updates the PDBbind database from the Protein-ligand complexes: The refined set.
@@ -569,10 +569,10 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silentMode: 
 
         elif opt.lower() in ["skip", "pular"]:
             ocprint.printv(f"The user decided to skip this update. Skipping!!!")
-            return ocerror.Error.ok()
+            return ocerror.Error.ok() # type: ignore
 
         elif opt == "":
-            rcode = ocerror.Error.abort("User aborted the update.")
+            rcode = ocerror.Error.abort("User aborted the update.") # type: ignore
             quit(rcode)
 
         else:
@@ -585,7 +585,7 @@ def update_PDBbind(overwrite: bool = False, deleteTar: bool = True, silentMode: 
     # Prepare the PDBbind database
     ocpdbbind.prepare()
 
-    return ocerror.Error.ok()
+    return ocerror.Error.ok() # type: ignore
 
 def update_databases() -> None:
     '''Calls all the database update functions sequentially.

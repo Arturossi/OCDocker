@@ -669,7 +669,7 @@ def multipleMoleculesSDF(molecule: rdkit.Chem.rdchem.Mol) -> List[Ligand]: # typ
                 _ = ocerror.Error.wrong_type(message=f"The molecule file MUST be the .sdf format!", level=ocerror.ReportLevel.WARNING) # type: ignore
         else:
             # File does not exist
-            _ = ocerror.Error.file_do_not_exist(message=f"The file '{molecule}' does not exist!", level=ocerror.ReportLevel.WARNING) # type: ignore
+            _ = ocerror.Error.file_not_exist(message=f"The file '{molecule}' does not exist!", level=ocerror.ReportLevel.WARNING) # type: ignore
     else:
         # This case the return code is suppressed because it is needed to return None in case of failure
         _ = ocerror.Error.wrong_type(message=f"The molecule file path MUST be a string!", level=ocerror.ReportLevel.WARNING) # type: ignore
@@ -699,7 +699,7 @@ def loadMol(molecule: Union[str, Chem.rdchem.Mol], sanitize: bool = True) -> Tup
         # Check if file exists
         if not os.path.isfile(molecule):
             # File does not exist
-            _ = ocerror.Error.file_do_not_exist(message=f"The file '{molecule}' does not exist!", level = ocerror.ReportLevel.WARNING) # type: ignore
+            _ = ocerror.Error.file_not_exist(message=f"The file '{molecule}' does not exist!", level = ocerror.ReportLevel.WARNING) # type: ignore
             return "", None
 
         # Determine the extension and use appropriate RDKit functions
@@ -853,9 +853,9 @@ def read_descriptors_from_json(path: str, return_data: bool = False, return_vaex
         return tuple(data[key] for key in keys) # type: ignore
 
     except KeyError as e:
-        print(f"Error: {e}")  # Replace with your logging mechanism
+        ocerror.Error.value_error(f"Error: {e}") # type: ignore
     except Exception as e:
-        print(f"Could not read the file '{path}'. Error: {e}")  # Replace with your logging mechanism
+        ocerror.Error.file_not_exist(f"Could not read the file '{path}'. Error: {e}") # type: ignore
 
     return None
 

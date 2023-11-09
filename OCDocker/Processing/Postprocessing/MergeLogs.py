@@ -94,7 +94,7 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str]) ->
                     receptor_descriptors[descriptor].values[0] = 0 # type: ignore
         else:
             receptor_descriptors = None
-            _ = ocerror.Error.file_do_not_exist(f"The file '{receptor_descriptor_path}' does not exist!")
+            _ = ocerror.Error.file_not_exist(f"The file '{receptor_descriptor_path}' does not exist!")
     except IOError as e:
         if e.errno == errno.EPIPE:
             _ = ocerror.Error.broken_pipe(message=f"Found a broken PIPE error while reading the file '{receptor_descriptor_path}': {e}")
@@ -105,7 +105,7 @@ def __core_merge_descriptors_in_dataframe(processDirPackage: Tuple[str, str]) ->
             ligand_descriptors = ocl.read_descriptors_from_json(ligand_descriptor_path, returnVaex = True)
         else:
             ligand_descriptors = None
-            _ = ocerror.Error.file_do_not_exist(f"The file '{ligand_descriptor_path}' does not exist!")
+            _ = ocerror.Error.file_not_exist(f"The file '{ligand_descriptor_path}' does not exist!")
     except IOError as e:
         if e.errno == errno.EPIPE:
             _ = ocerror.Error.broken_pipe(message=f"Found a broken PIPE error while reading the file '{ligand_descriptor_path}': {e}")
@@ -441,7 +441,7 @@ def __check_datafile_format(datafileFormat: str, receptorDataFile: str) -> Union
     if datafileFormat.lower() in ["hdf5"]:
         # If the file does not exist, return an empty dataframe
         if not os.path.isfile(receptorDataFile):
-            return ocerror.Error.file_do_not_exist(f"File '{receptorDataFile}' does not exist.", level = ocerror.ReportLevel.ERROR)
+            return ocerror.Error.file_not_exist(f"File '{receptorDataFile}' does not exist.", level = ocerror.ReportLevel.ERROR)
         # Open the dataframe
         recdf = vaex.open(receptorDataFile)
         # Convert it to a pandas dataframe

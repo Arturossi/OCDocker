@@ -689,7 +689,7 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
             return structure, tmpStructure
         else:
             # File does not exist
-            _ = ocerror.Error.file_do_not_exist(message=f"The file '{structure}' does not exist!", level=ocerror.ReportLevel.ERROR)
+            _ = ocerror.Error.file_not_exist(message=f"The file '{structure}' does not exist!", level=ocerror.ReportLevel.ERROR)
             return "", None
     else:
         # The variable is not in a supported data format

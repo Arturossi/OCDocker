@@ -114,7 +114,7 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                     # Create the ligand object
                     m = ocl.Ligand(mol, molName, sanitize = sanitize)
                     # Test if the Radius of Gyration is None
-                    if not m.RadiusOfGyration:
+                    if not m.RadiusOfGyration: # type: ignore
                         # Print a warning
                         ocprint.print_warning(f"The ligand '{molName}' has a Radius of Gyration of None, trying to load its alternative ligand.")
                         # If so, try to load the alternative ligand
@@ -122,7 +122,7 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                             # Create the ligand object
                             m = ocl.Ligand(alternativeLigand, molName, sanitize = sanitize)
                             # Check the radius of gyration again
-                            if not m.RadiusOfGyration:
+                            if not m.RadiusOfGyration: # type: ignore
                                 # If it is still None, print a warning and return
                                 ocprint.print_warning(f"The ligand '{molName}' has a Radius of Gyration of None, even with the alternative ligand, skipping.")
                         else:
@@ -135,7 +135,7 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
             except Exception as e:
                 errMsg = f"The molecule '{mol}' could not be parsed!"
 
-                _ = ocerror.Error.parse_molecule(errMsg, level = ocerror.ReportLevel.ERROR)
+                _ = ocerror.Error.parse_molecule(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
                 ocprint.print_error_log(errMsg, f"{logdir}/{dbName}_error_Parse.log")
                 return None
 
@@ -156,7 +156,7 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                     except Exception as e:
                         errMsg = f"The molecule '{mol[0]}' could not be parsed! Error {e}"
 
-                        _ = ocerror.Error.parse_molecule(errMsg, level = ocerror.ReportLevel.ERROR)
+                        _ = ocerror.Error.parse_molecule(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
                         ocprint.print_error_log(errMsg, f"{logdir}/{dbName}_error_Parse.log")
                         return None
                 else:
@@ -170,18 +170,18 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                     except Exception as e:
                         errMsg = f"The molecule '{mol}' could not be parsed! Error {e}"
 
-                        _ = ocerror.Error.parse_molecule(errMsg, level = ocerror.ReportLevel.ERROR)
+                        _ = ocerror.Error.parse_molecule(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
                         ocprint.print_error_log(errMsg, f"{logdir}/{dbName}_error_Parse.log")
                         return None
         else:
-            _ = ocerror.Error.unknown("Unknown molecule type", level = ocerror.ReportLevel.ERROR)
+            _ = ocerror.Error.unknown("Unknown molecule type", level = ocerror.ReportLevel.ERROR) # type: ignore
             return None
 
         # Test if the molecule is valid
         if not m or not m.is_valid():
             errMsg = f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!"
 
-            _ = ocerror.Error.malformed_molecule(errMsg, level = ocerror.ReportLevel.ERROR)
+            _ = ocerror.Error.malformed_molecule(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
             ocprint.print_error_log(errMsg, f"{logdir}/{dbName}_error_Parse.log")
         else:
             # Export its descriptors
@@ -285,7 +285,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
     # Check if the basename of the working directory is not in the list of ignored directories
     if os.path.basename(path) in ['index']:
         # Skip it
-        return ocerror.Error.unnalowed_dir()
+        return ocerror.Error.unnalowed_dir() # type: ignore
 
     # Set the input file name path
     fin = f"{path}/receptor.pdb"
@@ -337,7 +337,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
         
         # Check if the target centroid is still None
         if targetCentroid is None:
-            return ocerror.Error.file_do_not_exist(f"Could not find the file '{' or '.join([os.path.join(path, f'reference_ligand.{ref_ligand_ext}') for ref_ligand_ext in ref_ligand_exts])}' for the molecule '{path}' or the provided files are not valid and a target centroid has not been provided. This molecule will not be processed.", level = ocerror.ReportLevel.ERROR)            
+            return ocerror.Error.file_not_exist(f"Could not find the file '{' or '.join([os.path.join(path, f'reference_ligand.{ref_ligand_ext}') for ref_ligand_ext in ref_ligand_exts])}' for the molecule '{path}' or the provided files are not valid and a target centroid has not been provided. This molecule will not be processed.", level = ocerror.ReportLevel.ERROR) # type: ignore
 
     # Create an empty list to hold all dirs to be processed
     processDirs = []
@@ -437,7 +437,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
         else:
             ocprint.print_info(f"The protein '{processDir}' already has its smina file generated, skipping its execution.")
 
-    return ocerror.Error.ok()
+    return ocerror.Error.ok() # type: ignore
 
 def __thread_prepare(arguments: Tuple[str, bool, str, bool, float]) -> int:
     '''Thread aid function to call __core_prepare.

@@ -399,7 +399,7 @@ def __core_read_log(processDirData: Tuple[str, str]) -> Dict[str, vdf.DataFrameL
                     # Turn the flag off
                     first = False
         else:
-            _ = ocerror.Error.file_do_not_exist(f"The file '{logPath}' does not exist. Could not read its {key} output.")
+            _ = ocerror.Error.file_not_exist(f"The file '{logPath}' does not exist. Could not read its {key} output.")
             # Set the elements in value as np.NaN
             value = value.empty_with_nan()
 

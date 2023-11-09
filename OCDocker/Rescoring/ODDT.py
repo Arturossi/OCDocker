@@ -171,11 +171,11 @@ def run_oddt_from_cli(receptor: Union[ocr.Receptor, str], ligand: Union[ocl.Liga
     
     # Check if the receptor exists
     if not os.path.isfile(receptorPath):
-        return ocerror.Error.file_do_not_exist(f"The receptor file '{receptorPath}' does not exist.", level = ocerror.ReportLevel.ERROR)
+        return ocerror.Error.file_not_exist(f"The receptor file '{receptorPath}' does not exist.", level = ocerror.ReportLevel.ERROR)
 
     # Check if the ligand exists
     if not os.path.isfile(ligandPath):
-        return ocerror.Error.file_do_not_exist(f"The ligand file '{ligandPath}' does not exist.", level = ocerror.ReportLevel.ERROR)
+        return ocerror.Error.file_not_exist(f"The ligand file '{ligandPath}' does not exist.", level = ocerror.ReportLevel.ERROR)
     
     # Create the output file path
     
@@ -253,7 +253,7 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
     
     # Check if the receptor exists
     if not os.path.isfile(preparedReceptorPath):
-        return ocerror.Error.file_do_not_exist(f"The receptor file '{preparedReceptorPath}' does not exist.", level = ocerror.ReportLevel.ERROR)
+        return ocerror.Error.file_not_exist(f"The receptor file '{preparedReceptorPath}' does not exist.", level = ocerror.ReportLevel.ERROR)
     
     # Check if the ligand is not a string
     if not isinstance(preparedLigandPath, list):
@@ -284,7 +284,7 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
     for ligand in preparedLigandPath:
         # Check if the ligand exists
         if not os.path.isfile(ligand):
-            return ocerror.Error.file_do_not_exist(f"The ligand file '{ligand}' does not exist.", level = ocerror.ReportLevel.ERROR)
+            return ocerror.Error.file_not_exist(f"The ligand file '{ligand}' does not exist.", level = ocerror.ReportLevel.ERROR)
 
         # Load the ligand
         pipeline.load_ligands(ligand.split('.')[-1], ligand)
@@ -405,7 +405,7 @@ def read_log(path: str) -> Union[pd.DataFrame, None]:
         return data
 
     # Throw an error
-    _ = ocerror.Error.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
+    _ = ocerror.Error.file_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
 
     # Return None
     return None

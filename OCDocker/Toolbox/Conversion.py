@@ -105,7 +105,7 @@ def convertMolsFromString(input: str, output: str, mol: Union[rdkit.Chem.rdchem.
         if outExtension == "mol":
             # Write the molecule to the output file
             MolToMolFile(mol, output)
-            return ocerror.Error.ok()
+            return ocerror.Error.ok() # type: ignore
         
         # Replace the extension to to mol
         tmpOutput = f"{os.path.splitext(output)[0]}_tmp.mol"
@@ -117,9 +117,9 @@ def convertMolsFromString(input: str, output: str, mol: Union[rdkit.Chem.rdchem.
         convertMols(tmpOutput, output)
         
     except Exception as e:
-        return ocerror.Error.subprocess(message=f"Error while running molecule conversion from {inExtension} to {outExtension} using obabel python lib. Error: {e}", level = ocerror.ReportLevel.ERROR)
+        return ocerror.Error.subprocess(message=f"Error while running molecule conversion from {inExtension} to {outExtension} using obabel python lib. Error: {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
 
-    return ocerror.Error.ok()
+    return ocerror.Error.ok() # type: ignore
 
 def convertMols(input_file: str, output_file: str) -> Union[int, str]:
     '''Convert a molecule file between two extensions which obabel supports.
@@ -158,7 +158,7 @@ def convertMols(input_file: str, output_file: str) -> Union[int, str]:
 
     # Check if the output exists, if so, no need to convert
     if os.path.isfile(output_file):
-        return ocerror.Error.file_exists(message=f"The file '{output_file}' already exists, aborting conversion.", level = ocerror.ReportLevel.WARNING)
+        return ocerror.Error.file_exists(message=f"The file '{output_file}' already exists, aborting conversion.", level = ocerror.ReportLevel.WARNING) # type: ignore
 
     # Check if input is a smiles file
     if inExtension == "smi":
@@ -183,8 +183,8 @@ def convertMols(input_file: str, output_file: str) -> Union[int, str]:
         # Remove the temporary file
         os.remove(input_file)
     except Exception as e:
-        return ocerror.Error.subprocess(message=f"Error while running molecule conversion from {inExtension} to {outExtension} using obabel python lib. Error: {e}", level = ocerror.ReportLevel.ERROR)
-    return ocerror.Error.ok()
+        return ocerror.Error.subprocess(message=f"Error while running molecule conversion from {inExtension} to {outExtension} using obabel python lib. Error: {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
+    return ocerror.Error.ok() # type: ignore
 
 def split_and_convert(path: str, out_path: str, extension: str, overwrite: bool = False) -> int:
     '''Splits a multi-molecule file then save the output in multiple single-molecule file with the desired extension. (Supported by openbabel)
@@ -212,7 +212,7 @@ def split_and_convert(path: str, out_path: str, extension: str, overwrite: bool 
     # If input extension is not valid
     if type(extension) != str:
         # Return the unsupported_extension
-        return ocerror.Error.unsupported_extension(f"Unsupported extension provided while spliting '{path}' file. Supported extensions are the one supported by OpenBabel.", ocerror.ReportLevel.ERROR)
+        return ocerror.Error.unsupported_extension(f"Unsupported extension provided while spliting '{path}' file. Supported extensions are the one supported by OpenBabel.", ocerror.ReportLevel.ERROR) # type: ignore
 
     # For each molecule in input file
     for mol in pybel.readfile(extensionIn, path):
@@ -227,6 +227,6 @@ def split_and_convert(path: str, out_path: str, extension: str, overwrite: bool 
         # If fails
         except Exception as e:
             # Return write file error
-            return ocerror.Error.write_file(f"Problems while writing the file '{outfile}'. Error: {e}")
+            return ocerror.Error.write_file(f"Problems while writing the file '{outfile}'. Error: {e}") # type: ignore
     # Since everything gone ok, return the ok code
-    return ocerror.Error.ok()
+    return ocerror.Error.ok() # type: ignore

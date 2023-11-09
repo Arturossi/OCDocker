@@ -77,12 +77,12 @@ class TestErrorMethods(unittest.TestCase):
             self.assertEqual(result, ErrorCode.FILE_EXISTS.value)
             mock_print.assert_called_with("[WARNING] File exists")
 
-    def test_file_do_not_exist(self):
+    def test_file_not_exist(self):
         """
-        Test the file_do_not_exist method to check if the appropriate warning and error code are returned when a file does not exist.
+        Test the file_not_exist method to check if the appropriate warning and error code are returned when a file does not exist.
         """
         with patch('builtins.print') as mock_print:
-            result = self.error.file_do_not_exist("File does not exist")
+            result = self.error.file_not_exist("File does not exist")
             self.assertEqual(result, ErrorCode.FILE_NOT_EXIST.value)
             mock_print.assert_called_with("[WARNING] File does not exist")
 

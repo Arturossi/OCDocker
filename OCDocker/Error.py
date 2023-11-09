@@ -257,10 +257,10 @@ class Error(metaclass = ErrorMeta):
         # Iterate through the ErrorCode enumeration
         for code in ErrorCode:
             # Get the description and default level of the error code from ErrorMessages
-            description, default_level = ErrorMessages.messages[code]
+            description, level = ErrorMessages.messages[code]
             
             # Create the dynamic method for each error code
-            error_method = ErrorMethodFactory.create_error_method(code, description, default_level)
+            error_method = ErrorMethodFactory.create_error_method(code, description, level)
 
             # Convert the method into a static method
             static_error_method = staticmethod(error_method)

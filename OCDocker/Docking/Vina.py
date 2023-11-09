@@ -153,7 +153,7 @@ class Vina:
                 # Exists! Return it!
                 return receptor # type: ignore
             else:
-                _ = ocerror.Error.file_do_not_exist(message=f"The receptor '{receptor}' has not a valid path.", level = ocerror.ReportLevel.ERROR)
+                _ = ocerror.Error.file_not_exist(message=f"The receptor '{receptor}' has not a valid path.", level = ocerror.ReportLevel.ERROR)
                 return ""
 
         _ = ocerror.Error.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'string' or 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR)
@@ -181,7 +181,7 @@ class Vina:
                 # Exists! Process it then!
                 return self.__process_ligand(ligand) # type: ignore
             else:
-                _ = ocerror.Error.file_do_not_exist(message=f"The ligand '{ligand}' has not a valid path.", level = ocerror.ReportLevel.ERROR)
+                _ = ocerror.Error.file_not_exist(message=f"The ligand '{ligand}' has not a valid path.", level = ocerror.ReportLevel.ERROR)
                 return ""
 
         _ = ocerror.Error.wrong_type(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.", level = ocerror.ReportLevel.ERROR)
@@ -481,7 +481,7 @@ def box_to_vina(boxFile: str, confFile: str, receptor: str) -> int:
     ocprint.printv(f"Converting the box file '{boxFile}' to Vina conf file as '{confFile}' file.")
     # Test if the file boxFile exists
     if not os.path.exists(boxFile):
-        return ocerror.Error.file_do_not_exist(message=f"The box file in the path {boxFile} does not exist! Please ensure that the file exists and the path is correct.", level = ocerror.ReportLevel.ERROR)
+        return ocerror.Error.file_not_exist(message=f"The box file in the path {boxFile} does not exist! Please ensure that the file exists and the path is correct.", level = ocerror.ReportLevel.ERROR)
     # List to hold all the data
     lines = []
 
@@ -783,7 +783,7 @@ def read_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
             return data
 
     # Throw an error
-    _ = ocerror.Error.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
+    _ = ocerror.Error.file_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
 
     # Return a dict with a NaN value
     return data
@@ -851,7 +851,7 @@ def read_log_legacy(path: str) -> Dict[str, List[Union[str, float]]]:
             return {"vina_pose": [np.NaN], "vina_affinity": [np.NaN]}
 
     # Throw an error
-    _ = ocerror.Error.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
+    _ = ocerror.Error.file_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
 
     # Return a dict with a NaN value
     return {"vina_pose": [np.NaN], "vina_affinity": [np.NaN]}
@@ -903,7 +903,7 @@ def read_rescoring_log(path: str) -> float:
             return np.NaN
 
     # Throw an error
-    _ = ocerror.Error.file_do_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
+    _ = ocerror.Error.file_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
 
     # Return NaN
     return np.NaN
@@ -950,7 +950,7 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
                             if not isinstance(digest, dict):
                                 return ocerror.Error.wrong_type(f"The digest file '{digestPath}' is not valid.", ocerror.ReportLevel.ERROR)
                     except Exception as e:
-                        return ocerror.Error.file_do_not_exist(f"Could not read the digest file '{digestPath}'.", ocerror.ReportLevel.ERROR)
+                        return ocerror.Error.file_not_exist(f"Could not read the digest file '{digestPath}'.", ocerror.ReportLevel.ERROR)
             else:
                 # Since it does not exists, create it
                 digest = ocff.empty_docking_digest(digestPath, overwrite)

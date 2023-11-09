@@ -170,7 +170,7 @@ def read_index() -> Union[Dict[str, List[str]], None]:
         return proteinData
     else:
         # There is no file, throw an error
-        _ = ocerror.Error.file_do_not_exist(f"The file {indexFile} does not exist. Please check if the PDBbind database is correctly installed.", level = ocerror.ReportLevel.WARNING)
+        _ = ocerror.Error.file_not_exist(f"The file {indexFile} does not exist. Please check if the PDBbind database is correctly installed.", level = ocerror.ReportLevel.WARNING) # type: ignore
         return None
 
 def run_p2rank(overwrite: bool = False) -> None:
@@ -271,7 +271,7 @@ def prepare(overwrite: bool = False) -> None:
 
     return ocbdb.prepare("pdbbind", overwrite = overwrite)
 
-def read_logs(saveChunk: int = 100, overwrite: bool = False) -> Union[Dict[str, vdf.DataFrameLocal], None]:
+def read_logs(saveChunk: int = 100, overwrite: bool = False) -> Union[vdf.DataFrameLocal, None]:
     '''Parse the database into multiple serializable objects.
 
     Parameters
@@ -283,20 +283,20 @@ def read_logs(saveChunk: int = 100, overwrite: bool = False) -> Union[Dict[str, 
 
     Returns
     -------
-    Dict[str, Dict[str, vdf.DataFrameLocal]]
+    vdf.DataFrameLocal | None
         The parsed data.
     '''
 
     return ocbdb.read_logs("pdbbind", saveChunk = saveChunk, overwrite = overwrite)
 
-def generate_dock_result_csv(csv_path: str = "", log_dumps: Union[Dict[str, vdf.DataFrameLocal], None] = None) -> None:
+def generate_dock_result_csv(csv_path: str = "", log_dumps: Union[vdf.DataFrameLocal, None] = None) -> None:
     '''Uses the structure from read_logs to generate an output for all docking softwares.
 
     Parameters
     ----------
     csv_path : str, optional
         The path to the output csv file. If not specified, it will use the default path, by default f"{parsed_archive}/PDBbind.csv".
-    log_dumps : Dict[str, vdf.DataFrameLocal], optional
+    log_dumps : vdf.DataFrameLocal, optional
         The parsed data.
 
     Returns
