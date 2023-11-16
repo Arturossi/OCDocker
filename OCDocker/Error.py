@@ -93,7 +93,7 @@ class ErrorCode(IntEnum):
     VALUE_ERROR = 203
 
     # Subprocess errors
-    SUBPROCESS_ERROR = 300
+    SUBPROCESS = 300
 
     # Molecule error
     PARSE_MOLECULE = 400
@@ -206,7 +206,7 @@ class ErrorMessages:
         ErrorCode.VALUE_ERROR: ("the variable has a value error", ReportLevel.ERROR),
 
         # Subprocess errors
-        ErrorCode.SUBPROCESS_ERROR: ("there was a problem running a subprocess", ReportLevel.ERROR),
+        ErrorCode.SUBPROCESS: ("there was a problem running a subprocess", ReportLevel.ERROR),
 
         # Molecule errors
         ErrorCode.PARSE_MOLECULE: ("a molecule could not be parsed", ReportLevel.WARNING),
@@ -442,7 +442,7 @@ class Error(metaclass = ErrorMeta):
                 ("Value error", ErrorCode.VALUE_ERROR),
             ],
             "PROCESS ERRORS": [
-                ("Subprocess error", ErrorCode.SUBPROCESS_ERROR),
+                ("Subprocess error", ErrorCode.SUBPROCESS),
             ],
             "MOLECULE ERRORS": [
                 ("Molecule parse error", ErrorCode.PARSE_MOLECULE),
