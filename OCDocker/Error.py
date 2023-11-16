@@ -84,6 +84,7 @@ class ErrorCode(IntEnum):
     REMOVE_DIR = 152
     DIR_NOT_EXIST = 153
     UNALLOWED_DIR = 154
+    EMPTY_DIR = 155
 
     # Variable errors
     WRONG_TYPE = 200
@@ -196,6 +197,7 @@ class ErrorMessages:
         ErrorCode.REMOVE_DIR: ("the directory could not be removed", ReportLevel.ERROR),
         ErrorCode.DIR_NOT_EXIST: ("the directory does not exist", ReportLevel.ERROR),
         ErrorCode.UNALLOWED_DIR: ("access to the directory is not allowed", ReportLevel.ERROR),
+        ErrorCode.EMPTY_DIR: ("the directory is empty", ReportLevel.ERROR),
 
         # Variable errors
         ErrorCode.WRONG_TYPE: ("the variable has the wrong type", ReportLevel.ERROR),

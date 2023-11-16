@@ -63,26 +63,6 @@ the user to perform the steps step by step.
 
 # Functions
 ###############################################################################
-def print_args() -> None:
-    '''Prints the current args variable
-
-    Parameters
-    ----------
-    None
-
-    Returns
-    -------
-    None
-    '''
-
-    print("args:")
-    # Iterate over vars(args) dict
-    for key, value in vars(args).items():
-        print(f"{key}:\t\t{value}")
-    print("\n")
-
-    return None
-
 def clean_test_files(baseProtPath, baseLigPath, baseDecPath, baseCanPath) -> None:
     '''Rests the test_files folder to its original state
 

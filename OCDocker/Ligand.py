@@ -928,6 +928,8 @@ def __descriptor_function_factory(descriptor_name: str) -> Callable[[rdkit.Chem.
     else:
         descriptor_func = getattr(Descriptors, descriptor_name)
 
+    # TODO: Check how to avoid this function to spam print the same error multiple times
+
     def __compute_descriptor(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # Type: ignore 
         if molecule:
             if isinstance(molecule, rdkit.Chem.rdchem.Mol): # type: ignore
@@ -938,7 +940,8 @@ def __descriptor_function_factory(descriptor_name: str) -> Callable[[rdkit.Chem.
             else:
                 _ = ocerror.Error.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'") # type: ignore
         else:
-            _ = ocerror.Error.not_set("The molecule is not set.") # type: ignore
+            pass
+            # _ = ocerror.Error.not_set("The molecule is not set.") # type: ignore
         return None
 
     return __compute_descriptor
@@ -962,6 +965,8 @@ def __descriptor_function_factory_class(descriptor_name: str) -> Callable[[rdkit
     else:
         descriptor_func = getattr(Descriptors, descriptor_name)
 
+    # TODO: Check how to avoid this function to spam print the same error multiple times
+
     # Create the nested function as a method of the Ligand class
     def __compute_descriptor_class(self) -> Union[float, None]:
         ''' Compute the descriptor for the Ligand object. (Factory function)
@@ -981,7 +986,8 @@ def __descriptor_function_factory_class(descriptor_name: str) -> Callable[[rdkit
             else:
                 _ = ocerror.Error.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'") # type: ignore
         else:
-            _ = ocerror.Error.not_set("The molecule is not set.") # type: ignore
+            pass
+            #_ = ocerror.Error.not_set("The molecule is not set.") # type: ignore
         return None
 
     return __compute_descriptor_class

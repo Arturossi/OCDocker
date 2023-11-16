@@ -1093,7 +1093,12 @@ overwrite = False
 
 # Initialise
 ###############################################################################
-print(description)
+def print_description() -> None:
+    '''Print the description of the program.
+    '''
+
+    print(description)
+    
 
 # Retrieve the paths from provided configuration file
 if (not config_file or not os.path.isfile(config_file)) and not os.path.isfile("OCDocker.cfg"):
@@ -1303,13 +1308,16 @@ if not os.path.isdir(oddt_models_dir):
 # Remove tmp path then create it again
 tmpDir = f"{ocdocker_path}/tmp"
 
-# If the dir exists
-if os.path.isdir(tmpDir):
-    # Remove it with all its contents
-    shutil.rmtree(tmpDir)
-
-# Then create it since it does not exist
-os.mkdir(tmpDir)
+try:
+    # If the dir exists
+    if os.path.isdir(tmpDir):
+        # Remove it with all its contents
+        shutil.rmtree(tmpDir)
+        
+    # Then create it since it does not exist
+    os.mkdir(tmpDir)
+except:
+    pass
 
 # Get number of CPUs (minus one) with a minimum of one
 if multiprocess:
