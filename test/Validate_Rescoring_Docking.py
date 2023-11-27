@@ -213,9 +213,6 @@ for medoid in medoids:
         processedMedoids["smina"].append(preparedOutfile)
         processedMedoids["plants"].append(preparedOutfileMol2)
 
-# Dictionary with the medoids and its docking method (to be correctly parsed by the next function)
-medoidsDict = {}
-
 ## Run rescoring
 # Create smina object
 sminaTest = ocsmina.Smina(f"{baseLigPath}/{lig}/sminaFiles/conf_smina.txt", f"{baseLigPath}/{lig}/boxes/box0.pdb", receptorTest, f"{baseProtPath}/prepared_receptor.pdbqt", ligandTest, f"{baseLigPath}/{lig}/prepared_ligand.pdbqt", f"{baseLigPath}/{lig}/sminaFiles/{lig}.log", f"{baseLigPath}/{lig}/sminaFiles/{lig}.pdbqt", name=f"Smina {ptn}-{lig}")
@@ -256,7 +253,7 @@ df = ocoddt.run_oddt(vinaTest.preparedReceptor, medoids, vinaTest.inputLigand.na
 vinaRescoringResult = ocvina.read_rescore_logs(ocvina.get_rescore_log_paths(f"{baseLigPath}/{lig}/vinaFiles"))
 
 # Smina
-sminaRescoringResult = ocsmina.read_rescore_logs(ocsmina.get_rescore_log_paths((f"{baseLigPath}/{lig}/sminaFiles")))
+sminaRescoringResult = ocsmina.read_rescore_logs(ocsmina.get_rescore_log_paths(f"{baseLigPath}/{lig}/sminaFiles"))
 
 # PLANTS
 plantsRescoringResult = {}
@@ -264,7 +261,7 @@ plantsRescoringResult = {}
 # For each scoring function
 for sf in plants_scoring_functions:
     # Read the rescoring results and save it in the dictionary
-    plantsRescoringResult[sf] = ocplants.read_rescore_logs(f"{plantsTest.outputPlants}/run_{sf}")
+    plantsRescoringResult[sf] = ocplants.read_rescore_logs(f"{plantsTest.outputPlants}/run_{sf}/ranking.csv")
 
 # ODDT
 # If df not exists

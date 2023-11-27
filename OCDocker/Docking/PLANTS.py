@@ -727,17 +727,15 @@ def run_rescore(confFile: str, pose_list: str, outPath: str, proteinFile: str, s
 
     # Check if the conf file exists
     if not os.path.isfile(confFile) or overwrite:
-        # Get the output folder
-        plants_outputFolder = f"{outPath}/run_{scoring_function}"
         # Check if the folder exists
-        if os.path.isdir(plants_outputFolder):
+        if os.path.isdir(outPath):
             # If overwrite is set
             if overwrite:
                 # Remove it
-                ocff.safe_remove_dir(plants_outputFolder)
+                ocff.safe_remove_dir(outPath)
             else:
                 # Print verboosity
-                return ocerror.Error.dir_exists(f"The folder '{plants_outputFolder}' already exists. Skipping the PLANTS run.", level = ocerror.ReportLevel.WARNING) # type: ignore
+                return ocerror.Error.dir_exists(f"The folder '{outPath}' already exists. Skipping the PLANTS run.", level = ocerror.ReportLevel.WARNING) # type: ignore
 
         # Create the conf file (yes... again...)
         _ = write_rescoring_config_file(confFile, proteinFile, pose_list, outPath, scoringFunction = scoring_function, rescoringMode = plants_rescoring_mode)
@@ -846,7 +844,7 @@ def write_rescoring_config_file(confFile: str, preparedReceptor: str, ligandList
             f.write(f"keep_original_mol2_description 0\n") # important to avoid problems in output generation
             f.write(f"output_dir {outputPlants}\n")
             #f.write(f"# Rescoring mode parameter\n")
-            f.write(f"rescoring_mode {rescoringMode}\n")
+            f.write(f"rescore_mode {rescoringMode}\n")
     except Exception as e:
         return ocerror.Error.write_file(f"Problems while writing the file {confFile}: {e}") # type: ignore
 

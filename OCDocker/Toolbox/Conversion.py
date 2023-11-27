@@ -180,8 +180,6 @@ def convertMols(input_file: str, output_file: str) -> Union[int, str]:
         obConversion.ReadFile(mol, input_file)
         # Write the mol object to the output performing the conversion
         obConversion.WriteFile(mol, output_file)
-        # Remove the temporary file
-        os.remove(input_file)
     except Exception as e:
         return ocerror.Error.subprocess(message=f"Error while running molecule conversion from {inExtension} to {outExtension} using obabel python lib. Error: {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
     return ocerror.Error.ok() # type: ignore

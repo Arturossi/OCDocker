@@ -91,7 +91,7 @@ class Smina:
         if type(receptor) == ocr.Receptor:
             self.inputReceptor = receptor
         else:
-            ocerror.Error.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR)
+            ocerror.Error.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR) # type: ignore
             return None
         
         # Check if the folder where the configPath is located exists (remove the file name from the path)
@@ -107,9 +107,9 @@ class Smina:
         if type(ligand) == ocl.Ligand:
             self.inputLigand = ligand
             # Create the sminaFiles folder
-            _ = ocff.safe_create_dir(os.path.join(os.path.dirname(ligand.path), "vinaFiles"))
+            _ = ocff.safe_create_dir(os.path.join(os.path.dirname(ligand.path), "sminaFiles"))
         else:
-            ocerror.Error.wrong_type(f"The ligand '{ligand}' has not a supported type. Expected 'ocl.Ligand' but got {type(ligand)} instead.", level = ocerror.ReportLevel.ERROR)
+            ocerror.Error.wrong_type(f"The ligand '{ligand}' has not a supported type. Expected 'ocl.Ligand' but got {type(ligand)} instead.", level = ocerror.ReportLevel.ERROR) # type: ignore
             return None
 
         self.inputLigandPath = self.__parse_ligand_path(ligand)
@@ -155,10 +155,10 @@ class Smina:
                 # Exists! Return it!
                 return receptor # type: ignore
             else:
-                _ = ocerror.Error.file_not_exist(message=f"The receptor '{receptor}' has not a valid path.", level = ocerror.ReportLevel.ERROR)
+                _ = ocerror.Error.file_not_exist(message=f"The receptor '{receptor}' has not a valid path.", level = ocerror.ReportLevel.ERROR) # type: ignore
                 return ""
 
-        _ = ocerror.Error.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'string' or 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR)
+        _ = ocerror.Error.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'string' or 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR) # type: ignore
         return ""
 
     def __parse_ligand_path(self, ligand: Union[str, ocl.Ligand]) -> str:
@@ -183,10 +183,10 @@ class Smina:
                 # Exists! Process it then!
                 return self.__process_ligand(ligand) # type: ignore
             else:
-                _ = ocerror.Error.file_not_exist(message=f"The ligand '{ligand}' has not a valid path.", level = ocerror.ReportLevel.ERROR)
+                _ = ocerror.Error.file_not_exist(message=f"The ligand '{ligand}' has not a valid path.", level = ocerror.ReportLevel.ERROR) # type: ignore
                 return ""
 
-        _ = ocerror.Error.wrong_type(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.", level = ocerror.ReportLevel.ERROR)
+        _ = ocerror.Error.wrong_type(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.", level = ocerror.ReportLevel.ERROR) # type: ignore
         return ""
 
     def __smina_cmd(self) -> List[str]:
@@ -467,7 +467,7 @@ def gen_smina_conf(boxFile: str, confFile: str, receptor: str) -> int:
 
     # Test if the file boxFile exists
     if not os.path.exists(boxFile):
-        return ocerror.Error.file_not_exist(message=f"The box file in the path {boxFile} does not exist! Please ensure that the file exists and the path is correct.", level = ocerror.ReportLevel.ERROR)
+        return ocerror.Error.file_not_exist(message=f"The box file in the path {boxFile} does not exist! Please ensure that the file exists and the path is correct.", level = ocerror.ReportLevel.ERROR) # type: ignore
     # List to hold all the data
     lines = []
 
@@ -486,7 +486,7 @@ def gen_smina_conf(boxFile: str, confFile: str, receptor: str) -> int:
                         # Break the loop (optimization)
                         break
     except Exception as e:
-        return ocerror.Error.read_file(message=f"Found a problem while reading the box file: {e}", level = ocerror.ReportLevel.ERROR)
+        return ocerror.Error.read_file(message=f"Found a problem while reading the box file: {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
 
     ocprint.printv(f"Creating smina conf file in the path '{confFile}'.")
     try:
@@ -524,9 +524,9 @@ def gen_smina_conf(boxFile: str, confFile: str, receptor: str) -> int:
             conf_file.write(f"exhaustiveness = {smina_exhaustiveness}\n")
             conf_file.write(f"num_modes = {smina_num_modes}\n")
     except Exception as e:
-        return ocerror.Error.write_file(message=f"Found a problem while opening conf file: {e}.", level = ocerror.ReportLevel.ERROR)
+        return ocerror.Error.write_file(message=f"Found a problem while opening conf file: {e}.", level = ocerror.ReportLevel.ERROR) # type: ignore
 
-    return ocerror.Error.ok()
+    return ocerror.Error.ok() # type: ignore
 
 def run_prepare_ligand_from_cmd(inputLigandPath: str, preparedLigand: str, logFile: str = "") -> Union[int, Tuple[int, str]]:
     '''Converts the ligand to .pdbqt using obabel. [DEPRECATED]
@@ -592,7 +592,7 @@ def run_prepare_ligand(inputLigandPath: str, preparedLigand: str) -> Union[int, 
         cmd = [pythonsh, prepare_ligand, "-l", inputLigandPath, "-C", "-o", preparedLigand]
         return ocrun.run(cmd, cwd = os.path.dirname(inputLigandPath))
     except Exception as e:
-        return ocerror.Error.subprocess(message=f"Error while running ligand conversion using obabel python lib. Error: {e}", level = ocerror.ReportLevel.ERROR)
+        return ocerror.Error.subprocess(message=f"Error while running ligand conversion using obabel python lib. Error: {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
 
 def run_prepare_receptor_from_cmd(inputReceptorPath: str, outputReceptor: str, logFile: str = "") -> Union[int, Tuple[int, str]]:
     '''Converts the receptor to .pdbqt using obabel. [DEPRECATED]
@@ -763,10 +763,14 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
         # Run the command
         _ = ocrun.run(cmd, logFile = logFile)
 
+        if not logFile:
+            # Set it as cmd log
+            logFile = f"{outPath}/{ligand_name}_{scoring_function}_rescoring.log"
+
         # Check if the logFile exists and it has the string "Affinity:" inside it
         if not os.path.isfile(logFile) or not "Affinity:" in open(logFile).read():
             # Print an error
-            ocprint.print_error(f"Problems while running vina for the ligand '{ligand_name}' using the scoring function '{scoring_function}'.")
+            ocprint.print_error(f"Problems while running smina for the ligand '{ligand_name}' using the scoring function '{scoring_function}'.")
             # Remove the file
             _ = ocff.safe_remove_file(logFile)
     
@@ -799,7 +803,7 @@ def read_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
             # Check if file is empty
             if os.stat(path).st_size == 0:
                 # Print the error
-                _ = ocerror.Error.empty_file(f"The SMINA log file '{path}' is empty.", ocerror.ReportLevel.ERROR)
+                _ = ocerror.Error.empty_file(f"The SMINA log file '{path}' is empty.", ocerror.ReportLevel.ERROR) # type: ignore
                 # Return the dictionary with invalid default data
                 return data
             
@@ -832,11 +836,11 @@ def read_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
             return data
 
         except Exception as e:
-            _ = ocerror.Error.read_docking_log_error(f"Problems while reading the SMINA log file '{path}'. Error: {e}", ocerror.ReportLevel.ERROR)
+            _ = ocerror.Error.read_docking_log_error(f"Problems while reading the SMINA log file '{path}'. Error: {e}", ocerror.ReportLevel.ERROR) # type: ignore
             return data
 
     # Throw an error
-    _ = ocerror.Error.file_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
+    _ = ocerror.Error.file_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.") # type: ignore
 
     # Return a dict with a NaN value
     return data
@@ -862,7 +866,7 @@ def read_log_legacy(path: str) -> Dict[str, List[Union[str, float]]]:
             # Check if file is empty
             if os.stat(path).st_size == 0:
                 # Print the error
-                _ = ocerror.Error.empty_file(f"The smina log file '{path}' is empty.", ocerror.ReportLevel.ERROR)
+                _ = ocerror.Error.empty_file(f"The smina log file '{path}' is empty.", ocerror.ReportLevel.ERROR) # type: ignore
                 # Return the dictionary with invalid default data
                 return {"smina_pose": [np.NaN], "smina_affinity": [np.NaN]}
 
@@ -900,11 +904,11 @@ def read_log_legacy(path: str) -> Dict[str, List[Union[str, float]]]:
             return data
         
         except Exception as e:
-            _ = ocerror.Error.read_docking_log_error(f"Problems while reading the smina log file '{path}'. Error: {e}", ocerror.ReportLevel.ERROR)
+            _ = ocerror.Error.read_docking_log_error(f"Problems while reading the smina log file '{path}'. Error: {e}", ocerror.ReportLevel.ERROR) # type: ignore
             return {"smina_pose": [np.NaN], "smina_affinity": [np.NaN]}
 
     # Throw an error
-    _ = ocerror.Error.file_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
+    _ = ocerror.Error.file_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.") # type: ignore
 
     # Return a dict with a NaN value
     return {"smina_pose": [np.NaN], "smina_affinity": [np.NaN]}
@@ -930,7 +934,7 @@ def read_rescoring_log(path: str) -> float:
             # Check if file is empty
             if os.stat(path).st_size == 0:
                 # Print the error
-                _ = ocerror.Error.empty_file(f"The smina rescoring log file '{path}' is empty.", ocerror.ReportLevel.ERROR)
+                _ = ocerror.Error.empty_file(f"The smina rescoring log file '{path}' is empty.", ocerror.ReportLevel.ERROR) # type: ignore
                 # Return NaN
                 return np.NaN
 
@@ -952,11 +956,11 @@ def read_rescoring_log(path: str) -> float:
             return np.NaN
 
         except Exception as e:
-            _ = ocerror.Error.read_docking_log_error(f"Problems while reading the smina log file '{path}'. Error: {e}", ocerror.ReportLevel.ERROR)
+            _ = ocerror.Error.read_docking_log_error(f"Problems while reading the smina log file '{path}'. Error: {e}", ocerror.ReportLevel.ERROR) # type: ignore
             return np.NaN
 
     # Throw an error
-    _ = ocerror.Error.file_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
+    _ = ocerror.Error.file_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.") # type: ignore
 
     # Return NaN
     return np.NaN
@@ -1001,9 +1005,9 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
                             digest = json.load(f)
                             # Check if the digest variable is fine
                             if not isinstance(digest, dict):
-                                return ocerror.Error.wrong_type(f"The digest file '{digestPath}' is not valid.", ocerror.ReportLevel.ERROR)
+                                return ocerror.Error.wrong_type(f"The digest file '{digestPath}' is not valid.", ocerror.ReportLevel.ERROR) # type: ignore
                     except Exception as e:
-                        return ocerror.Error.file_not_exist(f"Could not read the digest file '{digestPath}'.", ocerror.ReportLevel.ERROR)
+                        return ocerror.Error.file_not_exist(f"Could not read the digest file '{digestPath}'.", ocerror.ReportLevel.ERROR) # type: ignore
             else:
                 # Since it does not exists, create it
                 digest = ocff.empty_docking_digest(digestPath, overwrite)
@@ -1013,7 +1017,7 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
 
             # Check if the digest variable is fine
             if not isinstance(digest, dict):
-                return ocerror.Error.wrong_type(f"The docking digest file '{digestPath}' is not valid.", ocerror.ReportLevel.ERROR)
+                return ocerror.Error.wrong_type(f"The docking digest file '{digestPath}' is not valid.", ocerror.ReportLevel.ERROR) # type: ignore
             
             # Merge the digest and the docking digest
             digest = { **digest, **dockingDigest } # type: ignore
@@ -1027,12 +1031,12 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
                         # Dump the data
                         json.dump(digest, f)
                 except Exception as e:
-                    return ocerror.Error.write_file(f"Could not write the digest file '{digestPath}'.", ocerror.ReportLevel.ERROR)
+                    return ocerror.Error.write_file(f"Could not write the digest file '{digestPath}'.", ocerror.ReportLevel.ERROR) # type: ignore
 
-            return ocerror.Error.ok()
-        return ocerror.Error.unsupported_extension(f"The provided extension '{digestFormat}' is not supported.", ocerror.ReportLevel.ERROR)
+            return ocerror.Error.ok() # type: ignore
+        return ocerror.Error.unsupported_extension(f"The provided extension '{digestFormat}' is not supported.", ocerror.ReportLevel.ERROR) # type: ignore
     
-    return ocerror.Error.file_exists(f"The file '{digestPath}' already exists. If you want to overwrite it yse the overwrite flag.", level = ocerror.ReportLevel.WARNING)
+    return ocerror.Error.file_exists(f"The file '{digestPath}' already exists. If you want to overwrite it yse the overwrite flag.", level = ocerror.ReportLevel.WARNING) # type: ignore
 
 def get_docked_poses(posesPath: str) -> List[str]:
     '''Get the docked poses from the poses path.
@@ -1053,7 +1057,7 @@ def get_docked_poses(posesPath: str) -> List[str]:
         return [d for d in glob(f"{posesPath}/*_split_*.pdbqt") if os.path.isfile(d)]
     
     # Print an error message
-    _ = ocerror.Error.dir_does_not_exist(message=f"The poses path '{posesPath}' does not exist.", level = ocerror.ReportLevel.ERROR)
+    _ = ocerror.Error.dir_does_not_exist(message=f"The poses path '{posesPath}' does not exist.", level = ocerror.ReportLevel.ERROR) # type: ignore
     
     # Return an empty list
     return []
@@ -1074,8 +1078,10 @@ def get_pose_index_from_file_path(filePath: str) -> int:
 
     # Get the filename from the file path
     filename = os.path.splitext(os.path.basename(filePath))[0]
+
     # Split the filename using the '_split_' string as delimiter then grab the end of the string
     filename = filename.split("_split_")[-1]
+
     # Return the filename
     return int(filename)
 
