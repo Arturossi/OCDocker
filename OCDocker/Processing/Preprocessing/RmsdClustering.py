@@ -74,6 +74,13 @@ def get_medoids(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], clusters
     if isinstance(data, dict):
         # Convert the dict to a DataFrame
         data = pd.DataFrame(data)
+
+    if isinstance(clusters, int):
+        print(clusters)
+    
+    # Check if the clusters is an int or is not empty or invalid
+    if isinstance(clusters, int) or clusters.size == 0 or np.any(clusters < 0):
+        return []
     
     # If onlyBiggest is True
     if onlyBiggest:
@@ -93,6 +100,11 @@ def get_medoids(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], clusters
     for cluster in unique_clusters:
         # Select data points belonging to the current cluster
         cluster_data = data[clusters == cluster]
+
+        # Check if the cluster is empty
+        if cluster_data.empty:
+            _ = ocerror.Error.empty_cluster(f"The cluster {cluster} is empty.") # type: ignore
+            continue
 
         # Calculate pairwise distances within the cluster
         distances = pairwise_distances(cluster_data, metric='euclidean')
@@ -139,7 +151,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
     # Check if max_distance_threshold is smaller than min_distance_threshold
     if max_distance_threshold < min_distance_threshold:
         # Return the value error
-        return ocerror.Error.value_error(f"The max_distance_threshold ({max_distance_threshold}) is smaller than the min_distance_threshold ({min_distance_threshold}).")
+        return ocerror.Error.value_error(f"The max_distance_threshold ({max_distance_threshold}) is smaller than the min_distance_threshold ({min_distance_threshold}).") # type: ignore
 
     # Check if the data is a dict
     if isinstance(data, dict):
@@ -189,17 +201,19 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                     break
                 else:
                     # Print the message, returning the error code
-                    return ocerror.Error.cluster_not_converged(f"The clustering algorithm did not converge. The distance threshold is {distance_threshold}.")
+                    return ocerror.Error.cluster_not_converged(f"The clustering algorithm did not converge. The distance threshold is {distance_threshold}.") # type: ignore
 
             # Find the biggest cluster (may be more than one)
             biggest_cluster = np.where(cluster_sizes == np.max(cluster_sizes))[0]
 
             # If the biggest cluster is 1
             if len(biggest_cluster) == 1:
-                # Get the silhouette score
-                scores = silhouette_score(npdata, results)
-                # Break the loop
-                break
+                # If there is only one cluster, do not perform the silhouette score
+                if len(unique_clusters) > 1:
+                    # Get the silhouette score
+                    scores = silhouette_score(npdata, results)
+                    # Break the loop
+                    break
             else:
                 # Set the last result to the current result
                 last_result = results
@@ -207,7 +221,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
         # If the scores is -1
         if scores == -1:
             # Print the message, returning the error code
-            return ocerror.Error.cluster_not_converged(f"The clustering algorithm did not converge. The distance threshold is {distance_threshold}.")
+            return ocerror.Error.cluster_not_converged(f"The clustering algorithm did not converge. The distance threshold is {distance_threshold}.") # type: ignore
 
         # If the outputPlot is not ""
         if outputPlot != "":
@@ -231,4 +245,4 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
         return results # type: ignore
     
     else:
-        return ocerror.Error.unsupported_clustering_algorithm(f"The clustering algorithm '{algorithm}' is not supported. Currently the supported algorithms are: 'agglomerativeClustering'.")
+        return ocerror.Error.unsupported_clustering_algorithm(f"The clustering algorithm '{algorithm}' is not supported. Currently the supported algorithms are: 'agglomerativeClustering'.") # type: ignore

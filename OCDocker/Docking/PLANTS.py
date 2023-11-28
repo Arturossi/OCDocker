@@ -1126,7 +1126,7 @@ def get_docked_poses(posesPath: str) -> List[str]:
         return [d for d in glob(f"{posesPath}/*.mol2") if os.path.isfile(d) and not d.endswith("_protein.mol2") and not d.endswith("_fixed.mol2")]
     
     # Print an error message
-    _ = ocerror.Error.dir_does_not_exist(message=f"The poses path '{posesPath}' does not exist.", level = ocerror.ReportLevel.ERROR) # type: ignore
+    _ = ocerror.Error.dir_not_exist(message=f"The poses path '{posesPath}' does not exist.", level = ocerror.ReportLevel.ERROR) # type: ignore
     
     # Return an empty list
     return []

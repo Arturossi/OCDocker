@@ -122,6 +122,7 @@ class ErrorCode(IntEnum):
     # Clustering error
     UNSUPPORTED_CLUSTERING_ALGORITHM = 750
     CLUSTER_NOT_CONVERGED = 751
+    EMPTY_CLUSTER = 752
 
 class ReportLevel(IntEnum):
     """ Class with all report levels used in OCDocker. """ 
@@ -235,6 +236,7 @@ class ErrorMessages:
         # Clustering errors
         ErrorCode.UNSUPPORTED_CLUSTERING_ALGORITHM: ("an unsupported clustering algorithm is specified", ReportLevel.ERROR),
         ErrorCode.CLUSTER_NOT_CONVERGED: ("the clustering process has not converged", ReportLevel.ERROR),
+        ErrorCode.EMPTY_CLUSTER: ("the cluster is empty", ReportLevel.ERROR),
     }
 
 class Error(metaclass = ErrorMeta):
