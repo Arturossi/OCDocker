@@ -73,7 +73,7 @@ def __build_cmd(receptorPath: str, ligandPath: str, outputFile: str) -> Union[Li
 
     # Check if the output file is a csv
     if not outputFile.endswith(".csv"):
-        return ocerror.Error.unsupported_extension("The output file must be a csv file.", level = ocerror.ReportLevel.ERROR)
+        return ocerror.Error.unsupported_extension("The output file must be a csv file.", level = ocerror.ReportLevel.ERROR) # type: ignore
 
     # Start building the command
     cmd = [oddt, ligandPath, "-O", outputFile, "--receptor", receptorPath, "-i", "pdbqt", "-n", "1"]
@@ -146,7 +146,7 @@ def run_oddt_from_cli(receptor: Union[ocr.Receptor, str], ligand: Union[ocl.Liga
         # Get the receptor path
         receptorPath = receptor
     else:
-        return ocerror.Error.wrong_type(f"The receptor must be a string or an ocr.Receptor object. The type {type(receptor)} was given.", level = ocerror.ReportLevel.ERROR)
+        return ocerror.Error.wrong_type(f"The receptor must be a string or an ocr.Receptor object. The type {type(receptor)} was given.", level = ocerror.ReportLevel.ERROR) # type: ignore
     
     # Check if the ligand is an ocl.Ligand object
     if isinstance(ligand, ocl.Ligand):
@@ -163,15 +163,15 @@ def run_oddt_from_cli(receptor: Union[ocr.Receptor, str], ligand: Union[ocl.Liga
         # Output file name
         outputFile = f"{outputPath}/{ligandName}.csv"
     else:
-        return ocerror.Error.wrong_type(f"The ligand must be a string or an ocl.Ligand object. The type {type(ligand)} was given.", level = ocerror.ReportLevel.ERROR)
+        return ocerror.Error.wrong_type(f"The ligand must be a string or an ocl.Ligand object. The type {type(ligand)} was given.", level = ocerror.ReportLevel.ERROR) # type: ignore
     
     # Check if the output file exists
     if os.path.isfile(outputFile) and not overwrite:
-        return ocerror.Error.file_exists(f"The output file '{outputFile}' already exists. Please use the overwrite option if you want to overwrite it.", level = ocerror.ReportLevel.ERROR)
+        return ocerror.Error.file_exists(f"The output file '{outputFile}' already exists. Please use the overwrite option if you want to overwrite it.", level = ocerror.ReportLevel.ERROR) # type: ignore
     
     # Check if the receptor exists
     if not os.path.isfile(receptorPath):
-        return ocerror.Error.file_not_exist(f"The receptor file '{receptorPath}' does not exist.", level = ocerror.ReportLevel.ERROR)
+        return ocerror.Error.file_not_exist(f"The receptor file '{receptorPath}' does not exist.", level = ocerror.ReportLevel.ERROR) # type: ignore
 
     # Check if the ligand exists
     if not os.path.isfile(ligandPath):
@@ -233,7 +233,7 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
         try:
             _ = ocff.safe_create_dir(outputPath)
         except Exception as e:
-            return ocerror.Error.dir_does_not_exist(f"The output directory '{outputPath}' does not exist.", level = ocerror.ReportLevel.ERROR)
+            return ocerror.Error.dir_not_exist(f"The output directory '{outputPath}' does not exist.", level = ocerror.ReportLevel.ERROR) # type: ignore
         
     # If the ligand path is a string
     if isinstance(preparedLigandPath, str):
@@ -245,19 +245,19 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
 
     # Check if are there any model
     if len(models) <= 0:
-        return ocerror.Error.missing_oddt_models("There are no models in the models folder. Please run the initialise_oddt() function (with proper arguments) to download the models.", level = ocerror.ReportLevel.ERROR)
+        return ocerror.Error.missing_oddt_models("There are no models in the models folder. Please run the initialise_oddt() function (with proper arguments) to download the models.", level = ocerror.ReportLevel.ERROR) # type: ignore
     
     # Check if the receptor is a string
     if not isinstance(preparedReceptorPath, str):
-        return ocerror.Error.wrong_type(f"The receptor must be a string. The type {type(preparedReceptorPath)} was given.", level = ocerror.ReportLevel.ERROR)
+        return ocerror.Error.wrong_type(f"The receptor must be a string. The type {type(preparedReceptorPath)} was given.", level = ocerror.ReportLevel.ERROR) # type: ignore
     
     # Check if the receptor exists
     if not os.path.isfile(preparedReceptorPath):
-        return ocerror.Error.file_not_exist(f"The receptor file '{preparedReceptorPath}' does not exist.", level = ocerror.ReportLevel.ERROR)
+        return ocerror.Error.file_not_exist(f"The receptor file '{preparedReceptorPath}' does not exist.", level = ocerror.ReportLevel.ERROR) # type: ignore
     
     # Check if the ligand is not a string
     if not isinstance(preparedLigandPath, list):
-        return ocerror.Error.wrong_type(f"The ligand must be a string or a list. The type {type(preparedLigandPath)} was given.", level = ocerror.ReportLevel.ERROR)
+        return ocerror.Error.wrong_type(f"The ligand must be a string or a list. The type {type(preparedLigandPath)} was given.", level = ocerror.ReportLevel.ERROR) # type: ignore
     
     # Set the output file name
     outputFile = f"{outputPath}/{ligandName}.csv"
@@ -271,7 +271,7 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
             # Return the data
             return df
         else:
-            return ocerror.Error.file_exists(f"The output file '{outputFile}' already exists. Please use the overwrite option if you want to overwrite it.", level = ocerror.ReportLevel.ERROR)
+            return ocerror.Error.file_exists(f"The output file '{outputFile}' already exists. Please use the overwrite option if you want to overwrite it.", level = ocerror.ReportLevel.ERROR) # type: ignore
     
     # Create the vs object
     pipeline = vs()
@@ -284,7 +284,7 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
     for ligand in preparedLigandPath:
         # Check if the ligand exists
         if not os.path.isfile(ligand):
-            return ocerror.Error.file_not_exist(f"The ligand file '{ligand}' does not exist.", level = ocerror.ReportLevel.ERROR)
+            return ocerror.Error.file_not_exist(f"The ligand file '{ligand}' does not exist.", level = ocerror.ReportLevel.ERROR) # type: ignore
 
         # Load the ligand
         pipeline.load_ligands(ligand.split('.')[-1], ligand)
@@ -322,14 +322,14 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
             # Check if there is anything in the data dict
             if len(data) <= 0:
                 # Show an error
-                return ocerror.Error.rescoring_failed(f"The rescoring of the ligand '{ligandName}' failed.", level = ocerror.ReportLevel.ERROR)
+                return ocerror.Error.rescoring_failed(f"The rescoring of the ligand '{ligandName}' failed.", level = ocerror.ReportLevel.ERROR) # type: ignore
         
         # Append the data to the datas list
         datas.append(data)
 
     # Check if datas is empty
     if len(datas) <= 0:
-        return ocerror.Error.rescoring_failed(f"The rescoring of the ligand '{ligandName}' failed.", level = ocerror.ReportLevel.ERROR)
+        return ocerror.Error.rescoring_failed(f"The rescoring of the ligand '{ligandName}' failed.", level = ocerror.ReportLevel.ERROR) # type: ignore
     
     # Create the dataframe
     df = pd.DataFrame(datas)
@@ -359,7 +359,7 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
         return df
     
     # Just return an ok code
-    return ocerror.Error.ok()
+    return ocerror.Error.ok() # type: ignore
 
 def df_to_dict(data: pd.DataFrame) -> Dict[str, Dict[str, float]]:
     '''Convert the data from a pandas dataframe to a dict.
@@ -405,7 +405,7 @@ def read_log(path: str) -> Union[pd.DataFrame, None]:
         return data
 
     # Throw an error
-    _ = ocerror.Error.file_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
+    _ = ocerror.Error.file_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.") # type: ignore
 
     # Return None
     return None

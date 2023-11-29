@@ -203,6 +203,31 @@ def create_ocdocker_conf() -> None:
     None
     '''
 
+    #region Database config
+    confHOST = 'localhost'
+    confUSER = 'root'
+    confPASSWORD = ''
+    confDATABASE = 'ocdocker'
+    confPORT = '3306'
+
+    print("\nSQL database OCDocker configuration")
+    answer = input(f"HOST. Default [{confHOST}] (press enter to keep default): ")
+    confHOST = confHOST if not answer else answer
+
+    answer = input(f"USER. Default [{confUSER}] (press enter to keep default): ")
+    confUSER = confUSER if not answer else answer
+
+    answer = input(f"PASSWORD. Default [{confPASSWORD}] (press enter to keep default): ")
+    confPASSWORD = confPASSWORD if not answer else answer
+
+    answer = input(f"DATABASE. Default [{confDATABASE}] (press enter to keep default): ")
+    confDATABASE = confDATABASE if not answer else answer
+
+    answer = input(f"PORT. Default [{confPORT}] (press enter to keep default): ")
+    confPORT = confPORT if not answer else answer
+
+    #endregion
+
     #region General config
     confOcdb = "/mnt/e/Documents/OCDocker/OCDocker/data/ocdb"
     confPDBbind_KdKi_order = "u"
@@ -567,7 +592,20 @@ def create_ocdocker_conf() -> None:
 
     # Create the conf file
     with open(conf_file, 'w') as cf:
-        cf.write(tw.dedent("""# Root directory for the OCDocker Database
+        cf.write(tw.dedent("""#######################################################
+###################### OCDocker #######################
+#######################################################
+                           
+#################### SQL PARAMETERS ###################
+HOST = """ + str(confHOST) + """
+USER = """ + str(confUSER) + """
+PASSWORD = """ + str(confPASSWORD) + """
+DATABASE = """ + str(confDATABASE) + """
+PORT = """ + str(confPORT) + """
+
+################### OCDB PARAMETERS ###################
+                                 
+# Root directory for the OCDocker Database
 ocdb = """ + str(confOcdb) + """
 
 # The default pdbbind KiKd magnitude [Y, Z, E, P, T, G, M, k, un, c, m, u, n, pf, a, z, y] (follow the unit prefix table)
@@ -914,6 +952,7 @@ global order
 global pdbbind_KdKi_order
 
 # Data from .cfg
+global db_config
 global ocdb_path
 global vina
 global vina_split
@@ -1121,9 +1160,26 @@ elif config_file:
 # Set the ocdb path as an empty string
 ocdb_path = ""
 
+# Set db variables as empty strings
+HOST = ""
+USER = ""
+PASSWORD = ""
+DATABASE = ""
+PORT = ""
+
 # Read the conf file and assign its data to its variables (The order matters here, if you follow the same order which is in the conf file less computation power will be needed! It is not much, but it is something.)
 for line in open(config_file, 'r'): # type: ignore
-    if line.startswith("ocdb ="):
+    if line.startswith("HOST ="):
+        HOST = line.split("=")[1].strip()
+    elif line.startswith("USER ="):
+        USER = line.split("=")[1].strip()
+    elif line.startswith("PASSWORD ="):
+        PASSWORD = line.split("=")[1].strip()
+    elif line.startswith("DATABASE ="):
+        DATABASE = line.split("=")[1].strip()
+    elif line.startswith("PORT ="):
+        PORT = line.split("=")[1].strip()
+    elif line.startswith("ocdb ="):
         ocdb_path = line.split("=")[1].strip()
     elif line.startswith("pdbbind_KdKi_order ="):
         pdbbind_KdKi_order = line.split("=")[1].strip()
@@ -1273,6 +1329,20 @@ for line in open(config_file, 'r'): # type: ignore
         spores = line.split("=")[1].strip()
     elif line.startswith("DUDEz ="):
         dudez_download = line.split("=")[1].strip()
+
+# Check if the db_config variables are empty
+if not HOST or not USER or not PASSWORD or not DATABASE or not PORT:
+    print(f"{clrs['r']}ERROR{clrs['n']}: The variables HOST, USER, PASSWORD, DATABASE and PORT must be set in the config file '{config_file}'")
+    quit()
+
+# Set the db_config variable
+db_config = {
+    'host':HOST,
+    'user':USER,
+    'password':PASSWORD,
+    'database':DATABASE,
+    'port': PORT
+}
 
 # Root directory for OCDocker module
 ocdocker_path = os.path.dirname(os.path.abspath( __file__ ))
