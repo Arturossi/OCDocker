@@ -1,21 +1,12 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, func
 from sqlalchemy.orm import relationship
-from OCDocker.DB.DB import Base
+from OCDocker.DB.Models.Base import Base
 
 class Receptor(Base):
     """ Define the Receptor table """
     
     # Table name
     __tablename__ = 'Receptor'
-
-    # Set the id column as the primary key
-    id = Column(Integer, primary_key = True)
-
-    # Add a column for the molecule name
-    receptor_name = Column(String(2048))
-
-    # Add a column for the creation and modification date
-    creation_date = Column(String(2048))
 
     # Relationships
     complex = relationship('Complex')
@@ -52,7 +43,3 @@ class Receptor(Base):
         else:
             # Create the column as a float
             locals()[f"{descriptor}"] = Column(Float, server_default = None)
-
-    # Add created_at and modified_at columns (modified_at is updated automatically)
-    created_at = Column(DateTime, server_default = func.now())
-    modified_at = Column(DateTime, server_default = None, onupdate = func.now())

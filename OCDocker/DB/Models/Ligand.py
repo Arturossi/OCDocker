@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, func
 from sqlalchemy.orm import relationship
-from OCDocker.DB.DB import Base
+from OCDocker.DB.Models.Base import Base
+
 import OCDocker.Ligand as ocl
 
 class Ligand(Base):
@@ -9,17 +10,8 @@ class Ligand(Base):
     # Table name
     __tablename__ = 'Ligand'
 
-    # Set the id column as the primary key
-    id = Column(Integer, primary_key = True)
-
-    # Add a column for the molecule name
-    molecule_name = Column(String(2048))
-
     # Relationships
     complex = relationship('Complex')
-
-    # Add a column for the creation and modification date
-    creation_date = Column(String(2048))
 
     # Add columns for each descriptor
     for descriptor in ocl.Ligand.allDescriptors:
@@ -31,6 +23,3 @@ class Ligand(Base):
             # Create the column as a float
             locals()[f"{descriptor}"] = Column(Float, server_default = None)
     
-    # Add created_at and modified_at columns (modified_at is updated automatically)
-    created_at = Column(DateTime, server_default = func.now())
-    modified_at = Column(DateTime, server_default = None, onupdate = func.now())

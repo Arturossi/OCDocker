@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, func
 from sqlalchemy.orm import relationship
-from OCDocker.DB.DB import Base
+from OCDocker.DB.Models.Base import Base
 
 class Complex(Base):
     """ Define the Complex table """
@@ -8,9 +8,6 @@ class Complex(Base):
     # Table name
     __tablename__ = 'Complex'
 
-    # Set the id column as the primary key
-    id = Column(Integer, primary_key = True)
-    
     # Relationships
     ligand = relationship("Ligand")
     receptor = relationship("Receptor")
@@ -19,9 +16,6 @@ class Complex(Base):
     ligand_id = Column(Integer, ForeignKey("Ligand.id"))
     receptor_id = Column(Integer, ForeignKey("Receptor.id"))
 
-    # Add a column for the creation and modification date
-    creation_date = Column(String(2048))
-    
     # Complexes descriptors:
     descriptors_names = {
         'rescoring_': ['vina', 'scoring_dkoes', 'vinardo', 'old_scoring_dkoes', 'fast_dkoes', 'scoring_ad4'],
@@ -37,6 +31,3 @@ class Complex(Base):
         # Create the column as a float
         locals()[f"{descriptor}"] = Column(Float, server_default = None)
 
-    # Add created_at and modified_at columns (modified_at is updated automatically)
-    created_at = Column(DateTime, server_default = func.now())
-    modified_at = Column(DateTime, server_default = None, onupdate = func.now())
