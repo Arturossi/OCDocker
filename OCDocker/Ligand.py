@@ -799,7 +799,7 @@ def loadMol(molecule: Union[str, Chem.rdchem.Mol], sanitize: bool = True) -> Tup
         return molecule, mol # type: ignore
 
     # The variable is not in a supported data format
-    _ = ocerror.Error.unsupported_extension(message=f"Unsupported molecule data. Please support either a molecule path (string) or a rdkit.Chem.rdchem.Mol object.", level=ocerror.ReportLevel.WARNING) # type: ignore
+    _ = ocerror.Error.unsupported_extension(message = f"Unsupported molecule data. Please support either a molecule path (string) or a rdkit.Chem.rdchem.Mol object.", level = ocerror.ReportLevel.WARNING) # type: ignore
 
     return "", None
 

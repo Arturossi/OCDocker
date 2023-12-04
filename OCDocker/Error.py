@@ -124,6 +124,13 @@ class ErrorCode(IntEnum):
     CLUSTER_NOT_CONVERGED = 751
     EMPTY_CLUSTER = 752
 
+    # Database error
+    DATABASE_NOT_CONNECTED = 800
+    DATABASE_NOT_CREATED = 801
+    ENGINE_NOT_CREATED = 802
+    SESSION_NOT_CREATED = 803
+    DATA_NOT_FOUND = 804
+
 class ReportLevel(IntEnum):
     """ Class with all report levels used in OCDocker. """ 
 
@@ -237,6 +244,13 @@ class ErrorMessages:
         ErrorCode.UNSUPPORTED_CLUSTERING_ALGORITHM: ("an unsupported clustering algorithm is specified", ReportLevel.ERROR),
         ErrorCode.CLUSTER_NOT_CONVERGED: ("the clustering process has not converged", ReportLevel.ERROR),
         ErrorCode.EMPTY_CLUSTER: ("the cluster is empty", ReportLevel.ERROR),
+
+        # Database errors
+        ErrorCode.DATABASE_NOT_CONNECTED: ("the database is not connected", ReportLevel.ERROR),
+        ErrorCode.DATABASE_NOT_CREATED: ("the database has not been created", ReportLevel.ERROR),
+        ErrorCode.ENGINE_NOT_CREATED: ("the engine has not been created", ReportLevel.ERROR),
+        ErrorCode.SESSION_NOT_CREATED: ("the session has not been created", ReportLevel.ERROR),
+        ErrorCode.DATA_NOT_FOUND: ("the data has not been found", ReportLevel.ERROR),
     }
 
 class Error(metaclass = ErrorMeta):
@@ -473,6 +487,13 @@ class Error(metaclass = ErrorMeta):
             "CLUSTERING ERRORS": [
                 ("Unsupported Clustering Algorithm", ErrorCode.UNSUPPORTED_CLUSTERING_ALGORITHM),
                 ("Cluster Not Converged", ErrorCode.CLUSTER_NOT_CONVERGED),
+            ],
+            "DATABASE ERRORS": [
+                ("Database Not Connected", ErrorCode.DATABASE_NOT_CONNECTED),
+                ("Database Not Created", ErrorCode.DATABASE_NOT_CREATED),
+                ("Engine Not Created", ErrorCode.ENGINE_NOT_CREATED),
+                ("Session Not Created", ErrorCode.SESSION_NOT_CREATED),
+                ("Data Not Found", ErrorCode.DATA_NOT_FOUND),
             ],
         }
 

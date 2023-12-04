@@ -1,61 +1,13 @@
-from sqlalchemy import create_engine
-from sqlalchemy.engine.mock import MockConnection
-from sqlalchemy.engine.base import Engine
-from sqlalchemy.ext.declarative import DeclarativeMeta
-from sqlalchemy.orm import scoped_session, sessionmaker
-from sqlalchemy.orm.session import Session
-from sqlalchemy_utils import create_database, database_exists
-from typing import Union
 
-from OCDocker.Initialise import session
+from sqlalchemy.engine.base import Engine
+
+from OCDocker.DB.DBMinimal import create_database_if_not_exists, create_engine
 from OCDocker.DB.Models.Base import Base
 from OCDocker.DB.Models import Complexes, Ligands, Receptors
 
-def create_database_if_not_exists(url: str) -> None:
-    ''' Create the database if it does not exist.
-    
-    Parameters
-    ----------
-    url : str
-        The database url.
-    '''
+from OCDocker.Initialise import db_url, engine
 
-    # If the database does not exist, create it
-    if not database_exists(url):
-        create_database(url)
-    
-    return None
-
-def create_engine_and_session(url: str) -> MockConnection:
-    ''' Create the engine and the session.
-
-    Parameters
-    ----------
-    url : str
-        The database url.
-
-    Returns
-    -------
-    MockConnection : sqlalchemy.engine.mock.MockConnection
-        The engine.
-    '''
-
-    # Make Session global
-    global Session
-
-    # Create the database if it does not exist
-    create_database_if_not_exists(url)
-
-    # Create the engine
-    engine = create_engine(url, echo = True)
-
-    # Create the session in a scoped session to avoid threading problems
-    Session = scoped_session(sessionmaker(bind = engine))
-
-    # Return the engine
-    return engine
-
-def create_tables(engine: MockConnection) -> None:
+def create_tables() -> None:
     ''' Create the tables.
 
     Parameters
@@ -65,39 +17,32 @@ def create_tables(engine: MockConnection) -> None:
     '''
 
     # Create the tables
-    Base.metadata.create_all(engine)
+    Base.metadata.create_all(engine) # type: ignore
 
     return None
 
-def insert_data(table: DeclarativeMeta, payload: dict) -> None:
-    ''' Insert data into the database.
-
+def setup_database() -> Engine:
+    ''' Setup the database. 
+    
     Parameters
     ----------
-    table : sqlalchemy.ext.declarative.DeclarativeMeta
-        The table.
-    payload : dict
-        The data to be inserted.
+    db_url : str | sqlalchemy.engine.url.URL
+        The database url.
+        
+    Returns
+    -------
+    Engine : sqlalchemy.engine.base.Engine
+        The engine.
     '''
 
-    # Open the session
-    with session() as s:
-        # Create the new data
-        new_data = table(**payload)
-        # Add the new data to the session
-        s.add(new_data)
-        # Commit the session
-        s.commit()
- 
-    return None
+    # Create the database if it does not exist
+    create_database_if_not_exists(str(db_url))
 
-def setup(url: str) -> None:
-    ''' Setup the database. '''
-
-    # Create the engine and the session
-    engine = create_engine_and_session(url)
+    # Create the engine
+    engine = create_engine(str(db_url))
 
     # Create tables (nothing happens if table already exists) :)
-    create_tables(engine)
+    create_tables()
     
-    return None
+    return engine
+

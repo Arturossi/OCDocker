@@ -6,11 +6,9 @@ class Receptors(Base):
     """ Define the Receptor table """
     
     # Relationships
-    complex = relationship("complexes", back_populates = "receptor")
-
-    # Set foreign keys
     complex_id = Column(Integer, ForeignKey('complexes.id'))
-    
+    complex = relationship("Complexes", back_populates = "receptor")
+
     # Declare the descriptors names as class attributes
     descriptors_names = {
         "count": ["A", "R", "N", "D", "C", "Q", "E", "G", "H", "I", "L", "K", "M", "F", "P", "S", "T", "W", "Y", "V"]

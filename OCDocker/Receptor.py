@@ -365,17 +365,17 @@ class Receptor:
         try:
             outputJson = f"{os.path.dirname(self.path)}/{self.name}_descriptors.json"
             if not overwrite and os.path.isfile(outputJson):
-                return ocerror.Error.file_exists(f"The file {outputJson} already exists and the overwrite flag is set to False, no file will be generated or overwrited.", ocerror.ReportLevel.WARNING)
+                return ocerror.Error.file_exists(f"The file {outputJson} already exists and the overwrite flag is set to False, no file will be generated or overwrited.", ocerror.ReportLevel.WARNING) # type: ignore
             if os.path.isfile(outputJson):
-                _ = ocerror.Error.file_exists(f"The file '{outputJson}' already exists. It will be OVERWRITED!!!")
+                _ = ocerror.Error.file_exists(f"The file '{outputJson}' already exists. It will be OVERWRITED!!!") # type: ignore
             try:
                 with open(outputJson, 'w') as outfile:
                     json.dump(self.__safe_to_dict(), outfile)
-                return ocerror.Error.ok()
+                return ocerror.Error.ok() # type: ignore
             except Exception as e:
-                return ocerror.Error.write_file(f"Problems while writing the file '{outputJson}' Error: {e}.")
+                return ocerror.Error.write_file(f"Problems while writing the file '{outputJson}' Error: {e}.") # type: ignore
         except Exception as e:
-            return ocerror.Error.unknown(f"Unknown error while converting the ligand {self.name} to json.\nError: {e}", ocerror.ReportLevel.ERROR)
+            return ocerror.Error.unknown(f"Unknown error while converting the ligand {self.name} to json.\nError: {e}", ocerror.ReportLevel.ERROR) # type: ignore
 
     def is_valid(self) -> bool:
         '''Check if a Ligand object is valid.
@@ -445,7 +445,7 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
 
     ocprint.printv(f"Counting how many of each of the 20 standard AAs from the structure '{structurePath}' are in the surface. Exposure cutoff is {cutoff}.")
     if not structurePath:
-        _ = ocerror.Error.not_set(f"The structure path is not set!", level = ocerror.ReportLevel.ERROR)
+        _ = ocerror.Error.not_set(f"The structure path is not set!", level = ocerror.ReportLevel.ERROR) # type: ignore
         return None #type: ignore
 
     aas = {
@@ -544,7 +544,7 @@ def count_AAs_and_chains(structure: Bio.PDB.Structure.Structure) -> Union[Tuple[
 
     # If the model is not set
     if not structure:
-        _ = ocerror.Error.not_set(message=f"The model object is not set!", level=ocerror.ReportLevel.ERROR)
+        _ = ocerror.Error.not_set(message=f"The model object is not set!", level=ocerror.ReportLevel.ERROR) # type: ignore
         return None #type: ignore
     # Initialise the counter of number of residues and chains
     res_no = 0
@@ -585,6 +585,7 @@ def compute_sasa(model: Bio.PDB.Structure.Structure, n_points: int = 1000) -> No
     ocprint.printv(f"Computing SASA for protein '{model.id}'.")
     sr = SASA.ShrakeRupley(n_points = n_points)
     sr.compute(model, level="S")
+
     return None
 
 def getRes(model: Bio.PDB.Structure.Structure) -> str: #type: ignore
@@ -689,7 +690,7 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
             return structure, tmpStructure
         else:
             # File does not exist
-            _ = ocerror.Error.file_not_exist(message=f"The file '{structure}' does not exist!", level=ocerror.ReportLevel.ERROR)
+            _ = ocerror.Error.file_not_exist(message=f"The file '{structure}' does not exist!", level=ocerror.ReportLevel.ERROR) # type: ignore
             return "", None
     else:
         # The variable is not in a supported data format
@@ -740,7 +741,7 @@ def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str
 
         return structure
     except Exception as e:
-        _ = ocerror.Error.unknown(f"Could not reset indexes for this protein and save it on path '{outputPdb}'. Error: {e}", level = ocerror.ReportLevel.ERROR)
+        _ = ocerror.Error.unknown(f"Could not reset indexes for this protein and save it on path '{outputPdb}'. Error: {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
     
     return None
 

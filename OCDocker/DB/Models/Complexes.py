@@ -6,12 +6,8 @@ class Complexes(Base):
     """ Define the Complex table """
 
     # Relationships
-    ligand = relationship("ligands", back_populates = "complex")
-    receptor = relationship("receptors", back_populates = "complex")
-
-    # Set foreign keys
-    ligand_id = Column(Integer, ForeignKey("ligands.id"))
-    receptor_id = Column(Integer, ForeignKey("receptors.id"))
+    ligand = relationship("Ligands", back_populates = "complex")
+    receptor = relationship("Receptors", back_populates = "complex")
 
     # Complexes descriptors
     descriptors_names = {

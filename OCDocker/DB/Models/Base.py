@@ -1,7 +1,10 @@
 from sqlalchemy import Column, DateTime, Float, Index, Integer, String, func
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta
 from sqlalchemy.orm import declared_attr
 from typing import Any, Dict, List, Union
+
+import OCDocker.Error as ocerror
+from OCDocker.Initialise import session
 
 class Base(declarative_base()):
     """ Base class for all the tables. """
@@ -109,3 +112,336 @@ class Base(declarative_base()):
             setattr(cls, descriptor, Column(column_type, server_default = None))
 
         return None
+
+    @classmethod
+    def insert(cls, payload: dict) -> bool:
+        ''' Insert data into the database.
+
+        Parameters
+        ----------
+        payload : dict
+            The data to be inserted.
+        
+        Returns
+        -------
+        bool
+            True if the data was inserted, False otherwise.
+        '''
+
+        # Check if session is defined
+        if session is None:
+            # The session is not defined
+            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.") # type: ignore
+
+            # Return False
+            return False
+        
+        # Open the session
+        with session() as s:
+            # Create the new data
+            new_data = cls(**payload)
+
+            try:
+                # Add the new data to the session
+                s.add(new_data)
+                # Commit the session
+                s.commit()
+            except:
+                # Return False
+                return False
+    
+        return True
+
+    @classmethod
+    def delete(cls, idorname: Union[int, str]) -> bool:
+        ''' Delete data from the database.
+
+        Parameters
+        ----------
+        idorname : Union[int, str]
+            The ID or name of the data to be deleted.
+        
+        Returns
+        -------
+        bool
+            True if the data was deleted, False otherwise.
+        '''
+
+        # Check if session is defined
+        if session is None:
+            # The session is not defined
+            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.") # type: ignore
+
+            # Return False
+            return False
+        
+        # Open the session
+        with session() as s:
+            # Perform the search
+            data = (
+                s.query(cls)
+                .filter(
+                    (cls.id == idorname)
+                    | (func.lower(cls.name) == func.lower(idorname))
+                )
+                .first()
+            )
+
+            # Check if the data exists
+            if data is None:
+                # The data does not exist
+                _ = ocerror.Error.data_not_found("The data does not exist.") # type: ignore
+                # Return False
+                return False
+            
+            try:
+                # Delete the data
+                s.delete(data)
+            
+            
+                # Commit the session
+                s.commit()
+            except:
+                # Return False
+                return False
+    
+        return True
+
+    @classmethod
+    def update(cls, idorname: Union[int, str], payload: dict) -> bool:
+        ''' Update data in the database.
+
+        Parameters
+        ----------
+        idorname : Union[int, str]
+            The ID or name of the data to be updated.
+        payload : dict
+            The data to be updated.
+
+        Returns
+        -------
+        bool
+            True if the data was updated, False otherwise.
+        '''
+
+        # Check if session is defined
+        if session is None:
+            # The session is not defined
+            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.") # type: ignore
+
+            # Return False
+            return False
+        
+        # Open the session
+        with session() as s:
+            # Perform the search
+            data = (
+                s.query(cls)
+                .filter(
+                    (cls.id == idorname)
+                    | (func.lower(cls.name) == func.lower(idorname))
+                )
+                .first()
+            )
+
+            # Check if the data exists
+            if data is None:
+                # The data does not exist
+                _ = ocerror.Error.data_not_found("The data does not exist.") # type: ignore
+
+                # Return False
+                return False
+            
+            try:
+                # Update the data
+                for key, value in payload.items():
+                    setattr(data, key, value)
+            
+                # Commit the session
+                s.commit()
+            except:
+                # Return False
+                return False
+    
+        return True
+
+    @classmethod
+    def insert_or_update(cls, payload: dict) -> bool:
+        ''' Insert or update data in the database.
+
+        Parameters
+        ----------
+        payload : dict
+            The data to be inserted or updated.
+
+        Returns
+        -------
+        bool
+            True if the data was inserted or updated, False otherwise.
+        '''
+
+        # Check if session is defined
+        if session is None:
+            # The session is not defined
+            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.") # type: ignore
+
+            # Return False
+            return False
+    
+        # Open the session
+        with session() as s:
+            # Perform the search
+            data = (
+                s.query(cls)
+                .filter(
+                    (cls.id == payload["id"])
+                    | (func.lower(cls.name) == func.lower(payload["name"]))
+                )
+                .first()
+            )
+
+            # Check if the data exists
+            if data is None:
+                # The data does not exist
+                # Insert the data
+                return cls.insert(payload)
+            
+            try:
+                # Update the data
+                for key, value in payload.items():
+                    setattr(data, key, value)
+            
+                # Commit the session
+                s.commit()
+            except:
+                # Return False
+                return False
+        
+        return True
+
+    @classmethod
+    def search(cls, idorname: Union[int, str]) -> List[DeclarativeMeta]:
+        ''' Search data in the database.
+
+        Parameters
+        ----------
+        idorname : Union[int, str]
+            The ID or name of the data to be searched.
+
+        Returns
+        -------
+        List[DeclarativeMeta]
+            The data found.
+        '''
+
+        # Check if session is defined
+        if session is None:
+            # The session is not defined
+            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.") # type: ignore
+
+            # Return an empty list
+            return []
+        
+        # Open the session
+        with session() as s:
+            # Perform the search
+            data = (
+                s.query(cls)
+                .filter(
+                    (cls.id == idorname)
+                    | (func.lower(cls.name) == func.lower(idorname))
+                )
+                .all()
+            )
+    
+        return data
+
+    @classmethod
+    def search_all(cls) -> List[DeclarativeMeta]:
+        ''' Search all data in the database.
+
+        Returns
+        -------
+        List[DeclarativeMeta]
+            The data found.
+        '''
+
+        # Check if session is defined
+        if session is None:
+            # The session is not defined
+            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.") # type: ignore
+
+            # Return an empty list
+            return []
+        
+        # Open the session
+        with session() as s:
+            # Perform the search
+            data = s.query(cls).all()
+    
+        return data
+    
+    @classmethod
+    def search_all_names(cls) -> List[str]:
+        ''' Search all names in the database.
+
+        Returns
+        -------
+        List[str]
+            The names found.
+        '''
+
+        # Check if session is defined
+        if session is None:
+            # The session is not defined
+            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.") # type: ignore
+
+            # Return an empty list
+            return []
+        
+        # Open the session
+        with session() as s:
+            # Perform the search
+            data = s.query(cls.name).all()
+    
+        return data
+
+    @classmethod
+    def search_attribute(cls, column: str, value: Any, operator: str = "==") -> List[DeclarativeMeta]:
+        ''' Search data in the database based on an attribute.
+
+        Parameters
+        ----------
+        column : str
+            The column name.
+        value : Any
+            The value to be searched.
+        operator : str
+            The operator to be used.
+
+        Returns
+        -------
+        List[DeclarativeMeta]
+            The data found.
+        '''
+
+        # Check if session is defined
+        if session is None:
+            # The session is not defined
+            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.") # type: ignore
+
+            # Return an empty list
+            return []
+        
+        # Open the session
+        with session() as s:
+            # Perform the search
+            data = (
+                s.query(cls)
+                .filter(
+                    eval(f"cls.{column} {operator} value")
+                )
+                .all()
+            )
+
+        return data
