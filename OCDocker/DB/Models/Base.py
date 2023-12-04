@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, func
+from sqlalchemy import Column, DateTime, Float, Index, Integer, String, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import declared_attr
 from typing import Any, Dict, List, Union
@@ -12,8 +12,28 @@ class Base(declarative_base()):
         ''' Return the table name. '''
         return cls.__name__.lower()
 
+    ## Class Attributes ##
+
     # Set the abstract flag
     __abstract__ = True
+
+    # Set the extend existing flag to true (to avoid errors when creating the tables)
+    __table_args__ = {
+        'extend_existing': True
+    }
+
+    # Set the id column as the primary key
+    id = Column(Integer, primary_key = True)
+
+    # Add created_at and modified_at columns (modified_at is updated automatically)
+    created_at = Column(DateTime, server_default = func.now())
+    modified_at = Column(DateTime, server_default = None, onupdate = func.now())
+
+    # Add a column for the molecule name (the size of the name is 760 characters to allow proper indexing) Names are supposed to be unique!
+    name = Column(String(760), index=True)
+
+
+    ## Private Methods ##
 
     def __repr__(self) -> str:
         ''' Return the representation of the object. 
@@ -30,6 +50,9 @@ class Base(declarative_base()):
         # Return the representation
         return f"<{self.__class__.__name__}({data})>"
     
+
+    ## Public Methods ##
+
     def to_dict(self) -> Dict[str, Any]:
         ''' Return the object as a dictionary.
         
@@ -39,7 +62,10 @@ class Base(declarative_base()):
             The object as a dictionary.
         '''
 
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        return {k: v for k, v in self.__dict__.items() if not k.startswith('_')}
+
+
+    ## Class Methods ##
 
     @classmethod
     def determine_column_type(cls, descriptor: str) -> Union[Integer, Float]:
@@ -83,13 +109,3 @@ class Base(declarative_base()):
             setattr(cls, descriptor, Column(column_type, server_default = None))
 
         return None
-
-    # Set the id column as the primary key
-    id = Column(Integer, primary_key = True)
-
-    # Add created_at and modified_at columns (modified_at is updated automatically)
-    created_at = Column(DateTime, server_default = func.now())
-    modified_at = Column(DateTime, server_default = None, onupdate = func.now())
-
-    # Add a column for the molecule name
-    name = Column(String(2048), index = True)

@@ -1,13 +1,15 @@
 from sqlalchemy import create_engine
+from sqlalchemy.engine.mock import MockConnection
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.orm.session import Session
 from sqlalchemy_utils import create_database, database_exists
+from typing import Union
 
 from OCDocker.Initialise import session
 from OCDocker.DB.Models.Base import Base
-from OCDocker.DB.Models import Complex, Ligand, Receptor
+from OCDocker.DB.Models import Complexes, Ligands, Receptors
 
 def create_database_if_not_exists(url: str) -> None:
     ''' Create the database if it does not exist.
@@ -24,7 +26,7 @@ def create_database_if_not_exists(url: str) -> None:
     
     return None
 
-def create_engine_and_session(url: str) -> Engine:
+def create_engine_and_session(url: str) -> MockConnection:
     ''' Create the engine and the session.
 
     Parameters
@@ -34,7 +36,7 @@ def create_engine_and_session(url: str) -> Engine:
 
     Returns
     -------
-    engine : sqlalchemy.engine.base.Engine
+    MockConnection : sqlalchemy.engine.mock.MockConnection
         The engine.
     '''
 
@@ -53,12 +55,12 @@ def create_engine_and_session(url: str) -> Engine:
     # Return the engine
     return engine
 
-def create_tables(engine: Engine) -> None:
+def create_tables(engine: MockConnection) -> None:
     ''' Create the tables.
 
     Parameters
     ----------
-    engine : sqlalchemy.engine.base.Engine
+    MockConnection : sqlalchemy.engine.mock.MockConnection
         The engine.
     '''
 

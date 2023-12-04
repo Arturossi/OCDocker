@@ -2,14 +2,14 @@ from sqlalchemy import Column, ForeignKey, Integer
 from sqlalchemy.orm import relationship
 from OCDocker.DB.Models.Base import Base
 
-class Receptor(Base):
+class Receptors(Base):
     """ Define the Receptor table """
     
     # Relationships
-    complex = relationship("Complex", back_populates = "Receptor")
+    complex = relationship("complexes", back_populates = "receptor")
 
     # Set foreign keys
-    complex_id = Column(Integer, ForeignKey('Complex.id'))
+    complex_id = Column(Integer, ForeignKey('complexes.id'))
     
     # Declare the descriptors names as class attributes
     descriptors_names = {
@@ -23,5 +23,5 @@ class Receptor(Base):
     allDescriptors = [f"{desc_prefix}{i}" for desc_prefix, desc_indices in descriptors_names.items() for i in desc_indices] + single_descriptors
 
 # Add columns for each descriptor
-Receptor.add_dynamic_columns(Receptor.allDescriptors)
+Receptors.add_dynamic_columns(Receptors.allDescriptors)
 #Receptor.add_dynamic_columns(ocr.Receptor.allDescriptors)

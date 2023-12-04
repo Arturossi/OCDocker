@@ -2,16 +2,16 @@ from sqlalchemy import Column, ForeignKey, Integer
 from sqlalchemy.orm import relationship
 from OCDocker.DB.Models.Base import Base
 
-class Complex(Base):
+class Complexes(Base):
     """ Define the Complex table """
 
     # Relationships
-    ligand = relationship("Ligand", back_populates = "complex")
-    receptor = relationship("Receptor", back_populates = "complex")
+    ligand = relationship("ligands", back_populates = "complex")
+    receptor = relationship("receptors", back_populates = "complex")
 
     # Set foreign keys
-    ligand_id = Column(Integer, ForeignKey("Ligand.id"))
-    receptor_id = Column(Integer, ForeignKey("Receptor.id"))
+    ligand_id = Column(Integer, ForeignKey("ligands.id"))
+    receptor_id = Column(Integer, ForeignKey("receptors.id"))
 
     # Complexes descriptors
     descriptors_names = {
@@ -24,4 +24,4 @@ class Complex(Base):
     allDescriptors = [f"{desc_prefix}{i}" for desc_prefix, desc_indices in descriptors_names.items() for i in desc_indices] + single_descriptors
 
 # Add columns for each descriptor
-Complex.add_dynamic_columns(Complex.allDescriptors)
+Complexes.add_dynamic_columns(Complexes.allDescriptors)

@@ -28,7 +28,8 @@ from glob import glob
 from oddt.scoring.functions.RFScore import rfscore
 from oddt.scoring.functions.NNScore import nnscore
 from oddt.scoring.functions.PLECscore import PLECscore
-
+from sqlalchemy.engine.url import URL
+from urllib.parse import quote_plus
 
 # License
 ###############################################################################
@@ -949,6 +950,7 @@ global overwrite
 
 # DB variables
 global session
+global db_url
 
 # Order variable
 global order
@@ -1181,7 +1183,7 @@ for line in open(config_file, 'r'): # type: ignore
     elif line.startswith("USER ="):
         USER = line.split("=")[1].strip()
     elif line.startswith("PASSWORD ="):
-        PASSWORD = line.split("=")[1].strip()
+        PASSWORD = quote_plus(line.split("=")[1].strip())
     elif line.startswith("DATABASE ="):
         DATABASE = line.split("=")[1].strip()
     elif line.startswith("PORT ="):
@@ -1350,6 +1352,19 @@ db_config = {
     'database':DATABASE,
     'port': PORT
 }
+
+# Create the database URL
+db_url = URL.create(
+    drivername = 'mysql+pymysql',
+    username   = USER,
+    password   = PASSWORD,
+    host       = HOST,
+    port       = PORT,
+    database   = DATABASE
+)
+
+# Set the url for the sqlalchemy
+db_url = f"mysql+pymysql://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}"
 
 # Root directory for OCDocker module
 ocdocker_path = os.path.dirname(os.path.abspath( __file__ ))
