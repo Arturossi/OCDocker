@@ -4,8 +4,8 @@ from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.orm.session import Session
 from sqlalchemy_utils import create_database, database_exists
-from typing import Tuple
 
+from OCDocker.Initialise import session
 from OCDocker.DB.Models.Base import Base
 from OCDocker.DB.Models import Complex, Ligand, Receptor
 
@@ -21,8 +21,10 @@ def create_database_if_not_exists(url: str) -> None:
     # If the database does not exist, create it
     if not database_exists(url):
         create_database(url)
+    
+    return None
 
-def create_engine_and_session(url: str) -> Tuple[Engine, Session]:
+def create_engine_and_session(url: str) -> Engine:
     ''' Create the engine and the session.
 
     Parameters
@@ -34,9 +36,10 @@ def create_engine_and_session(url: str) -> Tuple[Engine, Session]:
     -------
     engine : sqlalchemy.engine.base.Engine
         The engine.
-    Session : sqlalchemy.orm.session.Session
-        The session.
     '''
+
+    # Make Session global
+    global Session
 
     # Create the database if it does not exist
     create_database_if_not_exists(url)
@@ -47,8 +50,8 @@ def create_engine_and_session(url: str) -> Tuple[Engine, Session]:
     # Create the session in a scoped session to avoid threading problems
     Session = scoped_session(sessionmaker(bind = engine))
 
-    # Return the engine and the session
-    return engine, Session
+    # Return the engine
+    return engine
 
 def create_tables(engine: Engine) -> None:
     ''' Create the tables.
@@ -62,6 +65,8 @@ def create_tables(engine: Engine) -> None:
     # Create the tables
     Base.metadata.create_all(engine)
 
+    return None
+
 def insert_data(table: DeclarativeMeta, payload: dict) -> None:
     ''' Insert data into the database.
 
@@ -74,19 +79,23 @@ def insert_data(table: DeclarativeMeta, payload: dict) -> None:
     '''
 
     # Open the session
-    with db_session() as session:
+    with session() as s:
         # Create the new data
         new_data = table(**payload)
         # Add the new data to the session
-        session.add(new_data)
+        s.add(new_data)
         # Commit the session
-        session.commit()
+        s.commit()
+ 
+    return None
 
 def setup(url: str) -> None:
     ''' Setup the database. '''
 
     # Create the engine and the session
-    engine, Session = create_engine_and_session(url)
+    engine = create_engine_and_session(url)
 
     # Create tables (nothing happens if table already exists) :)
     create_tables(engine)
+    
+    return None

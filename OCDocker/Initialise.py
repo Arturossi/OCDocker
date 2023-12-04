@@ -947,6 +947,9 @@ global config_file
 global output_level
 global overwrite
 
+# DB variables
+global session
+
 # Order variable
 global order
 global pdbbind_KdKi_order
@@ -1047,6 +1050,10 @@ global parsed_archive
 
 # Other software
 global dssp
+
+# DB Variables
+###############################################################################
+session = None
 
 # Aditional Variables
 ###############################################################################
