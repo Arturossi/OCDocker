@@ -13,6 +13,7 @@ class Base(declarative_base()):
     @declared_attr
     def __tablename__(cls):
         ''' Return the table name. '''
+
         return cls.__name__.lower()
 
     ## Class Attributes ##
@@ -22,7 +23,7 @@ class Base(declarative_base()):
 
     # Set the extend existing flag to true (to avoid errors when creating the tables)
     __table_args__ = {
-        'extend_existing': True
+        "extend_existing": True
     }
 
     # Set the id column as the primary key
@@ -33,12 +34,13 @@ class Base(declarative_base()):
     modified_at = Column(DateTime, server_default = None, onupdate = func.now())
 
     # Add a column for the molecule name (the size of the name is 760 characters to allow proper indexing) Names are supposed to be unique!
-    name = Column(String(760), index=True)
+    name = Column(String(760), index = True, unique = True, nullable = False)
 
 
-    ## Private Methods ##
+    ## Class Methods ##
 
-    def __repr__(self) -> str:
+    @classmethod
+    def __repr__(cls) -> str:
         ''' Return the representation of the object. 
         
         Returns
@@ -48,15 +50,13 @@ class Base(declarative_base()):
         '''
         
         # Get the data of the object (without the private attributes)
-        data = {k: v for k, v in self.__dict__.items() if not k.startswith('_')}
+        data = { k: v for k, v in cls.__dict__.items() if not k.startswith('_') }
 
         # Return the representation
-        return f"<{self.__class__.__name__}({data})>"
+        return f"<{cls.__class__.__name__}({data})>"
     
-
-    ## Public Methods ##
-
-    def to_dict(self) -> Dict[str, Any]:
+    @classmethod
+    def to_dict(cls) -> Dict[str, Any]:
         ''' Return the object as a dictionary.
         
         Returns
@@ -65,10 +65,7 @@ class Base(declarative_base()):
             The object as a dictionary.
         '''
 
-        return {k: v for k, v in self.__dict__.items() if not k.startswith('_')}
-
-
-    ## Class Methods ##
+        return {k: v for k, v in cls.__dict__.items() if not k.startswith('_')}
 
     @classmethod
     def determine_column_type(cls, descriptor: str) -> Union[Integer, Float]:
@@ -136,8 +133,24 @@ class Base(declarative_base()):
             # Return False
             return False
         
+        # Check if the payload has the name key
+        if "name" not in payload:
+            # The payload does not have the name key
+            _ = ocerror.Error.malformed_payload("The payload does not have the name key.")
+            
+            # Return False
+            return False
+        
         # Open the session
         with session() as s:
+            # Check if the data already exists
+            if s.query(cls).filter(func.lower(cls.name) == func.lower(payload["name"])).first() is not None:
+                # The data already exists
+                _ = ocerror.Error.data_already_exists(f"The data with name '{payload['name']}' already exists.")
+
+                # Return False
+                return False
+
             # Create the new data
             new_data = cls(**payload)
 
@@ -147,6 +160,8 @@ class Base(declarative_base()):
                 # Commit the session
                 s.commit()
             except:
+                # Rollback the session
+                s.rollback()
                 # Return False
                 return False
     
@@ -181,8 +196,7 @@ class Base(declarative_base()):
             data = (
                 s.query(cls)
                 .filter(
-                    (cls.id == idorname)
-                    | (func.lower(cls.name) == func.lower(idorname))
+                    (cls.id == idorname) | (func.lower(cls.name) == func.lower(str(idorname)))
                 )
                 .first()
             )
@@ -197,11 +211,12 @@ class Base(declarative_base()):
             try:
                 # Delete the data
                 s.delete(data)
-            
-            
+                        
                 # Commit the session
                 s.commit()
             except:
+                # Rollback the session
+                s.rollback()
                 # Return False
                 return False
     
@@ -238,8 +253,7 @@ class Base(declarative_base()):
             data = (
                 s.query(cls)
                 .filter(
-                    (cls.id == idorname)
-                    | (func.lower(cls.name) == func.lower(idorname))
+                    (cls.id == idorname) | (func.lower(cls.name) == func.lower(str(idorname)))
                 )
                 .first()
             )
@@ -260,6 +274,8 @@ class Base(declarative_base()):
                 # Commit the session
                 s.commit()
             except:
+                # Rollback the session
+                s.rollback()
                 # Return False
                 return False
     
@@ -314,6 +330,8 @@ class Base(declarative_base()):
                 # Commit the session
                 s.commit()
             except:
+                # Rollback the session
+                s.rollback()
                 # Return False
                 return False
         

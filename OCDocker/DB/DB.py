@@ -46,3 +46,5 @@ def setup_database() -> Engine:
     
     return engine
 
+# Setup the database
+setup_database()

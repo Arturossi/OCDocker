@@ -5,6 +5,7 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy_utils import create_database, database_exists
 from typing import Union
 
+from OCDocker.Initialise import ocerror
 
 def create_database_if_not_exists(url: Union[str, URL]) -> None:
     ''' Create the database if it does not exist.
@@ -15,23 +16,29 @@ def create_database_if_not_exists(url: Union[str, URL]) -> None:
         The database url.
     '''
 
+    # If the type of the url is URL, convert it to string
+    if isinstance(url, URL):
+        url = str(url)
+
     # If the database does not exist, create it
     if not database_exists(url):
         create_database(url)
     
     return None
 
-def create_engine(url: Union[str, URL]) -> Engine:
+def create_engine(url: Union[str, URL], echo: bool = False) -> Engine:
     ''' Create the engine.
 
     Parameters
     ----------
     url : str | sqlalchemy.engine.url.URL
         The database url.
+    echo : bool
+        Echo the SQL commands.
 
     Returns
     -------
-    Egine : sqlalchemy.engine.base.Engine
+    Engine : sqlalchemy.engine.base.Engine
         The engine.
     '''
 
@@ -40,12 +47,12 @@ def create_engine(url: Union[str, URL]) -> Engine:
         url = str(url)
 
     # Create the engine
-    engine = sqlalchemy_create_engine(url, echo = True)
+    engine = sqlalchemy_create_engine(url, echo = echo)
 
     # Return the engine (despite the lint flagging as a MockConnection, it is an Engine)
     return engine # type: ignore
 
-def create_session(engine: Union[Engine, None]) -> Union[scoped_session , None]:
+def create_session(engine: Union[Engine, None]) -> Union[scoped_session, None]:
     ''' Create the session.
 
     Parameters
@@ -62,7 +69,7 @@ def create_session(engine: Union[Engine, None]) -> Union[scoped_session , None]:
     # Check if the engine is defined
     if engine is None:
         # The engine is not defined
-        #_ = ocerror.Error.engine_not_created("The engine is not defined. Please create the engine first.") # type: ignore
+        _ = ocerror.Error.engine_not_created("The engine is not defined. Please create the engine first.") # type: ignore
         print("The engine is not defined. Please create the engine first.")
         # Return None
         return None
@@ -72,4 +79,3 @@ def create_session(engine: Union[Engine, None]) -> Union[scoped_session , None]:
 
     # Return the session
     return session
-

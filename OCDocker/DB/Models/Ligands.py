@@ -8,7 +8,7 @@ class Ligands(Base):
     """ Define the Ligand table """
 
     # Relationships
-    complex_id = Column(Integer, ForeignKey('complexes.id'))
+    complex_id = Column(Integer, ForeignKey("complexes.id"))
     complex = relationship("Complexes", back_populates = "ligand")
 
 # Add columns for each descriptor

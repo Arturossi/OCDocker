@@ -130,6 +130,8 @@ class ErrorCode(IntEnum):
     ENGINE_NOT_CREATED = 802
     SESSION_NOT_CREATED = 803
     DATA_NOT_FOUND = 804
+    DATA_ALREADY_EXISTS = 805
+    MALFORMED_PAYLOAD = 806
 
 class ReportLevel(IntEnum):
     """ Class with all report levels used in OCDocker. """ 
@@ -251,6 +253,8 @@ class ErrorMessages:
         ErrorCode.ENGINE_NOT_CREATED: ("the engine has not been created", ReportLevel.ERROR),
         ErrorCode.SESSION_NOT_CREATED: ("the session has not been created", ReportLevel.ERROR),
         ErrorCode.DATA_NOT_FOUND: ("the data has not been found", ReportLevel.ERROR),
+        ErrorCode.DATA_ALREADY_EXISTS: ("the data already exists", ReportLevel.ERROR),
+        ErrorCode.MALFORMED_PAYLOAD: ("the payload is malformed", ReportLevel.ERROR),
     }
 
 class Error(metaclass = ErrorMeta):
@@ -494,6 +498,8 @@ class Error(metaclass = ErrorMeta):
                 ("Engine Not Created", ErrorCode.ENGINE_NOT_CREATED),
                 ("Session Not Created", ErrorCode.SESSION_NOT_CREATED),
                 ("Data Not Found", ErrorCode.DATA_NOT_FOUND),
+                ("Data Already Exists", ErrorCode.DATA_ALREADY_EXISTS),
+                ("Malformed Payload", ErrorCode.MALFORMED_PAYLOAD),
             ],
         }
 
