@@ -541,6 +541,27 @@ def create_ocdocker_conf() -> None:
 
     #endregion
 
+    #region Ledock variables
+    confLedock = "/mnt/e/Documents/OCDocker/software/docking/ledock/ledock_linux_x86"
+    confLepro = "/mnt/e/Documents/OCDocker/software/docking/ledock/lepro_linux_x86"
+    confLedock_rmsd = "1.0"
+    confLedock_num_poses = "3"
+
+    print("\nLedock configuration")
+    answer = input(f"Path to the Ledock software. Default [{confLedock}] (press enter to keep default): ")
+    confLedock = confLedock if not answer else answer
+
+    answer = input(f"Path to the Lepro software. Default [{confLepro}] (press enter to keep default): ")
+    confLepro = confLepro if not answer else answer
+
+    answer = input(f"Ledock RMSD parameter. Default [{confLedock_rmsd}] (press enter to keep default): ")
+    confLedock_rmsd = confLedock_rmsd if not answer else answer
+
+    answer = input(f"Ledock number of poses parameter. Default [{confLedock_num_poses}] (press enter to keep default): ")
+    confLedock_num_poses = confLedock_num_poses if not answer else answer
+
+    # endregion
+
     #region ODDT variables
     try:
         confODDT = os.popen("which oddt_cli").read().replace('\n', '').strip()
@@ -571,6 +592,7 @@ def create_ocdocker_conf() -> None:
     confObabel = "/usr/bin/obabel"
     confSpores = "/mnt/e/Documents/OCDocker/software/docking/plants/SPORES_64bit"
     confDUDEz = "https://dudez.docking.org/DOCKING_GRIDS_AND_POSES.tgz" # this is WRONG
+    confChimera = "/usr/bin/chimera"
 
     print("\nOther software configuration")
     answer = input(f"Path to the dssp file/command. Default [{confDssp}] (press enter to keep default): ")
@@ -584,6 +606,9 @@ def create_ocdocker_conf() -> None:
 
     answer = input(f"Link to the DUDEz database where you can download data. Default [{confDUDEz}] (press enter to keep default): ")
     confDUDEz = confDUDEz if not answer else answer
+
+    answer = input(f"Path to the Chimera software. Default [{confChimera}] (press enter to keep default): ")
+    confChimera = confChimera if not answer else answer
 
     #endregion
 
@@ -820,6 +845,20 @@ dock6_flex_defn_file = """ + str(confDock6_flex_defn_file) + """
 # Path to the flex drive file
 dock6_flex_drive_file = """ + str(confDock6_flex_drive_file) + """
 
+################# LEDOCK PARAMETERS #################
+
+# LeDock path
+ledock = """ + str(confLedock) + """
+
+# Path to the LePro software
+lepro = """ + str(confLepro) + """
+
+# LeDock RMSD parameter
+ledock_rmsd = """ + str(confLedock_rmsd) + """
+
+# Maximum number of poses to generate
+ledock_num_poses = """ + str(confLedock_num_poses) + """
+
 ################## ODDT PARAMETERS ##################
 
 # Path to the oddt_cli file
@@ -835,6 +874,9 @@ oddt_chunk_size = """ + str(confODDT_chunk_size) + """
 oddt_scoring_functions = """ + str(confODDT_scoring_functions) + """
 
 ################## OTHER SOFTWARE ###################
+
+# Chimeta program for dock file preparation
+chimera = """ + str(confChimera) + """
 
 # MSMS program for the surface calculation
 dssp = """ + str(confDssp) + """
@@ -1318,6 +1360,14 @@ for line in open(config_file, 'r'): # type: ignore
         dock6_flex_defn_file = line.split("=")[1].strip()
     elif line.startswith("dock6_flex_drive_file ="):
         dock6_flex_drive_file = line.split("=")[1].strip()
+    elif line.startswith("ledock ="):
+        ledock = line.split("=")[1].strip()
+    elif line.startswith("lepro ="):
+        lepro = line.split("=")[1].strip()
+    elif line.startswith("ledock_rmsd ="):
+        ledock_rmsd = line.split("=")[1].strip()
+    elif line.startswith("ledock_num_poses ="):
+        ledock_num_poses = line.split("=")[1].strip()
     elif line.startswith("oddt ="):
         oddt = line.split("=")[1].strip()
     elif line.startswith("oddt_seed ="):
@@ -1326,6 +1376,8 @@ for line in open(config_file, 'r'): # type: ignore
         oddt_chunk_size = line.split("=")[1].strip()
     elif line.startswith("oddt_scoring_functions ="):
         oddt_scoring_functions = [l.strip() for l in line.split("=")[1].strip().split(",")]
+    elif line.startswith("chimera ="):
+        chimera = line.split("=")[1].strip()
     elif line.startswith("dssp ="):
         dssp = line.split("=")[1].strip()
     elif line.startswith("obabel ="):

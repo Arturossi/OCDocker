@@ -111,13 +111,15 @@ class Base(declarative_base()):
         return None
 
     @classmethod
-    def insert(cls, payload: dict) -> bool:
+    def insert(cls, payload: dict, ignorePresence: bool = False) -> bool:
         ''' Insert data into the database.
 
         Parameters
         ----------
         payload : dict
             The data to be inserted.
+        ignorePresence : bool
+            Whether to ignore the presence of the data in the database.
         
         Returns
         -------
@@ -136,7 +138,7 @@ class Base(declarative_base()):
         # Check if the payload has the name key
         if "name" not in payload:
             # The payload does not have the name key
-            _ = ocerror.Error.malformed_payload("The payload does not have the name key.")
+            _ = ocerror.Error.malformed_payload("The payload does not have the name key.") # type: ignore
             
             # Return False
             return False
@@ -145,8 +147,12 @@ class Base(declarative_base()):
         with session() as s:
             # Check if the data already exists
             if s.query(cls).filter(func.lower(cls.name) == func.lower(payload["name"])).first() is not None:
+                # If the ignorePresence flag is set to True, return True
+                if ignorePresence:
+                    return True
+                    
                 # The data already exists
-                _ = ocerror.Error.data_already_exists(f"The data with name '{payload['name']}' already exists.")
+                _ = ocerror.Error.data_already_exists(f"The data with name '{payload['name']}' already exists.") # type: ignore
 
                 # Return False
                 return False
@@ -338,7 +344,7 @@ class Base(declarative_base()):
         return True
 
     @classmethod
-    def search(cls, idorname: Union[int, str]) -> List[DeclarativeMeta]:
+    def find(cls, idorname: Union[int, str]) -> List[DeclarativeMeta]:
         ''' Search data in the database.
 
         Parameters
@@ -375,7 +381,7 @@ class Base(declarative_base()):
         return data
 
     @classmethod
-    def search_all(cls) -> List[DeclarativeMeta]:
+    def find_all(cls) -> List[DeclarativeMeta]:
         ''' Search all data in the database.
 
         Returns
@@ -400,7 +406,7 @@ class Base(declarative_base()):
         return data
     
     @classmethod
-    def search_all_names(cls) -> List[str]:
+    def find_all_names(cls) -> List[str]:
         ''' Search all names in the database.
 
         Returns
@@ -425,7 +431,7 @@ class Base(declarative_base()):
         return data
 
     @classmethod
-    def search_attribute(cls, column: str, value: Any, operator: str = "==") -> List[DeclarativeMeta]:
+    def find_attribute(cls, column: str, value: Any, operator: str = "==") -> List[DeclarativeMeta]:
         ''' Search data in the database based on an attribute.
 
         Parameters

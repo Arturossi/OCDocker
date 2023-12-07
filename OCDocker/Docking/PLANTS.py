@@ -867,6 +867,7 @@ def get_binding_site(boxFile: str, spacing: float = 2.9) -> Union[Tuple[Tuple[fl
     '''
 
     ocprint.printv(f"Parsing '{boxFile}' to binding center data.")
+    
     # Test if the file boxFile exists
     if not os.path.exists(boxFile):
         return ocerror.Error.file_not_exist(message=f"The box file in the path {boxFile} does not exists! Please ensure that the box file exists and the path is correct.", level = ocerror.ReportLevel.ERROR) # type: ignore
@@ -918,10 +919,13 @@ def get_binding_site(boxFile: str, spacing: float = 2.9) -> Union[Tuple[Tuple[fl
     xMax = max(abs(center['x'] - positions['min_x']), abs(positions['max_x'] - center['x'])) # type: ignore
     yMax = max(abs(center['y'] - positions['min_y']), abs(positions['max_y'] - center['y'])) # type: ignore
     zMax = max(abs(center['z'] - positions['min_z']), abs(positions['max_z'] - center['z'])) # type: ignore
+
     # Get the biggest value among the coordinates (do not divide it, to allow more space for the protein)
     radius = max(xMax, yMax, zMax) 
+
     # Add some extra space
     radius += round(spacing * radius, 3) # type: ignore
+
     # Return the data
     return ((center['x'], center['y'], center['z']), radius) # type: ignore
 
