@@ -105,8 +105,12 @@ class Base(declarative_base()):
             # Determine the type of the column
             column_type = cls.determine_column_type(descriptor)
 
-            # Set the column as an attribute of the class using the descriptor name as the attribute name and setting the type of the column based on the descriptor name
-            setattr(cls, descriptor, Column(column_type, server_default = None))
+            # If the column type is Integer, and the descriptor is a count, set the default value to 0
+            if column_type == Integer and descriptor.lower().startswith("count") or descriptor.lower().startswith("fr") or descriptor.lower().startswith("num") or descriptor.lower().endswith("count") or descriptor.lower().endswith("num"):
+                setattr(cls, descriptor, Column(column_type, server_default = "0"))
+            else:
+                # Set the column as an attribute of the class using the descriptor name as the attribute name and setting the type of the column based on the descriptor name
+                setattr(cls, descriptor, Column(column_type, server_default = None))
 
         return None
 
@@ -469,3 +473,5 @@ class Base(declarative_base()):
             )
 
         return data
+
+base = Base

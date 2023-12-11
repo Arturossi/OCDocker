@@ -5,7 +5,7 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy_utils import create_database, database_exists
 from typing import Union
 
-from OCDocker.Initialise import ocerror
+import OCDocker.Error as ocerror
 
 def create_database_if_not_exists(url: Union[str, URL]) -> None:
     ''' Create the database if it does not exist.

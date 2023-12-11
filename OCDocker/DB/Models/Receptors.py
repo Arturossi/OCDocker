@@ -1,13 +1,14 @@
 from sqlalchemy import Column, ForeignKey, Integer
 from sqlalchemy.orm import relationship
-from OCDocker.DB.Models.Base import Base
+from OCDocker.DB.Models.Base import base
 
-class Receptors(Base):
+from OCDocker.DB.Models.Complexes import Complexes
+
+class Receptors(base):
     """ Define the Receptor table """
     
     # Relationships
-    complex_id = Column(Integer, ForeignKey('complexes.id'))
-    complex = relationship("Complexes", back_populates = "receptor")
+    complexes = relationship("Complexes", back_populates = "receptor", cascade="all, delete-orphan")
 
     # Declare the descriptors names as class attributes
     descriptors_names = {
