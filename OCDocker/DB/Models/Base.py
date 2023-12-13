@@ -203,13 +203,7 @@ class Base(declarative_base()):
         # Open the session
         with session() as s:
             # Perform the search
-            data = (
-                s.query(cls)
-                .filter(
-                    (cls.id == idorname) | (func.lower(cls.name) == func.lower(str(idorname)))
-                )
-                .first()
-            )
+            data = s.query(cls).filter(cls.id == idorname).first() if isinstance(idorname, int) else s.query(cls).filter(func.lower(cls.name) == func.lower(idorname)).first()
 
             # Check if the data exists
             if data is None:
@@ -260,13 +254,7 @@ class Base(declarative_base()):
         # Open the session
         with session() as s:
             # Perform the search
-            data = (
-                s.query(cls)
-                .filter(
-                    (cls.id == idorname) | (func.lower(cls.name) == func.lower(str(idorname)))
-                )
-                .first()
-            )
+            data = s.query(cls).filter(cls.id == idorname).first() if isinstance(idorname, int) else s.query(cls).filter(func.lower(cls.name) == func.lower(idorname)).first()
 
             # Check if the data exists
             if data is None:
@@ -316,16 +304,13 @@ class Base(declarative_base()):
     
         # Open the session
         with session() as s:
-            # Perform the search
-            data = (
-                s.query(cls)
-                .filter(
-                    (cls.id == payload["id"])
-                    | (func.lower(cls.name) == func.lower(payload["name"]))
-                )
-                .first()
-            )
-
+            # If the payload have an id
+            if "id" in payload:
+                data = s.query(cls).filter(cls.id == payload["id"]).first()
+            # Use name
+            else:
+                data = s.query(cls).filter(func.lower(cls.name) == func.lower(payload["name"])).first()
+                
             # Check if the data exists
             if data is None:
                 # The data does not exist
@@ -373,14 +358,7 @@ class Base(declarative_base()):
         # Open the session
         with session() as s:
             # Perform the search
-            data = (
-                s.query(cls)
-                .filter(
-                    (cls.id == idorname)
-                    | (func.lower(cls.name) == func.lower(idorname))
-                )
-                .all()
-            )
+            data = s.query(cls).filter(cls.id == idorname).first() if isinstance(idorname, int) else s.query(cls).filter(func.lower(cls.name) == func.lower(idorname)).all()
     
         return data
 
@@ -464,13 +442,9 @@ class Base(declarative_base()):
         # Open the session
         with session() as s:
             # Perform the search
-            data = (
-                s.query(cls)
-                .filter(
+            data = s.query(cls).filter(
                     eval(f"cls.{column} {operator} value")
-                )
-                .all()
-            )
+                ).all()
 
         return data
 
