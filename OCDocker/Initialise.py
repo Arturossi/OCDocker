@@ -8,7 +8,7 @@ OCDocker library.\n
 
 They are imported as:
 
-from OCDocker.PreInitialise import *
+from OCDocker.Initialise import *
 '''
 
 # Imports
@@ -24,6 +24,11 @@ import OCDocker.Error as ocerror
 from OCDocker.DB.DBMinimal import create_database_if_not_exists, create_engine, create_session
 
 from glob import glob
+
+global output_level
+output_level = ocerror.ReportLevel.NONE
+
+import oddt
 from oddt.scoring.functions.RFScore import rfscore
 from oddt.scoring.functions.NNScore import nnscore
 from oddt.scoring.functions.PLECscore import PLECscore
@@ -986,7 +991,7 @@ global available_cores
 global multiprocess
 global update
 global config_file
-global output_level
+#global output_level
 global overwrite
 
 # DB variables
@@ -1476,6 +1481,8 @@ else:
 if output_level > ocerror.ReportLevel.DEBUG:
     output_level = ocerror.ReportLevel.DEBUG
 elif output_level < ocerror.ReportLevel.NONE:
+    output_level = ocerror.ReportLevel.NONE
+else:
     output_level = ocerror.ReportLevel.NONE
 
 # Create error class object (making all errors standard)

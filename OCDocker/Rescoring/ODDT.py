@@ -110,7 +110,7 @@ def get_models(outputPath: str) -> List[str]:
     return models
 
 def run_oddt_from_cli(receptor: Union[ocr.Receptor, str], ligand: Union[ocl.Ligand, str], outputPath: str, overwrite: bool = False, logFile: str = "", cleanModels: bool = False) -> Union[int, Tuple[int, str]]:
-    '''Run ODDT using the oddt_cli command. UNSTABLE FUNCTION.
+    '''Run ODDT using the oddt_cli command. UNSTABLE FUNCTION DO NOT USE.
 
     Parameters
     ----------
