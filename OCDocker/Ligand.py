@@ -92,7 +92,7 @@ class Ligand:
     # Declare the single descriptors names as class attributes
     single_descriptors = [
         'BalabanJ', 'BertzCT', 'ExactMolWt', 'FractionCSP3', 'HallKierAlpha', 'HeavyAtomMolWt', 
-        'HeavyAtomCount', 'Ipc', 'LabuteASA', 'TPSA', 'MaxAbsEStateIndex', 'MaxEStateIndex', 
+        'HeavyAtomCount', 'LabuteASA', 'TPSA', 'MaxAbsEStateIndex', 'MaxEStateIndex', 
         'MinAbsEStateIndex', 'MinEStateIndex', 'MaxAbsPartialCharge', 'MaxPartialCharge', 
         'MinAbsPartialCharge', 'MinPartialCharge', 'qed', 'RingCount', 'Asphericity', 'Eccentricity',
         'InertialShapeFactor', 'RadiusOfGyration', 'SpherocityIndex', 'NHOHCount', 'NOCount'

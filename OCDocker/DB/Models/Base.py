@@ -333,6 +333,36 @@ class Base(declarative_base()):
         return True
 
     @classmethod
+    def find_first(cls, idorname: Union[int, str]) -> List[DeclarativeMeta]:
+        ''' Search data in the database.
+
+        Parameters
+        ----------
+        idorname : Union[int, str]
+            The ID or name of the data to be searched.
+
+        Returns
+        -------
+        List[DeclarativeMeta]
+            The data found.
+        '''
+
+        # Check if session is defined
+        if session is None:
+            # The session is not defined
+            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.") # type: ignore
+
+            # Return an empty list
+            return []
+        
+        # Open the session
+        with session() as s:
+            # Perform the search
+            data = s.query(cls).filter(cls.id == idorname).first() if isinstance(idorname, int) else s.query(cls).filter(func.lower(cls.name) == func.lower(idorname)).first()
+    
+        return data
+
+    @classmethod
     def find(cls, idorname: Union[int, str]) -> List[DeclarativeMeta]:
         ''' Search data in the database.
 

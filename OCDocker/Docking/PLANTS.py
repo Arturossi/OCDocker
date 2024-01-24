@@ -273,7 +273,7 @@ class PLANTS:
             
         return read_log(f"{self.outputCsv}/{rankingFile}", onlyBest = onlyBest)
 
-    def run_plants(self, overwrite: bool =False) -> Union[Tuple[int, str], int]:
+    def run_plants(self, overwrite: bool = False) -> Union[Tuple[int, str], int]:
         '''Run plants.
 
         Parameters
