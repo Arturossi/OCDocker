@@ -745,13 +745,13 @@ def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str
     
     return None
 
-def computeDipoleMoment(structure: Bio.PDB.Structure.Structure, cModel: str = "gasteiger"): #type: ignore
+def computeDipoleMoment(structure: Union[Bio.PDB.Structure.Structure, str], cModel: str = "gasteiger"): #type: ignore
     '''Computes the receptor's dipole moment.
 
     Parameters
     ----------
-    structure : Bio.PDB.Structure.Structure
-        The structure to be analysed.
+    structure : Bio.PDB.Structure.Structure, str
+        The structure to be analysed or the path to the structure
     cModel : str, optional
         The charge model to be used, by default "gasteiger".
 

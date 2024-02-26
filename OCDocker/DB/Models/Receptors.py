@@ -2,7 +2,7 @@ from sqlalchemy import Column, ForeignKey, Integer
 from sqlalchemy.orm import relationship
 from OCDocker.DB.Models.Base import base
 
-from OCDocker.DB.Models.Complexes import Complexes
+#from OCDocker.DB.Models.Complexes import Complexes
 
 class Receptors(base):
     """ Define the Receptor table """

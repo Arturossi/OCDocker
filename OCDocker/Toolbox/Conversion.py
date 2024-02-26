@@ -13,6 +13,7 @@ import OCDocker.Toolbox.Conversion as occonversion
 
 # Imports
 ###############################################################################
+import math
 import os
 import rdkit
 
@@ -228,3 +229,45 @@ def split_and_convert(path: str, out_path: str, extension: str, overwrite: bool 
             return ocerror.Error.write_file(f"Problems while writing the file '{outfile}'. Error: {e}") # type: ignore
     # Since everything gone ok, return the ok code
     return ocerror.Error.ok() # type: ignore
+
+def kikd_to_deltag(kikd: float, T: float = 273.15, kikd_order: str = "un", R: float = 8.314) -> float:
+    '''Converts Ki/Kd to deltaG.
+
+    Parameters
+    ----------
+    kikd : float
+        Ki/Kd value.
+    T : float, optional
+        Temperature in Kelvin. (default is 273.15)
+    kikd_order : str, optional
+        Order of the Ki/Kd value. (default is "un")
+    R : float, optional
+        Ideal gas constant in J/(mol·K). (default is 8.314)
+
+    Returns
+    -------
+    float
+        The deltaG value.
+    '''
+
+    # If the length of the kikd_order is greater than 1
+    if len(kikd_order) > 1:
+        # If the Ki/Kd order is not un
+        if kikd_order != "un":
+            # Make it be just the first letter
+            kikd_order = kikd_order[0]
+        # Now check if the length of the kikd_order is more than 3
+        elif len(kikd_order) > 3:
+            # Check if starts with un
+            if kikd_order.startswith("un"):
+                # Make it be just the first letter
+                kikd_order = kikd_order[2]
+            # Use the first letter
+            else:
+                kikd_order = kikd_order[0]
+
+    # Calculate deltaG
+    deltag = - R * T * math.log(kikd * order[kikd_order]["un"])
+
+    # Return the deltaG
+    return deltag
