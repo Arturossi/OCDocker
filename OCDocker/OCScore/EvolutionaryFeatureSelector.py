@@ -96,10 +96,13 @@ class EvolutionaryFeatureSelector:
             xgboost_params["objective"] = "reg:squarederror"
         if "booster" not in xgboost_params:
             xgboost_params["booster"] = "gbtree"
-        if "eval_metric" not in xgboost_params:
-            xgboost_params["eval_metric"] = "auc"
         if "random_state" not in xgboost_params:
             xgboost_params["random_state"] = self.random_state
+        if "eval_metric" not in xgboost_params:
+            if self.X_validation is not None:
+                xgboost_params["eval_metric"] = 'rmse'
+            else:
+                xgboost_params["eval_metric"] = 'auc'
         
         # Set the storage string for the study
         self.storage = str(URL.create(
@@ -183,22 +186,35 @@ class EvolutionaryFeatureSelector:
         X_train_filtered = self.X_train[:, selected_features_indices]
         X_test_filtered = self.X_test[:, selected_features_indices]
 
-        # Use the provided XGBoost function to train the model and get the AUC score
-        _, roc_auc = OCxgboost.run_xgboost(
-            X_train_filtered, 
-            self.y_train, 
-            X_test_filtered, 
-            self.y_test, 
-            self.xgboost_params, 
-            verbose = self.verbose
-        )
+        # If the validation dataset is provided, use it to get the AUC score
+        if self.X_validation is not None:
+            # Train the model and get the AUC score
+            model, rmse = OCxgboost.run_xgboost(X_train_filtered, self.y_train, X_test_filtered, self.y_test, params = xgboost_params, verbose = self.verbose) # type: ignore
 
-        # Check if the validation dataset is provided
+            # Predict the validation dataset
+            y_pred = model.predict(self.X_validation)
 
+            # Get the AUC score of the validation dataset
+            fpr, tpr, _ = roc_curve(self.y_validation, y_pred) # type: ignore
 
+            # Calculate the AUC score
+            roc_auc = auc(fpr, tpr)
 
-        # Return the AUC score as a tuple
-        return roc_auc,
+            # Return the AUC score as a tuple
+            return rmse, roc_auc
+        else:
+            # Use the provided XGBoost function to train the model and get the AUC score
+            _, roc_auc = OCxgboost.run_xgboost(
+                X_train_filtered, 
+                self.y_train, 
+                X_test_filtered, 
+                self.y_test, 
+                self.xgboost_params, 
+                verbose = self.verbose
+            )
+
+            # Return the AUC score as a tuple
+            return roc_auc,
 
     def objective_GA(self, trial: optuna.Trial) -> float:
         '''
@@ -235,12 +251,21 @@ class EvolutionaryFeatureSelector:
         # Set the early stopping rounds
         self.xgboost_params['early_stopping_rounds'] = self.early_stopping_rounds
 
-        # Check if the DEAP creator classes are already defined to prevent errors
-        if "FitnessMax" not in dir(creator):
-            creator.create("FitnessMax", base.Fitness, weights=(1.0,))
+        # If the validation dataset is provided, use it to get the AUC score
+        if self.X_validation is not None:
+            # Check if the DEAP creator classes are already defined to prevent errors
+            if "FitnessMax" not in dir(creator):
+                creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
 
-        if "Individual" not in dir(creator):
-            creator.create("Individual", list, fitness=creator.FitnessMax)
+            if "Individual" not in dir(creator):
+                creator.create("Individual", list, fitness=creator.FitnessMin)
+        else:
+            # Check if the DEAP creator classes are already defined to prevent errors
+            if "FitnessMax" not in dir(creator):
+                creator.create("FitnessMax", base.Fitness, weights=(1.0,))
+
+            if "Individual" not in dir(creator):
+                creator.create("Individual", list, fitness=creator.FitnessMax)
 
         # Create the toolbox
         toolbox = base.Toolbox()
@@ -280,16 +305,18 @@ class EvolutionaryFeatureSelector:
         # Get the best individual
         best_individual = hof[0]
 
-        # Return the AUC score
-        best_score = best_individual.fitness.values[0]
-
-        # Logging evolution parameters and results
-        evolution_params = ['population_size', 'n_generations', 'cxpb', 'mutpb', 'indpb', 'tournsize']
-        for param in evolution_params:
-            trial.set_user_attr(param, trial_params[param])
-
-        # Logging AUC and best individual's feature indices
-        trial.set_user_attr("AUC", best_score)
+        # If the validation dataset is provided, use it to get the AUC score
+        if self.X_validation is not None:
+            # Return the AUC score
+            best_score_rmse, best_score_auc = best_individual.fitness.values[0]
+            # Logging AUC and best individual's feature indices
+            trial.set_user_attr("AUC", best_score_auc)
+            # Logging AUC and best individual's feature indices
+            trial.report(best_score_rmse, trial.number)
+        else:
+            best_score_auc = best_individual.fitness.values[0]
+            # Logging AUC and best individual's feature indices
+            trial.report(best_score_auc, trial.number)
 
         # Logging the best individual's feature indices
         selected_features_indices = [i for i, use_feature in enumerate(best_individual) if use_feature]
@@ -301,8 +328,12 @@ class EvolutionaryFeatureSelector:
         for stat in stats_to_log:
             trial.set_user_attr(f"{stat}_AUC", logbook.select(stat)[-1])
 
+        # If the validation dataset is provided, return the RMSE score
+        if self.X_validation is not None:
+            return best_score_rmse
+        
         # Return the AUC score
-        return best_score
+        return best_score_auc
 
     def objective_CMA(self, trial: optuna.Trial) -> float:
         """
@@ -346,12 +377,11 @@ class EvolutionaryFeatureSelector:
         selected_features_indices = [i for i, use_feature in enumerate(individual) if use_feature]
         X_train_filtered = self.X_train[:, selected_features_indices]
         X_test_filtered = self.X_test[:, selected_features_indices]
+        # TODO: Finish this
+        _,
 
         # Run xgboost with the selected features
         _, roc_auc = OCxgboost.run_xgboost(X_train_filtered, self.y_train, X_test_filtered, self.y_test, self.xgboost_params, self.verbose)
-
-        # Report the AUC score
-        trial.report(roc_auc, trial.number)
 
         return roc_auc
 
