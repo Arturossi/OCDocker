@@ -1,5 +1,6 @@
 import optuna
 
+import cupy as cp
 import numpy as np
 import pandas as pd
 
@@ -10,9 +11,9 @@ from optuna.integration import XGBoostPruningCallback
 from sklearn.metrics import auc, roc_curve
 from tqdm import tqdm
 from typing import Union
+from urllib.parse import quote_plus
 
 #from OCDocker.Initialise import *
-from sqlalchemy.engine.url import URL
 
 import OCxgboost
 
@@ -84,14 +85,7 @@ class PreXGBoostOptimizer:
             self.params['device'] = 'cuda'
 
         # Set the storage string for the study
-        self.storage = str(URL.create(
-            drivername = 'mysql+pymysql',
-            username   = "ocdocker",
-            password   = "@Kp3sRv9t@",
-            host       = "localhost",
-            port       = "3306",
-            database   = "optimization"
-        ))
+        self.storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"
 
     def objective(self, trial):
         """
@@ -114,30 +108,43 @@ class PreXGBoostOptimizer:
         # Check if the hyperparameters are already in the params dictionary, if not, suggest them
         if "max_depth" not in trial_params:
             trial_params["max_depth"] = trial.suggest_int("max_depth", 3, 10)
+
         if "learning_rate" not in trial_params:
             trial_params["learning_rate"] = trial.suggest_float("learning_rate", 0.01, 0.3)
+
         if "n_estimators" not in trial_params:
-            trial_params["n_estimators"] = trial.suggest_int("n_estimators", 100, 300)
+            trial_params["n_estimators"] = trial.suggest_int("n_estimators", 75, 125)
+
         if "subsample" not in trial_params:
             trial_params["subsample"] = trial.suggest_float("subsample", 0.5, 1.0)
+
         if "colsample_bytree" not in trial_params:
             trial_params["colsample_bytree"] = trial.suggest_float("colsample_bytree", 0.5, 1.0)
+
         if "reg_alpha" not in trial_params:
             trial_params["reg_alpha"] = trial.suggest_float("reg_alpha", 0.0, 1.0)
+
         if "reg_lambda" not in trial_params:
             trial_params["reg_lambda"] = trial.suggest_float("reg_lambda", 0.0, 1.0)
+
         if "min_child_weight" not in trial_params:
             trial_params["min_child_weight"] = trial.suggest_int("min_child_weight", 1, 10)
+
         if "gamma" not in trial_params:
             trial_params["gamma"] = trial.suggest_float("gamma", 0.0, 1.0)
+
         if "tree_method" not in trial_params:
             trial_params["tree_method"] = "hist"
+
         if "objective" not in trial_params:
             trial_params["objective"] = "reg:squarederror"
+
         if "booster" not in trial_params:
             trial_params["booster"] = "gbtree"
+
         if "random_state" not in trial_params:
             trial_params["random_state"] = self.random_state
+
         if "eval_metric" not in trial_params:
             if self.X_validation is not None:
                 trial_params["eval_metric"] = 'rmse'
@@ -321,7 +328,7 @@ class EvolutionaryFeatureSelector:
             drivername = 'mysql+pymysql',
             username   = "ocdocker",
             password   = "@Kp3sRv9t@",
-            host       = "localhost",
+            host       = "%",
             port       = "3306",
             database   = "feature_selection"
         ))
@@ -688,14 +695,7 @@ class EvolutionaryFeatureSelectorCustom:
             self.xgboost_params["random_state"] = self.random_state
         
         # Set the storage string for the study
-        self.storage = str(URL.create(
-            drivername = 'mysql+pymysql',
-            username   = "ocdocker",
-            password   = "@Kp3sRv9t@",
-            host       = "localhost",
-            port       = "3306",
-            database   = "feature_selection"
-        ))
+        self.storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"
 
     def fitness_function(self, features: list) -> float:
         '''

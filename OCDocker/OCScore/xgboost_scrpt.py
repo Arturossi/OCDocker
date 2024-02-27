@@ -8,14 +8,14 @@ import numpy as np
 
 from scipy.cluster.hierarchy import leaves_list, linkage
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
-from sklearn.metrics import auc, roc_curve, r2_score, mean_squared_error
+from sklearn.metrics import auc, roc_curve
 from sklearn.model_selection import ParameterGrid, train_test_split
 from tqdm import tqdm
 from xgboost import XGBRegressor
 
-from OCDocker.OCScore.PreXGBoostOptimizer import PreXGBoostOptimizer
-from OCDocker.OCScore.EvolutionaryFeatureSelector from EvolutionaryFeatureSelector
-from OCDocker.OCScore.EvolutionaryFeatureSelectorCustom import EvolutionaryFeatureSelectorCustom
+from PreXGBoostOptimizer import PreXGBoostOptimizer
+from EvolutionaryFeatureSelector import EvolutionaryFeatureSelector
+from EvolutionaryFeatureSelectorCustom import EvolutionaryFeatureSelectorCustom
 
 
 def save_object(obj, filename):
@@ -928,16 +928,23 @@ evaluate_and_plot(X_train, y_train, X_test, labels, results, iterations = 10, so
 evaluate_and_plot(X_train, y_train, X_test, labels, results, iterations = 10, sort_order=(True), save_path='./feature_engineering/least_important') # Least important features
 '''
 
+print("Running XGBoost pre-optimization...")
 # Create the PreXGBoostOptimizer object
-#pxgb = PreXGBoostOptimizer(X_train, y_train, X_test, y_test, X_val, y_val, params = {}, use_gpu = True, early_stopping_rounds = 50, random_state = 42, verbose = False)
+pxgb = PreXGBoostOptimizer(X_train, y_train, X_test, y_test, X_val, y_val, params = {}, use_gpu = True, early_stopping_rounds = 50, random_state = 42, verbose = False)
 
-# Run the optimization
-#study, best_params, best_score = pxgb.optimize(study_name = "XGBoost pre-optimization", direction = "maximize", n_trials = 1000)
+n_jobs = 2
 
-best_params = {'max_depth': 8, 'learning_rate': 0.01596950334578271, 'n_estimators': 294, 'subsample': 0.9162213204002109, 'colsample_bytree': 0.6061695553391381, 'reg_alpha': 0.18182496720710062, 'reg_lambda': 0.18340450985343382, 'min_child_weight': 4, 'gamma': 0.5247564316322378}
-#best_params = {}
+# If the X_val is None, the direction is set to maximize
+if X_val is None:
+    # Run the optimization
+    study_pre, best_params_pre, best_score_pre = pxgb.optimize(study_name = "XGBoost pre-optimization", direction = "maximize", n_trials = 1000, n_jobs = n_jobs)
+else:
+    # Run the optimization
+    study_pre, best_params_pre, best_score_pre = pxgb.optimize(study_name = "XGBoost pre-optimization", direction = "minimize", n_trials = 1000, n_jobs = n_jobs)
 
-def optimize_feature_selection(X_train, y_train, X_test, y_test, X_validation = None, y_validation = None, best_params = {}, algorithm = "GA", n_trials = 100, random_state = 42, use_gpu = True, verbose = False, instance_id: int = -1):
+#best_params_pre = {}
+
+def optimize_feature_selection(X_train, y_train, X_test, y_test, X_validation = None, y_validation = None, best_params = {}, algorithm = "ga", n_trials = 100, study_name: str = "Feature selection", random_state = 42, use_gpu = True, verbose = False, instance_id: int = -1):
     """
     Function to be executed by each process.
     
@@ -951,23 +958,38 @@ def optimize_feature_selection(X_train, y_train, X_test, y_test, X_validation = 
     
     if algorithm.lower() == "custom-ga":
         # Create the EvolutionaryFeatureSelectorCustom object
-        evo = EvolutionaryFeatureSelectorCustom.EvolutionaryFeatureSelectorCustom(X_train, y_train, X_test, y_test, X_validation = X_validation, y_validation = y_validation, xgboost_params = best_params, n_jobs = n_jobs, use_gpu = use_gpu, random_state = random_state, verbose = verbose) # type: ignore
+        evo = EvolutionaryFeatureSelectorCustom(X_train, y_train, X_test, y_test, X_validation = X_validation, y_validation = y_validation, xgboost_params = best_params, use_gpu = use_gpu, random_state = random_state, verbose = verbose) # type: ignore
     elif algorithm.lower() in ["cmaes", "ga"]:
         # Create the EvolutionaryFeatureSelector object
-        evo = EvolutionaryFeatureSelector.EvolutionaryFeatureSelector(X_train, y_train, X_test, y_test, X_validation = X_validation, y_validation = y_validation, xgboost_params = best_params, n_jobs = n_jobs, algorithm = algorithm, use_gpu = use_gpu, random_state = random_state, verbose = verbose) # type: ignore
+        evo = EvolutionaryFeatureSelector(X_train, y_train, X_test, y_test, X_validation = X_validation, y_validation = y_validation, xgboost_params = best_params, algorithm = algorithm, use_gpu = use_gpu, random_state = random_state, verbose = verbose) # type: ignore
     
     # Run the optimization
-    study, best_features, best_score = evo.optimize(study_name = "Feature selection", n_trials = n_trials)
+    study, best_features, best_score = evo.optimize(study_name = study_name, direction = "minimize", n_trials = n_trials, n_jobs = n_jobs)
 
     return study, best_features, best_score
+
+print("Running feature selection...")
 
 algorithm = "custom-ga"
 random_state = 42
 n_trials = 100
-n_jobs = 12
+n_jobs = 30
 use_gpu = True
 verbose = False
 
-optimize_feature_selection(X_train, y_train, X_test, y_test, X_val, y_val, best_params, algorithm = algorithm, n_trials, random_state, use_gpu, verbose)
-
-
+study_fs, best_features_fs, best_score_fs = optimize_feature_selection(
+    X_train, 
+    y_train, 
+    X_test, 
+    y_test, 
+    X_val, 
+    y_val, 
+    best_params_pre, 
+    algorithm = algorithm, 
+    n_trials = n_trials, 
+    study_name = "Feature selection Custom GA",
+    random_state = random_state, 
+    use_gpu = use_gpu, 
+    verbose = verbose, 
+    instance_id = 0
+)

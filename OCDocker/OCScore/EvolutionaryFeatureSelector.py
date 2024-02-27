@@ -1,5 +1,6 @@
 import optuna
 
+import cupy as cp
 import numpy as np
 import pandas as pd
 
@@ -8,9 +9,9 @@ from numpy.random import default_rng
 from optuna.samplers import CmaEsSampler, TPESampler
 from sklearn.metrics import auc, roc_curve
 from typing import Union
+from urllib.parse import quote_plus
 
 #from OCDocker.Initialise import *
-from sqlalchemy.engine.url import URL
 
 import OCxgboost
 
@@ -92,12 +93,16 @@ class EvolutionaryFeatureSelector:
         
         if "tree_method" not in xgboost_params:
             xgboost_params["tree_method"] = "hist"
+
         if "objective" not in xgboost_params:
             xgboost_params["objective"] = "reg:squarederror"
+
         if "booster" not in xgboost_params:
             xgboost_params["booster"] = "gbtree"
+
         if "random_state" not in xgboost_params:
             xgboost_params["random_state"] = self.random_state
+
         if "eval_metric" not in xgboost_params:
             if self.X_validation is not None:
                 xgboost_params["eval_metric"] = 'rmse'
@@ -105,14 +110,7 @@ class EvolutionaryFeatureSelector:
                 xgboost_params["eval_metric"] = 'auc'
         
         # Set the storage string for the study
-        self.storage = str(URL.create(
-            drivername = 'mysql+pymysql',
-            username   = "ocdocker",
-            password   = "@Kp3sRv9t@",
-            host       = "localhost",
-            port       = "3306",
-            database   = "feature_selection"
-        ))
+        self.storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"
     
     def __create_individual(self) -> list:
         ''' 
@@ -189,10 +187,13 @@ class EvolutionaryFeatureSelector:
         # If the validation dataset is provided, use it to get the AUC score
         if self.X_validation is not None:
             # Train the model and get the AUC score
-            model, rmse = OCxgboost.run_xgboost(X_train_filtered, self.y_train, X_test_filtered, self.y_test, params = xgboost_params, verbose = self.verbose) # type: ignore
+            model, rmse = OCxgboost.run_xgboost(X_train_filtered, self.y_train, X_test_filtered, self.y_test, params = self.xgboost_params, verbose = self.verbose) # type: ignore
+
+            # Filtrate the validation dataset
+            X_validation_filtered = self.X_validation[:, selected_features_indices]
 
             # Predict the validation dataset
-            y_pred = model.predict(self.X_validation)
+            y_pred = model.predict(X_validation_filtered)
 
             # Get the AUC score of the validation dataset
             fpr, tpr, _ = roc_curve(self.y_validation, y_pred) # type: ignore
@@ -200,7 +201,7 @@ class EvolutionaryFeatureSelector:
             # Calculate the AUC score
             roc_auc = auc(fpr, tpr)
 
-            # Return the AUC score as a tuple
+            # Return the AUC score and the RMSE
             return rmse, roc_auc
         else:
             # Use the provided XGBoost function to train the model and get the AUC score
@@ -377,9 +378,30 @@ class EvolutionaryFeatureSelector:
         selected_features_indices = [i for i, use_feature in enumerate(individual) if use_feature]
         X_train_filtered = self.X_train[:, selected_features_indices]
         X_test_filtered = self.X_test[:, selected_features_indices]
-        # TODO: Finish this
-        _,
+        
+        # If the validation dataset is provided, use it to get the AUC score
+        if self.X_validation is not None:
+            # Filtrate the validation dataset
+            x_validation_filtered = self.X_validation[:, selected_features_indices]
 
+            # Train the model and get the RMSE score
+            model, rmse = OCxgboost.run_xgboost(X_train_filtered, self.y_train, X_test_filtered, self.y_test, params = self.xgboost_params, verbose = self.verbose) # type: ignore
+
+            # Predict the validation dataset
+            y_pred = model.predict(x_validation_filtered)
+
+            # Get the False Positive Rate and True Positive Rate
+            fpr, tpr, _ = roc_curve(self.y_validation, y_pred)
+
+            # Calculate the AUC score
+            roc_auc = auc(fpr, tpr)
+
+            # Logging AUC and best individual's feature indices
+            trial.add_user_attr("AUC", roc_auc)
+
+            # Return the RMSE score
+            return rmse
+        
         # Run xgboost with the selected features
         _, roc_auc = OCxgboost.run_xgboost(X_train_filtered, self.y_train, X_test_filtered, self.y_test, self.xgboost_params, self.verbose)
 

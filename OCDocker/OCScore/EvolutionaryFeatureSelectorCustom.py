@@ -3,14 +3,13 @@ import optuna
 import numpy as np
 import pandas as pd
 
-from deap import base, creator, tools, algorithms
 from numpy.random import default_rng
-from optuna.samplers import CmaEsSampler, TPESampler
 from sklearn.metrics import auc, roc_curve
+from tqdm import tqdm
 from typing import Union
+from urllib.parse import quote_plus
 
 #from OCDocker.Initialise import *
-from sqlalchemy.engine.url import URL
 
 import OCxgboost
 
@@ -19,7 +18,21 @@ class EvolutionaryFeatureSelectorCustom:
     A class to optimize the feature selection for XGBoost using a genetic algorithm.
     """
 
-    def __init__(self, X_train: Union[np.ndarray, pd.DataFrame, pd.Series], y_train: Union[np.ndarray, pd.DataFrame, pd.Series], X_test: Union[np.ndarray, pd.DataFrame, pd.Series], y_test: Union[np.ndarray, pd.DataFrame, pd.Series], xgboost_params: dict, evolution_params: dict = {}, use_gpu: bool = False, early_stopping_rounds : int = 20, random_state: int = 42, fixed_features_index: list = [], verbose: bool = False) -> None:
+    def __init__(self, 
+            X_train: Union[np.ndarray, pd.DataFrame, pd.Series],
+            y_train: Union[np.ndarray, pd.DataFrame, pd.Series],
+            X_test: Union[np.ndarray, pd.DataFrame, pd.Series],
+            y_test: Union[np.ndarray, pd.DataFrame, pd.Series],
+            xgboost_params: dict,
+            X_validation: Union[None, Union[np.ndarray, pd.DataFrame, pd.Series]] = None,
+            y_validation: Union[None, Union[np.ndarray, pd.DataFrame, pd.Series]] = None,
+            evolution_params: dict = {},
+            use_gpu: bool = False,
+            early_stopping_rounds : int = 20,
+            random_state: int = 42,
+            fixed_features_index: list = [],
+            verbose: bool = False
+        ) -> None:
         '''
         Constructor for the EvolutionaryFeatureSelector class.
 
@@ -33,8 +46,14 @@ class EvolutionaryFeatureSelectorCustom:
             The full test dataset.
         y_test : np.ndarray | pd.DataFrame | pd.Series
             The test labels.
-        params : dict
+        xgboost_params : dict
             The hyperparameters for the XGBoost model.
+        X_validation : np.ndarray | pd.DataFrame | pd.Series, optional
+            The validation dataset and labels. Default is None.
+        y_validation : np.ndarray | pd.DataFrame | pd.Series, optional
+            The validation labels. Default is None.
+        evolution_params : dict, optional
+            The hyperparameters for the genetic algorithm. Default is an empty dictionary.
         use_gpu : bool, optional
             Whether to use the GPU for training the XGBoost model.
         random_state : int, optional
@@ -49,63 +68,99 @@ class EvolutionaryFeatureSelectorCustom:
         self.X_test = np.asarray(X_test)
         self.y_test = np.asarray(y_test)
         self.xgboost_params = xgboost_params
+        self.X_validation = np.asarray(X_validation)
+        self.y_validation = np.asarray(y_validation)
         self.evolution_params = evolution_params
         self.random_state = random_state
         self.rng = default_rng(random_state)
         self.fixed_features_index = fixed_features_index
         self.verbose = verbose
         self.early_stopping_rounds = early_stopping_rounds
+        self.direction = None
 
         if use_gpu:
             self.xgboost_params['device'] = 'cuda'
         
         if "tree_method" not in xgboost_params:
             self.xgboost_params["tree_method"] = "hist"
+
         if "objective" not in xgboost_params:
             self.xgboost_params["objective"] = "reg:squarederror"
+
         if "booster" not in xgboost_params:
             self.xgboost_params["booster"] = "gbtree"
+
         if "eval_metric" not in xgboost_params:
-            self.xgboost_params["eval_metric"] = "auc"
+            if self.X_validation is not None:
+                xgboost_params["eval_metric"] = 'rmse'
+            else:
+                xgboost_params["eval_metric"] = 'auc'
+
         if "random_state" not in xgboost_params:
             self.xgboost_params["random_state"] = self.random_state
         
-        # Set the storage string for the study
-        self.storage = str(URL.create(
-            drivername = 'mysql+pymysql',
-            username   = "ocdocker",
-            password   = "@Kp3sRv9t@",
-            host       = "localhost",
-            port       = "3306",
-            database   = "feature_selection"
-        ))
+        self.storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"
 
-    def fitness_function(self, features: list) -> float:
-        '''
-        A function to calculate the fitness of a set of features.
+    def fitness(self, individual: list) -> Union[tuple, float]:
+        """
+        A function to calculate the fitness of a set of features represented by an individual.
 
         Parameters
         ----------
-        features : list
-            The indices of the features to be used.
-        trial_params : dict
-            The hyperparameters for the XGBoost model.
+        individual : list
+            A binary list representing the inclusion (1) or exclusion (0) of each feature.
 
         Returns
         -------
-        float
-            The AUC score of the XGBoost model using the selected features.
-        '''
+        tuple | float
+            The AUC and the RMSE score of the selected features. If the validation dataset is not provided, only the AUC score is returned.
+        """
 
-        # Select the columns from the full dataset based on the features index
-        filtered_X_train = self.X_train[:, features]
-        filtered_X_test = self.X_test[:, features]
+        # Determine which features to include based on the individual's genes
+        selected_features_indices = [i for i, use_feature in enumerate(individual) if use_feature]
 
-        # Train the model and get the AUC score
-        _, roc_auc = OCxgboost.run_xgboost(filtered_X_train, self.y_train, filtered_X_test, self.y_test, self.xgboost_params, self.verbose) # type: ignore
+        # Filter the datasets to include only the selected features
+        X_train_filtered = self.X_train[:, selected_features_indices]
+        X_test_filtered = self.X_test[:, selected_features_indices]
 
-        # Return the AUC score
-        return roc_auc
+        # If the validation dataset is provided, use it to get the AUC score
+        if self.X_validation is not None:
+            # Filter the validation dataset to include only the selected features
+            X_validation_filtered = self.X_validation[:, selected_features_indices]
+            
+            # Train the model and get the AUC score
+            model, rmse = OCxgboost.run_xgboost(X_train_filtered, self.y_train, X_test_filtered, self.y_test, params = self.xgboost_params, verbose = self.verbose) # type: ignore
+
+            # Predict the validation dataset
+            y_pred = model.predict(X_validation_filtered)
+
+            # Get the AUC score of the validation dataset
+            fpr, tpr, _ = roc_curve(self.y_validation, y_pred)
+
+            # Predict the validation dataset
+            y_pred = model.predict(X_validation_filtered)
+
+            # Get the AUC score of the validation dataset
+            fpr, tpr, _ = roc_curve(self.y_validation, y_pred) # type: ignore
+
+            # Calculate the AUC score
+            roc_auc = auc(fpr, tpr)
+
+            # Return the AUC score and the RMSE
+            return rmse, roc_auc
+        else:
+            # Use the provided XGBoost function to train the model and get the AUC score
+            _, roc_auc = OCxgboost.run_xgboost(
+                X_train_filtered, 
+                self.y_train, 
+                X_test_filtered, 
+                self.y_test, 
+                self.xgboost_params, 
+                verbose = self.verbose
+            )
+
+            # Return the AUC score
+            return roc_auc
 
     def initialize_population(self, number_of_features: int, population_size: int) -> np.ndarray:
         '''
@@ -172,8 +227,13 @@ class EvolutionaryFeatureSelectorCustom:
         # Get the fitness scores of the selected individuals
         selected_fitnesses = fitnesses[selected_indices]
 
-        # Get the individual with the highest fitness score
-        winner_index = selected_indices[np.argmax(selected_fitnesses)]
+        # If the direction in study is minimize
+        if self.direction == "minimize":
+            # Get the individual with the lowest fitness score
+            winner_index = selected_indices[np.argmin(selected_fitnesses)]
+        else:
+            # Get the individual with the highest fitness score
+            winner_index = selected_indices[np.argmax(selected_fitnesses)]
 
         # Return the selected individual
         return population[winner_index]
@@ -267,8 +327,13 @@ class EvolutionaryFeatureSelectorCustom:
 
         # Perform the genetic algorithm for the specified number of generations
         for generation in tqdm(range(trial_params['number_of_generations'])):
-            # Calculate the fitness scores of the population
-            fitnesses = np.array([self.fitness_function(individual.nonzero()[0]) for individual in population])
+            # If the X_validation is provided, calculate the fitness scores of the population
+            if self.X_validation is not None:
+                # Calculate the fitness scores of the population
+                fitnesses = np.array([self.fitness(individual.nonzero()[0])[0] for individual in population]) # type: ignore
+            else:
+                # Calculate the fitness scores of the population
+                fitnesses = np.array([self.fitness(individual.nonzero()[0]) for individual in population])
 
             # Create a new population
             new_population = []
@@ -296,11 +361,26 @@ class EvolutionaryFeatureSelectorCustom:
             # Update the population
             population = np.array(new_population)
 
-            # Get the best score in the current generation
-            best_score_in_generation = np.max(fitnesses)
+            # If the direction in study is minimize
+            if self.direction == "minimize":
+                # Get the best score in the current generation
+                best_score_in_generation = np.min(fitnesses)
+                # Set the has_better_score flag to best_score_in_generation < best_score
+                has_better_score = best_score_in_generation < best_score
+            else:
+                # Get the best score in the current generation
+                best_score_in_generation = np.max(fitnesses)
+                # Set the has_better_score flag to best_score_in_generation > best_score
+                has_better_score = best_score_in_generation > best_score
+
+            if self.verbose:
+                print(f"pop: {population}")
+                print(f"argmin: {np.argmin(fitnesses)}")
+                print(f"argmax: {np.argmax(fitnesses)}")
+                print(f"best_score: {best_score_in_generation}")
 
             # If the best score in the current generation is better than the best score so far, update the best score and the best individual
-            if best_score_in_generation > best_score:
+            if has_better_score:
                 # Update the best score and the best individual
                 best_score = best_score_in_generation
                 # Get the best individual
@@ -309,7 +389,7 @@ class EvolutionaryFeatureSelectorCustom:
                 print(f"Generation {generation}: Best score = {best_score}")
 
         # Return the best individual and the best score
-        return best_individual, best_score
+        return best_individual, best_score # type: ignore
 
     def objective(self, trial: optuna.Trial) -> float:
         '''
@@ -332,8 +412,10 @@ class EvolutionaryFeatureSelectorCustom:
         # Get the hyperparameters for the genetic algorithm
         if "number_of_generations" not in trial_params:
             trial_params["number_of_generations"] = trial.suggest_int('number_of_generations', 20, 100)
+
         if "population_size" not in trial_params:
             trial_params["population_size"] = trial.suggest_int('population_size', 20, 200)
+
         if "mutation_rate" not in trial_params:
             trial_params["mutation_rate"] = trial.suggest_float('mutation_rate', 0.01, 0.2)
 
@@ -344,7 +426,7 @@ class EvolutionaryFeatureSelectorCustom:
         best_individual, best_score = self.genetic_algorithm(trial_params)
 
         # Pickle the best individual
-        trial.set_user_attr('best_individual', best_individual)
+        trial.set_user_attr('best_individual', ''.join([str(int(i)) for i in best_individual.tolist()]))
 
         # Return the AUC score
         return best_score
@@ -377,6 +459,9 @@ class EvolutionaryFeatureSelectorCustom:
         float
             The best AUC score.
         '''
+
+        # Set the direction
+        self.direction = direction
 
         # Create an Optuna study and optimize the objective function
         study = optuna.create_study(direction = direction, study_name = study_name, storage = self.storage, load_if_exists = load_if_exists)
