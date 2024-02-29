@@ -837,14 +837,14 @@ if use_pdb_train:
     # Split the PDBbind data into training and testing sets
     X_train, X_test, y_train, y_test = split_dataset(pdbbind_standard_norm_df.drop(columns = ['receptor', 'ligand', 'name', 'type', 'db', 'experimental'], errors = 'ignore'), pdbbind_standard_norm_df['experimental'], test_size = 0.25, random_state = 42)
     # Split the DUDEz data into validation X and y
-    X_val = dudez_standard_norm_df.drop(columns = ['receptor', 'ligand', 'name', 'type', 'db'], errors = 'ignore')
+    X_val = dudez_standard_norm_df.drop(columns = ['receptor', 'ligand', 'name', 'type', 'db', 'experimental'], errors = 'ignore')
     y_val = dudez_standard_norm_df['type'].map({'ligand': 1, 'decoy': 0})
 else:
     # Set the test size to 0.0 to use the entire dataset for training
     X_train = pdbbind_standard_norm_df.drop(columns = ['receptor', 'ligand', 'name', 'type', 'db', 'experimental'], errors = 'ignore')
     y_train = pdbbind_standard_norm_df['experimental']
 
-    X_test = dudez_standard_norm_df.drop(columns = ['receptor', 'ligand', 'name', 'type', 'db'], errors = 'ignore')
+    X_test = dudez_standard_norm_df.drop(columns = ['receptor', 'ligand', 'name', 'type', 'db', 'experimental'], errors = 'ignore')
     y_test = dudez_standard_norm_df['type'].map({'ligand': 1, 'decoy': 0})
 
     # Set X and y for validation to None
@@ -931,7 +931,7 @@ evaluate_and_plot(X_train, y_train, X_test, labels, results, iterations = 10, so
 print("Running XGBoost pre-optimization...")
 # Create the PreXGBoostOptimizer object
 pxgb = PreXGBoostOptimizer(X_train, y_train, X_test, y_test, X_val, y_val, params = {}, use_gpu = True, early_stopping_rounds = 50, random_state = 42, verbose = False)
-
+'''
 n_jobs = 2
 
 # If the X_val is None, the direction is set to maximize
@@ -941,8 +941,9 @@ if X_val is None:
 else:
     # Run the optimization
     study_pre, best_params_pre, best_score_pre = pxgb.optimize(study_name = "XGBoost pre-optimization", direction = "minimize", n_trials = 1000, n_jobs = n_jobs)
-
-#best_params_pre = {}
+'''
+best_params_pre = {'max_depth': 5, 'learning_rate': 0.2517429022810524, 'n_estimators': 101, 'subsample': 0.9776698128134739, 'colsample_bytree': 0.9068966063215814, 'reg_alpha': 0.8680385318163417, 'reg_lambda': 0.7243450306810497, 'min_child_weight': 5, 'gamma': 0.4071681639504335}
+best_params_pre = {}
 
 def optimize_feature_selection(X_train, y_train, X_test, y_test, X_validation = None, y_validation = None, best_params = {}, algorithm = "ga", n_trials = 100, study_name: str = "Feature selection", random_state = 42, use_gpu = True, verbose = False, instance_id: int = -1):
     """

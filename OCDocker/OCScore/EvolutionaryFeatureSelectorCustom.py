@@ -1,4 +1,6 @@
 import optuna
+import pickle
+import shutil
 
 import numpy as np
 import pandas as pd
@@ -92,16 +94,16 @@ class EvolutionaryFeatureSelectorCustom:
 
         if "eval_metric" not in xgboost_params:
             if self.X_validation is not None:
-                xgboost_params["eval_metric"] = 'rmse'
+                self.xgboost_params["eval_metric"] = 'rmse'
             else:
-                xgboost_params["eval_metric"] = 'auc'
+                self.xgboost_params["eval_metric"] = 'auc'
 
         if "random_state" not in xgboost_params:
             self.xgboost_params["random_state"] = self.random_state
         
-        self.storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"
+        self.storage = f"mysql+pymysql://ocdocker:{ quote_plus('@Kp3sRv9t@') }@localhost:3306/optimization"
 
-    def fitness(self, individual: list) -> Union[tuple, float]:
+    def fitness(self, individual: list) -> Union[tuple]:
         """
         A function to calculate the fitness of a set of features represented by an individual.
 
@@ -112,56 +114,23 @@ class EvolutionaryFeatureSelectorCustom:
 
         Returns
         -------
-        tuple | float
-            The AUC and the RMSE score of the selected features. If the validation dataset is not provided, only the AUC score is returned.
+        tuple
+            The metric score of the selected features and the model.
         """
 
         # Determine which features to include based on the individual's genes
-        selected_features_indices = [i for i, use_feature in enumerate(individual) if use_feature]
+        selected_features_indices = np.where(individual)[0]
 
         # Filter the datasets to include only the selected features
         X_train_filtered = self.X_train[:, selected_features_indices]
         X_test_filtered = self.X_test[:, selected_features_indices]
 
-        # If the validation dataset is provided, use it to get the AUC score
-        if self.X_validation is not None:
-            # Filter the validation dataset to include only the selected features
-            X_validation_filtered = self.X_validation[:, selected_features_indices]
-            
-            # Train the model and get the AUC score
-            model, rmse = OCxgboost.run_xgboost(X_train_filtered, self.y_train, X_test_filtered, self.y_test, params = self.xgboost_params, verbose = self.verbose) # type: ignore
+        # Train the model and get the AUC score
+        model, metric = OCxgboost.run_xgboost(X_train_filtered, self.y_train, X_test_filtered, self.y_test, params = self.xgboost_params, verbose = self.verbose) # type: ignore
 
-            # Predict the validation dataset
-            y_pred = model.predict(X_validation_filtered)
-
-            # Get the AUC score of the validation dataset
-            fpr, tpr, _ = roc_curve(self.y_validation, y_pred)
-
-            # Predict the validation dataset
-            y_pred = model.predict(X_validation_filtered)
-
-            # Get the AUC score of the validation dataset
-            fpr, tpr, _ = roc_curve(self.y_validation, y_pred) # type: ignore
-
-            # Calculate the AUC score
-            roc_auc = auc(fpr, tpr)
-
-            # Return the AUC score and the RMSE
-            return rmse, roc_auc
-        else:
-            # Use the provided XGBoost function to train the model and get the AUC score
-            _, roc_auc = OCxgboost.run_xgboost(
-                X_train_filtered, 
-                self.y_train, 
-                X_test_filtered, 
-                self.y_test, 
-                self.xgboost_params, 
-                verbose = self.verbose
-            )
-
-            # Return the AUC score
-            return roc_auc
-
+        # Return the metric score and the model
+        return metric, model
+        
     def initialize_population(self, number_of_features: int, population_size: int) -> np.ndarray:
         '''
         A function to initialize the population for the genetic algorithm.
@@ -199,6 +168,8 @@ class EvolutionaryFeatureSelectorCustom:
                     # If all features are fixed, choose from all features
                     random_index = self.rng.integers(0, number_of_features)
                 individual[random_index] = True
+
+        assert all(individual.shape[0] == number_of_features for individual in population), "Inconsistent gene size detected in initialize pop."
 
         return population
 
@@ -281,6 +252,8 @@ class EvolutionaryFeatureSelectorCustom:
             The mutated individual.
         '''
 
+        individualshape = individual.shape[0]
+
         # Perform mutation for each feature in the individual
         for i in range(len(individual)):
             # If it is a score column, do not mutate
@@ -294,7 +267,7 @@ class EvolutionaryFeatureSelectorCustom:
         # Return the mutated individual
         return individual
 
-    def genetic_algorithm(self, trial_params: dict) -> tuple[np.ndarray, float]:
+    def genetic_algorithm(self, trial_params: dict) -> tuple[np.ndarray, OCxgboost.XGBRegressor, float, Union[None, float]]:
         '''
         A function to perform the genetic algorithm for feature selection.
 
@@ -311,8 +284,12 @@ class EvolutionaryFeatureSelectorCustom:
         -------
         np.ndarray
             The selected features.
+        XGBRegressor
+            The model.
         float
-            The AUC score of the selected features.
+            The score of the selected features.
+        Union[None, float]
+            The AUC score of the selected features. If the validation dataset is not provided, None is returned.
         '''
 
         # Get the total number of features
@@ -322,19 +299,95 @@ class EvolutionaryFeatureSelectorCustom:
         population = self.initialize_population(number_of_features, trial_params['population_size'])
 
         # Initialize the best score and the best individual
-        best_score = 0
+        if self.direction == "minimize":
+            best_score = np.inf
+        else:
+            best_score = 0
+
         best_individual = None
+        best_score2 = None
 
         # Perform the genetic algorithm for the specified number of generations
         for generation in tqdm(range(trial_params['number_of_generations'])):
-            # If the X_validation is provided, calculate the fitness scores of the population
-            if self.X_validation is not None:
-                # Calculate the fitness scores of the population
-                fitnesses = np.array([self.fitness(individual.nonzero()[0])[0] for individual in population]) # type: ignore
-            else:
-                # Calculate the fitness scores of the population
-                fitnesses = np.array([self.fitness(individual.nonzero()[0]) for individual in population])
+            # Create lists to store the fitness scores and the models
+            fitnesses = []
+            models = []
 
+            # For each individual in the population
+            for individual in population:
+                # Get the fitness score and the model
+                f = self.fitness(individual)
+
+                # Append the fitness score and the model to the lists
+                fitnesses.append(f[0])
+                models.append(f[1])
+
+                # If verbose, print the fitness score and the number of features
+                if self.verbose:
+                    print(f"{f[0]} - {len(individual.nonzero()[0])} - {f[1].n_features_in_}")
+                
+            # Convert to numpy arrays
+            fitnesses = np.array(fitnesses)
+            models = np.array(models)
+
+            # If the direction in study is minimize
+            if self.direction == "minimize":
+                # Get the best score in the current generation
+                best_score_in_generation = np.min(fitnesses)
+
+                # Get the index of the best score
+                best_score_index = np.argmin(fitnesses)
+
+                # Set the has_better_score flag to best_score_in_generation < best_score
+                has_better_score = best_score_in_generation < best_score
+            else:
+                # Get the best score in the current generation
+                best_score_in_generation = np.max(fitnesses)
+
+                # Get the index of the best score
+                best_score_index = np.argmax(fitnesses)
+
+                # Set the has_better_score flag to best_score_in_generation > best_score
+                has_better_score = best_score_in_generation > best_score
+
+            if self.verbose:
+                print(f"pop: {population}")
+                print(f"argmin: {np.argmin(fitnesses)}")
+                print(f"argmax: {np.argmax(fitnesses)}")
+                print(f"best_score: {best_score_in_generation}")
+                print(f"best_score_index: {best_score_index}")
+
+            # If the best score in the current generation is better than the best score so far, update the best score and the best individual
+            if has_better_score:
+                # Update the best score and the best individual
+                best_score = best_score_in_generation
+
+                # Get the best individual
+                best_individual = population[best_score_index]
+
+                # Get the best model (loaded from pickle file)
+                best_model = models[best_score_index] 
+
+                # If the validation dataset is provided
+                if self.X_validation is not None:
+                    # Filter the validation dataset to include only the selected features
+                    X_validation_filtered = self.X_validation[:, best_individual.nonzero()[0]]
+                    
+                    # Predict the validation dataset
+                    y_pred = best_model.predict(X_validation_filtered)
+
+                    # Get the AUC score of the validation dataset
+                    fpr, tpr, _ = roc_curve(self.y_validation, y_pred)
+
+                    # Calculate the AUC score
+                    best_score2 = auc(fpr, tpr)
+
+                    # Print the AUC score
+                    print(f"Generation {generation}:\nBest score = {best_score}\nBest score AUC = {best_score2}")
+                else:
+                    # Print the best score
+                    print(f"Generation {generation}: Best score = {best_score}")
+            
             # Create a new population
             new_population = []
 
@@ -355,41 +408,20 @@ class EvolutionaryFeatureSelectorCustom:
                 child2 = self.crossover(parent2, parent1)
                 child2 = self.mutation(child2, trial_params['mutation_rate'])
 
+                assert parent1.shape[0] == parent2.shape[0], "Inconsistent gene size parents mismatch."
+                assert child1.shape[0] == child2.shape[0], "Inconsistent gene size childs mismatch."
+                assert parent1.shape[0] == child1.shape[0], "Inconsistent gene size parent/child mismatch."
+
                 # Add the children to the new population
                 new_population.extend([child1, child2])
 
             # Update the population
             population = np.array(new_population)
 
-            # If the direction in study is minimize
-            if self.direction == "minimize":
-                # Get the best score in the current generation
-                best_score_in_generation = np.min(fitnesses)
-                # Set the has_better_score flag to best_score_in_generation < best_score
-                has_better_score = best_score_in_generation < best_score
-            else:
-                # Get the best score in the current generation
-                best_score_in_generation = np.max(fitnesses)
-                # Set the has_better_score flag to best_score_in_generation > best_score
-                has_better_score = best_score_in_generation > best_score
-
-            if self.verbose:
-                print(f"pop: {population}")
-                print(f"argmin: {np.argmin(fitnesses)}")
-                print(f"argmax: {np.argmax(fitnesses)}")
-                print(f"best_score: {best_score_in_generation}")
-
-            # If the best score in the current generation is better than the best score so far, update the best score and the best individual
-            if has_better_score:
-                # Update the best score and the best individual
-                best_score = best_score_in_generation
-                # Get the best individual
-                best_individual = population[np.argmax(fitnesses)]
-                # Print the best score
-                print(f"Generation {generation}: Best score = {best_score}")
+            assert all(individual.shape[0] == number_of_features for individual in population), "Inconsistent gene size detected in entire population."
 
         # Return the best individual and the best score
-        return best_individual, best_score # type: ignore
+        return best_individual, best_model, best_score, best_score2 # type: ignore
 
     def objective(self, trial: optuna.Trial) -> float:
         '''
@@ -423,10 +455,19 @@ class EvolutionaryFeatureSelectorCustom:
         trial_params['early_stopping_rounds'] = self.early_stopping_rounds
 
         # Perform the genetic algorithm
-        best_individual, best_score = self.genetic_algorithm(trial_params)
+        best_individual, model, best_score, best_score2 = self.genetic_algorithm(trial_params)
 
         # Pickle the best individual
         trial.set_user_attr('best_individual', ''.join([str(int(i)) for i in best_individual.tolist()]))
+
+        # If the validation dataset is provided
+        if self.X_validation is not None:
+            # Set the best AUC score as a user attribute
+            trial.set_user_attr('best_AUC', best_score2)
+
+        # Save a trained model to a file.
+        with open("/data/hd4tb/OCDocker/data/ocdb/predictions/models_tmp/{}.pickle".format(trial.number), "wb") as fout:
+            pickle.dump(model, fout)
 
         # Return the AUC score
         return best_score
@@ -457,7 +498,7 @@ class EvolutionaryFeatureSelectorCustom:
         dict
             The best hyperparameters.
         float
-            The best AUC score.
+            The best metric score.
         '''
 
         # Set the direction
@@ -473,7 +514,17 @@ class EvolutionaryFeatureSelectorCustom:
         best_params = study.best_params
         best_score = study.best_value
 
-        print(f"Best AUC score: {best_score}")
+        print(f"Best score: {best_score}")
         print(f"Best hyperparameters: {best_params}")
+
+        # If the validation dataset is provided, print the best AUC
+        if self.X_validation is not None:
+            print(f"Best AUC: {study.best_trial.user_attrs['best_AUC']}")
+        
+        # Get the best model name
+        best_model_name = "{}.pickle".format(study.best_trial.number)
+
+        # Copy to the models folder
+        shutil.copyfile("/data/hd4tb/OCDocker/data/ocdb/predictions/models_tmp/{}".format(best_model_name), "/data/hd4tb/OCDocker/data/ocdb/predictions/models/{}".format(best_model_name))
 
         return study, best_params, best_score
