@@ -8,15 +8,14 @@ import numpy as np
 
 from scipy.cluster.hierarchy import leaves_list, linkage
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
-from sklearn.metrics import auc, mean_squared_error, roc_curve
+from sklearn.metrics import auc, roc_curve
 from sklearn.model_selection import ParameterGrid, train_test_split
 from tqdm import tqdm
-from xgboost import XGBRegressor
 
-from PreXGBoostOptimizer import PreXGBoostOptimizer
-from EvolutionaryFeatureSelector import EvolutionaryFeatureSelector
-from EvolutionaryFeatureSelectorCustom import EvolutionaryFeatureSelectorCustom
-
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import Dataset, DataLoader
 
 def save_object(obj, filename):
     """
@@ -851,224 +850,118 @@ else:
     X_val = None
     y_val = None
 
-'''
-# Plot correlation matrix to show that the correlation is preserved after normalization, even though the values are different
-plot_corr_matrix(dudez_standard_norm_df, columns = [col for col in df.columns if col.startswith(('VINA', 'SMINA', 'PLANTS', 'ODDT'))], scaler = 'standard')
-plot_corr_matrix(dudez_minmax_norm_df, columns = [col for col in df.columns if col.startswith(('VINA', 'SMINA', 'PLANTS', 'ODDT'))], scaler = 'minmax')
-plot_corr_matrix(pdbbind_standard_norm_df, columns = [col for col in df.columns if col.startswith(('VINA', 'SMINA', 'PLANTS', 'ODDT'))] + ['experimental'], scaler = 'standard')
-plot_corr_matrix(pdbbind_minmax_norm_df, columns = [col for col in df.columns if col.startswith(('VINA', 'SMINA', 'PLANTS', 'ODDT'))] + ['experimental'], scaler = 'minmax')
+trainer = NNOptimizer(X_train, y_train, X_test, y_test, X_val, y_val, 1, use_gpu=True, verbose=False)
+trainer.optimize(direction = "minimize", n_trials = 10, study_name = "NN_Optimization", load_if_exists = True, sampler = TPESampler(), n_jobs = 1)
 
-# Since it is the same, no matter the scaler, we can use any of the normalized dataframes to calculate the correlation similarity
-plot_correlation_similarity(dudez_standard_norm_df, dudez_minmax_norm_df, columns = [col for col in df.columns if col.startswith(('VINA', 'SMINA', 'PLANTS', 'ODDT'))])
+# Convert data to PyTorch tensors
+X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32)
+y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32)
+X_test_tensor = torch.tensor(X_test.values, dtype=torch.float32)
+y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32)
 
-###################
-## DUDEz analysis
-###################
+class CustomDataset(Dataset):
+    def __init__(self, features, target):
+        self.features = features
+        self.target = target
 
-# Prepare ROC data
-labels = dudez_data['type'].map({'ligand': 1, 'decoy': 0})
+    def __len__(self):
+        return len(self.features)
 
-# Plot ROC curves
-plot_roc_curves(dudez_data, score_columns, labels, title = "ROC_DUDEz_clean")
-
-# Calculate additional metrics
-dudez_data_metrics, additional_metrics_cols = calculate_metrics(dudez_data, score_columns)
-
-# Plot the ROC curve again using the additional metrics
-plot_roc_curves(dudez_data_metrics, score_columns.tolist() + additional_metrics_cols, labels, title = "ROC_DUDEz_metrics")
-'''
-
-#########################
-## Feature engineering
-#########################
-
-# Skipping outlier detection for now...
-
-# Compute the z-score for the score columns
-#dudez_zscore_df = compute_zscore(dudez_data[["receptor", "ligand", "type"] + score_columns], score_columns)
-
-# Identify the outliers
-#outliers = dudez_zscore_df[(dudez_zscore_df[["z_" + s for s in score_columns]] > 3).any(axis = 1)]
-
-###############################################
-## Exploratory analysis for feature selection
-###############################################
-
-# Create the feature_engineering directory if it does not exist
-if not os.path.exists('feature_engineering'):
-    os.makedirs('feature_engineering')
-
-# Create the most_important and least_important directories if they do not exist
-if not os.path.exists('feature_engineering/most_important'):
-    os.makedirs('feature_engineering/most_important')
-
-if not os.path.exists('feature_engineering/least_important'):
-    os.makedirs('feature_engineering/least_important')
-
-###############################################################################################################################################
-## These steps are to determine that the importance of the features is not related to the performance of the model where ROC_AUC is maximized
-###############################################################################################################################################
-
-'''
-# Check if the result.pkl file exists
-if os.path.isfile('feature_engineering/result.pkl'):
-    # Load the results from the pickle
-    results = pd.read_pickle('feature_engineering/result.pkl')
-else:
-    # Train and evaluate multiple XGBoost models with different feature sets removing descriptors one by one
-    results = evaluate_feature_removal(X_train, y_train, X_test, labels, random_state=42, feature_importances = [], use_gpu = False)
-
-# Plot the results and save the pickle
-plot_performance(results, filename='feature_engineering/feature_removal_performance.png')
-# Save the results to a pickle file except for the model column
-save_object(results.drop(columns = 'model'), 'feature_engineering/result.pkl')
-
-# Evaluate feature removal and plot performance for the most and least important features
-evaluate_and_plot(X_train, y_train, X_test, labels, results, iterations = 10, sort_order=(False), save_path='./feature_engineering/most_important') # Most important features
-evaluate_and_plot(X_train, y_train, X_test, labels, results, iterations = 10, sort_order=(True), save_path='./feature_engineering/least_important') # Least important features
-'''
-
-print("Running XGBoost pre-optimization...")
-# Create the PreXGBoostOptimizer object
-pxgb = PreXGBoostOptimizer(X_train, y_train, X_test, y_test, X_val, y_val, params = {}, use_gpu = True, early_stopping_rounds = 50, random_state = 42, verbose = False)
-'''
-n_jobs = 2
-
-# If the X_val is None, the direction is set to maximize
-if X_val is None:
-    # Run the optimization
-    study_pre, best_params_pre, best_score_pre = pxgb.optimize(study_name = "XGBoost pre-optimization", direction = "maximize", n_trials = 1000, n_jobs = n_jobs)
-else:
-    # Run the optimization
-    study_pre, best_params_pre, best_score_pre = pxgb.optimize(study_name = "XGBoost pre-optimization", direction = "minimize", n_trials = 1000, n_jobs = n_jobs)
-'''
-best_params_pre = {'max_depth': 5, 'learning_rate': 0.2517429022810524, 'n_estimators': 101, 'subsample': 0.9776698128134739, 'colsample_bytree': 0.9068966063215814, 'reg_alpha': 0.8680385318163417, 'reg_lambda': 0.7243450306810497, 'min_child_weight': 5, 'gamma': 0.4071681639504335}
-best_params_pre = {}
-
-def optimize_feature_selection(X_train, y_train, X_test, y_test, X_validation = None, y_validation = None, best_params = {}, algorithm = "ga", n_trials = 100, study_name: str = "Feature selection", random_state = 42, use_gpu = True, verbose = False, instance_id: int = -1):
-    """
-    Function to be executed by each process.
+    def __getitem__(self, idx):
+        return self.features[idx], self.target[idx]
     
-    :param instance_id: An identifier for the instance, could be used to modify the behavior per instance.
-    """
+train_dataset = CustomDataset(X_train_tensor, y_train_tensor)
+test_dataset = CustomDataset(X_test_tensor, y_test_tensor)
 
-    # Only print the instance_id if it is greater than -1
-    if instance_id > -1:
-        # Setup unique to this instance, potentially using instance_id to differentiate setups
-        print(f"Running instance {instance_id}")
-    
-    if algorithm.lower() == "custom-ga":
-        # Create the EvolutionaryFeatureSelectorCustom object
-        evo = EvolutionaryFeatureSelectorCustom(X_train, y_train, X_test, y_test, X_validation = X_validation, y_validation = y_validation, xgboost_params = best_params, use_gpu = use_gpu, random_state = random_state, verbose = verbose) # type: ignore
-    elif algorithm.lower() in ["cmaes", "ga"]:
-        # Create the EvolutionaryFeatureSelector object
-        evo = EvolutionaryFeatureSelector(X_train, y_train, X_test, y_test, X_validation = X_validation, y_validation = y_validation, xgboost_params = best_params, algorithm = algorithm, use_gpu = use_gpu, random_state = random_state, verbose = verbose) # type: ignore
-    
-    # Run the optimization
-    study, best_features, best_score = evo.optimize(study_name = study_name, direction = "minimize", n_trials = n_trials, n_jobs = n_jobs)
+train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
 
-    return study, best_features, best_score
+class SimpleRegressionNet(nn.Module):
+    def __init__(self):
+        super(SimpleRegressionNet, self).__init__()
+        self.fc1 = nn.Linear(X_train.shape[1], 128)
+        self.relu = nn.ReLU()
+        self.fc2 = nn.Linear(128, 1)
 
-print("Running feature selection...")
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.relu(x)
+        x = self.fc2(x)
+        return x
 
-algorithm = "custom-ga"
-random_state = 42
-n_trials = 100
-n_jobs = 30
-use_gpu = True
-verbose = False
+class SimpleRegressionNet2(nn.Module):
+    def __init__(self):
+        super(SimpleRegressionNet2, self).__init__()
+        self.fc1 = nn.Linear(X_train.shape[1], 256)
+        self.relu = nn.ReLU()
+        self.fc2 = nn.Linear(256, 1)
+        self.leaky_relu = nn.LeakyReLU(0.05)
 
-study_fs, best_features_fs, best_score_fs = optimize_feature_selection(
-    X_train, 
-    y_train, 
-    X_test, 
-    y_test, 
-    X_val, 
-    y_val, 
-    best_params_pre, 
-    algorithm = algorithm, 
-    n_trials = n_trials, 
-    study_name = "Feature selection Custom GA",
-    random_state = random_state, 
-    use_gpu = use_gpu, 
-    verbose = verbose, 
-    instance_id = 0
-)
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.leaky_relu(x)
+        x = self.fc2(x)
+        return x
 
-# Convert 100011 to true false
-best_features_fs = [bool(int(i)) for i in best_features_fs]
+class ComplexRegressionNet(nn.Module):
+    def __init__(self, input_size, hidden_size1, hidden_size2):
+        super(ComplexRegressionNet, self).__init__()
+        self.fc1 = nn.Linear(input_size, hidden_size1)
+        self.leaky_relu = nn.ReLU()
+        self.fc2 = nn.Linear(hidden_size1, hidden_size2)
+        self.relu2 = nn.ReLU()
+        self.fc3 = nn.Linear(hidden_size2, 1)
+        self.leaky_relu = nn.LeakyReLU(0.1)
 
-# Get the best features names
-best_features_names = X_train.columns[best_features_fs]
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.leaky_relu(x)
+        x = self.fc2(x)
+        x = self.leaky_relu(x)
+        x = self.fc3(x)
+        return x
 
-# Create a filtered dataset for X
-X_train_filtered = X_train[best_features_names]
-X_test_filtered = X_test[best_features_names]
+model = SimpleRegressionNet()
+model = SimpleRegressionNet2()
+model = ComplexRegressionNet(X_train.shape[1], 256, 128)
+criterion = nn.MSELoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-# If the validation set is not None, create a filtered validation set
-if X_val is not None:
-    X_val_filtered = X_val[best_features_names] # type: ignore
+num_epochs = 200
 
-# Create the XGBoost model final optimizer
-print("Running XGBoost final optimization...")
+for epoch in range(num_epochs):
+    running_loss = 0.0
+    for i, (inputs, labels) in enumerate(train_loader):
+        optimizer.zero_grad()
+        outputs = model(inputs)
+        loss = criterion(outputs, labels.view(-1, 1))
+        loss.backward()
+        optimizer.step()
 
-# Create the XGBoostOptimizer object
-xgb = PreXGBoostOptimizer(X_train_filtered, y_train, X_test_filtered, y_test, X_val_filtered, y_val, params = {}, use_gpu = True, early_stopping_rounds = 50, random_state = 42, verbose = False)
+        running_loss += loss.item()
 
-# If the X_val is None, the direction is set to maximize
-if X_val is None:
-    # Run the optimization
-    study_post, best_params_post, best_score_post = xgb.optimize(study_name = "XGBoost optimization", direction = "maximize", n_trials = 10000, n_jobs = n_jobs)
-else:
-    # Run the optimization
-    study_post, best_params_post, best_score_post = xgb.optimize(study_name = "XGBoost optimization", direction = "minimize", n_trials = 10000, n_jobs = n_jobs)
+        if (i + 1) % 100 == 0:
+            print(f'Epoch [{epoch + 1}/{num_epochs}], Step [{i + 1}/{len(train_loader)}], Loss: {loss.item():.4f}')
+        
+        average_loss = running_loss / len(train_loader)
+        
+model.eval()
+with torch.no_grad():
+    predictions = model(X_test_tensor)
+    test_loss = criterion(predictions, y_test_tensor.view(-1, 1))
 
-# Create a dict to hold the RMSE for each score
-rmse_dict = {}
+print(f'Test Loss: {test_loss.item():.4f}')
+print(f'RMSE: {np.sqrt(test_loss.item()):.4f}')
 
-# For each score
-for score in score_columns:
-    # Get the RMSE for each score
-    rmse_dict[score] = np.sqrt(mean_squared_error(y_test, X_test[score]))
+# Create the tensor for the validation set
+if X_val is not None and y_val is not None:
+    X_val_tensor = torch.tensor(X_val.values, dtype=torch.float32)
+    y_val_tensor = torch.tensor(y_val.values, dtype=torch.float32)
 
-import optuna
-
-# Get all the non pruned runs from the study_post
-non_pruned_trials = [t for t in study_post.trials if t.state == optuna.trial.TrialState.COMPLETE]
-
-# Get the AUC and RMSE for each trial
-aucs = [t.user_attrs['AUC'] for t in non_pruned_trials]
-rmses = [t.value for t in non_pruned_trials]
-
-def plot_auc_vs_rmse(aucs, rmses, filename = "auc_vs_rmse.png"):
-    """
-    Plot the AUC vs RMSE with regression line using seaborn.
-    """
-
-    # Plot
-    plt.figure(figsize=(10, 6))
-
-    # Create a DataFrame
-    df = pd.DataFrame({'AUC': aucs,
-                          'RMSE': rmses})
-    
-    # Plot the AUC vs RMSE
-    sns.scatterplot(data = df, x = 'AUC', y = 'RMSE', color = 'skyblue')
-
-    # Add a regression line
-    sns.regplot(data = df, x = 'AUC', y = 'RMSE', scatter = False, color = 'black')
-
-    # Add labels and title
-    plt.xlabel('AUC')
-    plt.ylabel('RMSE')
-    plt.title('AUC vs RMSE')
-    plt.tight_layout()
-
-    # Save and show plot
-    plt.savefig(filename, dpi=300)
-    plt.close()
-
-# Plot the AUC vs RMSE with regression line
-plot_auc_vs_rmse(aucs, rmses, filename = "auc_vs_rmse.png")
-
-
+    # Make predictions on the validation set
+    with torch.no_grad():
+        val_predictions = model(X_val_tensor)
+        # Get the AUC score for the validation set (roc_curve)
+        fpr, tpr, _ = roc_curve(y_val_tensor, val_predictions)
+        val_auc = auc(fpr, tpr)
+    print(f'Validation AUC: {val_auc:.4f}')
