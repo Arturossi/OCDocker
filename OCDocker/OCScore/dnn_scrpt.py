@@ -850,9 +850,14 @@ else:
     X_val = None
     y_val = None
 
-trainer = NNOptimizer(X_train, y_train, X_test, y_test, X_val, y_val, 1, use_gpu=True, verbose=False)
-trainer.optimize(direction = "minimize", n_trials = 10, study_name = "NN_Optimization", load_if_exists = True, sampler = TPESampler(), n_jobs = 1)
+from NNOptimizer import NNOptimizer
+from optuna.samplers import CmaEsSampler, TPESampler
 
+trainer = NNOptimizer(X_train, y_train, X_test, y_test, X_val, y_val, 1, use_gpu=True, verbose=False)
+trainer.optimize(direction = "minimize", n_trials = 100, study_name = "NN_Optimization_3_TPE", load_if_exists = True, sampler = TPESampler(), n_jobs = 10)
+trainer.optimize(direction = "minimize", n_trials = 100, study_name = "NN_Optimization_3_CMA", load_if_exists = True, sampler = CmaEsSampler(), n_jobs = 10)
+
+'''
 # Convert data to PyTorch tensors
 X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32)
 y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32)
@@ -965,3 +970,4 @@ if X_val is not None and y_val is not None:
         fpr, tpr, _ = roc_curve(y_val_tensor, val_predictions)
         val_auc = auc(fpr, tpr)
     print(f'Validation AUC: {val_auc:.4f}')
+'''
