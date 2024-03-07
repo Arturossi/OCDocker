@@ -1,11 +1,9 @@
 import optuna
+import re
 
-import cupy as cp
 import numpy as np
 import pandas as pd
 
-from deap import base, creator, tools, algorithms
-from numpy.random import default_rng
 from optuna.samplers import CmaEsSampler, TPESampler
 from sklearn.metrics import auc, roc_curve
 from typing import Union
@@ -42,9 +40,19 @@ class DynamicNN(nn.Module):
 
         for i in range(len(self.layer_sizes) - 1):
             self.layers.append(nn.Linear(self.layer_sizes[i], self.layer_sizes[i+1]).to(self.device))
+
+            # Add batch normalization layer
+            if i < len(self.layer_sizes) - 2:  # No batch norm for output layer
+                self.layers.append(nn.BatchNorm1d(self.layer_sizes[i + 1]).to(self.device))
+                
             if activation_data and i < len(activation_data):
                 act_func, act_params = activation_data[i]
-                self.layers.append(act_func(**act_params).to(self.device))
+                
+                # Create a new dictionary with the trailing numbers removed from the keys
+                processed_act_params = {re.sub(r'_\d+$', '', k): v for k, v in act_params.items()}
+                
+                if act_func is not None:
+                    self.layers.append(act_func(**processed_act_params).to(self.device))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         '''
@@ -77,7 +85,8 @@ class CustomDataset(Dataset):
         return self.features[idx], self.target[idx]
  
 class NNOptimizer:
-    def __init__(self, X_train: Union[np.ndarray, pd.DataFrame, pd.Series],
+    def __init__(self,
+            X_train: Union[np.ndarray, pd.DataFrame, pd.Series],
             y_train: Union[np.ndarray, pd.DataFrame, pd.Series],
             X_test: Union[np.ndarray, pd.DataFrame, pd.Series],
             y_test: Union[np.ndarray, pd.DataFrame, pd.Series],
@@ -85,6 +94,7 @@ class NNOptimizer:
             y_validation: Union[None, Union[np.ndarray, pd.DataFrame, pd.Series]] = None,
             output_size: int = 1,
             random_seed: int = 42,
+            batch_size: int = 32,
             use_gpu: bool = True,
             verbose: bool = False
         ):
@@ -101,16 +111,16 @@ class NNOptimizer:
         # Convert the data do np.ndarray then to torch.Tensor
         self.X_train = torch.tensor(np.asarray(X_train), dtype=torch.float32).to(self.device)
         self.y_train = torch.tensor(np.asarray(y_train), dtype=torch.float32).to(self.device)
-        self.train_loader = DataLoader(CustomDataset(self.X_train, self.y_train), batch_size=32, shuffle=True)
+        self.train_loader = DataLoader(CustomDataset(self.X_train, self.y_train), batch_size=batch_size, shuffle=True)
 
         self.X_test = torch.tensor(np.asarray(X_test), dtype=torch.float32).to(self.device)
         self.y_test = torch.tensor(np.asarray(y_test), dtype=torch.float32).to(self.device)
-        self.test_loader = DataLoader(CustomDataset(self.X_test, self.y_test), batch_size=32, shuffle=True)
+        self.test_loader = DataLoader(CustomDataset(self.X_test, self.y_test), batch_size=batch_size, shuffle=True)
 
         if X_validation is not None and y_validation is not None:
             self.X_validation = torch.tensor(np.asarray(X_validation), dtype=torch.float32).to(self.device)
             self.y_validation = torch.tensor(np.asarray(y_validation), dtype=torch.float32).to(self.device)
-            self.validation_loader = DataLoader(CustomDataset(self.X_validation, self.y_validation), batch_size=32, shuffle=True)
+            self.validation_loader = DataLoader(CustomDataset(self.X_validation, self.y_validation), batch_size=batch_size, shuffle=True)
         else:
             self.X_validation = None
             self.y_validation = None
@@ -248,20 +258,20 @@ class NNOptimizer:
         # Suggest the number of hidden layers and the number of units in each layer
         hidden_layers = []
         for i in range(trial.suggest_int('n_layers', 1, 5)):
-            hidden_layers.append(trial.suggest_categorical(f'n_units_layer{i}', self.power_of_two_options))
+            hidden_layers.append(trial.suggest_categorical(f'n_units_layer_{i}', self.power_of_two_options))
         
         # Suggestions for the activation functions
-        activation_functions = [nn.GELU, nn.LeakyReLU, nn.Mish, nn.ReLU]
-        activation_functions_str = ['GELU', 'LeakyReLU', 'Mish', 'ReLU']
+        activation_functions = [nn.GELU, nn.LeakyReLU, nn.Mish, nn.ReLU, None]
+        activation_functions_str = ['GELU', 'LeakyReLU', 'Mish', 'ReLU', None]
         activation_data = []
-        for i in range(len(hidden_layers) - 1):
-            activation_function_str = trial.suggest_categorical(f'activation_function{i}', activation_functions_str)
+        for i in range(len(hidden_layers)):
+            activation_function_str = trial.suggest_categorical(f'activation_function_{i}', activation_functions_str)
             activation_function = activation_functions[activation_functions_str.index(activation_function_str)]
             # Now suggest the parameters for the activation function
             if activation_function == nn.LeakyReLU:
-                activation_data.append((activation_function, {'negative_slope': trial.suggest_float('negative_slope', 0.01, 0.5)}))
+                activation_data.append((activation_function, {f'negative_slope_{i}': trial.suggest_float(f'negative_slope_{i}', 0.01, 0.5)}))
             elif activation_function == nn.GELU:
-                activation_data.append((activation_function, {'approximate': trial.suggest_categorical('approximate', ['none', 'tanh'])}))
+                activation_data.append((activation_function, {f'approximate_{i}': trial.suggest_categorical(f'approximate_{i}', ['none', 'tanh'])}))
             else:
                 activation_data.append((activation_function, {}))
 
