@@ -892,7 +892,7 @@ def worker(pid,
         verbose=verbose
     )
 
-    for sampler_name, sampler in [("TPE", TPESampler()), ("CMA", CmaEsSampler())]:
+    for sampler_name, sampler in [("TPE", TPESampler())]:#, ("CMA", CmaEsSampler())]:
         # Run optimization
         trainer.optimize(
             direction = direction, 
