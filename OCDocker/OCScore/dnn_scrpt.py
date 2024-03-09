@@ -869,7 +869,6 @@ def worker(pid,
            y_val, 
            output_size = 1, 
            random_seed = 42,
-           batch_size = 64,
            use_gpu = True, 
            verbose = False, 
            direction = "minimize", 
@@ -887,7 +886,6 @@ def worker(pid,
         X_val, y_val, 
         output_size = output_size, 
         random_seed = random_seed,
-        batch_size = batch_size,
         use_gpu = use_gpu, 
         verbose=verbose
     )
@@ -910,18 +908,17 @@ storage_id = 5
 # Create a pool of worker processes
 with Pool(num_processes) as pool:
     # Each process will execute the 'worker' function with the datasets and optimizer parameters
-    pool.starmap(worker, [(pid,
+    pool.starmap(worker, [(pid,w
          storage_id, 
          X_train, y_train, 
          X_test, y_test, 
          X_val, y_val, 
          1, # output_size
          42, # random_seed
-         64, # batch_size
          True, # use_gpu
          False, # verbose
          "minimize", # direction
-         250, # n_trials
+         1000, # n_trials
          True, # load_if_exists
          4, # n_jobs
          "NN_Optimization" # study_name

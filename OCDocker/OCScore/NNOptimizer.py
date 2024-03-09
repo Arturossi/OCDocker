@@ -94,7 +94,6 @@ class NNOptimizer:
             y_validation: Union[None, Union[np.ndarray, pd.DataFrame, pd.Series]] = None,
             output_size: int = 1,
             random_seed: int = 42,
-            batch_size: int = 32,
             use_gpu: bool = True,
             verbose: bool = False
         ):
@@ -111,16 +110,16 @@ class NNOptimizer:
         # Convert the data do np.ndarray then to torch.Tensor
         self.X_train = torch.tensor(np.asarray(X_train), dtype=torch.float32).to(self.device)
         self.y_train = torch.tensor(np.asarray(y_train), dtype=torch.float32).to(self.device)
-        self.train_loader = DataLoader(CustomDataset(self.X_train, self.y_train), batch_size=batch_size, shuffle=True)
+        self.train_loader = None
 
         self.X_test = torch.tensor(np.asarray(X_test), dtype=torch.float32).to(self.device)
         self.y_test = torch.tensor(np.asarray(y_test), dtype=torch.float32).to(self.device)
-        self.test_loader = DataLoader(CustomDataset(self.X_test, self.y_test), batch_size=batch_size, shuffle=True)
+        self.test_loader = None
 
         if X_validation is not None and y_validation is not None:
             self.X_validation = torch.tensor(np.asarray(X_validation), dtype=torch.float32).to(self.device)
             self.y_validation = torch.tensor(np.asarray(y_validation), dtype=torch.float32).to(self.device)
-            self.validation_loader = DataLoader(CustomDataset(self.X_validation, self.y_validation), batch_size=batch_size, shuffle=True)
+            self.validation_loader = None
         else:
             self.X_validation = None
             self.y_validation = None
@@ -282,17 +281,33 @@ class NNOptimizer:
         weight_decay = trial.suggest_float('weight_decay', 1e-6, 1e-3)
         optimizer = getattr(optim, optimizer_name)(model.parameters(), lr = lr, weight_decay = weight_decay)
 
+        # Suggest the batch size
+        batch_size = trial.suggest_categorical('batch_size', [32, 64, 128, 256])
+
+        # Create the train and test loaders
+        self.train_loader = DataLoader(
+            dataset = CustomDataset(self.X_train, self.y_train), 
+            batch_size = batch_size, 
+            shuffle = True
+        )
+        self.test_loader = DataLoader(
+            dataset = CustomDataset(self.X_test, self.y_test), 
+            batch_size = batch_size
+        )
+
+        # If a validation set has been provided, create the validation loader
+        if self.validation_loader is not None:
+            self.validation_loader = DataLoader(
+                dataset = CustomDataset(self.X_validation, self.y_validation), 
+                batch_size = batch_size, 
+                shuffle = True
+            )
+
         # Suggestions for the epochs
         epochs = trial.suggest_int('epochs', 100, 1000)
 
         # Use Root Mean Squared Error as the loss function
         criterion = nn.MSELoss()
-
-        # Train the model
-        #train_loss = self.train_model(model, self.train_loader, optimizer, criterion, epochs = epochs)
-
-        # Get the test loss
-        #test_loss, _ = self.test_model(model, self.test_loader, criterion)
 
         test_loss = self.train_test_model(model, self.train_loader, self.test_loader, optimizer, criterion, trial, epochs = epochs)
 
