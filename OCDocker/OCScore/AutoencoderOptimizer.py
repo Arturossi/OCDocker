@@ -37,6 +37,10 @@ class Autoencoder(nn.Module):
 
         self.device = device
 
+        # Clean encoder and decoder parameters by removing the suffix
+        encoder_params = {k.split('_encoder')[0]: v for k, v in encoder_params.items()}
+        decoder_params = {k.split('_decoder')[0]: v for k, v in decoder_params.items()}
+
         self.encoder = nn.Sequential(
             nn.Linear(input_size, encoding_dim),
             nn.BatchNorm1d(encoding_dim),
@@ -200,16 +204,16 @@ class AutoencoderOptimizer:
 
         if decoder_activation_fn == nn.LeakyReLU:
             decoder_params = {
-                f'negative_slope_encoder': trial.suggest_float(f'negative_slope_encoder', 0.01, 0.5)
+                f'negative_slope_decoder': trial.suggest_float(f'negative_slope_decoder', 0.01, 0.5)
             }
         elif decoder_activation_fn == nn.GELU:
             decoder_params = {
-                f'approximate_encoder': trial.suggest_categorical(f'approximate_encoder', ['none', 'tanh'])
+                f'approximate_decoder': trial.suggest_categorical(f'approximate_decoder', ['none', 'tanh'])
             }
         elif decoder_activation_fn == nn.PReLU:
             decoder_params = {
-                f'num_parameters_encoder': trial.suggest_int(f'num_parameters_encoder', 1, 16),
-                f'init_encoder': trial.suggest_float(f'init_encoder', 0.1, 0.9)
+                f'num_parameters_decoder': trial.suggest_int(f'num_parameters_decoder', 1, 16),
+                f'init_decoder': trial.suggest_float(f'init_decoder', 0.1, 0.9)
             }
         else:
             decoder_params = {}
