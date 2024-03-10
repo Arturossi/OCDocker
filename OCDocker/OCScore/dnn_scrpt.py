@@ -850,6 +850,7 @@ else:
     X_val = None
     y_val = None
 
+from AutoencoderOptimizer import AutoencoderOptimizer
 from NNOptimizer import NNOptimizer
 from optuna.samplers import CmaEsSampler, TPESampler
 
@@ -859,14 +860,54 @@ from optuna.samplers import CmaEsSampler, TPESampler
 
 from multiprocessing import Pool
 
-def worker(pid,
+def AOworker(pid,
+              id,
+              X_train, 
+              X_test, 
+              X_val,  
+              random_seed = 42,
+              use_gpu = True, 
+              verbose = False, 
+              direction = "minimize", 
+              n_trials = 250, 
+              load_if_exists = True, 
+              n_jobs = 10, 
+              study_name = "Autoencoder_Optimization"
+          ):
+    
+    print(f"Process {pid} starting optimization")
+    
+     # Initialize the trainer
+    trainer = AutoencoderOptimizer(
+          X_train, 
+          X_test, 
+          X_val, 
+          random_seed = random_seed,
+          use_gpu = use_gpu, 
+          verbose = verbose
+    )
+
+    study = None
+    
+    for sampler_name, sampler in [("TPE", TPESampler())]:#, ("CMA", CmaEsSampler())]:
+          # Run optimization
+          study = trainer.optimize(
+                direction = direction, 
+                n_trials = n_trials, 
+                study_name = f"{study_name}_{id}_{sampler_name}", 
+                load_if_exists = load_if_exists, 
+                sampler = sampler, 
+                n_jobs = n_jobs
+          )
+          print(f"Process {id} completed {sampler_name} optimization")
+
+    return study
+
+def NNworker(pid,
            id,
-           X_train, 
-           y_train, 
-           X_test, 
-           y_test, 
-           X_val, 
-           y_val, 
+           X_train, y_train, 
+           X_test, y_test, 
+           X_val, y_val, 
            output_size = 1, 
            random_seed = 42,
            use_gpu = True, 
@@ -903,27 +944,47 @@ def worker(pid,
         print(f"Process {id} completed {sampler_name} optimization")
 
 num_processes = 4
-storage_id = 5
+storage_id = 6
 
 # Create a pool of worker processes
 with Pool(num_processes) as pool:
-    # Each process will execute the 'worker' function with the datasets and optimizer parameters
-    pool.starmap(worker, [(pid,w
-         storage_id, 
-         X_train, y_train, 
-         X_test, y_test, 
-         X_val, y_val, 
-         1, # output_size
-         42, # random_seed
-         True, # use_gpu
-         False, # verbose
-         "minimize", # direction
-         1000, # n_trials
-         True, # load_if_exists
-         4, # n_jobs
-         "NN_Optimization" # study_name
+    # Each process will execute the 'NNworker' function with the datasets and optimizer parameters
+    pool.starmap(AOworker, [(
+        pid,
+        storage_id, 
+        X_train, 
+        X_test, 
+        X_val, 
+        42, # random_seed
+        True, # use_gpu
+        False, # verbose
+        "minimize", # direction
+        1000, # n_trials
+        True, # load_if_exists
+        4, # n_jobs
+        "AO_Optimization" # study_name
         ) for pid in range(num_processes)
     ])
+    '''
+    # Each process will execute the 'NNworker' function with the datasets and optimizer parameters
+    pool.starmap(NNworker, [(
+        pid,
+        storage_id, 
+        X_train, y_train, 
+        X_test, y_test, 
+        X_val, y_val, 
+        1, # output_size
+        42, # random_seed
+        True, # use_gpu
+        False, # verbose
+        "minimize", # direction
+        1000, # n_trials
+        True, # load_if_exists
+        4, # n_jobs
+        "NN_Optimization" # study_name
+        ) for pid in range(num_processes)
+    ])
+    '''
 
 '''
 # Convert data to PyTorch tensors

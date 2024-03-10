@@ -51,8 +51,7 @@ class DynamicNN(nn.Module):
                 # Create a new dictionary with the trailing numbers removed from the keys
                 processed_act_params = {re.sub(r'_\d+$', '', k): v for k, v in act_params.items()}
                 
-                if act_func is not None:
-                    self.layers.append(act_func(**processed_act_params).to(self.device))
+                self.layers.append(act_func(**processed_act_params).to(self.device))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         '''
@@ -260,17 +259,27 @@ class NNOptimizer:
             hidden_layers.append(trial.suggest_categorical(f'n_units_layer_{i}', self.power_of_two_options))
         
         # Suggestions for the activation functions
-        activation_functions = [nn.GELU, nn.LeakyReLU, nn.Mish, nn.ReLU, None]
-        activation_functions_str = ['GELU', 'LeakyReLU', 'Mish', 'ReLU', None]
+        activation_functions = [nn.GELU, nn.LeakyReLU, nn.Mish, nn.ReLU, nn.SELU, nn.PReLU, nn.Identity]
+        activation_functions_str = ['GELU', 'LeakyReLU', 'Mish', 'ReLU', 'SELU', 'PReLU', 'Identitity']
         activation_data = []
+
         for i in range(len(hidden_layers)):
             activation_function_str = trial.suggest_categorical(f'activation_function_{i}', activation_functions_str)
             activation_function = activation_functions[activation_functions_str.index(activation_function_str)]
             # Now suggest the parameters for the activation function
             if activation_function == nn.LeakyReLU:
-                activation_data.append((activation_function, {f'negative_slope_{i}': trial.suggest_float(f'negative_slope_{i}', 0.01, 0.5)}))
+                activation_data.append((activation_function, {
+                    f'negative_slope_{i}': trial.suggest_float(f'negative_slope_{i}', 0.01, 0.5)
+                }))
             elif activation_function == nn.GELU:
-                activation_data.append((activation_function, {f'approximate_{i}': trial.suggest_categorical(f'approximate_{i}', ['none', 'tanh'])}))
+                activation_data.append((activation_function, {
+                    f'approximate_{i}': trial.suggest_categorical(f'approximate_{i}', ['none', 'tanh'])
+                }))
+            elif activation_function == nn.PReLU:
+                activation_data.append((activation_function, {
+                    f'num_parameters_{i}': trial.suggest_int(f'num_parameters_{i}', 1, 16), 
+                    f'init_{i}': trial.suggest_float(f'init_{i}', 0.1, 0.9)
+            }))    
             else:
                 activation_data.append((activation_function, {}))
 
