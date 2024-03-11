@@ -20,7 +20,7 @@ class NeuralNet(nn.Module):
     def __init__(self, 
             input_size, 
             output_size, 
-            encoder,
+            encoder_params,
             nn_params,
             random_seed = 42,
             use_gpu = True,
@@ -80,15 +80,30 @@ class NeuralNet(nn.Module):
 
             # Convert the activation_data_dict to a list while keeping the order
             activation_data = [v for _, v in activation_data_dict.items()]
+
+        if encoder_params is not None:
+            # Build the encoding and decoding functions
+            if encoder_params['encoder_activation'] == 'LeakyReLU':
+                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])](negative_slope = encoder_params['negative_slope_encoder'])
+            elif encoder_params['encoder_activation'] == 'GELU':
+                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])](approximate = encoder_params['approximate_encoder'])
+            else:
+                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])]()
+
+            # Build just the encoder
+            self.encoder = [("Linear", input_size, encoder_params['encoding_dim']), ("BatchNorm1d", encoder_params['encoding_dim']), ("Activation", encoder_activation)]
+        else:
+            self.encoder = None
                 
         # Create the DynamicNN
-        self.NN = DynamicNN(input_size, output_size, hidden_layers, activation_data, encoder, self.device)
+        self.NN = DynamicNN(input_size, output_size, hidden_layers, activation_data, self.encoder, self.device)
 
         self.batch_size = nn_params['batch_size']
         self.epochs = nn_params['epochs']
         self.lr = nn_params['lr']
 
         self.optimizer = self.optimizer_functions[self.optimizer_functions_str.index(nn_params['optimizer'])](
+            self.NN.parameters(),
             weight_decay = nn_params['weight_decay'], 
             lr = nn_params['lr']
         )
@@ -105,7 +120,7 @@ class NeuralNet(nn.Module):
         if verbose:
             print(self.NN)
 
-    def train_network(self, X_train, y_train, X_test, y_test, X_validation = None, y_validation = None, criterion = nn.MSELoss()):
+    def train_model(self, X_train, y_train, X_test, y_test, X_validation = None, y_validation = None, criterion = nn.MSELoss()):
         # Convert the data to torch.Tensor
         X_train = torch.tensor(np.asarray(X_train), dtype=torch.float32).to(self.device)
         y_train = torch.tensor(np.asarray(y_train), dtype=torch.float32).to(self.device)
@@ -158,7 +173,25 @@ class NeuralNet(nn.Module):
 
                 running_loss += loss.item()
 
-            average_loss = running_loss / len(train_loader)
+        
+            # Set the model to evaluation mode
+            self.NN.eval()
+
+            running_loss = 0.0
+
+            all_predictions = []
+            all_labels = []
+            
+            with torch.no_grad():
+                for inputs, labels in test_loader:
+                    predicted = self.NN(inputs)
+                    loss = criterion(predicted, labels.view(-1, 1))
+                    running_loss += loss.item()
+                    
+                    all_predictions.extend(predicted.cpu().numpy())
+                    all_labels.extend(labels.cpu().numpy())
+
+            average_loss = running_loss / len(test_loader)
             rmse = np.sqrt(average_loss)
 
             if self.verbose:
@@ -233,12 +266,15 @@ class DynamicNN(nn.Module):
                 self.layers.append(nn.BatchNorm1d(self.layer_sizes[i + 1]).to(self.device))
                 
             if activation_data and i < len(activation_data):
-                act_func, act_params = activation_data[i]
+                if len(activation_data[i]) == 1:
+                    act_func = activation_data[i][0]
+                    self.layers.append(act_func().to(self.device))
+                else:
+                    act_func, act_params = activation_data[i]
                 
-                # Create a new dictionary with the trailing numbers removed from the keys
-                processed_act_params = {re.sub(r'_\d+$', '', k): v for k, v in act_params.items()}
-                
-                self.layers.append(act_func(**processed_act_params).to(self.device))
+                    # Create a new dictionary with the trailing numbers removed from the keys
+                    processed_act_params = {re.sub(r'_\d+$', '', k): v for k, v in act_params.items()}
+                    self.layers.append(act_func(**processed_act_params).to(self.device))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         '''

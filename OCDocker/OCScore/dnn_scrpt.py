@@ -863,7 +863,7 @@ from multiprocessing import Pool
 from urllib.parse import quote_plus
 
 from AutoencoderOptimizer import AutoencoderOptimizer
-from NNOptimizer import NNOptimizer
+from NNOptimizer import NNOptimizer, NeuralNet
 from optuna.samplers import TPESampler
 
 def AOworker(pid,
@@ -962,6 +962,7 @@ storage_id = 9
 storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"
 models_folder = f"/data/hd4tb/OCDocker/data/ocdb/models/autoencoder_{storage_id}"
 run_autoencoder_optimization = False
+run_NN_optimization = False
 
 # If models folder does not exist, create it
 if not os.path.exists(models_folder):
@@ -1006,27 +1007,28 @@ best_ao_trial = ao_study.trials[best_ao_trial.number]
 # Pick the params from the best_ao_trial
 best_ao_params = best_ao_trial.params
 
-with Pool(num_processes) as pool:
-    # Each process will execute the 'NNworker' function with the datasets and optimizer parameters
-    pool.starmap(NNworker, [(
-        pid,
-        storage_id, 
-        X_train, y_train, 
-        X_test, y_test, 
-        X_val, y_val, 
-        storage,
-        best_ao_params,   # encoder
-        1,                # output_size
-        42,               # random_seed
-        True,             # use_gpu
-        False,            # verbose
-        "minimize",       # direction
-        40,               # n_trials
-        True,             # load_if_exists
-        4,                # n_jobs
-        "NN_Optimization" # study_name
-        ) for pid in range(num_processes)
-    ])
+if run_NN_optimization:
+    with Pool(num_processes) as pool:
+        # Each process will execute the 'NNworker' function with the datasets and optimizer parameters
+        pool.starmap(NNworker, [(
+            pid,
+            storage_id, 
+            X_train, y_train, 
+            X_test, y_test, 
+            X_val, y_val, 
+            storage,
+            best_ao_params,   # encoder
+            1,                # output_size
+            42,               # random_seed
+            True,             # use_gpu
+            False,            # verbose
+            "minimize",       # direction
+            40,               # n_trials
+            True,             # load_if_exists
+            4,                # n_jobs
+            "NN_Optimization" # study_name
+            ) for pid in range(num_processes)
+        ])
 
 # Load the study
 nn_study = optuna.load_study(study_name = f"NN_Optimization_{storage_id}_TPE", storage = storage)
@@ -1053,20 +1055,25 @@ for i in range(n_models):
     best_params = best_trial.params
 
     # Initialize the trainer
-    trainer = NNOptimizer(
-        X_train, y_train, 
-        X_test, y_test, 
-        X_val, y_val, 
-        storage,
+    NN_model = NeuralNet(
+        X_train.shape[1], 
+        1,          
+        best_ao_params, 
         best_params,
-        output_size = 1, 
         random_seed = 42,
         use_gpu = True, 
-        verbose=False
+        verbose = False
     )
 
     # Train the model
-    model = trainer.train_model()
+    model = NN_model.train_model(
+        X_train, 
+        y_train, 
+        X_test, 
+        y_test, 
+        X_val, 
+        y_val
+    )
 
     # Append the model to the list
-    models.append(model)
+    models.append(NN_model)
