@@ -850,21 +850,29 @@ else:
     X_val = None
     y_val = None
 
-from AutoencoderOptimizer import AutoencoderOptimizer
-from NNOptimizer import NNOptimizer
-from optuna.samplers import CmaEsSampler, TPESampler
 
 #trainer = NNOptimizer(X_train, y_train, X_test, y_test, X_val, y_val, 1, use_gpu=True, verbose=False)
 #trainer.optimize(direction = "minimize", n_trials = 1000, study_name = "NN_Optimization_4_TPE", load_if_exists = True, sampler = TPESampler(), n_jobs = 10)
 #trainer.optimize(direction = "minimize", n_trials = 1000, study_name = "NN_Optimization_4_CMA", load_if_exists = True, sampler = CmaEsSampler(), n_jobs = 10)
 
+############################################################################################################
+
+import optuna
+
 from multiprocessing import Pool
+from urllib.parse import quote_plus
+
+from AutoencoderOptimizer import AutoencoderOptimizer
+from NNOptimizer import NNOptimizer
+from optuna.samplers import TPESampler
 
 def AOworker(pid,
               id,
               X_train, 
               X_test, 
-              X_val,  
+              X_val,
+              models_folder,
+              storage,
               random_seed = 42,
               use_gpu = True, 
               verbose = False, 
@@ -876,48 +884,52 @@ def AOworker(pid,
           ):
     
     print(f"Process {pid} starting optimization")
-    
-     # Initialize the trainer
+
+    # Initialize the trainer
     trainer = AutoencoderOptimizer(
-          X_train, 
-          X_test, 
-          X_val, 
-          random_seed = random_seed,
-          use_gpu = use_gpu, 
-          verbose = verbose
+        X_train, 
+        X_test, 
+        X_val, 
+        storage,
+        models_folder,
+        random_seed = random_seed,
+        use_gpu = use_gpu, 
+        verbose = verbose
     )
 
     study = None
     
     for sampler_name, sampler in [("TPE", TPESampler())]:#, ("CMA", CmaEsSampler())]:
-          # Run optimization
-          study = trainer.optimize(
+        # Run optimization
+        study = trainer.optimize(
                 direction = direction, 
                 n_trials = n_trials, 
                 study_name = f"{study_name}_{id}_{sampler_name}", 
                 load_if_exists = load_if_exists, 
                 sampler = sampler, 
                 n_jobs = n_jobs
-          )
-          print(f"Process {id} completed {sampler_name} optimization")
+        )
+        print(f"Process {id} completed {sampler_name} optimization")
 
     return study
 
-def NNworker(pid,
-           id,
-           X_train, y_train, 
-           X_test, y_test, 
-           X_val, y_val, 
-           output_size = 1, 
-           random_seed = 42,
-           use_gpu = True, 
-           verbose = False, 
-           direction = "minimize", 
-           n_trials = 250, 
-           load_if_exists = True, 
-           n_jobs = 10, 
-           study_name = "NN_Optimization"
-        ):
+def NNworker(
+        pid, id,
+        X_train, y_train, 
+        X_test, y_test, 
+        X_val, y_val, 
+        storage,
+        encoder_params = None,
+        output_size = 1, 
+        random_seed = 42,
+        use_gpu = True, 
+        verbose = False, 
+        direction = "minimize", 
+        n_trials = 250, 
+        load_if_exists = True, 
+        n_jobs = 10, 
+        study_name = "NN_Optimization"
+    ):
     print(f"Process {pid} starting optimization")
 
     # Initialize the trainer
@@ -925,6 +937,8 @@ def NNworker(pid,
         X_train, y_train, 
         X_test, y_test, 
         X_val, y_val, 
+        storage,
+        encoder_params,
         output_size = output_size, 
         random_seed = random_seed,
         use_gpu = use_gpu, 
@@ -944,28 +958,55 @@ def NNworker(pid,
         print(f"Process {id} completed {sampler_name} optimization")
 
 num_processes = 4
-storage_id = 6
+storage_id = 9
+storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"
+models_folder = f"/data/hd4tb/OCDocker/data/ocdb/models/autoencoder_{storage_id}"
+run_autoencoder_optimization = False
 
-# Create a pool of worker processes
+# If models folder does not exist, create it
+if not os.path.exists(models_folder):
+    os.makedirs(models_folder)
+
+if run_autoencoder_optimization:
+    # Create a pool of worker processes
+    with Pool(num_processes) as pool:
+        # Each process will execute the 'NNworker' function with the datasets and optimizer parameters
+        pool.starmap(AOworker, [(
+            pid,
+            storage_id, 
+            X_train, 
+            X_test, 
+            X_val, 
+            storage,
+            models_folder,
+            42,               # random_seed
+            True,             # use_gpu
+            False,            # verbose
+            "minimize",       # direction
+            250,              # n_trials
+            True,             # load_if_exists
+            4,                # n_jobs
+            "AO_Optimization" # study_name
+            ) for pid in range(num_processes)
+        ])
+
+# Load the study
+ao_study = optuna.load_study(study_name = f"AO_Optimization_{storage_id}_TPE", storage = storage)
+ao_df = ao_study.trials_dataframe()
+ao_df['combined_metric'] = abs(ao_df['value'] - ao_df['user_attrs_val_rmse'])
+
+best_ao_df = ao_df.sort_values(by=['combined_metric', 'value', 'user_attrs_val_rmse'], ascending=[True, True, True])
+
+# Recreate the autoencoder object for the best trial based on the best_ao_df
+best_ao_trial = best_ao_df.iloc[0]
+
+# Select the trial by the best_ao_trial number
+best_ao_trial = ao_study.trials[best_ao_trial.number]
+
+# Pick the params from the best_ao_trial
+best_ao_params = best_ao_trial.params
+
 with Pool(num_processes) as pool:
-    # Each process will execute the 'NNworker' function with the datasets and optimizer parameters
-    pool.starmap(AOworker, [(
-        pid,
-        storage_id, 
-        X_train, 
-        X_test, 
-        X_val, 
-        42, # random_seed
-        True, # use_gpu
-        False, # verbose
-        "minimize", # direction
-        1000, # n_trials
-        True, # load_if_exists
-        4, # n_jobs
-        "AO_Optimization" # study_name
-        ) for pid in range(num_processes)
-    ])
-    '''
     # Each process will execute the 'NNworker' function with the datasets and optimizer parameters
     pool.starmap(NNworker, [(
         pid,
@@ -973,130 +1014,59 @@ with Pool(num_processes) as pool:
         X_train, y_train, 
         X_test, y_test, 
         X_val, y_val, 
-        1, # output_size
-        42, # random_seed
-        True, # use_gpu
-        False, # verbose
-        "minimize", # direction
-        1000, # n_trials
-        True, # load_if_exists
-        4, # n_jobs
+        storage,
+        best_ao_params,   # encoder
+        1,                # output_size
+        42,               # random_seed
+        True,             # use_gpu
+        False,            # verbose
+        "minimize",       # direction
+        40,               # n_trials
+        True,             # load_if_exists
+        4,                # n_jobs
         "NN_Optimization" # study_name
         ) for pid in range(num_processes)
     ])
-    '''
 
-'''
-# Convert data to PyTorch tensors
-X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32)
-y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32)
-X_test_tensor = torch.tensor(X_test.values, dtype=torch.float32)
-y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32)
+# Load the study
+nn_study = optuna.load_study(study_name = f"NN_Optimization_{storage_id}_TPE", storage = storage)
+nn_df = nn_study.trials_dataframe()
 
-class CustomDataset(Dataset):
-    def __init__(self, features, target):
-        self.features = features
-        self.target = target
+nn_df['combined_metric'] = nn_df['value'] - nn_df['user_attrs_AUC']
 
-    def __len__(self):
-        return len(self.features)
+best_nn_df = nn_df.sort_values(by=['combined_metric'], ascending=[True])
 
-    def __getitem__(self, idx):
-        return self.features[idx], self.target[idx]
-    
-train_dataset = CustomDataset(X_train_tensor, y_train_tensor)
-test_dataset = CustomDataset(X_test_tensor, y_test_tensor)
+# Define the number of models to select
+n_models = 5
 
-train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
-test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
+# Get the best n models in the best_nn_df
+best_nn_df.head(n_models)
 
-class SimpleRegressionNet(nn.Module):
-    def __init__(self):
-        super(SimpleRegressionNet, self).__init__()
-        self.fc1 = nn.Linear(X_train.shape[1], 128)
-        self.relu = nn.ReLU()
-        self.fc2 = nn.Linear(128, 1)
+# Build the models
+models = []
 
-    def forward(self, x):
-        x = self.fc1(x)
-        x = self.relu(x)
-        x = self.fc2(x)
-        return x
+for i in range(n_models):
+    # Get the best trial
+    best_trial = nn_study.trials[best_nn_df.iloc[i].number]
 
-class SimpleRegressionNet2(nn.Module):
-    def __init__(self):
-        super(SimpleRegressionNet2, self).__init__()
-        self.fc1 = nn.Linear(X_train.shape[1], 256)
-        self.relu = nn.ReLU()
-        self.fc2 = nn.Linear(256, 1)
-        self.leaky_relu = nn.LeakyReLU(0.05)
+    # Pick the params from the best_trial
+    best_params = best_trial.params
 
-    def forward(self, x):
-        x = self.fc1(x)
-        x = self.leaky_relu(x)
-        x = self.fc2(x)
-        return x
+    # Initialize the trainer
+    trainer = NNOptimizer(
+        X_train, y_train, 
+        X_test, y_test, 
+        X_val, y_val, 
+        storage,
+        best_params,
+        output_size = 1, 
+        random_seed = 42,
+        use_gpu = True, 
+        verbose=False
+    )
 
-class ComplexRegressionNet(nn.Module):
-    def __init__(self, input_size, hidden_size1, hidden_size2):
-        super(ComplexRegressionNet, self).__init__()
-        self.fc1 = nn.Linear(input_size, hidden_size1)
-        self.leaky_relu = nn.ReLU()
-        self.fc2 = nn.Linear(hidden_size1, hidden_size2)
-        self.relu2 = nn.ReLU()
-        self.fc3 = nn.Linear(hidden_size2, 1)
-        self.leaky_relu = nn.LeakyReLU(0.1)
+    # Train the model
+    model = trainer.train_model()
 
-    def forward(self, x):
-        x = self.fc1(x)
-        x = self.leaky_relu(x)
-        x = self.fc2(x)
-        x = self.leaky_relu(x)
-        x = self.fc3(x)
-        return x
-
-model = SimpleRegressionNet()
-model = SimpleRegressionNet2()
-model = ComplexRegressionNet(X_train.shape[1], 256, 128)
-criterion = nn.MSELoss()
-optimizer = optim.Adam(model.parameters(), lr=0.001)
-
-num_epochs = 200
-
-for epoch in range(num_epochs):
-    running_loss = 0.0
-    for i, (inputs, labels) in enumerate(train_loader):
-        optimizer.zero_grad()
-        outputs = model(inputs)
-        loss = criterion(outputs, labels.view(-1, 1))
-        loss.backward()
-        optimizer.step()
-
-        running_loss += loss.item()
-
-        if (i + 1) % 100 == 0:
-            print(f'Epoch [{epoch + 1}/{num_epochs}], Step [{i + 1}/{len(train_loader)}], Loss: {loss.item():.4f}')
-        
-        average_loss = running_loss / len(train_loader)
-        
-model.eval()
-with torch.no_grad():
-    predictions = model(X_test_tensor)
-    test_loss = criterion(predictions, y_test_tensor.view(-1, 1))
-
-print(f'Test Loss: {test_loss.item():.4f}')
-print(f'RMSE: {np.sqrt(test_loss.item()):.4f}')
-
-# Create the tensor for the validation set
-if X_val is not None and y_val is not None:
-    X_val_tensor = torch.tensor(X_val.values, dtype=torch.float32)
-    y_val_tensor = torch.tensor(y_val.values, dtype=torch.float32)
-
-    # Make predictions on the validation set
-    with torch.no_grad():
-        val_predictions = model(X_val_tensor)
-        # Get the AUC score for the validation set (roc_curve)
-        fpr, tpr, _ = roc_curve(y_val_tensor, val_predictions)
-        val_auc = auc(fpr, tpr)
-    print(f'Validation AUC: {val_auc:.4f}')
-'''
+    # Append the model to the list
+    models.append(model)

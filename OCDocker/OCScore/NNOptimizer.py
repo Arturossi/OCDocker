@@ -4,10 +4,9 @@ import re
 import numpy as np
 import pandas as pd
 
-from optuna.samplers import CmaEsSampler, TPESampler
+from optuna.samplers import TPESampler
 from sklearn.metrics import auc, roc_curve
 from typing import Union
-from urllib.parse import quote_plus
 
 #from OCDocker.Initialise import *
 
@@ -17,12 +16,188 @@ import torch.optim as optim
 
 from torch.utils.data import Dataset, DataLoader
 
+class NeuralNet(nn.Module):
+    def __init__(self, 
+            input_size, 
+            output_size, 
+            encoder,
+            nn_params,
+            random_seed = 42,
+            use_gpu = True,
+            verbose = False
+    ):
+        super(NeuralNet, self).__init__()
+
+        # Set the seed for CPU
+        torch.manual_seed(random_seed)
+
+        # Check if the GPU is available
+        if use_gpu and torch.cuda.is_available():
+            # Set the device to the GPU
+            self.device = torch.device('cuda')
+            # Set the seed for the GPU
+            torch.cuda.manual_seed_all(random_seed)
+        else:
+            # Set the device to the CPU
+            self.device = torch.device('cpu')
+
+        # Define the activation functions
+        self.activation_functions = [nn.GELU, nn.LeakyReLU, nn.Mish, nn.ReLU, nn.SELU, nn.Identity]
+        self.activation_functions_str = ['GELU', 'LeakyReLU', 'Mish', 'ReLU', 'SELU', 'Identitity']
+        
+        self.optimizer_functions = [optim.Adam, optim.RMSprop, optim.SGD]
+        self.optimizer_functions_str = ['Adam', 'RMSprop', 'SGD']
+
+        # Define the input layer
+        self.layers = nn.ModuleList()
+
+        # Process the activation functions
+        hidden_layers = []
+        activation_data_dict = {}
+        
+        # For each key, value pair in the nn_params
+        for key, value in nn_params.items():
+            # Check if the key is an activation function
+            if key.startswith('activation_function'):
+                # Get the index of the activation function
+                index = int(key.split('_')[-1])
+                # Get the activation function and its parameters
+                activation_data_dict[index] = [self.activation_functions[self.activation_functions_str.index(nn_params[f'activation_function_{index}'])]]
+            # Check if the key is the number of units in a layer
+            elif key.startswith('n_units_layer'):
+                hidden_layers.append(value)
+            # Check if the key is a parameter for an activation function (ends with a number)
+            elif re.search(r'_\d+$', key):
+                # Get the index of the activation function parameter
+                index = int(key.split('_')[-1])
+                # Remove the index from the key
+                key = re.sub(r'_\d+$', '', key)
+                # Add the parameter to the second element of the list dict, creating the dict if it doesn't exist
+                if index in activation_data_dict:
+                    activation_data_dict[index].append({key: value})
+                else:
+                    activation_data_dict[index] = [{key: value}]
+
+            # Convert the activation_data_dict to a list while keeping the order
+            activation_data = [v for _, v in activation_data_dict.items()]
+                
+        # Create the DynamicNN
+        self.NN = DynamicNN(input_size, output_size, hidden_layers, activation_data, encoder, self.device)
+
+        self.batch_size = nn_params['batch_size']
+        self.epochs = nn_params['epochs']
+        self.lr = nn_params['lr']
+
+        self.optimizer = self.optimizer_functions[self.optimizer_functions_str.index(nn_params['optimizer'])](
+            weight_decay = nn_params['weight_decay'], 
+            lr = nn_params['lr']
+        )
+
+        self.nn_params = nn_params
+
+        # Set the AUC and rmse as nan
+        self.validation_auc = np.NaN
+        self.rmse = np.NaN
+
+        # Set the verbose flag
+        self.verbose = verbose
+
+        if verbose:
+            print(self.NN)
+
+    def train_network(self, X_train, y_train, X_test, y_test, X_validation = None, y_validation = None, criterion = nn.MSELoss()):
+        # Convert the data to torch.Tensor
+        X_train = torch.tensor(np.asarray(X_train), dtype=torch.float32).to(self.device)
+        y_train = torch.tensor(np.asarray(y_train), dtype=torch.float32).to(self.device)
+
+        X_test = torch.tensor(np.asarray(X_test), dtype=torch.float32).to(self.device)
+        y_test = torch.tensor(np.asarray(y_test), dtype=torch.float32).to(self.device)
+
+        if X_validation is not None and y_validation is not None:
+            X_validation = torch.tensor(np.asarray(X_validation), dtype=torch.float32).to(self.device)
+            y_validation = torch.tensor(np.asarray(y_validation), dtype=torch.float32).to(self.device)
+
+        # Create the train and test loaders
+        train_loader = DataLoader(
+            dataset = CustomDataset(X_train, y_train), 
+            batch_size = self.batch_size, 
+            shuffle = True
+        )
+
+        test_loader = DataLoader(
+            dataset = CustomDataset(X_test, y_test), 
+            batch_size = self.batch_size
+        )
+
+        # If a validation set has been provided, create the validation loader
+        if X_validation is not None:
+            validation_loader = DataLoader(
+                dataset = CustomDataset(X_validation, y_validation), 
+                batch_size = self.batch_size, 
+                shuffle = True
+            )
+
+        # Set the model to training mode
+        self.NN.train()
+
+        # For each epoch
+        for epoch in range(self.epochs):
+
+            # Set the running loss to 0            
+            running_loss = 0.0
+
+            for i, (inputs, labels) in enumerate(train_loader):
+                # Zero the gradients
+                self.optimizer.zero_grad()
+
+                outputs = self.NN(inputs)
+                loss = criterion(outputs, labels.view(-1, 1))
+
+                loss.backward()
+                self.optimizer.step()
+
+                running_loss += loss.item()
+
+            average_loss = running_loss / len(train_loader)
+            rmse = np.sqrt(average_loss)
+
+            if self.verbose:
+                print(f'Epoch {epoch + 1}/{self.epochs}')
+                print(f'Average Loss: {average_loss}')
+                print(f'RMSE: {rmse}')
+
+            # If a validation set has been provided, calculate the AUC
+            if X_validation is not None:
+                # Set the model to evaluation mode
+                self.NN.eval()
+                # Get the predictions for the validation set
+                validation_predictions = self.NN(X_validation)
+                # Convert the predictions and the labels to numpy
+                validation_predictions_np = validation_predictions.detach().cpu().numpy()
+                y_validation_np = y_validation.cpu().numpy()
+                # If there is a nan in the predictions, set the AUC to 0
+                if np.isnan(validation_predictions_np).any():
+                    validation_auc = 0
+                else:
+                    # Calculate the ROC
+                    fpr, tpr, _ = roc_curve(y_validation_np, validation_predictions_np)
+                    validation_auc = auc(fpr, tpr)
+
+        self.rmse = rmse
+        self.validation_auc = validation_auc
+
+        return True
+    
+    def get_model(self):
+        return self.NN
+        
 class DynamicNN(nn.Module):
     def __init__(self,
             input_size: int,
             output_size: int,
             hidden_layers: list,
             activation_data: list = [],
+            encoder: Union[None, list] = None,
             device: torch.device = torch.device('cpu')
         ):
         super(DynamicNN, self).__init__()
@@ -32,11 +207,23 @@ class DynamicNN(nn.Module):
 
         self.layers = nn.ModuleList()
 
-        self.input_layer_size = input_size
-
-        self.layer_sizes = [input_size] + hidden_layers + [output_size]
-
         self.device = device
+
+        # If an encoder has been provided, add it to the layers
+        if encoder is not None:
+            for encoder_layer in encoder:
+                if encoder_layer[0] == "Linear":
+                    self.layers.append(nn.Linear(encoder_layer[1], encoder_layer[2]).to(self.device))
+                elif encoder_layer[0] == "BatchNorm1d":
+                    self.layers.append(nn.BatchNorm1d(encoder_layer[1]).to(self.device))
+                elif encoder_layer[0] == "Activation":
+                    self.layers.append(encoder_layer[1].to(self.device))
+
+            self.input_layer_size = encoder[0][2]
+        else:
+            self.input_layer_size = input_size
+
+        self.layer_sizes = [self.input_layer_size] + hidden_layers + [self.output_size]
 
         for i in range(len(self.layer_sizes) - 1):
             self.layers.append(nn.Linear(self.layer_sizes[i], self.layer_sizes[i+1]).to(self.device))
@@ -91,11 +278,16 @@ class NNOptimizer:
             y_test: Union[np.ndarray, pd.DataFrame, pd.Series],
             X_validation: Union[None, Union[np.ndarray, pd.DataFrame, pd.Series]] = None,
             y_validation: Union[None, Union[np.ndarray, pd.DataFrame, pd.Series]] = None,
+            storage: str = "sqlite:///NNoptimization.db",
+            encoder_params: Union[None, dict] = None,
             output_size: int = 1,
             random_seed: int = 42,
             use_gpu: bool = True,
             verbose: bool = False
         ):
+
+        self.activation_functions = [nn.GELU, nn.LeakyReLU, nn.Mish, nn.ReLU, nn.SELU, nn.Identity]
+        self.activation_functions_str = ['GELU', 'LeakyReLU', 'Mish', 'ReLU', 'SELU', 'Identitity']
 
         # Set the seed for CPU
         torch.manual_seed(random_seed)
@@ -131,8 +323,22 @@ class NNOptimizer:
         
         self.verbose = verbose
 
+        if encoder_params is not None:
+            # Build the encoding and decoding functions
+            if encoder_params['encoder_activation'] == 'LeakyReLU':
+                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])](negative_slope = encoder_params['negative_slope_encoder'])
+            elif encoder_params['encoder_activation'] == 'GELU':
+                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])](approximate = encoder_params['approximate_encoder'])
+            else:
+                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])]()
+
+            # Build just the encoder
+            self.encoder = [("Linear", self.input_size, encoder_params['encoding_dim']), ("BatchNorm1d", encoder_params['encoding_dim']), ("Activation", encoder_activation)]
+        else:
+            self.encoder = None
+        
         # Set the storage string for the study
-        self.storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"
+        self.storage = storage
 
     def train_model(self, model, train_loader, optimizer, criterion, trial, epochs = 100):
         # Set the model to training mode
@@ -259,13 +465,11 @@ class NNOptimizer:
             hidden_layers.append(trial.suggest_categorical(f'n_units_layer_{i}', self.power_of_two_options))
         
         # Suggestions for the activation functions
-        activation_functions = [nn.GELU, nn.LeakyReLU, nn.Mish, nn.ReLU, nn.SELU, nn.PReLU, nn.Identity]
-        activation_functions_str = ['GELU', 'LeakyReLU', 'Mish', 'ReLU', 'SELU', 'PReLU', 'Identitity']
         activation_data = []
 
         for i in range(len(hidden_layers)):
-            activation_function_str = trial.suggest_categorical(f'activation_function_{i}', activation_functions_str)
-            activation_function = activation_functions[activation_functions_str.index(activation_function_str)]
+            activation_function_str = trial.suggest_categorical(f'activation_function_{i}', self.activation_functions_str)
+            activation_function = self.activation_functions[self.activation_functions_str.index(activation_function_str)]
             # Now suggest the parameters for the activation function
             if activation_function == nn.LeakyReLU:
                 activation_data.append((activation_function, {
@@ -274,16 +478,15 @@ class NNOptimizer:
             elif activation_function == nn.GELU:
                 activation_data.append((activation_function, {
                     f'approximate_{i}': trial.suggest_categorical(f'approximate_{i}', ['none', 'tanh'])
-                }))
-            elif activation_function == nn.PReLU:
-                activation_data.append((activation_function, {
-                    f'num_parameters_{i}': trial.suggest_int(f'num_parameters_{i}', 1, 16), 
-                    f'init_{i}': trial.suggest_float(f'init_{i}', 0.1, 0.9)
-            }))    
+                }))  
             else:
                 activation_data.append((activation_function, {}))
 
-        model = DynamicNN(self.input_size, self.output_size, hidden_layers, activation_data, self.device)
+        model = DynamicNN(self.input_size, self.output_size, hidden_layers, activation_data, self.encoder, self.device)
+
+        # Print the model architecture
+        if self.verbose:
+            print(model)
 
         # Suggestions for the optimizer
         optimizer_name = trial.suggest_categorical('optimizer', ['Adam', 'RMSprop', 'SGD'])
@@ -305,7 +508,7 @@ class NNOptimizer:
         )
 
         # If a validation set has been provided, create the validation loader
-        if self.validation_loader is not None:
+        if self.X_validation is not None:
             self.validation_loader = DataLoader(
                 dataset = CustomDataset(self.X_validation, self.y_validation), 
                 batch_size = batch_size, 
@@ -343,12 +546,15 @@ class NNOptimizer:
 
         return test_loss
 
-    def optimize(self, direction: str = "maximize", n_trials = 10, study_name = "NN_Optimization", load_if_exists = True, sampler: optuna.samplers._base.BaseSampler = TPESampler(), n_jobs = 1):
+    def optimize(self, direction: str = "maximize", n_trials = 10, study_name = "NN_Optimization", load_if_exists = True, sampler: optuna.samplers.BaseSampler = TPESampler(), n_jobs = 1):
         if self.verbose:
             print(f'Optimizing the model for {n_trials} trials')
 
         # Add a pruner
-        pruner = optuna.pruners.MedianPruner()
+        pruner = optuna.pruners.MedianPruner(
+            n_startup_trials = n_trials // 10, # Start pruning after 10% of the trials to allow better exploration
+            n_warmup_steps = 15,               # Prune should act only if after 15 steps the value is still not in the median
+        )
 
         study = optuna.create_study(
             direction = direction, 
@@ -362,4 +568,3 @@ class NNOptimizer:
         study.optimize(self.objective, n_trials = n_trials, n_jobs = n_jobs)
         best_params = study.best_params
         print("Best Hyperparameters:", best_params)
-
