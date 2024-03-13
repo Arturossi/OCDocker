@@ -3,16 +3,17 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
+
 from optuna.samplers import TPESampler
 from torch.utils.data import DataLoader, Dataset
-import optuna
 from typing import Union
 
-#import mlflow
+import optuna
+import random
 
 class AutoencoderDataset(Dataset):
     def __init__(self, features):
-        self.features = torch.tensor(features, dtype=torch.float32)
+        self.features = features
     
     def __len__(self):
         return len(self.features)
@@ -71,17 +72,13 @@ class AutoencoderOptimizer:
             use_gpu = True,
             verbose = False
         ):
+
+        self.random_seed = random_seed
         
-        # Set the seed for CPU
-        torch.manual_seed(random_seed)
-
         self.models_folder = models_folder
+        self.use_gpu = use_gpu
 
-        if use_gpu and torch.cuda.is_available():
-            self.device = torch.device('cuda')
-            torch.cuda.manual_seed_all(random_seed)
-        else:
-            self.device = torch.device('cpu')
+        self.set_random_seed()    
         
         # Convert the data do np.ndarray then to torch.Tensor
         self.X_train = torch.tensor(np.asarray(X_train), dtype=torch.float32).to(self.device)
@@ -106,8 +103,24 @@ class AutoencoderOptimizer:
         # Set the storage string for the study
         self.storage = storage
 
-    def train_autoencoder(self, model, optimizer, criterion, epochs, trial):
+    def set_random_seed(self):
+        np.random.seed(self.random_seed)
+        random.seed(self.random_seed)
 
+        # Set the seed for CPU
+        torch.manual_seed(self.random_seed)
+
+        if self.use_gpu and torch.cuda.is_available():
+            self.device = torch.device('cuda')
+            torch.cuda.manual_seed_all(self.random_seed)
+        else:
+            self.device = torch.device('cpu')
+        
+        #torch.backends.cudnn.enabled = False
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = True
+
+    def train_autoencoder(self, model, optimizer, criterion, epochs, trial):
         # Set the best validation and training rmse to infinity
         best_validation_rmse = np.inf
         best_train_rmse = np.inf
@@ -137,7 +150,7 @@ class AutoencoderOptimizer:
 
             # Validation phase
             if self.validation_loader is not None:
-                val_rmse = self.evaluate_autoencoder(model, criterion)
+                val_rmse = self.evaluate_autoencoder(model, criterion, self.validation_loader)
 
                 trial.set_user_attr('val_rmse', val_rmse)
                 
@@ -175,27 +188,35 @@ class AutoencoderOptimizer:
             
             return best_validation_rmse, best_train_rmse
 
-    def evaluate_autoencoder(self, model, criterion):
+    def evaluate_autoencoder(self, model, criterion, loader = None):
+        self.set_random_seed()
         model.eval()
         total_loss = 0
+        
+        if loader is None:
+            loader = self.test_loader
+
         with torch.no_grad():
-            for data, _ in self.test_loader: # type: ignore
+            for data, _ in loader: # type: ignore
                 reconstruction = model(data)
                 loss = criterion(reconstruction, data)
                 total_loss += loss.item()
-        average_loss = total_loss / len(self.test_loader) # type: ignore
+
+        average_loss = total_loss / len(loader) # type: ignore
+
         rmse = np.sqrt(average_loss)
+        
         return rmse
 
     def objective(self, trial):
-        
+        self.set_random_seed()
         encoding_dim = trial.suggest_int('encoding_dim', 16, 256)
         lr = trial.suggest_float('lr', 1e-4, 1e-1)
         batch_size = trial.suggest_categorical('batch_size', [32, 64, 128, 256])
         epochs = trial.suggest_int('epochs', 20, 100)
 
         activation_functions = [nn.GELU, nn.LeakyReLU, nn.Mish, nn.ReLU, nn.SELU, nn.Identity]
-        activation_functions_str = ['GELU', 'LeakyReLU', 'Mish', 'ReLU', 'SELU', 'None']
+        activation_functions_str = ['GELU', 'LeakyReLU', 'Mish', 'ReLU', 'SELU', 'Identity']
         
         encoder_activation_str = trial.suggest_categorical('encoder_activation', activation_functions_str)
 

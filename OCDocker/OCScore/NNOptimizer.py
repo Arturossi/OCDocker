@@ -10,6 +10,7 @@ from typing import Union
 
 #from OCDocker.Initialise import *
 
+import random
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -28,22 +29,14 @@ class NeuralNet(nn.Module):
     ):
         super(NeuralNet, self).__init__()
 
-        # Set the seed for CPU
-        torch.manual_seed(random_seed)
+        self.random_seed = random_seed
+        self.use_gpu = use_gpu
 
-        # Check if the GPU is available
-        if use_gpu and torch.cuda.is_available():
-            # Set the device to the GPU
-            self.device = torch.device('cuda')
-            # Set the seed for the GPU
-            torch.cuda.manual_seed_all(random_seed)
-        else:
-            # Set the device to the CPU
-            self.device = torch.device('cpu')
+        self.set_random_seed()
 
         # Define the activation functions
         self.activation_functions = [nn.GELU, nn.LeakyReLU, nn.Mish, nn.ReLU, nn.SELU, nn.Identity]
-        self.activation_functions_str = ['GELU', 'LeakyReLU', 'Mish', 'ReLU', 'SELU', 'Identitity']
+        self.activation_functions_str = ['GELU', 'LeakyReLU', 'Mish', 'ReLU', 'SELU', 'Identity']
         
         self.optimizer_functions = [optim.Adam, optim.RMSprop, optim.SGD]
         self.optimizer_functions_str = ['Adam', 'RMSprop', 'SGD']
@@ -101,6 +94,7 @@ class NeuralNet(nn.Module):
         self.batch_size = nn_params['batch_size']
         self.epochs = nn_params['epochs']
         self.lr = nn_params['lr']
+        self.clip_grad = nn_params['clip_grad']
 
         self.optimizer = self.optimizer_functions[self.optimizer_functions_str.index(nn_params['optimizer'])](
             self.NN.parameters(),
@@ -117,10 +111,29 @@ class NeuralNet(nn.Module):
         # Set the verbose flag
         self.verbose = verbose
 
+        self.prediction = None
+
         if verbose:
             print(self.NN)
 
+    def set_random_seed(self):
+        np.random.seed(self.random_seed)
+        random.seed(self.random_seed)
+
+        # Set the seed for CPU
+        torch.manual_seed(self.random_seed)
+
+        if self.use_gpu and torch.cuda.is_available():
+            self.device = torch.device('cuda')
+            torch.cuda.manual_seed_all(self.random_seed)
+        else:
+            self.device = torch.device('cpu')
+        
+        #torch.backends.cudnn.enabled = False
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = True
     def train_model(self, X_train, y_train, X_test, y_test, X_validation = None, y_validation = None, criterion = nn.MSELoss()):
+        self.set_random_seed()
         # Convert the data to torch.Tensor
         X_train = torch.tensor(np.asarray(X_train), dtype=torch.float32).to(self.device)
         y_train = torch.tensor(np.asarray(y_train), dtype=torch.float32).to(self.device)
@@ -152,11 +165,10 @@ class NeuralNet(nn.Module):
                 shuffle = True
             )
 
-        # Set the model to training mode
-        self.NN.train()
-
         # For each epoch
         for epoch in range(self.epochs):
+            # Set the model to training mode
+            self.NN.train()
 
             # Set the running loss to 0            
             running_loss = 0.0
@@ -169,6 +181,7 @@ class NeuralNet(nn.Module):
                 loss = criterion(outputs, labels.view(-1, 1))
 
                 loss.backward()
+                nn.utils.clip_grad_norm_(self.NN.parameters(), self.clip_grad)
                 self.optimizer.step()
 
                 running_loss += loss.item()
@@ -207,7 +220,10 @@ class NeuralNet(nn.Module):
                 validation_predictions = self.NN(X_validation)
                 # Convert the predictions and the labels to numpy
                 validation_predictions_np = validation_predictions.detach().cpu().numpy()
-                y_validation_np = y_validation.cpu().numpy()
+                y_validation_np = y_validation.cpu().numpy() # type: ignore
+
+                self.prediction = y_validation_np
+
                 # If there is a nan in the predictions, set the AUC to 0
                 if np.isnan(validation_predictions_np).any():
                     validation_auc = 0
@@ -323,16 +339,12 @@ class NNOptimizer:
         ):
 
         self.activation_functions = [nn.GELU, nn.LeakyReLU, nn.Mish, nn.ReLU, nn.SELU, nn.Identity]
-        self.activation_functions_str = ['GELU', 'LeakyReLU', 'Mish', 'ReLU', 'SELU', 'Identitity']
+        self.activation_functions_str = ['GELU', 'LeakyReLU', 'Mish', 'ReLU', 'SELU', 'Identity']
 
-        # Set the seed for CPU
-        torch.manual_seed(random_seed)
+        self.random_seed = random_seed
+        self.use_gpu = use_gpu
 
-        if use_gpu and torch.cuda.is_available():
-            self.device = torch.device('cuda')
-            torch.cuda.manual_seed_all(random_seed)
-        else:
-            self.device = torch.device('cpu')
+        self.set_random_seed()
         
         # Convert the data do np.ndarray then to torch.Tensor
         self.X_train = torch.tensor(np.asarray(X_train), dtype=torch.float32).to(self.device)
@@ -376,69 +388,24 @@ class NNOptimizer:
         # Set the storage string for the study
         self.storage = storage
 
-    def train_model(self, model, train_loader, optimizer, criterion, trial, epochs = 100):
-        # Set the model to training mode
-        model.train()
+    def set_random_seed(self):
+        np.random.seed(self.random_seed)
+        random.seed(self.random_seed)
 
-        # For each epoch
-        for epoch in range(epochs):
-            # Set the running loss to 0            
-            running_loss = 0.0
+        # Set the seed for CPU
+        torch.manual_seed(self.random_seed)
 
-            for i, (inputs, labels) in enumerate(train_loader):
-                # Zero the gradients
-                optimizer.zero_grad()
+        if self.use_gpu and torch.cuda.is_available():
+            self.device = torch.device('cuda')
+            torch.cuda.manual_seed_all(self.random_seed)
+        else:
+            self.device = torch.device('cpu')
+        
+        #torch.backends.cudnn.enabled = False
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = True
 
-                outputs = model(inputs)  # Forward pass
-                loss = criterion(outputs, labels.view(-1, 1))  # Calculate the loss
-
-                loss.backward()  # Backward pass
-                optimizer.step()  # Update weights
-
-                running_loss += loss.item()
-
-            average_loss = running_loss / len(train_loader)
-
-            if self.verbose:
-                print(f'Epoch {epoch + 1}/{epochs}, Loss: {average_loss}')
-
-            trial.report(average_loss, epoch)
-            
-            # Handle pruning based on the intermediate value.
-            if trial.should_prune():
-                raise optuna.exceptions.TrialPruned()
-
-        # Optionally, you might return some metric like average_loss or validation_loss
-        return average_loss  # Adjust as needed
-    
-    def test_model(self, model, test_loader, criterion):
-        model.eval() # Set the model to evaluation mode
-
-        running_loss = 0.0
-
-        all_predictions = []
-        all_labels = []
-
-        with torch.no_grad():  # No need to calculate gradients during testing
-            for inputs, labels in test_loader:
-                predicted = model(inputs)
-                loss = criterion(predicted, labels.view(-1, 1))
-                running_loss += loss.item()
-                
-                all_predictions.extend(predicted.cpu().numpy())
-                all_labels.extend(labels.cpu().numpy())
-
-        # Get the RMSE
-        average_loss = running_loss / len(test_loader)
-        rmse = np.sqrt(average_loss)
-
-        if self.verbose:
-            print(f'Test Loss: {average_loss}')
-            print(f'Test RMSE: {rmse}')
-
-        return rmse, predicted
-
-    def train_test_model(self, model, train_loader, test_loader, optimizer, criterion, trial, epochs = 100):
+    def train_test_model(self, model, train_loader, test_loader, optimizer, criterion, clip_grad, trial, epochs = 100):
         # For each epoch
         for epoch in range(epochs):
             # Set the model to training mode
@@ -451,11 +418,11 @@ class NNOptimizer:
                 # Zero the gradients
                 optimizer.zero_grad()
 
-                outputs = model(inputs)  # Forward pass
-                loss = criterion(outputs, labels.view(-1, 1))  # Calculate the loss
-
-                loss.backward()  # Backward pass
-                optimizer.step()  # Update weights
+                outputs = model(inputs)                                  # Forward pass
+                loss = criterion(outputs, labels.view(-1, 1))            # Calculate the loss
+                loss.backward()                                          # Backward pass
+                nn.utils.clip_grad_norm_(model.parameters(), clip_grad)  # Clip the gradients
+                optimizer.step()                                         # Update weights
 
                 running_loss += loss.item()
 
@@ -492,6 +459,8 @@ class NNOptimizer:
         return rmse
 
     def objective(self, trial):
+        self.set_random_seed()
+
         # Suggest the learning rate
         lr = trial.suggest_float('lr', 1e-5, 1e-1)
 
@@ -554,10 +523,13 @@ class NNOptimizer:
         # Suggestions for the epochs
         epochs = trial.suggest_int('epochs', 100, 1000)
 
+        # Suggestions for clipping the gradients
+        clip_grad = trial.suggest_float('clip_grad', 0.1, 1.0)
+
         # Use Root Mean Squared Error as the loss function
         criterion = nn.MSELoss()
 
-        test_loss = self.train_test_model(model, self.train_loader, self.test_loader, optimizer, criterion, trial, epochs = epochs)
+        test_loss = self.train_test_model(model, self.train_loader, self.test_loader, optimizer, criterion, clip_grad, trial, epochs = epochs)
 
         # If a validation set has been provided, calculate the AUC
         if self.validation_loader is not None:

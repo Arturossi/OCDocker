@@ -866,22 +866,23 @@ from AutoencoderOptimizer import AutoencoderOptimizer
 from NNOptimizer import NNOptimizer, NeuralNet
 from optuna.samplers import TPESampler
 
-def AOworker(pid,
-              id,
-              X_train, 
-              X_test, 
-              X_val,
-              models_folder,
-              storage,
-              random_seed = 42,
-              use_gpu = True, 
-              verbose = False, 
-              direction = "minimize", 
-              n_trials = 250, 
-              load_if_exists = True, 
-              n_jobs = 10, 
-              study_name = "Autoencoder_Optimization"
-          ):
+def AOworker(
+        pid, 
+        id,
+        X_train,
+        X_test, 
+        X_val,
+        storage,
+        models_folder,
+        random_seed = 42,
+        use_gpu = True, 
+        verbose = False, 
+        direction = "minimize", 
+        n_trials = 250, 
+        load_if_exists = True, 
+        n_jobs = 10, 
+        study_name = "Autoencoder_Optimization"
+    ):
     
     print(f"Process {pid} starting optimization")
 
@@ -958,11 +959,11 @@ def NNworker(
         print(f"Process {id} completed {sampler_name} optimization")
 
 num_processes = 4
-storage_id = 9
+storage_id = 11
 storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"
 models_folder = f"/data/hd4tb/OCDocker/data/ocdb/models/autoencoder_{storage_id}"
-run_autoencoder_optimization = False
-run_NN_optimization = False
+run_autoencoder_optimization = True
+run_NN_optimization = True
 
 # If models folder does not exist, create it
 if not os.path.exists(models_folder):
@@ -984,9 +985,9 @@ if run_autoencoder_optimization:
             True,             # use_gpu
             False,            # verbose
             "minimize",       # direction
-            250,              # n_trials
+            2500,             # n_trials
             True,             # load_if_exists
-            4,                # n_jobs
+            1,                # n_jobs
             "AO_Optimization" # study_name
             ) for pid in range(num_processes)
         ])
@@ -1023,9 +1024,9 @@ if run_NN_optimization:
             True,             # use_gpu
             False,            # verbose
             "minimize",       # direction
-            40,               # n_trials
+            1250,             # n_trials
             True,             # load_if_exists
-            4,                # n_jobs
+            1,                # n_jobs
             "NN_Optimization" # study_name
             ) for pid in range(num_processes)
         ])
@@ -1046,6 +1047,7 @@ best_nn_df.head(n_models)
 
 # Build the models
 models = []
+predictions = []
 
 for i in range(n_models):
     # Get the best trial
@@ -1075,5 +1077,52 @@ for i in range(n_models):
         y_val
     )
 
+    # Reset the random seeds
+    torch.manual_seed(42)
+    np.random.seed(42)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    torch.cuda.manual_seed_all(42)
+    
     # Append the model to the list
     models.append(NN_model)
+    predictions.append(
+        NN_model.NN(
+            torch.tensor(
+                np.asarray(X_val), 
+                dtype=torch.float32).to(torch.device('cuda')
+            )
+        )
+    )
+
+    # Save the model
+    torch.save(model, f'/data/hd4tb/OCDocker/data/ocdb/models/NN_model_{i}.pt')
+
+# Convert predictions to a DataFrame
+predictions_df = pd.DataFrame(np.asarray(predictions).reshape(len(predictions), predictions[0].shape[0]).T)
+
+def select_values(row):
+    sorted_row = sorted(row)
+    return pd.Series({
+        'max': max(row),
+        '2nd_highest': sorted_row[-2],
+        'median': sorted_row[2],
+        '4th_highest': sorted_row[1],
+        'min': min(row)
+    })
+
+selected_values_df = df.apply(select_values, axis=1)
+full_selected_values_df = pd.concat([predictions_df, selected_values_df], axis=1)
+                                    
+# Calculate the mean, median, std, min, max, and range for the predictions
+full_selected_values_df['std'] = predictions_df.std(axis = 1)
+full_selected_values_df['range'] = full_selected_values_df['max'] - full_selected_values_df['min']
+
+# For each column in the full_selected_values_df, calculate the AUC
+auc_dict = {}
+for col in full_selected_values_df.columns:
+    fpr, tpr, _ = roc_curve(y_val, full_selected_values_df[col]) # type: ignore
+    auc_dict[col] = auc(fpr, tpr)
+
+# Save the full_selected_values_df values to csv
+full_selected_values_df.to_csv('full_selected_values_df.csv')
