@@ -11,9 +11,9 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.metrics import auc, mean_squared_error, roc_curve
 from sklearn.model_selection import ParameterGrid, train_test_split
 from tqdm import tqdm
-from xgboost import XGBRegressor
+from OCxgboost import run_xgboost
 
-from PreXGBoostOptimizer import PreXGBoostOptimizer
+from XGBoostOptimizer import XGBoostOptimizer
 from EvolutionaryFeatureSelector import EvolutionaryFeatureSelector
 from EvolutionaryFeatureSelectorCustom import EvolutionaryFeatureSelectorCustom
 
@@ -928,19 +928,225 @@ evaluate_and_plot(X_train, y_train, X_test, labels, results, iterations = 10, so
 evaluate_and_plot(X_train, y_train, X_test, labels, results, iterations = 10, sort_order=(True), save_path='./feature_engineering/least_important') # Least important features
 '''
 
-print("Running XGBoost pre-optimization...")
-# Create the PreXGBoostOptimizer object
-pxgb = PreXGBoostOptimizer(X_train, y_train, X_test, y_test, X_val, y_val, params = {}, use_gpu = True, early_stopping_rounds = 50, random_state = 42, verbose = False)
-'''
-n_jobs = 2
+def XGBworker(
+        pid, 
+        id,
+        X_train,
+        X_test, 
+        X_val,
+        y_train,   # Added y_train
+        y_test,    # Added y_test
+        y_val,     # Added y_val
+        storage,
+        random_seed = 42,
+        use_gpu = True, 
+        verbose = False, 
+        n_trials = 250, 
+        load_if_exists = True, 
+        n_jobs = 10, 
+        study_name = "XGB_Optimization",
+        early_stopping_rounds = 50, 
+        params = {}
+    ):
+    
+    print(f"Process {pid} starting optimization")
 
-# If the X_val is None, the direction is set to maximize
-if X_val is None:
+    # Set direction based on X_val
+    direction = "maximize" if X_val is None else "minimize"
+    
+    # Create the XGBoostOptimizer object
+    xgb = XGBoostOptimizer(
+        X_train, 
+        y_train, 
+        X_test, 
+        y_test, 
+        X_val, 
+        y_val, 
+        storage = storage,
+        params = params, 
+        use_gpu = use_gpu, 
+        early_stopping_rounds = early_stopping_rounds, 
+        random_state = random_seed, 
+        verbose = verbose
+    )
+
+    # Run the pre-optimization for XGBoost
+    study_pre = xgb.optimize(
+        direction = direction,
+        n_trials = n_trials,
+        n_jobs = n_jobs,
+        study_name = f"{study_name}_{id}",
+        load_if_exists = load_if_exists,
+    )
+    
+    print(f"Process {pid} completed optimization")
+
+    return study_pre
+
+def FeatureSelectionWorker(
+        pid,
+        id,
+        X_train, 
+        y_train, 
+        X_test, 
+        y_test, 
+        X_validation = None, 
+        y_validation = None, 
+        best_params = {}, 
+        algorithm = "ga", 
+        n_trials = 100, 
+        study_name = "feature_selection", 
+        random_state = 42, 
+        use_gpu = True, 
+        verbose = False, 
+        n_jobs = 1
+    ):
+    """
+    Function to be executed by each process.
+    
+    :param instance_id: An identifier for the instance, could be used to modify the behavior per instance.
+    """
+
+    # Setup unique to this instance, potentially using instance_id to differentiate setups
+    print(f"Running instance {pid}")
+    
+    if algorithm.lower() == "custom-ga":
+        # Create the EvolutionaryFeatureSelectorCustom object
+        evo = EvolutionaryFeatureSelectorCustom(X_train, y_train, X_test, y_test, X_validation = X_validation, y_validation = y_validation, xgboost_params = best_params, use_gpu = use_gpu, random_state = random_state, verbose = verbose) # type: ignore
+    elif algorithm.lower() in ["cmaes", "ga"]:
+        # Create the EvolutionaryFeatureSelector object
+        evo = EvolutionaryFeatureSelector(X_train, y_train, X_test, y_test, X_validation = X_validation, y_validation = y_validation, xgboost_params = best_params, algorithm = algorithm, use_gpu = use_gpu, random_state = random_state, verbose = verbose) # type: ignore
+    
     # Run the optimization
-    study_pre, best_params_pre, best_score_pre = pxgb.optimize(study_name = "XGBoost pre-optimization", direction = "maximize", n_trials = 1000, n_jobs = n_jobs)
+    study, best_features, best_score = evo.optimize(study_name = f"{study_name}_{id}", direction = "minimize", n_trials = n_trials, n_jobs = n_jobs)
+
+    return study, best_features, best_score
+
+from multiprocessing import Pool
+from urllib.parse import quote_plus
+
+storage_id = 2
+run_pre_XGBoost_optimizer = False
+run_feature_selection = False
+run_xgb_final_optimization = True
+num_processes = 4
+storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"
+random_seed = 42
+use_gpu = True
+verbose = False
+n_trials = 2500
+load_if_exists = True
+early_stopping_rounds = 20
+
+if run_pre_XGBoost_optimizer:
+    print("Running XGBoost pre-optimization...")
+
+    with Pool(num_processes) as p:
+        # Run the optimization
+        results = p.starmap(XGBworker, [(
+                i, 
+                storage_id, 
+                X_train, 
+                X_test, 
+                X_val, 
+                y_train, 
+                y_test, 
+                y_val, 
+                storage, 
+                random_seed, 
+                use_gpu, 
+                verbose, 
+                n_trials, 
+                load_if_exists, 
+                1, 
+                "Pre_XGB_Optimization", 
+                early_stopping_rounds, 
+                {}
+            ) for i in range(num_processes)
+        ])
+
+import optuna
+
+# Load the study
+pre_xgb_study = optuna.load_study(study_name = f"Pre_XGB_Optimization_{storage_id}", storage = storage)
+pre_xgb_df = pre_xgb_study.trials_dataframe()
+pre_xgb_df['combined_metric'] = pre_xgb_df['value'] - pre_xgb_df['user_attrs_AUC']
+best_pre_xgb_df = pre_xgb_df.sort_values(by=['combined_metric', 'value', 'user_attrs_AUC'], ascending=[True, True, False])
+best_pre_xgb_trial = best_pre_xgb_df.iloc[0]
+best_xgb_trial = pre_xgb_study.trials[best_pre_xgb_trial.number]
+best_pre_xgb_params = best_xgb_trial.params
+
+if run_feature_selection:
+    print("Running feature selection...")
+
+    with Pool(num_processes) as p:
+        # Run the optimization
+        results = p.starmap(FeatureSelectionWorker, [(
+            i, 
+            storage_id,
+                X_train, 
+                y_train, 
+                X_test, 
+                y_test, 
+                X_val, 
+                y_val, 
+                best_pre_xgb_params, 
+                "custom-ga", 
+                n_trials, 
+                "feature_selection", 
+                random_seed, 
+                use_gpu, 
+                verbose, 
+                1
+            ) for i in range(num_processes)
+        ])
+
+# Load the study
+feature_selection_study = optuna.load_study(study_name = f"feature_selection_{storage_id}", storage = storage)
+feature_selection_df = feature_selection_study.trials_dataframe()
+feature_selection_df['combined_metric'] = feature_selection_df['value'] - feature_selection_df['user_attrs_best_AUC']
+best_feature_selection_df = feature_selection_df.sort_values(by=['combined_metric', 'value', 'user_attrs_best_AUC'], ascending=[True, True, False])
+best_feature_selection_feature_mask = [bool(int(i)) for i in best_feature_selection_df.iloc[0]['user_attrs_best_individual']]
+
+# Apply the best feature mask to the training and testing sets
+X_train_filtered = X_train.iloc[:, best_feature_selection_feature_mask]
+X_test_filtered = X_test.iloc[:, best_feature_selection_feature_mask]
+
+# If the validation set is not None, create a filtered validation set
+if X_val is not None:
+    X_val_filtered = X_val.iloc[:, best_feature_selection_feature_mask]
 else:
-    # Run the optimization
-    study_pre, best_params_pre, best_score_pre = pxgb.optimize(study_name = "XGBoost pre-optimization", direction = "minimize", n_trials = 1000, n_jobs = n_jobs)
+    X_val_filtered = None
+
+# Create the XGBoost model final optimizer
+print("Running XGBoost final optimization...")
+
+if run_xgb_final_optimization:
+    with Pool(num_processes) as p:
+        # Run the optimization
+        results = p.starmap(XGBworker, [(
+                i, 
+                storage_id, 
+                X_train_filtered, 
+                X_test_filtered, 
+                X_val_filtered, 
+                y_train, 
+                y_test, 
+                y_val, 
+                storage, 
+                random_seed, 
+                use_gpu, 
+                verbose, 
+                n_trials, 
+                load_if_exists, 
+                1, 
+                "XGB_Optimization", 
+                early_stopping_rounds, 
+                {}
+            ) for i in range(num_processes)
+        ])
+
+
 '''
 best_params_pre = {'max_depth': 5, 'learning_rate': 0.2517429022810524, 'n_estimators': 101, 'subsample': 0.9776698128134739, 'colsample_bytree': 0.9068966063215814, 'reg_alpha': 0.8680385318163417, 'reg_lambda': 0.7243450306810497, 'min_child_weight': 5, 'gamma': 0.4071681639504335}
 best_params_pre = {}
@@ -1071,4 +1277,4 @@ def plot_auc_vs_rmse(aucs, rmses, filename = "auc_vs_rmse.png"):
 # Plot the AUC vs RMSE with regression line
 plot_auc_vs_rmse(aucs, rmses, filename = "auc_vs_rmse.png")
 
-
+'''

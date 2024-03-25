@@ -9,13 +9,10 @@ import numpy as np
 from scipy.cluster.hierarchy import leaves_list, linkage
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.metrics import auc, roc_curve
-from sklearn.model_selection import ParameterGrid, train_test_split
-from tqdm import tqdm
+from sklearn.model_selection import train_test_split
+from typing import Tuple, Union
 
 import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader
 
 def save_object(obj, filename):
     """
@@ -192,7 +189,7 @@ def plot_corr_matrix(df: pd.DataFrame, columns: list = [], scaler: str = "") -> 
     plt.savefig(f"corrplot_{db}_{scaler}.png")
     plt.close()
 
-def plot_correlation_similarity(df1: pd.DataFrame, df2: pd.DataFrame, columns: list = [], annot: bool = True, fontsize: float = None, normalize: bool = True) -> None:
+def plot_correlation_similarity(df1: pd.DataFrame, df2: pd.DataFrame, columns: list = [], annot: bool = True, fontsize: Union[float, None] = None, normalize: bool = True) -> None:
     """
     Plots the similarity of correlation matrices from two DataFrames.
 
@@ -215,7 +212,7 @@ def plot_correlation_similarity(df1: pd.DataFrame, df2: pd.DataFrame, columns: l
     # If no columns are specified, use all columns except metadata
     if not columns:
         # Find common columns in both DataFrames
-        columns = df1.columns.intersection(df2.columns)
+        columns = df1.columns.intersection(df2.columns) # type: ignore
 
     # Filter both DataFrames to include only common columns
     filtered_df1 = df1[columns]
@@ -307,7 +304,7 @@ def plot_roc_curves(df: pd.DataFrame, feature_cols: list, labels: pd.Series, tit
         auc_dict[feature] = roc_auc
 
     # Sort the features by their AUC in descending order
-    sorted_features = sorted(auc_dict, key=auc_dict.get, reverse=True)
+    sorted_features = sorted(auc_dict, key=auc_dict.get, reverse=True) # type: ignore
 
     # Create the plot
     plt.figure(figsize=(14, 10))
@@ -335,7 +332,7 @@ def plot_roc_curves(df: pd.DataFrame, feature_cols: list, labels: pd.Series, tit
     plt.savefig(f'{title}.png')
     plt.close()
 
-def calculate_metrics(df: pd.DataFrame, selected_columns: list) -> pd.DataFrame and list:
+def calculate_metrics(df: pd.DataFrame, selected_columns: list) -> Tuple[pd.DataFrame, list]:
     """
     Calculates additional metrics for a DataFrame. The metrics include average, median, maximum,
     minimum, standard deviation, variance, sum, range, 25th and 75th percentiles.
@@ -406,153 +403,6 @@ def compute_zscore(df: pd.DataFrame, columns: list) -> pd.DataFrame:
 
     return zscore_df
 
-def plot_top_n_feature_importances(xgb_regressor, n_features=10):
-    """
-    Plot the top N feature importances from an XGBRegressor model along with the percentage
-    of total importance that these features represent and the cumulative importance.
-
-    Parameters:
-    xgb_regressor: The trained XGBRegressor model.
-    n_features: Number of top features to plot (default is 10).
-    """
-
-    # Get feature importance dictionary from the xgb_regressor
-    f_importance = xgb_regressor.get_booster().get_score(importance_type='weight')
-    
-    # Calculate the total importance for normalization
-    total_importance = sum(f_importance.values())
-    
-    # Sort the feature importance in descending order and select top n_features
-    sorted_f_importance = sorted(f_importance.items(), key=lambda item: item[1], reverse=True)[:n_features]
-    
-    # Calculate the percentage of total importance and cumulative importance
-    cumulative_importance = 0
-    for i, (feature, importance) in enumerate(sorted_f_importance):
-        percentage = (importance / total_importance) * 100
-        cumulative_importance += importance
-        sorted_f_importance[i] = (feature, importance, percentage)
-    
-    # Create a DataFrame
-    df_importance = pd.DataFrame(sorted_f_importance, columns=['Feature', 'F Score', 'Percentage']).sort_values(by='F Score', ascending=True)
-    
-    # Plot
-    plt.figure(figsize=(10, n_features // 2 + 2))  # Adjust the size as necessary
-    plt.barh(df_importance['Feature'], df_importance['F Score'], color='skyblue')
-    plt.xlabel('F Score')
-    
-    # Annotate with the percentage of total importance
-    for index, (importance, percentage) in enumerate(zip(df_importance['F Score'], df_importance['Percentage'])):
-        plt.text(importance, index, f' {percentage:.2f}%', va='center')
-    
-    # Add total and cumulative importance to the title
-    plt.title(f'Top {n_features} Feature Importances\nTotal Importance: {total_importance:.2f}, '
-              f'Cumulative Importance of Top {n_features}: {cumulative_importance:.2f} ({cumulative_importance / total_importance * 100:.2f}%)')
-    plt.tight_layout()
-    
-    # Save the plot
-    plt.savefig(f'top_{n_features}_feature_importance.png', dpi=300)
-    plt.close()
-
-def plot_features_by_importance_threshold(xgb_regressor, importance_threshold=0.95):
-    """
-    Plot the smallest set of features that together account for a specified percentage of
-    the total importance, ensuring the plot is readable and well-formatted.
-
-    Parameters:
-    xgb_regressor: The trained XGBRegressor model.
-    importance_threshold: The percentage of the total importance that the feature set should account for.
-    """
-
-    # Get feature importance dictionary from the xgb_regressor
-    f_importance = xgb_regressor.get_booster().get_score(importance_type='weight')
-    
-    # Sort the feature importances in descending order
-    sorted_f_importance = sorted(f_importance.items(), key=lambda item: item[1], reverse=True)
-    
-    # Normalize the feature importances to sum to 1
-    total_importance = sum(f_importance.values())
-    sorted_f_importance = [(feature, importance / total_importance) for feature, importance in sorted_f_importance]
-    
-    # Find the smallest set of features that together account for the importance_threshold
-    cumulative_importance = 0.0
-    selected_features = []
-    for feature, importance in sorted_f_importance:
-        cumulative_importance += importance
-        selected_features.append((feature, importance))
-        if cumulative_importance >= importance_threshold:
-            break
-    
-    # Create a DataFrame
-    df_importance = pd.DataFrame(selected_features, columns=['Feature', 'Normalized Importance']).sort_values(by='Normalized Importance', ascending=True)
-    
-    # Determine figure height dynamically: each feature should have 0.3 units of height
-    fig_height = len(selected_features) * 0.3
-    fig_height = max(min(fig_height, 10), 3)  # Set a reasonable range for figure height
-    
-    # Plot
-    plt.figure(figsize=(10, fig_height))
-    bars = plt.barh(df_importance['Feature'], df_importance['Normalized Importance'], color='skyblue')
-    
-    # Annotate with the normalized importance percentage
-    for bar in bars:
-        plt.text(bar.get_width() + bar.get_width()*0.05, bar.get_y() + bar.get_height()/2,
-                 f'{bar.get_width():.2%}', va='center')
-    
-    # Add the total and cumulative importance to the title
-    plt.title(f'Set of Features Accounting for {importance_threshold:.0%} of Total Importance')
-    plt.xlabel('Normalized Importance')
-    
-    # Ensure the annotations fit within the plot
-    plt.xlim(0, max(df_importance['Normalized Importance']) + 0.15)
-    
-    plt.tight_layout()
-    plt.savefig(f'features_accounting_for_{importance_threshold:.0%}_importance.png', dpi=300)
-    plt.close()
-
-def get_top_features_excluding_docking_scores(df, n, score_columns, target='experimental', test_size=None, random_state=42):
-    """
-    Get the top n features from an XGBoost model, excluding features that are related to docking scores.
-
-    Parameters:
-    df (pandas.DataFrame): The dataframe with the input data.
-    n (int): Number of top features to select.
-    docking_score_prefixes (list of str): List of prefixes used in docking score feature names.
-    target (str): The name of the target variable column.
-    test_size (float): The proportion of the dataset to include in the test split. If None, the entire dataset is used.
-    random_state (int): The seed used by the random number generator. If None, a random seed is used.
-
-    Returns:
-    list: Top n feature names excluding docking scores.
-    """
-
-    # Get feature columns excluding docking scores and other non-feature columns
-    features_to_exclude = ['name', 'receptor', 'ligand', 'type', 'db', target] + score_columns
-    feature_cols = df.drop(columns=features_to_exclude)
-    
-    # Split the data into features and target
-    X = feature_cols
-    y = df[target]
-
-    # Split the data into training and testing sets
-    X_train, _, y_train, _ = train_test_split(X, y, test_size=test_size, random_state=random_state)
-
-    # Initialize the XGBoost regressor
-    xgb_regressor = XGBRegressor(objective='reg:squarederror')
-
-    # Fit the model on the training data
-    xgb_regressor.fit(X_train, y_train)
-
-    # Get feature importance
-    importance = xgb_regressor.feature_importances_
-
-    # Create a Series with feature importances
-    feature_importance = pd.Series(importance, index=X.columns)
-
-    # Sort features by importance
-    top_features = feature_importance.nlargest(n).index.tolist()
-
-    return top_features
-
 def split_dataset(X, y, test_size=0.2, random_state=42):
     """
     Split the data into training and testing sets.
@@ -573,236 +423,6 @@ def split_dataset(X, y, test_size=0.2, random_state=42):
     # Split the data into training and testing sets
     return train_test_split(X, y, test_size=test_size, random_state=random_state)
 
-def run_xgboost(X_train, y_train, X_test, labels, params, use_gpu, random_state = 42) -> tuple:
-    # Extend the parameters dict with the device parameter
-    if use_gpu:
-        params['device'] = 'cuda'
-
-    model = XGBRegressor(
-        objective='reg:squarederror',
-        booster='gbtree',
-        tree_method='hist',
-        eval_metric = 'auc',
-        random_state=random_state,
-        **params
-    )
-
-    # Fit the model on the training data        
-    model.fit(X_train, y_train, eval_set=[(X_test, labels)], verbose=False)
-
-    # Get the result
-    evals_result  = model.evals_result()
-
-    # Get the last AUC value from the validation set
-    roc_auc = evals_result['validation_0']['auc'][-1]
-
-    return model, roc_auc
-
-def evaluate_feature_removal(X_train, y_train, X_test, labels, random_state=42, feature_importances = [], use_gpu = False, params = {}):
-    """
-    Evaluate the performance of an XGBoost model as features are removed one by one, 
-    keeping docking score features in the training set.
-
-    Parameters:
-    pdbbind_df (pandas.DataFrame): The dataframe with the PDBbind input data.
-    dudez_df (pandas.DataFrame): The dataframe with the DUDEz input data.
-    target (str): The name of the target variable column.
-    score_columns (list of str): List of prefixes used in docking score feature names.
-    test_size (float): The proportion of the dataset to include in the test split.
-    random_state (int): The seed used by the random number generator.
-    feature_importances (list): List of feature importances. If empty, the function will calculate the feature importances.
-
-    Returns:
-    pandas.DataFrame: A dataframe containing the MSE and R2 for each number of features used.
-    """
-
-    # All features for training, including docking scores
-    all_features = X_train.columns.to_list()
-
-    # If feature_importance is not provided, load the removable features
-    if not feature_importances:
-        # Features to consider for removal, excluding docking scores
-        removable_features = [col for col in all_features if col not in score_columns]
-    else:
-        # The removable features will be the feature_importance
-        removable_features = feature_importances
-
-    results = []
-
-    for i in tqdm(range(len(removable_features), 0, -1), desc='Feature removal'):
-        # Select the current features for training
-        current_features = removable_features[:i] + score_columns
-        X_train_aux = X_train[current_features]
-        X_test_aux = X_test[current_features]
-        
-        # Train and evaluate the model
-        model, roc_auc = run_xgboost(X_train_aux, y_train, X_test_aux, labels, params, use_gpu, random_state = random_state)
-        
-        # Update removable_features to exclude the least important non-docking score feature
-        feature_importances = pd.Series(model.feature_importances_, index=current_features)
-
-        removable_feature_importances = feature_importances[removable_features]
-        least_important_feature = removable_feature_importances.idxmin()
-        removable_features = [f for f in removable_features if f != least_important_feature]
-
-        # Store the results
-        results.append({
-            'num_features': i,
-            'roc_auc': roc_auc,
-            'removed_feature': least_important_feature,
-            'model': model
-        })
-
-    # Convert results to DataFrame
-    results_df = pd.DataFrame(results)
-
-    return results_df
-
-def plot_performance(results, filename = 'feature_removal_performance.png'):
-    """
-    Plot the performance of a model as features are removed, showing both MSE and R2 metrics.
-    Annotate the plot with the minimum MSE and maximum R2.
-
-    Parameters:
-    results (pandas.DataFrame): DataFrame containing 'num_features', 'mse', and 'r2' columns.
-    filename (str): The name of the file to save the plot. Default is 'feature_removal_performance.png'.
-    """
-
-    # Plot the results
-    plt.figure(figsize=(12, 6))
-
-    # Plot MSE, R2, and roc_auc on the same y-axis
-    #plt.plot(results['num_features'], results['mse'], label='MSE', color='tab:red')
-    #plt.plot(results['num_features'], results['r2'], label='R2', color='tab:blue')
-    plt.plot(results['num_features'], results['roc_auc'], label='roc_auc', color='tab:green')
-
-    # Invert x-axis so fewer features are on the right
-    plt.gca().invert_xaxis()
-
-    # Set y-axis limits
-    plt.ylim(0, 1)
-
-    '''
-    # Find the position of smallest MSE and annotate from below
-    min_mse_position = results['mse'].idxmin()
-    min_mse_value = results['mse'].min()
-    min_mse_num_features = results['num_features'][min_mse_position]
-    plt.annotate(f'Min MSE: {min_mse_value:.2f}\nFeatures: {min_mse_num_features}',
-                 xy=(min_mse_num_features, min_mse_value),
-                 xytext=(min_mse_num_features, min_mse_value - 0.1),  # Adjust text position for arrow from below
-                 arrowprops=dict(facecolor='red', arrowstyle="->", connectionstyle="arc3"),
-                 horizontalalignment='center', verticalalignment='top')
-
-    # Find the position of highest R2 and annotate from above
-    max_r2_position = results['r2'].idxmax()
-    max_r2_value = results['r2'].max()
-    max_r2_num_features = results['num_features'][max_r2_position]
-    plt.annotate(f'Max R2: {max_r2_value:.2f}\nFeatures: {max_r2_num_features}',
-                 xy=(max_r2_num_features, max_r2_value),
-                 xytext=(max_r2_num_features, max_r2_value + 0.1),  # Adjust text position for arrow from above
-                 arrowprops=dict(facecolor='blue', arrowstyle="->", connectionstyle="arc3"),
-                 horizontalalignment='center', verticalalignment='bottom')
-    '''
-
-    # Find the position of highest roc_auc and annotate from above
-    max_roc_auc_position = results['roc_auc'].idxmax()
-    max_roc_auc_value = results['roc_auc'].max()
-    max_roc_auc_num_features = results['num_features'][max_roc_auc_position]
-    plt.annotate(f'Max roc_auc: {max_roc_auc_value:.2f}\nFeatures: {max_roc_auc_num_features}',
-                    xy=(max_roc_auc_num_features, max_roc_auc_value),
-                    xytext=(max_roc_auc_num_features, max_roc_auc_value + 0.1),  # Adjust text position for arrow from above
-                    arrowprops=dict(facecolor='green', arrowstyle="->", connectionstyle="arc3"),
-                    horizontalalignment='center', verticalalignment='bottom')
-
-    # Add labels and title
-    plt.xlabel('Number of used features (excluding docking scores)')
-    plt.ylabel('Performance')
-    plt.title('Performance of XGBoost model with different numbers of features')
-    plt.legend(loc='best')
-    # Add grid
-    plt.grid(True)
-    # Increase the x-axis tick values for each 50 features
-    plt.xticks(np.arange(0, results['num_features'].max() + 1, 50))
-    plt.tight_layout()
-
-    # Save and show plot
-    plt.savefig(filename, dpi=300)
-    plt.close()
-
-def run_grid_search(X_train, y_train, X_test, labels, param_grid, top_features, score_columns, use_gpu=True, random_state=42):
-    """
-    Runs a grid search over specified parameters for an XGBRegressor, evaluates using AUC, 
-    and saves the best model. Optionally uses GPU by setting the device parameter.
-    
-    Parameters:
-    - X_train, y_train: Training data
-    - X_test: Test data for predictions
-    - labels: Actual labels for evaluating predictions
-    - param_grid: Hyperparameters to iterate over in the grid search
-    - top_features: List of feature names to be used from X_test
-    - score_columns: List of score column names to be included from X_test
-    - use_gpu: Flag to enable or disable GPU usage
-    """
-    
-    best_auc = 0
-    best_params = None
-    best_model = None
-
-    print("Running grid search...")
-    
-    for params in tqdm(ParameterGrid(param_grid), desc='Grid search'):
-        # Train and evaluate the model
-        model, roc_auc = run_xgboost(X_train[top_features + score_columns], y_train, X_test[top_features + score_columns], labels, params, use_gpu, random_state = random_state)
-        
-        # Update the best model if the current model is better
-        if roc_auc > best_auc:
-            print("New best AUC:", roc_auc)
-            best_auc = roc_auc
-            best_params = params
-            best_model = model
-    
-    # Save the best model
-    with open('best_model.pkl', 'wb') as f:
-        pickle.dump(best_model, f)
-    
-    print("Best AUC: {:.4f}".format(best_auc))
-    print("Best Parameters:", best_params)
-
-def evaluate_and_plot(X_train, y_train, X_test, labels, results, iterations = 10, sort_order=(False), save_path='.', random_state=42, use_gpu=False, params={}):
-    """
-    Evaluates feature removal and plots performance, supporting both sorting approaches.
-
-    Parameters:
-    - pdbbind_df: DataFrame for PDBBind dataset (normalized).
-    - dudez_df: DataFrame for DUD-EZ dataset (normalized).
-    - score_columns: Columns to use for scoring.
-    - results: Initial results to start with.
-    - iterations: Number of iterations to perform.
-    - sort_order: Tuple indicating the sorting order for 'roc_auc'.
-    - save_path: Path to save the results and plots.
-    - random_state: Random state for reproducibility.
-    - use_gpu: Flag to enable or disable GPU usage.
-    - params: Additional parameters for the XGBoost model.
-    """
-
-    lresults = results['removed_feature'].to_list()
-
-    for i in tqdm(range(iterations), total=iterations, desc='Evaluating feature removal'):
-        # If there is already a result for the current feature set, load it and skip
-        if os.path.exists(f'{save_path}/result_{i + 1}.pkl'):
-            # Load the result
-            results = load_object(f'{save_path}/result_{i + 1}.pkl')
-        else:
-            # Evaluate feature removal
-            results = evaluate_feature_removal(X_train, y_train, X_test, labels, random_state = random_state, feature_importances = lresults, use_gpu = use_gpu, params = params)
-            save_object(results.drop(columns = 'model'), f'{save_path}/result_{i + 1}.pkl')
-
-        plot_performance(results, filename=f'{save_path}/feature_removal_performance_{i + 1}.png')
-        
-        # Dynamic sorting based on the provided sort_order
-        #results = results.sort_values(by=['roc_auc', 'mse', 'r2'], ascending=sort_order).reset_index(drop=True)
-        results = results.sort_values(by=['roc_auc'], ascending=sort_order).reset_index(drop=True)
-        lresults = results['removed_feature'].to_list()
 
 ############################################################################################################
 
@@ -962,8 +582,8 @@ num_processes = 4
 storage_id = 11
 storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"
 models_folder = f"/data/hd4tb/OCDocker/data/ocdb/models/autoencoder_{storage_id}"
-run_autoencoder_optimization = True
-run_NN_optimization = True
+run_autoencoder_optimization = False
+run_NN_optimization = False
 
 # If models folder does not exist, create it
 if not os.path.exists(models_folder):
@@ -1090,9 +710,9 @@ for i in range(n_models):
         NN_model.NN(
             torch.tensor(
                 np.asarray(X_val), 
-                dtype=torch.float32).to(torch.device('cuda')
-            )
-        )
+                dtype=torch.float32
+            ).to(torch.device('cuda'))
+        ).cpu().detach().numpy()
     )
 
     # Save the model
@@ -1111,7 +731,7 @@ def select_values(row):
         'min': min(row)
     })
 
-selected_values_df = df.apply(select_values, axis=1)
+selected_values_df = predictions_df.apply(select_values, axis=1)
 full_selected_values_df = pd.concat([predictions_df, selected_values_df], axis=1)
                                     
 # Calculate the mean, median, std, min, max, and range for the predictions
@@ -1123,6 +743,9 @@ auc_dict = {}
 for col in full_selected_values_df.columns:
     fpr, tpr, _ = roc_curve(y_val, full_selected_values_df[col]) # type: ignore
     auc_dict[col] = auc(fpr, tpr)
+
+# make AUC_dict a DataFrame
+auc_df = pd.DataFrame(auc_dict, index = ['AUC']).T
 
 # Save the full_selected_values_df values to csv
 full_selected_values_df.to_csv('full_selected_values_df.csv')

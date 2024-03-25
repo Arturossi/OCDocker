@@ -2,6 +2,7 @@ import optuna
 import pickle
 import shutil
 
+import cupy as cp
 import numpy as np
 import pandas as pd
 
@@ -65,6 +66,7 @@ class EvolutionaryFeatureSelectorCustom:
         '''
 
         # Set the class variables converting to numpy arrays
+
         self.X_train = np.asarray(X_train)
         self.y_train = np.asarray(y_train)
         self.X_test = np.asarray(X_test)
@@ -79,9 +81,14 @@ class EvolutionaryFeatureSelectorCustom:
         self.verbose = verbose
         self.early_stopping_rounds = early_stopping_rounds
         self.direction = None
+        self.use_gpu = use_gpu
 
         if use_gpu:
             self.xgboost_params['device'] = 'cuda'
+            self.X_train = cp.asarray(self.X_train)
+            self.y_train = cp.asarray(self.y_train)
+            self.X_test = cp.asarray(self.X_test)
+            self.y_test = cp.asarray(self.y_test)
         
         if "tree_method" not in xgboost_params:
             self.xgboost_params["tree_method"] = "hist"
@@ -103,7 +110,7 @@ class EvolutionaryFeatureSelectorCustom:
         
         self.storage = f"mysql+pymysql://ocdocker:{ quote_plus('@Kp3sRv9t@') }@localhost:3306/optimization"
 
-    def fitness(self, individual: list) -> Union[tuple]:
+    def fitness(self, individual: list) -> tuple:
         """
         A function to calculate the fitness of a set of features represented by an individual.
 
@@ -124,6 +131,10 @@ class EvolutionaryFeatureSelectorCustom:
         # Filter the datasets to include only the selected features
         X_train_filtered = self.X_train[:, selected_features_indices]
         X_test_filtered = self.X_test[:, selected_features_indices]
+
+        if self.use_gpu:
+            X_train_filtered = cp.asarray(X_train_filtered)
+            X_test_filtered = cp.asarray(X_test_filtered)
 
         # Train the model and get the AUC score
         model, metric = OCxgboost.run_xgboost(X_train_filtered, self.y_train, X_test_filtered, self.y_test, params = self.xgboost_params, verbose = self.verbose) # type: ignore
@@ -252,8 +263,6 @@ class EvolutionaryFeatureSelectorCustom:
             The mutated individual.
         '''
 
-        individualshape = individual.shape[0]
-
         # Perform mutation for each feature in the individual
         for i in range(len(individual)):
             # If it is a score column, do not mutate
@@ -267,7 +276,7 @@ class EvolutionaryFeatureSelectorCustom:
         # Return the mutated individual
         return individual
 
-    def genetic_algorithm(self, trial_params: dict) -> tuple[np.ndarray, OCxgboost.XGBRegressor, float, Union[None, float]]:
+    def genetic_algorithm(self, trial_params: dict, trial) -> tuple[np.ndarray, OCxgboost.XGBRegressor, float, Union[None, float]]:
         '''
         A function to perform the genetic algorithm for feature selection.
 
@@ -357,6 +366,13 @@ class EvolutionaryFeatureSelectorCustom:
                 print(f"best_score: {best_score_in_generation}")
                 print(f"best_score_index: {best_score_index}")
 
+            # Report the best score in the current generation
+            trial.report(best_score_in_generation, generation)
+
+            # Check if the trial should be pruned
+            if trial.should_prune():
+                raise optuna.TrialPruned()
+
             # If the best score in the current generation is better than the best score so far, update the best score and the best individual
             if has_better_score:
                 # Update the best score and the best individual
@@ -372,9 +388,16 @@ class EvolutionaryFeatureSelectorCustom:
                 if self.X_validation is not None:
                     # Filter the validation dataset to include only the selected features
                     X_validation_filtered = self.X_validation[:, best_individual.nonzero()[0]]
+
+                    if self.use_gpu:
+                        X_validation_filtered = cp.asarray(X_validation_filtered)
                     
                     # Predict the validation dataset
                     y_pred = best_model.predict(X_validation_filtered)
+
+                    if self.use_gpu:
+                        # Take the cupy array to numpy
+                        y_pred = cp.asnumpy(y_pred)
 
                     # Get the AUC score of the validation dataset
                     fpr, tpr, _ = roc_curve(self.y_validation, y_pred)
@@ -455,7 +478,7 @@ class EvolutionaryFeatureSelectorCustom:
         trial_params['early_stopping_rounds'] = self.early_stopping_rounds
 
         # Perform the genetic algorithm
-        best_individual, model, best_score, best_score2 = self.genetic_algorithm(trial_params)
+        best_individual, model, best_score, best_score2 = self.genetic_algorithm(trial_params, trial)
 
         # Pickle the best individual
         trial.set_user_attr('best_individual', ''.join([str(int(i)) for i in best_individual.tolist()]))
@@ -527,4 +550,4 @@ class EvolutionaryFeatureSelectorCustom:
         # Copy to the models folder
         shutil.copyfile("/data/hd4tb/OCDocker/data/ocdb/predictions/models_tmp/{}".format(best_model_name), "/data/hd4tb/OCDocker/data/ocdb/predictions/models/{}".format(best_model_name))
 
-        return study, best_params, best_score
+        return study

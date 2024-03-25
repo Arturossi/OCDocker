@@ -1,6 +1,5 @@
 import optuna
 
-import cupy as cp
 import numpy as np
 import pandas as pd
 
@@ -17,7 +16,7 @@ from urllib.parse import quote_plus
 
 import OCxgboost
 
-class PreXGBoostOptimizer:
+class XGBoostOptimizer:
     def __init__(self, 
             X_train: Union[np.ndarray, pd.DataFrame, pd.Series],
             y_train: Union[np.ndarray, pd.DataFrame, pd.Series],
@@ -25,6 +24,7 @@ class PreXGBoostOptimizer:
             y_test: Union[np.ndarray, pd.DataFrame, pd.Series],
             X_validation: Union[None, Union[np.ndarray, pd.DataFrame, pd.Series]] = None,
             y_validation: Union[None, Union[np.ndarray, pd.DataFrame, pd.Series]] = None,
+            storage: str = "sqlite:///pre_xgboost.db",
             params: dict = {},
             early_stopping_rounds : int = 20,
             use_gpu = False,
@@ -71,6 +71,14 @@ class PreXGBoostOptimizer:
         if X_validation is not None and y_validation is not None:
             self.X_validation = np.asarray(X_validation)
             self.y_validation = np.asarray(y_validation)
+
+            # If the use_gpu flag is set
+            if use_gpu:
+                import cupy as cp
+
+                # Send the validation data to the GPU
+                self.X_validation = cp.asarray(self.X_validation)
+                self.y_validation = cp.asarray(self.y_validation)
         else:
             self.X_validation = None
             self.y_validation = None
@@ -79,13 +87,14 @@ class PreXGBoostOptimizer:
         self.early_stopping_rounds = early_stopping_rounds
         self.random_state = random_state
         self.verbose = verbose
+        self.use_gpu = use_gpu
 
         # If use_gpu is True, set the device to 'cuda'
         if use_gpu:
             self.params['device'] = 'cuda'
 
         # Set the storage string for the study
-        self.storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"
+        self.storage = storage
 
     def objective(self, trial):
         """
@@ -168,8 +177,16 @@ class PreXGBoostOptimizer:
             # Predict the validation dataset
             y_pred = model.predict(self.X_validation)
 
+            # If the use_gpu flag is set
+            if self.use_gpu:
+                # Convert the predictions to numpy arrays
+                y_validation_np = self.y_validation.get() # type: ignore
+            else:
+                y_validation_np = self.y_validation
+
+
             # Get the AUC score of the validation dataset
-            fpr, tpr, _ = roc_curve(self.y_validation, y_pred) # type: ignore
+            fpr, tpr, _ = roc_curve(y_validation_np, y_pred) # type: ignore
 
             # Calculate the AUC score
             roc_auc = auc(fpr, tpr)
@@ -184,7 +201,7 @@ class PreXGBoostOptimizer:
         # Return the trained AUC score
         return metric
 
-    def optimize(self, direction: str = "minimize", n_trials: int = 1000,  n_jobs: int = 1, study_name: str = "XGBoost pre-optimization", load_if_exists: bool = True) -> tuple[optuna.study.Study, dict, float]:
+    def optimize(self, direction: str = "minimize", n_trials: int = 1000,  n_jobs: int = 1, study_name: str = "XGBoost pre-optimization", load_if_exists: bool = True) -> optuna.study.Study:
         """
         Optimizes XGBoost hyperparameters using Optuna.
 
@@ -231,10 +248,10 @@ class PreXGBoostOptimizer:
         best_params = study.best_params
         best_score = study.best_value
 
-        print(f"Best AUC score: { best_score }")
+        print(f"Best score: { best_score }")
         print(f"Best hyperparameters: {best_params}")
 
-        return study, best_params, best_score
+        return study
 
 class EvolutionaryFeatureSelector:
     """
