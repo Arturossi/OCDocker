@@ -3,6 +3,7 @@ import os
 import pandas as pd
 import pickle
 import seaborn as sns
+import math
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -492,6 +493,7 @@ def AOworker(
         X_train,
         X_test, 
         X_val,
+        encoding_dims,
         storage,
         models_folder,
         random_seed = 42,
@@ -511,6 +513,7 @@ def AOworker(
         X_train, 
         X_test, 
         X_val, 
+        encoding_dims,
         storage,
         models_folder,
         random_seed = random_seed,
@@ -578,55 +581,168 @@ def NNworker(
         )
         print(f"Process {id} completed {sampler_name} optimization")
 
-num_processes = 4
-storage_id = 11
+num_processes = 8
+storage_id = 14
 storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"
 models_folder = f"/data/hd4tb/OCDocker/data/ocdb/models/autoencoder_{storage_id}"
-run_autoencoder_optimization = False
+multiencoder = True
+run_autoencoder_optimization = True
 run_NN_optimization = False
+explained_variance = 0.95
 
 # If models folder does not exist, create it
 if not os.path.exists(models_folder):
     os.makedirs(models_folder)
 
-if run_autoencoder_optimization:
-    # Create a pool of worker processes
-    with Pool(num_processes) as pool:
-        # Each process will execute the 'NNworker' function with the datasets and optimizer parameters
-        pool.starmap(AOworker, [(
-            pid,
-            storage_id, 
-            X_train, 
-            X_test, 
-            X_val, 
-            storage,
-            models_folder,
-            42,               # random_seed
-            True,             # use_gpu
-            False,            # verbose
-            "minimize",       # direction
-            2500,             # n_trials
-            True,             # load_if_exists
-            1,                # n_jobs
-            "AO_Optimization" # study_name
-            ) for pid in range(num_processes)
-        ])
+if multiencoder:
+    # Set the classification for e
+    sf = [col for col in X_train.columns if col.startswith("VINA") or col.startswith("SMINA") or col.startswith("ODDT") or col.startswith("PLANTS")]
+    ligand = [
+        'AUTOCORR2D_1', 'AUTOCORR2D_2', 'AUTOCORR2D_3', 'AUTOCORR2D_4', 'AUTOCORR2D_5', 'AUTOCORR2D_6', 'AUTOCORR2D_7', 'AUTOCORR2D_8', 'AUTOCORR2D_9', 'AUTOCORR2D_10', 'AUTOCORR2D_11', 'AUTOCORR2D_12', 'AUTOCORR2D_13', 'AUTOCORR2D_14', 'AUTOCORR2D_15', 'AUTOCORR2D_16', 'AUTOCORR2D_17', 'AUTOCORR2D_18', 'AUTOCORR2D_19', 'AUTOCORR2D_20', 'AUTOCORR2D_21', 'AUTOCORR2D_22', 'AUTOCORR2D_23', 'AUTOCORR2D_24', 'AUTOCORR2D_25', 'AUTOCORR2D_26', 'AUTOCORR2D_27', 'AUTOCORR2D_28', 'AUTOCORR2D_29', 'AUTOCORR2D_30', 'AUTOCORR2D_31', 'AUTOCORR2D_32', 'AUTOCORR2D_33', 'AUTOCORR2D_34', 'AUTOCORR2D_35', 'AUTOCORR2D_36', 'AUTOCORR2D_37', 'AUTOCORR2D_38', 'AUTOCORR2D_39', 'AUTOCORR2D_40', 'AUTOCORR2D_41', 'AUTOCORR2D_42', 'AUTOCORR2D_43', 'AUTOCORR2D_44', 'AUTOCORR2D_45', 'AUTOCORR2D_46', 'AUTOCORR2D_47', 'AUTOCORR2D_48', 'AUTOCORR2D_49', 'AUTOCORR2D_50', 'AUTOCORR2D_51', 'AUTOCORR2D_52', 'AUTOCORR2D_53', 'AUTOCORR2D_54', 'AUTOCORR2D_55', 'AUTOCORR2D_56', 'AUTOCORR2D_57', 'AUTOCORR2D_58', 'AUTOCORR2D_59', 'AUTOCORR2D_60', 'AUTOCORR2D_61', 'AUTOCORR2D_62', 'AUTOCORR2D_63', 'AUTOCORR2D_64', 'AUTOCORR2D_65', 'AUTOCORR2D_66', 'AUTOCORR2D_67', 'AUTOCORR2D_68', 'AUTOCORR2D_69', 'AUTOCORR2D_70', 'AUTOCORR2D_71', 'AUTOCORR2D_72', 'AUTOCORR2D_73', 'AUTOCORR2D_74', 'AUTOCORR2D_75', 'AUTOCORR2D_76', 'AUTOCORR2D_77', 'AUTOCORR2D_78', 'AUTOCORR2D_79', 'AUTOCORR2D_80', 'AUTOCORR2D_81', 'AUTOCORR2D_82', 'AUTOCORR2D_83', 'AUTOCORR2D_84', 'AUTOCORR2D_85', 'AUTOCORR2D_86', 'AUTOCORR2D_87', 'AUTOCORR2D_88', 'AUTOCORR2D_89', 'AUTOCORR2D_90', 'AUTOCORR2D_91', 'AUTOCORR2D_92', 'AUTOCORR2D_93', 'AUTOCORR2D_94', 'AUTOCORR2D_95', 'AUTOCORR2D_96', 'AUTOCORR2D_97', 'AUTOCORR2D_98', 'AUTOCORR2D_99', 'AUTOCORR2D_100', 'AUTOCORR2D_101', 'AUTOCORR2D_102', 'AUTOCORR2D_103', 'AUTOCORR2D_104', 'AUTOCORR2D_105', 'AUTOCORR2D_106', 'AUTOCORR2D_107', 'AUTOCORR2D_108', 'AUTOCORR2D_109', 'AUTOCORR2D_110', 'AUTOCORR2D_111', 'AUTOCORR2D_112', 'AUTOCORR2D_113', 'AUTOCORR2D_114', 'AUTOCORR2D_115', 'AUTOCORR2D_116', 'AUTOCORR2D_117', 'AUTOCORR2D_118', 'AUTOCORR2D_119', 'AUTOCORR2D_120', 'AUTOCORR2D_121', 'AUTOCORR2D_122', 'AUTOCORR2D_123', 'AUTOCORR2D_124', 'AUTOCORR2D_125', 'AUTOCORR2D_126', 'AUTOCORR2D_127', 'AUTOCORR2D_128', 'AUTOCORR2D_129', 'AUTOCORR2D_130', 'AUTOCORR2D_131', 'AUTOCORR2D_132', 'AUTOCORR2D_133', 'AUTOCORR2D_134', 'AUTOCORR2D_135', 'AUTOCORR2D_136', 'AUTOCORR2D_137', 'AUTOCORR2D_138', 'AUTOCORR2D_139', 'AUTOCORR2D_140', 'AUTOCORR2D_141', 'AUTOCORR2D_142', 'AUTOCORR2D_143', 'AUTOCORR2D_144', 'AUTOCORR2D_145', 'AUTOCORR2D_146', 'AUTOCORR2D_147', 'AUTOCORR2D_148', 'AUTOCORR2D_149', 'AUTOCORR2D_150', 'AUTOCORR2D_151', 'AUTOCORR2D_152', 'AUTOCORR2D_153', 'AUTOCORR2D_154', 'AUTOCORR2D_155', 'AUTOCORR2D_156', 'AUTOCORR2D_157', 'AUTOCORR2D_158', 'AUTOCORR2D_159', 'AUTOCORR2D_160', 'AUTOCORR2D_161', 'AUTOCORR2D_162', 'AUTOCORR2D_163', 'AUTOCORR2D_164', 'AUTOCORR2D_165', 'AUTOCORR2D_166', 'AUTOCORR2D_167', 'AUTOCORR2D_168', 'AUTOCORR2D_169', 'AUTOCORR2D_170', 'AUTOCORR2D_171', 'AUTOCORR2D_172', 'AUTOCORR2D_173', 'AUTOCORR2D_174', 'AUTOCORR2D_175', 'AUTOCORR2D_176', 'AUTOCORR2D_177', 'AUTOCORR2D_178', 'AUTOCORR2D_179', 'AUTOCORR2D_180', 'AUTOCORR2D_181', 'AUTOCORR2D_182', 'AUTOCORR2D_183', 'AUTOCORR2D_184', 'AUTOCORR2D_185', 'AUTOCORR2D_186', 'AUTOCORR2D_187', 'AUTOCORR2D_188', 'AUTOCORR2D_189', 'AUTOCORR2D_190', 'AUTOCORR2D_191', 'AUTOCORR2D_192', 'BCUT2D_CHGHI', 'BCUT2D_CHGLO', 'BCUT2D_LOGPHI', 'BCUT2D_LOGPLOW', 'BCUT2D_MRHI', 'BCUT2D_MRLOW', 'BCUT2D_MWHI', 'BCUT2D_MWLOW', 'fr_Al_COO', 'fr_Al_OH', 'fr_Al_OH_noTert', 'fr_ArN', 'fr_Ar_COO', 'fr_Ar_N', 'fr_Ar_NH', 'fr_Ar_OH', 'fr_COO', 'fr_COO2', 'fr_C_O', 'fr_C_O_noCOO', 'fr_C_S', 'fr_HOCCN', 'fr_Imine', 'fr_NH0', 'fr_NH1', 'fr_NH2', 'fr_N_O', 'fr_Ndealkylation1', 'fr_Ndealkylation2', 'fr_Nhpyrrole', 'fr_SH', 'fr_aldehyde', 'fr_alkyl_carbamate', 'fr_alkyl_halide', 'fr_allylic_oxid', 'fr_amide', 'fr_amidine', 'fr_aniline', 'fr_aryl_methyl', 'fr_azide', 'fr_azo', 'fr_barbitur', 'fr_benzene', 'fr_benzodiazepine', 'fr_bicyclic', 'fr_diazo', 'fr_dihydropyridine', 'fr_epoxide', 'fr_ester', 'fr_ether', 'fr_furan', 'fr_guanido', 'fr_halogen', 'fr_hdrzine', 'fr_hdrzone', 'fr_imidazole', 'fr_imide', 'fr_isocyan', 'fr_isothiocyan', 'fr_ketone', 'fr_ketone_Topliss', 'fr_lactam', 'fr_lactone', 'fr_methoxy', 'fr_morpholine', 'fr_nitrile', 'fr_nitro', 'fr_nitro_arom', 'fr_nitro_arom_nonortho', 'fr_nitroso', 'fr_oxazole', 'fr_oxime', 'fr_para_hydroxylation', 'fr_phenol', 'fr_phenol_noOrthoHbond', 'fr_phos_acid', 'fr_phos_ester', 'fr_piperdine', 'fr_piperzine', 'fr_priamide', 'fr_prisulfonamd', 'fr_pyridine', 'fr_quatN', 'fr_sulfide', 'fr_sulfonamd', 'fr_sulfone', 'fr_term_acetylene', 'fr_tetrazole', 'fr_thiazole', 'fr_thiocyan', 'fr_thiophene', 'fr_unbrch_alkane', 'fr_urea', 'Chi0', 'Chi0v', 'Chi0n', 'Chi1', 'Chi1v', 'Chi1n', 'Chi2v', 'Chi2n', 'Chi3v', 'Chi3n', 'Chi4v', 'Chi4n', 'EState_VSA1', 'EState_VSA2', 'EState_VSA3', 'EState_VSA4', 'EState_VSA5', 'EState_VSA6', 'EState_VSA7', 'EState_VSA8', 'EState_VSA9', 'EState_VSA10', 'EState_VSA11', 'FpDensityMorgan1', 'FpDensityMorgan2', 'FpDensityMorgan3', 'Kappa1', 'Kappa2', 'Kappa3', 'MolLogP', 'MolMR', 'MolWt', 'NumAliphaticCarbocycles', 'NumAliphaticHeterocycles', 'NumAliphaticRings', 'NumAromaticCarbocycles', 'NumAromaticHeterocycles', 'NumAromaticRings', 'NumHAcceptors', 'NumHDonors', 'NumHeteroatoms', 'NumRadicalElectrons', 'NumRotatableBonds', 'NumSaturatedCarbocycles', 'NumSaturatedHeterocycles', 'NumSaturatedRings', 'NumValenceElectrons', 'NPR1', 'NPR2', 'PMI1', 'PMI2', 'PMI3', 'PEOE_VSA1', 'PEOE_VSA2', 'PEOE_VSA3', 'PEOE_VSA4', 'PEOE_VSA5', 'PEOE_VSA6', 'PEOE_VSA7', 'PEOE_VSA8', 'PEOE_VSA9', 'PEOE_VSA10', 'PEOE_VSA11', 'PEOE_VSA12', 'PEOE_VSA13', 'PEOE_VSA14', 'SMR_VSA1', 'SMR_VSA2', 'SMR_VSA3', 'SMR_VSA4', 'SMR_VSA5', 'SMR_VSA6', 'SMR_VSA7', 'SMR_VSA8', 'SMR_VSA9', 'SMR_VSA10', 'SlogP_VSA1', 'SlogP_VSA2', 'SlogP_VSA3', 'SlogP_VSA4', 'SlogP_VSA5', 'SlogP_VSA6', 'SlogP_VSA7', 'SlogP_VSA8', 'SlogP_VSA9', 'SlogP_VSA10', 'SlogP_VSA11', 'SlogP_VSA12', 'VSA_EState1', 'VSA_EState2', 'VSA_EState3', 'VSA_EState4', 'VSA_EState5', 'VSA_EState6', 'VSA_EState7', 'VSA_EState8', 'VSA_EState9', 'VSA_EState10', 'BalabanJ', 'BertzCT', 'ExactMolWt', 'FractionCSP3', 'HallKierAlpha', 'HeavyAtomMolWt', 'HeavyAtomCount', 'LabuteASA', 'TPSA', 'MaxAbsEStateIndex', 'MaxEStateIndex', 'MinAbsEStateIndex', 'MinEStateIndex', 'MaxAbsPartialCharge', 'MaxPartialCharge', 'MinAbsPartialCharge', 'MinPartialCharge', 'qed', 'RingCount', 'Asphericity', 'Eccentricity', 'InertialShapeFactor', 'RadiusOfGyration', 'SpherocityIndex', 'NHOHCount', 'NOCount'
+    ]
+    receptor = [
+        'countA', 'countR', 'countN', 'countD', 'countC', 'countQ', 'countE', 'countG', 'countH', 'countI', 'countL', 'countK', 'countM', 'countF', 'countP', 'countS', 'countT', 'countW', 'countY', 'countV', 'TotalAALength', 'AvgAALength', 'countChain', 'SASA', 'DipoleMoment', 'IsoelectricPoint', 'GRAVY', 'Aromaticity', 'InstabilityIndex'
+    ]
 
-# Load the study
-ao_study = optuna.load_study(study_name = f"AO_Optimization_{storage_id}_TPE", storage = storage)
-ao_df = ao_study.trials_dataframe()
-ao_df['combined_metric'] = abs(ao_df['value'] - ao_df['user_attrs_val_rmse'])
+    # Extract the data
+    sf_train_data = X_train[sf]
+    ligand_train_data = X_train[ligand]
+    receptor_train_data = X_train[receptor]
 
-best_ao_df = ao_df.sort_values(by=['combined_metric', 'value', 'user_attrs_val_rmse'], ascending=[True, True, True])
+    sf_test_data = X_test[sf]
+    ligand_test_data = X_test[ligand]
+    receptor_test_data = X_test[receptor]
 
-# Recreate the autoencoder object for the best trial based on the best_ao_df
-best_ao_trial = best_ao_df.iloc[0]
+    if X_val is not None:
+        sf_val_data = X_val[sf]
+        ligand_val_data = X_val[ligand]
+        receptor_val_data = X_val[receptor]
+    else:
+        scoring_functions_val_data = None
+        ligand_val_data = None
+        receptor_val_data = None
+    
+    new_X_train = [sf_train_data, ligand_train_data, receptor_train_data]
+    new_X_test = [sf_test_data, ligand_test_data, receptor_test_data]
+    new_X_val = [sf_val_data, ligand_val_data, receptor_val_data]
 
-# Select the trial by the best_ao_trial number
-best_ao_trial = ao_study.trials[best_ao_trial.number]
+    if run_autoencoder_optimization:
+        # List to store the best topology for each set
+        best_ao_params = []
+        
+        for name, AO_X_train, AO_X_test, AO_X_val in [
+            ("SF", sf_train_data, sf_test_data, sf_val_data), 
+            ("LIG", ligand_train_data, ligand_test_data, ligand_val_data), 
+            ("REC", receptor_train_data, receptor_test_data, receptor_val_data)
+        ]:
+            # Compute the singular values for AO_X_train
+            singular_values = np.linalg.svd(AO_X_train, compute_uv = False)
 
-# Pick the params from the best_ao_trial
-best_ao_params = best_ao_trial.params
+            # Compute the explained variance ratio
+            explained_variance_ratio = singular_values**2 / np.sum(singular_values**2)
+
+            # Compute the cumulative explained variance ratio
+            cumulative_explained_variance_ratio = np.cumsum(explained_variance_ratio)
+
+            # Compute the number of components that explain 95% of the variance
+            n_components = np.argmax(cumulative_explained_variance_ratio >= explained_variance) + 1
+
+            # Get the number of dimensions for the encoding layer and round up to the nearest power of 2 + 1
+            encoding_dims = ( # Size should be the same size or smaller than the number of features to explain the desired variance
+                max(2 ** math.ceil(math.log2(n_components / 2) - 1), 4), # Minimum value
+                n_components
+                #max(2 ** math.ceil(math.log2(AO_X_train.shape[1] / 2) - 1), 4), # Minimum value
+                #max(2 ** math.ceil(math.log2(AO_X_train.shape[1] / 2)) + 1, 8)  # Maximum value
+            )
+
+            # Skip SF (for now) TODO: Check if this is necessary
+            if name == "SF":
+                best_ao_params.append({"encoder_activation": "Identity", "encoding_dim": sf_train_data.shape[1]})
+                continue
+
+            if False:
+                # Create a pool of worker processes
+                with Pool(num_processes) as pool:
+                    # Each process will execute the 'NNworker' function with the datasets and optimizer parameters
+                    pool.starmap(AOworker, [(
+                        pid,
+                        storage_id, 
+                        AO_X_train,
+                        AO_X_test,
+                        AO_X_val,
+                        encoding_dims,
+                        storage,
+                        models_folder,
+                        42,                       # random_seed
+                        True,                     # use_gpu
+                        False,                    # verbose
+                        "minimize",               # direction
+                        500,                      # n_trials
+                        True,                     # load_if_exists
+                        1,                        # n_jobs
+                        f"AO_Optimization_{name}" # study_name
+                        ) for pid in range(num_processes)
+                    ])
+
+            # Load the study
+            ao_multi_study = optuna.load_study(study_name = f"AO_Optimization_{name}_{storage_id}_TPE", storage = storage)
+            ao_multi_df = ao_multi_study.trials_dataframe()
+            ao_multi_df['combined_metric'] = abs(ao_multi_df['value'] - ao_multi_df['user_attrs_val_rmse'])
+
+            best_ao_multi_df = ao_multi_df.sort_values(by=['combined_metric', 'value', 'user_attrs_val_rmse'], ascending=[True, True, True])
+
+            # Recreate the autoencoder object for the best trial based on the best_ao_multi_df
+            best_ao_multi_trial = best_ao_multi_df.iloc[0]
+
+            # Select the trial by the best_ao_multi_trial number
+            best_ao_multi_trial = ao_multi_study.trials[best_ao_multi_trial.number]
+
+            # Pick the params from the best_ao_multi_trial
+            best_ao_params.append(best_ao_multi_trial.params)
+else:
+    if run_autoencoder_optimization:
+        # Create a pool of worker processes
+        with Pool(num_processes) as pool:
+            # Each process will execute the 'NNworker' function with the datasets and optimizer parameters
+            pool.starmap(AOworker, [(
+                pid,
+                storage_id, 
+                X_train, 
+                X_test, 
+                X_val, 
+                (16, 256),        # encoder dims
+                storage,
+                models_folder,
+                42,               # random_seed
+                True,             # use_gpu
+                False,            # verbose
+                "minimize",       # direction
+                2500,             # n_trials
+                True,             # load_if_exists
+                1,                # n_jobs
+                "AO_Optimization" # study_name
+                ) for pid in range(num_processes)
+            ])
+
+        # Load the study
+        ao_study = optuna.load_study(study_name = f"AO_Optimization_{storage_id}_TPE", storage = storage)
+        ao_df = ao_study.trials_dataframe()
+        ao_df['combined_metric'] = abs(ao_df['value'] - ao_df['user_attrs_val_rmse'])
+
+        best_ao_df = ao_df.sort_values(by=['combined_metric', 'value', 'user_attrs_val_rmse'], ascending=[True, True, True])
+
+        # Recreate the autoencoder object for the best trial based on the best_ao_df
+        best_ao_trial = best_ao_df.iloc[0]
+
+        # Select the trial by the best_ao_trial number
+        best_ao_trial = ao_study.trials[best_ao_trial.number]
+
+        # Pick the params from the best_ao_trial
+        best_ao_params = best_ao_trial.params
+    
+    new_X_train = X_train
+    new_X_test = X_test
+    new_X_val = X_val
 
 if run_NN_optimization:
     with Pool(num_processes) as pool:
@@ -634,9 +750,9 @@ if run_NN_optimization:
         pool.starmap(NNworker, [(
             pid,
             storage_id, 
-            X_train, y_train, 
-            X_test, y_test, 
-            X_val, y_val, 
+            new_X_train, y_train, 
+            new_X_test, y_test, 
+            new_X_val, y_val, 
             storage,
             best_ao_params,   # encoder
             1,                # output_size
@@ -678,7 +794,7 @@ for i in range(n_models):
 
     # Initialize the trainer
     NN_model = NeuralNet(
-        X_train.shape[1], 
+        [new_X_train[j].shape[0] for j in range(len(new_X_train))],
         1,          
         best_ao_params, 
         best_params,
@@ -689,11 +805,11 @@ for i in range(n_models):
 
     # Train the model
     model = NN_model.train_model(
-        X_train, 
+        new_X_train, 
         y_train, 
-        X_test, 
+        new_X_test, 
         y_test, 
-        X_val, 
+        new_X_val, 
         y_val
     )
 

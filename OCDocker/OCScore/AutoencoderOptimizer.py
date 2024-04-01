@@ -66,6 +66,7 @@ class AutoencoderOptimizer:
             X_train: Union[np.ndarray, pd.DataFrame, pd.Series],
             X_test: Union[np.ndarray, pd.DataFrame, pd.Series],
             X_validation: Union[None, Union[np.ndarray, pd.DataFrame, pd.Series]] = None,
+            encoding_dims: tuple = (16, 256),
             storage: str = "sqlite:///autoencoder.db",
             models_folder: str = "./models/Autoencoder/",
             random_seed = 42, 
@@ -96,6 +97,8 @@ class AutoencoderOptimizer:
 
         self.input_size = self.X_train.shape[1]
 
+        self.encoding_dims = encoding_dims
+
         self.verbose = verbose
 
         self.best_rmse = np.inf
@@ -120,7 +123,7 @@ class AutoencoderOptimizer:
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
 
-    def train_autoencoder(self, model, optimizer, criterion, epochs, trial):
+    def train_autoencoder(self, model, optimizer, criterion, clip_grad, epochs, trial):
         # Set the best validation and training rmse to infinity
         best_validation_rmse = np.inf
         best_train_rmse = np.inf
@@ -141,6 +144,7 @@ class AutoencoderOptimizer:
                 reconstruction = model(data)
                 loss = criterion(reconstruction, data)
                 loss.backward()
+                nn.utils.clip_grad_norm_(model.parameters(), clip_grad)  # Clip the gradients
                 optimizer.step()
 
                 running_loss += loss.item()
@@ -210,9 +214,11 @@ class AutoencoderOptimizer:
 
     def objective(self, trial):
         self.set_random_seed()
-        encoding_dim = trial.suggest_int('encoding_dim', 16, 256)
+        encoding_dim = trial.suggest_int('encoding_dim', self.encoding_dims[0], self.encoding_dims[1])
         lr = trial.suggest_float('lr', 1e-4, 1e-1)
         batch_size = trial.suggest_categorical('batch_size', [32, 64, 128, 256])
+        # Suggestions for clipping the gradients
+        clip_grad = trial.suggest_float('clip_grad', 0.1, 1.0)
         epochs = trial.suggest_int('epochs', 20, 100)
 
         activation_functions = [nn.GELU, nn.LeakyReLU, nn.Mish, nn.ReLU, nn.SELU, nn.Identity]
@@ -278,7 +284,7 @@ class AutoencoderOptimizer:
                 batch_size = batch_size
             )
 
-        best_validation_rmse, best_train_rmse = self.train_autoencoder(model, optimizer, criterion, epochs, trial = trial) # type: ignore
+        best_validation_rmse, best_train_rmse = self.train_autoencoder(model, optimizer, criterion, clip_grad, epochs, trial = trial) # type: ignore
 
         evaluate_rmse = self.evaluate_autoencoder(model, criterion)
 

@@ -74,7 +74,20 @@ class NeuralNet(nn.Module):
             # Convert the activation_data_dict to a list while keeping the order
             activation_data = [v for _, v in activation_data_dict.items()]
 
-        if encoder_params is not None:
+        # If the encoder is instance of list
+        if isinstance(encoder_params, list):
+            self.encoder = []
+            for i, encoder_param in enumerate(encoder_params):
+                if encoder_param['encoder_activation'] == 'LeakyReLU':
+                    encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_param['encoder_activation'])](negative_slope = encoder_param['negative_slope_encoder'])
+                elif encoder_param['encoder_activation'] == 'GELU':
+                    encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_param['encoder_activation'])](approximate = encoder_param['approximate_encoder'])
+                else:
+                    encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_param['encoder_activation'])]()
+
+                # Build just the encoder
+                self.encoder.append([("Linear", input_size[i], encoder_param['encoding_dim']), ("BatchNorm1d", encoder_param['encoding_dim']), ("Activation", encoder_activation)])
+        elif encoder_params is not None:
             # Build the encoding and decoding functions
             if encoder_params['encoder_activation'] == 'LeakyReLU':
                 encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])](negative_slope = encoder_params['negative_slope_encoder'])
@@ -87,9 +100,14 @@ class NeuralNet(nn.Module):
             self.encoder = [("Linear", input_size, encoder_params['encoding_dim']), ("BatchNorm1d", encoder_params['encoding_dim']), ("Activation", encoder_activation)]
         else:
             self.encoder = None
-                
-        # Create the DynamicNN
-        self.NN = DynamicNN(input_size, output_size, hidden_layers, activation_data, self.encoder, self.device)
+
+        # If the encoder_params is a list
+        if isinstance(self.encoder, list):
+            # Create the MultiBranchDynamicNN
+            self.NN = MultiBranchDynamicNN(input_size, output_size, hidden_layers, activation_data, self.encoder, self.device)
+        else:
+            # Create the DynamicNN
+            self.NN = DynamicNN(input_size, output_size, hidden_layers, activation_data, self.encoder, self.device)
 
         self.batch_size = nn_params['batch_size']
         self.epochs = nn_params['epochs']
@@ -132,38 +150,73 @@ class NeuralNet(nn.Module):
         #torch.backends.cudnn.enabled = False
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
+        
     def train_model(self, X_train, y_train, X_test, y_test, X_validation = None, y_validation = None, criterion = nn.MSELoss()):
         self.set_random_seed()
         # Convert the data to torch.Tensor
-        X_train = torch.tensor(np.asarray(X_train), dtype=torch.float32).to(self.device)
+        if isinstance(X_train, list):
+            self.X_train = [torch.tensor(np.asarray(x), dtype=torch.float32).to(self.device) for x in X_train]
+        else:
+            self.X_train = torch.tensor(np.asarray(X_train), dtype=torch.float32).to(self.device)
+
         y_train = torch.tensor(np.asarray(y_train), dtype=torch.float32).to(self.device)
 
-        X_test = torch.tensor(np.asarray(X_test), dtype=torch.float32).to(self.device)
+        if isinstance(X_test, list):
+            self.X_test = [torch.tensor(np.asarray(x), dtype=torch.float32).to(self.device) for x in X_test]
+        else:
+            self.X_test = torch.tensor(np.asarray(X_test), dtype=torch.float32).to(self.device)
+
         y_test = torch.tensor(np.asarray(y_test), dtype=torch.float32).to(self.device)
 
         if X_validation is not None and y_validation is not None:
-            X_validation = torch.tensor(np.asarray(X_validation), dtype=torch.float32).to(self.device)
+            if isinstance(X_validation, list):
+                self.X_validation = [torch.tensor(np.asarray(x), dtype=torch.float32).to(self.device) for x in X_validation]
+            else:
+                self.X_validation = torch.tensor(np.asarray(X_validation), dtype=torch.float32).to(self.device)
+            
             y_validation = torch.tensor(np.asarray(y_validation), dtype=torch.float32).to(self.device)
 
-        # Create the train and test loaders
-        train_loader = DataLoader(
-            dataset = CustomDataset(X_train, y_train), 
-            batch_size = self.batch_size, 
-            shuffle = True
-        )
-
-        test_loader = DataLoader(
-            dataset = CustomDataset(X_test, y_test), 
-            batch_size = self.batch_size
-        )
-
-        # If a validation set has been provided, create the validation loader
-        if X_validation is not None:
-            validation_loader = DataLoader(
-                dataset = CustomDataset(X_validation, y_validation), 
+        # If the input is a list create the train and test loaders
+        if isinstance(X_train, list):
+            train_loader = DataLoader(
+                dataset = MultiBranchCustomDataset(X_train[0], X_train[1], X_train[2], y_train), 
                 batch_size = self.batch_size, 
                 shuffle = True
             )
+        else:
+            train_loader = DataLoader(
+                dataset = CustomDataset(X_train, y_train), 
+                batch_size = self.batch_size, 
+                shuffle = True
+            )
+
+        # If the input is a list create the train and test loaders
+        if isinstance(X_test, list):
+            test_loader = DataLoader(
+                dataset = MultiBranchCustomDataset(X_test[0], X_test[1], X_test[2], y_test), 
+                batch_size = self.batch_size, 
+                shuffle = True
+            )
+        else:
+            test_loader = DataLoader(
+                dataset = CustomDataset(X_test, y_test), 
+                batch_size = self.batch_size
+            )
+
+        # If a validation set has been provided, create the validation loader
+        if X_validation is not None:
+            if isinstance(X_validation, list):
+                validation_loader = DataLoader(
+                    dataset = MultiBranchCustomDataset(X_validation[0], X_validation[1], X_validation[2], y_validation), 
+                    batch_size = self.batch_size, 
+                    shuffle = True
+                )
+            else:
+                validation_loader = DataLoader(
+                    dataset = CustomDataset(X_validation, y_validation), 
+                    batch_size = self.batch_size, 
+                    shuffle = True
+                )
 
         # For each epoch
         for epoch in range(self.epochs):
@@ -173,18 +226,31 @@ class NeuralNet(nn.Module):
             # Set the running loss to 0            
             running_loss = 0.0
 
-            for i, (inputs, labels) in enumerate(train_loader):
-                # Zero the gradients
-                self.optimizer.zero_grad()
+            # If the train loader is a multi branch dataset
+            if isinstance(train_loader.dataset, MultiBranchCustomDataset):
+                for i, (inputs1, inputs2, inputs3, labels) in enumerate(train_loader):
+                    # Zero the gradients
+                    self.optimizer.zero_grad()
 
-                outputs = self.NN(inputs)
-                loss = criterion(outputs, labels.view(-1, 1))
+                    outputs = self.NN([inputs1, inputs2, inputs3])                 # Forward pass
+                    loss = criterion(outputs, labels.view(-1, 1))                  # Calculate the loss
+                    loss.backward()                                                # Backward pass
+                    nn.utils.clip_grad_norm_(self.NN.parameters(), self.clip_grad) # Clip the gradients
+                    self.optimizer.step()                                          # Update weights
 
-                loss.backward()
-                nn.utils.clip_grad_norm_(self.NN.parameters(), self.clip_grad)
-                self.optimizer.step()
+                    running_loss += loss.item()
+            else:                
+                for i, (inputs, labels) in enumerate(train_loader):
+                    # Zero the gradients
+                    self.optimizer.zero_grad()
 
-                running_loss += loss.item()
+                    outputs = self.NN(inputs)                                      # Forward pass
+                    loss = criterion(outputs, labels.view(-1, 1))                  # Calculate the loss
+                    loss.backward()                                                # Backward pass
+                    nn.utils.clip_grad_norm_(self.NN.parameters(), self.clip_grad) # Clip the gradients
+                    self.optimizer.step()                                          # Update weights
+
+                    running_loss += loss.item()
 
         
             # Set the model to evaluation mode
@@ -311,6 +377,115 @@ class DynamicNN(nn.Module):
             x = layer(x.to(self.device))
         return x
 
+class MultiBranchDynamicNN(nn.Module):
+    def __init__(self,
+            input_size: int,
+            output_size: int,
+            hidden_layers: list,
+            activation_data: list = [],
+            encoders: Union[None, list] = None,
+            device: torch.device = torch.device('cpu')
+        ):
+        super(MultiBranchDynamicNN, self).__init__()
+
+        self.input_size = input_size
+        self.output_size = output_size
+
+        self.encoders = []
+
+        self.layers = nn.ModuleList()
+
+        self.device = device
+
+        # If the encoder is a list
+        if isinstance(encoders, list):
+            for encoder in encoders:
+                encoder_modules = nn.ModuleList()
+                # Check if the encoder dict is not empty
+                if not encoder:
+                    for encoder_layer in encoder:
+                        if encoder_layer[0] == "Linear":
+                            encoder_modules.append(nn.Linear(encoder_layer[1], encoder_layer[2]).to(self.device))
+                        elif encoder_layer[0] == "BatchNorm1d":
+                            encoder_modules.append(nn.BatchNorm1d(encoder_layer[1]).to(self.device))
+                        elif encoder_layer[0] == "Activation":
+                            encoder_modules.append(encoder_layer[1].to(self.device))
+                else:
+                    # Add an identity layer (no encoder)
+                    encoder_modules.append(nn.Identity().to(self.device))
+
+                self.encoders.append({
+                    "input_size" : encoder[0][2], 
+                    "encoder" : encoder_modules
+                    })
+        else:
+            # Encoder should be a list
+            raise ValueError("The encoder should be a list")
+
+        self.layer_sizes = hidden_layers + [self.output_size]
+
+        for i in range(len(self.layer_sizes) - 1):
+            self.layers.append(nn.Linear(self.layer_sizes[i], self.layer_sizes[i+1]).to(self.device))
+
+            # Add batch normalization layer
+            if i < len(self.layer_sizes) - 2:  # No batch norm for output layer
+                self.layers.append(nn.BatchNorm1d(self.layer_sizes[i + 1]).to(self.device))
+                
+            if activation_data and i < len(activation_data):
+                if len(activation_data[i]) == 1:
+                    act_func = activation_data[i][0]
+                    self.layers.append(act_func().to(self.device))
+                else:
+                    act_func, act_params = activation_data[i]
+                
+                    # Create a new dictionary with the trailing numbers removed from the keys
+                    processed_act_params = {re.sub(r'_\d+$', '', k): v for k, v in act_params.items()}
+                    self.layers.append(act_func(**processed_act_params).to(self.device))
+
+    def forward(self, xs: list[torch.Tensor]) -> torch.Tensor:
+        '''
+        Forward pass through the network.
+
+        Parameters
+        ----------
+        xs : list[torch.Tensor]
+            Input tensor
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor
+        '''
+
+        # Check if xs is a list
+        if not isinstance(xs, list):
+            raise ValueError("The input should be a list of tensors")
+        
+        # Check if the length of xs is the same as the number of encoders
+        if len(xs) != len(self.encoders):
+            raise ValueError("The number of inputs should be the same as the number of encoders")
+        
+        # Process each input tensor through its corresponding encoder
+        encoded_outputs = []
+        for x, encoder in zip(xs, self.encoders):
+            for layer in encoder["encoder"]:
+                x = layer(x.to(self.device))  # Update x with the output of the current layer
+            encoded_outputs.append(x)  # Store the encoded output for each input tensor
+        
+        # Concatenate the encoded outputs into a single tensor
+        x = torch.cat(encoded_outputs, dim=1)
+
+        # Add a linear layer to the concatenated tensor to match the input size of the first hidden layer
+        x = nn.Linear(x.shape[1], self.layer_sizes[0]).to(self.device)(x)
+
+        # For each layer in the layers
+        for layer in self.layers:
+            # Pass the tensor through the layer
+            x = layer(x.to(self.device))
+
+        # Return the tensor
+        return x
+
 class CustomDataset(Dataset):
     def __init__(self, features, target):
         self.features = features
@@ -321,17 +496,31 @@ class CustomDataset(Dataset):
 
     def __getitem__(self, idx):
         return self.features[idx], self.target[idx]
- 
+
+class MultiBranchCustomDataset(Dataset):
+    def __init__(self, features1, features2, features3, target):
+        self.features1 = features1
+        self.features2 = features2
+        self.features3 = features3
+        self.target = target
+
+    def __len__(self):
+        return len(self.features1)
+
+    def __getitem__(self, idx):
+        return self.features1[idx], self.features2[idx], self.features3[idx], self.target[idx]
+
+
 class NNOptimizer:
     def __init__(self,
-            X_train: Union[np.ndarray, pd.DataFrame, pd.Series],
+            X_train: Union[np.ndarray, pd.DataFrame, pd.Series, list[Union[np.ndarray, pd.DataFrame, pd.Series]]],
             y_train: Union[np.ndarray, pd.DataFrame, pd.Series],
-            X_test: Union[np.ndarray, pd.DataFrame, pd.Series],
+            X_test: Union[np.ndarray, pd.DataFrame, pd.Series, list[Union[np.ndarray, pd.DataFrame, pd.Series]]],
             y_test: Union[np.ndarray, pd.DataFrame, pd.Series],
-            X_validation: Union[None, Union[np.ndarray, pd.DataFrame, pd.Series]] = None,
+            X_validation: Union[None, Union[np.ndarray, pd.DataFrame, pd.Series], list[Union[None, np.ndarray, pd.DataFrame, pd.Series]]] = None,
             y_validation: Union[None, Union[np.ndarray, pd.DataFrame, pd.Series]] = None,
             storage: str = "sqlite:///NNoptimization.db",
-            encoder_params: Union[None, dict] = None,
+            encoder_params: Union[None, dict, tuple[dict, dict, dict]] = None,
             output_size: int = 1,
             random_seed: int = 42,
             use_gpu: bool = True,
@@ -347,16 +536,31 @@ class NNOptimizer:
         self.set_random_seed()
         
         # Convert the data do np.ndarray then to torch.Tensor
-        self.X_train = torch.tensor(np.asarray(X_train), dtype=torch.float32).to(self.device)
+        if isinstance(X_train, list):
+            self.X_train = [torch.tensor(np.asarray(x), dtype=torch.float32).to(self.device) for x in X_train]
+            self.input_size = [x.shape[1] for x in self.X_train]
+        else:
+            self.X_train = torch.tensor(np.asarray(X_train), dtype=torch.float32).to(self.device)
+            self.input_size = self.X_train.shape[1]
+
         self.y_train = torch.tensor(np.asarray(y_train), dtype=torch.float32).to(self.device)
         self.train_loader = None
 
-        self.X_test = torch.tensor(np.asarray(X_test), dtype=torch.float32).to(self.device)
+        if isinstance(X_test, list):
+            self.X_test = [torch.tensor(np.asarray(x), dtype=torch.float32).to(self.device) for x in X_test]
+        else:
+            self.X_test = torch.tensor(np.asarray(X_test), dtype=torch.float32).to(self.device)
+
         self.y_test = torch.tensor(np.asarray(y_test), dtype=torch.float32).to(self.device)
         self.test_loader = None
 
-        if X_validation is not None and y_validation is not None:
-            self.X_validation = torch.tensor(np.asarray(X_validation), dtype=torch.float32).to(self.device)
+        # Check if the validation set has been provided or if any of its elements are None
+        if (X_validation is not None and y_validation is not None) or not (isinstance(X_validation, list) and any(x is None for x in X_validation)):
+            if isinstance(X_validation, list):
+                self.X_validation = [torch.tensor(np.asarray(x), dtype=torch.float32).to(self.device) for x in X_validation]
+            else:
+                self.X_validation = torch.tensor(np.asarray(X_validation), dtype=torch.float32).to(self.device)
+
             self.y_validation = torch.tensor(np.asarray(y_validation), dtype=torch.float32).to(self.device)
             self.validation_loader = None
         else:
@@ -364,7 +568,6 @@ class NNOptimizer:
             self.y_validation = None
             self.validation_loader = None
 
-        self.input_size = self.X_train.shape[1]
         self.output_size = output_size
 
         self.power_of_two_options = [2**i for i in range(4, 12)]  # 16, 32, 64, 128, 256
@@ -372,21 +575,34 @@ class NNOptimizer:
         self.verbose = verbose
 
         if encoder_params is not None:
-            # Build the encoding and decoding functions
-            if encoder_params['encoder_activation'] == 'LeakyReLU':
-                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])](negative_slope = encoder_params['negative_slope_encoder'])
-            elif encoder_params['encoder_activation'] == 'GELU':
-                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])](approximate = encoder_params['approximate_encoder'])
-            else:
-                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])]()
-
-            # Build just the encoder
-            self.encoder = [("Linear", self.input_size, encoder_params['encoding_dim']), ("BatchNorm1d", encoder_params['encoding_dim']), ("Activation", encoder_activation)]
+            if isinstance(encoder_params, dict):
+                self.encoder = self.__build_encoder(encoder_params)
+            else: # It is a tuple
+                # Split the tuple into 3 parts
+                sf_encoder_params, lig_encoder_params, rec_encoder_params = encoder_params
+                self.encoder = [
+                    self.__build_encoder(sf_encoder_params), 
+                    self.__build_encoder(lig_encoder_params), 
+                    self.__build_encoder(rec_encoder_params)
+                ]
         else:
             self.encoder = None
         
         # Set the storage string for the study
         self.storage = storage
+
+    def __build_encoder(self, encoder_params):
+        if encoder_params['encoder_activation'] == 'LeakyReLU':
+            encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])](negative_slope = encoder_params['negative_slope_encoder'])
+        
+        elif encoder_params['encoder_activation'] == 'GELU':
+            encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])](approximate = encoder_params['approximate_encoder'])
+        
+        else:
+            encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])]()
+
+        # Build just the encoder
+        return [("Linear", self.input_size, encoder_params['encoding_dim']), ("BatchNorm1d", encoder_params['encoding_dim']), ("Activation", encoder_activation)]
 
     def set_random_seed(self):
         np.random.seed(self.random_seed)
@@ -414,17 +630,31 @@ class NNOptimizer:
             # Set the running loss to 0            
             running_loss = 0.0
 
-            for i, (inputs, labels) in enumerate(train_loader):
-                # Zero the gradients
-                optimizer.zero_grad()
+            # If the train loader is a multi branch dataset
+            if isinstance(train_loader.dataset, MultiBranchCustomDataset):
+                for i, (inputs1, inputs2, inputs3, labels) in enumerate(train_loader):
+                    # Zero the gradients
+                    optimizer.zero_grad()
 
-                outputs = model(inputs)                                  # Forward pass
-                loss = criterion(outputs, labels.view(-1, 1))            # Calculate the loss
-                loss.backward()                                          # Backward pass
-                nn.utils.clip_grad_norm_(model.parameters(), clip_grad)  # Clip the gradients
-                optimizer.step()                                         # Update weights
+                    outputs = model([inputs1, inputs2, inputs3])             # Forward pass
+                    loss = criterion(outputs, labels.view(-1, 1))            # Calculate the loss
+                    loss.backward()                                          # Backward pass
+                    nn.utils.clip_grad_norm_(model.parameters(), clip_grad)  # Clip the gradients
+                    optimizer.step()                                         # Update weights
 
-                running_loss += loss.item()
+                    running_loss += loss.item()
+            else:                
+                for i, (inputs, labels) in enumerate(train_loader):
+                    # Zero the gradients
+                    optimizer.zero_grad()
+
+                    outputs = model(inputs)                                  # Forward pass
+                    loss = criterion(outputs, labels.view(-1, 1))            # Calculate the loss
+                    loss.backward()                                          # Backward pass
+                    nn.utils.clip_grad_norm_(model.parameters(), clip_grad)  # Clip the gradients
+                    optimizer.step()                                         # Update weights
+
+                    running_loss += loss.item()
 
             # Set the model to evaluation mode
             model.eval()
@@ -434,16 +664,26 @@ class NNOptimizer:
             all_predictions = []
             all_labels = []
 
-            for inputs, labels in test_loader:
-                predicted = model(inputs)
-                loss = criterion(predicted, labels.view(-1, 1))
-                running_loss += loss.item()
-                
-                all_predictions.extend(predicted.cpu().detach().numpy())
-                all_labels.extend(labels.cpu().detach().numpy())
+            # If the test loader is a list
+            if isinstance(test_loader.dataset, MultiBranchCustomDataset):
+                for inputs1, inputs2, inputs3, labels in test_loader:
+                    predicted = model([inputs1, inputs2, inputs3])
+                    loss = criterion(predicted, labels.view(-1, 1))
+                    running_loss += loss.item()
+                    
+                    all_predictions.extend(predicted.cpu().detach().numpy())
+                    all_labels.extend(labels.cpu().detach().numpy())
+            else:
+                for inputs, labels in test_loader:
+                    predicted = model(inputs)
+                    loss = criterion(predicted, labels.view(-1, 1))
+                    running_loss += loss.item()
+                    
+                    all_predictions.extend(predicted.cpu().detach().numpy())
+                    all_labels.extend(labels.cpu().detach().numpy())
 
         # Get the RMSE
-        average_loss = running_loss / len(test_loader)
+        average_loss = running_loss / len(test_loader) # type: ignore
         rmse = np.sqrt(average_loss)
 
         if self.verbose:
@@ -487,7 +727,11 @@ class NNOptimizer:
             else:
                 activation_data.append((activation_function, {}))
 
-        model = DynamicNN(self.input_size, self.output_size, hidden_layers, activation_data, self.encoder, self.device)
+        # If the encoder is not a list
+        if isinstance(self.encoder, list):
+            model = MultiBranchDynamicNN(self.input_size, self.output_size, hidden_layers, activation_data, self.encoder, self.device)
+        else:
+            model = DynamicNN(self.input_size, self.output_size, hidden_layers, activation_data, self.encoder, self.device)
 
         # Print the model architecture
         if self.verbose:
@@ -501,24 +745,46 @@ class NNOptimizer:
         # Suggest the batch size
         batch_size = trial.suggest_categorical('batch_size', [32, 64, 128, 256])
 
-        # Create the train and test loaders
-        self.train_loader = DataLoader(
-            dataset = CustomDataset(self.X_train, self.y_train), 
-            batch_size = batch_size, 
-            shuffle = True
-        )
-        self.test_loader = DataLoader(
-            dataset = CustomDataset(self.X_test, self.y_test), 
-            batch_size = batch_size
-        )
-
-        # If a validation set has been provided, create the validation loader
-        if self.X_validation is not None:
-            self.validation_loader = DataLoader(
-                dataset = CustomDataset(self.X_validation, self.y_validation), 
+        # If the input is a list create the train and test loaders
+        if isinstance(self.X_train, list):
+            self.train_loader = DataLoader(
+                dataset = MultiBranchCustomDataset(self.X_train[0], self.X_train[1], self.X_train[2], self.y_train), 
                 batch_size = batch_size, 
                 shuffle = True
             )
+        else:
+            self.train_loader = DataLoader(
+                dataset = CustomDataset(self.X_train, self.y_train), 
+                batch_size = batch_size, 
+                shuffle = True
+            )
+
+        # Create the train and test loaders
+        if isinstance(self.X_test, list):
+            self.test_loader = DataLoader(
+                dataset = MultiBranchCustomDataset(self.X_test[0], self.X_test[1], self.X_test[2], self.y_test), 
+                batch_size = batch_size
+            )
+        else:
+            self.test_loader = DataLoader(
+                dataset = CustomDataset(self.X_test, self.y_test), 
+                batch_size = batch_size
+            )
+
+        # If a validation set has been provided, create the validation loader
+        if self.X_validation is not None:
+            if isinstance(self.X_validation, list):
+                self.validation_loader = DataLoader(
+                    dataset = MultiBranchCustomDataset(self.X_validation[0], self.X_validation[1], self.X_validation[2], self.y_validation), 
+                    batch_size = batch_size, 
+                    shuffle = True
+                )
+            else:
+                self.validation_loader = DataLoader(
+                    dataset = CustomDataset(self.X_validation, self.y_validation), 
+                    batch_size = batch_size, 
+                    shuffle = True
+                )
 
         # Suggestions for the epochs
         epochs = trial.suggest_int('epochs', 100, 1000)
