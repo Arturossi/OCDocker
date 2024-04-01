@@ -822,14 +822,26 @@ for i in range(n_models):
     
     # Append the model to the list
     models.append(NN_model)
-    predictions.append(
-        NN_model.NN(
-            torch.tensor(
-                np.asarray(X_val), 
-                dtype=torch.float32
-            ).to(torch.device('cuda'))
-        ).cpu().detach().numpy()
-    )
+
+    # Make predictions
+    if isinstance(new_X_val, list):
+        predictions.append(
+            NN_model.NN(
+                [torch.tensor(
+                    np.asarray(new_X_val[j]), 
+                    dtype=torch.float32
+                ).to(torch.device('cuda')) for j in range(len(new_X_val))]
+            ).cpu().detach().numpy()
+        )
+    else:
+        predictions.append(
+            NN_model.NN(
+                torch.tensor(
+                    np.asarray(new_X_val), 
+                    dtype=torch.float32
+                ).to(torch.device('cuda'))
+            ).cpu().detach().numpy()
+        )
 
     # Save the model
     torch.save(model, f'/data/hd4tb/OCDocker/data/ocdb/models/NN_model_{i}.pt')

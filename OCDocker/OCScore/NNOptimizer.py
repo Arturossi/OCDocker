@@ -54,17 +54,22 @@ class NeuralNet(nn.Module):
             if key.startswith('activation_function'):
                 # Get the index of the activation function
                 index = int(key.split('_')[-1])
+                
                 # Get the activation function and its parameters
                 activation_data_dict[index] = [self.activation_functions[self.activation_functions_str.index(nn_params[f'activation_function_{index}'])]]
+            
             # Check if the key is the number of units in a layer
             elif key.startswith('n_units_layer'):
                 hidden_layers.append(value)
+            
             # Check if the key is a parameter for an activation function (ends with a number)
             elif re.search(r'_\d+$', key):
                 # Get the index of the activation function parameter
                 index = int(key.split('_')[-1])
+                
                 # Remove the index from the key
                 key = re.sub(r'_\d+$', '', key)
+                
                 # Add the parameter to the second element of the list dict, creating the dict if it doesn't exist
                 if index in activation_data_dict:
                     activation_data_dict[index].append({key: value})
@@ -153,26 +158,27 @@ class NeuralNet(nn.Module):
         
     def train_model(self, X_train, y_train, X_test, y_test, X_validation = None, y_validation = None, criterion = nn.MSELoss()):
         self.set_random_seed()
+
         # Convert the data to torch.Tensor
         if isinstance(X_train, list):
-            self.X_train = [torch.tensor(np.asarray(x), dtype=torch.float32).to(self.device) for x in X_train]
+            X_train = [torch.tensor(np.asarray(x), dtype=torch.float32).to(self.device) for x in X_train]
         else:
-            self.X_train = torch.tensor(np.asarray(X_train), dtype=torch.float32).to(self.device)
+            X_train = torch.tensor(np.asarray(X_train), dtype=torch.float32).to(self.device)
 
         y_train = torch.tensor(np.asarray(y_train), dtype=torch.float32).to(self.device)
 
         if isinstance(X_test, list):
-            self.X_test = [torch.tensor(np.asarray(x), dtype=torch.float32).to(self.device) for x in X_test]
+            X_test = [torch.tensor(np.asarray(x), dtype=torch.float32).to(self.device) for x in X_test]
         else:
-            self.X_test = torch.tensor(np.asarray(X_test), dtype=torch.float32).to(self.device)
+            X_test = torch.tensor(np.asarray(X_test), dtype=torch.float32).to(self.device)
 
         y_test = torch.tensor(np.asarray(y_test), dtype=torch.float32).to(self.device)
 
         if X_validation is not None and y_validation is not None:
             if isinstance(X_validation, list):
-                self.X_validation = [torch.tensor(np.asarray(x), dtype=torch.float32).to(self.device) for x in X_validation]
+                X_validation = [torch.tensor(np.asarray(x), dtype=torch.float32).to(self.device) for x in X_validation]
             else:
-                self.X_validation = torch.tensor(np.asarray(X_validation), dtype=torch.float32).to(self.device)
+                X_validation = torch.tensor(np.asarray(X_validation), dtype=torch.float32).to(self.device)
             
             y_validation = torch.tensor(np.asarray(y_validation), dtype=torch.float32).to(self.device)
 
@@ -251,7 +257,6 @@ class NeuralNet(nn.Module):
                     self.optimizer.step()                                          # Update weights
 
                     running_loss += loss.item()
-
         
             # Set the model to evaluation mode
             self.NN.eval()
@@ -262,13 +267,23 @@ class NeuralNet(nn.Module):
             all_labels = []
             
             with torch.no_grad():
-                for inputs, labels in test_loader:
-                    predicted = self.NN(inputs)
-                    loss = criterion(predicted, labels.view(-1, 1))
-                    running_loss += loss.item()
-                    
-                    all_predictions.extend(predicted.cpu().numpy())
-                    all_labels.extend(labels.cpu().numpy())
+                # If the test loader is a multi branch dataset
+                if isinstance(test_loader.dataset, MultiBranchCustomDataset):
+                    for inputs1, inputs2, inputs3, labels in test_loader:
+                        predicted = self.NN([inputs1, inputs2, inputs3])
+                        loss = criterion(predicted, labels.view(-1, 1))
+                        running_loss += loss.item()
+                        
+                        all_predictions.extend(predicted.cpu().numpy())
+                        all_labels.extend(labels.cpu().numpy())
+                else:
+                    for inputs, labels in test_loader:
+                        predicted = self.NN(inputs)
+                        loss = criterion(predicted, labels.view(-1, 1))
+                        running_loss += loss.item()
+                        
+                        all_predictions.extend(predicted.cpu().numpy())
+                        all_labels.extend(labels.cpu().numpy())
 
             average_loss = running_loss / len(test_loader)
             rmse = np.sqrt(average_loss)
@@ -282,8 +297,13 @@ class NeuralNet(nn.Module):
             if X_validation is not None:
                 # Set the model to evaluation mode
                 self.NN.eval()
-                # Get the predictions for the validation set
-                validation_predictions = self.NN(X_validation)
+
+                # If the validation loader is a multi branch dataset
+                if isinstance(validation_loader.dataset, MultiBranchCustomDataset):
+                    validation_predictions = self.NN([X_validation[0], X_validation[1], X_validation[2]])
+                else:
+                    validation_predictions = self.NN(X_validation)
+
                 # Convert the predictions and the labels to numpy
                 validation_predictions_np = validation_predictions.detach().cpu().numpy()
                 y_validation_np = y_validation.cpu().numpy() # type: ignore
@@ -401,6 +421,7 @@ class MultiBranchDynamicNN(nn.Module):
         if isinstance(encoders, list):
             for encoder in encoders:
                 encoder_modules = nn.ModuleList()
+                
                 # Check if the encoder dict is not empty
                 if not encoder:
                     for encoder_layer in encoder:
