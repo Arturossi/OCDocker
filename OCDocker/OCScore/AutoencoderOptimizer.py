@@ -10,6 +10,7 @@ from typing import Union
 
 import optuna
 import random
+import re
 
 class AutoencoderDataset(Dataset):
     def __init__(self, features):
@@ -27,26 +28,121 @@ class Autoencoder(nn.Module):
                  encoding_dim,
                  encoder_activation_fn,
                  decoder_activation_fn,
+                 decoding_dim = None,
                  device = torch.device("cpu")
                 ):
         super(Autoencoder, self).__init__()
 
         self.device = device
 
-        self.encoder = nn.Sequential(
-            nn.Linear(input_size, encoding_dim),
-            nn.BatchNorm1d(encoding_dim),
-            encoder_activation_fn
-        ).to(self.device)
+        # If the encoder is a list
+        if isinstance(encoder_activation_fn, list):
+            # Then the encoding_dim should be a list as well
+            if not isinstance(encoding_dim, list):
+                raise ValueError("If the encoder_activation_fn is a list, then the encoding_dim should be a list as well.")
+            
+            # Create the encoder layers to be added to the ModuleList
+            encoder_layers = []
+        
+            # For each element in the list
+            for i in range(len(encoder_activation_fn)):
+                if len(encoder_activation_fn[i]) == 1:
+                    act_func = encoder_activation_fn[i][0]().to(self.device)
+                else:
+                    pre_act_func, act_params = encoder_activation_fn[i]
+                
+                    # Create a new dictionary with the trailing numbers removed from the keys (also removing _encoder)
+                    processed_act_params = {re.sub(r'_\d+$', '', k.replace('_encoder', '')): v for k, v in act_params.items()}
 
-        self.decoder = nn.Sequential(
-            nn.Linear(encoding_dim, input_size),
-            decoder_activation_fn
-        ).to(self.device)
+                    # Create the activation function
+                    act_func = pre_act_func(**processed_act_params).to(self.device)
+
+                # If it is the first element
+                if i == 0:
+                    # Add the first layer
+                    encoder_layers.extend([
+                        nn.Linear(input_size, encoding_dim[i]).to(self.device),
+                        nn.BatchNorm1d(encoding_dim[i]).to(self.device),
+                        act_func.to(self.device)
+                    ])
+                else:
+                    # Add the rest of the layers
+                    encoder_layers.extend([
+                        nn.Linear(encoding_dim[i-1], encoding_dim[i]).to(self.device),
+                        nn.BatchNorm1d(encoding_dim[i]).to(self.device),
+                        act_func.to(self.device)
+                    ])
+
+            # Create the encoder as a ModuleList
+            self.encoder = nn.ModuleList(encoder_layers)
+
+            # Check if the decoding_dim is not None
+            if decoding_dim is None:
+                raise ValueError("If the encoding_dim has more than one element, then the decoding_dim should be a list as well.")
+            
+            # Create the decoder layers to be added to the ModuleList
+            decoder_layers = []
+
+            # For each decoder layer
+            for i in range(len(decoding_dim)):
+                if len(decoder_activation_fn[i]) == 1:
+                    act_func = decoder_activation_fn[i][0]().to(self.device)
+                else:
+                    pre_act_func, act_params = decoder_activation_fn[i]
+                
+                    # Create a new dictionary with the trailing numbers removed from the keys (also removing _decoder)
+                    processed_act_params = {re.sub(r'_\d+$', '', k.replace('_decoder', '')): v for k, v in act_params.items()}
+
+                    # Create the activation function
+                    act_func = pre_act_func(**processed_act_params).to(self.device)
+
+                # If it is the first element
+                if i == 0:
+                    # Add the first layer
+                    decoder_layers.extend([
+                        nn.Linear(encoding_dim[-1], decoding_dim[i]).to(self.device),
+                        act_func.to(self.device)
+                    ])
+                else:
+                    # Add the rest of the layers
+                    decoder_layers.extend([
+                        nn.Linear(decoding_dim[i-1], decoding_dim[i]).to(self.device),
+                        act_func.to(self.device)
+                    ])
+
+            # Create the decoder as a ModuleList
+            self.decoder = nn.ModuleList(decoder_layers)
+        else:
+            self.encoder = nn.Sequential(
+                nn.Linear(input_size, encoding_dim).to(self.device),
+                nn.BatchNorm1d(encoding_dim).to(self.device),
+                encoder_activation_fn.to(self.device)
+            ).to(self.device)
+
+            self.decoder = nn.Sequential(
+                nn.Linear(encoding_dim, input_size).to(self.device),
+                decoder_activation_fn.to(self.device)
+            ).to(self.device)
     
     def forward(self, x):
-        x = self.encoder(x)
-        x = self.decoder(x)
+        # If the encoder is an nn.Sequential
+        if isinstance(self.encoder, nn.Sequential):
+            # Add the encoder
+            x = self.encoder(x)
+        else:
+            # Add the encoder
+            for layer in self.encoder:
+                x = layer(x)
+
+        # If the decoder is an nn.Sequential
+        if isinstance(self.decoder, nn.Sequential):
+            # Add the decoder
+            x = self.decoder(x)
+        else:
+            # Add the decoder
+            for layer in self.decoder:
+                x = layer(x)
+
         return x
     
     def get_encoder_topology(self):
@@ -105,6 +201,11 @@ class AutoencoderOptimizer:
 
         # Set the storage string for the study
         self.storage = storage
+
+        self.power_of_two_options = [2**i for i in range(4, 12)]  # 16, 32, 64, 128, 256
+
+        self.activation_functions = [nn.GELU, nn.LeakyReLU, nn.Mish, nn.ReLU, nn.SELU, nn.Identity]
+        self.activation_functions_str = ['GELU', 'LeakyReLU', 'Mish', 'ReLU', 'SELU', 'Identity']
 
     def set_random_seed(self):
         np.random.seed(self.random_seed)
@@ -214,6 +315,134 @@ class AutoencoderOptimizer:
 
     def objective(self, trial):
         self.set_random_seed()
+        
+        lr = trial.suggest_float('lr', 1e-4, 1e-1)
+        batch_size = trial.suggest_categorical('batch_size', [32, 64, 128, 256])
+        # Suggestions for clipping the gradients
+        clip_grad = trial.suggest_float('clip_grad', 0.1, 1.0)
+        epochs = trial.suggest_int('epochs', 20, 100)
+
+        # Suggest the number of hidden layers and the number of units in each layer for the encoder
+        encoder_hidden_layers = []
+
+        # Suggest the number of layers for the encoder
+        encoder_nlayers = trial.suggest_int('n_layers_encoder', 1, 2)
+        
+        # For each layer
+        for i in range(encoder_nlayers):
+            # If is the last layer
+            if i == encoder_nlayers - 1:
+                # Its size should be smaller than the input size, so respect the limits imposed by the encoding_dims tuple
+                encoder_hidden_layers.append(trial.suggest_int(f'n_units_layer_{i}_encoder', self.encoding_dims[0], self.encoding_dims[1]))
+            else:
+                # Otherwise, suggest a power of two
+                encoder_hidden_layers.append(trial.suggest_int(f'n_units_layer_{i}_encoder', self.power_of_two_options[0], self.power_of_two_options[-1]))
+        
+        # Suggestions for the activation functions of the encoder
+        encoder_activation_data = []
+
+        for i in range(len(encoder_hidden_layers)):
+            activation_function_str = trial.suggest_categorical(f'activation_function_{i}_encoder', self.activation_functions_str)
+            activation_function = self.activation_functions[self.activation_functions_str.index(activation_function_str)]
+
+            # Now suggest the parameters for the activation function
+            if activation_function == nn.LeakyReLU:
+                encoder_activation_data.append((activation_function, {
+                    f'negative_slope_{i}': trial.suggest_float(f'negative_slope_{i}_encoder', 0.01, 0.5)
+                }))
+            elif activation_function == nn.GELU:
+                encoder_activation_data.append((activation_function, {
+                    f'approximate_{i}': trial.suggest_categorical(f'approximate_{i}_encoder', ['none', 'tanh'])
+                }))  
+            else:
+                encoder_activation_data.append((activation_function, {}))
+
+        # Suggest the number of hidden layers and the number of units in each layer for the decoder
+        decoder_hidden_layers = []
+
+        # If the encoder have more than one layer
+        if encoder_nlayers > 1:
+            # The decoder should have at least 2 layers
+            decoder_nlayers = trial.suggest_int('n_layers_decoder', 2, 2)
+        else:
+            # It should have only one layer
+            decoder_nlayers = trial.suggest_int('n_layers_decoder', 1, 1)
+        
+        # For each layer
+        for i in range(decoder_nlayers):
+            # If is the last layer
+            if i == decoder_nlayers - 1:
+                # Its size should be the input size
+                decoder_hidden_layers.append(self.input_size)
+            # If is the first layer
+            elif i == 0:
+                # It should be the same as the last layer of the encoder
+                decoder_hidden_layers.append(encoder_hidden_layers[-1 - i])
+            else:
+                # Otherwise, suggest a power of two
+                decoder_hidden_layers.append(trial.suggest_categorical(f'n_units_layer_{i}_decoder', self.power_of_two_options))
+
+        # Suggestions for the activation functions of the decoder
+        decoder_activation_data = []
+
+        for i in range(len(encoder_hidden_layers)):
+            activation_function_str = trial.suggest_categorical(f'activation_function_{i}_decoder', self.activation_functions_str)
+            activation_function = self.activation_functions[self.activation_functions_str.index(activation_function_str)]
+
+            # Now suggest the parameters for the activation function
+            if activation_function == nn.LeakyReLU:
+                decoder_activation_data.append((activation_function, {
+                    f'negative_slope_{i}': trial.suggest_float(f'negative_slope_{i}_decoder', 0.01, 0.5)
+                }))
+            elif activation_function == nn.GELU:
+                decoder_activation_data.append((activation_function, {
+                    f'approximate_{i}': trial.suggest_categorical(f'approximate_{i}_decoder', ['none', 'tanh'])
+                }))  
+            else:
+                decoder_activation_data.append((activation_function, {}))
+
+        model = Autoencoder(self.input_size, encoder_hidden_layers, encoder_activation_data, decoder_activation_data, decoder_hidden_layers, self.device).to(self.device)
+
+        # Choose the optimizer
+        optimizer_name = trial.suggest_categorical('optimizer', ['Adam', 'RMSprop', 'SGD'])
+        weight_decay = trial.suggest_float('weight_decay', 1e-6, 1e-3)
+        optimizer = getattr(optim, optimizer_name)(model.parameters(), lr = lr, weight_decay = weight_decay)
+
+        criterion = nn.MSELoss()
+
+        self.train_loader = DataLoader(
+            dataset = self.train_dataset, 
+            batch_size = batch_size, 
+            shuffle = True
+        )
+
+        self.test_loader = DataLoader(
+            dataset = self.test_dataset, 
+            batch_size = batch_size
+        )
+
+        if self.validation_dataset is not None:
+            self.validation_loader = DataLoader(
+                dataset = self.validation_dataset, 
+                batch_size = batch_size
+            )
+
+        best_validation_rmse, best_train_rmse = self.train_autoencoder(model, optimizer, criterion, clip_grad, epochs, trial = trial) # type: ignore
+
+        evaluate_rmse = self.evaluate_autoencoder(model, criterion)
+
+        improvement_threshold = 0.0 # 0% improvement (if is better than the best, it will be logged)
+        is_promising = best_validation_rmse < self.best_rmse * (1 - improvement_threshold)
+
+        if is_promising:
+            # Save the model
+            #torch.save(model.state_dict(), f'{self.models_folder}/autoencoder_{trial.number}.pt')
+            self.best_rmse = best_validation_rmse
+
+        return evaluate_rmse
+
+    def objective_old(self, trial):
+        self.set_random_seed()
         encoding_dim = trial.suggest_int('encoding_dim', self.encoding_dims[0], self.encoding_dims[1])
         lr = trial.suggest_float('lr', 1e-4, 1e-1)
         batch_size = trial.suggest_categorical('batch_size', [32, 64, 128, 256])
@@ -295,37 +524,6 @@ class AutoencoderOptimizer:
             # Save the model
             torch.save(model.state_dict(), f'{self.models_folder}/autoencoder_{trial.number}.pt')
             self.best_rmse = best_validation_rmse
-
-        '''
-        with mlflow.start_run(nested = True):
-            # Log the parameters
-            mlflow.log_param('encoding_dim', encoding_dim)
-            mlflow.log_param('lr', lr)
-            mlflow.log_param('batch_size', batch_size)
-            mlflow.log_param('epochs', epochs)
-
-            mlflow.log_param('encoder_activation', encoder_activation_str)
-            if encoder_activation_str == 'LeakyReLU':
-                mlflow.log_param('negative_slope_encoder', pre_encoder_params['negative_slope_encoder'])
-            elif encoder_activation_str == 'GELU':
-                mlflow.log_param('approximate_encoder', pre_encoder_params['approximate_encoder'])
-
-            mlflow.log_param('decoder_activation', decoder_activation_str)
-            if decoder_activation_str == 'LeakyReLU':
-                mlflow.log_param('negative_slope_decoder', pre_decoder_params['negative_slope_decoder'])
-            elif decoder_activation_str == 'GELU':
-                mlflow.log_param('approximate_decoder', pre_decoder_params['approximate_decoder'])
-
-            mlflow.log_param('optimizer', optimizer_name)
-            mlflow.log_param('weight_decay', weight_decay)
-            mlflow.log_metric('best_train_rmse', best_train_rmse)
-            mlflow.log_metric('best_validation_rmse', best_validation_rmse)
-            mlflow.log_metric('evaluate_rmse', evaluate_rmse)
-
-            if is_promising:
-                mlflow.pytorch.log_model(model, "model")
-                self.best_rmse = best_validation_rmse
-        '''
 
         return evaluate_rmse
     

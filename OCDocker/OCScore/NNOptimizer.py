@@ -613,17 +613,46 @@ class NNOptimizer:
         self.storage = storage
 
     def __build_encoder(self, encoder_params):
-        if encoder_params['encoder_activation'] == 'LeakyReLU':
-            encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])](negative_slope = encoder_params['negative_slope_encoder'])
-        
-        elif encoder_params['encoder_activation'] == 'GELU':
-            encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])](approximate = encoder_params['approximate_encoder'])
-        
-        else:
-            encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])]()
+        # If the encoder_params has the key 'encoder_activation'
+        if 'encoder_activation' in encoder_params:
+            if encoder_params['encoder_activation'] == 'LeakyReLU':
+                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])](negative_slope = encoder_params['negative_slope_encoder'])
+            
+            elif encoder_params['encoder_activation'] == 'GELU':
+                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])](approximate = encoder_params['approximate_encoder'])
+            
+            else:
+                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])]()
 
-        # Build just the encoder
-        return [("Linear", self.input_size, encoder_params['encoding_dim']), ("BatchNorm1d", encoder_params['encoding_dim']), ("Activation", encoder_activation)]
+            # Build just the encoder
+            return [("Linear", self.input_size, encoder_params['encoding_dim']), ("BatchNorm1d", encoder_params['encoding_dim']), ("Activation", encoder_activation)]
+        else:
+            # Get all the keys from the encoder_params which starts with 'activation_function'
+            activation_keys = [key for key in encoder_params.keys() if key.startswith('activation_function') and key.endswith('encoders')]
+            # TODO: continue from here
+            # If there are no activation functions
+            if not activation_keys:
+                raise ValueError("The encoder_params should have at least one activation function")
+            
+            # Process the activation functions to find how many layers are there 
+            n_layers = len(activation_keys)
+
+            # Process the activation functions
+            for i in range(n_layers):
+                activation_function_str = encoder_params[f'activation_function_{i}_encoders']
+                activation_function = self.activation_functions[self.activation_functions_str.index(activation_function_str)]
+                # Now suggest the parameters for the activation function
+                if activation_function == nn.LeakyReLU:
+                    activation_data.append((activation_function, {
+                        f'negative_slope_{i}_encoders': encoder_params[f'negative_slope_{i}_encoders']
+                    }))
+                elif activation_function == nn.GELU:
+                    activation_data.append((activation_function, {
+                        f'approximate_{i}_encoders': encoder_params[f'approximate_{i}_encoders']
+                    }))  
+                else:
+                    activation_data.append((activation_function, {}))
+
 
     def set_random_seed(self):
         np.random.seed(self.random_seed)
