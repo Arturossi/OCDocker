@@ -582,12 +582,12 @@ def NNworker(
         print(f"Process {id} completed {sampler_name} optimization")
 
 num_processes = 8
-storage_id = 15
+storage_id = 16
 storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"
 models_folder = f"/data/hd4tb/OCDocker/data/ocdb/models/autoencoder_{storage_id}"
-multiencoder = True
-run_autoencoder_optimization = True
-run_NN_optimization = True
+multiencoder = False
+run_autoencoder_optimization = False
+run_NN_optimization = False
 explained_variance = 0.95
 
 # If models folder does not exist, create it
@@ -657,7 +657,7 @@ if multiencoder:
 
             # Skip SF (for now) TODO: Check if this is necessary
             if name == "SF":
-                best_ao_params.append({"encoder_activation": "Identity", "encoding_dim": sf_train_data.shape[1]})
+                best_ao_params.append({"activation_function_0_encoder": "Identity", "n_units_layer_0_encoder": sf_train_data.shape[1]})
                 continue
 
             if False:
@@ -724,21 +724,26 @@ else:
                 ) for pid in range(num_processes)
             ])
 
-        # Load the study
-        ao_study = optuna.load_study(study_name = f"AO_Optimization_{storage_id}_TPE", storage = storage)
-        ao_df = ao_study.trials_dataframe()
-        ao_df['combined_metric'] = abs(ao_df['value'] - ao_df['user_attrs_val_rmse'])
+    # Load the study
+    ao_study = optuna.load_study(study_name = f"AO_Optimization_{storage_id}_TPE", storage = storage)
+    ao_df = ao_study.trials_dataframe()
 
-        best_ao_df = ao_df.sort_values(by=['combined_metric', 'value', 'user_attrs_val_rmse'], ascending=[True, True, True])
+    # Filter the trials to only include the ones that are complete
+    ao_df = ao_df[ao_df['state'] == 'COMPLETE']
+    
+    #ao_df['combined_metric'] = abs(ao_df['value'] - ao_df['user_attrs_val_rmse'])
 
-        # Recreate the autoencoder object for the best trial based on the best_ao_df
-        best_ao_trial = best_ao_df.iloc[0]
+    #best_ao_df = ao_df.sort_values(by=['combined_metric', 'value', 'user_attrs_val_rmse'], ascending=[True, True, True])
+    best_ao_df = ao_df.sort_values(by=['value', 'user_attrs_val_rmse'], ascending=[True, True])
 
-        # Select the trial by the best_ao_trial number
-        best_ao_trial = ao_study.trials[best_ao_trial.number]
+    # Recreate the autoencoder object for the best trial based on the best_ao_df
+    best_ao_trial = best_ao_df.iloc[0]
 
-        # Pick the params from the best_ao_trial
-        best_ao_params = best_ao_trial.params
+    # Select the trial by the best_ao_trial number
+    best_ao_trial = ao_study.trials[best_ao_trial.number]
+
+    # Pick the params from the best_ao_trial
+    best_ao_params = best_ao_trial.params
     
     new_X_train = X_train
     new_X_test = X_test
@@ -760,7 +765,7 @@ if run_NN_optimization:
             True,             # use_gpu
             False,            # verbose
             "minimize",       # direction
-            1250,             # n_trials
+            125,             # n_trials
             True,             # load_if_exists
             1,                # n_jobs
             "NN_Optimization" # study_name
@@ -770,6 +775,9 @@ if run_NN_optimization:
 # Load the study
 nn_study = optuna.load_study(study_name = f"NN_Optimization_{storage_id}_TPE", storage = storage)
 nn_df = nn_study.trials_dataframe()
+
+# Filter the trials to only include the ones that are complete
+nn_df = nn_df[nn_df['state'] == 'COMPLETE']
 
 nn_df['combined_metric'] = nn_df['value'] - nn_df['user_attrs_AUC']
 
@@ -792,16 +800,36 @@ for i in range(n_models):
     # Pick the params from the best_trial
     best_params = best_trial.params
 
-    # Initialize the trainer
-    NN_model = NeuralNet(
-        [new_X_train[j].shape[0] for j in range(len(new_X_train))],
-        1,          
-        best_ao_params, 
-        best_params,
-        random_seed = 42,
-        use_gpu = True, 
-        verbose = False
-    )
+    # If the new_X_val is a list
+    if isinstance(new_X_val, list):
+        # Initialize the trainer
+        NN_model = NeuralNet(
+            [new_X_train[j].shape[0] for j in range(len(new_X_train))],
+            1,          
+            best_ao_params, 
+            best_params,
+            random_seed = 42,
+            use_gpu = True, 
+            verbose = False
+        )
+    else:
+        # Initialize the trainer
+        NN_model = NeuralNet(
+            new_X_train.shape[1],
+            1,          
+            best_ao_params, 
+            best_params,
+            random_seed = 42,
+            use_gpu = True, 
+            verbose = False
+        )
+
+    # Reset the random seeds
+    torch.manual_seed(42)
+    np.random.seed(42)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    torch.cuda.manual_seed_all(42)
 
     # Train the model
     model = NN_model.train_model(

@@ -32,6 +32,8 @@ class NeuralNet(nn.Module):
         self.random_seed = random_seed
         self.use_gpu = use_gpu
 
+        self.input_size = input_size
+
         self.set_random_seed()
 
         # Define the activation functions
@@ -79,35 +81,21 @@ class NeuralNet(nn.Module):
             # Convert the activation_data_dict to a list while keeping the order
             activation_data = [v for _, v in activation_data_dict.items()]
 
-        # If the encoder is instance of list
+        # If the encoder is instance of list (multi branch model)
         if isinstance(encoder_params, list):
             self.encoder = []
+            # Loop through the encoder_params (one branch at a time)
             for i, encoder_param in enumerate(encoder_params):
-                if encoder_param['encoder_activation'] == 'LeakyReLU':
-                    encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_param['encoder_activation'])](negative_slope = encoder_param['negative_slope_encoder'])
-                elif encoder_param['encoder_activation'] == 'GELU':
-                    encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_param['encoder_activation'])](approximate = encoder_param['approximate_encoder'])
-                else:
-                    encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_param['encoder_activation'])]()
-
-                # Build just the encoder
-                self.encoder.append([("Linear", input_size[i], encoder_param['encoding_dim']), ("BatchNorm1d", encoder_param['encoding_dim']), ("Activation", encoder_activation)])
+                self.encoder.append(self.__build_encoder_layer(encoder_param))
         elif encoder_params is not None:
-            # Build the encoding and decoding functions
-            if encoder_params['encoder_activation'] == 'LeakyReLU':
-                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])](negative_slope = encoder_params['negative_slope_encoder'])
-            elif encoder_params['encoder_activation'] == 'GELU':
-                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])](approximate = encoder_params['approximate_encoder'])
-            else:
-                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])]()
-
-            # Build just the encoder
-            self.encoder = [("Linear", input_size, encoder_params['encoding_dim']), ("BatchNorm1d", encoder_params['encoding_dim']), ("Activation", encoder_activation)]
+            # Build the one branch encoder
+            self.encoder = self.__build_encoder_layer(encoder_params)
         else:
+            # No encoder
             self.encoder = None
 
-        # If the encoder_params is a list
-        if isinstance(self.encoder, list):
+        # If the there are multiple branches
+        if isinstance(encoder_params, list):
             # Create the MultiBranchDynamicNN
             self.NN = MultiBranchDynamicNN(input_size, output_size, hidden_layers, activation_data, self.encoder, self.device)
         else:
@@ -138,6 +126,46 @@ class NeuralNet(nn.Module):
 
         if verbose:
             print(self.NN)
+
+    def __build_encoder_layer(self, encoder_params):
+        # Create an empty list to store the encoder layers
+        encoder_layer = []
+
+        # For each key in the encoder_param
+        for key in encoder_params.keys():
+            # Check if the key is an activation function for the encoder
+            if key.startswith('activation_function') and key.endswith('encoder'):
+                # Get the index of the activation function (index -2 since -1 will be 'encoder')
+                index = int(key.split('_')[-2])
+                
+                if encoder_params[f'activation_function_{index}_encoder'] == 'LeakyReLU':
+                    encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params[f'activation_function_{index}_encoder'])](negative_slope = encoder_params[f'negative_slope_{index}_encoder'])
+                elif encoder_params[f'activation_function_{index}_encoder'] == 'GELU':
+                    encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params[f'activation_function_{index}_encoder'])](approximate = encoder_params[f'approximate_{index}_encoder'])
+                else:
+                    encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params[f'activation_function_{index}_encoder'])]()
+
+                if index == 0:
+                    # Add the encoder layer to the encoder list
+                    encoder_layer.append([
+                        ("Linear", self.input_size, encoder_params[f'n_units_layer_{index}_encoder']), 
+                        ("BatchNorm1d", encoder_params[f'n_units_layer_{index}_encoder']), 
+                        ("Activation", encoder_activation)
+                    ])
+                else:
+                    # Add the encoder layer to the encoder list
+                    encoder_layer.append([
+                        ("Linear", encoder_params[f'n_units_layer_{index - 1}_encoder'], encoder_params[f'n_units_layer_{index}_encoder']), 
+                        ("BatchNorm1d", encoder_params[f'n_units_layer_{index}_encoder']), 
+                        ("Activation", encoder_activation)
+                    ])
+
+        # If the encoder_layer has only one element, return the element
+        if len(encoder_layer) == 1:
+            return encoder_layer[0]
+        
+        # Otherwise, return the list
+        return encoder_layer
 
     def set_random_seed(self):
         np.random.seed(self.random_seed)
@@ -496,6 +524,9 @@ class MultiBranchDynamicNN(nn.Module):
         # Concatenate the encoded outputs into a single tensor
         x = torch.cat(encoded_outputs, dim=1)
 
+        # Perform a BatchNorm1d on the concatenated tensor
+        x = nn.BatchNorm1d(x.shape[1]).to(self.device)(x)
+
         # Add a linear layer to the concatenated tensor to match the input size of the first hidden layer
         x = nn.Linear(x.shape[1], self.layer_sizes[0]).to(self.device)(x)
 
@@ -626,32 +657,44 @@ class NNOptimizer:
 
             # Build just the encoder
             return [("Linear", self.input_size, encoder_params['encoding_dim']), ("BatchNorm1d", encoder_params['encoding_dim']), ("Activation", encoder_activation)]
-        else:
-            # Get all the keys from the encoder_params which starts with 'activation_function'
-            activation_keys = [key for key in encoder_params.keys() if key.startswith('activation_function') and key.endswith('encoders')]
-            # TODO: continue from here
-            # If there are no activation functions
-            if not activation_keys:
-                raise ValueError("The encoder_params should have at least one activation function")
-            
-            # Process the activation functions to find how many layers are there 
-            n_layers = len(activation_keys)
+        
+        # Create an empty list to store the encoder
+        encoder = []
 
-            # Process the activation functions
-            for i in range(n_layers):
-                activation_function_str = encoder_params[f'activation_function_{i}_encoders']
-                activation_function = self.activation_functions[self.activation_functions_str.index(activation_function_str)]
-                # Now suggest the parameters for the activation function
-                if activation_function == nn.LeakyReLU:
-                    activation_data.append((activation_function, {
-                        f'negative_slope_{i}_encoders': encoder_params[f'negative_slope_{i}_encoders']
-                    }))
-                elif activation_function == nn.GELU:
-                    activation_data.append((activation_function, {
-                        f'approximate_{i}_encoders': encoder_params[f'approximate_{i}_encoders']
-                    }))  
-                else:
-                    activation_data.append((activation_function, {}))
+        # Get all the keys from the encoder_params which starts with 'activation_function'
+        activation_keys = [key for key in encoder_params.keys() if key.startswith('activation_function') and key.endswith('encoder')]
+        
+        # If there are no activation functions
+        if not activation_keys:
+            raise ValueError("The encoder_params should have at least one activation function")
+
+        # Process the activation functions
+        for i in range(encoder_params['n_layers_encoder']):
+            # Now suggest the parameters for the activation function
+            if encoder_params[f'activation_function_{i}_encoder'] == 'LeakyReLU':
+                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params[f'activation_function_{i}_encoder'])](negative_slope = encoder_params[f'negative_slope_{i}_encoder'])
+            elif encoder_params[f'activation_function_{i}_encoder'] == 'GELU':
+                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params[f'activation_function_{i}_encoder'])](approximate = encoder_params[f'approximate_{i}_encoder'])
+            else:
+                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params[f'activation_function_{i}_encoder'])]()
+            
+            # If it is the first layer
+            if i == 0:
+                # Add the encoder layer to the encoder list
+                encoder.extend([
+                    ("Linear", self.input_size, encoder_params[f'n_units_layer_{i}_encoder']), 
+                    ("BatchNorm1d", encoder_params[f'n_units_layer_{i}_encoder']), 
+                    ("Activation", encoder_activation)
+                ])
+            else:
+                # Add the encoder layer to the encoder list
+                encoder.extend([
+                    ("Linear", encoder_params[f'n_units_layer_{i-1}_encoder'], encoder_params[f'n_units_layer_{i}_encoder']), 
+                    ("BatchNorm1d", encoder_params[f'n_units_layer_{i}_encoder']), 
+                    ("Activation", encoder_activation)
+                ])
+            
+        return encoder
 
 
     def set_random_seed(self):
@@ -777,8 +820,8 @@ class NNOptimizer:
             else:
                 activation_data.append((activation_function, {}))
 
-        # If the encoder is not a list
-        if isinstance(self.encoder, list):
+        # If the first element in the encoder is a list
+        if isinstance(self.encoder[0], list):
             model = MultiBranchDynamicNN(self.input_size, self.output_size, hidden_layers, activation_data, self.encoder, self.device)
         else:
             model = DynamicNN(self.input_size, self.output_size, hidden_layers, activation_data, self.encoder, self.device)
