@@ -582,12 +582,12 @@ def NNworker(
         print(f"Process {id} completed {sampler_name} optimization")
 
 num_processes = 8
-storage_id = 16
+storage_id = 17
 storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"
 models_folder = f"/data/hd4tb/OCDocker/data/ocdb/models/autoencoder_{storage_id}"
 multiencoder = False
-run_autoencoder_optimization = False
-run_NN_optimization = False
+run_autoencoder_optimization = True
+run_NN_optimization = True
 explained_variance = 0.95
 
 # If models folder does not exist, create it
