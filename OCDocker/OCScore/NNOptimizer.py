@@ -821,7 +821,7 @@ class NNOptimizer:
                 activation_data.append((activation_function, {}))
 
         # If the first element in the encoder is a list
-        if isinstance(self.encoder[0], list):
+        if self.encoder != None and isinstance(self.encoder[0], list):
             model = MultiBranchDynamicNN(self.input_size, self.output_size, hidden_layers, activation_data, self.encoder, self.device)
         else:
             model = DynamicNN(self.input_size, self.output_size, hidden_layers, activation_data, self.encoder, self.device)

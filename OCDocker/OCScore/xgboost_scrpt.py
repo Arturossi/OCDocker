@@ -1025,9 +1025,9 @@ def FeatureSelectionWorker(
 from multiprocessing import Pool
 from urllib.parse import quote_plus
 
-storage_id = 2
-run_pre_XGBoost_optimizer = False
-run_feature_selection = False
+storage_id = 24
+run_pre_XGBoost_optimizer = True
+run_feature_selection = True
 run_xgb_final_optimization = True
 num_processes = 4
 storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"
@@ -1075,6 +1075,7 @@ best_pre_xgb_df = pre_xgb_df.sort_values(by=['combined_metric', 'value', 'user_a
 best_pre_xgb_trial = best_pre_xgb_df.iloc[0]
 best_xgb_trial = pre_xgb_study.trials[best_pre_xgb_trial.number]
 best_pre_xgb_params = best_xgb_trial.params
+n_trials = 250
 
 if run_feature_selection:
     print("Running feature selection...")
@@ -1120,6 +1121,7 @@ else:
 
 # Create the XGBoost model final optimizer
 print("Running XGBoost final optimization...")
+n_trials = 2500
 
 if run_xgb_final_optimization:
     with Pool(num_processes) as p:
@@ -1145,136 +1147,3 @@ if run_xgb_final_optimization:
                 {}
             ) for i in range(num_processes)
         ])
-
-
-'''
-best_params_pre = {'max_depth': 5, 'learning_rate': 0.2517429022810524, 'n_estimators': 101, 'subsample': 0.9776698128134739, 'colsample_bytree': 0.9068966063215814, 'reg_alpha': 0.8680385318163417, 'reg_lambda': 0.7243450306810497, 'min_child_weight': 5, 'gamma': 0.4071681639504335}
-best_params_pre = {}
-
-def optimize_feature_selection(X_train, y_train, X_test, y_test, X_validation = None, y_validation = None, best_params = {}, algorithm = "ga", n_trials = 100, study_name: str = "Feature selection", random_state = 42, use_gpu = True, verbose = False, instance_id: int = -1):
-    """
-    Function to be executed by each process.
-    
-    :param instance_id: An identifier for the instance, could be used to modify the behavior per instance.
-    """
-
-    # Only print the instance_id if it is greater than -1
-    if instance_id > -1:
-        # Setup unique to this instance, potentially using instance_id to differentiate setups
-        print(f"Running instance {instance_id}")
-    
-    if algorithm.lower() == "custom-ga":
-        # Create the EvolutionaryFeatureSelectorCustom object
-        evo = EvolutionaryFeatureSelectorCustom(X_train, y_train, X_test, y_test, X_validation = X_validation, y_validation = y_validation, xgboost_params = best_params, use_gpu = use_gpu, random_state = random_state, verbose = verbose) # type: ignore
-    elif algorithm.lower() in ["cmaes", "ga"]:
-        # Create the EvolutionaryFeatureSelector object
-        evo = EvolutionaryFeatureSelector(X_train, y_train, X_test, y_test, X_validation = X_validation, y_validation = y_validation, xgboost_params = best_params, algorithm = algorithm, use_gpu = use_gpu, random_state = random_state, verbose = verbose) # type: ignore
-    
-    # Run the optimization
-    study, best_features, best_score = evo.optimize(study_name = study_name, direction = "minimize", n_trials = n_trials, n_jobs = n_jobs)
-
-    return study, best_features, best_score
-
-print("Running feature selection...")
-
-algorithm = "custom-ga"
-random_state = 42
-n_trials = 100
-n_jobs = 30
-use_gpu = True
-verbose = False
-
-study_fs, best_features_fs, best_score_fs = optimize_feature_selection(
-    X_train, 
-    y_train, 
-    X_test, 
-    y_test, 
-    X_val, 
-    y_val, 
-    best_params_pre, 
-    algorithm = algorithm, 
-    n_trials = n_trials, 
-    study_name = "Feature selection Custom GA",
-    random_state = random_state, 
-    use_gpu = use_gpu, 
-    verbose = verbose, 
-    instance_id = 0
-)
-
-# Convert 100011 to true false
-best_features_fs = [bool(int(i)) for i in best_features_fs]
-
-# Get the best features names
-best_features_names = X_train.columns[best_features_fs]
-
-# Create a filtered dataset for X
-X_train_filtered = X_train[best_features_names]
-X_test_filtered = X_test[best_features_names]
-
-# If the validation set is not None, create a filtered validation set
-if X_val is not None:
-    X_val_filtered = X_val[best_features_names] # type: ignore
-
-# Create the XGBoost model final optimizer
-print("Running XGBoost final optimization...")
-
-# Create the XGBoostOptimizer object
-xgb = PreXGBoostOptimizer(X_train_filtered, y_train, X_test_filtered, y_test, X_val_filtered, y_val, params = {}, use_gpu = True, early_stopping_rounds = 50, random_state = 42, verbose = False)
-
-# If the X_val is None, the direction is set to maximize
-if X_val is None:
-    # Run the optimization
-    study_post, best_params_post, best_score_post = xgb.optimize(study_name = "XGBoost optimization", direction = "maximize", n_trials = 10000, n_jobs = n_jobs)
-else:
-    # Run the optimization
-    study_post, best_params_post, best_score_post = xgb.optimize(study_name = "XGBoost optimization", direction = "minimize", n_trials = 10000, n_jobs = n_jobs)
-
-# Create a dict to hold the RMSE for each score
-rmse_dict = {}
-
-# For each score
-for score in score_columns:
-    # Get the RMSE for each score
-    rmse_dict[score] = np.sqrt(mean_squared_error(y_test, X_test[score]))
-
-import optuna
-
-# Get all the non pruned runs from the study_post
-non_pruned_trials = [t for t in study_post.trials if t.state == optuna.trial.TrialState.COMPLETE]
-
-# Get the AUC and RMSE for each trial
-aucs = [t.user_attrs['AUC'] for t in non_pruned_trials]
-rmses = [t.value for t in non_pruned_trials]
-
-def plot_auc_vs_rmse(aucs, rmses, filename = "auc_vs_rmse.png"):
-    """
-    Plot the AUC vs RMSE with regression line using seaborn.
-    """
-
-    # Plot
-    plt.figure(figsize=(10, 6))
-
-    # Create a DataFrame
-    df = pd.DataFrame({'AUC': aucs,
-                          'RMSE': rmses})
-    
-    # Plot the AUC vs RMSE
-    sns.scatterplot(data = df, x = 'AUC', y = 'RMSE', color = 'skyblue')
-
-    # Add a regression line
-    sns.regplot(data = df, x = 'AUC', y = 'RMSE', scatter = False, color = 'black')
-
-    # Add labels and title
-    plt.xlabel('AUC')
-    plt.ylabel('RMSE')
-    plt.title('AUC vs RMSE')
-    plt.tight_layout()
-
-    # Save and show plot
-    plt.savefig(filename, dpi=300)
-    plt.close()
-
-# Plot the AUC vs RMSE with regression line
-plot_auc_vs_rmse(aucs, rmses, filename = "auc_vs_rmse.png")
-
-'''
