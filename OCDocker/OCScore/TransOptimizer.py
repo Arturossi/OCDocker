@@ -16,7 +16,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from torch.utils.data import Dataset, DataLoader
-
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 
 class CustomDataset(Dataset):
@@ -41,18 +41,215 @@ import random
 from typing import Union, List
 
 class TransformerModel(nn.Module):
-    def __init__(self, input_dim, d_model, output_dim, nhead, num_encoder_layers, dim_feedforward, dropout=0.1):
+    def __init__(self, input_dim, d_model, output_dim, nhead, num_encoder_layers, dim_feedforward, dropout=0.1, device=torch.device('cuda')):
         super(TransformerModel, self).__init__()
         self.embedding = nn.Linear(input_dim, d_model)
         encoder_layer = nn.TransformerEncoderLayer(d_model, nhead, dim_feedforward, dropout)
         self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_encoder_layers)
         self.fc_out = nn.Linear(d_model, output_dim)
+        self.d_model = d_model
+        self.device = device
 
-    def forward(self, src):
-        src = self.embedding(src)  # embedding the input
-        output = self.transformer_encoder(src)
-        output = self.fc_out(output.mean(dim=1))
+    def forward(self, src, src_mask=None):  # Allow optional mask for padding
+        # Embed the input
+        src = self.embedding(src) * np.sqrt(self.d_model)
+
+        if src_mask is None:
+            # Create a mask to ignore padding tokens
+            src_mask = src != 0
+
+        # Pass through Transformer encoder with masking
+        output = self.transformer_encoder(src, src_key_padding_mask=~src_mask.any(dim=-1))
+
+        # Apply final linear layer
+        output = self.fc_out(output.mean(dim=1))  # Mean pooling across sequence
+
         return output
+
+class Transformer(nn.Module):
+    def __init__(self, 
+            input_size, 
+            output_size, 
+            trans_params,
+            random_seed = 42,
+            use_gpu = True,
+            verbose = False
+    ):
+        super(Transformer, self).__init__()
+
+        self.random_seed = random_seed
+        self.use_gpu = use_gpu
+
+        self.input_size = input_size
+
+        self.set_random_seed()
+
+        self.optimizer_functions = [optim.Adam, optim.RMSprop, optim.SGD]
+        self.optimizer_functions_str = ['Adam', 'RMSprop', 'SGD']
+
+        # Create the transformer model
+        self.trans = TransformerModel(input_size, trans_params['d_model'], output_size, trans_params['nhead'], trans_params['num_encoder_layers'], trans_params['dim_feedforward'], trans_params['dropout'])
+
+        self.batch_size = trans_params['batch_size']
+        self.epochs = trans_params['epochs']
+        self.lr = trans_params['lr']
+        self.clip_grad = trans_params['clip_grad']
+
+        self.optimizer = self.optimizer_functions[self.optimizer_functions_str.index(trans_params['optimizer'])](
+            self.trans.parameters(),
+            weight_decay = trans_params['weight_decay'], 
+            lr = trans_params['lr']
+        )
+
+        self.trans_params = trans_params
+
+        # Set the AUC and rmse as nan
+        self.validation_auc = np.NaN
+        self.rmse = np.NaN
+
+        # Set the verbose flag
+        self.verbose = verbose
+
+        self.prediction = None
+
+        if verbose:
+            print(self.trans)
+
+    def set_random_seed(self):
+        np.random.seed(self.random_seed)
+        random.seed(self.random_seed)
+
+        # Set the seed for CPU
+        torch.manual_seed(self.random_seed)
+
+        if self.use_gpu and torch.cuda.is_available():
+            self.device = torch.device('cuda')
+            torch.cuda.manual_seed_all(self.random_seed)
+        else:
+            self.device = torch.device('cpu')
+        
+        #torch.backends.cudnn.enabled = False
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = True
+        
+    def train_model(self, X_train, y_train, X_test, y_test, X_validation = None, y_validation = None, criterion = nn.MSELoss()):
+        self.set_random_seed()
+
+        # Convert the data to torch.Tensor
+        if isinstance(X_train, list):
+            X_train = [torch.tensor(np.asarray(x), dtype=torch.float32).to(self.device) for x in X_train]
+        else:
+            X_train = torch.tensor(np.asarray(X_train), dtype=torch.float32).to(self.device)
+
+        y_train = torch.tensor(np.asarray(y_train), dtype=torch.float32).to(self.device)
+
+        if isinstance(X_test, list):
+            X_test = [torch.tensor(np.asarray(x), dtype=torch.float32).to(self.device) for x in X_test]
+        else:
+            X_test = torch.tensor(np.asarray(X_test), dtype=torch.float32).to(self.device)
+
+        y_test = torch.tensor(np.asarray(y_test), dtype=torch.float32).to(self.device)
+
+        if X_validation is not None and y_validation is not None:
+            if isinstance(X_validation, list):
+                X_validation = [torch.tensor(np.asarray(x), dtype=torch.float32).to(self.device) for x in X_validation]
+            else:
+                X_validation = torch.tensor(np.asarray(X_validation), dtype=torch.float32).to(self.device)
+            
+            y_validation = torch.tensor(np.asarray(y_validation), dtype=torch.float32).to(self.device)
+
+        train_loader = DataLoader(
+            dataset = CustomDataset(X_train, y_train), 
+            batch_size = self.batch_size, 
+            shuffle = True
+        )
+
+        test_loader = DataLoader(
+            dataset = CustomDataset(X_test, y_test), 
+            batch_size = self.batch_size
+        )
+
+        # If a validation set has been provided, create the validation loader
+        if X_validation is not None:
+            validation_loader = DataLoader(
+                dataset = CustomDataset(X_validation, y_validation), 
+                batch_size = self.batch_size, 
+                shuffle = True
+            )
+
+        # For each epoch
+        for epoch in range(self.epochs):
+            # Set the model to training mode
+            self.trans.train()
+
+            # Set the running loss to 0            
+            running_loss = 0.0
+              
+            for i, (inputs, labels) in enumerate(train_loader):
+                # Zero the gradients
+                self.optimizer.zero_grad()
+
+                outputs = self.NN(inputs)                                      # Forward pass
+                loss = criterion(outputs, labels.view(-1, 1))                  # Calculate the loss
+                loss.backward()                                                # Backward pass
+                nn.utils.clip_grad_norm_(self.NN.parameters(), self.clip_grad) # Clip the gradients
+                self.optimizer.step()                                          # Update weights
+
+                running_loss += loss.item()
+        
+            # Set the model to evaluation mode
+            self.trans.eval()
+
+            running_loss = 0.0
+
+            all_predictions = []
+            all_labels = []
+            
+            with torch.no_grad():
+                for inputs, labels in test_loader:
+                    predicted = self.NN(inputs)
+                    loss = criterion(predicted, labels.view(-1, 1))
+                    running_loss += loss.item()
+                    
+                    all_predictions.extend(predicted.cpu().numpy())
+                    all_labels.extend(labels.cpu().numpy())
+
+            average_loss = running_loss / len(test_loader)
+            rmse = np.sqrt(average_loss)
+
+            if self.verbose:
+                print(f'Epoch {epoch + 1}/{self.epochs}')
+                print(f'Average Loss: {average_loss}')
+                print(f'RMSE: {rmse}')
+
+            # If a validation set has been provided, calculate the AUC
+            if X_validation is not None:
+                # Set the model to evaluation mode
+                self.trans.eval()
+                
+                validation_predictions = self.trans(X_validation)
+
+                # Convert the predictions and the labels to numpy
+                validation_predictions_np = validation_predictions.detach().cpu().numpy()
+                y_validation_np = y_validation.cpu().numpy() # type: ignore
+
+                self.prediction = y_validation_np
+
+                # If there is a nan in the predictions, set the AUC to 0
+                if np.isnan(validation_predictions_np).any():
+                    validation_auc = 0
+                else:
+                    # Calculate the ROC
+                    fpr, tpr, _ = roc_curve(y_validation_np, validation_predictions_np)
+                    validation_auc = auc(fpr, tpr)
+
+        self.rmse = rmse
+        self.validation_auc = validation_auc
+
+        return True
+    
+    def get_model(self):
+        return self.trans
 
 class TransOptimizer:
     def __init__(self, X_train, y_train, X_test, y_test, X_validation=None, y_validation=None, storage='sqlite:///Transoptimization.db', output_size=1, random_seed=42, use_gpu=True, verbose=False):
@@ -63,17 +260,17 @@ class TransOptimizer:
         # Handling data
         self.device = torch.device('cuda' if torch.cuda.is_available() and self.use_gpu else 'cpu')
         
-        self.X_train = torch.tensor(X_train, dtype=torch.float32).to(self.device)
-        self.y_train = torch.tensor(y_train, dtype=torch.float32).to(self.device)
+        self.X_train = torch.tensor(np.asarray(X_train), dtype=torch.float32).to(self.device)
+        self.y_train = torch.tensor(np.asarray(y_train), dtype=torch.float32).to(self.device)
         self.train_loader = None
 
-        self.X_test = torch.tensor(X_test, dtype=torch.float32).to(self.device)
-        self.y_test = torch.tensor(y_test, dtype=torch.float32).to(self.device)
+        self.X_test = torch.tensor(np.asarray(X_test), dtype=torch.float32).to(self.device)
+        self.y_test = torch.tensor(np.asarray(y_test), dtype=torch.float32).to(self.device)
         self.test_loader = None
 
         if X_validation is not None and y_validation is not None:
-            self.X_validation = torch.tensor(X_validation, dtype=torch.float32).to(self.device)
-            self.y_validation = torch.tensor(y_validation, dtype=torch.float32).to(self.device)
+            self.X_validation = torch.tensor(np.asarray(X_validation), dtype=torch.float32).to(self.device)
+            self.y_validation = torch.tensor(np.asarray(y_validation), dtype=torch.float32).to(self.device)
         else:
             self.X_validation = None
             self.y_validation = None

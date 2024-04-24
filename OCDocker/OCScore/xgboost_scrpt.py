@@ -1026,15 +1026,15 @@ from multiprocessing import Pool
 from urllib.parse import quote_plus
 
 storage_id = 24
-run_pre_XGBoost_optimizer = True
-run_feature_selection = True
+run_pre_XGBoost_optimizer = False
+run_feature_selection = False
 run_xgb_final_optimization = True
 num_processes = 4
 storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"
 random_seed = 42
 use_gpu = True
 verbose = False
-n_trials = 2500
+n_trials = 250
 load_if_exists = True
 early_stopping_rounds = 20
 
@@ -1075,7 +1075,7 @@ best_pre_xgb_df = pre_xgb_df.sort_values(by=['combined_metric', 'value', 'user_a
 best_pre_xgb_trial = best_pre_xgb_df.iloc[0]
 best_xgb_trial = pre_xgb_study.trials[best_pre_xgb_trial.number]
 best_pre_xgb_params = best_xgb_trial.params
-n_trials = 250
+n_trials = 25 # Avoid using too much, these steps take a long time
 
 if run_feature_selection:
     print("Running feature selection...")
@@ -1121,7 +1121,14 @@ else:
 
 # Create the XGBoost model final optimizer
 print("Running XGBoost final optimization...")
-n_trials = 2500
+num_processes = 8
+total_trials = 2500
+
+# If total_trials is not divisible by num_processes, warn the user
+if total_trials % num_processes != 0:
+    print("Warning: total_trials is not divisible by num_processes. The number of trials per process will be rounded down.")
+
+n_trials = total_trials // num_processes
 
 if run_xgb_final_optimization:
     with Pool(num_processes) as p:

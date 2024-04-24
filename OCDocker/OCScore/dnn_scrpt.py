@@ -916,7 +916,7 @@ for col in full_selected_values_df.columns:
 auc_df = pd.DataFrame(auc_dict, index = ['AUC']).T
 
 # Save the full_selected_values_df values to csv
-full_selected_values_df.to_csv('full_selected_values_df.csv')
+full_selected_values_df.to_csv('full_selected_values_df_NN.csv')
 
 '''
 # Get the RMSE for each scoring function
