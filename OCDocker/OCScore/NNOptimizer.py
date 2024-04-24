@@ -696,7 +696,6 @@ class NNOptimizer:
             
         return encoder
 
-
     def set_random_seed(self):
         np.random.seed(self.random_seed)
         random.seed(self.random_seed)
