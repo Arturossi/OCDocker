@@ -47,12 +47,16 @@ dependencies:
   - cuda-opencl=12.4.127=0
   - cuda-runtime=12.4.0=0
   - cuda-version=12.4=h3060b56_3
+  - cupy=13.1.0=py311h8a5e998_1
+  - cupy-core=13.1.0=py311hcaf8c67_1
   - cycler=0.12.1=pyhd8ed1ab_0
+  - deap=1.4.1=py311h320fe9a_1
   - decorator=5.1.1=pyhd8ed1ab_0
   - docutils=0.21.2=pyhd8ed1ab_0
   - exceptiongroup=1.2.0=pyhd8ed1ab_2
   - executing=2.0.1=pyhd8ed1ab_0
   - expat=2.6.2=h59595ed_0
+  - fastrlock=0.8.2=py311hb755f60_2
   - ffmpeg=4.3=hf484d3e_0
   - filelock=3.13.4=pyhd8ed1ab_0
   - font-ttf-dejavu-sans-mono=2.37=hab24e00_0
@@ -162,6 +166,7 @@ dependencies:
   - openssl=3.2.1=hd590300_1
   - optuna=3.6.0=pyhd8ed1ab_0
   - optuna-dashboard=0.15.1=pyhd8ed1ab_0
+  - optuna-integration=3.6.0=pyhd8ed1ab_0
   - orderedmultidict=1.0.1=pyhd8ed1ab_1
   - packaging=24.0=pyhd8ed1ab_0
   - pandas=2.2.1=py311ha02d727_0
