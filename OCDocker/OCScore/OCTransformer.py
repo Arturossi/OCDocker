@@ -5,6 +5,7 @@ from torch import nn
 import torch
 from torch import nn
 
+"""
 class RegressionTransformer(nn.Module):
   def __init__(self, d_model, output_dim, nhead, num_encoder_layers, dim_feedforward=2048, dropout=0.1, init_type: str = 'zeros', init_params: dict = {}, random_seed: int = 42, device=torch.device('cuda')):
     super().__init__()
@@ -96,3 +97,4 @@ class PositionwiseFeedforward(nn.Module):
     x = self.dropout(x)
     x = self.linear2(x)
     return x
+"""

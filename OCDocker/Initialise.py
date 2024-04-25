@@ -33,7 +33,6 @@ from oddt.scoring.functions.RFScore import rfscore
 from oddt.scoring.functions.NNScore import nnscore
 from oddt.scoring.functions.PLECscore import PLECscore
 from sqlalchemy.engine.url import URL
-from urllib.parse import quote_plus
 
 # License
 ###############################################################################
@@ -1004,7 +1003,6 @@ global order
 global pdbbind_KdKi_order
 
 # Data from .cfg
-global db_config
 global ocdb_path
 global vina
 global vina_split
@@ -1226,11 +1224,17 @@ for line in open(config_file, 'r'): # type: ignore
     elif line.startswith("USER ="):
         USER = line.split("=")[1].strip()
     elif line.startswith("PASSWORD ="):
-        PASSWORD = quote_plus(line.split("=")[1].strip())
+        PASSWORD = line.split("=")[1].strip()
     elif line.startswith("DATABASE ="):
         DATABASE = line.split("=")[1].strip()
     elif line.startswith("PORT ="):
         PORT = line.split("=")[1].strip()
+        # Check if the port is a number
+        if not PORT.isdigit():
+            print(f"{clrs['r']}ERROR{clrs['n']}: The port number must be an integer.")
+            quit()
+        # Parse the port as an integer
+        PORT = int(PORT)
     elif line.startswith("ocdb ="):
         ocdb_path = line.split("=")[1].strip()
     elif line.startswith("pdbbind_KdKi_order ="):
@@ -1397,34 +1401,25 @@ if not HOST or not USER or not PASSWORD or not DATABASE or not PORT:
     print(f"{clrs['r']}ERROR{clrs['n']}: The variables HOST, USER, PASSWORD, DATABASE and PORT must be set in the config file '{config_file}'")
     quit()
 
-# Set the db_config variable
-db_config = {
-    'host':HOST,
-    'user':USER,
-    'password':PASSWORD,
-    'database':DATABASE,
-    'port': PORT
-}
-
+print(PASSWORD)
 # Create the database URL
 db_url = URL.create(
     drivername = 'mysql+pymysql',
-    username   = USER,
-    password   = PASSWORD,
-    host       = HOST,
-    port       = PORT,
-    database   = DATABASE
+    host = HOST,
+    username = USER,
+    password = PASSWORD,
+    database = DATABASE,
+    port = PORT
 )
 
 # Set the engine
-engine = create_engine(str(db_url))
+engine = create_engine(db_url.render_as_string(hide_password=False), echo = True)
 
 # Create the database if it does not exist
-create_database_if_not_exists(str(engine.url))
+create_database_if_not_exists(engine.url)
 
 # Set the session factory as scoped to ensure that the session is thread-safe
 session = create_session(engine)
-
 # Root directory for OCDocker module
 ocdocker_path = os.path.dirname(os.path.abspath( __file__ ))
 

@@ -14,10 +14,10 @@ import OCDocker.Processing.Postprocessing.ReadLogs as ocreadlogs
 ###############################################################################
 import gc
 import os
-import vaex
+#import vaex
 
 import numpy as np
-import vaex.dataframe as vdf
+#import vaex.dataframe as vdf
 
 from multiprocessing import Pool
 from tqdm import tqdm
