@@ -20,9 +20,7 @@ import os
 import rdkit
 
 from openbabel import openbabel
-from rdkit import Chem
-from rdkit import RDLogger
-from rdkit import DataStructs
+from rdkit import Chem, DataStructs, RDLogger
 from rdkit.Chem import AllChem, Descriptors, Descriptors3D, MACCSkeys
 from rdkit.Chem.SaltRemover import SaltRemover
 from rdkit.Chem.rdMolTransforms import ComputeCentroid
