@@ -188,7 +188,7 @@ class Receptor:
             self.__countAA = count_surface_AA(self.structure, self.path, self.__relativeASAcutoff)
 
             self.countA = self.__countAA["A"]
-            self.countR = self.__countAA['r']
+            self.countR = self.__countAA["R"]
             self.countN = self.__countAA["N"]
             self.countD = self.__countAA["D"]
             self.countC = self.__countAA["C"]
@@ -204,7 +204,7 @@ class Receptor:
             self.countP = self.__countAA["P"]
             self.countS = self.__countAA["S"]
             self.countT = self.__countAA["T"]
-            self.countW = self.__countAA['w']
+            self.countW = self.__countAA["R"]
             self.countY = self.__countAA["Y"]
             self.countV = self.__countAA["V"]
 
@@ -293,35 +293,35 @@ class Receptor:
         '''
 
         descriptors = {
-          "TotalAALength": self.totalAALength if self.totalAALength else None,
-          "AvgAALength": self.avgAALength if self.avgAALength else None,
-          "countChain": self.countChain if self.countChain else None,
+          "TotalAALength": self.totalAALength if self.totalAALength else 0,
+          "AvgAALength": self.avgAALength if self.avgAALength else 0,
+          "countChain": self.countChain if self.countChain else 0,
           "SASA": self.sasa if self.sasa else None,
           "DipoleMoment": self.dipoleMoment if self.dipoleMoment else None,
           "IsoelectricPoint": self.isoelectricPoint if self.isoelectricPoint else None,
           "GRAVY": self.GRAVY if self.GRAVY else None,
           "Aromaticity": self.aromaticity if self.aromaticity else None,
           "InstabilityIndex": self.instabilityIndex if self.instabilityIndex else None,
-          "countA": self.countA if self.countA else None,
-          "countR": self.countR if self.countR else None,
-          "countN": self.countN if self.countN else None,
-          "countD": self.countD if self.countD else None,
-          "countC": self.countC if self.countC else None,
-          "countQ": self.countQ if self.countQ else None,
-          "countE": self.countE if self.countE else None,
-          "countG": self.countG if self.countG else None,
-          "countH": self.countH if self.countH else None,
-          "countI": self.countI if self.countI else None,
-          "countL": self.countL if self.countL else None,
-          "countK": self.countK if self.countK else None,
-          "countM": self.countM if self.countM else None,
-          "countF": self.countF if self.countF else None,
-          "countP": self.countP if self.countP else None,
-          "countS": self.countS if self.countS else None,
-          "countT": self.countT if self.countT else None,
-          "countW": self.countW if self.countW else None,
-          "countY": self.countY if self.countY else None,
-          "countV": self.countV if self.countV else None
+          "countA": self.countA if self.countA else 0,
+          "countR": self.countR if self.countR else 0,
+          "countN": self.countN if self.countN else 0,
+          "countD": self.countD if self.countD else 0,
+          "countC": self.countC if self.countC else 0,
+          "countQ": self.countQ if self.countQ else 0,
+          "countE": self.countE if self.countE else 0,
+          "countG": self.countG if self.countG else 0,
+          "countH": self.countH if self.countH else 0,
+          "countI": self.countI if self.countI else 0,
+          "countL": self.countL if self.countL else 0,
+          "countK": self.countK if self.countK else 0,
+          "countM": self.countM if self.countM else 0,
+          "countF": self.countF if self.countF else 0,
+          "countP": self.countP if self.countP else 0,
+          "countS": self.countS if self.countS else 0,
+          "countT": self.countT if self.countT else 0,
+          "countW": self.countW if self.countW else 0,
+          "countY": self.countY if self.countY else 0,
+          "countV": self.countV if self.countV else 0
         }
         return descriptors
 
@@ -450,7 +450,7 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
 
     aas = {
         "A": 0, 
-        'r': 0,
+        "R": 0,
         "N": 0,
         "D": 0,
         "C": 0,
@@ -466,7 +466,7 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
         "P": 0,
         "S": 0,
         "T": 0,
-        'w': 0,
+        "W": 0,
         "Y": 0,
         "V": 0,
         "X": 0
@@ -519,13 +519,14 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
         # Check if the relative ASA is valid and is above the cutoff
         if value[3] != "NA" and float(value[3]) >= cutoff:
             # If so, check if the amino acid is one of the 20 standard ones
-            if value[1] in ["A", 'r', "N", "D", "C", "Q", "E", "G", "H", "I", "L", "K", "M", "F", "P", "S", "T", 'w', "Y", "V"]:
+            if value[1] in ["A", "R", "N", "D", "C", "Q", "E", "G", "H", "I", "L", "K", "M", "F", "P", "S", "T", "w", "Y", "V"]:
                 # Add 1 to its count
                 aas[value[1]] += 1
             # If not, add to an 'others' (X) position
             else:
                 # Add 1 to its count
                 aas["X"] += 1
+
     return aas
 
 def count_AAs_and_chains(structure: Bio.PDB.Structure.Structure) -> Union[Tuple[int, float, int], None]: #type: ignore

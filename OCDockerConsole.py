@@ -244,6 +244,7 @@ rescoringResult = plantsTest.read_rescore_logs(onlyBest = False)
 
 ## WARNING: The ODDT is used only for rescoring, so it is REQUIRED that you run at least one docking before rescoring with ODDT. The following example will use vina as the docking algorithm.
 
+# TODO: Review the ODDT implementation (seems to not be working properly)
 # Run ODDT and get the result as a dataframe
 df = ocoddt.run_oddt(vinaTest.preparedReceptor, vinaTest.get_docked_poses(), vinaTest.inputLigand.name, f"{vinaTest.get_input_ligand_path()}/oddt")
 

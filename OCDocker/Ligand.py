@@ -727,20 +727,36 @@ def loadMol(molecule: Union[str, Chem.rdchem.Mol], sanitize: bool = True) -> Tup
             # Read the smiles file into a string
             with open(molecule, 'r') as file:
                 smiles = file.read().strip()
+
             # Load the molecule
             mol = Chem.MolFromSmiles(smiles, sanitize = sanitize) # type: ignore
+
             # If the molecule was loaded
             if mol:
                 # Find its name (without extension)
                 name = os.path.splitext(os.path.basename(molecule))[0]
+
                 # Set its name
                 mol.SetProp("_Name", name)
+
                 # Remove the salts
-                mol = SaltRemover().StripMol(mol)
+                remover = SaltRemover()
+                mol = remover.StripMol(mol)
+
                 # Add the hydrogens
                 mol = Chem.AddHs(mol) # type: ignore
+
                 # Embed the molecule
                 AllChem.EmbedMolecule(mol, AllChem.ETKDG()) # type: ignore
+
+                # Ensure that the ring information is initialized
+                _ = mol.GetRingInfo()
+    
+                # If sanitize is True, sanitize the molecule
+                if sanitize:
+                    # Sanitize the molecule
+                    Chem.SanitizeMol(mol)
+
                 # Optimize the molecule
                 AllChem.UFFOptimizeMolecule(mol) # type: ignore
             else:

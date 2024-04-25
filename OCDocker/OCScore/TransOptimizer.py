@@ -1,78 +1,65 @@
+"""
+"""
+
 import optuna
-import re
+import random
+import torch
 
 import numpy as np
-import pandas as pd
+import torch.nn as nn
+import torch.nn.init as init
+import torch.optim as optim
 
 from optuna.samplers import TPESampler
 from sklearn.metrics import auc, roc_curve
-from typing import Union
+from torch.utils.data import Dataset, DataLoader
 
 #from OCDocker.Initialise import *
 
-import random
-import torch
-import torch.nn as nn
-import torch.optim as optim
-
-from torch.utils.data import Dataset, DataLoader
-from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
-import torch.nn.init as init
-import torch.nn.functional as F
-
 class CustomDataset(Dataset):
-    def __init__(self, features, target):
+    """ Create a custom dataset for the PyTorch DataLoader. """
+    def __init__(self, features: list, target: list) -> None:
+        ''' Initialize the dataset.
+        
+        Parameters
+        ----------
+        features : list
+            The features.
+        target : list
+            The target.
+        '''
+
         self.features = features
         self.target = target
 
-    def __len__(self):
+        return None
+
+    def __len__(self) -> int:
+        ''' Get the length of the dataset.	
+
+        Returns
+        -------
+        int
+            The length of the dataset.
+        '''
+
         return len(self.features)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> tuple:
+        ''' Get the item at the index.
+
+        Parameters
+        ----------
+        idx : int
+            The index.
+
+        Returns
+        -------
+        tuple
+            The features and the target.
+        '''
+        
         return self.features[idx], self.target[idx]
-
-
-class CustomDataset2(Dataset):
-    def __init__(self, features, target, max_seq_length=None, pad_value=0):
-        self.features = features
-        self.target = target
-        self.max_seq_length = max_seq_length
-        self.pad_value = pad_value
-
-    def __len__(self):
-        return len(self.features)
-
-    def __getitem__(self, idx):
-        # Retrieve the features and target for the current index
-        seq = self.features[idx]
-        target = self.target[idx]
-
-        # Pad or truncate sequence to max_seq_length
-        if self.max_seq_length is not None:
-            seq = self.pad_or_truncate_sequence(seq, self.max_seq_length)
-
-        return seq, target
-
-    def pad_or_truncate_sequence(self, sequence, max_length):
-        """
-        Pad or truncate the input sequence to the specified max_length.
-        """
-        if len(sequence) < max_length:
-            # Pad sequence with pad_value
-            sequence = torch.cat([sequence, torch.full((max_length - len(sequence),), self.pad_value)], dim=0)
-        elif len(sequence) > max_length:
-            # Truncate sequence
-            sequence = sequence[:max_length]
-        return sequence
-
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader
-import numpy as np
-import optuna
-import random
-from typing import Union, List
 
 class TransformerModel(nn.Module):
     def __init__(self, input_dim, d_model, output_dim, nhead, num_encoder_layers, dim_feedforward, dropout=0.1, init_type: str = 'zeros', init_params: dict = {}, random_seed: int = 42, device=torch.device('cuda'), verbose = True):
@@ -177,7 +164,6 @@ class TransformerModel(nn.Module):
         output = self.fc_out(output)  # This uses the complete feature vector
 
         return output
-
 
 class Transformer(nn.Module):
     def __init__(self, 

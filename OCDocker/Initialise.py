@@ -1401,7 +1401,6 @@ if not HOST or not USER or not PASSWORD or not DATABASE or not PORT:
     print(f"{clrs['r']}ERROR{clrs['n']}: The variables HOST, USER, PASSWORD, DATABASE and PORT must be set in the config file '{config_file}'")
     quit()
 
-print(PASSWORD)
 # Create the database URL
 db_url = URL.create(
     drivername = 'mysql+pymysql',
@@ -1413,7 +1412,7 @@ db_url = URL.create(
 )
 
 # Set the engine
-engine = create_engine(db_url.render_as_string(hide_password=False), echo = True)
+engine = create_engine(db_url.render_as_string(hide_password=False))
 
 # Create the database if it does not exist
 create_database_if_not_exists(engine.url)

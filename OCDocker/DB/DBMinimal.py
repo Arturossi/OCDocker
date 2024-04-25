@@ -7,18 +7,14 @@ from typing import Union
 
 import OCDocker.Error as ocerror
 
-def create_database_if_not_exists(url: Union[str, URL]) -> None:
+def create_database_if_not_exists(url: URL) -> None:
     ''' Create the database if it does not exist.
     
     Parameters
     ----------
-    url : str | sqlalchemy.engine.url.URL
+    url : sqlalchemy.engine.url.URL
         The database url.
     '''
-
-    # If the type of the url is URL, convert it to string
-    if isinstance(url, URL):
-        url = str(url)
 
     # If the database does not exist, create it
     if not database_exists(url):
@@ -26,12 +22,12 @@ def create_database_if_not_exists(url: Union[str, URL]) -> None:
     
     return None
 
-def create_engine(url: Union[str, URL], echo: bool = False) -> Engine:
+def create_engine(url: URL, echo: bool = False) -> Engine:
     ''' Create the engine.
 
     Parameters
     ----------
-    url : str | sqlalchemy.engine.url.URL
+    url : sqlalchemy.engine.url.URL
         The database url.
     echo : bool
         Echo the SQL commands.
@@ -41,10 +37,6 @@ def create_engine(url: Union[str, URL], echo: bool = False) -> Engine:
     Engine : sqlalchemy.engine.base.Engine
         The engine.
     '''
-
-    # If the type of the url is URL, convert it to string
-    if isinstance(url, URL):
-        url = str(url)
 
     # Create the engine
     engine = sqlalchemy_create_engine(url, echo = echo)
