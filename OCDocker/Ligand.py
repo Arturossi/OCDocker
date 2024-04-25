@@ -23,10 +23,7 @@ from openbabel import openbabel
 from rdkit import Chem
 from rdkit import RDLogger
 from rdkit import DataStructs
-from rdkit.Chem import AllChem
-from rdkit.Chem import MACCSkeys
-from rdkit.Chem import Descriptors
-from rdkit.Chem import Descriptors3D
+from rdkit.Chem import AllChem, Descriptors, Descriptors3D, MACCSkeys
 from rdkit.Chem.SaltRemover import SaltRemover
 from rdkit.Chem.rdMolTransforms import ComputeCentroid
 from threading import Lock
