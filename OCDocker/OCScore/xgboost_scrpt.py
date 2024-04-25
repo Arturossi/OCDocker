@@ -1025,11 +1025,11 @@ def FeatureSelectionWorker(
 from multiprocessing import Pool
 from urllib.parse import quote_plus
 
-storage_id = 24
+storage_id = 25
 run_pre_XGBoost_optimizer = False
-run_feature_selection = False
+run_feature_selection = True
 run_xgb_final_optimization = True
-num_processes = 4
+num_processes = 8
 storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"
 random_seed = 42
 use_gpu = True

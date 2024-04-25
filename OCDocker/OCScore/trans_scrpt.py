@@ -529,7 +529,7 @@ def Transworker(
         print(f"Process {id} completed {sampler_name} optimization")
 
 num_processes = 1
-storage_id = 25
+storage_id = 26
 storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"
 run_NN_optimization = True
 explained_variance = 0.95
@@ -546,13 +546,13 @@ if run_NN_optimization:
             storage,
             1,                # output_size
             42,               # random_seed
-            True,             # use_gpu
+            False,             # use_gpu
             False,            # verbose
             "minimize",       # direction
             125,              # n_trials
             True,             # load_if_exists
             1,                # n_jobs
-            "NN_Optimization" # study_name
+            "Trans_Optimization" # study_name
             ) for pid in range(num_processes)
         ])
 

@@ -17,7 +17,8 @@ import torch.optim as optim
 
 from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
-
+import torch.nn.init as init
+import torch.nn.functional as F
 
 class CustomDataset(Dataset):
     def __init__(self, features, target):
@@ -31,6 +32,39 @@ class CustomDataset(Dataset):
         return self.features[idx], self.target[idx]
 
 
+class CustomDataset2(Dataset):
+    def __init__(self, features, target, max_seq_length=None, pad_value=0):
+        self.features = features
+        self.target = target
+        self.max_seq_length = max_seq_length
+        self.pad_value = pad_value
+
+    def __len__(self):
+        return len(self.features)
+
+    def __getitem__(self, idx):
+        # Retrieve the features and target for the current index
+        seq = self.features[idx]
+        target = self.target[idx]
+
+        # Pad or truncate sequence to max_seq_length
+        if self.max_seq_length is not None:
+            seq = self.pad_or_truncate_sequence(seq, self.max_seq_length)
+
+        return seq, target
+
+    def pad_or_truncate_sequence(self, sequence, max_length):
+        """
+        Pad or truncate the input sequence to the specified max_length.
+        """
+        if len(sequence) < max_length:
+            # Pad sequence with pad_value
+            sequence = torch.cat([sequence, torch.full((max_length - len(sequence),), self.pad_value)], dim=0)
+        elif len(sequence) > max_length:
+            # Truncate sequence
+            sequence = sequence[:max_length]
+        return sequence
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -41,30 +75,109 @@ import random
 from typing import Union, List
 
 class TransformerModel(nn.Module):
-    def __init__(self, input_dim, d_model, output_dim, nhead, num_encoder_layers, dim_feedforward, dropout=0.1, device=torch.device('cuda')):
+    def __init__(self, input_dim, d_model, output_dim, nhead, num_encoder_layers, dim_feedforward, dropout=0.1, init_type: str = 'zeros', init_params: dict = {}, random_seed: int = 42, device=torch.device('cuda'), verbose = True):
         super(TransformerModel, self).__init__()
-        self.embedding = nn.Linear(input_dim, d_model)
-        encoder_layer = nn.TransformerEncoderLayer(d_model, nhead, dim_feedforward, dropout)
-        self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_encoder_layers)
-        self.fc_out = nn.Linear(d_model, output_dim)
+        # Embedding layer
+        self.embedding = nn.Linear(input_dim, d_model).to(device)
+
+        # Transformer encoder
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=d_model, 
+            nhead=nhead, 
+            dim_feedforward=dim_feedforward, 
+            dropout=dropout,
+            batch_first=True  # Set batch_first to True
+        ).to(device)
+
+        # Transformer encoder
+        self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_encoder_layers).to(device)
+
+        # Output layer
+        self.fc_out = nn.Linear(d_model, output_dim).to(device)
+
+        self.init_functions = {
+            'xavier_uniform': init.xavier_uniform_,
+            'glorot_uniform': init.xavier_uniform_,
+            'he_uniform': init.kaiming_uniform_,
+            'kaiming_uniform': init.kaiming_uniform_,
+            'xavier_normal': init.xavier_normal_,
+            'glorot_normal': init.xavier_normal_,
+            'he_normal': init.kaiming_normal_,
+            'kaiming_normal': init.kaiming_normal_,
+            'zeros': init.zeros_,
+            'ones': init.ones_,
+            'orthogonal': init.orthogonal_,
+            'normal': init.normal_,
+            'uniform': init.uniform_,
+            'constant': init.constant_,
+            'eye': init.eye_,
+            'trunc_normal': init.trunc_normal_,
+            'sparse': init.sparse_
+        }
+
+        # Other parameters
+        self.init_type = init_type
+        self.init_params = init_params
         self.d_model = d_model
         self.device = device
+        self.random_seed = random_seed
+        self.generator = self.set_random_seed()
 
-    def forward(self, src, src_mask=None):  # Allow optional mask for padding
+        # Initialize weights
+        self.initialize_weights()
+
+        if verbose:
+            # Print the model
+            print(self)
+
+    def set_random_seed(self):
+        np.random.seed(self.random_seed)
+        random.seed(self.random_seed)
+
+        # Set the seed for CPU
+        torch.manual_seed(self.random_seed)
+
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(self.random_seed)
+
+        # Create a generator for reproducibility
+        generator = torch.Generator(device=self.device)
+
+        # Set the seed for the generator
+        generator.manual_seed(self.random_seed)
+
+        return generator
+
+    def initialize_weights(self):
+        if self.init_type in self.init_functions.keys():
+            init_func = self.init_functions[self.init_type]
+        else:
+            raise ValueError('Unknown initialization function')
+
+        # Apply the initialization to all linear layers in the model
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                if self.init_type in ['zeros', 'ones', 'eye']:
+                    init_func(m.weight)
+                elif self.init_type in ['constant']:
+                    init_func(m.weight, **self.init_params)
+                else:
+                    init_func(m.weight, **self.init_params, generator = self.generator)
+                if m.bias is not None:
+                    init.zeros_(m.bias)
+
+    def forward(self, src):
         # Embed the input
         src = self.embedding(src) * np.sqrt(self.d_model)
 
-        if src_mask is None:
-            # Create a mask to ignore padding tokens
-            src_mask = src != 0
-
-        # Pass through Transformer encoder with masking
-        output = self.transformer_encoder(src, src_key_padding_mask=~src_mask.any(dim=-1))
+        # Pass through Transformer encoder
+        output = self.transformer_encoder(src)
 
         # Apply final linear layer
-        output = self.fc_out(output.mean(dim=1))  # Mean pooling across sequence
+        output = self.fc_out(output)  # This uses the complete feature vector
 
         return output
+
 
 class Transformer(nn.Module):
     def __init__(self, 
@@ -80,6 +193,11 @@ class Transformer(nn.Module):
         self.random_seed = random_seed
         self.use_gpu = use_gpu
 
+        if self.use_gpu and torch.cuda.is_available():
+            self.device = torch.device('cuda')
+        else:
+            self.device = torch.device('cpu')
+
         self.input_size = input_size
 
         self.set_random_seed()
@@ -88,7 +206,7 @@ class Transformer(nn.Module):
         self.optimizer_functions_str = ['Adam', 'RMSprop', 'SGD']
 
         # Create the transformer model
-        self.trans = TransformerModel(input_size, trans_params['d_model'], output_size, trans_params['nhead'], trans_params['num_encoder_layers'], trans_params['dim_feedforward'], trans_params['dropout'])
+        self.trans = TransformerModel(input_size, trans_params['d_model'], output_size, trans_params['nhead'], trans_params['num_encoder_layers'], trans_params['dim_feedforward'], trans_params['dropout'], self.device).to(self.device)
 
         self.batch_size = trans_params['batch_size']
         self.epochs = trans_params['epochs']
@@ -161,12 +279,14 @@ class Transformer(nn.Module):
         train_loader = DataLoader(
             dataset = CustomDataset(X_train, y_train), 
             batch_size = self.batch_size, 
-            shuffle = True
+            shuffle = True,
+            drop_last=True
         )
 
         test_loader = DataLoader(
-            dataset = CustomDataset(X_test, y_test), 
-            batch_size = self.batch_size
+            dataset = CustomDataset(X_test, y_test),
+            batch_size = self.batch_size,
+            drop_last=True
         )
 
         # If a validation set has been provided, create the validation loader
@@ -174,7 +294,8 @@ class Transformer(nn.Module):
             validation_loader = DataLoader(
                 dataset = CustomDataset(X_validation, y_validation), 
                 batch_size = self.batch_size, 
-                shuffle = True
+                shuffle = True,
+                drop_last=True
             )
 
         # For each epoch
@@ -184,16 +305,19 @@ class Transformer(nn.Module):
 
             # Set the running loss to 0            
             running_loss = 0.0
-              
+            
             for i, (inputs, labels) in enumerate(train_loader):
+                inputs = inputs.to(self.device)
+                labels = labels.to(self.device)
+
                 # Zero the gradients
                 self.optimizer.zero_grad()
 
-                outputs = self.NN(inputs)                                      # Forward pass
-                loss = criterion(outputs, labels.view(-1, 1))                  # Calculate the loss
-                loss.backward()                                                # Backward pass
-                nn.utils.clip_grad_norm_(self.NN.parameters(), self.clip_grad) # Clip the gradients
-                self.optimizer.step()                                          # Update weights
+                outputs = self.trans(inputs)                                                    # Forward pass
+                loss = criterion(outputs, labels.view(-1, 1))                                   # Calculate the loss
+                loss.backward()                                                                 # Backward pass
+                nn.utils.clip_grad_norm_(self.trans.parameters(), self.clip_grad, max_norm = 1) # Clip the gradients
+                self.optimizer.step()                                                           # Update weights
 
                 running_loss += loss.item()
         
@@ -207,7 +331,7 @@ class Transformer(nn.Module):
             
             with torch.no_grad():
                 for inputs, labels in test_loader:
-                    predicted = self.NN(inputs)
+                    predicted = self.trans(inputs)
                     loss = criterion(predicted, labels.view(-1, 1))
                     running_loss += loss.item()
                     
@@ -289,7 +413,8 @@ class TransOptimizer:
         if self.use_gpu:
             torch.cuda.manual_seed_all(self.random_seed)
 
-    def train_test_model(self, model, train_loader, test_loader, optimizer, criterion, clip_grad, trial, epochs = 100):
+    def train_test_model(self, model, train_loader, test_loader, optimizer, criterion, clip_grad, trial, batch_size, epochs = 100):
+        torch.autograd.set_detect_anomaly(True)
         # For each epoch
         for epoch in range(epochs):
             # Set the model to training mode
@@ -299,15 +424,27 @@ class TransOptimizer:
             running_loss = 0.0
 
             for _, (inputs, labels) in enumerate(train_loader):
+                outputs = model(inputs)
+
+                # Ensure the labels are of the correct type (float for regression)
+                labels = labels.float()
+                
+                # Compute the loss
+                loss = criterion(outputs, labels.view_as(outputs))
+
                 # Zero the gradients
                 optimizer.zero_grad()
 
-                outputs = model(inputs)                                  # Forward pass
-                loss = criterion(outputs, labels.view(-1, 1))            # Calculate the loss
-                loss.backward()                                          # Backward pass
-                nn.utils.clip_grad_norm_(model.parameters(), clip_grad)  # Clip the gradients
-                optimizer.step()                                         # Update weights
+                # Backward pass
+                loss.backward()
 
+                # Clip the gradients
+                nn.utils.clip_grad_norm_(model.parameters(), clip_grad)
+
+                # Optimizer step
+                optimizer.step()
+
+                # Accumulate the loss
                 running_loss += loss.item()
 
             # Set the model to evaluation mode
@@ -319,10 +456,18 @@ class TransOptimizer:
             all_labels = []
 
             for inputs, labels in test_loader:
+                # Get the predictions
                 predicted = model(inputs)
-                loss = criterion(predicted, labels.view(-1, 1))
+
+                print(inputs.shape, outputs.shape, labels.shape)
+
+                # Compute the loss
+                loss = criterion(predicted, labels.view_as(outputs))
+
+                # Accumulate the loss
                 running_loss += loss.item()
                 
+                # Append the predictions and the labels
                 all_predictions.extend(predicted.cpu().detach().numpy())
                 all_labels.extend(labels.cpu().detach().numpy())
 
@@ -334,7 +479,7 @@ class TransOptimizer:
             print(f'Test Loss: {average_loss}')
             print(f'Test RMSE: {rmse}')
 
-        trial.report(rmse, epoch)
+        #trial.report(rmse, epoch)
         
         # Handle pruning based on the intermediate value.
         if trial.should_prune():
@@ -349,12 +494,45 @@ class TransOptimizer:
         num_encoder_layers = trial.suggest_int('num_encoder_layers', 1, 6)
         dim_feedforward = trial.suggest_categorical('dim_feedforward', [256, 512, 1024, 2048])
         dropout = trial.suggest_float('dropout', 0.1, 0.5)
-        lr = trial.suggest_loguniform('lr', 1e-5, 1e-1)
-        batch_size = trial.suggest_categorical('batch_size', [16, 32, 64])
+        lr = trial.suggest_float('lr', 1e-5, 1e-1)
+        batch_size = trial.suggest_categorical('batch_size', [32, 64, 128, 256])
         epochs = trial.suggest_int('epochs', 10, 100)
 
+        # Suggest the initialization type
+        init_type = trial.suggest_categorical('init_type', ['zeros', 'orthogonal', 'normal', 'uniform', 'constant', 'xavier_uniform', 'xavier_normal', 'he_uniform',  'he_normal', 'sparse', 'eye', 'trunc_normal'])
+
+        # If the initialization typem requires parameters, suggest them
+        if init_type in ['normal']:
+            mean = trial.suggest_float('mean', -1, 1)
+            std = trial.suggest_float('std', 0.1, 1)
+            init_params = {'mean': mean, 'std': std}
+        elif init_type in ['uniform']:
+            a = trial.suggest_float('a', -1, 1)
+            b = trial.suggest_float('b', 0.1, 1)
+            init_params = {'a': a, 'b': b}
+        elif init_type in ['constant']:
+            val = trial.suggest_float('val', -1, 1)
+            init_params = {'val': val}
+        elif init_type in ['sparse']:
+            sparsity = trial.suggest_float('sparsity', 0.1, 1)
+            init_params = {'sparsity': sparsity}
+        elif init_type in ['trunc_normal']:
+            mean = trial.suggest_float('mean', -1, 1)
+            std = trial.suggest_float('std', 0.1, 1)
+            a = trial.suggest_float('a', -1, 1)
+            b = trial.suggest_float('b', 0.1, 1)
+            init_params = {'mean': mean, 'std': std, 'a': a, 'b': b}
+        elif init_type in ['orthogonal', 'xavier_uniform', 'xavier_normal']:
+            init_params = {'gain': init.calculate_gain('relu')}
+        elif init_type in ['he_uniform', 'he_normal']:
+            a = trial.suggest_float('a', 0, 1)
+            nonlinearity = trial.suggest_categorical('nonlinearity', ['relu', 'leaky_relu', 'tanh', 'sigmoid'])
+            init_params = {'a': a, 'nonlinearity': nonlinearity}
+        else:
+            init_params = {}
+        
         # Model setup
-        model = TransformerModel(self.X_train.shape[-1], d_model, self.output_size, nhead, num_encoder_layers, dim_feedforward, dropout).to(self.device)
+        model = TransformerModel(self.X_train.shape[-1], d_model, self.output_size, nhead, num_encoder_layers, dim_feedforward, dropout, init_type, init_params, self.random_seed, self.device)
 
         # Suggestions for the optimizer
         optimizer_name = trial.suggest_categorical('optimizer', ['Adam', 'RMSprop', 'SGD'])
@@ -366,12 +544,14 @@ class TransOptimizer:
         self.train_loader = DataLoader(
                 dataset = CustomDataset(self.X_train, self.y_train), 
                 batch_size = batch_size, 
-                shuffle = True
+                shuffle = True,
+                drop_last=True
             )
         
         self.test_loader = DataLoader(
                 dataset = CustomDataset(self.X_test, self.y_test), 
-                batch_size = batch_size
+                batch_size = batch_size,
+                drop_last=True
             )
 
         # If a validation set has been provided, create the validation loader
@@ -379,13 +559,14 @@ class TransOptimizer:
             self.validation_loader = DataLoader(
                 dataset = CustomDataset(self.X_validation, self.y_validation), 
                 batch_size = batch_size, 
-                shuffle = True
+                shuffle = True,
+                drop_last=True
             )
         
         # Suggestions for clipping the gradients
         clip_grad = trial.suggest_float('clip_grad', 0.1, 1.0)
 
-        test_loss = self.train_test_model(model, self.train_loader, self.test_loader, optimizer, criterion, clip_grad, trial, epochs = epochs)
+        test_loss = self.train_test_model(model, self.train_loader, self.test_loader, optimizer, criterion, clip_grad, trial, batch_size, epochs = epochs)
 
         # If a validation set has been provided, calculate the AUC
         if self.validation_loader is not None:
