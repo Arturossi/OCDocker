@@ -13,7 +13,6 @@ import OCDocker.DUDEz as ocdudez
 # Imports
 ###############################################################################
 import pandas as pd
-import vaex.dataframe as vdf
 
 from typing import Dict, Union
 
@@ -225,7 +224,7 @@ def run_plants(overwrite: bool = False) -> int:
 
     return ocbdb.run_docking("dudez", "plants", overwrite = overwrite)
 
-def read_logs(saveChunk: int = 100, overwrite: bool = False) -> Union[vdf.DataFrameLocal, None]:
+def read_logs(saveChunk: int = 100, overwrite: bool = False) -> Union[dict, None]:
     '''Parse the database into multiple serializable objects.
 
     Parameters
@@ -237,7 +236,7 @@ def read_logs(saveChunk: int = 100, overwrite: bool = False) -> Union[vdf.DataFr
 
     Returns
     -------
-    vdf.DataFrameLocal | None
+    dict | None
         A dictionary with the keys being the protein-ligand names and the values being the dataframes.
     '''
 
@@ -265,8 +264,8 @@ def generate_dock_result_csv(csv_path: str = "", log_dumps: Union[Dict[str, pd.D
 
     return ocbdb.generate_dock_result_csv("dudez", csv_path, log_dumps = log_dumps) # type: ignore
 
-def merge_descriptors_in_dataframe(readMode:str = "hdf5", saveMode: str = "hdf5", picklenize: bool = False, returnDf: bool = False, skipMergePicklePath: str = "", saveChunk: int = 100, datafileFormat: str = "hdf5", verboseOperations: bool = False, overwrite: bool = False) -> Union[vdf.DataFrameLocal, None]:
-    '''Reads all the descriptors jsons and return a vdf.DataFrameLocal.
+def merge_descriptors_in_dataframe(readMode:str = "hdf5", saveMode: str = "hdf5", picklenize: bool = False, returnDf: bool = False, skipMergePicklePath: str = "", saveChunk: int = 100, datafileFormat: str = "hdf5", verboseOperations: bool = False, overwrite: bool = False) -> Union[dict, None]:
+    '''Reads all the descriptors jsons and return a dict.
 
     Parameters
     ----------
@@ -291,7 +290,7 @@ def merge_descriptors_in_dataframe(readMode:str = "hdf5", saveMode: str = "hdf5"
 
     Returns
     -------
-    vdf.DataFrameLocal | None
+    dict | None
         A dataframe with all the descriptors and affinity results or None if any error occur while reading the input file or if returnDf is set to false.
     '''
 

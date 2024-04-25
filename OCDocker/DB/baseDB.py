@@ -14,9 +14,6 @@ import OCDocker.DB.baseDB as ocbdb
 # Imports
 ###############################################################################
 import os
-import vaex
-
-import vaex.dataframe as vdf
 
 from glob import glob
 from tqdm import tqdm
@@ -24,12 +21,14 @@ from typing import Dict, Union
 
 from OCDocker.Initialise import *
 
+import pandas as pd
+
 import OCDocker.Processing.Dock as ocdock
 import OCDocker.Processing.Postprocessing.Digest as ocdigest
 import OCDocker.Processing.Preprocessing.Prepare as ocprepare
 import OCDocker.Processing.Preprocessing.p2rank as ocp2rank
-import OCDocker.Processing.Postprocessing.ReadLogs as ocreadlogs
-import OCDocker.Processing.Postprocessing.MergeLogs as ocmergelogs
+#import OCDocker.Processing.Postprocessing.ReadLogs as ocreadlogs
+#import OCDocker.Processing.Postprocessing.MergeLogs as ocmergelogs
 
 import OCDocker.Toolbox.FilesFolders as ocff
 import OCDocker.Toolbox.Printing as ocprint
@@ -403,6 +402,7 @@ def run_docking(archive: str, dockingAlgorithm: str, digestFormat: str = "json",
     # Run docking
     return ocdock.run_docking(complexList, archive, dockingAlgorithm, overwrite, digestFormat)
 
+""" TODO: Drop this function
 def read_logs(archive: str, saveChunk: int = 100, overwrite: bool = False) -> Union[vdf.DataFrameLocal, None]:
     '''Reads database logfiles returning a vdf.DataFrameLocal.
 
@@ -433,7 +433,7 @@ def read_logs(archive: str, saveChunk: int = 100, overwrite: bool = False) -> Un
         return None
     
     # Data to be concatenated
-    data = None
+    data = []
     
     # Get all dirs paths in the database
     ptnDirs = [ptn for ptn in glob(f"{chosenArchive}/*") if os.path.basename(ptn.split(os.path.sep)[-1]) not in ['index']]
@@ -462,29 +462,17 @@ def read_logs(archive: str, saveChunk: int = 100, overwrite: bool = False) -> Un
 
         # Check if data is not empty
         if innerData:
-            # Check if data is None
-            if data is None:
-                # If it is, set it to innerData
-                data = innerData
-            else:
-                # Concatenate vaex dataframes
-                data = vaex.concat([data, innerData])
-                # TODO: Change this in the future to a more efficient way
-                # Added to avoid memory leaks (possibly?)
-                # Convert to pandas dataframe
-                pdData = data.to_pandas_df()
-                # Delete the vaex dataframe
-                del data
-                # Convert back to vaex dataframe
-                data = vaex.from_pandas(pdData)
+            # Append the innerData to the data list
+            data.append(innerData)
         else:
             ocprint.print_warning(f"The data object is not defined! There is no reason to append it to data list. Skipping...")
             continue
 
     # Return the data
     return data # type: ignore
+"""
 
-def generate_dock_result_csv(archive: str, csv_path: str, log_dumps: Union[vdf.DataFrameLocal, None] = None) -> None:
+def generate_dock_result_csv(archive: str, csv_path: str, log_dumps: Union[dict, None] = None) -> None:
     '''Uses the structure from read_logs to generate an output for all docking softwares.
 
     Parameters
@@ -493,7 +481,7 @@ def generate_dock_result_csv(archive: str, csv_path: str, log_dumps: Union[vdf.D
         The archive to be prepared. The options are [dudez, pdbbind].
     csv_path : str
         The path to the csv file.
-    log_dumps : vdf.DataFrameLocal | None, optional
+    log_dumps : dict | None, optional
         The data from the logfiles. If None, will use the read_logs function to get the data. The default is None.
 
     Returns
@@ -506,14 +494,13 @@ def generate_dock_result_csv(archive: str, csv_path: str, log_dumps: Union[vdf.D
         # Read the log files
         log_dumps = read_logs(archive)
 
-    #data = vaex.concat(log_dumps.values()) # type: ignore
-
     # Check if data is not empty
     if log_dumps:
         log_dumps.export_csv(path = csv_path, backend = 'arrow') # type: ignore
 
     return None
 
+""" TODO: Drop this function
 def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMode: str = "hdf5", picklenize: bool = False, returnDf: bool = False, skipMergePicklePath: str = "", saveChunk: int = 100, datafileFormat: str = "hdf5", verboseOperations: bool = False, overwrite: bool = False) -> Union[vdf.DataFrameLocal, None]:
     '''Reads all the descriptors jsons and return a pd.DataFrame.
 
@@ -618,11 +605,11 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
         # Merge the descriptors and append its results to the data list
         dataList.append(merged)
 
-        # Merge the list elements into a single vaex df
-        data = vaex.concat(dataList)
+        # Merge the list elements into a single pandas df
+        data = pd.concat(dataList)
 
     # Check if data is pd.DataFrame type and is not empty
-    if type(data) == vdf.DataFrameLocal: # type: ignore
+    if type(data) == pd.DataFrame: # type: ignore
         # Try to write the csv
         try:
             # If picklenize is true, save as pickle in this step
@@ -631,64 +618,38 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
 
             # Rename the name column from data dataframe
             #data.rename("Name", "Ligand") # type: ignore
-            
-            if ocerror.Error.output_level > ocerror.ReportLevel.WARNING or verboseOperations:
-                with vaex.progress.tree("rich", title="Merging dataframes"): # type: ignore
-                    if readMode == "hdf5":
-                        # Read the hdf5 from input file
-                        ptndf = vaex.open(file_path_in)
-                    else:
-                        # Read the csv from input file
-                        ptndf = vaex.read_csv(file_path_in)
+        
+            if readMode == "hdf5":
+                # Read the hdf5 from input file
+                ptndf = pd.read_hdf(file_path_in)
             else:
-                ocprint.print_info(f"Reading {file_path_in}...")
-                if readMode == "hdf5":
-                    # Read the csv from input file
-                    ptndf = vaex.open(file_path_in)
-                else:
-                    # Read the csv from input file
-                    ptndf = vaex.read_csv(file_path_in)
-
+                # Read the csv from input file
+                ptndf = pd.read_csv(file_path_in)
+            
             # Generate and materialize the Complex column for ptndf and data from "Protein" and "Ligand" columns then drop them
             ptndf["Complex"] = ptndf["Protein"] + "-" + ptndf["Ligand"] # type: ignore
-            _ = ptndf.materialize("Complex", inplace = True) # type: ignore
             ptndf = ptndf.drop(["Protein", "Ligand"]) # type: ignore
 
             data["Complex"] = data["Protein"] + "-" + data["Ligand"] # type: ignore
-            _ = data.materialize("Complex", inplace = True) # type: ignore
             data = data.drop(["Protein", "Ligand", "Name"]) # type: ignore
             
-            # If verbose
-            if ocerror.Error.output_level > ocerror.ReportLevel.WARNING or verboseOperations:
-                with vaex.progress.tree("rich", title="Merging dataframes"): # type: ignore
-                    # Merge both DataFrames using the Complex column as a comparer
-                    data = ptndf.join(data, on = "Complex", how = "left") # type: ignore
-            else:
-                ocprint.print_info("Merging dataframes...")
-                # Merge both DataFrames using the Protein column as a comparer
-                data = ptndf.join(data, on = "Complex", how = "left") # type: ignore
+
+            ocprint.print_info("Merging dataframes...")
+            # Merge both DataFrames using the Protein column as a comparer
+            data = ptndf.join(data, on = "Complex", how = "left") # type: ignore
 
             # Drop the poses columns since they are the same for all the rows (will be used when the support to multiple poses is added)
             data = data.drop(["vina_pose", "smina_pose", "gnina_pose"]) # TODO: Add support for multiple poses and remove this line
             
             # If saveCsv is True, save the csv
             if saveMode:
-                if ocerror.Error.output_level > ocerror.ReportLevel.WARNING or verboseOperations:
-                    with vaex.progress.tree("rich", title="Saving dataframe"): # type: ignore
-                        if saveMode == "hdf5":
-                            # Write the data to a new hdf5 file
-                            data.export_hdf5(file_path_out)
-                        else:
-                            # Write the data to a new csv file
-                            data.export_csv(file_path_out, backend = "arrow")
+                ocprint.print_info(f"Writing the file '{file_path_out}'...")
+                if saveMode == "hdf5":
+                    # Write the data to a new hdf5 file
+                    data.export_hdf5(file_path_out) # type: ignore
                 else:
-                    ocprint.print_info(f"Writing the file '{file_path_out}'...")
-                    if saveMode == "hdf5":
-                        # Write the data to a new hdf5 file
-                        data.export_hdf5(file_path_out)
-                    else:
-                        # Write the data to a new csv file
-                        data.export_csv(file_path_out, backend = "arrow")
+                    # Write the data to a new csv file
+                    data.export_csv(file_path_out, backend = "arrow") # type: ignore
 
                 ocprint.print_success(f"The file '{file_path_out}' has been successfully written.")
 
@@ -708,4 +669,4 @@ def merge_descriptors_in_dataframe(archive: str, readMode: str = "hdf5", saveMod
         return data
 
     return None
-
+"""

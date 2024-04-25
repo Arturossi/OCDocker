@@ -15,9 +15,9 @@ import OCDocker.Docking.PLANTS as ocplants
 import os
 import json
 import shutil
-import vaex
 
 import numpy as np
+import pandas as pd
 
 from glob import glob
 from typing import Dict, List, Tuple, Union
@@ -990,7 +990,7 @@ def read_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
     if os.path.isfile(path):
         try:
             # Read the csv
-            df = vaex.read_csv(path)
+            df = pd.read_csv(path)
 
             # Check if df is empty or malformed
             if df is None or df.shape[0] == 0 or df.shape[1] == 0: # type: ignore

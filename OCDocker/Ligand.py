@@ -18,9 +18,6 @@ from __future__ import annotations
 import json
 import os
 import rdkit
-import vaex
-
-import vaex.dataframe as vdf
 
 from openbabel import openbabel
 from rdkit import Chem
@@ -803,7 +800,7 @@ def loadMol(molecule: Union[str, Chem.rdchem.Mol], sanitize: bool = True) -> Tup
 
     return "", None
 
-def read_descriptors_from_json(path: str, return_data: bool = False, return_vaex: bool = False) -> Union[Dict[str, Union[str, float, int]], Tuple[Union[str, float, int]], vdf.DataFrameLocal, None]:
+def read_descriptors_from_json(path: str, return_data: bool = False) -> Union[Dict[str, Union[str, float, int]], Tuple[Union[str, float, int]], None]:
     ''' Read the descriptors from a JSON file.
 
     Parameters
@@ -811,13 +808,11 @@ def read_descriptors_from_json(path: str, return_data: bool = False, return_vaex
     path : str
         The path to the JSON file.
     return_data : bool, optional
-        If True, returns a dictionary with the descriptors. It only works when return_vaex is False. Default is False.
-    return_vaex : bool, optional
-        If True, returns a vaex DataFrame with the descriptors. Will also behave like when return_data is True. Default is False.
+        If True, returns a dictionary with the descriptors. If False, returns a dictionary with the descriptors, by default False.
     
     Returns
     -------
-    Dict[str, str | float | int]] | Tuple[str | float | int]] | vdf.DataFrameLocal | None
+    Dict[str, str | float | int]] | Tuple[str | float | int]] | None
         The descriptors or None if an error occurs.
     
     Raises
@@ -837,19 +832,15 @@ def read_descriptors_from_json(path: str, return_data: bool = False, return_vaex
         if missing_keys:
             raise KeyError(f"Missing keys in JSON file '{path}': {', '.join(missing_keys)}")
 
-        if return_vaex or return_data:
+        if return_data:
             # Rename 'Name' to 'Ligand' and remove 'Path' if they exist
             if 'Name' in data:
                 data['Ligand'] = data.pop('Name')
             data.pop('Path', None)  # Remove 'Path' if it exists
 
-            if return_vaex:
-                data = { key: [value] for key, value in data.items() }  # Convert values to lists
-                return vaex.from_dict(data)
-
             return data
 
-        # If not returning as data or vaex, return tuple of values
+        # If not returning as data, return tuple of values
         return tuple(data[key] for key in keys) # type: ignore
 
     except KeyError as e:

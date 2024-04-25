@@ -17,10 +17,8 @@ import Bio
 import json
 import math
 import os
-import vaex
 
 import numpy as np
-import vaex.dataframe as vdf
 
 from Bio.PDB import MMCIFParser, PDBParser, PDBIO, SASA
 from Bio.PDB.DSSP import DSSP
@@ -147,10 +145,12 @@ class Receptor:
         if from_json_descriptors:
             # Read the descriptors from it
             data = read_descriptors_from_json(from_json_descriptors)
+
             # If data is None, a problem occurred while reading the json file
             if not data:
                 ocprint.print_error(f"Problems while parsing json file: '{from_json_descriptors}'")
                 return None
+            
             #region assign
             self.name, self.sasa, self.dipoleMoment, self.isoelectricPoint, self.instabilityIndex,self.GRAVY, self.aromaticity, self.__countAA, self.countA, self.countR, self.countN, self.countD, self.countC, self.countQ, self.countE, self.countG, self.countH, self.countI, self.countL, self.countK, self.countM, self.countF, self.countP, self.countS, self.countT, self.countW, self.countY, self.countV, self.totalAALength, self.avgAALength, self.countChain = data #type: ignore
 
@@ -876,7 +876,7 @@ def computeInstabilityIndex(residues: str) -> float:
     protein = ProteinAnalysis(__filterSequence(residues))
     return protein.instability_index()
 
-def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: bool = False) -> Union[Dict[str, Union[str, float, int]], Tuple[Union[float, str, int]], vdf.DataFrameLocal, None]:
+def read_descriptors_from_json(path: str, returnData: bool = False) -> Union[Dict[str, Union[str, float, int]], Tuple[Union[float, str, int]], None]:
     '''Read the descriptors from a json file.
 
     Parameters
@@ -884,13 +884,11 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
     path : str
         The path to the json file.
     returnData : bool, optional
-        If True, returns a dictionary with the descriptors. It only works when returnVaex is set to False, by default False.
-    returnVaex : bool, optional
-        If True, returns a vaex DataFrame with the descriptors. Will also behave like when returnData is set to True, by default False.
+        If True, returns a dictionary with the descriptors. By default False.
 
     Returns
     -------
-    Dict[str, str | float | int] | Tuple[float | str | int]] | vdf.DataFrameLocal | None
+    Dict[str, str | float | int] | Tuple[float | str | int]] | None
         The descriptors dictionary or None if any error occurs.
 
     Raises
@@ -954,21 +952,6 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
             "Y": data["countY"] if data["countY"] != np.NaN else 0,
             "V": data["countV"] if data["countV"] != np.NaN else 0
         }
-
-        # If the returnVaex is set
-        if returnVaex:
-            # Check if data has a 'Path' key
-            if "Path" in data:
-                # Remove the entry
-                _ = data.pop("Path")
-
-            # For each key, element in data
-            for key, element in data.items():
-                # Make the element for key be a list with only the element
-                data[key] = [element]
-
-            # Convert the data to a vaex DataFrame
-            return vaex.from_dict(data)
 
         # If the returnData flag is on
         if returnData:
