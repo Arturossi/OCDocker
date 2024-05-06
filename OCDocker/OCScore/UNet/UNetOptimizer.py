@@ -65,74 +65,414 @@ import torch
 import torch.nn as nn
 
 class UNet(nn.Module):
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, 
+            in_channels: int,
+            out_channels: int = 1,
+            n_layers: int = 3, 
+            starting_channel_size: int = 64, 
+            encoder_data: list[tuple[bool, float, list]] = [],
+            decoder_data: list[tuple[bool, float, list]] = [],
+            bottleneck_activation_functions: list = [nn.ReLU(inplace = True), nn.ReLU(inplace = True)],
+            init_type: str = 'zeros',
+            init_params: dict = {},
+            default_prob_encoder: float = 0.5,
+            default_activation_encoder = nn.ReLU,
+            default_prob_decoder: float = 0.5,
+            default_activation_decoder = nn.ReLU,
+            use_gpu: bool = True, # TODO: Add this
+            verbose: bool = False
+        ):
         super(UNet, self).__init__()
+
+        # Define the number of activation functions for the encoder, decoder, and bottleneck
+        n_activation_functions_encoder = 2
+        n_activation_functions_decoder = 2
+        n_activation_functions_bottleneck = 2
+
+        # Check if the length of the activation functions for the bottleneck is correct
+        if len(bottleneck_activation_functions) != n_activation_functions_bottleneck:
+            raise ValueError(f"[WARNING] The bottleneck_activation_functions list does not have {n_activation_functions_bottleneck} elements. It has {len(bottleneck_activation_functions)} elements.")
+
+        # If the dropout encoder list is empty, fill it with False for all layers
+        if not encoder_data:
+            encoder_data = [(False, default_prob_encoder, [default_activation_encoder] * n_activation_functions_encoder)] * n_layers
+
+        # If the dropout decoder list is empty, fill it with False for all layers
+        if not decoder_data:
+            decoder_data = [(False, default_prob_decoder, [default_activation_decoder] * n_activation_functions_decoder)] * n_layers
+
+        # If any tuple inside the dropout encoder list does not have enough elements, add the missing data
+        for i in range(len(encoder_data)):
+            if len(encoder_data[i]) < 1:
+                encoder_data[i] = (
+                    False, 
+                    default_prob_encoder, 
+                    [default_activation_encoder] * n_activation_functions_encoder
+                )
+
+                if i == 1:
+                    suffix = 'st'
+                elif i == 2:
+                    suffix = 'nd'
+                elif i == 3:
+                    suffix = 'rd'
+                else:
+                    suffix = 'th'
+                
+                print(f"[WARNING] The {i}{suffix} element of the encoder_data list has less than 1 element. Filling it with the default values.")
+            elif len(encoder_data[i]) < 2:
+                encoder_data[i] = (
+                    encoder_data[i][0], 
+                    default_prob_encoder, 
+                    [default_activation_encoder] * n_activation_functions_encoder
+                )
+
+                if i == 1:
+                    suffix = 'st'
+                elif i == 2:
+                    suffix = 'nd'
+                elif i == 3:
+                    suffix = 'rd'
+                else:
+                    suffix = 'th'
+                
+                print(f"[WARNING] The {i}{suffix} element of the encoder_data list has less than 2 elements. Filling it with the default values.")
+            elif len(encoder_data[i]) < 3:
+                encoder_data[i] = (
+                    encoder_data[i][0], 
+                    encoder_data[i][1], 
+                    [default_activation_encoder] * n_activation_functions_encoder
+                )
+                if i == 1:
+                    suffix = 'st'
+                elif i == 2:
+                    suffix = 'nd'
+                elif i == 3:
+                    suffix = 'rd'
+                else:
+                    suffix = 'th'
+
+                print(f"[WARNING] The {i}{suffix} element of the encoder_data list has less than 3 elements. Filling it with the default values.")
+            
+        # If any tuple inside the dropout decoder list does not have enough elements, add the missing data
+        for i in range(len(decoder_data)):
+            if len(decoder_data[i]) < 1:
+                decoder_data[i] = (
+                    False, 
+                    default_prob_decoder, 
+                    [default_activation_decoder] * n_activation_functions_decoder
+                )
+
+                if i == 1:
+                    suffix = 'st'
+                elif i == 2:
+                    suffix = 'nd'
+                elif i == 3:
+                    suffix = 'rd'
+                else:
+                    suffix = 'th'
+
+                print(f"[WARNING] The {i}{suffix} element of the decoder_data list has less than 1 element. Filling it with the default values.")
+            elif len(decoder_data[i]) < 2:
+                decoder_data[i] = (
+                    decoder_data[i][0], 
+                    default_prob_decoder, 
+                    [default_activation_decoder] * n_activation_functions_decoder
+                )
+
+                if i == 1:
+                    suffix = 'st'
+                elif i == 2:
+                    suffix = 'nd'
+                elif i == 3:
+                    suffix = 'rd'
+                else:
+                    suffix = 'th'
+
+                print(f"[WARNING] The {i}{suffix} element of the decoder_data list has less than 2 elements. Filling it with the default values.")
+            elif len(decoder_data[i]) < 3:
+                decoder_data[i] = (
+                    decoder_data[i][0], 
+                    decoder_data[i][1], 
+                    [default_activation_decoder] * n_activation_functions_decoder
+                )
+
+                if i == 1:
+                    suffix = 'st'
+                elif i == 2:
+                    suffix = 'nd'
+                elif i == 3:
+                    suffix = 'rd'
+                else:
+                    suffix = 'th'
+
+                print(f"[WARNING] The {i}{suffix} element of the decoder_data list has less than 3 elements. Filling it with the default values.")
+
+        #region Encoder
+        # Create the encoder list (contracting path)
+        encoder = []
+
+        # For each layer
+        for i in range(n_layers):
+            # Check if the data activation function is valid
+            if len(encoder_data[i]) != n_activation_functions_encoder:
+                if i == 1:
+                    suffix = 'st'
+                elif i == 2:
+                    suffix = 'nd'
+                elif i == 3:
+                    suffix = 'rd'
+                else:
+                    suffix = 'th'
+
+                raise ValueError(f"[WARNING] The {i}{suffix} element of the encoder_data list does not have {n_activation_functions_encoder} elements. It has {len(encoder_data[i])} elements.")
+
+            # If it is the first layer
+            if i == 0:
+                in_layer_channels = in_channels
+                out_layer_channels = starting_channel_size
+            else:
+                in_layer_channels = starting_channel_size * 2 ** (i - 1)
+                out_layer_channels = starting_channel_size * 2 ** i
+    
+            encoder.append(
+                self.contracting_block(
+                    in_layer_channels,
+                    out_layer_channels,
+                    apply_pooling = True, 
+                    use_dropout = decoder_data[i][0],
+                    dropout_prob = decoder_data[i][1],
+                    activation_functions = encoder_data[i][2]
+                )
+            )
         
-        # Encoder (contracting path)
-        self.encoder1 = self.contracting_block(in_channels, 64, apply_pooling=True)
-        self.encoder2 = self.contracting_block(64, 128, apply_pooling=True)
-        self.encoder3 = self.contracting_block(128, 256, apply_pooling=True)
-        self.encoder4 = self.contracting_block(256, 512, apply_pooling=True)
-        
+        #endregion
+
+        bottleneck_channels = starting_channel_size * 2 ** (n_layers + 1)
+
         # Bottleneck
         self.bottleneck = nn.Sequential(
-            nn.Conv2d(512, 1024, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(1024, 1024, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True)
+            nn.Conv2d(out_layer_channels, bottleneck_channels, kernel_size = 3, padding = 1),
+            bottleneck_activation_functions[0],
+            nn.Conv2d(bottleneck_channels, bottleneck_channels, kernel_size = 3, padding = 1),
+            bottleneck_activation_functions[1]
         )
-        
-        # Decoder (expansive path)
-        self.decoder4 = self.expansive_block(1024, 512, 256)
-        self.decoder3 = self.expansive_block(512, 256, 128)
-        self.decoder2 = self.expansive_block(256, 128, 64)
-        self.decoder1 = self.expansive_block(128, 64, out_channels)
-        
-    def contracting_block(self, in_channels, out_channels, apply_pooling=True):
+
+        #region Decoder
+        # Create the decoder list (expansive path)
+        decoder = []
+
+        # For each layer
+        for i in range(n_layers):
+            # Check if the data activation function is valid
+            if len(decoder_data[i]) != n_activation_functions_decoder:
+                if i == 1:
+                    suffix = 'st'
+                elif i == 2:
+                    suffix = 'nd'
+                elif i == 3:
+                    suffix = 'rd'
+                else:
+                    suffix = 'th'
+
+                raise ValueError(f"[WARNING] The {i}{suffix} element of the decoder_data list does not have {n_activation_functions_decoder} elements. It has {len(decoder_data[i])} elements.")
+            
+            # If it is the first layer
+            if i == 0:
+                in_layer_channels = starting_channel_size * 2 ** (n_layers  - 1)
+                mid_layer_channels = starting_channel_size
+                out_layer_channels = out_channels
+            else:
+                in_layer_channels = starting_channel_size * 2 ** n_layers
+                mid_layer_channels = starting_channel_size * 2 ** (n_layers - 1)
+                out_layer_channels = starting_channel_size * 2 ** (n_layers - 2)
+
+            decoder.append(
+                self.expansive_block(
+                    in_layer_channels, 
+                    mid_layer_channels,
+                    out_layer_channels,
+                    use_dropout = decoder_data[i][0],
+                    dropout_prob = decoder_data[i][1],
+                    activation_functions = decoder_data[i][2]
+                )
+            )
+
+        #endregion
+
+        self.init_functions = {
+            'xavier_uniform': init.xavier_uniform_,
+            'glorot_uniform': init.xavier_uniform_,
+            'he_uniform': init.kaiming_uniform_,
+            'kaiming_uniform': init.kaiming_uniform_,
+            'xavier_normal': init.xavier_normal_,
+            'glorot_normal': init.xavier_normal_,
+            'he_normal': init.kaiming_normal_,
+            'kaiming_normal': init.kaiming_normal_,
+            'zeros': init.zeros_,
+            'ones': init.ones_,
+            'orthogonal': init.orthogonal_,
+            'normal': init.normal_,
+            'uniform': init.uniform_,
+            'constant': init.constant_,
+            'eye': init.eye_,
+            'sparse': init.sparse_
+        }
+
+        # Other parameters
+        self.init_type = init_type
+        self.init_params = init_params
+
+        # Initialize weights
+        self.initialize_weights()
+
+        if verbose:
+            # Print the model
+            print(self)
+
+    def initialize_weights(self):
+        if self.init_type in self.init_functions.keys():
+            init_func = self.init_functions[self.init_type]
+        else:
+            raise ValueError('Unknown initialization function')
+
+        # Apply the initialization to all linear layers in the model
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                if self.init_type in ['zeros', 'ones', 'eye']:
+                    init_func(m.weight)
+                elif self.init_type in ['constant']:
+                    init_func(m.weight, **self.init_params)
+                else:
+                    init_func(m.weight, **self.init_params, generator = self.generator)
+                if m.bias is not None:
+                    init.zeros_(m.bias)
+
+    def contracting_block(self, 
+            in_channels, 
+            out_channels, 
+            apply_pooling = True,
+            use_dropout = False, 
+            dropout_prob = 0.5, 
+            activation_functions = [nn.ReLU(inplace = True), nn.ReLU(inplace = True)]
+        ):
+
         layers = [
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True)
+            nn.Conv2d(in_channels, out_channels, kernel_size = 3, padding = 1),
+            nn.BatchNorm2d(out_channels),  # Batch normalization before activation
+            activation_functions[0]
         ]
+
+        if use_dropout:
+            layers.append(nn.Dropout2d(dropout_prob))  # Dropout after activation
+        
+        layers.append(nn.Conv2d(out_channels, out_channels, kernel_size = 3, padding = 1))
+        layers.append(nn.BatchNorm2d(out_channels))  # Another batch normalization
+        layers.append(activation_functions[1])
+        
         if apply_pooling:
-            layers.append(nn.MaxPool2d(kernel_size=2, stride=2))
+            layers.append(nn.MaxPool2d(kernel_size = 2, stride = 2))
+
+        return nn.Sequential(*layers)
+
+    def expansive_block(self, 
+            in_channels, 
+            mid_channels, 
+            out_channels, 
+            use_dropout = False, 
+            dropout_prob = 0.5, 
+            activation_functions = [nn.ReLU(inplace = True), nn.ReLU(inplace = True)]
+        ):
+
+        layers = [
+            nn.Conv2d(in_channels, mid_channels, kernel_size = 3, padding = 1),
+            nn.BatchNorm2d(mid_channels),
+            activation_functions[0],
+            nn.Conv2d(mid_channels, mid_channels, kernel_size = 3, padding = 1),
+            nn.BatchNorm2d(mid_channels),
+            activation_functions[1]
+        ]
+
+        if use_dropout:
+            layers.append(nn.Dropout2d(dropout_prob))
+
+        layers.append(nn.ConvTranspose2d(mid_channels, out_channels, kernel_size = 2, stride = 2))
+
         return nn.Sequential(*layers)
     
-    def expansive_block(self, in_channels, mid_channels, out_channels):
-        return nn.Sequential(
-            nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(mid_channels, mid_channels, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(mid_channels, out_channels, kernel_size=2, stride=2)
-        )
-    
     def forward(self, x):
-        # Encoder
+        ## Encoder
+
         encoder1 = self.encoder1(x)
         encoder2 = self.encoder2(encoder1)
         encoder3 = self.encoder3(encoder2)
         encoder4 = self.encoder4(encoder3)
         
-        # Bottleneck
+        ## Bottleneck
+
         bottleneck = self.bottleneck(encoder4)
         
-        # Decoder
+        ## Decoder
+
+        # First layer of the decoder
         decoder4 = self.decoder4(bottleneck)
+        
+        # Concatenate the encoder and decoder (skip connection)
         decoder3 = self.decoder3(torch.cat([decoder4, encoder3], dim=1))
+        
+        # Concatenate the encoder and decoder (skip connection)
         decoder2 = self.decoder2(torch.cat([decoder3, encoder2], dim=1))
+
+        # Concatenate the encoder and decoder (skip connection)
         decoder1 = self.decoder1(torch.cat([decoder2, encoder1], dim=1))
         
         return decoder1
 
-# Example usage:
-model = UNet(in_channels=3, out_channels=1)
-print(model)
+class UNetOptimizer:
+    def __init__(self, 
+            X_train, 
+            y_train, 
+            X_test, 
+            y_test, 
+            X_validation = None, 
+            y_validation = None, 
+            max_nodes: int = 2048, 
+            storage = 'sqlite:///UNetoptimization.db', 
+            output_size = 1, 
+            random_seed = 42, 
+            use_gpu = True, 
+            verbose = False
+        ):
+        ''' Initialize the optimizer.
+        
+        Parameters
+        ----------
+        X_train : np.array
+            The training features.
+        y_train : np.array
+            The training target.
+        X_test : np.array
+            The test features.
+        y_test : np.array
+            The test target.
+        X_validation : np.array, optional
+            The validation features. Default is None.
+        y_validation : np.array, optional
+            The validation target. Default is None.
+        max_nodes : int, optional
+            The maximum number of nodes. POWERS OF TWO ONLY. Greater values means the possibility for deeper models, which comes with a higher computational cost. Avoid to set this too low, it may cause the search not work as intended. Default is 2048.
+        storage : str, optional
+            The storage for the optimization. Default is 'sqlite:///UNetoptimization.db'.
+        output_size : int, optional
+            The output size. Default is 1.
+        random_seed : int, optional
+            The random seed. Default is 42.
+        use_gpu : bool, optional
+            Whether to use the GPU. Default is True.
+        verbose : bool, optional
+            Whether to print the results. Default is False.
+        '''
 
-
-class TransOptimizer:
-    def __init__(self, X_train, y_train, X_test, y_test, X_validation=None, y_validation=None, storage='sqlite:///Transoptimization.db', output_size=1, random_seed=42, use_gpu=True, verbose=False):
         self.random_seed = random_seed
         self.use_gpu = use_gpu
         self.set_random_seed()
@@ -161,6 +501,20 @@ class TransOptimizer:
         self.verbose = verbose
         self.storage = storage
 
+        # Check if max_nodes is a power of 2
+        if not max_nodes or max_nodes % 2 != 0:
+            raise ValueError('max_nodes must be a power of 2')
+        
+        # Check if max_nodes is below or equal to 128
+        if max_nodes <= 128:
+            # Show a warning
+            print('[WARNING] max_nodes is below or equal to 256. This may cause the search not work as intended. Consider increasing the value of max_nodes.')
+
+        self.max_nodes = max_nodes
+
+        self.activation_functions = [nn.GELU, nn.LeakyReLU, nn.Mish, nn.ReLU, nn.SELU, nn.Identity]
+        self.activation_functions_str = ['GELU', 'LeakyReLU', 'Mish', 'ReLU', 'SELU', 'Identity']
+
     def set_random_seed(self):
         torch.manual_seed(self.random_seed)
         np.random.seed(self.random_seed)
@@ -170,7 +524,9 @@ class TransOptimizer:
             torch.cuda.manual_seed_all(self.random_seed)
 
     def train_test_model(self, model, train_loader, test_loader, optimizer, criterion, clip_grad, trial, batch_size, epochs = 100):
-        torch.autograd.set_detect_anomaly(True)
+        if self.verbose:
+            torch.autograd.set_detect_anomaly(True)
+        
         # For each epoch
         for epoch in range(epochs):
             # Set the model to training mode
@@ -242,16 +598,120 @@ class TransOptimizer:
         return rmse
 
     def objective(self, trial):
-        # Suggest hyperparameters
-        d_model = trial.suggest_categorical('d_model', [64, 128, 256, 512])
-        nhead = trial.suggest_categorical('nhead', [2, 4, 8, 16])
-        num_encoder_layers = trial.suggest_int('num_encoder_layers', 1, 6)
-        dim_feedforward = trial.suggest_categorical('dim_feedforward', [512, 1024, 2048, 4096])
-        dropout = trial.suggest_float('dropout', 0.1, 0.5)
-        lr = trial.suggest_float('lr', 1e-5, 1e-1)
-        batch_size = trial.suggest_categorical('batch_size', [32, 64, 128, 256])
-        epochs = trial.suggest_int('epochs', 10, 100)
+        # Set encoder, decoder, and bottleneck size
+        n_encoder_activation = 2
+        n_decoder_activation = 2
+        n_bottleneck_activation = 2
 
+        # Suggest hyperparameters
+        starting_channel_size = trial.suggest_categorical('starting_channel_size', [16, 32, 64]) # Number of channels in the first layer
+
+        # Get the maximum limit for the depth based on the starting channels and going up to the maximum number of nodes
+        max_depth = int(np.log2(self.max_nodes / starting_channel_size)) + 1 # How many powers of 2 can we go up to reach the maximum number of nodes
+
+        if max_depth < 2:
+            print('[WARNING] The maximum depth is below 2. This may cause the search not work as intended. Setting the max_depth as 2 Consider increasing the value of starting_channels.')
+
+        # Find the maximum number of layers (based on the maximum number of nodes) (depth)
+        n_layers = trial.suggest_int('n_layers', 2, max_depth) # Number of layers (accounting for the starting layer)
+
+        lr = trial.suggest_float('lr', 1e-5, 1e-1)
+
+        #region Encoder
+
+        # Dropout for the encoder
+
+        use_dropout_encoder = trial.suggest_categorical(f'use_dropout_encoder', [True, False])
+        if use_dropout_encoder:
+            dropout_prob_encoder = trial.suggest_float(f'dropout_prob_encoder', 0.1, 0.5)
+        else:
+            dropout_prob_encoder = 0.5
+
+        # Activation functions for the encoder
+
+        activation_functions_encoder = []
+
+        # Suggest the activation functions for the encoder
+        for i in range(n_encoder_activation):
+            activation_function_str = trial.suggest_categorical(f'activation_function_{i}_encoder', self.activation_functions_str)
+            activation_function = self.activation_functions[self.activation_functions_str.index(activation_function_str)]
+
+            # Now suggest the parameters for the activation function
+            if activation_function == nn.LeakyReLU:
+                activation_functions_encoder.append(
+                    activation_function(negative_slope = trial.suggest_float(f'negative_slope_{i}_encoder', 0.01, 0.5))
+                )
+            elif activation_function == nn.GELU:
+                activation_functions_encoder.append(
+                    activation_function(approximate = trial.suggest_categorical(f'approximate_{i}_encoder', [True, False]))
+                )
+            else:
+                activation_functions_encoder.append(
+                    activation_function()
+                )
+            
+        encoder_data = (use_dropout_encoder, dropout_prob_encoder, activation_functions_encoder)
+
+        #endregion
+
+        #region Bottleneck
+
+        # Activation functions for the bottleneck
+
+        activation_functions_bottleneck = []
+
+        # Suggest the activation functions for the bottleneck
+        for i in range(n_bottleneck_activation):
+            activation_function_str = trial.suggest_categorical(f'activation_function_{i}_bottleneck', self.activation_functions_str)
+            activation_function = self.activation_functions[self.activation_functions_str.index(activation_function_str)]
+
+            # Now suggest the parameters for the activation function
+            if activation_function == nn.LeakyReLU:
+                activation_functions_bottleneck.append(
+                    activation_function(negative_slope = trial.suggest_float(f'negative_slope_{i}_bottleneck', 0.01, 0.5))
+                )
+            elif activation_function == nn.GELU:
+                activation_functions_bottleneck.append(
+                    activation_function(approximate = trial.suggest_categorical(f'approximate_{i}_bottleneck', [True, False]))
+                )
+            else:
+                activation_functions_bottleneck.append(
+                    activation_function()
+                )
+        
+        #endregion Bottleneck
+
+        #region Decoder
+
+        # Activation functions for the decoder
+        
+        activation_functions_decoder = []
+
+        # Suggest the activation functions for the decoder
+        for i in range(n_decoder_activation):
+            activation_function_str = trial.suggest_categorical(f'activation_function_{i}_decoder', self.activation_functions_str)
+            activation_function = self.activation_functions[self.activation_functions_str.index(activation_function_str)]
+
+            # Now suggest the parameters for the activation function
+            if activation_function == nn.LeakyReLU:
+                activation_functions_decoder.append(
+                    activation_function(negative_slope = trial.suggest_float(f'negative_slope_{i}_decoder', 0.01, 0.5))
+                )
+            elif activation_function == nn.GELU:
+                activation_functions_decoder.append(
+                    activation_function(approximate = trial.suggest_categorical(f'approximate_{i}_decoder', [True, False]))
+                )
+            else:
+                activation_functions_decoder.append(
+                    activation_function()
+                )
+        
+        decoder_data = (use_dropout, dropout_prob, activation_functions_decoder)
+
+        #endregion
+
+        #region Initialization
+        
         # Suggest the initialization type
         init_type = trial.suggest_categorical('init_type', ['zeros', 'orthogonal', 'normal', 'uniform', 'constant', 'xavier_normal', 'xavier_uniform', 'he_normal', 'he_uniform', 'sparse', 'eye'])
 
@@ -278,14 +738,30 @@ class TransOptimizer:
             init_params = {'a': a, 'nonlinearity': nonlinearity}
         else:
             init_params = {}
-        
-        # Model setup
-        model = TransformerModel(self.X_train.shape[-1], d_model, self.output_size, nhead, num_encoder_layers, dim_feedforward, dropout, init_type, init_params, self.random_seed, self.device)
 
-        # Suggestions for the optimizer
+        #endregion
+
+        # Create the model
+        model = UNet(
+            in_channels = self.X_train.shape[1], 
+            out_channels = self.output_size,
+            n_layers = n_layers, 
+            starting_channel_size = starting_channel_size
+            encoder_data = encoder_data,
+            decoder_data = decoder_data,
+            bottleneck_activation_functions = activation_functions_bottleneck,
+            init_type = init_type,
+            init_params = init_params,
+            use_gpu = self.use_gpu,
+            verbose = self.verbose
+        )
+
         optimizer_name = trial.suggest_categorical('optimizer', ['Adam', 'RMSprop', 'SGD'])
         weight_decay = trial.suggest_float('weight_decay', 1e-6, 1e-3)
         optimizer = getattr(optim, optimizer_name)(model.parameters(), lr = lr, weight_decay = weight_decay)
+
+        batch_size = trial.suggest_categorical('batch_size', [32, 64, 128, 256])
+        epochs = trial.suggest_int('epochs', 10, 100)
 
         criterion = nn.MSELoss()
 

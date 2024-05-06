@@ -30,11 +30,12 @@ snames = [
     'Pre_XGB_Optimization_28', 'feature_selection_28', 'XGB_Optimization_28'
     'Trans_Optimization_29_TPE',
     'Trans_Optimization_30_TPE',
+    'Trans_Optimization_31_TPE',
     ]
 '''
 
 snames = [
-    'Trans_Optimization_30_TPE'
+    'Trans_Optimization_31_TPE'
     ]
 
 storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"

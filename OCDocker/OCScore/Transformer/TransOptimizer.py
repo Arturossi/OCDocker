@@ -405,7 +405,9 @@ class TransOptimizer:
             torch.cuda.manual_seed_all(self.random_seed)
 
     def train_test_model(self, model, train_loader, test_loader, optimizer, criterion, clip_grad, trial, batch_size, epochs = 100):
-        torch.autograd.set_detect_anomaly(True)
+        if self.verbose:
+            torch.autograd.set_detect_anomaly(True)
+            
         # For each epoch
         for epoch in range(epochs):
             # Set the model to training mode
