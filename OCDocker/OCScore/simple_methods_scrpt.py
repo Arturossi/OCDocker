@@ -471,197 +471,61 @@ else:
     X_val = None
     y_val = None
 
+# Create a DataFrame to store the combined metrics
+dudez_stats_df = pd.DataFrame()
 
-#trainer = NNOptimizer(X_train, y_train, X_test, y_test, X_val, y_val, 1, use_gpu=True, verbose=False)
-#trainer.optimize(direction = "minimize", n_trials = 1000, study_name = "NN_Optimization_4_TPE", load_if_exists = True, sampler = TPESampler(), n_jobs = 10)
-#trainer.optimize(direction = "minimize", n_trials = 1000, study_name = "NN_Optimization_4_CMA", load_if_exists = True, sampler = CmaEsSampler(), n_jobs = 10)
+# For each row in the DataFrame, calculate the combined metric (mean, median, max, min, std, variance, sum, range, 25th and 75th percentiles, kurtoisis, skewness)
+dudez_stats_df['mean'] = dudez_standard_norm_df[score_columns].mean(axis=1)
+dudez_stats_df['median'] = dudez_standard_norm_df[score_columns].median(axis=1)
+dudez_stats_df['max'] = dudez_standard_norm_df[score_columns].max(axis=1)
+dudez_stats_df['min'] = dudez_standard_norm_df[score_columns].min(axis=1)
+dudez_stats_df['std'] = dudez_standard_norm_df[score_columns].std(axis=1)
+dudez_stats_df['variance'] = dudez_standard_norm_df[score_columns].var(axis=1)
+dudez_stats_df['sum'] = dudez_standard_norm_df[score_columns].sum(axis=1)
+dudez_stats_df['range'] = dudez_standard_norm_df[score_columns].max(axis=1) - dudez_standard_norm_df[score_columns].min(axis=1)
+dudez_stats_df['quantile_25'] = dudez_standard_norm_df[score_columns].quantile(0.25, axis=1)
+dudez_stats_df['quantile_75'] = dudez_standard_norm_df[score_columns].quantile(0.75, axis=1)
+dudez_stats_df['iqr'] = stats_df['quantile_75'] - stats_df['quantile_25']
+dudez_stats_df['skewness'] = dudez_standard_norm_df[score_columns].skew(axis=1)
+dudez_stats_df['kurtosis'] = dudez_standard_norm_df[score_columns].kurtosis(axis=1)
 
-############################################################################################################
+# Add the type column to the stats DataFrame
+dudez_stats_df['type'] = dudez_standard_norm_df['type']
 
-import optuna
+# Perform the same for pdbbind data
+pdbbind_stats_df = pd.DataFrame()
 
-from multiprocessing import Pool
-from urllib.parse import quote_plus
+# For each row in the DataFrame, calculate the combined metric (mean, median, max, min, std, variance, sum, range, 25th and 75th percentiles, kurtoisis, skewness)
+pdbbind_stats_df['mean'] = pdbbind_standard_norm_df[score_columns].mean(axis=1)
+pdbbind_stats_df['median'] = pdbbind_standard_norm_df[score_columns].median(axis=1)
+pdbbind_stats_df['max'] = pdbbind_standard_norm_df[score_columns].max(axis=1)
+pdbbind_stats_df['min'] = pdbbind_standard_norm_df[score_columns].min(axis=1)
+pdbbind_stats_df['std'] = pdbbind_standard_norm_df[score_columns].std(axis=1)
+pdbbind_stats_df['variance'] = pdbbind_standard_norm_df[score_columns].var(axis=1)
+pdbbind_stats_df['sum'] = pdbbind_standard_norm_df[score_columns].sum(axis=1)
+pdbbind_stats_df['range'] = pdbbind_standard_norm_df[score_columns].max(axis=1) - pdbbind_standard_norm_df[score_columns].min(axis=1)
+pdbbind_stats_df['quantile_25'] = pdbbind_standard_norm_df[score_columns].quantile(0.25, axis=1)
+pdbbind_stats_df['quantile_75'] = pdbbind_standard_norm_df[score_columns].quantile(0.75, axis=1)
+pdbbind_stats_df['iqr'] = pdbbind_stats_df['quantile_75'] - pdbbind_stats_df['quantile_25']
+pdbbind_stats_df['skewness'] = pdbbind_standard_norm_df[score_columns].skew(axis=1)
+pdbbind_stats_df['kurtosis'] = pdbbind_standard_norm_df[score_columns].kurtosis(axis=1)
 
-from TransOptimizer import TransOptimizer, Transformer
-from optuna.samplers import TPESampler
+# Also add the experimental column to the stats DataFrame (DUDEz does not have this column)
+pdbbind_stats_df['experimental'] = pdbbind_standard_norm_df['experimental']
 
-def Transworker(
-        pid, id,
-        X_train, y_train, 
-        X_test, y_test, 
-        X_val, y_val, 
-        storage,
-        output_size = 1, 
-        random_seed = 42,
-        use_gpu = True, 
-        verbose = False, 
-        direction = "minimize", 
-        n_trials = 250, 
-        load_if_exists = True, 
-        n_jobs = 10, 
-        study_name = "NN_Optimization"
-    ):
-    print(f"Process {pid} starting optimization")
+# Create the final df to hold Error and AUC values
+final_df = pd.DataFrame()
 
-    # Initialize the trainer
-    trainer = TransOptimizer(
-        X_train, y_train, 
-        X_test, y_test, 
-        X_val, y_val, 
-        storage,
-        output_size = output_size, 
-        random_seed = random_seed,
-        use_gpu = use_gpu, 
-        verbose=verbose
-    )
+# Calculate the AUC for each new metric
+for col in ['mean', 'median', 'max', 'min', 'std', 'variance', 'sum', 'range', 'quantile_25', 'quantile_75', 'iqr', 'skewness', 'kurtosis']:
+    fpr, tpr, _ = roc_curve(dudez_stats_df['type'].map({'ligand': 1, 'decoy': 0}), dudez_stats_df[col])
+    final_df.loc[col, 'AUC'] = auc(fpr, tpr)
 
-    for sampler_name, sampler in [("TPE", TPESampler())]:#, ("CMA", CmaEsSampler())]:
-        # Run optimization
-        trainer.optimize(
-            direction = direction, 
-            n_trials = n_trials, 
-            study_name = f"{study_name}_{id}_{sampler_name}", 
-            load_if_exists = load_if_exists, 
-            sampler = sampler, 
-            n_jobs = n_jobs
-        )
-        print(f"Process {id} completed {sampler_name} optimization")
+    # Calculate the mean squared error (from pdbbind_stats_df)
+    final_df.loc[col, 'Error'] = ((pdbbind_stats_df[col] - pdbbind_stats_df['experimental']) ** 2).mean()
 
-num_processes = 1
-storage_id = 26
-storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"
-run_NN_optimization = True
-explained_variance = 0.95
+# Set error threshold
+threshold = 1.2
 
-if run_NN_optimization:
-    with Pool(num_processes) as pool:
-        # Each process will execute the 'Transworker' function with the datasets and optimizer parameters
-        pool.starmap(Transworker, [(
-            pid,
-            storage_id, 
-            X_train, y_train, 
-            X_test, y_test, 
-            X_val, y_val, 
-            storage,
-            1,                # output_size
-            42,               # random_seed
-            False,             # use_gpu
-            False,            # verbose
-            "minimize",       # direction
-            125,              # n_trials
-            True,             # load_if_exists
-            1,                # n_jobs
-            "Trans_Optimization" # study_name
-            ) for pid in range(num_processes)
-        ])
-
-# Load the study
-trans_study = optuna.load_study(study_name = f"Trans_Optimization_{storage_id}_TPE", storage = storage)
-trans_df = trans_study.trials_dataframe()
-
-# Filter the trials to only include the ones that are complete
-trans_df = trans_df[trans_df['state'] == 'COMPLETE']
-
-trans_df['combined_metric'] = trans_df['value'] - trans_df['user_attrs_AUC']
-
-best_trans_df = trans_df.sort_values(by=['combined_metric'], ascending=[True])
-
-# Define the number of models to select
-n_models = 5
-
-# Get the best n models in the best_nn_df
-best_trans_df.head(n_models)
-
-# Build the models
-models = []
-predictions = []
-
-for i in range(n_models):
-    # Get the best trial
-    best_trial = trans_study.trials[best_trans_df.iloc[i].number]
-
-    # Pick the params from the best_trial
-    best_params = best_trial.params
-
-    # Initialize the trainer
-    Trans_model = Transformer(
-        input_size   = X_train.shape[1],
-        output_size  = 1,
-        trans_params = best_params,
-        random_seed  = 42,
-        use_gpu      = True,
-        verbose      = False
-    )
-
-    # Reset the random seeds
-    torch.manual_seed(42)
-    np.random.seed(42)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-    torch.cuda.manual_seed_all(42)
-
-    # Train the model
-    model = Transformer.train_model(
-        X_train, # type: ignore
-        y_train, 
-        X_test, 
-        y_test, 
-        X_val, 
-        y_val
-    )
-
-    # Reset the random seeds
-    torch.manual_seed(42)
-    np.random.seed(42)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-    torch.cuda.manual_seed_all(42)
-    
-    # Append the model to the list
-    models.append(Trans_model)
-
-    # Make predictions
-    predictions.append(
-        Trans_model.trans(
-            torch.tensor(
-                np.asarray(X_val),
-                dtype=torch.float32
-            ).to(torch.device('cuda'))
-        ).cpu().detach().numpy()
-    )
-
-    # Save the model
-    torch.save(model, f'/data/hd4tb/OCDocker/data/ocdb/models/Trans_model_{i}.pt')
-
-# Convert predictions to a DataFrame
-predictions_df = pd.DataFrame(np.asarray(predictions).reshape(len(predictions), predictions[0].shape[0]).T)
-
-def select_values(row):
-    sorted_row = sorted(row)
-    return pd.Series({
-        'max': max(row),
-        '2nd_highest': sorted_row[-2],
-        'median': sorted_row[2],
-        '4th_highest': sorted_row[1],
-        'min': min(row)
-    })
-
-selected_values_df = predictions_df.apply(select_values, axis=1)
-full_selected_values_df = pd.concat([predictions_df, selected_values_df], axis=1)
-                                    
-# Calculate the mean, median, std, min, max, and range for the predictions
-full_selected_values_df['std'] = predictions_df.std(axis = 1)
-full_selected_values_df['range'] = full_selected_values_df['max'] - full_selected_values_df['min']
-
-# For each column in the full_selected_values_df, calculate the AUC
-auc_dict = {}
-for col in full_selected_values_df.columns:
-    fpr, tpr, _ = roc_curve(y_val, full_selected_values_df[col]) # type: ignore
-    auc_dict[col] = auc(fpr, tpr)
-
-# make AUC_dict a DataFrame
-auc_df = pd.DataFrame(auc_dict, index = ['AUC']).T
-
-# Save the full_selected_values_df values to csv
-full_selected_values_df.to_csv('full_selected_values_df_trans.csv')
+# Print the results only for the rows with error below the threshold (to avoid the plot to have outliers)
+print(final_df[final_df['Error'] < threshold])

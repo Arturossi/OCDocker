@@ -24,12 +24,17 @@ snames = [
     'AO_Optimization_LIG_22_TPE', 'AO_Optimization_REC_22_TPE', 'NN_Optimization_22_TPE',
     'NN_Optimization_23_TPE',
     'Pre_XGB_Optimization_24', 'feature_selection_24', 'XGB_Optimization_24',
-    'Pre_XGB_Optimization_25', 'feature_selection_25', 'XGB_Optimization_25'
+    'Pre_XGB_Optimization_25', 'feature_selection_25', 'XGB_Optimization_25',
+    'Trans_Optimization_26_TPE',
+    'Pre_XGB_Optimization_27', 'feature_selection_27', 'XGB_Optimization_27'
+    'Pre_XGB_Optimization_28', 'feature_selection_28', 'XGB_Optimization_28'
+    'Trans_Optimization_29_TPE',
+    'Trans_Optimization_30_TPE',
     ]
 '''
 
 snames = [
-    'XGB_Optimization_25'
+    'Trans_Optimization_30_TPE'
     ]
 
 storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"

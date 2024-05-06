@@ -62,10 +62,13 @@ class CustomDataset(Dataset):
         return self.features[idx], self.target[idx]
 
 class TransformerModel(nn.Module):
-    def __init__(self, input_dim, d_model, output_dim, nhead, num_encoder_layers, dim_feedforward, dropout=0.1, init_type: str = 'zeros', init_params: dict = {}, random_seed: int = 42, device=torch.device('cuda'), verbose = True):
+    def __init__(self, input_dim, d_model, output_dim, nhead, num_encoder_layers, dim_feedforward, dropout=0.1, init_type: str = 'zeros', init_params: dict = {}, random_seed: int = 42, device=torch.device('cuda'), verbose = False):
         super(TransformerModel, self).__init__()
         # Embedding layer
         self.embedding = nn.Linear(input_dim, d_model).to(device)
+
+        # Normalization layer
+        self.norm = nn.LayerNorm(d_model).to(device)
 
         # Transformer encoder
         encoder_layer = nn.TransformerEncoderLayer(
@@ -73,7 +76,7 @@ class TransformerModel(nn.Module):
             nhead=nhead, 
             dim_feedforward=dim_feedforward, 
             dropout=dropout,
-            batch_first=True  # Set batch_first to True
+            batch_first=True
         ).to(device)
 
         # Transformer encoder
@@ -98,7 +101,6 @@ class TransformerModel(nn.Module):
             'uniform': init.uniform_,
             'constant': init.constant_,
             'eye': init.eye_,
-            'trunc_normal': init.trunc_normal_,
             'sparse': init.sparse_
         }
 
@@ -156,6 +158,9 @@ class TransformerModel(nn.Module):
     def forward(self, src):
         # Embed the input
         src = self.embedding(src) * np.sqrt(self.d_model)
+
+        # Add a normalization layer
+        src = self.norm(src)
 
         # Pass through Transformer encoder
         output = self.transformer_encoder(src)
@@ -445,8 +450,6 @@ class TransOptimizer:
                 # Get the predictions
                 predicted = model(inputs)
 
-                print(inputs.shape, outputs.shape, labels.shape)
-
                 # Compute the loss
                 loss = criterion(predicted, labels.view_as(outputs))
 
@@ -478,14 +481,14 @@ class TransOptimizer:
         d_model = trial.suggest_categorical('d_model', [64, 128, 256, 512])
         nhead = trial.suggest_categorical('nhead', [2, 4, 8, 16])
         num_encoder_layers = trial.suggest_int('num_encoder_layers', 1, 6)
-        dim_feedforward = trial.suggest_categorical('dim_feedforward', [256, 512, 1024, 2048])
+        dim_feedforward = trial.suggest_categorical('dim_feedforward', [512, 1024, 2048, 4096])
         dropout = trial.suggest_float('dropout', 0.1, 0.5)
         lr = trial.suggest_float('lr', 1e-5, 1e-1)
         batch_size = trial.suggest_categorical('batch_size', [32, 64, 128, 256])
         epochs = trial.suggest_int('epochs', 10, 100)
 
         # Suggest the initialization type
-        init_type = trial.suggest_categorical('init_type', ['zeros', 'orthogonal', 'normal', 'uniform', 'constant', 'xavier_uniform', 'xavier_normal', 'he_uniform',  'he_normal', 'sparse', 'eye', 'trunc_normal'])
+        init_type = trial.suggest_categorical('init_type', ['zeros', 'orthogonal', 'normal', 'uniform', 'constant', 'xavier_normal', 'xavier_uniform', 'he_normal', 'he_uniform', 'sparse', 'eye'])
 
         # If the initialization typem requires parameters, suggest them
         if init_type in ['normal']:
@@ -502,12 +505,6 @@ class TransOptimizer:
         elif init_type in ['sparse']:
             sparsity = trial.suggest_float('sparsity', 0.1, 1)
             init_params = {'sparsity': sparsity}
-        elif init_type in ['trunc_normal']:
-            mean = trial.suggest_float('mean', -1, 1)
-            std = trial.suggest_float('std', 0.1, 1)
-            a = trial.suggest_float('a', -1, 1)
-            b = trial.suggest_float('b', 0.1, 1)
-            init_params = {'mean': mean, 'std': std, 'a': a, 'b': b}
         elif init_type in ['orthogonal', 'xavier_uniform', 'xavier_normal']:
             init_params = {'gain': init.calculate_gain('relu')}
         elif init_type in ['he_uniform', 'he_normal']:
