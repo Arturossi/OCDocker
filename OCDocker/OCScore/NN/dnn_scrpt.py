@@ -3,6 +3,7 @@ import os
 import pandas as pd
 import pickle
 import seaborn as sns
+import time
 import math
 import matplotlib.pyplot as plt
 import numpy as np
@@ -447,11 +448,53 @@ pdbbind_data = invert_values_conditionally(pdbbind_data)
 dudez_data = dudez_data.drop(columns = 'experimental')
 
 dudez_standard_norm_df = norm_data(dudez_data, scaler = 'standard')
-dudez_minmax_norm_df = norm_data(dudez_data, scaler = 'minmax')
+#dudez_minmax_norm_df = norm_data(dudez_data, scaler = 'minmax')
 pdbbind_standard_norm_df = norm_data(pdbbind_data, scaler = 'standard')
-pdbbind_minmax_norm_df = norm_data(pdbbind_data, scaler = 'minmax')
+#pdbbind_minmax_norm_df = norm_data(pdbbind_data, scaler = 'minmax')
 
 use_pdb_train = True
+
+# Do not use with autoencoder/multiencoder
+use_PCA = True
+
+if use_PCA:
+    # Load the PCA
+    pca = load_object("/data/hd4tb/OCDocker/OCDocker/OCDocker/OCScore/pca.pkl")
+
+    # Transform the data (train/test)
+    pdbbind_pca_standard_df = pca.transform(pdbbind_standard_norm_df.drop(columns = ['receptor', 'ligand', 'name', 'type', 'db', 'experimental'] + score_columns, errors = 'ignore'))
+
+    # Make it a DataFrame
+    pdbbind_pca_standard_df = pd.DataFrame(pdbbind_pca_standard_df, columns = [f"PC_{i}" for i in range(pdbbind_pca_standard_df.shape[1])])
+
+    # Create a DataFrame with the metadata and reset the indexes
+    metadata_df = pdbbind_standard_norm_df[['receptor', 'ligand', 'name', 'type', 'db', 'experimental'] + score_columns].reset_index(drop=True)
+
+    # Add the scores back to the data in the same order
+    pdbbind_standard_norm_df = pd.concat([metadata_df, pdbbind_pca_standard_df], axis=1)
+
+    # Transform the data (validation)
+    if use_pdb_train:
+        # Transform the data (validation)
+        dudez_standard_norm_df_tmp = pca.transform(dudez_standard_norm_df.drop(columns = ['receptor', 'ligand', 'name', 'type', 'db'] + score_columns, errors = 'ignore'))
+
+        # Make it a DataFrame
+        dudez_standard_norm_df_tmp = pd.DataFrame(dudez_standard_norm_df_tmp, columns = [f"PC_{i}" for i in range(dudez_standard_norm_df_tmp.shape[1])])
+
+        # Create a DataFrame with the metadata and reset the indexes
+        metadata_df = dudez_standard_norm_df[['receptor', 'ligand', 'name', 'type', 'db'] + score_columns].reset_index(drop=True)
+
+        # Add the scores back to the data
+        dudez_standard_norm_df = pd.concat([metadata_df, dudez_standard_norm_df_tmp], axis=1)
+    
+    # Set the study name
+    study_name = f"PCA95_NN_Optimization"
+
+    # Set the best AO to None
+    best_ao_params = None
+else:
+    # Set the study name
+    study_name = f"NN_Optimization"
 
 if use_pdb_train:
     # Split the PDBbind data into training and testing sets
@@ -556,6 +599,9 @@ def NNworker(
     ):
     print(f"Process {pid} starting optimization")
 
+    # Sleep pid seconds before starting
+    time.sleep(pid)
+
     # Initialize the trainer
     trainer = NNOptimizer(
         X_train, y_train, 
@@ -582,12 +628,12 @@ def NNworker(
         print(f"Process {id} completed {sampler_name} optimization")
 
 num_processes = 8
-storage_id = 24
+storage_id = 37
 storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"
 models_folder = f"/data/hd4tb/OCDocker/data/ocdb/models/autoencoder_{storage_id}"
 autoencoder = False
-multiencoder = True
-run_autoencoder_optimization = True
+multiencoder = False
+run_autoencoder_optimization = False
 run_NN_optimization = True
 explained_variance = 0.95
 
@@ -762,6 +808,9 @@ else:
     best_ao_params = None
 
 if run_NN_optimization:
+    print(new_X_train.shape)
+    print(new_X_test.shape)
+    print(new_X_val.shape)
     with Pool(num_processes) as pool:
         # Each process will execute the 'NNworker' function with the datasets and optimizer parameters
         pool.starmap(NNworker, [(
@@ -780,12 +829,12 @@ if run_NN_optimization:
             125,              # n_trials
             True,             # load_if_exists
             1,                # n_jobs
-            "NN_Optimization" # study_name
+            study_name        # study_name
             ) for pid in range(num_processes)
         ])
 
 # Load the study
-nn_study = optuna.load_study(study_name = f"NN_Optimization_{storage_id}_TPE", storage = storage)
+nn_study = optuna.load_study(study_name = f"{study_name}_{storage_id}_TPE", storage = storage)
 nn_df = nn_study.trials_dataframe()
 
 # Filter the trials to only include the ones that are complete

@@ -460,6 +460,14 @@ variance = 0.95
 # Create the PCA object
 pca = PCA(n_components = variance)
 
+# Perform PCA on the DUDEz dataset (Dropping score columns)
+pdbbind_pca_standard = pca.fit_transform(pdbbind_standard_norm_df.drop(columns = ['receptor', 'ligand', 'name', 'type', 'db', 'experimental'] + score_columns, errors = 'ignore'))
+
+# Save the PCA object in pickle format
+save_object(pca, 'pca.pkl')
+
+### Further testing
+
 # Perform PCA on the all datasets
 dudez_pca_standard = pca.fit_transform(dudez_standard_norm_df.drop(columns = ['receptor', 'ligand', 'name', 'type', 'db'] + score_columns, errors = 'ignore'))
 dudez_pca_minmax = pca.fit_transform(dudez_minmax_norm_df.drop(columns = ['receptor', 'ligand', 'name', 'type', 'db'] + score_columns, errors = 'ignore'))
@@ -478,6 +486,15 @@ dudez_pca_minmax_df = pd.concat([dudez_minmax_norm_df[score_columns + ['receptor
 pdbbind_pca_standard_df = pd.concat([pdbbind_standard_norm_df[score_columns + ['receptor', 'ligand', 'name', 'type', 'db', 'experimental']], pdbbind_pca_standard_df], axis = 1)
 pdbbind_pca_minmax_df = pd.concat([pdbbind_minmax_norm_df[score_columns + ['receptor', 'ligand', 'name', 'type', 'db', 'experimental']], pdbbind_pca_minmax_df], axis = 1)
 
+# Check for NaNs in the PCA datasets
+print("==== NaNs in PCA datasets ====")
+print("--------------------------------")
+print("DUDEz")
+print(dudez_pca_standard_df.isnull().sum())
+print(dudez_pca_minmax_df.isnull().sum())
+print("\nPDBbind")
+print(pdbbind_pca_standard_df.isnull().sum())
+print(pdbbind_pca_minmax_df.isnull().sum())
 
 
 # Compare the size of the datasets before and after PCA

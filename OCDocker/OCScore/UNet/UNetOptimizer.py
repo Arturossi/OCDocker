@@ -1,6 +1,14 @@
-"""
+""" UNetOptimizer.py - Optimize a UNet model using Optuna.
+
+This module contains the UNetOptimizer class, which is used to optimize a UNet model using Optuna.
+
+Classes:
+    CustomDataset - Create a custom dataset for the PyTorch DataLoader.
+    UNet - The UNet model.
+    UNetOptimizer - Optimize a UNet model using Optuna.
 """
 
+import math
 import optuna
 import random
 import torch
@@ -13,6 +21,7 @@ import torch.optim as optim
 from optuna.samplers import TPESampler
 from sklearn.metrics import auc, roc_curve
 from torch.utils.data import Dataset, DataLoader
+from typing import Union
 
 #from OCDocker.Initialise import *
 
@@ -64,6 +73,20 @@ class CustomDataset(Dataset):
 import torch
 import torch.nn as nn
 
+class ReshapePreprocessingLayer(nn.Module):
+    def __init__(self, input_features, target_channels = 1):
+        super(ReshapePreprocessingLayer, self).__init__()
+        self.input_features = input_features
+        self.target_side_length = math.ceil(math.sqrt(input_features / target_channels))
+        self.total_size = self.target_side_length ** 2 * target_channels
+        self.padding_size = self.total_size - input_features
+        self.target_channels = target_channels
+
+    def forward(self, x):
+        x = torch.cat((x, torch.zeros(x.size(0), self.padding_size, device=x.device)), dim=1)
+        x = x.view(x.size(0), self.target_channels, self.target_side_length, self.target_side_length)
+        return x
+
 class UNet(nn.Module):
     def __init__(self, 
             in_channels: int,
@@ -79,10 +102,18 @@ class UNet(nn.Module):
             default_activation_encoder = nn.ReLU,
             default_prob_decoder: float = 0.5,
             default_activation_decoder = nn.ReLU,
+            random_seed: int = 42,
             use_gpu: bool = True, # TODO: Add this
             verbose: bool = False
         ):
         super(UNet, self).__init__()
+
+        self.use_gpu = use_gpu
+        self.random_seed = random_seed
+
+        self.set_random_seed()
+
+        self.preprocess = ReshapePreprocessingLayer(in_channels)
 
         # Define the number of activation functions for the encoder, decoder, and bottleneck
         n_activation_functions_encoder = 2
@@ -209,46 +240,39 @@ class UNet(nn.Module):
                 print(f"[WARNING] The {i}{suffix} element of the decoder_data list has less than 3 elements. Filling it with the default values.")
 
         #region Encoder
+        
         # Create the encoder list (contracting path)
-        encoder = []
+        self.encoder = []
+
+        # Check if the data activation function is valid
+        if len(encoder_data) != n_activation_functions_encoder:
+            raise ValueError(f"[WARNING] The length of the encoder_data is not compatible with the number of activation functions. It has {len(encoder_data)} elements. It should have {n_activation_functions_encoder} elements.")
 
         # For each layer
-        for i in range(n_layers):
-            # Check if the data activation function is valid
-            if len(encoder_data[i]) != n_activation_functions_encoder:
-                if i == 1:
-                    suffix = 'st'
-                elif i == 2:
-                    suffix = 'nd'
-                elif i == 3:
-                    suffix = 'rd'
-                else:
-                    suffix = 'th'
-
-                raise ValueError(f"[WARNING] The {i}{suffix} element of the encoder_data list does not have {n_activation_functions_encoder} elements. It has {len(encoder_data[i])} elements.")
+        for i in range(n_activation_functions_encoder):
 
             # If it is the first layer
             if i == 0:
-                in_layer_channels = in_channels
+                in_layer_channels = 1
                 out_layer_channels = starting_channel_size
             else:
                 in_layer_channels = starting_channel_size * 2 ** (i - 1)
                 out_layer_channels = starting_channel_size * 2 ** i
     
-            encoder.append(
+            self.encoder.append(
                 self.contracting_block(
                     in_layer_channels,
                     out_layer_channels,
                     apply_pooling = True, 
-                    use_dropout = decoder_data[i][0],
-                    dropout_prob = decoder_data[i][1],
+                    use_dropout = encoder_data[i][0],
+                    dropout_prob = encoder_data[i][1],
                     activation_functions = encoder_data[i][2]
                 )
             )
         
         #endregion
 
-        bottleneck_channels = starting_channel_size * 2 ** (n_layers + 1)
+        bottleneck_channels = starting_channel_size * 2 ** (n_layers)
 
         # Bottleneck
         self.bottleneck = nn.Sequential(
@@ -256,38 +280,34 @@ class UNet(nn.Module):
             bottleneck_activation_functions[0],
             nn.Conv2d(bottleneck_channels, bottleneck_channels, kernel_size = 3, padding = 1),
             bottleneck_activation_functions[1]
-        )
+        ).to(self.device)
 
         #region Decoder
+
         # Create the decoder list (expansive path)
-        decoder = []
+        self.decoder = []
+
+        # Check if the data activation function is valid
+        if len(decoder_data) != n_activation_functions_decoder:
+            raise ValueError(f"[WARNING] The length of the decoder_data is not compatible with the number of activation functions. It has {len(decoder_data)} elements. It should have {n_activation_functions_decoder} elements.")
 
         # For each layer
-        for i in range(n_layers):
-            # Check if the data activation function is valid
-            if len(decoder_data[i]) != n_activation_functions_decoder:
-                if i == 1:
-                    suffix = 'st'
-                elif i == 2:
-                    suffix = 'nd'
-                elif i == 3:
-                    suffix = 'rd'
-                else:
-                    suffix = 'th'
-
-                raise ValueError(f"[WARNING] The {i}{suffix} element of the decoder_data list does not have {n_activation_functions_decoder} elements. It has {len(decoder_data[i])} elements.")
-            
+        for i in range(n_activation_functions_decoder):
             # If it is the first layer
             if i == 0:
-                in_layer_channels = starting_channel_size * 2 ** (n_layers  - 1)
-                mid_layer_channels = starting_channel_size
+                in_layer_channels = starting_channel_size * 2 ** (n_layers - 1)
+                mid_layer_channels = starting_channel_size * 2 ** (n_layers + 1)
                 out_layer_channels = out_channels
-            else:
+            if i == n_activation_functions_decoder - 1:
                 in_layer_channels = starting_channel_size * 2 ** n_layers
                 mid_layer_channels = starting_channel_size * 2 ** (n_layers - 1)
                 out_layer_channels = starting_channel_size * 2 ** (n_layers - 2)
+            else:
+                in_layer_channels = starting_channel_size * 2 ** n_layers
+                mid_layer_channels = starting_channel_size * 2 ** (n_layers - 1)
+                out_layer_channels = starting_channel_size * 2 ** (n_layers - 2) + (n_activation_functions_encoder - i) ** 2
 
-            decoder.append(
+            self.decoder.append(
                 self.expansive_block(
                     in_layer_channels, 
                     mid_layer_channels,
@@ -297,6 +317,9 @@ class UNet(nn.Module):
                     activation_functions = decoder_data[i][2]
                 )
             )
+
+        # Reverse the decoder list
+        self.decoder.reverse()
 
         #endregion
 
@@ -330,6 +353,23 @@ class UNet(nn.Module):
             # Print the model
             print(self)
 
+    def set_random_seed(self):
+        np.random.seed(self.random_seed)
+        random.seed(self.random_seed)
+
+        # Set the seed for CPU
+        torch.manual_seed(self.random_seed)
+
+        if self.use_gpu and torch.cuda.is_available():
+            self.device = torch.device('cuda')
+            torch.cuda.manual_seed_all(self.random_seed)
+        else:
+            self.device = torch.device('cpu')
+        
+        #torch.backends.cudnn.enabled = False
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = True
+
     def initialize_weights(self):
         if self.init_type in self.init_functions.keys():
             init_func = self.init_functions[self.init_type]
@@ -358,20 +398,20 @@ class UNet(nn.Module):
         ):
 
         layers = [
-            nn.Conv2d(in_channels, out_channels, kernel_size = 3, padding = 1),
-            nn.BatchNorm2d(out_channels),  # Batch normalization before activation
-            activation_functions[0]
+            nn.Conv2d(in_channels, out_channels, kernel_size = 3, padding = 1).to(self.device),
+            nn.BatchNorm2d(out_channels).to(self.device),  # Batch normalization before activation
+            activation_functions[0].to(self.device)
         ]
 
         if use_dropout:
-            layers.append(nn.Dropout2d(dropout_prob))  # Dropout after activation
+            layers.append(nn.Dropout2d(dropout_prob).to(self.device))  # Dropout after activation
         
-        layers.append(nn.Conv2d(out_channels, out_channels, kernel_size = 3, padding = 1))
-        layers.append(nn.BatchNorm2d(out_channels))  # Another batch normalization
-        layers.append(activation_functions[1])
+        layers.append(nn.Conv2d(out_channels, out_channels, kernel_size = 3, padding = 1).to(self.device))
+        layers.append(nn.BatchNorm2d(out_channels).to(self.device))  # Another batch normalization
+        layers.append(activation_functions[1].to(self.device))
         
         if apply_pooling:
-            layers.append(nn.MaxPool2d(kernel_size = 2, stride = 2))
+            layers.append(nn.MaxPool2d(kernel_size = 2, stride = 2).to(self.device))
 
         return nn.Sequential(*layers)
 
@@ -385,63 +425,136 @@ class UNet(nn.Module):
         ):
 
         layers = [
-            nn.Conv2d(in_channels, mid_channels, kernel_size = 3, padding = 1),
-            nn.BatchNorm2d(mid_channels),
-            activation_functions[0],
-            nn.Conv2d(mid_channels, mid_channels, kernel_size = 3, padding = 1),
-            nn.BatchNorm2d(mid_channels),
-            activation_functions[1]
+            nn.Conv2d(in_channels, mid_channels, kernel_size = 3, padding = 1).to(self.device),
+            nn.BatchNorm2d(mid_channels).to(self.device),
+            activation_functions[0].to(self.device),
+            nn.Conv2d(mid_channels, mid_channels, kernel_size = 3, padding = 1).to(self.device),
+            nn.BatchNorm2d(mid_channels).to(self.device),
+            activation_functions[1].to(self.device)
         ]
 
         if use_dropout:
-            layers.append(nn.Dropout2d(dropout_prob))
+            layers.append(nn.Dropout2d(dropout_prob).to(self.device))
 
-        layers.append(nn.ConvTranspose2d(mid_channels, out_channels, kernel_size = 2, stride = 2))
+        layers.append(nn.ConvTranspose2d(mid_channels, out_channels, kernel_size = 2, stride = 2, output_padding = 1).to(self.device))
 
         return nn.Sequential(*layers)
     
     def forward(self, x):
+        ## Preprocessing
+        x = self.preprocess(x)
+        print("After preprocessing:", x.shape)  # Debug: Check the shape after preprocessing
+
+        ## Encoder
+        encoder = []
+
+        # For each encoder layer
+        for layer in self.encoder:
+            x = layer(x).to(self.device)
+            encoder.append(x)
+            print("Encoder output shape:", x.shape)  # Debug: Check the output shape of each encoder layer
+
+        ## Bottleneck
+        bottleneck = self.bottleneck(encoder[-1]).to(self.device)  # Put the last encoder layer in the bottleneck
+        print("Bottleneck output shape:", bottleneck.shape)  # Debug: Check the bottleneck output shape
+
+        ## Decoder
+        decoder = []
+
+        for enc in encoder:
+            print("Encoder shape:", enc.shape)  # Debug
+        
+        print(self.decoder)
+
+        # For each layer in the decoder
+        for i, layer in enumerate(self.decoder):
+            if i == 0:
+                x = layer(bottleneck).to(self.device)
+            else:
+                # Concatenation of the feature maps from the encoder and the previous layer of the decoder
+                concat_features = torch.cat([x, encoder[-i-1]], dim=1)
+                print(f"Shape before layer {i} in decoder (after concatenation):", concat_features.shape)  # Debug
+                x = layer(concat_features).to(self.device)
+
+            decoder.append(x)
+            print(f"Decoder layer {i} output shape:", x.shape)  # Debug
+
+        return decoder[-1]
+
+
+    def forward2(self, x):
+        ## Preprocessing
+        x = self.preprocess(x)
+
         ## Encoder
 
-        encoder1 = self.encoder1(x)
-        encoder2 = self.encoder2(encoder1)
-        encoder3 = self.encoder3(encoder2)
-        encoder4 = self.encoder4(encoder3)
-        
+        encoder = []
+
+        # For each encoder layer
+        for layer in self.encoder:
+            x = layer(x).to(self.device)
+            encoder.append(x)
+
         ## Bottleneck
 
-        bottleneck = self.bottleneck(encoder4)
+        bottleneck = self.bottleneck(encoder[-1]).to(self.device) # Put the last encoder layer in the bottleneck
         
         ## Decoder
 
-        # First layer of the decoder
-        decoder4 = self.decoder4(bottleneck)
-        
-        # Concatenate the encoder and decoder (skip connection)
-        decoder3 = self.decoder3(torch.cat([decoder4, encoder3], dim=1))
-        
-        # Concatenate the encoder and decoder (skip connection)
-        decoder2 = self.decoder2(torch.cat([decoder3, encoder2], dim=1))
+        decoder = []
 
-        # Concatenate the encoder and decoder (skip connection)
-        decoder1 = self.decoder1(torch.cat([decoder2, encoder1], dim=1))
+        # For each layer in the decoder
+        for i, layer in enumerate(self.decoder):
+            if i == 0:
+                x = layer(bottleneck).to(self.device)
+            else:
+                x = layer(torch.cat([x, encoder[-i-1]], dim = 1)).to(self.device)
+
+            decoder.append(x).to(self.device)
         
-        return decoder1
+        return decoder[-1]
 
 class UNetOptimizer:
+    """ Optimize a UNet model using Optuna. 
+    
+    Parameters
+    ----------
+    X_train : np.array
+        The training features.
+    y_train : np.array
+        The training target.
+    X_test : np.array
+        The test features.
+    y_test : np.array
+        The test target.
+    X_validation : np.array, optional
+        The validation features. Default is None.
+    y_validation : np.array, optional
+        The validation target. Default is None.
+    max_nodes : int, optional
+        The maximum number of nodes. POWERS OF TWO ONLY. Greater values means the possibility for deeper models, which comes with a higher computational cost. Avoid to set this too low, it may cause the search not work as intended. Default is 2048.
+    storage : str, optional
+        The storage for the optimization. Default is 'sqlite:///UNetoptimization.db'.
+    output_size : int, optional
+        The output size. Default is 1.
+    random_seed : int, optional
+        The random seed. Default is 42.
+    use_gpu : bool, optional
+        Whether to use the GPU. Default is True.
+    verbose : bool, optional
+        Whether to print the results. Default is False.
+    """
+
     def __init__(self, 
-            X_train, 
-            y_train, 
-            X_test, 
-            y_test, 
-            X_validation = None, 
-            y_validation = None, 
+            X_train: np.array, y_train: np.array, 
+            X_test: np.array, y_test: np.array, 
+            X_validation: Union[np.array, None] = None, y_validation: Union[np.array, None] = None, 
             max_nodes: int = 2048, 
-            storage = 'sqlite:///UNetoptimization.db', 
-            output_size = 1, 
-            random_seed = 42, 
-            use_gpu = True, 
-            verbose = False
+            storage: str = 'sqlite:///UNetoptimization.db', 
+            output_size: int = 1, 
+            random_seed: int = 42, 
+            use_gpu: bool = True, 
+            verbose: bool = False
         ):
         ''' Initialize the optimizer.
         
@@ -512,8 +625,8 @@ class UNetOptimizer:
 
         self.max_nodes = max_nodes
 
-        self.activation_functions = [nn.GELU, nn.LeakyReLU, nn.Mish, nn.ReLU, nn.SELU, nn.Identity]
-        self.activation_functions_str = ['GELU', 'LeakyReLU', 'Mish', 'ReLU', 'SELU', 'Identity']
+        self.activation_functions = [nn.LeakyReLU, nn.ReLU, nn.SELU]
+        self.activation_functions_str = ['LeakyReLU', 'ReLU', 'SELU']
 
     def set_random_seed(self):
         torch.manual_seed(self.random_seed)
@@ -526,7 +639,7 @@ class UNetOptimizer:
     def train_test_model(self, model, train_loader, test_loader, optimizer, criterion, clip_grad, trial, batch_size, epochs = 100):
         if self.verbose:
             torch.autograd.set_detect_anomaly(True)
-        
+
         # For each epoch
         for epoch in range(epochs):
             # Set the model to training mode
@@ -619,38 +732,41 @@ class UNetOptimizer:
 
         #region Encoder
 
+        encoder_data = []
+
         # Dropout for the encoder
 
-        use_dropout_encoder = trial.suggest_categorical(f'use_dropout_encoder', [True, False])
-        if use_dropout_encoder:
-            dropout_prob_encoder = trial.suggest_float(f'dropout_prob_encoder', 0.1, 0.5)
-        else:
-            dropout_prob_encoder = 0.5
-
-        # Activation functions for the encoder
-
-        activation_functions_encoder = []
-
-        # Suggest the activation functions for the encoder
         for i in range(n_encoder_activation):
-            activation_function_str = trial.suggest_categorical(f'activation_function_{i}_encoder', self.activation_functions_str)
-            activation_function = self.activation_functions[self.activation_functions_str.index(activation_function_str)]
 
-            # Now suggest the parameters for the activation function
-            if activation_function == nn.LeakyReLU:
-                activation_functions_encoder.append(
-                    activation_function(negative_slope = trial.suggest_float(f'negative_slope_{i}_encoder', 0.01, 0.5))
-                )
-            elif activation_function == nn.GELU:
-                activation_functions_encoder.append(
-                    activation_function(approximate = trial.suggest_categorical(f'approximate_{i}_encoder', [True, False]))
-                )
+            use_dropout_encoder = trial.suggest_categorical(f'use_dropout_encoder_{i}', [True, False])
+            if use_dropout_encoder:
+                dropout_prob_encoder = trial.suggest_float(f'dropout_prob_encoder_{i}', 0.1, 0.5)
             else:
-                activation_functions_encoder.append(
-                    activation_function()
-                )
-            
-        encoder_data = (use_dropout_encoder, dropout_prob_encoder, activation_functions_encoder)
+                dropout_prob_encoder = 0.5
+
+            # Activation functions for the encoder
+
+            activation_functions_encoder = []
+
+            # Suggest the activation functions for the encoder
+            for j in range(n_encoder_activation):
+                activation_function_str = trial.suggest_categorical(f'activation_function_{i}_{j}_encoder', self.activation_functions_str)
+                activation_function = self.activation_functions[self.activation_functions_str.index(activation_function_str)]
+
+                # Now suggest the parameters for the activation function
+                if activation_function == nn.LeakyReLU:
+                    activation_functions_encoder.append(
+                        activation_function(
+                            negative_slope = trial.suggest_float(f'negative_slope_{i}_{j}_encoder', 0.01, 0.5),
+                            inplace = True
+                        )
+                    )
+                else:
+                    activation_functions_encoder.append(
+                        activation_function(inplace = True)
+                    )
+                
+            encoder_data.append((use_dropout_encoder, dropout_prob_encoder, activation_functions_encoder))
 
         #endregion
 
@@ -668,46 +784,55 @@ class UNetOptimizer:
             # Now suggest the parameters for the activation function
             if activation_function == nn.LeakyReLU:
                 activation_functions_bottleneck.append(
-                    activation_function(negative_slope = trial.suggest_float(f'negative_slope_{i}_bottleneck', 0.01, 0.5))
-                )
-            elif activation_function == nn.GELU:
-                activation_functions_bottleneck.append(
-                    activation_function(approximate = trial.suggest_categorical(f'approximate_{i}_bottleneck', [True, False]))
+                    activation_function(
+                        negative_slope = trial.suggest_float(f'negative_slope_{i}_bottleneck', 0.01, 0.5),
+                        inplace = True
+                    )
                 )
             else:
                 activation_functions_bottleneck.append(
-                    activation_function()
+                    activation_function(inplace = True)
                 )
         
         #endregion Bottleneck
 
         #region Decoder
 
-        # Activation functions for the decoder
-        
-        activation_functions_decoder = []
+        decoder_data = []
 
-        # Suggest the activation functions for the decoder
+        # Dropout for the decoder
+        
         for i in range(n_decoder_activation):
-            activation_function_str = trial.suggest_categorical(f'activation_function_{i}_decoder', self.activation_functions_str)
-            activation_function = self.activation_functions[self.activation_functions_str.index(activation_function_str)]
-
-            # Now suggest the parameters for the activation function
-            if activation_function == nn.LeakyReLU:
-                activation_functions_decoder.append(
-                    activation_function(negative_slope = trial.suggest_float(f'negative_slope_{i}_decoder', 0.01, 0.5))
-                )
-            elif activation_function == nn.GELU:
-                activation_functions_decoder.append(
-                    activation_function(approximate = trial.suggest_categorical(f'approximate_{i}_decoder', [True, False]))
-                )
+            use_dropout_decoder = trial.suggest_categorical(f'use_dropout_decoder_{i}', [True, False])
+            if use_dropout_decoder:
+                dropout_prob_decoder = trial.suggest_float(f'dropout_prob_decoder_{i}', 0.1, 0.5)
             else:
-                activation_functions_decoder.append(
-                    activation_function()
-                )
-        
-        decoder_data = (use_dropout, dropout_prob, activation_functions_decoder)
+                dropout_prob_decoder = 0.5
 
+            # Activation functions for the decoder
+            
+            activation_functions_decoder = []
+
+            # Suggest the activation functions for the decoder
+            for j in range(n_decoder_activation):
+                activation_function_str = trial.suggest_categorical(f'activation_function_{i}_{j}_decoder', self.activation_functions_str)
+                activation_function = self.activation_functions[self.activation_functions_str.index(activation_function_str)]
+
+                # Now suggest the parameters for the activation function
+                if activation_function == nn.LeakyReLU:
+                    activation_functions_decoder.append(
+                        activation_function(
+                            negative_slope = trial.suggest_float(f'negative_slope_{i}_{j}_decoder', 0.01, 0.5),
+                            inplace = True
+                            )
+                    )
+                else:
+                    activation_functions_decoder.append(
+                        activation_function(inplace = True)
+                    )
+            
+            decoder_data.append((use_dropout_decoder, dropout_prob_decoder, activation_functions_decoder))
+            
         #endregion
 
         #region Initialization
@@ -746,12 +871,13 @@ class UNetOptimizer:
             in_channels = self.X_train.shape[1], 
             out_channels = self.output_size,
             n_layers = n_layers, 
-            starting_channel_size = starting_channel_size
+            starting_channel_size = starting_channel_size,
             encoder_data = encoder_data,
             decoder_data = decoder_data,
             bottleneck_activation_functions = activation_functions_bottleneck,
             init_type = init_type,
             init_params = init_params,
+            random_seed = self.random_seed,
             use_gpu = self.use_gpu,
             verbose = self.verbose
         )
@@ -769,13 +895,13 @@ class UNetOptimizer:
                 dataset = CustomDataset(self.X_train, self.y_train), 
                 batch_size = batch_size, 
                 shuffle = True,
-                drop_last=True
+                drop_last = True
             )
         
         self.test_loader = DataLoader(
                 dataset = CustomDataset(self.X_test, self.y_test), 
                 batch_size = batch_size,
-                drop_last=True
+                drop_last = True
             )
 
         # If a validation set has been provided, create the validation loader
@@ -784,7 +910,7 @@ class UNetOptimizer:
                 dataset = CustomDataset(self.X_validation, self.y_validation), 
                 batch_size = batch_size, 
                 shuffle = True,
-                drop_last=True
+                drop_last = True
             )
         
         # Suggestions for clipping the gradients
@@ -818,7 +944,7 @@ class UNetOptimizer:
 
         return test_loss
 
-    def optimize(self, direction: str = "maximize", n_trials = 10, study_name = "NN_Optimization", load_if_exists = True, sampler: optuna.samplers.BaseSampler = TPESampler(), n_jobs = 1):
+    def optimize(self, direction: str = "maximize", n_trials = 10, study_name = "UNet_Optimization", load_if_exists = True, sampler: optuna.samplers.BaseSampler = TPESampler(), n_jobs = 1):
         if self.verbose:
             print(f'Optimizing the model for {n_trials} trials')
 

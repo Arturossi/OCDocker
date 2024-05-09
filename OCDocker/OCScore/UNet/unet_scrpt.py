@@ -483,10 +483,10 @@ import optuna
 from multiprocessing import Pool
 from urllib.parse import quote_plus
 
-from TransOptimizer import TransOptimizer, Transformer
+from UNetOptimizer import UNetOptimizer, UNet
 from optuna.samplers import TPESampler
 
-def Transworker(
+def UNetworker(
         pid, id,
         X_train, y_train, 
         X_test, y_test, 
@@ -500,16 +500,17 @@ def Transworker(
         n_trials = 250, 
         load_if_exists = True, 
         n_jobs = 10, 
-        study_name = "NN_Optimization"
+        study_name = "UNet_Optimization"
     ):
     print(f"Process {pid} starting optimization")
 
     # Initialize the trainer
-    trainer = TransOptimizer(
+    trainer = UNetOptimizer(
         X_train, y_train, 
         X_test, y_test, 
-        X_val, y_val, 
-        storage,
+        X_val, y_val,
+        max_nodes = 2048,
+        storage = storage,
         output_size = output_size, 
         random_seed = random_seed,
         use_gpu = use_gpu, 
@@ -528,16 +529,16 @@ def Transworker(
         )
         print(f"Process {id} completed {sampler_name} optimization")
 
-num_processes = 4
-storage_id = 29
+num_processes = 1#4
+storage_id = 33
 storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"
-run_NN_optimization = True
+run_UNet_optimization = True
 n_trials = 2500
 
-if run_NN_optimization:
+if run_UNet_optimization:
     with Pool(num_processes) as pool:
-        # Each process will execute the 'Transworker' function with the datasets and optimizer parameters
-        pool.starmap(Transworker, [(
+        # Each process will execute the 'UNetworker' function with the datasets and optimizer parameters
+        pool.starmap(UNetworker, [(
             pid,
             storage_id, 
             X_train, y_train, 
@@ -552,34 +553,38 @@ if run_NN_optimization:
             n_trials,            # n_trials
             True,                # load_if_exists
             1,                   # n_jobs
-            "Trans_Optimization" # study_name
+            "UNet_Optimization"  # study_name
             ) for pid in range(num_processes)
         ])
 
 # Load the study
-trans_study = optuna.load_study(study_name = f"Trans_Optimization_{storage_id}_TPE", storage = storage)
-trans_df = trans_study.trials_dataframe()
+unet_study = optuna.load_study(study_name = f"UNet_Optimization_{storage_id}_TPE", storage = storage)
+unet_df = unet_study.trials_dataframe()
 
 # Filter the trials to only include the ones that are complete
-trans_df = trans_df[trans_df['state'] == 'COMPLETE']
+unet_df = unet_df[unet_df['state'] == 'COMPLETE']
 
-trans_df['combined_metric'] = trans_df['value'] - trans_df['user_attrs_AUC']
+# Remove repeated trials (same value and AUC across different trials)
+unet_df = unet_df.drop_duplicates(subset = ['value', 'user_attrs_AUC'])
 
-best_trans_df = trans_df.sort_values(by=['combined_metric'], ascending=[True])
+unet_df['combined_metric'] = unet_df['value'] - unet_df['user_attrs_AUC']
+
+best_unet_df = unet_df.sort_values(by=['combined_metric'], ascending=[True])
 
 # Define the number of models to select
 n_models = 5
 
 # Get the best n models in the best_nn_df
-best_trans_df.head(n_models)
+best_unet_df.head(n_models)
 
+'''
 # Build the models
 models = []
 predictions = []
 
 for i in range(n_models):
     # Get the best trial
-    best_trial = trans_study.trials[best_trans_df.iloc[i].number]
+    best_trial = unet_study.trials[best_unet_df.iloc[i].number]
 
     # Pick the params from the best_trial
     best_params = best_trial.params
@@ -665,3 +670,4 @@ auc_df = pd.DataFrame(auc_dict, index = ['AUC']).T
 
 # Save the full_selected_values_df values to csv
 full_selected_values_df.to_csv('full_selected_values_df_trans.csv')
+'''

@@ -197,7 +197,7 @@ class Transformer(nn.Module):
         self.optimizer_functions_str = ['Adam', 'RMSprop', 'SGD']
 
         # Create the transformer model
-        self.trans = TransformerModel(input_size, trans_params['d_model'], output_size, trans_params['nhead'], trans_params['num_encoder_layers'], trans_params['dim_feedforward'], trans_params['dropout'], self.device).to(self.device)
+        self.trans = TransformerModel(input_size, trans_params['d_model'], output_size, trans_params['nhead'], trans_params['num_encoder_layers'], trans_params['dim_feedforward'], trans_params['dropout'], device = self.device).to(self.device)
 
         self.batch_size = trans_params['batch_size']
         self.epochs = trans_params['epochs']
@@ -487,7 +487,7 @@ class TransOptimizer:
         dropout = trial.suggest_float('dropout', 0.1, 0.5)
         lr = trial.suggest_float('lr', 1e-5, 1e-1)
         batch_size = trial.suggest_categorical('batch_size', [32, 64, 128, 256])
-        epochs = trial.suggest_int('epochs', 10, 100)
+        epochs = trial.suggest_int('epochs', 10, 500)
 
         # Suggest the initialization type
         init_type = trial.suggest_categorical('init_type', ['zeros', 'orthogonal', 'normal', 'uniform', 'constant', 'xavier_normal', 'xavier_uniform', 'he_normal', 'he_uniform', 'sparse', 'eye'])
@@ -549,7 +549,7 @@ class TransOptimizer:
             )
         
         # Suggestions for clipping the gradients
-        clip_grad = trial.suggest_float('clip_grad', 0.1, 1.0)
+        clip_grad = trial.suggest_float('clip_grad', 0.1, 0.5)
 
         test_loss = self.train_test_model(model, self.train_loader, self.test_loader, optimizer, criterion, clip_grad, trial, batch_size, epochs = epochs)
 

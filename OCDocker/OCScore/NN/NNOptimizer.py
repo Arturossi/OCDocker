@@ -578,12 +578,17 @@ class NNOptimizer:
             use_gpu: bool = True,
             verbose: bool = False
         ):
+        self.use_gpu = use_gpu
+        self.random_seed = random_seed
+
+        if self.use_gpu and torch.cuda.is_available():
+            self.device = torch.device('cuda')
+        else:
+            self.device = torch.device('cpu')
 
         self.activation_functions = [nn.GELU, nn.LeakyReLU, nn.Mish, nn.ReLU, nn.SELU, nn.Identity]
         self.activation_functions_str = ['GELU', 'LeakyReLU', 'Mish', 'ReLU', 'SELU', 'Identity']
 
-        self.random_seed = random_seed
-        self.use_gpu = use_gpu
 
         self.set_random_seed()
         
@@ -592,7 +597,10 @@ class NNOptimizer:
             self.X_train = [torch.tensor(np.asarray(x), dtype=torch.float32).to(self.device) for x in X_train]
             self.input_size = [x.shape[1] for x in self.X_train]
         else:
-            self.X_train = torch.tensor(np.asarray(X_train), dtype=torch.float32).to(self.device)
+            try:
+                self.X_train = torch.tensor(np.asarray(X_train[:2286]), dtype=torch.float32)
+            except Exception as e:
+                print(e)
             self.input_size = self.X_train.shape[1]
 
         self.y_train = torch.tensor(np.asarray(y_train), dtype=torch.float32).to(self.device)
@@ -704,10 +712,7 @@ class NNOptimizer:
         torch.manual_seed(self.random_seed)
 
         if self.use_gpu and torch.cuda.is_available():
-            self.device = torch.device('cuda')
             torch.cuda.manual_seed_all(self.random_seed)
-        else:
-            self.device = torch.device('cpu')
         
         #torch.backends.cudnn.enabled = False
         torch.backends.cudnn.benchmark = False
