@@ -455,7 +455,7 @@ pdbbind_minmax_norm_df = norm_data(pdbbind_data, scaler = 'minmax')
 from sklearn.decomposition import PCA
 
 # Define the % of variance to be explained
-variance = 0.95
+variance = 0.80
 
 # Create the PCA object
 pca = PCA(n_components = variance)
@@ -463,8 +463,11 @@ pca = PCA(n_components = variance)
 # Perform PCA on the DUDEz dataset (Dropping score columns)
 pdbbind_pca_standard = pca.fit_transform(pdbbind_standard_norm_df.drop(columns = ['receptor', 'ligand', 'name', 'type', 'db', 'experimental'] + score_columns, errors = 'ignore'))
 
+# Convert the variance to string
+variance_str = str(variance*100).replace('.0', '')
+
 # Save the PCA object in pickle format
-save_object(pca, 'pca.pkl')
+save_object(pca, f'pca{variance_str}.pkl')
 
 ### Further testing
 

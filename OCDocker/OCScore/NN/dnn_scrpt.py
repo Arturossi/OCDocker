@@ -456,10 +456,12 @@ use_pdb_train = True
 
 # Do not use with autoencoder/multiencoder
 use_PCA = True
+# Set the PCA type 95/90/85/80
+pca_type = 90
 
 if use_PCA:
     # Load the PCA
-    pca = load_object("/data/hd4tb/OCDocker/OCDocker/OCDocker/OCScore/pca.pkl")
+    pca = load_object(f"/data/hd4tb/OCDocker/OCDocker/OCDocker/OCScore/pca{pca_type}.pkl")
 
     # Transform the data (train/test)
     pdbbind_pca_standard_df = pca.transform(pdbbind_standard_norm_df.drop(columns = ['receptor', 'ligand', 'name', 'type', 'db', 'experimental'] + score_columns, errors = 'ignore'))
@@ -488,7 +490,7 @@ if use_PCA:
         dudez_standard_norm_df = pd.concat([metadata_df, dudez_standard_norm_df_tmp], axis=1)
     
     # Set the study name
-    study_name = f"PCA95_NN_Optimization"
+    study_name = f"PCA{pca_type}_NN_Optimization"
 
     # Set the best AO to None
     best_ao_params = None
@@ -628,7 +630,7 @@ def NNworker(
         print(f"Process {id} completed {sampler_name} optimization")
 
 num_processes = 8
-storage_id = 37
+storage_id = 42
 storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"
 models_folder = f"/data/hd4tb/OCDocker/data/ocdb/models/autoencoder_{storage_id}"
 autoencoder = False
@@ -808,9 +810,6 @@ else:
     best_ao_params = None
 
 if run_NN_optimization:
-    print(new_X_train.shape)
-    print(new_X_test.shape)
-    print(new_X_val.shape)
     with Pool(num_processes) as pool:
         # Each process will execute the 'NNworker' function with the datasets and optimizer parameters
         pool.starmap(NNworker, [(
@@ -826,7 +825,7 @@ if run_NN_optimization:
             True,             # use_gpu
             False,            # verbose
             "minimize",       # direction
-            125,              # n_trials
+            125,               # n_trials
             True,             # load_if_exists
             1,                # n_jobs
             study_name        # study_name

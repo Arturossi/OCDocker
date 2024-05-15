@@ -37,11 +37,16 @@ snames = [
     'PCA95_NN_Optimization_35_TPE',
     'PCA95_NN_Optimization_36_TPE',
     'PCA95_NN_Optimization_37_TPE',
+    'PCA95_NN_Optimization_38_TPE',
+    'PCA95_NN_Optimization_39_TPE',
+    'PCA90_NN_Optimization_40_TPE',
+    'PCA90_NN_Optimization_41_TPE',
+    'PCA90_NN_Optimization_42_TPE',
     ]
 '''
 
 snames = [
-        'PCA95_NN_Optimization_37_TPE'
+        'PCA90_NN_Optimization_42_TPE'
     ]
 
 storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"
