@@ -529,7 +529,7 @@ from multiprocessing import Pool
 from urllib.parse import quote_plus
 
 from AutoencoderOptimizer import AutoencoderOptimizer
-from NNOptimizer import NNOptimizer, NeuralNet
+from OCDocker.OCScore.KAN.KANOptimizer import NNOptimizer, NeuralNet
 from optuna.samplers import TPESampler
 
 def AOworker(

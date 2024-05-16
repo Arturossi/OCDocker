@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -42,20 +43,21 @@ used_methods = ['Raw Scoring Function'] * len(methods) + ['Simple consensus'] * 
         'XGB + GA', 'XGB + GA', 'Transformer', 'XGB + GA', 'XGB + GA',
         'Transformer', 'Transformer', 'Transformer', 'Transformer', 'Transformer',
         'PCA95 + NN', 'PCA95 + NN', 'PCA95 + NN', 'PCA95 + NN', 'PCA95 + NN', 
-        'PCA95 + NN', 'PCA90 + NN', 'PCA90 + NN'
+        'PCA95 + NN', 'PCA90 + NN', 'PCA90 + NN', 'PCA90 + NN', 'PCA90 + NN', 
+        'PCA90 + NN', 'PCA90 + NN'
     ]
 
 # Data
 data = {
     'Experimento': list(range(1, len(used_methods) + 1)),
     'Metodologia': used_methods,
-    'Erro (Menor Erro)': sf_errors + simple_methods_errors + [0.5994, 0.6826, 0.6830, 0.6294, 0.6092, 0.6164, 0.6228, 0.6036, 0.6164, 0.9041, 0.9228, 0.9293, 0.6033, 0.6114, 0.6087, 0.6094, 0.9406, 0.9412, 0.9449, 0.6057, 0.5998, 0.6104, 0.6412, 0.6306, 0.6157, 0.6294, 0.6280, 0.6315, 0.6243, 0.6379, 0.6103, 0.6191, 0.6134, 0.6096, 0.6164, 0.6142, 0.6201, 0.6221],
-    'AUC (Menor Erro)': sf_aucs + simple_methods_AUCs + [0.6803, 0.6835, 0.6737, 0.7100, 0.7066, 0.7024, 0.7174, 0.7248, 0.6903, 0.4821, 0.4242, 0.3191, 0.7199, 0.7040, 0.7020, 0.7205, 0.4701, 0.6015, 0.4160, 0.7219, 0.6961, 0.6968, 0.6540, 0.6830, 0.7014, 0.6756, 0.6727, 0.7043, 0.7021, 0.6924, 0.7274, 0.7095, 0.6954, 0.6872, 0.7268, 0.6819, 0.6798, 0.6892],
-    'Erro (Maior AUC)': sf_errors + simple_methods_errors + [0.6342, 0.7706, 0.8027, 0.7757, 0.6317, 0.7966, 0.7802, 0.6211, 0.6223, 0.9965, 0.9870, 0.9687, 0.6260, 0.6272, 0.6531, 0.6468, 0.9957, 1.0753, 0.9889, 0.6208, 0.6448, 0.6412, 0.6607, 0.6333, 0.6268, 0.7613, 0.7419, 0.6506, 0.7346, 0.7115, 0.6386, 1.1151, 1.3010, 0.6374, 0.6487, 0.7943, 1.9377, 0.8442],
-    'AUC (Maior AUC)': sf_aucs + simple_methods_AUCs + [0.7204, 0.7527, 0.7437, 0.7469, 0.7634, 0.7434, 0.7451, 0.7691, 0.7232, 0.7127, 0.7377, 0.7032, 0.7611, 0.7593, 0.7546, 0.7657, 0.6876, 0.7032, 0.7251, 0.7517, 0.7070, 0.7271, 0.7273, 0.7197, 0.7162, 0.7472, 0.7515, 0.7445, 0.7518, 0.7547, 0.7443, 0.7585, 0.7401, 0.7343, 0.7376, 0.7546, 0.7513, 0.7468],
-    'Erro (Menor Erro - AUC)': sf_errors + simple_methods_errors + [0.6057, 0.6996, 0.6966, 0.6384, 0.6217, 0.6280, 0.6228, 0.6211, 0.6223, 0.9368, 0.9870, 0.9687, 0.6233, 0.6272, 0.6168, 0.6207, 0.9431, 0.9956, 0.9889, 0.6123, 0.5998, 0.6238, 0.6607, 0.6333, 0.6268, 0.6329, 0.6580, 0.6419, 0.6476, 0.6422, 0.6103, 0.6350, 0.6311, 0.6165, 0.6164, 0.6238, 0.6308, 0.6249],
-    'AUC (Menor Erro - AUC)': sf_aucs + simple_methods_AUCs + [0.7096, 0.7167, 0.7114, 0.7223, 0.7586, 0.7280, 0.7174, 0.7691, 0.7232, 0.7015, 0.7377, 0.7032, 0.7603, 0.7593, 0.7476, 0.7549, 0.6464, 0.6944, 0.7251, 0.7475, 0.6961, 0.7217, 0.7273, 0.7197, 0.7162, 0.7039, 0.7202, 0.7441, 0.7311, 0.7062, 0.7274, 0.7358, 0.7251, 0.7219, 0.7268, 0.7377, 0.7109, 0.7135],
-    'Score (Menor Erro - AUC)': sf_scores + simple_methods_scores + [-0.1039, -0.0171, -0.0148, -0.0839, -0.1369, -0.1000, -0.0946, -0.1480, -0.1008, 0.2353, 0.2493, 0.2655, -0.1370, -0.1321, -0.1309, -0.1342, 0.2967, 0.3012, 0.2638, -0.1352, -0.0963, -0.0978, -0.0666, -0.0863, -0.0894, -0.0710, -0.0621, -0.1023, -0.0835, -0.0640, -0.1171, -0.1009, -0.0940, -0.1054, -0.1104, -0.1139, -0.0801, -0.0886]
+    'Erro (Menor Erro)': sf_errors + simple_methods_errors + [0.5994, 0.6826, 0.6830, 0.6294, 0.6092, 0.6164, 0.6228, 0.6036, 0.6164, 0.9041, 0.9228, 0.9293, 0.6033, 0.6114, 0.6087, 0.6094, 0.9406, 0.9412, 0.9449, 0.6057, 0.5998, 0.6104, 0.6412, 0.6306, 0.6157, 0.6294, 0.6280, 0.6315, 0.6243, 0.6379, 0.6103, 0.6191, 0.6134, 0.6096, 0.6164, 0.6142, 0.6201, 0.6221, 0.6185, 0.6283, 0.6238, 0.6362],
+    'AUC (Menor Erro)': sf_aucs + simple_methods_AUCs + [0.6803, 0.6835, 0.6737, 0.7100, 0.7066, 0.7024, 0.7174, 0.7248, 0.6903, 0.4821, 0.4242, 0.3191, 0.7199, 0.7040, 0.7020, 0.7205, 0.4701, 0.6015, 0.4160, 0.7219, 0.6961, 0.6968, 0.6540, 0.6830, 0.7014, 0.6756, 0.6727, 0.7043, 0.7021, 0.6924, 0.7274, 0.7095, 0.6954, 0.6872, 0.7268, 0.6819, 0.6798, 0.6892, 0.6646, 0.6632, 0.6897, 0.6718],
+    'Erro (Maior AUC)': sf_errors + simple_methods_errors + [0.6342, 0.7706, 0.8027, 0.7757, 0.6317, 0.7966, 0.7802, 0.6211, 0.6223, 0.9965, 0.9870, 0.9687, 0.6260, 0.6272, 0.6531, 0.6468, 0.9957, 1.0753, 0.9889, 0.6208, 0.6448, 0.6412, 0.6607, 0.6333, 0.6268, 0.7613, 0.7419, 0.6506, 0.7346, 0.7115, 0.6386, 1.1151, 1.3010, 0.6374, 0.6487, 0.7943, 1.9377, 0.8442, 0.9434, 0.7264, 2.8248, 0.6856],
+    'AUC (Maior AUC)': sf_aucs + simple_methods_AUCs + [0.7204, 0.7527, 0.7437, 0.7469, 0.7634, 0.7434, 0.7451, 0.7691, 0.7232, 0.7127, 0.7377, 0.7032, 0.7611, 0.7593, 0.7546, 0.7657, 0.6876, 0.7032, 0.7251, 0.7517, 0.7070, 0.7271, 0.7273, 0.7197, 0.7162, 0.7472, 0.7515, 0.7445, 0.7518, 0.7547, 0.7443, 0.7585, 0.7401, 0.7343, 0.7376, 0.7546, 0.7513, 0.7468, 0.7252, 0.7136, 0.7378, 0.7123],
+    'Erro (Menor Erro - AUC)': sf_errors + simple_methods_errors + [0.6057, 0.6996, 0.6966, 0.6384, 0.6217, 0.6280, 0.6228, 0.6211, 0.6223, 0.9368, 0.9870, 0.9687, 0.6233, 0.6272, 0.6168, 0.6207, 0.9431, 0.9956, 0.9889, 0.6123, 0.5998, 0.6238, 0.6607, 0.6333, 0.6268, 0.6329, 0.6580, 0.6419, 0.6476, 0.6422, 0.6103, 0.6350, 0.6311, 0.6165, 0.6164, 0.6238, 0.6308, 0.6249, 0.6224, 0.6376, 0.6380, 0.6473],
+    'AUC (Menor Erro - AUC)': sf_aucs + simple_methods_AUCs + [0.7096, 0.7167, 0.7114, 0.7223, 0.7586, 0.7280, 0.7174, 0.7691, 0.7232, 0.7015, 0.7377, 0.7032, 0.7603, 0.7593, 0.7476, 0.7549, 0.6464, 0.6944, 0.7251, 0.7475, 0.6961, 0.7217, 0.7273, 0.7197, 0.7162, 0.7039, 0.7202, 0.7441, 0.7311, 0.7062, 0.7274, 0.7358, 0.7251, 0.7219, 0.7268, 0.7377, 0.7109, 0.7135, 0.7064, 0.6974, 0.7205, 0.6998],
+    'Score (Menor Erro - AUC)': sf_scores + simple_methods_scores + [-0.1039, -0.0171, -0.0148, -0.0839, -0.1369, -0.1000, -0.0946, -0.1480, -0.1008, 0.2353, 0.2493, 0.2655, -0.1370, -0.1321, -0.1309, -0.1342, 0.2967, 0.3012, 0.2638, -0.1352, -0.0963, -0.0978, -0.0666, -0.0863, -0.0894, -0.0710, -0.0621, -0.1023, -0.0835, -0.0640, -0.1171, -0.1009, -0.0940, -0.1054, -0.1104, -0.1139, -0.0801, -0.0886, -0.0839, -0.0598, -0.0825, -0.0525]
 }
 
 # Check the length of each list in the data dictionary
@@ -86,6 +88,10 @@ max_auc = max([df['AUC (Menor Erro) new'].max(), df['AUC (Maior AUC) new'].max()
 
 error_range = max_error - min_error
 auc_range = max_auc - min_auc
+
+# If the plots folder does not exist, create it
+if not os.path.exists('plots'):
+    os.makedirs('plots')
 
 # Plotting with the chosen palette and adjustments for marker and transparency
 plt.figure(figsize=(20, 8))
@@ -181,10 +187,11 @@ plt.figlegend(handles=color_handles, labels=color_labels, loc='lower center', bb
 # Use tight_layout to adjust the spacing, but leave the space for the legends under the plot
 plt.tight_layout(rect=[0, 0.13, 1, 1])
 
-plt.savefig('experimentos.png', bbox_inches='tight')
+plt.savefig('plots/experimentos.png', bbox_inches='tight')
 #plt.show()
-plt.close()
+plt.close('all')
 
+"""
 # Create a boxplot for each method for the three metrics for Error and AUC
 plt.figure(figsize=(20, 8))
 
@@ -195,7 +202,9 @@ for i, plot in enumerate(['Erro (Menor Erro)', 'Erro (Maior AUC)', 'Erro (Menor 
         x='Metodologia', 
         y=plot, 
         palette=color_mapping,
-        showfliers=False
+        showfliers=False,
+        hue='Metodologia',
+        legend=False
     )
     plt.title(f'{plot}')
     plt.xticks(rotation=90)
@@ -206,7 +215,8 @@ for i, plot in enumerate(['Erro (Menor Erro)', 'Erro (Maior AUC)', 'Erro (Menor 
 # Use tight_layout to adjust the spacing
 plt.tight_layout()
 
-plt.savefig('experimentos_boxplot.png', bbox_inches='tight')
+plt.savefig('plots/experimentos_boxplot.png', bbox_inches='tight')
+"""
 
 # Create three new dataframes, one for Error (Menor Erro), one for Error (Maior AUC), and one for Error (Menor Erro - AUC)
 df_error_menor_erro = df[['Experimento', 'Metodologia', 'Erro (Menor Erro)']].copy()
@@ -237,9 +247,9 @@ df_auc_maior_auc.rename(columns={'AUC (Maior AUC)': 'AUC'}, inplace=True)
 df_auc_menor_erro_auc.rename(columns={'AUC (Menor Erro - AUC)': 'AUC'}, inplace=True)
 
 # Add the metric name to each dataframe in Metodologia (except for Raw Scoring Function and Simple consensus)
-df_auc_menor_erro['Metodologia'] = df_auc_menor_erro['Metodologia'].apply(lambda x: f"{x} (Menor Erro)" if x not in ['Raw Scoring Function', 'Simple consensus'] else x)
-df_auc_maior_auc['Metodologia'] = df_auc_maior_auc['Metodologia'].apply(lambda x: f"{x} (Maior AUC)" if x not in ['Raw Scoring Function', 'Simple consensus'] else x)
-df_auc_menor_erro_auc['Metodologia'] = df_auc_menor_erro_auc['Metodologia'].apply(lambda x: f"{x} (Menor Erro - AUC)" if x not in ['Raw Scoring Function', 'Simple consensus'] else x)
+df_auc_menor_erro.loc[:, 'Metodologia'] = df_auc_menor_erro['Metodologia'].apply(lambda x: f"{x} (Menor Erro)" if x not in ['Raw Scoring Function', 'Simple consensus'] else x)
+df_auc_maior_auc.loc[:, 'Metodologia'] = df_auc_maior_auc['Metodologia'].apply(lambda x: f"{x} (Maior AUC)" if x not in ['Raw Scoring Function', 'Simple consensus'] else x)
+df_auc_menor_erro_auc.loc[:, 'Metodologia'] = df_auc_menor_erro_auc['Metodologia'].apply(lambda x: f"{x} (Menor Erro - AUC)" if x not in ['Raw Scoring Function', 'Simple consensus'] else x)
 
 # Concatenate the three dataframes
 df_auc_concat = pd.concat([df_auc_menor_erro, df_auc_maior_auc, df_auc_menor_erro_auc])
@@ -256,10 +266,6 @@ df_auc_concat = pd.concat([df_auc_concat[df_auc_concat['Metodologia'] == 'Raw Sc
 df_error_concat = df_error_concat[~df_error_concat['Metodologia'].str.startswith('PCA90 + NN')]
 df_auc_concat = df_auc_concat[~df_auc_concat['Metodologia'].str.startswith('PCA90 + NN')]
 
-# Leave only the methods that ends with (Menor Erro - AUC) or Raw Scoring Function or Simple consensus
-#df_error_concat = df_error_concat[df_error_concat['Metodologia'].str.endswith('(Menor Erro - AUC)', na=False) | (df_error_concat['Metodologia'] == 'Raw Scoring Function') | (df_error_concat['Metodologia'] == 'Simple consensus')]
-#df_auc_concat = df_auc_concat[df_auc_concat['Metodologia'].str.endswith('(Menor Erro - AUC)', na=False) | (df_auc_concat['Metodologia'] == 'Raw Scoring Function') | (df_auc_concat['Metodologia'] == 'Simple consensus')]
-
 # Set the font size
 plt.rcParams['font.size'] = 10 # type: ignore
 
@@ -275,14 +281,16 @@ for metric in metrics:
     aux_metric = metric.replace('(', '').replace(')', '')
 
     # Remove the metric string (with its previous space) from the Metodologia column
-    aux_df_error_concat['Metodologia'] = aux_df_error_concat['Metodologia'].apply(lambda x: x.replace(f' {metric}', ''))
-    aux_df_auc_concat['Metodologia'] = aux_df_auc_concat['Metodologia'].apply(lambda x: x.replace(f' {metric}', ''))
+    aux_df_error_concat.loc[:, 'Metodologia'] = aux_df_error_concat['Metodologia'].apply(lambda x: x.replace(f' {metric}', ''))
+    aux_df_auc_concat.loc[:, 'Metodologia'] = aux_df_auc_concat['Metodologia'].apply(lambda x: x.replace(f' {metric}', ''))
 
     # Remake the color mapping for the concatenated dataframes
     color_mapping_error = {method: color for method, color in zip(aux_df_error_concat['Metodologia'].unique(), sns.color_palette(palette_colour, n_colors=aux_df_error_concat['Metodologia'].nunique()))}
     color_mapping_auc = {method: color for method, color in zip(aux_df_auc_concat['Metodologia'].unique(), sns.color_palette(palette_colour, n_colors=aux_df_auc_concat['Metodologia'].nunique()))}
 
     for plot_type in ['boxplot', 'violin']:
+        plt.close('all')
+
         plt.figure(figsize=(15, 30))  # Adjust the size of the entire figure
 
         # Create subplots with shared x-axis
@@ -297,7 +305,9 @@ for metric in metrics:
                     y=plot, 
                     palette=color_mapping_error if plot == 'Erro' else color_mapping_auc,
                     showfliers=False,
-                    ax=ax  # Assign the current axis
+                    ax=ax,
+                    hue='Metodologia',
+                    legend=False
                 )
             else:
                 sns.violinplot(
@@ -305,7 +315,9 @@ for metric in metrics:
                     x='Metodologia', 
                     y=plot, 
                     palette=color_mapping_error if plot == 'Erro' else color_mapping_auc,
-                    ax=ax  # Assign the current axis
+                    ax=ax,
+                    hue='Metodologia',
+                    legend=False
                 )
 
             ax.grid(True)
@@ -337,6 +349,64 @@ for metric in metrics:
         # Use tight_layout to adjust the spacing
         plt.tight_layout()
 
-        plt.savefig(f'experimentos_{plot_type}_{aux_metric}_concat.png', bbox_inches='tight')
+        plt.savefig(f'plots/experimentos_{plot_type}_{aux_metric}_concat.png', bbox_inches='tight')
 
 
+plt.close('all')
+
+# Make bar plots for the error and AUC for each metric (3 bars for each method in the same plot)
+plt.figure(figsize=(20, 8))
+
+for i, plot in enumerate(['Erro (Menor Erro)', 'Erro (Maior AUC)', 'Erro (Menor Erro - AUC)']):
+    plt.subplot(1, 3, i+1)
+    sns.barplot(
+        data=df, 
+        x='Metodologia', 
+        y=plot, 
+        palette=color_mapping,
+        hue='Metodologia',
+        legend=False
+    )
+    plt.title(f'{plot.replace("Erro (", "").replace(")", "")}')
+    plt.xticks(rotation=90)
+    plt.ylabel('Erro')
+    plt.grid(True)
+    plt.minorticks_on()
+    plt.grid(which='minor', linestyle=':', linewidth='0.2', color='darkgray')
+
+# Add the title to the entire figure
+plt.suptitle('Erro', fontsize=16)
+
+# Use tight_layout to adjust the spacing
+plt.tight_layout()
+
+plt.savefig('plots/experimentos_error_barplot.png', bbox_inches='tight')
+
+plt.close('all')
+
+plt.figure(figsize=(20, 8))
+
+for i, plot in enumerate(['AUC (Menor Erro)', 'AUC (Maior AUC)', 'AUC (Menor Erro - AUC)']):
+    plt.subplot(1, 3, i+1)
+    sns.barplot(
+        data=df, 
+        x='Metodologia', 
+        y=plot, 
+        palette=color_mapping,
+        hue='Metodologia',
+        legend=False
+    )
+    plt.title(f'{plot.replace("AUC (", "").replace(")", "")}')
+    plt.xticks(rotation=90)
+    plt.ylabel('AUC')
+    plt.grid(True)
+    plt.minorticks_on()
+    plt.grid(which='minor', linestyle=':', linewidth='0.2', color='darkgray')
+
+# Add the title to the entire figure
+plt.suptitle('AUC', fontsize=16)
+
+# Use tight_layout to adjust the spacing
+plt.tight_layout()
+
+plt.savefig('plots/experimentos_auc_barplot.png', bbox_inches='tight')
