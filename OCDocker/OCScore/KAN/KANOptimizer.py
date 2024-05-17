@@ -1,15 +1,17 @@
 import optuna
 import re
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
 from optuna.samplers import TPESampler
 from sklearn.metrics import auc, roc_curve
-from typing import Union
+from typing import Callable, Union
 
 #from OCDocker.Initialise import *
 
+import kan
 import random
 import torch
 import torch.nn as nn
@@ -17,7 +19,6 @@ import torch.optim as optim
 
 from torch.utils.data import Dataset, DataLoader
 
-from kan import *
 
 class KolmogorovArnoldNetwork():
     def __init__(self, 
@@ -36,6 +37,10 @@ class KolmogorovArnoldNetwork():
             sb_trainable: bool = True,
             output_size: int = 1,
             optimizer: str = "LBFGS",
+            batch_size: int = 32,
+            epochs: list[int] = [20],
+            lr: float = 1e-3,
+            clip_grad: float = 1.0,
             random_seed = 42,
             use_gpu = True,
             verbose = False
@@ -43,7 +48,11 @@ class KolmogorovArnoldNetwork():
 
         self.optimizer_functions_str = ["LBFGS", "Adam"]
 
-        self.device = 'gpu' if use_gpu and torch.cuda.is_available() else 'cpu'
+        # Check if the optimizer is in the list of optimizer functions
+        if optimizer not in self.optimizer_functions_str:
+            raise ValueError(f"The optimizer should be one of {self.optimizer_functions_str} and not {optimizer}")
+
+        self.device = 'cuda' if use_gpu and torch.cuda.is_available() else 'cpu'
 
         self.random_seed = random_seed
         self.use_gpu = use_gpu
@@ -64,14 +73,13 @@ class KolmogorovArnoldNetwork():
         self.sb_trainable = sb_trainable
         self.seed = self.random_seed
 
-
-        self.model = KAN(
+        self.KAN = kan.KAN(
             width = self.width,
             grid = self.grid,
             k = self.k,
             noise_scale= self.noise_scale,
             noise_scale_base = self.noise_scale_base,
-            base_fun = self.base_fun,
+            base_fun = self.base_fun, # type: ignore
             symbolic_enabled = self.symbolic_enabled,
             bias_trainable = self.bias_trainable,
             grid_eps = self.grid_eps,
@@ -82,18 +90,12 @@ class KolmogorovArnoldNetwork():
             seed = self.seed
         )
 
-        self.batch_size = nn_params['batch_size']
-        self.epochs = nn_params['epochs']
-        self.lr = nn_params['lr']
-        self.clip_grad = nn_params['clip_grad']
+        self.batch_size = batch_size
+        self.epochs = epochs
+        self.lr = lr
+        self.clip_grad = clip_grad
 
-        self.optimizer = self.optimizer_functions[self.optimizer_functions_str.index(nn_params['optimizer'])](
-            self.NN.parameters(),
-            weight_decay = nn_params['weight_decay'], 
-            lr = nn_params['lr']
-        )
-
-        self.nn_params = nn_params
+        self.optimizer = optimizer
 
         # Set the AUC and rmse as nan
         self.validation_auc = np.NaN
@@ -105,7 +107,7 @@ class KolmogorovArnoldNetwork():
         self.prediction = None
 
         if verbose:
-            print(self.NN)
+            print(self.KAN)
 
     def set_random_seed(self):
         np.random.seed(self.random_seed)
@@ -115,32 +117,92 @@ class KolmogorovArnoldNetwork():
         torch.manual_seed(self.random_seed)
 
         if self.use_gpu and torch.cuda.is_available():
-            self.device = torch.device('cuda')
             torch.cuda.manual_seed_all(self.random_seed)
-        else:
-            self.device = torch.device('cpu')
         
         #torch.backends.cudnn.enabled = False
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
         
-    def train_model(self, X_train, y_train, X_test, y_test, X_validation = None, y_validation = None, criterion = nn.MSELoss()):
+    def train_model(self, X_train, y_train, X_test, y_test, X_validation = None, y_validation = None, log=1, lamb=0.0, lamb_l1=1.0, lamb_entropy=2.0, lamb_coef=0.0, lamb_coefdiff=0.0, update_grid=True, grid_update_num=10, loss_fn=nn.MSELoss(), stop_grid_update_step=50, batch=-1, small_mag_threshold=1e-16, small_reg_factor=1.0, metrics=None, sglr_avoid=False, save_fig=False, in_vars=None, out_vars=None, beta=3, save_fig_freq=1, img_folder='plot', symbolic_enabled=True, plot_intermediate=False):
         self.set_random_seed()
 
         # Convert the data to torch.Tensor
-        if isinstance(X_train, list):
-            X_train = [torch.tensor(np.asarray(x), dtype=torch.float32).to(self.device) for x in X_train]
-        else:
+        if not isinstance(X_train, torch.Tensor):
             X_train = torch.tensor(np.asarray(X_train), dtype=torch.float32).to(self.device)
 
-        y_train = torch.tensor(np.asarray(y_train), dtype=torch.float32).to(self.device)
-
-        if isinstance(X_test, list):
-            X_test = [torch.tensor(np.asarray(x), dtype=torch.float32).to(self.device) for x in X_test]
-        else:
+        if not isinstance(y_train, torch.Tensor):
+            y_train = torch.tensor(np.asarray(y_train), dtype=torch.float32).to(self.device)
+        
+        if not isinstance(X_test, torch.Tensor):
             X_test = torch.tensor(np.asarray(X_test), dtype=torch.float32).to(self.device)
 
-        y_test = torch.tensor(np.asarray(y_test), dtype=torch.float32).to(self.device)
+        if not isinstance(y_test, torch.Tensor):
+            y_test = torch.tensor(np.asarray(y_test), dtype=torch.float32).to(self.device)
+
+        self.dataset = {
+            'train_input': X_train,
+            'train_label': y_train,
+            'test_input': X_test,
+            'test_label': y_test
+        }
+
+        # For each epoch element in the epochs
+        for i, epoch in enumerate(self.epochs):
+            # Train the model
+            result = self.KAN.train(
+                dataset = self.dataset,
+                opt = self.optimizer,
+                steps = epoch,
+                log = log,
+                lamb = lamb,
+                lamb_l1 = lamb_l1,
+                lamb_entropy = lamb_entropy,
+                lamb_coef = lamb_coef,
+                lamb_coefdiff = lamb_coefdiff,
+                update_grid = update_grid,
+                grid_update_num = grid_update_num,
+                loss_fn = loss_fn,
+                stop_grid_update_step = stop_grid_update_step,
+                batch = batch,
+                small_mag_threshold = small_mag_threshold,
+                small_reg_factor = small_reg_factor,
+                metrics = metrics,
+                sglr_avoid = sglr_avoid,
+                save_fig = save_fig,
+                in_vars = in_vars,
+                out_vars = out_vars,
+                beta = beta,
+                save_fig_freq = save_fig_freq,
+                img_folder = img_folder,
+                device = self.device
+            )
+
+            # If plot_intermediate is True
+            if plot_intermediate:
+                # Plot the model
+                self.KAN.plot()
+
+                plt.savefig(f'{img_folder}/KAN_epoch_{i}.png')
+
+            # If it is not the last epoch (the last epoch can have the same value as any other epoch)
+            if i != len(self.epochs) - 1:
+                # Prune the model
+                self.KAN = self.KAN.prune()
+
+                # If plot_intermediate is True
+                if plot_intermediate:
+                    # Plot again after pruning
+                    self.KAN.plot()
+
+                    plt.savefig(f'{img_folder}/KAN_epoch_{i}_pruned.png')
+
+        # If symbolic_enabled is True
+        if symbolic_enabled:
+            # Enable the symbolic mode
+            self.symbolic = self.KAN.auto_symbolic()
+        
+        # Get the RMSE
+        rmse = result['test_loss'].sum() # TODO: Sum???
 
         if X_validation is not None and y_validation is not None:
             if isinstance(X_validation, list):
@@ -148,143 +210,21 @@ class KolmogorovArnoldNetwork():
             else:
                 X_validation = torch.tensor(np.asarray(X_validation), dtype=torch.float32).to(self.device)
             
-            y_validation = torch.tensor(np.asarray(y_validation), dtype=torch.float32).to(self.device)
+            y_validation = np.asarray(y_validation)
 
-        # If the input is a list create the train and test loaders
-        if isinstance(X_train, list):
-            train_loader = DataLoader(
-                dataset = MultiBranchCustomDataset(X_train[0], X_train[1], X_train[2], y_train), 
-                batch_size = self.batch_size, 
-                shuffle = True
-            )
-        else:
-            train_loader = DataLoader(
-                dataset = CustomDataset(X_train, y_train), 
-                batch_size = self.batch_size, 
-                shuffle = True
-            )
+            # Evaluate the model
+            validation_predictions = self.KAN(X_validation)
 
-        # If the input is a list create the train and test loaders
-        if isinstance(X_test, list):
-            test_loader = DataLoader(
-                dataset = MultiBranchCustomDataset(X_test[0], X_test[1], X_test[2], y_test), 
-                batch_size = self.batch_size, 
-                shuffle = True
-            )
-        else:
-            test_loader = DataLoader(
-                dataset = CustomDataset(X_test, y_test), 
-                batch_size = self.batch_size
-            )
+            # Convert the predictions to numpy
+            validation_predictions_np = validation_predictions.detach().cpu().numpy()
 
-        # If a validation set has been provided, create the validation loader
-        if X_validation is not None:
-            if isinstance(X_validation, list):
-                validation_loader = DataLoader(
-                    dataset = MultiBranchCustomDataset(X_validation[0], X_validation[1], X_validation[2], y_validation), 
-                    batch_size = self.batch_size, 
-                    shuffle = True
-                )
+            # If there is a nan in the predictions, set the AUC to 0
+            if np.isnan(validation_predictions_np).any():
+                validation_auc = 0
             else:
-                validation_loader = DataLoader(
-                    dataset = CustomDataset(X_validation, y_validation), 
-                    batch_size = self.batch_size, 
-                    shuffle = True
-                )
-
-        # For each epoch
-        for epoch in range(self.epochs):
-            # Set the model to training mode
-            self.NN.train()
-
-            # Set the running loss to 0            
-            running_loss = 0.0
-
-            # If the train loader is a multi branch dataset
-            if isinstance(train_loader.dataset, MultiBranchCustomDataset):
-                for i, (inputs1, inputs2, inputs3, labels) in enumerate(train_loader):
-                    # Zero the gradients
-                    self.optimizer.zero_grad()
-
-                    outputs = self.NN([inputs1, inputs2, inputs3])                 # Forward pass
-                    loss = criterion(outputs, labels.view(-1, 1))                  # Calculate the loss
-                    loss.backward()                                                # Backward pass
-                    nn.utils.clip_grad_norm_(self.NN.parameters(), self.clip_grad) # Clip the gradients
-                    self.optimizer.step()                                          # Update weights
-
-                    running_loss += loss.item()
-            else:                
-                for i, (inputs, labels) in enumerate(train_loader):
-                    # Zero the gradients
-                    self.optimizer.zero_grad()
-
-                    outputs = self.NN(inputs)                                      # Forward pass
-                    loss = criterion(outputs, labels.view(-1, 1))                  # Calculate the loss
-                    loss.backward()                                                # Backward pass
-                    nn.utils.clip_grad_norm_(self.NN.parameters(), self.clip_grad) # Clip the gradients
-                    self.optimizer.step()                                          # Update weights
-
-                    running_loss += loss.item()
-        
-            # Set the model to evaluation mode
-            self.NN.eval()
-
-            running_loss = 0.0
-
-            all_predictions = []
-            all_labels = []
-            
-            with torch.no_grad():
-                # If the test loader is a multi branch dataset
-                if isinstance(test_loader.dataset, MultiBranchCustomDataset):
-                    for inputs1, inputs2, inputs3, labels in test_loader:
-                        predicted = self.NN([inputs1, inputs2, inputs3])
-                        loss = criterion(predicted, labels.view(-1, 1))
-                        running_loss += loss.item()
-                        
-                        all_predictions.extend(predicted.cpu().numpy())
-                        all_labels.extend(labels.cpu().numpy())
-                else:
-                    for inputs, labels in test_loader:
-                        predicted = self.NN(inputs)
-                        loss = criterion(predicted, labels.view(-1, 1))
-                        running_loss += loss.item()
-                        
-                        all_predictions.extend(predicted.cpu().numpy())
-                        all_labels.extend(labels.cpu().numpy())
-
-            average_loss = running_loss / len(test_loader)
-            rmse = np.sqrt(average_loss)
-
-            if self.verbose:
-                print(f'Epoch {epoch + 1}/{self.epochs}')
-                print(f'Average Loss: {average_loss}')
-                print(f'RMSE: {rmse}')
-
-            # If a validation set has been provided, calculate the AUC
-            if X_validation is not None:
-                # Set the model to evaluation mode
-                self.NN.eval()
-
-                # If the validation loader is a multi branch dataset
-                if isinstance(validation_loader.dataset, MultiBranchCustomDataset):
-                    validation_predictions = self.NN([X_validation[0], X_validation[1], X_validation[2]])
-                else:
-                    validation_predictions = self.NN(X_validation)
-
-                # Convert the predictions and the labels to numpy
-                validation_predictions_np = validation_predictions.detach().cpu().numpy()
-                y_validation_np = y_validation.cpu().numpy() # type: ignore
-
-                self.prediction = y_validation_np
-
-                # If there is a nan in the predictions, set the AUC to 0
-                if np.isnan(validation_predictions_np).any():
-                    validation_auc = 0
-                else:
-                    # Calculate the ROC
-                    fpr, tpr, _ = roc_curve(y_validation_np, validation_predictions_np)
-                    validation_auc = auc(fpr, tpr)
+                # Calculate the ROC
+                fpr, tpr, _ = roc_curve(y_validation, validation_predictions_np)
+                validation_auc = auc(fpr, tpr)
 
         self.rmse = rmse
         self.validation_auc = validation_auc
@@ -292,218 +232,9 @@ class KolmogorovArnoldNetwork():
         return True
     
     def get_model(self):
-        return self.NN
+        return self.KAN
         
-class DynamicNN(nn.Module):
-    def __init__(self,
-            input_size: int,
-            output_size: int,
-            hidden_layers: list,
-            activation_data: list = [],
-            encoder: Union[None, list] = None,
-            device: torch.device = torch.device('cpu')
-        ):
-        super(DynamicNN, self).__init__()
-
-        self.input_size = input_size
-        self.output_size = output_size
-
-        self.layers = nn.ModuleList()
-
-        self.device = device
-
-        # If an encoder has been provided, add it to the layers
-        if encoder is not None:
-            for encoder_layer in encoder:
-                if encoder_layer[0] == "Linear":
-                    self.layers.append(nn.Linear(encoder_layer[1], encoder_layer[2]).to(self.device))
-                elif encoder_layer[0] == "BatchNorm1d":
-                    self.layers.append(nn.BatchNorm1d(encoder_layer[1]).to(self.device))
-                elif encoder_layer[0] == "Activation":
-                    self.layers.append(encoder_layer[1].to(self.device))
-
-            self.input_layer_size = encoder[0][2]
-        else:
-            self.input_layer_size = input_size
-
-        self.layer_sizes = [self.input_layer_size] + hidden_layers + [self.output_size]
-
-        for i in range(len(self.layer_sizes) - 1):
-            self.layers.append(nn.Linear(self.layer_sizes[i], self.layer_sizes[i+1]).to(self.device))
-
-            # Add batch normalization layer
-            if i < len(self.layer_sizes) - 2:  # No batch norm for output layer
-                self.layers.append(nn.BatchNorm1d(self.layer_sizes[i + 1]).to(self.device))
-                
-            if activation_data and i < len(activation_data):
-                if len(activation_data[i]) == 1:
-                    act_func = activation_data[i][0]
-                    self.layers.append(act_func().to(self.device))
-                else:
-                    act_func, act_params = activation_data[i]
-                
-                    # Create a new dictionary with the trailing numbers removed from the keys
-                    processed_act_params = {re.sub(r'_\d+$', '', k): v for k, v in act_params.items()}
-                    self.layers.append(act_func(**processed_act_params).to(self.device))
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        '''
-        Forward pass through the network.
-
-        Parameters
-        ----------
-        x : torch.Tensor
-            Input tensor
-
-        Returns
-        -------
-        torch.Tensor
-            Output tensor
-        '''
-
-        for layer in self.layers:
-            x = layer(x.to(self.device))
-        return x
-
-class MultiBranchDynamicNN(nn.Module):
-    def __init__(self,
-            input_size: int,
-            output_size: int,
-            hidden_layers: list,
-            activation_data: list = [],
-            encoders: Union[None, list] = None,
-            device: torch.device = torch.device('cpu')
-        ):
-        super(MultiBranchDynamicNN, self).__init__()
-
-        self.input_size = input_size
-        self.output_size = output_size
-
-        self.encoders = []
-
-        self.layers = nn.ModuleList()
-
-        self.device = device
-
-        # If the encoder is a list
-        if isinstance(encoders, list):
-            for encoder in encoders:
-                encoder_modules = nn.ModuleList()
-                
-                # Check if the encoder dict is not empty
-                if not encoder:
-                    for encoder_layer in encoder:
-                        if encoder_layer[0] == "Linear":
-                            encoder_modules.append(nn.Linear(encoder_layer[1], encoder_layer[2]).to(self.device))
-                        elif encoder_layer[0] == "BatchNorm1d":
-                            encoder_modules.append(nn.BatchNorm1d(encoder_layer[1]).to(self.device))
-                        elif encoder_layer[0] == "Activation":
-                            encoder_modules.append(encoder_layer[1].to(self.device))
-                else:
-                    # Add an identity layer (no encoder)
-                    encoder_modules.append(nn.Identity().to(self.device))
-
-                self.encoders.append({
-                    "input_size" : encoder[0][2], 
-                    "encoder" : encoder_modules
-                    })
-        else:
-            # Encoder should be a list
-            raise ValueError("The encoder should be a list")
-
-        self.layer_sizes = hidden_layers + [self.output_size]
-
-        for i in range(len(self.layer_sizes) - 1):
-            self.layers.append(nn.Linear(self.layer_sizes[i], self.layer_sizes[i+1]).to(self.device))
-
-            # Add batch normalization layer
-            if i < len(self.layer_sizes) - 2:  # No batch norm for output layer
-                self.layers.append(nn.BatchNorm1d(self.layer_sizes[i + 1]).to(self.device))
-                
-            if activation_data and i < len(activation_data):
-                if len(activation_data[i]) == 1:
-                    act_func = activation_data[i][0]
-                    self.layers.append(act_func().to(self.device))
-                else:
-                    act_func, act_params = activation_data[i]
-                
-                    # Create a new dictionary with the trailing numbers removed from the keys
-                    processed_act_params = {re.sub(r'_\d+$', '', k): v for k, v in act_params.items()}
-                    self.layers.append(act_func(**processed_act_params).to(self.device))
-
-    def forward(self, xs: list[torch.Tensor]) -> torch.Tensor:
-        '''
-        Forward pass through the network.
-
-        Parameters
-        ----------
-        xs : list[torch.Tensor]
-            Input tensor
-
-        Returns
-        -------
-        torch.Tensor
-            Output tensor
-        '''
-
-        # Check if xs is a list
-        if not isinstance(xs, list):
-            raise ValueError("The input should be a list of tensors")
-        
-        # Check if the length of xs is the same as the number of encoders
-        if len(xs) != len(self.encoders):
-            raise ValueError("The number of inputs should be the same as the number of encoders")
-        
-        # Process each input tensor through its corresponding encoder
-        encoded_outputs = []
-        for x, encoder in zip(xs, self.encoders):
-            for layer in encoder["encoder"]:
-                x = layer(x.to(self.device))  # Update x with the output of the current layer
-            encoded_outputs.append(x)  # Store the encoded output for each input tensor
-        
-        # Concatenate the encoded outputs into a single tensor
-        x = torch.cat(encoded_outputs, dim=1)
-
-        # Perform a BatchNorm1d on the concatenated tensor
-        x = nn.BatchNorm1d(x.shape[1]).to(self.device)(x)
-
-        # Add a linear layer to the concatenated tensor to match the input size of the first hidden layer
-        x = nn.Linear(x.shape[1], self.layer_sizes[0]).to(self.device)(x)
-
-        # For each layer in the layers
-        for layer in self.layers:
-            # Pass the tensor through the layer
-            x = layer(x.to(self.device))
-
-        # Return the tensor
-        return x
-
-class CustomDataset(Dataset):
-    def __init__(self, features, target):
-        self.features = features
-        self.target = target
-
-    def __len__(self):
-        return len(self.features)
-
-    def __getitem__(self, idx):
-        return self.features[idx], self.target[idx]
-
-class MultiBranchCustomDataset(Dataset):
-    def __init__(self, features1, features2, features3, target):
-        self.features1 = features1
-        self.features2 = features2
-        self.features3 = features3
-        self.target = target
-
-    def __len__(self):
-        return len(self.features1)
-
-    def __getitem__(self, idx):
-        return self.features1[idx], self.features2[idx], self.features3[idx], self.target[idx]
-
-
-class NNOptimizer:
+class KANOptimizer:
     def __init__(self,
             X_train: Union[np.ndarray, pd.DataFrame, pd.Series, list[Union[np.ndarray, pd.DataFrame, pd.Series]]],
             y_train: Union[np.ndarray, pd.DataFrame, pd.Series],
@@ -511,56 +242,71 @@ class NNOptimizer:
             y_test: Union[np.ndarray, pd.DataFrame, pd.Series],
             X_validation: Union[None, Union[np.ndarray, pd.DataFrame, pd.Series], list[Union[None, np.ndarray, pd.DataFrame, pd.Series]]] = None,
             y_validation: Union[None, Union[np.ndarray, pd.DataFrame, pd.Series]] = None,
-            storage: str = "sqlite:///NNoptimization.db",
-            encoder_params: Union[None, dict, tuple[dict, dict, dict]] = None,
+            storage: str = "sqlite:///KANoptimization.db",
             output_size: int = 1,
             random_seed: int = 42,
+            symbolic_enabled: bool = True,
+            bias_trainable: bool = True,
+            grid_range: list[float] = [-1.0, 1.0],
+            log: int = 1, # Logging frequency,
+            update_grid: bool = True,
+            sglr_avoid=False, 
+            save_fig=False, 
+            in_vars=None, 
+            out_vars=None, 
+            beta=3, 
+            save_fig_freq=1, 
+            img_folder='plot', 
+            plot_intermediate=False,
             use_gpu: bool = True,
             verbose: bool = False
         ):
+
         self.use_gpu = use_gpu
         self.random_seed = random_seed
+        self.symbolic_enabled = symbolic_enabled
+        self.bias_trainable = bias_trainable
+        self.grid_range = grid_range
+        self.log = log
+        self.update_grid = update_grid
+        self.sglr_avoid = sglr_avoid
+        self.save_fig = save_fig
+        self.in_vars = in_vars
+        self.out_vars = out_vars
+        self.beta = beta
+        self.save_fig_freq = save_fig_freq
+        self.img_folder = img_folder
+        self.plot_intermediate = plot_intermediate
 
         if self.use_gpu and torch.cuda.is_available():
-            self.device = torch.device('cuda')
+            self.device = 'cuda'
         else:
-            self.device = torch.device('cpu')
+            self.device = 'cpu'
 
         self.activation_functions = [nn.GELU, nn.LeakyReLU, nn.Mish, nn.ReLU, nn.SELU, nn.Identity]
         self.activation_functions_str = ['GELU', 'LeakyReLU', 'Mish', 'ReLU', 'SELU', 'Identity']
 
-
         self.set_random_seed()
         
         # Convert the data do np.ndarray then to torch.Tensor
-        if isinstance(X_train, list):
-            self.X_train = [torch.tensor(np.asarray(x), dtype=torch.float32).to(self.device) for x in X_train]
-            self.input_size = [x.shape[1] for x in self.X_train]
-        else:
-            try:
-                self.X_train = torch.tensor(np.asarray(X_train[:2286]), dtype=torch.float32)
-            except Exception as e:
-                print(e)
-            self.input_size = self.X_train.shape[1]
+        try:
+            self.X_train = torch.tensor(np.asarray(X_train[:2286]), dtype=torch.float32).to(self.device)
+        except Exception as e:
+            print(e)
+
+        self.input_size = self.X_train.shape[1]
 
         self.y_train = torch.tensor(np.asarray(y_train), dtype=torch.float32).to(self.device)
         self.train_loader = None
 
-        if isinstance(X_test, list):
-            self.X_test = [torch.tensor(np.asarray(x), dtype=torch.float32).to(self.device) for x in X_test]
-        else:
-            self.X_test = torch.tensor(np.asarray(X_test), dtype=torch.float32).to(self.device)
+        self.X_test = torch.tensor(np.asarray(X_test), dtype=torch.float32).to(self.device)
 
         self.y_test = torch.tensor(np.asarray(y_test), dtype=torch.float32).to(self.device)
         self.test_loader = None
 
         # Check if the validation set has been provided or if any of its elements are None
         if (X_validation is not None and y_validation is not None) or not (isinstance(X_validation, list) and any(x is None for x in X_validation)):
-            if isinstance(X_validation, list):
-                self.X_validation = [torch.tensor(np.asarray(x), dtype=torch.float32).to(self.device) for x in X_validation]
-            else:
-                self.X_validation = torch.tensor(np.asarray(X_validation), dtype=torch.float32).to(self.device)
-
+            self.X_validation = torch.tensor(np.asarray(X_validation), dtype=torch.float32).to(self.device)
             self.y_validation = torch.tensor(np.asarray(y_validation), dtype=torch.float32).to(self.device)
             self.validation_loader = None
         else:
@@ -574,75 +320,10 @@ class NNOptimizer:
         
         self.verbose = verbose
 
-        if encoder_params is not None:
-            if isinstance(encoder_params, dict):
-                self.encoder = self.__build_encoder(encoder_params)
-            else: # It is a tuple
-                # Split the tuple into 3 parts
-                sf_encoder_params, lig_encoder_params, rec_encoder_params = encoder_params
-                self.encoder = [
-                    self.__build_encoder(sf_encoder_params), 
-                    self.__build_encoder(lig_encoder_params), 
-                    self.__build_encoder(rec_encoder_params)
-                ]
-        else:
-            self.encoder = None
+        self.model = None
         
         # Set the storage string for the study
         self.storage = storage
-
-    def __build_encoder(self, encoder_params):
-        # If the encoder_params has the key 'encoder_activation'
-        if 'encoder_activation' in encoder_params:
-            if encoder_params['encoder_activation'] == 'LeakyReLU':
-                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])](negative_slope = encoder_params['negative_slope_encoder'])
-            
-            elif encoder_params['encoder_activation'] == 'GELU':
-                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])](approximate = encoder_params['approximate_encoder'])
-            
-            else:
-                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])]()
-
-            # Build just the encoder
-            return [("Linear", self.input_size, encoder_params['encoding_dim']), ("BatchNorm1d", encoder_params['encoding_dim']), ("Activation", encoder_activation)]
-        
-        # Create an empty list to store the encoder
-        encoder = []
-
-        # Get all the keys from the encoder_params which starts with 'activation_function'
-        activation_keys = [key for key in encoder_params.keys() if key.startswith('activation_function') and key.endswith('encoder')]
-        
-        # If there are no activation functions
-        if not activation_keys:
-            raise ValueError("The encoder_params should have at least one activation function")
-
-        # Process the activation functions
-        for i in range(encoder_params['n_layers_encoder']):
-            # Now suggest the parameters for the activation function
-            if encoder_params[f'activation_function_{i}_encoder'] == 'LeakyReLU':
-                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params[f'activation_function_{i}_encoder'])](negative_slope = encoder_params[f'negative_slope_{i}_encoder'])
-            elif encoder_params[f'activation_function_{i}_encoder'] == 'GELU':
-                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params[f'activation_function_{i}_encoder'])](approximate = encoder_params[f'approximate_{i}_encoder'])
-            else:
-                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params[f'activation_function_{i}_encoder'])]()
-            
-            # If it is the first layer
-            if i == 0:
-                # Add the encoder layer to the encoder list
-                encoder.extend([
-                    ("Linear", self.input_size, encoder_params[f'n_units_layer_{i}_encoder']), 
-                    ("BatchNorm1d", encoder_params[f'n_units_layer_{i}_encoder']), 
-                    ("Activation", encoder_activation)
-                ])
-            else:
-                # Add the encoder layer to the encoder list
-                encoder.extend([
-                    ("Linear", encoder_params[f'n_units_layer_{i-1}_encoder'], encoder_params[f'n_units_layer_{i}_encoder']), 
-                    ("BatchNorm1d", encoder_params[f'n_units_layer_{i}_encoder']), 
-                    ("Activation", encoder_activation)
-                ])
-            
-        return encoder
 
     def set_random_seed(self):
         np.random.seed(self.random_seed)
@@ -658,82 +339,21 @@ class NNOptimizer:
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
 
-    def train_test_model(self, model, train_loader, test_loader, optimizer, criterion, clip_grad, trial, epochs = 100):
-        # For each epoch
-        for epoch in range(epochs):
-            # Set the model to training mode
-            model.train()
-
-            # Set the running loss to 0            
-            running_loss = 0.0
-
-            # If the train loader is a multi branch dataset
-            if isinstance(train_loader.dataset, MultiBranchCustomDataset):
-                for i, (inputs1, inputs2, inputs3, labels) in enumerate(train_loader):
-                    # Zero the gradients
-                    optimizer.zero_grad()
-
-                    outputs = model([inputs1, inputs2, inputs3])             # Forward pass
-                    loss = criterion(outputs, labels.view(-1, 1))            # Calculate the loss
-                    loss.backward()                                          # Backward pass
-                    nn.utils.clip_grad_norm_(model.parameters(), clip_grad)  # Clip the gradients
-                    optimizer.step()                                         # Update weights
-
-                    running_loss += loss.item()
-            else:                
-                for i, (inputs, labels) in enumerate(train_loader):
-                    # Zero the gradients
-                    optimizer.zero_grad()
-
-                    outputs = model(inputs)                                  # Forward pass
-                    loss = criterion(outputs, labels.view(-1, 1))            # Calculate the loss
-                    loss.backward()                                          # Backward pass
-                    nn.utils.clip_grad_norm_(model.parameters(), clip_grad)  # Clip the gradients
-                    optimizer.step()                                         # Update weights
-
-                    running_loss += loss.item()
-
-            # Set the model to evaluation mode
-            model.eval()
-
-            running_loss = 0.0
-
-            all_predictions = []
-            all_labels = []
-
-            # If the test loader is a list
-            if isinstance(test_loader.dataset, MultiBranchCustomDataset):
-                for inputs1, inputs2, inputs3, labels in test_loader:
-                    predicted = model([inputs1, inputs2, inputs3])
-                    loss = criterion(predicted, labels.view(-1, 1))
-                    running_loss += loss.item()
-                    
-                    all_predictions.extend(predicted.cpu().detach().numpy())
-                    all_labels.extend(labels.cpu().detach().numpy())
-            else:
-                for inputs, labels in test_loader:
-                    predicted = model(inputs)
-                    loss = criterion(predicted, labels.view(-1, 1))
-                    running_loss += loss.item()
-                    
-                    all_predictions.extend(predicted.cpu().detach().numpy())
-                    all_labels.extend(labels.cpu().detach().numpy())
+    def train_test_model(self, model, X_train, y_train, X_test, y_test, trial, X_validation = None, y_validation = None, log=1, lamb=0.0, lamb_l1=1.0, lamb_entropy=2.0, lamb_coef=0.0, lamb_coefdiff=0.0, update_grid=True, grid_update_num=10, loss_fn=nn.MSELoss(), stop_grid_update_step=50, batch=-1, small_mag_threshold=1e-16, small_reg_factor=1.0, metrics=None, sglr_avoid=False, save_fig=False, in_vars=None, out_vars=None, beta=3, save_fig_freq=1, img_folder='plot', symbolic_enabled=True, plot_intermediate=False):
+        # Train the model
+        results = model.train_model(X_train, y_train, X_test, y_test, X_validation, y_validation, log, lamb, lamb_l1, lamb_entropy, lamb_coef, lamb_coefdiff, update_grid, grid_update_num, loss_fn, stop_grid_update_step, batch, small_mag_threshold, small_reg_factor, metrics, sglr_avoid, save_fig, in_vars, out_vars, beta, save_fig_freq, img_folder, symbolic_enabled, plot_intermediate)
 
         # Get the RMSE
-        average_loss = running_loss / len(test_loader) # type: ignore
-        rmse = np.sqrt(average_loss)
+        rmse = results['test_loss'].sum() # TODO: Sum???
 
         if self.verbose:
-            print(f'Test Loss: {average_loss}')
             print(f'Test RMSE: {rmse}')
 
-        trial.report(rmse, epoch)
-        
         # Handle pruning based on the intermediate value.
         if trial.should_prune():
             raise optuna.exceptions.TrialPruned()
 
-        return rmse
+        return rmse, model.validation_auc
 
     def objective(self, trial):
         self.set_random_seed()
@@ -743,121 +363,113 @@ class NNOptimizer:
 
         # Suggest the number of hidden layers and the number of units in each layer
         hidden_layers = []
-        for i in range(trial.suggest_int('n_layers', 1, 5)):
-            hidden_layers.append(trial.suggest_categorical(f'n_units_layer_{i}', self.power_of_two_options))
+        for i in range(trial.suggest_int('n_layers', 1, 4)):
+            hidden_layers.append(trial.suggest_int(f'n_units_layer_{i}', 2, 5))
         
-        # Suggestions for the activation functions
-        activation_data = []
+        # Suggest the grid size
+        grid = trial.suggest_int('grid', 3, 10)
 
-        for i in range(len(hidden_layers)):
-            activation_function_str = trial.suggest_categorical(f'activation_function_{i}', self.activation_functions_str)
-            activation_function = self.activation_functions[self.activation_functions_str.index(activation_function_str)]
-            # Now suggest the parameters for the activation function
-            if activation_function == nn.LeakyReLU:
-                activation_data.append((activation_function, {
-                    f'negative_slope_{i}': trial.suggest_float(f'negative_slope_{i}', 0.01, 0.5)
-                }))
-            elif activation_function == nn.GELU:
-                activation_data.append((activation_function, {
-                    f'approximate_{i}': trial.suggest_categorical(f'approximate_{i}', ['none', 'tanh'])
-                }))  
-            else:
-                activation_data.append((activation_function, {}))
+        # Suggest the k value
+        k = trial.suggest_int('k', 3, 10)
 
-        # If the first element in the encoder is a list
-        if self.encoder != None and isinstance(self.encoder[0], list):
-            model = MultiBranchDynamicNN(self.input_size, self.output_size, hidden_layers, activation_data, self.encoder, self.device)
+        # Suggest the noise scale
+        noise_scale = trial.suggest_float('noise_scale', 0.01, 0.5)
+
+        # Suggest the noise scale base
+        noise_scale_base = trial.suggest_float('noise_scale_base', 0.01, 0.5)
+
+        # Suggest the base function
+        base_function_str = trial.suggest_categorical('base_function', self.activation_functions_str)
+
+        if base_function_str == 'LeakyReLU':
+            base_function = self.activation_functions[self.activation_functions_str.index(base_function_str)](negative_slope = trial.suggest_float('negative_slope', 0.01, 0.5))
+        
+        elif base_function_str == 'GELU':
+            base_function = self.activation_functions[self.activation_functions_str.index(base_function_str)](approximate = trial.suggest_categorical('approximate', ['none', 'tanh']))
         else:
-            model = DynamicNN(self.input_size, self.output_size, hidden_layers, activation_data, self.encoder, self.device)
+            base_function = self.activation_functions[self.activation_functions_str.index(base_function_str)]()
 
-        # Print the model architecture
-        if self.verbose:
-            print(model)
+        # Suggest the grid epsilon
+        grid_eps = trial.suggest_float('grid_eps', 0, 1.0)
 
-        # Suggestions for the optimizer
-        optimizer_name = trial.suggest_categorical('optimizer', ['Adam', 'RMSprop', 'SGD'])
-        weight_decay = trial.suggest_float('weight_decay', 1e-6, 1e-3)
-        optimizer = getattr(optim, optimizer_name)(model.parameters(), lr = lr, weight_decay = weight_decay)
+        # Suggest the sp trainable
+        sp_trainable = trial.suggest_categorical('sp_trainable', [True, False])
+
+        # Suggest the sb trainable
+        sb_trainable = trial.suggest_categorical('sb_trainable', [True, False])
+
+        # Suggest the optimizer
+        optimizer = trial.suggest_categorical('optimizer', ['LBFGS', 'Adam'])
 
         # Suggest the batch size
         batch_size = trial.suggest_categorical('batch_size', [32, 64, 128, 256])
 
-        # If the input is a list create the train and test loaders
-        if isinstance(self.X_train, list):
-            self.train_loader = DataLoader(
-                dataset = MultiBranchCustomDataset(self.X_train[0], self.X_train[1], self.X_train[2], self.y_train), 
-                batch_size = batch_size, 
-                shuffle = True
-            )
-        else:
-            self.train_loader = DataLoader(
-                dataset = CustomDataset(self.X_train, self.y_train), 
-                batch_size = batch_size, 
-                shuffle = True
-            )
+        # Suggest the number of trainings
+        n_trainings = trial.suggest_int('n_trainings', 1, 5)
 
-        # Create the train and test loaders
-        if isinstance(self.X_test, list):
-            self.test_loader = DataLoader(
-                dataset = MultiBranchCustomDataset(self.X_test[0], self.X_test[1], self.X_test[2], self.y_test), 
-                batch_size = batch_size
-            )
-        else:
-            self.test_loader = DataLoader(
-                dataset = CustomDataset(self.X_test, self.y_test), 
-                batch_size = batch_size
-            )
+        # Suggest the epochs for each training
+        epochs = [trial.suggest_int(f'epochs_{i}', 20, 50) for i in range(n_trainings)]
 
-        # If a validation set has been provided, create the validation loader
-        if self.X_validation is not None:
-            if isinstance(self.X_validation, list):
-                self.validation_loader = DataLoader(
-                    dataset = MultiBranchCustomDataset(self.X_validation[0], self.X_validation[1], self.X_validation[2], self.y_validation), 
-                    batch_size = batch_size, 
-                    shuffle = True
-                )
-            else:
-                self.validation_loader = DataLoader(
-                    dataset = CustomDataset(self.X_validation, self.y_validation), 
-                    batch_size = batch_size, 
-                    shuffle = True
-                )
-
-        # Suggestions for the epochs
-        epochs = trial.suggest_int('epochs', 100, 1000)
-
-        # Suggestions for clipping the gradients
+        # Suggest the clipping of the gradients
         clip_grad = trial.suggest_float('clip_grad', 0.1, 1.0)
 
-        # Use Root Mean Squared Error as the loss function
-        criterion = nn.MSELoss()
+        # Suggest the lamb value
+        lamb = trial.suggest_float('lamb', 0, 1.5)
 
-        test_loss = self.train_test_model(model, self.train_loader, self.test_loader, optimizer, criterion, clip_grad, trial, epochs = epochs)
+        # Suggest the lamb l1 value
+        lamb_l1 = trial.suggest_float('lamb_l1', 0, 1.5)
 
-        # If a validation set has been provided, calculate the AUC
-        if self.validation_loader is not None:
-            # Set the model to evaluation mode
-            model.eval()
-            # Get the predictions for the validation set
-            validation_predictions = model(self.X_validation)
-            # Convert the predictions and the labels to numpy
-            validation_predictions_np = validation_predictions.detach().cpu().numpy()
-            y_validation_np = self.y_validation.cpu().numpy() # type: ignore
-            # If there is a nan in the predictions, set the AUC to 0
-            if np.isnan(validation_predictions_np).any():
-                validation_auc = 0
-            else:
-                # Calculate the ROC
-                fpr, tpr, _ = roc_curve(y_validation_np, validation_predictions_np) # type: ignore
-                validation_auc = auc(fpr, tpr)
-            # Set the optuna user attrs
-            trial.set_user_attr('AUC', validation_auc)
-        else:
-            validation_auc = None
+        # Suggest the lamb entropy value
+        lamb_entropy = trial.suggest_float('lamb_entropy', 1, 5)
 
-        return test_loss
+        # Suggest the lamb coef value
+        lamb_coef = trial.suggest_float('lamb_coef', 0, 1.5)
 
-    def optimize(self, direction: str = "maximize", n_trials = 10, study_name = "NN_Optimization", load_if_exists = True, sampler: optuna.samplers.BaseSampler = TPESampler(), n_jobs = 1):
+        # Suggest the lamb coefdiff value
+        lamb_coefdiff = trial.suggest_float('lamb_coefdiff', 0, 1.5)
+
+        # Suggest the stop grid update step
+        stop_grid_update_step = trial.suggest_int('stop_grid_update_step', 10, 25)
+
+        # Suggest the small mag threshold
+        small_mag_threshold = trial.suggest_float('small_mag_threshold', 1e-16, 1e-10)
+
+        # Suggest the small reg factor
+        small_reg_factor = trial.suggest_float('small_reg_factor', 0.5, 1.0)
+
+        # Create the model
+        self.model = KolmogorovArnoldNetwork(
+            input_size = self.input_size,
+            hidden_layers_sizes = hidden_layers,
+            grid = grid,
+            k = k,
+            noise_scale = noise_scale,
+            noise_scale_base = noise_scale_base,
+            base_fun = base_function,
+            symbolic_enabled = self.symbolic_enabled,
+            bias_trainable = self.bias_trainable,
+            grid_range = self.grid_range,
+            sp_trainable = sp_trainable,
+            sb_trainable = sb_trainable,
+            output_size = self.output_size,
+            optimizer = optimizer,
+            batch_size = batch_size,
+            epochs = epochs,
+            lr = lr,
+            clip_grad = clip_grad,
+            random_seed = self.random_seed,
+            use_gpu = self.use_gpu,
+            verbose = self.verbose
+        )
+
+        # Train the model
+        rmse, validation_auc = self.train_test_model(self.model, self.X_train, self.y_train, self.X_test, self.y_test, trial, self.X_validation, self.y_validation, log = self.log, lamb = lamb, lamb_l1 = lamb_l1, lamb_entropy = lamb_entropy, lamb_coef = lamb_coef, lamb_coefdiff = lamb_coefdiff, update_grid = self.update_grid, stop_grid_update_step = stop_grid_update_step, small_mag_threshold = small_mag_threshold, small_reg_factor = small_reg_factor, sglr_avoid = self.sglr_avoid, save_fig = self.save_fig, in_vars = self.in_vars, out_vars = self.out_vars, beta = self.beta, save_fig_freq = self.save_fig_freq, img_folder = self.img_folder, symbolic_enabled = self.symbolic_enabled, plot_intermediate = self.plot_intermediate)
+
+        trial.set_user_attr('AUC', validation_auc)
+
+        return rmse
+
+    def optimize(self, direction: str = "maximize", n_trials = 10, study_name = "KAN_Optimization", load_if_exists = True, sampler: optuna.samplers.BaseSampler = TPESampler(), n_jobs = 1, show_progress_bar = False):
         if self.verbose:
             print(f'Optimizing the model for {n_trials} trials')
 
@@ -876,6 +488,7 @@ class NNOptimizer:
             pruner = pruner
         )
 
-        study.optimize(self.objective, n_trials = n_trials, n_jobs = n_jobs)
+        study.optimize(self.objective, n_trials = n_trials, n_jobs = n_jobs, show_progress_bar = show_progress_bar)
+
         best_params = study.best_params
         print("Best Hyperparameters:", best_params)

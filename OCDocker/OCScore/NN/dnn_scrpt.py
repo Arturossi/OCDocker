@@ -457,7 +457,7 @@ use_pdb_train = True
 # Do not use with autoencoder/multiencoder
 use_PCA = True
 # Set the PCA type 95/90/85/80
-pca_type = 90
+pca_type = 85
 
 if use_PCA:
     # Load the PCA
@@ -630,7 +630,7 @@ def NNworker(
         print(f"Process {id} completed {sampler_name} optimization")
 
 num_processes = 8
-storage_id = 45
+storage_id = 46
 storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"
 models_folder = f"/data/hd4tb/OCDocker/data/ocdb/models/autoencoder_{storage_id}"
 autoencoder = False
