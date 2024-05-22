@@ -454,49 +454,61 @@ pdbbind_standard_norm_df = norm_data(pdbbind_data, scaler = 'standard')
 
 use_pdb_train = True
 
-# Do not use with autoencoder/multiencoder
-use_PCA = True
-# Set the PCA type 95/90/85/80
-pca_type = 85
+only_scores = True
 
-if use_PCA:
-    # Load the PCA
-    pca = load_object(f"/data/hd4tb/OCDocker/OCDocker/OCDocker/OCScore/pca{pca_type}.pkl")
+if only_scores:
+    dudez_standard_norm_df = dudez_standard_norm_df[['receptor', 'ligand', 'name', 'type', 'db'] + score_columns].reset_index(drop=True)
+    pdbbind_standard_norm_df = pdbbind_standard_norm_df[['receptor', 'ligand', 'name', 'type', 'db', 'experimental'] + score_columns].reset_index(drop=True)
 
-    # Transform the data (train/test)
-    pdbbind_pca_standard_df = pca.transform(pdbbind_standard_norm_df.drop(columns = ['receptor', 'ligand', 'name', 'type', 'db', 'experimental'] + score_columns, errors = 'ignore'))
-
-    # Make it a DataFrame
-    pdbbind_pca_standard_df = pd.DataFrame(pdbbind_pca_standard_df, columns = [f"PC_{i}" for i in range(pdbbind_pca_standard_df.shape[1])])
-
-    # Create a DataFrame with the metadata and reset the indexes
-    metadata_df = pdbbind_standard_norm_df[['receptor', 'ligand', 'name', 'type', 'db', 'experimental'] + score_columns].reset_index(drop=True)
-
-    # Add the scores back to the data in the same order
-    pdbbind_standard_norm_df = pd.concat([metadata_df, pdbbind_pca_standard_df], axis=1)
-
-    # Transform the data (validation)
-    if use_pdb_train:
-        # Transform the data (validation)
-        dudez_standard_norm_df_tmp = pca.transform(dudez_standard_norm_df.drop(columns = ['receptor', 'ligand', 'name', 'type', 'db'] + score_columns, errors = 'ignore'))
-
-        # Make it a DataFrame
-        dudez_standard_norm_df_tmp = pd.DataFrame(dudez_standard_norm_df_tmp, columns = [f"PC_{i}" for i in range(dudez_standard_norm_df_tmp.shape[1])])
-
-        # Create a DataFrame with the metadata and reset the indexes
-        metadata_df = dudez_standard_norm_df[['receptor', 'ligand', 'name', 'type', 'db'] + score_columns].reset_index(drop=True)
-
-        # Add the scores back to the data
-        dudez_standard_norm_df = pd.concat([metadata_df, dudez_standard_norm_df_tmp], axis=1)
-    
     # Set the study name
-    study_name = f"PCA{pca_type}_NN_Optimization"
+    study_name = f"ScoreOnly_NN_Optimization"
 
     # Set the best AO to None
     best_ao_params = None
 else:
-    # Set the study name
-    study_name = f"NN_Optimization"
+    # Do not use with autoencoder/multiencoder
+    use_PCA = True
+    # Set the PCA type 95/90/85/80
+    pca_type = 80
+
+    if use_PCA:
+        # Load the PCA
+        pca = load_object(f"/data/hd4tb/OCDocker/OCDocker/OCDocker/OCScore/pca{pca_type}.pkl")
+
+        # Transform the data (train/test)
+        pdbbind_pca_standard_df = pca.transform(pdbbind_standard_norm_df.drop(columns = ['receptor', 'ligand', 'name', 'type', 'db', 'experimental'] + score_columns, errors = 'ignore'))
+
+        # Make it a DataFrame
+        pdbbind_pca_standard_df = pd.DataFrame(pdbbind_pca_standard_df, columns = [f"PC_{i}" for i in range(pdbbind_pca_standard_df.shape[1])])
+
+        # Create a DataFrame with the metadata and reset the indexes
+        metadata_df = pdbbind_standard_norm_df[['receptor', 'ligand', 'name', 'type', 'db', 'experimental'] + score_columns].reset_index(drop=True)
+
+        # Add the scores back to the data in the same order
+        pdbbind_standard_norm_df = pd.concat([metadata_df, pdbbind_pca_standard_df], axis=1)
+
+        # Transform the data (validation)
+        if use_pdb_train:
+            # Transform the data (validation)
+            dudez_standard_norm_df_tmp = pca.transform(dudez_standard_norm_df.drop(columns = ['receptor', 'ligand', 'name', 'type', 'db'] + score_columns, errors = 'ignore'))
+
+            # Make it a DataFrame
+            dudez_standard_norm_df_tmp = pd.DataFrame(dudez_standard_norm_df_tmp, columns = [f"PC_{i}" for i in range(dudez_standard_norm_df_tmp.shape[1])])
+
+            # Create a DataFrame with the metadata and reset the indexes
+            metadata_df = dudez_standard_norm_df[['receptor', 'ligand', 'name', 'type', 'db'] + score_columns].reset_index(drop=True)
+
+            # Add the scores back to the data
+            dudez_standard_norm_df = pd.concat([metadata_df, dudez_standard_norm_df_tmp], axis=1)
+        
+        # Set the study name
+        study_name = f"PCA{pca_type}_NN_Optimization"
+
+        # Set the best AO to None
+        best_ao_params = None
+    else:
+        # Set the study name
+        study_name = f"NN_Optimization"
 
 if use_pdb_train:
     # Split the PDBbind data into training and testing sets
@@ -630,7 +642,7 @@ def NNworker(
         print(f"Process {id} completed {sampler_name} optimization")
 
 num_processes = 8
-storage_id = 46
+storage_id = 61
 storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"
 models_folder = f"/data/hd4tb/OCDocker/data/ocdb/models/autoencoder_{storage_id}"
 autoencoder = False
@@ -831,7 +843,7 @@ if run_NN_optimization:
             study_name        # study_name
             ) for pid in range(num_processes)
         ])
-
+"""
 # Load the study
 nn_study = optuna.load_study(study_name = f"{study_name}_{storage_id}_TPE", storage = storage)
 nn_df = nn_study.trials_dataframe()
@@ -983,3 +995,4 @@ for col in score_columns:
     fpr, tpr, _ = roc_curve(dudez_standard_norm_df['type_cat'], dudez_standard_norm_df[col])
     auc_dict[col] = auc(fpr, tpr)
 '''
+"""

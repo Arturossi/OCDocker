@@ -139,6 +139,18 @@ class KolmogorovArnoldNetwork():
         if not isinstance(y_test, torch.Tensor):
             y_test = torch.tensor(np.asarray(y_test), dtype=torch.float32).to(self.device)
 
+        # Ensure y_train and y_test have the correct shape
+        if y_train.dim() == 1:
+            y_train = y_train.unsqueeze(1)
+
+        if y_test.dim() == 1:
+            y_test = y_test.unsqueeze(1)
+
+        # If the validation set is provided
+        if X_validation is not None and y_validation is not None:
+            if y_validation.dim() == 1:
+                y_validation = y_validation.unsqueeze(1)
+
         self.dataset = {
             'train_input': X_train,
             'train_label': y_train,
@@ -202,15 +214,21 @@ class KolmogorovArnoldNetwork():
             self.symbolic = self.KAN.auto_symbolic()
         
         # Get the RMSE
-        rmse = result['test_loss'].sum() # TODO: Sum???
+        if isinstance(result, torch.Tensor):
+            result = result.detach().cpu().numpy()
+
+        test_loss = result['test_loss']
+
+        rmse = np.mean(test_loss)
 
         if X_validation is not None and y_validation is not None:
-            if isinstance(X_validation, list):
-                X_validation = [torch.tensor(np.asarray(x), dtype=torch.float32).to(self.device) for x in X_validation]
-            else:
+            if not isinstance(X_validation, torch.Tensor):
                 X_validation = torch.tensor(np.asarray(X_validation), dtype=torch.float32).to(self.device)
             
-            y_validation = np.asarray(y_validation)
+            if isinstance(y_validation, torch.Tensor):
+                y_validation = y_validation.detach().cpu().numpy()
+            else:
+                y_validation = np.asarray(y_validation)
 
             # Evaluate the model
             validation_predictions = self.KAN(X_validation)
@@ -343,17 +361,14 @@ class KANOptimizer:
         # Train the model
         results = model.train_model(X_train, y_train, X_test, y_test, X_validation, y_validation, log, lamb, lamb_l1, lamb_entropy, lamb_coef, lamb_coefdiff, update_grid, grid_update_num, loss_fn, stop_grid_update_step, batch, small_mag_threshold, small_reg_factor, metrics, sglr_avoid, save_fig, in_vars, out_vars, beta, save_fig_freq, img_folder, symbolic_enabled, plot_intermediate)
 
-        # Get the RMSE
-        rmse = results['test_loss'].sum() # TODO: Sum???
-
         if self.verbose:
-            print(f'Test RMSE: {rmse}')
+            print(f'Test RMSE: {model.rmse}')
 
         # Handle pruning based on the intermediate value.
         if trial.should_prune():
             raise optuna.exceptions.TrialPruned()
 
-        return rmse, model.validation_auc
+        return model.rmse, model.validation_auc
 
     def objective(self, trial):
         self.set_random_seed()
@@ -363,8 +378,11 @@ class KANOptimizer:
 
         # Suggest the number of hidden layers and the number of units in each layer
         hidden_layers = []
-        for i in range(trial.suggest_int('n_layers', 1, 4)):
-            hidden_layers.append(trial.suggest_int(f'n_units_layer_{i}', 2, 5))
+
+        #for i in range(trial.suggest_int('n_layers', 1, 4)):
+        for i in range(trial.suggest_int('n_layers', 1, 1)):
+            #hidden_layers.append(trial.suggest_int(f'n_units_layer_{i}', 2, 15))
+            hidden_layers.append(trial.suggest_int(f'n_units_layer_{i}', 2, 2))
         
         # Suggest the grid size
         grid = trial.suggest_int('grid', 3, 10)
@@ -447,6 +465,7 @@ class KANOptimizer:
             noise_scale_base = noise_scale_base,
             base_fun = base_function,
             symbolic_enabled = self.symbolic_enabled,
+            grid_eps = grid_eps,
             bias_trainable = self.bias_trainable,
             grid_range = self.grid_range,
             sp_trainable = sp_trainable,
