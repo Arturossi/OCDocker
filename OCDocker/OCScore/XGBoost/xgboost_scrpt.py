@@ -5,6 +5,7 @@ import pickle
 import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
+import time
 
 from scipy.cluster.hierarchy import leaves_list, linkage
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
@@ -833,6 +834,63 @@ pdbbind_minmax_norm_df = norm_data(pdbbind_data, scaler = 'minmax')
 
 use_pdb_train = True
 
+only_scores = False
+
+if only_scores:
+    dudez_standard_norm_df = dudez_standard_norm_df[['receptor', 'ligand', 'name', 'type', 'db'] + score_columns].reset_index(drop=True)
+    pdbbind_standard_norm_df = pdbbind_standard_norm_df[['receptor', 'ligand', 'name', 'type', 'db', 'experimental'] + score_columns].reset_index(drop=True)
+
+    # Set the study name
+    study_name = f"ScoreOnly_XGB_Optimization"
+
+    # Set the best AO to None
+    best_ao_params = None
+else:
+    # Do not use with autoencoder/multiencoder
+    use_PCA = True
+
+    # Set the PCA type 95/90/85/80
+    pca_type = 95
+
+    if use_PCA:
+        # Load the PCA
+        pca = load_object(f"/data/hd4tb/OCDocker/OCDocker/OCDocker/OCScore/pca{pca_type}.pkl")
+
+        # Transform the data (train/test)
+        pdbbind_pca_standard_df = pca.transform(pdbbind_standard_norm_df.drop(columns = ['receptor', 'ligand', 'name', 'type', 'db', 'experimental'] + score_columns, errors = 'ignore'))
+
+        # Make it a DataFrame
+        pdbbind_pca_standard_df = pd.DataFrame(pdbbind_pca_standard_df, columns = [f"PC_{i}" for i in range(pdbbind_pca_standard_df.shape[1])])
+
+        # Create a DataFrame with the metadata and reset the indexes
+        metadata_df = pdbbind_standard_norm_df[['receptor', 'ligand', 'name', 'type', 'db', 'experimental'] + score_columns].reset_index(drop=True)
+
+        # Add the scores back to the data in the same order
+        pdbbind_standard_norm_df = pd.concat([metadata_df, pdbbind_pca_standard_df], axis=1)
+
+        # Transform the data (validation)
+        if use_pdb_train:
+            # Transform the data (validation)
+            dudez_standard_norm_df_tmp = pca.transform(dudez_standard_norm_df.drop(columns = ['receptor', 'ligand', 'name', 'type', 'db'] + score_columns, errors = 'ignore'))
+
+            # Make it a DataFrame
+            dudez_standard_norm_df_tmp = pd.DataFrame(dudez_standard_norm_df_tmp, columns = [f"PC_{i}" for i in range(dudez_standard_norm_df_tmp.shape[1])])
+
+            # Create a DataFrame with the metadata and reset the indexes
+            metadata_df = dudez_standard_norm_df[['receptor', 'ligand', 'name', 'type', 'db'] + score_columns].reset_index(drop=True)
+
+            # Add the scores back to the data
+            dudez_standard_norm_df = pd.concat([metadata_df, dudez_standard_norm_df_tmp], axis=1)
+        
+        # Set the study name
+        study_name = f"PCA{pca_type}_XGB_Optimization"
+
+        # Set the best AO to None
+        best_ao_params = None
+    else:
+        # Set the study name
+        study_name = f"XGB_Optimization"
+
 if use_pdb_train:
     # Split the PDBbind data into training and testing sets
     X_train, X_test, y_train, y_test = split_dataset(pdbbind_standard_norm_df.drop(columns = ['receptor', 'ligand', 'name', 'type', 'db', 'experimental'], errors = 'ignore'), pdbbind_standard_norm_df['experimental'], test_size = 0.25, random_state = 42)
@@ -953,6 +1011,9 @@ def XGBworker(
 
     # Set direction based on X_val
     direction = "maximize" if X_val is None else "minimize"
+
+    # Sleep pid seconds before starting
+    time.sleep(pid)
     
     # Create the XGBoostOptimizer object
     xgb = XGBoostOptimizer(
@@ -1009,6 +1070,9 @@ def FeatureSelectionWorker(
 
     # Setup unique to this instance, potentially using instance_id to differentiate setups
     print(f"Running instance {pid}")
+
+    # Sleep pid seconds before starting
+    time.sleep(pid)
     
     if algorithm.lower() == "custom-ga":
         # Create the EvolutionaryFeatureSelectorCustom object
@@ -1025,7 +1089,7 @@ def FeatureSelectionWorker(
 from multiprocessing import Pool
 from urllib.parse import quote_plus
 
-storage_id = 28
+storage_id = 70
 run_pre_XGBoost_optimizer = False
 run_feature_selection = False
 run_xgb_final_optimization = True
@@ -1037,6 +1101,8 @@ verbose = False
 n_trials = 250
 load_if_exists = True
 early_stopping_rounds = 20
+
+import optuna
 
 if run_pre_XGBoost_optimizer:
     print("Running XGBoost pre-optimization...")
@@ -1065,19 +1131,19 @@ if run_pre_XGBoost_optimizer:
             ) for i in range(num_processes)
         ])
 
-import optuna
-
-# Load the study
-pre_xgb_study = optuna.load_study(study_name = f"Pre_XGB_Optimization_{storage_id}", storage = storage)
-pre_xgb_df = pre_xgb_study.trials_dataframe()
-pre_xgb_df['combined_metric'] = pre_xgb_df['value'] - pre_xgb_df['user_attrs_AUC']
-best_pre_xgb_df = pre_xgb_df.sort_values(by=['combined_metric', 'value', 'user_attrs_AUC'], ascending=[True, True, False])
-best_pre_xgb_trial = best_pre_xgb_df.iloc[0]
-best_xgb_trial = pre_xgb_study.trials[best_pre_xgb_trial.number]
-best_pre_xgb_params = best_xgb_trial.params
-n_trials = 10 # Avoid using too much, these steps take a long time
+    # Load the study
+    pre_xgb_study = optuna.load_study(study_name = f"Pre_XGB_Optimization_{storage_id}", storage = storage)
+    pre_xgb_df = pre_xgb_study.trials_dataframe()
+    pre_xgb_df['combined_metric'] = pre_xgb_df['value'] - pre_xgb_df['user_attrs_AUC']
+    best_pre_xgb_df = pre_xgb_df.sort_values(by=['combined_metric', 'value', 'user_attrs_AUC'], ascending=[True, True, False])
+    best_pre_xgb_trial = best_pre_xgb_df.iloc[0]
+    best_xgb_trial = pre_xgb_study.trials[best_pre_xgb_trial.number]
+    best_pre_xgb_params = best_xgb_trial.params
+else:
+    best_pre_xgb_params = {}
 
 if run_feature_selection:
+    n_trials = 10 # Avoid using too much, these steps take a long time
     print("Running feature selection...")
 
     with Pool(num_processes) as p:
@@ -1102,27 +1168,31 @@ if run_feature_selection:
             ) for i in range(num_processes)
         ])
 
-# Load the study
-feature_selection_study = optuna.load_study(study_name = f"feature_selection_{storage_id}", storage = storage)
-feature_selection_df = feature_selection_study.trials_dataframe()
-feature_selection_df['combined_metric'] = feature_selection_df['value'] - feature_selection_df['user_attrs_best_AUC']
-best_feature_selection_df = feature_selection_df.sort_values(by=['combined_metric', 'value', 'user_attrs_best_AUC'], ascending=[True, True, False])
-best_feature_selection_feature_mask = [bool(int(i)) for i in best_feature_selection_df.iloc[0]['user_attrs_best_individual']]
+    # Load the study
+    feature_selection_study = optuna.load_study(study_name = f"feature_selection_{storage_id}", storage = storage)
+    feature_selection_df = feature_selection_study.trials_dataframe()
+    feature_selection_df['combined_metric'] = feature_selection_df['value'] - feature_selection_df['user_attrs_best_AUC']
+    best_feature_selection_df = feature_selection_df.sort_values(by=['combined_metric', 'value', 'user_attrs_best_AUC'], ascending=[True, True, False])
+    best_feature_selection_feature_mask = [bool(int(i)) for i in best_feature_selection_df.iloc[0]['user_attrs_best_individual']]
 
-# Apply the best feature mask to the training and testing sets
-X_train_filtered = X_train.iloc[:, best_feature_selection_feature_mask]
-X_test_filtered = X_test.iloc[:, best_feature_selection_feature_mask]
+    # Apply the best feature mask to the training and testing sets
+    X_train_filtered = X_train.iloc[:, best_feature_selection_feature_mask]
+    X_test_filtered = X_test.iloc[:, best_feature_selection_feature_mask]
 
-# If the validation set is not None, create a filtered validation set
-if X_val is not None:
-    X_val_filtered = X_val.iloc[:, best_feature_selection_feature_mask]
+    # If the validation set is not None, create a filtered validation set
+    if X_val is not None:
+        X_val_filtered = X_val.iloc[:, best_feature_selection_feature_mask]
+    else:
+        X_val_filtered = None
 else:
-    X_val_filtered = None
+    X_train_filtered = X_train
+    X_test_filtered = X_test
+    X_val_filtered = X_val
 
 # Create the XGBoost model final optimizer
 print("Running XGBoost final optimization...")
 num_processes = 8
-total_trials = 25000
+total_trials = 5000
 
 # If total_trials is not divisible by num_processes, warn the user
 if total_trials % num_processes != 0:
@@ -1149,7 +1219,7 @@ if run_xgb_final_optimization:
                 n_trials, 
                 load_if_exists, 
                 1, 
-                "XGB_Optimization", 
+                study_name, 
                 early_stopping_rounds, 
                 {}
             ) for i in range(num_processes)

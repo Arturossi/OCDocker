@@ -642,7 +642,7 @@ def NNworker(
         print(f"Process {id} completed {sampler_name} optimization")
 
 num_processes = 8
-storage_id = 61
+storage_id = 65
 storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"
 models_folder = f"/data/hd4tb/OCDocker/data/ocdb/models/autoencoder_{storage_id}"
 autoencoder = False

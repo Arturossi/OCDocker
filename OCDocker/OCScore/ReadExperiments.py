@@ -61,14 +61,19 @@ snames = [
     'ScoreOnly_NN_Optimization_59_TPE',
     'ScoreOnly_NN_Optimization_60_TPE',
     'ScoreOnly_NN_Optimization_61_TPE',
+    'ScoreOnly_NN_Optimization_62_TPE',
+    'ScoreOnly_XGB_Optimization_63',
+    'ScoreOnly_XGB_Optimization_64',
+    'ScoreOnly_NN_Optimization_65_TPE',
+    'ScoreOnly_XGB_Optimization_66',
+    'ScoreOnly_XGB_Optimization_67',
+    'ScoreOnly_XGB_Optimization_68',
+    'ScoreOnly_XGB_Optimization_69',
     ]
 '''
 
 snames = [
-        'ScoreOnly_NN_Optimization_58_TPE',
-        'ScoreOnly_NN_Optimization_59_TPE',
-        'ScoreOnly_NN_Optimization_60_TPE',
-        'ScoreOnly_NN_Optimization_61_TPE'
+        'ScoreOnly_XGB_Optimization_69'
     ]
 
 storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"
