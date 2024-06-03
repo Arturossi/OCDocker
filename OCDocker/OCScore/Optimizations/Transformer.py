@@ -8,7 +8,6 @@ using Optuna."""
 # Imports
 ###############################################################################
 
-
 from multiprocessing import Pool
 from urllib.parse import quote_plus
 
