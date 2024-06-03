@@ -69,11 +69,59 @@ snames = [
     'ScoreOnly_XGB_Optimization_67',
     'ScoreOnly_XGB_Optimization_68',
     'ScoreOnly_XGB_Optimization_69',
+    'PCA95_XGB_Optimization_70',
+    'PCA95_XGB_Optimization_71',
+    'PCA95_XGB_Optimization_72',
+    'PCA95_XGB_Optimization_73',
+    'PCA95_XGB_Optimization_74',
+    'PCA95_XGB_Optimization_75',
+    'PCA90_XGB_Optimization_76',
+    'PCA90_XGB_Optimization_77',
+    'PCA90_XGB_Optimization_78',
+    'PCA90_XGB_Optimization_79',
+    'PCA90_XGB_Optimization_80',
+    'PCA90_XGB_Optimization_81',
+    'PCA85_XGB_Optimization_82',
+    'PCA85_XGB_Optimization_83',
+    'PCA85_XGB_Optimization_84',
+    'PCA85_XGB_Optimization_85',
+    'PCA85_XGB_Optimization_86',
+    'PCA85_XGB_Optimization_87',
+    'PCA80_XGB_Optimization_88',
+    'PCA80_XGB_Optimization_89',
+    'PCA80_XGB_Optimization_90',
+    'PCA80_XGB_Optimization_91',
+    'PCA80_XGB_Optimization_92',
+    'PCA80_XGB_Optimization_93',
+    'PCA95_Trans_Optimization_94_TPE',
+    'PCA95_Trans_Optimization_95_TPE',
+    'PCA95_Trans_Optimization_96_TPE',
+    'PCA95_Trans_Optimization_97_TPE',
+    'PCA95_Trans_Optimization_98_TPE',
+    'PCA95_Trans_Optimization_99_TPE',
+    'PCA90_Trans_Optimization_100_TPE',
+    'PCA90_Trans_Optimization_101_TPE',
+    'PCA90_Trans_Optimization_102_TPE',
+    'PCA90_Trans_Optimization_103_TPE',
+    'PCA90_Trans_Optimization_104_TPE',
+    'PCA90_Trans_Optimization_105_TPE',
+    'PCA85_Trans_Optimization_106_TPE',
+    'PCA85_Trans_Optimization_107_TPE',
+    'PCA85_Trans_Optimization_108_TPE',
+    'PCA85_Trans_Optimization_109_TPE',
+    'PCA85_Trans_Optimization_110_TPE',
+    'PCA85_Trans_Optimization_111_TPE',
+    'PCA80_Trans_Optimization_112_TPE',
+    'PCA80_Trans_Optimization_113_TPE',
+    'PCA80_Trans_Optimization_114_TPE',
+    'PCA80_Trans_Optimization_115_TPE',
+    'PCA80_Trans_Optimization_116_TPE',
+    'PCA80_Trans_Optimization_117_TPE',
     ]
 '''
 
 snames = [
-        'ScoreOnly_XGB_Optimization_69'
+        'PCA80_Trans_Optimization_117_TPE'
     ]
 
 storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"
@@ -91,13 +139,14 @@ for sname in snames:
 
     df['number'] = df['number'].astype(int)
 
-    print("Number of trials: ", len(df))
+    #print("Number of trials: ", len(df))
 
     best_rmse_df = df.sort_values(by=['value'], ascending=[True])
     best_auc_df = df.sort_values(by=['user_attrs_AUC'], ascending=[False])
     best_df = df.sort_values(by=['combined_metric'], ascending=[True])
 
     # Number is int, value is float (not in scientific notation), user_attrs_AUC is float, combined_metric is float
+    '''
     print("Best RMSE")
     print(best_rmse_df[['number', 'value', 'user_attrs_AUC', 'combined_metric']].iloc[0])
 
@@ -106,6 +155,7 @@ for sname in snames:
 
     print("Best Combined")
     print(best_df[['number', 'value', 'user_attrs_AUC', 'combined_metric']].iloc[0])
+    '''
 
     print(f"{len(df)}\t{best_rmse_df['number'].iloc[0]}\t{best_rmse_df['value'].iloc[0]}\t{best_rmse_df['user_attrs_AUC'].iloc[0]}\t{best_auc_df['number'].iloc[0]}\t{best_auc_df['value'].iloc[0]}\t{best_auc_df['user_attrs_AUC'].iloc[0]}\t{best_df['number'].iloc[0]}\t{best_df['combined_metric'].iloc[0]}\t{best_df['user_attrs_AUC'].iloc[0]}")
     

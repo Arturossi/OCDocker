@@ -211,6 +211,118 @@ def invert_values_conditionally(df: pd.DataFrame, regex_pattern = r"^(VINA|SMINA
     
     return None
 
+def load_data(base_models_folder: str, storage_id: int, df_path: str, optimization_type: str, only_scores: bool = False, use_PCA: bool = False, pca_type: Union[str, int] = 95, use_pdb_train: bool = True, random_seed: int = 42):
+    ''' Process the data for training and testing the models.
+
+    Parameters
+    ----------
+    base_models_folder: str
+        The base folder to store the models.
+    storage_id: int
+        The storage ID for the models.
+    df_path: str
+        The path to the DataFrame file.
+    optimization_type: str
+        The optimization type.
+    only_scores: bool, optional
+        If True, only the score columns are used. The default is False.
+    use_PCA: bool, optional
+        If True, PCA is applied to the data. The default is False.
+    pca_type: str | int, optional
+        The PCA type. The default is "95". Options are "95", "90", "85", and "80".
+    use_pdb_train: bool, optional
+        If True, the PDBbind data is used for training. The default is True.
+    random_seed: int, optional
+        The random seed for splitting the data. The default is 42.
+
+    Returns
+    -------
+    dict
+        Dictionary containing the processed data. The keys are:
+        - models_folder: The models folder.
+        - study_name: The study name.
+        - X_train: The training input features.
+        - X_test: The testing input features.
+        - y_train: The training target variable.
+        - y_test: The testing target variable.
+        - X_val: The validation input features.
+        - y_val: The validation target variable.
+    '''
+
+    # Set the models folder
+    models_folder = f"{base_models_folder}/{optimization_type}_{storage_id}"
+
+    ############################################################################################################
+
+    # Load and preprocess data returning the DataFrame and the score columns
+    df, score_columns = preprocess_df(df_path)
+
+    # Invert the values conditionally
+    invert_values_conditionally(df, inplace=True)
+
+    # Split DUDEz data from PDBbind
+    dudez_data = df[df['db'] == 'DUDEz']
+    pdbbind_data = df[df['db'] == 'PDBbind']
+
+    # Drop the experimental column from DUDEz data
+    dudez_data = dudez_data.drop(columns='experimental')
+
+    pdbbind_norm_df = norm_data(pdbbind_data, scaler='standard')
+    dudez_norm_df = norm_data(dudez_data, scaler='standard')
+
+    if only_scores:
+        remove_other_columns(dudez_norm_df, ['receptor', 'ligand', 'name', 'type', 'db'] + score_columns, inplace=True)
+        remove_other_columns(pdbbind_norm_df, ['receptor', 'ligand', 'name', 'type', 'db', 'experimental'] + score_columns, inplace=True)
+
+        # Set the study name
+        study_name = f"ScoreOnly_{optimization_type}_Optimization"
+    else:
+        if use_PCA:
+            apply_pca(pdbbind_norm_df, f"/data/hd4tb/OCDocker/OCDocker/OCDocker/OCScore/pca{pca_type}.pkl", columns_to_skip_pca=['receptor', 'ligand', 'name', 'type', 'db', 'experimental'] + score_columns, inplace=True)
+
+            # Transform the data (validation)
+            if use_pdb_train:
+                apply_pca(dudez_norm_df, f"/data/hd4tb/OCDocker/OCDocker/OCDocker/OCScore/pca{pca_type}.pkl", columns_to_skip_pca=['receptor', 'ligand', 'name', 'type', 'db'] + score_columns, inplace=True)
+            
+            # Set the study name
+            study_name = f"PCA{pca_type}_{optimization_type}_Optimization"
+        else:
+            # Set the study name
+            study_name = f"{optimization_type}_Optimization"
+
+    if use_pdb_train:
+        # Split the PDBbind data into training and testing sets
+        X_train, X_test, y_train, y_test = split_dataset(pdbbind_norm_df.drop(columns=['receptor', 'ligand', 'name', 'type', 'db', 'experimental'], errors='ignore'), pdbbind_norm_df['experimental'], test_size=0.25, random_state=random_seed)
+        # Split the DUDEz data into validation X and y
+        X_val = dudez_norm_df.drop(columns=['receptor', 'ligand', 'name', 'type', 'db', 'experimental'], errors='ignore')
+        y_val = dudez_norm_df['type'].map({'ligand': 1, 'decoy': 0})
+    else:
+        # Set the test size to 0.0 to use the entire dataset for training
+        X_train = dudez_norm_df.drop(columns=['receptor', 'ligand', 'name', 'type', 'db', 'experimental'], errors='ignore')
+        y_train = dudez_norm_df['experimental']
+
+        X_test = dudez_norm_df.drop(columns=['receptor', 'ligand', 'name', 'type', 'db', 'experimental'], errors='ignore')
+        y_test = dudez_norm_df['type'].map({'ligand': 1, 'decoy': 0})
+
+        # Set X and y for validation to None
+        X_val = None
+        y_val = None
+    
+    # If models folder does not exist, create it
+    if not os.path.exists(models_folder):
+        os.makedirs(models_folder)
+
+    return {
+        'models_folder': models_folder,
+        'study_name': study_name,
+        'X_train': X_train,
+        'X_test': X_test,
+        'y_train': y_train,
+        'y_test': y_test,
+        'X_val': X_val,
+        'y_val': y_val
+    }
+
 def norm_data(df: pd.DataFrame, scaler: str = 'standard', inplace: bool = False) -> Union[Any, pd.DataFrame]:
     ''' Preprocesses the input DataFrame by scaling selected feature columns using a Scaler.
     The metadata columns ('receptor', 'ligand', 'name', 'type', 'db') are preserved.
@@ -329,7 +441,7 @@ def preprocess_df(file_name: str, score_columns_list: list[str] = ['SMINA', 'VIN
     pdbbind_data = invert_values_conditionally(pdbbind_data)
 
     # Drop the experimental column from DUDEz data
-    dudez_data = dudez_data.drop(columns = 'experimental')
+    dudez_data = dudez_data.drop(columns = 'experimental') # type: ignore 
 
     return df, score_columns
 

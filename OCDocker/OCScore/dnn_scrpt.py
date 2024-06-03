@@ -7,7 +7,6 @@
 # Imports
 ###############################################################################
 
-import os
 import math
 import numpy as np
 
@@ -42,11 +41,13 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 # Methods
 ###############################################################################
 
-def optimize_NN(storage_id: int, use_pdb_train: bool = True, only_scores: bool = True, use_PCA: bool = True, best_ao_params: Union[dict, None] = None, pca_type: int = 80, optimization_type: str = "NN", num_processes: int = 8, storage: str = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}", base_models_folder: str = f"/data/hd4tb/OCDocker/data/ocdb/models", autoencoder: bool = False, multiencoder: bool = False, run_autoencoder_optimization: bool = False, run_NN_optimization: bool = True, explained_variance: float = 0.95, random_seed: int = 42) -> None:
+def optimize_NN(df_path: str, storage_id: int, use_pdb_train: bool = True, only_scores: bool = True, use_PCA: bool = True, best_ao_params: Union[dict, None] = None, pca_type: int = 80, num_processes: int = 8, storage: str = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}", base_models_folder: str = f"/data/hd4tb/OCDocker/data/ocdb/models", autoencoder: bool = False, multiencoder: bool = False, run_autoencoder_optimization: bool = False, run_NN_optimization: bool = True, explained_variance: float = 0.95, random_seed: int = 42, load_if_exists: bool = True,  use_gpu: bool = True, verbose: bool = False) -> None:
     ''' Optimize the Neural Network using the given parameters.
 
     Parameters
     ----------
+    df_path : str
+        The path to the DataFrame.
     storage_id : int
         The storage ID to use.
     use_pdb_train : bool, optional
@@ -59,8 +60,6 @@ def optimize_NN(storage_id: int, use_pdb_train: bool = True, only_scores: bool =
         The best autoencoder parameters. Default is None.
     pca_type : int, optional
         The PCA type to use. Default is 80.
-    optimization_type : str, optional
-        The optimization type to use. Default is "NN".
     num_processes : int, optional
         The number of processes to use. Default is 8.
     storage : str, optional
@@ -79,74 +78,26 @@ def optimize_NN(storage_id: int, use_pdb_train: bool = True, only_scores: bool =
         The explained variance to use. Default is 0.95.
     random_seed : int, optional
         The random seed to use. Default is 42.
+    load_if_exists : bool, optional
+        If True, load the model if it exists. If False, don't load the model if it exists. Default is True.
     use_gpu : bool, optional
         If True, use the GPU. If False, don't use the GPU. Default is True.
+    verbose : bool, optional
+        If True, print the output. If False, don't print the output. Default is False.
     '''
 
-    # Set the models folder
-    models_folder = f"{base_models_folder}/autoencoder_{storage_id}"
+    # Load the data
+    data = ocscoredata.load_data(base_models_folder, storage_id, df_path, "NN", only_scores, use_PCA, pca_type, use_pdb_train, random_seed)
 
-    ############################################################################################################
-
-    # Load and preprocess data returning the DataFrame and the score columns
-    df, score_columns = ocscoredata.preprocess_df('/data/hd4tb/OCDocker/data/ocdb/predictions/OCDocker_pre.csv.gz')
-
-    # Invert the values conditionally
-    ocscoredata.invert_values_conditionally(df, inplace = True)
-
-    # Split DUDEz data from PDBbind
-    dudez_data = df[df['db'] == 'DUDEz']
-    pdbbind_data = df[df['db'] == 'PDBbind']
-
-    # Drop the experimental column from DUDEz data
-    dudez_data = dudez_data.drop(columns = 'experimental')
-
-    pdbbind_norm_df = ocscoredata.norm_data(pdbbind_data, scaler = 'standard')
-    dudez_norm_df = ocscoredata.norm_data(dudez_data, scaler = 'standard')
-
-    if only_scores:
-        ocscoredata.remove_other_columns(dudez_norm_df, ['receptor', 'ligand', 'name', 'type', 'db'] + score_columns, inplace = True)
-        ocscoredata.remove_other_columns(pdbbind_norm_df, ['receptor', 'ligand', 'name', 'type', 'db', 'experimental'] + score_columns, inplace = True)
-
-        # Set the study name
-        study_name = f"ScoreOnly_{optimization_type}_Optimization"
-    else:
-        if use_PCA:
-            ocscoredata.apply_pca(pdbbind_norm_df, f"/data/hd4tb/OCDocker/OCDocker/OCDocker/OCScore/pca{pca_type}.pkl", columns_to_skip_pca = ['receptor', 'ligand', 'name', 'type', 'db', 'experimental'] + score_columns, inplace = True)
-
-            # Transform the data (validation)
-            if use_pdb_train:
-                ocscoredata.apply_pca(dudez_norm_df, f"/data/hd4tb/OCDocker/OCDocker/OCDocker/OCScore/pca{pca_type}.pkl", columns_to_skip_pca = ['receptor', 'ligand', 'name', 'type', 'db'] + score_columns, inplace = True)
-            
-            # Set the study name
-            study_name = f"PCA{pca_type}_{optimization_type}_Optimization"
-        else:
-            # Set the study name
-            study_name = f"{optimization_type}_Optimization"
-
-    if use_pdb_train:
-        # Split the PDBbind data into training and testing sets
-        X_train, X_test, y_train, y_test = ocscoredata.split_dataset(pdbbind_norm_df.drop(columns = ['receptor', 'ligand', 'name', 'type', 'db', 'experimental'], errors = 'ignore'), pdbbind_norm_df['experimental'], test_size = 0.25, random_state = random_seed)
-        # Split the DUDEz data into validation X and y
-        X_val = dudez_norm_df.drop(columns = ['receptor', 'ligand', 'name', 'type', 'db', 'experimental'], errors = 'ignore')
-        y_val = dudez_norm_df['type'].map({'ligand': 1, 'decoy': 0})
-    else:
-        # Set the test size to 0.0 to use the entire dataset for training
-        X_train = dudez_norm_df.drop(columns = ['receptor', 'ligand', 'name', 'type', 'db', 'experimental'], errors = 'ignore')
-        y_train = dudez_norm_df['experimental']
-
-        X_test = dudez_norm_df.drop(columns = ['receptor', 'ligand', 'name', 'type', 'db', 'experimental'], errors = 'ignore')
-        y_test = dudez_norm_df['type'].map({'ligand': 1, 'decoy': 0})
-
-        # Set X and y for validation to None
-        X_val = None
-        y_val = None
-
-    ############################################################################################################
-
-    # If models folder does not exist, create it
-    if not os.path.exists(models_folder):
-        os.makedirs(models_folder)
+    # Extract the data from the data dictionary object to the corresponding variables
+    models_folder = data['models_folder']
+    study_name = data['study_name']
+    X_train = data['X_train']
+    X_test = data['X_test']
+    y_train = data['y_train']
+    y_test = data['y_test']
+    X_val = data['X_val']
+    y_val = data['y_val']
 
     if autoencoder:
         if multiencoder:
@@ -187,7 +138,7 @@ def optimize_NN(storage_id: int, use_pdb_train: bool = True, only_scores: bool =
             new_X_val = [sf_val_data, ligand_val_data, receptor_val_data]
 
             # List to store the best topology for each set
-            best_ao_params = []
+            best_ao_params = [] # type: ignore
             
             if run_autoencoder_optimization:
                 
@@ -212,8 +163,6 @@ def optimize_NN(storage_id: int, use_pdb_train: bool = True, only_scores: bool =
                     encoding_dims = ( # Size should be the same size or smaller than the number of features to explain the desired variance
                         max(2 ** math.ceil(math.log2(n_components / 2) - 1), 4), # Minimum value
                         n_components
-                        #max(2 ** math.ceil(math.log2(AO_X_train.shape[1] / 2) - 1), 4), # Minimum value
-                        #max(2 ** math.ceil(math.log2(AO_X_train.shape[1] / 2)) + 1, 8)  # Maximum value
                     )
 
                     # Skip SF (for now) TODO: Check if this is necessary
@@ -233,11 +182,11 @@ def optimize_NN(storage_id: int, use_pdb_train: bool = True, only_scores: bool =
                             storage,
                             models_folder,
                             random_seed,              # random_seed
-                            True,                     # use_gpu
-                            False,                    # verbose
+                            use_gpu,                  # use_gpu
+                            verbose,                  # verbose
                             "minimize",               # direction
                             2500,                     # n_trials 
-                            True,                     # load_if_exists
+                            load_if_exists,           # load_if_exists
                             1,                        # n_jobs
                             f"AO_Optimization_{name}" # study_name
                             ) for pid in range(num_processes)
@@ -279,11 +228,11 @@ def optimize_NN(storage_id: int, use_pdb_train: bool = True, only_scores: bool =
                         storage,
                         models_folder,
                         random_seed,      # random_seed
-                        True,             # use_gpu
-                        False,            # verbose
+                        use_gpu,          # use_gpu
+                        verbose,          # verbose
                         "minimize",       # direction
                         2500,             # n_trials
-                        True,             # load_if_exists
+                        load_if_exists,   # load_if_exists
                         1,                # n_jobs
                         "AO_Optimization" # study_name
                         ) for pid in range(num_processes)
@@ -330,11 +279,11 @@ def optimize_NN(storage_id: int, use_pdb_train: bool = True, only_scores: bool =
                 best_ao_params,   # encoder
                 1,                # output_size
                 random_seed,      # random_seed
-                True,             # use_gpu
-                False,            # verbose
+                use_gpu,          # use_gpu
+                verbose,          # verbose
                 "minimize",       # direction
-                125,               # n_trials
-                True,             # load_if_exists
+                125,              # n_trials
+                load_if_exists,   # load_if_exists
                 1,                # n_jobs
                 study_name        # study_name
                 ) for pid in range(num_processes)

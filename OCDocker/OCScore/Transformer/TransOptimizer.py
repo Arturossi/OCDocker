@@ -498,7 +498,7 @@ class TransOptimizer:
             std = trial.suggest_float('std', 0.1, 1)
             init_params = {'mean': mean, 'std': std}
         elif init_type in ['uniform']:
-            a = trial.suggest_float('a', -1, 1)
+            a = trial.suggest_float('a', -1, 0.1)
             b = trial.suggest_float('b', 0.1, 1)
             init_params = {'a': a, 'b': b}
         elif init_type in ['constant']:

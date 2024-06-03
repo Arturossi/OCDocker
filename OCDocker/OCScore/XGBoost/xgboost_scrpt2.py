@@ -731,45 +731,6 @@ def plot_performance(results, filename = 'feature_removal_performance.png'):
     plt.savefig(filename, dpi=300)
     plt.close()
 
-def run_grid_search(X_train, y_train, X_test, labels, param_grid, top_features, score_columns, use_gpu=True, random_state=42):
-    """
-    Runs a grid search over specified parameters for an XGBRegressor, evaluates using AUC, 
-    and saves the best model. Optionally uses GPU by setting the device parameter.
-    
-    Parameters:
-    - X_train, y_train: Training data
-    - X_test: Test data for predictions
-    - labels: Actual labels for evaluating predictions
-    - param_grid: Hyperparameters to iterate over in the grid search
-    - top_features: List of feature names to be used from X_test
-    - score_columns: List of score column names to be included from X_test
-    - use_gpu: Flag to enable or disable GPU usage
-    """
-    
-    best_auc = 0
-    best_params = None
-    best_model = None
-
-    print("Running grid search...")
-    
-    for params in tqdm(ParameterGrid(param_grid), desc='Grid search'):
-        # Train and evaluate the model
-        model, roc_auc = run_xgboost(X_train[top_features + score_columns], y_train, X_test[top_features + score_columns], labels, params, use_gpu, random_state = random_state)
-        
-        # Update the best model if the current model is better
-        if roc_auc > best_auc:
-            print("New best AUC:", roc_auc)
-            best_auc = roc_auc
-            best_params = params
-            best_model = model
-    
-    # Save the best model
-    with open('best_model.pkl', 'wb') as f:
-        pickle.dump(best_model, f)
-    
-    print("Best AUC: {:.4f}".format(best_auc))
-    print("Best Parameters:", best_params)
-
 def evaluate_and_plot(X_train, y_train, X_test, labels, results, iterations = 10, sort_order=(False), save_path='.', random_state=42, use_gpu=False, params={}):
     """
     Evaluates feature removal and plots performance, supporting both sorting approaches.
@@ -808,18 +769,16 @@ def evaluate_and_plot(X_train, y_train, X_test, labels, results, iterations = 10
 
 ############################################################################################################
 
-storage_id = 70
+storage_id = 117
 
 # Run the PCAs
-for pca_type in (95, 90, 85, 80):
+for pca_type in [95, 90, 85, 80]:
+    print(f"Running PCA{pca_type}...")
     # Six iterations
-    for _ in range(0, 6):
-        # Skip the storage_id 70 (already done)
-        if storage_id == 70:
-            continue
-        
+    for aw in range(0, 6):
         storage_id += 1
-
+        print(f"Running iteration {aw + 1}...")
+        
         # Load and preprocess data
         df = load_data('/data/hd4tb/OCDocker/data/ocdb/predictions/OCDocker_pre.csv.gz')
 
@@ -847,8 +806,19 @@ for pca_type in (95, 90, 85, 80):
         use_pdb_train = True
 
         only_scores = False
+        no_scores = True
 
-        if only_scores:
+        if no_scores:
+            # Remove the score columns from the dfs
+            dudez_standard_norm_df = dudez_standard_norm_df.drop(columns = score_columns)
+            pdbbind_standard_norm_df = pdbbind_standard_norm_df.drop(columns = score_columns)
+
+            # Set the study name
+            study_name = f"NoScores_XGB_Optimization"
+
+            # Set the best AO to None
+            best_ao_params = None
+        elif only_scores:
             dudez_standard_norm_df = dudez_standard_norm_df[['receptor', 'ligand', 'name', 'type', 'db'] + score_columns].reset_index(drop=True)
             pdbbind_standard_norm_df = pdbbind_standard_norm_df[['receptor', 'ligand', 'name', 'type', 'db', 'experimental'] + score_columns].reset_index(drop=True)
 
@@ -920,60 +890,6 @@ for pca_type in (95, 90, 85, 80):
             # Set X and y for validation to None
             X_val = None
             y_val = None
-
-        '''
-        # Plot correlation matrix to show that the correlation is preserved after normalization, even though the values are different
-        plot_corr_matrix(dudez_standard_norm_df, columns = [col for col in df.columns if col.startswith(('VINA', 'SMINA', 'PLANTS', 'ODDT'))], scaler = 'standard')
-        plot_corr_matrix(dudez_minmax_norm_df, columns = [col for col in df.columns if col.startswith(('VINA', 'SMINA', 'PLANTS', 'ODDT'))], scaler = 'minmax')
-        plot_corr_matrix(pdbbind_standard_norm_df, columns = [col for col in df.columns if col.startswith(('VINA', 'SMINA', 'PLANTS', 'ODDT'))] + ['experimental'], scaler = 'standard')
-        plot_corr_matrix(pdbbind_minmax_norm_df, columns = [col for col in df.columns if col.startswith(('VINA', 'SMINA', 'PLANTS', 'ODDT'))] + ['experimental'], scaler = 'minmax')
-
-        # Since it is the same, no matter the scaler, we can use any of the normalized dataframes to calculate the correlation similarity
-        plot_correlation_similarity(dudez_standard_norm_df, dudez_minmax_norm_df, columns = [col for col in df.columns if col.startswith(('VINA', 'SMINA', 'PLANTS', 'ODDT'))])
-
-        ###################
-        ## DUDEz analysis
-        ###################
-
-        # Prepare ROC data
-        labels = dudez_data['type'].map({'ligand': 1, 'decoy': 0})
-
-        # Plot ROC curves
-        plot_roc_curves(dudez_data, score_columns, labels, title = "ROC_DUDEz_clean")
-
-        # Calculate additional metrics
-        dudez_data_metrics, additional_metrics_cols = calculate_metrics(dudez_data, score_columns)
-
-        # Plot the ROC curve again using the additional metrics
-        plot_roc_curves(dudez_data_metrics, score_columns.tolist() + additional_metrics_cols, labels, title = "ROC_DUDEz_metrics")
-        '''
-
-        #########################
-        ## Feature engineering
-        #########################
-
-        # Skipping outlier detection for now...
-
-        # Compute the z-score for the score columns
-        #dudez_zscore_df = compute_zscore(dudez_data[["receptor", "ligand", "type"] + score_columns], score_columns)
-
-        # Identify the outliers
-        #outliers = dudez_zscore_df[(dudez_zscore_df[["z_" + s for s in score_columns]] > 3).any(axis = 1)]
-
-        ###############################################
-        ## Exploratory analysis for feature selection
-        ###############################################
-
-        # Create the feature_engineering directory if it does not exist
-        if not os.path.exists('feature_engineering'):
-            os.makedirs('feature_engineering')
-
-        # Create the most_important and least_important directories if they do not exist
-        if not os.path.exists('feature_engineering/most_important'):
-            os.makedirs('feature_engineering/most_important')
-
-        if not os.path.exists('feature_engineering/least_important'):
-            os.makedirs('feature_engineering/least_important')
 
         ###############################################################################################################################################
         ## These steps are to determine that the importance of the features is not related to the performance of the model where ROC_AUC is maximized
