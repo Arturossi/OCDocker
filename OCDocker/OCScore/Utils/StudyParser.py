@@ -227,7 +227,7 @@ snames = [
     'PCA80_Trans_Optimization_114_TPE',
     'PCA80_Trans_Optimization_115_TPE',
     'PCA80_Trans_Optimization_116_TPE',
-    'PCA80_Trans_Optimization_117_TPE',
+    'PCA80_Trans_Optimization_117_TPE'
 ]
 
 user = "ocdocker"
