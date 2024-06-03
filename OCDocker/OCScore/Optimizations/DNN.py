@@ -2,7 +2,8 @@
 
 # Description
 ###############################################################################
-""" Module to optimize the Neural Network using the given parameters. """
+""" Module to perform the optimization of the Neural Network parameters model
+using Optuna."""
 
 # Imports
 ###############################################################################
@@ -41,7 +42,32 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 # Methods
 ###############################################################################
 
-def optimize_NN(df_path: str, storage_id: int, use_pdb_train: bool = True, only_scores: bool = True, use_PCA: bool = True, best_ao_params: Union[dict, None] = None, pca_type: int = 80, num_processes: int = 8, storage: str = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}", base_models_folder: str = f"/data/hd4tb/OCDocker/data/ocdb/models", autoencoder: bool = False, multiencoder: bool = False, run_autoencoder_optimization: bool = False, run_NN_optimization: bool = True, explained_variance: float = 0.95, random_seed: int = 42, load_if_exists: bool = True,  use_gpu: bool = True, verbose: bool = False) -> None:
+def optimize_NN(
+        df_path: str,
+        storage_id: int,
+        use_pdb_train: bool = True,
+        no_scores: bool = True,
+        only_scores: bool = True,
+        use_PCA: bool = True,
+        best_ao_params: Union[dict, None] = None,
+        pca_type: int = 80,
+        storage: str = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}",
+        encoder_dims: tuple[int, int] = (16, 256),
+        base_models_folder: str = f"/data/hd4tb/OCDocker/data/ocdb/models",
+        autoencoder: bool = False,
+        multiencoder: bool = False,
+        run_autoencoder_optimization: bool = False,
+        num_processes_autoencoder: int = 8,
+        total_trials_autoencoder: int = 2000,
+        run_NN_optimization: bool = True,
+        num_processes_NN: int = 8,
+        total_trials_NN: int = 125,
+        explained_variance: float = 0.95,
+        random_seed: int = 42,
+        load_if_exists: bool = True,
+        use_gpu: bool = True,
+        verbose: bool = False
+    ) -> None:
     ''' Optimize the Neural Network using the given parameters.
 
     Parameters
@@ -52,6 +78,8 @@ def optimize_NN(df_path: str, storage_id: int, use_pdb_train: bool = True, only_
         The storage ID to use.
     use_pdb_train : bool, optional
         If True, use the PDBbind data for training. If False, use the DUDEz data for training. Default is True.
+    no_scores : bool, optional
+        If True, don't use the scoring functions for training. If False, use the scoring functions. Default is False. (Will override only_scores)
     only_scores : bool, optional
         If True, only use the scoring functions for training. If False, use all the features. Default is True.
     use_PCA : bool, optional
@@ -60,8 +88,6 @@ def optimize_NN(df_path: str, storage_id: int, use_pdb_train: bool = True, only_
         The best autoencoder parameters. Default is None.
     pca_type : int, optional
         The PCA type to use. Default is 80.
-    num_processes : int, optional
-        The number of processes to use. Default is 8.
     storage : str, optional
         The storage to use. Default is "mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}".
     base_models_folder : str, optional
@@ -72,8 +98,16 @@ def optimize_NN(df_path: str, storage_id: int, use_pdb_train: bool = True, only_
         If True, use the multiencoder. If False, don't use the multiencoder. Default is False.
     run_autoencoder_optimization : bool, optional
         If True, run the autoencoder optimization. If False, don't run the autoencoder optimization. Default is False.
+    num_processes_autoencoder : int, optional
+        The number of processes to use for the autoencoder. Default is 8.
+    total_trials_autoencoder : int, optional
+        The number of total trials to use for the autoencoder. Default is 2000.
     run_NN_optimization : bool, optional
         If True, run the Neural Network optimization. If False, don't run the Neural Network optimization. Default is True.
+    num_processes_NN : int, optional
+        The number of processes to use for the Neural Network. Default is 8.
+    total_trials_NN : int, optional
+        The number of trials to use for the Neural Network. Default is 1000.
     explained_variance : float, optional
         The explained variance to use. Default is 0.95.
     random_seed : int, optional
@@ -87,19 +121,28 @@ def optimize_NN(df_path: str, storage_id: int, use_pdb_train: bool = True, only_
     '''
 
     # Load the data
-    data = ocscoredata.load_data(base_models_folder, storage_id, df_path, "NN", only_scores, use_PCA, pca_type, use_pdb_train, random_seed)
+    data = ocscoredata.load_data(base_models_folder, storage_id, df_path, "NN", no_scores, only_scores, use_PCA, pca_type, use_pdb_train, random_seed)
 
     # Extract the data from the data dictionary object to the corresponding variables
-    models_folder = data['models_folder']
-    study_name = data['study_name']
-    X_train = data['X_train']
-    X_test = data['X_test']
-    y_train = data['y_train']
-    y_test = data['y_test']
-    X_val = data['X_val']
-    y_val = data['y_val']
+    models_folder = data["models_folder"]
+    study_name = data["study_name"]
+    X_train = data["X_train"]
+    X_test = data["X_test"]
+    y_train = data["y_train"]
+    y_test = data["y_test"]
+    X_val = data["X_val"]
+    y_val = data["y_val"]
 
     if autoencoder:
+        if verbose:
+            print("Running Auto Encoder optimization...")
+
+        # If total_trials is not divisible by num_processes, warn the user
+        if total_trials_autoencoder % num_processes_autoencoder != 0:
+            print("Warning: total_trials_autoencoder is not divisible by num_processes_autoencoder. The number of trials per process will be rounded down to the nearest perfect divisor integer.")
+
+        n_trials_autoencoder = total_trials_autoencoder // num_processes_autoencoder
+        
         if multiencoder:
             # Set the classification for e
             sf = X_train.filter(regex = r"(VINA|SMINA|ODDT|PLANTS).*").columns.tolist()
@@ -170,9 +213,9 @@ def optimize_NN(df_path: str, storage_id: int, use_pdb_train: bool = True, only_
                         continue
 
                     # Create a pool of worker processes
-                    with Pool(num_processes) as pool:
+                    with Pool(num_processes_autoencoder) as pool:
                         # Each process will execute the 'NNworker' function with the datasets and optimizer parameters
-                        pool.starmap(ocscoreworkers.AOworker, [(
+                        pool.starmap(ocscoreworkers.AEworker, [(
                             pid,
                             storage_id, 
                             AO_X_train,
@@ -185,24 +228,32 @@ def optimize_NN(df_path: str, storage_id: int, use_pdb_train: bool = True, only_
                             use_gpu,                  # use_gpu
                             verbose,                  # verbose
                             "minimize",               # direction
-                            2500,                     # n_trials 
+                            n_trials_autoencoder,     # n_trials 
                             load_if_exists,           # load_if_exists
                             1,                        # n_jobs
-                            f"AO_Optimization_{name}" # study_name
-                            ) for pid in range(num_processes)
+                            f"Multi_AE_Optimization_{name}" # study_name
+                            ) for pid in range(num_processes_autoencoder)
                         ])
 
             for name in ["SF", "LIG", "REC"]:
                 if name == "SF":
-                    best_ao_params.append({'n_layers_encoder': 1, "activation_function_0_encoder": "Identity", "n_units_layer_0_encoder": sf_train_data.shape[1]}) # type: ignore
+                    best_ao_params.append( # type: ignore
+                        {
+                            "n_layers_encoder": 1,
+                            "activation_function_0_encoder": "Identity",
+                            "n_units_layer_0_encoder": sf_train_data.shape[1]
+                        })
                     continue
 
                 # Load the study
                 ao_multi_study = optuna.load_study(study_name = f"AO_Optimization_{name}_{storage_id}_TPE", storage = storage)
                 ao_multi_df = ao_multi_study.trials_dataframe()
-                ao_multi_df['combined_metric'] = abs(ao_multi_df['value'] - ao_multi_df['user_attrs_val_rmse'])
+                ao_multi_df["combined_metric"] = abs(ao_multi_df["value"] - ao_multi_df["user_attrs_val_rmse"])
 
-                best_ao_multi_df = ao_multi_df.sort_values(by=['combined_metric', 'value', 'user_attrs_val_rmse'], ascending=[True, True, True])
+                best_ao_multi_df = ao_multi_df.sort_values(
+                    by = ["combined_metric", "value", "user_attrs_val_rmse"],
+                    ascending = [True, True, True]
+                )
 
                 # Recreate the autoencoder object for the best trial based on the best_ao_multi_df
                 best_ao_multi_trial = best_ao_multi_df.iloc[0]
@@ -216,37 +267,42 @@ def optimize_NN(df_path: str, storage_id: int, use_pdb_train: bool = True, only_
         else:
             if run_autoencoder_optimization:
                 # Create a pool of worker processes
-                with Pool(num_processes) as pool:
+                with Pool(num_processes_autoencoder) as pool:
                     # Each process will execute the 'NNworker' function with the datasets and optimizer parameters
-                    pool.starmap(ocscoreworkers.AOworker, [(
+                    pool.starmap(ocscoreworkers.AEworker, [(
                         pid,
                         storage_id, 
                         X_train, 
                         X_test, 
                         X_val, 
-                        (16, 256),        # encoder dims
+                        encoder_dims,
                         storage,
                         models_folder,
-                        random_seed,      # random_seed
-                        use_gpu,          # use_gpu
-                        verbose,          # verbose
-                        "minimize",       # direction
-                        2500,             # n_trials
-                        load_if_exists,   # load_if_exists
-                        1,                # n_jobs
-                        "AO_Optimization" # study_name
-                        ) for pid in range(num_processes)
+                        random_seed,
+                        use_gpu,
+                        verbose,
+                        "minimize",           # direction
+                        n_trials_autoencoder,
+                        load_if_exists,
+                        1,                    # n_jobs
+                        "AO_Optimization"     # study_name
+                        ) for pid in range(num_processes_autoencoder)
                     ])
 
             # Load the study
-            ao_study = optuna.load_study(study_name = f"AO_Optimization_{storage_id}_TPE", storage = storage)
+            ao_study = optuna.load_study(
+                study_name = f"AO_Optimization_{storage_id}",
+                storage = storage
+            )
             ao_df = ao_study.trials_dataframe()
 
             # Filter the trials to only include the ones that are complete
-            ao_df = ao_df[ao_df['state'] == 'COMPLETE']
+            ao_df = ao_df[ao_df["state"] == "COMPLETE"]
             
-            #best_ao_df = ao_df.sort_values(by=['combined_metric', 'value', 'user_attrs_val_rmse'], ascending=[True, True, True])
-            best_ao_df = ao_df.sort_values(by=['value', 'user_attrs_val_rmse'], ascending=[True, True])
+            best_ao_df = ao_df.sort_values(
+                by = ["value", "user_attrs_val_rmse"],
+                ascending = [True, True]
+            )
 
             # Recreate the autoencoder object for the best trial based on the best_ao_df
             best_ao_trial = best_ao_df.iloc[0]
@@ -267,8 +323,18 @@ def optimize_NN(df_path: str, storage_id: int, use_pdb_train: bool = True, only_
         best_ao_params = None
 
     if run_NN_optimization:
-        with Pool(num_processes) as pool:
-            # Each process will execute the 'NNworker' function with the datasets and optimizer parameters
+
+        if verbose:
+            print("Running Neural Network optimization...")
+
+        # If total_trials is not divisible by num_processes, warn the user
+        if total_trials_NN % num_processes_NN != 0:
+            print("Warning: total_trials_NN is not divisible by num_processes_NN. The number of trials per process will be rounded down to the nearest perfect divisor integer.")
+
+        n_trials_NN = total_trials_NN // num_processes_NN
+
+        with Pool(num_processes_NN) as pool:
+            # Each process will execute the "NNworker" function with the datasets and optimizer parameters
             pool.starmap(ocscoreworkers.NNworker, [(
                 pid,
                 storage_id, 
@@ -278,16 +344,18 @@ def optimize_NN(df_path: str, storage_id: int, use_pdb_train: bool = True, only_
                 storage,
                 best_ao_params,   # encoder
                 1,                # output_size
-                random_seed,      # random_seed
-                use_gpu,          # use_gpu
-                verbose,          # verbose
+                random_seed,
+                use_gpu,
+                verbose,
                 "minimize",       # direction
-                125,              # n_trials
-                load_if_exists,   # load_if_exists
+                n_trials_NN,
+                load_if_exists,
                 1,                # n_jobs
-                study_name        # study_name
-                ) for pid in range(num_processes)
+                study_name
+                ) for pid in range(num_processes_NN)
             ])
+
+    return None
 
 """
 # Load the study

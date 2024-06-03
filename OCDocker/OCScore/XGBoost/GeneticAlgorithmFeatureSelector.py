@@ -405,9 +405,10 @@ class GeneticAlgorithmFeatureSelector:
                     # Calculate the AUC score
                     best_score2 = auc(fpr, tpr)
 
-                    # Print the AUC score
-                    print(f"Generation {generation}:\nBest score = {best_score}\nBest score AUC = {best_score2}")
-                else:
+                    if self.verbose:
+                        # Print the AUC score
+                        print(f"Generation {generation}:\nBest score = {best_score}\nBest score AUC = {best_score2}")
+                elif self.verbose:
                     # Print the best score
                     print(f"Generation {generation}: Best score = {best_score}")
             
@@ -495,7 +496,7 @@ class GeneticAlgorithmFeatureSelector:
         # Return the AUC score
         return best_score
 
-    def optimize(self, direction: str = "maximize", n_trials: int = 100,  n_jobs: int = 1, study_name: str = "Genetic Algorithm for descriptor optimization", load_if_exists: bool = True) -> tuple[optuna.study.Study, dict, float]:
+    def optimize(self, direction: str = "maximize", n_trials: int = 100,  n_jobs: int = 1, study_name: str = "Genetic Algorithm for descriptor optimization", load_if_exists: bool = True, verbose: bool = False) -> optuna.study.Study:
         '''
         A function to optimize the feature selection using the genetic algorithm using Optuna.
 
@@ -513,15 +514,13 @@ class GeneticAlgorithmFeatureSelector:
             The storage for the study. Default is "sqlite:///example.db".
         load_if_exists : bool, optional
             Whether to load the study if it exists. Default is True.
+        verbose : bool, optional
+            Whether to print verbose output. Default is False.
 
         Returns
         -------
         optuna.study.Study
             The Optuna study object.
-        dict
-            The best hyperparameters.
-        float
-            The best metric score.
         '''
 
         # Set the direction
@@ -537,12 +536,13 @@ class GeneticAlgorithmFeatureSelector:
         best_params = study.best_params
         best_score = study.best_value
 
-        print(f"Best score: {best_score}")
-        print(f"Best hyperparameters: {best_params}")
+        if verbose:
+            print(f"Best score: {best_score}")
+            print(f"Best hyperparameters: {best_params}")
 
-        # If the validation dataset is provided, print the best AUC
-        if self.X_validation is not None:
-            print(f"Best AUC: {study.best_trial.user_attrs['best_AUC']}")
+            # If the validation dataset is provided, print the best AUC
+            if self.X_validation is not None:
+                print(f"Best AUC: {study.best_trial.user_attrs['best_AUC']}")
         
         # Get the best model name
         best_model_name = "{}.pickle".format(study.best_trial.number)

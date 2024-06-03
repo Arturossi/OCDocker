@@ -2,7 +2,8 @@
 
 # Description
 ###############################################################################
-""" Module to optimize the Extreme Gradient Boost using the given parameters. """
+""" Module to perform the optimization of the Extreme Gradient Boost (XGBoost)
+parameters model using Optuna."""
 
 # Imports
 ###############################################################################
@@ -36,7 +37,31 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 # Methods
 ###############################################################################
 
-def optimize_XGB(df_path: str, storage_id: int, use_pdb_train: bool = True, only_scores: bool = True, use_PCA: bool = True, pca_type: int = 80, storage: str = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}", base_models_folder: str = f"/data/hd4tb/OCDocker/data/ocdb/models", run_pre_XGB_optimization: bool = False, num_processes_pre_XGB: int = 8, total_trials_pre_XGB : int = 250, run_GA_optimization: bool = False, num_processes_GA: int = 8, total_trials_GA : int = 10, run_XGB_optimization: bool = True, num_processes_XGB: int = 8, total_trials_XGB : int = 10, early_stopping_rounds: int = 20, random_seed: int = 42, load_if_exists: bool = True, use_gpu: bool = True, verbose: bool = False) -> None:
+def optimize_XGB(
+        df_path: str,
+        storage_id: int,
+        use_pdb_train: bool = True,
+        no_scores: bool = False,
+        only_scores: bool = True,
+        use_PCA: bool = True,
+        pca_type: int = 95,
+        storage: str = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}",
+        base_models_folder: str = f"/data/hd4tb/OCDocker/data/ocdb/models",
+        run_pre_XGB_optimization: bool = False,
+        num_processes_pre_XGB: int = 8,
+        total_trials_pre_XGB : int = 250,
+        run_GA_optimization: bool = False,
+        num_processes_GA: int = 8,
+        total_trials_GA : int = 10,
+        run_XGB_optimization: bool = True,
+        num_processes_XGB: int = 8,
+        total_trials_XGB : int = 10,
+        early_stopping_rounds: int = 20, 
+        random_seed: int = 42,
+        load_if_exists: bool = True,
+        use_gpu: bool = True,
+        verbose: bool = False
+    ) -> None:
     ''' Optimize the Extreme Gradient Boost using the given parameters.
 
     Parameters
@@ -47,6 +72,8 @@ def optimize_XGB(df_path: str, storage_id: int, use_pdb_train: bool = True, only
         The storage ID to use.
     use_pdb_train : bool, optional
         If True, use the PDBbind data for training. If False, use the DUDEz data for training. Default is True.
+    no_scores : bool, optional
+        If True, don't use the scoring functions for training. If False, use the scoring functions. Default is False. (Will override only_scores if True)
     only_scores : bool, optional
         If True, only use the scoring functions for training. If False, use all the features. Default is True.
     use_PCA : bool, optional
@@ -82,17 +109,17 @@ def optimize_XGB(df_path: str, storage_id: int, use_pdb_train: bool = True, only
     '''
 
     # Load the data
-    data = ocscoredata.load_data(base_models_folder, storage_id, df_path, "XGB", only_scores, use_PCA, pca_type, use_pdb_train, random_seed)
+    data = ocscoredata.load_data(base_models_folder, storage_id, df_path, "XGB", no_scores, only_scores, use_PCA, pca_type, use_pdb_train, random_seed)
 
     # Extract the data from the data dictionary object to the corresponding variables
-    #models_folder = data['models_folder']
-    study_name = data['study_name']
-    X_train = data['X_train']
-    X_test = data['X_test']
-    y_train = data['y_train']
-    y_test = data['y_test']
-    X_val = data['X_val']
-    y_val = data['y_val']
+    #models_folder = data["models_folder"]
+    study_name = data["study_name"]
+    X_train = data["X_train"]
+    X_test = data["X_test"]
+    y_train = data["y_train"]
+    y_test = data["y_test"]
+    X_val = data["X_val"]
+    y_val = data["y_val"]
     
     if run_pre_XGB_optimization:
         if verbose:
@@ -100,7 +127,7 @@ def optimize_XGB(df_path: str, storage_id: int, use_pdb_train: bool = True, only
 
         # If total_trials is not divisible by num_processes, warn the user
         if total_trials_pre_XGB % num_processes_pre_XGB != 0:
-            print("Warning: total_trials_pre_XGB is not divisible by num_processes_pre_XGB. The number of trials per process will be rounded down to the nearest perfect divisor integer")
+            print("Warning: total_trials_pre_XGB is not divisible by num_processes_pre_XGB. The number of trials per process will be rounded down to the nearest perfect divisor integer.")
 
         n_trials_pre_XGB = total_trials_pre_XGB // num_processes_pre_XGB
 
@@ -129,10 +156,16 @@ def optimize_XGB(df_path: str, storage_id: int, use_pdb_train: bool = True, only
             ])
 
         # Load the study
-        pre_xgb_study = optuna.load_study(study_name = f"Pre_XGB_Optimization_{storage_id}", storage = storage)
+        pre_xgb_study = optuna.load_study(
+            study_name = f"Pre_XGB_Optimization_{storage_id}",
+            storage = storage
+        )
         pre_xgb_df = pre_xgb_study.trials_dataframe()
-        pre_xgb_df['combined_metric'] = pre_xgb_df['value'] - pre_xgb_df['user_attrs_AUC']
-        best_pre_xgb_df = pre_xgb_df.sort_values(by=['combined_metric', 'value', 'user_attrs_AUC'], ascending=[True, True, False])
+        pre_xgb_df["combined_metric"] = pre_xgb_df["value"] - pre_xgb_df["user_attrs_AUC"]
+        best_pre_xgb_df = pre_xgb_df.sort_values(
+            by = ["combined_metric", "value", "user_attrs_AUC"],
+            ascending = [True, True, False]
+        )
         best_pre_xgb_trial = best_pre_xgb_df.iloc[0]
         best_xgb_trial = pre_xgb_study.trials[best_pre_xgb_trial.number]
         best_pre_xgb_params = best_xgb_trial.params
@@ -145,7 +178,7 @@ def optimize_XGB(df_path: str, storage_id: int, use_pdb_train: bool = True, only
 
         # If total_trials is not divisible by num_processes, warn the user
         if total_trials_GA % num_processes_GA != 0:
-            print("Warning: total_trials_GA is not divisible by num_processes_GA. The number of trials per process will be rounded down to the nearest perfect divisor integer")
+            print("Warning: total_trials_GA is not divisible by num_processes_GA. The number of trials per process will be rounded down to the nearest perfect divisor integer.")
 
         n_trials_GA = total_trials_GA // num_processes_GA
 
@@ -171,11 +204,17 @@ def optimize_XGB(df_path: str, storage_id: int, use_pdb_train: bool = True, only
             ])
 
         # Load the study
-        feature_selection_study = optuna.load_study(study_name = f"feature_selection_{storage_id}", storage = storage)
+        feature_selection_study = optuna.load_study(
+            study_name = f"feature_selection_{storage_id}",
+            storage = storage
+        )
         feature_selection_df = feature_selection_study.trials_dataframe()
-        feature_selection_df['combined_metric'] = feature_selection_df['value'] - feature_selection_df['user_attrs_best_AUC']
-        best_feature_selection_df = feature_selection_df.sort_values(by=['combined_metric', 'value', 'user_attrs_best_AUC'], ascending=[True, True, False])
-        best_feature_selection_feature_mask = [bool(int(i)) for i in best_feature_selection_df.iloc[0]['user_attrs_best_individual']]
+        feature_selection_df["combined_metric"] = feature_selection_df["value"] - feature_selection_df["user_attrs_best_AUC"]
+        best_feature_selection_df = feature_selection_df.sort_values(
+            by = ["combined_metric", "value", "user_attrs_best_AUC"],
+            ascending = [True, True, False]
+        )
+        best_feature_selection_feature_mask = [bool(int(i)) for i in best_feature_selection_df.iloc[0]["user_attrs_best_individual"]]
 
         # Apply the best feature mask to the training and testing sets
         X_train_filtered = X_train.iloc[:, best_feature_selection_feature_mask]
@@ -224,3 +263,5 @@ def optimize_XGB(df_path: str, storage_id: int, use_pdb_train: bool = True, only
                     {}
                 ) for i in range(num_processes_XGB)
             ])
+
+    return None

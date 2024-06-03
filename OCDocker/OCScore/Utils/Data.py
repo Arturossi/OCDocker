@@ -75,7 +75,7 @@ def apply_pca(df: pd.DataFrame, pca_model_path: str, columns_to_skip_pca: list[s
     pca = ocscoreio.load_object(pca_model_path)
 
     # Transform the data (excluding columns to keep)
-    pca_data = pca.transform(df.drop(columns = columns_to_skip_pca, errors = 'ignore'))
+    pca_data = pca.transform(df.drop(columns = columns_to_skip_pca, errors = "ignore"))
 
     # Make it a DataFrame
     pca_data_df = pd.DataFrame(pca_data, columns = [f"PC_{i}" for i in range(pca_data.shape[1])])
@@ -121,22 +121,22 @@ def calculate_metrics(df: pd.DataFrame, selected_columns: list) -> tuple[pd.Data
             raise ValueError(f"Column {col} not found in DataFrame")
 
     # Calculate metrics
-    df['mean'] = df[selected_columns].mean(axis = 1)                  # The mean of the selected columns
-    df['median'] = df[selected_columns].median(axis = 1)              # The median of the selected columns
-    df['max'] = df[selected_columns].max(axis = 1)                    # The maximum value of the selected columns
-    df['min'] = df[selected_columns].min(axis = 1)                    # The minimum value of the selected columns
-    df['std'] = df[selected_columns].std(axis = 1)                    # The standard deviation of the selected columns
-    df['variance'] = df[selected_columns].var(axis = 1)               # The variance of the selected columns
-    df['sum'] = df[selected_columns].sum(axis = 1)                    # The sum of the selected columns
-    df['range'] = df['max'] - df['min']                               # The range of the selected columns
-    df['quantile_25'] = df[selected_columns].quantile(0.25, axis = 1) # The 25th percentile of the selected columns (lower quartile)
-    df['quantile_75'] = df[selected_columns].quantile(0.75, axis = 1) # The 75th percentile of the selected columns (upper quartile)
-    df['iqr'] = df['quantile_75'] - df['quantile_25']                 # The interquartile range of the selected columns (IQR)
-    df['skewness'] = df[selected_columns].skew(axis = 1)              # The skewness of the selected columns (measure of asymmetry)
-    df['kurtosis'] = df[selected_columns].kurtosis(axis = 1)          # The kurtosis of the selected columns (measure of tailedness)
+    df["mean"] = df[selected_columns].mean(axis = 1)                  # The mean of the selected columns
+    df["median"] = df[selected_columns].median(axis = 1)              # The median of the selected columns
+    df["max"] = df[selected_columns].max(axis = 1)                    # The maximum value of the selected columns
+    df["min"] = df[selected_columns].min(axis = 1)                    # The minimum value of the selected columns
+    df["std"] = df[selected_columns].std(axis = 1)                    # The standard deviation of the selected columns
+    df["variance"] = df[selected_columns].var(axis = 1)               # The variance of the selected columns
+    df["sum"] = df[selected_columns].sum(axis = 1)                    # The sum of the selected columns
+    df["range"] = df["max"] - df["min"]                               # The range of the selected columns
+    df["quantile_25"] = df[selected_columns].quantile(0.25, axis = 1) # The 25th percentile of the selected columns (lower quartile)
+    df["quantile_75"] = df[selected_columns].quantile(0.75, axis = 1) # The 75th percentile of the selected columns (upper quartile)
+    df["iqr"] = df["quantile_75"] - df["quantile_25"]                 # The interquartile range of the selected columns (IQR)
+    df["skewness"] = df[selected_columns].skew(axis = 1)              # The skewness of the selected columns (measure of asymmetry)
+    df["kurtosis"] = df[selected_columns].kurtosis(axis = 1)          # The kurtosis of the selected columns (measure of tailedness)
 
     # Return DataFrame with additional metrics
-    return df, ['mean', 'median', 'max', 'min', 'std', 'variance', 'sum', 'range', 'quantile_25', 'quantile_75', 'iqr', 'skewness', 'kurtosis']
+    return df, ["mean", "median", "max", "min", "std", "variance", "sum", "range", "quantile_25", "quantile_75", "iqr", "skewness", "kurtosis"]
 
 def compute_zscore(df: pd.DataFrame, columns: list) -> pd.DataFrame:
     ''' Computes the z-score for the specified columns in a DataFrame.
@@ -211,7 +211,7 @@ def invert_values_conditionally(df: pd.DataFrame, regex_pattern = r"^(VINA|SMINA
     
     return None
 
-def load_data(base_models_folder: str, storage_id: int, df_path: str, optimization_type: str, only_scores: bool = False, use_PCA: bool = False, pca_type: Union[str, int] = 95, use_pdb_train: bool = True, random_seed: int = 42):
+def load_data(base_models_folder: str, storage_id: int, df_path: str, optimization_type: str, no_scores: bool = False, only_scores: bool = False, use_PCA: bool = False, pca_type: Union[str, int] = 95, use_pdb_train: bool = True, random_seed: int = 42) -> dict:
     ''' Process the data for training and testing the models.
 
     Parameters
@@ -224,6 +224,8 @@ def load_data(base_models_folder: str, storage_id: int, df_path: str, optimizati
         The path to the DataFrame file.
     optimization_type: str
         The optimization type.
+    no_scores: bool, optional
+        If True, no scores are used. The default is False. (Will override only_scores)
     only_scores: bool, optional
         If True, only the score columns are used. The default is False.
     use_PCA: bool, optional
@@ -249,6 +251,9 @@ def load_data(base_models_folder: str, storage_id: int, df_path: str, optimizati
         - y_val: The validation target variable.
     '''
 
+    # TODO: expose this variable to the user in the future
+    pca_model = f"/data/hd4tb/OCDocker/OCDocker/OCDocker/OCScore/pca{pca_type}.pkl"
+
     # Set the models folder
     models_folder = f"{base_models_folder}/{optimization_type}_{storage_id}"
 
@@ -258,51 +263,97 @@ def load_data(base_models_folder: str, storage_id: int, df_path: str, optimizati
     df, score_columns = preprocess_df(df_path)
 
     # Invert the values conditionally
-    invert_values_conditionally(df, inplace=True)
+    invert_values_conditionally(df, inplace = True)
 
     # Split DUDEz data from PDBbind
-    dudez_data = df[df['db'] == 'DUDEz']
-    pdbbind_data = df[df['db'] == 'PDBbind']
+    dudez_data = df[df["db"] == "DUDEz"]
+    pdbbind_data = df[df["db"] == "PDBbind"]
 
     # Drop the experimental column from DUDEz data
-    dudez_data = dudez_data.drop(columns='experimental')
+    dudez_data = dudez_data.drop(columns = "experimental")
 
-    pdbbind_norm_df = norm_data(pdbbind_data, scaler='standard')
-    dudez_norm_df = norm_data(dudez_data, scaler='standard')
+    pdbbind_norm_df = norm_data(pdbbind_data, scaler = "standard")
+    dudez_norm_df = norm_data(dudez_data, scaler = "standard")
 
-    if only_scores:
-        remove_other_columns(dudez_norm_df, ['receptor', 'ligand', 'name', 'type', 'db'] + score_columns, inplace=True)
-        remove_other_columns(pdbbind_norm_df, ['receptor', 'ligand', 'name', 'type', 'db', 'experimental'] + score_columns, inplace=True)
+    # Filter the columns to keep
+    if no_scores:
+            # Remove the score columns from the dfs
+            dudez_norm_df = dudez_norm_df.drop(columns = score_columns)
+            pdbbind_norm_df = pdbbind_norm_df.drop(columns = score_columns)
+
+            # Set the study name
+            study_name = f"NoScores_{optimization_type}_Optimization"
+    elif only_scores:
+        # Remove all columns except the score columns and metadata
+        remove_other_columns(
+            dudez_norm_df,
+            ["receptor", "ligand", "name", "type", "db"] + score_columns, 
+            inplace = True
+        )
+        remove_other_columns(
+            pdbbind_norm_df,
+            ["receptor", "ligand", "name", "type", "db", "experimental"] + score_columns,
+            inplace = True
+        )
 
         # Set the study name
         study_name = f"ScoreOnly_{optimization_type}_Optimization"
     else:
-        if use_PCA:
-            apply_pca(pdbbind_norm_df, f"/data/hd4tb/OCDocker/OCDocker/OCDocker/OCScore/pca{pca_type}.pkl", columns_to_skip_pca=['receptor', 'ligand', 'name', 'type', 'db', 'experimental'] + score_columns, inplace=True)
+        # Set the study name
+        study_name = f"{optimization_type}_Optimization"
+    
+    if use_PCA:
+        apply_pca(pdbbind_norm_df, pca_model, columns_to_skip_pca=["receptor", "ligand", "name", "type", "db", "experimental"] + score_columns, inplace=True)
 
-            # Transform the data (validation)
-            if use_pdb_train:
-                apply_pca(dudez_norm_df, f"/data/hd4tb/OCDocker/OCDocker/OCDocker/OCScore/pca{pca_type}.pkl", columns_to_skip_pca=['receptor', 'ligand', 'name', 'type', 'db'] + score_columns, inplace=True)
-            
-            # Set the study name
-            study_name = f"PCA{pca_type}_{optimization_type}_Optimization"
-        else:
-            # Set the study name
-            study_name = f"{optimization_type}_Optimization"
+        # Transform the data (validation)
+        if use_pdb_train:
+            apply_pca(dudez_norm_df, pca_model, columns_to_skip_pca=["receptor", "ligand", "name", "type", "db"] + score_columns, inplace=True)
+        
+        # Set the study name
+        study_name = f"PCA{pca_type}_{study_name}"
 
     if use_pdb_train:
         # Split the PDBbind data into training and testing sets
-        X_train, X_test, y_train, y_test = split_dataset(pdbbind_norm_df.drop(columns=['receptor', 'ligand', 'name', 'type', 'db', 'experimental'], errors='ignore'), pdbbind_norm_df['experimental'], test_size=0.25, random_state=random_seed)
+        X_train, X_test, y_train, y_test = split_dataset(
+            pdbbind_norm_df.drop(
+                columns = ["receptor", "ligand", "name", "type", "db", "experimental"],
+                errors = "ignore"
+            ), 
+            pdbbind_norm_df["experimental"], 
+            test_size = 0.25,
+            random_state = random_seed
+        )
+
         # Split the DUDEz data into validation X and y
-        X_val = dudez_norm_df.drop(columns=['receptor', 'ligand', 'name', 'type', 'db', 'experimental'], errors='ignore')
-        y_val = dudez_norm_df['type'].map({'ligand': 1, 'decoy': 0})
+        X_val = dudez_norm_df.drop(
+            columns = ["receptor", "ligand", "name", "type", "db", "experimental"],
+            errors = "ignore"
+        )
+
+        y_val = dudez_norm_df["type"].map(
+            {
+                "ligand": 1,
+                "decoy": 0
+            }
+        )
     else:
         # Set the test size to 0.0 to use the entire dataset for training
-        X_train = dudez_norm_df.drop(columns=['receptor', 'ligand', 'name', 'type', 'db', 'experimental'], errors='ignore')
-        y_train = dudez_norm_df['experimental']
+        X_train = dudez_norm_df.drop(
+            columns = ["receptor", "ligand", "name", "type", "db", "experimental"],
+            errors = "ignore"
+        )
+        y_train = dudez_norm_df["experimental"]
 
-        X_test = dudez_norm_df.drop(columns=['receptor', 'ligand', 'name', 'type', 'db', 'experimental'], errors='ignore')
-        y_test = dudez_norm_df['type'].map({'ligand': 1, 'decoy': 0})
+        X_test = dudez_norm_df.drop(
+            columns = ["receptor", "ligand", "name", "type", "db", "experimental"],
+            errors = "ignore"
+        )
+        y_test = dudez_norm_df["type"].map(
+            {
+                "ligand": 1, 
+                "decoy": 0
+            }
+        )
 
         # Set X and y for validation to None
         X_val = None
@@ -313,26 +364,26 @@ def load_data(base_models_folder: str, storage_id: int, df_path: str, optimizati
         os.makedirs(models_folder)
 
     return {
-        'models_folder': models_folder,
-        'study_name': study_name,
-        'X_train': X_train,
-        'X_test': X_test,
-        'y_train': y_train,
-        'y_test': y_test,
-        'X_val': X_val,
-        'y_val': y_val
+        "models_folder": models_folder,
+        "study_name": study_name,
+        "X_train": X_train,
+        "X_test": X_test,
+        "y_train": y_train,
+        "y_test": y_test,
+        "X_val": X_val,
+        "y_val": y_val
     }
 
-def norm_data(df: pd.DataFrame, scaler: str = 'standard', inplace: bool = False) -> Union[Any, pd.DataFrame]:
+def norm_data(df: pd.DataFrame, scaler: str = "standard", inplace: bool = False) -> Union[Any, pd.DataFrame]:
     ''' Preprocesses the input DataFrame by scaling selected feature columns using a Scaler.
-    The metadata columns ('receptor', 'ligand', 'name', 'type', 'db') are preserved.
+    The metadata columns ("receptor", "ligand", "name", "type", "db") are preserved.
 
     Parameters
     ----------
     df: pd.DataFrame
         Input DataFrame.
     scaler: str
-        Scaler to use. Options are 'standard' and 'minmax'.
+        Scaler to use. Options are "standard" and "minmax".
     inplace: bool
         If True, the original DataFrame is modified. If False, a new DataFrame is returned.
 
@@ -343,14 +394,14 @@ def norm_data(df: pd.DataFrame, scaler: str = 'standard', inplace: bool = False)
     '''
 
     # Check the chosen scaler
-    if scaler not in ['standard', 'minmax']:
-        raise ValueError("Invalid scaler. Please choose 'standard' or 'minmax'")
+    if scaler not in ["standard", "minmax"]:
+        raise ValueError("Invalid scaler. Please choose 'standard' or 'minmax'.")
     
     # Initialize the scaler
-    scaler_model = StandardScaler() if scaler == 'standard' else MinMaxScaler()
+    scaler_model = StandardScaler() if scaler == "standard" else MinMaxScaler()
 
     # Select columns to be scaled
-    feature_columns = df.columns.difference(['receptor', 'ligand', 'name', 'type', 'db'])
+    feature_columns = df.columns.difference(["receptor", "ligand", "name", "type", "db"])
 
     if inplace:
         # Scale only the selected feature columns in the original DataFrame
@@ -401,7 +452,7 @@ def remove_other_columns(df: pd.DataFrame, columns_to_keep: list, inplace: bool 
 
     return df_copy
 
-def preprocess_df(file_name: str, score_columns_list: list[str] = ['SMINA', 'VINA', 'ODDT', 'PLANTS']) -> tuple[pd.DataFrame, list[str]]:
+def preprocess_df(file_name: str, score_columns_list: list[str] = ["SMINA", "VINA", "ODDT", "PLANTS"]) -> tuple[pd.DataFrame, list[str]]:
     ''' Load a DataFrame from a file and preprocess it.
 
     Parameters
@@ -409,7 +460,7 @@ def preprocess_df(file_name: str, score_columns_list: list[str] = ['SMINA', 'VIN
     file_name : str
         The name of the file to load the DataFrame from.
     score_columns_list : list[str], optional
-        The list of columns to be considered as score columns. The default is ['SMINA', 'VINA', 'ODDT', 'PLANTS'].
+        The list of columns to be considered as score columns. The default is ["SMINA", "VINA", "ODDT", "PLANTS"].
 
     Returns
     -------
@@ -431,8 +482,8 @@ def preprocess_df(file_name: str, score_columns_list: list[str] = ['SMINA', 'VIN
         score_columns = score_columns_list
 
     # Split DUDEz data from PDBbind
-    dudez_data = df[df['db'] == 'DUDEz']
-    pdbbind_data = df[df['db'] == 'PDBbind']
+    dudez_data = df[df["db"] == "DUDEz"]
+    pdbbind_data = df[df["db"] == "PDBbind"]
 
     # Inverting values
     dudez_data = invert_values_conditionally(dudez_data)
@@ -441,7 +492,7 @@ def preprocess_df(file_name: str, score_columns_list: list[str] = ['SMINA', 'VIN
     pdbbind_data = invert_values_conditionally(pdbbind_data)
 
     # Drop the experimental column from DUDEz data
-    dudez_data = dudez_data.drop(columns = 'experimental') # type: ignore 
+    dudez_data = dudez_data.drop(columns = "experimental") # type: ignore 
 
     return df, score_columns
 

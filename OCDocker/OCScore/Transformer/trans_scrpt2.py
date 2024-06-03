@@ -428,7 +428,7 @@ def split_dataset(X, y, test_size=0.2, random_state=42):
 ############################################################################################################
 
 
-storage_id = 93
+storage_id = 123
 
 # Run the PCAs
 for pca_type in [95, 90, 85, 80, True]:
@@ -436,6 +436,8 @@ for pca_type in [95, 90, 85, 80, True]:
         print(f"Running only Scoring Functions...")
     else:
         print(f"Running PCA{pca_type}...")
+    if pca_type != True:
+        continue
     # Six iterations
     for aw in range(0, 6):
         storage_id += 1
@@ -471,8 +473,20 @@ for pca_type in [95, 90, 85, 80, True]:
             only_scores = True
         else:
             only_scores = False
+        
+        no_scores = True
 
-        if only_scores:
+        if no_scores:
+            # Remove the score columns from the dfs
+            dudez_standard_norm_df = dudez_standard_norm_df.drop(columns = score_columns)
+            pdbbind_standard_norm_df = pdbbind_standard_norm_df.drop(columns = score_columns)
+
+            # Set the study name
+            study_name = f"NoScores_Trans_Optimization"
+
+            # Set the best AO to None
+            best_ao_params = None
+        elif only_scores:
             dudez_standard_norm_df = dudez_standard_norm_df[['receptor', 'ligand', 'name', 'type', 'db'] + score_columns].reset_index(drop=True)
             pdbbind_standard_norm_df = pdbbind_standard_norm_df[['receptor', 'ligand', 'name', 'type', 'db', 'experimental'] + score_columns].reset_index(drop=True)
 

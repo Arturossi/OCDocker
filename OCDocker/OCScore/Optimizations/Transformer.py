@@ -1,0 +1,235 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+""" Module to perform the optimization of the Transformer parameters model
+using Optuna."""
+
+# Imports
+###############################################################################
+
+
+from multiprocessing import Pool
+from urllib.parse import quote_plus
+
+import OCDocker.OCScore.Utils.Data as ocscoredata
+import OCDocker.OCScore.Utils.Workers as ocscoreworkers
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Torres, P.H.M.;
+[The Federal University of Rio de Janeiro]
+Contact info:
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+Av. Carlos Chagas Filho 373 - CCS - bloco G1-19,
+Cidade Universitária - Rio de Janeiro, RJ, CEP: 21941-902
+E-mail address: arturossi10@gmail.com
+This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
+'''
+
+# Classes
+###############################################################################
+
+# Methods
+###############################################################################
+
+def optimize_Transformer(
+        df_path: str,
+        storage_id: int,
+        use_pdb_train: bool = True,
+        no_scores: bool = True,
+        only_scores: bool = True,
+        use_PCA: bool = True,
+        pca_type: int = 95,
+        storage: str = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}",
+        base_models_folder: str = f"/data/hd4tb/OCDocker/data/ocdb/models",
+        run_Trans_optimization: bool = False,
+        num_processes_Trans: int = 4,
+        total_trials_Trans: int = 2000,
+        random_seed: int = 42,
+        load_if_exists: bool = True,
+        use_gpu: bool = True,
+        verbose: bool = False
+    ) -> None:
+    ''' Function to optimize the Transformer model using Optuna.
+    
+    Parameters
+    ----------
+    df_path : str
+        The path to the dataset file.
+    storage_id : int
+        The storage ID of the dataset.
+    use_pdb_train : bool
+        Whether to use the PDB train dataset.
+    no_scores : bool
+        Whether to use the no scores dataset.
+    only_scores : bool
+        Whether to use the only scores dataset.
+    use_PCA : bool
+        Whether to use PCA.
+    pca_type : int
+        The PCA type to use.
+    storage : str
+        The storage string for the database.
+    base_models_folder : str
+        The base models folder.
+    '''
+
+    # Load the data
+    data = ocscoredata.load_data(base_models_folder, storage_id, df_path, "Trans", no_scores, only_scores, use_PCA, pca_type, use_pdb_train, random_seed)
+
+    # Extract the data from the data dictionary object to the corresponding variables
+    #models_folder = data["models_folder"]
+    study_name = data["study_name"]
+    X_train = data["X_train"]
+    X_test = data["X_test"]
+    y_train = data["y_train"]
+    y_test = data["y_test"]
+    X_val = data["X_val"]
+    y_val = data["y_val"]
+
+    if run_Trans_optimization:
+        if verbose:
+            print("Running Transformer optimization...")
+
+        # If total_trials is not divisible by num_processes, warn the user
+        if total_trials_Trans % num_processes_Trans != 0:
+            print("Warning: total_trials_Trans is not divisible by num_processes_Trans. The number of trials per process will be rounded down to the nearest perfect divisor integer.")
+
+        n_trials_Trans = total_trials_Trans // num_processes_Trans
+
+        with Pool(num_processes_Trans) as pool:
+            # Each process will execute the 'Transworker' function with the datasets and optimizer parameters
+            pool.starmap(ocscoreworkers.Transworker, [(
+                pid,
+                storage_id, 
+                X_train, y_train, 
+                X_test, y_test, 
+                X_val, y_val, 
+                storage,
+                1,              # output_size
+                random_seed,
+                use_gpu,
+                verbose,
+                "minimize",     # direction
+                n_trials_Trans,
+                load_if_exists,
+                1,              # n_jobs
+                study_name
+                ) for pid in range(num_processes_Trans)
+            ])
+
+    '''
+    # Load the study
+    trans_study = optuna.load_study(study_name = f"Trans_Optimization_{storage_id}_TPE", storage = storage)
+    trans_df = trans_study.trials_dataframe()
+
+    # Filter the trials to only include the ones that are complete
+    trans_df = trans_df[trans_df['state'] == 'COMPLETE']
+
+    trans_df['combined_metric'] = trans_df['value'] - trans_df['user_attrs_AUC']
+
+    best_trans_df = trans_df.sort_values(by=['combined_metric'], ascending=[True])
+
+    # Define the number of models to select
+    n_models = 5
+
+    # Get the best n models in the best_nn_df
+    best_trans_df.head(n_models)
+
+    # Build the models
+    models = []
+    predictions = []
+
+    for i in range(n_models):
+        # Get the best trial
+        best_trial = trans_study.trials[best_trans_df.iloc[i].number]
+
+        # Pick the params from the best_trial
+        best_params = best_trial.params
+
+        # Initialize the trainer
+        Trans_model = Transformer(
+            input_size   = X_train.shape[1],
+            output_size  = 1,
+            trans_params = best_params,
+            random_seed  = 42,
+            use_gpu      = True,
+            verbose      = False
+        )
+
+        # Reset the random seeds
+        torch.manual_seed(42)
+        np.random.seed(42)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+        torch.cuda.manual_seed_all(42)
+
+        # Train the model
+        model = Transformer.train_model(
+            X_train, # type: ignore
+            y_train, 
+            X_test, 
+            y_test, 
+            X_val, 
+            y_val
+        )
+
+        # Reset the random seeds
+        torch.manual_seed(42)
+        np.random.seed(42)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+        torch.cuda.manual_seed_all(42)
+        
+        # Append the model to the list
+        models.append(Trans_model)
+
+        # Make predictions
+        predictions.append(
+            Trans_model.trans(
+                torch.tensor(
+                    np.asarray(X_val),
+                    dtype=torch.float32
+                ).to(torch.device('cuda'))
+            ).cpu().detach().numpy()
+        )
+
+        # Save the model
+        torch.save(model, f'/data/hd4tb/OCDocker/data/ocdb/models/Trans_model_{i}.pt')
+
+    # Convert predictions to a DataFrame
+    predictions_df = pd.DataFrame(np.asarray(predictions).reshape(len(predictions), predictions[0].shape[0]).T)
+
+    def select_values(row):
+        sorted_row = sorted(row)
+        return pd.Series({
+            'max': max(row),
+            '2nd_highest': sorted_row[-2],
+            'median': sorted_row[2],
+            '4th_highest': sorted_row[1],
+            'min': min(row)
+        })
+
+    selected_values_df = predictions_df.apply(select_values, axis=1)
+    full_selected_values_df = pd.concat([predictions_df, selected_values_df], axis=1)
+                                        
+    # Calculate the mean, median, std, min, max, and range for the predictions
+    full_selected_values_df['std'] = predictions_df.std(axis = 1)
+    full_selected_values_df['range'] = full_selected_values_df['max'] - full_selected_values_df['min']
+
+    # For each column in the full_selected_values_df, calculate the AUC
+    auc_dict = {}
+    for col in full_selected_values_df.columns:
+        fpr, tpr, _ = roc_curve(y_val, full_selected_values_df[col]) # type: ignore
+        auc_dict[col] = auc(fpr, tpr)
+
+    # make AUC_dict a DataFrame
+    auc_df = pd.DataFrame(auc_dict, index = ['AUC']).T
+
+    # Save the full_selected_values_df values to csv
+    full_selected_values_df.to_csv('full_selected_values_df_trans.csv')
+    '''
