@@ -441,6 +441,9 @@ for pca_type in [95, 90, 85, 80, True]:
     # Six iterations
     for aw in range(0, 6):
         storage_id += 1
+        if storage_id == 124:
+            continue
+        
         print(f"Running iteration {aw + 1}...")
 
         # Load and preprocess data
@@ -615,7 +618,7 @@ for pca_type in [95, 90, 85, 80, True]:
                 )
                 print(f"Process {id} completed {sampler_name} optimization")
 
-        num_processes = 4
+        num_processes = 3
         #storage_id = 33
         storage = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"
         run_Trans_optimization = True

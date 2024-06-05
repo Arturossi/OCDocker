@@ -1,0 +1,148 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+""" Module to execute the Principal Component Analysis (PCA) on the datasets."""
+
+# Imports
+###############################################################################
+import pandas as pd
+
+from sklearn.decomposition import PCA
+
+import OCDocker.OCScore.Utils.Data as ocscoredata
+import OCDocker.OCScore.Utils.IO as ocscoreio
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Torres, P.H.M.;
+[The Federal University of Rio de Janeiro]
+Contact info:
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+Av. Carlos Chagas Filho 373 - CCS - bloco G1-19,
+Cidade Universitária - Rio de Janeiro, RJ, CEP: 21941-902
+E-mail address: arturossi10@gmail.com
+This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
+'''
+
+# Classes
+###############################################################################
+
+# Methods
+###############################################################################
+
+def run_pca(
+        df_path: str,
+        variance: float,
+        pca_path: str,
+        verbose: bool = False
+    ) -> str:
+    ''' Function to run PCA on the datasets.
+    
+    Parameters
+    ----------
+    df_path : str
+        The path to the DataFrame.
+    variance : float
+        The percentage of variance to be explained. (0.0 - 1.0)
+    pca_path : str
+        The path to save the PCA object.
+    verbose : bool
+        Whether to print the results.
+
+    Returns
+    -------
+    str
+        The path to the PCA object.
+
+    Raises
+    ------
+    ValueError
+        If the variance is not between 0 and 1.
+    '''
+
+    # Check if the variance is between 0 and 1
+    if variance <= 0 or variance > 1:
+        raise ValueError("The variance must be between 0 and 1.")
+
+    # Convert the variance to string
+    variance_str = str(variance * 100).replace('.0', '')
+
+    # Define the path to save the PCA object
+    pca_file_path = f'{pca_path}/pca{variance_str}.pkl'
+
+    # Parse the data from the CSV files
+    dudez_data, pdbbind_data, score_columns = ocscoredata.preprocess_df(df_path)
+
+    # Create the PCA object
+    pca = PCA(n_components = variance)
+
+    # Perform PCA on the all datasets
+    dudez_pca = pca.fit_transform(
+        dudez_data.drop(
+            columns = ['receptor', 'ligand', 'name', 'type', 'db'] + score_columns, 
+            errors = 'ignore'
+        )
+    )
+    pdbbind_pca = pca.fit_transform(
+        pdbbind_data.drop(
+            columns = ['receptor', 'ligand', 'name', 'type', 'db', 'experimental'] + score_columns, 
+            errors = 'ignore'
+        )
+    )
+
+    # Save the PCA object in pickle format (PDBbind only to be used later, since it is the dataset which will be used for the model)
+    ocscoreio.save_object(pca, pca_file_path)
+
+    # Create a DataFrame with the PCA results for each dataset then add the score columns back
+    dudez_pca_df = pd.DataFrame(
+        data = dudez_pca, 
+        columns = [f'PC{i+1}' for i in range(dudez_pca.shape[1])]
+    )
+    pdbbind_pca_df = pd.DataFrame(
+        data = pdbbind_pca, 
+        columns = [f'PC{i+1}' for i in range(pdbbind_pca.shape[1])]
+    )
+
+    # Add the metadata columns back
+    dudez_pca_df = pd.concat(
+        [
+            dudez_data[score_columns + ['receptor', 'ligand', 'name', 'type', 'db']], 
+            dudez_pca_df
+        ], 
+        axis = 1
+    )
+    pdbbind_pca_df = pd.concat(
+        [
+            pdbbind_data[score_columns + ['receptor', 'ligand', 'name', 'type', 'db', 'experimental']], 
+            pdbbind_pca_df
+        ], 
+        axis = 1
+    )
+
+    if verbose:
+        # Check for NaNs in the PCA datasets
+        print("==== NaNs in PCA datasets ====")
+        print("--------------------------------")
+        print("DUDEz")
+        print(dudez_pca_df.isnull().sum())
+        print("\nPDBbind")
+        print(pdbbind_pca_df.isnull().sum())
+
+        # Compare the size of the datasets before and after PCA
+        print("==== Dataset sizes ====")
+        print("-----------------------")
+        print("DUDEZ")
+        print(f"Before PCA: {dudez_data.shape[1] - 5 - len(score_columns)} features")
+        print(f"After PCA scaling): {dudez_pca_df.shape[1] - 5} features")
+
+        print("\nPDBbind")
+        print(f"Before PCA: {pdbbind_data.shape[1] - 6 - len(score_columns)} features")
+        print(f"After PCA scaling): {pdbbind_pca_df.shape[1] - 6} features")
+
+    return pca_file_path
+
+run_pca('/data/hd4tb/OCDocker/data/ocdb/predictions/OCDocker_pre.csv.gz', 0.80, './')

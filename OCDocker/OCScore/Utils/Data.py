@@ -260,38 +260,25 @@ def load_data(base_models_folder: str, storage_id: int, df_path: str, optimizati
     ############################################################################################################
 
     # Load and preprocess data returning the DataFrame and the score columns
-    df, score_columns = preprocess_df(df_path)
-
-    # Invert the values conditionally
-    invert_values_conditionally(df, inplace = True)
-
-    # Split DUDEz data from PDBbind
-    dudez_data = df[df["db"] == "DUDEz"]
-    pdbbind_data = df[df["db"] == "PDBbind"]
-
-    # Drop the experimental column from DUDEz data
-    dudez_data = dudez_data.drop(columns = "experimental")
-
-    pdbbind_norm_df = norm_data(pdbbind_data, scaler = "standard")
-    dudez_norm_df = norm_data(dudez_data, scaler = "standard")
+    dudez_data, pdbbind_data, score_columns = preprocess_df(df_path, invert_conditionally = True)
 
     # Filter the columns to keep
     if no_scores:
-            # Remove the score columns from the dfs
-            dudez_norm_df = dudez_norm_df.drop(columns = score_columns)
-            pdbbind_norm_df = pdbbind_norm_df.drop(columns = score_columns)
+        # Remove the score columns from the dfs
+        dudez_data = dudez_data.drop(columns = score_columns)
+        pdbbind_data = pdbbind_data.drop(columns = score_columns)
 
-            # Set the study name
-            study_name = f"NoScores_{optimization_type}_Optimization"
+        # Set the study name
+        study_name = f"NoScores_{optimization_type}_Optimization"
     elif only_scores:
         # Remove all columns except the score columns and metadata
         remove_other_columns(
-            dudez_norm_df,
+            dudez_data,
             ["receptor", "ligand", "name", "type", "db"] + score_columns, 
             inplace = True
         )
         remove_other_columns(
-            pdbbind_norm_df,
+            pdbbind_data,
             ["receptor", "ligand", "name", "type", "db", "experimental"] + score_columns,
             inplace = True
         )
@@ -303,11 +290,11 @@ def load_data(base_models_folder: str, storage_id: int, df_path: str, optimizati
         study_name = f"{optimization_type}_Optimization"
     
     if use_PCA:
-        apply_pca(pdbbind_norm_df, pca_model, columns_to_skip_pca=["receptor", "ligand", "name", "type", "db", "experimental"] + score_columns, inplace=True)
+        apply_pca(pdbbind_data, pca_model, columns_to_skip_pca=["receptor", "ligand", "name", "type", "db", "experimental"] + score_columns, inplace=True)
 
         # Transform the data (validation)
         if use_pdb_train:
-            apply_pca(dudez_norm_df, pca_model, columns_to_skip_pca=["receptor", "ligand", "name", "type", "db"] + score_columns, inplace=True)
+            apply_pca(dudez_data, pca_model, columns_to_skip_pca=["receptor", "ligand", "name", "type", "db"] + score_columns, inplace=True)
         
         # Set the study name
         study_name = f"PCA{pca_type}_{study_name}"
@@ -315,22 +302,22 @@ def load_data(base_models_folder: str, storage_id: int, df_path: str, optimizati
     if use_pdb_train:
         # Split the PDBbind data into training and testing sets
         X_train, X_test, y_train, y_test = split_dataset(
-            pdbbind_norm_df.drop(
+            pdbbind_data.drop(
                 columns = ["receptor", "ligand", "name", "type", "db", "experimental"],
                 errors = "ignore"
             ), 
-            pdbbind_norm_df["experimental"], 
+            pdbbind_data["experimental"], 
             test_size = 0.25,
             random_state = random_seed
         )
 
         # Split the DUDEz data into validation X and y
-        X_val = dudez_norm_df.drop(
+        X_val = dudez_data.drop(
             columns = ["receptor", "ligand", "name", "type", "db", "experimental"],
             errors = "ignore"
         )
 
-        y_val = dudez_norm_df["type"].map(
+        y_val = dudez_data["type"].map(
             {
                 "ligand": 1,
                 "decoy": 0
@@ -338,17 +325,17 @@ def load_data(base_models_folder: str, storage_id: int, df_path: str, optimizati
         )
     else:
         # Set the test size to 0.0 to use the entire dataset for training
-        X_train = dudez_norm_df.drop(
+        X_train = dudez_data.drop(
             columns = ["receptor", "ligand", "name", "type", "db", "experimental"],
             errors = "ignore"
         )
-        y_train = dudez_norm_df["experimental"]
+        y_train = dudez_data["experimental"]
 
-        X_test = dudez_norm_df.drop(
+        X_test = dudez_data.drop(
             columns = ["receptor", "ligand", "name", "type", "db", "experimental"],
             errors = "ignore"
         )
-        y_test = dudez_norm_df["type"].map(
+        y_test = dudez_data["type"].map(
             {
                 "ligand": 1, 
                 "decoy": 0
@@ -452,7 +439,7 @@ def remove_other_columns(df: pd.DataFrame, columns_to_keep: list, inplace: bool 
 
     return df_copy
 
-def preprocess_df(file_name: str, score_columns_list: list[str] = ["SMINA", "VINA", "ODDT", "PLANTS"]) -> tuple[pd.DataFrame, list[str]]:
+def preprocess_df(file_name: str, score_columns_list: list[str] = ["SMINA", "VINA", "ODDT", "PLANTS"], invert_conditionally: bool = True, normalize: bool = True) -> tuple[pd.DataFrame, pd.DataFrame, list[str]]:
     ''' Load a DataFrame from a file and preprocess it.
 
     Parameters
@@ -461,11 +448,17 @@ def preprocess_df(file_name: str, score_columns_list: list[str] = ["SMINA", "VIN
         The name of the file to load the DataFrame from.
     score_columns_list : list[str], optional
         The list of columns to be considered as score columns. The default is ["SMINA", "VINA", "ODDT", "PLANTS"].
+    invert_conditionally : bool, optional
+        If True, the values in the score columns are inverted conditionally. The default is True.
+    normalize : bool, optional
+        If True, the data is normalized. The default is True.
 
     Returns
     -------
     pd.DataFrame
-        The loaded DataFrame.
+        The DUDEz data.
+    pd.DataFrame
+        The PDBbind data.
     list[str]
         The list of score columns.
     '''
@@ -485,16 +478,24 @@ def preprocess_df(file_name: str, score_columns_list: list[str] = ["SMINA", "VIN
     dudez_data = df[df["db"] == "DUDEz"]
     pdbbind_data = df[df["db"] == "PDBbind"]
 
-    # Inverting values
-    dudez_data = invert_values_conditionally(dudez_data)
+    if invert_conditionally:
+        # Inverting values
+        dudez_data = invert_values_conditionally(dudez_data)
 
-    # Inverting values
-    pdbbind_data = invert_values_conditionally(pdbbind_data)
-
+        # Inverting values
+        pdbbind_data = invert_values_conditionally(pdbbind_data)
+    
     # Drop the experimental column from DUDEz data
     dudez_data = dudez_data.drop(columns = "experimental") # type: ignore 
+    
+    if normalize:
+        # Normalize the PDBbind data
+        pdbbind_data = norm_data(pdbbind_data, scaler = "standard") # type: ignore
 
-    return df, score_columns
+        # Normalize the DUDEz data
+        dudez_data = norm_data(dudez_data, scaler = "standard") # type: ignore
+
+    return dudez_data, pdbbind_data, score_columns # type: ignore
 
 def split_dataset(X, y, test_size = 0.2, random_state = 42) -> list[Any]:
     ''' Split the data into training and testing sets.
