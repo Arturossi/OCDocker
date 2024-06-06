@@ -178,6 +178,7 @@ def analyze_studies(snames: list[str], storage: str, n_trials: int = 5, verbose:
             # Append the results to the list
             results.append({
                 'study_name': sname,
+                'study_type': study_type,
                 'total_trials': len(df),
                 'best_rmse_number': best_rmse_df['number'].iloc[i],
                 'best_rmse_value': best_rmse_df['value'].iloc[i],
