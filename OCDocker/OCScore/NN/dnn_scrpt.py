@@ -456,7 +456,19 @@ use_pdb_train = True
 
 only_scores = True
 
-if only_scores:
+no_scores = True
+
+if no_scores:
+            # Remove the score columns from the dfs
+            dudez_standard_norm_df = dudez_standard_norm_df.drop(columns = score_columns)
+            pdbbind_standard_norm_df = pdbbind_standard_norm_df.drop(columns = score_columns)
+
+            # Set the study name
+            study_name = f"NoScores_NN_Optimization"
+
+            # Set the best AO to None
+            best_ao_params = None
+elif only_scores:
     dudez_standard_norm_df = dudez_standard_norm_df[['receptor', 'ligand', 'name', 'type', 'db'] + score_columns].reset_index(drop=True)
     pdbbind_standard_norm_df = pdbbind_standard_norm_df[['receptor', 'ligand', 'name', 'type', 'db', 'experimental'] + score_columns].reset_index(drop=True)
 

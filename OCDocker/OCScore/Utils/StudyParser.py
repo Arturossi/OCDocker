@@ -62,8 +62,12 @@ def analyze_studies(snames: list[str], storage: str, n_trials: int = 5, verbose:
         if verbose:
             print(f"\nStudy: {sname}")
 
-        # Load the study
-        study = optuna.load_study(study_name = sname, storage = storage)
+        try:
+            # Load the study
+            study = optuna.load_study(study_name = sname, storage = storage)
+        except Exception as e:
+            print(f"Error loading study {sname}: {e}")
+            continue
 
         # Get the trials dataframe
         df = study.trials_dataframe()
@@ -137,8 +141,8 @@ snames = [
     'XGB_Optimization_24',
     'XGB_Optimization_25',
     'Trans_Optimization_26_TPE',
-    'XGB_Optimization_27'
-    'XGB_Optimization_28'
+    'XGB_Optimization_27',
+    'XGB_Optimization_28',
     'Trans_Optimization_29_TPE',
     'Trans_Optimization_30_TPE',
     'Trans_Optimization_31_TPE',
@@ -227,7 +231,19 @@ snames = [
     'PCA80_Trans_Optimization_114_TPE',
     'PCA80_Trans_Optimization_115_TPE',
     'PCA80_Trans_Optimization_116_TPE',
-    'PCA80_Trans_Optimization_117_TPE'
+    'PCA80_Trans_Optimization_117_TPE',
+    'NoScores_XGB_Optimization_118',
+    'NoScores_XGB_Optimization_119',
+    'NoScores_XGB_Optimization_120',
+    'NoScores_XGB_Optimization_121',
+    'NoScores_XGB_Optimization_122',
+    'NoScores_XGB_Optimization_123',
+    'NoScores_Trans_Optimization_124_TPE',
+    'NoScores_Trans_Optimization_125_TPE',
+    'NoScores_Trans_Optimization_126_TPE',
+    'NoScores_Trans_Optimization_127_TPE',
+    'NoScores_Trans_Optimization_128_TPE',
+    'NoScores_Trans_Optimization_129_TPE'
 ]
 
 user = "ocdocker"
