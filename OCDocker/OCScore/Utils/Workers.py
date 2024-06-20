@@ -23,7 +23,7 @@ from OCDocker.OCScore.NN.AutoencoderOptimizer import AutoencoderOptimizer
 from OCDocker.OCScore.NN.NNOptimizer import NNOptimizer
 from OCDocker.OCScore.Transformer.TransOptimizer import TransOptimizer
 from OCDocker.OCScore.XGBoost.XGBoostOptimizer import XGBoostOptimizer
-from OCDocker.OCScore.XGBoost.GeneticAlgorithmFeatureSelector import GeneticAlgorithmFeatureSelector
+from OCDocker.OCScore.Dimensionality.GeneticAlgorithmFeatureSelector import GeneticAlgorithmFeatureSelector
 
 from optuna.samplers import TPESampler
 from typing import Union

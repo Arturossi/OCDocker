@@ -89,6 +89,27 @@ data = {
     'Score (Smallest Error - AUC)': sf_scores + simple_methods_scores + [-0.1039, -0.0171, -0.0148, -0.0839, -0.1369, -0.1000, -0.0946, -0.1480, -0.1008, 0.2353, 0.2493, 0.2655, -0.1370, -0.1321, -0.1309, -0.1440, 0.2967, 0.3012, 0.2638, -0.1352, -0.0963, -0.0978, -0.0666, -0.0863, -0.0894, -0.0710, -0.0621, -0.1023, -0.0835, -0.0640, -0.1171, -0.1009, -0.0940, -0.1054, -0.1104, -0.1139, -0.0801, -0.0886, -0.0839, -0.0598, -0.0825, -0.0763, -0.0671, -0.0655, -0.0738, -0.0868, -0.0878, -0.0752, -0.0709, -0.0723, -0.0865, -0.0897, -0.0897, -0.0881, -0.0187, -0.0224, -0.0149, -0.0263, -0.0246, -0.0059, -0.0026, -0.0191, 0.0049, -0.0040, -0.0018, -0.0025, -0.0463, -0.0327, -0.0445, -0.0482, -0.0529, -0.0367, -0.0404, -0.0384, -0.0271, -0.0473, -0.0335, -0.0282, -0.0450, -0.0345, -0.0256, -0.0261, -0.0453, -0.0296, -0.0308, -0.0286, -0.0308, -0.0332, -0.0241, -0.0374, -0.0767, -0.0785, -0.0679, -0.0782, -0.0785, -0.0757, -0.0438, -0.0464, -0.0558, -0.0478, -0.0586, -0.0677, -0.0595, -0.0563, -0.0632, -0.0562, -0.0535, -0.0606, -0.0719, -0.0660, -0.0685, -0.0647, -0.0637, -0.0797]
 }
 
+data = {
+    'Methodology': ['Raw Scoring Function'] * len(methods) + ['Simple consensus'] * len(simple_methods_names),
+    ## Erro para determinar o melhor modelo
+    # ERRO
+    'Error (Smallest Error)': sf_errors + simple_methods_errors,
+    # AUC
+    'AUC (Smallest Error)': sf_aucs + simple_methods_AUCs,
+    # AUC para determinar o melhor modelo
+    # ERRO
+    'Error (Biggest AUC)': sf_errors + simple_methods_errors,
+    # AUC
+    'AUC (Biggest AUC)': sf_aucs + simple_methods_AUCs,
+    # Score (Erro - AUC) para determinar o melhor modelo
+    # ERRO
+    'Error (Smallest Error - AUC)': sf_errors + simple_methods_errors,
+    # AUC
+    'AUC (Smallest Error - AUC)': sf_aucs + simple_methods_AUCs,
+    # SCORE
+    'Score (Smallest Error - AUC)': sf_scores + simple_methods_scores
+}
+
 # Check the length of each list in the data dictionary
 print("Length of each list in the data dictionary:")
 pprint({key: len(value) for key, value in data.items()})
@@ -99,6 +120,30 @@ print("\nMethodology Counter:")
 pprint(Counter(data['Methodology']))
 
 df = pd.DataFrame(data)
+
+# Define the conversion dictionary
+conversion_dict = {
+    'study_type': 'Methodology',
+    'best_rmse_number': 'Error ID',
+    'best_rmse_value': 'Error (Smallest Error)',
+    'best_rmse_auc': 'AUC (Smallest Error)',
+    'best_auc_number': 'AUC ID',
+    'best_auc_value': 'Error (Biggest AUC)',
+    'best_auc': 'AUC (Biggest AUC)',
+    'best_combined_number': 'Score ID',
+    'best_combined_metric': 'Score (Smallest Error - AUC)',
+    'best_combined_value': 'Error (Smallest Error - AUC)',
+    'best_combined_auc': 'AUC (Smallest Error - AUC)'
+}
+
+# Rename the columns if they present in the dataframe
+df.rename(columns=conversion_dict, inplace=True)
+
+# Add the data from data dictionary to the end of the dataframe df (filling the missing values with NaN)
+df = pd.concat([df, pd.DataFrame(data)], ignore_index=True)
+
+# Add the Experiment column (incremental integer starting from 1)
+df['Experiment'] = range(1, len(df) + 1)
 
 # Get the Error range
 min_error = min([df['Error (Smallest Error - AUC)'].min(), df['Error (Biggest AUC)'].min(), df['Error (Smallest Error - AUC)'].min()])
@@ -158,11 +203,14 @@ for i, plot in enumerate(['Error (Smallest Error)', 'Error (Biggest AUC)', 'Erro
     # Make 1 - AUC for AUC < 0.5
     df.loc[df['AUC_category'] == '< 0.5', auc] = 1 - df[auc]
 
+    # Get the index of the AUC column
+    auc_index = df.columns.get_loc(auc)
+
     # Plot the df_auc_ge_05 normally
     sns.scatterplot(
         data=df[df['AUC_category'] == '>= 0.5'], 
         x=plot, 
-        y=df.columns[i*2+3],  # This will select the corresponding AUC column for each plot
+        y=df.columns[auc_index],
         hue='Methodology', 
         legend=False, 
         palette=color_mapping,
@@ -174,7 +222,7 @@ for i, plot in enumerate(['Error (Smallest Error)', 'Error (Biggest AUC)', 'Erro
     sns.scatterplot(
         data=df[df['AUC_category'] == '< 0.5'], 
         x=plot, 
-        y=df.columns[i*2+3],  # This will select the corresponding AUC column for each plot
+        y=df.columns[auc_index],
         hue='Methodology', 
         legend=False, 
         palette=color_mapping,
@@ -269,12 +317,12 @@ df_error_menor_erro_auc['Methodology'] = df_error_menor_erro_auc['Methodology'].
 df_error_concat = pd.concat([df_error_menor_erro, df_error_maior_auc, df_error_menor_erro_auc])
 
 # Do the same for AUC
-df_auc_menor_erro = df[['Experiment', 'Methodology', 'AUC (Smallest Error - AUC)']].copy()
+df_auc_menor_erro = df[['Experiment', 'Methodology', 'AUC (Smallest Error)']].copy()
 df_auc_maior_auc = df[['Experiment', 'Methodology', 'AUC (Biggest AUC)']].copy()
 df_auc_menor_erro_auc = df[['Experiment', 'Methodology', 'AUC (Smallest Error - AUC)']].copy()
 
 # Rename the AUC columns to just 'AUC'
-df_auc_menor_erro.rename(columns={'AUC (Smallest Error - AUC)': 'AUC'}, inplace=True)
+df_auc_menor_erro.rename(columns={'AUC (Smallest Error)': 'AUC'}, inplace=True)
 df_auc_maior_auc.rename(columns={'AUC (Biggest AUC)': 'AUC'}, inplace=True)
 df_auc_menor_erro_auc.rename(columns={'AUC (Smallest Error - AUC)': 'AUC'}, inplace=True)
 

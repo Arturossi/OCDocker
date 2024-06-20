@@ -87,7 +87,7 @@ def parse_study_type(name: str, autoencoder: bool = False, genetic_algorithm: bo
 
     # Combine dimensional and ML method
     if dimensional:
-        return f"{dimensional} + {ml_method}"
+        return f"{ml_method} + {dimensional}"
     else:
         return ml_method
 
@@ -457,7 +457,13 @@ snames = [
     'NoScores_Trans_Optimization_126_TPE',
     'NoScores_Trans_Optimization_127_TPE',
     'NoScores_Trans_Optimization_128_TPE',
-    'NoScores_Trans_Optimization_129_TPE'
+    'NoScores_Trans_Optimization_129_TPE',
+    'NoScores_NN_Optimization_130_TPE',
+    'NoScores_NN_Optimization_131_TPE',
+    'NoScores_NN_Optimization_132_TPE',
+    'NoScores_NN_Optimization_133_TPE',
+    'NoScores_NN_Optimization_134_TPE',
+    'NoScores_NN_Optimization_135_TPE'
 ]
 
 user = "ocdocker"
@@ -467,4 +473,5 @@ port = 3306
 db = "optimization"
 
 results_df = analyze_studies(snames, storage=f"mysql+pymysql://{user}:{quote_plus(password)}@{host}:{port}/{db}")
-print(results_df)
+#print(results_df)
+df = results_df.copy()
