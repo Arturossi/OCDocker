@@ -6,7 +6,7 @@ import pandas as pd
 
 from optuna.samplers import TPESampler
 from sklearn.metrics import auc, roc_curve
-from typing import Union
+from typing import Any, Union
 
 #from OCDocker.Initialise import *
 
@@ -25,7 +25,8 @@ class NeuralNet(nn.Module):
             nn_params,
             random_seed = 42,
             use_gpu = True,
-            verbose = False
+            verbose = False,
+            mask = []
     ):
         super(NeuralNet, self).__init__()
 
@@ -100,7 +101,7 @@ class NeuralNet(nn.Module):
             self.NN = MultiBranchDynamicNN(input_size, output_size, hidden_layers, activation_data, self.encoder, self.device)
         else:
             # Create the DynamicNN
-            self.NN = DynamicNN(input_size, output_size, hidden_layers, activation_data, self.encoder, self.device)
+            self.NN = DynamicNN(input_size, output_size, hidden_layers, activation_data, self.encoder, self.device, mask = self.mask)
 
         self.batch_size = nn_params['batch_size']
         self.epochs = nn_params['epochs']
@@ -247,7 +248,7 @@ class NeuralNet(nn.Module):
                 )
             else:
                 validation_loader = DataLoader(
-                    dataset = CustomDataset(X_validation, y_validation), 
+                    dataset = CustomDataset(X_validation, y_validation), # type: ignore
                     batch_size = self.batch_size, 
                     shuffle = True
                 )
@@ -361,7 +362,8 @@ class DynamicNN(nn.Module):
             hidden_layers: list,
             activation_data: list = [],
             encoder: Union[None, list] = None,
-            device: torch.device = torch.device('cpu')
+            device: torch.device = torch.device('cpu'),
+            mask: list = []
         ):
         super(DynamicNN, self).__init__()
 
@@ -371,6 +373,8 @@ class DynamicNN(nn.Module):
         self.layers = nn.ModuleList()
 
         self.device = device
+
+        self.__set_ablation_mask(mask)
 
         # If an encoder has been provided, add it to the layers
         if encoder is not None:
@@ -405,6 +409,34 @@ class DynamicNN(nn.Module):
                     # Create a new dictionary with the trailing numbers removed from the keys
                     processed_act_params = {re.sub(r'_\d+$', '', k): v for k, v in act_params.items()}
                     self.layers.append(act_func(**processed_act_params).to(self.device))
+        return None
+
+    def __set_ablation_mask(self, mask) -> None:
+        ''' Set the mask for the ablation study
+
+        Parameters
+        ----------
+        mask : list
+            List of 1s and 0s to set the mask
+
+        Raises
+        ------
+        ValueError
+            If the mask is not a list of 1s and 0s or Trues and Falses.
+        '''
+
+        # If the mask is not empty
+        if mask:
+            # Check if it is a list of 1s, 0s, or bools
+            if all(isinstance(i, (int, bool)) and i in [0, 1] for i in mask):
+                # Convert the mask to a tensor
+                self.mask = torch.tensor(mask, dtype = torch.float32)
+            else:
+                raise ValueError("The mask should be a list of 1s, 0s, or bools")
+        
+        self.mask = []
+
+        return None
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         '''
@@ -420,14 +452,26 @@ class DynamicNN(nn.Module):
         torch.Tensor
             Output tensor
         '''
+        
+        # Flag to check if its the first layer of the encoder (to apply the mask for ablation study)
+        first_layer = True
 
         for layer in self.layers:
             x = layer(x.to(self.device))
+
+            # If the mask is not empty and it is the first layer
+            if self.mask and first_layer:
+                # Apply the mask to the tensor
+                x = x * self.mask
+
+            # Set the first_layer flag to False
+            first_layer = False
+
         return x
 
 class MultiBranchDynamicNN(nn.Module):
     def __init__(self,
-            input_size: int,
+            input_size: Union[int, list[int]],
             output_size: int,
             hidden_layers: list,
             activation_data: list = [],
@@ -490,6 +534,7 @@ class MultiBranchDynamicNN(nn.Module):
                     # Create a new dictionary with the trailing numbers removed from the keys
                     processed_act_params = {re.sub(r'_\d+$', '', k): v for k, v in act_params.items()}
                     self.layers.append(act_func(**processed_act_params).to(self.device))
+        return None
 
     def forward(self, xs: list[torch.Tensor]) -> torch.Tensor:
         '''
@@ -513,13 +558,15 @@ class MultiBranchDynamicNN(nn.Module):
         # Check if the length of xs is the same as the number of encoders
         if len(xs) != len(self.encoders):
             raise ValueError("The number of inputs should be the same as the number of encoders")
-        
+
         # Process each input tensor through its corresponding encoder
         encoded_outputs = []
+        
         for x, encoder in zip(xs, self.encoders):
             for layer in encoder["encoder"]:
                 x = layer(x.to(self.device))  # Update x with the output of the current layer
             encoded_outputs.append(x)  # Store the encoded output for each input tensor
+
         
         # Concatenate the encoded outputs into a single tensor
         x = torch.cat(encoded_outputs, dim=1)
@@ -539,14 +586,56 @@ class MultiBranchDynamicNN(nn.Module):
         return x
 
 class CustomDataset(Dataset):
-    def __init__(self, features, target):
+    """ Custom dataset class for the neural network
+
+    Parameters
+    ----------
+    features : torch.Tensor
+        Features tensor
+    target : torch.Tensor
+        Target tensor
+    """
+
+    def __init__(self, features: torch.Tensor, target: torch.Tensor) -> None:
+        ''' Initialize the CustomDataset class
+
+        Parameters
+        ----------
+        features : torch.Tensor
+            Features tensor
+        target : torch.Tensor
+            Target tensor
+        '''
+
         self.features = features
         self.target = target
+        return None
 
-    def __len__(self):
+    def __len__(self) -> int:
+        ''' Get the length of the dataset
+        
+        Returns
+        -------
+        int
+            Length of the dataset
+        '''
+
         return len(self.features)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
+        ''' Get the item at the specified index
+
+        Parameters
+        ----------
+        idx : int
+            Index of the item
+
+        Returns
+        -------
+        tuple[torch.Tensor, torch.Tensor]
+            Tuple of features and target at the specified index
+        '''
+
         return self.features[idx], self.target[idx]
 
 class MultiBranchCustomDataset(Dataset):
@@ -562,7 +651,6 @@ class MultiBranchCustomDataset(Dataset):
     def __getitem__(self, idx):
         return self.features1[idx], self.features2[idx], self.features3[idx], self.target[idx]
 
-
 class NNOptimizer:
     def __init__(self,
             X_train: Union[np.ndarray, pd.DataFrame, pd.Series, list[Union[np.ndarray, pd.DataFrame, pd.Series]]],
@@ -571,6 +659,7 @@ class NNOptimizer:
             y_test: Union[np.ndarray, pd.DataFrame, pd.Series],
             X_validation: Union[None, Union[np.ndarray, pd.DataFrame, pd.Series], list[Union[None, np.ndarray, pd.DataFrame, pd.Series]]] = None,
             y_validation: Union[None, Union[np.ndarray, pd.DataFrame, pd.Series]] = None,
+            masks: list[list[Union[int, bool]]] = [],
             storage: str = "sqlite:///NNoptimization.db",
             encoder_params: Union[None, dict, tuple[dict, dict, dict]] = None,
             output_size: int = 1,
@@ -589,6 +678,8 @@ class NNOptimizer:
         self.activation_functions = [nn.GELU, nn.LeakyReLU, nn.Mish, nn.ReLU, nn.SELU, nn.Identity]
         self.activation_functions_str = ['GELU', 'LeakyReLU', 'Mish', 'ReLU', 'SELU', 'Identity']
 
+        self.masks = masks
+        self.encoder_params = encoder_params
 
         self.set_random_seed()
         
@@ -601,7 +692,7 @@ class NNOptimizer:
                 self.X_train = torch.tensor(np.asarray(X_train[:2286]), dtype=torch.float32)
             except Exception as e:
                 print(e)
-            self.input_size = self.X_train.shape[1]
+            self.input_size = self.X_train.shape[1] # type: ignore
 
         self.y_train = torch.tensor(np.asarray(y_train), dtype=torch.float32).to(self.device)
         self.train_loader = None
@@ -828,7 +919,7 @@ class NNOptimizer:
         if self.encoder != None and isinstance(self.encoder[0], list):
             model = MultiBranchDynamicNN(self.input_size, self.output_size, hidden_layers, activation_data, self.encoder, self.device)
         else:
-            model = DynamicNN(self.input_size, self.output_size, hidden_layers, activation_data, self.encoder, self.device)
+            model = DynamicNN(self.input_size, self.output_size, hidden_layers, activation_data, self.encoder, self.device) # type: ignore
 
         # Print the model architecture
         if self.verbose:
@@ -878,7 +969,7 @@ class NNOptimizer:
                 )
             else:
                 self.validation_loader = DataLoader(
-                    dataset = CustomDataset(self.X_validation, self.y_validation), 
+                    dataset = CustomDataset(self.X_validation, self.y_validation), # type: ignore
                     batch_size = batch_size, 
                     shuffle = True
                 )
@@ -898,11 +989,14 @@ class NNOptimizer:
         if self.validation_loader is not None:
             # Set the model to evaluation mode
             model.eval()
+
             # Get the predictions for the validation set
             validation_predictions = model(self.X_validation)
+
             # Convert the predictions and the labels to numpy
             validation_predictions_np = validation_predictions.detach().cpu().numpy()
             y_validation_np = self.y_validation.cpu().numpy() # type: ignore
+
             # If there is a nan in the predictions, set the AUC to 0
             if np.isnan(validation_predictions_np).any():
                 validation_auc = 0
@@ -916,6 +1010,46 @@ class NNOptimizer:
             validation_auc = None
 
         return test_loss
+    
+    def objective_ablation(self, trial):
+        self.set_random_seed()
+
+        # If the first element in the encoder is a list
+        if self.encoder != None and isinstance(self.encoder[0], list):
+            raise NotImplementedError("Ablation study is not supported for MultiBranchDynamicNN yet")
+        else
+            # Create the NN model
+            model = NeuralNet(
+                self.X_train.shape[1], # type: ignore
+                self.output_size,          
+                self.encoder_params,
+                self.network_params,
+                random_seed = self.random_seed,
+                use_gpu = self.use_gpu, 
+                verbose = self.verbose,
+                mask = self.mask
+            )
+
+        # Reset the random seeds
+        self.set_random_seed()
+
+        # Print the model architecture
+        if self.verbose:
+            print(model)
+
+        trained_model = model.train_model(
+            self.X_train, 
+            self.y_train, 
+            self.X_test, 
+            self.y_test, 
+            self.X_validation, 
+            self.y_validation
+        )
+
+        #trial.set_user_attr('RMSE', trained_model.rmse) # type: ignore
+        trial.set_user_attr('AUC', trained_model.validation_auc) # type: ignore
+
+        return trained_model.rmse # type: ignore
 
     def optimize(self, direction: str = "maximize", n_trials = 10, study_name = "NN_Optimization", load_if_exists = True, sampler: optuna.samplers.BaseSampler = TPESampler(), n_jobs = 1):
         if self.verbose:
@@ -937,5 +1071,24 @@ class NNOptimizer:
         )
 
         study.optimize(self.objective, n_trials = n_trials, n_jobs = n_jobs)
-        best_params = study.best_params
-        print("Best Hyperparameters:", best_params)
+        
+        if self.verbose:
+            best_params = study.best_params
+            print("Best Hyperparameters:", best_params)
+
+    def ablate(self, network_params: dict[str, Any], n_trials = 1, study_name = "NN_Ablation_Optimization", load_if_exists = True, n_jobs = 1):
+        if self.verbose:
+            print(f"Ablating the inputs of the model")
+
+        self.network_params = network_params
+
+        study = optuna.create_study(
+            study_name = study_name, 
+            storage = self.storage, 
+            load_if_exists = load_if_exists, 
+        )
+
+        study.optimize(self.objective_ablation, n_trials = n_trials, n_jobs = n_jobs)
+        
+        if self.verbose:
+            print("Finished Ablation Study")

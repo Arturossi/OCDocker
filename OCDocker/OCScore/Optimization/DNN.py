@@ -8,18 +8,18 @@ using Optuna."""
 # Imports
 ###############################################################################
 
+import itertools
 import math
+import optuna
+
 import numpy as np
 
+from multiprocessing import Pool
 from typing import Union
+from urllib.parse import quote_plus
 
 import OCDocker.OCScore.Utils.Data as ocscoredata
 import OCDocker.OCScore.Utils.Workers as ocscoreworkers
-
-import optuna
-
-from multiprocessing import Pool
-from urllib.parse import quote_plus
 
 # License
 ###############################################################################
@@ -42,6 +42,46 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 # Methods
 ###############################################################################
 
+def perform_ablation_study_NN(
+        X_train, y_train,
+        X_test, y_test, 
+        X_val, y_val,
+        num_processes,
+        autoencoder_params,
+        best_params,
+        random_seed,
+        use_gpu,
+        verbose
+    ):
+    
+    # Filter the SFs
+    sf = X_train.filter(regex = r"(VINA|SMINA|ODDT|PLANTS).*").columns.tolist()
+
+    # Create the mask of 0s and 1s for the ablation study (Brute force approach)
+    masks = list(itertools.product([0, 1], repeat = len(sf)))
+
+    # Create a pool of worker processes
+    with Pool(num_processes) as pool:
+        # Each process will execute the 'NNAblationworker' function with the datasets and optimizer parameters
+        pool.starmap(ocscoreworkers.NNAblationworker, [(
+            pid,
+            X_train[sf], 
+            y_train, 
+            X_test[sf], 
+            y_test, 
+            X_val[sf], 
+            y_val,
+            masks,
+            autoencoder_params, 
+            best_params, 
+            random_seed, 
+            use_gpu, 
+            verbose
+            ) for pid in range(len(num_processes))
+        ])
+
+    return None
+
 def optimize_NN(
         df_path: str,
         storage_id: int,
@@ -51,10 +91,9 @@ def optimize_NN(
         use_PCA: bool = True,
         best_ao_params: Union[dict, None] = None,
         pca_type: int = 80,
-        storage: str = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}",
+        storage: str = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization",
         encoder_dims: tuple[int, int] = (16, 256),
         base_models_folder: str = f"/data/hd4tb/OCDocker/data/ocdb/models",
-        genetic_algorithm: bool = False,
         autoencoder: bool = False,
         multiencoder: bool = False,
         run_autoencoder_optimization: bool = False,
@@ -133,68 +172,6 @@ def optimize_NN(
     y_test = data["y_test"]
     X_val = data["X_val"]
     y_val = data["y_val"]
-
-    if genetic_algorithm: # TODO: Finish this
-        if verbose:
-            print("Running Genetic Algorithm optimization...")
-
-        # If total_trials is not divisible by num_processes, warn the user
-        if total_trials_autoencoder % num_processes_autoencoder != 0:
-            print("Warning: total_trials_autoencoder is not divisible by num_processes_autoencoder. The number of trials per process will be rounded down to the nearest perfect divisor integer.")
-
-        n_trials_autoencoder = total_trials_autoencoder // num_processes_autoencoder
-
-        if run_autoencoder_optimization:
-            # Create a pool of worker processes
-            with Pool(num_processes_autoencoder) as pool:
-                # Each process will execute the 'GAWorker' function with the datasets and optimizer parameters
-                pool.starmap(ocscoreworkers.GAWorker, [(
-                    pid,
-                    storage_id, 
-                    X_train, 
-                    X_test, 
-                    X_val, 
-                    encoder_dims,
-                    storage,
-                    models_folder,
-                    random_seed,
-                    use_gpu,
-                    verbose,
-                    "minimize",           # direction
-                    n_trials_autoencoder,
-                    load_if_exists,
-                    1,                    # n_jobs
-                    "GA_Optimization"     # study_name
-                    ) for pid in range(num_processes_autoencoder)
-                ])
-
-        # Load the study
-        ga_study = optuna.load_study(
-            study_name = f"GA_Optimization_{storage_id}",
-            storage = storage
-        )
-        ga_df = ga_study.trials_dataframe()
-
-        # Filter the trials to only include the ones that are complete
-        ga_df = ga_df[ga_df['state'] == 'COMPLETE']
-
-        best_ga_df = ga_df.sort_values(
-            by = ["value", "user_attrs_val_rmse"],
-            ascending = [True, True]
-        )
-
-        # Recreate the autoencoder object for the best trial based on the best_ga_df
-        best_ga_trial = best_ga_df.iloc[0]
-
-        # Select the trial by the best_ga_trial number
-        best_ga_trial = ga_study.trials[best_ga_trial.number]
-
-        # Pick the params from the best_ga_trial
-        best_ga_params = best_ga_trial.params
-
-        new_X_train = X_train
-        new_X_test = X_test
-        new_X_val = X_val
 
     if autoencoder:
         if verbose:

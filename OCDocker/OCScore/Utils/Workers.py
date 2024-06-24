@@ -26,7 +26,7 @@ from OCDocker.OCScore.XGBoost.XGBoostOptimizer import XGBoostOptimizer
 from OCDocker.OCScore.Dimensionality.GeneticAlgorithmFeatureSelector import GeneticAlgorithmFeatureSelector
 
 from optuna.samplers import TPESampler
-from typing import Union
+from typing import Any, Union
 
 # License
 ###############################################################################
@@ -287,8 +287,8 @@ def NNworker(
         X_train, y_train, 
         X_test, y_test, 
         X_val, y_val, 
-        storage,
-        encoder_params,
+        storage = storage,
+        encoder_params = encoder_params,
         output_size = output_size, 
         random_seed = random_seed,
         use_gpu = use_gpu, 
@@ -306,6 +306,97 @@ def NNworker(
     )
 
     print(f"Process {id} completed optimization")
+
+    return
+
+def NNAblationworker(
+        pid: int,
+        id: int,
+        X_train: np.ndarray, y_train: np.ndarray,
+        X_test: np.ndarray, y_test: np.ndarray,
+        X_val: np.ndarray, y_val: np.ndarray,
+        masks: list[list[Union[int, bool]]],
+        storage: str,
+        network_params: dict[str, Any],
+        encoder_params: Union[dict, None] = None,
+        output_size: int = 1,
+        random_seed: int = 42,
+        use_gpu: bool = True,
+        verbose: bool = False,
+        load_if_exists: bool = True,
+        n_jobs: int = 1,
+        study_name: str = "NN_Ablation_Optimization"
+    ) ->  None:
+    ''' Neural network optimization worker function.
+    
+    This function is used to run the optimization of a neural network model in a
+    separate process. It is used to parallelize the optimization process.
+    
+    Parameters
+    ----------
+    pid : int
+        Process ID.
+    id : int
+        Instance ID.
+    X_train : np.ndarray
+        Training data.
+    y_train : np.ndarray
+        Training labels.
+    X_test : np.ndarray
+        Testing data.
+    y_test : np.ndarray
+        Testing labels.
+    X_val : np.ndarray
+        Validation data.
+    y_val : np.ndarray
+        Validation labels.
+    mask : list[list[Union[int, bool]]]
+        Mask list.
+    storage : str
+        Storage string.
+    network_params : dict[str, Any]
+        Network parameters.
+    encoder_params : Union[dict, None], optional
+        Encoder parameters. The default is None.
+    output_size : int, optional
+        Output size. The default is 1.
+    random_seed : int, optional
+        Random seed. The default is 42.
+    use_gpu : bool, optional
+        Use GPU. The default is True.
+    verbose : bool, optional
+        Verbose. The default is False.
+    '''
+
+    print(f"Process {pid} starting optimization")
+
+    # Sleep pid seconds before starting
+    time.sleep(pid)
+
+    # Initialize the trainer
+    trainer = NNOptimizer(
+        X_train, y_train, 
+        X_test, y_test, 
+        X_val, y_val, 
+        masks = masks,
+        storage = storage,
+        encoder_params = encoder_params,
+        output_size = output_size, 
+        random_seed = random_seed,
+        use_gpu = use_gpu, 
+        verbose = verbose,
+    )
+
+    # Run optimization
+    trainer.ablate(
+        network_params = network_params,
+        n_trials = 1, 
+        study_name = f"{study_name}_{id}", 
+        load_if_exists = load_if_exists, 
+        n_jobs = n_jobs
+    )
+
+    print(f"Process {id} completed ablation")
 
     return
 
