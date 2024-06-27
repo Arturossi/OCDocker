@@ -14,7 +14,9 @@ from urllib.parse import quote_plus
 
 #from OCDocker.Initialise import *
 
-import OCxgboost
+#import OCxgboost
+#import OCDocker.OCScore.XGBoost.OCxgboost as OCxgboost
+import XGBoost.OCxgboost as OCxgboost
 
 class GeneticAlgorithmFeatureSelector:
     """

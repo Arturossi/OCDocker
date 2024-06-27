@@ -18,8 +18,10 @@ from multiprocessing import Pool
 from typing import Union
 from urllib.parse import quote_plus
 
-import OCDocker.OCScore.Utils.Data as ocscoredata
-import OCDocker.OCScore.Utils.Workers as ocscoreworkers
+#import OCDocker.OCScore.Utils.Data as ocscoredata
+#import OCDocker.OCScore.Utils.Workers as ocscoreworkers
+import Utils.Data as ocscoredata
+import Utils.Workers as ocscoreworkers
 
 # License
 ###############################################################################
@@ -46,38 +48,88 @@ def perform_ablation_study_NN(
         X_train, y_train,
         X_test, y_test, 
         X_val, y_val,
+        id,
         num_processes,
-        autoencoder_params,
+        encoder_params,
         best_params,
         random_seed,
         use_gpu,
-        verbose
+        verbose,
+        load_if_exists,
+        study_name,
+        storage,
+        output_size = 1,
+        n_jobs = 1
     ):
     
     # Filter the SFs
     sf = X_train.filter(regex = r"(VINA|SMINA|ODDT|PLANTS).*").columns.tolist()
 
-    # Create the mask of 0s and 1s for the ablation study (Brute force approach)
-    masks = list(itertools.product([0, 1], repeat = len(sf)))
+    # Create the mask of zeros and ones for the ablation study (Brute force approach)
+    feature_masks = list(itertools.product([0, 1], repeat=len(sf)))
+
+    # Create a mask of ones for the full model
+    full_mask = np.ones(X_train.shape[1], dtype=int)
+
+    # Get the indexes for each sf
+    sf_indexes = [X_train.columns.get_loc(col) for col in sf]
+
+    # Set the evaluated masks to an empty list
+    evaluated_masks = []
+
+    try:
+        # Try to load the study to check which masks have already been evaluated
+        study = optuna.load_study(study_name = f"{study_name}_{id}", storage = storage)
+
+        # Filter the trials to only include the ones that are complete
+        trials = study.trials_dataframe()
+        trials = trials[trials['state'] == 'COMPLETE']
+
+        # Get the masks that have already been evaluated
+        evaluated_masks = trials['user_attrs_Feature_Mask'].tolist()
+    except:
+        pass
+    
+    # Apply each feature mask to the full_mask
+    masks = []
+    for mask in feature_masks:
+        # Start with a fresh copy of the full mask template
+        modified_mask = full_mask.copy()
+        # Set the specific feature indices according to the current mask
+        for index, value in zip(sf_indexes, mask):
+            modified_mask[index] = value
+        if not evaluated_masks or "".join(map(str, modified_mask)) not in evaluated_masks:
+            masks.append(modified_mask)
+
+    # Split masks into roughly equal parts for each process using Round Robin distribution
+    split_masks = [[] for _ in range(num_processes)]
+    for i, mask in enumerate(masks):
+        split_masks[i % num_processes].append(mask)
 
     # Create a pool of worker processes
     with Pool(num_processes) as pool:
         # Each process will execute the 'NNAblationworker' function with the datasets and optimizer parameters
         pool.starmap(ocscoreworkers.NNAblationworker, [(
             pid,
-            X_train[sf], 
+            id,
+            X_train, 
             y_train, 
-            X_test[sf], 
+            X_test, 
             y_test, 
-            X_val[sf], 
+            X_val, 
             y_val,
-            masks,
-            autoencoder_params, 
-            best_params, 
+            mask,
+            storage,
+            best_params,
+            encoder_params,
+            output_size,
             random_seed, 
             use_gpu, 
-            verbose
-            ) for pid in range(len(num_processes))
+            verbose,
+            load_if_exists,
+            n_jobs,
+            study_name,
+            ) for pid, mask in enumerate(split_masks)
         ])
 
     return None
@@ -189,9 +241,12 @@ def optimize_NN(
             ligand = [f"AUTOCORR2D_{i}" for i in range(1, 193)] + \
                 [f"BCUT2D_{attr}" for attr in ["CHGHI", "CHGLO", "LOGPHI", "LOGPLOW", "MRHI", "MRLOW", "MWHI", "MWLOW"]] + \
                 [f"fr_{attr}" for attr in ["Al_COO", "Al_OH", "Al_OH_noTert", "ArN", "Ar_COO", "Ar_N", "Ar_NH", "Ar_OH", "COO", "COO2", "C_O", "C_O_noCOO", "C_S", "HOCCN", "Imine", "NH0", "NH1", "NH2", "N_O", "Ndealkylation1", "Ndealkylation2", "Nhpyrrole", "SH", "aldehyde", "alkyl_carbamate", "alkyl_halide", "allylic_oxid", "amide", "amidine", "aniline", "aryl_methyl", "azide", "azo", "barbitur", "benzene", "benzodiazepine", "bicyclic", "diazo", "dihydropyridine", "epoxide", "ester", "ether", "furan", "guanido", "halogen", "hdrzine", "hdrzone", "imidazole", "imide", "isocyan", "isothiocyan", "ketone", "ketone_Topliss", "lactam", "lactone", "methoxy", "morpholine", "nitrile", "nitro", "nitro_arom", "nitro_arom_nonortho", "nitroso", "oxazole", "oxime", "para_hydroxylation", "phenol", "phenol_noOrthoHbond", "phos_acid", "phos_ester", "piperdine", "piperzine", "priamide", "prisulfonamd", "pyridine", "quatN", "sulfide", "sulfonamd", "sulfone", "term_acetylene", "tetrazole", "thiazole", "thiocyan", "thiophene", "unbrch_alkane", "urea"]] + \
-                [f"Chi{attr}" for attr in ["0", "0v", "0n", "1", "1v", "1n", "2v", "2n", "3v", "3n", "4v", "4n"]] + [f"EState_VSA{i}" for i in range(1, 12)] + [f"FpDensityMorgan{i}" for i in range(1, 4)] + \
+                [f"Chi{attr}" for attr in ["0", "0v", "0n", "1", "1v", "1n", "2v", "2n", "3v", "3n", "4v", "4n"]] + \
+                [f"EState_VSA{i}" for i in range(1, 12)] + \
+                [f"FpDensityMorgan{i}" for i in range(1, 4)] + \
                 [f"Kappa{i}" for i in range(1, 4)] + \
-                ["MolLogP", "MolMR", "MolWt", "NumAliphaticCarbocycles", "NumAliphaticHeterocycles", "NumAliphaticRings", "NumAromaticCarbocycles", "NumAromaticHeterocycles", "NumAromaticRings", "NumHAcceptors", "NumHDonors", "NumHeteroatoms", "NumRadicalElectrons", "NumRotatableBonds", "NumSaturatedCarbocycles", "NumSaturatedHeterocycles", "NumSaturatedRings", "NumValenceElectrons", "NPR1", "NPR2", "PMI1", "PMI2", "PMI3", "PEOE_VSA{i}" for i in range(1, 15)] + \
+                ["MolLogP", "MolMR", "MolWt", "NumAliphaticCarbocycles", "NumAliphaticHeterocycles", "NumAliphaticRings", "NumAromaticCarbocycles", "NumAromaticHeterocycles", "NumAromaticRings", "NumHAcceptors", "NumHDonors", "NumHeteroatoms", "NumRadicalElectrons", "NumRotatableBonds", "NumSaturatedCarbocycles", "NumSaturatedHeterocycles", "NumSaturatedRings", "NumValenceElectrons", "NPR1", "NPR2", "PMI1", "PMI2", "PMI3"] + \
+                [f"PEOE_VSA{i}" for i in range(1, 15)] + \
                 [f"SMR_VSA{i}" for i in range(1, 11)] + \
                 [f"SlogP_VSA{i}" for i in range(1, 13)] + \
                 [f"VSA_EState{i}" for i in range(1, 11)] + \

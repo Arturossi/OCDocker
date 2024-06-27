@@ -14,20 +14,13 @@ import OCDocker.OCScore.Utils.IO as ocscoreio
 # Imports
 ###############################################################################
 
-import os
 import pandas as pd
-import pickle
 import seaborn as sns
-import time
-import math
 import matplotlib.pyplot as plt
-import numpy as np
 
 from scipy.cluster.hierarchy import leaves_list, linkage
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.metrics import auc, roc_curve
-from sklearn.model_selection import train_test_split
-from typing import Tuple, Union
+from typing import Union
 
 # License
 ###############################################################################

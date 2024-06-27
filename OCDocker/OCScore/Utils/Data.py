@@ -29,7 +29,8 @@ from sklearn.metrics import auc, roc_curve
 from sklearn.model_selection import train_test_split
 from typing import Any, Union
 
-import OCDocker.OCScore.Utils.IO as ocscoreio
+#import OCDocker.OCScore.Utils.IO as ocscoreio
+import Utils.IO as ocscoreio
 
 # License
 ###############################################################################

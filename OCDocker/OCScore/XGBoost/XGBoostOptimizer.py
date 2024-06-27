@@ -14,7 +14,8 @@ from urllib.parse import quote_plus
 
 #from OCDocker.Initialise import *
 
-import OCxgboost
+#import OCDocker.OCScore.XGBoost.OCxgboost as OCxgboost
+import XGBoost.OCxgboost as OCxgboost
 
 class XGBoostOptimizer:
     def __init__(self, 

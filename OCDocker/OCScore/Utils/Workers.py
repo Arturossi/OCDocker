@@ -19,11 +19,16 @@ import time
 
 import numpy as np
 
-from OCDocker.OCScore.NN.AutoencoderOptimizer import AutoencoderOptimizer
-from OCDocker.OCScore.NN.NNOptimizer import NNOptimizer
-from OCDocker.OCScore.Transformer.TransOptimizer import TransOptimizer
-from OCDocker.OCScore.XGBoost.XGBoostOptimizer import XGBoostOptimizer
-from OCDocker.OCScore.Dimensionality.GeneticAlgorithmFeatureSelector import GeneticAlgorithmFeatureSelector
+#from OCDocker.OCScore.NN.AutoencoderOptimizer import AutoencoderOptimizer
+#from OCDocker.OCScore.NN.NNOptimizer import NNOptimizer
+#from OCDocker.OCScore.Transformer.TransOptimizer import TransOptimizer
+#from OCDocker.OCScore.XGBoost.XGBoostOptimizer import XGBoostOptimizer
+#from OCDocker.OCScore.Dimensionality.GeneticAlgorithmFeatureSelector import GeneticAlgorithmFeatureSelector
+from NN.AutoencoderOptimizer import AutoencoderOptimizer
+from NN.NNOptimizer import NNOptimizer
+from Transformer.TransOptimizer import TransOptimizer
+from XGBoost.XGBoostOptimizer import XGBoostOptimizer
+from Dimensionality.GeneticAlgorithmFeatureSelector import GeneticAlgorithmFeatureSelector
 
 from optuna.samplers import TPESampler
 from typing import Any, Union
@@ -315,7 +320,7 @@ def NNAblationworker(
         X_train: np.ndarray, y_train: np.ndarray,
         X_test: np.ndarray, y_test: np.ndarray,
         X_val: np.ndarray, y_val: np.ndarray,
-        masks: list[list[Union[int, bool]]],
+        mask: list[Union[int, bool]],
         storage: str,
         network_params: dict[str, Any],
         encoder_params: Union[dict, None] = None,
@@ -350,7 +355,7 @@ def NNAblationworker(
         Validation data.
     y_val : np.ndarray
         Validation labels.
-    mask : list[list[Union[int, bool]]]
+    mask : list[Union[int, bool]]
         Mask list.
     storage : str
         Storage string.
@@ -370,33 +375,63 @@ def NNAblationworker(
 
     print(f"Process {pid} starting optimization")
 
-    # Sleep pid seconds before starting
-    time.sleep(pid)
+    # Sleep 2 seconds before starting
+    time.sleep(2)
 
-    # Initialize the trainer
-    trainer = NNOptimizer(
-        X_train, y_train, 
-        X_test, y_test, 
-        X_val, y_val, 
-        masks = masks,
-        storage = storage,
-        encoder_params = encoder_params,
-        output_size = output_size, 
-        random_seed = random_seed,
-        use_gpu = use_gpu, 
-        verbose = verbose,
-    )
+    # If mask is a list of np.ndarrays
+    if isinstance(mask, list) and isinstance(mask[0], np.ndarray):
+         for m in mask:
+            # Initialize the trainer
+            trainer = NNOptimizer(
+                X_train, y_train, 
+                X_test, y_test, 
+                X_val, y_val, 
+                mask = m,
+                storage = storage,
+                encoder_params = encoder_params,
+                output_size = output_size, 
+                random_seed = random_seed,
+                use_gpu = use_gpu, 
+                verbose = verbose,
+            )
 
-    # Run optimization
-    trainer.ablate(
-        network_params = network_params,
-        n_trials = 1, 
-        study_name = f"{study_name}_{id}", 
-        load_if_exists = load_if_exists, 
-        n_jobs = n_jobs
-    )
+            # Run optimization
+            trainer.ablate(
+                network_params = network_params,
+                n_trials = 1, 
+                study_name = f"{study_name}_{id}", 
+                load_if_exists = load_if_exists, 
+                n_jobs = n_jobs
+            )
 
-    print(f"Process {id} completed ablation")
+            print(f"Process {id} completed ablation")
+    elif isinstance(mask, np.ndarray):
+        # Initialize the trainer
+        trainer = NNOptimizer(
+            X_train, y_train, 
+            X_test, y_test, 
+            X_val, y_val, 
+            mask = mask,
+            storage = storage,
+            encoder_params = encoder_params,
+            output_size = output_size, 
+            random_seed = random_seed,
+            use_gpu = use_gpu, 
+            verbose = verbose,
+        )
+
+        # Run optimization
+        trainer.ablate(
+            network_params = network_params,
+            n_trials = 1, 
+            study_name = f"{study_name}_{id}", 
+            load_if_exists = load_if_exists, 
+            n_jobs = n_jobs
+        )
+
+        print(f"Process {id} completed ablation")
+    else:
+        raise ValueError("Mask must be a list of np.ndarrays of zeros, ones, or boleans or a np.ndarray of zeros, ones, or booleans")
 
     return
 

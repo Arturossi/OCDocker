@@ -1,19 +1,15 @@
 
-import os
 import pandas as pd
 import pickle
 import seaborn as sns
-import math
 import matplotlib.pyplot as plt
-import numpy as np
 
 from scipy.cluster.hierarchy import leaves_list, linkage
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.metrics import auc, roc_curve
 from sklearn.model_selection import train_test_split
 from typing import Tuple, Union
-
-import torch
+from urllib.parse import quote_plus
 
 def save_object(obj, filename):
     """
@@ -520,6 +516,7 @@ best_nn_trial = nn_study.trials[best_nn_trial.number]
 
 best_nn_params = best_nn_trial.params
 
-from OCDocker.OCScore.Optimization.DNN import perform_ablation_study_NN
+#from OCDocker.OCScore.Optimization.DNN import perform_ablation_study_NN
+from Optimization.DNN import perform_ablation_study_NN
 
-perform_ablation_study_NN(X_train, y_train, X_test, y_test, X_val, y_val, 8, autoencoder_params, best_nn_params, 43, True, False)
+perform_ablation_study_NN(X_train, y_train, X_test, y_test, X_val, y_val, 136, 8, autoencoder_params, best_nn_params, 42, True, False, True, "NN_Ablation_Optimization", storage)
