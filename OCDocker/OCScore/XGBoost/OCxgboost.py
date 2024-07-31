@@ -1,5 +1,42 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+""" Module to run the Extreme Gradient Boost algorithm. 
+
+It is imported as:
+
+import OCDocker.OCScore.XGBoost.OCxgboost as OCxgboost
+"""
+
+# Imports
+###############################################################################
+
 import numpy as np
+
 from xgboost import XGBRegressor
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Torres, P.H.M.;
+[The Federal University of Rio de Janeiro]
+Contact info:
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+Av. Carlos Chagas Filho 373 - CCS - bloco G1-19,
+Cidade Universitária - Rio de Janeiro, RJ, CEP: 21941-902
+E-mail address: arturossi10@gmail.com
+This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
+'''
+
+# Classes
+###############################################################################
+
+
+# Methods
+###############################################################################
 
 def run_xgboost(X_train: np.ndarray, y_train: np.ndarray, X_test: np.ndarray, y_test: np.ndarray, params: dict = {}, verbose: bool = False) -> tuple[XGBRegressor, float]:
     '''

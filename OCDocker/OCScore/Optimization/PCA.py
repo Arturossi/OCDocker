@@ -2,7 +2,13 @@
 
 # Description
 ###############################################################################
-""" Module to execute the Principal Component Analysis (PCA) on the datasets."""
+""" Module with a helper to execute the Principal Component Analysis (PCA)
+on the datasets.
+
+It is imported as:
+
+import OCDocker.OCScore.Optimization.PCA as ocpca
+"""
 
 # Imports
 ###############################################################################
@@ -144,5 +150,3 @@ def run_pca(
         print(f"After PCA scaling): {pdbbind_pca_df.shape[1] - 6} features")
 
     return pca_file_path
-
-run_pca('/data/hd4tb/OCDocker/data/ocdb/predictions/OCDocker_pre.csv.gz', 0.80, './')

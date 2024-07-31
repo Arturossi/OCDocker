@@ -212,6 +212,7 @@ def create_ocdocker_conf() -> None:
     confUSER = 'root'
     confPASSWORD = ''
     confDATABASE = 'ocdocker'
+    confOPTIMIZATIONDB = 'optimization'
     confPORT = '3306'
 
     print("\nSQL database OCDocker configuration")
@@ -227,6 +228,9 @@ def create_ocdocker_conf() -> None:
     answer = input(f"DATABASE. Default [{confDATABASE}] (press enter to keep default): ")
     confDATABASE = confDATABASE if not answer else answer
 
+    answer = input(f"OPTIMIZATION DATABASE. Default [{confOPTIMIZATIONDB}] (press enter to keep default): ")
+    confOPTIMIZATIONDB = confOPTIMIZATIONDB if not answer else answer
+
     answer = input(f"PORT. Default [{confPORT}] (press enter to keep default): ")
     confPORT = confPORT if not answer else answer
 
@@ -234,11 +238,15 @@ def create_ocdocker_conf() -> None:
 
     #region General config
     confOcdb = "/mnt/e/Documents/OCDocker/OCDocker/data/ocdb"
+    confPCA = "/mnt/e/Documents/OCDocker/OCDocker/data/pca"
     confPDBbind_KdKi_order = "u"
 
     print("\nGeneral OCDocker configuration")
     answer = input(f"Path to the OCDB. Default [{confOcdb}] (press enter to keep default): ")
     confOcdb = confOcdb if not answer else answer
+
+    answer = input(f"Path to the folder where the PCA models will be stored. Default [{confPCA}] (press enter to keep default): ")
+    confPCA = confPCA if not answer else answer
 
     # Ensure that the answer is valid (reset its value to an known invalid value before checking)
     answer = ""
@@ -630,12 +638,16 @@ HOST = """ + str(confHOST) + """
 USER = """ + str(confUSER) + """
 PASSWORD = """ + str(confPASSWORD) + """
 DATABASE = """ + str(confDATABASE) + """
+OPTIMIZATIONDB = """ + str(confOPTIMIZATIONDB) + """
 PORT = """ + str(confPORT) + """
 
 ################### OCDB PARAMETERS ###################
                                  
 # Root directory for the OCDocker Database
 ocdb = """ + str(confOcdb) + """
+
+# Directory for the PCA models
+pca = """ + str(confPCA) + """
 
 # The default pdbbind KiKd magnitude [Y, Z, E, P, T, G, M, k, un, c, m, u, n, pf, a, z, y] (follow the unit prefix table)
 pdbbind_KdKi_order = """ + str(confPDBbind_KdKi_order) + """
@@ -997,6 +1009,7 @@ global overwrite
 global db_url
 global engine
 global session
+global optdb_url
 
 # Order variable
 global order
@@ -1004,6 +1017,7 @@ global pdbbind_KdKi_order
 
 # Data from .cfg
 global ocdb_path
+global pca_path
 global vina
 global vina_split
 global dock6
@@ -1183,7 +1197,7 @@ overwrite = False
 # Initialise
 ###############################################################################
 def print_description() -> None:
-    '''Print the description of the program.
+    ''' Print the description of the program.
     '''
 
     print(description)
@@ -1215,6 +1229,7 @@ HOST = ""
 USER = ""
 PASSWORD = ""
 DATABASE = ""
+OPTIMIZATIONDB = ""
 PORT = ""
 
 # Read the conf file and assign its data to its variables (The order matters here, if you follow the same order which is in the conf file less computation power will be needed! It is not much, but it is something.)
@@ -1227,6 +1242,8 @@ for line in open(config_file, 'r'): # type: ignore
         PASSWORD = line.split("=")[1].strip()
     elif line.startswith("DATABASE ="):
         DATABASE = line.split("=")[1].strip()
+    elif line.startswith("OPTIMIZATIONDB ="):
+        OPTIMIZATIONDB = line.split("=")[1].strip()
     elif line.startswith("PORT ="):
         PORT = line.split("=")[1].strip()
         # Check if the port is a number
@@ -1237,6 +1254,8 @@ for line in open(config_file, 'r'): # type: ignore
         PORT = int(PORT)
     elif line.startswith("ocdb ="):
         ocdb_path = line.split("=")[1].strip()
+    elif line.startswith("pca ="):
+        pca_path = line.split("=")[1].strip()
     elif line.startswith("pdbbind_KdKi_order ="):
         pdbbind_KdKi_order = line.split("=")[1].strip()
     elif line.startswith("pythonsh ="):
@@ -1401,7 +1420,7 @@ if not HOST or not USER or not PASSWORD or not DATABASE or not PORT:
     print(f"{clrs['r']}ERROR{clrs['n']}: The variables HOST, USER, PASSWORD, DATABASE and PORT must be set in the config file '{config_file}'")
     quit()
 
-# Create the database URL
+# Create the database URLs
 db_url = URL.create(
     drivername = 'mysql+pymysql',
     host = HOST,
@@ -1411,14 +1430,28 @@ db_url = URL.create(
     port = PORT
 )
 
-# Set the engine
-engine = create_engine(db_url.render_as_string(hide_password=False))
+optdb_url = URL.create(
+    drivername = 'mysql+pymysql',
+    host = HOST,
+    username = USER,
+    password = PASSWORD,
+    database = OPTIMIZATIONDB,
+    port = PORT
+)
 
-# Create the database if it does not exist
+# Set the engine
+#engine = create_engine(db_url.render_as_string(hide_password=False))
+#optengine = create_engine(optdb_url.render_as_string(hide_password=False))  
+engine = create_engine(db_url)
+optengine = create_engine(optdb_url)  
+
+# Create the databases if it does not exist
 create_database_if_not_exists(engine.url)
+create_database_if_not_exists(optengine.url)
 
 # Set the session factory as scoped to ensure that the session is thread-safe
 session = create_session(engine)
+
 # Root directory for OCDocker module
 ocdocker_path = os.path.dirname(os.path.abspath( __file__ ))
 
@@ -1449,6 +1482,10 @@ if not os.path.isdir(logdir):
 # Check if oddt_models_dir exists, if not, create-it
 if not os.path.isdir(oddt_models_dir):
     os.mkdir(oddt_models_dir)
+
+# Check if pca_path exists, if not, create-it
+if not os.path.isdir(pca_path):
+    os.mkdir(pca_path)
 
 # Remove tmp path then create it again
 tmpDir = f"{ocdocker_path}/tmp"

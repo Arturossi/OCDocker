@@ -2,8 +2,13 @@
 
 # Description
 ###############################################################################
-""" Module to perform the optimization of the Neural Network parameters model
-using Optuna."""
+""" Module with a helper to perform the optimization of the Neural Network
+parameters model using Optuna.
+
+It is imported as:
+
+import OCDocker.OCScore.Optimization.DNN as ocdnn
+"""
 
 # Imports
 ###############################################################################
@@ -16,12 +21,9 @@ import numpy as np
 
 from multiprocessing import Pool
 from typing import Union
-from urllib.parse import quote_plus
 
-#import OCDocker.OCScore.Utils.Data as ocscoredata
-#import OCDocker.OCScore.Utils.Workers as ocscoreworkers
-import Utils.Data as ocscoredata
-import Utils.Workers as ocscoreworkers
+import OCDocker.OCScore.Utils.Data as ocscoredata
+import OCDocker.OCScore.Utils.Workers as ocscoreworkers
 
 # License
 ###############################################################################
@@ -137,15 +139,15 @@ def perform_ablation_study_NN(
 def optimize_NN(
         df_path: str,
         storage_id: int,
+        base_models_folder: str,
+        storage: str = "sqlite:///NN_optimization.db",
         use_pdb_train: bool = True,
         no_scores: bool = True,
         only_scores: bool = True,
         use_PCA: bool = True,
         best_ao_params: Union[dict, None] = None,
         pca_type: int = 80,
-        storage: str = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization",
         encoder_dims: tuple[int, int] = (16, 256),
-        base_models_folder: str = f"/data/hd4tb/OCDocker/data/ocdb/models",
         autoencoder: bool = False,
         multiencoder: bool = False,
         run_autoencoder_optimization: bool = False,
@@ -168,6 +170,10 @@ def optimize_NN(
         The path to the DataFrame.
     storage_id : int
         The storage ID to use.
+    base_models_folder : str
+        The base models folder to use.
+    storage : str, optional
+        The storage to use. Default is "sqlite:///NN_optimization.db".
     use_pdb_train : bool, optional
         If True, use the PDBbind data for training. If False, use the DUDEz data for training. Default is True.
     no_scores : bool, optional
@@ -180,10 +186,6 @@ def optimize_NN(
         The best autoencoder parameters. Default is None.
     pca_type : int, optional
         The PCA type to use. Default is 80.
-    storage : str, optional
-        The storage to use. Default is "mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}".
-    base_models_folder : str, optional
-        The base models folder to use. Default is "/data/hd4tb/OCDocker/data/ocdb/models".
     autoencoder : bool, optional
         If True, use the autoencoder. If False, don't use the autoencoder. Default is False.
     multiencoder : bool, optional

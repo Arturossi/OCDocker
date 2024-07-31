@@ -2,14 +2,18 @@
 
 # Description
 ###############################################################################
-""" Module to perform the optimization of the Transformer parameters model
-using Optuna."""
+""" Module with a helper  to perform the optimization of the Transformer
+parameters model using Optuna.
+
+It is imported as:
+
+import OCDocker.OCScore.Optimization.Transformer as octrans
+"""
 
 # Imports
 ###############################################################################
 
 from multiprocessing import Pool
-from urllib.parse import quote_plus
 
 import OCDocker.OCScore.Utils.Data as ocscoredata
 import OCDocker.OCScore.Utils.Workers as ocscoreworkers
@@ -38,13 +42,13 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 def optimize_Transformer(
         df_path: str,
         storage_id: int,
+        base_models_folder: str,
+        storage: str = "sqlite:///Transformer_optimization.db",
         use_pdb_train: bool = True,
         no_scores: bool = True,
         only_scores: bool = True,
         use_PCA: bool = True,
         pca_type: int = 95,
-        storage: str = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}",
-        base_models_folder: str = f"/data/hd4tb/OCDocker/data/ocdb/models",
         run_Trans_optimization: bool = False,
         num_processes_Trans: int = 4,
         total_trials_Trans: int = 2000,
@@ -61,20 +65,20 @@ def optimize_Transformer(
         The path to the dataset file.
     storage_id : int
         The storage ID of the dataset.
-    use_pdb_train : bool
-        Whether to use the PDB train dataset.
-    no_scores : bool
-        Whether to use the no scores dataset.
-    only_scores : bool
-        Whether to use the only scores dataset.
-    use_PCA : bool
-        Whether to use PCA.
-    pca_type : int
-        The PCA type to use.
-    storage : str
-        The storage string for the database.
     base_models_folder : str
         The base models folder.
+    storage : str, optional
+        The storage string for the database. The default is "sqlite:///Transformer_optimization.db".
+    use_pdb_train : bool, optional
+        Whether to use the PDB train dataset. The default is True.
+    no_scores : bool, optional
+        Whether to use the no scores dataset. The default is True.
+    only_scores : bool, optional
+        Whether to use the only scores dataset. The default is True.
+    use_PCA : bool, optional
+        Whether to use PCA. The default is True.
+    pca_type : int, optional
+        The PCA type to use. The default is 95.
     '''
 
     # Load the data

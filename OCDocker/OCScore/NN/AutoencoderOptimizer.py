@@ -1,3 +1,17 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+""" Module to perform the optimization of the Autoencoder. 
+
+It is imported as:
+
+from OCDocker.OCScore.NN.AutoencoderOptimizer import AutoencoderOptimizer
+"""
+
+# Imports
+###############################################################################
+
 import numpy as np
 import pandas as pd
 import torch
@@ -11,6 +25,24 @@ from typing import Union
 import optuna
 import random
 import re
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Torres, P.H.M.;
+[The Federal University of Rio de Janeiro]
+Contact info:
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+Av. Carlos Chagas Filho 373 - CCS - bloco G1-19,
+Cidade Universitária - Rio de Janeiro, RJ, CEP: 21941-902
+E-mail address: arturossi10@gmail.com
+This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
+'''
+
+# Classes
+###############################################################################
 
 class AutoencoderDataset(Dataset):
     def __init__(self, features):
@@ -565,3 +597,6 @@ class AutoencoderOptimizer:
             print(f"    {key}: {value}")
 
         return study
+
+# Methods
+###############################################################################

@@ -3,7 +3,11 @@
 # Description
 ###############################################################################
 """ Module to perform the optimization of the Transformer parameters model
-using Optuna."""
+using Optuna.
+
+It is imported as:
+import OCDocker.OCScore.Optimization.StudyParser as ocstudy
+"""
 
 # Imports
 ###############################################################################

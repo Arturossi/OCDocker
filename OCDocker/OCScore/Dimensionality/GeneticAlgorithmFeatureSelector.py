@@ -1,6 +1,18 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+""" Module to perform the feature selection using the Genetic Algorithm. 
+
+It is imported as:
+
+from OCDocker.OCScore.Dimensionality.GeneticAlgorithmFeatureSelector import GeneticAlgorithmFeatureSelector
+"""
+
+# Imports
+###############################################################################
+
 import optuna
-import pickle
-import shutil
 
 import cupy as cp
 import numpy as np
@@ -10,13 +22,26 @@ from numpy.random import default_rng
 from sklearn.metrics import auc, roc_curve
 from tqdm import tqdm
 from typing import Union
-from urllib.parse import quote_plus
 
-#from OCDocker.Initialise import *
+import OCDocker.OCScore.XGBoost.OCxgboost as OCxgboost
 
-#import OCxgboost
-#import OCDocker.OCScore.XGBoost.OCxgboost as OCxgboost
-import XGBoost.OCxgboost as OCxgboost
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Torres, P.H.M.;
+[The Federal University of Rio de Janeiro]
+Contact info:
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+Av. Carlos Chagas Filho 373 - CCS - bloco G1-19,
+Cidade Universitária - Rio de Janeiro, RJ, CEP: 21941-902
+E-mail address: arturossi10@gmail.com
+This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
+'''
+
+# Classes
+###############################################################################
 
 class GeneticAlgorithmFeatureSelector:
     """
@@ -31,6 +56,7 @@ class GeneticAlgorithmFeatureSelector:
             xgboost_params: dict,
             X_validation: Union[None, Union[np.ndarray, pd.DataFrame, pd.Series]] = None,
             y_validation: Union[None, Union[np.ndarray, pd.DataFrame, pd.Series]] = None,
+            storage: str = "sqlite:///GA.db",
             evolution_params: dict = {},
             use_gpu: bool = False,
             early_stopping_rounds : int = 20,
@@ -110,7 +136,7 @@ class GeneticAlgorithmFeatureSelector:
         if "random_state" not in xgboost_params:
             self.xgboost_params["random_state"] = self.random_state
         
-        self.storage = f"mysql+pymysql://ocdocker:{ quote_plus('@Kp3sRv9t@') }@localhost:3306/optimization"
+        self.storage = storage
 
     def fitness(self, individual: list) -> tuple:
         """
@@ -491,14 +517,10 @@ class GeneticAlgorithmFeatureSelector:
             # Set the best AUC score as a user attribute
             trial.set_user_attr('best_AUC', best_score2)
 
-        # Save a trained model to a file.
-        with open("/data/hd4tb/OCDocker/data/ocdb/predictions/models_tmp/{}.pickle".format(trial.number), "wb") as fout:
-            pickle.dump(model, fout)
-
         # Return the AUC score
         return best_score
 
-    def optimize(self, direction: str = "maximize", n_trials: int = 100,  n_jobs: int = 1, study_name: str = "Genetic Algorithm for descriptor optimization", load_if_exists: bool = True, verbose: bool = False) -> optuna.study.Study:
+    def optimize(self, direction: str = "maximize", n_trials: int = 100,  n_jobs: int = 1, study_name: str = "Genetic Algorithm for descriptor optimization", load_if_exists: bool = True, verbose: bool = False) -> tuple[optuna.study.Study, dict, float]:
         '''
         A function to optimize the feature selection using the genetic algorithm using Optuna.
 
@@ -512,8 +534,6 @@ class GeneticAlgorithmFeatureSelector:
             The number of jobs to run in parallel. Default is 1.
         study_name : str, optional
             The name of the study. Default is "Genetic Algorithm for descriptor optimization".
-        storage : str, optional
-            The storage for the study. Default is "sqlite:///example.db".
         load_if_exists : bool, optional
             Whether to load the study if it exists. Default is True.
         verbose : bool, optional
@@ -523,6 +543,10 @@ class GeneticAlgorithmFeatureSelector:
         -------
         optuna.study.Study
             The Optuna study object.
+        dict
+            The best hyperparameters.
+        float
+            The best score.
         '''
 
         # Set the direction
@@ -546,10 +570,7 @@ class GeneticAlgorithmFeatureSelector:
             if self.X_validation is not None:
                 print(f"Best AUC: {study.best_trial.user_attrs['best_AUC']}")
         
-        # Get the best model name
-        best_model_name = "{}.pickle".format(study.best_trial.number)
+        return study, best_params, best_score
 
-        # Copy to the models folder
-        shutil.copyfile("/data/hd4tb/OCDocker/data/ocdb/predictions/models_tmp/{}".format(best_model_name), "/data/hd4tb/OCDocker/data/ocdb/predictions/models/{}".format(best_model_name))
-
-        return study
+# Methods
+###############################################################################

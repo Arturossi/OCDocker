@@ -8,7 +8,7 @@ scoring functions.
 
 They are imported as:
 
-import OCDocker.OCScore.Utils.IO as ocscoreio
+import OCDocker.OCScore.Utils.Data as ocscoredata
 '''
 
 # Imports
@@ -16,21 +16,14 @@ import OCDocker.OCScore.Utils.IO as ocscoreio
 
 import os
 import pandas as pd
-import pickle
-import seaborn as sns
-import time
-import math
-import matplotlib.pyplot as plt
-import numpy as np
 
-from scipy.cluster.hierarchy import leaves_list, linkage
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
-from sklearn.metrics import auc, roc_curve
 from sklearn.model_selection import train_test_split
 from typing import Any, Union
 
-#import OCDocker.OCScore.Utils.IO as ocscoreio
-import Utils.IO as ocscoreio
+from OCDocker.Initialise import *
+
+import OCDocker.OCScore.Utils.IO as ocscoreio
 
 # License
 ###############################################################################
@@ -73,6 +66,7 @@ def apply_pca(df: pd.DataFrame, pca_model_path: str, columns_to_skip_pca: list[s
     pd.DataFrame or None
         DataFrame with PCA applied if inplace is False. None if inplace is True.
     '''
+
     pca = ocscoreio.load_object(pca_model_path)
 
     # Transform the data (excluding columns to keep)
@@ -252,8 +246,8 @@ def load_data(base_models_folder: str, storage_id: int, df_path: str, optimizati
         - y_val: The validation target variable.
     '''
 
-    # TODO: expose this variable to the user in the future
-    pca_model = f"/data/hd4tb/OCDocker/OCDocker/OCDocker/OCScore/pca{pca_type}.pkl"
+    # Set the PCA model path
+    pca_model = f"{pca_path}/pca{pca_type}.pkl"
 
     # Set the models folder
     models_folder = f"{base_models_folder}/{optimization_type}_{storage_id}"

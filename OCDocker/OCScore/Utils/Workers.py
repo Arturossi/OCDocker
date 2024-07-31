@@ -2,14 +2,14 @@
 
 # Description
 ###############################################################################
-'''
+"""
 Set of functions to manage I/O operations in OCDocker in the context of scoring 
 functions.
 
 They are imported as:
 
 import OCDocker.OCScore.Utils.Workers as ocscoreworkers
-'''
+"""
 
 # Imports
 ###############################################################################
@@ -19,16 +19,11 @@ import time
 
 import numpy as np
 
-#from OCDocker.OCScore.NN.AutoencoderOptimizer import AutoencoderOptimizer
-#from OCDocker.OCScore.NN.NNOptimizer import NNOptimizer
-#from OCDocker.OCScore.Transformer.TransOptimizer import TransOptimizer
-#from OCDocker.OCScore.XGBoost.XGBoostOptimizer import XGBoostOptimizer
-#from OCDocker.OCScore.Dimensionality.GeneticAlgorithmFeatureSelector import GeneticAlgorithmFeatureSelector
-from NN.AutoencoderOptimizer import AutoencoderOptimizer
-from NN.NNOptimizer import NNOptimizer
-from Transformer.TransOptimizer import TransOptimizer
-from XGBoost.XGBoostOptimizer import XGBoostOptimizer
-from Dimensionality.GeneticAlgorithmFeatureSelector import GeneticAlgorithmFeatureSelector
+from OCDocker.OCScore.NN.AutoencoderOptimizer import AutoencoderOptimizer
+from OCDocker.OCScore.NN.NNOptimizer import NNOptimizer
+from OCDocker.OCScore.Transformer.TransOptimizer import TransOptimizer
+from OCDocker.OCScore.XGBoost.XGBoostOptimizer import XGBoostOptimizer
+from OCDocker.OCScore.Dimensionality.GeneticAlgorithmFeatureSelector import GeneticAlgorithmFeatureSelector
 
 from optuna.samplers import TPESampler
 from typing import Any, Union
@@ -156,7 +151,8 @@ def GAWorker(
         X_test: np.ndarray, 
         y_test: np.ndarray, 
         X_validation: Union[np.ndarray, None] = None, 
-        y_validation: Union[np.ndarray, None] = None, 
+        y_validation: Union[np.ndarray, None] = None,
+        storage: str = "sqlite:///GA.db",
         best_params: dict = {}, 
         n_trials: int = 100, 
         study_name: str = "GA_Feature_Selection", 
@@ -188,6 +184,8 @@ def GAWorker(
         Validation data. The default is None.
     y_validation : Union[np.ndarray, None], optional
         Validation labels. The default is None.
+    storage : str, optional
+        Storage string. The default is "sqlite:///GA.db".
     best_params : dict, optional
         Best parameters. The default is {}.
     algorithm : str, optional
@@ -219,8 +217,8 @@ def GAWorker(
     # Sleep pid seconds before starting
     time.sleep(pid)
     
-    # Create the EvolutionaryFeatureSelectorCustom object
-    evo = GeneticAlgorithmFeatureSelector(X_train, y_train, X_test, y_test, X_validation = X_validation, y_validation = y_validation, xgboost_params = best_params, use_gpu = use_gpu, random_state = random_state, verbose = verbose) # type: ignore
+    # Create the GeneticAlgorithmFeatureSelector object
+    evo = GeneticAlgorithmFeatureSelector(X_train, y_train, X_test, y_test, X_validation = X_validation, y_validation = y_validation, storage = storage, xgboost_params = best_params, use_gpu = use_gpu, random_state = random_state, verbose = verbose) # type: ignore
     
     # Run the optimization
     study, best_features, best_score = evo.optimize(study_name = f"{study_name}_{id}", direction = "minimize", n_trials = n_trials, n_jobs = n_jobs)
@@ -320,7 +318,7 @@ def NNAblationworker(
         X_train: np.ndarray, y_train: np.ndarray,
         X_test: np.ndarray, y_test: np.ndarray,
         X_val: np.ndarray, y_val: np.ndarray,
-        mask: list[Union[int, bool]],
+        mask: Union[list[np.ndarray], np.ndarray],
         storage: str,
         network_params: dict[str, Any],
         encoder_params: Union[dict, None] = None,

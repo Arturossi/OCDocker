@@ -2,8 +2,13 @@
 
 # Description
 ###############################################################################
-""" Module to perform the optimization of the Extreme Gradient Boost (XGBoost)
-parameters model using Optuna."""
+""" Module with a helper to perform the optimization of the Extreme Gradient
+Boost (XGBoost) parameters model using Optuna.
+
+It is imported as:
+
+import OCDocker.OCScore.Optimization.XGBoost as ocxgb
+"""
 
 # Imports
 ###############################################################################
@@ -14,7 +19,6 @@ import OCDocker.OCScore.Utils.Data as ocscoredata
 import OCDocker.OCScore.Utils.Workers as ocscoreworkers
 
 from multiprocessing import Pool
-from urllib.parse import quote_plus
 
 # License
 ###############################################################################
@@ -40,13 +44,13 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 def optimize_XGB(
         df_path: str,
         storage_id: int,
+        base_models_folder: str,
+        storage: str = "sqlite:///XGB_optimization.db",
         use_pdb_train: bool = True,
         no_scores: bool = False,
         only_scores: bool = True,
         use_PCA: bool = True,
         pca_type: int = 95,
-        storage: str = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}",
-        base_models_folder: str = f"/data/hd4tb/OCDocker/data/ocdb/models",
         run_pre_XGB_optimization: bool = False,
         num_processes_pre_XGB: int = 8,
         total_trials_pre_XGB : int = 250,
@@ -70,6 +74,10 @@ def optimize_XGB(
         The path to the DataFrame.
     storage_id : int
         The storage ID to use.
+    base_models_folder : str
+        The base models folder to use.
+    storage : str, optional
+        The storage to use. Default is "sqlite:///XGB_optimization.db".
     use_pdb_train : bool, optional
         If True, use the PDBbind data for training. If False, use the DUDEz data for training. Default is True.
     no_scores : bool, optional
@@ -82,10 +90,6 @@ def optimize_XGB(
         The PCA type to use. Default is 80.
     num_processes : int, optional
         The number of processes to use. Default is 8.
-    storage : str, optional
-        The storage to use. Default is "mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}".
-    base_models_folder : str, optional
-        The base models folder to use. Default is "/data/hd4tb/OCDocker/data/ocdb/models".
     run_pre_XGB_optimization : bool, optional
         If True, run the pre-XGBoost optimization. If False, don't run the pre-XGBoost optimization. Default is False.
     num_processes_pre_XGB : int, optional

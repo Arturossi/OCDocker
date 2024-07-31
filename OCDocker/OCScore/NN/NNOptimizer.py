@@ -1,3 +1,17 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+""" Module to perform the optimization of the Neural Network. 
+
+It is imported as:
+
+from OCDocker.OCScore.NN.NNOptimizer import NNOptimizer
+"""
+
+# Imports
+###############################################################################
+
 import optuna
 import re
 
@@ -8,14 +22,30 @@ from optuna.samplers import TPESampler
 from sklearn.metrics import auc, roc_curve
 from typing import Any, Union
 
-#from OCDocker.Initialise import *
-
 import random
 import torch
 import torch.nn as nn
 import torch.optim as optim
 
 from torch.utils.data import Dataset, DataLoader
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Torres, P.H.M.;
+[The Federal University of Rio de Janeiro]
+Contact info:
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+Av. Carlos Chagas Filho 373 - CCS - bloco G1-19,
+Cidade Universitária - Rio de Janeiro, RJ, CEP: 21941-902
+E-mail address: arturossi10@gmail.com
+This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
+'''
+
+# Classes
+###############################################################################
 
 class NeuralNet(nn.Module):
     def __init__(self, 
@@ -752,7 +782,7 @@ class NNOptimizer:
             y_test: Union[np.ndarray, pd.DataFrame, pd.Series],
             X_validation: Union[None, Union[np.ndarray, pd.DataFrame, pd.Series], list[Union[None, np.ndarray, pd.DataFrame, pd.Series]]] = None,
             y_validation: Union[None, Union[np.ndarray, pd.DataFrame, pd.Series]] = None,
-            mask: list[Union[int, bool]] = [],
+            mask: Union[list[Union[int, bool]], np.ndarray] = [],
             storage: str = "sqlite:///NNoptimization.db",
             encoder_params: Union[None, dict, tuple[dict, dict, dict]] = None,
             output_size: int = 1,
@@ -1140,7 +1170,6 @@ class NNOptimizer:
             self.y_validation
         )
 
-        #trial.set_user_attr('RMSE', model.rmse) # type: ignore
         trial.set_user_attr('AUC', model.validation_auc) # type: ignore
 
         # Convert mask to string and then store it
@@ -1202,3 +1231,6 @@ class NNOptimizer:
                 print(study.best_trial)
         except Exception as e:
             print(f"An error occurred: {e}")
+
+# Methods
+###############################################################################

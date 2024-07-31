@@ -1,5 +1,17 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+""" Module to perform the optimization of the Transformer parameters model
+using Optuna.
+
+It is imported as:
+
+from OCDocker.OCScore.Transformer.TransOptimizer import TransOptimizer
 """
-"""
+
+# Imports
+###############################################################################
 
 import optuna
 import random

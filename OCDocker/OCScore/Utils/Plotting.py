@@ -8,7 +8,7 @@ scoring functions.
 
 They are imported as:
 
-import OCDocker.OCScore.Utils.IO as ocscoreio
+import OCDocker.OCScore.Utils.Plotting as ocscoreplot
 '''
 
 # Imports
