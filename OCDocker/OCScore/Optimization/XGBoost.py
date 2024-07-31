@@ -15,10 +15,11 @@ import OCDocker.OCScore.Optimization.XGBoost as ocxgb
 
 import optuna
 
+from multiprocessing import Pool
+
 import OCDocker.OCScore.Utils.Data as ocscoredata
 import OCDocker.OCScore.Utils.Workers as ocscoreworkers
-
-from multiprocessing import Pool
+import OCDocker.Toolbox.Printing as ocprint
 
 # License
 ###############################################################################
@@ -127,11 +128,11 @@ def optimize_XGB(
     
     if run_pre_XGB_optimization:
         if verbose:
-            print("Running XGBoost pre-optimization...")
+            ocprint.printv("Running XGBoost pre-optimization...")
 
         # If total_trials is not divisible by num_processes, warn the user
         if total_trials_pre_XGB % num_processes_pre_XGB != 0:
-            print("Warning: total_trials_pre_XGB is not divisible by num_processes_pre_XGB. The number of trials per process will be rounded down to the nearest perfect divisor integer.")
+            ocprint.print_warning("Warning: total_trials_pre_XGB is not divisible by num_processes_pre_XGB. The number of trials per process will be rounded down to the nearest perfect divisor integer.")
 
         n_trials_pre_XGB = total_trials_pre_XGB // num_processes_pre_XGB
 
@@ -178,11 +179,11 @@ def optimize_XGB(
 
     if run_GA_optimization:
         if verbose:
-            print("Running feature selection...")
+            ocprint.printv("Running feature selection...")
 
         # If total_trials is not divisible by num_processes, warn the user
         if total_trials_GA % num_processes_GA != 0:
-            print("Warning: total_trials_GA is not divisible by num_processes_GA. The number of trials per process will be rounded down to the nearest perfect divisor integer.")
+            ocprint.print_warning("Warning: total_trials_GA is not divisible by num_processes_GA. The number of trials per process will be rounded down to the nearest perfect divisor integer.")
 
         n_trials_GA = total_trials_GA // num_processes_GA
 
@@ -236,11 +237,11 @@ def optimize_XGB(
 
     if run_XGB_optimization:
         if verbose:
-            print("Running XGBoost final optimization...")
+            ocprint.printv("Running XGBoost final optimization...")
 
         # If total_trials is not divisible by num_processes, warn the user
         if total_trials_XGB % num_processes_XGB != 0:
-            print("Warning: total_trials_XGB is not divisible by num_processes_XGB. The number of trials per process will be rounded down to the nearest perfect divisor integer.")
+            ocprint.print_warning("Warning: total_trials_XGB is not divisible by num_processes_XGB. The number of trials per process will be rounded down to the nearest perfect divisor integer.")
 
         n_trials_XGB = total_trials_XGB // num_processes_XGB
 

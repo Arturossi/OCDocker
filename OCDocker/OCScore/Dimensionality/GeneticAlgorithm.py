@@ -6,7 +6,7 @@
 
 It is imported as:
 
-from OCDocker.OCScore.Dimensionality.GeneticAlgorithmFeatureSelector import GeneticAlgorithmFeatureSelector
+from OCDocker.OCScore.Dimensionality.GeneticAlgorithm import GeneticAlgorithm
 """
 
 # Imports
@@ -24,6 +24,7 @@ from tqdm import tqdm
 from typing import Union
 
 import OCDocker.OCScore.XGBoost.OCxgboost as OCxgboost
+import OCDocker.Toolbox.Printing as ocprint
 
 # License
 ###############################################################################
@@ -43,7 +44,7 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 # Classes
 ###############################################################################
 
-class GeneticAlgorithmFeatureSelector:
+class GeneticAlgorithm:
     """
     A class to optimize the feature selection for XGBoost using a genetic algorithm.
     """
@@ -65,7 +66,7 @@ class GeneticAlgorithmFeatureSelector:
             verbose: bool = False
         ) -> None:
         '''
-        Constructor for the GeneticAlgorithmFeatureSelector class.
+        Constructor for the GeneticAlgorithm class.
 
         Parameters
         ----------
@@ -361,7 +362,7 @@ class GeneticAlgorithmFeatureSelector:
 
                 # If verbose, print the fitness score and the number of features
                 if self.verbose:
-                    print(f"{f[0]} - {len(individual.nonzero()[0])} - {f[1].n_features_in_}")
+                    ocprint.printv(f"{f[0]} - {len(individual.nonzero()[0])} - {f[1].n_features_in_}")
                 
             # Convert to numpy arrays
             fitnesses = np.array(fitnesses)
@@ -388,11 +389,11 @@ class GeneticAlgorithmFeatureSelector:
                 has_better_score = best_score_in_generation > best_score
 
             if self.verbose:
-                print(f"pop: {population}")
-                print(f"argmin: {np.argmin(fitnesses)}")
-                print(f"argmax: {np.argmax(fitnesses)}")
-                print(f"best_score: {best_score_in_generation}")
-                print(f"best_score_index: {best_score_index}")
+                ocprint.printv(f"pop: {population}")
+                ocprint.printv(f"argmin: {np.argmin(fitnesses)}")
+                ocprint.printv(f"argmax: {np.argmax(fitnesses)}")
+                ocprint.printv(f"best_score: {best_score_in_generation}")
+                ocprint.printv(f"best_score_index: {best_score_index}")
 
             # Report the best score in the current generation
             trial.report(best_score_in_generation, generation)
@@ -435,10 +436,10 @@ class GeneticAlgorithmFeatureSelector:
 
                     if self.verbose:
                         # Print the AUC score
-                        print(f"Generation {generation}:\nBest score = {best_score}\nBest score AUC = {best_score2}")
+                        ocprint.printv(f"Generation {generation}:\nBest score = {best_score}\nBest score AUC = {best_score2}")
                 elif self.verbose:
                     # Print the best score
-                    print(f"Generation {generation}: Best score = {best_score}")
+                    ocprint.printv(f"Generation {generation}: Best score = {best_score}")
             
             # Create a new population
             new_population = []
@@ -563,12 +564,12 @@ class GeneticAlgorithmFeatureSelector:
         best_score = study.best_value
 
         if verbose:
-            print(f"Best score: {best_score}")
-            print(f"Best hyperparameters: {best_params}")
+            ocprint.printv(f"Best score: {best_score}")
+            ocprint.printv(f"Best hyperparameters: {best_params}")
 
             # If the validation dataset is provided, print the best AUC
             if self.X_validation is not None:
-                print(f"Best AUC: {study.best_trial.user_attrs['best_AUC']}")
+                ocprint.printv(f"Best AUC: {study.best_trial.user_attrs['best_AUC']}")
         
         return study, best_params, best_score
 

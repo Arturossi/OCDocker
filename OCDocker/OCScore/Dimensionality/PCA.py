@@ -18,6 +18,7 @@ from sklearn.decomposition import PCA
 
 import OCDocker.OCScore.Utils.Data as ocscoredata
 import OCDocker.OCScore.Utils.IO as ocscoreio
+import OCDocker.Toolbox.Printing as ocprint
 
 # License
 ###############################################################################
@@ -131,22 +132,22 @@ def run_pca(
 
     if verbose:
         # Check for NaNs in the PCA datasets
-        print("==== NaNs in PCA datasets ====")
-        print("--------------------------------")
-        print("DUDEz")
-        print(dudez_pca_df.isnull().sum())
-        print("\nPDBbind")
-        print(pdbbind_pca_df.isnull().sum())
+        ocprint.printv("==== NaNs in PCA datasets ====")
+        ocprint.printv("--------------------------------")
+        ocprint.printv("DUDEz")
+        ocprint.printv(f"{dudez_pca_df.isnull().sum()}")
+        ocprint.printv("\nPDBbind")
+        ocprint.printv(f"{pdbbind_pca_df.isnull().sum()}")
 
         # Compare the size of the datasets before and after PCA
-        print("==== Dataset sizes ====")
-        print("-----------------------")
-        print("DUDEZ")
-        print(f"Before PCA: {dudez_data.shape[1] - 5 - len(score_columns)} features")
-        print(f"After PCA scaling): {dudez_pca_df.shape[1] - 5} features")
+        ocprint.printv("==== Dataset sizes ====")
+        ocprint.printv("-----------------------")
+        ocprint.printv("DUDEZ")
+        ocprint.printv(f"Before PCA: {dudez_data.shape[1] - 5 - len(score_columns)} features")
+        ocprint.printv(f"After PCA scaling): {dudez_pca_df.shape[1] - 5} features")
 
-        print("\nPDBbind")
-        print(f"Before PCA: {pdbbind_data.shape[1] - 6 - len(score_columns)} features")
-        print(f"After PCA scaling): {pdbbind_pca_df.shape[1] - 6} features")
+        ocprint.printv("\nPDBbind")
+        ocprint.printv(f"Before PCA: {pdbbind_data.shape[1] - 6 - len(score_columns)} features")
+        ocprint.printv(f"After PCA scaling): {pdbbind_pca_df.shape[1] - 6} features")
 
     return pca_file_path

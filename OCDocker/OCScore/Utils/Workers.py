@@ -19,14 +19,17 @@ import time
 
 import numpy as np
 
-from OCDocker.OCScore.NN.AutoencoderOptimizer import AutoencoderOptimizer
-from OCDocker.OCScore.NN.NNOptimizer import NNOptimizer
-from OCDocker.OCScore.Transformer.TransOptimizer import TransOptimizer
-from OCDocker.OCScore.XGBoost.XGBoostOptimizer import XGBoostOptimizer
-from OCDocker.OCScore.Dimensionality.GeneticAlgorithmFeatureSelector import GeneticAlgorithmFeatureSelector
-
 from optuna.samplers import TPESampler
 from typing import Any, Union
+
+from OCDocker.OCScore.DNN.AutoencoderOptimizer import AutoencoderOptimizer
+from OCDocker.OCScore.DNN.DNNOptimizer import DNNOptimizer
+from OCDocker.OCScore.Transformer.TransOptimizer import TransOptimizer
+from OCDocker.OCScore.XGBoost.XGBoostOptimizer import XGBoostOptimizer
+from OCDocker.OCScore.Dimensionality.GeneticAlgorithm import GeneticAlgorithm
+
+import OCDocker.Toolbox.Printing as ocprint
+
 
 # License
 ###############################################################################
@@ -113,7 +116,11 @@ def AEworker(
         Study object.
     '''
     
-    print(f"Process {pid} starting optimization")
+    if verbose:
+        ocprint.printv(f"Process {pid} starting optimization")
+
+    # Sleep pid % 3 seconds before starting
+    time.sleep(pid % 3)
 
     # Initialize the trainer
     trainer = AutoencoderOptimizer(
@@ -139,7 +146,9 @@ def AEworker(
             sampler = TPESampler(), 
             n_jobs = n_jobs
     )
-    print(f"Process {id} completed optimization")
+
+    if verbose:
+        ocprint.printv(f"Process {pid} has completed the optimization")
 
     return study
 
@@ -211,17 +220,20 @@ def GAWorker(
         Best score.
     '''
 
-    # Setup unique to this instance, potentially using instance_id to differentiate setups
-    print(f"Running instance {pid}")
+    if verbose:
+        ocprint.printv(f"Process {pid} starting optimization")
 
-    # Sleep pid seconds before starting
-    time.sleep(pid)
+    # Sleep pid % 3 seconds before starting
+    time.sleep(pid % 3)
     
-    # Create the GeneticAlgorithmFeatureSelector object
-    evo = GeneticAlgorithmFeatureSelector(X_train, y_train, X_test, y_test, X_validation = X_validation, y_validation = y_validation, storage = storage, xgboost_params = best_params, use_gpu = use_gpu, random_state = random_state, verbose = verbose) # type: ignore
+    # Create the GeneticAlgorithm object
+    evo = GeneticAlgorithm(X_train, y_train, X_test, y_test, X_validation = X_validation, y_validation = y_validation, storage = storage, xgboost_params = best_params, use_gpu = use_gpu, random_state = random_state, verbose = verbose) # type: ignore
     
     # Run the optimization
     study, best_features, best_score = evo.optimize(study_name = f"{study_name}_{id}", direction = "minimize", n_trials = n_trials, n_jobs = n_jobs)
+
+    if verbose:
+        ocprint.printv(f"Process {pid} has completed the optimization")
 
     return study, best_features, best_score
 
@@ -280,13 +292,14 @@ def NNworker(
         Verbose. The default is False.
     '''
 
-    print(f"Process {pid} starting optimization")
+    if verbose:
+        ocprint.printv(f"Process {pid} starting optimization")
 
-    # Sleep pid seconds before starting
-    time.sleep(pid)
+    # Sleep pid % 3 seconds before starting
+    time.sleep(pid % 3)
 
     # Initialize the trainer
-    trainer = NNOptimizer(
+    trainer = DNNOptimizer(
         X_train, y_train, 
         X_test, y_test, 
         X_val, y_val, 
@@ -308,9 +321,11 @@ def NNworker(
         n_jobs = n_jobs
     )
 
-    print(f"Process {id} completed optimization")
+    # Setup unique to this instance, potentially using instance_id to differentiate setups
+    if verbose:
+        ocprint.printv(f"Process {pid} has completed the optimization")
 
-    return
+    return None
 
 def NNAblationworker(
         pid: int,
@@ -371,16 +386,17 @@ def NNAblationworker(
         Verbose. The default is False.
     '''
 
-    print(f"Process {pid} starting optimization")
+    if verbose:
+        ocprint.printv(f"Process {pid} starting ablation")
 
-    # Sleep 2 seconds before starting
-    time.sleep(2)
+    # Sleep pid % 3 seconds before starting
+    time.sleep(pid % 3)
 
     # If mask is a list of np.ndarrays
     if isinstance(mask, list) and isinstance(mask[0], np.ndarray):
-         for m in mask:
+        for m in mask:
             # Initialize the trainer
-            trainer = NNOptimizer(
+            trainer = DNNOptimizer(
                 X_train, y_train, 
                 X_test, y_test, 
                 X_val, y_val, 
@@ -402,10 +418,12 @@ def NNAblationworker(
                 n_jobs = n_jobs
             )
 
-            print(f"Process {id} completed ablation")
+        if verbose:
+            ocprint.printv(f"Process {pid} has completed the ablation")
+
     elif isinstance(mask, np.ndarray):
         # Initialize the trainer
-        trainer = NNOptimizer(
+        trainer = DNNOptimizer(
             X_train, y_train, 
             X_test, y_test, 
             X_val, y_val, 
@@ -427,11 +445,12 @@ def NNAblationworker(
             n_jobs = n_jobs
         )
 
-        print(f"Process {id} completed ablation")
+        if verbose:
+            ocprint.printv(f"Process {pid} has completed the ablation")
     else:
         raise ValueError("Mask must be a list of np.ndarrays of zeros, ones, or boleans or a np.ndarray of zeros, ones, or booleans")
 
-    return
+    return None
 
 def Transworker(
             pid: int,
@@ -497,7 +516,7 @@ def Transworker(
         '''
 
         if verbose:
-            print(f"Process {pid} starting optimization")
+            ocprint.printv(f"Process {pid} starting optimization")
 
         # Initialize the trainer
         trainer = TransOptimizer(
@@ -522,7 +541,7 @@ def Transworker(
         )
 
         if verbose:
-            print(f"Process {id} completed optimization")
+            ocprint.printv(f"Process {pid} has compleated optimization")
 
 def XGBworker(
         pid: int, id: int,
@@ -593,7 +612,8 @@ def XGBworker(
         Study object.
     '''
 
-    print(f"Process {pid} starting optimization")
+    if verbose:
+        ocprint.printv(f"Process {pid} starting optimization")
 
     # Set direction based on X_val
     direction = "maximize" if X_val is None else "minimize"
@@ -626,6 +646,7 @@ def XGBworker(
         load_if_exists = load_if_exists,
     )
 
-    print(f"Process {pid} completed optimization")
+    if verbose:
+        ocprint.printv(f"Process {pid} has completed the optimization")
 
     return study_pre

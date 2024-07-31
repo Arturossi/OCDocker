@@ -23,6 +23,7 @@ from sklearn.metrics import auc, roc_curve
 from typing import Union
 
 import OCDocker.OCScore.XGBoost.OCxgboost as OCxgboost
+import OCDocker.Toolbox.Printing as ocprint
 
 # License
 ###############################################################################
@@ -274,8 +275,9 @@ class XGBoostOptimizer:
         best_params = study.best_params
         best_score = study.best_value
 
-        print(f"Best score: { best_score }")
-        print(f"Best hyperparameters: {best_params}")
+        if self.verbose:
+            ocprint.printv(f"Best score: { best_score }")
+            ocprint.printv(f"Best hyperparameters: {best_params}")
 
         return study
 

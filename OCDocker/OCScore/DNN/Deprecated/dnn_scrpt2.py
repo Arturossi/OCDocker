@@ -566,7 +566,7 @@ for pca_type in [95, 90, 85, 80, 'onlysf']:
         from urllib.parse import quote_plus
 
         from AutoencoderOptimizer import AutoencoderOptimizer
-        from NNOptimizer import NNOptimizer, NeuralNet
+        from OCDocker.OCScore.DNN.DNNOptimizer import NNOptimizer, NeuralNet
         from optuna.samplers import TPESampler
 
         def AOworker(

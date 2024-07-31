@@ -9,7 +9,7 @@
 
 from OCDocker.Initialise import *
 
-import OCDocker.OCScore.Optimization.PCA as ocpca
+import OCDocker.OCScore.Dimensionality.PCA as ocpca
 
 # License
 ###############################################################################

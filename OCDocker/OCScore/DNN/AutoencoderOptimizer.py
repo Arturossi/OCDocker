@@ -26,6 +26,8 @@ import optuna
 import random
 import re
 
+import OCDocker.Toolbox.Printing as ocprint
+
 # License
 ###############################################################################
 '''
@@ -268,7 +270,7 @@ class AutoencoderOptimizer:
         model.train()
         for epoch in range(epochs):
             if self.verbose:
-                print(f"Epoch {epoch+1}/{epochs}")
+                ocprint.printv(f"Epoch {epoch+1}/{epochs}")
 
             running_loss = 0.0
 
@@ -292,30 +294,16 @@ class AutoencoderOptimizer:
                 trial.set_user_attr('val_rmse', val_rmse)
                 
                 if self.verbose:
-                    print(f"Epoch {epoch+1}, Validation Loss: {val_rmse}")
+                    ocprint.printv(f"Epoch {epoch+1}, Validation Loss: {val_rmse}")
 
                 # Check for improvement
                 if val_rmse < best_validation_rmse:
                     best_train_rmse = rmse
                     best_validation_rmse = val_rmse
-                '''
-                    epochs_without_improvement = 0
-                else:
-                    epochs_without_improvement += 1
-                    if epochs_without_improvement >= early_stopping_patience:
-                        if self.verbose:
-                            print("Early stopping triggered.")
-                        trial.report(rmse, epoch)
-
-                        # Handle pruning based on the intermediate value.
-                        if trial.should_prune():
-                            raise optuna.exceptions.TrialPruned()
-                        break
-                '''
             
             if self.verbose:
-                print(f'Test Loss: {average_loss}')
-                print(f'Test RMSE: {rmse}')
+                ocprint.printv(f'Test Loss: {average_loss}')
+                ocprint.printv(f'Test RMSE: {rmse}')
 
             trial.report(rmse, epoch)
 
@@ -573,6 +561,7 @@ class AutoencoderOptimizer:
             n_warmup_steps = 15,
         )
 
+        # Create the study
         study = optuna.create_study(
             direction = direction, 
             study_name = study_name, 
@@ -582,19 +571,19 @@ class AutoencoderOptimizer:
             pruner = pruner
         )
 
-##        mlflow.set_experiment(study_name)
-
+        # Perform the optimization
         study.optimize(self.objective, n_trials = n_trials, n_jobs = n_jobs)
         
-        print("Best trial:")
+        if self.verbose:
+            ocprint.printv("Best trial:")
 
-        trial = study.best_trial
+            trial = study.best_trial
 
-        print("  Value: ", trial.value)
-        print("  Params: ")
+            ocprint.printv(f"  Value:  {trial.value}" )
+            ocprint.printv("  Params: ")
 
-        for key, value in trial.params.items():
-            print(f"    {key}: {value}")
+            for key, value in trial.params.items():
+                ocprint.printv(f"    {key}: {value}")
 
         return study
 

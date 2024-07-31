@@ -6,28 +6,30 @@
 
 It is imported as:
 
-from OCDocker.OCScore.NN.NNOptimizer import NNOptimizer
+from OCDocker.OCScore.DNN.DNNOptimizer import DNNOptimizer
 """
 
 # Imports
 ###############################################################################
 
 import optuna
+import random
 import re
 
 import numpy as np
 import pandas as pd
 
-from optuna.samplers import TPESampler
-from sklearn.metrics import auc, roc_curve
-from typing import Any, Union
-
-import random
 import torch
 import torch.nn as nn
 import torch.optim as optim
 
 from torch.utils.data import Dataset, DataLoader
+
+from optuna.samplers import TPESampler
+from sklearn.metrics import auc, roc_curve
+from typing import Any, Union
+
+import OCDocker.Toolbox.Printing as ocprint
 
 # License
 ###############################################################################
@@ -174,7 +176,7 @@ class NeuralNet(nn.Module):
         self.prediction = None
 
         if verbose:
-            print(self.NN)
+            ocprint.printv(self.NN) # type: ignore
 
     def __build_encoder(self, encoder_params):
         # If the encoder_params has the key 'encoder_activation'
@@ -438,9 +440,9 @@ class NeuralNet(nn.Module):
             rmse = np.sqrt(average_loss)
 
             if self.verbose:
-                print(f'Epoch {epoch + 1}/{self.epochs}')
-                print(f'Average Loss: {average_loss}')
-                print(f'RMSE: {rmse}')
+                ocprint.printv(f'Epoch {epoch + 1}/{self.epochs}')
+                ocprint.printv(f'Average Loss: {average_loss}')
+                ocprint.printv(f'RMSE: {rmse}')
 
             # If a validation set has been provided, calculate the AUC
             if X_validation is not None:
@@ -774,7 +776,7 @@ class MultiBranchCustomDataset(Dataset):
     def __getitem__(self, idx):
         return self.features1[idx], self.features2[idx], self.features3[idx], self.target[idx]
 
-class NNOptimizer:
+class DNNOptimizer:
     def __init__(self,
             X_train: Union[np.ndarray, pd.DataFrame, pd.Series, list[Union[np.ndarray, pd.DataFrame, pd.Series]]],
             y_train: Union[np.ndarray, pd.DataFrame, pd.Series],
@@ -814,7 +816,7 @@ class NNOptimizer:
             try:
                 self.X_train = torch.tensor(np.asarray(X_train[:2286]), dtype=torch.float32)
             except Exception as e:
-                print(e)
+                ocprint.print_error(e) # type: ignore
             
             self.input_size = self.X_train.shape[1] # type: ignore
 
@@ -999,8 +1001,8 @@ class NNOptimizer:
         rmse = np.sqrt(average_loss)
 
         if self.verbose:
-            print(f'Test Loss: {average_loss}')
-            print(f'Test RMSE: {rmse}')
+            ocprint.printv(f'Test Loss: {average_loss}')
+            ocprint.printv(f'Test RMSE: {rmse}')
 
         trial.report(rmse, epoch)
         
@@ -1047,7 +1049,7 @@ class NNOptimizer:
 
         # Print the model architecture
         if self.verbose:
-            print(model)
+            ocprint.printv(model) # type: ignore
 
         # Suggestions for the optimizer
         optimizer_name = trial.suggest_categorical('optimizer', ['Adam', 'RMSprop', 'SGD'])
@@ -1159,7 +1161,7 @@ class NNOptimizer:
 
         # Print the model architecture
         if self.verbose:
-            print(model)
+            ocprint.printv(model) # type: ignore
 
         _ = model.train_model(
             self.X_train, 
@@ -1190,7 +1192,7 @@ class NNOptimizer:
 
     def optimize(self, direction: str = "maximize", n_trials = 10, study_name = "NN_Optimization", load_if_exists = True, sampler: optuna.samplers.BaseSampler = TPESampler(), n_jobs = 1):
         if self.verbose:
-            print(f'Optimizing the model for {n_trials} trials')
+            ocprint.printv(f'Optimizing the model for {n_trials} trials')
 
         # Add a pruner
         pruner = optuna.pruners.MedianPruner(
@@ -1211,11 +1213,11 @@ class NNOptimizer:
         
         if self.verbose:
             best_params = study.best_params
-            print("Best Hyperparameters:", best_params)
+            ocprint.printv(f"Best Hyperparameters: {best_params}")
 
     def ablate(self, network_params: dict[str, Any], n_trials = 1, study_name = "NN_Ablation_Optimization", load_if_exists = True, n_jobs = 1):
         if self.verbose:
-            print("Starting ablation study...")
+            ocprint.printv("Starting ablation study...")
         
         try:
             self.network_params = network_params
@@ -1227,10 +1229,10 @@ class NNOptimizer:
             study.optimize(self.objective_ablation, n_trials=n_trials, n_jobs=n_jobs)
 
             if self.verbose:
-                print("Finished Ablation Study. Best trial:")
-                print(study.best_trial)
+                ocprint.printv("Finished Ablation Study. Best trial:")
+                ocprint.printv(f"{study.best_trial}")
         except Exception as e:
-            print(f"An error occurred: {e}")
+            ocprint.print_error(f"An error occurred: {e}")
 
 # Methods
 ###############################################################################

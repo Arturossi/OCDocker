@@ -26,7 +26,7 @@ from optuna.samplers import TPESampler
 from sklearn.metrics import auc, roc_curve
 from torch.utils.data import Dataset, DataLoader
 
-#from OCDocker.Initialise import *
+import OCDocker.Toolbox.Printing as ocprint
 
 class CustomDataset(Dataset):
     """ Create a custom dataset for the PyTorch DataLoader. """
@@ -129,7 +129,7 @@ class TransformerModel(nn.Module):
 
         if verbose:
             # Print the model
-            print(self)
+            ocprint.printv(self) # type: ignore
 
     def set_random_seed(self):
         np.random.seed(self.random_seed)
@@ -234,7 +234,7 @@ class Transformer(nn.Module):
         self.prediction = None
 
         if verbose:
-            print(self.trans)
+            ocprint.printv(self.trans) # type: ignore
 
     def set_random_seed(self):
         np.random.seed(self.random_seed)
@@ -280,14 +280,14 @@ class Transformer(nn.Module):
             y_validation = torch.tensor(np.asarray(y_validation), dtype=torch.float32).to(self.device)
 
         train_loader = DataLoader(
-            dataset = CustomDataset(X_train, y_train), 
+            dataset = CustomDataset(X_train, y_train), # type: ignore
             batch_size = self.batch_size, 
             shuffle = True,
             drop_last=True
         )
 
         test_loader = DataLoader(
-            dataset = CustomDataset(X_test, y_test),
+            dataset = CustomDataset(X_test, y_test), # type: ignore
             batch_size = self.batch_size,
             drop_last=True
         )
@@ -295,7 +295,7 @@ class Transformer(nn.Module):
         # If a validation set has been provided, create the validation loader
         if X_validation is not None:
             validation_loader = DataLoader(
-                dataset = CustomDataset(X_validation, y_validation), 
+                dataset = CustomDataset(X_validation, y_validation), # type: ignore
                 batch_size = self.batch_size, 
                 shuffle = True,
                 drop_last=True
@@ -316,11 +316,11 @@ class Transformer(nn.Module):
                 # Zero the gradients
                 self.optimizer.zero_grad()
 
-                outputs = self.trans(inputs)                                                    # Forward pass
-                loss = criterion(outputs, labels.view(-1, 1))                                   # Calculate the loss
-                loss.backward()                                                                 # Backward pass
-                nn.utils.clip_grad_norm_(self.trans.parameters(), self.clip_grad, max_norm = 1) # Clip the gradients
-                self.optimizer.step()                                                           # Update weights
+                outputs = self.trans(inputs)                                      # Forward pass
+                loss = criterion(outputs, labels.view(-1, 1))                     # Calculate the loss
+                loss.backward()                                                   # Backward pass
+                nn.utils.clip_grad_norm_(self.trans.parameters(), self.clip_grad) # Clip the gradients
+                self.optimizer.step()                                             # Update weights
 
                 running_loss += loss.item()
         
@@ -345,9 +345,9 @@ class Transformer(nn.Module):
             rmse = np.sqrt(average_loss)
 
             if self.verbose:
-                print(f'Epoch {epoch + 1}/{self.epochs}')
-                print(f'Average Loss: {average_loss}')
-                print(f'RMSE: {rmse}')
+                ocprint.printv(f'Epoch {epoch + 1}/{self.epochs}')
+                ocprint.printv(f'Average Loss: {average_loss}')
+                ocprint.printv(f'RMSE: {rmse}')
 
             # If a validation set has been provided, calculate the AUC
             if X_validation is not None:
@@ -418,7 +418,7 @@ class TransOptimizer:
 
     def train_test_model(self, model, train_loader, test_loader, optimizer, criterion, clip_grad, trial, batch_size, epochs = 100):
         if self.verbose:
-            torch.autograd.set_detect_anomaly(True)
+            torch.autograd.set_detect_anomaly(True) # type: ignore
             
         # For each epoch
         for epoch in range(epochs):
@@ -479,8 +479,8 @@ class TransOptimizer:
         rmse = np.sqrt(average_loss)
 
         if self.verbose:
-            print(f'Test Loss: {average_loss}')
-            print(f'Test RMSE: {rmse}')
+            ocprint.printv(f'Test Loss: {average_loss}')
+            ocprint.printv(f'Test RMSE: {rmse}')
 
         #trial.report(rmse, epoch)
         
@@ -539,14 +539,14 @@ class TransOptimizer:
         criterion = nn.MSELoss()
 
         self.train_loader = DataLoader(
-                dataset = CustomDataset(self.X_train, self.y_train), 
+                dataset = CustomDataset(self.X_train, self.y_train), # type: ignore
                 batch_size = batch_size, 
                 shuffle = True,
                 drop_last=True
             )
         
         self.test_loader = DataLoader(
-                dataset = CustomDataset(self.X_test, self.y_test), 
+                dataset = CustomDataset(self.X_test, self.y_test), # type: ignore
                 batch_size = batch_size,
                 drop_last=True
             )
@@ -554,7 +554,7 @@ class TransOptimizer:
         # If a validation set has been provided, create the validation loader
         if self.X_validation is not None:
             self.validation_loader = DataLoader(
-                dataset = CustomDataset(self.X_validation, self.y_validation), 
+                dataset = CustomDataset(self.X_validation, self.y_validation), # type: ignore
                 batch_size = batch_size, 
                 shuffle = True,
                 drop_last=True
@@ -593,7 +593,7 @@ class TransOptimizer:
 
     def optimize(self, direction: str = "maximize", n_trials = 10, study_name = "NN_Optimization", load_if_exists = True, sampler: optuna.samplers.BaseSampler = TPESampler(), n_jobs = 1):
         if self.verbose:
-            print(f'Optimizing the model for {n_trials} trials')
+            ocprint.printv(f'Optimizing the model for {n_trials} trials')
 
         # Add a pruner
         pruner = optuna.pruners.MedianPruner(
@@ -614,6 +614,7 @@ class TransOptimizer:
         
         best_params = study.best_params
 
-        print("Best Hyperparameters:", best_params)
+        if self.verbose:
+            ocprint.printv(f"Best Hyperparameters: {best_params}")
 
         return best_params

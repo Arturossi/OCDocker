@@ -16,7 +16,6 @@ import os
 import json
 import shutil
 
-import numpy as np
 import pandas as pd
 
 from glob import glob

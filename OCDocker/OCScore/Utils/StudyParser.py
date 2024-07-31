@@ -17,6 +17,8 @@ import pandas as pd
 
 from urllib.parse import quote_plus
 
+import OCDocker.Toolbox.Printing as ocprint
+
 # License
 ###############################################################################
 '''
@@ -197,7 +199,7 @@ def analyze_studies(snames: list[str], storage: str, n_trials: int = 5, verbose:
             })
 
             if verbose:
-                print(f"{len(df)}\t{best_rmse_df['number'].iloc[i]}\t{best_rmse_df['value'].iloc[i]}\t{best_rmse_df['user_attrs_AUC'].iloc[i]}\t{best_auc_df['number'].iloc[i]}\t{best_auc_df['value'].iloc[i]}\t{best_auc_df['user_attrs_AUC'].iloc[i]}\t{best_df['number'].iloc[i]}\t{best_df['combined_metric'].iloc[i]}\t{best_df['user_attrs_AUC'].iloc[i]}")
+                ocprint.printv(f"{len(df)}\t{best_rmse_df['number'].iloc[i]}\t{best_rmse_df['value'].iloc[i]}\t{best_rmse_df['user_attrs_AUC'].iloc[i]}\t{best_auc_df['number'].iloc[i]}\t{best_auc_df['value'].iloc[i]}\t{best_auc_df['user_attrs_AUC'].iloc[i]}\t{best_df['number'].iloc[i]}\t{best_df['combined_metric'].iloc[i]}\t{best_df['user_attrs_AUC'].iloc[i]}")
 
     # Create a DataFrame from the results list
     results_df = pd.DataFrame(results)

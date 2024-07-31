@@ -24,6 +24,7 @@ from typing import Union
 
 import OCDocker.OCScore.Utils.Data as ocscoredata
 import OCDocker.OCScore.Utils.Workers as ocscoreworkers
+import OCDocker.Toolbox.Printing as ocprint
 
 # License
 ###############################################################################
@@ -229,11 +230,11 @@ def optimize_NN(
 
     if autoencoder:
         if verbose:
-            print("Running Auto Encoder optimization...")
+            ocprint.printv("Running Auto Encoder optimization...")
 
         # If total_trials is not divisible by num_processes, warn the user
         if total_trials_autoencoder % num_processes_autoencoder != 0:
-            print("Warning: total_trials_autoencoder is not divisible by num_processes_autoencoder. The number of trials per process will be rounded down to the nearest perfect divisor integer.")
+            ocprint.print_warning("Warning: total_trials_autoencoder is not divisible by num_processes_autoencoder. The number of trials per process will be rounded down to the nearest perfect divisor integer.")
 
         n_trials_autoencoder = total_trials_autoencoder // num_processes_autoencoder
         
@@ -422,11 +423,11 @@ def optimize_NN(
     if run_NN_optimization:
 
         if verbose:
-            print("Running Neural Network optimization...")
+            ocprint.printv("Running Neural Network optimization...")
 
         # If total_trials is not divisible by num_processes, warn the user
         if total_trials_NN % num_processes_NN != 0:
-            print("Warning: total_trials_NN is not divisible by num_processes_NN. The number of trials per process will be rounded down to the nearest perfect divisor integer.")
+            ocprint.print_warning("Warning: total_trials_NN is not divisible by num_processes_NN. The number of trials per process will be rounded down to the nearest perfect divisor integer.")
 
         n_trials_NN = total_trials_NN // num_processes_NN
 
@@ -453,157 +454,3 @@ def optimize_NN(
             ])
 
     return None
-
-"""
-# Load the study
-nn_study = optuna.load_study(study_name = f"{study_name}_{storage_id}_TPE", storage = storage)
-nn_df = nn_study.trials_dataframe()
-
-# Filter the trials to only include the ones that are complete
-nn_df = nn_df[nn_df['state'] == 'COMPLETE']
-
-nn_df['combined_metric'] = nn_df['value'] - nn_df['user_attrs_AUC']
-
-best_nn_df = nn_df.sort_values(by=['combined_metric'], ascending=[True])
-
-# Define the number of models to select
-n_models = 5
-
-# Get the best n models in the best_nn_df
-best_nn_df.head(n_models)
-
-# Build the models
-models = []
-predictions = []
-
-for i in range(n_models):
-    # Get the best trial
-    best_trial = nn_study.trials[best_nn_df.iloc[i].number]
-
-    # Pick the params from the best_trial
-    best_params = best_trial.params
-
-    # If the new_X_val is a list
-    if isinstance(new_X_val, list):
-        # Initialize the trainer
-        NN_model = NeuralNet(
-            [new_X_train[j].shape[0] for j in range(len(new_X_train))],
-            1,          
-            best_ao_params, 
-            best_params,
-            random_seed = random_seed,
-            use_gpu = True, 
-            verbose = False
-        )
-    else:
-        # Initialize the trainer
-        NN_model = NeuralNet(
-            new_X_train.shape[1],
-            1,          
-            best_ao_params, 
-            best_params,
-            random_seed = random_seed,
-            use_gpu = True, 
-            verbose = False
-        )
-
-    # Reset the random seeds
-    torch.manual_seed(random_seed)
-    np.random.seed(random_seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-    torch.cuda.manual_seed_all(random_seed)
-
-    # Train the model
-    model = NN_model.train_model(
-        new_X_train, 
-        y_train, 
-        new_X_test, 
-        y_test, 
-        new_X_val, 
-        y_val
-    )
-
-    # Reset the random seeds
-    torch.manual_seed(random_seed)
-    np.random.seed(random_seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-    torch.cuda.manual_seed_all(random_seed)
-    
-    # Append the model to the list
-    models.append(NN_model)
-
-    # Make predictions
-    if isinstance(new_X_val, list):
-        predictions.append(
-            NN_model.NN(
-                [torch.tensor(
-                    np.asarray(new_X_val[j]), 
-                    dtype=torch.float32
-                ).to(torch.device('cuda')) for j in range(len(new_X_val))]
-            ).cpu().detach().numpy()
-        )
-    else:
-        predictions.append(
-            NN_model.NN(
-                torch.tensor(
-                    np.asarray(new_X_val), 
-                    dtype=torch.float32
-                ).to(torch.device('cuda'))
-            ).cpu().detach().numpy()
-        )
-
-    # Save the model
-    torch.save(model, f'/data/hd4tb/OCDocker/data/ocdb/models/NN_model_{i}.pt')
-
-# Convert predictions to a DataFrame
-predictions_df = pd.DataFrame(np.asarray(predictions).reshape(len(predictions), predictions[0].shape[0]).T)
-
-def select_values(row):
-    sorted_row = sorted(row)
-    return pd.Series({
-        'max': max(row),
-        '2nd_highest': sorted_row[-2],
-        'median': sorted_row[2],
-        '4th_highest': sorted_row[1],
-        'min': min(row)
-    })
-
-selected_values_df = predictions_df.apply(select_values, axis=1)
-full_selected_values_df = pd.concat([predictions_df, selected_values_df], axis=1)
-                                    
-# Calculate the mean, median, std, min, max, and range for the predictions
-full_selected_values_df['std'] = predictions_df.std(axis = 1)
-full_selected_values_df['range'] = full_selected_values_df['max'] - full_selected_values_df['min']
-
-# For each column in the full_selected_values_df, calculate the AUC
-auc_dict = {}
-for col in full_selected_values_df.columns:
-    fpr, tpr, _ = roc_curve(y_val, full_selected_values_df[col]) # type: ignore
-    auc_dict[col] = auc(fpr, tpr)
-
-# make AUC_dict a DataFrame
-auc_df = pd.DataFrame(auc_dict, index = ['AUC']).T
-
-# Save the full_selected_values_df values to csv
-full_selected_values_df.to_csv('full_selected_values_df_NN.csv')
-
-'''
-# Get the RMSE for each scoring function
-rmse_dict = {}
-
-# Get the AUC for each scoring function
-auc_dict = {}
-
-for col in score_columns:
-    error = pdbbind_standard_norm_df[col] - pdbbind_standard_norm_df['experimental']
-    rmse_dict[col] = np.sqrt(np.mean(error**2))
-
-    # Map the Ligand and Decoy values to 1 and 0 respectively
-    dudez_standard_norm_df['type_cat'] = dudez_standard_norm_df['type'].map({'ligand': 1, 'decoy': 0})
-
-    fpr, tpr, _ = roc_curve(dudez_standard_norm_df['type_cat'], dudez_standard_norm_df[col])
-    auc_dict[col] = auc(fpr, tpr)
-'''
-"""
