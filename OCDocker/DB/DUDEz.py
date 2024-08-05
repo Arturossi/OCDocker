@@ -7,7 +7,7 @@ Sets of classes and functions that are used to process the DUDE-Z dataset.
 
 They are imported as:
 
-import OCDocker.DUDEz as ocdudez
+import OCDocker.DB.DUDEz as ocdudez
 '''
 
 # Imports
@@ -224,6 +224,8 @@ def run_plants(overwrite: bool = False) -> int:
 
     return ocbdb.run_docking("dudez", "plants", overwrite = overwrite)
 
+"""
+TODO: remove this function
 def read_logs(saveChunk: int = 100, overwrite: bool = False) -> Union[dict, None]:
     '''Parse the database into multiple serializable objects.
 
@@ -241,6 +243,7 @@ def read_logs(saveChunk: int = 100, overwrite: bool = False) -> Union[dict, None
     '''
 
     return ocbdb.read_logs("dudez", saveChunk = saveChunk, overwrite = overwrite)
+"""
 
 def generate_dock_result_csv(csv_path: str = "", log_dumps: Union[Dict[str, pd.DataFrame], None] = None) -> None:
     '''Uses the structure from read_logs to generate an output for all docking softwares.
@@ -264,6 +267,8 @@ def generate_dock_result_csv(csv_path: str = "", log_dumps: Union[Dict[str, pd.D
 
     return ocbdb.generate_dock_result_csv("dudez", csv_path, log_dumps = log_dumps) # type: ignore
 
+"""
+TODO: remove this function
 def merge_descriptors_in_dataframe(readMode:str = "hdf5", saveMode: str = "hdf5", picklenize: bool = False, returnDf: bool = False, skipMergePicklePath: str = "", saveChunk: int = 100, datafileFormat: str = "hdf5", verboseOperations: bool = False, overwrite: bool = False) -> Union[dict, None]:
     '''Reads all the descriptors jsons and return a dict.
 
@@ -296,4 +301,4 @@ def merge_descriptors_in_dataframe(readMode:str = "hdf5", saveMode: str = "hdf5"
 
     # Get the dataframe with descriptors and docking scores
     return ocbdb.merge_descriptors_in_dataframe("dudez", readMode = readMode, saveMode = saveMode, picklenize = picklenize, returnDf = returnDf, skipMergePicklePath = skipMergePicklePath, saveChunk = saveChunk, datafileFormat = datafileFormat, verboseOperations = verboseOperations, overwrite = overwrite)
-    
+"""

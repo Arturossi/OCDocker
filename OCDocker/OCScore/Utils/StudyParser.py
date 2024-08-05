@@ -179,25 +179,46 @@ def analyze_studies(snames: list[str], storage: str, n_trials: int = 5, verbose:
         genetic_algorithm = False
         multiple_autoencoders = False
 
+        # If n_trials are -1 or bigger than the len of the df, get all the trials
+        if n_trials == -1 or n_trials > len(df):
+            n_trials = len(df)
+
         # Get the n best trials
         for i in range(0, n_trials):
             # Append the results to the list
-            results.append({
+            result = {
                 'study_name': sname,
                 'study_type': study_type,
                 'total_trials': len(df),
                 'best_rmse_number': best_rmse_df['number'].iloc[i],
                 'best_rmse_value': best_rmse_df['value'].iloc[i],
                 'best_rmse_auc': best_rmse_df['user_attrs_AUC'].iloc[i],
+            }
+
+            if "Ablation" in sname:
+                result['best_rmse_features'] = best_rmse_df['user_attrs_Feature_Mask'].iloc[i]
+
+            result.update({
                 'best_auc_number': best_auc_df['number'].iloc[i],
                 'best_auc_value': best_auc_df['value'].iloc[i],
                 'best_auc': best_auc_df['user_attrs_AUC'].iloc[i],
+            })
+
+            if "Ablation" in sname:
+                result['best_auc_features'] = best_auc_df['user_attrs_Feature_Mask'].iloc[i]
+
+            result.update({
                 'best_combined_number': best_df['number'].iloc[i],
                 'best_combined_metric': best_df['combined_metric'].iloc[i],
                 'best_combined_value': best_df['value'].iloc[i],
                 'best_combined_auc': best_df['user_attrs_AUC'].iloc[i]
             })
 
+            if "Ablation" in sname:
+                result['best_combined_features'] = best_df['user_attrs_Feature_Mask'].iloc[i]
+
+            results.append(result)
+                
             if verbose:
                 ocprint.printv(f"{len(df)}\t{best_rmse_df['number'].iloc[i]}\t{best_rmse_df['value'].iloc[i]}\t{best_rmse_df['user_attrs_AUC'].iloc[i]}\t{best_auc_df['number'].iloc[i]}\t{best_auc_df['value'].iloc[i]}\t{best_auc_df['user_attrs_AUC'].iloc[i]}\t{best_df['number'].iloc[i]}\t{best_df['combined_metric'].iloc[i]}\t{best_df['user_attrs_AUC'].iloc[i]}")
 

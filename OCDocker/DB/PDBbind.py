@@ -7,7 +7,7 @@ Sets of classes and functions that are used to process the PDBbind dataset.
 
 They are imported as:
 
-import OCDocker.PDBbind as ocpdbbind
+import OCDocker.DB.PDBbind as ocpdbbind
 '''
 
 # Imports
@@ -269,6 +269,8 @@ def prepare(overwrite: bool = False) -> None:
 
     return ocbdb.prepare("pdbbind", overwrite = overwrite)
 
+"""
+TODO: remove this function
 def read_logs(saveChunk: int = 100, overwrite: bool = False) -> Union[dict, None]:
     '''Parse the database into multiple serializable objects.
 
@@ -286,6 +288,7 @@ def read_logs(saveChunk: int = 100, overwrite: bool = False) -> Union[dict, None
     '''
 
     return ocbdb.read_logs("pdbbind", saveChunk = saveChunk, overwrite = overwrite)
+"""
 
 def generate_dock_result_csv(csv_path: str = "", log_dumps: Union[dict, None] = None) -> None:
     '''Uses the structure from read_logs to generate an output for all docking softwares.
@@ -309,6 +312,8 @@ def generate_dock_result_csv(csv_path: str = "", log_dumps: Union[dict, None] = 
 
     return ocbdb.generate_dock_result_csv("pdbbind", csv_path, log_dumps = log_dumps)
 
+"""
+TODO: remove this function
 def merge_descriptors_in_dataframe(readMode:str = "hdf5", saveMode: str = "hdf5", picklenize: bool = False, returnDf: bool = False, skipMergePicklePath: str = "", verboseOperations: bool = False) -> Union[dict, None]:
     '''Reads all the descriptors jsons and return a dict.
 
@@ -333,3 +338,4 @@ def merge_descriptors_in_dataframe(readMode:str = "hdf5", saveMode: str = "hdf5"
     
     # Get the dataframe with descriptors and docking scores
     return ocbdb.merge_descriptors_in_dataframe("pdbbind", readMode = readMode, saveMode = saveMode, picklenize = picklenize, returnDf = returnDf, skipMergePicklePath = skipMergePicklePath, verboseOperations = verboseOperations)
+"""

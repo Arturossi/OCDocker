@@ -1,3 +1,18 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Sets of classes and functions that are used for setting up the database.
+
+They are imported as:
+
+import OCDocker.DB.DBMinimal as ocdbmin
+'''
+
+# Imports
+###############################################################################
+
 from sqlalchemy import create_engine as sqlalchemy_create_engine
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.url import URL
@@ -6,6 +21,30 @@ from sqlalchemy_utils import create_database, database_exists
 from typing import Union
 
 import OCDocker.Error as ocerror
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Torres, P.H.M.;
+[The Federal University of Rio de Janeiro]
+Contact info:
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+Av. Carlos Chagas Filho 373 - CCS - bloco G1-19,
+Cidade Universitária - Rio de Janeiro, RJ, CEP: 21941-902
+E-mail address: arturossi10@gmail.com
+This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
+'''
+
+# Classes
+###############################################################################
+
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##
 
 def create_database_if_not_exists(url: URL) -> None:
     ''' Create the database if it does not exist.

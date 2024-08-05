@@ -19,7 +19,7 @@ class TestErrorMethods(unittest.TestCase):
         Test that the ok method returns the correct error code and prints the success message.
         """
         with patch('builtins.print') as mock_print:
-            result = self.error.ok("Operation successful")
+            result = self.error.ok("Operation successful") # type: ignore
             self.assertEqual(result, ErrorCode.OK.value)
             mock_print.assert_called_with("[SUCCESS] Operation successful")
 
@@ -28,7 +28,7 @@ class TestErrorMethods(unittest.TestCase):
         Test that the abort method returns the correct error code and prints a warning message.
         """
         with patch('builtins.print') as mock_print:
-            result = self.error.abort("Operation aborted")
+            result = self.error.abort("Operation aborted") # type: ignore
             self.assertEqual(result, ErrorCode.ABORT.value)
             mock_print.assert_called_with("[WARNING] Operation aborted")
 
@@ -37,7 +37,7 @@ class TestErrorMethods(unittest.TestCase):
         Test that the skip method returns the correct error code and prints an informational message by default.
         """
         with patch('builtins.print') as mock_print:
-            result = self.error.skip("Operation skipped")
+            result = self.error.skip("Operation skipped") # type: ignore
             self.assertEqual(result, ErrorCode.SKIP.value)
             mock_print.assert_called_with("[INFO] Operation skipped")
 
@@ -46,7 +46,7 @@ class TestErrorMethods(unittest.TestCase):
         Test that the skip method returns the correct error code and prints a debug message when a custom level is specified.
         """
         with patch('builtins.print') as mock_print:
-            result = self.error.skip("Operation skipped", ReportLevel.DEBUG)
+            result = self.error.skip("Operation skipped", ReportLevel.DEBUG) # type: ignore
             self.assertEqual(result, ErrorCode.SKIP.value)
             mock_print.assert_called_with("[DEBUG] Operation skipped")
 
@@ -55,7 +55,7 @@ class TestErrorMethods(unittest.TestCase):
         Test that the unknown method returns the correct error code and prints a warning message by default.
         """
         with patch('builtins.print') as mock_print:
-            result = self.error.unknown("Error is unknown")
+            result = self.error.unknown("Error is unknown") # type: ignore
             self.assertEqual(result, ErrorCode.UNKNOWN.value)
             mock_print.assert_called_with("[WARNING] Error is unknown")
 
@@ -64,7 +64,7 @@ class TestErrorMethods(unittest.TestCase):
         Test that the unknown method returns the correct error code and prints an error message when a custom level is specified.
         """
         with patch('builtins.print') as mock_print:
-            result = self.error.unknown("Error is unknown", ReportLevel.ERROR)
+            result = self.error.unknown("Error is unknown", ReportLevel.ERROR) # type: ignore
             self.assertEqual(result, ErrorCode.UNKNOWN.value)
             mock_print.assert_called_with("[ERROR] Error is unknown")
 
@@ -73,7 +73,7 @@ class TestErrorMethods(unittest.TestCase):
         Test the file_exists method to check if the proper warning and error code are returned when a file exists.
         """
         with patch('builtins.print') as mock_print:
-            result = self.error.file_exists("File exists")
+            result = self.error.file_exists("File exists") # type: ignore
             self.assertEqual(result, ErrorCode.FILE_EXISTS.value)
             mock_print.assert_called_with("[WARNING] File exists")
 
@@ -82,7 +82,7 @@ class TestErrorMethods(unittest.TestCase):
         Test the file_not_exist method to check if the appropriate warning and error code are returned when a file does not exist.
         """
         with patch('builtins.print') as mock_print:
-            result = self.error.file_not_exist("File does not exist")
+            result = self.error.file_not_exist("File does not exist") # type: ignore
             self.assertEqual(result, ErrorCode.FILE_NOT_EXIST.value)
             mock_print.assert_called_with("[WARNING] File does not exist")
 
@@ -91,7 +91,7 @@ class TestErrorMethods(unittest.TestCase):
         Test the read_file method to verify the warning and error code returned when a file cannot be read.
         """
         with patch('builtins.print') as mock_print:
-            result = self.error.read_file("Cannot read file")
+            result = self.error.read_file("Cannot read file") # type: ignore
             self.assertEqual(result, ErrorCode.READ_FILE.value)
             mock_print.assert_called_with("[WARNING] Cannot read file")
 
@@ -100,182 +100,182 @@ class TestErrorMethods(unittest.TestCase):
         Test the write_file method to confirm the correct warning and error code are returned when a file cannot be written to.
         """
         with patch('builtins.print') as mock_print:
-            result = self.error.write_file("Cannot write file")
+            result = self.error.write_file("Cannot write file") # type: ignore
             self.assertEqual(result, ErrorCode.WRITE_FILE.value)
             mock_print.assert_called_with("[WARNING] Cannot write file")
     
     def test_untar_file(self):
         """Test handling of untar_file error with a predefined message."""
         with patch('builtins.print') as mock_print:
-            result = self.error.untar_file("Untar failed")
+            result = self.error.untar_file("Untar failed") # type: ignore
             self.assertEqual(result, ErrorCode.UNTAR_FILE.value)
             mock_print.assert_called_with("[WARNING] Untar failed")
 
     def test_unsupported_extension(self):
         """Test handling of unsupported_extension error with a predefined message."""
         with patch('builtins.print') as mock_print:
-            result = self.error.unsupported_extension("Extension not supported")
+            result = self.error.unsupported_extension("Extension not supported") # type: ignore
             self.assertEqual(result, ErrorCode.UNSUPPORTED_EXTENSION.value)
             mock_print.assert_called_with("[WARNING] Extension not supported")
 
     def test_broken_pipe(self):
         """Test handling of broken_pipe error with a predefined message."""
         with patch('builtins.print') as mock_print:
-            result = self.error.broken_pipe("Broken pipe")
+            result = self.error.broken_pipe("Broken pipe") # type: ignore
             self.assertEqual(result, ErrorCode.BROKEN_PIPE.value)
             mock_print.assert_called_with("[WARNING] Broken pipe")
 
     def test_empty_file(self):
         """Test handling of empty_file error with a predefined message."""
         with patch('builtins.print') as mock_print:
-            result = self.error.empty_file("File is empty")
+            result = self.error.empty_file("File is empty") # type: ignore
             self.assertEqual(result, ErrorCode.EMPTY_FILE.value)
             mock_print.assert_called_with("[WARNING] File is empty")
 
     def test_dir_exists(self):
         """Test handling of dir_exists error with a predefined message."""
         with patch('builtins.print') as mock_print:
-            result = self.error.dir_exists("Directory exists")
+            result = self.error.dir_exists("Directory exists") # type: ignore
             self.assertEqual(result, ErrorCode.DIR_EXISTS.value)
             mock_print.assert_called_with("[WARNING] Directory exists")
 
     def test_create_dir(self):
         """Test the error handling when directory creation fails."""
         with patch('builtins.print') as mock_print:
-            result = self.error.create_dir("Cannot create directory")
+            result = self.error.create_dir("Cannot create directory") # type: ignore
             self.assertEqual(result, ErrorCode.CREATE_DIR.value)
             mock_print.assert_called_with("[WARNING] Cannot create directory")
 
     def test_remove_dir(self):
         """Test the error handling when directory removal fails."""
         with patch('builtins.print') as mock_print:
-            result = self.error.remove_dir("Cannot remove directory")
+            result = self.error.remove_dir("Cannot remove directory") # type: ignore
             self.assertEqual(result, ErrorCode.REMOVE_DIR.value)
             mock_print.assert_called_with("[WARNING] Cannot remove directory")
 
     def test_dir_does_not_exist(self):
         """Test the error handling when a non-existent directory is accessed."""
         with patch('builtins.print') as mock_print:
-            result = self.error.dir_does_not_exist("Directory does not exist")
+            result = self.error.dir_does_not_exist("Directory does not exist") # type: ignore
             self.assertEqual(result, ErrorCode.DIR_NOT_EXIST.value)
             mock_print.assert_called_with("[WARNING] Directory does not exist")
 
     def test_unnalowed_dir(self):
         """Test the error handling when access to a directory is unallowed."""
         with patch('builtins.print') as mock_print:
-            result = self.error.unnalowed_dir("Directory access is unallowed")
+            result = self.error.unnalowed_dir("Directory access is unallowed") # type: ignore
             self.assertEqual(result, ErrorCode.UNALLOWED_DIR.value)
             mock_print.assert_called_with("[WARNING] Directory access is unallowed")
 
     def test_wrong_type(self):
         """Test the error handling when a variable has the wrong type."""
         with patch('builtins.print') as mock_print:
-            result = self.error.wrong_type("Variable has wrong type")
+            result = self.error.wrong_type("Variable has wrong type") # type: ignore
             self.assertEqual(result, ErrorCode.WRONG_TYPE.value)
             mock_print.assert_called_with("[WARNING] Variable has wrong type")
 
     def test_not_set(self):
         """Test the error handling when a variable is not set."""
         with patch('builtins.print') as mock_print:
-            result = self.error.not_set("Variable is not set")
+            result = self.error.not_set("Variable is not set") # type: ignore
             self.assertEqual(result, ErrorCode.NOT_SET.value)
             mock_print.assert_called_with("[WARNING] Variable is not set")
 
     def test_empty(self):
         """Test the error handling when a variable is empty."""
         with patch('builtins.print') as mock_print:
-            result = self.error.empty("Variable is empty")
+            result = self.error.empty("Variable is empty") # type: ignore
             self.assertEqual(result, ErrorCode.EMPTY.value)
             mock_print.assert_called_with("[WARNING] Variable is empty")
 
     def test_value_error_default(self):
         """Test the default error handling for a value error."""
         with patch('builtins.print') as mock_print:
-            result = self.error.value_error()
+            result = self.error.value_error() # type: ignore
             self.assertEqual(result, ErrorCode.VALUE_ERROR.value)
             mock_print.assert_called_with("[WARNING] ")
 
     def test_value_error_warning_with_message(self):
         """Test the error handling for a value error with a custom message."""
         with patch('builtins.print') as mock_print:
-            result = self.error.value_error("Value error occurred")
+            result = self.error.value_error("Value error occurred") # type: ignore
             self.assertEqual(result, ErrorCode.VALUE_ERROR.value)
             mock_print.assert_called_with("[WARNING] Value error occurred")
 
     def test_subprocess_default(self):
         """Test the default error handling for a subprocess error."""
         with patch('builtins.print') as mock_print:
-            result = self.error.subprocess()
-            self.assertEqual(result, ErrorCode.SUBPROCESS_ERROR.value)
+            result = self.error.subprocess() # type: ignore
+            self.assertEqual(result, ErrorCode.SUBPROCESS.value)
             mock_print.assert_called_with("[WARNING] ")
 
     def test_subprocess_warning_with_message(self):
         """Test the error handling for a subprocess error with a custom message."""
         with patch('builtins.print') as mock_print:
-            result = self.error.subprocess("Subprocess error occurred")
-            self.assertEqual(result, ErrorCode.SUBPROCESS_ERROR.value)
+            result = self.error.subprocess("Subprocess error occurred") # type: ignore
+            self.assertEqual(result, ErrorCode.SUBPROCESS.value)
             mock_print.assert_called_with("[WARNING] Subprocess error occurred")
 
     def test_docking_object_not_generated(self):
         """Test the error handling when a docking object is not generated."""
         with patch('builtins.print') as mock_print:
-            result = self.error.docking_object_not_generated("Docking object issue")
+            result = self.error.docking_object_not_generated("Docking object issue") # type: ignore
             self.assertEqual(result, ErrorCode.DOCKING_OBJECT_NOT_GENERATED.value)
             mock_print.assert_called_with("[WARNING] Docking object issue")
 
     def test_receptor_or_ligand_not_generated(self):
         """Test the error handling when a receptor or ligand is not generated."""
         with patch('builtins.print') as mock_print:
-            result = self.error.receptor_or_ligand_not_generated("Receptor or ligand not generated")
+            result = self.error.receptor_or_ligand_not_generated("Receptor or ligand not generated") # type: ignore
             self.assertEqual(result, ErrorCode.RECEPTOR_OR_LIGAND_NOT_GENERATED.value)
             mock_print.assert_called_with("[WARNING] Receptor or ligand not generated")
 
     def test_receptor_or_ligand_descriptor_does_not_exist(self):
         """Test the error handling when a descriptor for receptor or ligand does not exist."""
         with patch('builtins.print') as mock_print:
-            result = self.error.receptor_or_ligand_descriptor_does_not_exist("Descriptor missing")
+            result = self.error.receptor_or_ligand_descriptor_does_not_exist("Descriptor missing") # type: ignore
             self.assertEqual(result, ErrorCode.RECEPTOR_OR_LIGAND_DESCRIPTOR_NOT_EXIST.value)
             mock_print.assert_called_with("[WARNING] Descriptor missing")
 
     def test_not_supported_docking_algorithm(self):
         """Test the error handling for an unsupported docking algorithm."""
         with patch('builtins.print') as mock_print:
-            result = self.error.not_supported_docking_algorithm("Unsupported algorithm", level=ReportLevel.ERROR)
+            result = self.error.not_supported_docking_algorithm("Unsupported algorithm", level=ReportLevel.ERROR) # type: ignore
             self.assertEqual(result, ErrorCode.NOT_SUPPORTED_DOCKING_ALGORITHM.value)
             mock_print.assert_called_with("[ERROR] Unsupported algorithm")
 
     def test_unsupported_scoring_function(self):
         """Test the error handling for an unsupported scoring function."""
         with patch('builtins.print') as mock_print:
-            result = self.error.unsupported_scoring_function("Unsupported scoring function")
+            result = self.error.unsupported_scoring_function("Unsupported scoring function") # type: ignore
             self.assertEqual(result, ErrorCode.UNSUPPORTED_SCORING_FUNCTION.value)
             mock_print.assert_called_with("[ERROR] Unsupported scoring function")
 
     def test_rescoring_failed(self):
         """Test the error handling when rescoring fails."""
         with patch('builtins.print') as mock_print:
-            result = self.error.rescoring_failed("Rescoring failed")
+            result = self.error.rescoring_failed("Rescoring failed") # type: ignore
             self.assertEqual(result, ErrorCode.RESCORING_FAILED.value)
             mock_print.assert_called_with("[ERROR] Rescoring failed")
 
     def test_missing_oddt_models(self):
         """Test the error handling when ODDt models are missing."""
         with patch('builtins.print') as mock_print:
-            result = self.error.missing_oddt_models("Missing ODDt models")
+            result = self.error.missing_oddt_models("Missing ODDt models") # type: ignore
             self.assertEqual(result, ErrorCode.MISSING_ODDT_MODELS.value)
             mock_print.assert_called_with("[ERROR] Missing ODDt models")
 
     def test_unsupported_clustering_algorithm(self):
         """Test handling of unsupported_clustering_algorithm error with a predefined message."""
         with patch('builtins.print') as mock_print:
-            result = self.error.unsupported_clustering_algorithm("Unsupported clustering algorithm")
+            result = self.error.unsupported_clustering_algorithm("Unsupported clustering algorithm") # type: ignore
             self.assertEqual(result, ErrorCode.UNSUPPORTED_CLUSTERING_ALGORITHM.value)
             mock_print.assert_called_with("[ERROR] Unsupported clustering algorithm")
 
     def test_cluster_not_converged(self):
         """Test handling of cluster_not_converged error with a predefined message."""
         with patch('builtins.print') as mock_print:
-            result = self.error.cluster_not_converged("Clustering not converged")
+            result = self.error.cluster_not_converged("Clustering not converged") # type: ignore
             self.assertEqual(result, ErrorCode.CLUSTER_NOT_CONVERGED.value)
             mock_print.assert_called_with("[ERROR] Clustering not converged")
         
@@ -294,7 +294,7 @@ class TestErrorMethods(unittest.TestCase):
         """
         default_level = ReportLevel.WARNING  # Replace with actual default
         with patch('builtins.print') as mock_print:
-            self.error.abort("Operation aborted")
+            self.error.abort("Operation aborted") # type: ignore
             args, kwargs = mock_print.call_args
             self.assertTrue(args[0].startswith(f"[{default_level.name}]"))
 
@@ -304,7 +304,7 @@ class TestErrorMethods(unittest.TestCase):
         """
         with patch('builtins.print', side_effect=Exception("Print failed")) as mock_print:
             with self.assertRaises(Exception):
-                self.error.ok("This should fail")
+                self.error.ok("This should fail") # type: ignore
 
     def test_error_code_uniqueness(self):
         """
@@ -319,7 +319,7 @@ class TestErrorMethods(unittest.TestCase):
         Assuming report is a method used internally to prepare the error message.
         """
         with patch.object(self.error, 'report', return_value=(ErrorCode.OK.value, "[SUCCESS] Operation successful")) as mock_report:
-            result = self.error.ok("Operation successful")
+            result = self.error.ok("Operation successful") # type: ignore
             mock_report.assert_called_once()
             self.assertEqual(result, ErrorCode.OK.value)
 

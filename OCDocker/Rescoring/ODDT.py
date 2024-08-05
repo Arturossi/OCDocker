@@ -135,7 +135,7 @@ def run_oddt_from_cli(receptor: Union[ocr.Receptor, str], ligand: Union[ocl.Liga
 
     # Check if the output dir exists
     if not os.path.isdir(outputPath):
-        return ocerror.Error.dir_does_not_exist(f"The output directory '{outputPath}' does not exist.", level = ocerror.ReportLevel.ERROR)
+        return ocerror.Error.dir_not_exist(f"The output directory '{outputPath}' does not exist.", level = ocerror.ReportLevel.ERROR) # type: ignore
     
     # Check if the receptor is an ocr.Receptor object
     if isinstance(receptor, ocr.Receptor):
@@ -175,7 +175,7 @@ def run_oddt_from_cli(receptor: Union[ocr.Receptor, str], ligand: Union[ocl.Liga
 
     # Check if the ligand exists
     if not os.path.isfile(ligandPath):
-        return ocerror.Error.file_not_exist(f"The ligand file '{ligandPath}' does not exist.", level = ocerror.ReportLevel.ERROR)
+        return ocerror.Error.file_not_exist(f"The ligand file '{ligandPath}' does not exist.", level = ocerror.ReportLevel.ERROR) # type: ignore
     
     # Create the output file path
     
@@ -278,6 +278,11 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
 
     # Load the receptor
     receptorObj = six.next(od.toolkit.readfile(preparedReceptorPath.split('.')[-1], preparedReceptorPath))
+
+    # Check if the receptor is None
+    if receptorObj is None:
+        return ocerror.Error.empty(f"The rescoring of the ligand '{ligandName}' failed.", level = ocerror.ReportLevel.ERROR) # type: ignore
+    
     receptorObj.protein = True
 
     # Check if all the ligands exist

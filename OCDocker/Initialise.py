@@ -13,7 +13,7 @@ from OCDocker.Initialise import *
 
 # Imports
 ###############################################################################
-import argparse
+#import argparse
 import multiprocessing
 import os
 import shutil
@@ -136,7 +136,7 @@ def __inner_initialise_models(oddt_sf: str):
 
     # Return
     return None
-
+"""
 def argument_parsing() -> argparse.Namespace:
     '''Get data to generate vina conf file from box file.
     
@@ -194,7 +194,7 @@ def argument_parsing() -> argparse.Namespace:
 
     # Return the parser
     return parser.parse_args()
-
+"""
 def create_ocdocker_conf() -> None:
     '''Creates the 'ocdocker.conf' file.
 
@@ -212,7 +212,7 @@ def create_ocdocker_conf() -> None:
     confUSER = 'root'
     confPASSWORD = ''
     confDATABASE = 'ocdocker'
-    confOPTIMIZATIONDB = 'optimization'
+    confOPTIMIZEDB = 'optimization'
     confPORT = '3306'
 
     print("\nSQL database OCDocker configuration")
@@ -228,8 +228,8 @@ def create_ocdocker_conf() -> None:
     answer = input(f"DATABASE. Default [{confDATABASE}] (press enter to keep default): ")
     confDATABASE = confDATABASE if not answer else answer
 
-    answer = input(f"OPTIMIZATION DATABASE. Default [{confOPTIMIZATIONDB}] (press enter to keep default): ")
-    confOPTIMIZATIONDB = confOPTIMIZATIONDB if not answer else answer
+    answer = input(f"OPTIMIZATION DATABASE. Default [{confOPTIMIZEDB}] (press enter to keep default): ")
+    confOPTIMIZEDB = confOPTIMIZEDB if not answer else answer
 
     answer = input(f"PORT. Default [{confPORT}] (press enter to keep default): ")
     confPORT = confPORT if not answer else answer
@@ -638,7 +638,7 @@ HOST = """ + str(confHOST) + """
 USER = """ + str(confUSER) + """
 PASSWORD = """ + str(confPASSWORD) + """
 DATABASE = """ + str(confDATABASE) + """
-OPTIMIZATIONDB = """ + str(confOPTIMIZATIONDB) + """
+OPTIMIZEDB = """ + str(confOPTIMIZEDB) + """
 PORT = """ + str(confPORT) + """
 
 ################### OCDB PARAMETERS ###################
@@ -954,7 +954,7 @@ def initialise_oddt_models(oddt_models_dir: str, oddt_scoring_functions_aux: lis
             os.chdir(current_dir) # type: ignore
     # Return
     return None
-
+"""
 def set_argparse() -> None:
     '''Parse the arguments and set them to the global variables.
     '''
@@ -969,12 +969,12 @@ def set_argparse() -> None:
     global overwrite
 
     # Set the global variables
-    multiprocess = args.multiprocess
+    '''multiprocess = args.multiprocess
     update = args.update
     config_file = args.config
     output_level = ocerror.ReportLevel(args.output_level)
-    overwrite = args.overwrite
-
+    overwrite = args.overwrite'''
+"""
 def set_log_level(level: ocerror.ReportLevel) -> None:
     '''Set the log level.
 
@@ -1098,7 +1098,7 @@ global dock6_flex_defn_file
 global dock6_flex_drive_file
 
 # ODDT parameters
-global oddt
+global oddt_program
 global oddt_seed
 global oddt_chunk_size
 global oddt_scoring_functions
@@ -1229,7 +1229,7 @@ HOST = ""
 USER = ""
 PASSWORD = ""
 DATABASE = ""
-OPTIMIZATIONDB = ""
+OPTIMIZEDB = ""
 PORT = ""
 
 # Read the conf file and assign its data to its variables (The order matters here, if you follow the same order which is in the conf file less computation power will be needed! It is not much, but it is something.)
@@ -1242,8 +1242,8 @@ for line in open(config_file, 'r'): # type: ignore
         PASSWORD = line.split("=")[1].strip()
     elif line.startswith("DATABASE ="):
         DATABASE = line.split("=")[1].strip()
-    elif line.startswith("OPTIMIZATIONDB ="):
-        OPTIMIZATIONDB = line.split("=")[1].strip()
+    elif line.startswith("OPTIMIZEDB ="):
+        OPTIMIZEDB = line.split("=")[1].strip()
     elif line.startswith("PORT ="):
         PORT = line.split("=")[1].strip()
         # Check if the port is a number
@@ -1397,7 +1397,7 @@ for line in open(config_file, 'r'): # type: ignore
     elif line.startswith("ledock_num_poses ="):
         ledock_num_poses = line.split("=")[1].strip()
     elif line.startswith("oddt ="):
-        oddt = line.split("=")[1].strip()
+        oddt_program = line.split("=")[1].strip()
     elif line.startswith("oddt_seed ="):
         oddt_seed = line.split("=")[1].strip()
     elif line.startswith("oddt_chunk_size ="):
@@ -1435,7 +1435,7 @@ optdb_url = URL.create(
     host = HOST,
     username = USER,
     password = PASSWORD,
-    database = OPTIMIZATIONDB,
+    database = OPTIMIZEDB,
     port = PORT
 )
 
@@ -1443,11 +1443,11 @@ optdb_url = URL.create(
 #engine = create_engine(db_url.render_as_string(hide_password=False))
 #optengine = create_engine(optdb_url.render_as_string(hide_password=False))  
 engine = create_engine(db_url)
-optengine = create_engine(optdb_url)  
+#optengine = create_engine(optdb_url)
 
 # Create the databases if it does not exist
 create_database_if_not_exists(engine.url)
-create_database_if_not_exists(optengine.url)
+create_database_if_not_exists(optdb_url)
 
 # Set the session factory as scoped to ensure that the session is thread-safe
 session = create_session(engine)

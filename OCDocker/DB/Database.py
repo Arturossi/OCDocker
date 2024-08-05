@@ -7,7 +7,7 @@ Sets of classes and functions that are used to update the OCDocker database.
 
 They are imported as:
 
-import OCDocker.Database as ocdb
+import OCDocker.Database as ocdatabase
 '''
 
 # Imports

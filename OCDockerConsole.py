@@ -19,7 +19,7 @@ output_level = ocerror.ReportLevel.NONE
 
 import OCDocker.Toolbox as octools
 
-import OCDocker.DB.Database as ocdb
+import OCDocker.DB.Database as ocdatabase
 import OCDocker.DB.baseDB as ocbdb
 import OCDocker.DB.DUDEz as ocdudez
 import OCDocker.DB.PDBbind as ocpdbbind
@@ -113,7 +113,8 @@ print(message)
 
 if __name__ == "__main__":
     # Set the variables based on args
-    set_argparse()
+    #set_argparse()
+    pass
 else:
     cpu_cores = 18
     available_cores = cpu_cores - 1
