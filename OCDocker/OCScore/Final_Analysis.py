@@ -140,6 +140,7 @@ plt.title('K-Means Clusters of Data Points using AUC and RMSE', fontsize=16)
 plt.xlabel('AUC', fontsize=14)
 plt.ylabel('RMSE', fontsize=14)
 plt.legend(title='Cluster', fontsize=12, title_fontsize='13')
+plt.savefig('Kmeans.png')
 plt.show()
 
 
@@ -194,7 +195,8 @@ plt.title('DBSCAN Clusters of Data Points using AUC and RMSE', fontsize=16)
 plt.xlabel('AUC', fontsize=14)
 plt.ylabel('RMSE', fontsize=14)
 plt.legend(title='Cluster', fontsize=12, title_fontsize='13')
-plt.show()
+plt.savefig('DBSCAN.png')
+#plt.show()
 
 
 # HDBSCAN
@@ -248,7 +250,61 @@ plt.title('HDBSCAN Clusters of Data Points using AUC and RMSE', fontsize=16)
 plt.xlabel('AUC', fontsize=14)
 plt.ylabel('RMSE', fontsize=14)
 plt.legend(title='Cluster', fontsize=12, title_fontsize='13')
+plt.savefig('HDBSCAN.png')
+#plt.show()
+
+# Hightlight the best combined features, the all 0s and all 1s
+###############################################################################
+
+# Add a new column to the data to highlight the best combined features
+data['highlight'] = 'none'
+
+# For each row in the data
+for index, row in data.iterrows():
+    # Get the first 16 characters of the best_combined_features string, which represent the features
+    features = row['best_combined_features'][:16]
+
+    # If the best_combined_features string is made up of all 1s
+    if features == '1' * len(features):
+        # Highlight the row as 'all_1'
+        data.at[index, 'highlight'] = 'all_1'
+    # If the best_combined_features string is made up of all 0s
+    elif features == '0' * len(features):
+        # Highlight the row as 'all_0'
+        data.at[index, 'highlight'] = 'all_0'
+    
+# Set the highlight in the best_combined_metric to 'best' for the best combined value (lowest)
+data.loc[data['best_combined_metric'] == data['best_combined_metric'].min(), 'highlight'] = 'best'
+
+# Calculate the Spearman correlation coefficient for the entire dataset
+spearman_corr, p_value_spearman = spearmanr(data['best_combined_auc'], data['best_combined_value'])
+
+# Plot the data points
+plt.figure(figsize=(14, 8))
+
+# Plot the elements with scatter plot, highlighting all 1s and all 0s
+sns.scatterplot(x='best_combined_auc', y='best_combined_value', data=data[data['highlight'] == 'none'], color='gray', edgecolor='black', s=50)
+sns.scatterplot(x='best_combined_auc', y='best_combined_value', hue='highlight', data=data[data['highlight'] != 'none'], palette={'all_1': 'red', 'all_0': 'blue', 'best': 'green'}, edgecolor='black', s=100, marker='D')
+
+# Add a regression line for Spearman correlation
+sns.regplot(x='best_combined_auc', y='best_combined_value', data=data, scatter=False, color='cyan')
+
+# Annotate the Spearman correlation coefficient and p-value next to its line
+spearman_text = plt.text(0.75, 0.62, f'Spearman Correlation: {spearman_corr:.2f}', color='cyan', fontsize=14, weight='bold')
+spearman_pvalue_text = plt.text(0.75, 0.618, f'P-value: {p_value_spearman:.2e}', color='cyan', fontsize=14, weight='bold')
+
+# Add edgecolor to Spearman correlation text
+for text in [spearman_text, spearman_pvalue_text]:
+    text.set_path_effects([path_effects.Stroke(linewidth=3, foreground='black'), path_effects.Normal()])
+
+# Add a title and labels
+plt.title('Data Points with AUC and RMSE', fontsize=16)
+plt.xlabel('AUC', fontsize=14)
+plt.ylabel('RMSE', fontsize=14)
+plt.legend(title='Highlight', fontsize=12, title_fontsize='13')
 plt.show()
+
+print(data[data['highlight'] != 'none'])
 
 # Display the first few rows of the data with cluster labels
 print(data.head())
