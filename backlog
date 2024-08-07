@@ -7,22 +7,17 @@
 
 ## Log
 ### 0
-- Faster file system. (IN TEST) | 0
 - Add a new blind docking protocol. Maybe using a function to correlate some characteristics of the ligand to the box size. | 0
+- Add integrity verification for all databases. | 0
 
 ### 1
 - Add routines to deal with xplor files, such as '/data/hd4tb/OCDocker/data/ocdb/PDBbind/1lrh/receptor.pdb' from pdbbind. | 1
 - Fix the log generation, sometimes the logs can reach 100mb. | 1
-- Move some functions to other files to better separate the packages. | 1
 - Make a base docking class where other docking classes can inherit shared methods (such as all vina-based programs) | 1
+- Implement the new docking software | 1
 
 ### 2
-- Add integrity verification for all databases. | 2
-- Find a better way to read files. Currently, IO is the big problem which we are dealing with, in terms of time of processing. This should has something with broken pipe problem. | 2
-- GNINA does not works with nohup, maybe it has something to do with GPU visibility for nohup. | 2
-- Add a cleanPDB routine to produce less PDB errors in the pipeline. | 2
-- Add instructions to download/install dock3 and dock6
+- GNINA does not works with nohup, maybe it has something to do with GPU visibility for it. | 2
 
 ### 3
-- Optimize the current merge function to make it faster | 3
-- Fix broken pipe problem (possible fix help: https://linuxpip.org/broken-pipe-python-error/). (IN TEST) | 3
+- Add a cleanPDB routine to produce less PDB errors in the pipeline. | 3
