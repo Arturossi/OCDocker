@@ -203,9 +203,6 @@ run_oddt.py
 # Ignore the ODDT_models folder
 ODDT_models/
 
-# Ignore docs (for now)
-docs/
-
 # Ignore the output_files
 output_file.csv
 output_file2.csv
