@@ -393,7 +393,7 @@ class PLANTS:
             # If is the default scoring function and skipDefaultScoring is True
             if not (scoring_function == plants_scoring and skipDefaultScoring):
                 # Run vina to rescore
-                _ = run_rescore(confFile, pose_list, outPath, self.preparedReceptor, scoring_function, logFile = logFile, overwrite = overwrite) # type: ignore
+                _ = run_rescore(confFile, pose_list, outPath, self.preparedReceptor, scoring_function, self.bindingSiteCenter[0], self.bindingSiteCenter[1], self.bindingSiteCenter[2], self.bindingSiteRadius, logFile = logFile, overwrite = overwrite) # type: ignore
 
         return None
     
@@ -698,7 +698,7 @@ def run_plants(confFile: str, outputPlants: str, overwrite: bool = False, logFil
     # Run the command
     return ocrun.run(cmd, logFile = logFile)
 
-def run_rescore(confFile: str, pose_list: str, outPath: str, proteinFile: str, scoring_function: str, logFile: str = "", overwrite: bool = False) -> int:
+def run_rescore(confFile: str, pose_list: str, outPath: str, proteinFile: str, scoring_function: str, bindingSiteCenterX: float, bindingSiteCenterY: float, bindingSiteCenterZ: float, bindingSiteRadius: float, logFile: str = "", overwrite: bool = False) -> int:
     '''Run PLANTS to rescore the ligand.
 
     Parameters
@@ -713,6 +713,14 @@ def run_rescore(confFile: str, pose_list: str, outPath: str, proteinFile: str, s
         The path to the protein file which will be used as receptor.
     scoring_function : str
         The scoring function to use.
+    bindingSiteCenterX : float
+        The X coordinate of the binding site center.
+    bindingSiteCenterY : float
+        The Y coordinate of the binding site center.
+    bindingSiteCenterZ : float
+        The Z coordinate of the binding site center.
+    bindingSiteRadius : float
+        The radius of the binding site.
     logFile : str
         The path to the log file. If empty, suppress the output.
     overwrite : bool, optional
@@ -737,7 +745,7 @@ def run_rescore(confFile: str, pose_list: str, outPath: str, proteinFile: str, s
                 return ocerror.Error.dir_exists(f"The folder '{outPath}' already exists. Skipping the PLANTS run.", level = ocerror.ReportLevel.WARNING) # type: ignore
 
         # Create the conf file (yes... again...)
-        _ = write_rescoring_config_file(confFile, proteinFile, pose_list, outPath, scoringFunction = scoring_function, rescoringMode = plants_rescoring_mode)
+        _ = write_rescoring_config_file(confFile, proteinFile, pose_list, outPath, bindingSiteCenterX, bindingSiteCenterY, bindingSiteCenterZ, bindingSiteRadius, scoringFunction = scoring_function, rescoringMode = plants_rescoring_mode)
 
         # Create the command list
         cmd = [plants, "--mode", "rescore", confFile]
@@ -786,21 +794,21 @@ def write_config_file(confFile: str, preparedReceptor: str, preparedLigand: str,
 
     try:
         with open(confFile, 'w') as f:
-            #f.write("# scoring function and search settings\n")
+            f.write("# scoring function and search settings\n")
             f.write(f"scoring_function {scoringFunction}\n")
             f.write(f"search_speed {plants_search_speed}\n")
-            #f.write("# input\n")
+            f.write("# input\n")
             f.write(f"protein_file {preparedReceptor}\n")
             f.write(f"ligand_file {preparedLigand}\n")
-            #f.write("# output\n")
+            f.write("# output\n")
             f.write(f"keep_original_mol2_description 0\n") # important to avoid problems in output generation
             f.write(f"output_dir {outputPlants}/run\n")
-            #f.write("# write single mol2 files (e.g. for RMSD calculation)\n")
+            f.write("# write single mol2 files (e.g. for RMSD calculation)\n")
             f.write("write_multi_mol2 0\n")
-            #f.write("# binding site definition\n")
+            f.write("# binding site definition\n")
             f.write(f"bindingsite_center {bindingSiteCenterX} {bindingSiteCenterY} {bindingSiteCenterZ}\n")
             f.write(f"bindingsite_radius {round(bindingSiteRadius, 3)}\n")
-            #f.write("# cluster algorithm\n")
+            f.write("# cluster algorithm\n")
             f.write(f"cluster_structures {plants_cluster_structures}\n")
             f.write(f"cluster_rmsd {plants_cluster_rmsd}")
     except Exception as e:
@@ -808,7 +816,7 @@ def write_config_file(confFile: str, preparedReceptor: str, preparedLigand: str,
 
     return ocerror.Error.ok() # type: ignore
 
-def write_rescoring_config_file(confFile: str, preparedReceptor: str, ligandListPath: str, outputPlants: str, scoringFunction: str = "chemplp", rescoringMode: str = "simplex") -> int:
+def write_rescoring_config_file(confFile: str, preparedReceptor: str, ligandListPath: str, outputPlants: str, bindingSiteCenterX: float, bindingSiteCenterY: float, bindingSiteCenterZ: float, bindingSiteRadius: float, scoringFunction: str = "chemplp", rescoringMode: str = "simplex") -> int:
     '''Write the config file to be used in rescoring mode.
 
     Parameters
@@ -821,6 +829,14 @@ def write_rescoring_config_file(confFile: str, preparedReceptor: str, ligandList
         The path to the ligand pose_list file.
     outputPlants : str
         The path to the PLANTS output directory.
+    bindingSiteCenterX : float
+        The X coordinate of the binding site center.
+    bindingSiteCenterY : float
+        The Y coordinate of the binding site center.
+    bindingSiteCenterZ : float
+        The Z coordinate of the binding site center.
+    bindingSiteRadius : float
+        The radius of the binding site.
     scoringFunction : str, optional
         The scoring function to use. Default is "chemplp". Options are plp, plp95 or chemplp
     rescoringMode : str, optional
@@ -834,15 +850,18 @@ def write_rescoring_config_file(confFile: str, preparedReceptor: str, ligandList
 
     try:
         with open(confFile, 'w') as f:
-            #f.write("# scoring function and search settings\n")
+            f.write("# scoring function and search settings\n")
             f.write(f"scoring_function {scoringFunction}\n")
-            #f.write("# input\n")
+            f.write("# input\n")
             f.write(f"protein_file {preparedReceptor}\n")
             f.write(f"ligand_list {ligandListPath}\n")
-            #f.write("# output\n")
+            f.write("# binding site definition\n")
+            f.write(f"bindingsite_center {bindingSiteCenterX} {bindingSiteCenterY} {bindingSiteCenterZ}\n")
+            f.write(f"bindingsite_radius {round(bindingSiteRadius, 3)}\n")
+            f.write("# output\n")
             f.write(f"keep_original_mol2_description 0\n") # important to avoid problems in output generation
             f.write(f"output_dir {outputPlants}\n")
-            #f.write(f"# Rescoring mode parameter\n")
+            f.write(f"# Rescoring mode parameter\n")
             f.write(f"rescore_mode {rescoringMode}\n")
     except Exception as e:
         return ocerror.Error.write_file(f"Problems while writing the file {confFile}: {e}") # type: ignore
