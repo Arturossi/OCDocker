@@ -3,258 +3,24 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 from sklearn.preprocessing import StandardScaler
-from sklearn.cluster import DBSCAN, HDBSCAN, KMeans
+from sklearn.cluster import (
+    KMeans,
+    DBSCAN,
+    HDBSCAN, # type: ignore
+    MeanShift,
+    AgglomerativeClustering,
+    SpectralClustering,
+    OPTICS,
+    Birch
+)
+from sklearn.mixture import GaussianMixture
+from sklearn.metrics import pairwise_distances
 from scipy.stats import pearsonr, spearmanr
 import matplotlib.patheffects as path_effects
 
-# Loaimport matplotlib.patheffects as path_effectsd the updated CSV file with new columns
+# Load the updated CSV file with new columns
 file_path = 'ablation.csv'
 data = pd.read_csv(file_path)
-
-# Sort the DataFrame by the 'best_combined_features' column
-data = data.sort_values(by='best_combined_features')
-
-# Select relevant features for clustering (AUC and ERROR)
-features = data[['best_combined_auc', 'best_combined_value', 'best_combined_metric']]
-
-# Normalize the data
-scaler = StandardScaler()
-normalized_features = scaler.fit_transform(features)
-
-# Determine the optimal number of clusters using the elbow method
-wcss = []  # Within-cluster sum of squares
-max_clusters = 15  # Adjust the max number of clusters to test if needed
-for i in range(1, max_clusters+1):
-    kmeans = KMeans(n_clusters=i, random_state=42)
-    kmeans.fit(normalized_features)
-    wcss.append(kmeans.inertia_)
-
-# Plot the elbow curve
-plt.figure(figsize=(10, 8))
-plt.plot(range(1, max_clusters+1), wcss, marker='o')
-plt.title('Elbow Method for Determining Optimal Number of Clusters')
-plt.xlabel('Number of Clusters')
-plt.ylabel('WCSS (Within-Cluster Sum of Squares)')
-plt.xticks(range(1, max_clusters+1), fontsize=12)
-plt.yticks(np.arange(0, max(wcss), step=10000), fontsize=12)
-
-# Add the difference between each step in red, with adjusted positions to avoid overlap
-for i in range(1, max_clusters):
-
-    # Get the half difference between the current and next WCSS
-    difference_y = (wcss[i] - wcss[i-1]) / 2 
-
-    # Set the half difference between the current and next number of clusters
-    difference_x = 0.5
-
-    # Get the normalized difference in WCSS and cluster number
-    norm_difference_y = difference_y / max(wcss)
-    norm_difference_x = difference_x / max_clusters
-
-    # Calculate the slope of the line between the current and next WCSS
-    slope = abs(norm_difference_y / norm_difference_x)
-
-    print(difference_y, slope)
-
-    # Set the cutoff for the difference in WCSS
-    cutoff = -4500
-
-    # If the difference in WCSS is above cutoff
-    if difference_y > cutoff:
-        # Set the difference in y to -cutoff
-        difference_y = cutoff
-
-    # If the slope is below or equal to 45 degrees
-    if slope > 1:
-        # If the slope is above 1.5
-        if slope > 1.5:
-            # Make it 1.5
-            slope = 1.5
-        # Multiply the difference in x by the slope
-        difference_y = difference_y * slope * ((i - max_clusters) / 150)
-        difference_x = ((i - max_clusters) / 24) * difference_x
-
-    plt.text(i + difference_x, wcss[i] + difference_y, f'{wcss[i-1] - wcss[i]:.0f}', color='red', fontsize=10, ha='center')
-    
-plt.grid(True)
-plt.show()
-
-
-# K-Means
-###############################################################################
-
-# Choose the optimal number of clusters (e.g., from the elbow plot)
-optimal_clusters = 2  # Replace with the actual optimal number from your elbow plot
-
-# Apply K-Means clustering with the optimal number of clusters
-kmeans = KMeans(n_clusters=optimal_clusters, random_state=42)
-clusters = kmeans.fit_predict(normalized_features)
-
-# Add cluster labels to the data
-data['cluster'] = clusters
-
-# Calculate the Pearson correlation coefficient
-corr_coef, p_value_pearson = pearsonr(data['best_combined_auc'], data['best_combined_value'])
-
-# Calculate the Spearman correlation coefficient
-spearman_corr, p_value_spearman = spearmanr(data['best_combined_auc'], data['best_combined_value'])
-
-# Calculate the Spearman correlation coefficient for the entire dataset
-spearman_corr, p_value_spearman = spearmanr(data['best_combined_auc'], data['best_combined_value'])
-
-# Plot the clusters
-plt.figure(figsize=(14, 8))
-
-# Plot the elements with scatter plot
-sns.scatterplot(x='best_combined_auc', y='best_combined_value', hue='cluster', data=data, palette='viridis', edgecolor='black', s=50)
-
-# Add a regression line for Spearman correlation
-sns.regplot(x='best_combined_auc', y='best_combined_value', data=data, scatter=False, color='cyan')
-
-# Annotate the Spearman correlation coefficient and p-value next to its line
-spearman_text = plt.text(0.75, 0.62, f'Spearman Correlation: {spearman_corr:.2f}', color='cyan', fontsize=14, weight='bold')
-spearman_pvalue_text = plt.text(0.75, 0.618, f'P-value: {p_value_spearman:.2e}', color='cyan', fontsize=14, weight='bold')
-
-# Add edgecolor to Spearman correlation text
-for text in [spearman_text, spearman_pvalue_text]:
-    text.set_path_effects([path_effects.Stroke(linewidth=3, foreground='black'), path_effects.Normal()])
-"""
-# Calculate and annotate Spearman correlation for each cluster
-for i, cluster_id in enumerate(sorted(data['cluster'].unique())):
-    cluster_data = data[data['cluster'] == cluster_id]
-    spearman_corr_cluster, p_value_spearman_cluster = spearmanr(cluster_data['best_combined_auc'], cluster_data['best_combined_value'])
-    
-    # Determine position for text annotation based on cluster
-    x_pos = 0.02
-    y_pos = 0.95 - (0.05 * i)  # Adjust y position for each cluster to avoid overlap
-    
-    cluster_text = plt.text(x_pos, y_pos, f'Cluster {cluster_id} Spearman: {spearman_corr_cluster:.2f}', fontsize=12, color='black', transform=plt.gca().transAxes)
-    cluster_pvalue_text = plt.text(x_pos, y_pos - 0.025, f'P-value: {p_value_spearman_cluster:.2e}', fontsize=12, color='black', transform=plt.gca().transAxes)
-    
-    # Add edgecolor to cluster-specific text
-    for text in [cluster_text, cluster_pvalue_text]:
-        text.set_path_effects([path_effects.Stroke(linewidth=3, foreground='white'), path_effects.Normal()])
-"""
-# Add a title and labels
-plt.title('K-Means Clusters of Data Points using AUC and RMSE', fontsize=16)
-plt.xlabel('AUC', fontsize=14)
-plt.ylabel('RMSE', fontsize=14)
-plt.legend(title='Cluster', fontsize=12, title_fontsize='13')
-plt.savefig('Kmeans.png')
-plt.show()
-
-
-# DBSCAN
-###############################################################################
-
-# Perform DBSCAN clustering
-dbscan = DBSCAN(eps=0.01, min_samples=10)
-data['cluster'] = dbscan.fit_predict(data[['best_combined_auc', 'best_combined_value']])
-
-# Calculate the Spearman correlation coefficient for the entire dataset
-spearman_corr, p_value_spearman = spearmanr(data['best_combined_auc'], data['best_combined_value'])
-
-# Plot the clusters
-plt.figure(figsize=(14, 8))
-
-# Plot the elements with scatter plot
-sns.scatterplot(x='best_combined_auc', y='best_combined_value', hue='cluster', data=data, palette='viridis', edgecolor='black', s=50)
-
-# Add a regression line for Spearman correlation
-sns.regplot(x='best_combined_auc', y='best_combined_value', data=data, scatter=False, color='cyan')
-
-# Annotate the Spearman correlation coefficient and p-value next to its line
-spearman_text = plt.text(0.75, 0.62, f'Spearman Correlation: {spearman_corr:.2f}', color='cyan', fontsize=14, weight='bold')
-spearman_pvalue_text = plt.text(0.75, 0.618, f'P-value: {p_value_spearman:.2e}', color='cyan', fontsize=14, weight='bold')
-
-# Add edgecolor to Spearman correlation text
-for text in [spearman_text, spearman_pvalue_text]:
-    text.set_path_effects([path_effects.Stroke(linewidth=3, foreground='black'), path_effects.Normal()])
-
-# Calculate and annotate Spearman correlation for each cluster
-for i, cluster_id in enumerate(sorted(data['cluster'].unique())):
-    if cluster_id == -1:
-        continue  # Skip noise points
-    
-    cluster_data = data[data['cluster'] == cluster_id]
-    spearman_corr_cluster, p_value_spearman_cluster = spearmanr(cluster_data['best_combined_auc'], cluster_data['best_combined_value'])
-    
-    # Determine position for text annotation based on cluster
-    x_pos = 0.02
-    y_pos = 0.95 - (0.05 * i)  # Adjust y position for each cluster to avoid overlap
-    
-    cluster_text = plt.text(x_pos, y_pos, f'Cluster {cluster_id} Spearman: {spearman_corr_cluster:.2f}', fontsize=12, color='black', transform=plt.gca().transAxes)
-    cluster_pvalue_text = plt.text(x_pos, y_pos - 0.025, f'P-value: {p_value_spearman_cluster:.2e}', fontsize=12, color='black', transform=plt.gca().transAxes)
-    
-    # Add edgecolor to cluster-specific text
-    for text in [cluster_text, cluster_pvalue_text]:
-        text.set_path_effects([path_effects.Stroke(linewidth=3, foreground='white'), path_effects.Normal()])
-
-# Add a title and labels
-plt.title('DBSCAN Clusters of Data Points using AUC and RMSE', fontsize=16)
-plt.xlabel('AUC', fontsize=14)
-plt.ylabel('RMSE', fontsize=14)
-plt.legend(title='Cluster', fontsize=12, title_fontsize='13')
-plt.savefig('DBSCAN.png')
-#plt.show()
-
-
-# HDBSCAN
-###############################################################################
-
-# Perform HDBSCAN clustering
-hdbscan = HDBSCAN(min_samples=10, min_cluster_size=10)
-data['cluster'] = hdbscan.fit_predict(data[['best_combined_auc', 'best_combined_value']])
-
-# Calculate the Spearman correlation coefficient for the entire dataset
-spearman_corr, p_value_spearman = spearmanr(data['best_combined_auc'], data['best_combined_value'])
-
-# Plot the clusters
-plt.figure(figsize=(14, 8))
-
-# Plot the elements with scatter plot
-sns.scatterplot(x='best_combined_auc', y='best_combined_value', hue='cluster', data=data, palette='viridis', edgecolor='black', s=50)
-
-# Add a regression line for Spearman correlation
-sns.regplot(x='best_combined_auc', y='best_combined_value', data=data, scatter=False, color='cyan')
-
-# Annotate the Spearman correlation coefficient and p-value next to its line
-spearman_text = plt.text(0.75, 0.62, f'Spearman Correlation: {spearman_corr:.2f}', color='cyan', fontsize=14, weight='bold')
-spearman_pvalue_text = plt.text(0.75, 0.618, f'P-value: {p_value_spearman:.2e}', color='cyan', fontsize=14, weight='bold')
-
-# Add edgecolor to Spearman correlation text
-for text in [spearman_text, spearman_pvalue_text]:
-    text.set_path_effects([path_effects.Stroke(linewidth=3, foreground='black'), path_effects.Normal()])
-
-# Calculate and annotate Spearman correlation for each cluster
-for i, cluster_id in enumerate(sorted(data['cluster'].unique())):
-    if cluster_id == -1:
-        continue  # Skip noise points
-    
-    cluster_data = data[data['cluster'] == cluster_id]
-    spearman_corr_cluster, p_value_spearman_cluster = spearmanr(cluster_data['best_combined_auc'], cluster_data['best_combined_value'])
-    
-    # Determine position for text annotation based on cluster
-    x_pos = 0.02
-    y_pos = 0.95 - (0.05 * i)  # Adjust y position for each cluster to avoid overlap
-    
-    cluster_text = plt.text(x_pos, y_pos, f'Cluster {cluster_id} Spearman: {spearman_corr_cluster:.2f}', fontsize=12, color='black', transform=plt.gca().transAxes)
-    cluster_pvalue_text = plt.text(x_pos, y_pos - 0.025, f'P-value: {p_value_spearman_cluster:.2e}', fontsize=12, color='black', transform=plt.gca().transAxes)
-    
-    # Add edgecolor to cluster-specific text
-    for text in [cluster_text, cluster_pvalue_text]:
-        text.set_path_effects([path_effects.Stroke(linewidth=3, foreground='white'), path_effects.Normal()])
-
-# Add a title and labels
-plt.title('HDBSCAN Clusters of Data Points using AUC and RMSE', fontsize=16)
-plt.xlabel('AUC', fontsize=14)
-plt.ylabel('RMSE', fontsize=14)
-plt.legend(title='Cluster', fontsize=12, title_fontsize='13')
-plt.savefig('HDBSCAN.png')
-#plt.show()
-
-# Hightlight the best combined features, the all 0s and all 1s
-###############################################################################
 
 # Add a new column to the data to highlight the best combined features
 data['highlight'] = 'none'
@@ -276,35 +42,1127 @@ for index, row in data.iterrows():
 # Set the highlight in the best_combined_metric to 'best' for the best combined value (lowest)
 data.loc[data['best_combined_metric'] == data['best_combined_metric'].min(), 'highlight'] = 'best'
 
-# Calculate the Spearman correlation coefficient for the entire dataset
-spearman_corr, p_value_spearman = spearmanr(data['best_combined_auc'], data['best_combined_value'])
+# Select relevant features for clustering (AUC and ERROR)
+features = data[['best_combined_auc', 'best_combined_value']]
 
-# Plot the data points
-plt.figure(figsize=(14, 8))
+# One-hot encode the first 16 characters of the best_combined_metric column (as integers)
+#one_hot_features = pd.get_dummies(data['best_combined_metric'].apply(lambda x: list(x[:16])), prefix='feature')
+#one_hot_features = pd.DataFrame(data['best_combined_features'].apply(lambda x: list(x[:16])).to_list(), columns=[f'feature_{i}' for i in range(16)])
+one_hot_features = pd.DataFrame(
+    data['best_combined_features'].apply(lambda x: [int(c) for c in x[:16]]).to_list(),
+    columns=[f'feature_{i}' for i in range(16)]
+)
 
-# Plot the elements with scatter plot, highlighting all 1s and all 0s
-sns.scatterplot(x='best_combined_auc', y='best_combined_value', data=data[data['highlight'] == 'none'], color='gray', edgecolor='black', s=50)
-sns.scatterplot(x='best_combined_auc', y='best_combined_value', hue='highlight', data=data[data['highlight'] != 'none'], palette={'all_1': 'red', 'all_0': 'blue', 'best': 'green'}, edgecolor='black', s=100, marker='D')
+# Concatenate the one-hot encoded features with the original features
+features = pd.concat([features, one_hot_features], axis=1)
 
-# Add a regression line for Spearman correlation
-sns.regplot(x='best_combined_auc', y='best_combined_value', data=data, scatter=False, color='cyan')
+# Normalize the features
+scaler = StandardScaler()
+normalized_features = scaler.fit_transform(features)
 
-# Annotate the Spearman correlation coefficient and p-value next to its line
-spearman_text = plt.text(0.75, 0.62, f'Spearman Correlation: {spearman_corr:.2f}', color='cyan', fontsize=14, weight='bold')
-spearman_pvalue_text = plt.text(0.75, 0.618, f'P-value: {p_value_spearman:.2e}', color='cyan', fontsize=14, weight='bold')
+# Elbow Method
+def run_elbow(normalized_features: np.ndarray, max_clusters: int = 15, plot: bool = True) -> list:
+    ''' Run the Elbow Method to determine the optimal number of clusters for K-Means Clustering.
+    
+    Parameters
+    ----------
+    normalized_features : np.array
+        The normalized features to be used for clustering
+    max_clusters : int
+        The maximum number of clusters to test
+    plot : bool
+        Whether to plot the Elbow Method graph or not
 
-# Add edgecolor to Spearman correlation text
-for text in [spearman_text, spearman_pvalue_text]:
-    text.set_path_effects([path_effects.Stroke(linewidth=3, foreground='black'), path_effects.Normal()])
+    Returns
+    -------
+    list
+        A list of the Within-Cluster Sum of Squares (WCSS) for each number of clusters.
+    '''
 
-# Add a title and labels
-plt.title('Data Points with AUC and RMSE', fontsize=16)
-plt.xlabel('AUC', fontsize=14)
-plt.ylabel('RMSE', fontsize=14)
-plt.legend(title='Highlight', fontsize=12, title_fontsize='13')
-plt.show()
+    wcss = []
+    for i in range(1, max_clusters+1):
+        kmeans = KMeans(n_clusters=i, random_state=42, n_init='auto')
+        kmeans.fit(normalized_features)
+        wcss.append(kmeans.inertia_)
+    
+    if plot:
+        plt.figure(figsize=(10, 8))
+        plt.plot(range(1, max_clusters+1), wcss, marker='o')
+        plt.title('Elbow Method for Determining Optimal Number of Clusters')
+        plt.xlabel('Number of Clusters')
+        plt.ylabel('WCSS (Within-Cluster Sum of Squares)')
+        plt.grid(True)
+        plt.savefig('Elbow.png')
+        plt.close()
+    return wcss
 
-print(data[data['highlight'] != 'none'])
+def run_kmeans(normalized_features: np.ndarray, optimal_clusters: int = 4) -> dict:
+    ''' Run K-Means Clustering with the optimal number of clusters and plot the results.
+    
+    Parameters
+    ----------
+    normalized_features : np.ndarray
+        The normalized features to be used for clustering.
+    optimal_clusters : int, optional
+        The optimal number of clusters to use for K-Means Clustering. Default is 4.
 
-# Display the first few rows of the data with cluster labels
-print(data.head())
+    Returns
+    -------
+    dict
+        A dictionary containing the Spearman correlation and p-value between the AUC and ERROR values.
+    '''
+
+    kmeans = KMeans(n_clusters=optimal_clusters, random_state=42, n_init='auto')
+    clusters = kmeans.fit_predict(normalized_features)
+    
+    # Add cluster labels to the original data
+    data['cluster'] = clusters
+    
+    correlation_dict = {
+        'Pearson': {},
+        'Spearman': {}
+    }
+
+    # Calculate correlations
+    correlation_dict['Pearson']['correlation'], correlation_dict['Pearson']['p_value'] = pearsonr(data['best_combined_auc'], data['best_combined_value'])
+    correlation_dict['Spearman']['correlation'], correlation_dict['Spearman']['p_value'] = spearmanr(data['best_combined_auc'], data['best_combined_value'])
+
+    # Define the color palette based on the clusters
+    palette = sns.color_palette('viridis', as_cmap=False, n_colors=optimal_clusters)
+
+    # Create a JointGrid with scatterplot
+    g = sns.JointGrid(data=data, x="best_combined_auc", y="best_combined_value", height=8)
+
+    # Plot the scatterplot for clusters
+    sns.scatterplot(x='best_combined_auc', y='best_combined_value', hue='cluster', data=data, palette=palette, edgecolor='black', s=20, alpha=0.5, ax=g.ax_joint)
+
+    # Plot the scatterplot for highlights with different markers and sizes
+    markers = {'all_1': 'D', 'all_0': 's', 'best': '^'}
+    sizes = {'all_1': 100, 'all_0': 100, 'best': 100}
+
+    for highlight, marker in markers.items():
+        highlighted_data = data[data['highlight'] == highlight]
+        # Explicitly set the color based on the cluster
+        for cluster in highlighted_data['cluster'].unique():
+            cluster_data = highlighted_data[highlighted_data['cluster'] == cluster]
+            sns.scatterplot(
+                x='best_combined_auc', 
+                y='best_combined_value', 
+                data=cluster_data, 
+                color=palette[cluster],  # Use specific color for the cluster
+                edgecolor='black', 
+                s=sizes[highlight], 
+                marker=marker, 
+                ax=g.ax_joint, 
+                legend=False  # Disable legend here to avoid multiple entries
+            )
+
+    # Add custom legend for shapes
+    for highlight, marker in markers.items():
+        g.ax_joint.scatter([], [], c='k', marker=marker, label=highlight, s=sizes[highlight])
+
+    g.ax_joint.legend(loc='best')
+
+    # Plot the marginal densities on the axes with matching colors
+    for idx, cluster in enumerate(sorted(data['cluster'].unique())):
+        sns.kdeplot(data=data[data['cluster'] == cluster]['best_combined_auc'], ax=g.ax_marg_x, color=palette[idx], fill=True)
+        #sns.kdeplot(data=data[data['cluster'] == cluster]['best_combined_value'], ax=g.ax_marg_y, color=palette[idx], fill=True, vertical=True)
+        sns.kdeplot(
+            y=data[data['cluster'] == cluster]['best_combined_value'], 
+            ax=g.ax_marg_y, 
+            color=palette[idx], 
+            fill=True
+        )
+    
+    # Add the regression line
+    sns.regplot(x='best_combined_auc', y='best_combined_value', data=data, scatter=False, color='cyan', ax=g.ax_joint)
+    
+    # Annotate the Spearman correlation
+    spearman_corr_text = g.ax_joint.text(0.5, 0.43, f'Spearman Correlation: {correlation_dict["Spearman"]["correlation"]:.2f}', color='cyan', fontsize=14, weight='bold', transform=g.ax_joint.transAxes)
+    spearman_pval_text = g.ax_joint.text(0.5, 0.47, f'Spearman p-value: {correlation_dict["Spearman"]["p_value"]:.2f}', color='cyan', fontsize=14, weight='bold', transform=g.ax_joint.transAxes)
+    
+    for s in [spearman_corr_text, spearman_pval_text]:
+        s.set_path_effects([path_effects.Stroke(linewidth=3, foreground='black'), path_effects.Normal()])
+
+    # Hide the legends for the marginal density plots if they exist
+    if g.ax_marg_x.legend_:
+        g.ax_marg_x.legend_.remove()
+    if g.ax_marg_y.legend_:
+        g.ax_marg_y.legend_.remove()
+
+    # Adjust layout to make space for the title
+    plt.subplots_adjust(top=0.9)
+
+    # Set the title with space
+    g.figure.suptitle('K-Means Clustering with Density Plots', fontsize=16, weight='bold')
+
+    # Save the figure
+    plt.savefig('Kmeans_with_density.png')
+    plt.close()
+    
+    return correlation_dict
+
+def run_dbscan(normalized_features: np.ndarray) -> dict:
+    ''' Run DBSCAN Clustering and plot the results.
+    
+    Parameters
+    ----------
+    normalized_features : np.ndarray
+        The normalized features to be used for clustering.
+
+    Returns
+    -------
+    dict
+        A dictionary containing the Spearman correlation and p-value between the AUC and ERROR values.
+    '''
+
+    dbscan = DBSCAN(eps=0.01, min_samples=10)
+    data['cluster'] = dbscan.fit_predict(normalized_features[:, :2])
+    
+    correlation_dict = {
+        'Pearson': {},
+        'Spearman': {}
+    }
+
+    # Calculate correlations
+    correlation_dict['Pearson']['correlation'], correlation_dict['Pearson']['p_value'] = pearsonr(data['best_combined_auc'], data['best_combined_value'])
+    correlation_dict['Spearman']['correlation'], correlation_dict['Spearman']['p_value'] = spearmanr(data['best_combined_auc'], data['best_combined_value'])
+    
+    # Define the color palette based on the clusters
+    palette = sns.color_palette('viridis', as_cmap=False, n_colors=len(data['cluster'].unique()))
+
+    # Create a JointGrid with scatterplot
+    g = sns.JointGrid(data=data, x="best_combined_auc", y="best_combined_value", height=8)
+
+    # Plot the scatterplot for clusters
+    sns.scatterplot(x='best_combined_auc', y='best_combined_value', hue='cluster', data=data, palette=palette, edgecolor='black', s=20, alpha=0.5, ax=g.ax_joint)
+
+    # Plot the scatterplot for highlights with different markers and sizes
+    markers = {'all_1': 'D', 'all_0': 's', 'best': '^'}
+    sizes = {'all_1': 100, 'all_0': 100, 'best': 100}
+
+    for highlight, marker in markers.items():
+        highlighted_data = data[data['highlight'] == highlight]
+        # Explicitly set the color based on the cluster
+        for cluster in highlighted_data['cluster'].unique():
+            cluster_data = highlighted_data[highlighted_data['cluster'] == cluster]
+            sns.scatterplot(
+                x='best_combined_auc', 
+                y='best_combined_value', 
+                data=cluster_data, 
+                color=palette[cluster],  # Use specific color for the cluster
+                edgecolor='black', 
+                s=sizes[highlight], 
+                marker=marker, 
+                ax=g.ax_joint, 
+                legend=False  # Disable legend here to avoid multiple entries
+            )
+
+    # Add custom legend for shapes
+    for highlight, marker in markers.items():
+        g.ax_joint.scatter([], [], c='k', marker=marker, label=highlight, s=sizes[highlight])
+
+    g.ax_joint.legend(loc='best')
+
+    # Plot the marginal densities on the axes with matching colors
+    for idx, cluster in enumerate(sorted(data['cluster'].unique())):
+        sns.kdeplot(data=data[data['cluster'] == cluster]['best_combined_auc'], ax=g.ax_marg_x, color=palette[idx], fill=True)
+        #sns.kdeplot(data=data[data['cluster'] == cluster]['best_combined_value'], ax=g.ax_marg_y, color=palette[idx], fill=True, vertical=True)
+        sns.kdeplot(
+            y=data[data['cluster'] == cluster]['best_combined_value'], 
+            ax=g.ax_marg_y, 
+            color=palette[idx], 
+            fill=True
+        )
+    
+    # Add the regression line
+    sns.regplot(x='best_combined_auc', y='best_combined_value', data=data, scatter=False, color='cyan', ax=g.ax_joint)
+    
+    # Annotate the Spearman correlation
+    spearman_corr_text = g.ax_joint.text(0.5, 0.43, f'Spearman Correlation: {correlation_dict["Spearman"]["correlation"]:.2f}', color='cyan', fontsize=14, weight='bold', transform=g.ax_joint.transAxes)
+    spearman_pval_text = g.ax_joint.text(0.5, 0.47, f'Spearman p-value: {correlation_dict["Spearman"]["p_value"]:.2f}', color='cyan', fontsize=14, weight='bold', transform=g.ax_joint.transAxes)
+    
+    for s in [spearman_corr_text, spearman_pval_text]:
+        s.set_path_effects([path_effects.Stroke(linewidth=3, foreground='black'), path_effects.Normal()])
+
+    # Hide the legends for the marginal density plots if they exist
+    if g.ax_marg_x.legend_:
+        g.ax_marg_x.legend_.remove()
+    if g.ax_marg_y.legend_:
+        g.ax_marg_y.legend_.remove()
+
+    # Adjust layout to make space for the title
+    plt.subplots_adjust(top=0.9)
+
+    # Set the title with space
+    g.figure.suptitle('DBSCAN Clustering with Density Plots', fontsize=16, weight='bold')
+
+    # Save the figure
+    plt.savefig('DBSCAN.png')
+    plt.close()
+    
+    return correlation_dict
+
+def run_hdbscan(normalized_features: np.ndarray, min_samples: int = 10, min_cluster_size: int = 10) -> dict:
+    ''' Run HDBSCAN Clustering and plot the results.
+    
+    Parameters
+    ----------
+    normalized_features : np.ndarray
+        The normalized features to be used for clustering.
+    min_samples : int, optional
+        The minimum size of clusters. Default is 10.
+    min_cluster_size : int, optional
+        The minimum cluster size. Default is 10.
+
+    
+    Returns
+    -------
+    dict
+        A dictionary containing the Spearman correlation and p-value between the AUC and ERROR values.
+    '''
+
+    hdbscan = HDBSCAN(min_samples=min_samples, min_cluster_size=min_cluster_size)
+    data['cluster'] = hdbscan.fit_predict(normalized_features[:, :2])
+    
+    correlation_dict = {
+        'Pearson': {},
+        'Spearman': {}
+    }
+
+    # Calculate correlations
+    correlation_dict['Pearson']['correlation'], correlation_dict['Pearson']['p_value'] = pearsonr(data['best_combined_auc'], data['best_combined_value'])
+    correlation_dict['Spearman']['correlation'], correlation_dict['Spearman']['p_value'] = spearmanr(data['best_combined_auc'], data['best_combined_value'])
+    
+    # Define the color palette based on the clusters
+    palette = sns.color_palette('viridis', as_cmap=False, n_colors=len(data['cluster'].unique()))
+
+    # Create a JointGrid with scatterplot
+    g = sns.JointGrid(data=data, x="best_combined_auc", y="best_combined_value", height=8)
+
+    # Plot the scatterplot for clusters
+    sns.scatterplot(x='best_combined_auc', y='best_combined_value', hue='cluster', data=data, palette=palette, edgecolor='black', s=20, alpha=0.5, ax=g.ax_joint)
+
+    # Plot the scatterplot for highlights with different markers and sizes
+    markers = {'all_1': 'D', 'all_0': 's', 'best': '^'}
+    sizes = {'all_1': 100, 'all_0': 100, 'best': 100}
+
+    for highlight, marker in markers.items():
+        highlighted_data = data[data['highlight'] == highlight]
+        # Explicitly set the color based on the cluster
+        for cluster in highlighted_data['cluster'].unique():
+            cluster_data = highlighted_data[highlighted_data['cluster'] == cluster]
+            sns.scatterplot(
+                x='best_combined_auc', 
+                y='best_combined_value', 
+                data=cluster_data, 
+                color=palette[cluster],  # Use specific color for the cluster
+                edgecolor='black', 
+                s=sizes[highlight], 
+                marker=marker, 
+                ax=g.ax_joint, 
+                legend=False  # Disable legend here to avoid multiple entries
+            )
+
+    # Add custom legend for shapes
+    for highlight, marker in markers.items():
+        g.ax_joint.scatter([], [], c='k', marker=marker, label=highlight, s=sizes[highlight])
+
+    g.ax_joint.legend(loc='best')
+
+    # Plot the marginal densities on the axes with matching colors
+    for idx, cluster in enumerate(sorted(data['cluster'].unique())):
+        sns.kdeplot(data=data[data['cluster'] == cluster]['best_combined_auc'], ax=g.ax_marg_x, color=palette[idx], fill=True)
+        #sns.kdeplot(data=data[data['cluster'] == cluster]['best_combined_value'], ax=g.ax_marg_y, color=palette[idx], fill=True, vertical=True)
+        sns.kdeplot(
+            y=data[data['cluster'] == cluster]['best_combined_value'], 
+            ax=g.ax_marg_y, 
+            color=palette[idx], 
+            fill=True
+        )
+    
+    # Add the regression line
+    sns.regplot(x='best_combined_auc', y='best_combined_value', data=data, scatter=False, color='cyan', ax=g.ax_joint)
+    
+    # Annotate the Spearman correlation
+    spearman_corr_text = g.ax_joint.text(0.5, 0.43, f'Spearman Correlation: {correlation_dict["Spearman"]["correlation"]:.2f}', color='cyan', fontsize=14, weight='bold', transform=g.ax_joint.transAxes)
+    spearman_pval_text = g.ax_joint.text(0.5, 0.47, f'Spearman p-value: {correlation_dict["Spearman"]["p_value"]:.2f}', color='cyan', fontsize=14, weight='bold', transform=g.ax_joint.transAxes)
+    
+    for s in [spearman_corr_text, spearman_pval_text]:
+        s.set_path_effects([path_effects.Stroke(linewidth=3, foreground='black'), path_effects.Normal()])
+
+    # Hide the legends for the marginal density plots if they exist
+    if g.ax_marg_x.legend_:
+        g.ax_marg_x.legend_.remove()
+    if g.ax_marg_y.legend_:
+        g.ax_marg_y.legend_.remove()
+
+    # Adjust layout to make space for the title
+    plt.subplots_adjust(top=0.9)
+
+    # Set the title with space
+    g.figure.suptitle('HDBSCAN Clustering with Density Plots', fontsize=16, weight='bold')
+
+    # Save the figure
+    plt.savefig('HDBSCAN.png')
+    plt.close()
+    
+    return correlation_dict
+
+def run_meanshift(normalized_features: np.ndarray) -> dict:
+    ''' Run MeanShift Clustering and plot the results.
+    
+    Parameters
+    ----------
+    normalized_features : np.ndarray
+        The normalized features to be used for clustering.
+
+    
+    Returns
+    -------
+    dict
+        A dictionary containing the Spearman correlation and p-value between the AUC and ERROR values.
+    '''
+
+    meanshift = MeanShift()
+    data['cluster'] = meanshift.fit_predict(normalized_features[:, :2])
+    
+    correlation_dict = {
+        'Pearson': {},
+        'Spearman': {}
+    }
+
+    # Calculate correlations
+    correlation_dict['Pearson']['correlation'], correlation_dict['Pearson']['p_value'] = pearsonr(data['best_combined_auc'], data['best_combined_value'])
+    correlation_dict['Spearman']['correlation'], correlation_dict['Spearman']['p_value'] = spearmanr(data['best_combined_auc'], data['best_combined_value'])
+    
+    # Define the color palette based on the clusters
+    palette = sns.color_palette('viridis', as_cmap=False, n_colors=len(data['cluster'].unique()))
+
+    # Create a JointGrid with scatterplot
+    g = sns.JointGrid(data=data, x="best_combined_auc", y="best_combined_value", height=8)
+
+    # Plot the scatterplot for clusters
+    sns.scatterplot(x='best_combined_auc', y='best_combined_value', hue='cluster', data=data, palette=palette, edgecolor='black', s=20, alpha=0.5, ax=g.ax_joint)
+
+    # Plot the scatterplot for highlights with different markers and sizes
+    markers = {'all_1': 'D', 'all_0': 's', 'best': '^'}
+    sizes = {'all_1': 100, 'all_0': 100, 'best': 100}
+
+    for highlight, marker in markers.items():
+        highlighted_data = data[data['highlight'] == highlight]
+        # Explicitly set the color based on the cluster
+        for cluster in highlighted_data['cluster'].unique():
+            cluster_data = highlighted_data[highlighted_data['cluster'] == cluster]
+            sns.scatterplot(
+                x='best_combined_auc', 
+                y='best_combined_value', 
+                data=cluster_data, 
+                color=palette[cluster],  # Use specific color for the cluster
+                edgecolor='black', 
+                s=sizes[highlight], 
+                marker=marker, 
+                ax=g.ax_joint, 
+                legend=False  # Disable legend here to avoid multiple entries
+            )
+
+    # Add custom legend for shapes
+    for highlight, marker in markers.items():
+        g.ax_joint.scatter([], [], c='k', marker=marker, label=highlight, s=sizes[highlight])
+
+    g.ax_joint.legend(loc='best')
+
+    # Plot the marginal densities on the axes with matching colors
+    for idx, cluster in enumerate(sorted(data['cluster'].unique())):
+        sns.kdeplot(data=data[data['cluster'] == cluster]['best_combined_auc'], ax=g.ax_marg_x, color=palette[idx], fill=True)
+        #sns.kdeplot(data=data[data['cluster'] == cluster]['best_combined_value'], ax=g.ax_marg_y, color=palette[idx], fill=True, vertical=True)
+        sns.kdeplot(
+            y=data[data['cluster'] == cluster]['best_combined_value'], 
+            ax=g.ax_marg_y, 
+            color=palette[idx], 
+            fill=True
+        )
+    
+    # Add the regression line
+    sns.regplot(x='best_combined_auc', y='best_combined_value', data=data, scatter=False, color='cyan', ax=g.ax_joint)
+    
+    # Annotate the Spearman correlation
+    spearman_corr_text = g.ax_joint.text(0.5, 0.43, f'Spearman Correlation: {correlation_dict["Spearman"]["correlation"]:.2f}', color='cyan', fontsize=14, weight='bold', transform=g.ax_joint.transAxes)
+    spearman_pval_text = g.ax_joint.text(0.5, 0.47, f'Spearman p-value: {correlation_dict["Spearman"]["p_value"]:.2f}', color='cyan', fontsize=14, weight='bold', transform=g.ax_joint.transAxes)
+    
+    for s in [spearman_corr_text, spearman_pval_text]:
+        s.set_path_effects([path_effects.Stroke(linewidth=3, foreground='black'), path_effects.Normal()])
+
+    # Hide the legends for the marginal density plots if they exist
+    if g.ax_marg_x.legend_:
+        g.ax_marg_x.legend_.remove()
+    if g.ax_marg_y.legend_:
+        g.ax_marg_y.legend_.remove()
+
+    # Adjust layout to make space for the title
+    plt.subplots_adjust(top=0.9)
+
+    # Set the title with space
+    g.figure.suptitle('MeanShift Clustering with Density Plots', fontsize=16, weight='bold')
+
+    # Save the figure
+    plt.savefig('MeanShift.png')
+    plt.close()
+    
+    return correlation_dict
+
+def run_agglomerative(normalized_features: np.ndarray) -> dict:
+    ''' Run Agglomerative Clustering and plot the results.
+    
+    Parameters
+    ----------
+    normalized_features : np.ndarray
+        The normalized features to be used for clustering.
+
+    
+    Returns
+    -------
+    dict
+        A dictionary containing the Spearman correlation and p-value between the AUC and ERROR values.
+    '''
+
+    agglomerative = AgglomerativeClustering()
+    data['cluster'] = agglomerative.fit_predict(normalized_features[:, :2])
+    
+    correlation_dict = {
+        'Pearson': {},
+        'Spearman': {}
+    }
+
+    # Calculate correlations
+    correlation_dict['Pearson']['correlation'], correlation_dict['Pearson']['p_value'] = pearsonr(data['best_combined_auc'], data['best_combined_value'])
+    correlation_dict['Spearman']['correlation'], correlation_dict['Spearman']['p_value'] = spearmanr(data['best_combined_auc'], data['best_combined_value'])
+    
+    # Define the color palette based on the clusters
+    palette = sns.color_palette('viridis', as_cmap=False, n_colors=len(data['cluster'].unique()))
+
+    # Create a JointGrid with scatterplot
+    g = sns.JointGrid(data=data, x="best_combined_auc", y="best_combined_value", height=8)
+
+    # Plot the scatterplot for clusters
+    sns.scatterplot(x='best_combined_auc', y='best_combined_value', hue='cluster', data=data, palette=palette, edgecolor='black', s=20, alpha=0.5, ax=g.ax_joint)
+
+    # Plot the scatterplot for highlights with different markers and sizes
+    markers = {'all_1': 'D', 'all_0': 's', 'best': '^'}
+    sizes = {'all_1': 100, 'all_0': 100, 'best': 100}
+
+    for highlight, marker in markers.items():
+        highlighted_data = data[data['highlight'] == highlight]
+        # Explicitly set the color based on the cluster
+        for cluster in highlighted_data['cluster'].unique():
+            cluster_data = highlighted_data[highlighted_data['cluster'] == cluster]
+            sns.scatterplot(
+                x='best_combined_auc', 
+                y='best_combined_value', 
+                data=cluster_data, 
+                color=palette[cluster],  # Use specific color for the cluster
+                edgecolor='black', 
+                s=sizes[highlight], 
+                marker=marker, 
+                ax=g.ax_joint, 
+                legend=False  # Disable legend here to avoid multiple entries
+            )
+
+    # Add custom legend for shapes
+    for highlight, marker in markers.items():
+        g.ax_joint.scatter([], [], c='k', marker=marker, label=highlight, s=sizes[highlight])
+
+    g.ax_joint.legend(loc='best')
+
+    # Plot the marginal densities on the axes with matching colors
+    for idx, cluster in enumerate(sorted(data['cluster'].unique())):
+        sns.kdeplot(data=data[data['cluster'] == cluster]['best_combined_auc'], ax=g.ax_marg_x, color=palette[idx], fill=True)
+        #sns.kdeplot(data=data[data['cluster'] == cluster]['best_combined_value'], ax=g.ax_marg_y, color=palette[idx], fill=True, vertical=True)
+        sns.kdeplot(
+            y=data[data['cluster'] == cluster]['best_combined_value'], 
+            ax=g.ax_marg_y, 
+            color=palette[idx], 
+            fill=True
+        )
+    
+    # Add the regression line
+    sns.regplot(x='best_combined_auc', y='best_combined_value', data=data, scatter=False, color='cyan', ax=g.ax_joint)
+    
+    # Annotate the Spearman correlation
+    spearman_corr_text = g.ax_joint.text(0.5, 0.43, f'Spearman Correlation: {correlation_dict["Spearman"]["correlation"]:.2f}', color='cyan', fontsize=14, weight='bold', transform=g.ax_joint.transAxes)
+    spearman_pval_text = g.ax_joint.text(0.5, 0.47, f'Spearman p-value: {correlation_dict["Spearman"]["p_value"]:.2f}', color='cyan', fontsize=14, weight='bold', transform=g.ax_joint.transAxes)
+    
+    for s in [spearman_corr_text, spearman_pval_text]:
+        s.set_path_effects([path_effects.Stroke(linewidth=3, foreground='black'), path_effects.Normal()])
+
+    # Hide the legends for the marginal density plots if they exist
+    if g.ax_marg_x.legend_:
+        g.ax_marg_x.legend_.remove()
+    if g.ax_marg_y.legend_:
+        g.ax_marg_y.legend_.remove()
+
+    # Adjust layout to make space for the title
+    plt.subplots_adjust(top=0.9)
+
+    # Set the title with space
+    g.figure.suptitle('Agglomerative Clustering with Density Plots', fontsize=16, weight='bold')
+
+    # Save the figure
+    plt.savefig('Agglomerative.png')
+    plt.close()
+    
+    return correlation_dict
+
+def run_spectral(normalized_features: np.ndarray, n_clusters: int = 4) -> dict:
+    ''' Run Spectral Clustering and plot the results.
+    
+    Parameters
+    ----------
+    normalized_features : np.ndarray
+        The normalized features to be used for clustering.
+    n_clusters : int, optional
+        The number of clusters to form. Default is 4.
+    
+    
+    Returns
+    -------
+    dict
+        A dictionary containing the Spearman correlation and p-value between the AUC and ERROR values.
+    '''
+
+    spectral = SpectralClustering(n_clusters=n_clusters, random_state=42)
+    data['cluster'] = spectral.fit_predict(normalized_features[:, :2])
+    
+    correlation_dict = {
+        'Pearson': {},
+        'Spearman': {}
+    }
+
+    # Calculate correlations
+    correlation_dict['Pearson']['correlation'], correlation_dict['Pearson']['p_value'] = pearsonr(data['best_combined_auc'], data['best_combined_value'])
+    correlation_dict['Spearman']['correlation'], correlation_dict['Spearman']['p_value'] = spearmanr(data['best_combined_auc'], data['best_combined_value'])
+    
+    # Define the color palette based on the clusters
+    palette = sns.color_palette('viridis', as_cmap=False, n_colors=n_clusters)
+
+    # Create a JointGrid with scatterplot
+    g = sns.JointGrid(data=data, x="best_combined_auc", y="best_combined_value", height=8)
+
+    # Plot the scatterplot for clusters
+    sns.scatterplot(x='best_combined_auc', y='best_combined_value', hue='cluster', data=data, palette=palette, edgecolor='black', s=20, alpha=0.5, ax=g.ax_joint)
+
+    # Plot the scatterplot for highlights with different markers and sizes
+    markers = {'all_1': 'D', 'all_0': 's', 'best': '^'}
+    sizes = {'all_1': 100, 'all_0': 100, 'best': 100}
+
+    for highlight, marker in markers.items():
+        highlighted_data = data[data['highlight'] == highlight]
+        # Explicitly set the color based on the cluster
+        for cluster in highlighted_data['cluster'].unique():
+            cluster_data = highlighted_data[highlighted_data['cluster'] == cluster]
+            sns.scatterplot(
+                x='best_combined_auc', 
+                y='best_combined_value', 
+                data=cluster_data, 
+                color=palette[cluster],  # Use specific color for the cluster
+                edgecolor='black', 
+                s=sizes[highlight], 
+                marker=marker, 
+                ax=g.ax_joint, 
+                legend=False  # Disable legend here to avoid multiple entries
+            )
+
+    # Add custom legend for shapes
+    for highlight, marker in markers.items():
+        g.ax_joint.scatter([], [], c='k', marker=marker, label=highlight, s=sizes[highlight])
+
+    g.ax_joint.legend(loc='best')
+
+    # Plot the marginal densities on the axes with matching colors
+    for idx, cluster in enumerate(sorted(data['cluster'].unique())):
+        sns.kdeplot(data=data[data['cluster'] == cluster]['best_combined_auc'], ax=g.ax_marg_x, color=palette[idx], fill=True)
+        #sns.kdeplot(data=data[data['cluster'] == cluster]['best_combined_value'], ax=g.ax_marg_y, color=palette[idx], fill=True, vertical=True)
+        sns.kdeplot(
+            y=data[data['cluster'] == cluster]['best_combined_value'], 
+            ax=g.ax_marg_y, 
+            color=palette[idx], 
+            fill=True
+        )
+    
+    # Add the regression line
+    sns.regplot(x='best_combined_auc', y='best_combined_value', data=data, scatter=False, color='cyan', ax=g.ax_joint)
+    
+    # Annotate the Spearman correlation
+    spearman_corr_text = g.ax_joint.text(0.5, 0.43, f'Spearman Correlation: {correlation_dict["Spearman"]["correlation"]:.2f}', color='cyan', fontsize=14, weight='bold', transform=g.ax_joint.transAxes)
+    spearman_pval_text = g.ax_joint.text(0.5, 0.47, f'Spearman p-value: {correlation_dict["Spearman"]["p_value"]:.2f}', color='cyan', fontsize=14, weight='bold', transform=g.ax_joint.transAxes)
+    
+    for s in [spearman_corr_text, spearman_pval_text]:
+        s.set_path_effects([path_effects.Stroke(linewidth=3, foreground='black'), path_effects.Normal()])
+
+    # Hide the legends for the marginal density plots if they exist
+    if g.ax_marg_x.legend_:
+        g.ax_marg_x.legend_.remove()
+    if g.ax_marg_y.legend_:
+        g.ax_marg_y.legend_.remove()
+
+    # Adjust layout to make space for the title
+    plt.subplots_adjust(top=0.9)
+
+    # Set the title with space
+    g.figure.suptitle('Spectral Clustering with Density Plots', fontsize=16, weight='bold')
+
+    # Save the figure
+    plt.savefig('Spectral.png')
+    plt.close()
+    
+    return correlation_dict
+
+def run_ward(normalized_features: np.ndarray, n_clusters: int = 4) -> dict:
+    ''' Run Ward Clustering and plot the results.
+    
+    Parameters
+    ----------
+    normalized_features : np.ndarray
+        The normalized features to be used for clustering.
+    n_clusters : int, optional
+        The number of clusters to form. Default is 4.
+    
+    Returns
+    -------
+    dict
+        A dictionary containing the Spearman correlation and p-value between the AUC and ERROR values.
+    '''
+
+    ward = AgglomerativeClustering(n_clusters=n_clusters, linkage='ward')
+    data['cluster'] = ward.fit_predict(normalized_features[:, :2])
+    
+    correlation_dict = {
+        'Pearson': {},
+        'Spearman': {}
+    }
+
+    # Calculate correlations
+    correlation_dict['Pearson']['correlation'], correlation_dict['Pearson']['p_value'] = pearsonr(data['best_combined_auc'], data['best_combined_value'])
+    correlation_dict['Spearman']['correlation'], correlation_dict['Spearman']['p_value'] = spearmanr(data['best_combined_auc'], data['best_combined_value'])
+    
+    # Define the color palette based on the clusters
+    palette = sns.color_palette('viridis', as_cmap=False, n_colors=n_clusters)
+
+    # Create a JointGrid with scatterplot
+    g = sns.JointGrid(data=data, x="best_combined_auc", y="best_combined_value", height=8)
+
+    # Plot the scatterplot for clusters
+    sns.scatterplot(x='best_combined_auc', y='best_combined_value', hue='cluster', data=data, palette=palette, edgecolor='black', s=20, alpha=0.5, ax=g.ax_joint)
+
+    # Plot the scatterplot for highlights with different markers and sizes
+    markers = {'all_1': 'D', 'all_0': 's', 'best': '^'}
+    sizes = {'all_1': 100, 'all_0': 100, 'best': 100}
+
+    for highlight, marker in markers.items():
+        highlighted_data = data[data['highlight'] == highlight]
+        # Explicitly set the color based on the cluster
+        for cluster in highlighted_data['cluster'].unique():
+            cluster_data = highlighted_data[highlighted_data['cluster'] == cluster]
+            sns.scatterplot(
+                x='best_combined_auc', 
+                y='best_combined_value', 
+                data=cluster_data, 
+                color=palette[cluster],  # Use specific color for the cluster
+                edgecolor='black', 
+                s=sizes[highlight], 
+                marker=marker, 
+                ax=g.ax_joint, 
+                legend=False  # Disable legend here to avoid multiple entries
+            )
+
+    # Add custom legend for shapes
+    for highlight, marker in markers.items():
+        g.ax_joint.scatter([], [], c='k', marker=marker, label=highlight, s=sizes[highlight])
+
+    g.ax_joint.legend(loc='best')
+
+    # Plot the marginal densities on the axes with matching colors
+    for idx, cluster in enumerate(sorted(data['cluster'].unique())):
+        sns.kdeplot(data=data[data['cluster'] == cluster]['best_combined_auc'], ax=g.ax_marg_x, color=palette[idx], fill=True)
+        #sns.kdeplot(data=data[data['cluster'] == cluster]['best_combined_value'], ax=g.ax_marg_y, color=palette[idx], fill=True, vertical=True)
+        sns.kdeplot(
+            y=data[data['cluster'] == cluster]['best_combined_value'], 
+            ax=g.ax_marg_y, 
+            color=palette[idx], 
+            fill=True
+        )
+    
+    # Add the regression line
+    sns.regplot(x='best_combined_auc', y='best_combined_value', data=data, scatter=False, color='cyan', ax=g.ax_joint)
+    
+    # Annotate the Spearman correlation
+    spearman_corr_text = g.ax_joint.text(0.5, 0.43, f'Spearman Correlation: {correlation_dict["Spearman"]["correlation"]:.2f}', color='cyan', fontsize=14, weight='bold', transform=g.ax_joint.transAxes)
+    spearman_pval_text = g.ax_joint.text(0.5, 0.47, f'Spearman p-value: {correlation_dict["Spearman"]["p_value"]:.2f}', color='cyan', fontsize=14, weight='bold', transform=g.ax_joint.transAxes)
+    
+    for s in [spearman_corr_text, spearman_pval_text]:
+        s.set_path_effects([path_effects.Stroke(linewidth=3, foreground='black'), path_effects.Normal()])
+
+    # Hide the legends for the marginal density plots if they exist
+    if g.ax_marg_x.legend_:
+        g.ax_marg_x.legend_.remove()
+    if g.ax_marg_y.legend_:
+        g.ax_marg_y.legend_.remove()
+
+    # Adjust layout to make space for the title
+    plt.subplots_adjust(top=0.9)
+
+    # Set the title with space
+    g.figure.suptitle('Ward Clustering with Density Plots', fontsize=16, weight='bold')
+
+    # Save the figure
+    plt.savefig('Ward.png')
+    plt.close()
+    
+    return correlation_dict
+
+def run_optics(normalized_features: np.ndarray) -> dict:
+    ''' Run OPTICS Clustering and plot the results.
+    
+    Parameters
+    ----------
+    normalized_features : np.ndarray
+        The normalized features to be used for clustering.
+
+    Returns
+    -------
+    dict
+        A dictionary containing the Spearman correlation and p-value between the AUC and ERROR values.
+    '''
+
+    optics = OPTICS(min_samples=10)
+    data['cluster'] = optics.fit_predict(normalized_features[:, :2])
+    
+    correlation_dict = {
+        'Pearson': {},
+        'Spearman': {}
+    }
+
+    # Calculate correlations
+    correlation_dict['Pearson']['correlation'], correlation_dict['Pearson']['p_value'] = pearsonr(data['best_combined_auc'], data['best_combined_value'])
+    correlation_dict['Spearman']['correlation'], correlation_dict['Spearman']['p_value'] = spearmanr(data['best_combined_auc'], data['best_combined_value'])
+    
+    # Define the color palette based on the clusters
+    palette = sns.color_palette('viridis', as_cmap=False, n_colors=len(data['cluster'].unique()))
+
+    # Create a JointGrid with scatterplot
+    g = sns.JointGrid(data=data, x="best_combined_auc", y="best_combined_value", height=8)
+
+    # Plot the scatterplot for clusters
+    sns.scatterplot(x='best_combined_auc', y='best_combined_value', hue='cluster', data=data, palette=palette, edgecolor='black', s=20, alpha=0.5, ax=g.ax_joint)
+
+    # Plot the scatterplot for highlights with different markers and sizes
+    markers = {'all_1': 'D', 'all_0': 's', 'best': '^'}
+    sizes = {'all_1': 100, 'all_0': 100, 'best': 100}
+
+    for highlight, marker in markers.items():
+        highlighted_data = data[data['highlight'] == highlight]
+        # Explicitly set the color based on the cluster
+        for cluster in highlighted_data['cluster'].unique():
+            cluster_data = highlighted_data[highlighted_data['cluster'] == cluster]
+            sns.scatterplot(
+                x='best_combined_auc', 
+                y='best_combined_value', 
+                data=cluster_data, 
+                color=palette[cluster],  # Use specific color for the cluster
+                edgecolor='black', 
+                s=sizes[highlight], 
+                marker=marker, 
+                ax=g.ax_joint, 
+                legend=False  # Disable legend here to avoid multiple entries
+            )
+
+    # Add custom legend for shapes
+    for highlight, marker in markers.items():
+        g.ax_joint.scatter([], [], c='k', marker=marker, label=highlight, s=sizes[highlight])
+
+    g.ax_joint.legend(loc='best')
+
+    # Plot the marginal densities on the axes with matching colors
+    for idx, cluster in enumerate(sorted(data['cluster'].unique())):
+        sns.kdeplot(data=data[data['cluster'] == cluster]['best_combined_auc'], ax=g.ax_marg_x, color=palette[idx], fill=True)
+        #sns.kdeplot(data=data[data['cluster'] == cluster]['best_combined_value'], ax=g.ax_marg_y, color=palette[idx], fill=True, vertical=True)
+        sns.kdeplot(
+            y=data[data['cluster'] == cluster]['best_combined_value'], 
+            ax=g.ax_marg_y, 
+            color=palette[idx], 
+            fill=True
+        )
+    
+    # Add the regression line
+    sns.regplot(x='best_combined_auc', y='best_combined_value', data=data, scatter=False, color='cyan', ax=g.ax_joint)
+    
+    # Annotate the Spearman correlation
+    spearman_corr_text = g.ax_joint.text(0.5, 0.43, f'Spearman Correlation: {correlation_dict["Spearman"]["correlation"]:.2f}', color='cyan', fontsize=14, weight='bold', transform=g.ax_joint.transAxes)
+    spearman_pval_text = g.ax_joint.text(0.5, 0.47, f'Spearman p-value: {correlation_dict["Spearman"]["p_value"]:.2f}', color='cyan', fontsize=14, weight='bold', transform=g.ax_joint.transAxes)
+    
+    for s in [spearman_corr_text, spearman_pval_text]:
+        s.set_path_effects([path_effects.Stroke(linewidth=3, foreground='black'), path_effects.Normal()])
+
+    # Hide the legends for the marginal density plots if they exist
+    if g.ax_marg_x.legend_:
+        g.ax_marg_x.legend_.remove()
+    if g.ax_marg_y.legend_:
+        g.ax_marg_y.legend_.remove()
+
+    # Adjust layout to make space for the title
+    plt.subplots_adjust(top=0.9)
+
+    # Set the title with space
+    g.figure.suptitle('OPTICS Clustering with Density Plots', fontsize=16, weight='bold')
+
+    # Save the figure
+    plt.savefig('OPTICS.png')
+    plt.close()
+    
+    return correlation_dict
+
+def run_birch(normalized_features: np.ndarray, n_clusters: int = 4) -> dict:
+    ''' Run Birch Clustering and plot the results.
+    
+    Parameters
+    ----------
+    normalized_features : np.ndarray
+        The normalized features to be used for clustering.
+    n_clusters : int, optional
+        The number of clusters to form. Default is 4.
+    
+    Returns
+    -------
+    dict
+        A dictionary containing the Spearman correlation and p-value between the AUC and ERROR values.
+    '''
+
+    birch = Birch(n_clusters=n_clusters)
+    data['cluster'] = birch.fit_predict(normalized_features[:, :2])
+    
+    correlation_dict = {
+        'Pearson': {},
+        'Spearman': {}
+    }
+
+    # Calculate correlations
+    correlation_dict['Pearson']['correlation'], correlation_dict['Pearson']['p_value'] = pearsonr(data['best_combined_auc'], data['best_combined_value'])
+    correlation_dict['Spearman']['correlation'], correlation_dict['Spearman']['p_value'] = spearmanr(data['best_combined_auc'], data['best_combined_value'])
+    
+    # Define the color palette based on the clusters
+    palette = sns.color_palette('viridis', as_cmap=False, n_colors=n_clusters)
+
+    # Create a JointGrid with scatterplot
+    g = sns.JointGrid(data=data, x="best_combined_auc", y="best_combined_value", height=8)
+
+    # Plot the scatterplot for clusters
+    sns.scatterplot(x='best_combined_auc', y='best_combined_value', hue='cluster', data=data, palette=palette, edgecolor='black', s=20, alpha=0.5, ax=g.ax_joint)
+
+    # Plot the scatterplot for highlights with different markers and sizes
+    markers = {'all_1': 'D', 'all_0': 's', 'best': '^'}
+    sizes = {'all_1': 100, 'all_0': 100, 'best': 100}
+
+    for highlight, marker in markers.items():
+        highlighted_data = data[data['highlight'] == highlight]
+        # Explicitly set the color based on the cluster
+        for cluster in highlighted_data['cluster'].unique():
+            cluster_data = highlighted_data[highlighted_data['cluster'] == cluster]
+            sns.scatterplot(
+                x='best_combined_auc', 
+                y='best_combined_value', 
+                data=cluster_data, 
+                color=palette[cluster],  # Use specific color for the cluster
+                edgecolor='black', 
+                s=sizes[highlight], 
+                marker=marker, 
+                ax=g.ax_joint, 
+                legend=False  # Disable legend here to avoid multiple entries
+            )
+
+    # Add custom legend for shapes
+    for highlight, marker in markers.items():
+        g.ax_joint.scatter([], [], c='k', marker=marker, label=highlight, s=sizes[highlight])
+
+    g.ax_joint.legend(loc='best')
+
+    # Plot the marginal densities on the axes with matching colors
+    for idx, cluster in enumerate(sorted(data['cluster'].unique())):
+        sns.kdeplot(data=data[data['cluster'] == cluster]['best_combined_auc'], ax=g.ax_marg_x, color=palette[idx], fill=True)
+        #sns.kdeplot(data=data[data['cluster'] == cluster]['best_combined_value'], ax=g.ax_marg_y, color=palette[idx], fill=True, vertical=True)
+        sns.kdeplot(
+            y=data[data['cluster'] == cluster]['best_combined_value'], 
+            ax=g.ax_marg_y, 
+            color=palette[idx], 
+            fill=True
+        )
+    
+    # Add the regression line
+    sns.regplot(x='best_combined_auc', y='best_combined_value', data=data, scatter=False, color='cyan', ax=g.ax_joint)
+    
+    # Annotate the Spearman correlation
+    spearman_corr_text = g.ax_joint.text(0.5, 0.43, f'Spearman Correlation: {correlation_dict["Spearman"]["correlation"]:.2f}', color='cyan', fontsize=14, weight='bold', transform=g.ax_joint.transAxes)
+    spearman_pval_text = g.ax_joint.text(0.5, 0.47, f'Spearman p-value: {correlation_dict["Spearman"]["p_value"]:.2f}', color='cyan', fontsize=14, weight='bold', transform=g.ax_joint.transAxes)
+    
+    for s in [spearman_corr_text, spearman_pval_text]:
+        s.set_path_effects([path_effects.Stroke(linewidth=3, foreground='black'), path_effects.Normal()])
+
+    # Hide the legends for the marginal density plots if they exist
+    if g.ax_marg_x.legend_:
+        g.ax_marg_x.legend_.remove()
+    if g.ax_marg_y.legend_:
+        g.ax_marg_y.legend_.remove()
+
+    # Adjust layout to make space for the title
+    plt.subplots_adjust(top=0.9)
+
+    # Set the title with space
+    g.figure.suptitle('Birch Clustering with Density Plots', fontsize=16, weight='bold')
+
+    # Save the figure
+    plt.savefig('Birch.png')
+    plt.close()
+    
+    return correlation_dict
+
+def run_gaussian_mixture(normalized_features: np.ndarray, n_components: int = 4) -> dict:
+    ''' Run Gaussian Mixture Model Clustering and plot the results.
+    
+    Parameters
+    ----------
+    normalized_features : np.ndarray
+        The normalized features to be used for clustering.
+    n_components : int, optional
+        The number of mixture components (clusters). Default is 4.
+    
+    Returns
+    -------
+    dict
+        A dictionary containing the Spearman correlation and p-value between the AUC and ERROR values.
+    '''
+
+    gmm = GaussianMixture(n_components=n_components, random_state=42)
+    data['cluster'] = gmm.fit_predict(normalized_features[:, :2])
+    
+    correlation_dict = {
+        'Pearson': {},
+        'Spearman': {}
+    }
+
+    # Calculate correlations
+    correlation_dict['Pearson']['correlation'], correlation_dict['Pearson']['p_value'] = pearsonr(data['best_combined_auc'], data['best_combined_value'])
+    correlation_dict['Spearman']['correlation'], correlation_dict['Spearman']['p_value'] = spearmanr(data['best_combined_auc'], data['best_combined_value'])
+    
+    # Define the color palette based on the clusters
+    palette = sns.color_palette('viridis', as_cmap=False, n_colors=n_components)
+
+    # Create a JointGrid with scatterplot
+    g = sns.JointGrid(data=data, x="best_combined_auc", y="best_combined_value", height=8)
+
+    # Plot the scatterplot for clusters
+    sns.scatterplot(x='best_combined_auc', y='best_combined_value', hue='cluster', data=data, palette=palette, edgecolor='black', s=20, alpha=0.5, ax=g.ax_joint)
+
+    # Plot the scatterplot for highlights with different markers and sizes
+    markers = {'all_1': 'D', 'all_0': 's', 'best': '^'}
+    sizes = {'all_1': 100, 'all_0': 100, 'best': 100}
+
+    for highlight, marker in markers.items():
+        highlighted_data = data[data['highlight'] == highlight]
+        # Explicitly set the color based on the cluster
+        for cluster in highlighted_data['cluster'].unique():
+            cluster_data = highlighted_data[highlighted_data['cluster'] == cluster]
+            sns.scatterplot(
+                x='best_combined_auc', 
+                y='best_combined_value', 
+                data=cluster_data, 
+                color=palette[cluster],  # Use specific color for the cluster
+                edgecolor='black', 
+                s=sizes[highlight], 
+                marker=marker, 
+                ax=g.ax_joint, 
+                legend=False  # Disable legend here to avoid multiple entries
+            )
+
+    # Add custom legend for shapes
+    for highlight, marker in markers.items():
+        g.ax_joint.scatter([], [], c='k', marker=marker, label=highlight, s=sizes[highlight])
+
+    g.ax_joint.legend(loc='best')
+
+    # Plot the marginal densities on the axes with matching colors
+    for idx, cluster in enumerate(sorted(data['cluster'].unique())):
+        sns.kdeplot(data=data[data['cluster'] == cluster]['best_combined_auc'], ax=g.ax_marg_x, color=palette[idx], fill=True)
+        #sns.kdeplot(data=data[data['cluster'] == cluster]['best_combined_value'], ax=g.ax_marg_y, color=palette[idx], fill=True, vertical=True)
+        sns.kdeplot(
+            y=data[data['cluster'] == cluster]['best_combined_value'], 
+            ax=g.ax_marg_y, 
+            color=palette[idx], 
+            fill=True
+        )
+    
+    # Add the regression line
+    sns.regplot(x='best_combined_auc', y='best_combined_value', data=data, scatter=False, color='cyan', ax=g.ax_joint)
+    
+    # Annotate the Spearman correlation
+    spearman_corr_text = g.ax_joint.text(0.5, 0.43, f'Spearman Correlation: {correlation_dict["Spearman"]["correlation"]:.2f}', color='cyan', fontsize=14, weight='bold', transform=g.ax_joint.transAxes)
+    spearman_pval_text = g.ax_joint.text(0.5, 0.47, f'Spearman p-value: {correlation_dict["Spearman"]["p_value"]:.2f}', color='cyan', fontsize=14, weight='bold', transform=g.ax_joint.transAxes)
+    
+    for s in [spearman_corr_text, spearman_pval_text]:
+        s.set_path_effects([path_effects.Stroke(linewidth=3, foreground='black'), path_effects.Normal()])
+
+    # Hide the legends for the marginal density plots if they exist
+    if g.ax_marg_x.legend_:
+        g.ax_marg_x.legend_.remove()
+    if g.ax_marg_y.legend_:
+        g.ax_marg_y.legend_.remove()
+
+    # Adjust layout to make space for the title
+    plt.subplots_adjust(top=0.9)
+
+    # Set the title with space
+    g.figure.suptitle('Gaussian Mixture Clustering with Density Plots', fontsize=16, weight='bold')
+
+    # Save the figure
+    plt.savefig('GaussianMixture.png')
+    plt.close()
+    
+    return correlation_dict
+
+
+# Execute functions
+print('Running Elbow Method...')
+wcss = run_elbow(normalized_features, max_clusters=15, plot=True)
+
+# Set the optimal number of clusters based on the elbow method
+optimal_clusters = 4
+
+print('Running K-Means Clustering...')
+k_means_corr = run_kmeans(normalized_features, optimal_clusters=optimal_clusters)
+
+print('Running DBSCAN Clustering...')
+dbscan_corr = run_dbscan(normalized_features)
+
+print('Running HDBSCAN Clustering...')
+hdbscan_corr = run_hdbscan(normalized_features, min_samples=10, min_cluster_size=10)
+
+#print('Running MeanShift Clustering...')
+#meanshift_corr = run_meanshift(normalized_features)
+
+print('Running Agglomerative Clustering...')
+agglomerative_corr = run_agglomerative(normalized_features)
+
+print('Running Spectral Clustering...')
+spectral_corr = run_spectral(normalized_features, n_clusters=optimal_clusters)
+
+print('Running Ward Clustering...')
+ward_corr = run_ward(normalized_features, n_clusters=optimal_clusters)
+
+print('Running OPTICS Clustering...')
+optics_corr = run_optics(normalized_features)
+
+print('Running Birch Clustering...')
+birch_corr = run_birch(normalized_features, n_clusters=optimal_clusters)
+
+print('Running Gaussian Mixture Clustering...')
+gmm_corr = run_gaussian_mixture(normalized_features, n_components=optimal_clusters)
+
+print('Done!')
