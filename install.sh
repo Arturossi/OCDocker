@@ -49,7 +49,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-sudo chmod +x Miniconda3.sh && ./Miniconda3.sh -b -p $HOME/miniconda && source "$HOME/miniconda/etc/profile.d/conda.sh"
+sudo chmod +x Miniconda3.sh && ./Miniconda3.sh -b -p $HOME/miniconda
 
 if [ $? -ne 0 ]; then
     echo "Failed to install Miniconda."
