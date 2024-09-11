@@ -91,84 +91,74 @@ def convert_debug_to_production(chosenAlgorithm: str = "ac", strict: bool = Fals
     ocp2rank.convert_debug_to_production(pdbbind_archive, chosenAlgorithm = chosenAlgorithm, strict = strict, removeDebug = removeDebug)
     return None
 
-def read_index() -> Union[Dict[str, List[str]], None]:
-    '''Read the index file from pdbbind database and returns a list of the data (dict).
-
-    Parameters
-    ----------
-    None
+def read_index() -> Union[Dict[str, Dict[str, Union[str, float]]], None]:
+    '''Read the index file from pdbbind database and returns a list of dictionaries with the data.
 
     Returns
     -------
-    Dict[str, List[str]] | None
-        A list of dictionaries with the data from the index file. If the file does not exist, it will return None.
+    Dict[str, Dict[str, str | float]] | None
+        A dict of dictionaries where each dictionary represents the data for a single protein.
+        If the file does not exist, it will return None.
     '''
 
     indexFile = glob(pdbbind_archive + '/index/INDEX_refined_data.*')[0]
+
     # If the file exists
     if os.path.isfile(indexFile):
         # List to hold the protein data
         proteinDataOrder = f"{pdbbind_KdKi_order}M"
-        proteinData = {
-                    "Protein": [],
-                    "resolution": [],
-                    "release_year": [],
-                    "-logKd/Ki": [],
-                    "Ki/Kd": [],
-                    "Ki/Kd_value": [],
-                    "Ki/Kd_order": []
-                    }
+        proteinDataDict = {}  # Dict of dictionaries to hold data for each protein
+
         # Open the file in read mode
         with open(indexFile, 'r') as f:
-            # This will loop the entire file (better than load the whole file in memory... imagine a huge file being loaded...)
-            while True:
-                # Read one line
-                line = f.readline()
-                # Check if there is a line
-                if not line:
-                    # If line is none, break the loop
-                    break
-                # If the line starts with a #
+            # Loop through the file line by line
+            for line in f:
+                # If the line starts with a #, skip it (no useful info)
                 if line.startswith("#"):
-                    # Skip it (no useful info)
                     continue
-                # Split the line in spaces
+                
+                # Split the line by spaces
                 splitedLine = line.split()
-                # The columns are listed below (with a sample)
-                # PDB code, resolution, release year, -logKd/Ki, Kd/Ki, reference, ligand name
-                # 2r58  2.00  2007   2.00  Kd=10mM       // 2r58.pdf (MLY)
-                # Separate the type (Kd/Ki) from the value
+
+                # Extract Kd/Ki and type (Kd/Ki)
                 tp, kdki = splitedLine[4].split("=")
-                # Convert all units to the same order (see the variable pdbbind_KdKi_order in initialise.py file for the precise order)
-                if "mM" in kdki: # If mili (10e-3)
+                
+                # Normalize the Kd/Ki values to a consistent unit (mol/L)
+                if "mM" in kdki:
                     kdki = float(kdki.replace("mM", "")) * order[pdbbind_KdKi_order]["m"]
-                elif "uM" in kdki: # If micro (10e-6)
+                elif "uM" in kdki:
                     kdki = float(kdki.replace("uM", "")) * order[pdbbind_KdKi_order]["u"]
-                elif "nM" in kdki: # If nano (10e-9)
+                elif "nM" in kdki:
                     kdki = float(kdki.replace("nM", "")) * order[pdbbind_KdKi_order]["n"]
-                elif "pM" in kdki: # If pico (10e-12)
+                elif "pM" in kdki:
                     kdki = float(kdki.replace("pM", "")) * order[pdbbind_KdKi_order]["p"]
-                elif "fM" in kdki: # If femto (10e-15) not expected to show
+                elif "fM" in kdki:
                     kdki = float(kdki.replace("fM", "")) * order[pdbbind_KdKi_order]["f"]
-                elif "cM" in kdki: # If centi (10e-2) not expected to show
+                elif "cM" in kdki:
                     kdki = float(kdki.replace("cM", "")) * order[pdbbind_KdKi_order]["c"]
-                else: # Will consider just molar, but this is not expected to show
+                else:  # Assume M if not otherwise specified
                     kdki = float(kdki.replace("M", "")) * order[pdbbind_KdKi_order]["M"]
 
-                # Add to the dict
-                proteinData["Protein"].append(splitedLine[0])
-                proteinData["resolution"].append(splitedLine[1])
-                proteinData["release_year"].append(splitedLine[2])
-                proteinData["-logKd/Ki"].append(splitedLine[3])
-                proteinData["Ki/Kd"].append(tp)
-                proteinData["Ki/Kd_value"].append(kdki)
-                proteinData["Ki/Kd_order"].append(proteinDataOrder)
+                # Create a dictionary for this protein and its data
+                protein_entry = {
+                    "Protein": splitedLine[0],
+                    "resolution": splitedLine[1],
+                    "release_year": splitedLine[2],
+                    "-logKd/Ki": splitedLine[3],
+                    "Ki/Kd": tp,
+                    "Ki/Kd_value": kdki,
+                    "Ki/Kd_order": proteinDataOrder,
+                    "dG": occ.convert_Ki_Kd_to_dG(kdki)
+                }
 
-        # Return the data
-        return proteinData
+                # Add the dictionary to the dict setting the protein name as the key
+                proteinDataDict[splitedLine[0]] = protein_entry
+
+        # Return the list of dictionaries
+        return proteinDataDict
     else:
-        # There is no file, throw an error
-        _ = ocerror.Error.file_not_exist(f"The file {indexFile} does not exist. Please check if the PDBbind database is correctly installed.", level = ocerror.ReportLevel.WARNING) # type: ignore
+        # File does not exist, raise an error and return None
+        _ = ocerror.Error.file_not_exist(f"The file {indexFile} does not exist. Please check if the PDBbind database is correctly installed.", level=ocerror.ReportLevel.WARNING)  # type: ignore
         return None
 
 def run_p2rank(overwrite: bool = False) -> None:

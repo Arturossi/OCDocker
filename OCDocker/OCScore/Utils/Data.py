@@ -434,7 +434,7 @@ def remove_other_columns(df: pd.DataFrame, columns_to_keep: list, inplace: bool 
 
     return df_copy
 
-def preprocess_df(file_name: str, score_columns_list: list[str] = ["SMINA", "VINA", "ODDT", "PLANTS"], invert_conditionally: bool = True, normalize: bool = True) -> tuple[pd.DataFrame, pd.DataFrame, list[str]]:
+def preprocess_df(file_name: str, score_columns_list: list[str] = ["SMINA", "VINA", "ODDT", "PLANTS"], scaler: str = "standard", invert_conditionally: bool = True, normalize: bool = True) -> tuple[pd.DataFrame, pd.DataFrame, list[str]]:
     ''' Load a DataFrame from a file and preprocess it.
 
     Parameters
@@ -443,6 +443,8 @@ def preprocess_df(file_name: str, score_columns_list: list[str] = ["SMINA", "VIN
         The name of the file to load the DataFrame from.
     score_columns_list : list[str], optional
         The list of columns to be considered as score columns. The default is ["SMINA", "VINA", "ODDT", "PLANTS"].
+    scaler : str, optional
+        The scaler to use. The default is "standard". Options are "standard" and "minmax".
     invert_conditionally : bool, optional
         If True, the values in the score columns are inverted conditionally. The default is True.
     normalize : bool, optional
@@ -470,8 +472,8 @@ def preprocess_df(file_name: str, score_columns_list: list[str] = ["SMINA", "VIN
         score_columns = score_columns_list
 
     # Split DUDEz data from PDBbind
-    dudez_data = df[df["db"] == "DUDEz"]
-    pdbbind_data = df[df["db"] == "PDBbind"]
+    dudez_data = df[df["db"].str.upper() == "DUDEZ"]
+    pdbbind_data = df[df["db"].str.upper() == "PDBBIND"]
 
     if invert_conditionally:
         # Inverting values
@@ -485,10 +487,10 @@ def preprocess_df(file_name: str, score_columns_list: list[str] = ["SMINA", "VIN
     
     if normalize:
         # Normalize the PDBbind data
-        pdbbind_data = norm_data(pdbbind_data, scaler = "standard") # type: ignore
+        pdbbind_data = norm_data(pdbbind_data, scaler = scaler) # type: ignore
 
         # Normalize the DUDEz data
-        dudez_data = norm_data(dudez_data, scaler = "standard") # type: ignore
+        dudez_data = norm_data(dudez_data, scaler = scaler) # type: ignore
 
     return dudez_data, pdbbind_data, score_columns # type: ignore
 

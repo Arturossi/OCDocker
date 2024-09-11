@@ -20,6 +20,7 @@ import shutil
 
 import textwrap as tw
 
+import OCDocker.Constants as occ
 import OCDocker.Error as ocerror
 from OCDocker.DB.DBMinimal import create_database_if_not_exists, create_engine, create_session
 
@@ -1209,10 +1210,10 @@ if (not config_file or not os.path.isfile(config_file)) and not os.path.isfile("
     create_config = input("Do you wish to create it? (y/n) ")
     if create_config.lower() in ["y", "ye", "yes"]:
         create_ocdocker_conf()
-        quit()
+        exit()
     else:
         print("\n\nNo positive confirmation, please provide a valid configuration file.\n")
-        quit()
+        exit()
 
 elif not config_file and os.path.isfile("OCDocker.cfg"):
     config_file = "OCDocker.cfg"
@@ -1249,7 +1250,7 @@ for line in open(config_file, 'r'): # type: ignore
         # Check if the port is a number
         if not PORT.isdigit():
             print(f"{clrs['r']}ERROR{clrs['n']}: The port number must be an integer.")
-            quit()
+            exit()
         # Parse the port as an integer
         PORT = int(PORT)
     elif line.startswith("ocdb ="):
@@ -1418,7 +1419,7 @@ for line in open(config_file, 'r'): # type: ignore
 # Check if the db_config variables are empty
 if not HOST or not USER or not PASSWORD or not DATABASE or not PORT:
     print(f"{clrs['r']}ERROR{clrs['n']}: The variables HOST, USER, PASSWORD, DATABASE and PORT must be set in the config file '{config_file}'")
-    quit()
+    exit()
 
 # Create the database URLs
 db_url = URL.create(
@@ -1458,7 +1459,7 @@ ocdocker_path = os.path.dirname(os.path.abspath( __file__ ))
 # Check if the ocdb_path is defined in the config file (empty string means not defined)
 if not ocdb_path:
     print(f"{clrs['r']}ERROR{clrs['n']}: The variable ocdb_path is not set in the config file '{config_file}'")
-    quit()
+    exit()
 
 # Directory containing the dudez archive
 dudez_archive = os.path.join(ocdb_path, "DUDEz")
@@ -1521,5 +1522,3 @@ ocerror.Error.set_output_level(output_level)
 
 # Create the ODDT models
 initialise_oddt_models(oddt_models_dir, oddt_scoring_functions) # type: ignore
-
-#TODO: Colocar uma lista de parâmetros do OCDocker

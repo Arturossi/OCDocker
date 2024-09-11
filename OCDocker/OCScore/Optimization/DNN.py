@@ -143,8 +143,8 @@ def optimize_NN(
         base_models_folder: str,
         storage: str = "sqlite:///NN_optimization.db",
         use_pdb_train: bool = True,
-        no_scores: bool = True,
-        only_scores: bool = True,
+        no_scores: bool = False,
+        only_scores: bool = False,
         use_PCA: bool = True,
         best_ao_params: Union[dict, None] = None,
         pca_type: int = 80,
@@ -180,7 +180,7 @@ def optimize_NN(
     no_scores : bool, optional
         If True, don't use the scoring functions for training. If False, use the scoring functions. Default is False. (Will override only_scores)
     only_scores : bool, optional
-        If True, only use the scoring functions for training. If False, use all the features. Default is True.
+        If True, only use the scoring functions for training. If False, use all the features. Default is False.
     use_PCA : bool, optional
         If True, use PCA to reduce the number of features. If False, use all the features. Default is True.
     best_ao_params : dict, optional
