@@ -1,5 +1,12 @@
+import pymysql
+import re
 import unittest
 import os
+
+import pandas as pd
+
+from urllib.parse import quote_plus
+
 import OCDocker.Docking.Vina as ocvina
 import OCDocker.Docking.Smina as ocsmina
 import OCDocker.Docking.PLANTS as ocplants
@@ -9,7 +16,7 @@ import OCDocker.Toolbox.MoleculeProcessing as ocmolproc
 import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
 
-import pandas as pd
+from OCDocker.Initialise import *
 
 class TestOCDockerPipeline(unittest.TestCase):
     """ Test the OCDocker pipeline. """
@@ -36,6 +43,44 @@ class TestOCDockerPipeline(unittest.TestCase):
         ]
         for file in self.required_files:
             self.assertTrue(os.path.isfile(file), f"Required file {file} not found!")
+
+        self.storage: str = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@192.168.101.2:3306/optimization"
+
+    def test_ocdb_database_connection(self):
+        '''
+        Test the database connection to the OCDB.
+        '''
+
+        try:
+            connection = pymysql.connect(
+                user = db_url.username,
+                password = db_url.password, # type: ignore
+                host = db_url.host, # type: ignore
+                port = int(db_url.port), # type: ignore
+                database = db_url.database # type: ignore
+            )
+            connection.close()
+            self.assertTrue(True, "Connection successful!")
+        except pymysql.MySQLError as e:
+            self.fail(f"Connection failed! Error: {e}")
+
+    def test_optimization_database_connection(self):
+        '''
+        Test the database connection to the optimization database.
+        '''
+
+        try:
+            connection = pymysql.connect(
+                user = optdb_url.username,
+                password = optdb_url.password, # type: ignore
+                host = optdb_url.host, # type: ignore
+                port = int(optdb_url.port), # type: ignore
+                database = optdb_url.database # type: ignore
+            )
+            connection.close()
+            self.assertTrue(True, "Connection successful!")
+        except pymysql.MySQLError as e:
+            self.fail(f"Connection failed! Error: {e}")
 
     def test_create_ligand_object(self):
         '''
