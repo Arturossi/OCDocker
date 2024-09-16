@@ -47,7 +47,7 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 ###############################################################################
 
 def apply_pca_old(df: pd.DataFrame, pca_model_path: str, columns_to_skip_pca: list[str] = [], inplace: bool = False) -> Union[None, pd.DataFrame]:
-    ''' Applies PCA to a DataFrame using a pre-trained PCA model.
+    ''' Applies PCA to a DataFrame using a pre-trained PCA model. [DEPRECATED]
 
     Parameters
     ----------
@@ -617,7 +617,7 @@ def preprocess_df(
     return dudez_data, pdbbind_data, score_columns
 
 def preprocess_df_old(file_name: str, score_columns_list: list[str] = ["SMINA", "VINA", "ODDT", "PLANTS"], scaler: str = "standard", invert_conditionally: bool = True, normalize: bool = True) -> tuple[pd.DataFrame, pd.DataFrame, list[str]]:
-    ''' Load a DataFrame from a file and preprocess it.
+    ''' Load a DataFrame from a file and preprocess it. [DEPRECATED]
 
     Parameters
     ----------
