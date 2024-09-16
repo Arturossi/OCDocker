@@ -92,8 +92,8 @@ def apply_pca_old(df: pd.DataFrame, pca_model_path: str, columns_to_skip_pca: li
 
     if inplace:
         # Modify the original DataFrame
-        df.clear()  # Clear existing data
-        df.update(combined_df)  # Update with new data
+        df.clear() # type: ignore
+        df.update(combined_df)
         return None
     else:
         # Return a new DataFrame
