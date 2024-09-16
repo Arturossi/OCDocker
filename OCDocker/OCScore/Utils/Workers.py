@@ -296,7 +296,7 @@ def NNworker(
         ocprint.printv(f"Process {pid} starting optimization")
 
     # Sleep pid % 3 seconds before starting
-    time.sleep(pid % 3)
+    #time.sleep(pid % 3)
 
     # Initialize the trainer
     trainer = DNNOptimizer(
