@@ -415,6 +415,29 @@ class Smina:
         # Call the function
         return read_rescore_logs(rescoreLogPaths, onlyBest = onlyBest)
 
+    def split_poses(self, outPath: str = "", logFile: str = "") -> int:
+        '''Split the ligand resulted from smina into its poses.
+
+        Parameters
+        ----------
+        outPath : str, optional
+            Path to the output folder. By default "". If empty, the poses will be saved in the same folder as the vina output.
+        logFile : str, optional
+            Path to the logFile. If empty, suppress the output. By default "".
+
+        Returns
+        -------
+        int
+            The exit code of the command (based on the Error.py code table).
+        '''
+
+        # If the outPath is empty
+        if not outPath:
+            # Set the outPath as the same folder as the smina output
+            outPath = os.path.dirname(self.outputSmina)
+
+        return ocmolproc.split_poses(self.outputSmina, self.inputLigand.name, outPath, logFile = logFile, suffix = "_split_") # type: ignore
+
     def print_attributes(self) -> None:
         '''Print the class attributes.
 
