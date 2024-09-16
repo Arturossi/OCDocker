@@ -198,6 +198,7 @@ def optimize_XGB(
                 y_test, 
                 X_val, 
                 y_val, 
+                storage,
                 best_pre_xgb_params, 
                 n_trials_GA, 
                 "feature_selection", 

@@ -57,7 +57,7 @@ def load_object(file_name: str) -> Any:
     with open(file_name, 'rb') as file:
         return pickle.load(file)
     
-def load_data(file_name: str) -> pd.DataFrame:
+def load_data_old(file_name: str) -> pd.DataFrame:
     ''' Loads a CSV file into a DataFrame.
 
     Parameters
@@ -72,6 +72,47 @@ def load_data(file_name: str) -> pd.DataFrame:
     '''
 
     return pd.read_csv(file_name)
+
+
+def load_data(file_name: str, exclude_column: str = 'experimental') -> pd.DataFrame:
+    ''' Loads a CSV file into a DataFrame, removes rows with NaNs (except in a specified column), and notifies the user.
+
+    Parameters
+    ----------
+    file_name: str
+        Name of the CSV file to load.
+    exclude_column: str
+        Column to exclude from the NaN removal process. 
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing the data from the CSV file.
+    '''
+
+    # Read the csv file into a DataFrame
+    df = pd.read_csv(file_name)
+    
+    # Identify columns to check for NaNs (excluding the specified column)
+    columns_to_check = [col for col in df.columns if col != exclude_column]
+    
+    if df[columns_to_check].isnull().values.any():
+        # Count the number of rows with NaN values in the columns to check
+        original_size = len(df)
+        rows_with_nan = df[columns_to_check].isnull().any(axis=1).sum()
+        
+        # Calculate the percentage of rows that will be removed
+        percentage_lost = (rows_with_nan / original_size) * 100
+        
+        # Notify the user TODO: integrate with OCDocker
+        print(f'Warning: {rows_with_nan} rows contain NaN values in columns other than "{exclude_column}".')
+        print(f'These rows will be removed, which is {percentage_lost:.2f}% of the original dataset.')
+        
+        # Remove rows with NaN values (except in the specified column)
+        df = df.dropna(subset=columns_to_check)
+    
+    
+    return df
 
 def save_object(obj: Any, filename: str) -> None:
     ''' Save an object to a file using pickle.

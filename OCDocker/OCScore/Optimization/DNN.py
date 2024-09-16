@@ -383,7 +383,7 @@ def optimize_NN(
                         n_trials_autoencoder,
                         load_if_exists,
                         1,                    # n_jobs
-                        "AO_Optimization"     # study_name
+                        f"AO_Optimization"    # study_name
                         ) for pid in range(num_processes_autoencoder)
                     ])
 

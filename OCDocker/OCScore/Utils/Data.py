@@ -46,7 +46,7 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 # Methods
 ###############################################################################
 
-def apply_pca(df: pd.DataFrame, pca_model_path: str, columns_to_skip_pca: list[str] = [], inplace: bool = False) -> Union[None, pd.DataFrame]:
+def apply_pca_old(df: pd.DataFrame, pca_model_path: str, columns_to_skip_pca: list[str] = [], inplace: bool = False) -> Union[None, pd.DataFrame]:
     ''' Applies PCA to a DataFrame using a pre-trained PCA model.
 
     Parameters
@@ -65,8 +65,17 @@ def apply_pca(df: pd.DataFrame, pca_model_path: str, columns_to_skip_pca: list[s
     -------
     pd.DataFrame or None
         DataFrame with PCA applied if inplace is False. None if inplace is True.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the PCA model path is not found.
     '''
 
+    # Check if pca_model_path is a valid file
+    if not os.path.isfile(pca_model_path):
+        raise FileNotFoundError(f"File {pca_model_path} not found")
+    
     pca = ocscoreio.load_object(pca_model_path)
 
     # Transform the data (excluding columns to keep)
@@ -91,6 +100,66 @@ def apply_pca(df: pd.DataFrame, pca_model_path: str, columns_to_skip_pca: list[s
         # Return a new DataFrame
         return combined_df
 
+def apply_pca(df: pd.DataFrame, pca_model_path: str, columns_to_skip_pca: list[str] = [], inplace: bool = False) -> Union[None, pd.DataFrame]:
+    ''' Applies PCA to a DataFrame using a pre-trained PCA model.
+
+    Parameters
+    ----------
+    df: pd.DataFrame
+        Input DataFrame.
+    pca_model_path: str
+        Path to the pre-trained PCA model.
+    columns_to_skip_pca: list[str], optional
+        List of columns to keep in the DataFrame before applying PCA. The default is [].
+    inplace: bool, optional
+        If True, the original DataFrame is modified. If False, a new DataFrame
+        is returned. The default is False.
+    
+    Returns
+    -------
+    pd.DataFrame or None
+        DataFrame with PCA applied if inplace is False. None if inplace is True.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the PCA model path is not found.
+    '''
+
+    # Check if pca_model_path is a valid file
+    if not os.path.isfile(pca_model_path):
+        raise FileNotFoundError(f"File {pca_model_path} not found")
+
+    # Load the pre-trained PCA model
+    pca = ocscoreio.load_object(pca_model_path)
+
+    # Apply PCA transformation (excluding columns to keep)
+    pca_data = pca.transform(
+        df.drop(columns = columns_to_skip_pca, errors = 'ignore')
+    )
+
+    # Convert PCA-transformed data to DataFrame
+    pca_data_df = pd.DataFrame(pca_data, columns=[f"PC_{i}" for i in range(pca_data.shape[1])])
+
+    # Retrieve the metadata columns (columns to skip PCA) and reset their index
+    metadata_df = df[columns_to_skip_pca].reset_index(drop=True)
+
+    # Concatenate the metadata and the PCA-transformed data
+    combined_df = pd.concat([metadata_df, pca_data_df], axis = 1)
+
+    if inplace:
+        # Modify the original DataFrame in place
+        df.drop(df.columns, axis = 1, inplace = True)
+
+        # For each column in the combined DataFrame
+        for col in combined_df.columns:
+            # Add the columns from the combined DataFrame to the original DataFrame
+            df[col] = combined_df[col].values
+        return None
+    else:
+        # Return a new DataFrame with PCA applied
+        return combined_df
+    
 def calculate_metrics(df: pd.DataFrame, selected_columns: list) -> tuple[pd.DataFrame, list]:
     ''' Calculates additional metrics for a DataFrame. The metrics include average, median, 
     maximum, minimum, standard deviation, variance, sum, range, 25th and 75th percentiles.
@@ -160,10 +229,10 @@ def compute_zscore(df: pd.DataFrame, columns: list) -> pd.DataFrame:
 
     return zscore_df
 
-def invert_values_conditionally(df: pd.DataFrame, regex_pattern = r"^(VINA|SMINA).*|^experimental$", inplace: bool = False) -> Union[pd.DataFrame, None]:
+def invert_values_conditionally(df: pd.DataFrame, regex_pattern = r"^(VINA|SMINA|PLANTS).*|^experimental$", inplace: bool = False) -> Union[pd.DataFrame, None]:
     ''' Inverts the values of specific columns in a DataFrame. The inversion 
-    is applied to columns that start with 'VINA' or 'SMINA', as well as the 
-    column named 'experimental'.
+    is applied to columns that start with 'VINA', 'SMINA', or 'PLANTS' as well
+    as the column named 'experimental'.
 
     This function multiplies the values in these columns by -1, effectively 
     inverting them. It's particularly useful in scenarios where the sign of 
@@ -434,7 +503,120 @@ def remove_other_columns(df: pd.DataFrame, columns_to_keep: list, inplace: bool 
 
     return df_copy
 
-def preprocess_df(file_name: str, score_columns_list: list[str] = ["SMINA", "VINA", "ODDT", "PLANTS"], scaler: str = "standard", invert_conditionally: bool = True, normalize: bool = True) -> tuple[pd.DataFrame, pd.DataFrame, list[str]]:
+# Function to detect extreme outliers for specified columns with positive values
+def detect_extreme_outliers_iqr_columns_positive(df, columns, extreme_factor=3.0):
+    # Initialize a dictionary to store extreme outliers for each specified column
+    extreme_outliers_dict = {}
+    
+    # Loop through the specified columns
+    for column in columns:
+        if column in df.select_dtypes(include=['float64', 'int64']).columns:
+            # Calculate Q1 (25th percentile) and Q3 (75th percentile)
+            Q1 = df[column].quantile(0.25)
+            Q3 = df[column].quantile(0.75)
+            IQR = Q3 - Q1
+
+            # Define the extreme outlier upper bound
+            upper_bound = Q3 + extreme_factor * IQR
+
+            # Filter rows where the value is an extreme outlier and is positive
+            extreme_outliers = df[(df[column] > upper_bound) & (df[column] > 0)]
+            
+            # Store extreme outliers for this column
+            extreme_outliers_dict[column] = extreme_outliers
+
+    return extreme_outliers_dict
+
+# Function to remove rows with extreme outliers from the specified columns
+def remove_extreme_outliers_iqr_columns_positive(df, columns, extreme_factor=3.0):
+    # Get extreme outliers for the specified columns
+    extreme_outliers_dict = detect_extreme_outliers_iqr_columns_positive(df, columns, extreme_factor)
+    
+    # Get the indices of all rows that contain extreme outliers in any of the specified columns
+    outlier_indices = set()
+    for column, outliers_df in extreme_outliers_dict.items():
+        outlier_indices.update(outliers_df.index)
+
+    # Remove rows with extreme outliers by filtering out those indices
+    df_cleaned = df.drop(outlier_indices)
+    
+    return df_cleaned
+
+def preprocess_df(
+    file_name: str, 
+    score_columns_list: list[str] = ["SMINA", "VINA", "ODDT", "PLANTS"], 
+    outliers_columns_list: Union[list[str], None] = None, 
+    scaler: str = "standard", 
+    invert_conditionally: bool = True, 
+    normalize: bool = True
+) -> tuple[pd.DataFrame, pd.DataFrame, list[str]]:
+    ''' Load a DataFrame from a file and preprocess it.
+
+    Parameters
+    ----------
+    file_name : str
+        The name of the file to load the DataFrame from.
+    score_columns_list : list[str], optional
+        The list of columns to be considered as score columns. The default is ["SMINA", "VINA", "ODDT", "PLANTS"].
+    outliers_columns_list : list[str], optional
+        The list of columns to analyze for outliers. If None, defaults to 'PLANTS' columns. The default is None.
+    scaler : str, optional
+        The scaler to use. The default is "standard". Options are "standard" and "minmax".
+    invert_conditionally : bool, optional
+        If True, the values in the score columns are inverted conditionally. The default is True.
+    normalize : bool, optional
+        If True, the data is normalized. The default is True.
+
+    Returns
+    -------
+    pd.DataFrame
+        The DUDEz data.
+    pd.DataFrame
+        The PDBbind data.
+    list[str]
+        The list of score columns.
+    '''
+    
+    # Load the data
+    df = ocscoreio.load_data(file_name)
+
+    # If outliers_columns_list is not empty, remove extreme outliers
+    if outliers_columns_list:
+        df = remove_extreme_outliers_iqr_columns_positive(df, outliers_columns_list, extreme_factor=3.0)
+
+    # Check if the score columns list is not empty
+    if score_columns_list:
+        # Define the score columns
+        score_columns = df.filter(regex=f"^({'|'.join(score_columns_list)})").columns.to_list()
+    else:
+        # Define the score columns
+        score_columns = score_columns_list
+
+    # Split DUDEz data from PDBbind
+    dudez_data = df[df["db"].str.upper() == "DUDEZ"]
+    pdbbind_data = df[df["db"].str.upper() == "PDBBIND"]
+
+    if invert_conditionally:
+        # Inverting values for DUDEz data
+        dudez_data = invert_values_conditionally(dudez_data)
+
+        # Inverting values for PDBbind data
+        pdbbind_data = invert_values_conditionally(pdbbind_data)
+    
+    # Drop the 'experimental' column from DUDEz data if it exists
+    if "experimental" in dudez_data.columns:
+        dudez_data = dudez_data.drop(columns="experimental")
+
+    if normalize:
+        # Normalize the PDBbind data
+        pdbbind_data = norm_data(pdbbind_data, scaler=scaler)
+
+        # Normalize the DUDEz data
+        dudez_data = norm_data(dudez_data, scaler=scaler)
+
+    return dudez_data, pdbbind_data, score_columns
+
+def preprocess_df_old(file_name: str, score_columns_list: list[str] = ["SMINA", "VINA", "ODDT", "PLANTS"], scaler: str = "standard", invert_conditionally: bool = True, normalize: bool = True) -> tuple[pd.DataFrame, pd.DataFrame, list[str]]:
     ''' Load a DataFrame from a file and preprocess it.
 
     Parameters
@@ -462,6 +644,12 @@ def preprocess_df(file_name: str, score_columns_list: list[str] = ["SMINA", "VIN
 
     # Load and preprocess data
     df = ocscoreio.load_data(file_name)
+
+    # Set plants columns only to filter
+    plants_columns = [col for col in df.columns if col.startswith('PLANTS')]
+
+    # Remove extreme positive outliers with IQR
+    df = remove_extreme_outliers_iqr_columns_positive(df, plants_columns, extreme_factor=3.0)
 
     # Check if the score columns list is not empty
     if score_columns_list:
