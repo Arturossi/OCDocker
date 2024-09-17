@@ -149,11 +149,9 @@ def apply_pca(df: pd.DataFrame, pca_model_path: str, columns_to_skip_pca: list[s
     if inplace:
         # Modify the original DataFrame in place
         df.drop(df.columns, axis = 1, inplace = True)
-
-        # For each column in the combined DataFrame
-        for col in combined_df.columns:
-            # Add the columns from the combined DataFrame to the original DataFrame
-            df[col] = combined_df[col].values
+        # Update the dataframe
+        df.update(combined_df)
+        # Return None
         return None
     else:
         # Return a new DataFrame with PCA applied
@@ -366,7 +364,7 @@ def load_data(base_models_folder: str, storage_id: int, df_path: str, optimizati
         # Split the PDBbind data into training and testing sets
         X_train, X_test, y_train, y_test = split_dataset(
             pdbbind_data.drop(
-                columns = ["receptor", "ligand", "name", "type", "db", "experimental"],
+                columns = ["receptor", "ligand", "name", "type", "db"],
                 errors = "ignore"
             ), 
             pdbbind_data["experimental"], 
