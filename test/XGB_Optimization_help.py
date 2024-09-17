@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import sys
 
-sys.path.append("..")
+sys.path.append("../OCDocker")
 
 from tqdm import tqdm
 from urllib.parse import quote_plus
@@ -16,7 +16,7 @@ df_path: str = '/data/hd4tb/OCDocker/data/ocdb/OCDocker.csv.gz'
 
 ocxgb.optimize_XGB(
     df_path = df_path,
-    storage_id = 7,
+    storage_id = 8,
     base_models_folder = "/data/hd4tb/OCDocker/data/ocdb/models",
     storage = storage,
     use_pdb_train = True,
@@ -27,7 +27,7 @@ ocxgb.optimize_XGB(
     run_pre_XGB_optimization = False,
     num_processes_pre_XGB = 8,
     total_trials_pre_XGB = 100,
-    run_GA_optimization = True,
+    run_GA_optimization = False,
     num_processes_GA = 8,
     total_trials_GA = 5,
     run_XGB_optimization = True,
@@ -41,7 +41,7 @@ ocxgb.optimize_XGB(
 )
 
 # Genetic Algorithm
-for i in tqdm(range(8, 11)):
+for i in tqdm(range(9, 11)):
     ocxgb.optimize_XGB(
         df_path = df_path,
         storage_id = i,
