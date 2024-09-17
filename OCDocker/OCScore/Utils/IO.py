@@ -14,6 +14,7 @@ import OCDocker.OCScore.Utils.IO as ocscoreio
 # Imports
 ###############################################################################
 
+import joblib
 import pandas as pd
 import pickle
 
@@ -40,20 +41,34 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 # Methods
 ###############################################################################
 
-def load_object(file_name: str) -> Any:
+def load_object(file_name: str, serialization_method: str = "joblib") -> Any:
     ''' Load an object from a file using pickle.
 
     Parameters
     ----------
     file_name : str
         The name of the file from which to load the object.
+    serialization_method : str
+        The serialization method used to save the object. Options are "joblib" and "pickle".
 
     Returns
     -------
     Any
         The unpickled object.
+    
+    Raises
+    ------
+    ValueError
+        If the serialization method is not "joblib" or "pickle".
     '''
 
+    # If the serialization method is not joblib or pickle, raise an error
+    if serialization_method not in ["joblib", "pickle"]:
+        raise ValueError("The serialization method must be either 'joblib' or 'pickle'.")
+
+    if serialization_method == "joblib":
+        return joblib.load(file_name)
+    
     with open(file_name, 'rb') as file:
         return pickle.load(file)
     
