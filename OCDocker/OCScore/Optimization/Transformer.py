@@ -47,6 +47,7 @@ def optimize_Transformer(
         df_path: str,
         storage_id: int,
         base_models_folder: str,
+        data: dict = {},
         storage: str = "sqlite:///Transformer_optimization.db",
         use_pdb_train: bool = True,
         no_scores: bool = True,
@@ -72,6 +73,8 @@ def optimize_Transformer(
         The storage ID of the dataset.
     base_models_folder : str
         The base models folder.
+    data : dict, optional
+        The data dictionary. Default is {}. If not empty, the data dictionary will be used instead of loading the data. This is useful for multiprocessing to avoid loading the data multiple times.
     storage : str, optional
         The storage string for the database. The default is "sqlite:///Transformer_optimization.db".
     use_pdb_train : bool, optional
@@ -102,20 +105,22 @@ def optimize_Transformer(
         Whether to print verbose output. The default is False.
     '''
 
-    # Load the data
-    data = ocscoredata.load_data(
-        base_models_folder = base_models_folder,
-        storage_id = storage_id,
-        df_path = df_path,
-        optimization_type = "Trans",
-        pca_model = pca_model,
-        no_scores = no_scores,
-        only_scores = only_scores,
-        use_PCA = use_PCA,
-        pca_type = pca_type,
-        use_pdb_train = use_pdb_train,
-        random_seed = random_seed
-    )
+    # Check if the data dictionary is empty
+    if not data:
+        # Load the data
+        data = ocscoredata.load_data(
+            base_models_folder = base_models_folder,
+            storage_id = storage_id,
+            df_path = df_path,
+            optimization_type = "Trans",
+            pca_model = pca_model,
+            no_scores = no_scores,
+            only_scores = only_scores,
+            use_PCA = use_PCA,
+            pca_type = pca_type,
+            use_pdb_train = use_pdb_train,
+            random_seed = random_seed
+        )
 
     # Extract the data from the data dictionary object to the corresponding variables
     #models_folder = data["models_folder"]

@@ -142,6 +142,7 @@ def optimize_NN(
         df_path: str,
         storage_id: int,
         base_models_folder: str,
+        data: dict = {},
         storage: str = "sqlite:///NN_optimization.db",
         use_pdb_train: bool = True,
         no_scores: bool = False,
@@ -175,6 +176,8 @@ def optimize_NN(
         The storage ID to use.
     base_models_folder : str
         The base models folder to use.
+    data : dict, optional
+        The data dictionary. Default is {}. If not empty, the data dictionary will be used instead of loading the data. This is useful for multiprocessing to avoid loading the data multiple times.
     storage : str, optional
         The storage to use. Default is "sqlite:///NN_optimization.db".
     use_pdb_train : bool, optional
@@ -219,20 +222,22 @@ def optimize_NN(
         If True, print the output. If False, don't print the output. Default is False.
     '''
 
-    # Load the data
-    data = ocscoredata.load_data(
-        base_models_folder = base_models_folder,
-        storage_id = storage_id,
-        df_path = df_path,
-        optimization_type = "NN",
-        pca_model = pca_model,
-        no_scores = no_scores,
-        only_scores = only_scores,
-        use_PCA = use_PCA,
-        pca_type = pca_type,
-        use_pdb_train = use_pdb_train,
-        random_seed = random_seed
-    )
+    # Check if the data dictionary is empty
+    if not data:
+        # Load the data
+        data = ocscoredata.load_data(
+            base_models_folder = base_models_folder,
+            storage_id = storage_id,
+            df_path = df_path,
+            optimization_type = "NN",
+            pca_model = pca_model,
+            no_scores = no_scores,
+            only_scores = only_scores,
+            use_PCA = use_PCA,
+            pca_type = pca_type,
+            use_pdb_train = use_pdb_train,
+            random_seed = random_seed
+        )
 
     # Extract the data from the data dictionary object to the corresponding variables
     models_folder = data["models_folder"]
