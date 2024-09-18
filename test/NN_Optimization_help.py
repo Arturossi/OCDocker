@@ -37,7 +37,6 @@ for pca_type, start_id, end_id in [(80, 11, 16), (85, 16, 21), (90, 21, 26), (95
     pca_model = ocscoreio.load_object(pca_model)
 
     for i in tqdm(range(start_id, end_id), desc=f"PCA Type: {pca_type}"):
-        print(f"PCA Type: {pca_type}", i)
         # Load the data
         data = ocscoredata.load_data(
             base_models_folder = base_models_folder,
