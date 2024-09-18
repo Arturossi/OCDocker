@@ -20,6 +20,7 @@ import optuna
 import numpy as np
 
 from multiprocessing import Pool
+from sklearn.decomposition import PCA
 from typing import Union
 
 import OCDocker.OCScore.Utils.Data as ocscoredata
@@ -148,6 +149,7 @@ def optimize_NN(
         use_PCA: bool = True,
         best_ao_params: Union[dict, None] = None,
         pca_type: int = 80,
+        pca_model: Union[str, PCA] = "",
         encoder_dims: tuple[int, int] = (16, 256),
         autoencoder: bool = False,
         multiencoder: bool = False,
@@ -187,6 +189,8 @@ def optimize_NN(
         The best autoencoder parameters. Default is None.
     pca_type : int, optional
         The PCA type to use. Default is 80.
+    pca_model : Union[str, PCA], optional
+        The PCA model to use. Default is "".
     autoencoder : bool, optional
         If True, use the autoencoder. If False, don't use the autoencoder. Default is False.
     multiencoder : bool, optional
@@ -216,7 +220,19 @@ def optimize_NN(
     '''
 
     # Load the data
-    data = ocscoredata.load_data(base_models_folder, storage_id, df_path, "NN", no_scores, only_scores, use_PCA, pca_type, use_pdb_train, random_seed)
+    data = ocscoredata.load_data(
+        base_models_folder = base_models_folder,
+        storage_id = storage_id,
+        df_path = df_path,
+        optimization_type = "NN",
+        pca_model = pca_model,
+        no_scores = no_scores,
+        only_scores = only_scores,
+        use_PCA = use_PCA,
+        pca_type = pca_type,
+        use_pdb_train = use_pdb_train,
+        random_seed = random_seed
+    )
 
     # Extract the data from the data dictionary object to the corresponding variables
     models_folder = data["models_folder"]

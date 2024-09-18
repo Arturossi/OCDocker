@@ -6,8 +6,9 @@ sys.path.append("../OCDocker")
 from tqdm import tqdm
 from urllib.parse import quote_plus
 
-import OCDocker.OCScore.Optimization.DNN as ocdnn # type: ignore
 import OCDocker.OCScore.Dimensionality.PCA as ocpca # type: ignore
+import OCDocker.OCScore.Optimization.DNN as ocdnn # type: ignore
+import OCDocker.OCScore.Utils.IO as ocscoreio
 
 from OCDocker.Initialise import *
 
@@ -16,8 +17,12 @@ df_path: str = '/data/hd4tb/OCDocker/data/ocdb/OCDocker.csv.gz'
 
 # PCA Type 80, 85, 90, 95 -> (PCA, start, end)
 for pca_type, start_id, end_id in [(80, 11, 16), (85, 16, 21), (90, 21, 26), (95, 26, 31)]:
+    
+    # Path to save the PCA model
+    pca_model = f"{pca_path}/pca{pca_type}.pkl"
+    
     # If the PCA model does not exist
-    if not os.path.exists(f"{pca_path}/pca{pca_type}.pkl"):
+    if not os.path.exists(pca_model):
         # Create the PCA model
         pca_model = ocpca.run_pca(
             df_path = df_path,
@@ -25,6 +30,9 @@ for pca_type, start_id, end_id in [(80, 11, 16), (85, 16, 21), (90, 21, 26), (95
             pca_path = pca_path,
             verbose = True
         )
+    
+    # Load the PCA model
+    pca_model = ocscoreio.load_object(pca_model)
 
     for i in tqdm(range(start_id, end_id), desc=f"PCA Type: {pca_type}"):
         ocdnn.optimize_NN(
@@ -38,6 +46,7 @@ for pca_type, start_id, end_id in [(80, 11, 16), (85, 16, 21), (90, 21, 26), (95
             use_PCA = True,
             best_ao_params = None,
             pca_type = pca_type,
+            pca_model = pca_model,
             encoder_dims = (16, 256),
             autoencoder = False,
             multiencoder = False,

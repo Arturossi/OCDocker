@@ -16,8 +16,11 @@ import OCDocker.OCScore.Optimization.XGBoost as ocxgb
 import optuna
 
 from multiprocessing import Pool
+from sklearn.decomposition import PCA
+from typing import Union
 
 import OCDocker.OCScore.Utils.Data as ocscoredata
+import OCDocker.OCScore.Utils.IO as ocscoreio
 import OCDocker.OCScore.Utils.Workers as ocscoreworkers
 import OCDocker.Toolbox.Printing as ocprint
 
@@ -52,6 +55,7 @@ def optimize_XGB(
         only_scores: bool = True,
         use_PCA: bool = True,
         pca_type: int = 95,
+        pca_model: Union[str, PCA] = "",
         run_pre_XGB_optimization: bool = False,
         num_processes_pre_XGB: int = 8,
         total_trials_pre_XGB : int = 250,
@@ -89,6 +93,8 @@ def optimize_XGB(
         If True, use PCA to reduce the number of features. If False, use all the features. Default is True.
     pca_type : int, optional
         The PCA type to use. Default is 80.
+    pca_model : Union[str, PCA], optional
+        The PCA model to use. Default is "".
     num_processes : int, optional
         The number of processes to use. Default is 8.
     run_pre_XGB_optimization : bool, optional
@@ -114,7 +120,19 @@ def optimize_XGB(
     '''
 
     # Load the data
-    data = ocscoredata.load_data(base_models_folder, storage_id, df_path, "XGB", no_scores, only_scores, use_PCA, pca_type, use_pdb_train, random_seed)
+    data = ocscoredata.load_data(
+        base_models_folder = base_models_folder,
+        storage_id = storage_id,
+        df_path = df_path,
+        optimization_type = "XGB",
+        pca_model = pca_model,
+        no_scores = no_scores,
+        only_scores = only_scores,
+        use_PCA = use_PCA,
+        pca_type = pca_type,
+        use_pdb_train = use_pdb_train,
+        random_seed = random_seed
+    )
 
     # Extract the data from the data dictionary object to the corresponding variables
     #models_folder = data["models_folder"]

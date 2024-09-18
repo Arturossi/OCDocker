@@ -17,6 +17,7 @@ import OCDocker.OCScore.Utils.Data as ocscoredata
 import os
 import pandas as pd
 
+from sklearn.decomposition import PCA
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.model_selection import train_test_split
 from typing import Any, Union
@@ -99,15 +100,15 @@ def apply_pca_old(df: pd.DataFrame, pca_model_path: str, columns_to_skip_pca: li
         # Return a new DataFrame
         return combined_df
 
-def apply_pca(df: pd.DataFrame, pca_model_path: str, columns_to_skip_pca: list[str] = [], inplace: bool = False) -> Union[None, pd.DataFrame]:
+def apply_pca(df: pd.DataFrame, pca_model: Union[str, PCA], columns_to_skip_pca: list[str] = [], inplace: bool = False) -> Union[None, pd.DataFrame]:
     ''' Applies PCA to a DataFrame using a pre-trained PCA model.
 
     Parameters
     ----------
     df: pd.DataFrame
         Input DataFrame.
-    pca_model_path: str
-        Path to the pre-trained PCA model.
+    pca_model: str
+        Path to the pre-trained PCA model or the PCA model.
     columns_to_skip_pca: list[str], optional
         List of columns to keep in the DataFrame before applying PCA. The default is [].
     inplace: bool, optional
@@ -123,14 +124,23 @@ def apply_pca(df: pd.DataFrame, pca_model_path: str, columns_to_skip_pca: list[s
     ------
     FileNotFoundError
         If the PCA model path is not found.
+    TypeError
+        If the PCA model type is invalid. Must be a string or a PCA model.
     '''
 
-    # Check if pca_model_path is a valid file
-    if not os.path.isfile(pca_model_path):
-        raise FileNotFoundError(f"File {pca_model_path} not found")
+    # Check if the PCA model is a string 
+    if isinstance(pca_model, str):
+        # Check if pca_model_path is a valid file
+        if not os.path.isfile(pca_model):
+            raise FileNotFoundError(f"File {pca_model} not found")
 
-    # Load the pre-trained PCA model
-    pca = ocscoreio.load_object(pca_model_path)
+        # Load the pre-trained PCA model
+        pca = ocscoreio.load_object(pca_model)
+    elif isinstance(pca_model, PCA):
+        # Use the PCA model directly
+        pca = pca_model
+    else:
+        raise TypeError("Invalid PCA model type. Please provide a path to a pre-trained PCA model or a PCA model.")
 
     # Apply PCA transformation (excluding columns to keep)
     pca_data = pca.transform(
@@ -274,7 +284,7 @@ def invert_values_conditionally(df: pd.DataFrame, regex_pattern = r"^(VINA|SMINA
     
     return None
 
-def load_data(base_models_folder: str, storage_id: int, df_path: str, optimization_type: str, no_scores: bool = False, only_scores: bool = False, use_PCA: bool = False, pca_type: Union[str, int] = 95, use_pdb_train: bool = True, random_seed: int = 42) -> dict:
+def load_data(base_models_folder: str, storage_id: int, df_path: str, optimization_type: str, pca_model: Union[str, PCA] = "", no_scores: bool = False, only_scores: bool = False, use_PCA: bool = False, pca_type: Union[str, int] = 95, use_pdb_train: bool = True, random_seed: int = 42) -> dict:
     ''' Process the data for training and testing the models.
 
     Parameters
@@ -287,6 +297,8 @@ def load_data(base_models_folder: str, storage_id: int, df_path: str, optimizati
         The path to the DataFrame file.
     optimization_type: str
         The optimization type.
+    pca_model: str | PCA, optional
+        The PCA model or the path to the PCA model. The default is "".
     no_scores: bool, optional
         If True, no scores are used. The default is False. (Will override only_scores)
     only_scores: bool, optional
@@ -314,8 +326,10 @@ def load_data(base_models_folder: str, storage_id: int, df_path: str, optimizati
         - y_val: The validation target variable.
     '''
 
-    # Set the PCA model path
-    pca_model = f"{pca_path}/pca{pca_type}.pkl"
+    # Check if the PCA model is an empty string
+    if use_PCA and pca_model == "":
+        # Set the PCA model path
+        pca_model = f"{pca_path}/pca{pca_type}.pkl"
 
     # Set the models folder
     models_folder = f"{base_models_folder}/{optimization_type}_{storage_id}"

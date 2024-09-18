@@ -14,8 +14,11 @@ import OCDocker.OCScore.Optimization.Transformer as octrans
 ###############################################################################
 
 from multiprocessing import Pool
+from sklearn.decomposition import PCA
+from typing import Union
 
 import OCDocker.OCScore.Utils.Data as ocscoredata
+import OCDocker.OCScore.Utils.IO as ocscoreio
 import OCDocker.OCScore.Utils.Workers as ocscoreworkers
 import OCDocker.Toolbox.Printing as ocprint
 
@@ -50,6 +53,7 @@ def optimize_Transformer(
         only_scores: bool = True,
         use_PCA: bool = True,
         pca_type: int = 95,
+        pca_model: Union[str, PCA] = "",
         run_Trans_optimization: bool = False,
         num_processes_Trans: int = 4,
         total_trials_Trans: int = 2000,
@@ -80,10 +84,38 @@ def optimize_Transformer(
         Whether to use PCA. The default is True.
     pca_type : int, optional
         The PCA type to use. The default is 95.
+    pca_model : Union[str, PCA], optional
+        The PCA model to use. Default is "".
+    run_Trans_optimization : bool, optional
+        Whether to run the Transformer optimization. The default is False.
+    num_processes : int, optional
+        The number of processes to use. The default is 4.
+    total_trials : int, optional
+        The total number of trials to run. The default is 2000.
+    random_seed : int, optional
+        The random seed to use. The default is 42.
+    load_if_exists : bool, optional
+        Whether to load the study if it already exists. The default is True.
+    use_gpu : bool, optional
+        Whether to use the GPU. The default is True.
+    verbose : bool, optional
+        Whether to print verbose output. The default is False.
     '''
 
     # Load the data
-    data = ocscoredata.load_data(base_models_folder, storage_id, df_path, "Trans", no_scores, only_scores, use_PCA, pca_type, use_pdb_train, random_seed)
+    data = ocscoredata.load_data(
+        base_models_folder = base_models_folder,
+        storage_id = storage_id,
+        df_path = df_path,
+        optimization_type = "Trans",
+        pca_model = pca_model,
+        no_scores = no_scores,
+        only_scores = only_scores,
+        use_PCA = use_PCA,
+        pca_type = pca_type,
+        use_pdb_train = use_pdb_train,
+        random_seed = random_seed
+    )
 
     # Extract the data from the data dictionary object to the corresponding variables
     #models_folder = data["models_folder"]

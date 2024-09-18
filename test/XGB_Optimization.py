@@ -26,6 +26,7 @@ for i in tqdm(range(1, 6)):
         only_scores = False,
         use_PCA = False,
         pca_type = 80,
+        pca_model = "",
         run_pre_XGB_optimization = False,
         num_processes_pre_XGB = 8,
         total_trials_pre_XGB = 100,
