@@ -15,6 +15,7 @@ import OCDocker.OCScore.Optimization.XGBoost as ocxgb
 
 import optuna
 
+from joblib import Parallel, delayed
 from multiprocessing import Pool
 from sklearn.decomposition import PCA
 from typing import Union
@@ -69,6 +70,7 @@ def optimize_XGB(
         random_seed: int = 42,
         load_if_exists: bool = True,
         use_gpu: bool = True,
+        parallel_backend: str = "joblib",
         verbose: bool = False
     ) -> None:
     ''' Optimize the Extreme Gradient Boost using the given parameters.
@@ -117,6 +119,8 @@ def optimize_XGB(
         If True, load the model if it exists. If False, don't load the model if it exists. Default is True.
     use_gpu : bool, optional
         If True, use the GPU. If False, don't use the GPU. Default is True.
+    parallel_backend : str, optional
+        The parallel backend to use. The default is "joblib". Options are "joblib" and "multiprocessing".
     verbose : bool, optional
         If True, print out more information. If False, print out less information. Default is False.
     '''
@@ -158,9 +162,11 @@ def optimize_XGB(
 
         n_trials_pre_XGB = total_trials_pre_XGB // num_processes_pre_XGB
 
-        with Pool(num_processes_pre_XGB) as p:
-            # Run the optimization
-            _ = p.starmap(ocscoreworkers.XGBworker, [(
+        # Check the parallel backend
+        if parallel_backend == "joblib":
+            # Run the optimization using joblib
+            _ = Parallel(n_jobs = num_processes_pre_XGB)(
+                delayed(ocscoreworkers.XGBworker)(
                     i, 
                     storage_id, 
                     X_train, 
@@ -180,7 +186,34 @@ def optimize_XGB(
                     early_stopping_rounds, 
                     {}
                 ) for i in range(num_processes_pre_XGB)
-            ])
+            )
+        elif parallel_backend == "multiprocessing":
+            # Run the optimization using multiprocessing
+            with Pool(num_processes_pre_XGB) as p:
+                # Run the optimization
+                _ = p.starmap(ocscoreworkers.XGBworker, [(
+                        i, 
+                        storage_id, 
+                        X_train, 
+                        X_test, 
+                        X_val, 
+                        y_train, 
+                        y_test, 
+                        y_val, 
+                        storage, 
+                        random_seed, 
+                        use_gpu, 
+                        verbose, 
+                        n_trials_pre_XGB, 
+                        load_if_exists, 
+                        1, 
+                        "Pre_XGB_Optimization", 
+                        early_stopping_rounds, 
+                        {}
+                    ) for i in range(num_processes_pre_XGB)
+                ])
+        else:
+            raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
 
         # Load the study
         pre_xgb_study = optuna.load_study(
@@ -209,27 +242,54 @@ def optimize_XGB(
 
         n_trials_GA = total_trials_GA // num_processes_GA
 
-        with Pool(num_processes_GA) as p:
-            # Run the optimization
-            _ = p.starmap(ocscoreworkers.GAWorker, [(
-                i, 
-                storage_id,
-                X_train, 
-                y_train, 
-                X_test, 
-                y_test, 
-                X_val, 
-                y_val, 
-                storage,
-                best_pre_xgb_params, 
-                n_trials_GA, 
-                "feature_selection", 
-                random_seed, 
-                use_gpu, 
-                verbose, 
-                1
-            ) for i in range(num_processes_GA)
-            ])
+        # Check the parallel backend
+        if parallel_backend == "joblib":
+            # Run the optimization using joblib
+            _ = Parallel(n_jobs = num_processes_GA)(
+                delayed(ocscoreworkers.GAWorker)(
+                    i, 
+                    storage_id,
+                    X_train, 
+                    y_train, 
+                    X_test, 
+                    y_test, 
+                    X_val, 
+                    y_val, 
+                    storage,
+                    best_pre_xgb_params, 
+                    n_trials_GA, 
+                    "feature_selection", 
+                    random_seed, 
+                    use_gpu, 
+                    verbose, 
+                    1
+                ) for i in range(num_processes_GA)
+            )
+        elif parallel_backend == "multiprocessing":
+            # Run the optimization using multiprocessing
+            with Pool(num_processes_GA) as p:
+                # Run the optimization
+                _ = p.starmap(ocscoreworkers.GAWorker, [(
+                    i, 
+                    storage_id,
+                    X_train, 
+                    y_train, 
+                    X_test, 
+                    y_test, 
+                    X_val, 
+                    y_val, 
+                    storage,
+                    best_pre_xgb_params, 
+                    n_trials_GA, 
+                    "feature_selection", 
+                    random_seed, 
+                    use_gpu, 
+                    verbose, 
+                    1
+                ) for i in range(num_processes_GA)
+                ])
+        else:
+            raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
 
         # Load the study
         feature_selection_study = optuna.load_study(
@@ -268,9 +328,11 @@ def optimize_XGB(
 
         n_trials_XGB = total_trials_XGB // num_processes_XGB
 
-        with Pool(num_processes_XGB) as p:
-            # Run the optimization
-            _ = p.starmap(ocscoreworkers.XGBworker, [(
+        # Check the parallel backend
+        if parallel_backend == "joblib":
+            # Run the optimization using joblib
+            _ = Parallel(n_jobs = num_processes_XGB)(
+                delayed(ocscoreworkers.XGBworker)(
                     i, 
                     storage_id, 
                     X_train_filtered, 
@@ -290,6 +352,33 @@ def optimize_XGB(
                     early_stopping_rounds, 
                     {}
                 ) for i in range(num_processes_XGB)
-            ])
+            )
+        elif parallel_backend == "multiprocessing":
+            # Run the optimization using multiprocessing
+            with Pool(num_processes_XGB) as p:
+                # Run the optimization
+                _ = p.starmap(ocscoreworkers.XGBworker, [(
+                        i, 
+                        storage_id, 
+                        X_train_filtered, 
+                        X_test_filtered, 
+                        X_val_filtered, 
+                        y_train, 
+                        y_test, 
+                        y_val, 
+                        storage, 
+                        random_seed, 
+                        use_gpu, 
+                        verbose, 
+                        n_trials_XGB, 
+                        load_if_exists, 
+                        1, 
+                        study_name, 
+                        early_stopping_rounds, 
+                        {}
+                    ) for i in range(num_processes_XGB)
+                ])
+        else:
+            raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
 
     return None

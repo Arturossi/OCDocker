@@ -292,7 +292,7 @@ def NNworker(
         Verbose. The default is False.
     '''
 
-    if verbose:
+    if True:
         ocprint.printv(f"Process {pid} starting optimization")
 
     # Sleep pid % 3 seconds before starting

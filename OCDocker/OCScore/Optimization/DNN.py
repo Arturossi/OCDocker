@@ -19,6 +19,7 @@ import optuna
 
 import numpy as np
 
+from joblib import Parallel, delayed
 from multiprocessing import Pool
 from sklearn.decomposition import PCA
 from typing import Union
@@ -63,8 +64,58 @@ def perform_ablation_study_NN(
         study_name,
         storage,
         output_size = 1,
+        parallel_backend: str = "joblib",
         n_jobs = 1
     ):
+    ''' Perform the ablation study for the Neural Network.
+
+    Parameters
+    ----------
+    X_train : pd.DataFrame
+        The training data.
+    y_train : pd.Series
+        The training labels.
+    X_test : pd.DataFrame
+        The testing data.
+    y_test : pd.Series
+        The testing labels.
+    X_val : pd.DataFrame
+        The validation data.
+    y_val : pd.Series
+        The validation labels.
+    id : int
+        The ID of the study.
+    num_processes : int
+        The number of processes to use.
+    encoder_params : dict
+        The encoder parameters.
+    best_params : dict
+        The best parameters.
+    random_seed : int
+        The random seed.
+    use_gpu : bool
+        If True, use the GPU.
+    verbose : bool
+        If True, print the output.
+    load_if_exists : bool
+        If True, load the model if it exists.
+    study_name : str
+        The study name.
+    storage : str
+        The storage to use.
+    output_size : int, optional
+        The output size. Default is 1.
+    parallel_backend : str, optional
+        The parallel backend to use. The default is "joblib". Options are "joblib" and "multiprocessing".
+
+    n_jobs : int, optional
+        The number of jobs to use. Default is 1.
+    
+    Raises
+    -------
+    ValueError
+        If the parallel backend is not "joblib" or "multiprocessing".
+    '''
     
     # Filter the SFs
     sf = X_train.filter(regex = r"(VINA|SMINA|ODDT|PLANTS).*").columns.tolist()
@@ -110,31 +161,60 @@ def perform_ablation_study_NN(
     for i, mask in enumerate(masks):
         split_masks[i % num_processes].append(mask)
 
-    # Create a pool of worker processes
-    with Pool(num_processes) as pool:
-        # Each process will execute the 'NNAblationworker' function with the datasets and optimizer parameters
-        pool.starmap(ocscoreworkers.NNAblationworker, [(
-            pid,
-            id,
-            X_train, 
-            y_train, 
-            X_test, 
-            y_test, 
-            X_val, 
-            y_val,
-            mask,
-            storage,
-            best_params,
-            encoder_params,
-            output_size,
-            random_seed, 
-            use_gpu, 
-            verbose,
-            load_if_exists,
-            n_jobs,
-            study_name,
+    # Check the parallel backend
+    if parallel_backend == "joblib":
+        # Create a pool of worker processes
+        Parallel(n_jobs = num_processes)(
+            delayed(ocscoreworkers.NNAblationworker)(
+                pid,
+                id,
+                X_train, 
+                y_train, 
+                X_test, 
+                y_test, 
+                X_val, 
+                y_val,
+                mask,
+                storage,
+                best_params,
+                encoder_params,
+                output_size,
+                random_seed, 
+                use_gpu, 
+                verbose,
+                load_if_exists,
+                1,
+                study_name
             ) for pid, mask in enumerate(split_masks)
-        ])
+        )
+    elif parallel_backend == "multiprocessing":
+        # Create a pool of worker processes
+        with Pool(num_processes) as pool:
+            # Each process will execute the 'NNAblationworker' function with the datasets and optimizer parameters
+            pool.starmap(ocscoreworkers.NNAblationworker, [(
+                pid,
+                id,
+                X_train, 
+                y_train, 
+                X_test, 
+                y_test, 
+                X_val, 
+                y_val,
+                mask,
+                storage,
+                best_params,
+                encoder_params,
+                output_size,
+                random_seed, 
+                use_gpu, 
+                verbose,
+                load_if_exists,
+                n_jobs,
+                study_name,
+                ) for pid, mask in enumerate(split_masks)
+            ])
+    else:
+        raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
 
     return None
 
@@ -164,6 +244,7 @@ def optimize_NN(
         random_seed: int = 42,
         load_if_exists: bool = True,
         use_gpu: bool = True,
+        parallel_backend: str = "joblib",
         verbose: bool = False
     ) -> None:
     ''' Optimize the Neural Network using the given parameters.
@@ -218,8 +299,16 @@ def optimize_NN(
         If True, load the model if it exists. If False, don't load the model if it exists. Default is True.
     use_gpu : bool, optional
         If True, use the GPU. If False, don't use the GPU. Default is True.
+    parallel_backend : str, optional
+        The parallel backend to use. The default is "joblib". Options are "joblib" and "multiprocessing".
+
     verbose : bool, optional
         If True, print the output. If False, don't print the output. Default is False.
+
+    Raises
+    -------
+    ValueError
+        If the parallel backend is not "joblib" or "multiprocessing".
     '''
 
     # Check if the data dictionary is empty
@@ -331,28 +420,54 @@ def optimize_NN(
                     if name == "SF":
                         continue
 
-                    # Create a pool of worker processes
-                    with Pool(num_processes_autoencoder) as pool:
-                        # Each process will execute the 'NNworker' function with the datasets and optimizer parameters
-                        pool.starmap(ocscoreworkers.AEworker, [(
-                            pid,
-                            storage_id, 
-                            AO_X_train,
-                            AO_X_test,
-                            AO_X_val,
-                            encoding_dims,
-                            storage,
-                            models_folder,
-                            random_seed,              # random_seed
-                            use_gpu,                  # use_gpu
-                            verbose,                  # verbose
-                            "minimize",               # direction
-                            n_trials_autoencoder,     # n_trials 
-                            load_if_exists,           # load_if_exists
-                            1,                        # n_jobs
-                            f"Multi_AE_Optimization_{name}" # study_name
+                    # Check the parallel backend
+                    if parallel_backend == "joblib":
+                        # Create a pool of worker processes
+                        Parallel(n_jobs = num_processes_autoencoder)(
+                            delayed(ocscoreworkers.AEworker)(
+                                pid,
+                                storage_id, 
+                                AO_X_train,
+                                AO_X_test,
+                                AO_X_val,
+                                encoding_dims,
+                                storage,
+                                models_folder,
+                                random_seed,
+                                use_gpu,
+                                verbose,
+                                "minimize",                     # direction
+                                n_trials_autoencoder,
+                                load_if_exists,
+                                1,                              # n_jobs
+                                f"Multi_AE_Optimization_{name}" # study_name
                             ) for pid in range(num_processes_autoencoder)
-                        ])
+                        )
+                    elif parallel_backend == "multiprocessing":
+                        # Create a pool of worker processes
+                        with Pool(num_processes_autoencoder) as pool:
+                            # Each process will execute the 'NNworker' function with the datasets and optimizer parameters
+                            pool.starmap(ocscoreworkers.AEworker, [(
+                                pid,
+                                storage_id, 
+                                AO_X_train,
+                                AO_X_test,
+                                AO_X_val,
+                                encoding_dims,
+                                storage,
+                                models_folder,
+                                random_seed,              # random_seed
+                                use_gpu,                  # use_gpu
+                                verbose,                  # verbose
+                                "minimize",               # direction
+                                n_trials_autoencoder,     # n_trials 
+                                load_if_exists,           # load_if_exists
+                                1,                        # n_jobs
+                                f"Multi_AE_Optimization_{name}" # study_name
+                                ) for pid in range(num_processes_autoencoder)
+                            ])
+                    else:
+                        raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
 
             for name in ["SF", "LIG", "REC"]:
                 if name == "SF":
@@ -385,28 +500,53 @@ def optimize_NN(
 
         else:
             if run_autoencoder_optimization:
-                # Create a pool of worker processes
-                with Pool(num_processes_autoencoder) as pool:
-                    # Each process will execute the 'NNworker' function with the datasets and optimizer parameters
-                    pool.starmap(ocscoreworkers.AEworker, [(
-                        pid,
-                        storage_id, 
-                        X_train, 
-                        X_test, 
-                        X_val, 
-                        encoder_dims,
-                        storage,
-                        models_folder,
-                        random_seed,
-                        use_gpu,
-                        verbose,
-                        "minimize",           # direction
-                        n_trials_autoencoder,
-                        load_if_exists,
-                        1,                    # n_jobs
-                        f"AO_Optimization"    # study_name
+                if parallel_backend == "joblib":
+                    # Create a pool of worker processes
+                    Parallel(n_jobs = num_processes_autoencoder)(
+                        delayed(ocscoreworkers.AEworker)(
+                            pid,
+                            storage_id, 
+                            X_train, 
+                            X_test, 
+                            X_val, 
+                            encoder_dims,
+                            storage,
+                            models_folder,
+                            random_seed,
+                            use_gpu,
+                            verbose,
+                            "minimize",           # direction
+                            n_trials_autoencoder,
+                            load_if_exists,
+                            1,                    # n_jobs
+                            f"AO_Optimization"    # study_name
                         ) for pid in range(num_processes_autoencoder)
-                    ])
+                    )
+                elif parallel_backend == "multiprocessing":
+                    # Create a pool of worker processes
+                    with Pool(num_processes_autoencoder) as pool:
+                        # Each process will execute the 'NNworker' function with the datasets and optimizer parameters
+                        pool.starmap(ocscoreworkers.AEworker, [(
+                            pid,
+                            storage_id, 
+                            X_train, 
+                            X_test, 
+                            X_val, 
+                            encoder_dims,
+                            storage,
+                            models_folder,
+                            random_seed,
+                            use_gpu,
+                            verbose,
+                            "minimize",           # direction
+                            n_trials_autoencoder,
+                            load_if_exists,
+                            1,                    # n_jobs
+                            f"AO_Optimization"    # study_name
+                            ) for pid in range(num_processes_autoencoder)
+                        ])
+                else:
+                    raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
 
             # Load the study
             ao_study = optuna.load_study(
@@ -452,26 +592,51 @@ def optimize_NN(
 
         n_trials_NN = total_trials_NN // num_processes_NN
 
-        with Pool(num_processes_NN) as pool:
-            # Each process will execute the "NNworker" function with the datasets and optimizer parameters
-            pool.starmap(ocscoreworkers.NNworker, [(
-                pid,
-                storage_id, 
-                new_X_train, y_train, 
-                new_X_test, y_test, 
-                new_X_val, y_val, 
-                storage,
-                best_ao_params,   # encoder
-                1,                # output_size
-                random_seed,
-                use_gpu,
-                verbose,
-                "minimize",       # direction
-                n_trials_NN,
-                load_if_exists,
-                1,                # n_jobs
-                study_name
+        if parallel_backend == "joblib":
+            # Create a pool of worker processes
+            Parallel(n_jobs = num_processes_NN)(
+                delayed(ocscoreworkers.NNworker)(
+                    pid,
+                    storage_id, 
+                    new_X_train, y_train, 
+                    new_X_test, y_test, 
+                    new_X_val, y_val, 
+                    storage,
+                    best_ao_params,   # encoder
+                    1,                # output_size
+                    random_seed,
+                    use_gpu,
+                    verbose,
+                    "minimize",       # direction
+                    n_trials_NN,
+                    load_if_exists,
+                    1,                # n_jobs
+                    study_name
                 ) for pid in range(num_processes_NN)
-            ])
+            )
+        elif parallel_backend == "multiprocessing":
+            with Pool(num_processes_NN) as pool:
+                # Each process will execute the "NNworker" function with the datasets and optimizer parameters
+                pool.starmap(ocscoreworkers.NNworker, [(
+                    pid,
+                    storage_id, 
+                    new_X_train, y_train, 
+                    new_X_test, y_test, 
+                    new_X_val, y_val, 
+                    storage,
+                    best_ao_params,   # encoder
+                    1,                # output_size
+                    random_seed,
+                    use_gpu,
+                    verbose,
+                    "minimize",       # direction
+                    n_trials_NN,
+                    load_if_exists,
+                    1,                # n_jobs
+                    study_name
+                    ) for pid in range(num_processes_NN)
+                ])
+        else:
+            raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
 
     return None

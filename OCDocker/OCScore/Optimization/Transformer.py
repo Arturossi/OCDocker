@@ -13,6 +13,7 @@ import OCDocker.OCScore.Optimization.Transformer as octrans
 # Imports
 ###############################################################################
 
+from joblib import Parallel, delayed
 from multiprocessing import Pool
 from sklearn.decomposition import PCA
 from typing import Union
@@ -61,6 +62,7 @@ def optimize_Transformer(
         random_seed: int = 42,
         load_if_exists: bool = True,
         use_gpu: bool = True,
+        parallel_backend: str = "joblib",
         verbose: bool = False
     ) -> None:
     ''' Function to optimize the Transformer model using Optuna.
@@ -101,8 +103,15 @@ def optimize_Transformer(
         Whether to load the study if it already exists. The default is True.
     use_gpu : bool, optional
         Whether to use the GPU. The default is True.
+    parallel_backend : str, optional
+        The parallel backend to use. The default is "joblib". Options are "joblib" and "multiprocessing".
     verbose : bool, optional
         Whether to print verbose output. The default is False.
+    
+    Raises
+    ------
+    ValueError
+        If the parallel backend is invalid.
     '''
 
     # Check if the data dictionary is empty
@@ -142,26 +151,51 @@ def optimize_Transformer(
 
         n_trials_Trans = total_trials_Trans // num_processes_Trans
 
-        with Pool(num_processes_Trans) as pool:
-            # Each process will execute the 'Transworker' function with the datasets and optimizer parameters
-            pool.starmap(ocscoreworkers.Transworker, [(
-                pid,
-                storage_id, 
-                X_train, y_train, 
-                X_test, y_test, 
-                X_val, y_val, 
-                storage,
-                1,              # output_size
-                random_seed,
-                use_gpu,
-                verbose,
-                "minimize",     # direction
-                n_trials_Trans,
-                load_if_exists,
-                1,              # n_jobs
-                study_name
+        # Check the parallel backend
+        if parallel_backend == "joblib":
+            # Run the optimization using joblib
+            Parallel(n_jobs=num_processes_Trans)(delayed(ocscoreworkers.Transworker)(
+                    pid,
+                    storage_id, 
+                    X_train, y_train, 
+                    X_test, y_test, 
+                    X_val, y_val, 
+                    storage,
+                    1,              # output_size
+                    random_seed,
+                    use_gpu,
+                    verbose,
+                    "minimize",     # direction
+                    n_trials_Trans,
+                    load_if_exists,
+                    1,              # n_jobs
+                    study_name
                 ) for pid in range(num_processes_Trans)
-            ])
+            )
+        elif parallel_backend == "multiprocessing":
+            # Run the optimization using multiprocessing
+            with Pool(num_processes_Trans) as pool:
+                # Each process will execute the 'Transworker' function with the datasets and optimizer parameters
+                pool.starmap(ocscoreworkers.Transworker, [(
+                    pid,
+                    storage_id, 
+                    X_train, y_train, 
+                    X_test, y_test, 
+                    X_val, y_val, 
+                    storage,
+                    1,              # output_size
+                    random_seed,
+                    use_gpu,
+                    verbose,
+                    "minimize",     # direction
+                    n_trials_Trans,
+                    load_if_exists,
+                    1,              # n_jobs
+                    study_name
+                    ) for pid in range(num_processes_Trans)
+                ])
+        else:
+            raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
 
     '''
     # Load the study
