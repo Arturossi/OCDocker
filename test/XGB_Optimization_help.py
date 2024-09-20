@@ -58,7 +58,7 @@ for pca_type, start_id, end_id in [(80, 11, 16), (85, 16, 21), (90, 21, 26), (95
             total_trials_GA = 10,
             run_XGB_optimization = True,
             num_processes_XGB = 8,
-            total_trials_XGB = 490,
+            total_trials_XGB = 1000,
             early_stopping_rounds = 20,
             random_seed = 42,
             load_if_exists = True,
