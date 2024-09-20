@@ -50,7 +50,7 @@ for pca_type, start_id, end_id in [(80, 11, 16), (85, 16, 21), (90, 21, 26), (95
             only_scores = False,
             use_PCA = True,
             pca_type = pca_type,
-            run_pre_XGB_optimization = False,
+            run_pre_XGB_optimization = True,
             num_processes_pre_XGB = 8,
             total_trials_pre_XGB = 100,
             run_GA_optimization = False,
