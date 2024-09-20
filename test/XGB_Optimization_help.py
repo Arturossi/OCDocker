@@ -38,28 +38,12 @@ for pca_type, start_id, end_id in [(80, 11, 16), (85, 16, 21), (90, 21, 26), (95
     
     # Load the PCA model
     pca_model = ocscoreio.load_object(pca_model)
-    
-    # Load the data
-    data = ocscoredata.load_data(
-        base_models_folder = base_models_folder,
-        storage_id = i,
-        df_path = df_path,
-        optimization_type = "XGB",
-        pca_model = pca_model,
-        no_scores = False,
-        only_scores = False,
-        use_PCA = True,
-        pca_type = pca_type,
-        use_pdb_train = True,
-        random_seed = 42
-    )
 
     for i in tqdm(range(start_id, end_id), desc=f"PCA Type: {pca_type}"):
         ocxgb.optimize_XGB(
             df_path = df_path,
             storage_id = i,
             base_models_folder = base_models_folder,
-            data = data,
             storage = storage,
             use_pdb_train = True,
             no_scores = False,
