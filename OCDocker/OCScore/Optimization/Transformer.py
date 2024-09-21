@@ -51,14 +51,14 @@ def optimize_Transformer(
         data: dict = {},
         storage: str = "sqlite:///Transformer_optimization.db",
         use_pdb_train: bool = True,
-        no_scores: bool = True,
-        only_scores: bool = True,
-        use_PCA: bool = True,
+        no_scores: bool = False,
+        only_scores: bool = False,
+        use_PCA: bool = False,
         pca_type: int = 95,
         pca_model: Union[str, PCA] = "",
-        run_Trans_optimization: bool = False,
+        run_Trans_optimization: bool = True,
         num_processes_Trans: int = 4,
-        total_trials_Trans: int = 2000,
+        total_trials_Trans: int = 1000,
         random_seed: int = 42,
         load_if_exists: bool = True,
         use_gpu: bool = True,
@@ -308,3 +308,6 @@ def optimize_Transformer(
     # Save the full_selected_values_df values to csv
     full_selected_values_df.to_csv('full_selected_values_df_trans.csv')
     '''
+
+# Alias the function
+optimize = optimize_Transformer

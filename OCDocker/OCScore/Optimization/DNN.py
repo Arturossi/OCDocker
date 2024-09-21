@@ -227,14 +227,14 @@ def optimize_NN(
         use_pdb_train: bool = True,
         no_scores: bool = False,
         only_scores: bool = False,
-        use_PCA: bool = True,
+        use_PCA: bool = False,
         best_ao_params: Union[dict, None] = None,
         pca_type: int = 80,
         pca_model: Union[str, PCA] = "",
         encoder_dims: tuple[int, int] = (16, 256),
-        autoencoder: bool = False,
+        autoencoder: bool = True,
         multiencoder: bool = False,
-        run_autoencoder_optimization: bool = False,
+        run_autoencoder_optimization: bool = True,
         num_processes_autoencoder: int = 8,
         total_trials_autoencoder: int = 2000,
         run_NN_optimization: bool = True,
@@ -640,3 +640,6 @@ def optimize_NN(
             raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
 
     return None
+
+# Alias the function
+optimize = optimize_NN

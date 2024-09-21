@@ -53,11 +53,11 @@ def optimize_XGB(
         storage: str = "sqlite:///XGB_optimization.db",
         use_pdb_train: bool = True,
         no_scores: bool = False,
-        only_scores: bool = True,
-        use_PCA: bool = True,
+        only_scores: bool = False,
+        use_PCA: bool = False,
         pca_type: int = 95,
         pca_model: Union[str, PCA] = "",
-        run_pre_XGB_optimization: bool = False,
+        run_pre_XGB_optimization: bool = True,
         num_processes_pre_XGB: int = 8,
         total_trials_pre_XGB : int = 250,
         run_GA_optimization: bool = False,
@@ -382,3 +382,6 @@ def optimize_XGB(
             raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
 
     return None
+
+# Alias the function
+optimize = optimize_XGB
