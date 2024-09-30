@@ -617,17 +617,17 @@ def preprocess_df(
         pdbbind_data = invert_values_conditionally(pdbbind_data)
     
     # Drop the 'experimental' column from DUDEz data if it exists
-    if "experimental" in dudez_data.columns:
-        dudez_data = dudez_data.drop(columns="experimental")
+    if "experimental" in dudez_data.columns: # type: ignore
+        dudez_data = dudez_data.drop(columns="experimental") # type: ignore
 
     if normalize:
         # Normalize the PDBbind data
-        pdbbind_data = norm_data(pdbbind_data, scaler=scaler)
+        pdbbind_data = norm_data(pdbbind_data, scaler=scaler) # type: ignore
 
         # Normalize the DUDEz data
-        dudez_data = norm_data(dudez_data, scaler=scaler)
+        dudez_data = norm_data(dudez_data, scaler=scaler) # type: ignore
 
-    return dudez_data, pdbbind_data, score_columns
+    return dudez_data, pdbbind_data, score_columns # type: ignore
 
 def preprocess_df_old(file_name: str, score_columns_list: list[str] = ["SMINA", "VINA", "ODDT", "PLANTS"], scaler: str = "standard", invert_conditionally: bool = True, normalize: bool = True) -> tuple[pd.DataFrame, pd.DataFrame, list[str]]:
     ''' Load a DataFrame from a file and preprocess it. [DEPRECATED]

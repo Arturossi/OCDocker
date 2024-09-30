@@ -2,20 +2,20 @@
 
 # Description
 ###############################################################################
-""" Module with a helper to execute the Principal Component Analysis (PCA)
-on the datasets.
+""" Module to perform the simple consensus calculation for the given dataset.
 
 It is imported as:
 
-import OCDocker.OCScore.Optimization.PCA as ocpca
+import OCDocker.OCScore.Utils.SimpleConsensus as ocsimple
 """
 
 # Imports
 ###############################################################################
 
 import pandas as pd
+import numpy as np
 
-from sklearn.metrics import auc, roc_curve
+from sklearn.metrics import auc, mean_squared_error, roc_curve
 
 import OCDocker.OCScore.Utils.Data as ocscoredata
 import OCDocker.Toolbox.Printing as ocprint
@@ -74,9 +74,16 @@ def simple_consensus(data: pd.DataFrame, score_columns: list[str]) -> pd.DataFra
     df['iqr'] = df['quantile_75'] - df['quantile_25']
     df['skewness'] = data[score_columns].skew(axis = 1)
     df['kurtosis'] = data[score_columns].kurtosis(axis = 1)
+    
+    # If the experimental column is present in input dataframe
+    if 'experimental' in data.columns:
+        # Add the experimental column to the stats DataFrame
+        df['experimental'] = data['experimental']
 
-    # Add the type column to the stats DataFrame
-    df['type'] = data['type']
+    # If the type column is present in input dataframe
+    if 'type' in data.columns:
+        # Add the type column to the stats DataFrame
+        df['type'] = data['type']
 
     return df
 
@@ -118,8 +125,8 @@ def perform_simple_consensus(df_path: str, threshold: float = 1.2, verbose: bool
         final_df.loc[col, 'AUC'] = float(auc(fpr, tpr))
 
         # Calculate the mean squared error (from pdbbind_stats_df)
-        final_df.loc[col, 'Error'] = ((pdbbind_stats_df[col] - pdbbind_stats_df['experimental']) ** 2).mean()
-
+        final_df.loc[col, 'RMSE'] = np.sqrt(mean_squared_error(pdbbind_stats_df['experimental'], pdbbind_stats_df[col]))
+        
     if verbose:
         # Print the results only for the rows with error below the threshold (to avoid the plot to have outliers)
         ocprint.printv(f"The rows with error smaller than the threshold of {threshold}:\n{final_df[final_df['Error'] < threshold]}")

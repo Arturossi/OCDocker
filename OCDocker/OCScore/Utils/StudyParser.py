@@ -6,7 +6,7 @@
 using Optuna.
 
 It is imported as:
-import OCDocker.OCScore.Optimization.StudyParser as ocstudy
+import OCDocker.OCScore.Utils.StudyParser as ocstudy
 """
 
 # Imports
@@ -14,8 +14,6 @@ import OCDocker.OCScore.Optimization.StudyParser as ocstudy
 
 import optuna
 import pandas as pd
-
-from urllib.parse import quote_plus
 
 import OCDocker.Toolbox.Printing as ocprint
 
@@ -228,6 +226,7 @@ def analyze_studies(snames: list[str], storage: str, n_trials: int = 5, verbose:
     # Return the DataFrame
     return results_df
 
+'''
 # Example usage:
 snames = [
     'XGBoost optimization',
@@ -492,7 +491,6 @@ snames = [
     'NoScores_NN_Optimization_134_TPE',
     'NoScores_NN_Optimization_135_TPE'
 ]
-
 user = "ocdocker"
 password = "@Kp3sRv9t@"
 host = "localhost"
@@ -502,3 +500,4 @@ db = "optimization"
 results_df = analyze_studies(snames, storage=f"mysql+pymysql://{user}:{quote_plus(password)}@{host}:{port}/{db}")
 #print(results_df)
 df = results_df.copy()
+'''
