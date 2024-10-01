@@ -165,3 +165,46 @@ for pca_type, start_id, end_id in [(80, 11, 16), (85, 16, 21), (90, 21, 26), (95
             use_gpu = True,
             verbose = False
         )
+
+for run, start_id, end_id in [("SFs only", 31, 36), ("Descriptors only", 36, 41)]:
+    for i in tqdm(range(start_id, end_id), desc=f"Optimizing {run}"):
+        # Load the data
+        data = ocscoredata.load_data(
+            base_models_folder = base_models_folder,
+            storage_id = i,
+            df_path = df_path,
+            optimization_type = "NN",
+            no_scores = False if run == "SFs only" else True,
+            only_scores = True if run == "SFs only" else False,
+            use_PCA = False,
+            use_pdb_train = True,
+            random_seed = 42
+        )
+
+        ocdnn.optimize_NN(
+            df_path = df_path,
+            storage_id = i,
+            base_models_folder = base_models_folder,
+            data = data,
+            storage = storage,
+            use_pdb_train = True,
+            no_scores = False if run == "SFs only" else True,
+            only_scores = True if run == "SFs only" else False,
+            use_PCA = False,
+            best_ao_params = None,
+            encoder_dims = (16, 256),
+            autoencoder = False,
+            multiencoder = False,
+            run_autoencoder_optimization = False,
+            num_processes_autoencoder = 8,
+            total_trials_autoencoder = 2000,
+            run_NN_optimization = True,
+            num_processes_NN = 8,
+            total_trials_NN = 500,
+            explained_variance = 0.95,
+            random_seed = 42,
+            load_if_exists = True,
+            use_gpu = True,
+            verbose = False
+        )
+        

@@ -19,9 +19,6 @@ import OCDocker.OCScore.Utils.Evaluation as ocseval
 import OCDocker.OCScore.Utils.SimpleConsensus as ocsimple
 import OCDocker.OCScore.Utils.StudyParser as ocstudy
 
-
-
-
 base_path: str = "/data/hd4tb/OCDocker/data/ocdb"
 df_path: str = f"{base_path}/OCDocker.csv.gz"
 
@@ -71,6 +68,10 @@ final_metrics["combined_metric"] = final_metrics["RMSE"] - final_metrics["AUC"]
 # Reset the index
 final_metrics.reset_index(drop = True, inplace = True)
 
+# Rename the score_column to study_name
+final_metrics.rename(columns = {"score_column": "study_name"}, inplace = True)
+
+#region lists
 # Plain NN
 plain_nn_list = [
     "NN_Optimization_1",
@@ -209,6 +210,7 @@ pca95_trans_list = [
     "PCA95_Trans_Optimization_24",
     "PCA95_Trans_Optimization_25"
 ]
+#endregion
 
 # Fetch all the studies results
 user = "ocdocker"
@@ -226,8 +228,9 @@ storage = f"mysql+pymysql://{user}:{quote_plus(password)}@{host}:{port}/{db}"
 # Fetch the results
 results_df = ocstudy.analyze_studies(snames, storage = storage)
 
-# Fix the study type of NN + AE (we know that it has been set wrong)
+# Fix the study type of NN + AE and XGB + GA (we know that it has been set wrong)
 results_df.loc[25:49, 'study_type'] = 'NN + AE'
+results_df.loc[175:199, 'study_type'] = 'XGB + GA'
 
 # Separate results by 3 evaluation metrics (Error (Smallest Error), Error (Biggest AUC), Error (Smallest Error - AUC))
 best_rmse_df = results_df[["study_name", "study_type", "best_rmse_number", "best_rmse_value", "best_rmse_auc"]]
@@ -248,9 +251,33 @@ best_auc_df["combined_metric"] = best_auc_df["RMSE"] - best_auc_df["AUC"]
 
 ## Add the simple consensus to the results ##
 
-best_rmse_df = pd.concat([best_rmse_df, simple_docking_consensus], axis = 0)
-best_auc_df = pd.concat([best_auc_df, simple_docking_consensus], axis = 0)
-best_combined_df = pd.concat([best_combined_df, simple_docking_consensus], axis = 0)
+best_rmse_df = pd.concat([best_rmse_df, final_metrics], axis = 0)
+best_auc_df = pd.concat([best_auc_df, final_metrics], axis = 0)
+best_combined_df = pd.concat([best_combined_df, final_metrics], axis = 0)
+
+## Get the minimum and maximum values for AUC and Error ##
+
+# Get the Error range
+min_error = min([best_rmse_df['RMSE'].min(), best_auc_df['RMSE'].min(), best_combined_df['RMSE'].min()])
+max_error = max([best_rmse_df['RMSE'].max(), best_auc_df['RMSE'].max(), best_combined_df['RMSE'].max()])
+#max_error = 1.0
+
+# Compute the new AUCs
+best_rmse_df['AUC New'] = best_rmse_df['AUC'].apply(lambda x: 1 - x if x < 0.5 else x)
+best_auc_df['AUC New'] = best_auc_df['AUC'].apply(lambda x: 1 - x if x < 0.5 else x)
+best_combined_df['AUC New'] = best_combined_df['AUC'].apply(lambda x: 1 - x if x < 0.5 else x)
+
+# Reindex the dataframes
+best_rmse_df.reset_index(drop = True, inplace = True)
+best_auc_df.reset_index(drop = True, inplace = True)
+best_combined_df.reset_index(drop = True, inplace = True)
+
+# Get the AUC range
+min_auc = min([best_rmse_df['AUC New'].min(), best_auc_df['AUC New'].min(), best_combined_df['AUC New'].min()])
+max_auc = max([best_rmse_df['AUC New'].max(), best_auc_df['AUC New'].max(), best_combined_df['AUC New'].max()])
+
+error_range = max_error - min_error
+auc_range = max_auc - min_auc
 
 ## Start plotting the results ##
 
@@ -263,6 +290,7 @@ plt.figure(figsize=(20, 8))
 
 # Palette
 #palette_colour = "Set2"
+#palette_colour = "Set3"
 #palette_colour = "tab10"
 palette_colour = "tab20"
 #palette_colour = "colorblind"
@@ -272,36 +300,36 @@ palette_colour = "tab20"
 #palette_colour = "deep"
 #palette_colour = "muted"
 #palette_colour = "viridis"
-palette_colour = sns.color_palette(cc.glasbey, n_colors=df['Methodology'].nunique())
+#palette_colour = sns.color_palette(cc.glasbey, n_colors=best_combined_df['Methodology'].nunique())
 
 # Set alpha value
 alpha = 0.9
 
 # Create a color mapping for methodologies
-color_mapping = {method: color for method, color in zip(df['Methodology'].unique(), sns.color_palette(palette_colour, n_colors=df['Methodology'].nunique()))}
+color_mapping = {method: color for method, color in zip(best_combined_df['Methodology'].unique(), sns.color_palette(palette_colour, n_colors=best_combined_df['Methodology'].nunique()))}
 
-for i, plot in enumerate(['Error (Smallest Error)', 'Error (Biggest AUC)', 'Error (Smallest Error - AUC)']):
+# Set the error threshold
+error_threshold = 1.5
+
+# Get the rows with error greater than the error_threshold
+best_rmse_df_filtered = best_rmse_df[best_rmse_df['RMSE'] <= error_threshold]
+best_auc_df_filtered = best_auc_df[best_auc_df['RMSE'] <= error_threshold]
+best_combined_df_filtered = best_combined_df[best_combined_df['RMSE'] <= error_threshold]
+
+for i, (metric, df) in enumerate([('RMSE', best_rmse_df_filtered), ('AUC', best_auc_df_filtered), ('RMSE-AUC', best_combined_df_filtered)]):
     plt.subplot(1, 3, i+1)
 
-    metric = plot.replace('Error (', '(')
-
-    # Set the AUC column name
-    auc = f"AUC {metric}"
-
     # Prepare the data by adding a new column indicating AUC category
-    df['AUC_category'] = df[auc].apply(lambda x: '>= 0.5' if x >= 0.5 else '< 0.5')
+    df['AUC_category'] = df["AUC"].apply(lambda x: '>= 0.5' if x >= 0.5 else '< 0.5')
 
     # Make 1 - AUC for AUC < 0.5
-    df.loc[df['AUC_category'] == '< 0.5', auc] = 1 - df[auc]
-
-    # Get the index of the AUC column
-    auc_index = df.columns.get_loc(auc)
+    df.loc[df['AUC_category'] == '< 0.5', "AUC"] = 1 - df["AUC"]
 
     # Plot the df_auc_ge_05 normally
     sns.scatterplot(
         data=df[df['AUC_category'] == '>= 0.5'], 
-        x=plot, 
-        y=df.columns[auc_index],
+        x="RMSE", 
+        y="AUC",
         hue='Methodology', 
         legend=False, 
         palette=color_mapping,
@@ -312,8 +340,8 @@ for i, plot in enumerate(['Error (Smallest Error)', 'Error (Biggest AUC)', 'Erro
     # Now plot the df_auc_lt_05 with a different marker (star)
     sns.scatterplot(
         data=df[df['AUC_category'] == '< 0.5'], 
-        x=plot, 
-        y=df.columns[auc_index],
+        x="RMSE", 
+        y="AUC",
         hue='Methodology', 
         legend=False, 
         palette=color_mapping,
@@ -322,11 +350,18 @@ for i, plot in enumerate(['Error (Smallest Error)', 'Error (Biggest AUC)', 'Erro
         s=100,
     )
 
-    plt.title(f'Error vs. AUC {metric}')
+    # Set the title (smallest error, biggest auc, smallest error - auc) according to the metric
+    if metric == 'RMSE':
+        plt.title(f'Error vs. AUC (Smallest Error)')
+    elif metric == 'AUC':
+        plt.title(f'Error vs. AUC (Biggest AUC)')
+    else:
+        plt.title(f'Error vs. AUC (Smallest Error - AUC)')
+              
     #plt.xlim(min_error - error_range * 0.1, max_error + error_range * 0.1)
     # Set as minimum value of x-axis the minimum value of the error minus 10% of the error range and the maximum value of x-axis the maximum value of the error plus 10% of the error range for each plot
-    error_range = df[plot].max() - df[plot].min()
-    plt.xlim(df[plot].min() - error_range * 0.1, df[plot].max() + error_range * 0.1)
+    error_range = df["RMSE"].max() - df["RMSE"].min()
+    plt.xlim(df["RMSE"].min() - error_range * 0.1, df["RMSE"].max() + error_range * 0.1)
     #plt.ylim(-0.1, 1.1)
     plt.ylim(min_auc - auc_range * 0.1, max_auc + auc_range * 0.1)
     plt.xlabel('Error')
@@ -390,14 +425,9 @@ plt.savefig('plots/Experiments_boxplot.png', bbox_inches='tight')
 """
 
 # Create three new dataframes, one for Error (Smallest Error), one for Error (Biggest AUC), and one for Error (Smallest Error - AUC)
-df_error_menor_erro = df[['Experiment', 'Methodology', 'Error (Smallest Error - AUC)']].copy()
-df_error_maior_auc = df[['Experiment', 'Methodology', 'Error (Biggest AUC)']].copy()
-df_error_menor_erro_auc = df[['Experiment', 'Methodology', 'Error (Smallest Error - AUC)']].copy()
-
-# Rename the Error columns to just 'Error'
-df_error_menor_erro.rename(columns={'Error (Smallest Error - AUC)': 'Error'}, inplace=True)
-df_error_maior_auc.rename(columns={'Error (Biggest AUC)': 'Error'}, inplace=True)
-df_error_menor_erro_auc.rename(columns={'Error (Smallest Error - AUC)': 'Error'}, inplace=True)
+df_error_menor_erro = best_rmse_df_filtered[['Experiment', 'Methodology', 'RMSE']].copy()
+df_error_maior_auc = best_auc_df_filtered[['Experiment', 'Methodology', 'RMSE']].copy()
+df_error_menor_erro_auc = best_combined_df_filtered[['Experiment', 'Methodology', 'RMSE']].copy()
 
 # Add the metric name to each dataframe in Methodology (except for Raw Scoring Function and Simple consensus)
 df_error_menor_erro['Methodology'] = df_error_menor_erro['Methodology'].apply(lambda x: f"{x} (Smallest Error)" if x not in ['Raw Scoring Function', 'Simple consensus'] else x)
@@ -408,14 +438,9 @@ df_error_menor_erro_auc['Methodology'] = df_error_menor_erro_auc['Methodology'].
 df_error_concat = pd.concat([df_error_menor_erro, df_error_maior_auc, df_error_menor_erro_auc])
 
 # Do the same for AUC
-df_auc_menor_erro = df[['Experiment', 'Methodology', 'AUC (Smallest Error)']].copy()
-df_auc_maior_auc = df[['Experiment', 'Methodology', 'AUC (Biggest AUC)']].copy()
-df_auc_menor_erro_auc = df[['Experiment', 'Methodology', 'AUC (Smallest Error - AUC)']].copy()
-
-# Rename the AUC columns to just 'AUC'
-df_auc_menor_erro.rename(columns={'AUC (Smallest Error)': 'AUC'}, inplace=True)
-df_auc_maior_auc.rename(columns={'AUC (Biggest AUC)': 'AUC'}, inplace=True)
-df_auc_menor_erro_auc.rename(columns={'AUC (Smallest Error - AUC)': 'AUC'}, inplace=True)
+df_auc_menor_erro = best_rmse_df_filtered[['Experiment', 'Methodology', 'AUC']].copy()
+df_auc_maior_auc = best_auc_df_filtered[['Experiment', 'Methodology', 'AUC']].copy()
+df_auc_menor_erro_auc = best_combined_df_filtered[['Experiment', 'Methodology', 'AUC']].copy()
 
 # Add the metric name to each dataframe in Methodology (except for Raw Scoring Function and Simple consensus)
 df_auc_menor_erro.loc[:, 'Methodology'] = df_auc_menor_erro['Methodology'].apply(lambda x: f"{x} (Smallest Error)" if x not in ['Raw Scoring Function', 'Simple consensus'] else x)
@@ -470,14 +495,14 @@ for metric in metrics:
         # Create subplots with shared x-axis
         fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(15, 10)) # type: ignore
 
-        for i, plot in enumerate(['Error', 'AUC']):
-            ax = ax1 if plot == 'Error' else ax2
+        for i, plot in enumerate(['RMSE', 'AUC']):
+            ax = ax1 if plot == 'RMSE' else ax2
             if plot_type == 'boxplot':
                 sns.boxplot(
-                    data=aux_df_error_concat if plot == 'Error' else aux_df_auc_concat, 
+                    data=aux_df_error_concat if plot == 'RMSE' else aux_df_auc_concat, 
                     x='Methodology', 
                     y=plot, 
-                    palette=color_mapping_error if plot == 'Error' else color_mapping_auc,
+                    palette=color_mapping_error if plot == 'RMSE' else color_mapping_auc,
                     showfliers=False,
                     ax=ax,
                     hue='Methodology',
@@ -485,10 +510,10 @@ for metric in metrics:
                 )
             else:
                 sns.violinplot(
-                    data=aux_df_error_concat if plot == 'Error' else aux_df_auc_concat, 
+                    data=aux_df_error_concat if plot == 'RMSE' else aux_df_auc_concat, 
                     x='Methodology', 
                     y=plot, 
-                    palette=color_mapping_error if plot == 'Error' else color_mapping_auc,
+                    palette=color_mapping_error if plot == 'RMSE' else color_mapping_auc,
                     ax=ax,
                     hue='Methodology',
                     legend=False
@@ -525,52 +550,51 @@ for metric in metrics:
 
         plt.savefig(f'plots/Experiments_{plot_type}_{aux_metric}_concat.png', bbox_inches='tight')
 
-
 plt.close('all')
 
 # Make bar plots for the error and AUC for each metric (3 bars for each method in the same plot)
 plt.figure(figsize=(20, 8))
 
-for i, plot in enumerate(['Error (Smallest Error)', 'Error (Biggest AUC)', 'Error (Smallest Error - AUC)']):
+for i, (metric, df) in enumerate([('RMSE', best_rmse_df_filtered), ('AUC', best_auc_df_filtered), ('RMSE-AUC', best_combined_df_filtered)]):
     plt.subplot(1, 3, i+1)
     sns.barplot(
         data=df, 
         x='Methodology', 
-        y=plot, 
+        y="RMSE", 
         palette=color_mapping,
         hue='Methodology',
         legend=False
     )
-    plt.title(f'{plot.replace("Error (", "").replace(")", "")}')
+    plt.title(f'{metric}')
     plt.xticks(rotation=90)
-    plt.ylabel('Error')
+    plt.ylabel('RMSE')
     plt.grid(True)
     plt.minorticks_on()
     plt.grid(which='minor', linestyle=':', linewidth='0.2', color='darkgray')
 
 # Add the title to the entire figure
-plt.suptitle('Error', fontsize=16)
+plt.suptitle('RMSE', fontsize=16)
 
 # Use tight_layout to adjust the spacing
 plt.tight_layout()
 
-plt.savefig('plots/Experiments_error_barplot.png', bbox_inches='tight')
+plt.savefig('plots/Experiments_rmse_barplot.png', bbox_inches='tight')
 
 plt.close('all')
 
 plt.figure(figsize=(20, 8))
 
-for i, plot in enumerate(['AUC (Smallest Error - AUC)', 'AUC (Biggest AUC)', 'AUC (Smallest Error - AUC)']):
+for i, (metric, df) in enumerate([('RMSE', best_rmse_df_filtered), ('AUC', best_auc_df_filtered), ('RMSE-AUC', best_combined_df_filtered)]):
     plt.subplot(1, 3, i+1)
     sns.barplot(
         data=df, 
         x='Methodology', 
-        y=plot, 
+        y='AUC', 
         palette=color_mapping,
         hue='Methodology',
         legend=False
     )
-    plt.title(f'{plot.replace("AUC (", "").replace(")", "")}')
+    plt.title(f'{metric}')
     plt.xticks(rotation=90)
     plt.ylabel('AUC')
     plt.grid(True)
