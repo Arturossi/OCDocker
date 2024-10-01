@@ -23,75 +23,17 @@ storage: str = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@{ip}:{port}
 df_path: str = f"{base_path}/OCDocker.csv.gz"
 base_models_folder: str = f"{base_path}/models"
 
-pca_type = 85
-
-# Define the path to save the PCA object
-pca_model = f"{pca_path}/pca{pca_type}.pkl"
-
-# If the PCA model does not exist
-if not os.path.exists(pca_model):
-    # Create the PCA model
-    pca_model = ocpca.run_pca(
-        df_path = df_path,
-        variance = pca_type / 100,
-        pca_path = pca_path,
-        verbose = True
-    )
-
-# Load the PCA model
-pca_model = ocscoreio.load_object(pca_model)
-
-octrans.optimize(
-    df_path = df_path,
-    storage_id = 11,
-    base_models_folder = base_models_folder,
-    storage = storage,
-    use_pdb_train = True,
-    no_scores = False,
-    only_scores = False,
-    use_PCA = True,
-    pca_type = pca_type,
-    pca_model = pca_model,
-    run_Trans_optimization = True,
-    num_processes_Trans = 3,
-    total_trials_Trans = 968,
-    random_seed = 42,
-    load_if_exists = True,
-    use_gpu = True,
-    parallel_backend = "joblib",
-    verbose = False
-)
-
-# PCA Type 80, 85, 90, 95 -> (PCA, start, end)
-for pca_type, start_id, end_id in [(85, 12, 16)]:
-    # Define the path to save the PCA object
-    pca_model = f"{pca_path}/pca{pca_type}.pkl"
-
-    # If the PCA model does not exist
-    if not os.path.exists(pca_model):
-        # Create the PCA model
-        pca_model = ocpca.run_pca(
-            df_path = df_path,
-            variance = pca_type / 100,
-            pca_path = pca_path,
-            verbose = True
-        )
-    
-    # Load the PCA model
-    pca_model = ocscoreio.load_object(pca_model)
-
-    for i in tqdm(range(start_id, end_id), desc=f"PCA Type: {pca_type}"):
+for run, start_id, end_id in [("SFs only", 31, 36), ("Descriptors only", 36, 41)]:
+    for i in tqdm(range(start_id, end_id), desc=f"Optimizing {run}"):
         octrans.optimize(
             df_path = df_path,
             storage_id = i,
             base_models_folder = base_models_folder,
             storage = storage,
             use_pdb_train = True,
-            no_scores = False,
-            only_scores = False,
-            use_PCA = True,
-            pca_type = pca_type,
-            pca_model = pca_model,
+            no_scores = False if run == "SFs only" else True,
+            only_scores = True if run == "SFs only" else False,
+            use_PCA = False,
             run_Trans_optimization = True,
             num_processes_Trans = 3,
             total_trials_Trans = 1000,
