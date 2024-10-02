@@ -23,8 +23,50 @@ storage: str = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@{ip}:{port}
 df_path: str = f"{base_path}/OCDocker.csv.gz"
 base_models_folder: str = f"{base_path}/models"
 
+# Load the data
+data = ocscoredata.load_data(
+    base_models_folder = base_models_folder,
+    storage_id = 1,
+    df_path = df_path,
+    optimization_type = "NN",
+    no_scores = False,
+    only_scores = False,
+    use_PCA = False,
+    use_pdb_train = True,
+    random_seed = 42
+)
+
+ocdnn.optimize_NN(
+        df_path = df_path,
+        storage_id = 1,
+        base_models_folder = "/data/hd4tb/OCDocker/data/ocdb/models",
+        storage = storage,
+        data = data,
+        use_pdb_train = True,
+        no_scores = False,
+        only_scores = False,
+        use_PCA = False,
+        best_ao_params = None,
+        pca_type = 80,
+        encoder_dims = (16, 256),
+        autoencoder = False,
+        multiencoder = False,
+        run_autoencoder_optimization = False,
+        num_processes_autoencoder = 8,
+        total_trials_autoencoder = 2000,
+        run_NN_optimization = True,
+        num_processes_NN = 8,
+        total_trials_NN = 269,
+        explained_variance = 0.95,
+        random_seed = 42,
+        load_if_exists = True,
+        use_gpu = True,
+        verbose = False
+    )
+
+
 # No dimensionality reduction
-for i in tqdm(range(1, 6)):
+for i in tqdm(range(2, 6)):
     # Load the data
     data = ocscoredata.load_data(
         base_models_folder = base_models_folder,
@@ -53,7 +95,7 @@ for i in tqdm(range(1, 6)):
             encoder_dims = (16, 256),
             autoencoder = False,
             multiencoder = False,
-            run_autoencoder_optimization = True,
+            run_autoencoder_optimization = False,
             num_processes_autoencoder = 8,
             total_trials_autoencoder = 2000,
             run_NN_optimization = True,

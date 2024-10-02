@@ -23,7 +23,28 @@ storage: str = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@{ip}:{port}
 df_path: str = f"{base_path}/OCDocker.csv.gz"
 base_models_folder: str = f"{base_path}/models"
 
-for run, start_id, end_id in [("Descriptors only", 36, 41)]:
+run = "Descriptors only"
+
+octrans.optimize(
+    df_path = df_path,
+    storage_id = 36,
+    base_models_folder = base_models_folder,
+    storage = storage,
+    use_pdb_train = True,
+    no_scores = False if run == "SFs only" else True,
+    only_scores = True if run == "SFs only" else False,
+    use_PCA = False,
+    run_Trans_optimization = True,
+    num_processes_Trans = 3,
+    total_trials_Trans = 1000,
+    random_seed = 42,
+    load_if_exists = True,
+    use_gpu = True,
+    parallel_backend = "joblib",
+    verbose = False
+)
+
+for run, start_id, end_id in [("Descriptors only", 37, 41)]:
     for i in tqdm(range(start_id, end_id), desc=f"Optimizing {run}"):
         octrans.optimize(
             df_path = df_path,
