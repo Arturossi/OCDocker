@@ -45,7 +45,7 @@ for i in tqdm(range(1, 6)):
             best_ao_params = None,
             pca_type = 80,
             encoder_dims = (16, 256),
-            autoencoder = True,
+            autoencoder = False,
             multiencoder = False,
             run_autoencoder_optimization = True,
             num_processes_autoencoder = 8,
