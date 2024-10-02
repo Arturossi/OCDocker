@@ -13,9 +13,15 @@ import OCDocker.OCScore.Utils.IO as ocscoreio
 
 from OCDocker.Initialise import *
 
-storage: str = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@localhost:3306/optimization"
-df_path: str = '/data/hd4tb/OCDocker/data/ocdb/OCDocker.csv.gz'
-base_models_folder: str = "/data/hd4tb/OCDocker/data/ocdb/models"
+ip: str = "192.168.101.2"
+ip: str = "localhost"
+port: int = 3306
+base_path: str = "/data/hd8tb/OCDocker_data/ocdb"
+base_path: str = "/data/hd4tb/OCDocker/data/ocdb"
+
+storage: str = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@{ip}:{port}/optimization"
+df_path: str = f"{base_path}/OCDocker.csv.gz"
+base_models_folder: str = f"{base_path}/models"
 
 # No dimensionality reduction
 for i in tqdm(range(1, 6)):
@@ -45,7 +51,7 @@ for i in tqdm(range(1, 6)):
             best_ao_params = None,
             pca_type = 80,
             encoder_dims = (16, 256),
-            autoencoder = True,
+            autoencoder = False,
             multiencoder = False,
             run_autoencoder_optimization = True,
             num_processes_autoencoder = 8,
