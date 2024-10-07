@@ -120,6 +120,22 @@ pca95_nn_list = [
     "PCA95_NN_Optimization_29",
     "PCA95_NN_Optimization_30",
 ]
+# Score only
+scoreonly_nn_list = [
+    "ScoreOnly_NN_Optimization_31",
+    "ScoreOnly_NN_Optimization_32",
+    "ScoreOnly_NN_Optimization_33",
+    "ScoreOnly_NN_Optimization_34",
+    "ScoreOnly_NN_Optimization_35"
+]
+# No Scores 
+noscores_nn_list = [
+    "NoScores_NN_Optimization_36",
+    "NoScores_NN_Optimization_37",
+    "NoScores_NN_Optimization_38",
+    "NoScores_NN_Optimization_39",
+    "NoScores_NN_Optimization_40"
+]
 
 # Plain XGB
 plain_xgb_list = [
@@ -169,6 +185,22 @@ pca95_xgb_list = [
     "PCA95_XGB_Optimization_29",
     "PCA95_XGB_Optimization_30",
 ]
+# Score only
+scoreonly_xgb_list = [
+    "ScoreOnly_XGB_Optimization_31",
+    "ScoreOnly_XGB_Optimization_32",
+    "ScoreOnly_XGB_Optimization_33",
+    "ScoreOnly_XGB_Optimization_34",
+    "ScoreOnly_XGB_Optimization_35"
+]
+# No Scores 
+noscores_xgb_list = [
+    "NoScores_XGB_Optimization_36",
+    "NoScores_XGB_Optimization_37",
+    "NoScores_XGB_Optimization_38",
+    "NoScores_XGB_Optimization_39",
+    "NoScores_XGB_Optimization_40"
+]
 
 # Plain Transformers
 plain_trans_list = [
@@ -210,6 +242,22 @@ pca95_trans_list = [
     "PCA95_Trans_Optimization_24",
     "PCA95_Trans_Optimization_25"
 ]
+# Score only
+scoreonly_trans_list = [
+    "ScoreOnly_Trans_Optimization_31",
+    "ScoreOnly_Trans_Optimization_32",
+    "ScoreOnly_Trans_Optimization_33",
+    "ScoreOnly_Trans_Optimization_34",
+    "ScoreOnly_Trans_Optimization_35"
+]
+# No Scores 
+noscores_trans_list = [
+    "NoScores_Trans_Optimization_36",
+    "NoScores_Trans_Optimization_37",
+    "NoScores_Trans_Optimization_38",
+    "NoScores_Trans_Optimization_39",
+    "NoScores_Trans_Optimization_40"
+]
 #endregion
 
 # Fetch all the studies results
@@ -220,7 +268,9 @@ port = 3306
 db = "optimization"
 
 # Concatenate all the lists
-snames = plain_nn_list + ao_nn_list + pca80_nn_list + pca85_nn_list + pca90_nn_list + pca95_nn_list + plain_xgb_list + ga_xgb_list + pca80_xgb_list + pca85_xgb_list + pca90_xgb_list + pca95_xgb_list + plain_trans_list + pca80_trans_list + pca85_trans_list + pca90_trans_list + pca95_trans_list
+snames = plain_nn_list + ao_nn_list + pca80_nn_list + pca85_nn_list + pca90_nn_list + pca95_nn_list + scoreonly_nn_list + noscores_nn_list \
+    + plain_xgb_list + ga_xgb_list + pca80_xgb_list + pca85_xgb_list + pca90_xgb_list + pca95_xgb_list + scoreonly_xgb_list + noscores_xgb_list \
+    + plain_trans_list + pca80_trans_list + pca85_trans_list + pca90_trans_list + pca95_trans_list + scoreonly_trans_list + noscores_trans_list
 
 # Set the storage
 storage = f"mysql+pymysql://{user}:{quote_plus(password)}@{host}:{port}/{db}"
@@ -230,7 +280,7 @@ results_df = ocstudy.analyze_studies(snames, storage = storage)
 
 # Fix the study type of NN + AE and XGB + GA (we know that it has been set wrong)
 results_df.loc[25:49, 'study_type'] = 'NN + AE'
-results_df.loc[175:199, 'study_type'] = 'XGB + GA'
+results_df.loc[225:249, 'study_type'] = 'XGB + GA'
 
 # Separate results by 3 evaluation metrics (Error (Smallest Error), Error (Biggest AUC), Error (Smallest Error - AUC))
 best_rmse_df = results_df[["study_name", "study_type", "best_rmse_number", "best_rmse_value", "best_rmse_auc"]]
@@ -292,7 +342,7 @@ plt.figure(figsize=(20, 8))
 #palette_colour = "Set2"
 #palette_colour = "Set3"
 #palette_colour = "tab10"
-palette_colour = "tab20"
+#palette_colour = "tab20"
 #palette_colour = "colorblind"
 #palette_colour = "pastel"
 #palette_colour = "bright"
@@ -300,7 +350,7 @@ palette_colour = "tab20"
 #palette_colour = "deep"
 #palette_colour = "muted"
 #palette_colour = "viridis"
-#palette_colour = sns.color_palette(cc.glasbey, n_colors=best_combined_df['Methodology'].nunique())
+palette_colour = sns.color_palette(cc.glasbey, n_colors=best_combined_df['Methodology'].nunique())
 
 # Set alpha value
 alpha = 0.9
@@ -538,6 +588,16 @@ for metric in metrics:
                 color='lime', alpha=0.3
             )
 
+            # Add shaded areas for methodologies that start with NN, XGB, and Transformer
+            nn_methods = [method for method in aux_df_error_concat['Methodology'].unique() if method.startswith('NN')]
+            xgb_methods = [method for method in aux_df_error_concat['Methodology'].unique() if method.startswith('XGB')]
+            transformer_methods = [method for method in aux_df_error_concat['Methodology'].unique() if method.startswith('Transformer')]
+
+            for method_group, color in zip([nn_methods, xgb_methods, transformer_methods], ['lightblue', 'lightgreen', 'lightcoral']):
+                for method in method_group:
+                    method_pos = aux_df_error_concat['Methodology'].unique().tolist().index(method)
+                    ax.axvspan(method_pos - 0.5, method_pos + 0.5, color=color, alpha=0.3)
+
         # Add Title to the entire figure
         fig.suptitle(f'{aux_metric}', fontsize=16) # type: ignore
         
@@ -548,23 +608,91 @@ for metric in metrics:
         # Use tight_layout to adjust the spacing
         plt.tight_layout()
 
-        plt.savefig(f'plots/Experiments_{plot_type}_{aux_metric}_concat.png', bbox_inches='tight')
+        plt.savefig(f'plots/Experiments_{plot_type}_{aux_metric}.png', bbox_inches='tight')
 
 plt.close('all')
 
+# Define the plotting information
+plotting_info = [
+    ('RMSE', 'RMSE', 'RMSE', True), 
+    ('AUC', 'AUC', 'AUC', False), 
+    ('RMSE-AUC', 'combined_metric', 'Combined Metric', True)
+]
+
+for metric_name, y_column, ylabel, ascending in plotting_info:
+    plt.figure(figsize=(20, 8))  # Reset figure for each plot type
+
+    for i, (metric, df) in enumerate([
+            ('RMSE', best_rmse_df_filtered), 
+            ('AUC', best_auc_df_filtered), 
+            ('RMSE-AUC', best_combined_df_filtered)
+        ]):
+        plt.subplot(1, 3, i+1)
+        
+        # Calculate the mean values for each methodology and sort by the mean
+        df_means = df.groupby('Methodology')[y_column].mean().reset_index()
+        df_sorted = df.merge(df_means, on='Methodology', suffixes=('', '_mean'))
+        print(ascending)
+        df_sorted = df_sorted.sort_values(by=f'{y_column}_mean', ascending=ascending)
+        
+        # Sort the color mapping according to the sorted methodologies
+        sorted_methodologies = df_sorted['Methodology'].unique()
+        color_mapping_sorted = {method: color_mapping[method] for method in sorted_methodologies}
+
+        sns.barplot(
+            data=df_sorted, 
+            x='Methodology', 
+            y=y_column, 
+            palette=color_mapping_sorted, 
+            hue='Methodology',
+            hue_order=sorted_methodologies,  # Keep color order intact
+            dodge=False
+        )
+        
+        plt.title(f'{metric}')
+        plt.xticks(rotation=90)
+        plt.ylabel(ylabel)
+        plt.grid(True)
+        plt.minorticks_on()
+        plt.grid(which='minor', linestyle=':', linewidth='0.2', color='darkgray')
+
+    # Add the title to the entire figure
+    plt.suptitle(ylabel, fontsize=16)
+
+    # Use tight_layout to adjust the spacing
+    plt.tight_layout()
+
+    # Save each figure to a separate file
+    plt.savefig(f'plots/Experiments_{y_column}_barplot.png', bbox_inches='tight')
+
+    plt.close('all')
+
+'''
 # Make bar plots for the error and AUC for each metric (3 bars for each method in the same plot)
 plt.figure(figsize=(20, 8))
 
-for i, (metric, df) in enumerate([('RMSE', best_rmse_df_filtered), ('AUC', best_auc_df_filtered), ('RMSE-AUC', best_combined_df_filtered)]):
+for i, (metric, df) in enumerate([
+        ('RMSE', best_rmse_df_filtered), 
+        ('AUC', best_auc_df_filtered), 
+        ('RMSE-AUC', best_combined_df_filtered)
+    ]):
     plt.subplot(1, 3, i+1)
+    
+    sort_column = metric if metric != 'RMSE-AUC' else 'combined_metric'
+    
+    # Sort the dataframe in descending order based on 'AUC'
+    df_sorted = df.sort_values(by=sort_column, ascending=False)
+    
     sns.barplot(
-        data=df, 
+        data=df_sorted, 
         x='Methodology', 
         y="RMSE", 
         palette=color_mapping,
         hue='Methodology',
-        legend=False
+        hue_order=df_sorted['Methodology'].unique(),  # Keep color order intact
+        dodge=False
     )
+    
     plt.title(f'{metric}')
     plt.xticks(rotation=90)
     plt.ylabel('RMSE')
@@ -584,16 +712,28 @@ plt.close('all')
 
 plt.figure(figsize=(20, 8))
 
-for i, (metric, df) in enumerate([('RMSE', best_rmse_df_filtered), ('AUC', best_auc_df_filtered), ('RMSE-AUC', best_combined_df_filtered)]):
+for i, (metric, df) in enumerate([
+        ('RMSE', best_rmse_df_filtered), 
+        ('AUC', best_auc_df_filtered), 
+        ('RMSE-AUC', best_combined_df_filtered)
+    ]):
     plt.subplot(1, 3, i+1)
+
+    sort_column = metric if metric != 'RMSE-AUC' else 'combined_metric'
+    
+    # Sort the dataframe in descending order based on 'AUC'
+    df_sorted = df.sort_values(by=sort_column, ascending=False)
+    
     sns.barplot(
-        data=df, 
+        data=df_sorted, 
         x='Methodology', 
         y='AUC', 
         palette=color_mapping,
         hue='Methodology',
-        legend=False
+        hue_order=df_sorted['Methodology'].unique(),  # Keep color order intact
+        dodge=False
     )
+    
     plt.title(f'{metric}')
     plt.xticks(rotation=90)
     plt.ylabel('AUC')
@@ -608,3 +748,48 @@ plt.suptitle('AUC', fontsize=16)
 plt.tight_layout()
 
 plt.savefig('plots/Experiments_auc_barplot.png', bbox_inches='tight')
+
+plt.close('all')
+
+# Make bar plots for the combined metric for each metric (3 bars for each method in the same plot)
+plt.figure(figsize=(20, 8))
+
+for i, (metric, df) in enumerate([
+        ('RMSE', best_rmse_df_filtered), 
+        ('AUC', best_auc_df_filtered), 
+        ('RMSE-AUC', best_combined_df_filtered)
+    ]):
+    plt.subplot(1, 3, i+1)
+    
+    sort_column = metric if metric != 'RMSE-AUC' else 'combined_metric'
+    
+    # Sort the dataframe in descending order based on 'AUC'
+    df_sorted = df.sort_values(by=sort_column, ascending=False)
+    
+    sns.barplot(
+        data=df_sorted, 
+        x='Methodology', 
+        y='combined_metric', 
+        palette=color_mapping,
+        hue='Methodology',
+        hue_order=df_sorted['Methodology'].unique(),  # Keep color order intact
+        dodge=False
+    )
+    
+    plt.title(f'{metric}')
+    plt.xticks(rotation=90)
+    plt.ylabel('Combined Metric')
+    plt.grid(True)
+    plt.minorticks_on()
+    plt.grid(which='minor', linestyle=':', linewidth='0.2', color='darkgray')
+
+# Add the title to the entire figure
+plt.suptitle('Combined Metric', fontsize=16)
+
+# Use tight_layout to adjust the spacing
+plt.tight_layout()
+
+plt.savefig('plots/Experiments_combined_metric_barplot.png', bbox_inches='tight')
+
+plt.close('all')
+'''
