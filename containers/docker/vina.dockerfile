@@ -23,16 +23,12 @@ LATEST_RELEASE_SHORT=${LATEST_RELEASE:1}\n\
 echo "Latest release: $LATEST_RELEASE"\n\
 echo "Latest release short: $LATEST_RELEASE_SHORT"\n\
 \n\
-# Download Vina and Vina Split\n\
+# Download Vina\n\
 echo "Downloading Vina from: https://github.com/ccsb-scripps/AutoDock-Vina/releases/download/${LATEST_RELEASE}/vina_${LATEST_RELEASE_SHORT}_linux_x86_64"\n\
 wget -O vina https://github.com/ccsb-scripps/AutoDock-Vina/releases/download/${LATEST_RELEASE}/vina_${LATEST_RELEASE_SHORT}_linux_x86_64\n\
 \n\
-echo "Downloading Vina Split from: https://github.com/ccsb-scripps/AutoDock-Vina/releases/download/${LATEST_RELEASE}/vina_split_${LATEST_RELEASE_SHORT}_linux_x86_64"\n\
-wget -O vina_split https://github.com/ccsb-scripps/AutoDock-Vina/releases/download/${LATEST_RELEASE}/vina_split_${LATEST_RELEASE_SHORT}_linux_x86_64\n\
-\n\
 # Move the binaries to the appropriate directory\n\
 mv vina /opt\n\
-mv vina_split /opt\n\
 ' && echo "$script_content" > /fetch_and_extract.sh
 
 # Make the script executable
@@ -43,7 +39,6 @@ RUN /fetch_and_extract.sh
 
 # Make vina and vina_split executable
 RUN chmod +x /opt/vina
-RUN chmod +x /opt/vina_split
 
 # Set the PATH
 ENV PATH="/opt:${PATH}"

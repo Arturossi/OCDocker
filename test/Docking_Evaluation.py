@@ -22,18 +22,6 @@ import OCDocker.OCScore.Utils.StudyParser as ocstudy
 base_path: str = "/data/hd4tb/OCDocker/data/ocdb"
 df_path: str = f"{base_path}/OCDocker.csv.gz"
 
-'''
-# Load the DataFrame
-df = pd.read_csv(df_path)
-
-# Get the score columns based on the regex below
-score_columns_regex = r"(VINA|SMINA|ODDT|PLANTS).*"
-score_columns = [col for col in df.columns if re.match(score_columns_regex, col)]
-
-# Normalize the columns
-normalized_df = ocscoredata.norm_data(df[score_columns + ["experimental", ]], scaler = "standard", inplace = False)
-'''
-
 # Load the DataFrames
 dudez_data, pdbbind_data, score_columns = ocscoredata.preprocess_df(df_path)
 
@@ -447,33 +435,6 @@ plt.savefig('plots/Experiments.png', bbox_inches='tight', dpi=300)
 #plt.show()
 plt.close('all')
 
-"""
-# Create a boxplot for each method for the three metrics for Error and AUC
-plt.figure(figsize=(20, 8))
-
-for i, plot in enumerate(['Error (Smallest Error - AUC)', 'Error (Biggest AUC)', 'Error (Smallest Error - AUC)']):
-    plt.subplot(1, 3, i+1)
-    sns.boxplot(
-        data=df, 
-        x='Methodology', 
-        y=plot, 
-        palette=color_mapping,
-        showfliers=False,
-        hue='Methodology',
-        legend=False
-    )
-    plt.title(f'{plot}')
-    plt.xticks(rotation=90)
-    plt.grid(True)
-    plt.minorticks_on()
-    plt.grid(which='minor', linestyle=':', linewidth='0.2', color='darkgray')
-
-# Use tight_layout to adjust the spacing
-plt.tight_layout()
-
-plt.savefig('plots/Experiments_boxplot.png', bbox_inches='tight')
-"""
-
 # Create three new dataframes, one for Error (Smallest Error), one for Error (Biggest AUC), and one for Error (Smallest Error - AUC)
 df_error_menor_erro = best_rmse_df_filtered[['Experiment', 'Methodology', 'RMSE']].copy()
 df_error_maior_auc = best_auc_df_filtered[['Experiment', 'Methodology', 'RMSE']].copy()
@@ -632,7 +593,6 @@ for metric_name, y_column, ylabel, ascending in plotting_info:
         # Calculate the mean values for each methodology and sort by the mean
         df_means = df.groupby('Methodology')[y_column].mean().reset_index()
         df_sorted = df.merge(df_means, on='Methodology', suffixes=('', '_mean'))
-        print(ascending)
         df_sorted = df_sorted.sort_values(by=f'{y_column}_mean', ascending=ascending)
         
         # Sort the color mapping according to the sorted methodologies
@@ -667,129 +627,54 @@ for metric_name, y_column, ylabel, ascending in plotting_info:
 
     plt.close('all')
 
-'''
-# Make bar plots for the error and AUC for each metric (3 bars for each method in the same plot)
+# Create the dataframe from the results_df with the columns Methodology, RMSE, and AUC (RMSE will be the best_combined_value, AUC will be the best_combined_auc and Methodology will be the study_type)
+corr_data_df = results_df[['study_name', 'study_type', 'best_combined_value', 'best_combined_auc', 'best_combined_metric']].copy()
+corr_data_df.rename(columns={'study_type': 'Methodology', 'best_combined_value': 'RMSE', 'best_combined_auc': 'AUC', 'best_combined_metric': 'combined_metric'}, inplace=True)
+
+# Create the dataframe with data for the correlation plot (concatenation between results_df and final_metrics)
+corr_data_df = pd.concat([corr_data_df, final_metrics], axis=0)
+
+# Filter according to the error threshold
+corr_data_df_filtered = corr_data_df[corr_data_df['RMSE'] <= error_threshold]
+
+# Compute the correlation between RMSE and AUC for each methodology and the entire dataset
+correlation_df = pd.DataFrame(columns=['Methodology', 'Correlation'])
+correlation_df.loc[0] = ['All', corr_data_df_filtered['RMSE'].corr(corr_data_df_filtered['AUC'])]
+
+for methodology in corr_data_df_filtered['Methodology'].unique():
+    correlation_df.loc[len(correlation_df)] = [
+        methodology,
+        best_rmse_df_filtered[best_rmse_df_filtered['Methodology'] == methodology]['RMSE'].corr(
+            best_rmse_df_filtered[best_rmse_df_filtered['Methodology'] == methodology]['AUC']
+        )
+    ]
+
+print("Performing the correlation calculations...")
+
+# Sort the data by the correlation values from highest to lowest
+correlation_df = correlation_df.sort_values(by='Correlation', ascending=False)
+
+# Assign a color to All in the color mapping (new color)
+color_mapping['All'] = (0.5, 0.5, 0.5)
+
+print("Saving the correlation plot...")
+
+# Plot the correlation between RMSE and AUC for each methodology and the entire dataset in a barplot
 plt.figure(figsize=(20, 8))
 
-for i, (metric, df) in enumerate([
-        ('RMSE', best_rmse_df_filtered), 
-        ('AUC', best_auc_df_filtered), 
-        ('RMSE-AUC', best_combined_df_filtered)
-    ]):
-    plt.subplot(1, 3, i+1)
-    
-    sort_column = metric if metric != 'RMSE-AUC' else 'combined_metric'
-    
-    # Sort the dataframe in descending order based on 'AUC'
-    df_sorted = df.sort_values(by=sort_column, ascending=False)
-    
-    sns.barplot(
-        data=df_sorted, 
-        x='Methodology', 
-        y="RMSE", 
-        palette=color_mapping,
-        hue='Methodology',
-        hue_order=df_sorted['Methodology'].unique(),  # Keep color order intact
-        dodge=False
-    )
-    
-    plt.title(f'{metric}')
-    plt.xticks(rotation=90)
-    plt.ylabel('RMSE')
-    plt.grid(True)
-    plt.minorticks_on()
-    plt.grid(which='minor', linestyle=':', linewidth='0.2', color='darkgray')
+sns.barplot(data=correlation_df, x='Methodology', y='Correlation', palette=color_mapping, hue='Methodology', dodge=False)
 
-# Add the title to the entire figure
-plt.suptitle('RMSE', fontsize=16)
+plt.title('Correlation between RMSE and AUC')
+plt.xticks(rotation=90)
+plt.ylabel('Correlation')
+plt.grid(True)
+plt.minorticks_on()
+plt.grid(which='minor', linestyle=':', linewidth='0.2', color='darkgray')
 
 # Use tight_layout to adjust the spacing
 plt.tight_layout()
 
-plt.savefig('plots/Experiments_rmse_barplot.png', bbox_inches='tight')
+# Save the figure to a file
+plt.savefig(f'plots/Experiments_Correlation_barplot.png', bbox_inches='tight')
 
 plt.close('all')
-
-plt.figure(figsize=(20, 8))
-
-for i, (metric, df) in enumerate([
-        ('RMSE', best_rmse_df_filtered), 
-        ('AUC', best_auc_df_filtered), 
-        ('RMSE-AUC', best_combined_df_filtered)
-    ]):
-    plt.subplot(1, 3, i+1)
-
-    sort_column = metric if metric != 'RMSE-AUC' else 'combined_metric'
-    
-    # Sort the dataframe in descending order based on 'AUC'
-    df_sorted = df.sort_values(by=sort_column, ascending=False)
-    
-    sns.barplot(
-        data=df_sorted, 
-        x='Methodology', 
-        y='AUC', 
-        palette=color_mapping,
-        hue='Methodology',
-        hue_order=df_sorted['Methodology'].unique(),  # Keep color order intact
-        dodge=False
-    )
-    
-    plt.title(f'{metric}')
-    plt.xticks(rotation=90)
-    plt.ylabel('AUC')
-    plt.grid(True)
-    plt.minorticks_on()
-    plt.grid(which='minor', linestyle=':', linewidth='0.2', color='darkgray')
-
-# Add the title to the entire figure
-plt.suptitle('AUC', fontsize=16)
-
-# Use tight_layout to adjust the spacing
-plt.tight_layout()
-
-plt.savefig('plots/Experiments_auc_barplot.png', bbox_inches='tight')
-
-plt.close('all')
-
-# Make bar plots for the combined metric for each metric (3 bars for each method in the same plot)
-plt.figure(figsize=(20, 8))
-
-for i, (metric, df) in enumerate([
-        ('RMSE', best_rmse_df_filtered), 
-        ('AUC', best_auc_df_filtered), 
-        ('RMSE-AUC', best_combined_df_filtered)
-    ]):
-    plt.subplot(1, 3, i+1)
-    
-    sort_column = metric if metric != 'RMSE-AUC' else 'combined_metric'
-    
-    # Sort the dataframe in descending order based on 'AUC'
-    df_sorted = df.sort_values(by=sort_column, ascending=False)
-    
-    sns.barplot(
-        data=df_sorted, 
-        x='Methodology', 
-        y='combined_metric', 
-        palette=color_mapping,
-        hue='Methodology',
-        hue_order=df_sorted['Methodology'].unique(),  # Keep color order intact
-        dodge=False
-    )
-    
-    plt.title(f'{metric}')
-    plt.xticks(rotation=90)
-    plt.ylabel('Combined Metric')
-    plt.grid(True)
-    plt.minorticks_on()
-    plt.grid(which='minor', linestyle=':', linewidth='0.2', color='darkgray')
-
-# Add the title to the entire figure
-plt.suptitle('Combined Metric', fontsize=16)
-
-# Use tight_layout to adjust the spacing
-plt.tight_layout()
-
-plt.savefig('plots/Experiments_combined_metric_barplot.png', bbox_inches='tight')
-
-plt.close('all')
-'''
