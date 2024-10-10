@@ -1011,7 +1011,7 @@ validation_loader = DataLoader(
 best_train_rmse, best_validation_rmse, model = train_autoencoder(best_ao_model, optimizer, criterion, clip_grad, epochs) # type: ignore
 
 # To get the permutation_importance
-from sklearn.inspection import permutation_importance
+from tqdm import tqdm
 
 # Define a function to calculate reconstruction error
 def compute_reconstruction_error(model, data_loader):
@@ -1037,11 +1037,12 @@ original_error = compute_reconstruction_error(best_ao_model, validation_loader)
 # Calculate permutation importance
 def permutation_importance_custom(model, data, original_error, n_repeats=30):
     importances = []
-    for i in range(data.shape[1]):  # For each feature
+    #for i in range(data.shape[1]):  # For each feature
+    for i in tqdm(range(data.shape[1]), desc='Calculating Permutation Importance'):
         save_column = data[:, i].clone()  # Save original column
         permuted_errors = []
         
-        for _ in range(n_repeats):
+        for _ in tqdm(range(n_repeats), desc='Permutation Iteration', leave=False):
             # Permute the feature
             data[:, i] = data[torch.randperm(data.size(0)), i]
             
