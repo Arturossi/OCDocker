@@ -1065,16 +1065,68 @@ def permutation_importance_custom(model, data, original_error, n_repeats=30):
 # Compute permutation importance
 importances = permutation_importance_custom(best_ao_model, validation_data.cpu(), original_error)
 
-# Print out the importances
-for i, importance in enumerate(importances):
-    print(f"Feature {i}: Importance {importance:.4f}")
+# Get the feature names
+feature_names = list(data['X_val'].columns)
+
+# Pair feature names with their importance scores
+feature_importances = list(zip(feature_names, importances))
+
+# Sort the features by importance if needed
+feature_importances_sorted = sorted(feature_importances, key=lambda x: x[1], reverse=True)
+sorted_feature_names, sorted_importances = zip(*feature_importances_sorted)
+
+# Print or analyze the sorted feature importances
+for feature, importance in feature_importances_sorted:
+    print(f"Feature: {feature}, Importance: {importance:.4f}")
 
 # Optionally visualize the importances
 import matplotlib.pyplot as plt
 
-plt.figure(figsize=(10, 6))
-plt.bar(range(len(importances)), importances)
-plt.title('Permutation Importance of Features')
-plt.xlabel('Feature Index')
-plt.ylabel('Importance')
-plt.savefig('plots/permutation_importance.png')
+
+def filter_and_visualize_importances(feature_names, importances, n_best=None, threshold=None):
+    """
+    Filter and visualize feature importances based on specified criteria.
+
+    Parameters:
+    - feature_names: List of feature names.
+    - importances: List of corresponding importances.
+    - n_best: Integer, number of top features to return. If None, include all.
+    - threshold: Float, minimum importance value to include. If None, include all.
+
+    Returns:
+    - filtered_feature_names: List of feature names that meet the criteria.
+    - filtered_importances: List of importances corresponding to the filtered features.
+    """
+    # Zip and sort the feature importances
+    feature_importances_sorted = sorted(zip(feature_names, importances), key=lambda x: x[1], reverse=True)
+    
+    # Apply filtering
+    filtered_importances = []
+    filtered_feature_names = []
+
+    for feature, importance in feature_importances_sorted:
+        if (threshold is None or importance >= threshold) and (n_best is None or len(filtered_importances) < n_best):
+            filtered_feature_names.append(feature)
+            filtered_importances.append(importance)
+
+    # Optionally visualize the filtered importances
+    plt.figure(figsize=(10, 6))
+    plt.bar(filtered_feature_names, filtered_importances)
+    plt.title('Filtered Permutation Importance of Features')
+    plt.xlabel('Feature Name')
+    plt.ylabel('Importance')
+    #plt.xticks(rotation=90)  # Rotate x-axis labels for better readability
+
+    # Save the plot
+    plt.tight_layout()  # Ensures the plot fits well
+    plt.savefig('plots/filtered_permutation_importance.png')
+
+    return filtered_feature_names, filtered_importances
+
+# Example usage
+filtered_names, filtered_importances = filter_and_visualize_importances(
+    feature_names=sorted_feature_names,
+    importances=sorted_importances,
+    n_best=20,
+    threshold=None
+)
