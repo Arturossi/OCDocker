@@ -172,8 +172,6 @@ def perform_ablation_study_NN(
     for i, mask in enumerate(masks):
         split_masks[i % inner_num_processes].append(mask)
 
-    print(split_masks, inner_num_processes)
-
     # Check the parallel backend
     if parallel_backend == "joblib":
         # Create a pool of worker processes
