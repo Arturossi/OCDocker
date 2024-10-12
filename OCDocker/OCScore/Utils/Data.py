@@ -14,13 +14,18 @@ import OCDocker.OCScore.Utils.Data as ocscoredata
 # Imports
 ###############################################################################
 
+import itertools
+import math
 import os
-import pandas as pd
+import re
 
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.model_selection import train_test_split
 from typing import Any, Union
+
+import numpy as np
+import pandas as pd
 
 from OCDocker.Initialise import *
 
@@ -695,7 +700,7 @@ def preprocess_df_old(file_name: str, score_columns_list: list[str] = ["SMINA", 
 
     return dudez_data, pdbbind_data, score_columns # type: ignore
 
-def split_dataset(X, y, test_size = 0.2, random_state = 42) -> list[Any]:
+def split_dataset(X: pd.DataFrame, y: pd.DataFrame, test_size: float = 0.2, random_state: int = 42) -> list[Any]:
     ''' Split the data into training and testing sets.
 
     Parameters
@@ -723,3 +728,83 @@ def split_dataset(X, y, test_size = 0.2, random_state = 42) -> list[Any]:
     
     # Split the data into training and testing sets
     return train_test_split(X, y, test_size = test_size, random_state = random_state)
+
+def generate_mask(column_names: Union[list[str], pd.Index], score_columns: list[str]) -> list[np.ndarray]:
+    '''
+    Generates masks with combinations of 0s and 1s for columns that match a regex pattern.
+    Columns that don't match the regex are filled with 1s.
+
+    Parameters
+    ----------
+    column_names : list[str] | pd.Index
+        A list of strings, pandas series or pandas index representing column names.
+    score_columns : list[str]
+        Column names that should have combinations of 0s and 1s.
+
+    Returns
+    -------
+        list[np.ndarray]
+            A list of numpy arrays, where columns matching the regex pattern 
+            have combinations of 0s and 1s, and columns that don't match are filled with 1s.
+    '''
+
+    # Identify the indices of the columns that match the list
+    matching_indices = [i for i, name in enumerate(column_names) if name in score_columns]
+    
+    # Number of total columns and the columns to apply combinations to
+    total_elements = len(column_names)
+    num_combinations_elements = len(matching_indices)
+    
+    # Generate all possible combinations of 0s and 1s for the matching columns
+    combinations = itertools.product([0, 1], repeat=num_combinations_elements)
+    
+    # Prepare the list to store results
+    results = []
+    
+    # For each combination, fill the matching columns with 0s/1s and the rest with 1s
+    for combination in combinations:
+        # Start with all 1s
+        arr = np.ones(total_elements, dtype=int)
+        
+        # Set the matching columns to the current combination of 0s/1s
+        for idx, value in zip(matching_indices, combination):
+            arr[idx] = value
+        
+        # Append this mask to the results
+        results.append(arr)
+    
+    return results
+
+def chunkenize_dataset(data: Union[list[Any], np.ndarray, pd.DataFrame], id: int, num_machines: int) -> Union[list[Any], pd.DataFrame]:
+    '''
+    Split a dataset in multiple chunks.
+
+    Parameters
+    ----------
+    data : list[Any] | np.ndarray | pd.DataFrame
+        The dataset to split (can be a list, numpy array, or pandas DataFrame).
+    id : int
+        The ID of the current machine (1-based index).
+    num_machines : int
+        The total number of machines (integer).
+
+    Returns
+    -------
+    list[Any] | pd.Dataframe
+        A subset of the data that corresponds to the given id.
+    '''
+    
+    # Sanity checks
+    if id < 1 or id > num_machines:
+        raise ValueError(f"Invalid id. It should be between 1 and {num_machines}.")
+    
+    # Calculate the size of each chunk
+    total_data_size = len(data)
+    chunk_size = math.ceil(total_data_size / num_machines)
+    
+    # Calculate the start and end indices for the id
+    start_idx = (id - 1) * chunk_size
+    end_idx = min(start_idx + chunk_size, total_data_size)
+    
+    # Return the corresponding chunk of data removing empty elements
+    return data[start_idx:end_idx]

@@ -874,7 +874,7 @@ def parse_activation_func(encoder_activation_str, best_ao_params):
 
     return encoder_activation_fn
 
-def set_random_seed():
+def set_random_seed(random_seed = 42):
     np.random.seed(random_seed)
     random.seed(random_seed)
 
@@ -1026,7 +1026,7 @@ def compute_reconstruction_error(model, data_loader):
             loss = criterion(reconstructed, data)  # MSE Loss
             total_loss += loss.item()
     
-    return total_loss / len(data_loader)
+    return np.sqrt(total_loss / len(data_loader))
 
 # Get the validation data
 validation_data = torch.tensor(np.asarray(data['X_val']), dtype=torch.float32).to(torch.device('cuda'))
@@ -1037,26 +1037,24 @@ original_error = compute_reconstruction_error(best_ao_model, validation_loader)
 # Calculate permutation importance
 def permutation_importance_custom(model, data, original_error, n_repeats=30):
     importances = []
-    #for i in range(data.shape[1]):  # For each feature
     for i in tqdm(range(data.shape[1]), desc='Calculating Permutation Importance'):
-        save_column = data[:, i].clone()  # Save original column
+        permuted_data = data.clone()  # Clone the data for each feature permutation
+        save_column = permuted_data[:, i].clone()  # Save original column
         permuted_errors = []
         
         for _ in tqdm(range(n_repeats), desc='Permutation Iteration', leave=False):
-            # Permute the feature
-            data[:, i] = data[torch.randperm(data.size(0)), i]
-            
+            # Permute the feature in the cloned data
+            permuted_data[:, i] = permuted_data[torch.randperm(permuted_data.size(0)), i]
+
             # Calculate error with permuted feature
             permuted_error = compute_reconstruction_error(model, DataLoader(
-                dataset = AutoencoderDataset(data), 
-                batch_size = best_ao_params['batch_size'],
-                shuffle = False
+                dataset=AutoencoderDataset(permuted_data),
+                batch_size=best_ao_params['batch_size'],
+                shuffle=False
             ))
             permuted_errors.append(permuted_error)
-        
-        # Restore the original column
-        data[:, i] = save_column
-        # Calculate importance
+
+        # Calculate importance as the difference between permuted and original errors
         importance = np.mean(permuted_errors) - original_error
         importances.append(importance)
 
@@ -1115,7 +1113,7 @@ def filter_and_visualize_importances(feature_names, importances, n_best=None, th
     plt.title('Filtered Permutation Importance of Features')
     plt.xlabel('Feature Name')
     plt.ylabel('Importance')
-    #plt.xticks(rotation=90)  # Rotate x-axis labels for better readability
+    plt.xticks(rotation=90)  # Rotate x-axis labels for better readability
 
     # Save the plot
     plt.tight_layout()  # Ensures the plot fits well

@@ -63,6 +63,7 @@ def perform_ablation_study_NN(
         load_if_exists,
         study_name,
         storage,
+        masks = [],
         output_size = 1,
         parallel_backend: str = "joblib",
         n_jobs = 1
@@ -103,6 +104,8 @@ def perform_ablation_study_NN(
         The study name.
     storage : str
         The storage to use.
+    masks : list[np.ndarray], optional
+        List of masks to be applied. If empty, all masks for scoring functions will be generated and used. This option is useful for splitting ablation in multiple computers. The default is [].
     output_size : int, optional
         The output size. Default is 1.
     parallel_backend : str, optional
@@ -117,54 +120,64 @@ def perform_ablation_study_NN(
         If the parallel backend is not "joblib" or "multiprocessing".
     '''
     
-    # Filter the SFs
-    sf = X_train.filter(regex = r"(VINA|SMINA|ODDT|PLANTS).*").columns.tolist()
+    # If no masks are provided
+    if not masks:
+        # Filter the SFs
+        sf = X_train.filter(regex = r"(VINA|SMINA|ODDT|PLANTS).*").columns.tolist()
 
-    # Create the mask of zeros and ones for the ablation study (Brute force approach)
-    feature_masks = list(itertools.product([0, 1], repeat=len(sf)))
+        # Create the mask of zeros and ones for the ablation study (Brute force approach)
+        feature_masks = list(itertools.product([0, 1], repeat=len(sf)))
 
-    # Create a mask of ones for the full model
-    full_mask = np.ones(X_train.shape[1], dtype=int)
+        # Create a mask of ones for the full model
+        full_mask = np.ones(X_train.shape[1], dtype=int)
 
-    # Get the indexes for each sf
-    sf_indexes = [X_train.columns.get_loc(col) for col in sf]
+        # Get the indexes for each sf
+        sf_indexes = [X_train.columns.get_loc(col) for col in sf]
 
-    # Set the evaluated masks to an empty list
-    evaluated_masks = []
+        # Set the evaluated masks to an empty list
+        evaluated_masks = []
 
-    try:
-        # Try to load the study to check which masks have already been evaluated
-        study = optuna.load_study(study_name = f"{study_name}_{id}", storage = storage)
+        try:
+            # Try to load the study to check which masks have already been evaluated
+            study = optuna.load_study(study_name = f"{study_name}_{id}", storage = storage)
 
-        # Filter the trials to only include the ones that are complete
-        trials = study.trials_dataframe()
-        trials = trials[trials['state'] == 'COMPLETE']
+            # Filter the trials to only include the ones that are complete
+            trials = study.trials_dataframe()
+            trials = trials[trials['state'] == 'COMPLETE']
 
-        # Get the masks that have already been evaluated
-        evaluated_masks = trials['user_attrs_Feature_Mask'].tolist()
-    except:
-        pass
-    
-    # Apply each feature mask to the full_mask
-    masks = []
-    for mask in feature_masks:
-        # Start with a fresh copy of the full mask template
-        modified_mask = full_mask.copy()
-        # Set the specific feature indices according to the current mask
-        for index, value in zip(sf_indexes, mask):
-            modified_mask[index] = value
-        if not evaluated_masks or "".join(map(str, modified_mask)) not in evaluated_masks:
-            masks.append(modified_mask)
+            # Get the masks that have already been evaluated
+            evaluated_masks = trials['user_attrs_Feature_Mask'].tolist()
+        except:
+            evaluated_masks = []
+        
+        # Apply each feature mask to the full_mask
+        masks = []
+        for mask in feature_masks:
+            # Start with a fresh copy of the full mask template
+            modified_mask = full_mask.copy()
+            # Set the specific feature indices according to the current mask
+            for index, value in zip(sf_indexes, mask):
+                modified_mask[index] = value
+            if not evaluated_masks or "".join(map(str, modified_mask)) not in evaluated_masks:
+                masks.append(modified_mask)
+
+    # Adjust num_processes if the size of the masks array is smaller
+    if len(masks) < num_processes:
+        inner_num_processes = len(masks)
+    else:
+        inner_num_processes = num_processes
 
     # Split masks into roughly equal parts for each process using Round Robin distribution
-    split_masks = [[] for _ in range(num_processes)]
+    split_masks = [[] for _ in range(inner_num_processes)]
     for i, mask in enumerate(masks):
-        split_masks[i % num_processes].append(mask)
+        split_masks[i % inner_num_processes].append(mask)
+
+    print(split_masks, inner_num_processes)
 
     # Check the parallel backend
     if parallel_backend == "joblib":
         # Create a pool of worker processes
-        Parallel(n_jobs = num_processes)(
+        Parallel(n_jobs = inner_num_processes)(
             delayed(ocscoreworkers.NNAblationworker)(
                 pid,
                 id,
@@ -189,7 +202,7 @@ def perform_ablation_study_NN(
         )
     elif parallel_backend == "multiprocessing":
         # Create a pool of worker processes
-        with Pool(num_processes) as pool:
+        with Pool(inner_num_processes) as pool:
             # Each process will execute the 'NNAblationworker' function with the datasets and optimizer parameters
             pool.starmap(ocscoreworkers.NNAblationworker, [(
                 pid,
