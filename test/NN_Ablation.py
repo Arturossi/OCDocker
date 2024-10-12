@@ -144,5 +144,5 @@ perform_ablation_study_NN(
     True, 
     "NN_Ablation_Optimization", 
     storage,
-    masks=masks[:5]
+    masks=masks
 )
