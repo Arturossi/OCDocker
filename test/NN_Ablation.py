@@ -22,6 +22,8 @@ storage: str = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@{ip}:{port}
 df_path: str = f"{base_path}/OCDocker.csv.gz"
 base_models_folder: str = f"{base_path}/models"
 
+num_proc = 8
+
 # WARNING: Only set this to True if NO machine is running the same study, otherwise you might end up with duplicate evaluations
 filter_completed_jobs = True
 
@@ -166,7 +168,7 @@ perform_ablation_study_NN(
     data['X_val'], 
     data['y_val'], 
     1, 
-    8, 
+    num_proc, 
     autoencoder_params, 
     best_nn_params, 
     42, 
