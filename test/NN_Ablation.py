@@ -22,7 +22,12 @@ storage: str = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@{ip}:{port}
 df_path: str = f"{base_path}/OCDocker.csv.gz"
 base_models_folder: str = f"{base_path}/models"
 
+# WARNING: Only set this to True if NO machine is running the same study, otherwise you might end up with duplicate evaluations
+filter_completed_jobs = True
+
+# Id of the machine running the study
 machine_id = 1
+# Number of machines running the study (for splitting the masks)
 num_machines = 2
 
 # Set the study data here (Currently only for NN ablations)
@@ -84,34 +89,60 @@ df = df.drop(
 # Make the mask
 pre_masks = ocscoredata.generate_mask(df.columns, score_columns)
 
-# Split the dataset based on the machine_id
-chunked_masks = ocscoredata.chunkenize_dataset(pre_masks, machine_id, num_machines)
-
-# Check if any study for this chunk has already been processed
-try:
+# If filter completed jobs is set to True, then we will only run the masks that have not been evaluated
+if filter_completed_jobs:
     # Try to load the study to check which masks have already been evaluated
-    study = optuna.load_study(study_name = f"NN_Ablation_Optimization_1", storage = storage)
+    try:
+        study_name = f"NN_Ablation_Optimization_1"
+        study = optuna.load_study(study_name = study_name, storage = storage)
 
-    # Filter the trials to only include the ones that are complete
-    trials = study.trials_dataframe()
-    trials = trials[trials['state'] == 'COMPLETE']
+        # Filter the trials to only include the ones that are complete
+        trials = study.trials_dataframe()
+        trials = trials[trials['state'] == 'COMPLETE']
 
-    # Get the masks that have already been evaluated
-    evaluated_masks = trials['user_attrs_Feature_Mask'].tolist()
-except:
-    evaluated_masks = []
+        # Get the masks that have already been evaluated
+        evaluated_masks = trials['user_attrs_Feature_Mask'].tolist()
 
-# Get the indexes for each sf
-sf_indexes = [df.columns.get_loc(col) for col in score_columns]
+        # Apply each feature mask to the full_mask
+        filtered_masks = []
 
-# Apply each feature mask to the full_mask
-masks = []
+        for mask in pre_masks:
+            # Start with a fresh copy of the full mask template
+            modified_mask = mask.copy()
+            if not evaluated_masks or "".join(map(str, modified_mask)) not in evaluated_masks:
+                filtered_masks.append(modified_mask)
+        
+        # Chunk the masks (all masks here will come already without completed jobs)
+        masks = ocscoredata.chunkenize_dataset(filtered_masks, machine_id, num_machines)
+    except:
+        print(f"Error while loading the study: {study_name}")
+        evaluated_masks = []
+else:
+    # Split the dataset based on the machine_id
+    chunked_masks = ocscoredata.chunkenize_dataset(pre_masks, machine_id, num_machines)
 
-for mask in chunked_masks:
-    # Start with a fresh copy of the full mask template
-    modified_mask = mask.copy()
-    if not evaluated_masks or "".join(map(str, modified_mask)) not in evaluated_masks:
-        masks.append(modified_mask)
+    # Check if any study for this chunk has already been processed
+    try:
+        # Try to load the study to check which masks have already been evaluated
+        study = optuna.load_study(study_name = f"NN_Ablation_Optimization_1", storage = storage)
+
+        # Filter the trials to only include the ones that are complete
+        trials = study.trials_dataframe()
+        trials = trials[trials['state'] == 'COMPLETE']
+
+        # Get the masks that have already been evaluated
+        evaluated_masks = trials['user_attrs_Feature_Mask'].tolist()
+    except:
+        evaluated_masks = []
+
+    # Apply each feature mask to the full_mask
+    masks = []
+
+    for mask in chunked_masks:
+        # Start with a fresh copy of the full mask template
+        modified_mask = mask.copy()
+        if not evaluated_masks or "".join(map(str, modified_mask)) not in evaluated_masks:
+            masks.append(modified_mask)
 
 # Load the data to fetch the Xs, ys and validation
 data = ocscoredata.load_data(
