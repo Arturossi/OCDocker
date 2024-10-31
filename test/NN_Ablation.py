@@ -30,7 +30,7 @@ filter_completed_jobs = True
 # Id of the machine running the study
 machine_id = 1
 # Number of machines running the study (for splitting the masks)
-num_machines = 2
+num_machines = 4
 
 # Set the study data here (Currently only for NN ablations)
 study_number = 7
