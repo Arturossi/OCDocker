@@ -26,7 +26,7 @@ base_models_folder: str = f"{base_path}/models"
 
 num_proc = 8
 
-max_seed = 1000
+max_seed = 2000
 
 # WARNING: Only set this to True if NO machine is running the same study, otherwise you might end up with duplicate evaluations
 filter_completed_jobs = False
