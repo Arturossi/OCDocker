@@ -29,7 +29,7 @@ num_proc = 8
 max_seed = 2000
 
 # WARNING: Only set this to True if NO machine is running the same study, otherwise you might end up with duplicate evaluations
-filter_completed_jobs = False
+filter_completed_jobs = True
 
 # Id of the machine running the study
 machine_id = 1
@@ -146,7 +146,7 @@ pre_seeds = list(range(1, max_seed))
 if filter_completed_jobs:
     # Try to load the study to check which masks have already been evaluated
     try:
-        study_name = f"Seed_Ablation_Optimization_1"
+        study_name = f"NN_Seed_Ablation_Optimization_1"
         study = optuna.load_study(study_name = study_name, storage = storage)
 
         # Filter the trials to only include the ones that are complete
@@ -154,7 +154,7 @@ if filter_completed_jobs:
         trials = trials[trials['state'] == 'COMPLETE']
 
         # Get the seeds that have already been evaluated
-        evaluated_seeds = trials['user_attrs_seed'].tolist()
+        evaluated_seeds = trials['user_attrs_random_seed'].tolist()
 
         # Apply each feature mask to the full_mask
         filtered_seeds = []
@@ -181,8 +181,8 @@ else:
         trials = study.trials_dataframe()
         trials = trials[trials['state'] == 'COMPLETE']
 
-        # Get the masks that have already been evaluated
-        evaluated_seeds = trials['user_attrs_seed'].tolist()
+        # Get the seeds that have already been evaluated
+        evaluated_seeds = trials['user_attrs_random_seed'].tolist()
     except:
         evaluated_seeds = []
 
