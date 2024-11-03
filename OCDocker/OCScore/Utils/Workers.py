@@ -327,6 +327,131 @@ def NNworker(
 
     return None
 
+def NNSeedAblationworker(
+        pid: int,
+        id: int,
+        X_train: np.ndarray, y_train: np.ndarray,
+        X_test: np.ndarray, y_test: np.ndarray,
+        X_val: np.ndarray, y_val: np.ndarray,
+        mask: np.ndarray,
+        storage: str,
+        network_params: dict[str, Any],
+        random_seeds: Union[list[int], int],
+        encoder_params: Union[dict, None] = None,
+        output_size: int = 1,
+        use_gpu: bool = True,
+        verbose: bool = False,
+        load_if_exists: bool = True,
+        n_jobs: int = 1,
+        study_name: str = "NN_Seed_Ablation_Optimization"
+    ) ->  None:
+    ''' Neural network optimization worker function.
+    
+    This function is used to run the optimization of a neural network model in a
+    separate process. It is used to parallelize the optimization process.
+    
+    Parameters
+    ----------
+    pid : int
+        Process ID.
+    id : int
+        Instance ID.
+    X_train : np.ndarray
+        Training data.
+    y_train : np.ndarray
+        Training labels.
+    X_test : np.ndarray
+        Testing data.
+    y_test : np.ndarray
+        Testing labels.
+    X_val : np.ndarray
+        Validation data.
+    y_val : np.ndarray
+        Validation labels.
+    mask : list[Union[int, bool]]
+        Mask list.
+    storage : str
+        Storage string.
+    network_params : dict[str, Any]
+        Network parameters.
+    random_seeds : list[int] | int
+        Random seed list to ablate.
+    encoder_params : Union[dict, None], optional
+        Encoder parameters. The default is None.
+    output_size : int, optional
+        Output size. The default is 1.
+    use_gpu : bool, optional
+        Use GPU. The default is True.
+    verbose : bool, optional
+        Verbose. The default is False.
+    '''
+
+    if verbose:
+        ocprint.printv(f"Process {pid} starting ablation")
+
+    # Sleep pid % 3 seconds before starting
+    time.sleep(pid % 3)
+
+    # If random_seeds is a list of ints
+    if isinstance(random_seeds, list) and isinstance(random_seeds[0], int):
+        for random_seed in random_seeds:
+            # Initialize the trainer
+            trainer = DNNOptimizer(
+                X_train, y_train, 
+                X_test, y_test, 
+                X_val, y_val, 
+                mask = mask,
+                storage = storage,
+                encoder_params = encoder_params,
+                output_size = output_size, 
+                random_seed = random_seed,
+                use_gpu = use_gpu, 
+                verbose = verbose,
+            )
+
+            # Run optimization
+            trainer.ablate(
+                network_params = network_params,
+                n_trials = 1, 
+                study_name = f"{study_name}_{id}", 
+                load_if_exists = load_if_exists, 
+                n_jobs = n_jobs
+            )
+
+        if verbose:
+            ocprint.printv(f"Process {pid} has completed the ablation")
+
+    elif isinstance(random_seeds, int):
+        # Initialize the trainer
+        trainer = DNNOptimizer(
+            X_train, y_train, 
+            X_test, y_test, 
+            X_val, y_val, 
+            mask = mask,
+            storage = storage,
+            encoder_params = encoder_params,
+            output_size = output_size, 
+            random_seed = random_seeds,
+            use_gpu = use_gpu, 
+            verbose = verbose,
+        )
+
+        # Run optimization
+        trainer.ablate(
+            network_params = network_params,
+            n_trials = 1, 
+            study_name = f"{study_name}_{id}", 
+            load_if_exists = load_if_exists, 
+            n_jobs = n_jobs
+        )
+
+        if verbose:
+            ocprint.printv(f"Process {pid} has completed the ablation")
+    else:
+        raise ValueError("Seeds must be a list of ints or an int")
+
+    return None
+
 def NNAblationworker(
         pid: int,
         id: int,

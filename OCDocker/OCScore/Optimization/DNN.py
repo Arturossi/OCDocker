@@ -49,6 +49,150 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 # Methods
 ###############################################################################
 
+def perform_seed_ablation_study_NN(
+        X_train, y_train,
+        X_test, y_test, 
+        X_val, y_val,
+        id,
+        num_processes,
+        encoder_params,
+        best_params,
+        use_gpu,
+        verbose,
+        load_if_exists,
+        study_name,
+        storage,
+        mask,
+        seeds,
+        output_size = 1,
+        parallel_backend: str = "joblib",
+        n_jobs = 1
+    ):
+    ''' Perform the ablation study for the Neural Network.
+
+    Parameters
+    ----------
+    X_train : pd.DataFrame
+        The training data.
+    y_train : pd.Series
+        The training labels.
+    X_test : pd.DataFrame
+        The testing data.
+    y_test : pd.Series
+        The testing labels.
+    X_val : pd.DataFrame
+        The validation data.
+    y_val : pd.Series
+        The validation labels.
+    id : int
+        The ID of the study.
+    num_processes : int
+        The number of processes to use.
+    encoder_params : dict
+        The encoder parameters.
+    best_params : dict
+        The best parameters.
+    use_gpu : bool
+        If True, use the GPU.
+    verbose : bool
+        If True, print the output.
+    load_if_exists : bool
+        If True, load the model if it exists.
+    study_name : str
+        The study name.
+    storage : str
+        The storage to use.
+    mask : np.ndarray
+        The mask to be applied.
+    seeds : list[np.ndarray]
+        List of seeds to be applied. If empty, all seeds for scoring functions will be generated and used. This option is useful for splitting ablation in multiple computers. If empty, all seeds from 0 to 1000 will be used. The default is [].
+    output_size : int, optional
+        The output size. Default is 1.
+    parallel_backend : str, optional
+        The parallel backend to use. The default is "joblib". Options are "joblib" and "multiprocessing".
+
+    n_jobs : int, optional
+        The number of jobs to use. Default is 1.
+    
+    Raises
+    -------
+    ValueError
+        If the parallel backend is not "joblib" or "multiprocessing".
+    '''
+
+    # Check if seeds is empty
+    if not seeds:
+        # Create a list of seeds from 0 to 1000
+        seeds = list(range(1000))
+    
+    # Adjust num_processes if the size of the seeds array is smaller
+    if len(seeds) < num_processes:
+        inner_num_processes = len(seeds)
+    else:
+        inner_num_processes = num_processes
+
+    # Split seeds into roughly equal parts for each process using Round Robin distribution
+    split_seeds = [[] for _ in range(inner_num_processes)]
+    for i, seed in enumerate(seeds):
+        split_seeds[i % inner_num_processes].append(seed)
+
+    # Check the parallel backend
+    if parallel_backend == "joblib":
+        # Create a pool of worker processes
+        Parallel(n_jobs = inner_num_processes)(
+            delayed(ocscoreworkers.NNSeedAblationworker)(
+                pid,
+                id,
+                X_train, 
+                y_train, 
+                X_test, 
+                y_test, 
+                X_val, 
+                y_val,
+                mask,
+                storage,
+                best_params,
+                seed, 
+                encoder_params,
+                output_size,
+                use_gpu, 
+                verbose,
+                load_if_exists,
+                1,
+                study_name
+            ) for pid, seed in enumerate(split_seeds)
+        )
+    elif parallel_backend == "multiprocessing":
+        # Create a pool of worker processes
+        with Pool(inner_num_processes) as pool:
+            # Each process will execute the 'NNAblationworker' function with the datasets and optimizer parameters
+            pool.starmap(ocscoreworkers.NNSeedAblationworker, [(
+                pid,
+                id,
+                X_train, 
+                y_train, 
+                X_test, 
+                y_test, 
+                X_val, 
+                y_val,
+                mask,
+                storage,
+                best_params,
+                seed, 
+                encoder_params,
+                output_size,
+                use_gpu, 
+                verbose,
+                load_if_exists,
+                n_jobs,
+                study_name
+                ) for pid, seed in enumerate(split_seeds)
+            ])
+    else:
+        raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
+
+    return None
+
 def perform_ablation_study_NN(
         X_train, y_train,
         X_test, y_test, 

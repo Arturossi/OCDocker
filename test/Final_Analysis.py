@@ -1120,10 +1120,10 @@ def analyze_feature_effects(df: pd.DataFrame, feature_columns: list) -> dict:
 
 # Execute functions
 print('Running Elbow Method...')
-wcss = run_elbow(normalized_features, max_clusters=25, plot=True)
+wcss = run_elbow(normalized_features, max_clusters=10, plot=True)
 
 # Set the optimal number of clusters based on the elbow method
-optimal_clusters = 5
+optimal_clusters = 3
 
 print('Running K-Means Clustering...')
 k_means_corr = run_kmeans(normalized_features, optimal_clusters=optimal_clusters)
