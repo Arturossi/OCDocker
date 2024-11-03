@@ -1187,6 +1187,7 @@ class DNNOptimizer:
         mask = ''.join(mask.astype(str))
 
         trial.set_user_attr('Feature_Mask', mask)
+        trial.set_user_attr('random_seed', self.random_seed)
 
         return model.rmse # type: ignore
 
