@@ -12,7 +12,6 @@ from OCDocker.OCScore.DNN.DNNOptimizer import DNNOptimizer
 # Imports
 ###############################################################################
 
-import json
 import optuna
 import random
 import re
@@ -176,8 +175,6 @@ class NeuralNet(nn.Module):
         # Set the AUC and rmse as nan
         self.validation_auc = np.NaN
         self.rmse = np.NaN
-        self.precision = np.NaN
-        self.recall = np.NaN
         self.pr_auc = np.NaN
         self.log_loss_value = np.NaN
         self.mae = np.NaN
@@ -477,7 +474,6 @@ class NeuralNet(nn.Module):
                 if np.isnan(validation_predictions_np).any():
                     validation_auc = 0
                     precision = 0
-                    pr_auc = 0
                     log_loss_value = 0
                     mae = 0
                 else:
@@ -498,8 +494,6 @@ class NeuralNet(nn.Module):
         # Set the optuna user attrs
         self.rmse = rmse
         self.validation_auc = validation_auc
-        self.precision = precision
-        self.recall = recall
         self.pr_auc = pr_auc
         self.log_loss_value = log_loss_value
         self.mae = mae
@@ -1158,6 +1152,9 @@ class DNNOptimizer:
             # If there is a nan in the predictions, set the AUC to 0
             if np.isnan(validation_predictions_np).any():
                 validation_auc = 0
+                pr_auc = 0
+                log_loss_value = 0
+                mae = 0
             else:
                 # Calculate the ROC
                 fpr, tpr, _ = roc_curve(y_validation_np, validation_predictions_np) # type: ignore
@@ -1173,16 +1170,12 @@ class DNNOptimizer:
                 # Calculate the Mean Absolute Error
                 mae = mean_absolute_error(y_validation_np, validation_predictions_np)
 
+
             # Set the optuna user attrs
             trial.set_user_attr('AUC', validation_auc)
-            trial.set_user_attr('precision', precision)
-            trial.set_user_attr('recall', recall)
             trial.set_user_attr('pr_auc', pr_auc)
             trial.set_user_attr('log_loss', log_loss_value)
-            trial.set_user_attr('mae', mae)
-
-        else:
-            validation_auc = None
+            trial.set_user_attr('mae', float(mae))
 
         return test_loss
     
@@ -1223,14 +1216,9 @@ class DNNOptimizer:
 
         # Set the optuna user attrs
         trial.set_user_attr('AUC', model.validation_auc)
-        trial.set_user_attr('precision', model.precision)
-        trial.set_user_attr('recall', model.recall)
         trial.set_user_attr('pr_auc', model.pr_auc)
-        trial.set_user_attr('mcc', model.mcc)
-        trial.set_user_attr('accuracy', model.accuracy)
         trial.set_user_attr('log_loss', model.log_loss_value)
-        trial.set_user_attr('mae', model.mae)
-        trial.set_user_attr('confusion_matrix', json.dumps(model.cm_list))
+        trial.set_user_attr('mae', float(model.mae))
 
         # Convert mask to string and then store it
         mask = self.mask
