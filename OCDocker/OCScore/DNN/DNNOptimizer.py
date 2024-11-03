@@ -180,6 +180,15 @@ class NeuralNet(nn.Module):
         # Set the AUC and rmse as nan
         self.validation_auc = np.NaN
         self.rmse = np.NaN
+        self.f1 = np.NaN
+        self.precision = np.NaN
+        self.recall = np.NaN
+        self.pr_auc = np.NaN
+        self.mcc = np.NaN
+        self.accuracy = np.NaN
+        self.log_loss_value = np.NaN
+        self.mae = np.NaN
+        self.cm_list = np.NaN
 
         # Set the verbose flag
         self.verbose = verbose
@@ -475,13 +484,56 @@ class NeuralNet(nn.Module):
                 # If there is a nan in the predictions, set the AUC to 0
                 if np.isnan(validation_predictions_np).any():
                     validation_auc = 0
+                    f1 = 0
+                    precision = 0
+                    pr_auc = 0
+                    mcc = 0
+                    accuracy = 0
+                    log_loss_value = 0
+                    mae = 0
+                    cm_list = []
                 else:
                     # Calculate the ROC
                     fpr, tpr, _ = roc_curve(y_validation_np, validation_predictions_np)
                     validation_auc = auc(fpr, tpr)
+               
+                    # Calculate the f1 score
+                    f1 = f1_score(y_validation_np, validation_predictions_np, average='binary')  # 'binary', 'micro', 'macro', or 'weighted'
+    
+                    # Calculate the PR AUC
+                    precision, recall, _ = precision_recall_curve(y_validation_np, validation_predictions_np)
+                    pr_auc = auc(recall, precision)
+                    
+                    # Calculate the MCC (Matthews Correlation Coefficient)
+                    mcc = matthews_corrcoef(y_validation_np, validation_predictions_np)
+    
+                    # Calculate the accuracy
+                    accuracy = accuracy_score(y_validation_np, validation_predictions_np)
+    
+                    # Calculate the log loss
+                    log_loss_value = log_loss(y_validation_np, validation_predictions_np)
+    
+                    # Calculate the Mean Absolute Error
+                    mae = mean_absolute_error(y_validation_np, validation_predictions_np)
+    
+                    # Calculate the confusion matrix
+                    cm = confusion_matrix(y_validation_np, validation_predictions_np)
+    
+                    # Convert the cm to a list
+                    cm_list = cm.tolist()
 
+        # Set the optuna user attrs
         self.rmse = rmse
         self.validation_auc = validation_auc
+        self.f1 = f1
+        self.precision = precision
+        self.recall = recall
+        self.pr_auc = pr_auc
+        self.mcc = mcc
+        self.accuracy = accuracy
+        self.log_loss_value = log_loss_value
+        self.mae = mae
+        self.cm_list = cm_list
 
         return True
     
@@ -1219,7 +1271,17 @@ class DNNOptimizer:
             self.y_validation
         )
 
-        trial.set_user_attr('AUC', model.validation_auc) # type: ignore
+        # Set the optuna user attrs
+        trial.set_user_attr('AUC', model.validation_auc)
+        trial.set_user_attr('f1', model.f1)
+        trial.set_user_attr('precision', model.precision)
+        trial.set_user_attr('recall', model.recall)
+        trial.set_user_attr('pr_auc', model.pr_auc)
+        trial.set_user_attr('mcc', model.mcc)
+        trial.set_user_attr('accuracy', model.accuracy)
+        trial.set_user_attr('log_loss', model.log_loss_value)
+        trial.set_user_attr('mae', model.mae)
+        trial.set_user_attr('confusion_matrix', json.dumps(model.cm_list))
 
         # Convert mask to string and then store it
         mask = self.mask
