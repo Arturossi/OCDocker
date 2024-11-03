@@ -12,6 +12,7 @@ from OCDocker.OCScore.DNN.DNNOptimizer import DNNOptimizer
 # Imports
 ###############################################################################
 
+import json
 import optuna
 import random
 import re
@@ -26,7 +27,17 @@ import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 
 from optuna.samplers import TPESampler
-from sklearn.metrics import auc, roc_curve
+from sklearn.metrics import (
+    accuracy_score, 
+    auc, 
+    confusion_matrix,
+    f1_score, 
+    log_loss,
+    matthews_corrcoef, 
+    mean_absolute_error,
+    precision_recall_curve, 
+    roc_curve
+)
 from typing import Any, Union
 
 import OCDocker.Toolbox.Printing as ocprint
@@ -1130,8 +1141,44 @@ class DNNOptimizer:
                 # Calculate the ROC
                 fpr, tpr, _ = roc_curve(y_validation_np, validation_predictions_np) # type: ignore
                 validation_auc = auc(fpr, tpr)
+
+                # Calculate the f1 score
+                f1 = f1_score(y_validation_np, validation_predictions_np, average='binary')  # 'binary', 'micro', 'macro', or 'weighted'
+
+                # Calculate the PR AUC
+                precision, recall, _ = precision_recall_curve(y_validation_np, validation_predictions_np)
+                pr_auc = auc(recall, precision)
+                
+                # Calculate the MCC (Matthews Correlation Coefficient)
+                mcc = matthews_corrcoef(y_validation_np, validation_predictions_np)
+
+                # Calculate the accuracy
+                accuracy = accuracy_score(y_validation_np, validation_predictions_np)
+
+                # Calculate the log loss
+                log_loss_value = log_loss(y_validation_np, validation_predictions_np)
+
+                # Calculate the Mean Absolute Error
+                mae = mean_absolute_error(y_validation_np, validation_predictions_np)
+
+                # Calculate the confusion matrix
+                cm = confusion_matrix(y_validation_np, validation_predictions_np)
+
+                # Convert the cm to a list
+                cm_list = cm.tolist()
+
             # Set the optuna user attrs
             trial.set_user_attr('AUC', validation_auc)
+            trial.set_user_attr('f1', f1)
+            trial.set_user_attr('precision', precision)
+            trial.set_user_attr('recall', recall)
+            trial.set_user_attr('pr_auc', pr_auc)
+            trial.set_user_attr('mcc', mcc)
+            trial.set_user_attr('accuracy', accuracy)
+            trial.set_user_attr('log_loss', log_loss_value)
+            trial.set_user_attr('mae', mae)
+            trial.set_user_attr('confusion_matrix', json.dumps(cm_list))
+
         else:
             validation_auc = None
 
