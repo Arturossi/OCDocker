@@ -156,7 +156,7 @@ if filter_completed_jobs:
         # Get the seeds that have already been evaluated
         evaluated_seeds = trials['user_attrs_random_seed'].tolist()
 
-        # Apply each feature mask to the full_mask
+        # Apply each feature seed to the full_seed
         filtered_seeds = []
 
         for seed in pre_seeds:
@@ -174,7 +174,7 @@ else:
 
     # Check if any study for this chunk has already been processed
     try:
-        # Try to load the study to check which masks have already been evaluated
+        # Try to load the study to check which seeds have already been evaluated
         study = optuna.load_study(study_name = f"NN_Seed_Ablation_Optimization_1", storage = storage)
 
         # Filter the trials to only include the ones that are complete
@@ -186,7 +186,7 @@ else:
     except:
         evaluated_seeds = []
 
-    # Apply each feature mask to the full_mask
+    # Apply each feature seed to the full_seed
     seeds = []
 
     for seed in chunked_seeds:

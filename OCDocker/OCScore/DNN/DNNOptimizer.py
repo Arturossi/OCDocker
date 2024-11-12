@@ -240,7 +240,6 @@ class NeuralNet(nn.Module):
             
         return encoder
 
-
     def __build_encoder_layer(self, encoder_params):
         # Create an empty list to store the encoder layers
         encoder_layer = []
@@ -840,7 +839,8 @@ class DNNOptimizer:
             self.input_size = [x.shape[1] for x in self.X_train]
         else:
             try:
-                self.X_train = torch.tensor(np.asarray(X_train[:2286]), dtype=torch.float32)
+                #self.X_train = torch.tensor(np.asarray(X_train[:2286]), dtype=torch.float32).to(self.device) # TODO: why 2286?
+                self.X_train = torch.tensor(np.asarray(X_train), dtype=torch.float32).to(self.device)
             except Exception as e:
                 ocprint.print_error(e) # type: ignore
             

@@ -4,12 +4,17 @@ import sys
 sys.path.append("../OCDocker")
 
 import os
+import math
 
 import colorcet as cc
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
+import pingouin as pg
+import scipy.stats as stats
 import seaborn as sns
 
+from typing import Union
 from urllib.parse import quote_plus
 
 from OCDocker.Initialise import *
@@ -19,269 +24,325 @@ import OCDocker.OCScore.Utils.Evaluation as ocseval
 import OCDocker.OCScore.Utils.SimpleConsensus as ocsimple
 import OCDocker.OCScore.Utils.StudyParser as ocstudy
 
-print("Starting the analysis of the results.")
+# Bar plot with significance annotations
+def plot_bar_with_significance(data, metric, y_col='diff'):
+    # Calculate means by Methodology for bar plot
+    means = pd.concat([data[['A', 'mean(A)']].rename(columns={'A': 'Methodology', 'mean(A)': y_col}),
+                       data[['B', 'mean(B)']].rename(columns={'B': 'Methodology', 'mean(B)': y_col})], ignore_index=True)
+    means = means.groupby('Methodology').mean().reset_index()
 
-base_path: str = "/data/hd4tb/OCDocker/data/ocdb"
-df_path: str = f"{base_path}/OCDocker.csv.gz"
+    # Count significant differences for each methodology
+    significant_counts = data[data['pval'] < 0.05].groupby('A').size().reindex(means['Methodology'], fill_value=0)
 
-print(f"Reading the input file: '{df_path}'")
+    plt.figure(figsize=(12, 8))
+    sns.barplot(x='Methodology', y=y_col, data=means, ci='sd', capsize=0.2)
+    plt.xticks(rotation=90)
+    plt.title(f"{metric} Means with Significant Pairwise Differences")
 
-# Load the DataFrames
-dudez_data, pdbbind_data, score_columns = ocscoredata.preprocess_df(df_path)
+    # Annotate each bar with the count of significant differences
+    for i, count in enumerate(significant_counts):
+        if count > 0:
+            plt.text(i, means.iloc[i][y_col] + 0.01, f"*{count}", ha='center', color='red')
 
-print("Computing the metrics for the results.")
+    plt.ylabel(metric)
+    plt.tight_layout()
+    plt.savefig(f"plots/games_howell_barplot_{metric}.png")
 
-# Compute the metrics
-dudez_metrics = ocseval.compute_auc(dudez_data, "ligand", score_columns, "type")
-pdbbind_metrics = ocseval.compute_rmse(pdbbind_data, score_columns, "experimental")
+# Heatmap for p-values
+def plot_heatmap(data, title, metric):
+    methodologies = sorted(set(data['A']).union(set(data['B'])))
+    p_matrix = np.ones((len(methodologies), len(methodologies)))  # Initialize with 1's for clarity in the heatmap
+    
+    # Fill in the matrix with p-values
+    for _, row in data.iterrows():
+        i, j = methodologies.index(row['A']), methodologies.index(row['B'])
+        p_matrix[i, j] = row['pval']
+        p_matrix[j, i] = row['pval']  # Make it symmetric
 
-# Merge the metrics using score_column as the key for joining
-docking_metrics = dudez_metrics.merge(pdbbind_metrics, on = "score_column")
+    # Custom annotation function to format numbers
+    def custom_fmt(x):
+        if x >= 0.01:       # Display as regular decimal if larger than 0.01
+            return f"{x:.2f}"
+        elif x < 0.01:      # Display in scientific notation for small values
+            return f"{x:.2e}".replace("e+00", "")  # Remove "e+00" if present
+        return str(x)       # Default case, should not occur
 
-# Set the Methodology as Raw Scoring Function
-docking_metrics["Methodology"] = "Raw Scoring Function"
+    # Create annotations with custom format as strings
+    annot_matrix = np.vectorize(custom_fmt)(p_matrix)
 
-# Compute the simple consensus
-simple_docking_consensus = ocsimple.perform_simple_consensus(df_path, threshold = 1.2, verbose = False)
+    plt.figure(figsize=(16, 14))  # Larger figure for readability
+    ax = sns.heatmap(p_matrix, annot=annot_matrix, xticklabels=methodologies, yticklabels=methodologies, 
+                     cmap="coolwarm", cbar_kws={'label': 'p-value'}, annot_kws={"size": 8, "rotation": 45}, fmt="")  # Blank fmt
+    plt.xticks(rotation=45)
+    plt.yticks(rotation=0)
+    plt.title(title)
+    plt.tight_layout()
+    plt.savefig(f"plots/games_howell_heatmap_{metric}.png")
 
-# Set the Methodology as Raw Scoring Function
-simple_docking_consensus["Methodology"] = "Simple consensus"
+def load_data(df_path: str) -> pd.DataFrame:
+    # Load the DataFrames
+    dudez_data, pdbbind_data, score_columns = ocscoredata.preprocess_df(df_path)
 
-# Set the column score_column with the index values
-simple_docking_consensus["score_column"] = simple_docking_consensus.index
+    print("Computing the metrics for the results.")
 
-# Reset the index
-simple_docking_consensus.reset_index(drop = True, inplace = True)
+    # Compute the metrics
+    dudez_metrics = ocseval.compute_auc(dudez_data, "ligand", score_columns, "type")
+    pdbbind_metrics = ocseval.compute_rmse(pdbbind_data, score_columns, "experimental")
 
-# Concatenate the metrics vertically
-final_metrics = pd.concat([docking_metrics, simple_docking_consensus], axis = 0)
+    # Merge the metrics using score_column as the key for joining
+    docking_metrics = dudez_metrics.merge(pdbbind_metrics, on = "score_column")
 
-# Compute the RMSE - AUC (score)
-final_metrics["combined_metric"] = final_metrics["RMSE"] - final_metrics["AUC"]
+    # Set the Methodology as Raw Scoring Function
+    docking_metrics["Methodology"] = "Raw Scoring Function"
 
-# Reset the index
-final_metrics.reset_index(drop = True, inplace = True)
+    # Compute the simple consensus
+    simple_docking_consensus = ocsimple.perform_simple_consensus(df_path, threshold = 1.2, verbose = False)
 
-# Rename the score_column to study_name
-final_metrics.rename(columns = {"score_column": "study_name"}, inplace = True)
+    # Set the Methodology as Raw Scoring Function
+    simple_docking_consensus["Methodology"] = "Simple consensus"
 
-print("Setting the lists of the studies to be analyzed.")
+    # Set the column score_column with the index values
+    simple_docking_consensus["score_column"] = simple_docking_consensus.index
 
-#region lists
-# Plain NN
-plain_nn_list = [
-    "NN_Optimization_1",
-    "NN_Optimization_2",
-    "NN_Optimization_3",
-    "NN_Optimization_4",
-    "NN_Optimization_5"
-]
-# With autoencoder
-ao_nn_list = [
-    "NN_Optimization_6",
-    "NN_Optimization_7",
-    "NN_Optimization_8",
-    "NN_Optimization_9",
-    "NN_Optimization_10"
-]
-# With PCA 80 of variance
-pca80_nn_list = [
-    "PCA80_NN_Optimization_11",
-    "PCA80_NN_Optimization_12",
-    "PCA80_NN_Optimization_13",
-    "PCA80_NN_Optimization_14",
-    "PCA80_NN_Optimization_15"
-]
-# With PCA 85 of variance
-pca85_nn_list = [
-    "PCA85_NN_Optimization_16",
-    "PCA85_NN_Optimization_17",
-    "PCA85_NN_Optimization_18",
-    "PCA85_NN_Optimization_19",
-    "PCA85_NN_Optimization_20"
-]
-# With PCA 90 of variance
-pca90_nn_list = [
-    "PCA90_NN_Optimization_21",
-    "PCA90_NN_Optimization_22",
-    "PCA90_NN_Optimization_23",
-    "PCA90_NN_Optimization_24",
-    "PCA90_NN_Optimization_25"
-]
-# With PCA 95
-pca95_nn_list = [
-    "PCA95_NN_Optimization_26",
-    "PCA95_NN_Optimization_27",
-    "PCA95_NN_Optimization_28",
-    "PCA95_NN_Optimization_29",
-    "PCA95_NN_Optimization_30",
-]
-# Score only
-scoreonly_nn_list = [
-    "ScoreOnly_NN_Optimization_31",
-    "ScoreOnly_NN_Optimization_32",
-    "ScoreOnly_NN_Optimization_33",
-    "ScoreOnly_NN_Optimization_34",
-    "ScoreOnly_NN_Optimization_35"
-]
-# No Scores 
-noscores_nn_list = [
-    "NoScores_NN_Optimization_36",
-    "NoScores_NN_Optimization_37",
-    "NoScores_NN_Optimization_38",
-    "NoScores_NN_Optimization_39",
-    "NoScores_NN_Optimization_40"
-]
+    # Reset the index
+    simple_docking_consensus.reset_index(drop = True, inplace = True)
 
-# Plain XGB
-plain_xgb_list = [
-    "XGB_Optimization_1",
-    "XGB_Optimization_2",
-    "XGB_Optimization_3",
-    "XGB_Optimization_4",
-    "XGB_Optimization_5"
-]
-# With Genetic Algorithm
-ga_xgb_list = [
-    "XGB_Optimization_6",
-    "XGB_Optimization_7",
-    "XGB_Optimization_8",
-    "XGB_Optimization_9",
-    "XGB_Optimization_10"
-]
-# With PCA 80
-pca80_xgb_list = [
-    "PCA80_XGB_Optimization_11",
-    "PCA80_XGB_Optimization_12",
-    "PCA80_XGB_Optimization_13",
-    "PCA80_XGB_Optimization_14",
-    "PCA80_XGB_Optimization_15"
-]
-# With PCA 85
-pca85_xgb_list = [
-    "PCA85_XGB_Optimization_16",
-    "PCA85_XGB_Optimization_17",
-    "PCA85_XGB_Optimization_18",
-    "PCA85_XGB_Optimization_19",
-    "PCA85_XGB_Optimization_20"
-]
-# With PCA 90
-pca90_xgb_list = [
-    "PCA90_XGB_Optimization_21",
-    "PCA90_XGB_Optimization_22",
-    "PCA90_XGB_Optimization_23",
-    "PCA90_XGB_Optimization_24",
-    "PCA90_XGB_Optimization_25"
-]
-# With PCA 95
-pca95_xgb_list = [
-    "PCA95_XGB_Optimization_26",
-    "PCA95_XGB_Optimization_27",
-    "PCA95_XGB_Optimization_28",
-    "PCA95_XGB_Optimization_29",
-    "PCA95_XGB_Optimization_30",
-]
-# Score only
-scoreonly_xgb_list = [
-    "ScoreOnly_XGB_Optimization_31",
-    "ScoreOnly_XGB_Optimization_32",
-    "ScoreOnly_XGB_Optimization_33",
-    "ScoreOnly_XGB_Optimization_34",
-    "ScoreOnly_XGB_Optimization_35"
-]
-# No Scores 
-noscores_xgb_list = [
-    "NoScores_XGB_Optimization_36",
-    "NoScores_XGB_Optimization_37",
-    "NoScores_XGB_Optimization_38",
-    "NoScores_XGB_Optimization_39",
-    "NoScores_XGB_Optimization_40"
-]
+    # Concatenate the metrics vertically
+    final_metrics = pd.concat([docking_metrics, simple_docking_consensus], axis = 0)
 
-# Plain Transformers
-plain_trans_list = [
-    "Trans_Optimization_1",
-    "Trans_Optimization_2",
-    "Trans_Optimization_3",
-    "Trans_Optimization_4",
-    "Trans_Optimization_5"
-]
-# With PCA 80
-pca80_trans_list = [
-    "PCA80_Trans_Optimization_6",
-    "PCA80_Trans_Optimization_7",
-    "PCA80_Trans_Optimization_8",
-    "PCA80_Trans_Optimization_9",
-    "PCA80_Trans_Optimization_10"
-]
-# With PCA 85
-pca85_trans_list = [
-    "PCA85_Trans_Optimization_11",
-    "PCA85_Trans_Optimization_12",
-    "PCA85_Trans_Optimization_13",
-    "PCA85_Trans_Optimization_14",
-    "PCA85_Trans_Optimization_15"
-]
-# With PCA 90
-pca90_trans_list = [
-    "PCA90_Trans_Optimization_16",
-    "PCA90_Trans_Optimization_17",
-    "PCA90_Trans_Optimization_18",
-    "PCA90_Trans_Optimization_19",
-    "PCA90_Trans_Optimization_20"
-]
-# With PCA 95
-pca95_trans_list = [
-    "PCA95_Trans_Optimization_21",
-    "PCA95_Trans_Optimization_22",
-    "PCA95_Trans_Optimization_23",
-    "PCA95_Trans_Optimization_24",
-    "PCA95_Trans_Optimization_25"
-]
-# Score only
-scoreonly_trans_list = [
-    "ScoreOnly_Trans_Optimization_31",
-    "ScoreOnly_Trans_Optimization_32",
-    "ScoreOnly_Trans_Optimization_33",
-    "ScoreOnly_Trans_Optimization_34",
-    "ScoreOnly_Trans_Optimization_35"
-]
-# No Scores 
-noscores_trans_list = [
-    "NoScores_Trans_Optimization_36",
-    "NoScores_Trans_Optimization_37",
-    "NoScores_Trans_Optimization_38",
-    "NoScores_Trans_Optimization_39",
-    "NoScores_Trans_Optimization_40"
-]
-#endregion
+    # Compute the RMSE - AUC (score)
+    final_metrics["combined_metric"] = final_metrics["RMSE"] - final_metrics["AUC"]
 
-# Fetch all the studies results
-user = "ocdocker"
-password = "@Kp3sRv9t@"
-host = "localhost"
-port = 3306
-db = "optimization"
+    # Reset the index
+    final_metrics.reset_index(drop = True, inplace = True)
 
-# Concatenate all the lists
-snames = plain_nn_list + ao_nn_list + pca80_nn_list + pca85_nn_list + pca90_nn_list + pca95_nn_list + scoreonly_nn_list + noscores_nn_list \
-    + plain_xgb_list + ga_xgb_list + pca80_xgb_list + pca85_xgb_list + pca90_xgb_list + pca95_xgb_list + scoreonly_xgb_list + noscores_xgb_list \
-    + plain_trans_list + pca80_trans_list + pca85_trans_list + pca90_trans_list + pca95_trans_list + scoreonly_trans_list + noscores_trans_list
+    # Rename the score_column to study_name
+    final_metrics.rename(columns = {"score_column": "study_name"}, inplace = True)
 
-# Set the storage
-storage = f"mysql+pymysql://{user}:{quote_plus(password)}@{host}:{port}/{db}"
+    return final_metrics
 
-for n_trials in [1, 5, 10, 50, 100, 500]:
-    print(f"Fetching the results for the {n_trials} best training results.")
+def get_all_lists() -> tuple[list[str], int, int]:
+    #region lists
+    # Plain NN
+    plain_nn_list = [
+        "NN_Optimization_1",
+        "NN_Optimization_2",
+        "NN_Optimization_3",
+        "NN_Optimization_4",
+        "NN_Optimization_5"
+    ]
+    # With autoencoder
+    ao_nn_list = [
+        "NN_Optimization_6",
+        "NN_Optimization_7",
+        "NN_Optimization_8",
+        "NN_Optimization_9",
+        "NN_Optimization_10"
+    ]
+    # With PCA 80 of variance
+    pca80_nn_list = [
+        "PCA80_NN_Optimization_11",
+        "PCA80_NN_Optimization_12",
+        "PCA80_NN_Optimization_13",
+        "PCA80_NN_Optimization_14",
+        "PCA80_NN_Optimization_15"
+    ]
+    # With PCA 85 of variance
+    pca85_nn_list = [
+        "PCA85_NN_Optimization_16",
+        "PCA85_NN_Optimization_17",
+        "PCA85_NN_Optimization_18",
+        "PCA85_NN_Optimization_19",
+        "PCA85_NN_Optimization_20"
+    ]
+    # With PCA 90 of variance
+    pca90_nn_list = [
+        "PCA90_NN_Optimization_21",
+        "PCA90_NN_Optimization_22",
+        "PCA90_NN_Optimization_23",
+        "PCA90_NN_Optimization_24",
+        "PCA90_NN_Optimization_25"
+    ]
+    # With PCA 95
+    pca95_nn_list = [
+        "PCA95_NN_Optimization_26",
+        "PCA95_NN_Optimization_27",
+        "PCA95_NN_Optimization_28",
+        "PCA95_NN_Optimization_29",
+        "PCA95_NN_Optimization_30",
+    ]
+    # Score only
+    scoreonly_nn_list = [
+        "ScoreOnly_NN_Optimization_31",
+        "ScoreOnly_NN_Optimization_32",
+        "ScoreOnly_NN_Optimization_33",
+        "ScoreOnly_NN_Optimization_34",
+        "ScoreOnly_NN_Optimization_35"
+    ]
+    # No Scores 
+    noscores_nn_list = [
+        "NoScores_NN_Optimization_36",
+        "NoScores_NN_Optimization_37",
+        "NoScores_NN_Optimization_38",
+        "NoScores_NN_Optimization_39",
+        "NoScores_NN_Optimization_40"
+    ]
 
+    # Plain XGB
+    plain_xgb_list = [
+        "XGB_Optimization_1",
+        "XGB_Optimization_2",
+        "XGB_Optimization_3",
+        "XGB_Optimization_4",
+        "XGB_Optimization_5"
+    ]
+    # With Genetic Algorithm
+    ga_xgb_list = [
+        "XGB_Optimization_6",
+        "XGB_Optimization_7",
+        "XGB_Optimization_8",
+        "XGB_Optimization_9",
+        "XGB_Optimization_10"
+    ]
+    # With PCA 80
+    pca80_xgb_list = [
+        "PCA80_XGB_Optimization_11",
+        "PCA80_XGB_Optimization_12",
+        "PCA80_XGB_Optimization_13",
+        "PCA80_XGB_Optimization_14",
+        "PCA80_XGB_Optimization_15"
+    ]
+    # With PCA 85
+    pca85_xgb_list = [
+        "PCA85_XGB_Optimization_16",
+        "PCA85_XGB_Optimization_17",
+        "PCA85_XGB_Optimization_18",
+        "PCA85_XGB_Optimization_19",
+        "PCA85_XGB_Optimization_20"
+    ]
+    # With PCA 90
+    pca90_xgb_list = [
+        "PCA90_XGB_Optimization_21",
+        "PCA90_XGB_Optimization_22",
+        "PCA90_XGB_Optimization_23",
+        "PCA90_XGB_Optimization_24",
+        "PCA90_XGB_Optimization_25"
+    ]
+    # With PCA 95
+    pca95_xgb_list = [
+        "PCA95_XGB_Optimization_26",
+        "PCA95_XGB_Optimization_27",
+        "PCA95_XGB_Optimization_28",
+        "PCA95_XGB_Optimization_29",
+        "PCA95_XGB_Optimization_30",
+    ]
+    # Score only
+    scoreonly_xgb_list = [
+        "ScoreOnly_XGB_Optimization_31",
+        "ScoreOnly_XGB_Optimization_32",
+        "ScoreOnly_XGB_Optimization_33",
+        "ScoreOnly_XGB_Optimization_34",
+        "ScoreOnly_XGB_Optimization_35"
+    ]
+    # No Scores 
+    noscores_xgb_list = [
+        "NoScores_XGB_Optimization_36",
+        "NoScores_XGB_Optimization_37",
+        "NoScores_XGB_Optimization_38",
+        "NoScores_XGB_Optimization_39",
+        "NoScores_XGB_Optimization_40"
+    ]
+
+    # Plain Transformers
+    plain_trans_list = [
+        "Trans_Optimization_1",
+        "Trans_Optimization_2",
+        "Trans_Optimization_3",
+        "Trans_Optimization_4",
+        "Trans_Optimization_5"
+    ]
+    # With PCA 80
+    pca80_trans_list = [
+        "PCA80_Trans_Optimization_6",
+        "PCA80_Trans_Optimization_7",
+        "PCA80_Trans_Optimization_8",
+        "PCA80_Trans_Optimization_9",
+        "PCA80_Trans_Optimization_10"
+    ]
+    # With PCA 85
+    pca85_trans_list = [
+        "PCA85_Trans_Optimization_11",
+        "PCA85_Trans_Optimization_12",
+        "PCA85_Trans_Optimization_13",
+        "PCA85_Trans_Optimization_14",
+        "PCA85_Trans_Optimization_15"
+    ]
+    # With PCA 90
+    pca90_trans_list = [
+        "PCA90_Trans_Optimization_16",
+        "PCA90_Trans_Optimization_17",
+        "PCA90_Trans_Optimization_18",
+        "PCA90_Trans_Optimization_19",
+        "PCA90_Trans_Optimization_20"
+    ]
+    # With PCA 95
+    pca95_trans_list = [
+        "PCA95_Trans_Optimization_21",
+        "PCA95_Trans_Optimization_22",
+        "PCA95_Trans_Optimization_23",
+        "PCA95_Trans_Optimization_24",
+        "PCA95_Trans_Optimization_25"
+    ]
+    # Score only
+    scoreonly_trans_list = [
+        "ScoreOnly_Trans_Optimization_31",
+        "ScoreOnly_Trans_Optimization_32",
+        "ScoreOnly_Trans_Optimization_33",
+        "ScoreOnly_Trans_Optimization_34",
+        "ScoreOnly_Trans_Optimization_35"
+    ]
+    # No Scores 
+    noscores_trans_list = [
+        "NoScores_Trans_Optimization_36",
+        "NoScores_Trans_Optimization_37",
+        "NoScores_Trans_Optimization_38",
+        "NoScores_Trans_Optimization_39",
+        "NoScores_Trans_Optimization_40"
+    ]
+    #endregion
+
+    # Concatenate all the lists
+    snames = plain_nn_list + ao_nn_list + pca80_nn_list + pca85_nn_list + pca90_nn_list + pca95_nn_list + scoreonly_nn_list + noscores_nn_list \
+        + plain_xgb_list + ga_xgb_list + pca80_xgb_list + pca85_xgb_list + pca90_xgb_list + pca95_xgb_list + scoreonly_xgb_list + noscores_xgb_list \
+        + plain_trans_list + pca80_trans_list + pca85_trans_list + pca90_trans_list + pca95_trans_list + scoreonly_trans_list + noscores_trans_list
+    
+    return snames, len(ao_nn_list), len(ga_xgb_list)
+
+def get_study_data(
+        snames, 
+        storage, 
+        error_threshold = 1.5, 
+        nn_ae_start = None, 
+        nn_ae_end = None, 
+        xgb_ga_start = None, 
+        xgb_ga_end = None
+    ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, float, float, float, float, float, float]:
     # Fetch the results
     results_df = ocstudy.analyze_studies(snames, storage = storage, n_trials=n_trials)
 
     print("Preprocessing the results.")
 
-    # Fix the study type of NN + AE and XGB + GA (we know that it has been set wrong)
-    results_df.loc[25:49, 'study_type'] = 'NN + AE'
-    results_df.loc[225:249, 'study_type'] = 'XGB + GA'
+    if nn_ae_start and nn_ae_end:
+        if nn_ae_start >= nn_ae_end:
+            raise ValueError("The start index for 'NN + AE' must be less than the end index.")
+        # Fix the study type for 'NN + AE'
+        results_df.loc[nn_ae_start:nn_ae_end - 1, 'study_type'] = 'NN + AE'
+    
+    if xgb_ga_start and xgb_ga_end:
+        if xgb_ga_start >= xgb_ga_end:
+            raise ValueError("The start index for 'XGB + GA' must be less than the end index.")
+        # Fix the study type for 'XGB + GA'
+        results_df.loc[xgb_ga_start:xgb_ga_end - 1, 'study_type'] = 'XGB + GA'
 
     # Separate results by 3 evaluation metrics (Error (Smallest Error), Error (Biggest AUC), Error (Smallest Error - AUC))
     best_rmse_df = results_df[["study_name", "study_type", "best_rmse_number", "best_rmse_value", "best_rmse_auc"]]
@@ -330,12 +391,22 @@ for n_trials in [1, 5, 10, 50, 100, 500]:
     error_range = max_error - min_error
     auc_range = max_auc - min_auc
 
-    ## Start plotting the results ##
+    # Get the rows with error greater than the error_threshold
+    best_rmse_df_filtered = best_rmse_df[best_rmse_df['RMSE'] <= error_threshold]
+    best_auc_df_filtered = best_auc_df[best_auc_df['RMSE'] <= error_threshold]
+    best_combined_df_filtered = best_combined_df[best_combined_df['RMSE'] <= error_threshold]
 
-    # If the plots folder does not exist, create it
+    return best_rmse_df_filtered, best_auc_df_filtered, best_combined_df_filtered, results_df, min_auc, max_auc, min_error, max_error, error_range, auc_range
+
+def setup_dirs() -> None:
+    # If the plots and csvs folder does not exist, create it
     if not os.path.exists('plots'):
         os.makedirs('plots')
+    if not os.path.exists('csvs'):
+        os.makedirs('csvs')
+    return None
 
+def set_color_mapping(df, palette_colour = "glasbey") -> dict[str, str]:
     print("Setting the pallette, alpha, and error threshold for the plots.")
 
     # Palette
@@ -350,24 +421,29 @@ for n_trials in [1, 5, 10, 50, 100, 500]:
     #palette_colour = "deep"
     #palette_colour = "muted"
     #palette_colour = "viridis"
-    palette_colour = sns.color_palette(cc.glasbey, n_colors=best_combined_df['Methodology'].nunique())
-
-    # Set alpha value
-    alpha = 0.9
+    if palette_colour == "glasbey":
+        palette_colour = sns.color_palette(cc.glasbey, n_colors=df['Methodology'].nunique())
 
     # Create a color mapping for methodologies
-    color_mapping = {method: color for method, color in zip(best_combined_df['Methodology'].unique(), sns.color_palette(palette_colour, n_colors=best_combined_df['Methodology'].nunique()))}
+    color_mapping = {
+        method: color for method, color in zip(
+            df['Methodology'].unique(), 
+            sns.color_palette(palette_colour, n_colors=df['Methodology'].nunique())
+        )
+    }
 
-    # Set the error threshold
-    error_threshold = 1.5
+    return color_mapping, palette_colour
 
-    # Get the rows with error greater than the error_threshold
-    best_rmse_df_filtered = best_rmse_df[best_rmse_df['RMSE'] <= error_threshold]
-    best_auc_df_filtered = best_auc_df[best_auc_df['RMSE'] <= error_threshold]
-    best_combined_df_filtered = best_combined_df[best_combined_df['RMSE'] <= error_threshold]
+def get_ae_xgb_indices(n_ae: int, n_xgb: int, n_trials: int) -> tuple[int, int, int, int]:
+    # Calculate the index ranges dynamically
+    nn_ae_start = 5 * n_trials  # Start index for 'NN + AE'
+    nn_ae_end = nn_ae_start + (n_trials * n_ae)
+    xgb_ga_start = 45 * n_trials  # Start index for 'XGB + GA'
+    xgb_ga_end = xgb_ga_start + (n_trials * n_xgb)
 
-    print("Plotting the scatterplot to allow visual comparison of the methodologies for AUC and RMSE")
+    return nn_ae_start, nn_ae_end, xgb_ga_start, xgb_ga_end
 
+def plot_scatterplot(best_rmse_df_filtered, best_auc_df_filtered, best_combined_df_filtered, n_trials, color_mapping, min_auc, max_auc, min_error, max_error, error_range, auc_range, alpha = 0.9):
     # Plotting with the chosen palette and adjustments for marker and transparency
     plt.figure(figsize=(20, 8))
 
@@ -449,11 +525,11 @@ for n_trials in [1, 5, 10, 50, 100, 500]:
     plt.tight_layout(rect=[0, 0.22, 1, 1])
 
     plt.savefig(f'plots/Experiments_{n_trials}.png', bbox_inches='tight', dpi=300)
-    #plt.show()
     plt.close('all')
 
-    print("Processing the dataframes to create some plots.")
+    return None
 
+def separate_dfs(best_rmse_df_filtered, best_auc_df_filtered, best_combined_df_filtered, to_remove = []) -> tuple[pd.DataFrame, pd.DataFrame]:
     # Create three new dataframes, one for Error (Smallest Error), one for Error (Biggest AUC), and one for Error (Smallest Error - AUC)
     df_error_menor_erro = best_rmse_df_filtered[['Experiment', 'Methodology', 'RMSE']].copy()
     df_error_maior_auc = best_auc_df_filtered[['Experiment', 'Methodology', 'RMSE']].copy()
@@ -488,17 +564,15 @@ for n_trials in [1, 5, 10, 50, 100, 500]:
     df_error_concat = pd.concat([df_error_concat[df_error_concat['Methodology'] == 'Raw Scoring Function'], df_error_concat[df_error_concat['Methodology'] == 'Simple consensus'], df_error_concat[df_error_concat['Methodology'] != 'Raw Scoring Function'], df_error_concat[df_error_concat['Methodology'] != 'Simple consensus']])
     df_auc_concat = pd.concat([df_auc_concat[df_auc_concat['Methodology'] == 'Raw Scoring Function'], df_auc_concat[df_auc_concat['Methodology'] == 'Simple consensus'], df_auc_concat[df_auc_concat['Methodology'] != 'Raw Scoring Function'], df_auc_concat[df_auc_concat['Methodology'] != 'Simple consensus']])
 
-    # Remove all the methods that start with any of the following strings (empty list means no methods will be removed)
-    to_remove = []
-
     for m in to_remove:
         df_error_concat = df_error_concat[~df_error_concat['Methodology'].str.startswith(m)]
         df_auc_concat = df_auc_concat[~df_auc_concat['Methodology'].str.startswith(m)]
 
+    return df_error_concat, df_auc_concat
+
+def plot_boxplot_violinplot(df_error_concat: pd.DataFrame, df_auc_concat: pd.DataFrame, n_trials: int, palette_colour: str) -> None:
     # Set the font size
     plt.rcParams['font.size'] = 10 # type: ignore
-
-    print(f"Plotting the barplot and violinplot to allow visual comparison of the methodologies for AUC and RMSE")
 
     # Set the metrics
     metrics = ['(Smallest Error)', '(Biggest AUC)', '(Smallest Error - AUC)']
@@ -516,8 +590,20 @@ for n_trials in [1, 5, 10, 50, 100, 500]:
         aux_df_auc_concat.loc[:, 'Methodology'] = aux_df_auc_concat['Methodology'].apply(lambda x: x.replace(f' {metric}', ''))
 
         # Remake the color mapping for the concatenated dataframes
-        color_mapping_error = {method: color for method, color in zip(aux_df_error_concat['Methodology'].unique(), sns.color_palette(palette_colour, n_colors=aux_df_error_concat['Methodology'].nunique()))}
-        color_mapping_auc = {method: color for method, color in zip(aux_df_auc_concat['Methodology'].unique(), sns.color_palette(palette_colour, n_colors=aux_df_auc_concat['Methodology'].nunique()))}
+        color_mapping_error = {
+            method: color for method, color in zip(
+                aux_df_error_concat['Methodology'].unique(), 
+                sns.color_palette(palette_colour, 
+                n_colors=aux_df_error_concat['Methodology'].nunique())
+            )
+        }
+        color_mapping_auc = {
+            method: color for method, color in zip(
+                aux_df_auc_concat['Methodology'].unique(), 
+                sns.color_palette(palette_colour, 
+                n_colors=aux_df_auc_concat['Methodology'].nunique())
+            )
+        }
 
         for plot_type in ['boxplot', 'violin']:
             plt.close('all')
@@ -594,8 +680,7 @@ for n_trials in [1, 5, 10, 50, 100, 500]:
 
     plt.close('all')
 
-    print("Plotting the RMSE, AUC, and combined metric barplots...")
-
+def plot_barplots(best_rmse_df_filtered: pd.DataFrame, best_auc_df_filtered: pd.DataFrame, best_combined_df_filtered: pd.DataFrame, n_trials: int, color_mapping: dict) -> None:
     # Define the plotting information
     plotting_info = [
         ('RMSE', 'RMSE', 'RMSE', True), 
@@ -650,8 +735,9 @@ for n_trials in [1, 5, 10, 50, 100, 500]:
 
         plt.close('all')
 
-    print("Performing the correlation calculations...")
+    return None
 
+def correlation_analysis(results_df: pd.DataFrame, final_metrics: pd.DataFrame, n_trials: int, error_threshold: float = 1.5) -> None:
     # Create the dataframe from the results_df with the columns Methodology, RMSE, and AUC (RMSE will be the best_combined_value, AUC will be the best_combined_auc and Methodology will be the study_type)
     corr_data_df = results_df[['study_name', 'study_type', 'best_combined_value', 'best_combined_auc', 'best_combined_metric']].copy()
     corr_data_df.rename(columns={'study_type': 'Methodology', 'best_combined_value': 'RMSE', 'best_combined_auc': 'AUC', 'best_combined_metric': 'combined_metric'}, inplace=True)
@@ -702,8 +788,195 @@ for n_trials in [1, 5, 10, 50, 100, 500]:
 
     plt.close('all')
 
+    return None
 
-# PCA
+def plot_bar_with_significance_metrics(df, metrics = list[str], n_columns: int = 4):
+    # Group the data by methodology, excluding "Simple Consensus"
+    methodology_groups = df[df["Methodology"] != "Simple consensus"].groupby("Methodology")
+
+    # Loop through each metric
+    for metric in metrics:
+        print(f"Metric: {metric}")
+        
+        # Determine the number of rows needed
+        num_methods = len(methodology_groups)
+        rows = math.ceil(num_methods / n_columns)
+        
+        # Initialize a multi-plot figure
+        fig, axes = plt.subplots(nrows=rows, ncols=n_columns, figsize=(5 * n_columns, 5 * rows))
+        axes = axes.flatten() # Flatten to easily iterate, regardless of row/column structure
+        
+        # List to collect data for variance and homogeneity tests
+        metric_data_by_methodology = []
+
+        # Loop through each methodology group and plot in the respective subplot
+        for i, (method, group) in enumerate(methodology_groups):
+            print(f"Methodology: {method}")
+
+            # Extract the metric data for testing
+            metric_data = group[metric].dropna()
+            metric_data_by_methodology.append(metric_data)
+
+            # Normality Tests
+            shapiro_test = stats.shapiro(metric_data)
+            anderson_test = stats.anderson(metric_data, dist='norm')
+            print(f"  Shapiro-Wilk Test p-value for {method}: {shapiro_test.pvalue}")
+            print(f"  Anderson-Darling Test statistic for {method}: {anderson_test.statistic}")
+
+            # Plot QQ plot on the appropriate subplot
+            stats.probplot(metric_data, dist="norm", plot=axes[i])
+            axes[i].set_title(f"{method} - {metric}")
+
+        # Remove any empty subplots if the total number of methodologies is not a perfect multiple of n_columns
+        for j in range(i + 1, len(axes)):
+            fig.delaxes(axes[j]) # type: ignore
+
+        # Adjust layout and save the figure
+        plt.tight_layout()
+        plt.savefig(f"plots/multiplot_qq_{metric}_{n_trials}.png")
+        plt.close('all')
+        
+        # Variance for each methodology
+        variances = methodology_groups[metric].var()
+        print(f"Variance for each methodology ({metric}):")
+        print(variances)
+        
+        # Levene's Test for homogeneity of variances
+        levene_test = stats.levene(*metric_data_by_methodology)
+        print(f"Levene's Test statistic for {metric}:", levene_test.statistic)
+        print(f"Levene's Test p-value for {metric}:", levene_test.pvalue)
+
+        # Bartlett's Test for homogeneity of variances (use only if data is normally distributed)
+        bartlett_test = stats.bartlett(*metric_data_by_methodology)
+        print(f"Bartlett's Test statistic for {metric}:", bartlett_test.statistic)
+        print(f"Bartlett's Test p-value for {metric}:", bartlett_test.pvalue)
+    
+    return None
+
+def perform_welch_anova_and_games_howell_posthoc_tests(df, n_trials):
+
+    # Welch's ANOVA for AUC
+    welch_anova_auc = pg.welch_anova(dv='AUC', between='Methodology', data=df)
+    print("Welch's ANOVA for AUC:")
+    print(welch_anova_auc)
+    welch_anova_auc.to_csv(f"csvs/welch_anova_auc_{n_trials}.csv", index=False)
+
+    # Welch's ANOVA for RMSE
+    welch_anova_rmse = pg.welch_anova(dv='RMSE', between='Methodology', data=df)
+    print("Welch's ANOVA for RMSE:")
+    print(welch_anova_rmse)
+    welch_anova_rmse.to_csv(f"csvs/welch_anova_rmse_{n_trials}.csv", index=False)
+
+    # Games-Howell
+    ################
+
+    # Games-Howell post-hoc test for AUC
+    games_howell_auc = pg.pairwise_gameshowell(dv='AUC', between='Methodology', data=df)
+    print("Games-Howell post-hoc test results for AUC:")
+    print(games_howell_auc)
+
+    # Games-Howell post-hoc test for RMSE
+    games_howell_rmse = pg.pairwise_gameshowell(dv='RMSE', between='Methodology', data=df)
+    print("\nGames-Howell post-hoc test results for RMSE:")
+    print(games_howell_rmse)
+
+    # Optionally, save the results to CSV for review
+    games_howell_auc.to_csv(f"csvs/games_howell_posthoc_AUC_{n_trials}.csv", index=False)
+    games_howell_rmse.to_csv(f"csvs/games_howell_posthoc_RMSE_{n_trials}.csv", index=False)
+    print("\nGames-Howell post-hoc results saved as CSV files.")
+    
+    # Bar plot for AUC/RMSE means with significance annotations
+    plot_bar_with_significance(games_howell_auc, metric="AUC", y_col="diff")
+    plot_bar_with_significance(games_howell_rmse, metric="RMSE", y_col="diff")
+
+    # Heatmap for p-values from Games-Howell for AUC/RMSE
+    plot_heatmap(games_howell_auc, "Games-Howell p-values for AUC", metric="AUC")
+    plot_heatmap(games_howell_rmse, "Games-Howell p-values for RMSE", metric="RMSE")
+    
+    return None
+
+print("Starting the analysis of the results.")
+
+base_path: str = "/data/hd4tb/OCDocker/data/ocdb"
+df_path: str = f"{base_path}/OCDocker.csv.gz"
+
+print(f"Reading the input file: '{df_path}'")
+
+# Load the data
+final_metrics = load_data(df_path)
+
+print("Setting the lists of the studies to be analyzed.")
+snames, nn_len, xgb_len = get_all_lists()
+
+# Fetch all the studies results
+user = "ocdocker"
+password = "@Kp3sRv9t@"
+host = "localhost"
+port = 3306
+db = "optimization"
+
+# Set the storage
+storage = f"mysql+pymysql://{user}:{quote_plus(password)}@{host}:{port}/{db}"
+
+# Setup dirs
+setup_dirs()
+
+for n_trials in [1, 5, 10, 50, 100, 500]: # TODO: Check the behaviour for 50, 100, and 500 trials (it is strange)
+    print(f"Recovering the indexes for the NN-AE and XGB-GA methodologies for {n_trials} trials.")
+    nn_ae_start, nn_ae_end, xgb_ga_start, xgb_ga_end = get_ae_xgb_indices(nn_len, xgb_len, n_trials)
+
+    print(f"Fetching the results for the {n_trials} best training results.")
+    best_rmse_df_filtered, \
+    best_auc_df_filtered, \
+    best_combined_df_filtered, \
+    results_df, \
+    min_auc, \
+    max_auc, \
+    min_error, \
+    max_error, \
+    error_range, \
+    auc_range = get_study_data(
+        snames, 
+        storage, 
+        nn_ae_start = nn_ae_start, 
+        nn_ae_end = nn_ae_end, 
+        xgb_ga_start = xgb_ga_start, 
+        xgb_ga_end = xgb_ga_end
+    )
+
+    # Set the color mapping
+    color_mapping, palette_colour = set_color_mapping(best_combined_df_filtered)
+
+    print("Plotting the scatterplot to allow visual comparison of the methodologies for AUC and RMSE")
+
+    plot_scatterplot(best_rmse_df_filtered, best_auc_df_filtered, best_combined_df_filtered, n_trials, color_mapping, min_auc, max_auc, min_error, max_error, error_range, auc_range, alpha = 0.9)
+
+    print("Processing the dataframes to create some plots.")
+
+    df_error_concat, df_auc_concat = separate_dfs(best_rmse_df_filtered, best_auc_df_filtered, best_combined_df_filtered)
+    
+    print(f"Plotting the barplot and violinplot to allow visual comparison of the methodologies for AUC and RMSE")
+
+    plot_boxplot_violinplot(df_error_concat, df_auc_concat, n_trials, palette_colour = palette_colour)
+
+    print("Plotting the RMSE, AUC, and combined metric barplots...")
+
+    plot_barplots(best_rmse_df_filtered, best_auc_df_filtered, best_combined_df_filtered, n_trials, color_mapping)
+
+    print("Performing the correlation calculations...")
+
+    correlation_analysis(results_df, final_metrics, n_trials, error_threshold = 1.5)
+
+    print("Performing the normality tests...")
+
+    plot_bar_with_significance_metrics(best_combined_df_filtered, metrics = ["AUC", "RMSE"], n_columns = 4)
+
+    print("Performing the Welch's ANOVA and Games-Howell post-hoc tests...")
+
+    perform_welch_anova_and_games_howell_posthoc_tests(best_combined_df_filtered, n_trials)
+
+# PCA Feature Importance Analysis
+# TODO: Organize this
 
 import optuna
 import numpy as np
@@ -846,6 +1119,10 @@ best_ao_study = optuna.load_study(study_name = best_ao_study_name, storage = sto
 
 # Get the best trial (smallest value, there is no AUC here)
 best_ao_params = best_ao_study.best_params
+
+
+# Autoencoder Feature Importance Analysis
+# TODO: Organize this
 
 # Imports
 from OCDocker.OCScore.DNN.AutoencoderOptimizer import Autoencoder, AutoencoderDataset, DataLoader
@@ -1128,3 +1405,196 @@ filtered_names, filtered_importances = filter_and_visualize_importances(
     n_best=20,
     threshold=None
 )
+
+# Neural Network Autoencoder visualization
+
+import optuna
+import numpy as np
+import pandas as pd
+import pickle
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
+from OCDocker.OCScore.DNN.DNNOptimizer import CustomDataset, DNNOptimizer, NeuralNet
+import OCDocker.OCScore.Utils.Data as ocscoredata
+import math
+import torch
+import random
+
+# Define the names
+ao_study_name = f"AO_Optimization_{study_number}"
+nn_study_name = f"NN_Optimization_{study_number}"
+ablation_study_name = f"NN_Ablation_Optimization_1"
+
+# Load the study
+ao_study = optuna.load_study(study_name = ao_study_name, storage = storage)
+ao_df = ao_study.trials_dataframe()
+
+# Filter the trials to only include the ones that are complete
+ao_df = ao_df[ao_df['state'] == 'COMPLETE']
+
+#best_ao_df = ao_df.sort_values(by=['combined_metric', 'value', 'user_attrs_val_rmse'], ascending=[True, True, True])
+best_ao_df = ao_df.sort_values(by=['value', 'user_attrs_val_rmse'], ascending=[True, True])
+
+# Recreate the autoencoder object for the best trial based on the best_ao_df
+best_ao_trial = best_ao_df.iloc[0]
+
+# Select the trial by the best_ao_trial number
+best_ao_trial = ao_study.trials[best_ao_trial.number]
+
+# Pick the params from the best_ao_trial
+autoencoder_params = best_ao_trial.params
+
+# Load the study
+ablation_study = optuna.load_study(study_name = ablation_study_name, storage = storage)
+ablation_df = ablation_study.trials_dataframe()
+
+# Filter the trials to only include the ones that are complete
+ablation_df = ablation_df[ablation_df['state'] == 'COMPLETE']
+
+# Reset data index
+ablation_df = ablation_df.reset_index(drop=True)
+
+# Rename the columns
+# value is the RMSE
+# user_attrs_Feature_Mask is the Feature Mask
+# user_attrs_AUC is the AUC
+ablation_df = ablation_df.rename(columns={
+        'value': 'RMSE',
+        'user_attrs_Feature_Mask': 'Feature_Mask',
+        'user_attrs_AUC': 'AUC'
+    }
+)
+
+# Compute the score (RMSE - AUC)
+ablation_df['score'] = ablation_df['RMSE'] - ablation_df['AUC']
+
+best_ablation_df = ablation_df.sort_values(by=['score'], ascending=[True])
+
+# Pick the user_attrs_Feature_Mask (Feature_Mask) from the best_ablation_trial
+mask = best_ablation_df.iloc[0]['Feature_Mask']
+
+# Convert the mask to a numpy array of 0s and 1s
+mask = np.array([int(x) for x in mask])
+
+## Define the Topology
+##########################
+
+# Load the study
+nn_study = optuna.load_study(study_name = nn_study_name, storage = storage)
+nn_df = nn_study.trials_dataframe()
+
+# Filter the trials to only include the ones that are complete
+nn_df = nn_df[nn_df['state'] == 'COMPLETE']
+
+nn_df['combined_metric'] = nn_df['value'] - nn_df['user_attrs_AUC']
+
+best_nn_df = nn_df.sort_values(by=['combined_metric'], ascending=[True])
+
+best_nn_trial = best_nn_df.iloc[0]
+
+best_nn_trial = nn_study.trials[best_nn_trial.number]
+
+nn_params = best_nn_trial.params
+
+base_path: str = "/data/hd4tb/OCDocker/data/ocdb"
+base_models_folder: str = f"{base_path}/models"
+
+# Load the data
+data = ocscoredata.load_data(
+        base_models_folder = base_models_folder,
+        storage_id = study_number,
+        df_path = df_path,
+        optimization_type = "NN",
+        no_scores = False,
+        only_scores = False,
+        use_PCA = False,
+        use_pdb_train = True,
+        random_seed = 42
+    )
+
+# Build the entire model
+neural2 = DNNOptimizer(
+            data['X_train'], data['y_train'], 
+            data['X_test'], data['y_test'], 
+            data['X_val'], data['y_val'], 
+            mask = mask,
+            storage = storage,
+            encoder_params = autoencoder_params,
+            output_size = 1, 
+            random_seed = 42,
+            use_gpu = True, 
+            verbose = False,
+        )
+
+neural = NeuralNet(
+        data["X_train"].shape[1], 
+        1, 
+        autoencoder_params,
+        nn_params,
+        random_seed = 42,
+        use_gpu = False,
+        verbose = False,
+        mask = mask
+    )
+
+model = neural.NN
+from torch.utils.data import Dataset, DataLoader
+
+loader = DataLoader(
+    dataset = CustomDataset(data['X_train'], data['y_train']), # type: ignore
+    batch_size = batch_size,
+    shuffle = True
+)
+
+X_train = torch.tensor(np.asarray(data["X_train"]), dtype=torch.float32).to("cuda")
+X_train = torch.tensor(np.asarray(data["X_train"]), dtype=torch.float32).to("cpu")
+
+y = model(X_train)
+
+import torch
+import torch.nn as nn
+from torchviz import make_dot
+from torch.utils.tensorboard import SummaryWriter
+
+dot = make_dot(y, params=dict(model.named_parameters()))
+dot.format = "png"
+dot.render("model_topology")
+
+print("\nLogging model graph to TensorBoard...")
+writer = SummaryWriter("runs/model")  # Specify log directory
+writer.add_graph(model, X_train)
+writer.close()
+
+from collections import defaultdict
+import matplotlib.pyplot as plt
+import torch
+import visualtorch
+from torch import nn
+
+color_map: dict = defaultdict(dict)
+color_map[nn.Linear]["fill"] = "#98FB98"
+color_map[nn.ReLU]["fill"] = "#FFA07A"
+color_map[nn.Sigmoid]["fill"] = "#FFD700"
+color_map[nn.Tanh]["fill"] = "#87CEFA"
+color_map[nn.Dropout]["fill"] = "#FF6347"
+color_map[nn.BatchNorm1d]["fill"] = "#FFA500"
+color_map[nn.BatchNorm2d]["fill"] = "#FFA500"
+color_map[nn.BatchNorm3d]["fill"] = "#FFA500"
+color_map[nn.Conv1d]["fill"] = "#FF4500"
+color_map[nn.Conv2d]["fill"] = "#FF4500"
+color_map[nn.Conv3d]["fill"] = "#FF4500"
+color_map[nn.MaxPool1d]["fill"] = "#FFD700"
+color_map[nn.MaxPool2d]["fill"] = "#FFD700"
+color_map[nn.MaxPool3d]["fill"] = "#FFD700"
+color_map[nn.AvgPool1d]["fill"] = "#FFD700"
+color_map[nn.AvgPool2d]["fill"] = "#FFD700"
+color_map[nn.AvgPool3d]["fill"] = "#FFD700"
+color_map[nn.AdaptiveMaxPool1d]["fill"] = "#FFD700"
+color_map[nn.AdaptiveMaxPool2d]["fill"] = "#FFD700"
+color_map[nn.AdaptiveMaxPool3d]["fill"] = "#FFD700"
+color_map[nn.AdaptiveAvgPool1d]["fill"] = "#FFD700"
+color_map[nn.AdaptiveAvgPool2d]["fill"] = "#FFD700"
+color_map[nn.AdaptiveAvgPool3d]["fill"] = "#FFD700"
+color_map["output"]["fill"] = "blue"
+
+img = visualtorch.graph_view(model, (data["X_train"].shape), color_map=color_map, to_file="test.png")

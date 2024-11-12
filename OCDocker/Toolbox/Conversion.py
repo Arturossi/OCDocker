@@ -175,6 +175,8 @@ def convertMols(input_file: str, output_file: str) -> Union[int, str]:
         obConversion = openbabel.OBConversion()
         # Set the conversion from the extension to pdbqt
         obConversion.SetInAndOutFormats(inExtension, outExtension)
+        # Disable file path reference in output
+        obConversion.AddOption("r", openbabel.OBConversion.OUTOPTIONS)
         # Create an empty OBMol object
         mol = openbabel.OBMol()
         # Load the input file to the prebiusly loaded OBMol object
