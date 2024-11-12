@@ -17,7 +17,8 @@
 - Implement the new docking software | 1
 
 ### 2
-- GNINA does not works with nohup, maybe it has something to do with GPU visibility for it. | 2
+- GNINA don't work with nohup, maybe it has something to do with GPU visibility. | 2
 
 ### 3
 - Add a cleanPDB routine to produce less PDB errors in the pipeline. | 3
+- Improve robustness to ensure that every step run smoothly | 3
