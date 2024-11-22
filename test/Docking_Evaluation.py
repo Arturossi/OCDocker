@@ -443,6 +443,81 @@ def get_ae_xgb_indices(n_ae: int, n_xgb: int, n_trials: int) -> tuple[int, int, 
 
     return nn_ae_start, nn_ae_end, xgb_ga_start, xgb_ga_end
 
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+
+def plot_single_scatterplot(best_combined_df_filtered, n_trials, color_mapping, min_auc, max_auc, min_error, max_error, error_range, auc_range, alpha=0.9):
+    # Create the figure
+    plt.figure(figsize=(10, 8))
+
+    # Prepare the data by adding a new column indicating AUC category
+    best_combined_df_filtered['AUC_category'] = best_combined_df_filtered["AUC"].apply(lambda x: '>= 0.5' if x >= 0.5 else '< 0.5')
+    # Make 1 - AUC for AUC < 0.5
+    best_combined_df_filtered.loc[best_combined_df_filtered['AUC_category'] == '< 0.5', "AUC"] = 1 - best_combined_df_filtered["AUC"]
+
+    # Plot AUC >= 0.5 with circles
+    sns.scatterplot(
+        data=best_combined_df_filtered[best_combined_df_filtered['AUC_category'] == '>= 0.5'], 
+        x="RMSE", 
+        y="AUC",
+        hue='Methodology', 
+        legend=False, 
+        palette=color_mapping,
+        alpha=alpha, 
+        marker='o'
+    )
+
+    # Plot AUC < 0.5 with stars
+    '''sns.scatterplot(
+        data=best_combined_df_filtered[best_combined_df_filtered['AUC_category'] == '< 0.5'], 
+        x="RMSE", 
+        y="AUC",
+        hue='Methodology', 
+        legend=False, 
+        palette=color_mapping,
+        alpha=alpha,  
+        marker='*', 
+        s=100
+    )'''
+
+    # Set title, axis labels, and limits
+    plt.title('Error vs. AUC (Smallest Error - AUC)')
+    plt.xlabel('Error')
+    plt.ylabel('AUC')
+    plt.grid(True)
+    plt.minorticks_on()
+    plt.grid(which='minor', linestyle=':', linewidth='0.2', color='darkgray')
+
+    # Set x and y limits based on the range of RMSE and AUC
+    error_range = best_combined_df_filtered["RMSE"].max() - best_combined_df_filtered["RMSE"].min()
+    plt.xlim(best_combined_df_filtered["RMSE"].min() - error_range * 0.1, best_combined_df_filtered["RMSE"].max() + error_range * 0.1)
+    plt.ylim(min_auc - auc_range * 0.1, max_auc + auc_range * 0.1)
+
+    # Add the legends
+    '''shape_labels = ['AUC >= 0.5 (= AUC)', 'AUC < 0.5 (= 1-AUC)']
+    shape_handles = [
+        plt.Line2D([0], [0], marker='o', color='w', label='AUC >= 0.5 (= AUC)', markerfacecolor='gray', markersize=10),
+        plt.Line2D([0], [0], marker='*', color='w', label='AUC < 0.5 (= 1-AUC)', markerfacecolor='gray', markersize=10)
+    ]'''
+
+    color_labels = best_combined_df_filtered['Methodology'].unique().tolist()
+    color_handles = [plt.Line2D([0], [0], color=color_mapping[method], lw=4) for method in color_labels]
+
+    # Place legends
+    #plt.figlegend(handles=shape_handles, labels=shape_labels, loc='lower left', bbox_to_anchor=(0.1, 0.02), ncol=1, title='AUC')
+    plt.figlegend(handles=color_handles, labels=color_labels, loc='lower center', bbox_to_anchor=(0.5, 0.02), ncol=4, title='Methodology')
+
+    # Adjust layout to accommodate legend spacing
+    plt.tight_layout(rect=[0, 0.2, 1, 1])
+
+    # Save the plot
+    plt.savefig(f'plots/Experiments_Smallest_Error_AUC_{n_trials}.png', bbox_inches='tight', dpi=300)
+    plt.close('all')
+
+    return None
+
+
 def plot_scatterplot(best_rmse_df_filtered, best_auc_df_filtered, best_combined_df_filtered, n_trials, color_mapping, min_auc, max_auc, min_error, max_error, error_range, auc_range, alpha = 0.9):
     # Plotting with the chosen palette and adjustments for marker and transparency
     plt.figure(figsize=(20, 8))
@@ -569,6 +644,112 @@ def separate_dfs(best_rmse_df_filtered, best_auc_df_filtered, best_combined_df_f
         df_auc_concat = df_auc_concat[~df_auc_concat['Methodology'].str.startswith(m)]
 
     return df_error_concat, df_auc_concat
+
+def plot_boxplot_violinplot_clean(df_error_concat: pd.DataFrame, df_auc_concat: pd.DataFrame, n_trials: int, palette_colour: str, mean_rmse: float, mean_auc: float) -> None:
+    # Set the font size
+    plt.rcParams['font.size'] = 10
+
+    # Set the metrics
+    metrics = ['(Smallest Error)', '(Biggest AUC)', '(Smallest Error - AUC)']
+
+    for metric in metrics:
+        # Filter the dataframes and exclude "Simple consensus"
+        aux_df_error_concat = df_error_concat[
+            (df_error_concat['Methodology'].str.endswith(metric, na=False)) |
+            (df_error_concat['Methodology'] == 'Raw Scoring Function')
+        ]
+        aux_df_auc_concat = df_auc_concat[
+            (df_auc_concat['Methodology'].str.endswith(metric, na=False)) |
+            (df_auc_concat['Methodology'] == 'Raw Scoring Function')
+        ]
+
+        # Set the aux metric (Remove parentheses from the metric)
+        aux_metric = metric.replace('(', '').replace(')', '')
+
+        # Remove the metric string (with its previous space) from the Methodology column
+        aux_df_error_concat['Methodology'] = aux_df_error_concat['Methodology'].apply(lambda x: x.replace(f' {metric}', ''))
+        aux_df_auc_concat['Methodology'] = aux_df_auc_concat['Methodology'].apply(lambda x: x.replace(f' {metric}', ''))
+
+        # Remake the color mapping for the concatenated dataframes
+        color_mapping_error = {
+            method: color for method, color in zip(
+                aux_df_error_concat['Methodology'].unique(), 
+                sns.color_palette(palette_colour, 
+                n_colors=aux_df_error_concat['Methodology'].nunique())
+            )
+        }
+        color_mapping_auc = {
+            method: color for method, color in zip(
+                aux_df_auc_concat['Methodology'].unique(), 
+                sns.color_palette(palette_colour, 
+                n_colors=aux_df_auc_concat['Methodology'].nunique())
+            )
+        }
+
+        for plot_type in ['boxplot', 'violin']:
+            plt.close('all')
+            fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(15, 10))
+
+            for plot, ax in zip(['RMSE', 'AUC'], [ax1, ax2]):
+                data = aux_df_error_concat if plot == 'RMSE' else aux_df_auc_concat
+                color_mapping = color_mapping_error if plot == 'RMSE' else color_mapping_auc
+
+                if plot_type == 'boxplot':
+                    sns.boxplot(
+                        data=data, 
+                        x='Methodology', 
+                        y=plot, 
+                        palette=color_mapping,
+                        showfliers=False,
+                        ax=ax
+                    )
+                else:
+                    sns.violinplot(
+                        data=data, 
+                        x='Methodology', 
+                        y=plot, 
+                        palette=color_mapping,
+                        ax=ax
+                    )
+
+                if plot == 'RMSE':
+                    ax.axhline(mean_rmse, color='red', linestyle='--', label='Mean RMSE')
+                else: # Is AUC
+                    ax.axhline(mean_auc, color='blue', linestyle='--', label='Mean AUC')
+
+                # Add minor grid lines
+                ax.grid(True)
+                ax.minorticks_on()
+                ax.grid(which='minor', linestyle=':', linewidth='0.2', color='darkgray')
+
+                # Get the positions of the boxes
+                box_positions = range(len(data['Methodology'].unique()))
+
+                # Highlight the Raw Scoring Function methodology
+                if 'Raw Scoring Function' in data['Methodology'].unique():
+                    method_pos = data['Methodology'].unique().tolist().index('Raw Scoring Function')
+                    ax.axvspan(method_pos - 0.5, method_pos + 0.5, color='cyan', alpha=0.3)
+
+                # Add shaded areas for methodologies that start with NN, XGB, and Transformer
+                nn_methods = [method for method in data['Methodology'].unique() if method.startswith('NN')]
+                xgb_methods = [method for method in data['Methodology'].unique() if method.startswith('XGB')]
+                transformer_methods = [method for method in data['Methodology'].unique() if method.startswith('Transformer')]
+
+                for method_group, color in zip([nn_methods, xgb_methods, transformer_methods], ['lightblue', 'lightgreen', 'lightcoral']):
+                    for method in method_group:
+                        method_pos = data['Methodology'].unique().tolist().index(method)
+                        ax.axvspan(method_pos - 0.5, method_pos + 0.5, color=color, alpha=0.3)
+                
+                # Add the legend to the entire figure
+                ax.legend()
+
+            fig.suptitle(f'{aux_metric} for the {n_trials} best training results', fontsize=16)
+            plt.setp(ax1.xaxis.get_majorticklabels(), rotation=90)
+            plt.setp(ax2.xaxis.get_majorticklabels(), rotation=90)
+            plt.tight_layout()
+            plt.savefig(f'plots/Experiments_{plot_type}_{aux_metric}_{n_trials}.png', bbox_inches='tight')
+
+    plt.close('all')
 
 def plot_boxplot_violinplot(df_error_concat: pd.DataFrame, df_auc_concat: pd.DataFrame, n_trials: int, palette_colour: str) -> None:
     # Set the font size
@@ -950,6 +1131,7 @@ for n_trials in [1, 5, 10, 50, 100, 500]: # TODO: Check the behaviour for 50, 10
     print("Plotting the scatterplot to allow visual comparison of the methodologies for AUC and RMSE")
 
     plot_scatterplot(best_rmse_df_filtered, best_auc_df_filtered, best_combined_df_filtered, n_trials, color_mapping, min_auc, max_auc, min_error, max_error, error_range, auc_range, alpha = 0.9)
+    plot_single_scatterplot(best_combined_df_filtered, n_trials, color_mapping, min_auc, max_auc, min_error, max_error, error_range, auc_range, alpha = 0.9)
 
     print("Processing the dataframes to create some plots.")
 
@@ -957,8 +1139,9 @@ for n_trials in [1, 5, 10, 50, 100, 500]: # TODO: Check the behaviour for 50, 10
     
     print(f"Plotting the barplot and violinplot to allow visual comparison of the methodologies for AUC and RMSE")
 
-    plot_boxplot_violinplot(df_error_concat, df_auc_concat, n_trials, palette_colour = palette_colour)
-
+    #plot_boxplot_violinplot(df_error_concat, df_auc_concat, n_trials, palette_colour = palette_colour)
+    plot_boxplot_violinplot_clean(df_error_concat, df_auc_concat, n_trials, palette_colour = palette_colour, mean_rmse = final_metrics[final_metrics['study_name'] == 'mean']['RMSE'].iloc[0], mean_auc = final_metrics[final_metrics['study_name'] == 'mean']['AUC'].iloc[0])
+    
     print("Plotting the RMSE, AUC, and combined metric barplots...")
 
     plot_barplots(best_rmse_df_filtered, best_auc_df_filtered, best_combined_df_filtered, n_trials, color_mapping)
