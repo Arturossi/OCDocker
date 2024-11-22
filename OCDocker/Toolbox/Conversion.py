@@ -177,10 +177,12 @@ def convertMols(input_file: str, output_file: str) -> Union[int, str]:
         obConversion.SetInAndOutFormats(inExtension, outExtension)
         # Create an empty OBMol object
         mol = openbabel.OBMol()
-        # Remove the molecule title
-        mol.DeleteData("TITLE")
         # Load the input file to the prebiusly loaded OBMol object
         obConversion.ReadFile(mol, input_file)
+        # Clear the molecule title
+        mol.SetTitle("")
+        # Remove the molecule title
+        mol.DeleteData("TITLE")
         # Write the mol object to the output performing the conversion
         obConversion.WriteFile(mol, output_file)
     except Exception as e:
