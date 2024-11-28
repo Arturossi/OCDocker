@@ -122,7 +122,7 @@ def convertMolsFromString(input: str, output: str, mol: Union[rdkit.Chem.rdchem.
 
     return ocerror.Error.ok() # type: ignore
 
-def convertMols(input_file: str, output_file: str) -> Union[int, str]:
+def convertMols(input_file: str, output_file: str, return_molecule: bool = False) -> Union[int, str, rdkit.Chem.rdchem.Mol]: # type: ignore
     '''Convert a molecule file between two extensions which obabel supports.
 
     Parameters
@@ -131,10 +131,12 @@ def convertMols(input_file: str, output_file: str) -> Union[int, str]:
         Input file path.
     output_file : str
         Output file path.
+    return_molecule : bool
+        If True, returns the molecule object. (default is False)
 
     Returns
     -------
-    int | str
+    int | str | rdkit.Chem.rdchem.Mol
         The exit code of the command (based on the Error.py code table) if fails or the extension of the input file otherwise.
     '''
 
@@ -185,6 +187,11 @@ def convertMols(input_file: str, output_file: str) -> Union[int, str]:
         mol.DeleteData("TITLE")
         # Write the mol object to the output performing the conversion
         obConversion.WriteFile(mol, output_file)
+
+        # If return_molecule is True
+        if return_molecule:
+            # Return the molecule object
+            return mol
     except Exception as e:
         return ocerror.Error.subprocess(message=f"Error while running molecule conversion from {inExtension} to {outExtension} using obabel python lib. Error: {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
     return ocerror.Error.ok() # type: ignore

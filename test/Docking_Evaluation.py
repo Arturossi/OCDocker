@@ -509,8 +509,8 @@ def plot_single_scatterplot(best_combined_df_filtered, n_trials, color_mapping, 
     plt.figlegend(handles=color_handles, labels=color_labels, loc='lower center', bbox_to_anchor=(0.5, 0.02), ncol=4, title='Methodology')
 
     # Adjust layout to accommodate legend spacing
-    plt.tight_layout(rect=[0, 0.2, 1, 1])
-
+    plt.tight_layout(rect=[0, 0.25, 1, 1])
+    
     # Save the plot
     plt.savefig(f'plots/Experiments_Smallest_Error_AUC_{n_trials}.png', bbox_inches='tight', dpi=300)
     plt.close('all')
