@@ -122,7 +122,7 @@ def convertMolsFromString(input: str, output: str, mol: Union[rdkit.Chem.rdchem.
 
     return ocerror.Error.ok() # type: ignore
 
-def convertMols(input_file: str, output_file: str, return_molecule: bool = False) -> Union[int, str, rdkit.Chem.rdchem.Mol]: # type: ignore
+def convertMols(input_file: str, output_file: str, return_molecule: bool = False, overwrite: bool = False) -> Union[int, str, rdkit.Chem.rdchem.Mol]: # type: ignore
     '''Convert a molecule file between two extensions which obabel supports.
 
     Parameters
@@ -133,6 +133,8 @@ def convertMols(input_file: str, output_file: str, return_molecule: bool = False
         Output file path.
     return_molecule : bool
         If True, returns the molecule object. (default is False)
+    overwrite : bool, optional
+        If True, overwrites the output file if it already exists. (default is False)
 
     Returns
     -------
@@ -160,7 +162,7 @@ def convertMols(input_file: str, output_file: str, return_molecule: bool = False
         return outExtension
 
     # Check if the output exists, if so, no need to convert
-    if os.path.isfile(output_file):
+    if not overwrite and os.path.isfile(output_file):
         return ocerror.Error.file_exists(message=f"The file '{output_file}' already exists, aborting conversion.", level = ocerror.ReportLevel.WARNING) # type: ignore
 
     # Check if input is a smiles file
