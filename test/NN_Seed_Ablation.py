@@ -206,13 +206,17 @@ data = ocscoredata.load_data(
             random_seed = 42
         )
 
+X_train = ocscoredata.invert_values_conditionally(data['X_train'])
+X_test = ocscoredata.invert_values_conditionally(data['X_test'])
+X_val = ocscoredata.invert_values_conditionally(data['X_val'])
+
 # Perform the ablation
 perform_seed_ablation_study_NN(
-    data['X_train'], 
+    X_train, 
     data['y_train'], 
-    data['X_test'], 
+    X_test, 
     data['y_test'], 
-    data['X_val'], 
+    X_val, 
     data['y_val'], 
     1, 
     num_proc, 

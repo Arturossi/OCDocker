@@ -23,7 +23,7 @@ class Complexes(base):
         "oddt_": [f"rfscore_v{i}" for i in range(1, 4)] + ["PLECrf_p5_l1_s65536", "nnscore"]
     }
 
-    allDescriptors = [f"{desc_prefix}{i}".upper() for desc_prefix, desc_indices in descriptors_names.items() for i in desc_indices]
+    allDescriptors = [f"{desc_prefix}{i}".upper() for desc_prefix, desc_indices in descriptors_names.items() for i in desc_indices] + ["OCSCORE"]
 
 # Add columns for each descriptor
 Complexes.add_dynamic_columns(Complexes.allDescriptors)

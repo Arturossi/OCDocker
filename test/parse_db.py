@@ -18,7 +18,7 @@ storage: str = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@{ip}:{port}
 engine = sqlalchemy.create_engine(storage)
 
 # Read the complexes table where the ligand_id is tied to the id of the ligands table and the receptor_id is tied to the id of the receptors table and return all the columns from all the tables
-query = sqlalchemy.text("SELECT * FROM complexes JOIN ligands ON complexes.ligand_id = ligands.id JOIN receptors ON complexes.receptor_id = receptors.id")
+#query = sqlalchemy.text("SELECT * FROM complexes JOIN ligands ON complexes.ligand_id = ligands.id JOIN receptors ON complexes.receptor_id = receptors.id")
 
 query = sqlalchemy.text("""
     SELECT 
@@ -26,11 +26,11 @@ query = sqlalchemy.text("""
         ligands.name AS ligand_name, 
         receptors.name AS receptor_name, 
         complexes.*, 
-        ligands.*, 
-        receptors.*
+        receptors.*,
+        ligands.*
     FROM complexes
-    JOIN ligands ON complexes.ligand_id = ligands.id
-    JOIN receptors ON complexes.receptor_id = receptors.id;
+    JOIN receptors ON complexes.receptor_id = receptors.id
+    JOIN ligands ON complexes.ligand_id = ligands.id;
 """)
 
 with engine.connect() as connection:
