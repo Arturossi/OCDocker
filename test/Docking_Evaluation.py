@@ -1102,6 +1102,8 @@ storage = f"mysql+pymysql://{user}:{quote_plus(password)}@{host}:{port}/{db}"
 # Setup dirs
 setup_dirs()
 
+#n_trials = 10
+
 for n_trials in [1, 5, 10, 50, 100, 500]: # TODO: Check the behaviour for 50, 100, and 500 trials (it is strange)
     print(f"Recovering the indexes for the NN-AE and XGB-GA methodologies for {n_trials} trials.")
     nn_ae_start, nn_ae_end, xgb_ga_start, xgb_ga_end = get_ae_xgb_indices(nn_len, xgb_len, n_trials)

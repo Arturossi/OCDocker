@@ -26,7 +26,7 @@ base_models_folder: str = f"{base_path}/models"
 
 num_proc = 8
 
-max_seed = 2000
+max_seed = 1000
 
 # WARNING: Only set this to True if NO machine is running the same study, otherwise you might end up with duplicate evaluations
 filter_completed_jobs = True
@@ -34,7 +34,7 @@ filter_completed_jobs = True
 # Id of the machine running the study
 machine_id = 1
 # Number of machines running the study (for splitting the masks)
-num_machines = 4
+num_machines = 2
 
 # Set the study data here (Currently only for NN ablations)
 study_number = 7
@@ -135,7 +135,7 @@ _, df, score_columns = ocscoredata.preprocess_df(df_path)
 
 # Drop the unecessary columns ignoring errors
 df = df.drop(
-        columns = ["receptor", "ligand", "name", "type", "db", "experimental"],
+        columns = ["receptor", "ligand", "name", "type", "db", "experimental", "OCSCORE"],
         errors = "ignore"
     )
 
@@ -146,7 +146,7 @@ pre_seeds = list(range(1, max_seed))
 if filter_completed_jobs:
     # Try to load the study to check which masks have already been evaluated
     try:
-        study_name = f"NN_Seed_Ablation_Optimization_1"
+        study_name = f"NN_Seed_Ablation_Optimization_2"
         study = optuna.load_study(study_name = study_name, storage = storage)
 
         # Filter the trials to only include the ones that are complete
@@ -175,7 +175,7 @@ else:
     # Check if any study for this chunk has already been processed
     try:
         # Try to load the study to check which seeds have already been evaluated
-        study = optuna.load_study(study_name = f"NN_Seed_Ablation_Optimization_1", storage = storage)
+        study = optuna.load_study(study_name = f"NN_Seed_Ablation_Optimization_2", storage = storage)
 
         # Filter the trials to only include the ones that are complete
         trials = study.trials_dataframe()
@@ -218,7 +218,7 @@ perform_seed_ablation_study_NN(
     data['y_test'], 
     X_val, 
     data['y_val'], 
-    1, 
+    2, 
     num_proc, 
     autoencoder_params, 
     best_nn_params, 

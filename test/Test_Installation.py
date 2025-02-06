@@ -99,7 +99,7 @@ class TestOCDockerPipeline(unittest.TestCase):
         Create a receptor object.
         '''
 
-        receptor = ocr.Receptor(f"{self.baseProtPath}/receptor.pdb", relativeASAcutoff=0.7, name=f"{self.ptn}")
+        receptor = ocr.Receptor(f"{self.baseProtPath}/receptor.pdb", name=f"{self.ptn}")
 
         # Assert that the receptor object is created
         self.assertIsNotNone(receptor, "Failed to create receptor object.")

@@ -15,6 +15,7 @@
 - Fix the log generation, sometimes the logs can reach 100mb. | 1
 - Make a base docking class where other docking classes can inherit shared methods (such as all vina-based programs) | 1
 - Implement the new docking software | 1
+- Update the pipeline, removing MGLtools and adding ADFR, also allowing the user to prepare the input with obabel (maybe it is interesting allowing obabel) | 1
 
 ### 2
 - GNINA don't work with nohup, maybe it has something to do with GPU visibility. | 2

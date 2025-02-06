@@ -39,7 +39,7 @@ df_path: str = f"{base_path}/OCDocker.csv.gz"
 base_models_folder: str = f"{base_path}/models"
 
 study_name = f"NN_Ablation_Optimization_1"
-study_name = f"NN_Seed_Ablation_Optimization_1"
+study_name = f"NN_Seed_Ablation_Optimization_2"
 study = optuna.load_study(study_name = study_name, storage = storage)
 
 # Filter the trials to only include the ones that are complete
@@ -1124,7 +1124,7 @@ print('Running Elbow Method...')
 wcss = run_elbow(normalized_features, max_clusters=10, plot=True)
 
 # Set the optimal number of clusters based on the elbow method
-optimal_clusters = 2
+optimal_clusters = 3
 
 print('Running K-Means Clustering...')
 k_means_corr = run_kmeans(normalized_features, optimal_clusters=optimal_clusters)
@@ -1188,3 +1188,25 @@ print('Analyzing the impact of the number of features turned on...')
 feature_effects = analyze_feature_effects(features, feature_columns=features_names)
 
 print('Done!')
+
+# Make pearson correlation results for the data df, columns user_attrs_pr_auc and user_attrs_AUC
+corr, p_value = pearsonr(data['user_attrs_pr_auc'], data['user_attrs_AUC'])
+
+# Print the results
+print(f"Pearson correlation: {corr}")
+print(f"P-value: {p_value}")
+
+# Make spearman correlation results for the data df, columns user_attrs_pr_auc and user_attrs_AUC
+corr, p_value = spearmanr(data['user_attrs_pr_auc'], data['user_attrs_AUC'])
+
+# Print the results
+print(f"Spearman correlation: {corr}")
+print(f"P-value: {p_value}")
+
+# Make kendall correlation results for the data df, columns user_attrs_pr_auc and user_attrs_AUC
+corr, p_value = kendalltau(data['user_attrs_pr_auc'], data['user_attrs_AUC'])
+
+# Print the results
+print(f"Kendall correlation: {corr}")
+print(f"P-value: {p_value}")
+
