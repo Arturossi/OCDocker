@@ -19,7 +19,6 @@ output_level = ocerror.ReportLevel.NONE
 
 import OCDocker.Toolbox as octools
 
-import OCDocker.DB.Database as ocdatabase
 import OCDocker.DB.baseDB as ocbdb
 import OCDocker.DB.DUDEz as ocdudez
 import OCDocker.DB.PDBbind as ocpdbbind

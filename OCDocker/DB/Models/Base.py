@@ -1,5 +1,7 @@
 from sqlalchemy import Column, DateTime, Float, Index, Integer, String, func
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta
+from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import declared_attr
 from typing import Any, Dict, List, Union
 
@@ -53,7 +55,7 @@ class Base(declarative_base()):
         data = { k: v for k, v in cls.__dict__.items() if not k.startswith('_') }
 
         # Return the representation
-        return f"<{cls.__class__.__name__}({data})>"
+        return f"<{cls.__name__}({data})>"
     
     @classmethod
     def to_dict(cls) -> Dict[str, Any]:
@@ -65,8 +67,8 @@ class Base(declarative_base()):
             The object as a dictionary.
         '''
 
-        return {k: v for k, v in cls.__dict__.items() if not k.startswith('_')}
-
+        return {column.key: getattr(cls, column.key) for column in inspect(cls).attrs if not column.key.startswith("_")}
+    
     @classmethod
     def determine_column_type(cls, descriptor: str) -> Union[Integer, Float]:
         ''' Determine the type of column based on the descriptor. 
@@ -169,9 +171,11 @@ class Base(declarative_base()):
                 s.add(new_data)
                 # Commit the session
                 s.commit()
-            except:
+            except SQLAlchemyError as e:
                 # Rollback the session
                 s.rollback()
+                # Print the error
+                print(f"Error: {e}")
                 # Return False
                 return False
     
@@ -218,9 +222,11 @@ class Base(declarative_base()):
                         
                 # Commit the session
                 s.commit()
-            except:
+            except SQLAlchemyError as e:
                 # Rollback the session
                 s.rollback()
+                # Print the error
+                print(f"Error: {e}")
                 # Return False
                 return False
     
@@ -271,9 +277,11 @@ class Base(declarative_base()):
             
                 # Commit the session
                 s.commit()
-            except:
+            except SQLAlchemyError as e:
                 # Rollback the session
                 s.rollback()
+                # Print the error
+                print(f"Error: {e}")
                 # Return False
                 return False
     
@@ -324,9 +332,11 @@ class Base(declarative_base()):
             
                 # Commit the session
                 s.commit()
-            except:
+            except SQLAlchemyError as e:
                 # Rollback the session
                 s.rollback()
+                # Print the error
+                print(f"Error: {e}")
                 # Return False
                 return False
         

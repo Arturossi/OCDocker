@@ -300,7 +300,7 @@ class PLANTS:
             # Check if the dir is empty or no output file has been generated (the double of the number of cluster structures, being 2 for each structure)
             if len(os.listdir(runfolder)) == 0 or (len(glob(f"{runfolder}/{self.inputLigand.name}*.mol2")) < plants_cluster_structures * 2): # type: ignore
                 # Remove it
-                os.rmdir(runfolder)
+                os.rmdir(runfolder, ignore_errors = True)
 
         # Print verboosity
         ocprint.printv(f"Running PLANTS using the '{self.config}' configurations.")
@@ -961,7 +961,7 @@ def generate_plants_files_database(path: str, protein: str, ligand: str, spacing
     spacing : float
         The spacing between the box and the binding site.
     boxPath : str, optional
-        The path to the box file. If empty, it will try to look for a p2rank dir inside <path>.
+        The path to the box file. If empty, it will set as path + "/boxes"
 
     Returns
     -------
@@ -969,12 +969,14 @@ def generate_plants_files_database(path: str, protein: str, ligand: str, spacing
         The exit code of the command (based on the Error.py code table).
     '''
 
-    # Parameterize the PLANTS and p2rank paths
+    # Parameterize the PLANTS and paths
     plantsPath = f"{path}/plantsFiles"
+
     # Check if boxPath is an empty string
     if boxPath == "":
-      # Set is as the path + p2rank
-      boxPath = f"{path}/p2rank"
+      # Set is as the path + "/boxes"
+      boxPath = f"{path}/boxes"
+      
     # Create the PLANTS folder inside protein's directory
     _ = ocff.safe_create_dir(plantsPath)
 

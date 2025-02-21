@@ -54,7 +54,7 @@ class Ledock:
     """ Ledock object with methods for easy run. """
 
     def __init__(self, configPath: str, boxFile: str, receptor: ocr.Receptor, preparedReceptorPath: str, ligand: ocl.Ligand, preparedLigandPath: str, ledockLog: str, outputLedock: str, name: str = "", overwriteConfig: bool = False, spacing: float = 2.9) -> None:
-        '''Constructor of the class Vina.
+        '''Constructor of the class Ledock.
         
         Parameters
         ----------

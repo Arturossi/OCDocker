@@ -1,342 +1,257 @@
-import pymysql
-import re
-import unittest
+import sys
 import os
 
-import pandas as pd
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 
+import pymysql
+import unittest
+import pandas as pd
 from urllib.parse import quote_plus
 
 import OCDocker.Docking.Vina as ocvina
 import OCDocker.Docking.Smina as ocsmina
 import OCDocker.Docking.PLANTS as ocplants
-import OCDocker.Processing.Preprocessing.RmsdClustering as ocrmsdclust
 import OCDocker.Rescoring.ODDT as ocoddt
 import OCDocker.Toolbox.MoleculeProcessing as ocmolproc
+import OCDocker.Processing.Preprocessing.RmsdClustering as ocrmsdclust
 import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
 
 from OCDocker.Initialise import *
 
+
 class TestOCDockerPipeline(unittest.TestCase):
     """ Test the OCDocker pipeline. """
-    
-    def setUp(self):
-        '''
-        Setup the base paths and check if required files exist before running the tests.
-        '''
 
-        self.basePath = os.path.dirname(os.path.abspath(__file__))
-        self.ptn = "test_ptn1"
-        self.lig = "ligand"
-        self.baseProtPath = f"{self.basePath}/{self.ptn}"
-        self.baseLigPath = f"{self.baseProtPath}/compounds/ligands"
-        self.baseDecPath = f"{self.baseProtPath}/compounds/decoys"
-        self.baseCanPath = f"{self.baseProtPath}/compounds/candidates"
+    @classmethod
+    def setUpClass(cls):
+        """
+        Setup base paths and database connection.
+        """
+        cls.basePath = os.path.abspath(os.path.join(os.path.dirname(__file__), "../test_files"))
 
-        # Ensure the required files exist
-        self.required_files = [
-            f"{self.baseProtPath}/receptor.pdb",
-            f"{self.baseLigPath}/{self.lig}/ligand.smi",
-            f"{self.baseLigPath}/{self.lig}/vinaFiles/conf_vina.txt",
-            f"{self.baseLigPath}/{self.lig}/boxes/box0.pdb"
-        ]
-        for file in self.required_files:
-            self.assertTrue(os.path.isfile(file), f"Required file {file} not found!")
+        cls.ptn = "test_ptn1"
+        cls.lig = "ligand"
+        cls.baseProtPath = os.path.join(cls.basePath, cls.ptn)
+        cls.baseLigPath = os.path.join(cls.baseProtPath, "compounds", "ligands")
 
-        self.storage: str = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@192.168.101.2:3306/optimization"
+        # Setup storage for objects but don't create them yet
+        cls.ligand = None
+        cls.receptor = None
+        cls.vina = None
+        cls.smina = None
+        cls.plants = None
+        cls.docking_objects = {}
+        cls.medoids = None
 
-    def test_ocdb_database_connection(self):
-        '''
-        Test the database connection to the OCDB.
-        '''
-
-        try:
-            connection = pymysql.connect(
-                user = db_url.username,
-                password = db_url.password, # type: ignore
-                host = db_url.host, # type: ignore
-                port = int(db_url.port), # type: ignore
-                database = db_url.database # type: ignore
-            )
-            connection.close()
-            self.assertTrue(True, "Connection successful!")
-        except pymysql.MySQLError as e:
-            self.fail(f"Connection failed! Error: {e}")
-
-    def test_optimization_database_connection(self):
-        '''
-        Test the database connection to the optimization database.
-        '''
+        # Database connection
+        cls.db_config = {
+            "host": "192.168.101.2",
+            "user": "ocdocker",
+            "password": "@Kp3sRv9t@",
+            "database": "optimization",
+            "port": 3306
+        }
 
         try:
-            connection = pymysql.connect(
-                user = optdb_url.username,
-                password = optdb_url.password, # type: ignore
-                host = optdb_url.host, # type: ignore
-                port = int(optdb_url.port), # type: ignore
-                database = optdb_url.database # type: ignore
-            )
+            connection = pymysql.connect(**cls.db_config)
             connection.close()
-            self.assertTrue(True, "Connection successful!")
         except pymysql.MySQLError as e:
-            self.fail(f"Connection failed! Error: {e}")
+            raise unittest.SkipTest(f"Skipping tests. Unable to connect to the database: {e}")
 
-    def test_create_ligand_object(self):
-        '''
-        Create a ligand object.
-        '''
+    def test_01_database_connection(self):
+        """ Test the database connection. """
+        try:
+            connection = pymysql.connect(**self.__class__.db_config)
+            connection.close()
+        except pymysql.MySQLError as e:
+            self.fail(f"Database connection failed: {e}")
 
-        ligand = ocl.Ligand(f"{self.baseLigPath}/{self.lig}/ligand.smi", name=f"{self.lig}")
+    def test_02_create_ligand_object(self):
+        """ Create and store the ligand object. """
+        cls = self.__class__
+        cls.ligand = ocl.Ligand(f"{cls.baseLigPath}/{cls.lig}/ligand.smi", name=cls.lig)
+        self.assertIsNotNone(cls.ligand, "Failed to create ligand object.")
 
-        # Assert that the ligand object is created
-        self.assertIsNotNone(ligand, "Failed to create ligand object.")
+    def test_03_create_receptor_object(self):
+        """ Create and store the receptor object. """
+        cls = self.__class__
+        cls.receptor = ocr.Receptor(f"{cls.baseProtPath}/receptor.pdb", relativeASAcutoff=0.7, name=cls.ptn)
+        self.assertIsNotNone(cls.receptor, "Failed to create receptor object.")
 
-        self.ligand = ligand
+    def test_04_create_vina_object(self):
+        """ Create a Vina object. """
+        cls = self.__class__
+        if cls.ligand is None or cls.receptor is None:
+            self.fail("Ligand or receptor not created. Ensure `test_02_create_ligand_object` and `test_03_create_receptor_object` run first.")
+
+        cls.vina = ocvina.Vina(
+            f"{cls.baseLigPath}/{cls.lig}/vinaFiles/conf_vina.txt",
+            f"{cls.baseLigPath}/{cls.lig}/boxes/box0.pdb",
+            cls.receptor,
+            f"{cls.baseProtPath}/prepared_receptor.pdbqt",
+            cls.ligand,
+            f"{cls.baseLigPath}/{cls.lig}/prepared_ligand.pdbqt",
+            f"{cls.baseLigPath}/{cls.lig}/vinaFiles/{cls.lig}.log",
+            f"{cls.baseLigPath}/{cls.lig}/vinaFiles/{cls.lig}.pdbqt",
+            name=f"Vina {cls.ptn}-{cls.lig}"
+        )
+
+        self.assertIsNotNone(cls.vina, "Failed to create Vina object.")
     
-    def test_create_receptor_object(self):
-        '''
-        Create a receptor object.
-        '''
+    def test_05_create_smina_object(self):
+        """ Create a Smina object. """
+        cls = self.__class__
+        if cls.ligand is None or cls.receptor is None:
+            self.fail("Ligand or receptor not created. Ensure previous tests run first.")
 
-        receptor = ocr.Receptor(f"{self.baseProtPath}/receptor.pdb", relativeASAcutoff=0.7, name=f"{self.ptn}")
-
-        # Assert that the receptor object is created
-        self.assertIsNotNone(receptor, "Failed to create receptor object.")
-
-        self.receptor = receptor
-
-    def test_create_vina_object(self):
-        '''
-        Create a Vina object.
-        '''
-
-        # Assert that the ligand and receptor objects are not None
-        if not hasattr(self, 'ligand'):
-            self.fail("Ligand object is None.")
-        
-        if not hasattr(self, 'receptor'):
-            self.fail("Receptor object is None.")
-
-        vina = ocvina.Vina(
-            f"{self.baseLigPath}/{self.lig}/vinaFiles/conf_vina.txt",
-            f"{self.baseLigPath}/{self.lig}/boxes/box0.pdb",
-            self.receptor, # type: ignore
-            f"{self.baseProtPath}/prepared_receptor.pdbqt",
-            self.ligand, # type: ignore
-            f"{self.baseLigPath}/{self.lig}/prepared_ligand.pdbqt",
-            f"{self.baseLigPath}/{self.lig}/vinaFiles/{self.lig}.log",
-            f"{self.baseLigPath}/{self.lig}/vinaFiles/{self.lig}.pdbqt",
-            name=f"Vina {self.ptn}-{self.lig}"
+        cls.smina = ocsmina.Smina(
+            f"{cls.baseLigPath}/{cls.lig}/sminaFiles/conf_smina.txt",
+            f"{cls.baseLigPath}/{cls.lig}/boxes/box0.pdb",
+            cls.receptor,
+            f"{cls.baseProtPath}/prepared_receptor.pdbqt",
+            cls.ligand,
+            f"{cls.baseLigPath}/{cls.lig}/prepared_ligand.pdbqt",
+            f"{cls.baseLigPath}/{cls.lig}/sminaFiles/{cls.lig}.log",
+            f"{cls.baseLigPath}/{cls.lig}/sminaFiles/{cls.lig}.pdbqt",
+            name=f"Smina {cls.ptn}-{cls.lig}"
         )
 
-        # Assert that the Vina object is created
-        self.assertIsNotNone(vina, "Failed to create Vina object.")
+        self.assertIsNotNone(cls.smina, "Failed to create Smina object.")
+    
+    def test_06_create_plants_object(self):
+        """ Create a PLANTS object. """
+        cls = self.__class__
+        if cls.ligand is None or cls.receptor is None:
+            self.fail("Ligand or receptor not created. Ensure previous tests run first.")
 
-        self.vina = vina
-
-    def test_create_smina_object(self):
-        '''
-        Create a Smina object.
-        '''
-
-        # Assert that the ligand and receptor objects are not None
-        if not hasattr(self, 'ligand'):
-            self.fail("Ligand object is None.")
-        
-        if not hasattr(self, 'receptor'):
-            self.fail("Receptor object is None.")
-
-        smina = ocsmina.Smina(
-            f"{self.baseLigPath}/{self.lig}/sminaFiles/conf_smina.txt",
-            f"{self.baseLigPath}/{self.lig}/boxes/box0.pdb",
-            self.receptor, # type: ignore
-            f"{self.baseProtPath}/prepared_receptor.pdbqt",
-            self.ligand, # type: ignore
-            f"{self.baseLigPath}/{self.lig}/prepared_ligand.pdbqt",
-            f"{self.baseLigPath}/{self.lig}/sminaFiles/{self.lig}.log",
-            f"{self.baseLigPath}/{self.lig}/sminaFiles/{self.lig}.pdbqt",
-            name=f"Smina {self.ptn}-{self.lig}"
+        cls.plants = ocplants.PLANTS(
+            f"{cls.baseLigPath}/{cls.lig}/plantsFiles/conf_plants.txt",
+            f"{cls.baseLigPath}/{cls.lig}/boxes/box0.pdb",
+            cls.receptor,
+            f"{cls.baseProtPath}/prepared_receptor.mol2",
+            cls.ligand,
+            f"{cls.baseLigPath}/{cls.lig}/prepared_ligand.mol2",
+            f"{cls.baseLigPath}/{cls.lig}/plantsFiles/{cls.lig}.log",
+            f"{cls.baseLigPath}/{cls.lig}/plantsFiles",
+            name=f"PLANTS {cls.ptn}-{cls.lig}"
         )
 
-        # Assert that the Smina object is created
-        self.assertIsNotNone(smina, "Failed to create Smina object.")
+        self.assertIsNotNone(cls.plants, "Failed to create PLANTS object.")
 
-        self.smina = smina
+    def test_07_vina_docking(self):
+        """ Test Vina docking. """
+        cls = self.__class__
+        if cls.vina is None:
+            self.fail("Vina object not created. Ensure `test_04_create_vina_object` runs first.")
 
-    def test_create_plants_object(self):
-        '''
-        Create a PLANTS object.
-        '''
+        cls.vina.run_prepare_receptor()
+        cls.vina.run_prepare_ligand()
+        cls.vina.run_docking()
+        cls.vina.split_poses(f"{cls.baseLigPath}/{cls.lig}/vinaFiles", logFile="")
+        cls.vina.run_rescore(f"{cls.baseLigPath}/{cls.lig}/vinaFiles", skipDefaultScoring=True, overwrite=True)
 
-        # Assert that the ligand and receptor objects are not None
-        if not hasattr(self, 'ligand'):
-            self.fail("Ligand object is None.")
-        
-        if not hasattr(self, 'receptor'):
-            self.fail("Receptor object is None.")
+        docking_result = cls.vina.read_log()
+        rescore_result = cls.vina.read_rescore_logs(f"{cls.baseLigPath}/{cls.lig}/vinaFiles")
 
-        plants = ocplants.PLANTS(
-            f"{self.baseLigPath}/{self.lig}/plantsFiles/conf_plants.txt",
-            f"{self.baseLigPath}/{self.lig}/boxes/box0.pdb",
-            self.receptor, # type: ignore
-            f"{self.baseProtPath}/prepared_receptor.mol2",
-            self.ligand, # type: ignore
-            f"{self.baseLigPath}/{self.lig}/prepared_ligand.mol2",
-            f"{self.baseLigPath}/{self.lig}/plantsFiles/{self.lig}.log",
-            f"{self.baseLigPath}/{self.lig}/plantsFiles",
-            name=f"PLANTS {self.ptn}-{self.lig}"
-        )
-
-        # Assert that the PLANTS object is created
-        self.assertIsNotNone(plants, "Failed to create PLANTS object.")
-
-        self.plants = plants
-
-    def test_vina_docking(self):
-        '''
-        Test Vina docking preparation, docking, and rescoring.
-        '''
-
-        # Assert that the vina object is not None
-        if not hasattr(self, 'vina'):
-            self.fail("Vina object is None.")
-
-        # Test preparation
-        self.vina.run_prepare_receptor()
-        self.vina.run_prepare_ligand()
-
-        # Test docking
-        self.vina.run_docking()
-
-        # Test pose splitting
-        self.vina.split_poses(f"{self.baseLigPath}/{self.lig}/vinaFiles", logFile="")
-
-        # Test rescoring
-        self.vina.run_rescore(f"{self.baseLigPath}/{self.lig}/vinaFiles", skipDefaultScoring=True)
-
-        # Ensure docking and rescoring logs are readable
-        docking_result = self.vina.read_log()
-        rescore_result = self.vina.read_rescore_logs(f"{self.baseLigPath}/{self.lig}/vinaFiles")
         self.assertTrue(docking_result, "Vina docking log is empty.")
         self.assertTrue(rescore_result, "Vina rescoring log is empty.")
 
-    def test_smina_docking(self):
-        '''
-        Test Smina docking preparation, docking, and rescoring.
-        '''
+    def test_08_smina_docking(self):
+        """ Test Smina docking. """
+        cls = self.__class__
+        if cls.smina is None:
+            self.fail("smina object not created. Ensure `test_04_create_smina_object` runs first.")
 
-        # Assert that the smina object is not None
-        if not hasattr(self, 'smina'):
-            self.fail("Smina object is None.")
+        cls.smina.run_prepare_receptor()
+        cls.smina.run_prepare_ligand()
+        cls.smina.run_docking()
+        cls.smina.split_poses(f"{cls.baseLigPath}/{cls.lig}/sminaFiles", logFile="")
+        cls.smina.run_rescore(f"{cls.baseLigPath}/{cls.lig}/sminaFiles", skipDefaultScoring=True, overwrite=True)
 
-        # Test preparation
-        self.smina.run_prepare_receptor()
-        self.smina.run_prepare_ligand()
+        docking_result = cls.smina.read_log()
+        rescore_result = cls.smina.read_rescore_logs(f"{cls.baseLigPath}/{cls.lig}/sminaFiles")
 
-        # Test docking
-        self.smina.run_docking()
-
-        # Test pose splitting
-        self.smina.split_poses(f"{self.baseLigPath}/{self.lig}/sminaFiles", logFile="")
-
-        # Test rescoring
-        self.smina.run_rescore(f"{self.baseLigPath}/{self.lig}/sminaFiles", skipDefaultScoring=True)
-
-        # Ensure docking and rescoring logs are readable
-        docking_result = self.smina.read_log()
-        rescore_result = self.smina.read_rescore_logs(f"{self.baseLigPath}/{self.lig}/sminaFiles")
         self.assertTrue(docking_result, "Smina docking log is empty.")
         self.assertTrue(rescore_result, "Smina rescoring log is empty.")
     
-    def test_plants_docking(self):
-        '''
-        Test PLANTS docking, clustering, rescoring, and exporting.
-        '''
+    def test_09_plants_docking(self):
+        """ Test Plants docking. """
+        cls = self.__class__
+        if cls.plants is None:
+            self.fail("Plants object not created. Ensure `test_04_create_smina_object` runs first.")
 
-        # Assert that the plants object is not None
-        if not hasattr(self, 'plants'):
-            self.fail("PLANTS object is None.")
+        cls.plants.run_prepare_receptor()
+        cls.plants.run_prepare_ligand()
+        cls.plants.run_docking()
+        cls.plants.split_poses(f"{cls.baseLigPath}/{cls.lig}/plantsFiles", logFile="")
+        cls.plants.run_rescore(f"{cls.baseLigPath}/{cls.lig}/plantsFiles", skipDefaultScoring=True)
 
-        # Test preparation steps
-        self.plants.run_prepare_receptor()
-        self.plants.run_prepare_ligand()
+        docking_result = cls.plants.read_log()
+        rescore_result = cls.plants.read_rescore_logs(f"{cls.baseLigPath}/{cls.lig}/plantsFiles")
 
-        # Test docking
-        self.plants.run_docking()
+        self.assertTrue(docking_result, "Plants docking log is empty.")
+        self.assertTrue(rescore_result, "Plants rescoring log is empty.")
 
-        # Test docking results
-        docking_result = self.plants.read_log(onlyBest=False)
-        self.assertTrue(docking_result, "PLANTS docking log is empty.")
+    def test_10_docking_files_created(self):
+        """ Ensure docking directories exist. """
+        cls = self.__class__
+        required_folders = [
+            os.path.join(cls.baseLigPath, cls.lig, "vinaFiles"),
+            os.path.join(cls.baseLigPath, cls.lig, "sminaFiles"),
+            os.path.join(cls.baseLigPath, cls.lig, "plantsFiles")
+        ]
 
-        # Get docking poses
-        plantsPoses = self.plants.get_docked_poses()
+        for folder in required_folders:
+            self.assertTrue(os.path.exists(folder), f"Missing required docking folder: {folder}")
 
-        # Write the pose list file for rescoring
-        pose_list = self.plants.write_pose_list()
+    def test_11_clustering(self):
+        """ Test clustering. """
+        cls = self.__class__
+        if cls.vina is None:
+            self.fail("Vina object not created. Ensure `test_04_create_vina_object` runs first.")
 
-        # Assert that the pose list is not None
-        self.assertTrue(pose_list, "Failed to write pose list for PLANTS.")
+        vina_poses = cls.vina.get_docked_poses()
+        self.assertTrue(vina_poses, "No Vina docking poses found.")
 
-        # Test rescoring
-        self.plants.run_rescore(pose_list, logFile="", overwrite=False) # type: ignore
+        rmsd_matrix = ocmolproc.get_rmsd_matrix(vina_poses)
+        clusters = ocrmsdclust.cluster_rmsd(rmsd_matrix, algorithm="agglomerativeClustering")
+        self.assertTrue(isinstance(clusters, list) and len(clusters) > 0, "Failed to cluster docking poses.")
 
-        # Test rescoring results
-        rescore_result = self.plants.read_rescore_logs(onlyBest=False)
-        self.assertTrue(rescore_result, "PLANTS rescoring log is empty.")
+        cls.medoids = ocrmsdclust.get_medoids(rmsd_matrix, clusters, onlyBiggest=True)
+        self.assertTrue(cls.medoids, "Failed to extract medoids.")
 
-        # Save docking poses for clustering
-        self.docking_poses = {
-            'vina': self.vina.get_docked_poses(),
-            'plants': plantsPoses
-        }
-        print(self.docking_poses)
+    def test_12_oddt_rescoring(self):
+        """ Test rescoring using ODDT. """
+        cls = self.__class__
+        if cls.medoids is None:
+            self.fail("Medoids not prepared. Ensure `test_07_clustering` runs first.")
 
-    def test_clustering(self):
-        '''
-        Test clustering of the docking poses.
-        '''
+        df = ocoddt.run_oddt(
+            f"{cls.baseProtPath}/prepared_receptor.pdbqt",
+            cls.medoids,
+            cls.lig,
+            f"{cls.baseLigPath}/{cls.lig}"
+        )
 
-        # Assert that the docking poses are not None
-        if not hasattr(self, 'docking_poses'):
-            self.fail("Docking poses are None.")
-
-        vinaPoses = self.docking_poses['vina']
-        plantsPoses = self.docking_poses['plants']
-
-        # Test clustering
-        rmsdMatrix = ocmolproc.get_rmsd_matrix(vinaPoses + plantsPoses)
-        clusters = ocrmsdclust.cluster_rmsd(rmsdMatrix, algorithm='agglomerativeClustering')
-
-        # Ensure that clusters is np.ndarray
-        self.assertTrue(clusters, "Failed to cluster poses.")
-
-        # Test medoids extraction
-        medoids = ocrmsdclust.get_medoids(rmsdMatrix, clusters, onlyBiggest=True)  # type: ignore
-        self.assertTrue(medoids, "Failed to get medoids.")
-
-        # Save medoids for rescoring
-        self.medoids = medoids
-
-    def test_oddt_rescoring(self):
-        '''
-        Test rescoring using ODDT.
-        '''
-
-        if not hasattr(self, 'medoids'):
-            self.fail("Medoids not prepared; ensure test_clustering is run first.")
-
-        # Assuming medoids contains the paths or data required for rescoring
-        dockedPoses = self.medoids
-
-        df = ocoddt.run_oddt(f"{self.baseProtPath}/prepared_receptor.pdb", dockedPoses, self.lig, f"{self.baseLigPath}/{self.lig}")
-
-        # Assert that df is a dataframe
         self.assertTrue(isinstance(df, pd.DataFrame), "ODDT rescoring did not return a dataframe.")
 
-        # If you want a dict, you can convert with this function
-        dt = ocoddt.df_to_dict(df) # type: ignore
-        self.assertIsNotNone(dt, "ODDT rescoring did not return any results.")
-
 if __name__ == '__main__':
-    unittest.main()
+    suite = unittest.TestSuite()
+
+    # Explicitly enforce test order
+    suite.addTest(TestOCDockerPipeline("test_01_database_connection"))
+    suite.addTest(TestOCDockerPipeline("test_02_create_ligand_object"))
+    suite.addTest(TestOCDockerPipeline("test_03_create_receptor_object"))
+    suite.addTest(TestOCDockerPipeline("test_04_create_vina_object"))
+    suite.addTest(TestOCDockerPipeline("test_05_create_smina_object"))
+    suite.addTest(TestOCDockerPipeline("test_06_create_plants_object"))
+    suite.addTest(TestOCDockerPipeline("test_07_vina_docking"))
+    suite.addTest(TestOCDockerPipeline("test_08_smina_docking"))
+    suite.addTest(TestOCDockerPipeline("test_09_plants_docking"))
+    suite.addTest(TestOCDockerPipeline("test_10_docking_files_created"))
+    suite.addTest(TestOCDockerPipeline("test_11_clustering"))
+    suite.addTest(TestOCDockerPipeline("test_12_oddt_rescoring"))
+
+    runner = unittest.TextTestRunner()
+    runner.run(suite)

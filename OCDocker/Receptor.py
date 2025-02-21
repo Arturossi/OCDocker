@@ -56,6 +56,20 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 class Receptor:
     """Load and compute receptor descriptors."""
 
+    # Declare the amino acid count descriptors (relevant for receptors)
+    descriptors_names = {
+        "count": ["A", "R", "N", "D", "C", "Q", "E", "G", "H", "I", "L", "K", "M", "F", "P", "S", "T", "W", "Y", "V"]
+    }
+
+    # Declare single descriptors for receptor properties
+    single_descriptors = [
+        "TotalAALength", "AvgAALength", "countChain", "SASA", "DipoleMoment", "IsoelectricPoint",
+        "GRAVY", "Aromaticity", "InstabilityIndex"
+    ]
+
+    # Generate all descriptors dynamically
+    allDescriptors = [f"count{i}" for i in descriptors_names["count"]] + single_descriptors
+
     def __init__(self, structure: Union[str, Bio.PDB.Structure.Structure], name: str, mol2Path: str = "", cModel: str = "gasteiger", gravyScale: str = "KyteDoolitle", relativeASAcutoff: float = 0.7, from_json_descriptors: str = "", overwrite: bool = False, clean: bool = False) -> None:  # type: ignore
         '''Constructor of the class Receptor.
 
@@ -204,7 +218,7 @@ class Receptor:
             self.countP = self.__countAA["P"]
             self.countS = self.__countAA["S"]
             self.countT = self.__countAA["T"]
-            self.countW = self.__countAA["R"]
+            self.countW = self.__countAA["W"]
             self.countY = self.__countAA["Y"]
             self.countV = self.__countAA["V"]
 
@@ -233,52 +247,31 @@ class Receptor:
 
     ## Public ##
     def print_attributes(self) -> None:
-        '''Print the class attributes.
+        """Print all attributes of the receptor."""
+        
+        attributes = {
+            "Name": self.name,
+            "Structure path": self.path,
+            "mol2 path": self.mol2Path,
+            "Structure": self.structure,
+            "AA residues": self.residues,
+            "Total AA len": self.totalAALength,
+            "Average AA len": self.avgAALength,
+            "# of chains": self.countChain,
+            "SASA": self.sasa,
+            "Dipole Moment": self.dipoleMoment,
+            "Isoelectric Point": self.isoelectricPoint,
+            "GRAVY": self.GRAVY,
+            "Aromaticity": self.aromaticity,
+            "Instability Index": self.instabilityIndex
+        }
 
-        Parameters
-        ----------
-        None
+        for aa in self.descriptors_names["count"]:
+            attributes[f"# of accessible {aa}"] = getattr(self, f"count{aa}", 0)
 
-        Returns
-        -------
-        None
-        '''
-
-        print(f"Name:                 '{self.name if self.name else '-' }'")
-        print(f"Structure path:       '{self.path if self.path else '-' }'")
-        print(f"mol2 path:            '{self.mol2Path if self.mol2Path else '-' }'")
-        print(f"Structure:            '{self.structure if self.structure else '-' }'")
-        print(f"AA residues:          '{self.residues if self.residues else '-' }'")
-        print(f"Total AA len:         '{self.totalAALength if self.totalAALength else '0' }'")
-        print(f"Average AA len:       '{self.avgAALength if self.avgAALength else '0' }'")
-        print(f"# of chains:          '{self.countChain if self.countChain else '0' }'")
-        print(f"SASA:                 '{self.sasa if self.sasa else '0.0' }'")
-        print(f"Dipole Moment:        '{self.dipoleMoment if self.dipoleMoment else '-' }'")
-        print(f"Isoelectric Point:    '{self.isoelectricPoint if self.isoelectricPoint else '-' }'")
-        print(f"GRAVY:                '{self.GRAVY if self.GRAVY else '-' }'")
-        print(f"Aromaticity:          '{self.aromaticity if self.aromaticity else '-' }'")
-        print(f"Instability Index:    '{self.instabilityIndex if self.instabilityIndex else '-' }'")
-        print(f"# of accessible A:    '{self.countA if self.countA else '0' }'")
-        print(f"# of accessible R:    '{self.countR if self.countR else '0' }'")
-        print(f"# of accessible N:    '{self.countN if self.countN else '0' }'")
-        print(f"# of accessible D:    '{self.countD if self.countD else '0' }'")
-        print(f"# of accessible C:    '{self.countC if self.countC else '0' }'")
-        print(f"# of accessible Q:    '{self.countQ if self.countQ else '0' }'")
-        print(f"# of accessible E:    '{self.countE if self.countE else '0' }'")
-        print(f"# of accessible G:    '{self.countG if self.countG else '0' }'")
-        print(f"# of accessible H:    '{self.countH if self.countH else '0' }'")
-        print(f"# of accessible I:    '{self.countI if self.countI else '0' }'")
-        print(f"# of accessible L:    '{self.countL if self.countL else '0' }'")
-        print(f"# of accessible K:    '{self.countK if self.countK else '0' }'")
-        print(f"# of accessible M:    '{self.countM if self.countM else '0' }'")
-        print(f"# of accessible F:    '{self.countF if self.countF else '0' }'")
-        print(f"# of accessible P:    '{self.countP if self.countP else '0' }'")
-        print(f"# of accessible S:    '{self.countS if self.countS else '0' }'")
-        print(f"# of accessible T:    '{self.countT if self.countT else '0' }'")
-        print(f"# of accessible W:    '{self.countW if self.countW else '0' }'")
-        print(f"# of accessible Y:    '{self.countY if self.countY else '0' }'")
-        print(f"# of accessible V:    '{self.countV if self.countV else '0' }'")
-
+        for key, value in attributes.items():
+            print(f"{key}: {value if value else '-'}")
+    
     def get_descriptors(self)-> Dict[str, Union[float, int]]:
         '''Return the descriptors for the Receptor object.
 

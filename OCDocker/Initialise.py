@@ -52,7 +52,7 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 
 # Splash, version & clear tmp
 ###############################################################################
-ocVersion = "0.8.0"
+ocVersion = "0.9.0"
 
 description = tw.dedent("""\033[1;93m
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -275,23 +275,6 @@ def create_ocdocker_conf() -> None:
 
     answer = input(f"Path to the prepare_receptor4.py script from MGLTools. Default [{confPrepare_receptor}] (press enter to keep default): ")
     confPrepare_receptor = confPrepare_receptor if not answer else answer
-
-    #endregion
-
-    #region P2rank config
-    confPrank = "/mnt/e/Documents/OCDocker/software/search/p2rank_2.3/prank"
-    confP2rankBoxMaxCutoff = "0.5"
-    confP2RankPocketCutoff = "0.1"
-
-    print("\np2rank configuration")
-    answer = input(f"Path to the p2rank software. Default [{confPrank}] (press enter to keep default): ")
-    confPrank = confPrank if not answer else answer
-
-    answer = input(f"p2rank box max cutoff. Default [{confP2rankBoxMaxCutoff}] (press enter to keep default): ")
-    confP2rankBoxMaxCutoff = confP2rankBoxMaxCutoff if not answer else answer
-
-    answer = input(f"p2rank pocket cutoff. Default [{confP2RankPocketCutoff}] (press enter to keep default): ")
-    confP2RankPocketCutoff = confP2RankPocketCutoff if not answer else answer
 
     #endregion
 
@@ -664,17 +647,6 @@ prepare_ligand = """ + str(confPrepare_ligand) + """
 # prepare_receptor4 path
 prepare_receptor = """ + str(confPrepare_receptor) + """
 
-################# P2RANK PARAMETERS #################
-
-# P2Rank path
-prank = """ + str(confPrank) + """
-
-# p2rank box cutoff
-boxMaxCutoff = """ + str(confP2rankBoxMaxCutoff) + """
-
-# p2rank pocket cutoff
-pocketCutoff = """ + str(confP2RankPocketCutoff) + """
-
 ################## VINA PARAMETERS ##################
 
 # Vina path
@@ -1022,7 +994,6 @@ global pca_path
 global vina
 global vina_split
 global dock6
-global prank
 global smina
 global gnina
 global obabel
@@ -1031,10 +1002,6 @@ global dudez_download
 global pythonsh
 global prepare_ligand
 global prepare_receptor
-
-# p2rank parameters
-global p2rank_boxMaxCutoff
-global p2rank_pocketCutoff
 
 # Vina parameters
 global vina_scoring
@@ -1203,7 +1170,6 @@ def print_description() -> None:
 
     print(description)
     
-
 # Retrieve the paths from provided configuration file
 if (not config_file or not os.path.isfile(config_file)) and not os.path.isfile("OCDocker.cfg"):
     print("OCDocker configuration file has not been found in the provided path")
@@ -1265,12 +1231,6 @@ for line in open(config_file, 'r'): # type: ignore
         prepare_ligand = line.split("=")[1].strip()
     elif line.startswith("prepare_receptor ="):
         prepare_receptor = line.split("=")[1].strip()
-    elif line.startswith("prank ="):
-        prank = line.split("=")[1].strip()
-    elif line.startswith("boxMaxCutoff ="):
-        p2rank_boxMaxCutoff = float(line.split("=")[1].strip())
-    elif line.startswith("pocketCutoff ="):
-        p2rank_pocketCutoff = float(line.split("=")[1].strip())
     elif line.startswith("vina ="):
         vina = line.split("=")[1].strip()
     elif line.startswith("vina_split ="):
@@ -1441,10 +1401,7 @@ optdb_url = URL.create(
 )
 
 # Set the engine
-#engine = create_engine(db_url.render_as_string(hide_password=False))
-#optengine = create_engine(optdb_url.render_as_string(hide_password=False))  
 engine = create_engine(db_url)
-#optengine = create_engine(optdb_url)
 
 # Create the databases if it does not exist
 create_database_if_not_exists(engine.url)
