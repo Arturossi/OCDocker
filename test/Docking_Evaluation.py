@@ -1310,7 +1310,7 @@ best_ao_params = best_ao_study.best_params
 # TODO: Organize this
 
 # Imports
-from OCDocker.OCScore.DNN.AutoencoderOptimizer import Autoencoder, AutoencoderDataset, DataLoader
+from OCDocker.OCScore.Dimensionality.AutoencoderOptimizer import Autoencoder, AutoencoderDataset, DataLoader
 import math
 import torch
 import random

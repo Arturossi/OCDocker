@@ -27,7 +27,7 @@ import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
 import OCDocker.Docking.Vina as ocvina
 import OCDocker.Docking.Smina as ocsmina
-import OCDocker.Docking.Gnina as ocgnina
+import OCDocker.Docking.Future.Gnina as ocgnina
 import OCDocker.Docking.PLANTS as ocplants
 import OCDocker.Processing.Preprocessing.RmsdClustering as ocrmsdclust
 import OCDocker.Rescoring.ODDT as ocoddt

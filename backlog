@@ -7,8 +7,7 @@
 
 ## Log
 ### 0
-- Add a new blind docking protocol. Maybe using a function to correlate some characteristics of the ligand to the box size. | 0
-- Add integrity verification for all databases. | 0
+- Change the structure of initialise.py to multiple files to make it easier to maintain. |  0
 
 ### 1
 - Add routines to deal with xplor files, such as '/data/hd4tb/OCDocker/data/ocdb/PDBbind/1lrh/receptor.pdb' from pdbbind. | 1

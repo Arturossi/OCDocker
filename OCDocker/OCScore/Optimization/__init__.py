@@ -1,9 +1,9 @@
 """
-Optimization package for the optimization of the training of machine learning models.
+Optimization package that centralizes training routines and hyperparameter optimization strategies for machine learning models.
 
 Modules
 -------
-- DNN: Module for training deep neural networks.
-- Transformer: Module for training transformers.
-- XGBoost: Module for training XGBoost models.
+- DNN: Implements training and optimization pipelines for deep neural networks.
+- Transformer: Provides routines for configuring and training transformer-based architectures.
+- XGBoost: Contains utilities for the training and evaluation of XGBoost models with integrated hyperparameter search.
 """

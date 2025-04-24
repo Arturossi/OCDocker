@@ -15,12 +15,11 @@ import OCDocker.DB.PDBbind as ocpdbbind
 import os
 
 from glob import glob
-from typing import Dict, List, Union
+from typing import Dict, Union
 
 from OCDocker.Initialise import *
 
 import OCDocker.DB.baseDB as ocbdb
-import OCDocker.Processing.Preprocessing.p2rank as ocp2rank
 
 # License
 ###############################################################################
@@ -45,52 +44,6 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 ## Private ##
 
 ## Public ##
-def verify_integrity() -> None:
-    '''Verifies the integrity of the PDBbind database
-
-    Parameters
-    ----------
-    None
-
-    Returns
-    -------
-    None
-    '''
-
-    #ocbdb.verify_integrity(pdbbind_archive)
-    return None
-
-def convert_debug_to_production(chosenAlgorithm: str = "ac", strict: bool = False, removeDebug: bool = False) -> None:
-    '''Converts debug folders to production mode. It is required to choose an algorithm which will be used furtherly in the pipeline.
-
-    Parameters
-    ----------
-    chosenAlgorithm : str
-        The algorithm that will be used in the pipeline. It can be either "ac" or "p2rank".
-            AffinityPropagation: ap
-            AgglomerativeClustering: ac
-            Birch: bi
-            DBSCAN: db
-            KMeans:  km
-            MeanShift: ms
-            MiniBatchKMeans: mb
-            NoCluster: na
-            OPTICS: op
-            SpectralClustering: sc
-            Ward: wa
-    strict : bool
-        If True, it will only convert the folders that have the chosen algorithm. If False, it will convert all folders.
-    removeDebug : bool
-        If True, it will remove the debug folder after the conversion.
-
-    Returns
-    -------
-    None
-    '''
-
-    ocp2rank.convert_debug_to_production(pdbbind_archive, chosenAlgorithm = chosenAlgorithm, strict = strict, removeDebug = removeDebug)
-    return None
-
 def read_index() -> Union[Dict[str, Dict[str, Union[str, float]]], None]:
     '''Read the index file from pdbbind database and returns a list of dictionaries with the data.
 
@@ -160,21 +113,6 @@ def read_index() -> Union[Dict[str, Dict[str, Union[str, float]]], None]:
         # File does not exist, raise an error and return None
         _ = ocerror.Error.file_not_exist(f"The file {indexFile} does not exist. Please check if the PDBbind database is correctly installed.", level=ocerror.ReportLevel.WARNING)  # type: ignore
         return None
-
-def run_p2rank(overwrite: bool = False) -> None:
-    '''Runs P2Rank in the whole database.
-
-    Parameters
-    ----------
-    overwrite : bool, optional
-        If True, it will overwrite the results. If False, it will not run the P2Rank if the results already exist, by default False.
-
-    Returns
-    -------
-    None
-    '''
-
-    return ocbdb.run_p2rank("pdbbind", overwrite = overwrite)
 
 def run_gnina(overwrite: bool = False) -> int:
     '''Runs gnina in the whole database.
@@ -258,74 +196,3 @@ def prepare(overwrite: bool = False) -> None:
     '''
 
     return ocbdb.prepare("pdbbind", overwrite = overwrite)
-
-"""
-TODO: remove this function
-def read_logs(saveChunk: int = 100, overwrite: bool = False) -> Union[dict, None]:
-    '''Parse the database into multiple serializable objects.
-
-    Parameters
-    ----------
-    saveChunk : int, optional
-        The number of lines to save in each chunk, by default 100.
-    overwrite : bool, optional
-        If True, it will overwrite the results. If False, it will not run the preparation if the results already exist, by default False.
-
-    Returns
-    -------
-    dict | None
-        The parsed data.
-    '''
-
-    return ocbdb.read_logs("pdbbind", saveChunk = saveChunk, overwrite = overwrite)
-"""
-
-def generate_dock_result_csv(csv_path: str = "", log_dumps: Union[dict, None] = None) -> None:
-    '''Uses the structure from read_logs to generate an output for all docking softwares.
-
-    Parameters
-    ----------
-    csv_path : str, optional
-        The path to the output csv file. If not specified, it will use the default path, by default f"{parsed_archive}/PDBbind.csv".
-    log_dumps : dict, optional
-        The parsed data.
-
-    Returns
-    -------
-    None
-    '''
-
-    # Check if csv_path is empty
-    if csv_path == "":
-        # It is empty, use the default path
-        csv_path = f"{parsed_archive}/pdbbind.csv"
-
-    return ocbdb.generate_dock_result_csv("pdbbind", csv_path, log_dumps = log_dumps)
-
-"""
-TODO: remove this function
-def merge_descriptors_in_dataframe(readMode:str = "hdf5", saveMode: str = "hdf5", picklenize: bool = False, returnDf: bool = False, skipMergePicklePath: str = "", verboseOperations: bool = False) -> Union[dict, None]:
-    '''Reads all the descriptors jsons and return a dict.
-
-    Parameters
-    ----------
-    readMode : str, optional
-        The read mode for the descriptors. Can be "hdf5" or "csv", by default "hdf5".
-    saveMode : str, optional
-        The save mode for the descriptors. Can be "hdf5", "csv" or "", by default "hdf5". If empty, the dataframe will not be saved.
-    picklenize : bool, optional
-        If True, will save the dataframe as a pickle file in different steps during the execution. The default is False.
-    returnDf : bool, optional
-        If True, will return the dataframe. The default is False.
-    skipMergePicklePath : str, optional
-        The path to the pickle file with the dataframe. If empty, the dataframe will not be loaded from a pickle file. The default is "".
-
-    Returns
-    -------
-    dict | None
-        A dataframe with all the descriptors and affinity results or None if any error occur while reading the input file or if returnDf is set to false.
-    '''
-    
-    # Get the dataframe with descriptors and docking scores
-    return ocbdb.merge_descriptors_in_dataframe("pdbbind", readMode = readMode, saveMode = saveMode, picklenize = picklenize, returnDf = returnDf, skipMergePicklePath = skipMergePicklePath, verboseOperations = verboseOperations)
-"""

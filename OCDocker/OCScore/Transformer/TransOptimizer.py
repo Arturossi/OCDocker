@@ -322,7 +322,7 @@ class Transformer(nn.Module):
                 nn.utils.clip_grad_norm_(self.trans.parameters(), self.clip_grad) # Clip the gradients
                 self.optimizer.step()                                             # Update weights
 
-                running_loss += loss.item()
+                running_loss = running_loss + loss.item()
         
             # Set the model to evaluation mode
             self.trans.eval()
@@ -336,7 +336,7 @@ class Transformer(nn.Module):
                 for inputs, labels in test_loader:
                     predicted = self.trans(inputs)
                     loss = criterion(predicted, labels.view(-1, 1))
-                    running_loss += loss.item()
+                    running_loss = running_loss + loss.item()
                     
                     all_predictions.extend(predicted.cpu().numpy())
                     all_labels.extend(labels.cpu().numpy())
@@ -450,7 +450,7 @@ class TransOptimizer:
                 optimizer.step()
 
                 # Accumulate the loss
-                running_loss += loss.item()
+                running_loss = running_loss + loss.item()
 
             # Set the model to evaluation mode
             model.eval()
@@ -468,7 +468,7 @@ class TransOptimizer:
                 loss = criterion(predicted, labels.view_as(outputs))
 
                 # Accumulate the loss
-                running_loss += loss.item()
+                running_loss = running_loss + loss.item()
                 
                 # Append the predictions and the labels
                 all_predictions.extend(predicted.cpu().detach().numpy())

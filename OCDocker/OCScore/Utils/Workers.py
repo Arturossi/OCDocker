@@ -22,7 +22,7 @@ import numpy as np
 from optuna.samplers import TPESampler
 from typing import Any, Union
 
-from OCDocker.OCScore.DNN.AutoencoderOptimizer import AutoencoderOptimizer
+from OCDocker.OCScore.Dimensionality.AutoencoderOptimizer import AutoencoderOptimizer
 from OCDocker.OCScore.DNN.DNNOptimizer import DNNOptimizer
 from OCDocker.OCScore.Transformer.TransOptimizer import TransOptimizer
 from OCDocker.OCScore.XGBoost.XGBoostOptimizer import XGBoostOptimizer

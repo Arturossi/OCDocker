@@ -20,7 +20,7 @@ import torch.optim as optim
 
 from optuna.samplers import TPESampler
 from torch.utils.data import DataLoader, Dataset
-from typing import Union
+from typing import Any, Union
 
 import optuna
 import random
@@ -47,24 +47,97 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 ###############################################################################
 
 class AutoencoderDataset(Dataset):
-    def __init__(self, features):
+    """Dataset class for the Autoencoder. It is used to create the DataLoader for the training and testing of the Autoencoder.
+
+    Parameters
+    ----------
+    features : torch.Tensor
+        The features to be used in the Autoencoder. It should be a torch.Tensor of shape (n_samples, n_features).
+    """
+
+    def __init__(self, features: torch.Tensor) -> None:
+        '''Constructor for the AutoencoderDataset class. It is used to create the DataLoader for the training and testing of the Autoencoder.
+
+        Parameters
+        ----------
+        features : torch.Tensor
+            The features to be used in the Autoencoder. It should be a torch.Tensor of shape (n_samples, n_features).
+        '''
+
         self.features = features
     
-    def __len__(self):
+    def __len__(self) -> int:
+        '''Returns the length of the dataset. It is used by the DataLoader to know how many samples are in the dataset.
+
+        Returns
+        -------
+        int
+            The length of the dataset. It is used by the DataLoader to know how many samples are in the dataset.
+        '''
+
         return len(self.features)
     
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> tuple:
+        '''Returns the features and the target for the given index. It is used by the DataLoader to get the samples from the dataset.
+
+        Parameters
+        ----------
+        idx : int
+            The index of the sample to be returned.
+        Returns
+        -------
+        tuple
+            The features and the target for the given index. It is used by the DataLoader to get the samples from the dataset.
+        '''
+
         return self.features[idx], self.features[idx]
 
 class Autoencoder(nn.Module):
+    """Autoencoder class. It is used to create the Autoencoder model. It is a subclass of nn.Module.
+    It is used to create the Autoencoder model.
+    
+    Parameters
+    ----------
+    input_size : int
+        The size of the input. It should be a positive integer.
+    encoding_dim : list
+        The size of the encoding. It should be a list of integers.
+    encoder_activation_fn : list[tuple(nn.Module, dict[str, Any]]
+        The activation functions to be used in the encoder. It should be a list of tuples where each tuple will be the activation function and its parameters.
+    decoder_activation_fn : list[tuple(nn.Module, dict[str, Any]]
+        The activation functions to be used in the decoder. It should be a list of tuples where each tuple will be the activation function and its parameters.
+    decoding_dim : list
+        The size of the decoding. It should be a list of integers. 
+    device : torch.device, optional
+        The device to be used. It should be a torch.device. Default is torch.device("cpu").
+    """
+
     def __init__(self,
-                 input_size,
-                 encoding_dim,
-                 encoder_activation_fn,
-                 decoder_activation_fn,
-                 decoding_dim = None,
-                 device = torch.device("cpu")
-                ):
+                 input_size : int,
+                 encoding_dim : list,
+                 encoder_activation_fn : list[tuple[nn.Module, dict[str, Any]]],
+                 decoder_activation_fn : list[tuple[nn.Module, dict[str, Any]]],
+                 decoding_dim : list,
+                 device : torch.device = torch.device("cpu")
+                ) -> None:
+        ''' Constructor for the Autoencoder class. It is used to create the Autoencoder model.
+
+        Parameters
+        ----------
+        input_size : int
+            The size of the input. It should be a positive integer.
+        encoding_dim : list
+            The size of the encoding. It should be a list of integers.
+        encoder_activation_fn : list[tuple[nn.Module, dict[str, Any]]]
+            The activation functions to be used in the encoder. It should be a list of tuples where each tuple will be the activation function and its parameters.
+        decoder_activation_fn : list[tuple[nn.Module, dict[str, Any]]]
+            The activation functions to be used in the decoder. It should be a list of tuples where each tuple will be the activation function and its parameters.
+        decoding_dim : list
+            The size of the decoding. It should be a list of integers.
+        device : torch.device, optional
+            The device to be used. It should be a torch.device. Default is torch.device("cpu").
+        '''
+
         super(Autoencoder, self).__init__()
 
         self.device = device
@@ -109,10 +182,6 @@ class Autoencoder(nn.Module):
 
             # Create the encoder as a ModuleList
             self.encoder = nn.ModuleList(encoder_layers)
-
-            # Check if the decoding_dim is not None
-            if decoding_dim is None:
-                raise ValueError("If the encoding_dim has more than one element, then the decoding_dim should be a list as well.")
             
             # Create the decoder layers to be added to the ModuleList
             decoder_layers = []
@@ -158,7 +227,20 @@ class Autoencoder(nn.Module):
                 decoder_activation_fn.to(self.device)
             ).to(self.device)
     
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        '''Forward pass of the Autoencoder. It is used to pass the input through the encoder and decoder.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            The input to be passed through the Autoencoder. It should be a torch.Tensor of shape (n_samples, n_features).
+
+        Returns
+        -------
+        torch.Tensor
+            The output of the Autoencoder. It should be a torch.Tensor of shape (n_samples, n_features).
+        '''
+
         # If the encoder is an nn.Sequential
         if isinstance(self.encoder, nn.Sequential):
             # Add the encoder
@@ -179,19 +261,75 @@ class Autoencoder(nn.Module):
 
         return x
     
-    def get_encoder_topology(self):
+    def get_encoder_topology(self) -> list:
+        '''Get the topology of the encoder. It is used to get the layers of the encoder.
+        
+        Returns
+        -------
+        list
+            The topology of the encoder. It is used to get the layers of the encoder.
+        '''
+
         return ['Linear', 'BatchNorm1d']
 
-    def get_decoder_topology(self):
+    def get_decoder_topology(self) -> list:
+        '''Get the topology of the decoder. It is used to get the layers of the decoder.
+
+        Returns
+        -------
+        list
+            The topology of the decoder. It is used to get the layers of the decoder.
+        '''
+
         return ['Linear']
 
-    def get_encoder(self):
+    def get_encoder(self) -> nn.Module:
+        '''Get the encoder. It is used to get the encoder of the Autoencoder.
+
+        Returns
+        -------
+        nn.Module
+            The encoder of the Autoencoder. It is used to get the encoder of the Autoencoder.
+        '''
+
         return self.encoder
 
-    def get_decoder(self):
+    def get_decoder(self) -> nn.Module:
+        '''Get the decoder. It is used to get the decoder of the Autoencoder.
+
+        Returns
+        -------
+        nn.Module
+            The decoder of the Autoencoder. It is used to get the decoder of the Autoencoder.
+        '''
+
         return self.decoder
 
 class AutoencoderOptimizer:
+    """AutoencoderOptimizer class. It is used to optimize the Autoencoder using Optuna. It is used to create the AutoencoderOptimizer object.
+
+    Parameters
+    ----------
+    X_train : Union[np.ndarray, pd.DataFrame, pd.Series]
+        The training data to be used in the Autoencoder. It should be a numpy array, pandas DataFrame or pandas Series.
+    X_test : Union[np.ndarray, pd.DataFrame, pd.Series]
+        The testing data to be used in the Autoencoder. It should be a numpy array, pandas DataFrame or pandas Series.
+    X_validation : Union[None, Union[np.ndarray, pd.DataFrame, pd.Series]], optional
+        The validation data to be used in the Autoencoder. It should be a numpy array, pandas DataFrame or pandas Series. Default is None.
+    encoding_dims : tuple, optional
+        The dimensions of the encoding. It should be a tuple of two integers. Default is (16, 256).
+    storage : str, optional
+        The storage string for the study. It should be a string. Default is "sqlite:///autoencoder.db".
+    models_folder : str, optional
+        The folder where the models will be saved. It should be a string. Default is "./models/Autoencoder/".
+    random_seed : int, optional
+        The random seed to be used in the Autoencoder. It should be a positive integer. Default is 42.
+    use_gpu : bool, optional
+        If True, the Autoencoder will use the GPU. It should be a boolean. Default is True.
+    verbose : bool, optional
+        If True, the Autoencoder will print the training and testing information. It should be a boolean. Default is False.
+    """
+    
     def __init__(self, 
             X_train: Union[np.ndarray, pd.DataFrame, pd.Series],
             X_test: Union[np.ndarray, pd.DataFrame, pd.Series],
@@ -202,13 +340,41 @@ class AutoencoderOptimizer:
             random_seed = 42, 
             use_gpu = True,
             verbose = False
-        ):
+        ) -> None:
+        '''Constructor for the AutoencoderOptimizer class. It is used to create the AutoencoderOptimizer object.
 
+        Parameters
+        ----------
+        X_train : Union[np.ndarray, pd.DataFrame, pd.Series]
+            The training data to be used in the Autoencoder. It should be a numpy array, pandas DataFrame or pandas Series.
+        X_test : Union[np.ndarray, pd.DataFrame, pd.Series]
+            The testing data to be used in the Autoencoder. It should be a numpy array, pandas DataFrame or pandas Series.
+        X_validation : Union[None, Union[np.ndarray, pd.DataFrame, pd.Series]], optional
+            The validation data to be used in the Autoencoder. It should be a numpy array, pandas DataFrame or pandas Series. Default is None.
+        encoding_dims : tuple, optional
+            The dimensions of the encoding. It should be a tuple of two integers. Default is (16, 256).
+        storage : str, optional
+            The storage string for the study. It should be a string. Default is "sqlite:///autoencoder.db".
+        models_folder : str, optional
+            The folder where the models will be saved. It should be a string. Default is "./models/Autoencoder/".
+        random_seed : int, optional
+            The random seed to be used in the Autoencoder. It should be a positive integer. Default is 42.
+        use_gpu : bool, optional
+            If True, the Autoencoder will use the GPU. It should be a boolean. Default is True.
+        verbose : bool, optional
+            If True, the Autoencoder will print the training and testing information. It should be a boolean. Default is False.
+        '''
+
+        # Set the random seed
         self.random_seed = random_seed
-        
+
+        # Set the models folder
         self.models_folder = models_folder
+
+        # Set the gpu flag
         self.use_gpu = use_gpu
 
+        # Define all the random seeds
         self.set_random_seed()    
         
         # Convert the data do np.ndarray then to torch.Tensor
@@ -218,6 +384,7 @@ class AutoencoderOptimizer:
         self.X_test = torch.tensor(np.asarray(X_test), dtype=torch.float32).to(self.device)
         self.test_loader = None
 
+        # Only convert the validation data to torch.Tensor if it is not None
         if X_validation is not None:
             self.X_validation = torch.tensor(np.asarray(X_validation), dtype=torch.float32).to(self.device)
             self.validation_loader = None
@@ -225,66 +392,129 @@ class AutoencoderOptimizer:
             self.X_validation = None
             self.validation_loader = None
 
+        # Set the input size
         self.input_size = self.X_train.shape[1]
 
+        # Set the encoding dimensions
         self.encoding_dims = encoding_dims
 
+        # Set the verbose flag
         self.verbose = verbose
 
+        # Set the best rmse to infinity
         self.best_rmse = np.inf
 
         # Set the storage string for the study
         self.storage = storage
 
-        self.power_of_two_options = [2**i for i in range(4, 12)]  # 16, 32, 64, 128, 256
+        # Define the power of two options 
+        self.power_of_two_options = [2**i for i in range(4, 12)]  # 16, 32, 64, 128, 256, 512, 1024, 2048, 4096
 
+        # Define the activation functions and their names
         self.activation_functions = [nn.GELU, nn.LeakyReLU, nn.Mish, nn.ReLU, nn.SELU, nn.Identity]
         self.activation_functions_str = ['GELU', 'LeakyReLU', 'Mish', 'ReLU', 'SELU', 'Identity']
 
-    def set_random_seed(self):
+    def set_random_seed(self) -> None:
+        '''Set the random seed for the Autoencoder. It is used to set the random seed for the Autoencoder.'''
+
+        # Set the random seed for numpy and random
         np.random.seed(self.random_seed)
         random.seed(self.random_seed)
 
-        # Set the seed for CPU
-        torch.manual_seed(self.random_seed)
-
+        # If using GPU, set the seed for GPU as well
         if self.use_gpu and torch.cuda.is_available():
             self.device = torch.device('cuda')
             torch.cuda.manual_seed_all(self.random_seed)
         else:
             self.device = torch.device('cpu')
+
+        # Set the seed for CPU
+        torch.manual_seed(self.random_seed)
         
+        # This is not recommended for performance since it will disable the cudnn auto-tuner (reason why it is commented)
         #torch.backends.cudnn.enabled = False
+
+        # Set the backends for reproducibility
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
 
-    def train_autoencoder(self, model, optimizer, criterion, clip_grad, epochs, trial):
+    def train_autoencoder(self,
+                          model : nn.Module,
+                          optimizer : optim.Optimizer,
+                          criterion : nn.Module,
+                          clip_grad : float,
+                          epochs : int,
+                          trial : optuna.Trial
+                          ) -> tuple:
+        '''Train the Autoencoder. It is used to train the Autoencoder.
+
+        Parameters
+        ----------
+        model : nn.Module
+            The Autoencoder model to be trained. It should be a nn.Module.
+        optimizer : optim.Optimizer
+            The optimizer to be used in the Autoencoder. It should be a optim.Optimizer.
+        criterion : nn.Module
+            The loss function to be used in the Autoencoder. It should be a nn.Module.
+        clip_grad : float
+            The gradient clipping value to be used in the Autoencoder. It should be a float.
+        epochs : int
+            The number of epochs to be used in the Autoencoder. It should be a positive integer.
+        trial : optuna.Trial
+            The Optuna trial to be used in the Autoencoder. It should be a optuna.Trial.
+        
+        Returns
+        -------
+        tuple
+            The best validation and training RMSE. It is used to get the best validation and training RMSE.
+        '''
+
         # Set the best validation and training rmse to infinity
         best_validation_rmse = np.inf
         best_train_rmse = np.inf
-        # Set the epochs without improvement to 0
-        epochs_without_improvement = 0
-        # Set the early stopping patience as 20% of the epochs
-        early_stopping_patience = epochs // 20
 
+        # Set the model to training mode (this is important for some layers which behave differently during training and evaluation)
         model.train()
+
+        # Loop over the epochs
         for epoch in range(epochs):
+            # Print verbose information
             if self.verbose:
                 ocprint.printv(f"Epoch {epoch+1}/{epochs}")
 
+            # Set the running loss to 0.0 for this epoch
             running_loss = 0.0
 
+            # Loop over the training data
             for data, _ in self.train_loader: # type: ignore
+                # Check if the data is on the same device as the model
+                data = data.to(self.device)
+
+                # Zero the parameter gradients
                 optimizer.zero_grad()
+
+                # Forward pass
                 reconstruction = model(data)
+
+                # Compute the loss            
                 loss = criterion(reconstruction, data)
+
+                # Backward pass and optimization
                 loss.backward()
-                nn.utils.clip_grad_norm_(model.parameters(), clip_grad)  # Clip the gradients
+
+                # Clip the gradients
+                nn.utils.clip_grad_norm_(model.parameters(), clip_grad)
+
+                # Update the weights
                 optimizer.step()
 
-                running_loss += loss.item()
-            
+                # Update the running loss
+                running_loss = running_loss + loss.item()
+
+            # Compute the average loss
             average_loss = running_loss / len(self.train_loader) # type: ignore
+
+            # Compute the RMSE
             rmse = np.sqrt(average_loss)
 
             # Validation phase
@@ -301,44 +531,100 @@ class AutoencoderOptimizer:
                     best_train_rmse = rmse
                     best_validation_rmse = val_rmse
             
+            # Print some more verbose information
             if self.verbose:
                 ocprint.printv(f'Test Loss: {average_loss}')
                 ocprint.printv(f'Test RMSE: {rmse}')
 
+            # Report the intermediate value to Optuna
             trial.report(rmse, epoch)
 
             # Handle pruning based on the intermediate value.
             if trial.should_prune():
                 raise optuna.exceptions.TrialPruned()
             
-            return best_validation_rmse, best_train_rmse
+        return best_validation_rmse, best_train_rmse
 
-    def evaluate_autoencoder(self, model, criterion, loader = None):
+    def evaluate_autoencoder(self,
+                             model : nn.Module,
+                             criterion : nn.Module,
+                             loader : Union[None, DataLoader] = None
+                            ):
+        '''Evaluate the Autoencoder. It is used to evaluate the Autoencoder.
+
+        Parameters
+        ----------
+        model : nn.Module
+            The Autoencoder model to be evaluated. It should be a nn.Module.
+        criterion : nn.Module
+            The loss function to be used in the Autoencoder. It should be a nn.Module.
+        loader : Union[None, DataLoader], optional
+            The DataLoader to be used in the Autoencoder. It should be a DataLoader. Default is None.
+
+        Returns
+        -------
+        float
+            The RMSE of the Autoencoder. It is used to get the RMSE of the Autoencoder.
+        '''
+
+        # Set the random seed (this is done here because the user might want to just evaluate the model)
         self.set_random_seed()
+
+        # Set the model to evaluation mode (this is important for some layers which behave differently during training and evaluation)
         model.eval()
+
+        # Set the total loss to 0.0
         total_loss = 0
         
+        # If the loader is None, use the test_loader
         if loader is None:
             loader = self.test_loader
 
+        # Set the torch.no_grad() to avoid computing gradients
+        # This is important for the evaluation phase to save memory and computations
         with torch.no_grad():
+            # Loop over the data
             for data, _ in loader: # type: ignore
-                reconstruction = model(data)
-                loss = criterion(reconstruction, data)
-                total_loss += loss.item()
+                # Check if the data is on the same device as the model
+                data = data.to(self.device)
 
+                # Compute the reconstruction
+                reconstruction = model(data)
+
+                # Compute the loss
+                loss = criterion(reconstruction, data)
+
+                # Update the total loss
+                total_loss = total_loss + loss.item()
+
+        # Compute the average loss
         average_loss = total_loss / len(loader) # type: ignore
 
+        # Compute the RMSE
         rmse = np.sqrt(average_loss)
         
         return rmse
 
-    def objective(self, trial):
+    def objective(self, trial : optuna.Trial) -> float:
+        '''Objective function for the Optuna optimization. It is used to optimize the Autoencoder.
+
+        Parameters
+        ----------
+        trial : optuna.Trial
+            The Optuna trial to be used in the Autoencoder. It should be a optuna.Trial.
+        
+        Returns
+        -------
+        float
+            The RMSE of the Autoencoder. It is used to get the RMSE of the Autoencoder.
+        '''
+
+        # Set the random seed (for safety)
         self.set_random_seed()
         
+        # Suggest the learning rate, batch size, clip_grad, and epochs values
         lr = trial.suggest_float('lr', 1e-4, 1e-1)
         batch_size = trial.suggest_categorical('batch_size', [32, 64, 128, 256])
-        # Suggestions for clipping the gradients
         clip_grad = trial.suggest_float('clip_grad', 0.1, 1.0)
         epochs = trial.suggest_int('epochs', 20, 100)
 
@@ -405,6 +691,7 @@ class AutoencoderOptimizer:
         # Suggestions for the activation functions of the decoder
         decoder_activation_data = []
 
+        # For each layer in the encoder (same number of layers as the decoder)
         for i in range(len(encoder_hidden_layers)):
             activation_function_str = trial.suggest_categorical(f'activation_function_{i}_decoder', self.activation_functions_str)
             activation_function = self.activation_functions[self.activation_functions_str.index(activation_function_str)]
@@ -421,15 +708,24 @@ class AutoencoderOptimizer:
             else:
                 decoder_activation_data.append((activation_function, {}))
 
+        # Create the Autoencoder model
         model = Autoencoder(self.input_size, encoder_hidden_layers, encoder_activation_data, decoder_activation_data, decoder_hidden_layers, self.device).to(self.device)
 
-        # Choose the optimizer
+        # Suggest the optimizer and weight decay
         optimizer_name = trial.suggest_categorical('optimizer', ['Adam', 'RMSprop', 'SGD'])
         weight_decay = trial.suggest_float('weight_decay', 1e-6, 1e-3)
+
+        # Set the optimizer params
         optimizer = getattr(optim, optimizer_name)(model.parameters(), lr = lr, weight_decay = weight_decay)
 
+        # Set the criterion
         criterion = nn.MSELoss()
 
+        # Check if self.train_dataset and self.test_dataset are not None
+        if self.train_dataset is None or self.test_dataset is None:
+            raise ValueError("train_dataset and test_dataset must be set before calling the objective function.")
+
+        # Create the DataLoader for the training and testing datasets
         self.train_loader = DataLoader(
             dataset = self.train_dataset, 
             batch_size = batch_size, 
@@ -441,124 +737,77 @@ class AutoencoderOptimizer:
             batch_size = batch_size
         )
 
+        # If the validation dataset is not None, create the DataLoader for the validation dataset
         if self.validation_dataset is not None:
             self.validation_loader = DataLoader(
                 dataset = self.validation_dataset, 
                 batch_size = batch_size
             )
 
+        # Train the Autoencoder
         best_validation_rmse, best_train_rmse = self.train_autoencoder(model, optimizer, criterion, clip_grad, epochs, trial = trial) # type: ignore
 
+        # Evaluate the Autoencoder
         evaluate_rmse = self.evaluate_autoencoder(model, criterion)
 
+        # Set the improvement threshold
         improvement_threshold = 0.0 # 0% improvement (if is better than the best, it will be logged)
+
+        # Check if the best validation RMSE is better than the best RMSE with the improvement threshold
         is_promising = best_validation_rmse < self.best_rmse * (1 - improvement_threshold)
 
+        # If the model is promising
         if is_promising:
-            # Save the model
+            # Save the model (commented due to potential high disk usage)
             #torch.save(model.state_dict(), f'{self.models_folder}/autoencoder_{trial.number}.pt')
+            # Set its rmse
             self.best_rmse = best_validation_rmse
 
         return evaluate_rmse
+ 
+    def optimize(self,
+                 direction: str = "maximize",
+                 n_trials : int = 10,
+                 study_name : str = "NN_Optimization",
+                 load_if_exists : bool = True,
+                 sampler : optuna.samplers.BaseSampler = TPESampler(),
+                 n_jobs : int = 1
+                ) -> optuna.study.Study:
+        '''Optimize the Autoencoder. It is used to optimize the Autoencoder.
 
-    def objective_old(self, trial):
-        self.set_random_seed()
-        encoding_dim = trial.suggest_int('encoding_dim', self.encoding_dims[0], self.encoding_dims[1])
-        lr = trial.suggest_float('lr', 1e-4, 1e-1)
-        batch_size = trial.suggest_categorical('batch_size', [32, 64, 128, 256])
-        # Suggestions for clipping the gradients
-        clip_grad = trial.suggest_float('clip_grad', 0.1, 1.0)
-        epochs = trial.suggest_int('epochs', 20, 100)
-
-        activation_functions = [nn.GELU, nn.LeakyReLU, nn.Mish, nn.ReLU, nn.SELU, nn.Identity]
-        activation_functions_str = ['GELU', 'LeakyReLU', 'Mish', 'ReLU', 'SELU', 'Identity']
+        Parameters
+        ----------
+        direction : str, optional
+            The direction of the optimization. It should be a string. Default is "maximize".
+        n_trials : int, optional
+            The number of trials to be used in the Autoencoder. It should be a positive integer. Default is 10.
+        study_name : str, optional
+            The name of the study. It should be a string. Default is "NN_Optimization".
+        load_if_exists : bool, optional
+            If True, the study will be loaded if it exists. It should be a boolean. Default is True.
+        sampler : optuna.samplers.BaseSampler, optional
+            The sampler to be used in the Autoencoder. It should be a optuna.samplers.BaseSampler. Default is TPESampler().
+        n_jobs : int, optional
+            The number of jobs to be used in the Autoencoder. It should be a positive integer. Default is 1.
         
-        encoder_activation_str = trial.suggest_categorical('encoder_activation', activation_functions_str)
-
-        if encoder_activation_str == 'LeakyReLU':
-            pre_encoder_params = {
-                f'negative_slope_encoder': trial.suggest_float(f'negative_slope_encoder', 0.01, 0.5)
-            }
-            encoder_params = {k.replace('_encoder', ''): v for k, v in pre_encoder_params.items()}
-            encoder_activation_fn = activation_functions[activation_functions_str.index(encoder_activation_str)](**encoder_params)
-        elif encoder_activation_str == 'GELU':
-            pre_encoder_params = {
-                f'approximate_encoder': trial.suggest_categorical(f'approximate_encoder', ['none', 'tanh'])
-            }
-            encoder_params = {k.replace('_encoder', ''): v for k, v in pre_encoder_params.items()}
-            encoder_activation_fn = activation_functions[activation_functions_str.index(encoder_activation_str)](**encoder_params)
-        else:
-            encoder_activation_fn = activation_functions[activation_functions_str.index(encoder_activation_str)]()
-
-        decoder_activation_str = trial.suggest_categorical('decoder_activation', activation_functions_str)
-
-        if decoder_activation_str == 'LeakyReLU':
-            pre_decoder_params = {
-                f'negative_slope_decoder': trial.suggest_float(f'negative_slope_decoder', 0.01, 0.5)
-            }
-            decoder_params = {k.replace('_decoder', ''): v for k, v in pre_decoder_params.items()}
-            decoder_activation_fn = activation_functions[activation_functions_str.index(decoder_activation_str)](**decoder_params)
-        elif decoder_activation_str == 'GELU':
-            pre_decoder_params = {
-                f'approximate_decoder': trial.suggest_categorical(f'approximate_decoder', ['none', 'tanh'])
-            }
-            decoder_params = {k.replace('_decoder', ''): v for k, v in pre_decoder_params.items()}
-            decoder_activation_fn = activation_functions[activation_functions_str.index(decoder_activation_str)](**decoder_params)
-        else:
-            decoder_activation_fn = activation_functions[activation_functions_str.index(decoder_activation_str)]()
-
-        model = Autoencoder(self.input_size, encoding_dim, encoder_activation_fn, decoder_activation_fn).to(self.device)
-
-        # Choose the optimizer
-        optimizer_name = trial.suggest_categorical('optimizer', ['Adam', 'RMSprop', 'SGD'])
-        weight_decay = trial.suggest_float('weight_decay', 1e-6, 1e-3)
-        optimizer = getattr(optim, optimizer_name)(model.parameters(), lr = lr, weight_decay = weight_decay)
-
-        criterion = nn.MSELoss()
-
-        self.train_loader = DataLoader(
-            dataset = self.train_dataset, 
-            batch_size = batch_size, 
-            shuffle = True
-        )
-
-        self.test_loader = DataLoader(
-            dataset = self.test_dataset, 
-            batch_size = batch_size
-        )
-
-        if self.validation_dataset is not None:
-            self.validation_loader = DataLoader(
-                dataset = self.validation_dataset, 
-                batch_size = batch_size
-            )
-
-        best_validation_rmse, best_train_rmse = self.train_autoencoder(model, optimizer, criterion, clip_grad, epochs, trial = trial) # type: ignore
-
-        evaluate_rmse = self.evaluate_autoencoder(model, criterion)
-
-        improvement_threshold = 0.0 # 0% improvement (if is better than the best, it will be logged)
-        is_promising = best_validation_rmse < self.best_rmse * (1 - improvement_threshold)
-
-        if is_promising:
-            # Save the model
-            torch.save(model.state_dict(), f'{self.models_folder}/autoencoder_{trial.number}.pt')
-            self.best_rmse = best_validation_rmse
-
-        return evaluate_rmse
-    
-    def optimize(self, direction: str = "maximize", n_trials = 10, study_name = "NN_Optimization", load_if_exists = True, sampler: optuna.samplers.BaseSampler = TPESampler(), n_jobs = 1):
-        # Data preparation (example, replace with your actual data loading)
+        Returns
+        -------
+        optuna.study.Study
+            The Optuna study. It is used to get the study of the Autoencoder.
+        '''
+        
+        # Set the training and testing datasets
         self.train_dataset = AutoencoderDataset(self.X_train)
         self.test_dataset = AutoencoderDataset(self.X_test)
 
+        # Set the validation dataset if it is not None
         if self.X_validation is not None:
             self.validation_dataset = AutoencoderDataset(self.X_validation)
 
-        # Add a pruner
+        # Add a pruner (Optuna optimizations to kill unpromising trials)
         pruner = optuna.pruners.MedianPruner(
             n_startup_trials = n_trials // 10, # Start pruning after 10% of the trials
-            n_warmup_steps = 15,
+            n_warmup_steps = 15,               # After at least 15 epochs
         )
 
         # Create the study
@@ -574,6 +823,7 @@ class AutoencoderOptimizer:
         # Perform the optimization
         study.optimize(self.objective, n_trials = n_trials, n_jobs = n_jobs)
         
+        # If verbose, print the best trial data
         if self.verbose:
             ocprint.printv("Best trial:")
 

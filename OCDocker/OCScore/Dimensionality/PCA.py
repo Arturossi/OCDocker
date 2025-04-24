@@ -88,49 +88,50 @@ def run_pca(
     pca = PCA(n_components = variance)
 
     # Perform PCA on the all datasets
-    dudez_pca = pca.fit_transform(
-        dudez_data.drop(
-            columns = ['receptor', 'ligand', 'name', 'type', 'db'] + score_columns, 
-            errors = 'ignore'
-        )
-    )
     pdbbind_pca = pca.fit_transform(
         pdbbind_data.drop(
             columns = ['receptor', 'ligand', 'name', 'type', 'db', 'experimental'] + score_columns, 
             errors = 'ignore'
         )
     )
-
+    
     # Save the PCA object in pickle format (PDBbind only to be used later, since it is the dataset which will be used for the model)
     ocscoreio.save_object(pca, pca_file_path)
 
-    # Create a DataFrame with the PCA results for each dataset then add the score columns back
-    dudez_pca_df = pd.DataFrame(
-        data = dudez_pca, 
-        columns = [f'PC{i+1}' for i in range(dudez_pca.shape[1])]
-    )
-    pdbbind_pca_df = pd.DataFrame(
-        data = pdbbind_pca, 
-        columns = [f'PC{i+1}' for i in range(pdbbind_pca.shape[1])]
-    )
-
-    # Add the metadata columns back
-    dudez_pca_df = pd.concat(
-        [
-            dudez_data[score_columns + ['receptor', 'ligand', 'name', 'type', 'db']], 
-            dudez_pca_df
-        ], 
-        axis = 1
-    )
-    pdbbind_pca_df = pd.concat(
-        [
-            pdbbind_data[score_columns + ['receptor', 'ligand', 'name', 'type', 'db', 'experimental']], 
-            pdbbind_pca_df
-        ], 
-        axis = 1
-    )
-
     if verbose:
+        dudez_pca = pca.transform(
+            dudez_data.drop(
+                columns = ['receptor', 'ligand', 'name', 'type', 'db'] + score_columns, 
+                errors = 'ignore'
+            )
+        )
+
+        # Create a DataFrame with the PCA results for each dataset then add the score columns back
+        dudez_pca_df = pd.DataFrame(
+            data = dudez_pca, 
+            columns = [f'PC{i+1}' for i in range(dudez_pca.shape[1])]
+        )
+        pdbbind_pca_df = pd.DataFrame(
+            data = pdbbind_pca, 
+            columns = [f'PC{i+1}' for i in range(pdbbind_pca.shape[1])]
+        )
+
+        # Add the metadata columns back
+        dudez_pca_df = pd.concat(
+            [
+                dudez_data[score_columns + ['receptor', 'ligand', 'name', 'type', 'db']], 
+                dudez_pca_df
+            ], 
+            axis = 1
+        )
+        pdbbind_pca_df = pd.concat(
+            [
+                pdbbind_data[score_columns + ['receptor', 'ligand', 'name', 'type', 'db', 'experimental']], 
+                pdbbind_pca_df
+            ], 
+            axis = 1
+        )
+        
         # Check for NaNs in the PCA datasets
         ocprint.printv("==== NaNs in PCA datasets ====")
         ocprint.printv("--------------------------------")

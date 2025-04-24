@@ -20,7 +20,7 @@ import shutil
 
 import textwrap as tw
 
-import OCDocker.Constants as occ
+import OCDocker.Toolbox.Constants as occ
 import OCDocker.Error as ocerror
 from OCDocker.DB.DBMinimal import create_database_if_not_exists, create_engine, create_session
 

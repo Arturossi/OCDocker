@@ -56,36 +56,88 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 ###############################################################################
 
 class NeuralNet(nn.Module):
+    """ Neural Network class for the optimization of the neural network.
+
+    Parameters
+    ----------
+    input_size : int
+        Size of the input layer
+    output_size : int
+        Size of the output layer
+    encoder_params : Union[None, dict, tuple[dict, dict, dict]]
+        Parameters for the encoder
+    nn_params : dict
+        Parameters for the neural network
+    random_seed : int, optional
+        Random seed for the neural network, by default 42
+    use_gpu : bool, optional
+        Use GPU for the neural network, by default True
+    verbose : bool, optional
+        Verbose mode for the neural network, by default False
+    mask : Union[None, list[Union[int, bool]], np.ndarray], optional
+        Mask for the neural network, by default None
+    """
+
     def __init__(self, 
-            input_size, 
-            output_size, 
-            encoder_params,
-            nn_params,
-            random_seed = 42,
-            use_gpu = True,
-            verbose = False,
-            mask = []
-    ):
+            input_size : int,
+            output_size : int,
+            encoder_params : Union[None, dict, tuple[dict, dict, dict]],
+            nn_params : dict,
+            random_seed : int = 42,
+            use_gpu : bool = True,
+            verbose :bool = False,
+            mask : Union[None, list[Union[int, bool]], np.ndarray] = None
+            ) -> None:
+        '''Initialize the NeuralNet class
+
+        Parameters
+        ----------
+        input_size : int
+            Size of the input layer
+        output_size : int
+            Size of the output layer
+        encoder_params : Union[None, dict, tuple[dict, dict, dict]]
+            Parameters for the encoder
+        nn_params : dict
+            Parameters for the neural network
+        random_seed : int, optional
+            Random seed for the neural network, by default 42
+        use_gpu : bool, optional
+            Use GPU for the neural network, by default True
+        verbose : bool, optional
+            Verbose mode for the neural network, by default False
+        mask : Union[None, list[Union[int, bool]], np.ndarray], optional
+            Mask for the neural network, by default None
+        '''
+
+        # Call the parent constructor
         super(NeuralNet, self).__init__()
 
+        # Set the random seed
         self.random_seed = random_seed
+
+        # Set the gpu flag
         self.use_gpu = use_gpu
 
+        # Set the input size
         self.input_size = input_size
 
+        # Set the random seed to ensure reproducibility
         self.set_random_seed()
 
-        # Define the activation functions
+        # Define the activation functions and its string names
         self.activation_functions = [nn.GELU, nn.LeakyReLU, nn.Mish, nn.ReLU, nn.SELU, nn.Identity]
         self.activation_functions_str = ['GELU', 'LeakyReLU', 'Mish', 'ReLU', 'SELU', 'Identity']
         
+        # Define the optimizer functions and its string names
         self.optimizer_functions = [optim.Adam, optim.RMSprop, optim.SGD]
         self.optimizer_functions_str = ['Adam', 'RMSprop', 'SGD']
 
         # Define the input layer
         self.layers = nn.ModuleList()
 
-        self.mask = mask
+        # Set the mask
+        self.mask = mask if mask != None else []
 
         # Process the activation functions
         hidden_layers = []
@@ -122,7 +174,7 @@ class NeuralNet(nn.Module):
             # Convert the activation_data_dict to a list while keeping the order
             activation_data = [v for _, v in activation_data_dict.items()]
 
-        '''
+        ''' TODO: Remove this or fully implement it (preliminary test have shown that it does not produce good results, but further testing is advised)
         # If the encoder is instance of list (multi branch model)
         if isinstance(encoder_params, list):
             self.encoder = []
@@ -137,6 +189,7 @@ class NeuralNet(nn.Module):
             self.encoder = None
         '''
 
+        # If the encoder is instance of dict (single branch model)
         if encoder_params is not None:
             if isinstance(encoder_params, dict):
                 self.encoder = self.__build_encoder(encoder_params)
@@ -159,17 +212,20 @@ class NeuralNet(nn.Module):
             # Create the DynamicNN
             self.NN = DynamicNN(input_size, output_size, hidden_layers, activation_data, self.encoder, self.device, mask = self.mask)
 
+        # Set the parameters: batch size, epochs, learning rate, clip grad.
         self.batch_size = nn_params['batch_size']
         self.epochs = nn_params['epochs']
         self.lr = nn_params['lr']
         self.clip_grad = nn_params['clip_grad']
 
+        # Set the optimizer by searching in the optimizer_functions list at the same index as the optimizer_functions_str and then set the parameters of it
         self.optimizer = self.optimizer_functions[self.optimizer_functions_str.index(nn_params['optimizer'])](
             self.NN.parameters(),
             weight_decay = nn_params['weight_decay'], 
             lr = nn_params['lr']
         )
 
+        # Set the neural network parameters
         self.nn_params = nn_params
 
         # Set the AUC and rmse as nan
@@ -182,20 +238,37 @@ class NeuralNet(nn.Module):
         # Set the verbose flag
         self.verbose = verbose
 
+        # Since it is the instantiation of the class, set the prediction to None
         self.prediction = None
 
+        # If verbose is True, print the neural network
         if verbose:
             ocprint.printv(self.NN) # type: ignore
 
-    def __build_encoder(self, encoder_params):
+    def __build_encoder(self, encoder_params : dict) -> list:
+        ''' Build the encoder for the neural network
+        
+        Parameters
+        ----------
+        encoder_params : dict
+            Parameters for the encoder
+            
+        Returns
+        -------
+        list
+            List of tuples with the encoder layers
+        '''
+
         # If the encoder_params has the key 'encoder_activation'
         if 'encoder_activation' in encoder_params:
+            # Find which activation function to use and set the parameters accordingly
+            # If the activation function is LeakyReLU, set the negative_slope
             if encoder_params['encoder_activation'] == 'LeakyReLU':
                 encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])](negative_slope = encoder_params['negative_slope_encoder'])
-            
+            # If the activation function is GELU, set the approximate
             elif encoder_params['encoder_activation'] == 'GELU':
                 encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])](approximate = encoder_params['approximate_encoder'])
-            
+            # Otherwise, just set the activation function since it does not have any parameters to be set
             else:
                 encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])]()
 
@@ -240,7 +313,20 @@ class NeuralNet(nn.Module):
             
         return encoder
 
-    def __build_encoder_layer(self, encoder_params):
+    def __build_encoder_layer(self, encoder_params : dict) -> list:
+        ''' Build the encoder for the neural network
+
+        Parameters
+        ----------
+        encoder_params : dict
+            Parameters for the encoder
+        
+        Returns
+        -------
+        list
+            List of tuples with the encoder layers
+        '''
+
         # Create an empty list to store the encoder layers
         encoder_layer = []
 
@@ -280,24 +366,58 @@ class NeuralNet(nn.Module):
         # Otherwise, return the list
         return encoder_layer
 
-    def set_random_seed(self):
+    def set_random_seed(self) -> None:
+        '''Set the random seed for the Autoencoder. It is used to set the random seed for the Autoencoder.'''
+
+        # Set the random seed for numpy and random
         np.random.seed(self.random_seed)
         random.seed(self.random_seed)
 
-        # Set the seed for CPU
-        torch.manual_seed(self.random_seed)
-
+        # If using GPU, set the seed for GPU as well
         if self.use_gpu and torch.cuda.is_available():
             self.device = torch.device('cuda')
             torch.cuda.manual_seed_all(self.random_seed)
         else:
             self.device = torch.device('cpu')
+
+        # Set the seed for CPU
+        torch.manual_seed(self.random_seed)
         
+        # This is not recommended for performance since it will disable the cudnn auto-tuner (reason why it is commented)
         #torch.backends.cudnn.enabled = False
+
+        # Set the backends for reproducibility
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
         
-    def train_model(self, X_train, y_train, X_test, y_test, X_validation = None, y_validation = None, criterion = nn.MSELoss()):
+    def train_model(self,
+                    X_train : Union[list, torch.Tensor, np.ndarray],
+                    y_train : Union[list, torch.Tensor, np.ndarray],
+                    X_test : Union[list, torch.Tensor, np.ndarray],
+                    y_test : Union[list, torch.Tensor, np.ndarray],
+                    X_validation : Union[list, torch.Tensor, np.ndarray, None] = None,
+                    y_validation : Union[list, torch.Tensor, np.ndarray, None] = None,
+                    criterion = nn.MSELoss()) -> None:
+        '''Train the neural network
+
+        Parameters
+        ----------
+        X_train : Union[list, torch.Tensor, np.ndarray]
+            Training data
+        y_train : Union[list, torch.Tensor, np.ndarray]
+            Training labels
+        X_test : Union[list, torch.Tensor, np.ndarray]
+            Testing data
+        y_test : Union[list, torch.Tensor, np.ndarray]
+            Testing labels
+        X_validation : Union[list, torch.Tensor, np.ndarray, None], optional
+            Validation data, by default None
+        y_validation : Union[list, torch.Tensor, np.ndarray, None], optional
+            Validation labels, by default None
+        criterion : nn.Module, optional
+            Loss function, by default nn.MSELoss()
+        '''
+
         self.set_random_seed()
 
         # Convert the data to torch.Tensor
@@ -403,7 +523,7 @@ class NeuralNet(nn.Module):
                     nn.utils.clip_grad_norm_(self.NN.parameters(), self.clip_grad) # Clip the gradients
                     self.optimizer.step()                                          # Update weights
 
-                    running_loss += loss.item()
+                    running_loss = running_loss + loss.item()
             else:                
                 for i, (inputs, labels) in enumerate(train_loader):
                     # Zero the gradients
@@ -415,7 +535,7 @@ class NeuralNet(nn.Module):
                     nn.utils.clip_grad_norm_(self.NN.parameters(), self.clip_grad) # Clip the gradients
                     self.optimizer.step()                                          # Update weights
 
-                    running_loss += loss.item()
+                    running_loss = running_loss + loss.item()
         
             # Set the model to evaluation mode
             self.NN.eval()
@@ -431,7 +551,7 @@ class NeuralNet(nn.Module):
                     for inputs1, inputs2, inputs3, labels in test_loader:
                         predicted = self.NN([inputs1, inputs2, inputs3])
                         loss = criterion(predicted, labels.view(-1, 1))
-                        running_loss += loss.item()
+                        running_loss = running_loss + loss.item()
                         
                         all_predictions.extend(predicted.cpu().numpy())
                         all_labels.extend(labels.cpu().numpy())
@@ -439,7 +559,7 @@ class NeuralNet(nn.Module):
                     for inputs, labels in test_loader:
                         predicted = self.NN(inputs)
                         loss = criterion(predicted, labels.view(-1, 1))
-                        running_loss += loss.item()
+                        running_loss = running_loss + loss.item()
                         
                         all_predictions.extend(predicted.cpu().numpy())
                         all_labels.extend(labels.cpu().numpy())
@@ -496,8 +616,6 @@ class NeuralNet(nn.Module):
         self.pr_auc = pr_auc
         self.log_loss_value = log_loss_value
         self.mae = mae
-
-        return True
     
     def get_model(self):
         return self.NN
@@ -510,9 +628,12 @@ class DynamicNN(nn.Module):
             activation_data: list = [],
             encoder: Union[None, list] = None,
             device: torch.device = torch.device('cpu'),
-            mask: list = []
+            mask: Union[None, list[Union[int, bool]], np.ndarray] = None
         ):
         super(DynamicNN, self).__init__()
+
+        if mask == None:
+            mask = []
 
         self.input_size = input_size
         self.output_size = output_size
@@ -982,7 +1103,7 @@ class DNNOptimizer:
                     nn.utils.clip_grad_norm_(model.parameters(), clip_grad)  # Clip the gradients
                     optimizer.step()                                         # Update weights
 
-                    running_loss += loss.item()
+                    running_loss = running_loss + loss.item()
             else:                
                 for i, (inputs, labels) in enumerate(train_loader):
                     # Zero the gradients
@@ -994,7 +1115,7 @@ class DNNOptimizer:
                     nn.utils.clip_grad_norm_(model.parameters(), clip_grad)  # Clip the gradients
                     optimizer.step()                                         # Update weights
 
-                    running_loss += loss.item()
+                    running_loss = running_loss + loss.item()
 
             # Set the model to evaluation mode
             model.eval()
@@ -1009,7 +1130,7 @@ class DNNOptimizer:
                 for inputs1, inputs2, inputs3, labels in test_loader:
                     predicted = model([inputs1, inputs2, inputs3])
                     loss = criterion(predicted, labels.view(-1, 1))
-                    running_loss += loss.item()
+                    running_loss = running_loss + loss.item()
                     
                     all_predictions.extend(predicted.cpu().detach().numpy())
                     all_labels.extend(labels.cpu().detach().numpy())
@@ -1017,7 +1138,7 @@ class DNNOptimizer:
                 for inputs, labels in test_loader:
                     predicted = model(inputs)
                     loss = criterion(predicted, labels.view(-1, 1))
-                    running_loss += loss.item()
+                    running_loss = running_loss + loss.item()
                     
                     all_predictions.extend(predicted.cpu().detach().numpy())
                     all_labels.extend(labels.cpu().detach().numpy())

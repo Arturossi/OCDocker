@@ -58,11 +58,11 @@ class GeneticAlgorithm:
             X_validation: Union[None, Union[np.ndarray, pd.DataFrame, pd.Series]] = None,
             y_validation: Union[None, Union[np.ndarray, pd.DataFrame, pd.Series]] = None,
             storage: str = "sqlite:///GA.db",
-            evolution_params: dict = {},
+            evolution_params: Union[dict, None] = None,
             use_gpu: bool = False,
             early_stopping_rounds : int = 20,
             random_state: int = 42,
-            fixed_features_index: list = [],
+            fixed_features_index: Union[list, None] = None,
             verbose: bool = False
         ) -> None:
         '''
@@ -84,14 +84,14 @@ class GeneticAlgorithm:
             The validation dataset and labels. Default is None.
         y_validation : np.ndarray | pd.DataFrame | pd.Series, optional
             The validation labels. Default is None.
-        evolution_params : dict, optional
-            The hyperparameters for the genetic algorithm. Default is an empty dictionary.
+        evolution_params : dict, None, optional
+            The hyperparameters for the genetic algorithm. Default is None.
         use_gpu : bool, optional
             Whether to use the GPU for training the XGBoost model.
         random_state : int, optional
             The random state for the XGBoost model. Default is 42.
-        fixed_features_index : list, optional
-            The indexes of the scores to be used for the evaluation. Default is an empty list.
+        fixed_features_index : list, None, optional
+            The indexes of the scores to be used for the evaluation. Default is None.
         '''
 
         # Set the class variables converting to numpy arrays
@@ -101,12 +101,12 @@ class GeneticAlgorithm:
         self.X_test = np.asarray(X_test)
         self.y_test = np.asarray(y_test)
         self.xgboost_params = xgboost_params
-        self.X_validation = np.asarray(X_validation)
-        self.y_validation = np.asarray(y_validation)
-        self.evolution_params = evolution_params
+        self.X_validation = np.asarray(X_validation) if X_validation is not None else None
+        self.y_validation = np.asarray(y_validation) if y_validation is not None else None
+        self.evolution_params = evolution_params if evolution_params is not None else {}
         self.random_state = random_state
         self.rng = default_rng(random_state)
-        self.fixed_features_index = fixed_features_index
+        self.fixed_features_index = fixed_features_index if fixed_features_index is not None else []
         self.verbose = verbose
         self.early_stopping_rounds = early_stopping_rounds
         self.direction = None
@@ -344,6 +344,7 @@ class GeneticAlgorithm:
 
         best_individual = None
         best_score2 = None
+        best_model = None
 
         # Perform the genetic algorithm for the specified number of generations
         for generation in tqdm(range(trial_params['number_of_generations'])):
@@ -413,7 +414,7 @@ class GeneticAlgorithm:
                 # Get the best model (loaded from pickle file)
                 best_model = models[best_score_index] 
 
-                # If the validation dataset is provided
+                # If the validation dataset is provided (if X_validation is not None y_validation is not None as well)
                 if self.X_validation is not None:
                     # Filter the validation dataset to include only the selected features
                     X_validation_filtered = self.X_validation[:, best_individual.nonzero()[0]]
@@ -428,8 +429,8 @@ class GeneticAlgorithm:
                         # Take the cupy array to numpy
                         y_pred = cp.asnumpy(y_pred)
 
-                    # Get the AUC score of the validation dataset
-                    fpr, tpr, _ = roc_curve(self.y_validation, y_pred)
+                    # Get the AUC score of the validation dataset (self.validation is not none here because of the if statement above)
+                    fpr, tpr, _ = roc_curve(self.y_validation, y_pred) # type: ignore
 
                     # Calculate the AUC score
                     best_score2 = auc(fpr, tpr)

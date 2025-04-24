@@ -19,7 +19,6 @@ from typing import Dict, Union
 from OCDocker.Initialise import *
 
 import OCDocker.DB.baseDB as ocbdb
-import OCDocker.Processing.Preprocessing.p2rank as ocp2rank
 
 # License
 ###############################################################################
@@ -44,59 +43,6 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 ## Private ##
 
 ## Public ##
-def verify_integrity() -> None:
-    '''Verifies the integrity of the DUDEz database.
-
-    Parameters
-    ----------
-    None
-
-    Returns
-    -------
-    None
-
-    Raise
-    -----
-    None
-    '''
-
-    return None
-
-def convert_debug_to_production(chosenAlgorithm: str = "ac", strict: bool = False, removeDebug: bool = False) -> None:
-    '''Converts debug folders to production mode. It is required to choose an algorithm which will be used furtherly in the pipeline.
-
-    Parameters
-    ----------
-    chosenAlgorithm : str, optional
-        The chosen algorithm, by default "ac". The short code for the chosen algorithm. The options are:
-        - ap: AffinityPropagation
-        - ac: AgglomerativeClustering
-        - bc: Birch
-        - db: DBSCAN
-        - km: KMeans
-        - ms: MeanShift
-        - mb: MiniBatchKMeans
-        - na: No algorithm
-        - op: OPTICS
-        - sc: SpectralClustering
-    strict : bool, optional
-        If True, it will only convert the debug folders that have the chosen algorithm, by default False.
-    removeDebug : bool, optional
-        If True, it will remove the debug folder, by default False.
-
-    Returns
-    -------
-    None
-
-    Raise
-    -----
-    None
-    '''
-
-    ocp2rank.convert_debug_to_production(dudez_archive, chosenAlgorithm = chosenAlgorithm, strict = strict, removeDebug = removeDebug)
-
-    return None
-
 def prepare(overwrite: bool = False, spacing: float = 0.33, sanitize: bool = True) -> None:
     '''Prepares the DUDEz database.
 
@@ -223,82 +169,3 @@ def run_plants(overwrite: bool = False) -> int:
     '''
 
     return ocbdb.run_docking("dudez", "plants", overwrite = overwrite)
-
-"""
-TODO: remove this function
-def read_logs(saveChunk: int = 100, overwrite: bool = False) -> Union[dict, None]:
-    '''Parse the database into multiple serializable objects.
-
-    Parameters
-    ----------
-    saveChunk : int, optional
-        The number of files to be parsed before saving the data, by default 100.
-    overwrite : bool, optional
-        If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated, by default False.
-
-    Returns
-    -------
-    dict | None
-        A dictionary with the keys being the protein-ligand names and the values being the dataframes.
-    '''
-
-    return ocbdb.read_logs("dudez", saveChunk = saveChunk, overwrite = overwrite)
-"""
-
-def generate_dock_result_csv(csv_path: str = "", log_dumps: Union[Dict[str, pd.DataFrame], None] = None) -> None:
-    '''Uses the structure from read_logs to generate an output for all docking softwares.
-
-    Parameters
-    ----------
-    csv_path : str, optional
-        The path to the csv file to be generated. If empty, it will be generated in the current directory, by default "{parsed_archive}/DUDEz.csv".
-    log_dumps : Dict[str, pd.DataFrame] | None, optional
-        The structure from read_logs. If None, it will be generated, by default None.
-
-    Returns
-    -------
-    None
-    '''
-
-    # Check if the csv_path is empty
-    if csv_path == "":
-        # Set the csv_path to the default
-        csv_path = f"{parsed_archive}/dudez.csv"
-
-    return ocbdb.generate_dock_result_csv("dudez", csv_path, log_dumps = log_dumps) # type: ignore
-
-"""
-TODO: remove this function
-def merge_descriptors_in_dataframe(readMode:str = "hdf5", saveMode: str = "hdf5", picklenize: bool = False, returnDf: bool = False, skipMergePicklePath: str = "", saveChunk: int = 100, datafileFormat: str = "hdf5", verboseOperations: bool = False, overwrite: bool = False) -> Union[dict, None]:
-    '''Reads all the descriptors jsons and return a dict.
-
-    Parameters
-    ----------
-    readMode : str, optional
-        The read mode for the descriptors. Can be "hdf5" or "csv", by default "hdf5".
-    saveMode : str, optional
-        The save mode for the descriptors. Can be "hdf5", "csv" or "", by default "hdf5". If empty, the dataframe will not be saved.
-    picklenize : bool, optional
-        If True, will save the dataframe as a pickle file in different steps during the execution. The default is False.
-    returnDf : bool, optional
-        If True, will return the dataframe. The default is False.
-    skipMergePicklePath : str, optional
-        The path to the pickle file with the dataframe. If empty, the dataframe will not be loaded from a pickle file. The default is "".
-    saveChunk : int, optional
-        The number of files to be parsed before saving the data, by default 100.
-    datafileFormat : str, optional
-        The format of the datafile. Can be "hdf5" or "csv", by default "hdf5".
-    verboseOperations : bool, optional
-        If True, will print the operations being done. The default is False. This is useful for debugging.
-    overwrite : bool, optional
-        If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated, by default False.
-
-    Returns
-    -------
-    dict | None
-        A dataframe with all the descriptors and affinity results or None if any error occur while reading the input file or if returnDf is set to false.
-    '''
-
-    # Get the dataframe with descriptors and docking scores
-    return ocbdb.merge_descriptors_in_dataframe("dudez", readMode = readMode, saveMode = saveMode, picklenize = picklenize, returnDf = returnDf, skipMergePicklePath = skipMergePicklePath, saveChunk = saveChunk, datafileFormat = datafileFormat, verboseOperations = verboseOperations, overwrite = overwrite)
-"""
