@@ -17,7 +17,7 @@ import optuna
 import numpy as np
 import pandas as pd
 
-from optuna.samplers import CmaEsSampler, TPESampler
+from optuna.samplers import TPESampler
 from optuna.integration import XGBoostPruningCallback
 from sklearn.metrics import auc, roc_curve
 from typing import Union

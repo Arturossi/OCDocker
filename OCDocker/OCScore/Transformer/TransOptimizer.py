@@ -74,8 +74,83 @@ class CustomDataset(Dataset):
         return self.features[idx], self.target[idx]
 
 class TransformerModel(nn.Module):
-    def __init__(self, input_dim, d_model, output_dim, nhead, num_encoder_layers, dim_feedforward, dropout=0.1, init_type: str = 'zeros', init_params: dict = {}, random_seed: int = 42, device=torch.device('cuda'), verbose = False):
+    """ Transformer-based neural network model with configurable initialization and structure.
+
+    Parameters
+    ----------
+    input_dim : int
+        The input dimension.
+    d_model : int
+        The dimension of the model.
+    output_dim : int
+        The output dimension.
+    nhead : int
+        The number of heads in the multihead attention.
+    num_encoder_layers : int
+        The number of encoder layers.
+    dim_feedforward : int
+        The dimension of the feedforward network model.
+    dropout : float, optional
+        The dropout value (default is 0.1).
+    init_type : str, optional
+        The type of initialization (default is 'zeros').
+    init_params : dict, optional
+        The parameters for the initialization function (default is {}).
+    random_seed : int, optional
+        The random seed for reproducibility (default is 42).
+    device : torch.device, optional
+        The device to use (default is torch.device('cuda')).
+    verbose : bool, optional
+        If True, print the model summary (default is False).
+    """
+    
+    def __init__(self,
+                 input_dim : int,
+                 d_model : int,
+                 output_dim : int,
+                 nhead : int,
+                 num_encoder_layers : int,
+                 dim_feedforward : int,
+                 dropout : float = 0.1,
+                 init_type: str = 'zeros',
+                 init_params: dict = {},
+                 random_seed: int = 42,
+                 device : torch.device = torch.device('cuda'),
+                 verbose : bool = False
+                ) -> None:
+        ''' Constructor for the TransformerModel class.
+        
+        Parameters
+        ----------
+        input_dim : int
+            The input dimension.
+        d_model : int
+            The dimension of the model.
+        output_dim : int
+            The output dimension.
+        nhead : int
+            The number of heads in the multihead attention.
+        num_encoder_layers : int
+            The number of encoder layers.
+        dim_feedforward : int
+            The dimension of the feedforward network model.
+        dropout : float, optional
+            The dropout value (default is 0.1).
+        init_type : str, optional
+            The type of initialization (default is 'zeros').
+        init_params : dict, optional
+            The parameters for the initialization function (default is {}).
+        random_seed : int, optional
+            The random seed for reproducibility (default is 42).
+        device : torch.device, optional
+            The device to use (default is torch.device('cuda')).
+        verbose : bool, optional
+            If True, print the model summary (default is False).
+        '''
+
+        # Call the parent constructor
         super(TransformerModel, self).__init__()
+        
         # Embedding layer
         self.embedding = nn.Linear(input_dim, d_model).to(device)
 
@@ -84,11 +159,11 @@ class TransformerModel(nn.Module):
 
         # Transformer encoder
         encoder_layer = nn.TransformerEncoderLayer(
-            d_model=d_model, 
-            nhead=nhead, 
-            dim_feedforward=dim_feedforward, 
-            dropout=dropout,
-            batch_first=True
+            d_model = d_model, 
+            nhead = nhead, 
+            dim_feedforward = dim_feedforward, 
+            dropout = dropout,
+            batch_first = True
         ).to(device)
 
         # Transformer encoder
@@ -97,6 +172,7 @@ class TransformerModel(nn.Module):
         # Output layer
         self.fc_out = nn.Linear(d_model, output_dim).to(device)
 
+        # Set the supported initialization functions
         self.init_functions = {
             'xavier_uniform': init.xavier_uniform_,
             'glorot_uniform': init.xavier_uniform_,
@@ -131,7 +207,7 @@ class TransformerModel(nn.Module):
             # Print the model
             ocprint.printv(self) # type: ignore
 
-    def set_random_seed(self):
+    def set_random_seed(self) -> torch.Generator:
         np.random.seed(self.random_seed)
         random.seed(self.random_seed)
 
