@@ -18,6 +18,7 @@ import math
 import optuna
 
 import numpy as np
+import pandas as pd
 
 from joblib import Parallel, delayed
 from multiprocessing import Pool
@@ -50,39 +51,39 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 ###############################################################################
 
 def perform_seed_ablation_study_NN(
-        X_train, y_train,
-        X_test, y_test, 
-        X_val, y_val,
-        id,
-        num_processes,
-        encoder_params,
-        best_params,
-        use_gpu,
-        verbose,
-        load_if_exists,
-        study_name,
-        storage,
-        mask,
-        seeds,
-        output_size = 1,
-        parallel_backend: str = "joblib",
-        n_jobs = 1
-    ):
+        X_train : np.ndarray, y_train : np.ndarray,
+        X_test : np.ndarray, y_test : np.ndarray, 
+        X_val : np.ndarray, y_val : np.ndarray,
+        id : int,
+        num_processes : int,
+        encoder_params : dict,
+        best_params : dict,
+        use_gpu : bool,
+        verbose : bool,
+        load_if_exists : bool,
+        study_name : str,
+        storage : str,
+        mask : np.ndarray,
+        seeds : list = [],
+        output_size : int = 1,
+        parallel_backend : str = "joblib",
+        n_jobs : int = 1
+    ) -> None:
     ''' Perform the ablation study for the Neural Network.
 
     Parameters
     ----------
-    X_train : pd.DataFrame
+    X_train : np.ndarray
         The training data.
-    y_train : pd.Series
+    y_train : np.ndarray
         The training labels.
-    X_test : pd.DataFrame
+    X_test : np.ndarray
         The testing data.
-    y_test : pd.Series
+    y_test : np.ndarray
         The testing labels.
-    X_val : pd.DataFrame
+    X_val : np.ndarray
         The validation data.
-    y_val : pd.Series
+    y_val : np.ndarray
         The validation labels.
     id : int
         The ID of the study.
@@ -104,13 +105,12 @@ def perform_seed_ablation_study_NN(
         The storage to use.
     mask : np.ndarray
         The mask to be applied.
-    seeds : list[np.ndarray]
+    seeds : list
         List of seeds to be applied. If empty, all seeds for scoring functions will be generated and used. This option is useful for splitting ablation in multiple computers. If empty, all seeds from 0 to 1000 will be used. The default is [].
     output_size : int, optional
         The output size. Default is 1.
     parallel_backend : str, optional
-        The parallel backend to use. The default is "joblib". Options are "joblib" and "multiprocessing".
-
+        The parallel backend to use. The default is "joblib". Options are "joblib" and "multiprocessing". [ATTENTION] multiprocessing has shown to have some nasty bugs while testing this library. It is highly recommended to use joblib.
     n_jobs : int, optional
         The number of jobs to use. Default is 1.
     
@@ -127,13 +127,18 @@ def perform_seed_ablation_study_NN(
     
     # Adjust num_processes if the size of the seeds array is smaller
     if len(seeds) < num_processes:
+        # If the number of seeds is smaller than the number of processes, set inner_num_processes to the number of seeds
         inner_num_processes = len(seeds)
     else:
+        # Otherwise, set inner_num_processes to the number of processes
         inner_num_processes = num_processes
 
     # Split seeds into roughly equal parts for each process using Round Robin distribution
     split_seeds = [[] for _ in range(inner_num_processes)]
+
+    # Distribute the seeds to the processes
     for i, seed in enumerate(seeds):
+        # Append the seed to the corresponding process
         split_seeds[i % inner_num_processes].append(seed)
 
     # Check the parallel backend
@@ -194,23 +199,23 @@ def perform_seed_ablation_study_NN(
     return None
 
 def perform_ablation_study_NN(
-        X_train, y_train,
-        X_test, y_test, 
-        X_val, y_val,
-        id,
-        num_processes,
-        encoder_params,
-        best_params,
-        random_seed,
-        use_gpu,
-        verbose,
-        load_if_exists,
-        study_name,
-        storage,
-        masks = [],
-        output_size = 1,
-        parallel_backend: str = "joblib",
-        n_jobs = 1
+        X_train : pd.DataFrame, y_train : pd.DataFrame,
+        X_test : pd.DataFrame, y_test : pd.DataFrame, 
+        X_val : pd.DataFrame, y_val : pd.DataFrame,
+        id : int,
+        num_processes : int,
+        encoder_params : dict,
+        best_params : dict,
+        random_seed : int,
+        use_gpu : bool,
+        verbose : bool,
+        load_if_exists : bool,
+        study_name : str,
+        storage : str,
+        masks : list = [],
+        output_size : int = 1,
+        parallel_backend : str = "joblib",
+        n_jobs : int = 1
     ):
     ''' Perform the ablation study for the Neural Network.
 
@@ -248,13 +253,12 @@ def perform_ablation_study_NN(
         The study name.
     storage : str
         The storage to use.
-    masks : list[np.ndarray], optional
+    masks : list[], optional
         List of masks to be applied. If empty, all masks for scoring functions will be generated and used. This option is useful for splitting ablation in multiple computers. The default is [].
     output_size : int, optional
         The output size. Default is 1.
     parallel_backend : str, optional
-        The parallel backend to use. The default is "joblib". Options are "joblib" and "multiprocessing".
-
+        The parallel backend to use. The default is "joblib". Options are "joblib" and "multiprocessing". [ATTENTION] multiprocessing has shown to have some nasty bugs while testing this library. It is highly recommended to use joblib.
     n_jobs : int, optional
         The number of jobs to use. Default is 1.
     
@@ -455,8 +459,7 @@ def optimize_NN(
     use_gpu : bool, optional
         If True, use the GPU. If False, don't use the GPU. Default is True.
     parallel_backend : str, optional
-        The parallel backend to use. The default is "joblib". Options are "joblib" and "multiprocessing".
-
+        The parallel backend to use. The default is "joblib". Options are "joblib" and "multiprocessing". [ATTENTION] multiprocessing has shown to have some nasty bugs while testing this library. It is highly recommended to use joblib.
     verbose : bool, optional
         If True, print the output. If False, don't print the output. Default is False.
 

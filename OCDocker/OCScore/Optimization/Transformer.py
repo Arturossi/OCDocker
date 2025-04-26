@@ -104,7 +104,7 @@ def optimize_Transformer(
     use_gpu : bool, optional
         Whether to use the GPU. The default is True.
     parallel_backend : str, optional
-        The parallel backend to use. The default is "joblib". Options are "joblib" and "multiprocessing".
+        The parallel backend to use. The default is "joblib". Options are "joblib" and "multiprocessing". [ATTENTION] multiprocessing has shown to have some nasty bugs while testing this library. It is highly recommended to use joblib.
     verbose : bool, optional
         Whether to print verbose output. The default is False.
     
@@ -196,118 +196,6 @@ def optimize_Transformer(
                 ])
         else:
             raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
-
-    '''
-    # Load the study
-    trans_study = optuna.load_study(study_name = f"Trans_Optimization_{storage_id}_TPE", storage = storage)
-    trans_df = trans_study.trials_dataframe()
-
-    # Filter the trials to only include the ones that are complete
-    trans_df = trans_df[trans_df['state'] == 'COMPLETE']
-
-    trans_df['combined_metric'] = trans_df['value'] - trans_df['user_attrs_AUC']
-
-    best_trans_df = trans_df.sort_values(by=['combined_metric'], ascending=[True])
-
-    # Define the number of models to select
-    n_models = 5
-
-    # Get the best n models in the best_nn_df
-    best_trans_df.head(n_models)
-
-    # Build the models
-    models = []
-    predictions = []
-
-    for i in range(n_models):
-        # Get the best trial
-        best_trial = trans_study.trials[best_trans_df.iloc[i].number]
-
-        # Pick the params from the best_trial
-        best_params = best_trial.params
-
-        # Initialize the trainer
-        Trans_model = Transformer(
-            input_size   = X_train.shape[1],
-            output_size  = 1,
-            trans_params = best_params,
-            random_seed  = 42,
-            use_gpu      = True,
-            verbose      = False
-        )
-
-        # Reset the random seeds
-        torch.manual_seed(42)
-        np.random.seed(42)
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-        torch.cuda.manual_seed_all(42)
-
-        # Train the model
-        model = Transformer.train_model(
-            X_train, # type: ignore
-            y_train, 
-            X_test, 
-            y_test, 
-            X_val, 
-            y_val
-        )
-
-        # Reset the random seeds
-        torch.manual_seed(42)
-        np.random.seed(42)
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-        torch.cuda.manual_seed_all(42)
-        
-        # Append the model to the list
-        models.append(Trans_model)
-
-        # Make predictions
-        predictions.append(
-            Trans_model.trans(
-                torch.tensor(
-                    np.asarray(X_val),
-                    dtype=torch.float32
-                ).to(torch.device('cuda'))
-            ).cpu().detach().numpy()
-        )
-
-        # Save the model
-        torch.save(model, f'/data/hd4tb/OCDocker/data/ocdb/models/Trans_model_{i}.pt')
-
-    # Convert predictions to a DataFrame
-    predictions_df = pd.DataFrame(np.asarray(predictions).reshape(len(predictions), predictions[0].shape[0]).T)
-
-    def select_values(row):
-        sorted_row = sorted(row)
-        return pd.Series({
-            'max': max(row),
-            '2nd_highest': sorted_row[-2],
-            'median': sorted_row[2],
-            '4th_highest': sorted_row[1],
-            'min': min(row)
-        })
-
-    selected_values_df = predictions_df.apply(select_values, axis=1)
-    full_selected_values_df = pd.concat([predictions_df, selected_values_df], axis=1)
-                                        
-    # Calculate the mean, median, std, min, max, and range for the predictions
-    full_selected_values_df['std'] = predictions_df.std(axis = 1)
-    full_selected_values_df['range'] = full_selected_values_df['max'] - full_selected_values_df['min']
-
-    # For each column in the full_selected_values_df, calculate the AUC
-    auc_dict = {}
-    for col in full_selected_values_df.columns:
-        fpr, tpr, _ = roc_curve(y_val, full_selected_values_df[col]) # type: ignore
-        auc_dict[col] = auc(fpr, tpr)
-
-    # make AUC_dict a DataFrame
-    auc_df = pd.DataFrame(auc_dict, index = ['AUC']).T
-
-    # Save the full_selected_values_df values to csv
-    full_selected_values_df.to_csv('full_selected_values_df_trans.csv')
-    '''
 
 # Alias the function
 optimize = optimize_Transformer

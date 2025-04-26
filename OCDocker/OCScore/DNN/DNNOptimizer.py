@@ -1203,7 +1203,7 @@ class DNNOptimizer:
         # Set the random seed
         self.set_random_seed()
 
-        # If X_train is a list    
+        # If X_train is a list
         if isinstance(X_train, list):
             # Convert it to np.ndarray then to torch.Tensor and move it to the device
             self.X_train = [torch.tensor(np.asarray(x), dtype=torch.float32).to(self.device) for x in X_train]
