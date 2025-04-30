@@ -53,7 +53,7 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 
 # Splash, version & clear tmp
 ###############################################################################
-ocVersion = "0.8.0"
+ocVersion = "0.9.5"
 
 _description = tw.dedent("""\033[1;93m
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
