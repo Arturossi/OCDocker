@@ -35,17 +35,17 @@ Welcome to the official documentation for OCDocker. This documentation provides 
 
    introduction
    installation
-   usage
+   modules
    OCDocker
+   OCDocker.DB
    OCDocker.Docking
+   OCDocker.OCScore
    OCDocker.Processing
    OCDocker.Processing.Postprocessing
    OCDocker.Processing.Preprocessing
    OCDocker.Toolbox
-   OCDocker.DB
-   OCDocker.OCScore
-   modules
    OCDockerConsole
+   usage
 
 
 Indices and tables
