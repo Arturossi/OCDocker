@@ -1260,6 +1260,8 @@ elif config_file:
     assert os.path.isfile(config_file), f"{clrs['r']}\n\n Not able to find configuration file.\n\n Does \"{config_file}\" exist?{clrs['n']}"
     config_file = config_file
 
+print_description()
+
 # Set the ocdb path as an empty string
 ocdb_path = ""
 
