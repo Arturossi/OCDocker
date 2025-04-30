@@ -1,42 +1,28 @@
 OCDocker.Docking package
 ========================
 
-.. automodule:: OCDocker.Docking
-   :members:
-   :undoc-members:
-   :show-inheritance:
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   OCDocker.Docking.Future
 
 Submodules
 ----------
 
-OCDocker.Docking.Gnina module
------------------------------
+.. toctree::
+   :maxdepth: 4
 
-.. automodule:: OCDocker.Docking.Gnina
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   OCDocker.Docking.PLANTS
+   OCDocker.Docking.Smina
+   OCDocker.Docking.Vina
 
-OCDocker.Docking.PLANTS module
-------------------------------
+Module contents
+---------------
 
-.. automodule:: OCDocker.Docking.PLANTS
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-OCDocker.Docking.Smina module
------------------------------
-
-.. automodule:: OCDocker.Docking.Smina
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-OCDocker.Docking.Vina module
-----------------------------
-
-.. automodule:: OCDocker.Docking.Vina
+.. automodule:: OCDocker.Docking
    :members:
    :undoc-members:
    :show-inheritance:

@@ -17,6 +17,7 @@ from OCDocker.Initialise import *
 import multiprocessing
 import os
 import shutil
+import argparse
 
 import textwrap as tw
 
@@ -54,7 +55,7 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 ###############################################################################
 ocVersion = "0.8.0"
 
-description = tw.dedent("""\033[1;93m
+_description = tw.dedent("""\033[1;93m
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     +-+-+-+-+-+-+-+-+-+- \033[1;96m┏━┓┏━╸╺┳━┓┏━┓┏━╸╻┏ ┏━╸┏━┓ \033[1;93m-+-+-+-+-+-+-+-+-+-+
     +-+-+-+-+-+-+-+-+-+- \033[1;96m┃ ┃┃   ┃ ┃┃ ┃┃  ┣┻┓┣╸ ┣┳┛ \033[1;93m-+-+-+-+-+-+-+-+-+-+
@@ -137,8 +138,8 @@ def __inner_initialise_models(oddt_sf: str):
 
     # Return
     return None
-"""
-def argument_parsing() -> argparse.Namespace:
+
+def get_argument_parsing() -> argparse.ArgumentParser:
     '''Get data to generate vina conf file from box file.
     
     Parameters
@@ -147,14 +148,14 @@ def argument_parsing() -> argparse.Namespace:
 
     Returns
     -------
-    argparse.Namespace
-        Namespace object containing the arguments.
+    argparse.ArgumentParser
+        Argument parser object.
     '''
     
     # Create the parser
     parser = argparse.ArgumentParser(prog="OCDocker",
                                      formatter_class=argparse.RawDescriptionHelpFormatter,
-                                     description=description)
+                                     description=_description)
     
     # Add the arguments
     parser.add_argument("--version",
@@ -194,8 +195,24 @@ def argument_parsing() -> argparse.Namespace:
                         help="Defines if OCDocker should overwrite existing files")
 
     # Return the parser
-    return parser.parse_args()
-"""
+    return parser
+
+def argument_parsing() -> argparse.Namespace:
+    '''Parse the arguments from the command line.
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    argparse.Namespace
+        Namespace object containing the arguments.
+    '''
+
+    # Return the parser
+    return get_argument_parsing().parse_args()
+
 def create_ocdocker_conf() -> None:
     '''Creates the 'ocdocker.conf' file.
 
@@ -275,23 +292,6 @@ def create_ocdocker_conf() -> None:
 
     answer = input(f"Path to the prepare_receptor4.py script from MGLTools. Default [{confPrepare_receptor}] (press enter to keep default): ")
     confPrepare_receptor = confPrepare_receptor if not answer else answer
-
-    #endregion
-
-    #region P2rank config
-    confPrank = "/mnt/e/Documents/OCDocker/software/search/p2rank_2.3/prank"
-    confP2rankBoxMaxCutoff = "0.5"
-    confP2RankPocketCutoff = "0.1"
-
-    print("\np2rank configuration")
-    answer = input(f"Path to the p2rank software. Default [{confPrank}] (press enter to keep default): ")
-    confPrank = confPrank if not answer else answer
-
-    answer = input(f"p2rank box max cutoff. Default [{confP2rankBoxMaxCutoff}] (press enter to keep default): ")
-    confP2rankBoxMaxCutoff = confP2rankBoxMaxCutoff if not answer else answer
-
-    answer = input(f"p2rank pocket cutoff. Default [{confP2RankPocketCutoff}] (press enter to keep default): ")
-    confP2RankPocketCutoff = confP2RankPocketCutoff if not answer else answer
 
     #endregion
 
@@ -664,17 +664,6 @@ prepare_ligand = """ + str(confPrepare_ligand) + """
 # prepare_receptor4 path
 prepare_receptor = """ + str(confPrepare_receptor) + """
 
-################# P2RANK PARAMETERS #################
-
-# P2Rank path
-prank = """ + str(confPrank) + """
-
-# p2rank box cutoff
-boxMaxCutoff = """ + str(confP2rankBoxMaxCutoff) + """
-
-# p2rank pocket cutoff
-pocketCutoff = """ + str(confP2RankPocketCutoff) + """
-
 ################## VINA PARAMETERS ##################
 
 # Vina path
@@ -1022,7 +1011,6 @@ global pca_path
 global vina
 global vina_split
 global dock6
-global prank
 global smina
 global gnina
 global obabel
@@ -1031,10 +1019,6 @@ global dudez_download
 global pythonsh
 global prepare_ligand
 global prepare_receptor
-
-# p2rank parameters
-global p2rank_boxMaxCutoff
-global p2rank_pocketCutoff
 
 # Vina parameters
 global vina_scoring
@@ -1188,12 +1172,63 @@ order = {
 # Parse command line arguments
 ###############################################################################
 
-#args = argument_parsing()
-multiprocess = True
-update = False
-config_file = os.getenv('OCDOCKER_CONFIG', 'OCDocker.cfg')
-output_level = ocerror.ReportLevel.INFO
-overwrite = False
+'''
+    args = argument_parsing()
+    multiprocess = args.multiprocess
+    update = args.update
+    config_file = args.config_file or os.getenv('OCDOCKER_CONFIG', 'OCDocker.cfg')
+    output_level = args.output_level
+    overwrite = args.overwrite
+'''
+
+def is_doc_build() -> bool:
+    '''Detects if the code is being run in a documentation (e.g., Sphinx) or test context.'''
+    import sys
+    import inspect
+
+    # Check if common doc/test modules are loaded
+    if any(m in sys.modules for m in ["sphinx", "sphinx.ext.autodoc", "pytest", "unittest", "doctest"]):
+        return True
+
+    # Check call stack for doc-related callers
+    for frame in inspect.stack():
+        if any(kw in frame.filename.lower() for kw in ["sphinx", "pytest", "unittest", "doctest"]):
+            return True
+
+    return False
+
+if not is_doc_build():
+    try:
+        args = argument_parsing()
+        multiprocess = args.multiprocess
+        update = args.update
+        config_file = args.config_file or os.getenv('OCDOCKER_CONFIG', 'OCDocker.cfg')
+        output_level = args.output_level
+        overwrite = args.overwrite
+        ocerror.Error.set_output_level(output_level)
+    except SystemExit:
+        print(f"{clrs['r']}ERROR{clrs['n']}: Invalid command line arguments.")
+        exit()
+
+    # proceed with full environment setup...
+    # config file loading, DB setup, oddt_models_dir, etc.
+else:
+    import sys
+    sys.argv = [sys.argv[0]]
+    # Minimal config to satisfy imports in Sphinx/test
+    args = argparse.Namespace(
+        multiprocess=False,
+        update=False,
+        config_file=os.getenv('OCDOCKER_CONFIG', 'OCDocker.cfg'),
+        output_level=ocerror.ReportLevel.WARNING,
+        overwrite=False
+    )
+    multiprocess = False
+    update = False
+    config_file = args.config_file
+    output_level = args.output_level
+    overwrite = False
+    ocerror.Error.set_output_level(output_level)
 
 # Initialise
 ###############################################################################
@@ -1201,18 +1236,21 @@ def print_description() -> None:
     ''' Print the description of the program.
     '''
 
-    print(description)
+    print(_description)
     
-
 # Retrieve the paths from provided configuration file
 if (not config_file or not os.path.isfile(config_file)) and not os.path.isfile("OCDocker.cfg"):
     print("OCDocker configuration file has not been found in the provided path")
-    create_config = input("Do you wish to create it? (y/n) ")
-    if create_config.lower() in ["y", "ye", "yes"]:
-        create_ocdocker_conf()
-        exit()
+    if __name__ == "__main__":
+        create_config = input("Do you wish to create it? (y/n) ")
+        if create_config.lower() in ["y", "ye", "yes"]:
+            create_ocdocker_conf()
+            exit()
+        else:
+            print("\n\nNo positive confirmation, please provide a valid configuration file.\n")
+            exit()
     else:
-        print("\n\nNo positive confirmation, please provide a valid configuration file.\n")
+        print("Create the configuration file manually or set the path to it in the environment variable \"OCDOCKER_CONFIG\".")
         exit()
 
 elif not config_file and os.path.isfile("OCDocker.cfg"):
@@ -1265,12 +1303,6 @@ for line in open(config_file, 'r'): # type: ignore
         prepare_ligand = line.split("=")[1].strip()
     elif line.startswith("prepare_receptor ="):
         prepare_receptor = line.split("=")[1].strip()
-    elif line.startswith("prank ="):
-        prank = line.split("=")[1].strip()
-    elif line.startswith("boxMaxCutoff ="):
-        p2rank_boxMaxCutoff = float(line.split("=")[1].strip())
-    elif line.startswith("pocketCutoff ="):
-        p2rank_pocketCutoff = float(line.split("=")[1].strip())
     elif line.startswith("vina ="):
         vina = line.split("=")[1].strip()
     elif line.startswith("vina_split ="):
@@ -1325,7 +1357,7 @@ for line in open(config_file, 'r'): # type: ignore
         smina_user_grid_lambda = line.split("=")[1].strip()
     elif line.startswith("gnina ="):
         gnina = line.split("=")[1].strip()
-    elif line.startswith("gnina_exaustiveness ="):
+    elif line.startswith("gnina_exhaustiveness ="):
         gnina_exhaustiveness = line.split("=")[1].strip()
     elif line.startswith("gnina_num_modes ="):
         gnina_num_modes = line.split("=")[1].strip()

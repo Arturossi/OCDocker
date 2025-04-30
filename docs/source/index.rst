@@ -15,7 +15,6 @@ Contents
    usage
    OCDocker
    OCDocker.Docking
-   OCDocker.ExternalTools
    OCDocker.Processing
    OCDocker.Processing.Postprocessing
    OCDocker.Processing.Preprocessing

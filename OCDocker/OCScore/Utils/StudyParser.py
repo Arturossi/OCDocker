@@ -38,7 +38,12 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 # Methods
 ###############################################################################
 
-def parse_study_type(name: str, autoencoder: bool = False, genetic_algorithm: bool = False, multiple_autoencoders: bool = False) -> str:
+def parse_study_type(
+        name : str,
+        autoencoder : bool = False,
+        genetic_algorithm : bool = False,
+        multiple_autoencoders : bool = False
+    ) -> str:
     ''' Parse the study type from the study name.
 
     Parameters
@@ -57,6 +62,7 @@ def parse_study_type(name: str, autoencoder: bool = False, genetic_algorithm: bo
     str
         The study type.
     '''
+
     # Determine the dimensional method
     if autoencoder:
         dimensional = "AE"
@@ -95,7 +101,12 @@ def parse_study_type(name: str, autoencoder: bool = False, genetic_algorithm: bo
     else:
         return ml_method
 
-def analyze_studies(snames: list[str], storage: str, n_trials: int = 5, verbose: bool = False) -> pd.DataFrame:
+def analyze_studies(
+        snames : list[str],
+        storage : str,
+        n_trials : int = 5,
+        verbose : bool = False
+    ) -> pd.DataFrame:
     ''' Analyze the studies and get the n best trials. 
     
     Parameters

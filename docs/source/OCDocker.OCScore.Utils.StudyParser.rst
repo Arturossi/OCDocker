@@ -1,5 +1,5 @@
 OCDocker.OCScore.Utils.StudyParser module
-===========================================
+=========================================
 
 .. automodule:: OCDocker.OCScore.Utils.StudyParser
    :members:

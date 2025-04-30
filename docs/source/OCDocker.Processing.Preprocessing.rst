@@ -1,26 +1,19 @@
 OCDocker.Processing.Preprocessing package
 =========================================
 
-.. automodule:: OCDocker.Processing.Preprocessing
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Submodules
 ----------
 
-OCDocker.Processing.Preprocessing.Prepare module
-------------------------------------------------
+.. toctree::
+   :maxdepth: 4
 
-.. automodule:: OCDocker.Processing.Preprocessing.Prepare
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   OCDocker.Processing.Preprocessing.Prepare
+   OCDocker.Processing.Preprocessing.RmsdClustering
 
-OCDocker.Processing.Preprocessing.p2rank module
------------------------------------------------
+Module contents
+---------------
 
-.. automodule:: OCDocker.Processing.Preprocessing.p2rank
+.. automodule:: OCDocker.Processing.Preprocessing
    :members:
    :undoc-members:
    :show-inheritance:

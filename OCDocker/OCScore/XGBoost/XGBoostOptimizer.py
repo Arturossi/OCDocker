@@ -45,18 +45,18 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 
 class XGBoostOptimizer:
     def __init__(self, 
-            X_train: Union[np.ndarray, pd.DataFrame, pd.Series],
-            y_train: Union[np.ndarray, pd.DataFrame, pd.Series],
-            X_test: Union[np.ndarray, pd.DataFrame, pd.Series],
-            y_test: Union[np.ndarray, pd.DataFrame, pd.Series],
-            X_validation: Union[None, Union[np.ndarray, pd.DataFrame, pd.Series]] = None,
-            y_validation: Union[None, Union[np.ndarray, pd.DataFrame, pd.Series]] = None,
-            storage: str = "sqlite:///pre_xgboost.db",
-            params: dict = {},
+            X_train : Union[np.ndarray, pd.DataFrame, pd.Series],
+            y_train : Union[np.ndarray, pd.DataFrame, pd.Series],
+            X_test : Union[np.ndarray, pd.DataFrame, pd.Series],
+            y_test : Union[np.ndarray, pd.DataFrame, pd.Series],
+            X_validation : Union[None, Union[np.ndarray, pd.DataFrame, pd.Series]] = None,
+            y_validation : Union[None, Union[np.ndarray, pd.DataFrame, pd.Series]] = None,
+            storage : str = "sqlite:///pre_xgboost.db",
+            params : dict = {},
             early_stopping_rounds : int = 20,
-            use_gpu = False,
-            random_state: int = 42,
-            verbose: bool = False
+            use_gpu : bool = False,
+            random_state : int = 42,
+            verbose : bool = False
         ):
         """
         Initializes the PreXGBoostOptimizer with training data and configuration.
@@ -123,7 +123,9 @@ class XGBoostOptimizer:
         # Set the storage string for the study
         self.storage = storage
 
-    def objective(self, trial):
+    def objective(self,
+            trial : optuna.trial.Trial
+        ) -> Union[float, tuple[float, float]]:
         """
         The objective function for Optuna optimization to tune XGBoost hyperparameters.
 
@@ -228,7 +230,13 @@ class XGBoostOptimizer:
         # Return the trained AUC score
         return metric
 
-    def optimize(self, direction: str = "minimize", n_trials: int = 1000,  n_jobs: int = 1, study_name: str = "XGBoost pre-optimization", load_if_exists: bool = True) -> optuna.study.Study:
+    def optimize(self, 
+                 direction : str = "minimize",
+                 n_trials : int = 1000,
+                  n_jobs : int = 1,
+                 study_name : str = "XGBoost pre-optimization",
+                 load_if_exists : bool = True
+                ) -> optuna.study.Study:
         """
         Optimizes XGBoost hyperparameters using Optuna.
 

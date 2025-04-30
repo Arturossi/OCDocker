@@ -38,7 +38,14 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 # Methods
 ###############################################################################
 
-def run_xgboost(X_train: np.ndarray, y_train: np.ndarray, X_test: np.ndarray, y_test: np.ndarray, params: dict = {}, verbose: bool = False) -> tuple[XGBRegressor, float]:
+def run_xgboost(
+        X_train : np.ndarray,
+        y_train : np.ndarray,
+        X_test : np.ndarray,
+        y_test : np.ndarray,
+        params : dict = {},
+        verbose : bool = False
+    ) -> tuple[XGBRegressor, float]:
     '''
     A function to train an XGBoost model and calculate the AUC score.
 

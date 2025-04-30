@@ -1,5 +1,5 @@
 OCDocker.Rescoring.ODDT module
-===============================
+==============================
 
 .. automodule:: OCDocker.Rescoring.ODDT
    :members:

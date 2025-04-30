@@ -71,25 +71,6 @@ def prepare(overwrite: bool = False, spacing: float = 0.33, sanitize: bool = Tru
     
     return None
 
-def run_p2rank(overwrite: bool = False) -> None:
-    '''Runs P2Rank in the whole database.
-
-    Parameters
-    ----------
-    overwrite : bool, optional
-        If True, all files will be generated, otherwise will try to optimize file generation, skipping files with output already generated, by default False.
-
-    Returns
-    -------
-    None
-
-    Raise
-    -----
-    None
-    '''
-
-    return ocbdb.run_p2rank("dudez", overwrite = overwrite)
-
 def run_gnina(overwrite: bool = False) -> int:
     '''Runs gnina in the whole database.
 

@@ -43,7 +43,7 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 # Methods
 ###############################################################################
 
-def plot_correlation_similarity(df1: pd.DataFrame, df2: pd.DataFrame, columns: list = [], annot: bool = True, fontsize: Union[float, None] = None, normalize: bool = True) -> None:
+def plot_correlation_similarity(df1 : pd.DataFrame, df2 : pd.DataFrame, columns : list = [], annot : bool = True, fontsize : Union[float, None] = None, normalize : bool = True) -> None:
     ''' Plots the similarity of correlation matrices from two DataFrames.
 
     Parameters
@@ -95,7 +95,7 @@ def plot_correlation_similarity(df1: pd.DataFrame, df2: pd.DataFrame, columns: l
     # Set annotation font size
     if fontsize and annot:
         for text in ax.texts:
-            text.set_size(fontsize)
+            text.set_fontsize(fontsize)
 
     plt.tight_layout()  # Adjusts the plot to ensure everything fits without overlapping
     plt.savefig('correlation_similarity.png')
@@ -118,13 +118,13 @@ def plot_correlation_similarity(df1: pd.DataFrame, df2: pd.DataFrame, columns: l
     # Set annotation font size
     if fontsize and annot:
         for text in ax2.texts:
-            text.set_size(fontsize)
+            text.set_fontsize(fontsize)
 
     plt.tight_layout()
     plt.savefig('correlation_similarity_sorted.png')
     plt.close()
 
-def plot_roc_curves(df: pd.DataFrame, feature_cols: list, labels: pd.Series, title: str = "ROC") -> None:
+def plot_roc_curves(df : pd.DataFrame, feature_cols : list, labels : pd.Series, title : str = "ROC") -> None:
     ''' Plots ROC curves for a DataFrame.
 
     Parameters

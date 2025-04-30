@@ -53,22 +53,22 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 ###############################################################################
 
 def AEworker(
-        pid: int,
-        id: int,
-        X_train: np.ndarray,
-        X_test: np.ndarray,
-        X_val: np.ndarray,
-        encoding_dims: tuple,
-        storage: str,
-        models_folder: str,
-        random_seed: int = 42,
-        use_gpu: bool = True, 
-        verbose: bool = False, 
-        direction: str = "minimize", 
-        n_trials: int = 250, 
-        load_if_exists: bool = True, 
-        n_jobs: int = 1,
-        study_name: str = "Autoencoder_Optimization"
+        pid : int,
+        id : int,
+        X_train : np.ndarray,
+        X_test : np.ndarray,
+        X_val : np.ndarray,
+        encoding_dims : tuple,
+        storage : str,
+        models_folder : str,
+        random_seed : int = 42,
+        use_gpu : bool = True, 
+        verbose : bool = False, 
+        direction : str = "minimize", 
+        n_trials : int = 250, 
+        load_if_exists : bool = True, 
+        n_jobs : int = 1,
+        study_name : str = "Autoencoder_Optimization"
     ) -> optuna.study.Study:
     ''' Autoencoder optimization worker function.
 
@@ -153,22 +153,22 @@ def AEworker(
     return study
 
 def GAWorker(
-        pid: int,
-        id: int,
-        X_train: np.ndarray,
-        y_train: np.ndarray,
-        X_test: np.ndarray, 
-        y_test: np.ndarray, 
-        X_validation: Union[np.ndarray, None] = None, 
-        y_validation: Union[np.ndarray, None] = None,
-        storage: str = "sqlite:///GA.db",
-        best_params: dict = {}, 
-        n_trials: int = 100, 
-        study_name: str = "GA_Feature_Selection", 
-        random_state: int = 42, 
-        use_gpu: bool = True, 
-        verbose: bool = False, 
-        n_jobs: int = 1
+        pid : int,
+        id : int,
+        X_train : np.ndarray,
+        y_train : np.ndarray,
+        X_test : np.ndarray, 
+        y_test : np.ndarray, 
+        X_validation : Union[np.ndarray, None] = None, 
+        y_validation : Union[np.ndarray, None] = None,
+        storage : str = "sqlite:///GA.db",
+        best_params : dict = {}, 
+        n_trials : int = 100, 
+        study_name : str = "GA_Feature_Selection", 
+        random_state : int = 42, 
+        use_gpu : bool = True, 
+        verbose : bool = False, 
+        n_jobs : int = 1
     ) -> tuple[optuna.study.Study, dict, float]:
     ''' Feature selection worker function using Genetic Algorithms.
 
@@ -238,22 +238,22 @@ def GAWorker(
     return study, best_features, best_score
 
 def NNworker(
-        pid: int,
-        id: int,
-        X_train: np.ndarray, y_train: np.ndarray,
-        X_test: np.ndarray, y_test: np.ndarray,
-        X_val: np.ndarray, y_val: np.ndarray,
-        storage: str,
-        encoder_params: Union[dict, None] = None,
-        output_size: int = 1,
-        random_seed: int = 42,
-        use_gpu: bool = True,
-        verbose: bool = False,
-        direction: str = "minimize",
-        n_trials: int = 250,
-        load_if_exists: bool = True,
-        n_jobs: int = 1,
-        study_name: str = "NN_Optimization"
+        pid : int,
+        id : int,
+        X_train : np.ndarray, y_train : np.ndarray,
+        X_test : np.ndarray, y_test : np.ndarray,
+        X_val : np.ndarray, y_val : np.ndarray,
+        storage : str,
+        encoder_params : Union[dict, None] = None,
+        output_size : int = 1,
+        random_seed : int = 42,
+        use_gpu : bool = True,
+        verbose : bool = False,
+        direction : str = "minimize",
+        n_trials : int = 250,
+        load_if_exists : bool = True,
+        n_jobs : int = 1,
+        study_name : str = "NN_Optimization"
     ) ->  None:
     ''' Neural network optimization worker function.
     
@@ -328,22 +328,22 @@ def NNworker(
     return None
 
 def NNSeedAblationworker(
-        pid: int,
-        id: int,
-        X_train: np.ndarray, y_train: np.ndarray,
-        X_test: np.ndarray, y_test: np.ndarray,
-        X_val: np.ndarray, y_val: np.ndarray,
-        mask: np.ndarray,
-        storage: str,
-        network_params: dict[str, Any],
-        random_seeds: Union[list[int], int],
-        encoder_params: Union[dict, None] = None,
-        output_size: int = 1,
-        use_gpu: bool = True,
-        verbose: bool = False,
-        load_if_exists: bool = True,
-        n_jobs: int = 1,
-        study_name: str = "NN_Seed_Ablation_Optimization"
+        pid : int,
+        id : int,
+        X_train : np.ndarray, y_train : np.ndarray,
+        X_test : np.ndarray, y_test : np.ndarray,
+        X_val : np.ndarray, y_val : np.ndarray,
+        mask : np.ndarray,
+        storage : str,
+        network_params : dict[str, Any],
+        random_seeds : Union[list[int], int],
+        encoder_params : Union[dict, None] = None,
+        output_size : int = 1,
+        use_gpu : bool = True,
+        verbose : bool = False,
+        load_if_exists : bool = True,
+        n_jobs : int = 1,
+        study_name : str = "NN_Seed_Ablation_Optimization"
     ) ->  None:
     ''' Neural network optimization worker function.
     
@@ -453,22 +453,22 @@ def NNSeedAblationworker(
     return None
 
 def NNAblationworker(
-        pid: int,
-        id: int,
-        X_train: np.ndarray, y_train: np.ndarray,
-        X_test: np.ndarray, y_test: np.ndarray,
-        X_val: np.ndarray, y_val: np.ndarray,
-        mask: Union[list[np.ndarray], np.ndarray],
-        storage: str,
-        network_params: dict[str, Any],
-        encoder_params: Union[dict, None] = None,
-        output_size: int = 1,
-        random_seed: int = 42,
-        use_gpu: bool = True,
-        verbose: bool = False,
-        load_if_exists: bool = True,
-        n_jobs: int = 1,
-        study_name: str = "NN_Ablation_Optimization"
+        pid : int,
+        id : int,
+        X_train : np.ndarray, y_train : np.ndarray,
+        X_test : np.ndarray, y_test : np.ndarray,
+        X_val : np.ndarray, y_val : np.ndarray,
+        mask : Union[list[np.ndarray], np.ndarray],
+        storage : str,
+        network_params : dict[str, Any],
+        encoder_params : Union[dict, None] = None,
+        output_size : int = 1,
+        random_seed : int = 42,
+        use_gpu : bool = True,
+        verbose : bool = False,
+        load_if_exists : bool = True,
+        n_jobs : int = 1,
+        study_name : str = "NN_Ablation_Optimization"
     ) ->  None:
     ''' Neural network optimization worker function.
     
@@ -578,21 +578,21 @@ def NNAblationworker(
     return None
 
 def Transworker(
-            pid: int,
-            id: int,
-            X_train: np.ndarray, y_train: np.ndarray,
-            X_test: np.ndarray, y_test: np.ndarray,
-            X_val: np.ndarray, y_val: np.ndarray,
-            storage: str,
-            output_size: int = 1,
-            random_seed: int = 42,
-            use_gpu: bool = True,
-            verbose: bool = False,
-            direction: str = "minimize",
-            n_trials: int = 250,
-            load_if_exists: bool = True,
-            n_jobs: int = 1,
-            study_name: str = "Trans_Optimization"
+            pid : int,
+            id : int,
+            X_train : np.ndarray, y_train : np.ndarray,
+            X_test : np.ndarray, y_test : np.ndarray,
+            X_val : np.ndarray, y_val : np.ndarray,
+            storage : str,
+            output_size : int = 1,
+            random_seed : int = 42,
+            use_gpu : bool = True,
+            verbose : bool = False,
+            direction : str = "minimize",
+            n_trials : int = 250,
+            load_if_exists : bool = True,
+            n_jobs : int = 1,
+            study_name : str = "Trans_Optimization"
         ) -> None:
         ''' Transformer optimization worker function.
 
@@ -669,23 +669,23 @@ def Transworker(
             ocprint.printv(f"Process {pid} has compleated optimization")
 
 def XGBworker(
-        pid: int, id: int,
-        X_train: np.ndarray,
-        X_test: np.ndarray,
-        X_val: np.ndarray,
-        y_train: np.ndarray,
-        y_test: np.ndarray,
-        y_val: np.ndarray,
-        storage: str,
-        random_seed: int = 42,
-        use_gpu: bool = True,
-        verbose: bool = False,
-        n_trials: int = 250,
-        load_if_exists: bool = True,
-        n_jobs: int = 10,
-        study_name: str = "XGB_Optimization",
-        early_stopping_rounds: int = 50,
-        params: dict = {}
+        pid : int, id : int,
+        X_train : np.ndarray,
+        X_test : np.ndarray,
+        X_val : np.ndarray,
+        y_train : np.ndarray,
+        y_test : np.ndarray,
+        y_val : np.ndarray,
+        storage : str,
+        random_seed : int = 42,
+        use_gpu : bool = True,
+        verbose : bool = False,
+        n_trials : int = 250,
+        load_if_exists : bool = True,
+        n_jobs : int = 10,
+        study_name : str = "XGB_Optimization",
+        early_stopping_rounds : int = 50,
+        params : dict = {}
     ) -> optuna.study.Study:
     ''' XGBoost optimization worker function.
 

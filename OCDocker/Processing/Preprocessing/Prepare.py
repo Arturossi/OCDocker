@@ -371,21 +371,6 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
         # Append the dir to the list of dirs to be processed
         processDirs += __sub_core_prepare(candidates_d, archive, overwrite, mols, sanitize, targetCentroid = targetCentroid)
 
-    ''' P2Rank is not used yet
-    # Set the output path
-    fout = f"{path}/p2rank"
-    # Create the p2rank output dir
-    _ = ocff.safe_create_dir(fout)
-    # Parameterizing box count
-    boxCount = len(glob(f"{fout}/box*.pdb"))
-    # If overwrite mode is on or there is no box in the p2rank output, p2rank will run
-    if boxCount == 0 or overwrite:
-        # Run p2rank
-        __run_p2rank(path, fin, overwrite=overwrite)
-    else:
-        ocprint.print_info(f"The protein '{path}' already has its p2rank output generated, skipping its execution.")
-    '''
-
     # For each dir to be processed
     for processDir in processDirs:
         # Check if there is a box for the ligand

@@ -1,90 +1,28 @@
 OCDocker.Toolbox package
 ========================
 
-.. automodule:: OCDocker.Toolbox
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Submodules
 ----------
 
-OCDocker.Toolbox.Basetools module
----------------------------------
+.. toctree::
+   :maxdepth: 4
 
-.. automodule:: OCDocker.Toolbox.Basetools
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   OCDocker.Toolbox.Basetools
+   OCDocker.Toolbox.Constants
+   OCDocker.Toolbox.Conversion
+   OCDocker.Toolbox.Downloading
+   OCDocker.Toolbox.FilesFolders
+   OCDocker.Toolbox.IO
+   OCDocker.Toolbox.Logging
+   OCDocker.Toolbox.MoleculeProcessing
+   OCDocker.Toolbox.Printing
+   OCDocker.Toolbox.Running
+   OCDocker.Toolbox.Validation
 
-OCDocker.Toolbox.Conversion module
-----------------------------------
+Module contents
+---------------
 
-.. automodule:: OCDocker.Toolbox.Conversion
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-OCDocker.Toolbox.Downloading module
------------------------------------
-
-.. automodule:: OCDocker.Toolbox.Downloading
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-OCDocker.Toolbox.FilesFolders module
-------------------------------------
-
-.. automodule:: OCDocker.Toolbox.FilesFolders
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-OCDocker.Toolbox.IO module
---------------------------
-
-.. automodule:: OCDocker.Toolbox.IO
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-OCDocker.Toolbox.Logging module
--------------------------------
-
-.. automodule:: OCDocker.Toolbox.Logging
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-OCDocker.Toolbox.MoleculeProcessing module
-------------------------------------------
-
-.. automodule:: OCDocker.Toolbox.MoleculeProcessing
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-OCDocker.Toolbox.Printing module
---------------------------------
-
-.. automodule:: OCDocker.Toolbox.Printing
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-OCDocker.Toolbox.Running module
--------------------------------
-
-.. automodule:: OCDocker.Toolbox.Running
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-OCDocker.Toolbox.Validation module
-----------------------------------
-
-.. automodule:: OCDocker.Toolbox.Validation
+.. automodule:: OCDocker.Toolbox
    :members:
    :undoc-members:
    :show-inheritance:

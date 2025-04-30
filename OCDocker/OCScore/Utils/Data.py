@@ -17,7 +17,6 @@ import OCDocker.OCScore.Utils.Data as ocscoredata
 import itertools
 import math
 import os
-import re
 
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
@@ -51,61 +50,7 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 
 # Methods
 ###############################################################################
-
-def apply_pca_old(df: pd.DataFrame, pca_model_path: str, columns_to_skip_pca: list[str] = [], inplace: bool = False) -> Union[None, pd.DataFrame]:
-    ''' Applies PCA to a DataFrame using a pre-trained PCA model. [DEPRECATED]
-
-    Parameters
-    ----------
-    df: pd.DataFrame
-        Input DataFrame.
-    pca_model_path: str
-        Path to the pre-trained PCA model.
-    columns_to_skip_pca: list[str], optional
-        List of columns to keep in the DataFrame before applying PCA. The default is [].
-    inplace: bool, optional
-        If True, the original DataFrame is modified. If False, a new DataFrame
-        is returned. The default is False.
-    
-    Returns
-    -------
-    pd.DataFrame or None
-        DataFrame with PCA applied if inplace is False. None if inplace is True.
-
-    Raises
-    ------
-    FileNotFoundError
-        If the PCA model path is not found.
-    '''
-
-    # Check if pca_model_path is a valid file
-    if not os.path.isfile(pca_model_path):
-        raise FileNotFoundError(f"File {pca_model_path} not found")
-    
-    pca = ocscoreio.load_object(pca_model_path)
-
-    # Transform the data (excluding columns to keep)
-    pca_data = pca.transform(df.drop(columns = columns_to_skip_pca, errors = "ignore"))
-
-    # Make it a DataFrame
-    pca_data_df = pd.DataFrame(pca_data, columns = [f"PC_{i}" for i in range(pca_data.shape[1])])
-
-    # Create a DataFrame with the metadata and reset the indexes
-    metadata_df = df[columns_to_skip_pca].reset_index(drop = True)
-
-    # Combine metadata and PCA data
-    combined_df = pd.concat([metadata_df, pca_data_df], axis = 1)
-
-    if inplace:
-        # Modify the original DataFrame
-        df.clear() # type: ignore
-        df.update(combined_df)
-        return None
-    else:
-        # Return a new DataFrame
-        return combined_df
-
-def apply_pca(df: pd.DataFrame, pca_model: Union[str, PCA], columns_to_skip_pca: list[str] = [], inplace: bool = False) -> Union[None, pd.DataFrame]:
+def apply_pca(df : pd.DataFrame, pca_model : Union[str, PCA], columns_to_skip_pca : list[str] = [], inplace : bool = False) -> Union[None, pd.DataFrame]:
     ''' Applies PCA to a DataFrame using a pre-trained PCA model.
 
     Parameters
@@ -174,7 +119,7 @@ def apply_pca(df: pd.DataFrame, pca_model: Union[str, PCA], columns_to_skip_pca:
         # Return a new DataFrame with PCA applied
         return combined_df
     
-def calculate_metrics(df: pd.DataFrame, selected_columns: list) -> tuple[pd.DataFrame, list]:
+def calculate_metrics(df : pd.DataFrame, selected_columns : list) -> tuple[pd.DataFrame, list]:
     ''' Calculates additional metrics for a DataFrame. The metrics include average, median, 
     maximum, minimum, standard deviation, variance, sum, range, 25th and 75th percentiles.
 
@@ -216,7 +161,7 @@ def calculate_metrics(df: pd.DataFrame, selected_columns: list) -> tuple[pd.Data
     # Return DataFrame with additional metrics
     return df, ["mean", "median", "max", "min", "std", "variance", "sum", "range", "quantile_25", "quantile_75", "iqr", "skewness", "kurtosis"]
 
-def compute_zscore(df: pd.DataFrame, columns: list) -> pd.DataFrame:
+def compute_zscore(df : pd.DataFrame, columns : list) -> pd.DataFrame:
     ''' Computes the z-score for the specified columns in a DataFrame.
 
     Parameters
@@ -243,7 +188,7 @@ def compute_zscore(df: pd.DataFrame, columns: list) -> pd.DataFrame:
 
     return zscore_df
 
-def invert_values_conditionally(df: pd.DataFrame, regex_pattern = r"^(VINA|SMINA|PLANTS).*|^experimental$", inplace: bool = False) -> Union[pd.DataFrame, None]:
+def invert_values_conditionally(df : pd.DataFrame, regex_pattern : str = r"^(VINA|SMINA|PLANTS).*|^experimental$", inplace : bool = False) -> Union[pd.DataFrame, None]:
     ''' Inverts the values of specific columns in a DataFrame. The inversion 
     is applied to columns that start with 'VINA', 'SMINA', or 'PLANTS' as well
     as the column named 'experimental'.
@@ -289,7 +234,19 @@ def invert_values_conditionally(df: pd.DataFrame, regex_pattern = r"^(VINA|SMINA
     
     return None
 
-def load_data(base_models_folder: str, storage_id: int, df_path: str, optimization_type: str, pca_model: Union[str, PCA] = "", no_scores: bool = False, only_scores: bool = False, use_PCA: bool = False, pca_type: Union[str, int] = 95, use_pdb_train: bool = True, random_seed: int = 42) -> dict:
+def load_data(
+        base_models_folder : str,
+        storage_id : int,
+        df_path : str,
+        optimization_type : str,
+        pca_model : Union[str, PCA] = "",
+        no_scores : bool = False,
+        only_scores : bool = False,
+        use_PCA : bool = False,
+        pca_type : Union[str, int] = 95,
+        use_pdb_train : bool = True,
+        random_seed : int = 42
+    ) -> dict:
     ''' Process the data for training and testing the models.
 
     Parameters
@@ -443,7 +400,7 @@ def load_data(base_models_folder: str, storage_id: int, df_path: str, optimizati
         "y_val": y_val
     }
 
-def norm_data(df: pd.DataFrame, scaler: str = "standard", inplace: bool = False) -> Union[Any, pd.DataFrame]:
+def norm_data(df : pd.DataFrame, scaler : str = "standard", inplace : bool = False) -> Union[Any, pd.DataFrame]:
     ''' Preprocesses the input DataFrame by scaling selected feature columns using a Scaler.
     The metadata columns ("receptor", "ligand", "name", "type", "db") are preserved.
 
@@ -485,7 +442,7 @@ def norm_data(df: pd.DataFrame, scaler: str = "standard", inplace: bool = False)
 
     return df_copy
 
-def remove_other_columns(df: pd.DataFrame, columns_to_keep: list, inplace: bool = False) -> Union[Any, pd.DataFrame]:
+def remove_other_columns(df : pd.DataFrame, columns_to_keep : list, inplace : bool = False) -> Union[Any, pd.DataFrame]:
     ''' Removes columns from a DataFrame that are not in the specified list.
 
     Parameters
@@ -521,8 +478,24 @@ def remove_other_columns(df: pd.DataFrame, columns_to_keep: list, inplace: bool 
 
     return df_copy
 
-# Function to detect extreme outliers for specified columns with positive values
-def detect_extreme_outliers_iqr_columns_positive(df, columns, extreme_factor=3.0):
+def detect_extreme_outliers_iqr_columns_positive(df : pd.DataFrame, columns : list[str], extreme_factor : float = 3.0) -> dict:
+    ''' Detects extreme outliers in specified columns of a DataFrame using the IQR method.
+
+    Parameters
+    ----------
+    df: pd.DataFrame
+        Input DataFrame.
+    columns: list[str]
+        List of columns to check for extreme outliers.
+    extreme_factor: float, optional
+        The factor to determine extreme outliers. The default is 3.0.
+       
+    Returns
+    -------
+    dict
+        Dictionary containing the extreme outliers for each specified column.
+    '''
+
     # Initialize a dictionary to store extreme outliers for each specified column
     extreme_outliers_dict = {}
     
@@ -545,28 +518,45 @@ def detect_extreme_outliers_iqr_columns_positive(df, columns, extreme_factor=3.0
 
     return extreme_outliers_dict
 
-# Function to remove rows with extreme outliers from the specified columns
-def remove_extreme_outliers_iqr_columns_positive(df, columns, extreme_factor=3.0):
+def remove_extreme_outliers_iqr_columns_positive(df : pd.DataFrame, columns : list[str], extreme_factor : float = 3.0) -> pd.DataFrame:
+    ''' Removes rows with extreme outliers in specified columns of a DataFrame using the IQR method.
+
+    Parameters
+    ----------
+    df: pd.DataFrame
+        Input DataFrame.
+    columns: list[str]
+        List of columns to check for extreme outliers.
+    extreme_factor: float, optional
+        The factor to determine extreme outliers. The default is 3.0.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with rows containing extreme outliers removed.
+    '''
+
     # Get extreme outliers for the specified columns
     extreme_outliers_dict = detect_extreme_outliers_iqr_columns_positive(df, columns, extreme_factor)
     
     # Get the indices of all rows that contain extreme outliers in any of the specified columns
     outlier_indices = set()
+
     for column, outliers_df in extreme_outliers_dict.items():
         outlier_indices.update(outliers_df.index)
 
     # Remove rows with extreme outliers by filtering out those indices
-    df_cleaned = df.drop(outlier_indices)
+    df_cleaned = df.drop(list(outlier_indices))
     
     return df_cleaned
 
 def preprocess_df(
-    file_name: str, 
-    score_columns_list: list[str] = ["SMINA", "VINA", "ODDT", "PLANTS"], 
-    outliers_columns_list: Union[list[str], None] = None, 
-    scaler: str = "standard", 
-    invert_conditionally: bool = True, 
-    normalize: bool = True
+    file_name : str, 
+    score_columns_list : list[str] = ["SMINA", "VINA", "ODDT", "PLANTS"], 
+    outliers_columns_list : Union[list[str], None] = None, 
+    scaler : str = "standard", 
+    invert_conditionally : bool = True, 
+    normalize : bool = True
 ) -> tuple[pd.DataFrame, pd.DataFrame, list[str]]:
     ''' Load a DataFrame from a file and preprocess it.
 
@@ -634,73 +624,7 @@ def preprocess_df(
 
     return dudez_data, pdbbind_data, score_columns # type: ignore
 
-def preprocess_df_old(file_name: str, score_columns_list: list[str] = ["SMINA", "VINA", "ODDT", "PLANTS"], scaler: str = "standard", invert_conditionally: bool = True, normalize: bool = True) -> tuple[pd.DataFrame, pd.DataFrame, list[str]]:
-    ''' Load a DataFrame from a file and preprocess it. [DEPRECATED]
-
-    Parameters
-    ----------
-    file_name : str
-        The name of the file to load the DataFrame from.
-    score_columns_list : list[str], optional
-        The list of columns to be considered as score columns. The default is ["SMINA", "VINA", "ODDT", "PLANTS"].
-    scaler : str, optional
-        The scaler to use. The default is "standard". Options are "standard" and "minmax".
-    invert_conditionally : bool, optional
-        If True, the values in the score columns are inverted conditionally. The default is True.
-    normalize : bool, optional
-        If True, the data is normalized. The default is True.
-
-    Returns
-    -------
-    pd.DataFrame
-        The DUDEz data.
-    pd.DataFrame
-        The PDBbind data.
-    list[str]
-        The list of score columns.
-    '''
-
-    # Load and preprocess data
-    df = ocscoreio.load_data(file_name)
-
-    # Set plants columns only to filter
-    plants_columns = [col for col in df.columns if col.startswith('PLANTS')]
-
-    # Remove extreme positive outliers with IQR
-    df = remove_extreme_outliers_iqr_columns_positive(df, plants_columns, extreme_factor=3.0)
-
-    # Check if the score columns list is not empty
-    if score_columns_list:
-        # Define the score columns
-        score_columns = df.filter(regex=f"^({'|'.join(score_columns_list)})").columns.to_list()
-    else:
-        # Define the score columns
-        score_columns = score_columns_list
-
-    # Split DUDEz data from PDBbind
-    dudez_data = df[df["db"].str.upper() == "DUDEZ"]
-    pdbbind_data = df[df["db"].str.upper() == "PDBBIND"]
-
-    if invert_conditionally:
-        # Inverting values
-        dudez_data = invert_values_conditionally(dudez_data)
-
-        # Inverting values
-        pdbbind_data = invert_values_conditionally(pdbbind_data)
-    
-    # Drop the experimental column from DUDEz data
-    dudez_data = dudez_data.drop(columns = "experimental") # type: ignore 
-    
-    if normalize:
-        # Normalize the PDBbind data
-        pdbbind_data = norm_data(pdbbind_data, scaler = scaler) # type: ignore
-
-        # Normalize the DUDEz data
-        dudez_data = norm_data(dudez_data, scaler = scaler) # type: ignore
-
-    return dudez_data, pdbbind_data, score_columns # type: ignore
-
-def split_dataset(X: pd.DataFrame, y: pd.DataFrame, test_size: float = 0.2, random_state: int = 42) -> list[Any]:
+def split_dataset(X : pd.DataFrame, y : pd.Series, test_size : float = 0.2, random_state : int = 42) -> list[Any]:
     ''' Split the data into training and testing sets.
 
     Parameters
@@ -729,7 +653,7 @@ def split_dataset(X: pd.DataFrame, y: pd.DataFrame, test_size: float = 0.2, rand
     # Split the data into training and testing sets
     return train_test_split(X, y, test_size = test_size, random_state = random_state)
 
-def generate_mask(column_names: Union[list[str], pd.Index], score_columns: list[str]) -> list[np.ndarray]:
+def generate_mask(column_names : Union[list[str], pd.Index], score_columns : list[str]) -> list[np.ndarray]:
     '''
     Generates masks with combinations of 0s and 1s for columns that match a regex pattern.
     Columns that don't match the regex are filled with 1s.
@@ -775,7 +699,7 @@ def generate_mask(column_names: Union[list[str], pd.Index], score_columns: list[
     
     return results
 
-def chunkenize_dataset(data: Union[list[Any], np.ndarray, pd.DataFrame], id: int, num_machines: int) -> Union[list[Any], pd.DataFrame]:
+def chunkenize_dataset(data : Union[list[Any], np.ndarray, pd.DataFrame], id : int, num_machines : int) -> Union[list[Any], np.ndarray, pd.DataFrame]:
     '''
     Split a dataset in multiple chunks.
 
@@ -790,7 +714,7 @@ def chunkenize_dataset(data: Union[list[Any], np.ndarray, pd.DataFrame], id: int
 
     Returns
     -------
-    list[Any] | pd.Dataframe
+    list[Any] | np.ndarray | pd.Dataframe
         A subset of the data that corresponds to the given id.
     '''
     

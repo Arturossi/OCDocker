@@ -54,16 +54,16 @@ def is_algorithm_allowed(path: str) -> bool:
     path : str
         Path to the dir which will be tested.
         The algorithm list and their shortcodes:
-            - AffinityPropagation: ap
-            - AgglomerativeClustering: ac
-            - Birch: bi
-            - DBSCAN: db
-            - KMeans:  km
-            - MeanShift: ms
-            - MiniBatchKMeans: mb
-            - NoCluster: na
-            - OPTICS: op
-            - SpectralClustering: sc
+        - AffinityPropagation: ap
+        - AgglomerativeClustering: ac
+        - Birch: bi
+        - DBSCAN: db
+        - KMeans:  km
+        - MeanShift: ms
+        - MiniBatchKMeans: mb
+        - NoCluster: na
+        - OPTICS: op
+        - SpectralClustering: sc
 
     Returns
     -------

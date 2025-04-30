@@ -41,7 +41,10 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 # Methods
 ###############################################################################
 
-def simple_consensus(data: pd.DataFrame, score_columns: list[str]) -> pd.DataFrame:
+def simple_consensus(
+        data : pd.DataFrame,
+        score_columns : list[str]
+    ) -> pd.DataFrame:
     ''' Perform the consensus calculation for the given dataset. The metrics are: mean, median, max, min, std, variance, sum, range, 25th and 75th percentiles, kurtoisis, skewness.
 
     Parameters
@@ -87,7 +90,11 @@ def simple_consensus(data: pd.DataFrame, score_columns: list[str]) -> pd.DataFra
 
     return df
 
-def perform_simple_consensus(df_path: str, threshold: float = 1.2, verbose: bool = False) -> pd.DataFrame:
+def perform_simple_consensus(
+        df_path : str,
+        threshold : float = 1.2,
+        verbose : bool = False
+    ) -> pd.DataFrame:
     ''' Perform the simple consensus calculation for the given dataset.
     
     Parameters

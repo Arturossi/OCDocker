@@ -98,3 +98,6 @@ napoleon_use_rtype = True
 
 autodoc_member_order = 'bysource'
 autodoc_typehints = 'description'
+
+# -- Autodoc mock imports ----------------------------------------------------
+autodoc_mock_imports = []

@@ -1,5 +1,5 @@
 OCDocker.Processing.Dock module
-================================
+===============================
 
 .. automodule:: OCDocker.Processing.Dock
    :members:

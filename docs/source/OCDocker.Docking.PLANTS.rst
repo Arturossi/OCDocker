@@ -1,5 +1,5 @@
 OCDocker.Docking.PLANTS module
-===============================
+==============================
 
 .. automodule:: OCDocker.Docking.PLANTS
    :members:

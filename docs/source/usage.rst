@@ -28,10 +28,16 @@ This command displays the help message with all available options and arguments.
 Advanced Usage
 --------------
 
-For more advanced usage, refer to the documentation of specific modules:
+For more advanced usage, refer to the documentation of specific modules/packages:
 
-- :ref:`OCDocker`
-- :ref:`OCDocker.Docking`
-- :ref:`OCDocker.ExternalTools`
-- :ref:`OCDocker.Processing`
-- :ref:`OCDocker.Toolbox`
+- :doc:`OCDocker`
+- :doc:`OCDocker.DB`
+- :doc:`OCDocker.Docking`
+- :doc:`OCDocker.Error`
+- :doc:`OCDocker.Initialise`
+- :doc:`OCDocker.Ligand`
+- :doc:`OCDocker.OCScore`
+- :doc:`OCDocker.Processing`
+- :doc:`OCDocker.Receptor`
+- :doc:`OCDocker.Rescoring`
+- :doc:`OCDocker.Toolbox`

@@ -1,19 +1,21 @@
-OCDocker.DB.Models module
-===============================
-
-.. automodule:: OCDocker.DB.Models
-   :members:
-   :undoc-members:
-   :show-inheritance:
+OCDocker.DB.Models package
+==========================
 
 Submodules
 ----------
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 4
 
-OCDocker.DB.Models.Base
-OCDocker.DB.Models.Complexes
-OCDocker.DB.Models.Ligands
-OCDocker.DB.Models.Receptors
+   OCDocker.DB.Models.Base
+   OCDocker.DB.Models.Complexes
+   OCDocker.DB.Models.Ligands
+   OCDocker.DB.Models.Receptors
+
+Module contents
+---------------
+
+.. automodule:: OCDocker.DB.Models
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,18 +1,18 @@
 OCDocker.Processing.Postprocessing package
 ==========================================
 
-.. automodule:: OCDocker.Processing.Postprocessing
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Submodules
 ----------
 
-OCDocker.Processing.Postprocessing.Digest module
-------------------------------------------------
+.. toctree::
+   :maxdepth: 4
 
-.. automodule:: OCDocker.Processing.Postprocessing.Digest
+   OCDocker.Processing.Postprocessing.Digest
+
+Module contents
+---------------
+
+.. automodule:: OCDocker.Processing.Postprocessing
    :members:
    :undoc-members:
    :show-inheritance:

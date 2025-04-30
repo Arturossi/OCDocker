@@ -44,11 +44,30 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 ###############################################################################
 
 def compute_auc(
-        df: pd.DataFrame,
-        positive_class_names: Union[str, list[str]],
-        score_columns: list[str],
-        class_column_name: str
-):
+        df : pd.DataFrame,
+        positive_class_names : Union[str, list[str]],
+        score_columns : list[str],
+        class_column_name : str
+    ) -> pd.DataFrame:
+    ''' Compute the AUC for the scores in given score_columns.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The DataFrame containing the scores.
+    positive_class_names : Union[str, list[str]]
+        The name/names of the positive class. If a string is given, it will be converted to a list. (All other classes will be considered as negative)
+    score_columns : list[str]
+        The list of columns containing the scores.
+    class_column_name : str
+        The name of the column containing the class.
+    
+    Returns
+    -------
+    pd.DataFrame
+        The DataFrame with the computed AUC.
+    '''
+
     # Check if positive_class_names is a string
     if isinstance(positive_class_names, str):
         positive_class_names = [positive_class_names]
@@ -73,10 +92,27 @@ def compute_auc(
     return pd.DataFrame(metrics)
 
 def compute_rmse(
-        df: pd.DataFrame,
-        score_columns: list[str],
-        target_column_name: str
-):
+        df : pd.DataFrame,
+        score_columns : list[str],
+        target_column_name : str
+    ) -> pd.DataFrame:
+    ''' Compute the RMSE for the scores in given score_columns.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The DataFrame containing the scores.
+    score_columns : list[str]
+        The list of columns containing the scores.
+    target_column_name : str
+        The name of the column containing the target values.
+
+    Returns
+    -------
+    pd.DataFrame
+        The DataFrame with the computed RMSE.
+    '''
+    
     metrics = []
 
     for score_column in score_columns:

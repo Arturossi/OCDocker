@@ -41,7 +41,7 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 # Methods
 ###############################################################################
 
-def load_object(file_name: str, serialization_method: str = "joblib") -> Any:
+def load_object(file_name : str, serialization_method : str = "joblib") -> Any:
     ''' Load an object from a file using pickle.
 
     Parameters
@@ -72,24 +72,7 @@ def load_object(file_name: str, serialization_method: str = "joblib") -> Any:
     with open(file_name, 'rb') as file:
         return pickle.load(file)
     
-def load_data_old(file_name: str) -> pd.DataFrame:
-    ''' Loads a CSV file into a DataFrame.
-
-    Parameters
-    ----------
-    file_name: str
-        Name of the CSV file to load.
-
-    Returns
-    -------
-    pd.DataFrame
-        DataFrame containing the data from the CSV file.
-    '''
-
-    return pd.read_csv(file_name)
-
-
-def load_data(file_name: str, exclude_column: str = 'experimental') -> pd.DataFrame:
+def load_data(file_name : str, exclude_column : str = 'experimental') -> pd.DataFrame:
     ''' Loads a CSV file into a DataFrame, removes rows with NaNs (except in a specified column), and notifies the user.
 
     Parameters
@@ -129,7 +112,7 @@ def load_data(file_name: str, exclude_column: str = 'experimental') -> pd.DataFr
     
     return df
 
-def save_object(obj: Any, filename: str) -> None:
+def save_object(obj : Any, filename : str) -> None:
     ''' Save an object to a file using pickle.
 
     Parameters

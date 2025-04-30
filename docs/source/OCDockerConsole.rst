@@ -1,5 +1,5 @@
-OCDockerConsole package
-=======================
+OCDockerConsole
+===============
 
 .. automodule:: OCDockerConsole
    :members:

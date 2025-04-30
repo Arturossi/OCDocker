@@ -1,16 +1,11 @@
 OCDocker.Processing package
 ===========================
 
-.. automodule:: OCDocker.Processing
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Subpackages
 -----------
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 4
 
    OCDocker.Processing.Postprocessing
    OCDocker.Processing.Preprocessing
@@ -18,10 +13,15 @@ Subpackages
 Submodules
 ----------
 
-OCDocker.Processing.Dock module
--------------------------------
+.. toctree::
+   :maxdepth: 4
 
-.. automodule:: OCDocker.Processing.Dock
+   OCDocker.Processing.Dock
+
+Module contents
+---------------
+
+.. automodule:: OCDocker.Processing
    :members:
    :undoc-members:
    :show-inheritance:
