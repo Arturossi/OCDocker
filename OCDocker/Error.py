@@ -77,6 +77,7 @@ class ErrorCode(IntEnum):
     UNSUPPORTED_EXTENSION = 105
     BROKEN_PIPE = 106
     EMPTY_FILE = 107
+    CORRUPTED_FILE = 108
 
     # Directory errors
     DIR_EXISTS = 150
@@ -200,6 +201,7 @@ class ErrorMessages:
         ErrorCode.UNSUPPORTED_EXTENSION: ("the file extension is not supported", ReportLevel.ERROR),
         ErrorCode.BROKEN_PIPE: ("a broken pipe error has occurred", ReportLevel.ERROR),
         ErrorCode.EMPTY_FILE: ("the file is empty", ReportLevel.WARNING),
+        ErrorCode.CORRUPTED_FILE: ("the file is corrupted", ReportLevel.ERROR),
 
         # Directory errors
         ErrorCode.DIR_EXISTS: ("the directory already exists", ReportLevel.WARNING),
@@ -447,6 +449,7 @@ class Error(metaclass = ErrorMeta):
                 ("Unsupported extension", ErrorCode.UNSUPPORTED_EXTENSION),
                 ("Broken PIPE", ErrorCode.BROKEN_PIPE),
                 ("Empty file", ErrorCode.EMPTY_FILE),
+                ("Corrupted file", ErrorCode.CORRUPTED_FILE),
             ],
             "DIRECTORY ERRORS": [
                 ("Directory exists", ErrorCode.DIR_EXISTS),

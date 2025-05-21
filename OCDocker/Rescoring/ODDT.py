@@ -266,10 +266,11 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
     if os.path.isfile(outputFile) and not overwrite:
         # Check if the returnData is True
         if returnData:
-            # Read the output file
-            df = pd.read_csv(outputFile, sep = ",")
-            # Return the data
-            return df
+            try:
+                # Read the output file
+                return pd.read_csv(outputFile, sep = ",")
+            except Exception as e:
+                return ocerror.Error.corrputed_file(f"Failed to read output file '{outputFile}'.", level=ocerror.ReportLevel.ERROR) # type: ignore
         else:
             return ocerror.Error.file_exists(f"The output file '{outputFile}' already exists. Please use the overwrite option if you want to overwrite it.", level = ocerror.ReportLevel.ERROR) # type: ignore
     
@@ -285,25 +286,34 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
     
     receptorObj.protein = True
 
+    # Find missing ligands
+    missing = [ligand for ligand in preparedLigandPath if not os.path.isfile(ligand)]
+
+    # Check if there are missing ligands
+    if missing:
+        return ocerror.Error.file_not_exist(f"Missing ligands: {missing}", level=ocerror.ReportLevel.ERROR)  # type: ignore
+
+
     # Check if all the ligands exist
     for ligand in preparedLigandPath:
-        # Check if the ligand exists
-        if not os.path.isfile(ligand):
-            return ocerror.Error.file_not_exist(f"The ligand file '{ligand}' does not exist.", level = ocerror.ReportLevel.ERROR) # type: ignore
-
         # Load the ligand
         pipeline.load_ligands(ligand.split('.')[-1], ligand)
 
+    # Create a set with the scoring functions
+    sf_set = {'nnscore', 'rfscore', 'plec'}
+
     # Check if the desired models are in the models folder
     for model in models:
-        # This loop is to ensure that only these models are supported, all the others are ignored (maybe remove in the future?)
-        for sf_name in ['nnscore', 'rfscore', 'plec']:
-            # Check if the model is in the model path (must be lower case to avoid problems)
-            if sf_name in model.lower():
-                # Load the model
-                sf = scorer.load(model)
-                # Add the model to the pipeline performing the rescoring
-                pipeline.score(sf, receptorObj)
+        # Extract the model name and convert it to lower case
+        model_name = os.path.basename(model).lower()
+
+        # Check if the model name is in the set of scoring functions
+        if any(sf in model_name for sf in sf_set):
+            # Load the model
+            sf = scorer.load(model)
+
+            # Add the model to the pipeline performing the rescoring
+            pipeline.score(sf, receptorObj)
 
     # Create the empty data list
     datas = []
