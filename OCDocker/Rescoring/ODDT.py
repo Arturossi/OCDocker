@@ -293,7 +293,6 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
     if missing:
         return ocerror.Error.file_not_exist(f"Missing ligands: {missing}", level=ocerror.ReportLevel.ERROR)  # type: ignore
 
-
     # Check if all the ligands exist
     for ligand in preparedLigandPath:
         # Load the ligand

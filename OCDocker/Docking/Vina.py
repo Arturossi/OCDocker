@@ -19,6 +19,7 @@ import os
 import numpy as np
 
 from glob import glob
+from pathlib import Path
 from typing import Dict, List, Tuple, Union
 
 from OCDocker.Initialise import *
@@ -86,15 +87,14 @@ class Vina:
         self.boxFile = str(boxFile)
 
         # Receptor
-        if type(receptor) == ocr.Receptor:
+        if isinstance(receptor, ocr.Receptor):
             self.inputReceptor = receptor
         else:
             ocerror.Error.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR) # type: ignore
             return None
         
         # Check if the folder where the configPath is located exists (remove the file name from the path)
-        _ = ocff.safe_create_dir(os.path.dirname(self.config))
-
+        _ = ocff.safe_create_dir(Path(self.config).parent)
 
         self.inputReceptorPath = self.__parse_receptor_path(receptor)
         self.preparedReceptor = str(preparedReceptorPath)
@@ -104,7 +104,7 @@ class Vina:
         self.preparedLigand = str(preparedLigandPath)
         
         # Check the type of the ligand
-        if type(ligand) == ocl.Ligand:
+        if isinstance(ligand, ocl.Ligand):   
             self.inputLigand = ligand
             # Create the vinaFiles folder
             _ = ocff.safe_create_dir(os.path.join(os.path.dirname(ligand.path), "vinaFiles"))

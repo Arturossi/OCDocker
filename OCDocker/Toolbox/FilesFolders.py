@@ -22,6 +22,7 @@ import tarfile
 import numpy as np
 
 from tqdm import tqdm
+from pathlib import Path
 from typing import Any, Dict, List, Union
 
 import OCDocker.Toolbox.Basetools as ocbasetools
@@ -217,13 +218,13 @@ def from_pickle(filePath: str) -> Union[None, Any]:
         _ = ocerror.Error.read_file(f"Problems while unpickling the file '{filePath}'. Error: {e}") # type: ignore
     return data
 
-def safe_create_dir(dirname: str) -> int:
+def safe_create_dir(dirname: Union[str, Path]) -> int:
     '''Create a dir if not exists.
 
     Parameters
     ----------
-    dirname : str
-        The dir to be created.
+    dirname : str, Path
+        The dir to be created. It can be a string or a Path object.
 
     Returns
     -------
@@ -233,22 +234,36 @@ def safe_create_dir(dirname: str) -> int:
 
     # Try to create
     try:
-        # If file does not exists
-        if not os.path.isdir(dirname):
-            # Create it
-            os.mkdir(dirname)
-            # Print verbosity
-            if ocerror.Error.output_level >= ocerror.ReportLevel.SUCCESS:
-                return ocerror.Error.ok(f"Successfully created the directory '{dirname}'") # type: ignore
-            return ocerror.Error.ok() # type: ignore
-        else:
-            # It exists
-            return ocerror.Error.dir_exists(message=f"The dir '{dirname}' already exists!", level = ocerror.ReportLevel.WARNING) # type: ignore
+        # Check if the dirname is a string
+        if isinstance(dirname, str):
+            # If file does not exists
+            if not os.path.isdir(dirname):
+                # Create it
+                os.mkdir(dirname)
+                # Print verbosity
+                if ocerror.Error.output_level >= ocerror.ReportLevel.SUCCESS:
+                    return ocerror.Error.ok(f"Successfully created the directory '{dirname}'") # type: ignore
+                return ocerror.Error.ok() # type: ignore
+            else:
+                # It exists
+                return ocerror.Error.dir_exists(message=f"The dir '{dirname}' already exists!", level = ocerror.ReportLevel.WARNING) # type: ignore
+        # Check if the dirname is a Path object
+        elif isinstance(dirname, Path):
+            # If file does not exists
+            if not dirname.is_dir():
+                # Create it
+                dirname.mkdir(parents=True, exist_ok=True)
+                # Print verbosity
+                if ocerror.Error.output_level >= ocerror.ReportLevel.SUCCESS:
+                    return ocerror.Error.ok(f"Successfully created the directory '{dirname}'") # type: ignore
+            else:
+                # It is a file
+                return ocerror.Error.file_exists(message=f"The dir '{dirname}' is a file!", level = ocerror.ReportLevel.WARNING) # type: ignore
     except Exception as e:
         # Some error has occurred
         return ocerror.Error.create_dir(message=f"Problem found while creating the dir '{dirname}': {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
     # This should never appear since all the other paths ends in some kind of return
-    return ocerror.Error.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while creating a dir safetly.", level = ocerror.ReportLevel.ERROR)
+    return ocerror.Error.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while creating a dir safetly.", level = ocerror.ReportLevel.ERROR) # type: ignore
 
 def safe_remove_dir(dirname: str) -> int:
     ''' Remove a dir if exists.
