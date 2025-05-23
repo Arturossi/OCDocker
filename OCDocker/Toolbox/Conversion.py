@@ -1,4 +1,4 @@
-#!/usr/lib/python3
+#!/usr/bin/env python3
 
 # Description
 ###############################################################################
@@ -13,6 +13,7 @@ import OCDocker.Toolbox.Conversion as occonversion
 
 # Imports
 ###############################################################################
+import math
 import os
 import rdkit
 
@@ -32,8 +33,8 @@ from OCDocker.Initialise import *
 # Set output levels for openbabel
 pb_log_handler = pybel.ob.OBMessageHandler()
 ob_log_handler = openbabel.OBMessageHandler()
-pb_log_handler.SetOutputLevel(args.output_level)
-ob_log_handler.SetOutputLevel(args.output_level)
+pb_log_handler.SetOutputLevel(output_level.value)
+ob_log_handler.SetOutputLevel(output_level.value)
 
 # License
 ###############################################################################
@@ -74,10 +75,6 @@ def convertMolsFromString(input: str, output: str, mol: Union[rdkit.Chem.rdchem.
     -------
     int | str
         The exit code of the command (based on the Error.py code table) if fails or the extension of the input file otherwise returns the extension itself.
-
-    Raises
-    ------
-    None
     '''
 
     # Get the in and out extensions 
@@ -109,7 +106,7 @@ def convertMolsFromString(input: str, output: str, mol: Union[rdkit.Chem.rdchem.
         if outExtension == "mol":
             # Write the molecule to the output file
             MolToMolFile(mol, output)
-            return errors.ok()
+            return ocerror.Error.ok() # type: ignore
         
         # Replace the extension to to mol
         tmpOutput = f"{os.path.splitext(output)[0]}_tmp.mol"
@@ -121,60 +118,60 @@ def convertMolsFromString(input: str, output: str, mol: Union[rdkit.Chem.rdchem.
         convertMols(tmpOutput, output)
         
     except Exception as e:
-        return errors.subprocess(message=f"Error while running molecule conversion from {inExtension} to {outExtension} using obabel python lib. Error: {e}", level="error")
+        return ocerror.Error.subprocess(message=f"Error while running molecule conversion from {inExtension} to {outExtension} using obabel python lib. Error: {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
 
-    return errors.ok()
+    return ocerror.Error.ok() # type: ignore
 
-def convertMols(input: str, output: str) -> Union[int, str]:
+def convertMols(input_file: str, output_file: str, return_molecule: bool = False, overwrite: bool = False) -> Union[int, str, rdkit.Chem.rdchem.Mol]: # type: ignore
     '''Convert a molecule file between two extensions which obabel supports.
 
     Parameters
     ----------
-    input : str
-        Input file name.
-    output : str
-        Output file name.
+    input_file : str
+        Input file path.
+    output_file : str
+        Output file path.
+    return_molecule : bool
+        If True, returns the molecule object. (default is False)
+    overwrite : bool, optional
+        If True, overwrites the output file if it already exists. (default is False)
 
     Returns
     -------
-    int | str
+    int | str | rdkit.Chem.rdchem.Mol
         The exit code of the command (based on the Error.py code table) if fails or the extension of the input file otherwise.
-        
-    Raises
-    ------
-    None
     '''
 
     # Find the extension for input and output
-    inExtension = ocvalidation.validate_obabel_extension(input)
-    outExtension = ocvalidation.validate_obabel_extension(output)
+    inExtension = ocvalidation.validate_obabel_extension(input_file)
+    outExtension = ocvalidation.validate_obabel_extension(output_file)
 
     # Print verboosity
-    ocprint.printv(f"Converting '{input}' to '.{outExtension}'.")
+    ocprint.printv(f"Converting '{input_file}' to '.{outExtension}'.")
 
     # Check if the input extension is valid
     if type(inExtension) != str:
-        ocprint.print_error(f"Problems while reading the molecule from input file '{input}'.")
+        ocprint.print_error(f"Problems while reading the molecule from input file '{input_file}'.")
         # inExtension SHOULD be an int in this case
         return inExtension
 
     # Check if the output extension is valid
     if type(outExtension) != str:
-        ocprint.print_error(f"Problems while pre-processing the molecule from output file '{output}'.")
+        ocprint.print_error(f"Problems while pre-processing the molecule from output file '{output_file}'.")
         # outExtension SHOULD be an int in this case
         return outExtension
 
     # Check if the output exists, if so, no need to convert
-    if os.path.isfile(output):
-        return errors.file_exists(message=f"The file '{output}' already exists, aborting conversion.", level="warn")
+    if not overwrite and os.path.isfile(output_file):
+        return ocerror.Error.file_exists(message=f"The file '{output_file}' already exists, aborting conversion.", level = ocerror.ReportLevel.WARNING) # type: ignore
 
     # Check if input is a smiles file
     if inExtension == "smi":
         # Read the smiles file into string
-        with open(input, 'r') as file:
+        with open(input_file, 'r') as file:
             data = file.read().strip()
         # Convert the string to the output file
-        return convertMolsFromString(data, output)
+        return convertMolsFromString(data, output_file)
 
     # Try to convert (if fails, throw exception for subprocess failing)
     try:
@@ -185,12 +182,21 @@ def convertMols(input: str, output: str) -> Union[int, str]:
         # Create an empty OBMol object
         mol = openbabel.OBMol()
         # Load the input file to the prebiusly loaded OBMol object
-        obConversion.ReadFile(mol, input)
+        obConversion.ReadFile(mol, input_file)
+        # Clear the molecule title
+        mol.SetTitle("")
+        # Remove the molecule title
+        mol.DeleteData("TITLE")
         # Write the mol object to the output performing the conversion
-        obConversion.WriteFile(mol, output)
+        obConversion.WriteFile(mol, output_file)
+
+        # If return_molecule is True
+        if return_molecule:
+            # Return the molecule object
+            return mol
     except Exception as e:
-        return errors.subprocess(message=f"Error while running molecule conversion from {inExtension} to {outExtension} using obabel python lib. Error: {e}", level="error")
-    return errors.ok()
+        return ocerror.Error.subprocess(message=f"Error while running molecule conversion from {inExtension} to {outExtension} using obabel python lib. Error: {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
+    return ocerror.Error.ok() # type: ignore
 
 def split_and_convert(path: str, out_path: str, extension: str, overwrite: bool = False) -> int:
     '''Splits a multi-molecule file then save the output in multiple single-molecule file with the desired extension. (Supported by openbabel)
@@ -210,10 +216,6 @@ def split_and_convert(path: str, out_path: str, extension: str, overwrite: bool 
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Finds the input extension
@@ -222,7 +224,7 @@ def split_and_convert(path: str, out_path: str, extension: str, overwrite: bool 
     # If input extension is not valid
     if type(extension) != str:
         # Return the unsupported_extension
-        return errors.unsupported_extension(f"Unsupported extension provided while spliting '{path}' file. Supported extensions are the one supported by OpenBabel.", "error")
+        return ocerror.Error.unsupported_extension(f"Unsupported extension provided while spliting '{path}' file. Supported extensions are the one supported by OpenBabel.", ocerror.ReportLevel.ERROR) # type: ignore
 
     # For each molecule in input file
     for mol in pybel.readfile(extensionIn, path):
@@ -237,6 +239,48 @@ def split_and_convert(path: str, out_path: str, extension: str, overwrite: bool 
         # If fails
         except Exception as e:
             # Return write file error
-            return errors.write_file(f"Problems while writing the file '{outfile}'. Error: {e}")
+            return ocerror.Error.write_file(f"Problems while writing the file '{outfile}'. Error: {e}") # type: ignore
     # Since everything gone ok, return the ok code
-    return errors.ok()
+    return ocerror.Error.ok() # type: ignore
+
+def kikd_to_deltag(kikd: float, T: float = 273.15, kikd_order: str = "un", R: float = 8.314) -> float:
+    '''Converts Ki/Kd to deltaG.
+
+    Parameters
+    ----------
+    kikd : float
+        Ki/Kd value.
+    T : float, optional
+        Temperature in Kelvin. (default is 273.15)
+    kikd_order : str, optional
+        Order of the Ki/Kd value. (default is "un")
+    R : float, optional
+        Ideal gas constant in J/(mol·K). (default is 8.314)
+
+    Returns
+    -------
+    float
+        The deltaG value.
+    '''
+
+    # If the length of the kikd_order is greater than 1
+    if len(kikd_order) > 1:
+        # If the Ki/Kd order is not un
+        if kikd_order != "un":
+            # Make it be just the first letter
+            kikd_order = kikd_order[0]
+        # Now check if the length of the kikd_order is more than 3
+        elif len(kikd_order) > 3:
+            # Check if starts with un
+            if kikd_order.startswith("un"):
+                # Make it be just the first letter
+                kikd_order = kikd_order[2]
+            # Use the first letter
+            else:
+                kikd_order = kikd_order[0]
+
+    # Calculate deltaG
+    deltag = - R * T * math.log(kikd * order[kikd_order]["un"])
+
+    # Return the deltaG
+    return deltag

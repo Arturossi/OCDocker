@@ -1,4 +1,4 @@
-#!/usr/lib/python3
+#!/usr/bin/env python3
 
 # Description
 ###############################################################################
@@ -51,13 +51,9 @@ def printv(message: str) -> None:
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
-    if args.output_level >= 5:
+    if ocerror.Error.output_level >= ocerror.ReportLevel.DEBUG:
         today = datetime.datetime.now()
         print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {message}")
     return
@@ -75,15 +71,11 @@ def print_info(message: str, force = False) -> None:
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
-    if args.output_level >= 2 or force:
+    if ocerror.Error.output_level >= ocerror.ReportLevel.INFO or force:
         today = datetime.datetime.now()
-        if args.output_level >= 4:
+        if ocerror.Error.output_level >= ocerror.ReportLevel.DEBUG:
             print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['c']}INFO{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.") # type: ignore
         else:
             print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['c']}INFO{clrs['n']}: {message}")
@@ -102,15 +94,11 @@ def print_success(message: str, force: bool = False) -> None:
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
-    if args.output_level >= 3 or force:
+    if ocerror.Error.output_level >= ocerror.ReportLevel.SUCCESS or force:
         today = datetime.datetime.now()
-        if args.output_level >= 4:
+        if ocerror.Error.output_level >= ocerror.ReportLevel.DEBUG:
             print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['g']}SUCCESS{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.") # type: ignore
         else:
             print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['g']}SUCCESS{clrs['n']}: {message}")
@@ -129,15 +117,11 @@ def print_warning(message: str, force: bool = False) -> None:
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
-    if args.output_level >= 1 or force:
+    if ocerror.Error.output_level >= ocerror.ReportLevel.WARNING or force:
         today = datetime.datetime.now()
-        if args.output_level == 4:
+        if ocerror.Error.output_level >= ocerror.ReportLevel.DEBUG:
             print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['y']}WARNING{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.") # type: ignore
         else:
             print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['y']}WARNING{clrs['n']}: {message}")
@@ -156,15 +140,12 @@ def print_error(message: str, force: bool = False) -> None:
     Returns
     -------
     None
-    
-    Raises
-    ------
-    None
+
     '''
 
-    if args.output_level > 0 or force:
+    if ocerror.Error.output_level >= ocerror.ReportLevel.ERROR or force:
         today = datetime.datetime.now()
-        if args.output_level == 4:
+        if ocerror.Error.output_level >= ocerror.ReportLevel.DEBUG:
             print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] {clrs['r']}ERROR{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.") # type: ignore
         else:
             print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] {clrs['r']}ERROR{clrs['n']}: {message}")
@@ -184,10 +165,6 @@ def print_info_log(message: str, logfile:str, mode: str = 'a') -> None:
 
     Returns
     -------
-    None
-
-    Raises
-    ------
     None
     '''
 
@@ -211,10 +188,6 @@ def print_success_log(message: str, logfile: str, mode: str = 'a') -> None:
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
     today = datetime.datetime.now()
@@ -236,10 +209,6 @@ def print_warning_log(message: str, logfile: str, mode: str = 'a') -> None:
 
     Returns
     -------
-    None
-
-    Raises
-    ------
     None
     '''
 
@@ -263,10 +232,6 @@ def print_error_log(message: str, logfile: str, mode: str = 'a') -> None:
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
     today = datetime.datetime.now()
@@ -288,10 +253,6 @@ def print_section(n: int, name: str, logName = "OCDocker_Progress.out") -> None:
 
     Returns
     -------
-    None
-
-    Raises
-    ------
     None
     '''
 
@@ -334,10 +295,6 @@ def section(n: int, name: str) -> str:
     -------
     str
         Section header.
-
-    Raises
-    ------
-    None
     '''
 
     # Create a nice section header to return
@@ -371,10 +328,6 @@ def print_subsection(n: int, name: str, logName: str = "OCDocker_Progess.out") -
 
     Returns
     -------
-    None
-
-    Raises
-    ------
     None
     '''
 
@@ -414,10 +367,6 @@ def subsection(n: int, name: str) -> str:
     -------
     str
         Subsection header.
-
-    Raises
-    ------
-    None
     '''
 
     # Create a nice subsection header to return
@@ -448,10 +397,6 @@ def print_sorry()-> None:
 
     Returns
     -------
-    None
-
-    Raises
-    ------
     None
     '''
 

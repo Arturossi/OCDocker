@@ -1,4 +1,4 @@
-#!/usr/lib/python3
+#!/usr/bin/env python3
 
 # Description
 ###############################################################################
@@ -54,25 +54,21 @@ def is_algorithm_allowed(path: str) -> bool:
     path : str
         Path to the dir which will be tested.
         The algorithm list and their shortcodes:
-            - AffinityPropagation: ap
-            - AgglomerativeClustering: ac
-            - Birch: bi
-            - DBSCAN: db
-            - KMeans:  km
-            - MeanShift: ms
-            - MiniBatchKMeans: mb
-            - NoCluster: na
-            - OPTICS: op
-            - SpectralClustering: sc
+        - AffinityPropagation: ap
+        - AgglomerativeClustering: ac
+        - Birch: bi
+        - DBSCAN: db
+        - KMeans:  km
+        - MeanShift: ms
+        - MiniBatchKMeans: mb
+        - NoCluster: na
+        - OPTICS: op
+        - SpectralClustering: sc
 
     Returns
     -------
     bool
         True if the dir is an allowed algorithm, False otherwise.
-
-    Raises
-    ------
-    None
     '''
 
     # Allowed algorithms
@@ -91,10 +87,6 @@ def is_molecule_valid(molecule: str) -> bool:
     -------
     bool
         True if the molecule is valid, False otherwise.
-
-    Raises
-    ------
-    None
     '''
 
     # Check if file exists
@@ -188,10 +180,6 @@ def validate_obabel_extension(path: str) -> Union[str, int]:
     -------
     str | int
         The exit code of the command (based on the Error.py code table) if fails or the extension otherwise.
-
-    Raises
-    ------
-    None
     '''
 
     supportedExtensions = [
@@ -214,4 +202,4 @@ def validate_obabel_extension(path: str) -> Union[str, int]:
 
     if extension in supportedExtensions:
         return extension
-    return errors.unsupported_extension(message=f"Unsupported extension for input molecule file! Supported extensions are '{' '.join(supportedExtensions)}' and got '{extension}'.")
+    return ocerror.Error.unsupported_extension(message=f"Unsupported extension for input molecule file! Supported extensions are '{' '.join(supportedExtensions)}' and got '{extension}'.")

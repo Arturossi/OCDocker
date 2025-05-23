@@ -1,4 +1,4 @@
-#!/usr/lib/python3
+#!/usr/bin/env python3
 
 # Description
 ###############################################################################
@@ -52,10 +52,6 @@ def redirect_to_tqdm():
 
     Returns
     -------
-    None
-
-    Raises
-    ------
     None
     '''
 

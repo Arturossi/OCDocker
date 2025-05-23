@@ -1,4 +1,4 @@
-#!/usr/lib/python3
+#!/usr/bin/env python3
 
 # Description
 ###############################################################################
@@ -54,10 +54,6 @@ def lazyread_mmap(file_name: str, decode: str = "utf-8") -> Generator[str, None,
     -------
     Generator[str, None, None]
         A generator with the lines of the file in sequential order.
-
-    Raises
-    ------
-    None
     '''
 
     # Open file for reading in binary mode
@@ -81,10 +77,6 @@ def lazyread_reverse_order_mmap(file_name: str, decode: str = "utf-8") -> Genera
     -------
     Generator[str, None, None]
         A generator with the lines of the file in reverse order.
-
-    Raises
-    ------
-    None
     '''
     
     # Open file for reading in binary mode
@@ -108,7 +100,7 @@ def lazyread_reverse_order_mmap(file_name: str, decode: str = "utf-8") -> Genera
                 if new_byte == b'\n':
                     # Fetch the line from buffer and yield it
                     yield buffer.decode(decode)[::-1]
-                    # Reinitialize the byte array to save next line
+                    # Reinitialise the byte array to save next line
                     buffer = bytearray()
                 else:
                     # If last read character is not eol then add it in buffer
@@ -132,10 +124,6 @@ def lazyread(file_name: str, decode: str = "utf-8") -> Generator[str, None, None
     -------
     Generator[str, None, None]
         A generator with the lines of the file in sequential order.
-
-    Raises
-    ------
-    None
     '''
 
     # Open file for reading in binary mode
@@ -158,10 +146,6 @@ def lazyread_reverse_order(file_name: str, decode: str = "utf-8") -> Generator[s
     -------
     Generator[str, None, None]
         A generator with the lines of the file in reverse order.
-
-    Raises
-    ------
-    None
     '''
 
     # Open file for reading in binary mode
@@ -184,7 +168,7 @@ def lazyread_reverse_order(file_name: str, decode: str = "utf-8") -> Generator[s
             if new_byte == b'\n':
                 # Fetch the line from buffer and yield it
                 yield buffer.decode(decode)[::-1]
-                # Reinitialize the byte array to save next line
+                # Reinitialie the byte array to save next line
                 buffer = bytearray()
             else:
                 # If last read character is not eol then add it in buffer

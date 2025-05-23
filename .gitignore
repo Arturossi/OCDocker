@@ -188,16 +188,21 @@ tmp/
 
 # Do not upload .cfg files
 *.cfg
-*OCDocker.cfg*
+*OCDocker.cfg
 
 # Ignore nohup.out
 *nohup.out
 
-# Ignore the rundock script because it is meant to stay only locally (temporary entry)
+# Ignore the rundock and run_oddt scripts because they are meant to stay only locally (temporary entry)
 rundock.py
- 
+run_oddt.py
+
 # Ignore vscode files
 .vscode/
 
-# Ignore docs (for now)
-docs/
+# Ignore the ODDT_models folder
+ODDT_models/
+
+# Ignore the output_files
+output_file.csv
+output_file2.csv

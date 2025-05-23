@@ -1,4 +1,4 @@
-#!/usr/lib/python3
+#!/usr/bin/env python3
 
 # Description
 ###############################################################################
@@ -17,9 +17,11 @@ import os
 
 from spyrmsd import io, rmsd
 from threading import Lock
-from typing import List, Union
+from typing import Dict, List, Tuple, Union
 
 from OCDocker.Initialise import *
+import OCDocker.Toolbox.Printing as ocprint
+import OCDocker.Toolbox.Running as ocrun
 
 # License
 ###############################################################################
@@ -44,7 +46,78 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 ## Private ##
 
 ## Public ##
-def get_rmsd(reference: str, molecule: str) -> Union[List, float]:
+def split_poses(ligand: str, ligandName: str, outPath: str, suffix: str = "", logFile: str = "") -> Union[int, Tuple[int, str]]:
+    '''Split the input ligand into its poses.
+
+    Parameters
+    ----------
+    ligand : str
+        The path to the input ligand.
+    ligandName : str
+        The name of the input ligand.
+    outPath : str
+        The path to the output folder.
+    suffix : str, optional
+        The suffix to be added to the output files, by default "".
+    logFile : str, optional
+        The path to the log file, by default "".
+    
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+    '''
+
+    # Split the input ligand
+    cmd = [vina_split, "--input", ligand, "--flex", "''", "--ligand", f"{outPath}/{ligandName}{suffix}"]
+
+    # Print verbosity
+    ocprint.printv(f"Spliting the ligand '{ligand}'.")
+
+    # Run the command
+    return ocrun.run(cmd, logFile = logFile)
+
+def get_rmsd_matrix(molecules: List[str]) -> Dict[str, Dict[str, float]]:
+    '''Get the rmsd matrix between a list of molecules.
+
+    Parameters
+    ----------
+    molecules : List[str]
+        The list of molecules.
+
+    Returns
+    -------
+    Dict[str, Dict[str, float]]
+        The rmsd matrix.
+    '''
+
+    # Initialise the rmsd matrix
+    rmsdMatrix = {}
+
+    # For each molecule in molecules
+    for molecule in molecules:
+        # Initialise the row of the rmsd matrix
+        rmsdRow = {}
+
+        # For each molecule in molecules
+        for otherMolecule in molecules:
+            # If the molecule is the same as the otherMolecule
+            if molecule == otherMolecule:
+                # Append 0 to the row
+                rmsdRow[otherMolecule] = 0
+            else:
+                # Get the rmsd between the molecule and the other molecule
+                tmpMolecule = get_rmsd(molecule, otherMolecule)
+                # Get the rmsd between the molecule and the other molecule
+                rmsdRow[otherMolecule] = tmpMolecule if isinstance(tmpMolecule, float) else tmpMolecule[0] # type: ignore
+
+        # Append the row to the rmsd matrix
+        rmsdMatrix[molecule] = rmsdRow 
+
+    # Return the rmsd matrix
+    return rmsdMatrix
+
+def get_rmsd(reference: str, molecule: str) -> Union[List[float], float]:
     '''Get the rmsd between a reference and a molecule file (it supports more than one molecule in this second file).
 
     Parameters
@@ -56,12 +129,8 @@ def get_rmsd(reference: str, molecule: str) -> Union[List, float]:
 
     Returns
     -------
-    List | float
+    List[float] | float
         The rmsd between the reference and the molecule file.
-
-    Raises
-    ------
-    None
     '''
 
     # Load reference
@@ -102,10 +171,6 @@ def make_only_ATOM_and_CRYST_pdb(structurePath: str) -> int:
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Initialise hasCryst1 flag
@@ -143,6 +208,6 @@ def make_only_ATOM_and_CRYST_pdb(structurePath: str) -> int:
                 # Write the lines list to the file
                 pdbFile.writelines(lines)
         
-        return errors.ok()
+        return ocerror.Error.ok()
     else:
-        return errors.file_do_not_exist(message = f"The file '{structurePath}' does not exist!", level = "error")
+        return ocerror.Error.file_not_exist(message = f"The file '{structurePath}' does not exist!", level = ocerror.ReportLevel.ERROR)

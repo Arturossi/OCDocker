@@ -1,4 +1,4 @@
-#!/usr/lib/python3
+#!/usr/bin/env python3
 
 # Description
 ###############################################################################
@@ -25,7 +25,7 @@ from OCDocker.Initialise import *
 
 import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
-import OCDocker.Docking.Gnina as ocgnina
+import OCDocker.Docking.Future.Gnina as ocgnina
 import OCDocker.Docking.PLANTS as ocplants
 import OCDocker.Docking.Smina as ocsmina
 import OCDocker.Docking.Vina as ocvina
@@ -83,10 +83,6 @@ def __run_gnina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Get the ligand Dir
@@ -99,7 +95,7 @@ def __run_gnina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
         errMsg = f"The directory '{ligandDir}/gninaFiles/' does not exist! Please ensure its existance before running this function. NOTE: You may need to run the verify_integrity routine to help to ensure that all files are ok."
 
         ocprint.print_error_log(errMsg, f"{logdir}/{archive}_gnina_run_report_ERROR.log")
-        return errors.dir_does_not_exists(errMsg, level = "error")
+        return ocerror.Error.dir_does_not_exist(errMsg, level = ocerror.ReportLevel.ERROR)
 
     # Get the folder for each run
     runPaths = [f"{ligandDir}/gninaFiles"] # glob(f"{ligandDir}/gninaFiles/*") # TODO: Add support for multiple runs
@@ -153,7 +149,7 @@ def __run_gnina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
                     errMsg = f"Could not generate gnina object for the protein in dir '{ligandPath}'. Error found while trying to run the 'gnina' docking software."
 
                     ocprint.print_error_log(errMsg, f"{logdir}/{archive}_gnina_run_report_ERROR.log")
-                    return errors.docking_object_not_generated(errMsg, level = "error")
+                    return ocerror.Error.docking_object_not_generated(errMsg, level = ocerror.ReportLevel.ERROR)
 
                 # If prepared ligand has the overwrite flag on, does not exists, has size 0 or is not valid
                 if overwrite or not os.path.isfile(gnina.preparedLigand) or os.path.getsize(gnina.preparedLigand) == 0 or not ocvalidation.is_molecule_valid(gnina.preparedLigand):
@@ -181,14 +177,14 @@ def __run_gnina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
                             errMsg = f"Could not run the prepare ligand routine for the protein in dir '{gnina.inputLigandPath}'. Error found while trying to run the 'gnina' docking software. Error: {e}"
 
                             ocprint.print_error_log(errMsg, f"{logdir}/{archive}_gnina_run_report_ERROR.log")
-                            return errors.ligand_not_prepared(errMsg, level = "error")
+                            return ocerror.Error.ligand_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR)
 
                     # Check again if the generated ligand has size 0 or is invalid
                     if os.path.getsize(gnina.preparedLigand) == 0 or not ocvalidation.is_molecule_valid(gnina.preparedLigand):
                         errMsg = f"The prepare ligand script has made an output of 0kb again for ligand '{gnina.preparedLigand}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(gnina.prepareLigandCmd)}"
 
                         ocprint.print_error_log(errMsg, f"{logdir}/{archive}_gnina_run_report_ERROR.log")
-                        return errors.ligand_not_prepared(errMsg, level = "error")
+                        return ocerror.Error.ligand_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR)
 
                 # If prepared receptor has the overwrite flag on, does not exists, has size 0 or is not valid
                 if overwrite or not os.path.isfile(gnina.preparedReceptor) or os.path.getsize(gnina.preparedReceptor) == 0 or not ocvalidation.is_molecule_valid(gnina.preparedReceptor):
@@ -215,14 +211,14 @@ def __run_gnina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
                             errMsg = f"Could not run the prepare receptor routine for the protein in dir '{gnina.inputReceptorPath}'. Error found while trying to run the 'gnina' docking software. Error: {e}"
 
                             ocprint.print_error_log(errMsg, f"{logdir}/{archive}_gnina_run_report_ERROR.log")
-                            return errors.receptor_not_prepared(errMsg, level = "error")
+                            return ocerror.Error.receptor_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR)
 
                     # Check if the generated receptor has size 0 or is invalid
                     if os.path.getsize(gnina.preparedReceptor) == 0 or not ocvalidation.is_molecule_valid(gnina.preparedReceptor):
                         errMsg = f"The prepare receptor has made an output of 0kb for receptor '{gnina.preparedReceptor}' or is not valid... Here is its command line so you might be able to debug it by hand.\n{' '.join(gnina.prepareReceptorCmd)}"
 
                         ocprint.print_error_log(errMsg, f"{logdir}/{archive}_gnina_run_report_ERROR.log")
-                        return errors.receptor_not_prepared(errMsg, level = "error")
+                        return ocerror.Error.receptor_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR)
 
                 # Check if gnina output exists
                 if overwrite or not os.path.isfile(gninaOutput) or not os.path.isfile(gninaLog):
@@ -244,14 +240,14 @@ def __run_gnina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
             errMsg = f"Could not generate receptor or ligand object for the protein in dir '{ligandPath}'. Error found while trying to run the 'gnina' docking software."
 
             ocprint.print_error_log(errMsg, f"{logdir}/{archive}_gnina_run_report_ERROR.log")
-            return errors.receptor_or_ligand_not_generated(errMsg, level = "error")
+            return ocerror.Error.receptor_or_ligand_not_generated(errMsg, level = ocerror.ReportLevel.ERROR)
     else:
         errMsg = f"The gnina output for '{ptn}' for all boxes is already generated and you can check it at the '{ligandPath}/gninaFiles/*/gnina_<runNumber>.log' path. Gnina execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true."
 
         ocprint.print_warning_log(errMsg, f"{logdir}/{archive}_gnina_run_report_WARNING.log")
         ocprint.print_warning(errMsg)
 
-    return errors.ok()
+    return ocerror.Error.ok()
 
 def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, receptorDescriptorPath: str, boxPath: str, ptn: str, archive: str, overwrite: bool = False, digestFormat: str = "json") -> int:
     '''Runs vina.
@@ -281,10 +277,6 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Get the ligand Dir
@@ -297,7 +289,7 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
         errMsg = f"The directory '{ligandDir}/vinaFiles/' does not exist! Please ensure its existance before running this function. NOTE: You may need to run the verify_integrity routine to help to ensure that all files are ok."
 
         ocprint.print_error_log(errMsg, f"{logdir}/{archive}_vina_run_report_ERROR.log")
-        return errors.dir_does_not_exists(errMsg, level = "error")
+        return ocerror.Error.dir_does_not_exist(errMsg, level = ocerror.ReportLevel.ERROR)
 
     # Get the folder for each run
     runPaths = [f"{ligandDir}/vinaFiles"] # glob(f"{ligandDir}/vinaFiles/*") # TODO: Add support for multiple runs
@@ -351,7 +343,7 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
                     errMsg = f"Could not generate vina object for the protein in dir '{ligandPath}'. Error found while trying to run the 'vina' docking software."
 
                     ocprint.print_error_log(errMsg, f"{logdir}/{archive}_vina_run_report_ERROR.log")
-                    return errors.docking_object_not_generated(errMsg, level = "error")
+                    return ocerror.Error.docking_object_not_generated(errMsg, level = ocerror.ReportLevel.ERROR)
 
                 # If prepared ligand has the overwrite flag on, does not exists, has size 0 or is not valid
                 if overwrite or not os.path.isfile(vina.preparedLigand) or os.path.getsize(vina.preparedLigand) == 0 or not ocvalidation.is_molecule_valid(vina.preparedLigand):
@@ -379,14 +371,14 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
                             errMsg = f"Could not run the prepare ligand routine for the protein in dir '{vina.inputLigandPath}'. Error found while trying to run the 'vina' docking software. Error: {e}"
 
                             ocprint.print_error_log(errMsg, f"{logdir}/{archive}_vina_run_report_ERROR.log")
-                            return errors.ligand_not_prepared(errMsg, level = "error")
+                            return ocerror.Error.ligand_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR)
 
                     # Check again if the generated ligand has size 0 or is invalid
                     if os.path.getsize(vina.preparedLigand) == 0 or not ocvalidation.is_molecule_valid(vina.preparedLigand):
                         errMsg = f"The prepare ligand script has made an output of 0kb again for ligand '{vina.preparedLigand}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(vina.prepareLigandCmd)}"
 
                         ocprint.print_error_log(errMsg, f"{logdir}/{archive}_vina_run_report_ERROR.log")
-                        return errors.ligand_not_prepared(errMsg, level = "error")
+                        return ocerror.Error.ligand_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR)
 
                 # If prepared receptor has the overwrite flag on, does not exists, has size 0 or is not valid
                 if overwrite or not os.path.isfile(vina.preparedReceptor) or os.path.getsize(vina.preparedReceptor) == 0 or not ocvalidation.is_molecule_valid(vina.preparedReceptor):
@@ -413,14 +405,14 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
                             errMsg = f"Could not run the prepare receptor routine for the protein in dir '{vina.inputReceptorPath}'. Error found while trying to run the 'vina' docking software. Error: {e}"
 
                             ocprint.print_error_log(errMsg, f"{logdir}/{archive}_vina_run_report_ERROR.log")
-                            return errors.receptor_not_prepared(errMsg, level = "error")
+                            return ocerror.Error.receptor_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR)
 
                     # Check if the generated receptor has size 0 or is invalid
                     if os.path.getsize(vina.preparedReceptor) == 0 or not ocvalidation.is_molecule_valid(vina.preparedReceptor):
                         errMsg = f"The prepare receptor has made an output of 0kb for receptor '{vina.preparedReceptor}' or is not valid... Here is its command line so you might be able to debug it by hand.\n{' '.join(vina.prepareReceptorCmd)}"
 
                         ocprint.print_error_log(errMsg, f"{logdir}/{archive}_vina_run_report_ERROR.log")
-                        return errors.receptor_not_prepared(errMsg, level = "error")
+                        return ocerror.Error.receptor_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR)
 
                 # Check if vina output exists
                 if overwrite or not os.path.isfile(vinaOutput) or not os.path.isfile(vinaLog):
@@ -442,14 +434,14 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
             errMsg = f"Could not generate receptor or ligand object for the protein in dir '{ligandPath}'. Error found while trying to run the 'vina' docking software."
 
             ocprint.print_error_log(errMsg, f"{logdir}/{archive}_vina_run_report_ERROR.log")
-            return errors.receptor_or_ligand_not_generated(errMsg, level = "error")
+            return ocerror.Error.receptor_or_ligand_not_generated(errMsg, level = ocerror.ReportLevel.ERROR)
     else:
         errMsg = f"The vina output for '{ptn}' for all boxes is already generated and you can check it at the '{ligandPath}/vinaFiles/*/vina_<runNumber>.log' path. Vina execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true."
 
         ocprint.print_warning_log(errMsg, f"{logdir}/{archive}_vina_run_report_WARNING.log")
         ocprint.print_warning(errMsg)
 
-    return errors.ok()
+    return ocerror.Error.ok()
 
 def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, receptorDescriptorPath: str, boxPath: str, ptn: str, archive: str, overwrite: bool = False, digestFormat: str = "json") -> int:
     '''Runs SMINA.
@@ -479,10 +471,6 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Get the ligand Dir
@@ -500,7 +488,7 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
         errMsg = f"The directory '{runPath}' does not exist! Please ensure its existance before running this function. NOTE: You may need to run the verify_integrity routine to help to ensure that all files are ok."
 
         ocprint.print_error_log(errMsg, f"{logdir}/{archive}_smina_run_report_ERROR.log")
-        return errors.dir_does_not_exists(errMsg, level = "error")
+        return ocerror.Error.dir_does_not_exist(errMsg, level = ocerror.ReportLevel.ERROR)
 
     # If is needed to run (overwrite is set or no output is produced)
     if overwrite or not os.path.isfile(sminaLog) or not os.path.isfile(sminaOutput):
@@ -532,7 +520,7 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
                 errMsg = f"Could not generate smina object for the protein in dir '{ligandPath}'. Error found while trying to run the 'smina' docking software."
 
                 ocprint.print_error_log(errMsg, f"{logdir}/{archive}_smina_run_report_ERROR.log")
-                return errors.docking_object_not_generated(errMsg, level = "error")
+                return ocerror.Error.docking_object_not_generated(errMsg, level = ocerror.ReportLevel.ERROR)
 
             # If prepared ligand has the overwrite flag on, does not exists, has size 0 or is not valid
             if overwrite or not os.path.isfile(smina.preparedLigand) or os.path.getsize(smina.preparedLigand) == 0 or not ocvalidation.is_molecule_valid(smina.preparedLigand):
@@ -559,14 +547,14 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
                         errMsg = f"Could not run the prepare ligand routine for the protein in dir '{smina.inputLigandPath}'. Error found while trying to run the 'smina' docking software. Error: {e}"
 
                         ocprint.print_error_log(errMsg, f"{logdir}/{archive}_smina_run_report_ERROR.log")
-                        return errors.ligand_not_prepared(errMsg, level = "error")
+                        return ocerror.Error.ligand_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR)
 
                 # Check if the generated ligand has size 0 or is invalid
                 if os.path.getsize(smina.preparedLigand) == 0 or not ocvalidation.is_molecule_valid(smina.preparedLigand):
                     errMsg = f"The prepare ligand script has made an output of 0kb for ligand '{smina.preparedLigand}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(smina.prepareLigandCmd)}"
 
                     ocprint.print_error_log(errMsg, f"{logdir}/{archive}_smina_run_report_ERROR.log")
-                    return errors.ligand_not_prepared(errMsg, level = "error")
+                    return ocerror.Error.ligand_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR)
                     
             # If prepared receptor has the overwrite flag on, does not exists, has size 0 or is not valid
             if overwrite or not os.path.isfile(smina.preparedReceptor) or os.path.getsize(smina.preparedReceptor) == 0 or not ocvalidation.is_molecule_valid(smina.preparedReceptor):
@@ -593,14 +581,14 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
                         errMsg = f"Could not run the prepare receptor routine for the protein in dir '{smina.inputReceptorPath}'. Error found while trying to run the 'smina' docking software. Error: {e}"
 
                         ocprint.print_error_log(errMsg, f"{logdir}/{archive}_smina_run_report_ERROR.log")
-                        return errors.ligand_not_prepared(errMsg, level = "error")
+                        return ocerror.Error.ligand_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR)
 
                 # Check if the generated receptor has size 0 or is invalid
                 if os.path.getsize(smina.preparedReceptor) == 0 or not ocvalidation.is_molecule_valid(smina.preparedReceptor):
                     errMsg = f"The prepare receptor has made an output of 0kb for receptor '{smina.preparedReceptor}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(smina.prepareReceptorCmd)}"
 
                     ocprint.print_error_log(errMsg, f"{logdir}/{archive}_smina_run_report_ERROR.log")
-                    return errors.receptor_not_prepared(errMsg, level = "error")
+                    return ocerror.Error.receptor_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR)
 
             # Create a lock for multithreading
             lock = Lock()
@@ -615,14 +603,14 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
             errMsg = f"Could not generate receptor or ligand object for the protein in dir '{ligandPath}'. Error found while trying to run the 'smina' docking software."
 
             ocprint.print_error_log(errMsg, f"{logdir}/{archive}_smina_run_report_ERROR.log")
-            return errors.receptor_or_ligand_not_generated(errMsg, level = "error")
+            return ocerror.Error.receptor_or_ligand_not_generated(errMsg, level = ocerror.ReportLevel.ERROR)
     else:
         errMsg = f"The smina output for '{ptn}' is already generated and you can check it at the '{sminaLog}' path. Smina execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true."
 
         ocprint.print_warning_log(errMsg, f"{logdir}/{archive}_smina_run_report_WARNING.log")
         ocprint.print_warning(errMsg)
     
-    return errors.ok()
+    return ocerror.Error.ok()
 
 def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, receptorDescriptorPath: str, boxPath: str, ptn: str, archive: str, overwrite: bool = False, digestFormat: str = "json") -> int:
     '''Runs PLANTS.
@@ -652,10 +640,6 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Get the ligand Dir
@@ -666,7 +650,7 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
         errMsg = f"The directory '{ligandDir}/plantsFiles/' does not exist! Please ensure its existance before running this function. NOTE: You may need to run the verify_integrity routine to help to ensure that all files are ok."
 
         ocprint.print_error_log(errMsg, f"{logdir}/{archive}_plants_run_report_ERROR.log")
-        return errors.dir_does_not_exists(errMsg, level = "error")
+        return ocerror.Error.dir_does_not_exist(errMsg, level = ocerror.ReportLevel.ERROR)
 
     # Flag to denote if its needed to run this protein through plants
     needToRun = False
@@ -725,7 +709,7 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
                     errMsg = f"Could not generate plants object for the protein in dir '{ligandDir}'. Error found while trying to run the 'PLANTS' docking software."
 
                     ocprint.print_error_log(errMsg, f"{logdir}/{archive}_plants_run_report_ERROR.log")
-                    return errors.docking_object_not_generated(errMsg, level = "error")
+                    return ocerror.Error.docking_object_not_generated(errMsg, level = ocerror.ReportLevel.ERROR)
 
                 # If prepared ligand has the overwrite flag on, does not exists, has size 0 or is not valid
                 if overwrite or not os.path.isfile(plants.preparedLigand) or os.path.getsize(plants.preparedLigand) == 0 or not ocvalidation.is_molecule_valid(plants.preparedLigand):
@@ -752,14 +736,14 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
                             errMsg = f"Could not run the prepare ligand routine for the protein in dir '{plants.inputLigandPath}'. Error found while trying to run the 'PLANTS' docking software. Error: {e}"
 
                             ocprint.print_error_log(errMsg, f"{logdir}/{archive}_plants_run_report_ERROR.log")
-                            return errors.ligand_not_prepared(errMsg, level = "error")
+                            return ocerror.Error.ligand_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR)
 
                     # Check if the generated ligand has size 0 or is invalid
                     if os.path.getsize(plants.preparedLigand) == 0 or not ocvalidation.is_molecule_valid(plants.preparedLigand):
                         errMsg = f"SPORES has made an output of 0kb again for ligand '{plants.preparedLigand}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(plants.prepareLigandCmd)}"
 
                         ocprint.print_error_log(errMsg, f"{logdir}/{archive}_plants_run_report_ERROR.log")
-                        return errors.ligand_not_prepared(errMsg, level = "error")
+                        return ocerror.Error.ligand_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR)
 
                 # If prepared receptor has the overwrite flag on, does not exists, has size 0 or is not valid
                 if overwrite or not os.path.isfile(plants.preparedReceptor) or os.path.getsize(plants.preparedReceptor) == 0 or not ocvalidation.is_molecule_valid(plants.preparedReceptor):
@@ -786,13 +770,13 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
                             errMsg = f"Could not run the prepare receptor routine for the protein in dir '{plants.inputReceptorPath}'. Error found while trying to run the 'PLANTS' docking software. Error: {e}"
 
                             ocprint.print_error_log(errMsg, f"{logdir}/{archive}_plants_run_report_ERROR.log")
-                            return errors.ligand_not_prepared(errMsg, level = "error")
+                            return ocerror.Error.ligand_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR)
 
                     # Check if the generated receptor has size 0 or is invalid
                     if os.path.getsize(plants.preparedReceptor) == 0 or not ocvalidation.is_molecule_valid(plants.preparedReceptor):
                         errMsg = f"SPORES has made an output of 0kb for receptor '{plants.preparedReceptor}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(plants.prepareReceptorCmd)}"
                         ocprint.print_error_log(errMsg, f"{logdir}/{archive}_plants_run_report_ERROR.log")
-                        return errors.receptor_not_prepared(errMsg, level = "error")
+                        return ocerror.Error.receptor_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR)
 
                 # Check if PLANTS output exists and its size is not 0
                 if overwrite or not os.path.isdir(plantsOutput) or not os.path.isfile(plantsRankingCsv) and not os.path.getsize(plantsRankingCsv) == 0:
@@ -819,14 +803,14 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
             errMsg = f"Could not generate receptor or ligand object for the protein in dir '{ligandDir}'. Error found while trying to run the 'plants' docking software."
 
             ocprint.print_error_log(errMsg, f"{logdir}/{archive}_plants_run_report_ERROR.log")
-            return errors.receptor_or_ligand_not_generated(errMsg, level = "error")
+            return ocerror.Error.receptor_or_ligand_not_generated(errMsg, level = ocerror.ReportLevel.ERROR)
     else:
         errMsg = f"The PLANTS output for '{ptn}' is already generated and you can check it at the '{ligandDir}/plantsFiles' path. PLANTS execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true."
 
         ocprint.print_warning_log(errMsg, f"{logdir}/{archive}_plants_run_report_WARNING.log")
         ocprint.print_warning(errMsg)
     
-    return errors.ok()
+    return ocerror.Error.ok()
         
 def __core_run_dock(path: str, ligandDir: str, archive: str, dockingAlgorithm: str, overwrite: bool, digestFormat: str = "json") -> int:
     '''Performs the docking.
@@ -850,10 +834,6 @@ def __core_run_dock(path: str, ligandDir: str, archive: str, dockingAlgorithm: s
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Get the protein name (which is the last directory in the path)
@@ -861,7 +841,7 @@ def __core_run_dock(path: str, ligandDir: str, archive: str, dockingAlgorithm: s
 
     # If is the index directory, ignore
     if ptn in ['index']:
-        return errors.unnalowed_dir()
+        return ocerror.Error.unnalowed_dir()
 
     # Set receptor data
     receptorPath = f"{path}/receptor.pdb"
@@ -883,7 +863,7 @@ def __core_run_dock(path: str, ligandDir: str, archive: str, dockingAlgorithm: s
         # Get the box path TODO: add support to multiple boxes
         boxPath = f"{ligandDir}/boxes/box0.pdb"
 
-        # Initialize an return state 
+        # Initialise an return state 
         returnState = 0
         
         if dockingAlgorithm == "gnina":
@@ -898,27 +878,27 @@ def __core_run_dock(path: str, ligandDir: str, archive: str, dockingAlgorithm: s
             errMsg = f"Wrong docking algorithm. Expected ['gnina', 'vina', 'smina', 'plants'] and got '{dockingAlgorithm}'."
 
             ocprint.print_error_log(errMsg, f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
-            return errors.receptor_or_ligand_descriptor_does_not_exist(errMsg, level = "error")
+            return ocerror.Error.receptor_or_ligand_descriptor_does_not_exist(errMsg, level = ocerror.ReportLevel.ERROR)
     else:
         if not os.path.isfile(receptorDescriptorPath):
             errMsg = f"There is no receptor descriptor json file for the protein in the path '{receptorDescriptorPath}'. Error found while trying to run the '{dockingAlgorithm}' docking software."
             ocprint.print_error_log(errMsg, f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
-            _ = errors.receptor_or_ligand_descriptor_does_not_exist(errMsg, level = "error")
+            _ = ocerror.Error.receptor_or_ligand_descriptor_does_not_exist(errMsg, level = ocerror.ReportLevel.ERROR)
 
         if not os.path.isfile(ligandDescriptorPath):
             errMsg = f"There is no ligand descriptor json file for the protein in the path '{ligandDescriptorPath}'. Error found while trying to run the '{dockingAlgorithm}' docking software."
             ocprint.print_error_log(errMsg, f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
-            _ = errors.receptor_or_ligand_descriptor_does_not_exist(errMsg, level = "error")
-        return errors.receptor_or_ligand_descriptor_does_not_exist()
+            _ = ocerror.Error.receptor_or_ligand_descriptor_does_not_exist(errMsg, level = ocerror.ReportLevel.ERROR)
+        return ocerror.Error.receptor_or_ligand_descriptor_does_not_exist()
 
     # Check if the docking was successful
     if returnState != 0:
         errMsg = f"Error found while trying to run the '{dockingAlgorithm}' docking software."
 
         ocprint.print_error_log(errMsg, f"{logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
-        return errors.docking_failed(errMsg, level = "error")
+        return ocerror.Error.docking_failed(errMsg, level = ocerror.ReportLevel.ERROR)
 
-    return errors.ok()
+    return ocerror.Error.ok()
 
 def __thread_run_dock_parallel(arguments: list) -> int:
     '''Thread aid function to call __core_run_dock.
@@ -932,10 +912,6 @@ def __thread_run_dock_parallel(arguments: list) -> int:
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Redirect all prints to tqdm.write
@@ -967,10 +943,6 @@ def __run_dock_parallel(complexList: List[Tuple[str, List[str]]], archive: str, 
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Arguments to pass to each Thread in the Thread Pool
@@ -985,17 +957,17 @@ def __run_dock_parallel(complexList: List[Tuple[str, List[str]]], archive: str, 
 
     try:
         # Create a Thread pool with the maximum available_cores
-        with Pool(args.available_cores) as p:
+        with Pool(available_cores) as p:
             # Perform the multi process
             for _ in tqdm(p.imap_unordered(__thread_run_dock_parallel, arguments), total = len(arguments), desc = desc):
                 # Clear the memory
                 gc.collect()
     except IOError as e:
         ocprint.print_error_log(f"Problem while running docking software {dockingAlgorithm} in parallel. Exception: {e}", f"{logdir}/{archive}_docking_report.log")
-        return errors.docking_failed(f"Problem while running docking software {dockingAlgorithm} in parallel. Exception: {e}", level = "error")
+        return ocerror.Error.docking_failed(f"Problem while running docking software {dockingAlgorithm} in parallel. Exception: {e}", level = ocerror.ReportLevel.ERROR)
 
     # Return
-    return errors.ok() # FIXME: This should be changed to return the error code in a way to track all docking errors
+    return ocerror.Error.ok() # FIXME: This should be changed to return the error code in a way to track all docking ocerror.Error
 
 def __run_dock_no_parallel(complexList: List[Tuple[str, List[str]]], archive: str, dockingAlgorithm: str, overwrite: bool, digestFormat: str, desc: str) -> int:
     '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_run_dock function.
@@ -1019,10 +991,6 @@ def __run_dock_no_parallel(complexList: List[Tuple[str, List[str]]], archive: st
     -------
     int
         The exit code of the command (based on the Error.py code table).
-
-    Raises
-    ------
-    None
     '''
 
     # Redirect all prints to tqdm.write
@@ -1038,7 +1006,7 @@ def __run_dock_no_parallel(complexList: List[Tuple[str, List[str]]], archive: st
         # Clear the memory
         gc.collect()
 
-    return errors.ok() # FIXME: This should be changed to return the error code in a way to track all docking errors
+    return ocerror.Error.ok() # FIXME: This should be changed to return the error code in a way to track all docking ocerror.Error
 
 ## Public ##
 
@@ -1069,7 +1037,7 @@ def run_dock(paths: Union[List[Tuple[str, List[str]]], Tuple[str, List[str]]], a
     # If the path is a list
     if isinstance(paths, list):
         # Check if multiprocessing is enabled
-        if args.multiprocess:
+        if multiprocess:
             # Prepare the pdbbind
             return __run_dock_parallel(paths, archive, dockingAlgorithm, overwrite, digestFormat, label)
         else:
@@ -1077,9 +1045,13 @@ def run_dock(paths: Union[List[Tuple[str, List[str]]], Tuple[str, List[str]]], a
             return __run_dock_no_parallel(paths, archive, dockingAlgorithm, overwrite, digestFormat, label)
     else:
         # Check if multiprocessing is enabled
-        if args.multiprocess:
+        if multiprocess:
             # Prepare the pdbbind
             return __run_dock_parallel([paths], archive, dockingAlgorithm, overwrite, digestFormat, label)
         else:
             # Prepare the database
             return __run_dock_no_parallel([paths], archive, dockingAlgorithm, overwrite, digestFormat, label)
+
+# Aliases
+###############################################################################
+run_docking = run_dock

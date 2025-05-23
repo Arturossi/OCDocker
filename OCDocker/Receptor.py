@@ -1,4 +1,4 @@
-#!/usr/lib/python3
+#!/usr/bin/env python3
 
 # Description
 ###############################################################################
@@ -17,10 +17,8 @@ import Bio
 import json
 import math
 import os
-import vaex
 
 import numpy as np
-import vaex.dataframe as vdf
 
 from Bio.PDB import MMCIFParser, PDBParser, PDBIO, SASA
 from Bio.PDB.DSSP import DSSP
@@ -85,10 +83,6 @@ class Receptor:
         Returns
         -------
         None
-
-        Raises
-        ------
-        None
         '''
 
         # Name must come first
@@ -151,10 +145,12 @@ class Receptor:
         if from_json_descriptors:
             # Read the descriptors from it
             data = read_descriptors_from_json(from_json_descriptors)
+
             # If data is None, a problem occurred while reading the json file
             if not data:
                 ocprint.print_error(f"Problems while parsing json file: '{from_json_descriptors}'")
                 return None
+            
             #region assign
             self.name, self.sasa, self.dipoleMoment, self.isoelectricPoint, self.instabilityIndex,self.GRAVY, self.aromaticity, self.__countAA, self.countA, self.countR, self.countN, self.countD, self.countC, self.countQ, self.countE, self.countG, self.countH, self.countI, self.countL, self.countK, self.countM, self.countF, self.countP, self.countS, self.countT, self.countW, self.countY, self.countV, self.totalAALength, self.avgAALength, self.countChain = data #type: ignore
 
@@ -192,7 +188,7 @@ class Receptor:
             self.__countAA = count_surface_AA(self.structure, self.path, self.__relativeASAcutoff)
 
             self.countA = self.__countAA["A"]
-            self.countR = self.__countAA['r']
+            self.countR = self.__countAA["R"]
             self.countN = self.__countAA["N"]
             self.countD = self.__countAA["D"]
             self.countC = self.__countAA["C"]
@@ -208,7 +204,7 @@ class Receptor:
             self.countP = self.__countAA["P"]
             self.countS = self.__countAA["S"]
             self.countT = self.__countAA["T"]
-            self.countW = self.__countAA['w']
+            self.countW = self.__countAA["R"]
             self.countY = self.__countAA["Y"]
             self.countV = self.__countAA["V"]
 
@@ -224,10 +220,6 @@ class Receptor:
         -------
         Dict
             A dictionary with all the properties (except the molecule object) for the Receptor object.
-
-        Raises
-        ------
-        None
         '''
 
         # Create new dict
@@ -249,10 +241,6 @@ class Receptor:
 
         Returns
         -------
-        None
-
-        Raises
-        ------
         None
         '''
 
@@ -302,42 +290,38 @@ class Receptor:
         -------
         Dict[str, float | int]
             The descriptors for the Receptor object.
-
-        Raises
-        ------
-        None
         '''
 
         descriptors = {
-          "TotalAALength": self.totalAALength if self.totalAALength else None,
-          "AvgAALength": self.avgAALength if self.avgAALength else None,
-          "countChain": self.countChain if self.countChain else None,
+          "TotalAALength": self.totalAALength if self.totalAALength else 0,
+          "AvgAALength": self.avgAALength if self.avgAALength else 0,
+          "countChain": self.countChain if self.countChain else 0,
           "SASA": self.sasa if self.sasa else None,
           "DipoleMoment": self.dipoleMoment if self.dipoleMoment else None,
           "IsoelectricPoint": self.isoelectricPoint if self.isoelectricPoint else None,
           "GRAVY": self.GRAVY if self.GRAVY else None,
           "Aromaticity": self.aromaticity if self.aromaticity else None,
           "InstabilityIndex": self.instabilityIndex if self.instabilityIndex else None,
-          "countA": self.countA if self.countA else None,
-          "countR": self.countR if self.countR else None,
-          "countN": self.countN if self.countN else None,
-          "countD": self.countD if self.countD else None,
-          "countC": self.countC if self.countC else None,
-          "countQ": self.countQ if self.countQ else None,
-          "countE": self.countE if self.countE else None,
-          "countG": self.countG if self.countG else None,
-          "countH": self.countH if self.countH else None,
-          "countI": self.countI if self.countI else None,
-          "countL": self.countL if self.countL else None,
-          "countK": self.countK if self.countK else None,
-          "countM": self.countM if self.countM else None,
-          "countF": self.countF if self.countF else None,
-          "countP": self.countP if self.countP else None,
-          "countS": self.countS if self.countS else None,
-          "countT": self.countT if self.countT else None,
-          "countW": self.countW if self.countW else None,
-          "countY": self.countY if self.countY else None,
-          "countV": self.countV if self.countV else None
+          "countA": self.countA if self.countA else 0,
+          "countR": self.countR if self.countR else 0,
+          "countN": self.countN if self.countN else 0,
+          "countD": self.countD if self.countD else 0,
+          "countC": self.countC if self.countC else 0,
+          "countQ": self.countQ if self.countQ else 0,
+          "countE": self.countE if self.countE else 0,
+          "countG": self.countG if self.countG else 0,
+          "countH": self.countH if self.countH else 0,
+          "countI": self.countI if self.countI else 0,
+          "countL": self.countL if self.countL else 0,
+          "countK": self.countK if self.countK else 0,
+          "countM": self.countM if self.countM else 0,
+          "countF": self.countF if self.countF else 0,
+          "countP": self.countP if self.countP else 0,
+          "countS": self.countS if self.countS else 0,
+          "countT": self.countT if self.countT else 0,
+          "countW": self.countW if self.countW else 0,
+          "countY": self.countY if self.countY else 0,
+          "countV": self.countV if self.countV else 0
         }
         return descriptors
 
@@ -352,19 +336,16 @@ class Receptor:
         -------
         Dict[str, float | int]
             The properties for the Receptor object.
-
-        Raises
-        ------
-        None
         '''
 
         # Create new dict
         properties = dict()
         # Set Name, Path and molecule
-        properties["Ligand"] = self.name if self.name is not None else "-"
+        properties["Name"] = self.name if self.name is not None else "-"
         properties["Path"] = self.path if self.path is not None else "-"
         properties["mol2Path"] = self.mol2Path if self.mol2Path is not None else "-"
         properties["Structure"] = self.structure if self.structure is not None else "-"
+        
         # Combine both in one dict and return them
         return {**properties, **self.get_descriptors()}
 
@@ -380,26 +361,22 @@ class Receptor:
         -------
         int
             The exit code of the command (based on the Error.py code table).
-
-        Raises
-        ------
-        None
         '''
 
         try:
             outputJson = f"{os.path.dirname(self.path)}/{self.name}_descriptors.json"
             if not overwrite and os.path.isfile(outputJson):
-                return errors.file_exists(f"The file {outputJson} already exists and the overwrite flag is set to False, no file will be generated or overwrited.", "warn")
+                return ocerror.Error.file_exists(f"The file {outputJson} already exists and the overwrite flag is set to False, no file will be generated or overwrited.", ocerror.ReportLevel.WARNING) # type: ignore
             if os.path.isfile(outputJson):
-                _ = errors.file_exists(f"The file '{outputJson}' already exists. It will be OVERWRITED!!!")
+                _ = ocerror.Error.file_exists(f"The file '{outputJson}' already exists. It will be OVERWRITED!!!") # type: ignore
             try:
                 with open(outputJson, 'w') as outfile:
                     json.dump(self.__safe_to_dict(), outfile)
-                return errors.ok()
+                return ocerror.Error.ok() # type: ignore
             except Exception as e:
-                return errors.write_file(f"Problems while writing the file '{outputJson}' Error: {e}.")
+                return ocerror.Error.write_file(f"Problems while writing the file '{outputJson}' Error: {e}.") # type: ignore
         except Exception as e:
-            return errors.unknown(f"Unknown error while converting the ligand {self.name} to json.\nError: {e}", "error")
+            return ocerror.Error.unknown(f"Unknown error while converting the ligand {self.name} to json.\nError: {e}", ocerror.ReportLevel.ERROR) # type: ignore
 
     def is_valid(self) -> bool:
         '''Check if a Ligand object is valid.
@@ -412,10 +389,6 @@ class Receptor:
         -------
         bool
             True if the Ligand object is valid, False otherwise.
-
-        Raises
-        ------
-        None
         '''
 
         #region if any attribute is None
@@ -439,10 +412,6 @@ def __filterSequence(residues: str) -> str:
     -------
     str
         The filtered sequence.
-
-    Raises
-    ------
-    None
     '''
 
     # Makke it all uppercase, just in case...
@@ -473,20 +442,16 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
     -------
     Dict[str, int]
         A dictionary with the count of each AA.
-
-    Raises
-    ------
-    None
     '''
 
     ocprint.printv(f"Counting how many of each of the 20 standard AAs from the structure '{structurePath}' are in the surface. Exposure cutoff is {cutoff}.")
     if not structurePath:
-        _ = errors.not_set(f"The structure path is not set!", level = "error")
+        _ = ocerror.Error.not_set(f"The structure path is not set!", level = ocerror.ReportLevel.ERROR) # type: ignore
         return None #type: ignore
 
     aas = {
         "A": 0, 
-        'r': 0,
+        "R": 0,
         "N": 0,
         "D": 0,
         "C": 0,
@@ -502,7 +467,7 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
         "P": 0,
         "S": 0,
         "T": 0,
-        'w': 0,
+        "W": 0,
         "Y": 0,
         "V": 0,
         "X": 0
@@ -555,13 +520,14 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
         # Check if the relative ASA is valid and is above the cutoff
         if value[3] != "NA" and float(value[3]) >= cutoff:
             # If so, check if the amino acid is one of the 20 standard ones
-            if value[1] in ["A", 'r', "N", "D", "C", "Q", "E", "G", "H", "I", "L", "K", "M", "F", "P", "S", "T", 'w', "Y", "V"]:
+            if value[1] in ["A", "R", "N", "D", "C", "Q", "E", "G", "H", "I", "L", "K", "M", "F", "P", "S", "T", "w", "Y", "V"]:
                 # Add 1 to its count
                 aas[value[1]] += 1
             # If not, add to an 'others' (X) position
             else:
                 # Add 1 to its count
                 aas["X"] += 1
+
     return aas
 
 def count_AAs_and_chains(structure: Bio.PDB.Structure.Structure) -> Union[Tuple[int, float, int], None]: #type: ignore
@@ -576,15 +542,11 @@ def count_AAs_and_chains(structure: Bio.PDB.Structure.Structure) -> Union[Tuple[
     -------
     Tuple[int, float, int] | None
         The total length, the average length and the number of chains. If the structure is not valid, returns None.
-
-    Raises
-    ------
-    None
     '''
 
     # If the model is not set
     if not structure:
-        _ = errors.not_set(message=f"The model object is not set!", level="error")
+        _ = ocerror.Error.not_set(message=f"The model object is not set!", level=ocerror.ReportLevel.ERROR) # type: ignore
         return None #type: ignore
     # Initialise the counter of number of residues and chains
     res_no = 0
@@ -620,15 +582,12 @@ def compute_sasa(model: Bio.PDB.Structure.Structure, n_points: int = 1000) -> No
     Returns
     -------
     None
-
-    Raises
-    ------
-    None
     '''
 
     ocprint.printv(f"Computing SASA for protein '{model.id}'.")
     sr = SASA.ShrakeRupley(n_points = n_points)
     sr.compute(model, level="S")
+
     return None
 
 def getRes(model: Bio.PDB.Structure.Structure) -> str: #type: ignore
@@ -643,10 +602,6 @@ def getRes(model: Bio.PDB.Structure.Structure) -> str: #type: ignore
     -------
     str
         The amino acid one letter sequence for the receptor.
-
-    Raises
-    ------
-    None
     '''
 
     ocprint.printv(f"Converting the protein '{model.id}' to single letter amino acid sequence.")
@@ -680,10 +635,6 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
     -------
     Tuple[str, Bio.PDB.Structure.Structure]
         The path to the structure and the structure object. Will return a tuple of ("", None) if the structure is not valid.
-
-    Raises
-    ------
-    None
     '''
 
     ocprint.printv(f"Trying to load protein '{structure}'.")
@@ -741,7 +692,7 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
             return structure, tmpStructure
         else:
             # File does not exist
-            _ = errors.file_do_not_exist(message=f"The file '{structure}' does not exist!", level="error")
+            _ = ocerror.Error.file_not_exist(message=f"The file '{structure}' does not exist!", level=ocerror.ReportLevel.ERROR) # type: ignore
             return "", None
     else:
         # The variable is not in a supported data format
@@ -762,10 +713,6 @@ def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str
     -------
     Bio.PDB.Structure.Structure
         The renumbered structure.
-
-    Raises
-    ------
-    None
     '''
 
     try:
@@ -796,17 +743,17 @@ def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str
 
         return structure
     except Exception as e:
-        _ = errors.unknown(f"Could not reset indexes for this protein and save it on path '{outputPdb}'. Error: {e}", level = "error")
+        _ = ocerror.Error.unknown(f"Could not reset indexes for this protein and save it on path '{outputPdb}'. Error: {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
     
     return None
 
-def computeDipoleMoment(structure: Bio.PDB.Structure.Structure, cModel: str = "gasteiger"): #type: ignore
+def computeDipoleMoment(structure: Union[Bio.PDB.Structure.Structure, str], cModel: str = "gasteiger"): #type: ignore
     '''Computes the receptor's dipole moment.
 
     Parameters
     ----------
-    structure : Bio.PDB.Structure.Structure
-        The structure to be analysed.
+    structure : Bio.PDB.Structure.Structure, str
+        The structure to be analysed or the path to the structure
     cModel : str, optional
         The charge model to be used, by default "gasteiger".
 
@@ -814,10 +761,6 @@ def computeDipoleMoment(structure: Bio.PDB.Structure.Structure, cModel: str = "g
     -------
     float
         The dipole moment of the receptor.
-
-    Raises
-    ------
-    None
     '''
 
     ocprint.printv(f"Computing Dipole moment for protein '{structure}'.")
@@ -838,7 +781,7 @@ def computeDipoleMoment(structure: Bio.PDB.Structure.Structure, cModel: str = "g
         # Load the input file to the previously loaded OBMol object
         obConversion.ReadFile(mol, structure)
         # Create the charge model object
-        chargeModel = openbabel.OBChargeModel_FindType(cModel)
+        chargeModel = openbabel.OBChargeModel.FindType(cModel)
         # Compute the mol object charges using the charge model
         chargeModel.ComputeCharges(mol)
         # Get the dipile moment from the molecule
@@ -860,10 +803,6 @@ def computeIsoelectricPoint(residues: str) -> float:
     -------
     float
         The isoelectric point of the protein.
-
-    Raises
-    ------
-    None
     '''
 
     ocprint.printv(f"Computing the isoelectric point for protein with amino acid sequence of '{residues}'.")
@@ -891,10 +830,6 @@ def computeGravy(residues: str, scale: str = "KyteDoolitle") -> float:
     -------
     float
         The GRAVY of the protein.
-
-    Raises
-    ------
-    None
     '''
 
     ocprint.printv(f"Computing the GRAVY (Grand Average of Hydropathy) for protein with amino acid sequence of '{residues}'.")
@@ -913,10 +848,6 @@ def computeAromaticity(residues: str) -> float:
     -------
     float
         The aromaticity of the protein.
-
-    Raises
-    ------
-    None
     '''
 
     ocprint.printv(f"Computing the Aromaticity for protein with amino acid sequence of '{residues}'.")
@@ -941,17 +872,13 @@ def computeInstabilityIndex(residues: str) -> float:
     -------
     float
         The instability index of the protein.
-
-    Raises
-    ------
-    None
     '''
 
     ocprint.printv(f"Computing the Instability Index for protein with amino acid sequence of '{residues}'.")
     protein = ProteinAnalysis(__filterSequence(residues))
     return protein.instability_index()
 
-def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: bool = False) -> Union[Dict[str, Union[str, float, int]], Tuple[Union[float, str, int]], vdf.DataFrameLocal, None]:
+def read_descriptors_from_json(path: str, returnData: bool = False) -> Union[Dict[str, Union[str, float, int]], Tuple[Union[float, str, int]], None]:
     '''Read the descriptors from a json file.
 
     Parameters
@@ -959,13 +886,11 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
     path : str
         The path to the json file.
     returnData : bool, optional
-        If True, returns a dictionary with the descriptors. It only works when returnVaex is set to False, by default False.
-    returnVaex : bool, optional
-        If True, returns a vaex DataFrame with the descriptors. Will also behave like when returnData is set to True, by default False.
+        If True, returns a dictionary with the descriptors. By default False.
 
     Returns
     -------
-    Dict[str, str | float | int] | Tuple[float | str | int]] | vdf.DataFrameLocal | None
+    Dict[str, str | float | int] | Tuple[float | str | int]] | None
         The descriptors dictionary or None if any error occurs.
 
     Raises
@@ -1029,21 +954,6 @@ def read_descriptors_from_json(path: str, returnData: bool = False, returnVaex: 
             "Y": data["countY"] if data["countY"] != np.NaN else 0,
             "V": data["countV"] if data["countV"] != np.NaN else 0
         }
-
-        # If the returnVaex is set
-        if returnVaex:
-            # Check if data has a 'Path' key
-            if "Path" in data:
-                # Remove the entry
-                _ = data.pop("Path")
-
-            # For each key, element in data
-            for key, element in data.items():
-                # Make the element for key be a list with only the element
-                data[key] = [element]
-
-            # Convert the data to a vaex DataFrame
-            return vaex.from_dict(data)
 
         # If the returnData flag is on
         if returnData:

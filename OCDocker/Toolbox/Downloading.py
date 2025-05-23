@@ -1,4 +1,4 @@
-#!/usr/lib/python3
+#!/usr/bin/env python3
 
 # Description
 ###############################################################################
@@ -54,10 +54,6 @@ class DownloadProgressBar(tqdm):
         Returns
         -------
         None
-
-        Raises
-        ------
-        None
         '''
 
         if tsize is not None:
@@ -82,10 +78,6 @@ def download_url(url: str , out_path: str) -> None:
 
     Returns
     -------
-    None
-
-    Raises
-    ------
     None
     '''
 
