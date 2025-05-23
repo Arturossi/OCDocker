@@ -188,7 +188,7 @@ tmp/
 
 # Do not upload .cfg files
 *.cfg
-*OCDocker.cfg*
+*OCDocker.cfg
 
 # Ignore nohup.out
 *nohup.out
