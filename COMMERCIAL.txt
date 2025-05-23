@@ -1,10 +1,12 @@
 Commercial Licensing Notice
 
-OCDocker is licensed under the Apache License 2.0 for academic, non-commercial, and research use.
+OCDocker is dual-licensed:
 
-If you intend to use OCDocker in a commercial setting — including integration into proprietary software,
-use in commercial drug discovery pipelines, or other revenue-generating activities — a separate commercial license is required.
+- Under the **Apache License 2.0** for academic, non-commercial, and research use.
+- A **separate commercial license** is required for use in proprietary, for-profit, or industrial settings.
 
-To obtain a commercial license, please contact:
+If you intend to use OCDocker in a commercial context — including integration into proprietary software, use in commercial drug discovery pipelines, or other revenue-generating activities — please obtain a commercial license.
+
+To inquire about commercial licensing terms, contact:
 Artur Duque Rossi
 arturossi10@gmail.com

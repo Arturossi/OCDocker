@@ -307,7 +307,6 @@ These steps will be the same for any pairs receptor-ligand!
 OCDocker is dual-licensed:
 
 - **Open Source License**: Apache License 2.0 — free for academic, research, and non-commercial use.
-- **Commercial License**: Required for any commercial use (e.g., industry, pharma).  
-  Please contact `arturossi10@gmail.com` to discuss licensing options.
+- **Commercial License**: Required for any commercial or for-profit use.
 
-This model supports sustainable open science while ensuring ethical, transparent usage in commercial contexts.
+Please see `COMMERCIAL.txt` for details or contact `arturossi10@gmail.com`.
