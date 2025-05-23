@@ -128,6 +128,12 @@ class Ligand:
         for desc in Ligand.allDescriptors:
             setattr(self, desc, None)
 
+        # Set the from_json_descriptors attribute
+        self.from_json_descriptors = from_json_descriptors
+
+        # Set the sanitize attribute
+        self.sanitize = sanitize
+
         # If user pass a json
         if from_json_descriptors:
             # Read the descriptors from it
@@ -180,6 +186,21 @@ class Ligand:
 
         # Combine both in one dict and return them
         return {**properties, **self.get_descriptors()}
+
+    def __repr__(self):
+        '''Return a string representation of the Ligand object.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        str
+            A string representation of the Ligand object.
+        '''
+
+        return f"Ligand(molecule={self.molecule}, name={self.name}, sanitize={self.sanitize}, from_json_descriptors={'True' if self.from_json_descriptors else 'False'})"
 
     ## Public ##
     def print_attributes(self) -> None:
@@ -253,10 +274,12 @@ class Ligand:
 
         # Create new dict
         properties = dict()
+
         # Set Name, Path and molecule
         properties["Name"] = self.name if self.name is not None else "-"
         properties["Path"] = self.path if self.path is not None else "-"
         properties["Molecule"] = self.molecule if self.molecule is not None else "-"
+
         # Combine both in one dict and return them
         return {**properties, **self.get_descriptors()}
 
@@ -312,8 +335,6 @@ class Ligand:
         bool
             True if the Ligand object is valid, False otherwise.
         '''
-
-        print([getattr(self, attr) for attr in Ligand.allDescriptors])
 
         #region if any attribute is None (will check for every attribute in the ligand object)
         if any(getattr(self, attr) is None for attr in Ligand.allDescriptors):

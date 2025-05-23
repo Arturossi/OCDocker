@@ -341,10 +341,11 @@ class Receptor:
         # Create new dict
         properties = dict()
         # Set Name, Path and molecule
-        properties["Ligand"] = self.name if self.name is not None else "-"
+        properties["Name"] = self.name if self.name is not None else "-"
         properties["Path"] = self.path if self.path is not None else "-"
         properties["mol2Path"] = self.mol2Path if self.mol2Path is not None else "-"
         properties["Structure"] = self.structure if self.structure is not None else "-"
+        
         # Combine both in one dict and return them
         return {**properties, **self.get_descriptors()}
 

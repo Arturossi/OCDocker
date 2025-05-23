@@ -1,5 +1,4 @@
 import pytest
-import shutil
 
 from pathlib import Path
 
@@ -8,8 +7,6 @@ import OCDocker.Receptor as ocr
 
 import OCDocker.Docking.Vina as ocvina
 import OCDocker.Toolbox.Conversion as occonversion
-
-from pprint import pprint
 
 @pytest.fixture
 def vina_inputs():
@@ -85,7 +82,7 @@ def test_vina_instantiation(vina_inputs):
         name="test"
     )
     
-    assert isinstance(vina_instance, ocvina.Vina)
+    assert isinstance(vina_instance, ocvina.Vina), "Vina instance was not created correctly"
 
 @pytest.mark.order(2)
 def test_convert_smi_to_mol2(vina_inputs):
@@ -105,7 +102,7 @@ def test_convert_smi_to_mol2(vina_inputs):
         overwrite=True
     )
 
-    assert result == 0 or result is True
+    assert result == 0 or result is True, f"Conversion of .smi to .mol2 failed. Error code: {result}"
     assert Path(vina_inputs["converted_ligand_file"]).exists(), "Failed to generate .mol2 from .smi"
 
 @pytest.mark.order(3)
@@ -122,7 +119,7 @@ def test_run_prepare_ligand(vina_inputs):
         outputLigand=str(vina_inputs["prepared_ligand_path"])
     )
 
-    assert result is True or isinstance(result, int)
+    assert result is True or isinstance(result, int), f"Preparation of ligand failed. Error code: {result}"
     assert Path(vina_inputs["prepared_ligand_path"]).exists(), "No prepared ligand files found"
 
 @pytest.mark.order(4)
@@ -136,7 +133,7 @@ def test_run_prepare_receptor(vina_inputs):
         outputReceptor=str(vina_inputs["prepared_receptor_path"]),
     )
 
-    assert result is True or isinstance(result, int)
+    assert result is True or isinstance(result, int), f"Preparation of receptor failed. Error code: {result}"
     assert Path(vina_inputs["prepared_receptor_path"]).exists(), "No prepared receptor files found"
 
 @pytest.mark.order(5)
@@ -155,8 +152,8 @@ def test_run_box_to_vina(vina_inputs):
         receptor=vina_inputs["prepared_receptor_path"]
     )
 
-    assert result == 0 or result is True
-    assert Path(vina_inputs["box"]).exists()
+    assert result == 0 or result is True, f"Box to Vina conversion failed. Error code: {result}"
+    assert Path(vina_inputs["box"]).exists(), "Box file was not created"
 
 @pytest.mark.order(6)
 def test_run_vina(vina_inputs):
@@ -164,7 +161,7 @@ def test_run_vina(vina_inputs):
     Run docking using real ligand, receptor, and box files.
     '''
 
-    result = ocvina.run_vina(
+    _ = ocvina.run_vina(
         confFile=vina_inputs["config"],
         ligand=vina_inputs["prepared_ligand_path"],
         outPath=str(vina_inputs["output_file"]),
