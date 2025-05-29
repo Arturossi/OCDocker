@@ -7,6 +7,7 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
+   OCDocker.OCScore.Analysis
    OCDocker.OCScore.DNN
    OCDocker.OCScore.Dimensionality
    OCDocker.OCScore.Optimization

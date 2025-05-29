@@ -1,7 +1,44 @@
 ![OCDocker](./OCDocker.png "OCDocker")
 
 OCDocker installation
-=================
+=====================
+
+Simplest methods
+----------------
+
+Conda
+-----
+
+OCDocker is a conda package, so the simplest way to install it is to use conda. If you do not have conda installed, please follow the instructions at https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html.
+If you have conda installed, you can install OCDocker with the following command:
+
+	```bash
+	$ conda install arturossi/label/prealpha::ocdocker 
+	```
+
+If you have mamba installed, you can install OCDocker with the following command:
+
+	```bash
+	$ mamba install arturossi/label/prealpha::ocdocker 
+	```
+
+pip
+---
+
+If you prefer to use pip, you can install OCDocker with the following command:
+
+	```bash
+	$ pip install ocdocker
+	```
+
+From source
+-----------
+
+Download the source code from the GitHub repository:
+
+	```bash
+	$ git clone https://github.com/Arturossi/OCDocker
+	```
 
 Go to OCDocker dir and execute the install.sh file with the following command. (Yes, need to be sudo... sorry :/)
 
