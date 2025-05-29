@@ -142,3 +142,34 @@ def run_docking(archive: str, dockingAlgorithm: str, digestFormat: str = "json",
     
     # Run docking
     return ocdock.run_docking(complexList, archive, dockingAlgorithm, overwrite, digestFormat)
+<<<<<<< HEAD
+=======
+
+def generate_dock_result_csv(archive: str, csv_path: str, log_dumps: Union[dict, None] = None) -> None:
+    '''Uses the structure from read_logs to generate an output for all docking softwares.
+
+    Parameters
+    ----------
+    archive : str
+        The archive to be prepared. The options are [dudez, pdbbind].
+    csv_path : str
+        The path to the csv file.
+    log_dumps : dict | None, optional
+        The data from the logfiles. If None, will use the read_logs function to get the data. The default is None.
+
+    Returns
+    -------
+    None
+    '''
+ 
+    # Check if log_dumps is None
+    if not log_dumps:
+        # Read the log files
+        log_dumps = read_logs(archive)
+
+    # Check if data is not empty
+    if log_dumps:
+        log_dumps.export_csv(path = csv_path, backend = 'arrow') # type: ignore
+
+    return None
+>>>>>>> 57acffa (Cleaning)

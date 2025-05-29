@@ -3,8 +3,7 @@
 # Description
 ###############################################################################
 '''
-Sets of classes and functions that are used to make all return codes in OCDocker
-standard.
+Handles all standardized return codes and error reporting in OCDocker.
 
 They are imported as:
 

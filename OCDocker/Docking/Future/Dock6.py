@@ -56,7 +56,7 @@ class Dock6:
     """ Dock6 object with methods for easy run. """
 
     def __init__(self, configPath: str, boxFile: str, receptor: ocr.Receptor, preparedReceptorPath: str, ligand: ocl.Ligand, preparedLigandPath: str, dock6Log: str, outputDock6: str, name: str = "", overwriteConfig: bool = False, spacing: float = 2.9) -> None:
-        '''Constructor of the class Vina.
+        '''Constructor of the class Dock6.
         
         Parameters
         ----------

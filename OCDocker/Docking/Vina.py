@@ -647,6 +647,7 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
             # Get the ligand name
             ligandName = os.path.splitext(os.path.basename(ligand))[0]
             
+            # Split the ligand
             _ = ocmolproc.split_poses(ligand, ligandName, outPath, logFile = "", suffix = "_split_")
 
             # Add the ligand name to the list
@@ -702,20 +703,20 @@ def generate_vina_files_database(path: str, protein: str, boxPath: str = "") -> 
     protein : str
         The path of the protein.
     boxPath : str
-        The path to the box file. If empty, it will try to look for a p2rank dir inside <path>.
+        The path to the box file. If empty, it will set as path + "/boxes"
     
     Returns
     -------
     None
     '''
     
-    # Parameterize the vina and p2rank paths
+    # Parameterize the vina and box paths
     vinaPath = f"{path}/vinaFiles"
 
     # Check if boxPath is an empty string
     if boxPath == "":
-      # Set is as the path + p2rank
-      boxPath = f"{path}/p2rank"
+      # Set is as the path + boxes
+      boxPath = f"{path}/boxes"
 
     # Create the vina folder inside protein's directory
     _ = ocff.safe_create_dir(vinaPath)

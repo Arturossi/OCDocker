@@ -196,3 +196,28 @@ def prepare(overwrite: bool = False) -> None:
     '''
 
     return ocbdb.prepare("pdbbind", overwrite = overwrite)
+<<<<<<< HEAD
+=======
+
+def generate_dock_result_csv(csv_path: str = "", log_dumps: Union[dict, None] = None) -> None:
+    '''Uses the structure from read_logs to generate an output for all docking softwares.
+
+    Parameters
+    ----------
+    csv_path : str, optional
+        The path to the output csv file. If not specified, it will use the default path, by default f"{parsed_archive}/PDBbind.csv".
+    log_dumps : dict, optional
+        The parsed data.
+
+    Returns
+    -------
+    None
+    '''
+
+    # Check if csv_path is empty
+    if csv_path == "":
+        # It is empty, use the default path
+        csv_path = f"{parsed_archive}/pdbbind.csv"
+
+    return ocbdb.generate_dock_result_csv("pdbbind", csv_path, log_dumps = log_dumps)
+>>>>>>> 57acffa (Cleaning)

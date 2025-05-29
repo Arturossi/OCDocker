@@ -53,7 +53,11 @@ This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
 
 # Splash, version & clear tmp
 ###############################################################################
+<<<<<<< HEAD
 ocVersion = "0.9.5"
+=======
+ocVersion = "0.9.0"
+>>>>>>> 57acffa (Cleaning)
 
 _description = tw.dedent("""\033[1;93m
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -1475,10 +1479,7 @@ optdb_url = URL.create(
 )
 
 # Set the engine
-#engine = create_engine(db_url.render_as_string(hide_password=False))
-#optengine = create_engine(optdb_url.render_as_string(hide_password=False))  
 engine = create_engine(db_url)
-#optengine = create_engine(optdb_url)
 
 # Create the databases if it does not exist
 create_database_if_not_exists(engine.url)
