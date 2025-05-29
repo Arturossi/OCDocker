@@ -45,8 +45,8 @@ project = 'OCDocker'
 copyright = '2024, Artur Duque Rossi'
 author = 'Artur Duque Rossi'
 
-version = '0.9.0'
-release = '0.9.0'
+version = '0.9.1'
+release = '0.9.1'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -59,7 +59,8 @@ extensions = [
     'sphinx.ext.inheritance_diagram',
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
-    'sphinx.ext.napoleon'
+    'sphinx.ext.napoleon',
+    'myst_parser'
 ]
 
 autosummary_generate = True  # Turn on sphinx.ext.autosummary

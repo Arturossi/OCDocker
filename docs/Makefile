@@ -6,8 +6,11 @@ SPHINXBUILD   ?= sphinx-build
 SPHINXAUTOBUILD ?= sphinx-autobuild
 SOURCEDIR     = source
 BUILDDIR      = build
-IMAGE_SOURCE = OCDocker.png
-IMAGE_TARGET = $(SOURCEDIR)/_static/OCDocker.png
+STATICDIR	= $(SOURCEDIR)/_static
+IMAGE_SOURCE = ../OCDocker.png
+IMAGE_TARGET = $(STATICDIR)/OCDocker.png
+COLLAB_SOURCE = ../COLLABORATORS.md
+COLLAB_TARGET = $(SOURCEDIR)/COLLABORATORS.md
 
 # Put it first so that "make" without argument is like "make help".
 .PHONY: help
@@ -46,17 +49,24 @@ livehtml: assets
 
 .PHONY: assets
 assets:
-	@mkdir -p $(dir $(IMAGE_TARGET))
+	@mkdir -p $(dir $(STATICDIR))
+
 	@if [ -f $(IMAGE_SOURCE) ]; then \
 		cp $(IMAGE_SOURCE) $(IMAGE_TARGET); \
 	else \
 		echo "Note: $(IMAGE_SOURCE) not found, skipping image copy."; \
 	fi
 
+	@if [ -f $(COLLAB_SOURCE) ]; then \
+		cp $(COLLAB_SOURCE) $(COLLAB_TARGET); \
+	else \
+		echo "Note: $(COLLAB_SOURCE) not found, skipping COLLABORATORS copy."; \
+	fi
+
 .PHONY: all
-all: clean html latexpdf epub
+all: clean assets html latexpdf epub
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
-%: Makefile
+%: 
 	$(SPHINXBUILD) -b $@ $(SPHINXOPTS) $(SOURCEDIR) $(BUILDDIR)/$@
