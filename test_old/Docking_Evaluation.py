@@ -517,7 +517,6 @@ def plot_single_scatterplot(best_combined_df_filtered, n_trials, color_mapping, 
 
     return None
 
-
 def plot_scatterplot(best_rmse_df_filtered, best_auc_df_filtered, best_combined_df_filtered, n_trials, color_mapping, min_auc, max_auc, min_error, max_error, error_range, auc_range, alpha = 0.9):
     # Plotting with the chosen palette and adjustments for marker and transparency
     plt.figure(figsize=(20, 8))

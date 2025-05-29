@@ -3,6 +3,7 @@ The OCScore package is a collection of tools for scoring and ranking docking pos
 
 Packages
 --------
+- Analysis: Analysis functions for scoring outcomes of the OCScore package.
 - Dimensionality: Dimensionality reduction methods.
 - NN: Neural network training functions.
 - Optimization: Optimization algorithms, it contains helpers for training functions and it is the module that probably you are looking for.

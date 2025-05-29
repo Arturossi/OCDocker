@@ -1,0 +1,54 @@
+{% set name = "ocdocker" %}
+{% set version = "0.9.0" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  path: ..
+
+build:
+  noarch: python
+  script: "{{ PYTHON }} -m pip install . --no-deps -vv"
+
+requirements:
+  host:
+    - python =3.11
+    - pip
+    - setuptools >=80
+
+  run:
+    - python >=3.9
+    - rdkit
+    - pandas >=2.2
+    - scikit-learn >=1.5
+    - seaborn
+    - matplotlib
+    - scipy >=1.14
+    - openbabel
+    - numpy >=1.26
+    - optuna
+    - pingouin
+    - pytorch
+    - setuptools >=80
+    - torchaudio
+    - torchvision
+    - xgboost >=2.1
+    - lime
+    - pyyaml
+    - joblib
+    - biopython
+    - dcor
+    - fsspec
+    - numba >=0.60
+    - python-graphviz
+
+about:
+  home: https://github.com/Arturossi/OCDocker
+  summary: "Molecular docking automation, virtual screening, and AI consensus scoring"
+  license: Apache-2.0
+
+extra:
+  recipe-maintainers:
+    - arturossi
