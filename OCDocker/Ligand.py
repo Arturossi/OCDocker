@@ -38,7 +38,7 @@ import OCDocker.Toolbox.Validation as ocvalidation
 ob_log_handler = openbabel.OBMessageHandler()
 ob_log_handler.SetOutputLevel(ocerror.Error.output_level)
 if ocerror.Error.output_level == ocerror.ReportLevel.NONE:
-    RDLogger.DisableLog('rdApp.*')
+    RDLogger.DisableLog('rdApp.*') # type: ignore
 
 # License
 ###############################################################################
@@ -376,16 +376,16 @@ class Ligand:
         '''
 
         # Get the MACCSKeys for the ligand object
-        ligandMACCSSKeys = MACCSkeys.GenMACCSKeys(self.molecule)
+        ligandMACCSSKeys = MACCSkeys.GenMACCSKeys(self.molecule) # type: ignore
         # Check if the type of the molecule is a Ligand
         if type(molecule) == Ligand:
             # If yes, get its MACCSKeys
-            targetMACCSSKeys = MACCSkeys.GenMACCSKeys(molecule)
+            targetMACCSSKeys = MACCSkeys.GenMACCSKeys(molecule) # type: ignore
         # Otherwise check if it is a Chem.rdchem.Mol object
         elif type(molecule) == Chem.rdchem.Mol:
             # If it is, get its smiles using the Ligand public function, get_smiles()
             mol = loadMol(molecule, sanitize = sanitize)
-            targetMACCSSKeys = MACCSkeys.GenMACCSKeys(molecule)
+            targetMACCSSKeys = MACCSkeys.GenMACCSKeys(molecule) # type: ignore
         # If is neither both types above
         else:
             # Return an error
@@ -954,7 +954,7 @@ def __descriptor_function_factory(descriptor_name: str) -> Callable[[rdkit.Chem.
 
     # TODO: Check how to avoid this function to spam print the same error multiple times
 
-    def __compute_descriptor(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # Type: ignore 
+    def __compute_descriptor(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore 
         if molecule:
             if isinstance(molecule, rdkit.Chem.rdchem.Mol): # type: ignore
                 try:

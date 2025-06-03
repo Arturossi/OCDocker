@@ -370,7 +370,7 @@ class Receptor:
             except Exception as e:
                 return ocerror.Error.write_file(f"Problems while writing the file '{outputJson}' Error: {e}.") # type: ignore
         except Exception as e:
-            return ocerror.Error.unknown(f"Unknown error while converting the ligand {self.name} to json.\nError: {e}", ocerror.ReportLevel.ERROR) # type: ignore
+            return ocerror.Error.unknown(f"Unknown error while converting the receptor {self.name} to json.\nError: {e}", ocerror.ReportLevel.ERROR) # type: ignore
 
     def is_valid(self) -> bool:
         '''Check if a Receptor object is valid.
