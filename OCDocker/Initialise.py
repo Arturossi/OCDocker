@@ -1545,7 +1545,7 @@ else:
 if output_level > ocerror.ReportLevel.DEBUG:
     output_level = ocerror.ReportLevel.DEBUG
 elif output_level < ocerror.ReportLevel.NONE:
-    output_level = ocerror.ReportLevel.NONE
+    output_level = ocerror.ReportLevel(output_level)
 else:
     output_level = ocerror.ReportLevel.NONE
 
