@@ -1006,7 +1006,7 @@ def __descriptor_function_factory_class(descriptor_name: str) -> Callable[[rdkit
                     # Return the function
                     return descriptor_func(molecule)
                 except Exception as e:
-                    _ = ocerror.Error.unknown(f"Error while creating the functin in factory: {str(e)}") # type: ignore
+                    _ = ocerror.Error.unknown(f"Error while creating the function in factory: {str(e)}") # type: ignore
             else:
                 _ = ocerror.Error.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'") # type: ignore
         else:

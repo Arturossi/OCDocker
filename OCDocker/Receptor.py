@@ -242,7 +242,7 @@ class Receptor:
         # Set Name and Path
         properties["Name"] = self.name if self.name is not None else "-"
         properties["Path"] = self.path if self.path is not None else "-"
-        properties["mol2Path"] = self.path if self.path is not None else "-"
+        properties["mol2Path"] = self.mol2Path if self.mol2Path is not None else "-"
         # Combine both in one dict and return them
         return {**properties, **self.get_descriptors()}
 
@@ -373,7 +373,7 @@ class Receptor:
             return ocerror.Error.unknown(f"Unknown error while converting the ligand {self.name} to json.\nError: {e}", ocerror.ReportLevel.ERROR) # type: ignore
 
     def is_valid(self) -> bool:
-        '''Check if a Ligand object is valid.
+        '''Check if a Receptor object is valid.
 
         Parameters
         ----------
@@ -382,7 +382,7 @@ class Receptor:
         Returns
         -------
         bool
-            True if the Ligand object is valid, False otherwise.
+            True if the Receptor object is valid, False otherwise.
         '''
 
         #region if any attribute is None
@@ -513,10 +513,11 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
     for _, value in dsspData.property_dict.items():
         # Check if the relative ASA is valid and is above the cutoff
         if value[3] != "NA" and float(value[3]) >= cutoff:
+            aa_code = value[1].upper()
             # If so, check if the amino acid is one of the 20 standard ones
-            if value[1] in ["A", "R", "N", "D", "C", "Q", "E", "G", "H", "I", "L", "K", "M", "F", "P", "S", "T", "w", "Y", "V"]:
+            if aa_code in ["A", "R", "N", "D", "C", "Q", "E", "G", "H", "I", "L", "K", "M", "F", "P", "S", "T", "W", "Y", "V"]:
                 # Add 1 to its count
-                aas[value[1]] += 1
+                aas[aa_code] += 1
             # If not, add to an 'others' (X) position
             else:
                 # Add 1 to its count
@@ -928,7 +929,7 @@ def read_descriptors_from_json(path: str, returnData: bool = False) -> Union[Dic
         # Create the countAA variable (here np.NaN does have an exact meaning, 0 is a valid value)
         countAA = {
             "A": data["countA"] if data["countA"] != np.NaN else 0,
-            'r': data["countR"] if data["countR"] != np.NaN else 0,
+            "R": data["countR"] if data["countR"] != np.NaN else 0,
             "N": data["countN"] if data["countN"] != np.NaN else 0,
             "D": data["countD"] if data["countD"] != np.NaN else 0,
             "C": data["countC"] if data["countC"] != np.NaN else 0,
@@ -944,7 +945,7 @@ def read_descriptors_from_json(path: str, returnData: bool = False) -> Union[Dic
             "P": data["countP"] if data["countP"] != np.NaN else 0,
             "S": data["countS"] if data["countS"] != np.NaN else 0,
             "T": data["countT"] if data["countT"] != np.NaN else 0,
-            'w': data["countW"] if data["countW"] != np.NaN else 0,
+            "W": data["countW"] if data["countW"] != np.NaN else 0,
             "Y": data["countY"] if data["countY"] != np.NaN else 0,
             "V": data["countV"] if data["countV"] != np.NaN else 0
         }
