@@ -1,6 +1,7 @@
 import pytest
 from rdkit import Chem
 from rdkit.Chem import AllChem
+import numpy as np
 
 import OCDocker.Toolbox.MoleculeProcessing as ocmolproc
 

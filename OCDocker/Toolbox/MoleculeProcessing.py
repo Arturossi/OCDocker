@@ -136,10 +136,13 @@ def get_rmsd(reference: str, molecule: str) -> Union[List[float], float]:
 
     # Load reference
     ref = io.loadmol(reference)
+
     # Remove its hydrogens
     ref.strip()
+
     # Load all molecules (if only one, a list with a single element will be generated)
     mols = io.loadallmols(molecule)
+    
     # For each molecule in molecules
     for mol in mols:
         # Remove its hydrogens

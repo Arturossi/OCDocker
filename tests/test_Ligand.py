@@ -2,7 +2,6 @@ import pytest
 
 from pathlib import Path
 from rdkit import Chem
-from rdkit.Chem import AllChem
 
 import OCDocker.Ligand as ocl
 
@@ -98,27 +97,27 @@ def test_get_descriptors(sample_ligand):
         assert key in desc, f"Missing descriptor: {key}"
 
 @pytest.mark.order(5)
-def test_create_box_overwrite(ligand_data):
-    box_path = ligand_data["box_path"]
-    boxes_dir = ligand_data["boxes_dir"]
+def test_create_box_overwrite(sample_ligand):
+    box_path = sample_ligand["box_path"]
+    boxes_dir = sample_ligand["boxes_dir"]
 
     # remove existing box if present
     if box_path.exists():
         box_path.unlink()
-        
-    result = ligand_data["ligand"].create_box(savePath=str(boxes_dir))
+
+    result = sample_ligand["ligand"].create_box(savePath=str(boxes_dir))
     assert result is None
     assert box_path.exists(), "box0.pdb should be created"
     # calling again without overwrite should return an int error code
-    result_again = ligand_data["ligand"].create_box(savePath=str(boxes_dir))
+    result_again = sample_ligand["ligand"].create_box(savePath=str(boxes_dir))
     assert isinstance(result_again, int)
     # with overwrite should succeed
-    result_over = ligand_data["ligand"].create_box(savePath=str(boxes_dir), overwrite=True)
+    result_over = sample_ligand["ligand"].create_box(savePath=str(boxes_dir), overwrite=True)
     assert result_over is None
 
 @pytest.mark.order(6)
-def test_same_molecule_checks(ligand_data):
-    lig = ligand_data["ligand"]
+def test_same_molecule_checks(sample_ligand):
+    lig = sample_ligand["ligand"]
     # Compare ligand with itself
     assert lig.is_same_molecule(lig) is True
     assert lig.is_same_molecule_SMILES(lig) is True
