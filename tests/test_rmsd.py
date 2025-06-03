@@ -7,16 +7,16 @@ import OCDocker.Toolbox.MoleculeProcessing as ocmolproc
 
 @pytest.fixture
 def example_mols(tmp_path):
-    """Create three small molecules with 3D coordinates and write to SDF files."""
-    # Two ethanol conformers and one propane
+    """Create three conformers of the same molecule and write to SDF files."""
+    # Three ethanol conformers with different embeddings
     mol1 = Chem.AddHs(Chem.MolFromSmiles("CCO"))
     AllChem.EmbedMolecule(mol1, randomSeed=0xf00d) # type: ignore
 
     mol2 = Chem.AddHs(Chem.MolFromSmiles("CCO"))
-    AllChem.EmbedMolecule(mol2, randomSeed=0xbeef) # type: ignore
+    AllChem.EmbedMolecule(mol2, randomSeed=0xcafe) # type: ignore
 
-    mol3 = Chem.AddHs(Chem.MolFromSmiles("CCC"))
-    AllChem.EmbedMolecule(mol3, randomSeed=0xcafe) # type: ignore
+    mol3 = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    AllChem.EmbedMolecule(mol3, randomSeed=0xdead) # type: ignore
 
     files = []
     for idx, mol in enumerate((mol1, mol2, mol3), start=1):
