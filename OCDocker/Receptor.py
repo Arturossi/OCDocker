@@ -20,7 +20,10 @@ import os
 
 import numpy as np
 
-from Bio.PDB import MMCIFParser, PDBParser, PDBIO, SASA
+from Bio.PDB.MMCIFParser import MMCIFParser
+from Bio.PDB.PDBParser import PDBParser
+from Bio.PDB.PDBIO import PDBIO
+from Bio.PDB import SASA
 from Bio.PDB.DSSP import DSSP
 from Bio.SeqUtils import seq1
 from Bio.SeqUtils.ProtParam import ProteinAnalysis

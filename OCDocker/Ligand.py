@@ -647,13 +647,13 @@ def splitMolecules(molecule: str, outputDir: str = "", prefix: str = "ligand") -
 
     return ligand_files
 
-def multipleMoleculesSDF(molecule: rdkit.Chem.rdchem.Mol) -> List[Ligand]: # type: ignore
+def multipleMoleculesSDF(molecule: Union[str, rdkit.Chem.rdchem.Mol]) -> List[Ligand]: # type: ignore
     ''' Parse a .sdf or .mol2 file with multiple molecules returning a list of ligands.
 
     Parameters
     ----------
-    molecule : rdkit.Chem.rdchem.Mol
-        The molecule object.
+    molecule : str | rdkit.Chem.rdchem.Mol
+        Path to a molecule file or an RDKit molecule object
 
     Returns
     -------
@@ -664,7 +664,7 @@ def multipleMoleculesSDF(molecule: rdkit.Chem.rdchem.Mol) -> List[Ligand]: # typ
     # List to hold multiple Ligand objects
     ligands = []
     # Check if the path is a string (it is assumed that the provided path is already a sdf)
-    if type(molecule) == str:
+    if isinstance(molecule, str):
         # Check if file exists
         if os.path.isfile(molecule):
             # Check if the extension of the file is .sdf
@@ -681,9 +681,12 @@ def multipleMoleculesSDF(molecule: rdkit.Chem.rdchem.Mol) -> List[Ligand]: # typ
             else:
                 # This case the return code is suppressed because it is needed to return None in case of failure
                 _ = ocerror.Error.wrong_type(message=f"The molecule file MUST be the .sdf format!", level=ocerror.ReportLevel.WARNING) # type: ignore
+        elif isinstance(molecule, Chem.rdchem.Mol):
+            name = molecule.GetProp("_Name") if molecule.HasProp("_Name") else "ligand"
+            ligands.append(Ligand(molecule, name=name))
         else:
             # File does not exist
-            _ = ocerror.Error.file_not_exist(message=f"The file '{molecule}' does not exist!", level=ocerror.ReportLevel.WARNING) # type: ignore
+            _ = ocerror.Error.wrong_type(message=f"The molecule MUST be either a file path or rdkit.Chem.rdchem.Mol!", level=ocerror.ReportLevel.WARNING) # type: ignore
     else:
         # This case the return code is suppressed because it is needed to return None in case of failure
         _ = ocerror.Error.wrong_type(message=f"The molecule file path MUST be a string!", level=ocerror.ReportLevel.WARNING) # type: ignore

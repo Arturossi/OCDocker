@@ -34,12 +34,17 @@ def sample_ligand():
 
     json_file = base / "compounds/ligands/ligand/test_ligand_descriptors.json"
 
+    boxes_dir = base / "boxes"
+
     return {
         "ligand": ligand,
         "json_file": json_file,
-        "mol": mol
+        "mol": mol,
+        "boxes_dir": boxes_dir,
+        "box_path": boxes_dir / "box0.pdb"
     }
 
+@pytest.mark.order(1)
 def test_to_dict(sample_ligand):
     '''
     Test that Ligand.to_dict returns a dictionary containing key attributes.
@@ -50,6 +55,7 @@ def test_to_dict(sample_ligand):
     assert isinstance(result, dict), "Result should be a dictionary"
     assert "Name" in result, "Name should be in the dictionary"
 
+@pytest.mark.order(2)
 def test_to_json(sample_ligand):
     '''
     Test that Ligand.to_json returns a JSON string representation of the object.
@@ -64,6 +70,7 @@ def test_to_json(sample_ligand):
     assert result is not None, "Result should not be None"
     assert result == 0 or result is True, f"Result should be 0 or True. Error code: {result}"
 
+@pytest.mark.order(3)
 def test_is_valid(sample_ligand):
     '''
     Test that Ligand.is_valid returns a boolean and is True for valid input.
@@ -72,6 +79,7 @@ def test_is_valid(sample_ligand):
     assert isinstance(sample_ligand["ligand"].is_valid(), bool), "is_valid should return a boolean"
     assert sample_ligand["ligand"].is_valid(), "Ligand should be valid"
 
+@pytest.mark.order(4)
 def test_get_descriptors(sample_ligand):
     '''
     Test that get_descriptors returns all expected descriptor keys
@@ -88,3 +96,33 @@ def test_get_descriptors(sample_ligand):
 
     for key in expected_keys:
         assert key in desc, f"Missing descriptor: {key}"
+
+@pytest.mark.order(5)
+def test_create_box_overwrite(ligand_data):
+    box_path = ligand_data["box_path"]
+    boxes_dir = ligand_data["boxes_dir"]
+
+    # remove existing box if present
+    if box_path.exists():
+        box_path.unlink()
+        
+    result = ligand_data["ligand"].create_box(savePath=str(boxes_dir))
+    assert result is None
+    assert box_path.exists(), "box0.pdb should be created"
+    # calling again without overwrite should return an int error code
+    result_again = ligand_data["ligand"].create_box(savePath=str(boxes_dir))
+    assert isinstance(result_again, int)
+    # with overwrite should succeed
+    result_over = ligand_data["ligand"].create_box(savePath=str(boxes_dir), overwrite=True)
+    assert result_over is None
+
+@pytest.mark.order(6)
+def test_same_molecule_checks(ligand_data):
+    lig = ligand_data["ligand"]
+    # Compare ligand with itself
+    assert lig.is_same_molecule(lig) is True
+    assert lig.is_same_molecule_SMILES(lig) is True
+    # Compare with a different molecule
+    other = Chem.MolFromSmiles("CC")
+    assert lig.is_same_molecule(other) is False
+    assert lig.is_same_molecule_SMILES(other) is False
