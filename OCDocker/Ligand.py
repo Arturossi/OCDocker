@@ -38,7 +38,7 @@ import OCDocker.Toolbox.Validation as ocvalidation
 ob_log_handler = openbabel.OBMessageHandler()
 ob_log_handler.SetOutputLevel(ocerror.Error.output_level)
 if ocerror.Error.output_level == ocerror.ReportLevel.NONE:
-    RDLogger.DisableLog('rdApp.*') # type: ignore
+    RDLogger.DisableLog("rdApp.*") # type: ignore
 
 # License
 ###############################################################################
@@ -149,7 +149,7 @@ class Ligand:
 
             # All attribute initializations
             for desc in Ligand.allDescriptors:
-                setattr(self, desc, f'{data[desc]}') # type: ignore
+                setattr(self, desc, f"{data[desc]}") # type: ignore
             #endregion
 
         else:
@@ -161,8 +161,8 @@ class Ligand:
 
             # Single attribute initializations
             for desc in Ligand.allDescriptors:
-                result = globals()[f'find{desc}'](self.molecule)
-                setattr(self, f'{desc}', result)
+                result = globals()[f"find{desc}"](self.molecule)
+                setattr(self, f"{desc}", result)
 
     ## Private ##
     def __safe_to_dict(self) -> Dict[str, Union[int, float]]:

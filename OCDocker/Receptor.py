@@ -616,8 +616,8 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
 
     Parameters
     ----------
-    structure : str or Bio.PDB.Structure.Structure
-        The structure to be loaded.
+    structure : str | os.PathLike | Bio.PDB.Structure.Structure
+        Path to the structure file or a Bio.PDB.Structure.Structure object.
     name : str, optional
         The name of the structure, by default "".
     computeSASA : bool, optional
@@ -636,8 +636,8 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
     '''
 
     ocprint.printv(f"Trying to load protein '{structure}'.")
-    # Check if the type of the variable structure is a string or a Bio.PDB.Structure.Structure
-    if type(structure) == Bio.PDB.Structure.Structure: #type: ignore
+    # Check if the variable is a Bio.PDB.Structure.Structure or a path-like object
+    if isinstance(structure, Bio.PDB.Structure.Structure): #type: ignore
         # Check if SASA should be computed
         if computeSASA:
             compute_sasa(structure)
@@ -645,17 +645,18 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
         if clean:
             # Clean the pdb file
             structure = renumber_pdb_residues(structure)
-        # Since is already a structure, assign it to the class
+        # Since it is already a structure, assign it to the class
         return structure, None
-    elif type(structure) == str:
-        if os.path.isfile(structure):
+    elif isinstance(structure, (str, os.PathLike)):
+        structure_path = os.fspath(structure)
+        if os.path.isfile(structure_path):
             # Check if the structure has no name
             if name == "":
                 # If its true, set its name as 'Generic structure'
                 name = "Generic structure"
             
             # Now we know that it is a file path, check which is its extension to use the correct function
-            extension = os.path.splitext(structure)[1]
+            extension = os.path.splitext(structure_path)[1]
 
             # Choose the parser based on extension
             if extension == ".pdb":
@@ -665,11 +666,13 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
             else:
                 # The file extension is not supported, print data
                 supportedExtensions = [".pdb", ".cif"]
-                ocprint.print_error(f"The receptor {structure} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supportedExtensions)}.")
+                ocprint.print_error(
+                    f"The receptor {structure_path} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supportedExtensions)}."
+                )
                 return "", None
 
             # Compute the SASA value of the structure
-            tmpStructure = parser.get_structure(name, structure)
+            tmpStructure = parser.get_structure(name, structure_path)
 
             # Check if the pdb file should be cleaned
             if clean:
@@ -679,18 +682,18 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
             # If there is a mol2 path and the file does not exist
             if mol2Path and (not os.path.isfile(mol2Path) or overwrite):
                 # Convert the molecule
-                _ = occonversion.convertMols(structure, mol2Path)
+                _ = occonversion.convertMols(structure_path, mol2Path)
 
             # Check if SASA should be computed
             if computeSASA:
                 compute_sasa(tmpStructure)
 
-            ocprint.print_success(f"Successfully loaded the molecule '{structure}'")
+            ocprint.print_success(f"Successfully loaded the molecule '{structure_path}'")
             # Return the structure using selected parser
-            return structure, tmpStructure
+            return structure_path, tmpStructure
         else:
             # File does not exist
-            _ = ocerror.Error.file_not_exist(message=f"The file '{structure}' does not exist!", level=ocerror.ReportLevel.ERROR) # type: ignore
+            _ = ocerror.Error.file_not_exist(message=f"The file '{structure_path}' does not exist!", level=ocerror.ReportLevel.ERROR) # type: ignore
             return "", None
     else:
         # The variable is not in a supported data format

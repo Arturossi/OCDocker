@@ -5,7 +5,6 @@ import types
 from pathlib import Path
 import pytest
 
-
 def _setup_stubs(monkeypatch, tmp_path):
     # Minimal stubs for heavy dependencies
     bio = types.ModuleType('Bio'); bio.__path__ = []
@@ -142,7 +141,11 @@ def _setup_stubs(monkeypatch, tmp_path):
 def smina(monkeypatch, tmp_path):
     _setup_stubs(monkeypatch, tmp_path)
     import importlib
-    mod = importlib.import_module('OCDocker.Docking.Smina')
+    mod_name = 'OCDocker.Docking.Smina'
+    if mod_name in sys.modules:
+        mod = importlib.reload(sys.modules[mod_name])
+    else:
+        mod = importlib.import_module(mod_name)
     monkeypatch.setattr(mod.Smina, '_Smina__smina_cmd', lambda self: ['smina'])
     return mod
 
@@ -201,7 +204,7 @@ def test_split_poses_method(smina, sample_paths, monkeypatch):
     # Ensure the receptor file exists and is a valid format
     assert sample_paths['receptor'].exists(), f"Receptor file not found: {sample_paths['receptor']}"
     receptor = smina.ocr.Receptor(sample_paths['receptor'], name="receptor")
-    
+
     conf = sample_paths['tmp'] / 'conf.txt'
     smina.gen_smina_conf(str(sample_paths['box']), str(conf), str(sample_paths['receptor']))
     out = sample_paths['tmp'] / 'dock.pdbqt'
