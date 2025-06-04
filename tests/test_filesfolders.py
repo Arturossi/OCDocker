@@ -2,8 +2,7 @@ import json
 import pytest
 import tarfile
 
-pytest.importorskip("numpy")
-pytest.importorskip("h5py")
+import numpy as np
 
 import OCDocker.Toolbox.FilesFolders as ocff
 import OCDocker.Error as ocerror

@@ -105,22 +105,24 @@ def test_create_box_overwrite(sample_ligand):
     if box_path.exists():
         box_path.unlink()
 
-    result = sample_ligand["ligand"].create_box(savePath=str(boxes_dir))
+    result = sample_ligand["ligand"].create_box(savePath = str(boxes_dir))
     assert result is None
     assert box_path.exists(), "box0.pdb should be created"
     # calling again without overwrite should return an int error code
-    result_again = sample_ligand["ligand"].create_box(savePath=str(boxes_dir))
+    result_again = sample_ligand["ligand"].create_box(savePath = str(boxes_dir), overwrite = False)
     assert isinstance(result_again, int)
     # with overwrite should succeed
-    result_over = sample_ligand["ligand"].create_box(savePath=str(boxes_dir), overwrite=True)
+    result_over = sample_ligand["ligand"].create_box(savePath = str(boxes_dir), overwrite = True)
     assert result_over is None
 
 @pytest.mark.order(6)
 def test_same_molecule_checks(sample_ligand):
     lig = sample_ligand["ligand"]
+    
     # Compare ligand with itself
     assert lig.is_same_molecule(lig) is True
     assert lig.is_same_molecule_SMILES(lig) is True
+
     # Compare with a different molecule
     other = Chem.MolFromSmiles("CC")
     assert lig.is_same_molecule(other) is False

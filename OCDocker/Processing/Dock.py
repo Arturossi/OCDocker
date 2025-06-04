@@ -98,7 +98,7 @@ def __run_gnina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
         errMsg = f"The directory '{ligandDir}/gninaFiles/' does not exist! Please ensure its existance before running this function. NOTE: You may need to run the verify_integrity routine to help to ensure that all files are ok."
 
         ocprint.print_error_log(errMsg, f"{logdir}/{archive}_gnina_run_report_ERROR.log")
-        return ocerror.Error.dir_does_not_exist(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
+        return ocerror.Error.dir_not_exist(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
 
     # Get the folder for each run
     runPaths = [f"{ligandDir}/gninaFiles"] # glob(f"{ligandDir}/gninaFiles/*") # TODO: Add support for multiple runs
@@ -285,7 +285,7 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
         errMsg = f"The directory '{ligandDir}/vinaFiles/' does not exist! Please ensure its existance before running this function. NOTE: You may need to run the verify_integrity routine to help to ensure that all files are ok."
 
         ocprint.print_error_log(errMsg, f"{logdir}/{archive}_vina_run_report_ERROR.log")
-        return ocerror.Error.dir_does_not_exist(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
+        return ocerror.Error.dir_not_exist(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
 
     # Get the folder for each run
     runPaths = [f"{ligandDir}/vinaFiles"] # glob(f"{ligandDir}/vinaFiles/*") # TODO: Add support for multiple runs
@@ -477,7 +477,7 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
         errMsg = f"The directory '{runPath}' does not exist! Please ensure its existance before running this function. NOTE: You may need to run the verify_integrity routine to help to ensure that all files are ok."
 
         ocprint.print_error_log(errMsg, f"{logdir}/{archive}_smina_run_report_ERROR.log")
-        return ocerror.Error.dir_does_not_exist(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
+        return ocerror.Error.dir_not_exist(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
 
     # If is needed to run (overwrite is set or no output is produced)
     if overwrite or not os.path.isfile(sminaLog) or not os.path.isfile(sminaOutput):
@@ -632,7 +632,7 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
         errMsg = f"The directory '{ligandDir}/plantsFiles/' does not exist! Please ensure its existance before running this function. NOTE: You may need to run the verify_integrity routine to help to ensure that all files are ok."
 
         ocprint.print_error_log(errMsg, f"{logdir}/{archive}_plants_run_report_ERROR.log")
-        return ocerror.Error.dir_does_not_exist(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
+        return ocerror.Error.dir_not_exist(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
 
     # Flag to denote if its needed to run this protein through plants
     needToRun = False

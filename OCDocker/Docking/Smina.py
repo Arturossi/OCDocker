@@ -1166,7 +1166,7 @@ def get_docked_poses(posesPath: str) -> List[str]:
         return [d for d in glob(f"{posesPath}/*_split_*.pdbqt") if os.path.isfile(d)]
     
     # Print an error message
-    _ = ocerror.Error.dir_does_not_exist(message=f"The poses path '{posesPath}' does not exist.", level = ocerror.ReportLevel.ERROR) # type: ignore
+    _ = ocerror.Error.dir_not_exist(message=f"The poses path '{posesPath}' does not exist.", level = ocerror.ReportLevel.ERROR) # type: ignore
     
     # Return an empty list
     return []

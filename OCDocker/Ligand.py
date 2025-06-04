@@ -377,19 +377,20 @@ class Ligand:
 
         # Get the MACCSKeys for the ligand object
         ligandMACCSSKeys = MACCSkeys.GenMACCSKeys(self.molecule) # type: ignore
+
         # Check if the type of the molecule is a Ligand
         if type(molecule) == Ligand:
             # If yes, get its MACCSKeys
-            targetMACCSSKeys = MACCSkeys.GenMACCSKeys(molecule) # type: ignore
+            targetMACCSSKeys = MACCSkeys.GenMACCSKeys(molecule.molecule) # type: ignore
         # Otherwise check if it is a Chem.rdchem.Mol object
         elif type(molecule) == Chem.rdchem.Mol:
             # If it is, get its smiles using the Ligand public function, get_smiles()
-            mol = loadMol(molecule, sanitize = sanitize)
             targetMACCSSKeys = MACCSkeys.GenMACCSKeys(molecule) # type: ignore
         # If is neither both types above
         else:
             # Return an error
             return ocerror.Error.wrong_type(f"The provided variable is a '{type(molecule)}' and was expected a 'rdkit.Chem.rdchem.Mol' or 'ocl.Ligand'.") # type: ignore
+        
         # Check if the Fingerprints are the same using the Tanimoto similarity
         if DataStructs.FingerprintSimilarity(ligandMACCSSKeys, targetMACCSSKeys) == 1.0:
             # If they are the same, return True
@@ -491,7 +492,7 @@ class Ligand:
         '''
 
         # Check if the box file already exists
-        if os.path.isfile(savePath) and not overwrite:
+        if os.path.isfile(f"{savePath}/box0.pdb") and not overwrite:
             # If it exists and the overwrite flag is False, return an error
             return ocerror.Error.file_exists(f"The box file '{savePath}' already exists. If you want to overwrite it, set the 'overwrite' flag to True.") # type: ignore
             
@@ -558,7 +559,7 @@ class Ligand:
         else:
             # If the savePath does not exist, warn the user
             if not os.path.exists(savePath):
-                _ =  ocerror.Error.dir_does_not_exist(f"The savePath '{savePath}' does not exist. Creating it.", level = ocerror.ReportLevel.WARNING) # type: ignore
+                _ =  ocerror.Error.dir_not_exist(f"The savePath '{savePath}' does not exist. Creating it.", level = ocerror.ReportLevel.WARNING) # type: ignore
                 os.mkdir(savePath)
 
         # Write out the box file (following the one given in the DUD-E database)

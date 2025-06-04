@@ -1,8 +1,5 @@
 import pytest
 
-pytest.importorskip("rdkit")
-pytest.importorskip("Bio")
-
 import OCDocker.Toolbox.Validation as ocvalidation
 import OCDocker.Error as ocerror
 

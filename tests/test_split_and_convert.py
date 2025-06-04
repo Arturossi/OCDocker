@@ -1,9 +1,6 @@
 import pytest
 import OCDocker.Error as ocerror
 
-pytest.importorskip("openbabel")
-pytest.importorskip("rdkit")
-
 import OCDocker.Toolbox.Conversion as occonversion
 
 @pytest.mark.order(1)
