@@ -8,9 +8,11 @@ import OCDocker.Error as ocerror
     ("/tmp/ap", True),
     ("/tmp/not_allowed", False),
 ])
+@pytest.mark.order(1)
 def test_is_algorithm_allowed(path, expected):
     assert ocvalidation.is_algorithm_allowed(path) is expected
 
+@pytest.mark.order(2)
 def test_validate_digest_extension():
     # valid extension
     assert ocvalidation.validate_digest_extension("results.json", "json")
@@ -25,6 +27,7 @@ def test_validate_digest_extension():
         ("molecule.bad", ocerror.ErrorCode.UNSUPPORTED_EXTENSION),
     ],
 )
+@pytest.mark.order(3)
 def test_validate_obabel_extension(file_path, expected):
     result = ocvalidation.validate_obabel_extension(file_path)
     if isinstance(expected, str):
@@ -32,9 +35,21 @@ def test_validate_obabel_extension(file_path, expected):
     else:
         assert result == expected
 
+@pytest.mark.order(4)
 def test_is_molecule_valid_pdb():
     pytest.importorskip("Bio.PDB")
     path = (
         "test_files/test_ptn1/receptor.pdb"
     )
     assert ocvalidation.is_molecule_valid(path)
+
+@pytest.mark.order(5)
+def test_is_molecule_valid_missing_file(tmp_path):
+    missing = tmp_path / "missing.pdb"
+    assert not ocvalidation.is_molecule_valid(str(missing))
+
+@pytest.mark.order(6)
+def test_is_molecule_valid_bad_extension(tmp_path):
+    bad = tmp_path / "dummy.xyz"
+    bad.write_text("dummy")
+    assert not ocvalidation.is_molecule_valid(str(bad))
