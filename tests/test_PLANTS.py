@@ -5,7 +5,7 @@ from pathlib import Path
 
 import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
-
+import OCDocker.Error as ocerror
 import OCDocker.Docking.PLANTS as ocplants
 import OCDocker.Toolbox.Conversion as occonversion
 
@@ -170,3 +170,42 @@ def test_run_plants(plants_inputs):
 
     assert result is True or isinstance(result, int)
     assert Path(plants_inputs["plants_log"]).exists(), "PLANTS log file not generated"
+
+@pytest.mark.order(7)
+def test_write_pose_list(tmp_path):
+    # Create dummy mol2 files and collect their paths
+    pose_dir = tmp_path / "poses"
+    pose_dir.mkdir()
+    pose_paths = []
+    for i in range(3):
+        pose_file = pose_dir / f"pose_{i}.mol2"
+        pose_file.write_text(f"pose {i}")
+        pose_paths.append(str(pose_file))
+
+    pose_list_file = tmp_path / "pose_list.txt"
+
+    # First call should create the file and return its path
+    result = ocplants.write_pose_list(pose_paths, str(pose_list_file))
+    assert result == str(pose_list_file)
+    assert pose_list_file.exists()
+    assert pose_list_file.read_text().splitlines() == pose_paths
+
+    # Second call without overwrite should return None and keep the file unchanged
+    result_none = ocplants.write_pose_list(pose_paths, str(pose_list_file))
+    assert result_none is None
+    assert pose_list_file.read_text().splitlines() == pose_paths
+
+@pytest.mark.order(8)
+def test_get_binding_site_from_box(plants_inputs):
+    result = ocplants.get_binding_site(str(plants_inputs["box"]))
+    assert isinstance(result, tuple), "Expected result to be a tuple. Int means error."
+    assert len(result) == 2, "Expected result to have two elements"
+    center, radius = result
+    assert center == (36.552, 39.252, 51.291)
+    assert radius == pytest.approx(70.274, abs=1e-3)
+
+@pytest.mark.order(9)
+def test_get_binding_site_nonexistent(tmp_path):
+    missing = tmp_path / "no_file.pdb"
+    result = ocplants.get_binding_site(str(missing))
+    assert result == ocerror.ErrorCode.FILE_NOT_EXIST.value
