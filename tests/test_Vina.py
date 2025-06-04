@@ -4,6 +4,7 @@ from pathlib import Path
 
 import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
+import OCDocker.Error as ocerror
 
 import OCDocker.Docking.Vina as ocvina
 import OCDocker.Toolbox.Conversion as occonversion
@@ -169,3 +170,46 @@ def test_run_vina(vina_inputs):
     )
 
     assert Path(vina_inputs['output_file']), "Expected output files were not created"
+
+@pytest.mark.order(7)
+def test_get_pose_index_from_file_path():
+    """Check pose index extraction from file name."""
+    assert ocvina.get_pose_index_from_file_path("lig_split_42.pdbqt") == 42
+
+@pytest.mark.order(8)
+def test_get_rescore_log_paths(tmp_path):
+    """Verify detection of rescoring log files in a directory."""
+    f1 = tmp_path / "lig_split_1_rescoring.log"
+    f1.write_text("log1")
+    f2 = tmp_path / "lig_split_2_rescoring.log"
+    f2.write_text("log2")
+    (tmp_path / "other.log").write_text("x")
+
+    found = ocvina.get_rescore_log_paths(str(tmp_path))
+    assert set(found) == {str(f1), str(f2)}
+
+@pytest.mark.order(9)
+def test_read_rescoring_log(tmp_path):
+    """Parse affinity from a rescoring log file."""
+    log_file = tmp_path / "lig_split_1_rescoring.log"
+    log_file.write_text(
+        "Line1\nEstimated Free Energy of Binding    -7.23 (kcal/mol)\nEnd"
+    )
+    value = ocvina.read_rescoring_log(str(log_file))
+    assert value == -7.23
+
+@pytest.mark.order(10)
+def test_box_to_vina_minimal(tmp_path):
+    """Generate a Vina configuration from a small box file."""
+    box_file = tmp_path / "box.pdb"
+    conf_file = tmp_path / "conf.txt"
+    box_file.write_text(
+        "REMARK    CENTER (X Y Z)        1.000  2.000  3.000\n"
+        "REMARK    DIMENSIONS (X Y Z)    4.000  5.000  6.000\n"
+    )
+    rc = ocvina.box_to_vina(str(box_file), str(conf_file), "rec.pdbqt")
+    assert rc == ocerror.Error.ok() or rc == 0 # type: ignore
+    conf_lines = conf_file.read_text().splitlines()
+    assert conf_lines[0] == "receptor = rec.pdbqt"
+    assert "center_x = 1.0" in conf_lines
+    assert "size_z = 6.0" in conf_lines

@@ -3,6 +3,7 @@ import pytest
 from pathlib import Path
 
 import OCDocker.Receptor as ocr
+import OCDocker.Toolbox.Printing as ocprint
 
 @pytest.fixture
 def sample_receptor():
@@ -83,3 +84,17 @@ def test_get_descriptors(sample_receptor):
     expected_keys = descriptors.keys()
     for key in expected_keys:
         assert key in descriptors, f"Missing descriptor: {key}"
+
+@pytest.mark.order(4)
+def test_filter_sequence_warn(monkeypatch):
+    calls = []
+
+    def fake_warning(message: str, force: bool = False) -> None:
+        calls.append(message)
+
+    monkeypatch.setattr(ocprint, "print_warning", fake_warning)
+    result = ocr.__filterSequence("AXXTY")
+
+    assert result == "ATY"
+    assert len(calls) == 1
+    assert "X" not in result, "Filtered sequence should not contain 'X'"

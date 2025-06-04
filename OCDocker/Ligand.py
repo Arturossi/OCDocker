@@ -38,21 +38,22 @@ import OCDocker.Toolbox.Validation as ocvalidation
 ob_log_handler = openbabel.OBMessageHandler()
 ob_log_handler.SetOutputLevel(ocerror.Error.output_level)
 if ocerror.Error.output_level == ocerror.ReportLevel.NONE:
-    RDLogger.DisableLog('rdApp.*')
+    RDLogger.DisableLog("rdApp.*") # type: ignore
 
 # License
 ###############################################################################
 '''
 OCDocker
-Authors: Rossi, A.D.; Torres, P.H.M.;
-[The Federal University of Rio de Janeiro]
-Contact info:
+Authors: Rossi, A.D.; Torres, P.H.M.
+Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
-Av. Carlos Chagas Filho 373 - CCS - bloco G1-19,
-Cidade Universitária - Rio de Janeiro, RJ, CEP: 21941-902
-E-mail address: arturossi10@gmail.com
-This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
+
+Licensed under the Apache License, Version 2.0 (January 2004)
+See: http://www.apache.org/licenses/LICENSE-2.0
+
+Commercial use requires a separate license.  
+Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
 
 # Classes
@@ -148,7 +149,7 @@ class Ligand:
 
             # All attribute initializations
             for desc in Ligand.allDescriptors:
-                setattr(self, desc, f'{data[desc]}') # type: ignore
+                setattr(self, desc, f"{data[desc]}") # type: ignore
             #endregion
 
         else:
@@ -160,8 +161,8 @@ class Ligand:
 
             # Single attribute initializations
             for desc in Ligand.allDescriptors:
-                result = globals()[f'find{desc}'](self.molecule)
-                setattr(self, f'{desc}', result)
+                result = globals()[f"find{desc}"](self.molecule)
+                setattr(self, f"{desc}", result)
 
     ## Private ##
     def __safe_to_dict(self) -> Dict[str, Union[int, float]]:
@@ -375,20 +376,21 @@ class Ligand:
         '''
 
         # Get the MACCSKeys for the ligand object
-        ligandMACCSSKeys = MACCSkeys.GenMACCSKeys(self.molecule)
+        ligandMACCSSKeys = MACCSkeys.GenMACCSKeys(self.molecule) # type: ignore
+
         # Check if the type of the molecule is a Ligand
         if type(molecule) == Ligand:
             # If yes, get its MACCSKeys
-            targetMACCSSKeys = MACCSkeys.GenMACCSKeys(molecule)
+            targetMACCSSKeys = MACCSkeys.GenMACCSKeys(molecule.molecule) # type: ignore
         # Otherwise check if it is a Chem.rdchem.Mol object
         elif type(molecule) == Chem.rdchem.Mol:
             # If it is, get its smiles using the Ligand public function, get_smiles()
-            mol = loadMol(molecule, sanitize = sanitize)
-            targetMACCSSKeys = MACCSkeys.GenMACCSKeys(molecule)
+            targetMACCSSKeys = MACCSkeys.GenMACCSKeys(molecule) # type: ignore
         # If is neither both types above
         else:
             # Return an error
             return ocerror.Error.wrong_type(f"The provided variable is a '{type(molecule)}' and was expected a 'rdkit.Chem.rdchem.Mol' or 'ocl.Ligand'.") # type: ignore
+        
         # Check if the Fingerprints are the same using the Tanimoto similarity
         if DataStructs.FingerprintSimilarity(ligandMACCSSKeys, targetMACCSSKeys) == 1.0:
             # If they are the same, return True
@@ -490,7 +492,7 @@ class Ligand:
         '''
 
         # Check if the box file already exists
-        if os.path.isfile(savePath) and not overwrite:
+        if os.path.isfile(f"{savePath}/box0.pdb") and not overwrite:
             # If it exists and the overwrite flag is False, return an error
             return ocerror.Error.file_exists(f"The box file '{savePath}' already exists. If you want to overwrite it, set the 'overwrite' flag to True.") # type: ignore
             
@@ -557,7 +559,7 @@ class Ligand:
         else:
             # If the savePath does not exist, warn the user
             if not os.path.exists(savePath):
-                _ =  ocerror.Error.dir_does_not_exist(f"The savePath '{savePath}' does not exist. Creating it.", level = ocerror.ReportLevel.WARNING) # type: ignore
+                _ =  ocerror.Error.dir_not_exist(f"The savePath '{savePath}' does not exist. Creating it.", level = ocerror.ReportLevel.WARNING) # type: ignore
                 os.mkdir(savePath)
 
         # Write out the box file (following the one given in the DUD-E database)
@@ -646,13 +648,13 @@ def splitMolecules(molecule: str, outputDir: str = "", prefix: str = "ligand") -
 
     return ligand_files
 
-def multipleMoleculesSDF(molecule: rdkit.Chem.rdchem.Mol) -> List[Ligand]: # type: ignore
+def multipleMoleculesSDF(molecule: Union[str, rdkit.Chem.rdchem.Mol]) -> List[Ligand]: # type: ignore
     ''' Parse a .sdf or .mol2 file with multiple molecules returning a list of ligands.
 
     Parameters
     ----------
-    molecule : rdkit.Chem.rdchem.Mol
-        The molecule object.
+    molecule : str | rdkit.Chem.rdchem.Mol
+        Path to a molecule file or an RDKit molecule object
 
     Returns
     -------
@@ -663,7 +665,7 @@ def multipleMoleculesSDF(molecule: rdkit.Chem.rdchem.Mol) -> List[Ligand]: # typ
     # List to hold multiple Ligand objects
     ligands = []
     # Check if the path is a string (it is assumed that the provided path is already a sdf)
-    if type(molecule) == str:
+    if isinstance(molecule, str):
         # Check if file exists
         if os.path.isfile(molecule):
             # Check if the extension of the file is .sdf
@@ -680,9 +682,12 @@ def multipleMoleculesSDF(molecule: rdkit.Chem.rdchem.Mol) -> List[Ligand]: # typ
             else:
                 # This case the return code is suppressed because it is needed to return None in case of failure
                 _ = ocerror.Error.wrong_type(message=f"The molecule file MUST be the .sdf format!", level=ocerror.ReportLevel.WARNING) # type: ignore
+        elif isinstance(molecule, Chem.rdchem.Mol):
+            name = molecule.GetProp("_Name") if molecule.HasProp("_Name") else "ligand"
+            ligands.append(Ligand(molecule, name=name))
         else:
             # File does not exist
-            _ = ocerror.Error.file_not_exist(message=f"The file '{molecule}' does not exist!", level=ocerror.ReportLevel.WARNING) # type: ignore
+            _ = ocerror.Error.wrong_type(message=f"The molecule MUST be either a file path or rdkit.Chem.rdchem.Mol!", level=ocerror.ReportLevel.WARNING) # type: ignore
     else:
         # This case the return code is suppressed because it is needed to return None in case of failure
         _ = ocerror.Error.wrong_type(message=f"The molecule file path MUST be a string!", level=ocerror.ReportLevel.WARNING) # type: ignore
@@ -953,7 +958,7 @@ def __descriptor_function_factory(descriptor_name: str) -> Callable[[rdkit.Chem.
 
     # TODO: Check how to avoid this function to spam print the same error multiple times
 
-    def __compute_descriptor(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # Type: ignore 
+    def __compute_descriptor(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore 
         if molecule:
             if isinstance(molecule, rdkit.Chem.rdchem.Mol): # type: ignore
                 try:
@@ -1005,7 +1010,7 @@ def __descriptor_function_factory_class(descriptor_name: str) -> Callable[[rdkit
                     # Return the function
                     return descriptor_func(molecule)
                 except Exception as e:
-                    _ = ocerror.Error.unknown(f"Error while creating the functin in factory: {str(e)}") # type: ignore
+                    _ = ocerror.Error.unknown(f"Error while creating the function in factory: {str(e)}") # type: ignore
             else:
                 _ = ocerror.Error.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'") # type: ignore
         else:

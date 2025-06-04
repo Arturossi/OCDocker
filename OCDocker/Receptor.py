@@ -20,7 +20,10 @@ import os
 
 import numpy as np
 
-from Bio.PDB import MMCIFParser, PDBParser, PDBIO, SASA
+from Bio.PDB.MMCIFParser import MMCIFParser
+from Bio.PDB.PDBParser import PDBParser
+from Bio.PDB.PDBIO import PDBIO
+from Bio.PDB import SASA
 from Bio.PDB.DSSP import DSSP
 from Bio.SeqUtils import seq1
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
@@ -40,15 +43,16 @@ import OCDocker.Toolbox.Validation as ocvalidation
 ###############################################################################
 '''
 OCDocker
-Authors: Rossi, A.D.; Torres, P.H.M.;
-[The Federal University of Rio de Janeiro]
-Contact info:
+Authors: Rossi, A.D.; Torres, P.H.M.
+Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
-Av. Carlos Chagas Filho 373 - CCS - bloco G1-19,
-Cidade Universitária - Rio de Janeiro, RJ, CEP: 21941-902
-E-mail address: arturossi10@gmail.com
-This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
+
+Licensed under the Apache License, Version 2.0 (January 2004)
+See: http://www.apache.org/licenses/LICENSE-2.0
+
+Commercial use requires a separate license.  
+Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
 
 # Classes
@@ -241,7 +245,7 @@ class Receptor:
         # Set Name and Path
         properties["Name"] = self.name if self.name is not None else "-"
         properties["Path"] = self.path if self.path is not None else "-"
-        properties["mol2Path"] = self.path if self.path is not None else "-"
+        properties["mol2Path"] = self.mol2Path if self.mol2Path is not None else "-"
         # Combine both in one dict and return them
         return {**properties, **self.get_descriptors()}
 
@@ -369,10 +373,10 @@ class Receptor:
             except Exception as e:
                 return ocerror.Error.write_file(f"Problems while writing the file '{outputJson}' Error: {e}.") # type: ignore
         except Exception as e:
-            return ocerror.Error.unknown(f"Unknown error while converting the ligand {self.name} to json.\nError: {e}", ocerror.ReportLevel.ERROR) # type: ignore
+            return ocerror.Error.unknown(f"Unknown error while converting the receptor {self.name} to json.\nError: {e}", ocerror.ReportLevel.ERROR) # type: ignore
 
     def is_valid(self) -> bool:
-        '''Check if a Ligand object is valid.
+        '''Check if a Receptor object is valid.
 
         Parameters
         ----------
@@ -381,7 +385,7 @@ class Receptor:
         Returns
         -------
         bool
-            True if the Ligand object is valid, False otherwise.
+            True if the Receptor object is valid, False otherwise.
         '''
 
         #region if any attribute is None
@@ -512,10 +516,11 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
     for _, value in dsspData.property_dict.items():
         # Check if the relative ASA is valid and is above the cutoff
         if value[3] != "NA" and float(value[3]) >= cutoff:
+            aa_code = value[1].upper()
             # If so, check if the amino acid is one of the 20 standard ones
-            if value[1] in ["A", "R", "N", "D", "C", "Q", "E", "G", "H", "I", "L", "K", "M", "F", "P", "S", "T", "w", "Y", "V"]:
+            if aa_code in ["A", "R", "N", "D", "C", "Q", "E", "G", "H", "I", "L", "K", "M", "F", "P", "S", "T", "W", "Y", "V"]:
                 # Add 1 to its count
-                aas[value[1]] += 1
+                aas[aa_code] += 1
             # If not, add to an 'others' (X) position
             else:
                 # Add 1 to its count
@@ -611,8 +616,8 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
 
     Parameters
     ----------
-    structure : str or Bio.PDB.Structure.Structure
-        The structure to be loaded.
+    structure : str | os.PathLike | Bio.PDB.Structure.Structure
+        Path to the structure file or a Bio.PDB.Structure.Structure object.
     name : str, optional
         The name of the structure, by default "".
     computeSASA : bool, optional
@@ -631,8 +636,8 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
     '''
 
     ocprint.printv(f"Trying to load protein '{structure}'.")
-    # Check if the type of the variable structure is a string or a Bio.PDB.Structure.Structure
-    if type(structure) == Bio.PDB.Structure.Structure: #type: ignore
+    # Check if the variable is a Bio.PDB.Structure.Structure or a path-like object
+    if isinstance(structure, Bio.PDB.Structure.Structure): #type: ignore
         # Check if SASA should be computed
         if computeSASA:
             compute_sasa(structure)
@@ -640,17 +645,18 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
         if clean:
             # Clean the pdb file
             structure = renumber_pdb_residues(structure)
-        # Since is already a structure, assign it to the class
+        # Since it is already a structure, assign it to the class
         return structure, None
-    elif type(structure) == str:
-        if os.path.isfile(structure):
+    elif isinstance(structure, (str, os.PathLike)):
+        structure_path = os.fspath(structure)
+        if os.path.isfile(structure_path):
             # Check if the structure has no name
             if name == "":
                 # If its true, set its name as 'Generic structure'
                 name = "Generic structure"
             
             # Now we know that it is a file path, check which is its extension to use the correct function
-            extension = os.path.splitext(structure)[1]
+            extension = os.path.splitext(structure_path)[1]
 
             # Choose the parser based on extension
             if extension == ".pdb":
@@ -660,11 +666,13 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
             else:
                 # The file extension is not supported, print data
                 supportedExtensions = [".pdb", ".cif"]
-                ocprint.print_error(f"The receptor {structure} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supportedExtensions)}.")
+                ocprint.print_error(
+                    f"The receptor {structure_path} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supportedExtensions)}."
+                )
                 return "", None
 
             # Compute the SASA value of the structure
-            tmpStructure = parser.get_structure(name, structure)
+            tmpStructure = parser.get_structure(name, structure_path)
 
             # Check if the pdb file should be cleaned
             if clean:
@@ -674,18 +682,18 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
             # If there is a mol2 path and the file does not exist
             if mol2Path and (not os.path.isfile(mol2Path) or overwrite):
                 # Convert the molecule
-                _ = occonversion.convertMols(structure, mol2Path)
+                _ = occonversion.convertMols(structure_path, mol2Path)
 
             # Check if SASA should be computed
             if computeSASA:
                 compute_sasa(tmpStructure)
 
-            ocprint.print_success(f"Successfully loaded the molecule '{structure}'")
+            ocprint.print_success(f"Successfully loaded the molecule '{structure_path}'")
             # Return the structure using selected parser
-            return structure, tmpStructure
+            return structure_path, tmpStructure
         else:
             # File does not exist
-            _ = ocerror.Error.file_not_exist(message=f"The file '{structure}' does not exist!", level=ocerror.ReportLevel.ERROR) # type: ignore
+            _ = ocerror.Error.file_not_exist(message=f"The file '{structure_path}' does not exist!", level=ocerror.ReportLevel.ERROR) # type: ignore
             return "", None
     else:
         # The variable is not in a supported data format
@@ -927,7 +935,7 @@ def read_descriptors_from_json(path: str, returnData: bool = False) -> Union[Dic
         # Create the countAA variable (here np.NaN does have an exact meaning, 0 is a valid value)
         countAA = {
             "A": data["countA"] if data["countA"] != np.NaN else 0,
-            'r': data["countR"] if data["countR"] != np.NaN else 0,
+            "R": data["countR"] if data["countR"] != np.NaN else 0,
             "N": data["countN"] if data["countN"] != np.NaN else 0,
             "D": data["countD"] if data["countD"] != np.NaN else 0,
             "C": data["countC"] if data["countC"] != np.NaN else 0,
@@ -943,7 +951,7 @@ def read_descriptors_from_json(path: str, returnData: bool = False) -> Union[Dic
             "P": data["countP"] if data["countP"] != np.NaN else 0,
             "S": data["countS"] if data["countS"] != np.NaN else 0,
             "T": data["countT"] if data["countT"] != np.NaN else 0,
-            'w': data["countW"] if data["countW"] != np.NaN else 0,
+            "W": data["countW"] if data["countW"] != np.NaN else 0,
             "Y": data["countY"] if data["countY"] != np.NaN else 0,
             "V": data["countV"] if data["countV"] != np.NaN else 0
         }

@@ -40,15 +40,16 @@ ob_log_handler.SetOutputLevel(output_level.value)
 ###############################################################################
 '''
 OCDocker
-Authors: Rossi, A.D.; Torres, P.H.M.;
-[The Federal University of Rio de Janeiro]
-Contact info:
+Authors: Rossi, A.D.; Torres, P.H.M.
+Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
-Av. Carlos Chagas Filho 373 - CCS - bloco G1-19,
-Cidade Universitária - Rio de Janeiro, RJ, CEP: 21941-902
-E-mail address: arturossi10@gmail.com
-This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
+
+Licensed under the Apache License, Version 2.0 (January 2004)
+See: http://www.apache.org/licenses/LICENSE-2.0
+
+Commercial use requires a separate license.  
+Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
 
 # Classes
@@ -150,13 +151,13 @@ def convertMols(input_file: str, output_file: str, return_molecule: bool = False
     ocprint.printv(f"Converting '{input_file}' to '.{outExtension}'.")
 
     # Check if the input extension is valid
-    if type(inExtension) != str:
+    if not isinstance(inExtension, str):
         ocprint.print_error(f"Problems while reading the molecule from input file '{input_file}'.")
         # inExtension SHOULD be an int in this case
         return inExtension
 
     # Check if the output extension is valid
-    if type(outExtension) != str:
+    if not isinstance(outExtension, str):
         ocprint.print_error(f"Problems while pre-processing the molecule from output file '{output_file}'.")
         # outExtension SHOULD be an int in this case
         return outExtension
@@ -221,10 +222,19 @@ def split_and_convert(path: str, out_path: str, extension: str, overwrite: bool 
     # Finds the input extension
     extensionIn = ocvalidation.validate_obabel_extension(path)
 
+    # Finds the output extension using a dummy file name and the very same validation function to ensure validness
+    extensionOut = ocvalidation.validate_obabel_extension(f"dummy.{extension}")
+
     # If input extension is not valid
-    if type(extension) != str:
-        # Return the unsupported_extension
-        return ocerror.Error.unsupported_extension(f"Unsupported extension provided while spliting '{path}' file. Supported extensions are the one supported by OpenBabel.", ocerror.ReportLevel.ERROR) # type: ignore
+    if not isinstance(extensionIn, str):
+        return extensionIn
+
+    # If output extension is not valid
+    if not isinstance(extensionOut, str):
+        return extensionOut
+
+    # Use the validated extension
+    extension = extensionOut
 
     # For each molecule in input file
     for mol in pybel.readfile(extensionIn, path):

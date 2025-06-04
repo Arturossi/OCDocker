@@ -31,15 +31,16 @@ import OCDocker.OCScore.Analysis.Plotting as ocstatplot
 ###############################################################################
 '''
 OCDocker
-Authors: Rossi, A.D.; Torres, P.H.M.;
-[The Federal University of Rio de Janeiro]
-Contact info:
+Authors: Rossi, A.D.; Torres, P.H.M.
+Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
-Av. Carlos Chagas Filho 373 - CCS - bloco G1-19,
-Cidade Universitária - Rio de Janeiro, RJ, CEP: 21941-902
-E-mail address: arturossi10@gmail.com
-This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
+
+Licensed under the Apache License, Version 2.0 (January 2004)
+See: http://www.apache.org/licenses/LICENSE-2.0
+
+Commercial use requires a separate license.  
+Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
 
 # Classes
@@ -99,8 +100,19 @@ def run_statistical_tests(df: pd.DataFrame, n_trials: int, colour_mapping: dict[
     print("\nStatistical analysis complete. Results saved to 'csvs/' and 'plots/'.")
     plt.close('all')
 
-def load_pca_model(pickle_file: str):
-    ''' Load PCA model from disk. '''
+def load_pca_model(pickle_file: str) -> PCA:
+    ''' Load PCA model from disk.
+    
+    Parameters
+    ----------
+    pickle_file : str
+        Path to the PCA model pickle file.
+    Returns
+    -------
+    PCA
+        Fitted PCA model loaded from the pickle file.
+    '''
+
     with open(pickle_file, 'rb') as f:
         return pickle.load(f)
 
@@ -138,8 +150,7 @@ def run_pca_analysis(
     models_dir: str,
     output_dir: str,
     n_trials: int,
-    n_features: int = 20,
-    colour_mapping: Optional[dict] = None
+    n_features: int = 20
 ) -> None:
     '''
     Run PCA feature importance analysis for all methods in the DataFrame.
@@ -151,7 +162,7 @@ def run_pca_analysis(
     data_matrix : pd.DataFrame
         Original input data used to fit the PCA model (columns = features).
     models_dir : str
-        Directory where PCA models (*.pkl) are stored.
+        Directory where PCA models (.pkl) are stored.
     output_dir : str
         Where to save barplots.
     n_trials : int

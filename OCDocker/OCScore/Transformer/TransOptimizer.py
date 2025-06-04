@@ -31,6 +31,25 @@ from typing import Union
 
 import OCDocker.Toolbox.Printing as ocprint
 
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+Licensed under the Apache License, Version 2.0 (January 2004)
+See: http://www.apache.org/licenses/LICENSE-2.0
+
+Commercial use requires a separate license.  
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
+###############################################################################
+
 class CustomDataset(Dataset):
     """ Create a custom dataset for the PyTorch DataLoader. """
     def __init__(self, features: list, target: list) -> None:

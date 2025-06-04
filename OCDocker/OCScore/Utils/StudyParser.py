@@ -21,15 +21,16 @@ import OCDocker.Toolbox.Printing as ocprint
 ###############################################################################
 '''
 OCDocker
-Authors: Rossi, A.D.; Torres, P.H.M.;
-[The Federal University of Rio de Janeiro]
-Contact info:
+Authors: Rossi, A.D.; Torres, P.H.M.
+Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
-Av. Carlos Chagas Filho 373 - CCS - bloco G1-19,
-Cidade Universitária - Rio de Janeiro, RJ, CEP: 21941-902
-E-mail address: arturossi10@gmail.com
-This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
+
+Licensed under the Apache License, Version 2.0 (January 2004)
+See: http://www.apache.org/licenses/LICENSE-2.0
+
+Commercial use requires a separate license.  
+Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
 
 # Classes

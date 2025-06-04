@@ -83,8 +83,8 @@ if [ $? -ne 0 ]; then
 fi
 
 # Step 7: Create the environment from the YAML file
-echo "Creating the environment from the environment_11.yml file..."
-mamba env create -f environment_11.yml
+echo "Creating the environment from the environment.yml file..."
+mamba env create -f environment.yml
 if [ $? -ne 0 ]; then
     echo "Failed to create conda environment."
     exit 1

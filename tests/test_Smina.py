@@ -48,25 +48,6 @@ def smina_inputs():
     receptor = ocr.Receptor(structure=str(receptor_file), name="test_rec")
     ligand = ocl.Ligand(molecule=str(ligand_file), name="test_lig")
     
-    from pprint import pprint
-    pprint({
-        "config": str(config_file),
-        "box": str(box_file),
-        "pre_output_dir": pre_output_dir,
-        "receptor": receptor,
-        "receptor_file": str(receptor_file),
-        "receptor_path": str(prepared_receptor_path),
-        "ligand": ligand,
-        "ligand_file": str(ligand_file),
-        "ligand_path": str(prepared_ligand_path),
-        "converted_ligand_file": str(converted_ligand_file),
-        "prepared_ligand_path": str(prepared_ligand_path),
-        "prepared_receptor_path": str(prepared_receptor_path),
-        "output_dir": output_dir,
-        "output_file": str(output_file),
-        "smina_log": str(smina_log),
-        "smina_exec_log": str(smina_exec_log),
-    })
     return {
         "config": str(config_file),
         "box": str(box_file),

@@ -35,15 +35,16 @@ from OCDocker.Initialise import *
 ###############################################################################
 '''
 OCDocker
-Authors: Rossi, A.D.; Torres, P.H.M.;
-[The Federal University of Rio de Janeiro]
-Contact info:
+Authors: Rossi, A.D.; Torres, P.H.M.
+Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
-Av. Carlos Chagas Filho 373 - CCS - bloco G1-19,
-Cidade Universitária - Rio de Janeiro, RJ, CEP: 21941-902
-E-mail address: arturossi10@gmail.com
-This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
+
+Licensed under the Apache License, Version 2.0 (January 2004)
+See: http://www.apache.org/licenses/LICENSE-2.0
+
+Commercial use requires a separate license.  
+Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
 
 # Classes
@@ -74,8 +75,6 @@ def empty_docking_digest(digestPath: str, overwrite: bool = False, digestFormat 
 
     # Create the empty digest variable
     digest = {
-        "gnina_pose": [np.NaN],
-        "gnina_affinity": [np.NaN],
         "smina_pose": [np.NaN],
         "smina_affinity": [np.NaN], 
         "PLANTS_TOTAL_SCORE": [np.NaN],
@@ -92,7 +91,7 @@ def empty_docking_digest(digestPath: str, overwrite: bool = False, digestFormat 
     # Check if the digest format is not empty
     if digestFormat != "":
         # Check if the file does not exists or if the overwrite flag is true
-        if not os.path.isdir(digestPath) or overwrite:
+        if not os.path.isfile(digestPath) or overwrite:
             # Check if the digest extension is supported
             if ocvalidation.validate_digest_extension(digestPath, digestFormat):
                 # Write the digest file
@@ -291,7 +290,7 @@ def safe_remove_dir(dirname: str) -> int:
             return ocerror.Error.ok() # type: ignore
         else:
             # It exists
-            return ocerror.Error.dir_exists(message=f"The dir '{dirname}' does not exist!", level = ocerror.ReportLevel.WARNING) # type: ignore
+            return ocerror.Error.dir_not_exist(message=f"The dir '{dirname}' does not exist!", level = ocerror.ReportLevel.WARNING) # type: ignore
     except Exception as e:
         # Some error has occurred
         return ocerror.Error.remove_dir(message=f"Problem found while removing the dir '{dirname}': {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
