@@ -562,7 +562,7 @@ dependencies:
       - pyflakes==3.2.0
       - pyproject-hooks==1.2.0
       - python-graphviz==0.20.3
-      - readme-renderer==44.0
+      - readme-renderer
       - rfc3986==2.0.0
       - roman-numerals-py==3.1.0
       - secretstorage==3.3.3
@@ -579,7 +579,7 @@ dependencies:
       - sphinxcontrib-qthelp==2.0.0
       - sphinxcontrib-serializinghtml==2.0.0
       - tomli-w==1.2.0
-      - torchsummary==1.5.1
-      - torchviz==0.0.2
+      - torchsummary
+      - torchviz
       - twine==6.1.0
       - visualtorch==0.2.3
