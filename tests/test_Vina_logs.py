@@ -14,8 +14,8 @@ def vina_mod(monkeypatch, tmp_path):
     fake_init.clrs = {k: "" for k in ["r", "g", "y", "b", "p", "c", "n"]} # type: ignore
     fake_init.ocerror = ocerror # type: ignore
     fake_init.logdir = str(tmp_path) # type: ignore
-    fake_init.vina_scoring = "affinity" # type: ignore
-    fake_init.vina_scoring_functions = ["affinity"] # type: ignore
+    fake_init.vina_scoring = "vina" # type: ignore
+    fake_init.vina_scoring_functions = ["vina"] # type: ignore
     monkeypatch.setitem(sys.modules, "OCDocker.Initialise", fake_init)
 
     # Stub heavy modules required for import
@@ -79,7 +79,6 @@ def vina_mod(monkeypatch, tmp_path):
     spec.loader.exec_module(vina) # type: ignore
     monkeypatch.setitem(sys.modules, "OCDocker.Docking.Vina", vina)
     return vina
-
 
 def test_read_log(vina_mod, tmp_path):
     log = tmp_path / "vina.log"

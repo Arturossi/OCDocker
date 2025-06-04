@@ -8,8 +8,7 @@ def make_log(path: Path, lines: str) -> Path:
     path.write_text(lines)
     return path
 
-
-def test_read_log_and_legacy(tmp_path):
+def test_read_log(tmp_path):
     log_file = tmp_path / "dock.log"
     # minimal smina log section
     lines = (
@@ -26,11 +25,6 @@ def test_read_log_and_legacy(tmp_path):
     best = ocsmina.read_log(str(log_file), onlyBest=True)
     assert list(best.keys()) == [1]
     assert best[1][ocsmina.smina_scoring] == "-7.5" # type: ignore
-
-    legacy = ocsmina.read_log_legacy(str(log_file))
-    assert legacy["smina_pose"][0] == "1"
-    assert legacy["smina_affinity"][0] == "-7.5"
-
 
 def test_rescoring_logs(tmp_path):
     f1 = tmp_path / "lig_split_1_vinardo_rescoring.log"

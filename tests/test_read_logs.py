@@ -10,18 +10,18 @@ def docking_modules(monkeypatch):
     import OCDocker
     # stub packages requiring heavy deps
     numpy_stub = types.ModuleType('numpy')
-    numpy_stub.NaN = float('nan')
+    numpy_stub.NaN = float('nan') # type: ignore
     monkeypatch.setitem(sys.modules, 'numpy', numpy_stub)
     monkeypatch.setitem(sys.modules, 'pandas', types.ModuleType('pandas'))
 
     ligand_mod = types.ModuleType('OCDocker.Ligand')
     class Ligand: pass
-    ligand_mod.Ligand = Ligand
+    ligand_mod.Ligand = Ligand # type: ignore
     monkeypatch.setitem(sys.modules, 'OCDocker.Ligand', ligand_mod)
 
     receptor_mod = types.ModuleType('OCDocker.Receptor')
     class Receptor: pass
-    receptor_mod.Receptor = Receptor
+    receptor_mod.Receptor = Receptor # type: ignore
     monkeypatch.setitem(sys.modules, 'OCDocker.Receptor', receptor_mod)
 
     toolbox_pkg = types.ModuleType('OCDocker.Toolbox')
@@ -29,9 +29,9 @@ def docking_modules(monkeypatch):
     monkeypatch.setitem(sys.modules, 'OCDocker.Toolbox', toolbox_pkg)
 
     init_mod = types.ModuleType('OCDocker.Initialise')
-    init_mod.vina_scoring = 'vina'
-    init_mod.smina_scoring = 'vinardo'
-    init_mod.logdir = '/tmp'
+    init_mod.vina_scoring = 'vina' # type: ignore
+    init_mod.smina_scoring = 'vinardo' # type: ignore
+    init_mod.logdir = '/tmp' # type: ignore
     monkeypatch.setitem(sys.modules, 'OCDocker.Initialise', init_mod)
 
     for name in [
@@ -44,8 +44,8 @@ def docking_modules(monkeypatch):
         monkeypatch.setitem(sys.modules, name, types.ModuleType(name))
 
     printing_mod = types.ModuleType('OCDocker.Toolbox.Printing')
-    printing_mod.print_error = lambda *a, **k: None
-    printing_mod.print_error_log = lambda *a, **k: None
+    printing_mod.print_error = lambda *a, **k: None # type: ignore
+    printing_mod.print_error_log = lambda *a, **k: None # type: ignore
     monkeypatch.setitem(sys.modules, 'OCDocker.Toolbox.Printing', printing_mod)
 
     io_mod = types.ModuleType('OCDocker.Toolbox.IO')
@@ -53,17 +53,17 @@ def docking_modules(monkeypatch):
         with open(file_name, 'r', encoding=decode) as f:
             for line in reversed(f.read().splitlines()):
                 yield line
-    io_mod.lazyread_reverse_order_mmap = lazyread_reverse_order_mmap
+    io_mod.lazyread_reverse_order_mmap = lazyread_reverse_order_mmap # type: ignore
     monkeypatch.setitem(sys.modules, 'OCDocker.Toolbox.IO', io_mod)
 
     vina_path = Path(__file__).resolve().parents[1] / 'OCDocker' / 'Docking' / 'Vina.py'
     smina_path = Path(__file__).resolve().parents[1] / 'OCDocker' / 'Docking' / 'Smina.py'
-    spec_vina = importlib.util.spec_from_file_location('ocvina', vina_path)
-    ocvina = importlib.util.module_from_spec(spec_vina)
+    spec_vina = importlib.util.spec_from_file_location('ocvina', vina_path) # type: ignore
+    ocvina = importlib.util.module_from_spec(spec_vina) # type: ignore
     sys.modules['ocvina'] = ocvina
     spec_vina.loader.exec_module(ocvina)
-    spec_smina = importlib.util.spec_from_file_location('ocsmina', smina_path)
-    ocsmina = importlib.util.module_from_spec(spec_smina)
+    spec_smina = importlib.util.spec_from_file_location('ocsmina', smina_path) # type: ignore
+    ocsmina = importlib.util.module_from_spec(spec_smina) # type: ignore
     sys.modules['ocsmina'] = ocsmina
     spec_smina.loader.exec_module(ocsmina)
     yield ocvina, ocsmina
