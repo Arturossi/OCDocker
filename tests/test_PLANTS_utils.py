@@ -3,10 +3,12 @@
 import sys
 import types
 import importlib
+import importlib.util as util
 import csv
 from pathlib import Path
+import pytest
 
-def _setup_plants_stubs():
+def _load_plants(monkeypatch):
     root = importlib.import_module("OCDocker")
 
     class DummySeries(list):
@@ -41,8 +43,8 @@ def _setup_plants_stubs():
         return DummyDataFrame(rows)
 
     pd_stub = types.ModuleType("pandas")
-    pd_stub.read_csv = read_csv # type: ignore
-    sys.modules["pandas"] = pd_stub
+    pd_stub.read_csv = read_csv  # type: ignore
+    monkeypatch.setitem(sys.modules, "pandas", pd_stub)
 
     class ReportLevel:
         ERROR = 1
@@ -63,23 +65,23 @@ def _setup_plants_stubs():
         def ok():
             return 0
     init_mod = types.ModuleType("OCDocker.Initialise")
-    init_mod.ocerror = types.SimpleNamespace(Error=Error, ReportLevel=ReportLevel) # type: ignore
-    sys.modules["OCDocker.Initialise"] = init_mod
-    root.Initialise = init_mod # type: ignore
+    init_mod.ocerror = types.SimpleNamespace(Error=Error, ReportLevel=ReportLevel)  # type: ignore
+    monkeypatch.setitem(sys.modules, "OCDocker.Initialise", init_mod)
+    setattr(root, "Initialise", init_mod)  # type: ignore
 
     lig_mod = types.ModuleType("OCDocker.Ligand")
     class Ligand:
         pass
-    lig_mod.Ligand = Ligand # type: ignore
-    sys.modules["OCDocker.Ligand"] = lig_mod
-    root.Ligand = lig_mod # type: ignore
+    lig_mod.Ligand = Ligand  # type: ignore
+    monkeypatch.setitem(sys.modules, "OCDocker.Ligand", lig_mod)
+    setattr(root, "Ligand", lig_mod)  # type: ignore
 
     rec_mod = types.ModuleType("OCDocker.Receptor")
     class Receptor:
         pass
-    rec_mod.Receptor = Receptor # type: ignore
-    sys.modules["OCDocker.Receptor"] = rec_mod
-    root.Receptor = rec_mod # type: ignore
+    rec_mod.Receptor = Receptor  # type: ignore
+    monkeypatch.setitem(sys.modules, "OCDocker.Receptor", rec_mod)
+    setattr(root, "Receptor", rec_mod)  # type: ignore
 
     tb_pkg = types.ModuleType("OCDocker.Toolbox")
     tb_pkg.__path__ = [str(Path("OCDocker") / "Toolbox")]
@@ -89,15 +91,27 @@ def _setup_plants_stubs():
     for name in ["Conversion", "FilesFolders", "Running", "Validation", "Printing"]:
         mod = types.ModuleType(f"OCDocker.Toolbox.{name}")
         setattr(tb_pkg, name, mod)
-        sys.modules[f"OCDocker.Toolbox.{name}"] = mod
+        monkeypatch.setitem(sys.modules, f"OCDocker.Toolbox.{name}", mod)
     tb_pkg.Printing.printv = lambda *a, **k: None
     tb_pkg.Printing.print_error = lambda *a, **k: None
     tb_pkg.Printing.print_error_log = lambda *a, **k: None
 
-_setup_plants_stubs()
-import OCDocker.Docking.PLANTS as ocplants
+    root_dir = Path(__file__).resolve().parents[1] / "OCDocker"
+    spec = util.spec_from_file_location(
+        "OCDocker.Docking.PLANTS", root_dir / "Docking" / "PLANTS.py"
+    )
+    plants = util.module_from_spec(spec) # type: ignore
+    assert spec.loader is not None # type: ignore
+    spec.loader.exec_module(plants)  # type: ignore
+    monkeypatch.setitem(sys.modules, "OCDocker.Docking.PLANTS", plants)
+    return plants
 
-def test_get_binding_site(tmp_path):
+@pytest.fixture
+def ocplants(monkeypatch):
+    """Provide PLANTS module with heavy dependencies stubbed."""
+    return _load_plants(monkeypatch)
+
+def test_get_binding_site(ocplants, tmp_path):
     box = tmp_path / "box.pdb"
     header = "HEADER    CORNERS OF BOX      " + "".join(f"{v:8.3f}" for v in [0, 0, 0, 2, 4, 6]) + "\n"
     remark = "REMARK    CENTER (X Y Z)      " + "".join(f"{v:8.3f}" for v in [1, 2, 3]) + "\n"
@@ -107,8 +121,7 @@ def test_get_binding_site(tmp_path):
     assert center == (1.0, 2.0, 3.0)
     assert radius == 11.7
 
-
-def test_read_log(tmp_path):
+def test_read_log(ocplants, tmp_path):
     csv_file = tmp_path / "ranking.csv"
     with csv_file.open("w", newline="") as f:
         writer = csv.writer(f)
@@ -133,7 +146,7 @@ def test_read_log(tmp_path):
     assert set(best.keys()) == {1}
     assert best[1]["PLANTS_TOTAL_SCORE"] == [-10.0] # type: ignore
 
-def test_get_docked_poses_and_write_list(tmp_path):
+def test_get_docked_poses_and_write_list(ocplants, tmp_path):
     poses_dir = tmp_path / "run"
     poses_dir.mkdir()
     valid1 = poses_dir / "pose1.mol2"
