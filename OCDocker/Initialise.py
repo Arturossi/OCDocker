@@ -63,7 +63,7 @@ _description = tw.dedent("""\033[1;93m
     +-+-+-+-+-+-+-+-+-+- \033[1;96m┗━┛┗━╸╺┻━┛┗━┛┗━╸╹ ╹┗━╸╹┗╸ \033[1;93m-+-+-+-+-+-+-+-+-+-+
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 \033[1;0m
-      Copyright (C) 2022  Rossi, A.D; Torres, P.H.M.
+      Copyright (C) 2025  Rossi, A.D; Torres, P.H.M.
 \033[1;95m
                   [The Federal University of Rio de Janeiro]
 \033[1;0m
