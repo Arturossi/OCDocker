@@ -71,7 +71,15 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'sphinx_rtd_theme'
+#html_theme = 'sphinx_rtd_theme'
+html_theme = 'furo'
+
+if html_theme == 'furo':
+    html_theme_options = {
+        "navigation_with_keys": True,
+        "sidebar_hide_name": False,
+    }
+
 html_static_path = ['_static']
 
 # -- Options for todo extension ----------------------------------------------
