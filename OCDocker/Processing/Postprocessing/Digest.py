@@ -79,7 +79,7 @@ def __core_generate_digest(path: str, ligandDir: str, archive: str, overwrite: b
 
     # If is the index directory, ignore
     if ptn in ['index']:
-        return ocerror.Error.unnalowed_dir()
+        return ocerror.Error.unnalowed_dir() # type: ignore
 
     ligandDescriptorPath = f"{ligandDir}/ligand_descriptors.json"
 
@@ -100,9 +100,9 @@ def __core_generate_digest(path: str, ligandDir: str, archive: str, overwrite: b
     else:
         errMsg = f"There is no ligand descriptor json file for the protein in the path '{ligandDescriptorPath}'."
         ocprint.print_error_log(errMsg, f"{logdir}/{archive}_docking_digest_run_report_ERROR.log")
-        return ocerror.Error.receptor_or_ligand_descriptor_does_not_exist(errMsg, level = ocerror.ReportLevel.ERROR)
+        return ocerror.Error.receptor_or_ligand_descriptor_does_not_exist(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
 
-    return ocerror.Error.ok()
+    return ocerror.Error.ok() # type: ignore
 
 def __thread_generate_digest(arguments: list) -> int:
     '''Thread aid function to call __core_generate_digest.

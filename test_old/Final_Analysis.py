@@ -5,6 +5,8 @@ import seaborn as sns
 
 import optuna
 
+import pingouin as pg
+
 from sklearn.cluster import (
     KMeans,
     DBSCAN,
@@ -15,14 +17,23 @@ from sklearn.cluster import (
     OPTICS,
     Birch
 )
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.mixture import GaussianMixture
 from sklearn.metrics import mutual_info_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
-from scipy.stats import pearsonr, spearmanr, kendalltau, chi2_contingency
-from typing import Any
+from scipy.stats import (
+    pearsonr, 
+    spearmanr, 
+    kendalltau, 
+    chi2_contingency, 
+    probplot, 
+    shapiro, 
+    anderson, 
+    kruskal
+)
+from typing import Optional
 from urllib.parse import quote_plus
 
 import matplotlib.patheffects as path_effects
@@ -33,6 +44,7 @@ ip: str = "localhost"
 port: int = 3306
 base_path: str = "/data/hd8tb/OCDocker_data/ocdb"
 base_path: str = "/data/hd4tb/OCDocker/data/ocdb"
+method: str = "kmeans"
 
 storage: str = f"mysql+pymysql://ocdocker:{quote_plus('@Kp3sRv9t@')}@{ip}:{port}/optimization"
 df_path: str = f"{base_path}/OCDocker.csv.gz"
@@ -60,13 +72,40 @@ data = data.rename(columns={
     }
 )
 
-# Check for duplicates Feature_Masks
-repeated_feature_masks = data[data.duplicated(subset=['Feature_Mask'], keep=False)]
+# if user_attrs_random_seed is in the data, rename it to seed
+if 'user_attrs_random_seed' in data.columns:
+    data = data.rename(columns={'user_attrs_random_seed': 'seed'})
 
-# If there are repeated Feature_Masks
-if not repeated_feature_masks.empty:
-    # Warn the user
-    print('There are repeated Feature Masks in the data.')
+# if user_attrs_pr_auc is in the data, rename it to pr_auc
+if 'user_attrs_pr_auc' in data.columns:
+    data = data.rename(columns={'user_attrs_pr_auc': 'PR_AUC'})
+
+# if user_attrs_mae is in the data, rename it to mae
+if 'user_attrs_mae' in data.columns:
+    data = data.rename(columns={'user_attrs_mae': 'MAE'})
+
+# if user_attrs_log_loss is in the data, rename it to log_loss
+if 'user_attrs_log_loss' in data.columns:
+    data = data.rename(columns={'user_attrs_log_loss': 'log_loss'})
+
+# If there is Seed in the study name
+if 'Seed' in study_name:
+    # Check for duplicates seeds
+    repeated_seeds = data[data.duplicated(subset=['seed'], keep=False)]
+
+    # If there are repeated seeds
+    if not repeated_seeds.empty:
+        # Warn the user
+        print('There are repeated seeds in the data.')
+else:
+    # Check for duplicates Feature_Masks
+    repeated_feature_masks = data[data.duplicated(subset=['Feature_Mask'], keep=False)]
+
+    # If there are repeated Feature_Masks
+    if not repeated_feature_masks.empty:
+        # Warn the user
+        print('There are repeated Feature Masks in the data.')
+
 
 # Drop the columns datetime_start, datetime_complete, number, state, duration
 data = data.drop(columns=['datetime_start', 'datetime_complete', 'number', 'state', 'duration'])
@@ -90,12 +129,20 @@ for index, row in data.iterrows():
     elif features == '0' * len(features):
         # Highlight the row as 'all_0'
         data.at[index, 'highlight'] = 'all_0'
-    
+
 # Set the highlight in the score to 'best' for the best combined value (lowest)
 data.loc[data['score'] == data['score'].min(), 'highlight'] = 'best'
 
+# Define the feature names to be converted later
+features_names=["SMINA_VINA", "SMINA_SCORING_DKOES", "SMINA_VINARDO", "SMINA_OLD_SCORING_DKOES", "SMINA_FAST_DKOES", "SMINA_SCORING_AD4", "VINA_VINA", "VINA_VINARDO", "PLANTS_CHEMPLP", "PLANTS_PLP", "PLANTS_PLP95", "ODDT_RFSCORE_V1", "ODDT_RFSCORE_V2", "ODDT_RFSCORE_V3", "ODDT_PLECRF_P5_L1_S65536", "ODDT_NNSCORE"]
+
 # Select relevant features for clustering (AUC, RMSE and score)
-features = data[['AUC', 'RMSE', 'score']]
+if "Seed" in study_name:
+    features_fake = data[['AUC', 'RMSE', 'score', 'PR_AUC', "seed"]]
+else:
+    features_fake = data[['AUC', 'RMSE', 'score']]
+
+features = data[['AUC', 'RMSE']]
 
 # One-hot encode the first 16 characters of the Feature_Mask string
 one_hot_features = pd.DataFrame(
@@ -112,169 +159,420 @@ features = pd.concat([features, one_hot_features], axis=1)
 scaler = StandardScaler()
 normalized_features = scaler.fit_transform(features)
 
-# Define the feature names to be converted later
-features_names=["SMINA_VINA", "SMINA_SCORING_DKOES", "SMINA_VINARDO", "SMINA_OLD_SCORING_DKOES", "SMINA_FAST_DKOES", "SMINA_SCORING_AD4", "VINA_VINA", "VINA_VINARDO", "PLANTS_CHEMPLP", "PLANTS_PLP", "PLANTS_PLP95", "ODDT_RFSCORE_V1", "ODDT_RFSCORE_V2", "ODDT_RFSCORE_V3", "ODDT_PLECRF_P5_L1_S65536", "ODDT_NNSCORE"]
+# Select relevant features for clustering (AUC, RMSE and score)
+if "Seed" in study_name:
+    features_fake.columns = ['AUC', 'RMSE', 'score', 'PR_AUC', 'seed'] + features_names
+else:
+    features_fake.columns = ['AUC', 'RMSE', 'score'] + features_names
 
-# Rename the columns from feature_{i} to the actual feature names
-features.columns = ['AUC', 'RMSE', 'score'] + features_names
+features.columns = ['AUC', 'RMSE'] + features_names
 
+def plot_metrics_with_highlights_old(df: pd.DataFrame, plot_type: str = 'box', use_labels: bool = True, mark_seed_id: int = 0, add_metrics: list = []) -> None:
+    '''
+    Plots RMSE, AUC, and Score distributions using boxplots or violin plots,
+    with highlighted points for 'all_0' and 'all_1'. Adds subplot labels A, B, C.
+
+    Parameters:
+    ------------
+    df : pandas.DataFrame
+        Data containing columns ['RMSE', 'AUC', 'score', 'highlight'].
+    plot_type : str
+        Type of plot to use: 'box' or 'violin'. Default is 'box'.
+    use_labels : bool
+        Whether to add subplot labels A, B, C. Default is True.
+    mark_seed_id : int, optional
+        Seed to mark in the plot. Default is 0 (which marks no seed).
+    add_metrics : list, optional
+        Additional metrics to add to the plot. Default is an empty list.
+    '''
+
+    if plot_type not in ['box', 'violin']:
+        raise ValueError("plot_type must be either 'box' or 'violin'")
+
+    # Count the number of additional metrics
+    num_additional_metrics = len(add_metrics)
+
+    # Divide it by 3 and apply ceil to determine the number of rows needed
+    if num_additional_metrics > 0:
+        num_rows = (num_additional_metrics) // 3
+        # Set the extra labels for additional metrics following the alphabet letter sequence
+        more_labels = [chr(68 + i) for i in range(num_additional_metrics)]
+    else:
+        num_rows = 0
+        more_labels = []
+    
+    metrics = ['RMSE', 'AUC', 'score'] + add_metrics
+    labels = ['A', 'B', 'C'] + more_labels
+
+    fig, axes = plt.subplots(1 + num_rows, 3, figsize=(20, 6 + 4 * num_rows), sharey=True)
+
+    for ax, metric, label in zip(axes, metrics, labels):
+        if plot_type == 'box':
+            sns.boxplot(y=df[metric], ax=ax, color='lightgray')
+        elif plot_type == 'violin':
+            sns.violinplot(y=df[metric], ax=ax, color='lightgray', inner='box')
+
+        # Highlight 'all_0'
+        sns.stripplot(
+            y=df[df['highlight'] == 'all_0'][metric],
+            ax=ax,
+            color='red',
+            size=8,
+            marker='X',
+            label='all_0'
+        )
+
+        # Highlight 'all_1'
+        sns.stripplot(
+            y=df[df['highlight'] == 'all_1'][metric],
+            ax=ax,
+            color='blue',
+            size=8,
+            marker='D',
+            label='all_1'
+        )
+
+        # Highlight 'best'
+        sns.stripplot(
+            y=df[df['highlight'] == 'best'][metric],
+            ax=ax,
+            color='green',
+            size=8,
+            marker='^',
+            label='best'
+        )
+
+        if mark_seed_id > 0:
+            # Highlight the specific seed ID
+            seed_row = df[df['seed'] == mark_seed_id]
+            if not seed_row.empty:
+                sns.stripplot(
+                    y=seed_row[metric],
+                    ax=ax,
+                    color='orange',
+                    size=10,
+                    marker='o',
+                    label=f'Seed {mark_seed_id}'
+                )
+
+        plt.rcParams.update({'font.size': 14})
+        ax.set_title(f'Distribuição do {metric}')
+        ax.legend()
+
+        if use_labels:
+            # Add label A, B, C
+            ax.text(
+                -0.1, 1.02, label, transform=ax.transAxes,
+                fontsize=16, fontweight='bold', va='bottom', ha='left'
+            )
+
+    plt.tight_layout()
+    plt.savefig('metrics_boxplots.png', bbox_inches='tight')
+
+def plot_metrics_with_highlights(df: pd.DataFrame, plot_type: str = 'box', use_labels: bool = True, mark_seed_id: int = 0, add_metrics: list = [], columns: int = 3) -> None:
+    '''
+    Plots RMSE, AUC, and Score distributions using boxplots or violin plots,
+    with highlighted points for 'all_0', 'all_1', and 'best'. Adds subplot labels A, B, C.
+    Additionally, you can highlight a specific seed.
+
+    Parameters:
+    ------------
+    df : pandas.DataFrame
+        Data containing columns ['RMSE', 'AUC', 'score', 'highlight', 'seed'].
+    plot_type : str
+        Type of plot to use: 'box' or 'violin'. Default is 'box'.
+    use_labels : bool
+        Whether to add subplot labels A, B, C. Default is True.
+    mark_seed_id : int, optional
+        Seed to highlight in the plot. Default is 0 (no seed marked).
+    add_metrics : list, optional
+        Additional metrics to add to the plot. Default is an empty list.
+    columns : int, optional
+        Number of columns for the subplots. Default is 3.
+    '''
+
+    if plot_type not in ['box', 'violin']:
+        raise ValueError("plot_type must be either 'box' or 'violin'")
+
+    # Count the number of additional metrics
+    num_additional_metrics = len(add_metrics)
+
+    # Divide by columns and apply ceil to determine the number of rows needed
+    num_rows = (num_additional_metrics + columns - 1) // columns  # Adjust rows calculation for better placement
+    more_labels = [chr(68 + i) for i in range(num_additional_metrics)] if num_additional_metrics > 0 else []
+
+    metrics = ['RMSE', 'AUC', 'score'] + add_metrics
+    labels = ['A', 'B', 'C'] + more_labels
+
+    fig, axes = plt.subplots(1 + num_rows, columns, figsize=(7 * columns, 6 + 4 * num_rows))
+
+    # Flatten axes array to iterate over all subplots
+    axes = axes.flat
+
+    for ax, metric, label in zip(axes, metrics, labels):
+        if plot_type == 'box':
+            sns.boxplot(y=df[metric], ax=ax, color='lightgray')
+        elif plot_type == 'violin':
+            sns.violinplot(y=df[metric], ax=ax, color='lightgray', inner='box')
+
+        # Highlight 'all_0'
+        sns.stripplot(
+            y=df[df['highlight'] == 'all_0'][metric],
+            ax=ax,
+            color='red',
+            size=8,
+            marker='X',
+            label='all_0'
+        )
+
+        # Highlight 'all_1'
+        sns.stripplot(
+            y=df[df['highlight'] == 'all_1'][metric],
+            ax=ax,
+            color='blue',
+            size=8,
+            marker='D',
+            label='all_1'
+        )
+
+        # Highlight 'best'
+        sns.stripplot(
+            y=df[df['highlight'] == 'best'][metric],
+            ax=ax,
+            color='green',
+            size=8,
+            marker='^',
+            label='best'
+        )
+
+        # Highlight specific seed if provided
+        if mark_seed_id > 0:
+            seed_row = df[df['seed'] == mark_seed_id]
+            if not seed_row.empty:
+                sns.stripplot(
+                    y=seed_row[metric],
+                    ax=ax,
+                    color='orange',
+                    size=10,
+                    marker='o',
+                    label=f'Seed {mark_seed_id}'
+                )
+
+        # Adjusting axis titles and labels
+        ax.set_title(f'Distribuição do {metric}')
+        ax.legend()
+
+        # Add subplot labels A, B, C, etc.
+        if use_labels:
+            ax.text(
+                -0.1, 1.02, label, transform=ax.transAxes,
+                fontsize=16, fontweight='bold', va='bottom', ha='left'
+            )
+
+    plt.tight_layout()
+    plt.savefig('metrics_boxplots.png', bbox_inches='tight')
+    plt.close()
+
+if "Seed" in study_name:
+    plot_metrics_with_highlights(data, plot_type='violin', use_labels=True, mark_seed_id=42, add_metrics=['PR_AUC', 'MAE', 'log_loss'], columns = 2)
+else:
+    plot_metrics_with_highlights(data, plot_type='violin', use_labels=True, columns = 2)
 
 # Helper functions
-def compute_correlations(data: pd.DataFrame, correlation_types: list) -> dict:
-    '''Compute specified correlations between 'AUC' and 'RMSE'.
-
-    Parameters
-    ----------
-    data : pd.DataFrame
-        Data containing the 'AUC' and 'RMSE' columns.
-    correlation_types : list
-        List of correlation types to compute.
+def compute_correlations(
+    data: pd.DataFrame,
+    correlation_types: list,
+    x_var: str,
+    y_var: str
+) -> dict:
+    """
+    Compute specified correlations between X and Y variables.
 
     Returns
     -------
     dict
-        A dictionary with the computed correlations and p-values.
-    '''
-
+        Dictionary with correlations and p-values.
+    """
     correlation_dict = {corr_type: {} for corr_type in correlation_types}
 
+    x = data[x_var]
+    y = data[y_var]
+
     if 'Pearson' in correlation_types:
-        correlation_dict['Pearson']['correlation'], correlation_dict['Pearson']['p_value'] = pearsonr(data['AUC'], data['RMSE'])
+        correlation_dict['Pearson']['correlation'], correlation_dict['Pearson']['p_value'] = pearsonr(x, y)
+
     if 'Spearman' in correlation_types:
-        correlation_dict['Spearman']['correlation'], correlation_dict['Spearman']['p_value'] = spearmanr(data['AUC'], data['RMSE'])
+        correlation_dict['Spearman']['correlation'], correlation_dict['Spearman']['p_value'] = spearmanr(x, y)
+
     if 'Kendall' in correlation_types:
-        correlation_dict['Kendall']['correlation'], correlation_dict['Kendall']['p_value'] = kendalltau(data['AUC'], data['RMSE'])
+        correlation_dict['Kendall']['correlation'], correlation_dict['Kendall']['p_value'] = kendalltau(x, y)
+
     if 'Distance' in correlation_types:
-        correlation_dict['Distance']['correlation'] = dcor.distance_correlation(data['AUC'], data['RMSE'])
-        correlation_dict['Distance']['p_value'] = None  # Distance correlation doesn't have a p-value
+        correlation_dict['Distance']['correlation'] = dcor.distance_correlation(x, y)
+        correlation_dict['Distance']['p_value'] = None
+
     if 'MutualInfo' in correlation_types:
-        correlation_dict['MutualInfo']['correlation'] = mutual_info_score(data['AUC'], data['RMSE'])
-        correlation_dict['MutualInfo']['p_value'] = None  # Mutual information doesn't have a p-value
+        correlation_dict['MutualInfo']['correlation'] = mutual_info_score(x, y)
+        correlation_dict['MutualInfo']['p_value'] = None
 
     return correlation_dict
 
-def create_joint_grid(data: pd.DataFrame, title: str, correlation_dict: dict, correlation_types: list) -> sns.JointGrid:
-    '''Create a JointGrid plot with the specified title and correlation values.
+def create_joint_grid(
+    data: pd.DataFrame,
+    title: str,
+    correlation_dict: dict,
+    correlation_types: list,
+    x_var: str,
+    y_var: str,
+    alpha: float = 0.8,
+    add_all_markers: bool = True
+) -> sns.JointGrid:
+    """
+    Create a JointGrid plot with KDE marginals and scatterplot clusters.
 
-    Parameters
-    ----------
-    data : pd.DataFrame
-        Data containing the 'AUC', 'RMSE', 'cluster', and 'highlight' columns.
-    title : str
-        The title of the plot.
-    correlation_dict : dict
-        A dictionary containing the computed correlations and p-values.
-    correlation_types : list
-        List of correlation types to display in the plot.
-    
     Returns
     -------
     sns.JointGrid
-        A JointGrid object with the created plot.
-    '''
+        The JointGrid object.
+    """
 
-    palette = sns.color_palette('viridis', as_cmap=False, n_colors=len(data['cluster'].unique()))
-    g = sns.JointGrid(data=data, x="AUC", y="RMSE", height=10)  # Increase plot size
+    palette = sns.color_palette('viridis', n_colors=data['cluster'].nunique())
+    g = sns.JointGrid(data=data, x=x_var, y=y_var, height=10)
 
-    sns.scatterplot(x='AUC', y='RMSE', hue='cluster', data=data, palette=palette,
-                    edgecolor='black', s=20, alpha=0.5, ax=g.ax_joint)
+    sns.scatterplot(
+        data=data, x=x_var, y=y_var, hue='cluster',
+        palette=palette, edgecolor='black', s=20, alpha=0.5, ax=g.ax_joint
+    )
 
-    markers = {'all_1': 'D', 'all_0': 's', 'best': '^'}
-    sizes = {'all_1': 100, 'all_0': 100, 'best': 100}
+    if add_all_markers == True:
+        markers = {'all_1': 'D', 'all_0': 's', 'best': '^'}
+        sizes = {'all_1': 100, 'all_0': 100, 'best': 100}
+    else: 
+        markers = {'best': '^'}
+        sizes = {'best': 100}
 
-    for highlight, marker in markers.items():
-        highlighted_data = data[data['highlight'] == highlight]
-        for cluster in highlighted_data['cluster'].unique():
-            cluster_data = highlighted_data[highlighted_data['cluster'] == cluster]
-            sns.scatterplot(x='AUC', y='RMSE', data=cluster_data, color=palette[cluster],
-                            edgecolor='black', s=sizes[highlight], marker=marker,
-                            ax=g.ax_joint, legend=False)
+    for label, marker in markers.items():
+        subset = data[data['highlight'] == label]
+        for cluster in subset['cluster'].unique():
+            cluster_data = subset[subset['cluster'] == cluster]
+            sns.scatterplot(
+                data=cluster_data, x=x_var, y=y_var, color=palette[cluster],
+                edgecolor='black', s=sizes[label], marker=marker, ax=g.ax_joint, legend=False
+            )
 
-    for highlight, marker in markers.items():
-        g.ax_joint.scatter([], [], c='k', marker=marker, label=highlight, s=sizes[highlight])
+    # Add empty markers for legend
+    for label, marker in markers.items():
+        g.ax_joint.scatter([], [], c='k', marker=marker, label=label, s=sizes[label])
 
     g.ax_joint.legend(loc='best')
 
+    # KDE Marginals
     for idx, cluster in enumerate(sorted(data['cluster'].unique())):
-        sns.kdeplot(data=data[data['cluster'] == cluster]['AUC'], ax=g.ax_marg_x,
-                    color=palette[idx], fill=True)
-        sns.kdeplot(y=data[data['cluster'] == cluster]['RMSE'], ax=g.ax_marg_y,
-                    color=palette[idx], fill=True)
+        sns.kdeplot(
+            data=data[data['cluster'] == cluster][x_var], ax=g.ax_marg_x,
+            color=palette[idx], fill=True
+        )
+        sns.kdeplot(
+            y=data[data['cluster'] == cluster][y_var], ax=g.ax_marg_y,
+            color=palette[idx], fill=True
+        )
 
-    sns.regplot(x='AUC', y='RMSE', data=data, scatter=False, color='cyan', ax=g.ax_joint)
+    # Regression line
+    sns.regplot(data=data, x=x_var, y=y_var, scatter=False, color='cyan', ax=g.ax_joint)
 
+    # Correlation Text
     correlation_text = "\n".join(
-        [f"{corr_type} Correlation: {round(correlation_dict[corr_type]['correlation'], 3)}, "
-         f"p-value: {round(correlation_dict[corr_type]['p_value'], 3)}"
-         for corr_type in correlation_types]
+        [f"{c}: {correlation_dict[c]['correlation']:.3g}"
+         + (f", p={correlation_dict[c]['p_value']:.3g}" if correlation_dict[c]['p_value'] is not None else "")
+         for c in correlation_types]
     )
 
-    g.figure.set_size_inches(12, 10)  # Enlarged figure
-    g.figure.subplots_adjust(bottom=0.17, top=0.92)  # Adjusted top for reduced title space
+    g.figure.set_size_inches(12, 10)
+    g.figure.subplots_adjust(bottom=0.17, top=0.92)
 
-    g.figure.text(0.5, 0.07, correlation_text, ha='center', va='center', fontsize=12,
-                  weight='bold', wrap=True, bbox=dict(facecolor='white', alpha=0.8, edgecolor='black', pad=5))
+    g.figure.text(
+        0.5, 0.07, correlation_text,
+        ha='center', va='center', fontsize=12,
+        weight='bold',
+        bbox=dict(facecolor='white', alpha=alpha, edgecolor='black', pad=5)
+    )
 
     g.figure.suptitle(title, fontsize=18, weight='bold')
+
+    g.ax_joint.set_xlabel(x_var, fontsize=14)
+    g.ax_joint.set_ylabel(y_var, fontsize=14)
+    g.ax_joint.tick_params(axis='both', labelsize=12)
+    g.ax_marg_x.tick_params(axis='x', labelsize=12)
+    g.ax_marg_y.tick_params(axis='y', labelsize=12)
+
     plt.savefig(f'{title}.png', bbox_inches='tight')
+    plt.close()
+
     return g
-
 # Elbow Method
-def run_elbow(normalized_features: np.ndarray, max_clusters: int = 15, plot: bool = True) -> list:
-    ''' Run the Elbow Method to determine the optimal number of clusters for K-Means Clustering.
+def run_elbow(
+    data: pd.DataFrame,
+    normalized_features: np.ndarray,
+    max_clusters: int = 15,
+    plot: bool = True,
+    stacked: bool = False,
+    use_labels: bool = True,
+    plot_labels: bool = False
+) -> list:
     
-    Parameters
-    ----------
-    normalized_features : np.array
-        The normalized features to be used for clustering
-    max_clusters : int
-        The maximum number of clusters to test
-    plot : bool
-        Whether to plot the Elbow Method graph or not
-
-    Returns
-    -------
-    list
-        A list of the Within-Cluster Sum of Squares (WCSS) for each number of clusters.
-    '''
-
     wcss = []
+    subplot_labels = ['A', 'B']
+
     for i in range(1, max_clusters + 1):
         kmeans = KMeans(n_clusters=i, random_state=42, n_init='auto')
         kmeans.fit(normalized_features)
         wcss.append(kmeans.inertia_)
 
     if plot:
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 12))
+        fig, axes = plt.subplots(2, 1, figsize=(10, 12)) if stacked else plt.subplots(1, 2, figsize=(16, 6))
+        ax1, ax2 = axes
 
-        # Plot WCSS values on the first plot
+        # Plot WCSS
         ax1.plot(range(1, max_clusters + 1), wcss, marker='o', label='WCSS')
-        for i, value in enumerate(wcss):
-            ax1.text(i + 1, value, f"{value:.2f}", ha='center', va='bottom')
+        if plot_labels:
+            for i, value in enumerate(wcss):
+                ax1.text(i + 1, value, f"{value:.2f}", ha='center', va='bottom', fontsize=8)
         ax1.set_title('WCSS for Each Number of Clusters')
         ax1.set_xlabel('Number of Clusters')
         ax1.set_ylabel('WCSS')
+        ax1.set_xticks(range(1, max_clusters + 1))
         ax1.grid(True)
         ax1.legend()
 
-        # Calculate and plot absolute WCSS differences on the second plot
+        # Add subplot label 'A'
+        if use_labels:
+            ax1.text(-0.1, 1.05, subplot_labels[0], transform=ax1.transAxes,
+                     fontsize=16, fontweight='bold', va='top', ha='right')
+
+        # Plot absolute WCSS differences
         wcss_diff = np.abs(np.diff(wcss))
-        ax2.plot(range(2, max_clusters + 1), wcss_diff, marker='x', linestyle='--', color='r', label='Absolute WCSS Difference')
-        for i, value in enumerate(wcss_diff):
-            ax2.text(i + 2, value, f"{value:.2f}", ha='center', va='bottom')
+        x_pos = np.arange(2, max_clusters + 1)
+
+        ax2.plot(x_pos, wcss_diff, marker='x', linestyle='--', color='r', label='Absolute WCSS Difference')
+        if plot_labels:
+            for i, value in enumerate(wcss_diff):
+                ax2.text(x_pos[i], value, f"{value:.2f}", ha='center', va='bottom', fontsize=8)
+
         ax2.set_title('Absolute Difference Between Consecutive WCSS Values')
-        ax2.set_xlabel('Number of Clusters (Interval)')
+        ax2.set_xlabel('Number of Clusters')
         ax2.set_ylabel('WCSS Difference')
         ax2.grid(True)
         ax2.legend()
 
-        # Set custom x-axis labels for the lower plot
-        interval_labels = [f"{i} to {i+1}" for i in range(1, max_clusters)]
-        ax2.set_xticks(range(2, max_clusters + 1))
-        ax2.set_xticklabels(interval_labels, rotation=45)
+        ax2.set_xticks(x_pos)
+        ax2.set_xticklabels([str(i) for i in x_pos])
 
-        # Adjust y-axis to fit the differences
         ax2.set_ylim(0, max(wcss_diff) + 0.1 * max(wcss_diff))
+
+        # Add subplot label 'B'
+        if use_labels:
+            ax2.text(-0.1, 1.05, subplot_labels[1], transform=ax2.transAxes,
+                     fontsize=16, fontweight='bold', va='top', ha='right')
 
         plt.tight_layout()
         plt.savefig('Elbow.png')
@@ -283,7 +581,7 @@ def run_elbow(normalized_features: np.ndarray, max_clusters: int = 15, plot: boo
     return wcss
 
 # K-Means Clustering
-def run_kmeans(normalized_features: np.ndarray, optimal_clusters: int = 4, 
+def run_kmeans2(normalized_features: np.ndarray, optimal_clusters: int = 4, 
                correlation_types: list = ['Pearson', 'Spearman', 'Kendall']) -> dict:
     '''Run K-Means Clustering with the optimal number of clusters and plot the results.
     
@@ -306,6 +604,58 @@ def run_kmeans(normalized_features: np.ndarray, optimal_clusters: int = 4,
     data['cluster'] = kmeans.fit_predict(normalized_features)
     correlation_dict = compute_correlations(data, correlation_types)
     create_joint_grid(data, 'K-Means Clustering', correlation_dict, correlation_types)
+    return correlation_dict
+
+def run_kmeans(
+    data: pd.DataFrame,
+    normalized_features: np.ndarray,
+    optimal_clusters: int = 3,
+    correlation_types: Optional[list] = None,
+    x_var: str = 'AUC',
+    y_var: str = 'RMSE',
+    alpha: float = 0.4,
+    add_all_markers: bool = True
+) -> dict:
+    """
+    Run K-Means Clustering with the optimal number of clusters and plot the results.
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Data containing the variables for plotting and highlight.
+    normalized_features : np.ndarray
+        Normalized features for clustering.
+    optimal_clusters : int
+        Number of clusters.
+    correlation_types : list, optional
+        Correlations to compute. Default is ['Pearson', 'Spearman', 'Kendall'].
+    x_var : str
+        Variable for the X-axis. Default is 'AUC'.
+    y_var : str
+        Variable for the Y-axis. Default is 'RMSE'.
+    alpha : float
+        Transparency level for the plot. Default is 0.4.
+    add_all_markers : bool
+        Whether to add markers for 'all_0', 'all_1', and 'best' highlights. Default is True.
+
+    Returns
+    -------
+    dict
+        Dictionary with correlations and p-values.
+    """
+
+    if correlation_types is None:
+        correlation_types = ['Pearson', 'Spearman', 'Kendall']
+
+    assert x_var in data.columns and y_var in data.columns, \
+        f"Columns '{x_var}' and '{y_var}' must be present in the data."
+
+    kmeans = KMeans(n_clusters=optimal_clusters, random_state=42, n_init='auto')
+    data['cluster'] = kmeans.fit_predict(normalized_features)
+
+    correlation_dict = compute_correlations(data, correlation_types, x_var, y_var)
+    create_joint_grid(data, 'K-Means Clustering', correlation_dict, correlation_types, x_var, y_var, alpha=alpha, add_all_markers=add_all_markers)
+
     return correlation_dict
 
 # DBSCAN Clustering
@@ -660,10 +1010,10 @@ def plot_feature_mask_correlation_heatmap(features: pd.DataFrame,
         feature_cols.remove('score')
 
     # Set x-axis labels if provided, otherwise use feature names
-    if features_names:
-        if len(features_names) != (len(feature_cols) - 2):
-            raise ValueError("The length of features_names must match the number of features.")
-        features.columns = ['RMSE', 'AUC'] + features_names
+    #if features_names:
+    #    if len(features_names) != (len(feature_cols) - 2):
+    #        raise ValueError("The length of features_names must match the number of features.")
+    #    features.columns = ['RMSE', 'AUC'] + features_names
 
     for corr_type in correlation_types:
         # Compute correlation matrix based on the type
@@ -705,70 +1055,263 @@ def plot_feature_mask_correlation_heatmap(features: pd.DataFrame,
 
 # Chi-Square Analysis
 
-def chi_square_analysis(features: pd.DataFrame, 
-                        metric: str = 'AUC', 
-                        feature_bits: list = None, 
-                        split: str = 'binary') -> pd.DataFrame:
-    '''
-    Perform chi-square tests for independence between feature mask bits 
-    and a discretized performance metric (binary or ternary).
+def show_discretization_categories(data: pd.DataFrame) -> None:
+    """
+    Display and plot the discretization of AUC and RMSE 
+    into binary, ternary, and quaternary categories in a single image.
+    """
+
+    metrics = ['AUC', 'RMSE']
+    splits = ['binary', 'ternary', 'quaternary']
+    panel_labels = ['A', 'B', 'C', 'D', 'E', 'F']
+
+    fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+    axes = axes.flatten()
+
+    for row_idx, metric in enumerate(metrics):
+        for col_idx, split in enumerate(splits):
+            idx = row_idx * 3 + col_idx
+            ax = axes[idx]
+
+            # Plot
+            if split == 'binary':
+                median = data[metric].median()
+                data['binary'] = np.where(data[metric] > median, 'high', 'low')
+                sns.histplot(data, x=metric, hue='binary', kde=True, multiple="stack",
+                             palette='Set2', ax=ax)
+                ax.axvline(median, color='red', linestyle='--', label=f'Median: {median:.3f}')
+                ax.set_title(f'{metric} - Binary')
+                ax.legend()
+
+                print(f"\n--- Binary Split {metric} ---")
+                print(f"Median: {median}")
+                print(data['binary'].value_counts())
+
+            elif split == 'ternary':
+                q1 = data[metric].quantile(0.33)
+                q2 = data[metric].quantile(0.66)
+                data['ternary'] = pd.cut(
+                    data[metric],
+                    bins=[-np.inf, q1, q2, np.inf],
+                    labels=['low', 'medium', 'high']
+                )
+                sns.histplot(data, x=metric, hue='ternary', kde=True, multiple="stack",
+                             palette='Set3', ax=ax)
+                ax.axvline(q1, color='red', linestyle='--', label=f'33%: {q1:.3f}')
+                ax.axvline(q2, color='blue', linestyle='--', label=f'66%: {q2:.3f}')
+                ax.set_title(f'{metric} - Ternary')
+                ax.legend()
+
+                print(f"\n--- Ternary Split {metric}  ---")
+                print(f"Quantiles: 33%={q1}, 66%={q2}")
+                print(data['ternary'].value_counts())
+
+            elif split == 'quaternary':
+                q = data[metric].quantile([0.25, 0.5, 0.75])
+                data['quaternary'] = pd.cut(
+                    data[metric],
+                    bins=[-np.inf, q[0.25], q[0.5], q[0.75], np.inf],
+                    labels=['very low', 'low', 'high', 'very high']
+                )
+                sns.histplot(data, x=metric, hue='quaternary', kde=True, multiple="stack",
+                             palette='tab10', ax=ax)
+                ax.axvline(q[0.25], color='red', linestyle='--', label=f'25%: {q[0.25]:.3f}')
+                ax.axvline(q[0.5], color='blue', linestyle='--', label=f'50%: {q[0.5]:.3f}')
+                ax.axvline(q[0.75], color='green', linestyle='--', label=f'75%: {q[0.75]:.3f}')
+                ax.set_title(f'{metric} - Quaternary')
+                ax.legend()
+
+                print(f"\n--- Quaternary Split {metric} ---")
+                print(f"Quantiles: 25%={q[0.25]}, 50%={q[0.5]}, 75%={q[0.75]}")
+                print(data['quaternary'].value_counts())
+
+            # Add Panel Label (A, B, C...)
+            ax.text(-0.05, 1.05, panel_labels[idx], transform=ax.transAxes,
+                    fontsize=14, fontweight='bold', va='top', ha='left')
+
+    plt.tight_layout()
+    plt.savefig('chi_square_discretization.png')
+
+def chi_square_analysis(
+        features: pd.DataFrame,
+        metric: str = 'AUC',
+        feature_bits: Optional[list] = None,
+        split: str = 'quaternary',
+        invert_metric: bool = False,
+        invert_feature: bool = False
+    ) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Perform chi-square tests for independence between feature mask bits
+    and a discretized performance metric (binary, ternary, or quaternary),
+    with optional inversion.
 
     Parameters
     ----------
     features : pd.DataFrame
-        DataFrame containing the 'AUC' or 'RMSE' column and the binary feature bits.
-    metric : str, optional
-        The metric column to analyze ('AUC' or 'RMSE'). Default is 'AUC'.
-    feature_bits : list, optional
-        List of feature bit column names. If None, will infer from column names in `features`.
-    split : str, optional
-        Choose either 'binary' or 'ternary' discretization. Default is 'binary'.
+        DataFrame containing 'AUC' or 'RMSE' and feature bits.
+    metric : str
+        Metric column to analyze ('AUC' or 'RMSE').
+    feature_bits : list
+        List of feature bit column names. If None, inferred.
+    split : str
+        'binary', 'ternary', or 'quaternary'. Default is 'quaternary'.
+    invert_metric : bool
+        Invert the metric categories. Default is False.
+    invert_feature : bool
+        Invert the presence/absence of feature bits. Default is False.
 
     Returns
     -------
     pd.DataFrame
-        DataFrame summarizing the chi-square test statistics and p-values for each feature bit.
-    '''
-    
-    # Check for valid split option
-    if split not in ['binary', 'ternary']:
-        raise ValueError("Invalid split option. Choose 'binary' or 'ternary'.")
+        Chi-square statistics, p-values, and Cramér's V.
+    pd.DataFrame
+        DataFrame with the discretized metric categories.
+    """
 
-    # Discretize the metric based on the chosen split method
+    data = features.copy()
+
+    if split not in ['binary', 'ternary', 'quaternary']:
+        raise ValueError("split must be 'binary', 'ternary', or 'quaternary'.")
+
+    # Metric discretization
     if split == 'binary':
-        # Binary: High vs. Low based on the median
-        features[f'{metric}_category'] = np.where(
-            features[metric] > features[metric].median(), 'high', 'low'
-        )
+        median = data[metric].median()
+        data[f'{metric}_category'] = np.where(data[metric] > median, 'high', 'low')
+        if invert_metric:
+            data[f'{metric}_category'] = data[f'{metric}_category'].map({'high': 'low', 'low': 'high'})
     elif split == 'ternary':
-        # Ternary: Low, Medium, High based on quartiles
-        q1 = features[metric].quantile(0.33)
-        q2 = features[metric].quantile(0.66)
-        features[f'{metric}_category'] = pd.cut(
-            features[metric], 
-            bins=[-np.inf, q1, q2, np.inf], 
-            labels=['low', 'medium', 'high']
+        q1 = data[metric].quantile(0.33)
+        q2 = data[metric].quantile(0.66)
+        labels = ['low', 'medium', 'high']
+        if invert_metric:
+            labels = labels[::-1]
+        data[f'{metric}_category'] = pd.cut(
+            data[metric],
+            bins=[-np.inf, q1, q2, np.inf],
+            labels=labels
+        )
+    elif split == 'quaternary':
+        q = data[metric].quantile([0.25, 0.5, 0.75])
+        labels = ['very low', 'low', 'high', 'very high']
+        if invert_metric:
+            labels = labels[::-1]
+        data[f'{metric}_category'] = pd.cut(
+            data[metric],
+            bins=[-np.inf, q[0.25], q[0.5], q[0.75], np.inf],
+            labels=labels
         )
 
-    # Determine feature bit columns if not provided
     if feature_bits is None:
         feature_bits = [col for col in features.columns if col.startswith('feature_')]
 
-    # Store results in a DataFrame
-    results = {'Feature': [], 'Chi2 Statistic': [], 'p-value': []}
+    results = {
+        'Feature': [],
+        'Chi2 Statistic': [],
+        'p-value': [],
+        "Cramér's V": []
+    }
 
-    # Run chi-square test for each feature bit
     for bit in feature_bits:
-        contingency_table = pd.crosstab(features[bit], features[f'{metric}_category'])
+        bit_data = data[bit]
+        if invert_feature:
+            bit_data = 1 - bit_data  # Invert 1 <-> 0
+
+        contingency_table = pd.crosstab(bit_data, data[f'{metric}_category'])
         chi2, p, _, _ = chi2_contingency(contingency_table)
+
+        n = contingency_table.sum().sum()
+        k = min(contingency_table.shape)
+
+        cramers_v = np.sqrt(chi2 / (n * (k - 1))) if k > 1 else np.nan
+
         results['Feature'].append(bit)
         results['Chi2 Statistic'].append(chi2)
         results['p-value'].append(p)
+        results["Cramér's V"].append(cramers_v)
 
-    # Compile results
-    chi_square_results = pd.DataFrame(results)
+    return pd.DataFrame(results), data
 
-    return chi_square_results
+def plot_cramers_comparison(auc_df: pd.DataFrame, rmse_df: pd.DataFrame) -> None:
+    """
+    Plota dois gráficos de barras horizontais lado a lado
+    mostrando Cramér's V para AUC e RMSE, com faixas coloridas
+    de força de associação e anotações dos valores.
+
+    Parâmetros
+    ----------
+    auc_df : pd.DataFrame
+        DataFrame contendo 'Feature' e "Cramér's V" para AUC.
+    rmse_df : pd.DataFrame
+        DataFrame contendo 'Feature' e "Cramér's V" para RMSE.
+    """
+
+    # Renomeia a coluna "Cramér's V" para "CramerV" para consistência
+    auc_df = auc_df.rename(columns={"Cramér's V": "CramerV"})
+    rmse_df = rmse_df.rename(columns={"Cramér's V": "CramerV"})
+
+    # Assegura que a coluna "CramerV" seja numérica
+    auc_df["CramerV"] = pd.to_numeric(auc_df["CramerV"], errors='coerce')
+    rmse_df["CramerV"] = pd.to_numeric(rmse_df["CramerV"], errors='coerce')
+
+    # Prepara os dados ordenados
+    auc_sorted = auc_df.sort_values(by="CramerV", ascending=True)
+    rmse_sorted = rmse_df.sort_values(by="CramerV", ascending=True)
+
+    # Configura o layout
+    fig, axes = plt.subplots(1, 2, figsize=(16, 8), sharex=True)
+
+    min = 0
+    max = 0.7
+
+    # Definir limites e faixas de fundo
+    limits = (min, max)
+
+    regions = [
+        (min, 0.1, 'lightgray', 'No association'),
+        (0.1, 0.2, '#d0f0c0', 'Weak'),
+        (0.2, 0.3, '#fef3b7', 'Moderate'),
+        (0.3, 0.5, '#fdd9b5', 'Strong'),
+        (0.5, max, '#fbb4ae', 'Very strong')
+    ]
+
+    # Função para plotar cada gráfico
+    def plot_single(ax, data, title):
+        # Faixas coloridas
+        for start, end, color, label in regions:
+            ax.axvspan(start, end, color=color, alpha=0.4, zorder=0)
+
+        # Barras
+        sns.barplot(
+            data=data,
+            x="CramerV",
+            y="Feature",
+            color='steelblue',
+            ax=ax
+        )
+
+        # Anotações dos valores
+        for index, row in data.iterrows():
+            ax.text(
+                row["CramerV"] + 0.01,  # deslocamento lateral
+                row["Feature"],
+                f"{row['CramerV']:.3f}",
+                va='center'
+            )
+
+        ax.set_title(title)
+        ax.set_xlim(limits)
+        ax.set_xlabel("Cramér's V")
+        ax.set_ylabel("")
+
+    # Plota AUC
+    plot_single(axes[0], auc_sorted, "Cramér's V - AUC")
+
+    # Plota RMSE
+    plot_single(axes[1], rmse_sorted, "Cramér's V - RMSE")
+
+    plt.tight_layout()
+    plt.savefig('cramer.png')
+    plt.close()
 
 def visualize_chi_square_comparison(auc_df: pd.DataFrame, rmse_df: pd.DataFrame):
     '''Visualize chi-square statistics and p-values for both AUC and RMSE analyses.
@@ -785,7 +1328,7 @@ def visualize_chi_square_comparison(auc_df: pd.DataFrame, rmse_df: pd.DataFrame)
     auc_df = auc_df.sort_values(by='Chi2 Statistic', ascending=False)
     rmse_df = rmse_df.sort_values(by='Chi2 Statistic', ascending=False)
 
-    fig, axes = plt.subplots(2, 2, figsize=(14, 12))
+    fig, axes = plt.subplots(2, 2, figsize=(20, 12))
 
     # AUC: Bar Plot of Chi2 Statistic
     sns.barplot(
@@ -793,6 +1336,7 @@ def visualize_chi_square_comparison(auc_df: pd.DataFrame, rmse_df: pd.DataFrame)
         y='Feature',
         x='Chi2 Statistic',
         palette="magma",
+        hue='Feature',
         ax=axes[0, 0]
     )
     axes[0, 0].set_title('Chi-Square Test Statistics by Feature - AUC')
@@ -805,45 +1349,65 @@ def visualize_chi_square_comparison(auc_df: pd.DataFrame, rmse_df: pd.DataFrame)
         y='Feature',
         x='Chi2 Statistic',
         palette="cividis",
+        hue='Feature',
         ax=axes[0, 1]
     )
     axes[0, 1].set_title('Chi-Square Test Statistics by Feature - RMSE')
     axes[0, 1].set_xlabel('Chi-Square Statistic')
     axes[0, 1].set_ylabel('')
 
+    # Corrige p-valor zero e valores extremamente baixos
+    adjusted_p = np.clip(auc_df['p-value'].values, a_min=1e-300, a_max=1) # type: ignore
+
+    # Faz o log sem warnings
+    log_p = -np.log10(adjusted_p)
+
     # AUC: Scatter Plot of Chi2 Statistic vs. -Log10(P-Value)
     sns.scatterplot(
         data=auc_df,
         x='Chi2 Statistic',
-        y=-np.log10(auc_df['p-value']),
-        hue='Feature',
+        y=log_p,
+        hue=log_p,
         palette="magma",
         s=100,
-        legend=None,
-        ax=axes[1, 0]
+        legend=False,
+        ax=axes[1, 0],
+        edgecolor='black',
+        linewidth=0.5
     )
+
     axes[1, 0].set_title('Chi-Square Statistic vs. -Log10(P-Value) - AUC')
     axes[1, 0].set_xlabel('Chi-Square Statistic')
     axes[1, 0].set_ylabel('-Log10(P-Value)')
     axes[1, 0].axhline(-np.log10(0.05), color='red', linestyle='--', label='p = 0.05')
+
+    # Corrige p-valor zero e valores extremamente baixos
+    adjusted_p = np.clip(rmse_df['p-value'].values, a_min=1e-300, a_max=1) # type: ignore
+
+    # Faz o log sem warnings
+    log_p = -np.log10(adjusted_p)
     
     # RMSE: Scatter Plot of Chi2 Statistic vs. -Log10(P-Value)
     sns.scatterplot(
         data=rmse_df,
         x='Chi2 Statistic',
-        y=-np.log10(rmse_df['p-value']),
-        hue='Feature',
+        y=log_p,
+        hue=log_p,
         palette="cividis",
         s=100,
-        legend=None,
-        ax=axes[1, 1]
+        legend=False,
+        ax=axes[1, 1],
+        edgecolor='black',
+        linewidth=0.5
     )
+
     axes[1, 1].set_title('Chi-Square Statistic vs. -Log10(P-Value) - RMSE')
     axes[1, 1].set_xlabel('Chi-Square Statistic')
     axes[1, 1].set_ylabel('')
     axes[1, 1].axhline(-np.log10(0.05), color='red', linestyle='--')
 
     plt.tight_layout()
+    plt.rcParams.update({'font.size': 16})
     plt.savefig('chi_square_comparison.png')
     plt.close()
 
@@ -914,7 +1478,8 @@ def random_forest_feature_engineering(
     target_column: str = 'AUC', 
     feature_columns: list = [], 
     n_estimators: int = 100, 
-    random_state: int = 42
+    random_state: int = 42,
+    seed_ablation: bool = True
 ) -> pd.DataFrame:
     '''
     Perform feature engineering using Random Forest to determine feature importance.
@@ -931,6 +1496,8 @@ def random_forest_feature_engineering(
         Number of trees in the forest. Default is 100.
     random_state : int, optional
         Seed for reproducibility. Default is 42.
+    seed_ablation : bool, optional
+        If True, will use a fixed random state for feature importance calculation. Default is True.
 
     Returns
     -------
@@ -939,10 +1506,10 @@ def random_forest_feature_engineering(
     '''
 
     # Check if the target column is AUC or RMSE
-    if target_column not in ['AUC', 'RMSE']:
-        raise ValueError("Invalid target column. Choose 'AUC' or 'RMSE'.")
-    else:
-        target_column = f'{target_column}_category'
+    if target_column not in ['AUC', 'RMSE', 'score']:
+        raise ValueError("Invalid target column. Choose 'AUC', 'RMSE', or 'score'.")
+    #else:
+    #    target_column = f'{target_column}_category'
 
     # Define feature columns if not provided
     if not feature_columns:
@@ -957,6 +1524,7 @@ def random_forest_feature_engineering(
 
     # Initialize and train the Random Forest model
     rf = RandomForestClassifier(n_estimators=n_estimators, random_state=random_state)
+    #rf = RandomForestRegressor(n_estimators=n_estimators, random_state=random_state)
     rf.fit(X_train, y_train)
 
     # Compute feature importances
@@ -974,7 +1542,8 @@ def random_forest_feature_engineering(
     return feature_importance_df
 
 def plot_feature_importance_comparison(importance_df_auc: pd.DataFrame, 
-                                       importance_df_rmse: pd.DataFrame) -> None:
+                                       importance_df_rmse: pd.DataFrame,
+                                       importance_df_score: Optional[pd.DataFrame]) -> None:
     '''
     Plot feature importance for AUC and RMSE in separate bar plots.
 
@@ -984,14 +1553,22 @@ def plot_feature_importance_comparison(importance_df_auc: pd.DataFrame,
         DataFrame containing feature importance for AUC.
     importance_df_rmse : pd.DataFrame
         DataFrame containing feature importance for RMSE.
+    importance_df_score : pd.DataFrame, optional
+        DataFrame containing feature importance for score. If provided, it will be plotted alongside AUC and RMSE.
     '''
 
     # Sort DataFrames by importance
     importance_df_auc = importance_df_auc.sort_values(by='Importance', ascending=False)
     importance_df_rmse = importance_df_rmse.sort_values(by='Importance', ascending=False)
 
+    if importance_df_score is not None:
+        importance_df_score = importance_df_score.sort_values(by='Importance', ascending=False)
+        nplots = 3
+    else:
+        nplots = 2
+
     # Set up the plot with two independent y-axes
-    fig, axes = plt.subplots(1, 2, figsize=(18, 10))
+    fig, axes = plt.subplots(1, nplots, figsize=(10 * nplots, 10))
 
     # AUC Plot
     sns.barplot(
@@ -1022,6 +1599,22 @@ def plot_feature_importance_comparison(importance_df_auc: pd.DataFrame,
     axes[1].set_title('Feature Importance for RMSE', fontsize=16, weight='bold')
     axes[1].set_xlabel('Importance', fontsize=12)
     axes[1].set_ylabel('Feature', fontsize=12)
+
+    if importance_df_score is not None:
+        # Score Plot
+        sns.barplot(
+            y='Feature', 
+            x='Importance', 
+            hue='Feature',  # Assign 'Feature' to hue to avoid the warning
+            data=importance_df_score, 
+            ax=axes[2], 
+            palette='rocket', 
+            dodge=False,  # Prevents multiple bars for each feature
+            legend=False  # We don't need the legend
+        )
+        axes[2].set_title('Feature Importance for Score', fontsize=16, weight='bold')
+        axes[2].set_xlabel('Importance', fontsize=12)
+        axes[2].set_ylabel('Feature', fontsize=12)
 
     # Adjust layout and show the plot
     plt.tight_layout()
@@ -1119,52 +1712,250 @@ def analyze_feature_effects(df: pd.DataFrame, feature_columns: list) -> dict:
         'RMSE_Correlation': (rmse_corr, rmse_p)
     }
 
+# Statistical Analysis and Visualization
+import matplotlib.pyplot as plt
+from scipy.stats import probplot, shapiro, anderson
+
+def qq_normality_test(data, columns):
+    """
+    Gera QQ plots lado a lado para duas colunas e realiza testes de normalidade.
+    Usa Shapiro-Wilk para N <= 5000 e Anderson-Darling para N > 5000.
+    
+    Parâmetros:
+    - data: pandas DataFrame.
+    - columns: lista com dois nomes de colunas [col1, col2].
+
+    Retorna:
+    - dicionário com os resultados dos testes para ambas as variáveis.
+    """
+    assert len(columns) == 2, "Você deve passar exatamente duas colunas."
+
+    results = {}
+
+    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+
+    letters = ['A', 'B']
+
+    for i, col in enumerate(columns):
+        values = data[col].dropna()
+        n = len(values)
+
+        ax = axes[i]
+        probplot(values, dist="norm", plot=ax)
+        ax.set_title(f"QQ Plot - {col} (n={n})")
+        ax.set_xlabel("Quantis Teóricos")
+        ax.set_ylabel("Quantis da Amostra")
+        ax.grid(True)
+
+        # Anotação fora do gráfico (letras A, B)
+        fig.text(0.05 + i * 0.45, 0.95, f'{letters[i]}', fontsize=14, fontweight='bold')
+
+        print(f"\nAnálise de normalidade para: {col}")
+        print(f"Tamanho da amostra: {n}")
+
+        res = {'sample_size': n}
+
+        if n <= 5000:
+            stat, p = shapiro(values)
+            p_text = f"p = {p:.2e}"
+            print(f"Shapiro-Wilk Test:\n  W = {stat:.4f}, p = {p:.4e}")
+            if p < 0.05:
+                conclusion = "Reject normality"
+            else:
+                conclusion = "Do not reject normality"
+            res.update({
+                'test': 'Shapiro-Wilk',
+                'statistic': stat,
+                'p_value': p,
+                'conclusion': conclusion
+            }) # type: ignore
+
+        else:
+            result = anderson(values, dist='norm')
+            stat = getattr(result, 'statistic')
+            critical_values = getattr(result, 'critical_values')
+            significance_levels = getattr(result, 'significance_level')
+
+            # Como o Anderson-Darling não fornece p-value diretamente, você pode indicar rejeição ou não:
+            if stat > critical_values[2]:  # 5%
+                reject = True
+            else:
+                reject = False
+            
+            p_text = f"A² = {stat:.4f}"
+
+            print(f"Anderson-Darling Test Statistic: {stat:.4f}")
+            for cv, sig in zip(critical_values, significance_levels):
+                print(f"  Critério para {sig:.1f}%: {cv:.4f}")
+
+            res.update({
+                'test': 'Anderson-Darling',
+                'statistic': stat,
+                'critical_values': critical_values.tolist(),
+                'significance_levels': significance_levels.tolist(),
+                'reject': reject
+            }) # type: ignore
+
+        # Adiciona anotação do p-valor no canto inferior direito do subplot
+        ax.text(0.95, 0.05, p_text,
+                fontsize=10, transform=ax.transAxes,
+                ha='right', va='bottom',
+                bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="gray", lw=0.8))
+
+        results[col] = res
+
+    plt.tight_layout(rect=(0, 0, 1, 0.93))
+    plt.savefig('qq_plot_dual.png', bbox_inches='tight')
+    plt.close()
+
+    return results
+
+def nonparametric_group_comparison(data, value_col, group_col, k):
+    """
+    Realiza comparação não paramétrica entre grupos.
+    
+    - Se dois grupos → Mann-Whitney U Test.
+    - Se mais de dois grupos → Kruskal-Wallis + Dunn post-hoc (se Kruskal for significativo).
+
+    Parâmetros:
+    - data: DataFrame com os dados.
+    - value_col: string, nome da coluna com os valores (ex.: 'AUC').
+    - group_col: string, nome da coluna com os grupos (ex.: 'cluster').
+    - k: número de grupos (usado para calcular epsilon squared).
+
+    Retorna:
+    - Dicionário com resultados dos testes.
+    """
+
+    grupos = data[group_col].dropna().unique()
+    grupos.sort()
+    print(f"\n### Comparação de {value_col} por {group_col} ###")
+    print(f"Número de grupos: {k}")
+    print(f"Teste a ser realizado: {'Mann-Whitney U Test' if k == 2 else 'Kruskal-Wallis'}")
+
+    results = {}
+
+    if k == 2:
+        # Mann-Whitney U Test
+        group1, group2 = grupos[0], grupos[1]
+        x = data[data[group_col] == group1][value_col].dropna()
+        y = data[data[group_col] == group2][value_col].dropna()
+
+        print(f"\n→ Executando Mann-Whitney para {group1} vs {group2}")
+        res = pg.mwu(x, y, alternative='two-sided')
+
+        print(res)
+
+        results = {
+            'test': 'Mann-Whitney',
+            'groups': (group1, group2),
+            'result': res
+        }
+
+    elif k > 2:
+        # Kruskal-Wallis
+        print("\n→ Executando Kruskal-Wallis")
+
+        kruskal_res = pg.kruskal(dv=value_col, between=group_col, data=data)
+        H = kruskal_res['H'].values[0]
+        p = kruskal_res['p-unc'].values[0]
+        N = data['cluster'].notna().sum()
+        epsilon_sq = (H - k + 1) / (N - k)
+        epsilon_sq = max(0, epsilon_sq)  # Para evitar valores negativos por arredondamento
+
+        print(f"Kruskal-Wallis H = {H:.4f}, p = {p:.4e}, epsilon_squared = {epsilon_sq:.4f}")
+
+        results = {
+            'test': 'Kruskal-Wallis',
+            'kruskal': kruskal_res,
+            'epsilon_squared': epsilon_sq
+        }
+
+        if p < 0.05:
+            print("→ Kruskal significativo. Executando Dunn post-hoc...")
+            dunn_res = pg.pairwise_tests(
+                dv=value_col,
+                between=group_col,
+                data=data,
+                padjust='bonf'
+            )
+            dunn_res['significant'] = dunn_res['p-corr'] < 0.05
+
+            print(dunn_res[['A', 'B', 'p-unc', 'p-corr', 'significant']])
+            results['dunn'] = dunn_res
+        else:
+            print("→ Kruskal não significativo. Dunn post-hoc não realizado.")
+            results['dunn'] = None
+
+    else:
+        raise ValueError("Menos de dois grupos encontrados. Comparação não possível.")
+
+    return results
+
 # Execute functions
 print('Running Elbow Method...')
-wcss = run_elbow(normalized_features, max_clusters=10, plot=True)
+wcss = run_elbow(data, normalized_features, max_clusters=10, plot=True)
 
 # Set the optimal number of clusters based on the elbow method
-optimal_clusters = 3
+if "Seed" in study_name:
+    optimal_clusters = 2
+else:
+    optimal_clusters = 3
 
-print('Running K-Means Clustering...')
-k_means_corr = run_kmeans(normalized_features, optimal_clusters=optimal_clusters)
+if method == "kmeans":
+    print('Running K-Means Clustering...')
+    k_means_corr = run_kmeans(data, normalized_features, optimal_clusters=optimal_clusters, alpha=0.4, add_all_markers=False)
+    #k_means_corr = run_kmeans(data, normalized_features, optimal_clusters=optimal_clusters, alpha=0.4)
+elif method == "dbscan":
+    print('Running DBSCAN Clustering...')
+    dbscan_corr = run_dbscan(normalized_features)
+elif method == "hdbscan":
+    print('Running HDBSCAN Clustering...')
+    hdbscan_corr = run_hdbscan(normalized_features, min_samples=10, min_cluster_size=10)
+elif method == "meanshift":
+    print('Running MeanShift Clustering...')
+    meanshift_corr = run_meanshift(normalized_features)
+elif method == "agglomerative":
+    print('Running Agglomerative Clustering...')
+    agglomerative_corr = run_agglomerative(normalized_features)
+elif method == "spectral":
+    print('Running Spectral Clustering...')
+    spectral_corr = run_spectral(normalized_features, n_clusters=optimal_clusters)
+elif method == "ward":
+    print('Running Ward Clustering...')
+    ward_corr = run_ward(normalized_features, n_clusters=optimal_clusters)
+elif method == "optics":
+    print('Running OPTICS Clustering...')
+    optics_corr = run_optics(normalized_features)
+elif method == "birch":
+    print('Running Birch Clustering...')
+    birch_corr = run_birch(normalized_features, n_clusters=optimal_clusters)
+elif method == "gmm":
+    print('Running Gaussian Mixture Clustering...')
+    gmm_corr = run_gaussian_mixture(normalized_features, n_components=optimal_clusters)
+elif method == "affinity_propagation":
+    print('Performing individual contributions analysis for each feature...')
+    results_df = individual_contributions_analysis(features, verbose=True, features_names=features_names)
+else:
+    raise ValueError(f"Unknown clustering method: {method}")
 
-print('Running DBSCAN Clustering...')
-dbscan_corr = run_dbscan(normalized_features)
+print("Performing QQ normality test for AUC and RMSE...")
+qq_test_results = qq_normality_test(data, ['AUC', 'RMSE'])
 
-print('Running HDBSCAN Clustering...')
-hdbscan_corr = run_hdbscan(normalized_features, min_samples=10, min_cluster_size=10)
-
-#print('Running MeanShift Clustering...')
-#meanshift_corr = run_meanshift(normalized_features)
-
-print('Running Agglomerative Clustering...')
-agglomerative_corr = run_agglomerative(normalized_features)
-
-print('Running Spectral Clustering...')
-spectral_corr = run_spectral(normalized_features, n_clusters=optimal_clusters)
-
-print('Running Ward Clustering...')
-ward_corr = run_ward(normalized_features, n_clusters=optimal_clusters)
-
-print('Running OPTICS Clustering...')
-optics_corr = run_optics(normalized_features)
-
-print('Running Birch Clustering...')
-birch_corr = run_birch(normalized_features, n_clusters=optimal_clusters)
-
-print('Running Gaussian Mixture Clustering...')
-gmm_corr = run_gaussian_mixture(normalized_features, n_components=optimal_clusters)
-
-print('Performing individual contributions analysis for each feature...')
-results_df = individual_contributions_analysis(features, verbose=True, features_names=features_names)
+# Comparar AUC entre os grupos do cluster
+resultado_auc = nonparametric_group_comparison(data, value_col='AUC', group_col='cluster', k=optimal_clusters)
+# Comparar RMSE entre os grupos do cluster
+resultado_rmse = nonparametric_group_comparison(data, value_col='RMSE', group_col='cluster', k=optimal_clusters)
 
 print('Plotting feature mask correlation heatmap...')
 plot_feature_mask_correlation_heatmap(features, features_names=features_names)
 
 print('Performing Chi-Square test for feature selection...')
-chi_square_results_auc = chi_square_analysis(features, metric='AUC', feature_bits=features_names, split='ternary')
-chi_square_results_rmse = chi_square_analysis(features, metric='RMSE', feature_bits=features_names, split='ternary')
+chi_square_results_auc, auc_df = chi_square_analysis(features, metric='AUC', feature_bits=features_names, split='quaternary', invert_metric=True, invert_feature=False)
+chi_square_results_rmse, rmse_df = chi_square_analysis(features, metric='RMSE', feature_bits=features_names, split='quaternary', invert_metric=True, invert_feature=False)
+
+print('Plotting Cramér\'s V comparison...')
+plot_cramers_comparison(chi_square_results_auc, chi_square_results_rmse)
 
 print('Plotting Chi-Square test results...')
 visualize_chi_square_comparison(chi_square_results_auc, chi_square_results_rmse)
@@ -1178,11 +1969,17 @@ chi_square_results_auc['BH_Significant_AUC'] = benjamini_hochberg(chi_square_res
 chi_square_results_rmse['BH_Significant_RMSE'] = benjamini_hochberg(chi_square_results_rmse['p-value'].tolist())
 
 print('Performing feature importance analysis...')
-feature_importance_df_auc = random_forest_feature_engineering(features, target_column='AUC', feature_columns=features_names)
-feature_importance_df_rmse = random_forest_feature_engineering(features, target_column='RMSE', feature_columns=features_names)
+if "Seed" in features_names:
+    feature_importance_df_auc = random_forest_feature_engineering(features, target_column='AUC', feature_columns=["seed"], seed_ablation = True)
+    feature_importance_df_rmse = random_forest_feature_engineering(features, target_column='RMSE', feature_columns=["seed"], seed_ablation = True)
+    feature_importance_df_score = random_forest_feature_engineering(features, target_column='score', feature_columns=["seed"], seed_ablation = True)
+else:
+    feature_importance_df_auc = random_forest_feature_engineering(features, target_column='AUC', feature_columns=features_names, seed_ablation = True)
+    feature_importance_df_rmse = random_forest_feature_engineering(features, target_column='RMSE', feature_columns=features_names, seed_ablation = True)
+    feature_importance_df_score = random_forest_feature_engineering(features, target_column='score', feature_columns=features_names, seed_ablation = True)
 
 print('Plotting feature importance analysis...')
-plot_feature_importance_comparison(feature_importance_df_auc, feature_importance_df_rmse)
+plot_feature_importance_comparison(feature_importance_df_auc, feature_importance_df_rmse, feature_importance_df_score)
 
 print('Analyzing the impact of the number of features turned on...')
 feature_effects = analyze_feature_effects(features, feature_columns=features_names)

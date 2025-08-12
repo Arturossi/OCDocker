@@ -424,6 +424,213 @@ def plot_barplots(df: pd.DataFrame, n_trials: int, colour_mapping: dict[str, tup
     plt.savefig(f'{output_dir}/barplot_rmse_auc_{n_trials}.png')
     plt.close()
 
+def plot_barplots2(df: pd.DataFrame, n_trials: int, colour_mapping: dict[str, tuple[float, float, float]], output_dir: str) -> None:
+    '''
+    Generate vertical barplots (horizontal bars) of mean RMSE and AUC across methodologies with annotations.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Data containing 'RMSE', 'AUC', and 'Methodology'.
+    n_trials : int
+        Trial number for title and output naming.
+    colour_mapping : dict[str, tuple[float, float, float]]
+        Dictionary mapping methodologies to colors.
+    output_dir : str
+        Directory to save the barplot images.
+    '''
+
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    import pandas as pd
+
+    df_means = df.groupby('Methodology')[['RMSE', 'AUC']].mean().reset_index()
+
+    plt.figure(figsize=(12, 14))
+    for i, metric in enumerate(['RMSE', 'AUC']):
+        plt.subplot(2, 1, i + 1)
+        df_sorted = df_means.sort_values(by=metric, ascending=True)
+        method_order = df_sorted['Methodology'].tolist()
+        palette_sorted = {k: colour_mapping[k] for k in method_order}
+
+        ax = sns.barplot(
+            data=df_sorted,
+            y='Methodology',
+            x=metric,
+            hue='Methodology',
+            palette=palette_sorted,
+            legend=False,
+            orient='h'
+        )
+
+        for j, val in enumerate(df_sorted[metric]):
+            plt.text(val + 0.01, j, f"{val:.2f}", va='center', fontsize=9)
+
+        plt.title(f'{metric} médio por metodologia ({n_trials} modelos)')
+        plt.xlabel(metric)
+        plt.ylabel('Metodologia')
+        plt.grid(True, axis='x')
+        plt.minorticks_on()
+        plt.grid(which='minor', linestyle=':', linewidth=0.5, axis='x')
+
+    plt.tight_layout()
+    plt.savefig(f'{output_dir}/barplot_rmse_auc_{n_trials}.png', dpi=300)
+    plt.close()
+
+def plot_scatterplot(
+    df: pd.DataFrame,
+    df_rmse: pd.DataFrame,
+    df_auc: pd.DataFrame,
+    n_trials: int,
+    colour_mapping: dict[str, tuple[float, float, float]],
+    output_dir: str,
+    alpha: float = 0.9,
+    orientation: str = 'horizontal',
+    ncol_label: int = 6
+) -> None:
+    '''
+    Generate a 3-panel scatterplot comparing RMSE and AUC for top models
+    selected by lowest RMSE, highest AUC, and best combined RMSE-AUC.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame sorted by score metric (RMSE-AUC)
+    df_rmse : pd.DataFrame
+        DataFrame sorted by RMSE.
+    df_auc : pd.DataFrame
+        DataFrame sorted by AUC.
+    n_trials : int
+        Number of trials (for title and filename).
+    colour_mapping : dict[str, tuple[float, float, float]]
+        Mapping of methodology names to RGB color tuples.
+    output_dir : str
+        Directory to save the resulting figure.
+    alpha : float, optional
+        Transparency of markers in the scatterplot (default is 0.9).
+    orientation : str, optional
+        Orientation of the scatterplot ('horizontal', 'vertical', 'h', or 'v', default is 'horizontal').
+    ncol_label : int, optional
+        Number of columns for the methodology legend (default is 6).
+    '''
+
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+
+    # Rename combined_metric to Score if present
+    if 'combined_metric' in df.columns:
+        df = df.rename(columns={'combined_metric': 'Score'})
+
+    # Determine ranges for plot axes[]
+    min_auc = df['AUC'].min()
+    max_auc = df['AUC'].max()
+    min_error = df['RMSE'].min()
+    max_error = df['RMSE'].max()
+    auc_range = max_auc - min_auc
+    error_range = max_error - min_error
+
+    # Plotting
+    if orientation not in ['horizontal', 'vertical', 'h', 'v']:
+        raise ValueError("Orientation must be either 'horizontal', 'vertical', 'h', or 'v'.")
+
+    if orientation in ['horizontal' , 'h']:
+        plt.figure(figsize=(20, 8))
+    else:
+        plt.figure(figsize=(12, 24))
+
+    for i, label in enumerate([
+        'RMSE',
+        'AUC',
+        'RMSE-AUC'
+    ]):
+        if orientation in ['horizontal' , 'h']:
+            plt.subplot(1, 3, i + 1)
+        else:
+            plt.subplot(3, 1, i + 1)
+
+        if label == 'RMSE':
+            df_plot = df_rmse
+        elif label == 'AUC':
+            df_plot = df_auc
+        else:  # 'RMSE-AUC'
+            df_plot = df
+        
+        df_plot['AUC_category'] = df_plot["AUC"].apply(lambda x: '>= 0.5' if x >= 0.5 else '< 0.5')
+        df_plot.loc[df_plot['AUC_category'] == '< 0.5', "AUC"] = 1 - df_plot["AUC"]
+
+        sns.scatterplot(
+            data=df_plot[df_plot['AUC_category'] == '>= 0.5'],
+            x="RMSE",
+            y="AUC",
+            hue='Methodology',
+            legend=False,
+            palette=colour_mapping,
+            alpha=alpha,
+            marker='o'
+        )
+
+        sns.scatterplot(
+            data=df_plot[df_plot['AUC_category'] == '< 0.5'],
+            x="RMSE",
+            y="AUC",
+            hue='Methodology',
+            legend=False,
+            palette=colour_mapping,
+            alpha=alpha,
+            marker='*',
+            s=100
+        )
+
+        title_map = {
+            'RMSE': 'Error vs. AUC (Smallest Error)',
+            'AUC': 'Error vs. AUC (Biggest AUC)',
+            'RMSE-AUC': 'Error vs. AUC (Smallest Error - AUC)'
+        }
+        plt.title(title_map[label])
+        plt.xlim(min_error - error_range * 0.1, max_error + error_range * 0.1)
+        plt.ylim(min_auc - auc_range * 0.1, max_auc + auc_range * 0.1)
+        plt.xlabel('Error')
+        plt.ylabel('AUC')
+        plt.grid(True)
+        plt.minorticks_on()
+        plt.grid(which='minor', linestyle=':', linewidth=0.2, color='darkgray')
+
+    # Adjust layout and add legends
+    plt.subplots_adjust(bottom=0.4)
+
+    shape_labels = ['AUC >= 0.5 (= AUC)', 'AUC < 0.5 (= 1-AUC)']
+    shape_handles = [
+        plt.Line2D([0], [0], marker='o', color='w', label='AUC >= 0.5 (= AUC)', markerfacecolor='gray', markersize=10), # type: ignore
+        plt.Line2D([0], [0], marker='*', color='w', label='AUC < 0.5 (= 1-AUC)', markerfacecolor='gray', markersize=10) # type: ignore
+    ]
+
+    color_labels = df['Methodology'].unique().tolist()
+    color_handles = [plt.Line2D([0], [0], color=colour_mapping[m], lw=4) for m in color_labels] # type: ignore
+
+    # Legenda na parte inferior, lado a lado (para ambas as orientações)
+    plt.figlegend(
+        handles=shape_handles,
+        labels=shape_labels,
+        loc='lower center',
+        bbox_to_anchor=(0.25, 0.02),
+        ncol=1,
+        title='AUC'
+    )
+
+    plt.figlegend(
+        handles=color_handles,
+        labels=color_labels,
+        loc='lower center',
+        bbox_to_anchor=(0.65, 0.02),
+        ncol=ncol_label,
+        title='Methodology'
+    )
+
+    plt.tight_layout(rect=(0, 0.175, 1, 1))
+        
+    plt.savefig(f'{output_dir}/Experiments_{n_trials}.png', bbox_inches='tight', dpi=300)
+    plt.close('all')
+    
 import os
 import math
 import pandas as pd

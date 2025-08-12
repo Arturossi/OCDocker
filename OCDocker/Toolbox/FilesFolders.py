@@ -255,14 +255,16 @@ def safe_create_dir(dirname: Union[str, Path]) -> int:
                 # Print verbosity
                 if ocerror.Error.output_level >= ocerror.ReportLevel.SUCCESS:
                     return ocerror.Error.ok(f"Successfully created the directory '{dirname}'") # type: ignore
+                return ocerror.Error.ok() # type: ignore
             else:
                 # It is a file
                 return ocerror.Error.file_exists(message=f"The dir '{dirname}' is a file!", level = ocerror.ReportLevel.WARNING) # type: ignore
     except Exception as e:
         # Some error has occurred
         return ocerror.Error.create_dir(message=f"Problem found while creating the dir '{dirname}': {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
+    
     # This should never appear since all the other paths ends in some kind of return
-    return ocerror.Error.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while creating a dir safetly.", level = ocerror.ReportLevel.ERROR) # type: ignore
+    return ocerror.Error.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while creating a dir safetly. The dir is '{dirname}'.", level = ocerror.ReportLevel.ERROR) # type: ignore
 
 def safe_remove_dir(dirname: str) -> int:
     ''' Remove a dir if exists.

@@ -19,9 +19,6 @@ output_level = ocerror.ReportLevel.NONE
 
 import OCDocker.Toolbox as octools
 
-import OCDocker.DB.baseDB as ocbdb
-import OCDocker.DB.DUDEz as ocdudez
-import OCDocker.DB.PDBbind as ocpdbbind
 import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
 import OCDocker.Docking.Vina as ocvina
@@ -288,14 +285,9 @@ for medoid in medoids:
         # Add it to the medoidsDict as a list with plants as the key
         medoidsDict[medoid] = plantsDockingResult[ocplants.get_pose_index_from_file_path(medoid)]
 
-# TODO: Find a way to compare PLANTS score with Vina/Smina/Gnina.....
-
-
 ##############
 ##   Gnina   #
 ##############
-
-## TODO: Fix the entire Gnina
 
 # Gnina
 gninaTest = ocgnina.Gnina(f"{baseLigPath}/{lig}/gninaFiles/conf_gnina.txt", f"{baseLigPath}/{lig}/boxes/box0.pdb", receptorTest, f"{baseProtPath}/prepared_receptor.pdbqt", ligandTest, f"{baseLigPath}/{lig}/prepared_ligand.pdbqt", f"{baseLigPath}/{lig}/gninaFiles/{lig}.log", f"{baseLigPath}/{lig}/gninaFiles/{lig}.pdbqt", name=f"Gnina {ptn}-{lig}")

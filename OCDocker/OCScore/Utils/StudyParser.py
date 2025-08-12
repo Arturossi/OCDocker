@@ -102,7 +102,7 @@ def parse_study_type(
     else:
         return ml_method
 
-def analyze_studies(
+def analyze_studies_old(
         snames : list[str],
         storage : str,
         n_trials : int = 5,
@@ -236,7 +236,101 @@ def analyze_studies(
     results_df = pd.DataFrame(results)
 
     # Return the DataFrame
-    return results_df
+    return results_df, results_df_auc, results_df_rmse
+
+import optuna
+import pandas as pd
+
+def analyze_studies(
+    snames: list[str],
+    storage: str,
+    n_trials: int = 5,
+    verbose: bool = False
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """
+    For each study, load trials, filter COMPLETE + dedupe,
+    compute combined_metric = RMSE - AUC, then pull out
+    top-n by RMSE (smallest), top-n by AUC (largest),
+    and top-n by combined_metric (smallest).
+    Ablation studies also get a 'features' column.
+    Returns three DataFrames: df_rmse, df_auc, df_combined.
+    """
+
+    rmse_results = []
+    auc_results = []
+    combined_results = []
+
+    for sname in snames:
+        if verbose:
+            print(f"Loading {sname}")
+        # skip unwanted studies
+        if any(tag in sname for tag in ("AO", "LIG", "REC", "SF",
+                                         "feature_selection", "Feature selection",
+                                         "Pre_", "pre-")):
+            continue
+
+        try:
+            study = optuna.load_study(study_name=sname, storage=storage)
+        except Exception as e:
+            print(f"Could not load {sname}: {e}")
+            continue
+
+        df = study.trials_dataframe()
+        df = df[df.state == "COMPLETE"].drop_duplicates(subset=["value", "user_attrs_AUC"])
+        df["combined_metric"] = df.value - df.user_attrs_AUC
+        df["number"] = df.number.astype(int)
+
+        take = len(df) if (n_trials == -1 or n_trials > len(df)) else n_trials
+
+        top_rmse     = df.nsmallest(take, "value")
+        top_auc      = df.nlargest(take, "user_attrs_AUC")
+        top_combined = df.nsmallest(take, "combined_metric")
+
+        study_type = parse_study_type(sname, False, False, False)
+        is_ablation = "Ablation" in sname
+
+        for _, row in top_rmse.iterrows():
+            entry = {
+                "study_name": sname,
+                "study_type": study_type,
+                "trial": row.number,
+                "rmse": row.value,
+                "auc": row.user_attrs_AUC
+            }
+            if is_ablation:
+                entry["features"] = row.user_attrs_Feature_Mask
+            rmse_results.append(entry)
+
+        for _, row in top_auc.iterrows():
+            entry = {
+                "study_name": sname,
+                "study_type": study_type,
+                "trial": row.number,
+                "rmse": row.value,
+                "auc": row.user_attrs_AUC
+            }
+            if is_ablation:
+                entry["features"] = row.user_attrs_Feature_Mask
+            auc_results.append(entry)
+
+        for _, row in top_combined.iterrows():
+            entry = {
+                "study_name": sname,
+                "study_type": study_type,
+                "trial": row.number,
+                "combined_metric": row.combined_metric,
+                "rmse": row.value,
+                "auc": row.user_attrs_AUC
+            }
+            if is_ablation:
+                entry["features"] = row.user_attrs_Feature_Mask
+            combined_results.append(entry)
+
+    df_rmse     = pd.DataFrame(rmse_results)
+    df_auc      = pd.DataFrame(auc_results)
+    df_combined = pd.DataFrame(combined_results)
+
+    return df_rmse, df_auc, df_combined
 
 '''
 # Example usage:

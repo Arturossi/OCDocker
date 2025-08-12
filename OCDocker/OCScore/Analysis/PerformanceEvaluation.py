@@ -266,7 +266,7 @@ def setup_dirs() -> None:
     os.makedirs('plots', exist_ok=True)
     os.makedirs('csvs', exist_ok=True)
 
-def load_combined_metrics(df_path: str) -> pd.DataFrame:
+def load_combined_metrics(df_path: str, metrics: list[str] = ['mean', 'median', 'max', 'min', 'std', 'variance', 'sum', 'range', 'quantile_25', 'quantile_75', 'iqr', 'skewness', 'kurtosis']) -> pd.DataFrame:
     '''
     Load DUDEz and PDBbind data, compute evaluation metrics, and combine with consensus scores.
 
@@ -279,6 +279,9 @@ def load_combined_metrics(df_path: str) -> pd.DataFrame:
     -------
     pd.DataFrame
         Combined dataframe with AUC, RMSE, and consensus-derived metrics.
+    metrics : list[str], optional
+        List of metrics to calculate. Default is ['mean', 'median', 'max', 'min', 'std', 'variance', 'sum', 'range', 'quantile_25', 'quantile_75', 'iqr', 'skewness', 'kurtosis']
+        If empty, all metrics will be calculated.
     '''
 
     dudez_data, pdbbind_data, score_columns = ocscoredata.preprocess_df(df_path)
@@ -290,8 +293,14 @@ def load_combined_metrics(df_path: str) -> pd.DataFrame:
     docking_metrics = pd.merge(dudez_metrics, pdbbind_metrics, on="score_column")
     docking_metrics["Methodology"] = "Raw Scoring Function"
 
-    simple_consensus = ocsimple.perform_simple_consensus(df_path, threshold=1.2, verbose=False)
-    simple_consensus["Methodology"] = "Simple consensus"
+    simple_consensus = ocsimple.perform_simple_consensus(df_path, threshold=1.2, metrics=metrics, verbose=False)
+
+    # Process the label as the only one metric which is being calculated, otherwise use a generic name "Simple consensus"
+    if metrics and len(metrics) == 1:
+        simple_consensus["Methodology"] = f"{metrics[0].capitalize()} consensus"
+    else:
+        simple_consensus["Methodology"] = "Simple consensus"
+    
     simple_consensus["score_column"] = simple_consensus.index
     simple_consensus.reset_index(drop=True, inplace=True)
 
@@ -369,7 +378,7 @@ def run_full_analysis(
 
     setup_dirs()
 
-    final_metrics = load_combined_metrics(df_path)
+    final_metrics = load_combined_metrics(df_path, only_mean=True)
 
     for n_trials in trials_list:
         print(f"Running analysis for top {n_trials} trials")
@@ -380,29 +389,40 @@ def run_full_analysis(
         xgb_ga_start = 45 * n_trials
         xgb_ga_end = xgb_ga_start + (n_trials * xgb_len)
 
-        results_df = ocstudy.analyze_studies(snames, storage=storage_str, n_trials=n_trials)
-        results_df.loc[nn_ae_start:nn_ae_end - 1, 'study_type'] = 'NN + AE'
-        results_df.loc[xgb_ga_start:xgb_ga_end - 1, 'study_type'] = 'XGB + GA'
+        results_df_rmse, results_df_auc, results_df = ocstudy.analyze_studies(snames, storage=storage_str, n_trials=n_trials)
 
-        merged = pd.concat([
-            results_df.rename(columns={
-                'study_name': 'study_name',
-                'study_type': 'Methodology',
-                'best_combined_value': 'RMSE',
-                'best_combined_auc': 'AUC',
-                'best_combined_metric': 'combined_metric'
-            }),
-            final_metrics
-        ])
+        for i, df in enumerate([results_df_rmse, results_df_auc, results_df]):
+            df.loc[nn_ae_start:nn_ae_end - 1, 'study_type'] = 'NN + AE'
+            df.loc[xgb_ga_start:xgb_ga_end - 1, 'study_type'] = 'XGB + GA'
 
-        filtered_df = merged[merged['RMSE'] <= rmse_threshold].reset_index(drop=True)
+            merged = pd.concat([
+                df.rename(columns={
+                    'study_name': 'study_name',
+                    'study_type': 'Methodology',
+                    'rmse': 'RMSE',
+                    'auc': 'AUC',
+                    'best_combined_value': 'RMSE',
+                    'best_combined_auc': 'AUC',
+                    'best_combined_metric': 'combined_metric'
+                }),
+                final_metrics
+            ])
 
-        colour_mapping = ocstatplot.set_color_mapping(filtered_df, palette_colour)
+            if i == 0:
+                filtered_df_rmse = merged[merged['RMSE'] <= rmse_threshold].reset_index(drop=True)
+            if i == 1:
+                filtered_df_auc = merged[merged['AUC'] >= 0.5].reset_index(drop=True)
+            elif i == 2:
+                filtered_df = merged[merged['RMSE'] <= rmse_threshold].reset_index(drop=True)
+
+            colour_mapping = ocstatplot.set_color_mapping(filtered_df, palette_colour)
+            
 
         if plot_summary:
             ocstatplot.plot_combined_metric_scatter(filtered_df, n_trials, colour_mapping, output_dir=output_dir)
             ocstatplot.plot_boxplots(filtered_df, n_trials, colour_mapping, output_dir=output_dir)
-            ocstatplot.plot_barplots(filtered_df, n_trials, colour_mapping, output_dir=output_dir)
+            #plot_barplots2(filtered_df, n_trials, colour_mapping, output_dir=output_dir)
+            ocstatplot.plot_scatterplot(filtered_df, filtered_df_rmse, filtered_df_auc, n_trials, colour_mapping, output_dir=output_dir)
 
         ocstat.run_statistical_tests(filtered_df, n_trials, colour_mapping, output_dir=output_dir)
         occorrana.correlation_analysis(results_df, final_metrics, n_trials, error_threshold=1.5) # Não sei o quanto útil isso é
@@ -415,7 +435,7 @@ def run_full_analysis(
                 output_dir=output_dir,
                 n_trials=n_trials,
                 n_features=20,
-                colour_mapping=colour_mapping
+                #colour_mapping=colour_mapping
             )
             
             # Optionally call AE importance
@@ -426,7 +446,7 @@ def run_full_analysis(
 
 base_path: str = "/data/hd4tb/OCDocker/data/ocdb"
 df_path: str = f"{base_path}/OCDocker.csv.gz"
-trials_list = [1, 5, 10, 50, 100, 500]
+trials_list = [100]#[1, 5, 10, 50, 100, 500]
 
 from urllib.parse import quote_plus
 
@@ -441,3 +461,15 @@ storage_str = f"mysql+pymysql://{user}:{quote_plus(password)}@{host}:{port}/{db}
 
 palette_colour = "glasbey"
 output_dir = "plots"
+
+run_full_analysis(
+    df_path=df_path,
+    base_path=base_path,
+    storage_str=storage_str,
+    trials_list=trials_list,
+    output_dir=output_dir,
+    palette_colour=palette_colour,
+    rmse_threshold=1.5,
+    feature_analysis=True,
+    plot_summary=True
+)

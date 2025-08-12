@@ -138,7 +138,8 @@ class NeuralNet(nn.Module):
         self.layers = nn.ModuleList()
 
         # Set the mask
-        self.mask = mask if mask != None else []
+        #self.mask = mask if mask != None else []
+        self.mask = mask if mask is not None else []
 
         # Process the activation functions
         hidden_layers = []
@@ -588,7 +589,7 @@ class NeuralNet(nn.Module):
                 validation_predictions_np = validation_predictions.detach().cpu().numpy()
                 y_validation_np = y_validation.cpu().numpy() # type: ignore
 
-                self.prediction = y_validation_np
+                self.prediction = validation_predictions_np
 
                 # If there is a nan in the predictions, set the AUC to 0
                 if np.isnan(validation_predictions_np).any():
@@ -675,7 +676,8 @@ class DynamicNN(nn.Module):
         super(DynamicNN, self).__init__()
 
         # If the mask is None, set it to an empty list
-        if mask == None:
+        #if mask == None:
+        if mask is None:
             mask = []
 
         # Set input and output sizes
@@ -1193,7 +1195,7 @@ class DNNOptimizer:
         else:
             self.device = torch.device('cpu')
 
-        # Set the random seeds
+        # Set the activation functions
         self.activation_functions = [nn.GELU, nn.LeakyReLU, nn.Mish, nn.ReLU, nn.SELU, nn.Identity]
         self.activation_functions_str = ['GELU', 'LeakyReLU', 'Mish', 'ReLU', 'SELU', 'Identity']
 

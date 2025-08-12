@@ -1,0 +1,83 @@
+digraph DeepNN {
+    rankdir=LR;
+    //rankdir=TB;
+    splines=line;
+    //nodesep=0.6;
+    nodesep=1.25;
+    ranksep=0.5;
+    fontname="Helvetica";
+
+    node [shape=circle, fixedsize=true, width=0.35, style=filled, fontsize=10];
+
+    // Input
+    input [label="X ∈ ℝ²⁴⁰", shape=box, width=0.8, height=0.3, fillcolor="#4A90E2", fontcolor=white]
+
+    // Hidden 0 (1024 units, ReLU)
+    h0_1 [label="", fillcolor="#B3CDE3"]
+    h0_2 [label="", fillcolor="#B3CDE3"]
+    h0_3 [label="", fillcolor="#B3CDE3"]
+    act0_1 [label="ReLU\nℝ¹⁰²⁴", shape=box, width=0.9, height=0.4, style=filled, fillcolor=gray95]
+    act0_2 [label="ReLU\nℝ¹⁰²⁴", shape=box, width=0.9, height=0.4, style=filled, fillcolor=gray95]
+    act0_3 [label="ReLU\nℝ¹⁰²⁴", shape=box, width=0.9, height=0.4, style=filled, fillcolor=gray95]
+
+    // Hidden 1 (2048 units, ReLU)
+    h1_1 [label="", fillcolor="#B3CDE3"]
+    h1_2 [label="", fillcolor="#B3CDE3"]
+    h1_3 [label="", fillcolor="#B3CDE3"]
+    act1_1 [label="ReLU\nℝ²⁰⁴⁸", shape=box, width=1.1, height=0.4, style=filled, fillcolor=gray95]
+    act1_2 [label="ReLU\nℝ²⁰⁴⁸", shape=box, width=1.1, height=0.4, style=filled, fillcolor=gray95]
+    act1_3 [label="ReLU\nℝ²⁰⁴⁸", shape=box, width=1.1, height=0.4, style=filled, fillcolor=gray95]
+
+    // Hidden 2 (512 units, ReLU)
+    h2_1 [label="", fillcolor="#B3CDE3"]
+    h2_2 [label="", fillcolor="#B3CDE3"]
+    h2_3 [label="", fillcolor="#B3CDE3"]
+    act2_1 [label="ReLU\nℝ⁵¹²", shape=box, width=0.9, height=0.4, style=filled, fillcolor=gray95]
+    act2_2 [label="ReLU\nℝ⁵¹²", shape=box, width=0.9, height=0.4, style=filled, fillcolor=gray95]
+    act2_3 [label="ReLU\nℝ⁵¹²", shape=box, width=0.9, height=0.4, style=filled, fillcolor=gray95]
+
+    // Hidden 3 (128 units, GELU)
+    h3_1 [label="", fillcolor="#B3CDE3"]
+    h3_2 [label="", fillcolor="#B3CDE3"]
+    h3_3 [label="", fillcolor="#B3CDE3"]
+    act3_1 [label="GELU\nℝ¹²⁸", shape=box, width=0.9, height=0.4, style=filled, fillcolor=gray95]
+    act3_2 [label="GELU\nℝ¹²⁸", shape=box, width=0.9, height=0.4, style=filled, fillcolor=gray95]
+    act3_3 [label="GELU\nℝ¹²⁸", shape=box, width=0.9, height=0.4, style=filled, fillcolor=gray95]
+
+    // Hidden 4 (2048 units, Identity)
+    h4_1 [label="", fillcolor="#B3CDE3"]
+    h4_2 [label="", fillcolor="#B3CDE3"]
+    h4_3 [label="", fillcolor="#B3CDE3"]
+    act4_1 [label="Identity\nℝ²⁰⁴⁸", shape=box, width=1.2, height=0.4, style=filled, fillcolor=gray95]
+    act4_2 [label="Identity\nℝ²⁰⁴⁸", shape=box, width=1.2, height=0.4, style=filled, fillcolor=gray95]
+    act4_3 [label="Identity\nℝ²⁰⁴⁸", shape=box, width=1.2, height=0.4, style=filled, fillcolor=gray95]
+
+    // Output
+    output [label="ŷ ∈ ℝ¹", shape=box, width=0.8, height=0.3, fillcolor="#F5A623"]
+
+    // Connections
+    input -> h0_1; input -> h0_2; input -> h0_3;
+
+    h0_1 -> act0_1; h0_2 -> act0_2; h0_3 -> act0_3;
+    act0_1 -> h1_1; act0_1 -> h1_2; act0_1 -> h1_3;
+    act0_2 -> h1_2; act0_2 -> h1_3; act0_2 -> h1_1;
+    act0_3 -> h1_3; act0_3 -> h1_1; act0_3 -> h1_2;
+
+    h1_1 -> act1_1; h1_2 -> act1_2; h1_3 -> act1_3;
+    act1_1 -> h2_1; act1_1 -> h2_2; act1_1 -> h2_3;
+    act1_2 -> h2_2; act1_2 -> h2_3; act1_2 -> h2_1;
+    act1_3 -> h2_3; act1_3 -> h2_1; act1_3 -> h2_2;
+
+    h2_1 -> act2_1; h2_2 -> act2_2; h2_3 -> act2_3;
+    act2_1 -> h3_1; act2_1 -> h3_2; act2_1 -> h3_3;
+    act2_2 -> h3_2; act2_2 -> h3_3; act2_2 -> h3_1;
+    act2_3 -> h3_3; act2_3 -> h3_1; act2_3 -> h3_2;
+
+    h3_1 -> act3_1; h3_2 -> act3_2; h3_3 -> act3_3;
+    act3_1 -> h4_1; act3_1 -> h4_2; act3_1 -> h4_3;
+    act3_2 -> h4_2; act3_2 -> h4_3; act3_2 -> h4_1;
+    act3_3 -> h4_3; act3_3 -> h4_1; act3_3 -> h4_2;
+
+    h4_1 -> act4_1; h4_2 -> act4_2; h4_3 -> act4_3;
+    act4_1 -> output; act4_2 -> output; act4_3 -> output;
+}

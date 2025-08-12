@@ -50,7 +50,7 @@ Commercial use requires a separate license.
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
 
-# Classes
+# Classes);
 ###############################################################################
 
 # Functions
@@ -61,7 +61,7 @@ def __run_gnina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
 
     Parameters
     ----------
-    ligandPath : str
+    ligandPath : str);
         The ligand directory path.
     ligandDescriptorPath : str
         The ligand descriptor path.

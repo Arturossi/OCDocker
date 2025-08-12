@@ -603,6 +603,123 @@ def plot_scatterplot(best_rmse_df_filtered, best_auc_df_filtered, best_combined_
 
     return None
 
+def plot_scatterplot2(best_rmse_df_filtered, best_auc_df_filtered, best_combined_df_filtered,
+                     n_trials, color_mapping, min_auc, max_auc,
+                     min_error, max_error, error_range, auc_range, alpha=0.9):
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+
+    # Font configuration for clarity
+    plt.rcParams.update({
+        'axes.titlesize': 18,
+        'axes.labelsize': 16,
+        'xtick.labelsize': 14,
+        'ytick.labelsize': 14,
+        'legend.fontsize': 14
+    })
+
+    # Create 4-row grid: 3 plots + 1 for legends
+    fig, axes = plt.subplots(4, 1, figsize=(16, 24), gridspec_kw={'height_ratios': [1, 1, 1, 0.25]})
+    plot_axes = axes[:3]
+    legend_ax = axes[3]
+    legend_ax.axis('off')  # hide axis for legend panel
+
+    # Plot configurations
+    plot_configs = [
+        ('RMSE', best_rmse_df_filtered, 'Error vs. AUC (Smallest Error)'),
+        ('AUC', best_auc_df_filtered, 'Error vs. AUC (Biggest AUC)'),
+        ('RMSE-AUC', best_combined_df_filtered, 'Error vs. AUC (Smallest Error - AUC)')
+    ]
+
+    for i, (metric, df, title) in enumerate(plot_configs):
+        ax = plot_axes[i]
+
+        # Prepare AUC normalization
+        df['AUC_category'] = df["AUC"].apply(lambda x: '>= 0.5' if x >= 0.5 else '< 0.5')
+        df.loc[df['AUC_category'] == '< 0.5', "AUC"] = 1 - df["AUC"]
+
+        # Scatter for AUC >= 0.5
+        sns.scatterplot(
+            data=df[df['AUC_category'] == '>= 0.5'],
+            x="RMSE", y="AUC",
+            hue='Methodology',
+            palette=color_mapping,
+            alpha=alpha,
+            marker='o',
+            legend=False,
+            ax=ax
+        )
+
+        # Scatter for AUC < 0.5
+        sns.scatterplot(
+            data=df[df['AUC_category'] == '< 0.5'],
+            x="RMSE", y="AUC",
+            hue='Methodology',
+            palette=color_mapping,
+            alpha=alpha,
+            marker='*',
+            s=120,
+            legend=False,
+            ax=ax
+        )
+
+        # Axes settings
+        rmse_range = df["RMSE"].max() - df["RMSE"].min()
+        ax.set_xlim(df["RMSE"].min() - rmse_range * 0.05, df["RMSE"].max() + rmse_range * 0.05)
+        ax.set_ylim(min_auc - auc_range * 0.1, max_auc + auc_range * 0.1)
+        ax.set_title(title)
+        ax.set_xlabel('Error')
+        ax.set_ylabel('AUC')
+        ax.grid(True)
+        ax.minorticks_on()
+        ax.grid(which='minor', linestyle=':', linewidth='0.3', color='gray')
+
+    # --- AUC Legend ---
+    auc_labels = ['AUC >= 0.5 (= AUC)', 'AUC < 0.5 (= 1-AUC)']
+    auc_handles = [
+        plt.Line2D([0], [0], marker='o', color='w', label=auc_labels[0], markerfacecolor='gray', markersize=12),
+        plt.Line2D([0], [0], marker='*', color='w', label=auc_labels[1], markerfacecolor='gray', markersize=14)
+    ]
+
+    auc_legend = legend_ax.legend(
+        handles=auc_handles,
+        labels=auc_labels,
+        loc='center left',
+        bbox_to_anchor=(0.05, 0.8),  # top-left corner
+        title='AUC',
+        title_fontsize=16,
+        fontsize=14,
+        frameon=True,
+        borderpad=1,
+        handletextpad=0.7,
+        labelspacing=0.9
+    )
+    fig.add_artist(auc_legend)
+
+    # --- Methodology Legend ---
+    method_labels = df['Methodology'].unique().tolist()
+    method_handles = [plt.Line2D([0], [0], color=color_mapping[m], lw=4, label=m) for m in method_labels]
+
+    method_legend = legend_ax.legend(
+        handles=method_handles,
+        loc='center right',
+        bbox_to_anchor=(0.95, 0.2),  # bottom-right corner
+        title='Methodology',
+        title_fontsize=16,
+        fontsize=14,
+        frameon=True,
+        ncol=3,
+        columnspacing=1.5,
+        handletextpad=0.7,
+        labelspacing=0.9
+    )
+    fig.add_artist(method_legend)
+
+    # Layout adjustment excluding legend row
+    plt.tight_layout(rect=[0, 0.08, 1, 1])
+    plt.savefig(f'plots/Experiments_{n_trials}.png', dpi=300, bbox_inches='tight')
+    plt.close('all')
+
 def separate_dfs(best_rmse_df_filtered, best_auc_df_filtered, best_combined_df_filtered, to_remove = []) -> tuple[pd.DataFrame, pd.DataFrame]:
     # Create three new dataframes, one for Error (Smallest Error), one for Error (Biggest AUC), and one for Error (Smallest Error - AUC)
     df_error_menor_erro = best_rmse_df_filtered[['Experiment', 'Methodology', 'RMSE']].copy()
