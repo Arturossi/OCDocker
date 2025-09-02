@@ -60,6 +60,61 @@ the user to perform the steps step by step.
 
 # Functions
 ###############################################################################
+def print_args() -> None:
+    '''Print current OCDocker environment/arguments and key paths to aid debugging.
+
+    This reads values exported by `OCDocker.Initialise` imported above.
+    Safe to call even if some variables are absent.
+    '''
+
+    def _g(name, default='-'):
+        return globals().get(name, default)
+
+    def _p(label, value):
+        try:
+            print(f"{label:<24}: {value}")
+        except Exception:
+            print(f"{label:<24}: <unprintable>")
+
+    print("\n=== OCDocker Runtime Arguments ===")
+    _p("config_file", _g('config_file'))
+    _p("multiprocess", _g('multiprocess'))
+    _p("update", _g('update'))
+    # output_level can be enum or int
+    ol = _g('output_level')
+    try:
+        ol_disp = ol.name if hasattr(ol, 'name') else ol
+    except Exception:
+        ol_disp = ol
+    _p("output_level", ol_disp)
+    _p("overwrite", _g('overwrite'))
+
+    print("\n=== Key Paths ===")
+    _p("ocdb_path", _g('ocdb_path'))
+    _p("pca_path", _g('pca_path'))
+    _p("logdir", _g('logdir'))
+    _p("oddt_models_dir", _g('oddt_models_dir'))
+
+    print("\n=== Docking Binaries ===")
+    _p("vina", _g('vina'))
+    _p("smina", _g('smina'))
+    _p("plants", _g('plants'))
+    _p("obabel", _g('obabel'))
+    _p("pythonsh", _g('pythonsh'))
+    _p("prepare_ligand", _g('prepare_ligand'))
+    _p("prepare_receptor", _g('prepare_receptor'))
+
+    print("\n=== Resources ===")
+    _p("available_cores", _g('available_cores'))
+
+    print("\n=== Database URLs ===")
+    # URLs may be SQLAlchemy URL objects or strings
+    _p("db_url", _g('db_url'))
+    _p("optdb_url", _g('optdb_url'))
+    print("")
+
+    return None
+
 def clean_test_files(baseProtPath, baseLigPath, baseDecPath, baseCanPath) -> None:
     '''Rests the test_files folder to its original state
 
