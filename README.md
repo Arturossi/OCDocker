@@ -233,13 +233,6 @@ Download and install PLANTS
 
 Go to http://www.tcd.uni-konstanz.de/plants_download/ and demand a license
 
-Download and install GNINA
----------------
-
-Go to https://github.com/gnina/gnina/releases and download the latest build.
-
-If somehow you need or want to build your own code, follow the instructions from this link: https://github.com/gnina/gnina
-
 
 EXPLAINING THE OCDOCKER FILE STRUCTURE
 ============
@@ -364,9 +357,3 @@ These steps will be the same for any pairs receptor-ligand!
 ## License
 
 This software is proprietary and owned by the Federal University of Rio de Janeiro (UFRJ). See the `LICENSE` file for full terms.
-
-Summary:
-
-- All proprietary rights belong to UFRJ.
-- Use, reproduction, modification, and distribution are restricted and subject to formal authorization from the institution (Law No. 9,609/1998 — Brazil).
-- For authorization and commercial licensing inquiries, contact: `arturossi10@gmail.com`.
