@@ -40,13 +40,61 @@ Download the source code from the GitHub repository:
 	$ git clone https://github.com/Arturossi/OCDocker
 	```
 
-Go to OCDocker dir and execute the install.sh file with the following command. (Yes, need to be sudo... sorry :/)
+Go to the OCDocker directory and execute the installer with:
 
 	```bash
-	$ sudo sh ./install.sh
+	$ bash ./install.sh
 	```
 
-Log out then in (or open a new shell env) to activate conda env (base).
+Prerequisites
+-------------
+
+- Ubuntu/Debian-like system with internet access
+- sudo privileges (required to install: DSSP, MySQL server, and place Vina in `/usr/bin`)
+- ~15–20 GB of free disk space for conda env + tools + caches
+- bash shell (the installer uses `bash` and `conda.sh`)
+
+Automated installer details
+---------------------------
+
+The installer performs the following actions on Ubuntu-like systems:
+
+- Installs MGLTools locally under `./mgltools`.
+- Downloads AutoDock Vina and installs it to `/usr/bin/vina` (requires sudo).
+- Installs Miniconda under `$HOME/miniconda` (no sudo).
+- Installs DSSP and MySQL server via `apt-get` (requires sudo).
+- Creates the conda environment defined by `environment.yml` (name: `ocdocker`).
+- Creates a MySQL user and database named `ocdocker` (configurable via environment variables `DB_USER`, `DB_PASS`, `DB_NAME` before running the script).
+
+Notes
+-----
+
+- You will be prompted for sudo privileges when needed (system packages and `/usr/bin/vina`).
+- The script is idempotent for major steps: it skips environment creation if `ocdocker` already exists and uses `IF NOT EXISTS` for MySQL user/database.
+- After completion, activate the environment with:
+
+	```bash
+	$ conda activate ocdocker
+	```
+
+Log out then log in (or open a new shell) if you need to initialize conda’s base shell integration.
+
+Troubleshooting
+---------------
+
+- MGLTools issues (e.g., NumPy import errors):
+  - Consider reinstalling MGLTools from source or using the official archives; ensure system Python/conda paths don’t shadow MGLTools’ bundled Python.
+  - Verify the `pythonsh` and `prepare_*` paths configured in `OCDocker.cfg`.
+
+- Conda not found after install:
+  - Open a new shell, or run `source "$HOME/miniconda/etc/profile.d/conda.sh"` before `conda activate ocdocker`.
+
+- MySQL authentication errors:
+  - Ensure `mysql-server` service is running (`sudo systemctl status mysql`).
+  - Re-run the user/database creation commands shown in `install.sh`, or set `DB_USER/DB_PASS/DB_NAME` and re-run the script.
+
+- DSSP not found:
+  - Install via `sudo apt-get install -y dssp`, or adjust the `dssp` path in `OCDocker.cfg` to match your system.
 
 Install the conda OCDocker env
 
