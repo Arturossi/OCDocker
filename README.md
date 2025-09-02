@@ -12,39 +12,39 @@ Conda
 OCDocker is a conda package, so the simplest way to install it is to use conda. If you do not have conda installed, please follow the instructions at https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html.
 If you have conda installed, you can install OCDocker with the following command:
 
-	```bash
-	$ conda install arturossi/label/prealpha::ocdocker 
-	```
+```bash
+conda install arturossi/label/prealpha::ocdocker 
+```
 
 If you have mamba installed, you can install OCDocker with the following command:
 
-	```bash
-	$ mamba install arturossi/label/prealpha::ocdocker 
-	```
+```bash
+mamba install arturossi/label/prealpha::ocdocker 
+```
 
 pip
 ---
 
 If you prefer to use pip, you can install OCDocker with the following command:
 
-	```bash
-	$ pip install ocdocker
-	```
+```bash
+pip install ocdocker
+```
 
 From source
 -----------
 
 Download the source code from the GitHub repository:
 
-	```bash
-	$ git clone https://github.com/Arturossi/OCDocker
-	```
+```bash
+git clone https://github.com/Arturossi/OCDocker
+```
 
 Go to the OCDocker directory and execute the installer with:
 
-	```bash
-	$ bash ./install.sh
-	```
+```bash
+bash ./install.sh
+```
 
 Prerequisites
 -------------
@@ -73,9 +73,9 @@ Notes
 - The script is idempotent for major steps: it skips environment creation if `ocdocker` already exists and uses `IF NOT EXISTS` for MySQL user/database.
 - After completion, activate the environment with:
 
-	```bash
-	$ conda activate ocdocker
-	```
+```bash
+conda activate ocdocker
+```
 
 Log out then log in (or open a new shell) if you need to initialize conda’s base shell integration.
 
@@ -104,38 +104,29 @@ OCDocker can leverage NVIDIA GPUs for PyTorch-based components (e.g., OCScore DN
 - PyTorch 2.4.1 with CUDA 12.1 (`pytorch-cuda=12.1`)
 - cuDNN bundled via conda
 
-Requirements
-~~~~~~~~~~~~
+### Requirements
 
 - Recent NVIDIA driver compatible with CUDA 12.1 (recommended ≥ 535)
 - No system CUDA toolkit is strictly required; the conda packages ship the CUDA runtime
 
-Quick checks
-~~~~~~~~~~~~
+### Quick checks
 
-.. code-block:: bash
+```bash
+# Driver + GPU visible?
+nvidia-smi
 
-   # Driver + GPU visible?
-   nvidia-smi
+# PyTorch sees the GPU?
+conda activate ocdocker
+python -c "import torch; print('CUDA available:', torch.cuda.is_available()); print('Device count:', torch.cuda.device_count())"
+```
 
-   # PyTorch sees the GPU?
-   conda activate ocdocker
-   python -c "import torch; print('CUDA available:', torch.cuda.is_available()); print('Device count:', torch.cuda.device_count())"
-
-Troubleshooting GPU
-~~~~~~~~~~~~~~~~~~~
+### Troubleshooting GPU
 
 - If `torch.cuda.is_available()` is False:
   - Ensure the NVIDIA driver is installed and loaded (e.g., `sudo ubuntu-drivers autoinstall` then reboot)
   - Verify driver ≥ 535 for CUDA 12.1
   - Make sure you activated the correct conda env (`ocdocker`)
   - Avoid mixing system CUDA with conda CUDA unless you know what you’re doing
-
-Install the conda OCDocker env
-
-	```bash
-	$ conda env create -f environment.yml
-	```
 
 Or perform each software installation manually with the below steps.
 
@@ -146,40 +137,40 @@ To install it, you have 3 options:
 
 * Option 1 (For those who loves GUI)
 
-	```bash
-	$ wget https://ccsb.scripps.edu/download/292/ --no-check-certificate -O mgltools_install
-	```
+```bash
+wget https://ccsb.scripps.edu/download/292/ --no-check-certificate -O mgltools_install
+```
 
 * Option 2 (For those who love to follow each step)
 
 	- Download the file
 
-	```bash
-	$ wget https://ccsb.scripps.edu/download/532/ --no-check-certificate -O mgltools_install.tar.gz
-	```
+```bash
+wget https://ccsb.scripps.edu/download/532/ --no-check-certificate -O mgltools_install.tar.gz
+```
 
 	- Untar it:
 
-	```bash
-	$ tar -xvzf mgltools_install.tar.gz
-	```
+```bash
+tar -xvzf mgltools_install.tar.gz
+```
 
 	- cd into created dir
 
-	```bash
-	$ cd mgltools_x86_64Linux2_1.5.X
-	```
+```bash
+cd mgltools_x86_64Linux2_1.5.X
+```
 
 	- source the install.sh
 
-	```bash
-	$ source ./install.sh
-	```
+```bash
+source ./install.sh
+```
 
 * Option 3 (Use this all-in-one command. It seems to be more complicated, but its easier than option 2 and its easy to automate-it)
 
 ```bash
-$ wget https://ccsb.scripps.edu/download/532/ -O mgltools_install.tar.gz --no-check-certificate && mkdir -p mgltools && tar -xvzf mgltools_install.tar.gz -C mgltools --strip-components=1 && rm mgltools_install.tar.gz && cd mgltools && source ./install.sh
+wget https://ccsb.scripps.edu/download/532/ -O mgltools_install.tar.gz --no-check-certificate && mkdir -p mgltools && tar -xvzf mgltools_install.tar.gz -C mgltools --strip-components=1 && rm mgltools_install.tar.gz && cd mgltools && source ./install.sh
 ```
 
 Note: The scripts used to prepare ligand/receptor are located at ``<installation_dir>/mgltools/MGLToolsPckgs/AutoDockTools``.
@@ -192,7 +183,7 @@ Install DSSP
 To install DSSP in Ubuntu 18.04+:
 
 ```bash
-$ sudo apt install dssp
+sudo apt install dssp
 ```
 
 By default, the DSSP path is '/usr/bin/dssp'.
@@ -208,15 +199,15 @@ To install it, you have 2 options:
 	- Go to the website http://vina.scripps.edu/download.html and download the Linux installer (tgz)
 	- Untar it:
 
-	```bash
-	$ tar -xvzf autodock_vina_1_1_2_linux_x86.tgz
-	```
+```bash
+tar -xvzf autodock_vina_1_1_2_linux_x86.tgz
+```
 
 * Option 2 (Use this all-in-one command. It seems to be more complicated, but its easier than option 2 and its easy to automate-it)
 
-	```bash
-	$ mkdir vina && wget https://github.com/ccsb-scripps/AutoDock-Vina/releases/download/v1.2.3/vina_1.2.3_linux_x86_64 -O vina/vina && sudo cp vina/vina /usr/bin/vina
-	```
+```bash
+mkdir vina && wget https://github.com/ccsb-scripps/AutoDock-Vina/releases/download/v1.2.3/vina_1.2.3_linux_x86_64 -O vina/vina && sudo cp vina/vina /usr/bin/vina
+```
 
 Note: The Vina executable will be located in ``installation_dir/vina/bin``.
 
@@ -227,13 +218,13 @@ Download and install SMINA
 First of all make sure that you have all required libs installed (openbabel must be v3+).
 
 ```bash
-$ sudo apt install git libboost-all-dev libopenbabel-dev build-essential libeigen3-dev openbabel
+sudo apt install git libboost-all-dev libopenbabel-dev build-essential libeigen3-dev openbabel
 ```
 
 Now clone the smina repo then enter it, create a build folder, enter the build folder, perform the cmake using the parent folder as the source and finally use the make with 12 jobs (you can increase/decrease the number of jobs if you want, but 12 is what is written in smina's doc).
 
 ```bash
-$ git clone https://git.code.sf.net/p/smina/code smina-code && cd smina-code && mkdir build && cd build && cmake .. && make -j12
+git clone https://git.code.sf.net/p/smina/code smina-code && cd smina-code && mkdir build && cd build && cmake .. && make -j12
 ```
 
 
