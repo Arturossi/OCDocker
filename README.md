@@ -205,6 +205,47 @@ mkdir vina && wget https://github.com/ccsb-scripps/AutoDock-Vina/releases/downlo
 
 Note: The Vina executable will be located in ``installation_dir/vina/bin``.
 
+Testing
+=======
+
+This repository ships a test suite under `tests/` that exercises the core library (Toolbox, Docking helpers, DB minimal, parsing, etc.).
+
+Quick start
+-----------
+
+```bash
+conda activate ocdocker
+pytest -q
+```
+
+Useful commands
+---------------
+
+- Run a specific test file:
+
+  ```bash
+  pytest tests/test_Vina.py -q
+  ```
+
+- Show test names while running:
+
+  ```bash
+  pytest -q -k vina -vv
+  ```
+
+- Coverage (if `pytest-cov` is present):
+
+  ```bash
+  pytest --cov=OCDocker --cov-report=term-missing
+  ```
+
+Notes for testing
+-----------------
+
+- The tests operate on sample data under `test_files/` and do not require external binaries to actually run (they validate parsing/IO helpers, config generation, log readers, etc.).
+- If you want to run end‑to‑end docking locally, ensure you’ve installed external tools (MGLTools, Vina, Smina/PLANTS where applicable) and set paths in `OCDocker.cfg`.
+- Some modules (e.g., Initialise) perform environment bootstrapping; the test suite avoids heavy side effects, but for interactive usage consider setting `OCDOCKER_CONFIG=./OCDocker.cfg`.
+
 
 Download and install SMINA
 ---------------
@@ -272,9 +313,9 @@ receptor = ocr.Receptor("./test_files/receptor.pdb", name="Receptor")
 # Ligand import and creation
 import OCDocker.Ligand as ocl
 ligand = ocl.Ligand("./test_files/compounds/ligands/ligand/ligand.smi", name="Ligand")
-decoy =  ocl.Ligand("./test_files/compounds/decoys/ZINC000000000015/ligand.smi", name="ZINC000000000015")
-decoy2 =  ocl.Ligand("./test_files/compounds/decoys/ZINC000000000024/ligand.smi", name="ZINC000000000024")
-decoy3 =  ocl.Ligand("./test_files/compounds/decoys/ZINC000000000030/ligand.smi", name="ZINC000000000030")
+decoy  = ocl.Ligand("./test_files/compounds/decoys/ZINC000000000015/ligand.smi", name="ZINC000000000015")
+decoy2 = ocl.Ligand("./test_files/compounds/decoys/ZINC000000000024/ligand.smi", name="ZINC000000000024")
+decoy3 = ocl.Ligand("./test_files/compounds/decoys/ZINC000000000030/ligand.smi", name="ZINC000000000030")
 ```
 
 Now we can create the docking objects, here how is it done:
@@ -351,3 +392,32 @@ These steps will be the same for any pairs receptor-ligand!
 ## License
 
 This software is proprietary and owned by the Federal University of Rio de Janeiro (UFRJ). See the `LICENSE` file for full terms.
+
+Testing
+=======
+This repository ships a test suite under `tests/` that exercises the core library (Toolbox, Docking helpers, DB minimal, parsing, etc.).
+Quick start
+-----------
+```bash
+conda activate ocdocker
+pytest -q
+```
+Useful commands
+---------------
+- Run a specific test file:
+  ```bash
+  pytest tests/test_Vina.py -q
+  ```
+- Show test names while running:
+  ```bash
+  pytest -q -k vina -vv
+  ```
+- Coverage (if `pytest-cov` is present):
+  ```bash
+  pytest --cov=OCDocker --cov-report=term-missing
+  ```
+Notes for testing
+-----------------
+- The tests operate on sample data under `test_files/` and do not require external binaries to actually run (they validate parsing/IO helpers, config generation, log readers, etc.).
+- If you want to run end‑to‑end docking locally, ensure you’ve installed external tools (MGLTools, Vina, Smina/PLANTS where applicable) and set paths in `OCDocker.cfg`.
+- Some modules (e.g., Initialise) perform environment bootstrapping; the test suite avoids heavy side effects, but for interactive usage consider setting `OCDOCKER_CONFIG=./OCDocker.cfg`.
