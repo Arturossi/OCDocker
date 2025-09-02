@@ -96,6 +96,41 @@ Troubleshooting
 - DSSP not found:
   - Install via `sudo apt-get install -y dssp`, or adjust the `dssp` path in `OCDocker.cfg` to match your system.
 
+GPU (optional)
+--------------
+
+OCDocker can leverage NVIDIA GPUs for PyTorch-based components (e.g., OCScore DNN/SHAP pipelines). The provided environment pins:
+
+- PyTorch 2.4.1 with CUDA 12.1 (`pytorch-cuda=12.1`)
+- cuDNN bundled via conda
+
+Requirements
+~~~~~~~~~~~~
+
+- Recent NVIDIA driver compatible with CUDA 12.1 (recommended ≥ 535)
+- No system CUDA toolkit is strictly required; the conda packages ship the CUDA runtime
+
+Quick checks
+~~~~~~~~~~~~
+
+.. code-block:: bash
+
+   # Driver + GPU visible?
+   nvidia-smi
+
+   # PyTorch sees the GPU?
+   conda activate ocdocker
+   python -c "import torch; print('CUDA available:', torch.cuda.is_available()); print('Device count:', torch.cuda.device_count())"
+
+Troubleshooting GPU
+~~~~~~~~~~~~~~~~~~~
+
+- If `torch.cuda.is_available()` is False:
+  - Ensure the NVIDIA driver is installed and loaded (e.g., `sudo ubuntu-drivers autoinstall` then reboot)
+  - Verify driver ≥ 535 for CUDA 12.1
+  - Make sure you activated the correct conda env (`ocdocker`)
+  - Avoid mixing system CUDA with conda CUDA unless you know what you’re doing
+
 Install the conda OCDocker env
 
 	```bash
@@ -104,7 +139,7 @@ Install the conda OCDocker env
 
 Or perform each software installation manually with the below steps.
 
-Download and install MGLTools (or ADFR, which is still being tested)
+Download and install MGLTools
 ------------------------------------------------------------------------------------
 
 To install it, you have 3 options:
@@ -150,60 +185,6 @@ $ wget https://ccsb.scripps.edu/download/532/ -O mgltools_install.tar.gz --no-ch
 Note: The scripts used to prepare ligand/receptor are located at ``<installation_dir>/mgltools/MGLToolsPckgs/AutoDockTools``.
 
 > :warning: **Still cannot run MGLTools?**: If you are facing some shady problems such as the numpy one, you might have to compile MGLTools from source. You can download it at https://github.com/genome-vendor/MGLtools (Still not sure about its version... I do not know if it is 1.5.6 or 1.5.4)
-
-Download and install ADFRtools (in test)
-----------------------------------------
-
-To install it, you have 3 options:
-
-* Option 1 (GUI)
-
-	```bash
-	$ wget https://ccsb.scripps.edu/adfr/download/1028/ --no-check-certificate -O adfr_install
-	```
-
-* Option 2 (Step-by-step)
-
-	- Download the file
-
-	```bash
-	$ wget https://ccsb.scripps.edu/adfr/download/1038/ --no-check-certificate -O adfr_install.tar.gz
-	```
-
-	- Untar it and rename it (to look nicer):
-
-	```bash
-	$ tar -xvzf adfr_install.tar.gz -C ADFRsuite
-	```
-
-	- cd into created dir
-
-	```bash
-	$ cd ADFRsuite
-	```
-
-	- source the install.sh
-
-	```bash
-	$ source ./install.sh
-	```
-
-	- export the variable to the path
-	```bash
-	$ echo "PATH=`pwd`/bin:"'$PATH' >> ~/.bashrc
-	```
-
-	- source the bashrc
-	```bash
-	$ source ~/.bashrc
-	```
-
-* Option 3 (All-in-one command; looks longer, but it's easier to automate)
-
-```bash
-$ wget https://ccsb.scripps.edu/adfr/download/1028/ --no-check-certificate -O adfr_install && mkdir -p mgltools && tar -xvzf adfr_install.tar.gz -C ADFRsuite --strip-components=1 && rm adfr_install.tar.gz && cd ADFRsuite && source ./install.sh && echo "PATH=`pwd`/bin:"'$PATH' >> ~/.bashrc && source ~/.bashrc
-```
-
 
 Install DSSP
 ---------------
@@ -328,33 +309,25 @@ Pre steps
 ligandPath = f"./test_files/compounds/ligands/ligand"
 ```
 
-GNINA
-------
-```python3
-# Import
-import OCDocker.Docking.Gnina as ocgnina
-
-# Create object
-gnina_ligand = ocgnina.Gnina(f"{ligandPath}/gninaFiles/conf_gnina.txt", f"{ligandPath}boxes/box.pdb", receptor, f"./test_files/prepared_receptor.pdbqt", ligand, f"{ligandPath}/prepared_ligand.pdbqt", f"{ligandPath}/gninaFiles/gnina.log", f"{ligandPath}/gninaFiles/gnina.pdbqt", name=f"Gnina receptor-ligand")
-
-# Prepare receptor
-gnina_ligand.run_prepare_receptor()
-
-# Prepare ligand
-gnina_ligand.run_prepare_ligand()
-
-# Run docking
-gnina_ligand.run_dock()
-```
 
 SMINA
-------
-```python3
+-----
+```python
 # Import
 import OCDocker.Docking.Smina as ocsmina
 
 # Create object
-smina_ligand = ocgnina.Smina(f"{ligandPath}/sminaFiles/conf_smina.txt", f"{ligandPath}boxes/box.pdb", receptor, f"./test_files/prepared_receptor.pdbqt", ligand, f"{ligandPath}/prepared_ligand.pdbqt", f{ligandPath}/sminaFiles/smina.log", f"{ligandPath}/sminaFiles/smina.pdbqt", name=f"Smina receptor-ligand")
+smina_ligand = ocsmina.Smina(
+    f"{ligandPath}/sminaFiles/conf_smina.txt",
+    f"{ligandPath}/boxes/box.pdb",
+    receptor,
+    f"./test_files/prepared_receptor.pdbqt",
+    ligand,
+    f"{ligandPath}/prepared_ligand.pdbqt",
+    f"{ligandPath}/sminaFiles/smina.log",
+    f"{ligandPath}/sminaFiles/smina.pdbqt",
+    name=f"Smina receptor-ligand",
+)
 
 # Prepare receptor
 smina_ligand.run_prepare_receptor()
@@ -363,17 +336,27 @@ smina_ligand.run_prepare_receptor()
 smina_ligand.run_prepare_ligand()
 
 # Run docking
-smina_ligand.run_dock()
+smina_ligand.run_docking()
 ```
 
 Vina
-------
-```python3
+----
+```python
 # Import
 import OCDocker.Docking.Vina as ocvina
 
 # Create object
-vina_ligand = ocvina.Vina(f"{ligandPath}/vinaFiles/conf_vina.txt", f"{ligandPath}boxes/box.pdb", receptor, f"./test_files/prepared_receptor.pdbqt", ligand, f"{ligandPath}/prepared_ligand.pdbqt", f"{ligandPath}/vinaFiles/vina.log", f"{ligandPath}/vinaFiles/vina.pdbqt", name=f"Vina receptor-ligand")
+vina_ligand = ocvina.Vina(
+    f"{ligandPath}/vinaFiles/conf_vina.txt",
+    f"{ligandPath}/boxes/box.pdb",
+    receptor,
+    f"./test_files/prepared_receptor.pdbqt",
+    ligand,
+    f"{ligandPath}/prepared_ligand.pdbqt",
+    f"{ligandPath}/vinaFiles/vina.log",
+    f"{ligandPath}/vinaFiles/vina.pdbqt",
+    name=f"Vina receptor-ligand",
+)
 
 # Prepare receptor
 vina_ligand.run_prepare_receptor()
@@ -382,16 +365,13 @@ vina_ligand.run_prepare_receptor()
 vina_ligand.run_prepare_ligand()
 
 # Run docking
-vina_ligand.run_dock()
+vina_ligand.run_docking()
 ```
 
 These steps will be the same for any pairs receptor-ligand!
 
 ## License
 
-OCDocker is dual-licensed:
+This project is licensed under the Apache License 2.0. See the `LICENSE` file for full terms.
 
-- **Open Source License**: Apache License 2.0 — free for academic, research, and non-commercial use.
-- **Commercial License**: Required for any commercial or for-profit use.
-
-See the `LICENSE` and `COMMERCIAL.txt` files for full terms.
+Note: As stated in the source headers, commercial use may require a separate license. For commercial licensing inquiries, contact: `arturossi10@gmail.com`.
