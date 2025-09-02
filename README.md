@@ -372,6 +372,10 @@ These steps will be the same for any pairs receptor-ligand!
 
 ## License
 
-This project is licensed under the Apache License 2.0. See the `LICENSE` file for full terms.
+This software is proprietary and owned by the Federal University of Rio de Janeiro (UFRJ). See the `LICENSE` file for full terms.
 
-Note: As stated in the source headers, commercial use may require a separate license. For commercial licensing inquiries, contact: `arturossi10@gmail.com`.
+Summary:
+
+- All proprietary rights belong to UFRJ.
+- Use, reproduction, modification, and distribution are restricted and subject to formal authorization from the institution (Law No. 9,609/1998 — Brazil).
+- For authorization and commercial licensing inquiries, contact: `arturossi10@gmail.com`.
