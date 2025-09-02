@@ -11,7 +11,7 @@ from pprint import pprint
 from glob import glob
 
 # The environment variable OCDOCKER_CONFIG must be set to the OCDocker.cfg file before importing OCDocker
-os.environ['OCDOCKER_CONFIG'] = 'OCDocker.cfg'
+cfg_path = os.environ.get('OCDOCKER_CONFIG') or 'OCDocker.cfg'
 
 from OCDocker.Initialise import *
 
@@ -110,7 +110,7 @@ print(message)
 
 if __name__ == "__main__":
     # Set the variables based on args
-    #set_argparse()
+    set_argparse()
     pass
 else:
     cpu_cores = 18

@@ -305,10 +305,10 @@ class PLANTS:
 
         # Print verboosity
         ocprint.printv(f"Running PLANTS using the '{self.config}' configurations.")
-        # Cd to tmpDir (because PLANTS keeps spamming annoying files)
-        os.chdir(tmpDir)
-        # Run plants
-        output = ocrun.run(self.plantsCmd, logFile=self.plantsLog)
+
+        # Cd to tmpDir (because PLANTS keeps spamming annoying files) and run plants
+        output = ocrun.run(self.plantsCmd, logFile=self.plantsLog, cwd=tmpDir)
+
         # Check if there is a PLANTS-*.pid file
         for pidFile in glob(f"{tmpDir}/PLANTS-*.pid"):
             # This try is to avoid ocerror.Error when the file does not exist
@@ -317,6 +317,7 @@ class PLANTS:
                 os.remove(pidFile)
             except:
                 pass
+            
         # Check if there is a *bad*.mol2 file
         for badFile in glob(f"{tmpDir}/*bad.mol2"):
             # This try is to avoid ocerror.Error when the file does not exist

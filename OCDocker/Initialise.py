@@ -580,6 +580,7 @@ def create_ocdocker_conf() -> None:
     try:
         confODDT = os.popen("which oddt_cli").read().replace('\n', '').strip()
     except:
+        
         confODDT = "/usr/bin/oddt_cli"
     
     confODDT_scoring_functions = "rfscore_v1_pdbbind2016,rfscore_v2_pdbbind2016,rfscore_v3_pdbbind2016,nnscore_pdbbind2016,plecrf_pdbbind2016"

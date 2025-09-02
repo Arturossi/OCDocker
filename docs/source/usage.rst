@@ -23,6 +23,42 @@ Here is an example of how to use OCDocker:
 
    ocdocker --help
 
+Common commands
+---------------
+
+- Virtual screening for a single entry (receptor/ligand/box):
+
+  .. code-block:: bash
+
+     ocdocker vs --engine vina \
+       --receptor path/to/receptor.pdb \
+       --ligand path/to/ligand.smi \
+       --box path/to/box0.pdb \
+       --outdir runs/exp1
+
+- Create a configuration file interactively:
+
+  .. code-block:: bash
+
+     ocdocker init-config
+
+- Run SHAP analysis (delegates to OCScore SHAP CLI):
+
+  .. code-block:: bash
+
+   ocdocker shap --help
+
+- Full pipeline (multi-engine, clustering, rescoring):
+
+  .. code-block:: bash
+
+     ocdocker pipeline \
+       --receptor path/to/receptor.pdb \
+       --ligand path/to/ligand.smi \
+       --box path/to/box0.pdb \
+       --engines vina,smina,plants \
+       --outdir runs/exp1
+
 This command displays the help message with all available options and arguments.
 
 Advanced Usage

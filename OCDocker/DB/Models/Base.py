@@ -1,12 +1,41 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Base class for all the tables in the database.
+
+They are imported as:
+
+from OCDocker.DB.Models.Base import base
+'''
+
+# Imports
+###############################################################################
+
 from sqlalchemy import Column, DateTime, Float, Index, Integer, String, func
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import declared_attr
+from operator import eq, ne, lt, le, gt, ge
+from sqlalchemy import or_, and_
 from typing import Any, Dict, List, Union
 
 import OCDocker.Error as ocerror
 from OCDocker.Initialise import session
+
+OPMAP = {
+    "==": lambda c, v: c == v,
+    "!=": lambda c, v: c != v,
+    ">":  lambda c, v: c > v,
+    ">=": lambda c, v: c >= v,
+    "<":  lambda c, v: c < v,
+    "<=": lambda c, v: c <= v,
+    "like":   lambda c, v: c.like(v),
+    "ilike":  lambda c, v: c.ilike(v),
+    "in":     lambda c, v: c.in_(v if isinstance(v, (list, tuple, set)) else [v]),
+}
 
 class Base(declarative_base()):
     """ Base class for all the tables. """
@@ -470,18 +499,49 @@ class Base(declarative_base()):
         List[DeclarativeMeta]
             The data found.
         '''
-
+        
         # Check if session is defined
         if session is None:
-            # The session is not defined
-            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.") # type: ignore
-
+            # The session s not defined
+            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.")  # type: ignore
             # Return an empty list
             return []
-        
+
         # Open the session
         with session() as s:
+            try:
             # Perform the search
+                results = cls._find_by(s, column=column, operator=operator, value=value)
+            except ValueError as e:
+                _ = ocerror.Error.malformed_payload(str(e))  # type: ignore
+                return []
+        return results
+
+    @classmethod
+    def find_attribute(cls, column: str, value: Any, operator: str = "==") -> List[DeclarativeMeta]:
+        ''' Search data in the database based on an attribute.
+
+        Parameters
+        ----------
+        column : str
+            The column name.
+        value : Any
+            The value to be searched.
+        operator : str
+            The operator to be used.
+
+        Returns
+        -------
+        List[DeclarativeMeta]
+            The data found.
+        '''
+
+        if session is None:
+            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.") # type: ignore
+
+            return []
+        
+        with session() as s:
             data = s.query(cls).filter(
                     eval(f"cls.{column} {operator} value")
                 ).all()

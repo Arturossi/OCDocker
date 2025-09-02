@@ -358,8 +358,7 @@ def run_full_analysis(
         "ef_summary_pooled": ef_summary_pooled,
         "pr_per_target": pr_per_target,
         "pr_summary_targets": pr_summary_targets,
-        "pr_summary_pooled": pr_summary_pooled,
-        "fig_pr_heatmap": fig_pr,
+        "pr_summary_pooled": pr_summary_pooled
     }
 
 # Seleciona colunas cujo nome começa com SMINA, VINA, PLANTS ou ODDT
@@ -392,16 +391,16 @@ active_col = "class"
 # Scores preditivos (sem as colunas indesejadas)
 score_cols = [c for c in sfs.columns if c not in ("class", "receptor", "ligand", "name")]
 
-out = run_full_analysis(
-    sfs, target_col, active_col, score_cols,
-    fprs=(0.01,0.05,0.10,0.20,0.30), B=2000, seed=42,
-)
-
 # ---- helper para formatar valor + IC (usado na tabela) ----
 def _fmt_ci(val, lo, hi, digits=2):
     if pd.isna(val) or pd.isna(lo) or pd.isna(hi):
         return "-"
     return f"{val:.{digits}f} [{lo:.{digits}f}, {hi:.{digits}f}]"
+
+out = run_full_analysis(
+    sfs, target_col, active_col, score_cols,
+    fprs=(0.01,0.05,0.10,0.20,0.30), B=2000, seed=42,
+)
 
 # ---- extrai os artefatos do orquestrador ----
 ef_per_target       = out["ef_per_target"]
@@ -547,8 +546,115 @@ def plot_efauc_forest(
 
     return fig, ax
 
+def plot_efroc_rank_heatmap_rotated_all(
+    summary,
+    eps=(1,5,10,20,30),
+    kind="pooled",
+    cmap="viridis_r",
+    sort_by_eps=5,                 # ordena pelos ranks no ε escolhido
+    label_map=None,
+    highlight_models=("OCScore",), # pode ser str, tupla/lista ou None
+    highlight_color="red",
+    highlight_lw=2,
+    highlight_alpha=0.85,
+    ):
+    import numpy as np, pandas as pd, matplotlib.pyplot as plt
+    import matplotlib.patches as patches
+    from matplotlib.colors import Normalize
+
+    val_col = "pooled_value" if kind == "pooled" else "median_across_targets"
+    eps = [int(e) for e in eps]
+
+    # --------- montar rank por ε (linhas=ε, colunas=modelos) ---------
+    ranks = {}
+    for e in eps:
+        dfe = (summary[summary["metric"].eq(f"EF_ROC_{e}%")]
+               [["model", val_col]].dropna()
+               .sort_values(val_col, ascending=False)
+               .reset_index(drop=True))
+        ranks[e] = {m: i+1 for i, m in enumerate(dfe["model"])}
+
+    all_models = sorted(set().union(*[set(r.keys()) for r in ranks.values()]))
+    dfR = pd.DataFrame(index=eps, columns=all_models, dtype=float)
+    for e in eps:
+        for m, r in ranks[e].items():
+            dfR.loc[e, m] = r
+
+    # --------- ordenar colunas pelo ε escolhido ---------
+    if sort_by_eps in dfR.index:
+        base_order = dfR.loc[sort_by_eps].sort_values().dropna().index
+        dfR = dfR.reindex(columns=base_order)
+
+    # rótulos (opcionalmente mapear nomes)
+    if label_map is None: label_map = {}
+    xlabels = [label_map.get(m, m) for m in dfR.columns]
+    ylabels = [f"ε={e}%" for e in dfR.index]
+
+    # --------- dimensões e fontes automáticas ---------
+    n_models, n_eps = dfR.shape[1], dfR.shape[0]
+    fs_xtick = max(7, min(12, 12 - 0.06*(n_models-10)))
+    fs_cell  = max(7, min(12, 12 - 0.05*(n_models-12)))
+    w = max(10, 0.55*n_models + 3.0)
+    h = max(3.6, 0.8*n_eps + 1.6)
+
+    fig, ax = plt.subplots(figsize=(w, h))
+
+    # --------- HEATMAP com arestas explícitas (alinhado) ---------
+    Z = dfR.values.astype(float)
+    x = np.arange(n_models + 1) - 0.5
+    y = np.arange(n_eps + 1) - 0.5
+    vmin, vmax = np.nanmin(Z), np.nanmax(Z)
+    pc = ax.pcolormesh(x, y, Z, cmap=cmap, shading="flat", vmin=vmin, vmax=vmax)
+
+    # limites e ticks exatamente no centro das células
+    ax.set_xlim(-0.5, n_models - 0.5)
+    ax.set_ylim(n_eps - 0.5, -0.5)  # origem no topo
+    ax.set_xticks(np.arange(n_models))
+    ax.set_yticks(np.arange(n_eps))
+
+    ax.set_xticklabels(
+        xlabels, rotation=40, ha="right", rotation_mode="anchor", fontsize=fs_xtick
+    )
+    ax.set_yticklabels(ylabels, fontsize=12)
+    ax.tick_params(axis="x", pad=6)
+
+    # --------- números nas células (cor adaptativa) ---------
+    norm = Normalize(vmin=vmin, vmax=vmax)
+    cmap_obj = plt.get_cmap(cmap)
+    for i in range(n_eps):
+        for j in range(n_models):
+            if np.isfinite(Z[i, j]):
+                L = np.dot(cmap_obj(norm(Z[i, j]))[:3], [0.2126, 0.7152, 0.0722])
+                ax.text(j, i, f"{int(Z[i, j])}", ha="center", va="center",
+                        fontsize=fs_cell, color=("black" if L > 0.6 else "white"))
+
+    # --------- destaque: borda contínua na(s) coluna(s) ---------
+    if highlight_models:
+        if isinstance(highlight_models, (str,)):
+            highlight_models = [highlight_models]
+        for hm in highlight_models:
+            if hm in dfR.columns:
+                j = list(dfR.columns).index(hm)
+                rect = patches.Rectangle(
+                    (j - 0.5, -0.5), 1, n_eps,  # coluna inteira
+                    linewidth=highlight_lw, edgecolor=highlight_color,
+                    facecolor="none", alpha=highlight_alpha, zorder=3
+                )
+                ax.add_patch(rect)
+
+    # --------- título e colorbar ---------
+    ax.set_title("Ranking por ponto de operação", fontsize=16, pad=12)
+    cbar = fig.colorbar(pc, ax=ax, shrink=0.75)
+    cbar.set_label("posição no ranking", fontsize=12)
+
+    fig.tight_layout()
+    fig.subplots_adjust(bottom=0.30)  # espaço extra p/ labels do X
+    return fig, ax
+
 # Import necessário p/ ticks de 1 em 1 (se ainda não tiver)
 from matplotlib.ticker import MultipleLocator
+
+FPRS = (0.01, 0.05, 0.10, 0.20, 0.30)
 
 # ---- Forest plot: EF_ROC pooled com IC95% (vários ε) ----
 # Usa as mesmas FPRs do pipeline, mas em %

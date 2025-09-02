@@ -51,7 +51,7 @@ df_path: str = f"{base_path}/OCDocker.csv.gz"
 base_models_folder: str = f"{base_path}/models"
 
 study_name = f"NN_Ablation_Optimization_1"
-study_name = f"NN_Seed_Ablation_Optimization_2"
+#study_name = f"NN_Seed_Ablation_Optimization_2"
 study = optuna.load_study(study_name = study_name, storage = storage)
 
 # Filter the trials to only include the ones that are complete
@@ -154,6 +154,7 @@ one_hot_features = pd.DataFrame(
 
 # Concatenate the one-hot encoded features with the original features
 features = pd.concat([features, one_hot_features], axis=1)
+features_fake = pd.concat([features_fake, one_hot_features], axis=1)
 
 # Normalize the features
 scaler = StandardScaler()
@@ -1132,7 +1133,7 @@ def show_discretization_categories(data: pd.DataFrame) -> None:
     plt.tight_layout()
     plt.savefig('chi_square_discretization.png')
 
-def chi_square_analysis(
+def chi_square_analysis_old(
         features: pd.DataFrame,
         metric: str = 'AUC',
         feature_bits: Optional[list] = None,
@@ -1313,105 +1314,280 @@ def plot_cramers_comparison(auc_df: pd.DataFrame, rmse_df: pd.DataFrame) -> None
     plt.savefig('cramer.png')
     plt.close()
 
-def visualize_chi_square_comparison(auc_df: pd.DataFrame, rmse_df: pd.DataFrame):
-    '''Visualize chi-square statistics and p-values for both AUC and RMSE analyses.
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-    Parameters
-    ----------
-    auc_df : pd.DataFrame
-        DataFrame containing chi-square results for AUC.
-    rmse_df : pd.DataFrame
-        DataFrame containing chi-square results for RMSE.
-    '''
-    
-    # Sort by Chi2 Statistic for ordered bar plots
-    auc_df = auc_df.sort_values(by='Chi2 Statistic', ascending=False)
-    rmse_df = rmse_df.sort_values(by='Chi2 Statistic', ascending=False)
+from matplotlib.patches import Patch
+from matplotlib.lines import Line2D
 
-    fig, axes = plt.subplots(2, 2, figsize=(20, 12))
+def visualize_chi_square_comparison_old(
+    auc_df: pd.DataFrame,
+    rmse_df: pd.DataFrame,
+    outfile: str = "chi_square_comparison_combined.png",
+    palette_name: str = "tab20",   # pode trocar para "husl", "Set3", etc.
+    pastel_factor: float = 0.0,    # 0 = cores vivas, 1 = pastel
+    x_jitter_frac: float = 0.03    # deslocamento horizontal em RMSE
+    ) -> None:
+    """
+    Visualiza estatísticas de qui-quadrado para AUC e RMSE:
+      - Barras unificadas ordenadas por AUC (eixo X log).
+      - Scatter único com AUC (círculo) e RMSE (estrela), mesmas cores por feature.
+      - Contorno preto nos marcadores.
+      - Legenda no modo 'best'.
+    """
 
-    # AUC: Bar Plot of Chi2 Statistic
-    sns.barplot(
-        data=auc_df,
-        y='Feature',
-        x='Chi2 Statistic',
-        palette="magma",
-        hue='Feature',
-        ax=axes[0, 0]
-    )
-    axes[0, 0].set_title('Chi-Square Test Statistics by Feature - AUC')
-    axes[0, 0].set_xlabel('Chi-Square Statistic')
-    axes[0, 0].set_ylabel('Feature')
+    auc_df = auc_df.copy()
+    rmse_df = rmse_df.copy()
 
-    # RMSE: Bar Plot of Chi2 Statistic
-    sns.barplot(
-        data=rmse_df,
-        y='Feature',
-        x='Chi2 Statistic',
-        palette="cividis",
-        hue='Feature',
-        ax=axes[0, 1]
-    )
-    axes[0, 1].set_title('Chi-Square Test Statistics by Feature - RMSE')
-    axes[0, 1].set_xlabel('Chi-Square Statistic')
-    axes[0, 1].set_ylabel('')
-
-    # Corrige p-valor zero e valores extremamente baixos
-    adjusted_p = np.clip(auc_df['p-value'].values, a_min=1e-300, a_max=1) # type: ignore
-
-    # Faz o log sem warnings
-    log_p = -np.log10(adjusted_p)
-
-    # AUC: Scatter Plot of Chi2 Statistic vs. -Log10(P-Value)
-    sns.scatterplot(
-        data=auc_df,
-        x='Chi2 Statistic',
-        y=log_p,
-        hue=log_p,
-        palette="magma",
-        s=100,
-        legend=False,
-        ax=axes[1, 0],
-        edgecolor='black',
-        linewidth=0.5
+    # Ordenar por Chi² AUC
+    order_auc = (
+        auc_df[["Feature", "Chi2 Statistic"]]
+        .sort_values("Chi2 Statistic", ascending=False)["Feature"]
+        .tolist()
     )
 
-    axes[1, 0].set_title('Chi-Square Statistic vs. -Log10(P-Value) - AUC')
-    axes[1, 0].set_xlabel('Chi-Square Statistic')
-    axes[1, 0].set_ylabel('-Log10(P-Value)')
-    axes[1, 0].axhline(-np.log10(0.05), color='red', linestyle='--', label='p = 0.05')
+    # Mapear valores
+    auc_map = dict(zip(auc_df["Feature"], auc_df["Chi2 Statistic"]))
+    rmse_map = dict(zip(rmse_df["Feature"], rmse_df["Chi2 Statistic"]))
 
-    # Corrige p-valor zero e valores extremamente baixos
-    adjusted_p = np.clip(rmse_df['p-value'].values, a_min=1e-300, a_max=1) # type: ignore
+    features = order_auc
+    n = len(features)
 
-    # Faz o log sem warnings
-    log_p = -np.log10(adjusted_p)
-    
-    # RMSE: Scatter Plot of Chi2 Statistic vs. -Log10(P-Value)
-    sns.scatterplot(
-        data=rmse_df,
-        x='Chi2 Statistic',
-        y=log_p,
-        hue=log_p,
-        palette="cividis",
-        s=100,
-        legend=False,
-        ax=axes[1, 1],
-        edgecolor='black',
-        linewidth=0.5
+    auc_vals = np.array([auc_map.get(f, np.nan) for f in features], dtype=float)
+    rmse_vals = np.array([rmse_map.get(f, np.nan) for f in features], dtype=float)
+
+    # Função para -log10(p)
+    def neglog10_p(series):
+        adjusted = np.clip(series.to_numpy(dtype=float), a_min=1e-300, a_max=1.0)
+        return -np.log10(adjusted)
+
+    auc_logp = neglog10_p(auc_df["p-value"])
+    rmse_logp = neglog10_p(rmse_df["p-value"])
+
+    # Gerar cores
+    base_palette = sns.color_palette(palette_name, n_colors=n)
+    if pastel_factor > 0:
+        base_palette = sns.color_palette(
+            [(np.array(c) + pastel_factor) / (1 + pastel_factor) for c in base_palette]
+        )
+    color_by_feature = {feat: col for feat, col in zip(features, base_palette)}
+
+    # ===== Figura =====
+    plt.rcParams.update({"font.size": 14})
+    fig, (ax_top, ax_bot) = plt.subplots(
+        2, 1, figsize=(16, 12), gridspec_kw={"height_ratios": [2, 2]}
     )
 
-    axes[1, 1].set_title('Chi-Square Statistic vs. -Log10(P-Value) - RMSE')
-    axes[1, 1].set_xlabel('Chi-Square Statistic')
-    axes[1, 1].set_ylabel('')
-    axes[1, 1].axhline(-np.log10(0.05), color='red', linestyle='--')
+    # Top: Barras
+    y = np.arange(n)
+    bar_h = 0.36
+    offset = bar_h / 2.0
+
+    auc_bar_colors = [color_by_feature[f] for f in features]
+    rmse_bar_colors = auc_bar_colors
+
+    ax_top.barh(
+        y + offset, auc_vals, height=bar_h,
+        color=auc_bar_colors, edgecolor="black", linewidth=0.6, label="AUC"
+    )
+    ax_top.barh(
+        y - offset, rmse_vals, height=bar_h,
+        color=rmse_bar_colors, edgecolor="black", linewidth=0.6,
+        hatch="///", label="RMSE"
+    )
+
+    ax_top.set_yticks(y, features)
+    ax_top.set_xscale("log")
+    ax_top.set_xlabel("Chi-Square Statistic (log scale)")
+    ax_top.set_ylabel("Feature")
+    ax_top.set_title("Chi-Square Test Statistics by Feature")
+    ax_top.grid(axis="x", linestyle=":", alpha=0.35)
+
+    top_handles = [
+        Patch(facecolor="#BBBBBB", edgecolor="black", label="AUC"),
+        Patch(facecolor="#BBBBBB", edgecolor="black", hatch="///", label="RMSE"),
+    ]
+    ax_top.legend(handles=top_handles, loc="lower right", frameon=False)
+
+    # Bottom: Scatter
+    rmse_x = rmse_df["Chi2 Statistic"].to_numpy(dtype=float) * (1.0 + x_jitter_frac)
+
+    auc_point_colors = [color_by_feature[f] for f in auc_df["Feature"]]
+    rmse_point_colors = [color_by_feature[f] for f in rmse_df["Feature"]]
+
+    ax_bot.scatter(
+        auc_df["Chi2 Statistic"], auc_logp,
+        label="AUC", marker="o", s=95,
+        facecolors=auc_point_colors, edgecolors="black", linewidth=1.0
+    )
+
+    ax_bot.scatter(
+        rmse_x, rmse_logp,
+        label="RMSE", marker="*", s=160,
+        facecolors=rmse_point_colors, edgecolors="black", linewidth=1.0
+    )
+
+    sig_y = -np.log10(0.05)
+    ax_bot.axhline(sig_y, linestyle="--", linewidth=1.0, color="#9E9E9E")
+
+    legend_handles = [
+        Line2D([0], [0], marker="o", color="w", label="AUC",
+               markerfacecolor="#888888", markeredgecolor="black", markersize=8),
+        Line2D([0], [0], marker="*", color="w", label="RMSE",
+               markerfacecolor="#888888", markeredgecolor="black", markersize=12),
+        Line2D([0], [0], color="#9E9E9E", lw=1.0, ls="--", label="p = 0.05"),
+    ]
+    ax_bot.legend(handles=legend_handles, loc="best", frameon=False)
+
+    ax_bot.set_xscale("log")
+    ax_bot.set_xlabel("Chi-Square Statistic (log scale)")
+    ax_bot.set_ylabel("-log10(p-value)")
+    ax_bot.set_title("Chi-Square vs. -log10(p-value)")
+    ax_bot.grid(axis="both", linestyle=":", alpha=0.35)
 
     plt.tight_layout()
-    plt.rcParams.update({'font.size': 16})
-    plt.savefig('chi_square_comparison.png')
+    plt.savefig(outfile, dpi=300, bbox_inches="tight")
     plt.close()
 
-    return None
+def visualize_chi_square_comparison(
+    auc_df: pd.DataFrame,
+    rmse_df: pd.DataFrame,
+    outfile: str = "chi_square_comparison_combined.png",
+    palette_name: str = "tab20",   # you can change to "husl", "Set3", etc.
+    pastel_factor: float = 0.0,    # 0 = vivid colors, 1 = pastel
+    x_jitter_frac: float = 0.03    # small horizontal offset for RMSE markers
+    ) -> None:
+    """
+    Visualize chi-square statistics for AUC and RMSE:
+      - Unified horizontal bars ordered by AUC (log X-axis).
+      - Single scatter with AUC (circle) and RMSE (star), same color per feature.
+      - Black outline on markers.
+      - Legend in 'best' position.
+      - Alternating background stripes behind bars to improve readability.
+    """
+
+    auc_df = auc_df.copy()
+    rmse_df = rmse_df.copy()
+
+    # Sort by AUC Chi²
+    order_auc = (
+        auc_df[["Feature", "Chi2 Statistic"]]
+        .sort_values("Chi2 Statistic", ascending=False)["Feature"]
+        .tolist()
+    )
+
+    # Build quick lookups
+    auc_map = dict(zip(auc_df["Feature"], auc_df["Chi2 Statistic"]))
+    rmse_map = dict(zip(rmse_df["Feature"], rmse_df["Chi2 Statistic"]))
+
+    features = order_auc
+    n = len(features)
+
+    auc_vals = np.array([auc_map.get(f, np.nan) for f in features], dtype=float)
+    rmse_vals = np.array([rmse_map.get(f, np.nan) for f in features], dtype=float)
+
+    # Helper: -log10(p)
+    def neglog10_p(series):
+        adjusted = np.clip(series.to_numpy(dtype=float), a_min=1e-300, a_max=1.0)
+        return -np.log10(adjusted)
+
+    auc_logp = neglog10_p(auc_df["p-value"])
+    rmse_logp = neglog10_p(rmse_df["p-value"])
+
+    # Colors
+    base_palette = sns.color_palette(palette_name, n_colors=n)
+    if pastel_factor > 0:
+        base_palette = sns.color_palette(
+            [(np.array(c) + pastel_factor) / (1 + pastel_factor) for c in base_palette]
+        )
+    color_by_feature = {feat: col for feat, col in zip(features, base_palette)}
+
+    # ===== Figure =====
+    plt.rcParams.update({"font.size": 14})
+    fig, (ax_top, ax_bot) = plt.subplots(
+        2, 1, figsize=(16, 12), gridspec_kw={"height_ratios": [2, 2]}
+    )
+
+    # ----- Top: Bars with zebra background -----
+    y = np.arange(n)
+    bar_h = 0.36
+    offset = bar_h / 2.0
+
+    auc_bar_colors = [color_by_feature[f] for f in features]
+    rmse_bar_colors = auc_bar_colors
+
+    # Alternating background stripes (behind the bars)
+    # Each stripe spans one "row" centered at integer y ticks.
+    for i in range(n):
+        face = "white" if (i % 2 == 0) else "#DADADA"
+        ax_top.axhspan(i - 0.5, i + 0.5, facecolor=face, alpha=1.0, zorder=0)
+
+    # Bars on top of the background
+    ax_top.barh(
+        y + offset, auc_vals, height=bar_h,
+        color=auc_bar_colors, edgecolor="black", linewidth=0.6, label="AUC", zorder=3
+    )
+    ax_top.barh(
+        y - offset, rmse_vals, height=bar_h,
+        color=rmse_bar_colors, edgecolor="black", linewidth=0.6,
+        hatch="///", label="RMSE", zorder=3
+    )
+
+    ax_top.set_yticks(y, features)
+    ax_top.set_ylim(-0.5, n - 0.5)  # ensure full stripes are visible
+    ax_top.set_xscale("log")
+    ax_top.set_xlabel("Chi-Square Statistic (log scale)")
+    ax_top.set_ylabel("Feature")
+    ax_top.set_title("Chi-Square Test Statistics by Feature")
+    ax_top.set_axisbelow(True)  # grid above background, below bars
+    ax_top.grid(axis="x", linestyle=":", alpha=0.35, zorder=2)
+
+    top_handles = [
+        Patch(facecolor="#BBBBBB", edgecolor="black", label="AUC"),
+        Patch(facecolor="#BBBBBB", edgecolor="black", hatch="///", label="RMSE"),
+    ]
+    ax_top.legend(handles=top_handles, loc="lower right", frameon=False)
+
+    # ----- Bottom: Scatter -----
+    rmse_x = rmse_df["Chi2 Statistic"].to_numpy(dtype=float) * (1.0 + x_jitter_frac)
+    auc_point_colors = [color_by_feature[f] for f in auc_df["Feature"]]
+    rmse_point_colors = [color_by_feature[f] for f in rmse_df["Feature"]]
+
+    ax_bot.scatter(
+        auc_df["Chi2 Statistic"], auc_logp,
+        label="AUC", marker="o", s=95,
+        facecolors=auc_point_colors, edgecolors="black", linewidth=1.0
+    )
+    ax_bot.scatter(
+        rmse_x, rmse_logp,
+        label="RMSE", marker="*", s=160,
+        facecolors=rmse_point_colors, edgecolors="black", linewidth=1.0
+    )
+
+    sig_y = -np.log10(0.05)
+    ax_bot.axhline(sig_y, linestyle="--", linewidth=1.0, color="#9E9E9E")
+
+    legend_handles = [
+        Line2D([0], [0], marker="o", color="w", label="AUC",
+               markerfacecolor="#888888", markeredgecolor="black", markersize=8),
+        Line2D([0], [0], marker="*", color="w", label="RMSE",
+               markerfacecolor="#888888", markeredgecolor="black", markersize=12),
+        Line2D([0], [0], color="#9E9E9E", lw=1.0, ls="--", label="p = 0.05"),
+    ]
+    ax_bot.legend(handles=legend_handles, loc="best", frameon=False)
+
+    ax_bot.set_xscale("log")
+    ax_bot.set_xlabel("Chi-Square Statistic (log scale)")
+    ax_bot.set_ylabel("-log10(p-value)")
+    ax_bot.set_title("Chi-Square vs. -log10(p-value)")
+    ax_bot.grid(axis="both", linestyle=":", alpha=0.35)
+
+    plt.tight_layout()
+    plt.savefig(outfile, dpi=300, bbox_inches="tight")
+    plt.close()
+
 
 # Chi-Square Post-Hoc Analysis
 
@@ -1470,6 +1646,168 @@ def benjamini_hochberg(p_values: list[float], alpha: float = 0.05) -> np.ndarray
 
     # Reorder the significance values
     return significant[sorted_indices.argsort()]
+
+# Residual Analysis
+
+def compute_standardized_residuals(contingency: pd.DataFrame) -> pd.DataFrame:
+    """
+    Compute standardized residuals for a contingency table.
+    Uses: (O - E) / sqrt(E * (1 - row_prop) * (1 - col_prop))
+    """
+    contingency = contingency.astype(float)
+    total = contingency.values.sum()
+    row_sum = contingency.sum(axis=1).values[:, None]
+    col_sum = contingency.sum(axis=0).values[None, :]
+    expected = (row_sum @ col_sum) / total
+
+    # avoid divide-by-zero for degenerate cells
+    row_prop = row_sum / total
+    col_prop = col_sum / total
+    denom = np.sqrt(expected * (1 - row_prop) * (1 - col_prop))
+    denom[denom == 0] = np.nan
+
+    residuals = (contingency.values - expected) / denom
+    return pd.DataFrame(residuals, index=contingency.index, columns=contingency.columns)
+
+def melt_residuals(res_df: pd.DataFrame, feature_name: str) -> pd.DataFrame:
+    """
+    Long-format residuals with columns:
+    ['Feature','FeatureLevel','MetricCategory','StdResidual']
+    """
+    long = res_df.reset_index().melt(id_vars=res_df.index.name or 'index',
+                                     var_name='MetricCategory',
+                                     value_name='StdResidual')
+    long = long.rename(columns={res_df.index.name or 'index': 'FeatureLevel'})
+    long.insert(0, 'Feature', feature_name)
+    return long
+
+def plot_residuals_heatmap(residuals_df: pd.DataFrame, title: str, outpath: str) -> None:
+    """
+    Save a heatmap of standardized residuals for a single feature.
+    """
+    plt.figure(figsize=(6, 4))
+    sns.heatmap(residuals_df, annot=True, fmt=".2f", cmap="coolwarm",
+                center=0, cbar_kws={'label': 'Standardized residual'})
+    plt.title(title)
+    plt.tight_layout()
+    os.makedirs(os.path.dirname(outpath), exist_ok=True)
+    plt.savefig(outpath, dpi=300)
+    plt.close()
+
+def plot_residuals_grid(residuals_dict: dict[str, pd.DataFrame],
+                        title_prefix: str,
+                        cols: int = 3,
+                        outpath: str = "residuals_grid.png") -> None:
+    """
+    Grid of heatmaps for multiple features (quick overview).
+    """
+    if not residuals_dict:
+        return
+    n = len(residuals_dict)
+    rows = int(np.ceil(n / cols))
+    fig, axes = plt.subplots(rows, cols, figsize=(cols * 5, rows * 4))
+    axes = np.array(axes).reshape(rows, cols)
+
+    for ax in axes.flatten():
+        ax.axis('off')
+
+    for ax, (feat, res_df) in zip(axes.flatten(), residuals_dict.items()):
+        sns.heatmap(res_df, annot=True, fmt=".2f", cmap="coolwarm",
+                    center=0, cbar=False, ax=ax)
+        ax.set_title(f"{title_prefix}: {feat}")
+        ax.set_xlabel("Metric category")
+        ax.set_ylabel("Feature level")
+
+    plt.tight_layout()
+    plt.savefig(outpath, dpi=300)
+    plt.close()
+
+def chi_square_analysis(
+        features: pd.DataFrame,
+        metric: str = 'AUC',
+        feature_bits: Optional[list] = None,
+        split: str = 'quaternary',
+        invert_metric: bool = False,
+        invert_feature: bool = False
+    ) -> tuple[pd.DataFrame, pd.DataFrame, dict[str, pd.DataFrame], pd.DataFrame, dict[str, pd.DataFrame]]:
+    """
+    Returns:
+    - results_df
+    - data (with metric categories)
+    - residuals_dict  {feature: DataFrame residuals}
+    - residuals_long  long-format residuals across all features
+    - contingency_dict {feature: contingency table}
+    """
+    data = features.copy()
+
+    if split not in ['binary', 'ternary', 'quaternary']:
+        raise ValueError("split must be 'binary', 'ternary', or 'quaternary'.")
+
+    # Metric discretization (como você já tinha)
+    if split == 'binary':
+        median = data[metric].median()
+        data[f'{metric}_category'] = np.where(data[metric] > median, 'high', 'low')
+        if invert_metric:
+            data[f'{metric}_category'] = data[f'{metric}_category'].map({'high': 'low', 'low': 'high'})
+    elif split == 'ternary':
+        q1 = data[metric].quantile(0.33)
+        q2 = data[metric].quantile(0.66)
+        labels = ['low', 'medium', 'high'][::-1] if invert_metric else ['low', 'medium', 'high']
+        data[f'{metric}_category'] = pd.cut(data[metric], bins=[-np.inf, q1, q2, np.inf], labels=labels)
+    elif split == 'quaternary':
+        q = data[metric].quantile([0.25, 0.5, 0.75])
+        labels = ['very low', 'low', 'high', 'very high'][::-1] if invert_metric else ['very low', 'low', 'high', 'very high']
+        data[f'{metric}_category'] = pd.cut(
+            data[metric],
+            bins=[-np.inf, q[0.25], q[0.5], q[0.75], np.inf],
+            labels=labels
+        )
+
+    if feature_bits is None:
+        feature_bits = [col for col in features.columns if col.startswith('feature_')]
+
+    results = {'Feature': [], 'Chi2 Statistic': [], 'p-value': [], "Cramér's V": []}
+    residuals_dict: dict[str, pd.DataFrame] = {}
+    contingency_dict: dict[str, pd.DataFrame] = {}
+    residuals_long_list: list[pd.DataFrame] = []
+
+    for bit in feature_bits:
+        bit_data = data[bit]
+        if invert_feature:
+            bit_data = 1 - pd.to_numeric(bit_data, errors='coerce')
+
+        contingency = pd.crosstab(bit_data, data[f'{metric}_category'])
+        contingency_dict[bit] = contingency
+
+        # guarda NaN quando a tabela é degenerada
+        if contingency.shape[0] < 2 or contingency.shape[1] < 2:
+            chi2, p, cramers_v = np.nan, np.nan, np.nan
+            res_df = pd.DataFrame()
+        else:
+            chi2, p, _, _ = chi2_contingency(contingency)
+            n = contingency.values.sum()
+            r, c = contingency.shape
+            denom = min(r - 1, c - 1)
+            cramers_v = np.sqrt(chi2 / (n * denom)) if denom > 0 else np.nan
+
+            # resíduos padronizados
+            res_df = compute_standardized_residuals(contingency)
+
+        results['Feature'].append(bit)
+        results['Chi2 Statistic'].append(chi2)
+        results['p-value'].append(p)
+        results["Cramér's V"].append(cramers_v)
+
+        if not res_df.empty:
+            res_df.index.name = bit
+            residuals_dict[bit] = res_df
+            residuals_long_list.append(melt_residuals(res_df, bit))
+
+    residuals_long = (pd.concat(residuals_long_list, ignore_index=True)
+                      if residuals_long_list else
+                      pd.DataFrame(columns=['Feature','FeatureLevel','MetricCategory','StdResidual']))
+
+    return pd.DataFrame(results), data, residuals_dict, residuals_long, contingency_dict
 
 # Feature importance using Random Forest
 
@@ -1935,7 +2273,7 @@ elif method == "gmm":
     gmm_corr = run_gaussian_mixture(normalized_features, n_components=optimal_clusters)
 elif method == "affinity_propagation":
     print('Performing individual contributions analysis for each feature...')
-    results_df = individual_contributions_analysis(features, verbose=True, features_names=features_names)
+    results_df = individual_contributions_analysis(normalized_features, verbose=True, features_names=features_names)
 else:
     raise ValueError(f"Unknown clustering method: {method}")
 
@@ -1951,14 +2289,20 @@ print('Plotting feature mask correlation heatmap...')
 plot_feature_mask_correlation_heatmap(features, features_names=features_names)
 
 print('Performing Chi-Square test for feature selection...')
-chi_square_results_auc, auc_df = chi_square_analysis(features, metric='AUC', feature_bits=features_names, split='quaternary', invert_metric=True, invert_feature=False)
-chi_square_results_rmse, rmse_df = chi_square_analysis(features, metric='RMSE', feature_bits=features_names, split='quaternary', invert_metric=True, invert_feature=False)
+chi_square_results_auc, auc_df, auc_resid_dict, auc_resid_long, cont_auc = chi_square_analysis(features, metric='AUC', feature_bits=features_names, split='quaternary', invert_metric=True, invert_feature=False)
+chi_square_results_rmse, rmse_df, rmse_resid_dict, rmse_resid_long, cont_rmse = chi_square_analysis(features, metric='RMSE', feature_bits=features_names, split='quaternary', invert_metric=True, invert_feature=False)
 
 print('Plotting Cramér\'s V comparison...')
 plot_cramers_comparison(chi_square_results_auc, chi_square_results_rmse)
 
 print('Plotting Chi-Square test results...')
-visualize_chi_square_comparison(chi_square_results_auc, chi_square_results_rmse)
+visualize_chi_square_comparison(
+    chi_square_results_auc,
+    chi_square_results_rmse,
+    palette_name="tab20",
+    pastel_factor=0.1,
+    x_jitter_frac=0.0
+)
 
 print("Applying Bonferroni correction to the p-values...")
 chi_square_results_auc['Bonferroni_Significant_AUC'], corrected_alpha_auc = bonferroni_correction(chi_square_results_auc['p-value'].tolist())

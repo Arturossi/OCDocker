@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
 
+"""
+OCDocker module entry point.
+
+Delegates to the unified CLI in `OCDocker.CLI`.
+"""
+
 # Imports
 ###############################################################################
-from OCDocker.Initialise import *
+from OCDocker.CLI import main as cli_main
 
 # License
 ###############################################################################
@@ -32,9 +38,9 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Main Function
 ###############################################################################
 def main():
-    pass
+    return cli_main()
 
 # Execute
 ###############################################################################
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

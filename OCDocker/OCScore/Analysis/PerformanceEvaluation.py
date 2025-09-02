@@ -378,7 +378,7 @@ def run_full_analysis(
 
     setup_dirs()
 
-    final_metrics = load_combined_metrics(df_path, only_mean=True)
+    final_metrics = load_combined_metrics(df_path, metrics = ["mean"])
 
     for n_trials in trials_list:
         print(f"Running analysis for top {n_trials} trials")
@@ -415,9 +415,8 @@ def run_full_analysis(
             elif i == 2:
                 filtered_df = merged[merged['RMSE'] <= rmse_threshold].reset_index(drop=True)
 
-            colour_mapping = ocstatplot.set_color_mapping(filtered_df, palette_colour)
+        colour_mapping = ocstatplot.set_color_mapping(filtered_df, palette_colour)
             
-
         if plot_summary:
             ocstatplot.plot_combined_metric_scatter(filtered_df, n_trials, colour_mapping, output_dir=output_dir)
             ocstatplot.plot_boxplots(filtered_df, n_trials, colour_mapping, output_dir=output_dir)
