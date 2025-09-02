@@ -126,7 +126,13 @@ def is_molecule_valid(molecule: str) -> bool:
                 elif extension == ".pdbqt":
                     _ = rdkit.Chem.rdmolfiles.MolFromMolFile(molecule, sanitize = True) # type: ignore
                 elif extension in [".smi", ".smiles"]:
-                    _ = rdkit.Chem.rdmolfiles.MolFromSmiles(molecule, sanitize = True) # type: ignore
+                    # Read SMILES string from file and parse
+                    try:
+                        with open(molecule, "r") as f:
+                            smi = f.read().strip().split()[0]
+                    except Exception:
+                        return False
+                    _ = rdkit.Chem.rdmolfiles.MolFromSmiles(smi, sanitize = True) # type: ignore
                 else:
                     # Not suitable extension, so... say False!!!!
                     return False

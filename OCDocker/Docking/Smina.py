@@ -154,9 +154,9 @@ class Smina:
         '''
 
         # Check the type of receptor variable
-        if type(receptor) == ocr.Receptor:
+        if isinstance(receptor, ocr.Receptor):
             return receptor.path  # type: ignore
-        elif type(receptor) == str:
+        elif isinstance(receptor, str):
             # Since is a string, check if the file exists
             if os.path.isfile(receptor): # type: ignore
                 # Exists! Return it!
@@ -182,9 +182,9 @@ class Smina:
         '''
 
         # Check the type of ligand variable
-        if type(ligand) == ocl.Ligand:
+        if isinstance(ligand, ocl.Ligand):
             return ligand.path # type: ignore
-        elif type(ligand) == str:
+        elif isinstance(ligand, str):
             # Since is a string, check if the file exists
             if os.path.isfile(ligand): # type: ignore
                 # Exists! Process it then!

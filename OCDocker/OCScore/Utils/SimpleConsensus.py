@@ -29,10 +29,10 @@ Authors: Rossi, A.D.; Torres, P.H.M.;
 Contact info:
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
-Av. Carlos Chagas Filho 373 - CCS - bloco G1-19,
-Cidade Universitária - Rio de Janeiro, RJ, CEP: 21941-902
+Av. Carlos Chagas Filho 373 - CCS - G1-19,
+University City - Rio de Janeiro, RJ, ZIP: 21941-902
 E-mail address:
-This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
+This project is licensed under Creative Commons (CC-BY-4.0).
 '''
 
 # Classes

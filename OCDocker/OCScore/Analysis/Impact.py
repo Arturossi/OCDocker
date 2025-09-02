@@ -410,7 +410,7 @@ def plot_impact_arrows_inline_labels(
     import matplotlib.patches as mpatches
     leg_dir = [
         mpatches.Patch(color=color, label=lbl)
-        for lbl, color in [('positivo', '#2ca02c'), ('negativo', '#d62728'), ('neutro', '#7f7f7f')]
+        for lbl, color in [('positive', '#2ca02c'), ('negative', '#d62728'), ('neutral', '#7f7f7f')]
     ]
     leg_str = [
         mlines.Line2D([], [], color='k', marker='o', linestyle='None', markersize=8, label='none/weak'),
@@ -418,9 +418,9 @@ def plot_impact_arrows_inline_labels(
         mlines.Line2D([], [], color='k', marker='D', linestyle='None', markersize=8, label='strong'),
         mlines.Line2D([], [], color='k', marker='P', linestyle='None', markersize=8, label='very strong'),
     ]
-    lg1 = plt.legend(handles=leg_dir, title='direção', loc='upper left', frameon=False, fontsize=9)
+    lg1 = plt.legend(handles=leg_dir, title='direction', loc='upper left', frameon=False, fontsize=9)
     plt.gca().add_artist(lg1)
-    plt.legend(handles=leg_str, title='força (símbolos)', loc='upper right', frameon=False, fontsize=9)
+    plt.legend(handles=leg_str, title='strength (symbols)', loc='upper right', frameon=False, fontsize=9)
 
     plt.tight_layout()
     if outpath:

@@ -60,11 +60,19 @@ the user to perform the steps step by step.
 
 # Functions
 ###############################################################################
-def print_args() -> None:
-    '''Print current OCDocker environment/arguments and key paths to aid debugging.
+def print_args(program: str = "") -> None:
+    '''Print environment variables and optionally program-specific settings.
 
-    This reads values exported by `OCDocker.Initialise` imported above.
-    Safe to call even if some variables are absent.
+    Console usage examples:
+      - print_args()                 # environment overview
+      - print_args('paths')          # relevant paths and binaries
+      - print_args('db')             # database connections
+      - print_args('vina')           # Vina parameters
+      - print_args('smina')          # Smina parameters
+      - print_args('plants')         # PLANTS parameters
+      - print_args('gnina')          # Gnina parameters (if configured)
+      - print_args('oddt')           # ODDT parameters
+      - print_args('all')            # print all sections
     '''
 
     def _g(name, default='-'):
@@ -72,47 +80,94 @@ def print_args() -> None:
 
     def _p(label, value):
         try:
-            print(f"{label:<24}: {value}")
+            print(f"{label:<28}: {value}")
         except Exception:
-            print(f"{label:<24}: <unprintable>")
+            print(f"{label:<28}: <unprintable>")
 
-    print("\n=== OCDocker Runtime Arguments ===")
-    _p("config_file", _g('config_file'))
-    _p("multiprocess", _g('multiprocess'))
-    _p("update", _g('update'))
-    # output_level can be enum or int
-    ol = _g('output_level')
-    try:
-        ol_disp = ol.name if hasattr(ol, 'name') else ol
-    except Exception:
-        ol_disp = ol
-    _p("output_level", ol_disp)
-    _p("overwrite", _g('overwrite'))
+    prog = (program or "").strip().lower()
+    show_all = prog in ("all", "*")
 
-    print("\n=== Key Paths ===")
-    _p("ocdb_path", _g('ocdb_path'))
-    _p("pca_path", _g('pca_path'))
-    _p("logdir", _g('logdir'))
-    _p("oddt_models_dir", _g('oddt_models_dir'))
+    # Overview
+    if not prog or show_all:
+        print("\n=== OCDocker Runtime Arguments ===")
+        _p("config_file", _g('config_file'))
+        _p("multiprocess", _g('multiprocess'))
+        _p("update", _g('update'))
+        ol = _g('output_level')
+        try:
+            ol_disp = ol.name if hasattr(ol, 'name') else ol
+        except Exception:
+            ol_disp = ol
+        _p("output_level", ol_disp)
+        _p("overwrite", _g('overwrite'))
 
-    print("\n=== Docking Binaries ===")
-    _p("vina", _g('vina'))
-    _p("smina", _g('smina'))
-    _p("plants", _g('plants'))
-    _p("obabel", _g('obabel'))
-    _p("pythonsh", _g('pythonsh'))
-    _p("prepare_ligand", _g('prepare_ligand'))
-    _p("prepare_receptor", _g('prepare_receptor'))
+    if prog in ("paths",) or show_all:
+        print("\n=== Key Paths ===")
+        _p("ocdb_path", _g('ocdb_path'))
+        _p("pca_path", _g('pca_path'))
+        _p("logdir", _g('logdir'))
+        _p("oddt_models_dir", _g('oddt_models_dir'))
 
-    print("\n=== Resources ===")
-    _p("available_cores", _g('available_cores'))
+        print("\n=== Docking Binaries ===")
+        _p("vina", _g('vina'))
+        _p("smina", _g('smina'))
+        _p("plants", _g('plants'))
+        _p("gnina", _g('gnina'))
+        _p("obabel", _g('obabel'))
+        _p("pythonsh", _g('pythonsh'))
+        _p("prepare_ligand", _g('prepare_ligand'))
+        _p("prepare_receptor", _g('prepare_receptor'))
 
-    print("\n=== Database URLs ===")
-    # URLs may be SQLAlchemy URL objects or strings
-    _p("db_url", _g('db_url'))
-    _p("optdb_url", _g('optdb_url'))
-    print("")
+    if prog in ("db",) or show_all:
+        print("\n=== Database URLs ===")
+        _p("db_url", _g('db_url'))
+        _p("optdb_url", _g('optdb_url'))
 
+    if prog in ("vina",) or show_all:
+        print("\n=== Vina Parameters ===")
+        _p("vina_scoring", _g('vina_scoring'))
+        _p("vina_scoring_functions", _g('vina_scoring_functions'))
+        _p("vina_num_modes", _g('vina_num_modes'))
+        _p("vina_energy_range", _g('vina_energy_range'))
+        _p("vina_exhaustiveness", _g('vina_exhaustiveness'))
+
+    if prog in ("smina",) or show_all:
+        print("\n=== Smina Parameters ===")
+        for n in (
+            'smina_scoring','smina_scoring_functions','smina_num_modes','smina_energy_range',
+            'smina_exhaustiveness','smina_custom_scoring','smina_custom_atoms','smina_local_only',
+            'smina_minimize','smina_randomize_only','smina_minimize_iters','smina_accurate_line',
+            'smina_minimize_early_term','smina_approximation','smina_factor','smina_force_cap',
+            'smina_user_grid','smina_user_grid_lambda'
+        ):
+            _p(n, _g(n))
+
+    if prog in ("plants",) or show_all:
+        print("\n=== PLANTS Parameters ===")
+        for n in (
+            'plants_cluster_structures','plants_cluster_rmsd','plants_search_speed',
+            'plants_scoring','plants_scoring_functions'
+        ):
+            _p(n, _g(n))
+
+    if prog in ("gnina",) or show_all:
+        print("\n=== Gnina Parameters ===")
+        for n in (
+            'gnina_exhaustiveness','gnina_num_modes','gnina_scoring','gnina_custom_scoring_file',
+            'gnina_custom_atoms','gnina_local_only','gnina_minimize','gnina_randomize_only',
+            'gnina_num_mc_steps','gnina_max_mc_steps','gnina_num_mc_saved','gnina_minimize_iters',
+            'gnina_simple_ascent','gnina_accurate_line','gnina_minimize_early_term','gnina_approximation',
+            'gnina_factor','gnina_force_cap','gnina_user_grid','gnina_user_grid_lambda','gnina_no_gpu'
+        ):
+            _p(n, _g(n))
+
+    if prog in ("oddt",) or show_all:
+        print("\n=== ODDT Parameters ===")
+        for n in ('oddt_program','oddt_seed','oddt_chunk_size','oddt_scoring_functions'):
+            _p(n, _g(n))
+
+    if not prog and not show_all:
+        print("")
     return None
 
 def clean_test_files(baseProtPath, baseLigPath, baseDecPath, baseCanPath) -> None:

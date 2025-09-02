@@ -153,7 +153,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_ver = sub.add_parser("version", help="Print OCDocker version", parents=[parent])
     p_ver.set_defaults(func=cmd_version)
 
-    # vs (virtual screening para uma única entrada)
+    # vs (single-entry virtual screening)
     p_vs = sub.add_parser("vs", help="Run docking + rescoring for a single receptor/ligand/box", parents=[parent])
     p_vs.add_argument("--engine", choices=["vina", "smina", "plants"], default="vina", help="Docking engine")
     p_vs.add_argument("--receptor", required=True, help="Path to receptor file (e.g., PDB)")
@@ -485,7 +485,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:
     engines = [e.strip().lower() for e in args.engines.split(',') if e.strip()]
     engines = [e for e in engines if e in ("vina", "smina", "plants")]
     if not engines:
-        print("Nenhum motor válido informado. Use --engines vina,smina,plants")
+        print("No valid engine provided. Use --engines vina,smina,plants")
         return 1
 
     all_poses: List[str] = []
@@ -527,7 +527,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:
         print("No poses were generated.")
         return 2
 
-    # Converte para MOL2 e clusteriza por RMSD
+    # Convert to MOL2 and cluster by RMSD
     mol2_dir = outdir / "poses_mol2"
     mol2_list, mol2_map = _ensure_mol2_poses(all_poses, mol2_dir)
     rmsd = ocmolproc.get_rmsd_matrix(mol2_list)
@@ -642,8 +642,29 @@ def cmd_console(args: argparse.Namespace) -> int:
         import code
         # Expose console namespace without dunders
         local_ns = {k: v for k, v in vars(occ).items() if not k.startswith('__')}
+        # Setup tab-completion with the console namespace, if readline is available
+        try:
+            import readline  # type: ignore
+            import rlcompleter  # type: ignore
+            completer = rlcompleter.Completer(local_ns)
+            readline.set_completer(completer.complete)  # type: ignore
+            readline.parse_and_bind('tab: complete')  # type: ignore
+            # History file (optional)
+            hist = os.path.expanduser('~/.ocdocker_console_history')
+            try:
+                readline.read_history_file(hist)
+            except Exception:
+                pass
+        except Exception:
+            pass
         # Avoid printing the console banner twice: it's already printed on import
         code.interact(banner="", local=local_ns)
+        # Save history (best-effort)
+        try:
+            if 'readline' in sys.modules:
+                sys.modules['readline'].write_history_file(os.path.expanduser('~/.ocdocker_console_history'))
+        except Exception:
+            pass
     except Exception as e:
         print(f"Interactive console exited with error: {e}")
         return 1

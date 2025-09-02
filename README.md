@@ -99,7 +99,7 @@ To install it, you have 3 options:
 $ wget https://ccsb.scripps.edu/download/532/ -O mgltools_install.tar.gz --no-check-certificate && mkdir -p mgltools && tar -xvzf mgltools_install.tar.gz -C mgltools --strip-components=1 && rm mgltools_install.tar.gz && cd mgltools && source ./install.sh
 ```
 
-OBS: The scripts used to prepare ligand/receptor will be in the following dir: ``<installation_dir>/mgltools/MGLToolsPckgs/AutoDockTools``
+Note: The scripts used to prepare ligand/receptor are located at ``<installation_dir>/mgltools/MGLToolsPckgs/AutoDockTools``.
 
 > :warning: **Still cannot run MGLTools?**: If you are facing some shady problems such as the numpy one, you might have to compile MGLTools from source. You can download it at https://github.com/genome-vendor/MGLtools (Still not sure about its version... I do not know if it is 1.5.6 or 1.5.4)
 
@@ -108,13 +108,13 @@ Download and install ADFRtools (in test)
 
 To install it, you have 3 options:
 
-* Option 1 (For those who loves GUI)
+* Option 1 (GUI)
 
 	```bash
 	$ wget https://ccsb.scripps.edu/adfr/download/1028/ --no-check-certificate -O adfr_install
 	```
 
-* Option 2 (For those who love to follow each step)
+* Option 2 (Step-by-step)
 
 	- Download the file
 
@@ -150,7 +150,7 @@ To install it, you have 3 options:
 	$ source ~/.bashrc
 	```
 
-* Option 3 (Use this all-in-one command. It seems to be more complicated, but its easier than option 2 and its easy to automate-it)
+* Option 3 (All-in-one command; looks longer, but it's easier to automate)
 
 ```bash
 $ wget https://ccsb.scripps.edu/adfr/download/1028/ --no-check-certificate -O adfr_install && mkdir -p mgltools && tar -xvzf adfr_install.tar.gz -C ADFRsuite --strip-components=1 && rm adfr_install.tar.gz && cd ADFRsuite && source ./install.sh && echo "PATH=`pwd`/bin:"'$PATH' >> ~/.bashrc && source ~/.bashrc
@@ -166,15 +166,15 @@ To install DSSP in Ubuntu 18.04+:
 $ sudo apt install dssp
 ```
 
-As default, the dssp path will be '/usr/bin/dssp'.
+By default, the DSSP path is '/usr/bin/dssp'.
 
 
-Download and install Autodock VINA
+Download and install AutoDock Vina
 ---------------
 
 To install it, you have 2 options:
 
-* Option 1 (For those who love to follow each step)
+* Option 1 (Step-by-step)
 
 	- Go to the website http://vina.scripps.edu/download.html and download the Linux installer (tgz)
 	- Untar it:
@@ -189,7 +189,7 @@ To install it, you have 2 options:
 	$ mkdir vina && wget https://github.com/ccsb-scripps/AutoDock-Vina/releases/download/v1.2.3/vina_1.2.3_linux_x86_64 -O vina/vina && sudo cp vina/vina /usr/bin/vina
 	```
 
-OBS: The vina executable will be in the following dir: ``installation_dir/vina/bin``
+Note: The Vina executable will be located in ``installation_dir/vina/bin``.
 
 
 Download and install SMINA

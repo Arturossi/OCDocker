@@ -199,7 +199,8 @@ class Receptor:
 
             self.aromaticity = computeAromaticity(self.residues)
 
-            # Será que seria interessante? secondary_structure_fraction(self) https://biopython.org/docs/1.76/api/Bio.SeqUtils.ProtParam.html
+            # Potential future feature: secondary_structure_fraction(self)
+            # Ref: https://biopython.org/docs/1.76/api/Bio.SeqUtils.ProtParam.html
 
             self.__relativeASAcutoff = relativeASAcutoff
             

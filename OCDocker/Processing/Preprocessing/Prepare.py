@@ -234,7 +234,7 @@ def __sub_core_prepare(dirsToProcess: str, dbName: str, overwrite: bool, mols : 
             shutil.move(mol, f"{mol}/{molName}/ligand.{molTmp[-1]}")  # type: ignore
 
     # Get the list of dirs to process
-    processDirs = [dirToProcess for dirToProcess in glob(f"{dirsToProcess}/*") if os.path.isdir(dirsToProcess)]
+    processDirs = [dirToProcess for dirToProcess in glob(f"{dirsToProcess}/*") if os.path.isdir(dirToProcess)]
 
     # For each directory (check to see if it is needed to generate descriptors)
     for processDir in processDirs:

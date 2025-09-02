@@ -62,3 +62,15 @@ Issues = "https://github.com/Arturossi/OCDocker/issues"
 
 [project.scripts]
 ocdocker = "OCDocker.CLI:main"
+
+[project.optional-dependencies]
+dev = [
+  "pytest",
+  "pytest-cov",
+]
+docs = [
+  "sphinx",
+  "furo",
+  "sphinx-argparse",
+  "myst-parser",
+]

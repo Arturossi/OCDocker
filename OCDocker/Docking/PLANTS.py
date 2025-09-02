@@ -90,7 +90,7 @@ class PLANTS:
         self.boxSpacing = float(boxSpacing)
         self.__bindingSite = self.__get_binding_site()
 
-        if type(self.__bindingSite) == int:
+        if isinstance(self.__bindingSite, int):
             _ = ocerror.Error.binding_site_not_found(f"The binding site was not found in the box file '{self.boxFile}'.", level = ocerror.ReportLevel.ERROR) # type: ignore
             return None
 
@@ -100,7 +100,7 @@ class PLANTS:
         self.bindingSiteCenter, self.bindingSiteRadius = self.__bindingSite # type: ignore
         
         # Receptor
-        if type(receptor) == ocr.Receptor:
+        if isinstance(receptor, ocr.Receptor):
             self.inputReceptor = receptor
         else:
             ocerror.Error.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR) # type: ignore
@@ -112,7 +112,7 @@ class PLANTS:
         # Ligand
         self.preparedLigand = str(preparedLigandPath)
         # Check the type of the ligand
-        if type(ligand) == ocl.Ligand:
+        if isinstance(ligand, ocl.Ligand):
             self.inputLigand = ligand
             # Create the plantsFiles folder
             _ = ocff.safe_create_dir(os.path.join(os.path.dirname(ligand.path), "plantsFiles"))
@@ -171,7 +171,7 @@ class PLANTS:
         '''
 
         # Check the type of receptor variable
-        if type(receptor) == ocr.Receptor:
+        if isinstance(receptor, ocr.Receptor):
             # If the flag to force the use of mol2 file as input is True
             if forceMol2:
                 # If receptor has a mol2Path
@@ -199,7 +199,7 @@ class PLANTS:
                 else:
                     _ = ocprint.print_error(f"Invalid receptor path for the following path: '{receptor.path}'.")
                     return None
-        elif type(receptor) == str:
+        elif isinstance(receptor, str):
             # Since is a string, check if the file exists
             if os.path.isfile(receptor): # type: ignore
                 # Exists! Return it!
