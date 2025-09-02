@@ -131,51 +131,45 @@ python -c "import torch; print('CUDA available:', torch.cuda.is_available()); pr
 Or perform each software installation manually with the below steps.
 
 Download and install MGLTools
-------------------------------------------------------------------------------------
+-----------------------------
 
-To install it, you have 3 options:
+Use either the step‑by‑step install or the single all‑in‑one command below.
 
-* Option 1 (For those who loves GUI)
+- Option 1 (Step‑by‑step)
 
-```bash
-wget https://ccsb.scripps.edu/download/292/ --no-check-certificate -O mgltools_install
-```
+  - Download the archive
 
-* Option 2 (For those who love to follow each step)
+    ```bash
+    wget https://ccsb.scripps.edu/download/532/ -O mgltools_install.tar.gz
+    ```
 
-	- Download the file
+  - Extract it
 
-```bash
-wget https://ccsb.scripps.edu/download/532/ --no-check-certificate -O mgltools_install.tar.gz
-```
+    ```bash
+    tar -xvzf mgltools_install.tar.gz
+    ```
 
-	- Untar it:
+  - Enter the created directory and run the installer
 
-```bash
-tar -xvzf mgltools_install.tar.gz
-```
+    ```bash
+    cd mgltools_x86_64Linux2_1.5.X
+    source ./install.sh
+    ```
 
-	- cd into created dir
+- Option 2 (All‑in‑one, easy to automate)
 
-```bash
-cd mgltools_x86_64Linux2_1.5.X
-```
+  ```bash
+  wget https://ccsb.scripps.edu/download/532/ -O mgltools_install.tar.gz \
+    && mkdir -p mgltools \
+    && tar -xvzf mgltools_install.tar.gz -C mgltools --strip-components=1 \
+    && rm mgltools_install.tar.gz \
+    && cd mgltools \
+    && source ./install.sh
+  ```
 
-	- source the install.sh
+Note: The `prepare_*` scripts are located at `<installation_dir>/mgltools/MGLToolsPckgs/AutoDockTools`.
 
-```bash
-source ./install.sh
-```
-
-* Option 3 (Use this all-in-one command. It seems to be more complicated, but its easier than option 2 and its easy to automate-it)
-
-```bash
-wget https://ccsb.scripps.edu/download/532/ -O mgltools_install.tar.gz --no-check-certificate && mkdir -p mgltools && tar -xvzf mgltools_install.tar.gz -C mgltools --strip-components=1 && rm mgltools_install.tar.gz && cd mgltools && source ./install.sh
-```
-
-Note: The scripts used to prepare ligand/receptor are located at ``<installation_dir>/mgltools/MGLToolsPckgs/AutoDockTools``.
-
-> :warning: **Still cannot run MGLTools?**: If you are facing some shady problems such as the numpy one, you might have to compile MGLTools from source. You can download it at https://github.com/genome-vendor/MGLtools (Still not sure about its version... I do not know if it is 1.5.6 or 1.5.4)
+If you still can’t run MGLTools (e.g., NumPy errors), consider reinstalling from source and ensure your environment paths don’t shadow the MGLTools Python.
 
 Install DSSP
 ---------------
