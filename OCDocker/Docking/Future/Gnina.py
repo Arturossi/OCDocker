@@ -102,7 +102,7 @@ class Gnina:
         if type(ligand) == ocl.Ligand:
             self.inputLigand = ligand
             # Create the gninaFiles folder
-            _ = ocff.safe_create_dir(os.path.join(os.path.dirname(ligand.path), "plantsFiles"))
+            _ = ocff.safe_create_dir(os.path.join(os.path.dirname(ligand.path), "gninaFiles"))
         else:
             ocerror.Error.wrong_type(f"The ligand '{ligand}' has not a supported type. Expected 'ocl.Ligand' but got {type(ligand)} instead.", level = ocerror.ReportLevel.ERROR)
             return None
@@ -195,15 +195,15 @@ class Gnina:
 
         cmd = [gnina, "--config", self.config, "--ligand", self.preparedLigand]
 
-        if smina_local_only.lower() in ["y", "ye", "yes"]:
+        if gnina_local_only.lower() in ["y", "ye", "yes"]:
             cmd.append("--score_only")
-        if smina_minimize.lower() in ["y", "ye", "yes"]:
+        if gnina_minimize.lower() in ["y", "ye", "yes"]:
             cmd.append("--minimize")
-        if smina_randomize_only.lower() in ["y", "ye", "yes"]:
+        if gnina_randomize_only.lower() in ["y", "ye", "yes"]:
             cmd.append("--randomize_only")
-        if smina_accurate_line.lower() in ["y", "ye", "yes"]:
+        if gnina_accurate_line.lower() in ["y", "ye", "yes"]:
             cmd.append("--accurate_line")
-        if smina_minimize_early_term.lower() in ["y", "ye", "yes"]:
+        if gnina_minimize_early_term.lower() in ["y", "ye", "yes"]:
             cmd.append("--minimize_early_term")
         
         # Check if the no_gpu flag is set
