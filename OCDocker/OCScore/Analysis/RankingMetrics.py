@@ -1,9 +1,16 @@
 from __future__ import annotations
-"""
-Test2 analysis (library style, no CLI, no I/O).
 
-Consolidates unique metric functions (ROC/PR/EF-ROC with bootstrap) and provides
-tabular outputs consistent with your existing analysis style.
+# Description
+###############################################################################
+'''
+Ranking metrics and tables for Test2-style analyses (no CLI, no I/O).
+
+They are imported as:
+
+import OCDocker.OCScore.Analysis.RankingMetrics as ocrank
+
+This module consolidates ROC/PR/EF-ROC with bootstrap CIs and provides tabular
+outputs consistent with your existing analysis style.
 
 Public API (metrics/tables):
 - roc_auc_per_target
@@ -13,7 +20,8 @@ Public API (metrics/tables):
 - pr_auc_pooled
 - efroc_pooled
 - build_test2_tables
-"""
+- build_summary_table
+'''
 
 from dataclasses import dataclass
 from typing import Iterable, List, Optional, Sequence, Dict
@@ -32,12 +40,15 @@ __all__ = [
     "pr_auc_pooled",
     "efroc_pooled",
     "build_test2_tables",
+    "build_summary_table",
 ]
 
 
-# --------------------------------------------------------------------------------------
-# Basic structures
-# --------------------------------------------------------------------------------------
+# Classes
+###############################################################################
+
+# Functions
+###############################################################################
 @dataclass
 class BootstrapCI:
     point: float
@@ -542,3 +553,70 @@ def build_test2_tables(
     tables["summary"] = summary.sort_values(["roc_auc", "pr_auc"], ascending=False).reset_index(drop=True)
 
     return tables
+
+
+# --------------------------------------------------------------------------------------
+# Formatting helper (parity with legacy clean_analysis)
+# --------------------------------------------------------------------------------------
+def build_summary_table(
+    summary_targets: pd.DataFrame,
+    summary_pooled: pd.DataFrame,
+    models: Sequence[str],
+    eps: Sequence[int] = (1, 5, 10, 20, 30),
+    include_pr_auc: bool = False,
+    pr_summary_targets: pd.DataFrame | None = None,
+    pr_summary_pooled: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    """
+    Create a presentation table combining median EF-ROC across targets and pooled EF-ROC at given epsilons.
+
+    Optionally include PR-AUC (median and pooled).
+
+    Parameters are aligned with test_old/test2/clean_analysis.py, but labels are English:
+      - "Median EF-ROC X%" and "Pooled EF-ROC X%" columns
+      - If include_pr_auc: add "Median PR-AUC" and "Pooled PR-AUC"
+    """
+    eps = tuple(int(e) for e in eps)
+    st = summary_targets[summary_targets["metric"].isin([f"EF_ROC_{e}%" for e in eps])].copy()
+    med = (
+        st[st["model"].isin(models)]
+        .assign(val=lambda d: d.apply(lambda r: f"{r['median_across_targets']:.2f} [{r['CI95_lo']:.2f}–{r['CI95_hi']:.2f}]", axis=1))
+        .pivot(index="model", columns="metric", values="val")
+        .reindex(models)
+    )
+
+    sp = summary_pooled[summary_pooled["metric"].isin([f"EF_ROC_{e}%" for e in eps])].copy()
+    poo = (
+        sp[sp["model"].isin(models)]
+        .assign(val=lambda d: d.apply(lambda r: f"{r['pooled_value']:.2f} [{r['CI95_lo']:.2f}–{r['CI95_hi']:.2f}]", axis=1))
+        .pivot(index="model", columns="metric", values="val")
+        .reindex(models)
+    )
+
+    rename_med = {f"EF_ROC_{e}%": f"Median EF-ROC {e}%" for e in eps}
+    rename_poo = {f"EF_ROC_{e}%": f"Pooled EF-ROC {e}%" for e in eps}
+
+    out = med.rename(columns=rename_med).join(poo.rename(columns=rename_poo))
+
+    if include_pr_auc and pr_summary_targets is not None and pr_summary_pooled is not None:
+        stp = pr_summary_targets[
+            (pr_summary_targets["metric"].eq("PR_AUC")) & (pr_summary_targets["model"].isin(models))
+        ].copy()
+        med_pr = (
+            stp.assign(val=lambda d: d.apply(lambda r: f"{r['median_across_targets']:.3f} [{r['CI95_lo']:.3f}–{r['CI95_hi']:.3f}]", axis=1))
+            .pivot(index="model", columns="metric", values="val")
+            .reindex(models)
+        )
+        spp = pr_summary_pooled[
+            (pr_summary_pooled["metric"].eq("PR_AUC")) & (pr_summary_pooled["model"].isin(models))
+        ].copy()
+        poo_pr = (
+            spp.assign(val=lambda d: d.apply(lambda r: f"{r['pooled_value']:.3f} [{r['CI95_lo']:.3f}–{r['CI95_hi']:.3f}]", axis=1))
+            .pivot(index="model", columns="metric", values="val")
+            .reindex(models)
+        )
+        out = out.join(med_pr.rename(columns={"PR_AUC": "Median PR-AUC"})).join(
+            poo_pr.rename(columns={"PR_AUC": "Pooled PR-AUC"})
+        )
+
+    return out

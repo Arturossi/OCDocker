@@ -5,3 +5,11 @@ OCDocker.OCScore.Analysis.Plotting package
    :members:
    :undoc-members:
    :show-inheritance:
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 2
+
+   OCDocker.OCScore.Analysis.Plotting.ImpactPlots
