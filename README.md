@@ -27,8 +27,8 @@ Installation
 Simplest methods
 ----------------
 
-Conda
------
+Conda / Mamba
+-------------
 
 OCDocker is a conda package, so the simplest way to install it is to use conda. If you do not have conda installed, please follow the instructions at https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html.
 If you have conda installed, you can install OCDocker with the following command:
