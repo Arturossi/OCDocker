@@ -100,13 +100,15 @@ def lazyread_reverse_order_mmap(file_name: str, decode: str = "utf-8") -> Genera
                 new_byte = mmap_obj.read(1)
                 # If the read byte is new line character then it means one line is read
                 if new_byte == b'\n':
-                    # Fetch the line from buffer and yield it
-                    yield buffer.decode(decode)[::-1]
-                    # Reinitialise the byte array to save next line
-                    buffer = bytearray()
+                    # Only yield if there is content accumulated (avoid empty line for trailing newline)
+                    if len(buffer) > 0:
+                        yield buffer.decode(decode)[::-1]
+                        # Reinitialise the byte array to save next line
+                        buffer = bytearray()
                 else:
                     # If last read character is not eol then add it in buffer
-                    buffer.extend(new_byte)
+                    if new_byte:
+                        buffer.extend(new_byte)
             # As file is read completely, if there is still data in buffer, then its the first line.
             if len(buffer) > 0:
                 # Yield the first line too
@@ -168,13 +170,15 @@ def lazyread_reverse_order(file_name: str, decode: str = "utf-8") -> Generator[s
             new_byte = read_obj.read(1)
             # If the read byte is new line character then it means one line is read
             if new_byte == b'\n':
-                # Fetch the line from buffer and yield it
-                yield buffer.decode(decode)[::-1]
-                # Reinitialie the byte array to save next line
-                buffer = bytearray()
+                # Only yield if there is content accumulated (avoid empty line for trailing newline)
+                if len(buffer) > 0:
+                    yield buffer.decode(decode)[::-1]
+                    # Reinitialie the byte array to save next line
+                    buffer = bytearray()
             else:
                 # If last read character is not eol then add it in buffer
-                buffer.extend(new_byte)
+                if new_byte:
+                    buffer.extend(new_byte)
         # As file is read completely, if there is still data in buffer, then its the first line.
         if len(buffer) > 0:
             # Yield the first line too
