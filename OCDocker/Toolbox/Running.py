@@ -17,7 +17,7 @@ import subprocess
 
 import OCDocker.Toolbox.Printing as ocprint
 
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Optional
 
 from OCDocker.Initialise import *
 
@@ -45,7 +45,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ## Private ##
 
 ## Public ##
-def run(cmd: List[str], logFile: str = "", cwd : str = "") -> Union[int, Tuple[int, str]]:
+def run(cmd: List[str], logFile: str = "", cwd: str = "", timeout: Optional[int] = None) -> Union[int, Tuple[int, str]]:
     '''Run the given command (generic).
 
     Parameters
@@ -66,7 +66,7 @@ def run(cmd: List[str], logFile: str = "", cwd : str = "") -> Union[int, Tuple[i
     if not cmd:
         return ocerror.Error.not_set(message = f"The variable cmd is not set or is an empty list!", level = ocerror.ReportLevel.ERROR)
 
-    if type(cmd) != list:
+    if not isinstance(cmd, list):
         return ocerror.Error.wrong_type(message = f"The argument cmd has to be a list! Found '{type(cmd)}' instead...", level = ocerror.ReportLevel.ERROR)
 
     # Print verboosity
@@ -78,13 +78,25 @@ def run(cmd: List[str], logFile: str = "", cwd : str = "") -> Union[int, Tuple[i
     else:
         ocprint.printv(f"Logging into '{logFile}'")
 
+    # Resolve timeout from param or environment variable
+    if timeout is None:
+        try:
+            timeout_env = int(os.getenv("OCDOCKER_TIMEOUT", "0"))
+            timeout = timeout_env if timeout_env > 0 else None
+        except Exception:
+            timeout = None
+
     try:
         if cwd == "":
             with open(logFile, 'w') as outfile:
-                proc = subprocess.run(cmd, stdout = outfile, stderr = subprocess.PIPE)
+                proc = subprocess.run(cmd, stdout=outfile, stderr=subprocess.PIPE, timeout=timeout)
         else:
             with open(logFile, 'w') as outfile:
-                proc = subprocess.run(cmd, stdout = outfile, cwd=cwd, stderr = subprocess.PIPE)
+                proc = subprocess.run(cmd, stdout=outfile, cwd=cwd, stderr=subprocess.PIPE, timeout=timeout)
+    except FileNotFoundError as e:
+        return ocerror.Error.subprocess(message = f"Command not found when executing '{' '.join(cmd)}': {e}", level=ocerror.ReportLevel.ERROR)
+    except subprocess.TimeoutExpired as e:
+        return ocerror.Error.subprocess(message = f"Timeout expired after {timeout}s for command '{' '.join(cmd)}'", level=ocerror.ReportLevel.ERROR)
     except Exception as e:
         return ocerror.Error.subprocess(message = f"Found a problem while executing the command '{' '.join(cmd)}': {e}", level=ocerror.ReportLevel.ERROR)
 

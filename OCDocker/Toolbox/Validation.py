@@ -13,8 +13,6 @@ import OCDocker.Toolbox.Validation as ocvalidation
 # Imports
 ###############################################################################
 import os
-import rdkit
-
 from Bio.PDB import MMCIFParser, PDBParser
 from typing import Union
 
@@ -116,6 +114,8 @@ def is_molecule_valid(molecule: str) -> bool:
                 return False
         elif type(validate_obabel_extension(molecule)) == str:
             try:
+                # Import RDKit lazily to avoid hard dependency at import time
+                import rdkit
                 # Check if the extension is within the supported ones, if yes, parse it
                 if extension == ".mol2":
                     _ = rdkit.Chem.rdmolfiles.MolFromMol2File(molecule, sanitize = True) # type: ignore
@@ -138,7 +138,7 @@ def is_molecule_valid(molecule: str) -> bool:
                     return False
                 # If no problems occur, the molecule should be fine
                 return True
-            except:
+            except Exception:
                 # Uh oh, some problem has been found
                 return False
     # No file, so it is False

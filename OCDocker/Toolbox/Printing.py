@@ -315,7 +315,7 @@ def section(n: int, name: str) -> str:
 
     return section_string
 
-def print_subsection(n: int, name: str, logName: str = "OCDocker_Progess.out") -> None:
+def print_subsection(n: int, name: str, logName: str = "OCDocker_Progress.out") -> None:
     '''Print the subsection header in progress file.
 
     Parameters

@@ -228,5 +228,4 @@ def export_db_to_csv(session, output_format='dataframe', output_file=None, drop_
     else:
         raise ValueError("Invalid output format. Please choose 'dataframe', 'json', or 'csv'.")
     
-# Setup the database
-setup_database()
+# Explicit initialization only: call setup_database() from CLI or application bootstrap

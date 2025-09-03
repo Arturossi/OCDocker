@@ -77,7 +77,8 @@ def __build_cmd(receptorPath: str, ligandPath: str, outputFile: str) -> Union[Li
         return ocerror.Error.unsupported_extension("The output file must be a csv file.", level = ocerror.ReportLevel.ERROR) # type: ignore
 
     # Start building the command
-    cmd = [oddt, ligandPath, "-O", outputFile, "--receptor", receptorPath, "-i", "pdbqt", "-n", "1"]
+    # Use configured ODDT CLI program from Initialise
+    cmd = [oddt_program, ligandPath, "-O", outputFile, "--receptor", receptorPath, "-i", "pdbqt", "-n", "1"]
 
     # Check if there are scoring functions to be used
     if isinstance(oddt_scoring_functions, list) and len(oddt_scoring_functions) > 0:

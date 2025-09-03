@@ -25,6 +25,8 @@ import argparse
 import importlib
 import os
 import sys
+import json
+import shutil
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -77,33 +79,18 @@ def _preparse_global_args(argv: list[str]) -> argparse.Namespace:
     return ns
 
 def _bootstrap_ocdocker_env(ns: argparse.Namespace) -> None:
-    """Prepare process state so OCDocker.Initialise can import safely.
+    """Bootstrap OCDocker.Initialise explicitly (no import-time side effects).
 
-    - Set OCDOCKER_CONFIG env var if provided
-    - Temporarily replace sys.argv with only known flags
-    - Import OCDocker.Initialise (which initialises environment)
-    - Restore sys.argv
+    - Set `OCDOCKER_CONFIG` env var if provided
+    - Call `OCDocker.Initialise.bootstrap(ns)`
     """
-    # Prepare argv for Initialise
-    init_argv = [sys.argv[0]]
-    if ns.multiprocess:
-        init_argv.append("--multiprocess")
-    if ns.update:
-        init_argv.append("--update-databases")
     if ns.config_file:
         os.environ["OCDOCKER_CONFIG"] = ns.config_file
-        init_argv.extend(["--conf", ns.config_file])
-    if ns.output_level is not None:
-        init_argv.extend(["--output-level", str(ns.output_level)])
-    if ns.overwrite:
-        init_argv.append("--overwrite")
-
-    prev_argv = list(sys.argv)
-    try:
-        sys.argv = init_argv
-        importlib.import_module("OCDocker.Initialise")
-    finally:
-        sys.argv = prev_argv
+    init_mod = importlib.import_module("OCDocker.Initialise")
+    if hasattr(init_mod, "bootstrap"):
+        init_mod.bootstrap(ns)  # type: ignore
+    else:
+        raise RuntimeError("OCDocker.Initialise.bootstrap not found")
 
 
 def _require_file(p: str, label: str) -> Path:
@@ -163,6 +150,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_vs.add_argument("--outdir", default="./ocdocker_out", help="Output directory")
     p_vs.add_argument("--skip-rescore", action="store_true", help="Skip rescoring phase")
     p_vs.add_argument("--skip-split", action="store_true", help="Skip pose splitting (when applicable)")
+    p_vs.add_argument("--timeout", type=int, default=None, help="Timeout (sec) for external tools; overrides OCDOCKER_TIMEOUT")
+    p_vs.add_argument("--store-db", action="store_true", help="Store minimal metadata in DB (Complexes)")
     p_vs.set_defaults(func=cmd_vs)
 
     # shap passthrough (reuses existing module)
@@ -196,6 +185,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_pipe.add_argument("--cluster-max", type=float, default=20.0, help="Maximum threshold for clustering")
     p_pipe.add_argument("--cluster-step", type=float, default=0.1, help="Search step for threshold")
     p_pipe.add_argument("--store-db", action="store_true", help="Store minimal metadata in DB (Complexes)")
+    p_pipe.add_argument("--timeout", type=int, default=None, help="Timeout (sec) for external tools; overrides OCDOCKER_TIMEOUT")
     p_pipe.set_defaults(func=cmd_pipeline)
 
     # console (interactive mode)
@@ -255,6 +245,10 @@ def cmd_vs(args: argparse.Namespace) -> int:
     globals_ns = _preparse_global_args(sys.argv[1:])
     _bootstrap_ocdocker_env(globals_ns)
 
+    # Optionally set timeout for external processes
+    if args.timeout:
+        os.environ["OCDOCKER_TIMEOUT"] = str(args.timeout)
+
     # Imports after env is ready
     import OCDocker.Ligand as ocl  # type: ignore
     import OCDocker.Receptor as ocr  # type: ignore
@@ -267,6 +261,29 @@ def cmd_vs(args: argparse.Namespace) -> int:
     else:
         import OCDocker.Docking.PLANTS as engine_mod  # type: ignore
         eng = "plants"
+
+    # Validate engine binary availability based on configuration
+    try:
+        from OCDocker.Initialise import vina as _vina_bin, smina as _smina_bin, plants as _plants_bin  # type: ignore
+    except Exception:
+        _vina_bin = _smina_bin = _plants_bin = None
+
+    def _exists_exe(p: str | None) -> bool:
+        if not p:
+            return False
+        if os.path.isabs(p):
+            return os.path.isfile(p) and os.access(p, os.X_OK)
+        return shutil.which(p) is not None
+
+    if eng == "vina" and not _exists_exe(_vina_bin):
+        print("Error: Vina binary not found. Check 'vina' in OCDocker.cfg or PATH.")
+        return 2
+    if eng == "smina" and not _exists_exe(_smina_bin):
+        print("Error: Smina binary not found. Check 'smina' in OCDocker.cfg or PATH.")
+        return 2
+    if eng == "plants" and not _exists_exe(_plants_bin):
+        print("Error: PLANTS binary not found. Check 'plants' in OCDocker.cfg or PATH.")
+        return 2
 
     outdir = Path(args.outdir).resolve()
     outdir.mkdir(parents=True, exist_ok=True)
@@ -398,6 +415,16 @@ def cmd_vs(args: argparse.Namespace) -> int:
                 runner.run_rescore(pose_list, overwrite=True)
 
     print(f"Completed {eng} for job '{name}'. Outputs in: {files_dir}")
+    # Optional DB store
+    if args.store_db:
+        try:
+            # Ensure tables exist
+            from OCDocker.DB.DB import create_tables  # type: ignore
+            create_tables()
+            from OCDocker.DB.Models.Complexes import Complexes  # type: ignore
+            Complexes.insert_or_update({"name": name})
+        except Exception as e:
+            print(f"Warning: failed to store to DB: {e}")
     return 0
 
 def cmd_shap(args: argparse.Namespace) -> int:
@@ -459,6 +486,10 @@ def cmd_pipeline(args: argparse.Namespace) -> int:
     globals_ns = _preparse_global_args(sys.argv[1:])
     _bootstrap_ocdocker_env(globals_ns)
 
+    # Optionally set timeout for external processes
+    if args.timeout:
+        os.environ["OCDOCKER_TIMEOUT"] = str(args.timeout)
+
     # Domain imports
     import OCDocker.Ligand as ocl  # type: ignore
     import OCDocker.Receptor as ocr  # type: ignore
@@ -487,6 +518,31 @@ def cmd_pipeline(args: argparse.Namespace) -> int:
     if not engines:
         print("No valid engine provided. Use --engines vina,smina,plants")
         return 1
+
+    # Validate required binaries are available
+    try:
+        from OCDocker.Initialise import vina as _vina_bin, smina as _smina_bin, plants as _plants_bin  # type: ignore
+    except Exception:
+        _vina_bin = _smina_bin = _plants_bin = None
+
+    def _exists_exe(p: str | None) -> bool:
+        if not p:
+            return False
+        if os.path.isabs(p):
+            return os.path.isfile(p) and os.access(p, os.X_OK)
+        return shutil.which(p) is not None
+
+    missing = []
+    for e in engines:
+        if e == "vina" and not _exists_exe(_vina_bin):
+            missing.append("vina")
+        elif e == "smina" and not _exists_exe(_smina_bin):
+            missing.append("smina")
+        elif e == "plants" and not _exists_exe(_plants_bin):
+            missing.append("plants")
+    if missing:
+        print(f"Error: missing engine binaries: {', '.join(missing)}. Check paths in OCDocker.cfg or PATH.")
+        return 2
 
     all_poses: List[str] = []
     ctx: Dict[str, Dict[str, str]] = {}
@@ -613,6 +669,8 @@ def cmd_pipeline(args: argparse.Namespace) -> int:
 
     if args.store_db:
         try:
+            from OCDocker.DB.DB import create_tables  # type: ignore
+            create_tables()
             from OCDocker.DB.Models.Complexes import Complexes  # type: ignore
             Complexes.insert_or_update({"name": name})
         except Exception as e:
