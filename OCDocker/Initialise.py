@@ -28,7 +28,6 @@ from OCDocker.DB.DBMinimal import create_database_if_not_exists, create_engine, 
 
 from glob import glob
 
-global output_level
 output_level = ocerror.ReportLevel.NONE
 
 from sqlalchemy.engine.url import URL
@@ -76,7 +75,7 @@ _description = tw.dedent("""\033[1;93m
 \033[1;0m""")
 
 # Minimal defaults to avoid NameError in test/doc contexts (overridden by bootstrap)
-dssp = ""
+dssp = "dssp"
 vina_energy_range = "10"
 vina_exhaustiveness = "5"
 vina_num_modes = "3"
@@ -85,6 +84,34 @@ smina_energy_range = "10"
 smina_exhaustiveness = "5"
 smina_num_modes = "3"
 smina_scoring = "vinardo"
+vina = "vina"
+vina_split = "vina_split"
+smina = "smina"
+plants = "plants"
+obabel = "obabel"
+spores = "spores"
+pythonsh = "pythonsh"
+prepare_ligand = "prepare_ligand4.py"
+prepare_receptor = "prepare_receptor4.py"
+plants_search_speed = "speed1"
+plants_cluster_structures = 3
+plants_cluster_rmsd = 2.0
+plants_scoring = "chemplp"
+plants_scoring_functions = ["chemplp","plp","plp95"]
+plants_rescoring_mode = "simplex"
+smina_custom_scoring = "no"
+smina_custom_atoms = "no"
+smina_local_only = "no"
+smina_minimize = "no"
+smina_randomize_only = "no"
+smina_minimize_iters = "0"
+smina_accurate_line = "no"
+smina_minimize_early_term = "no"
+smina_approximation = "spline"
+smina_factor = "32"
+smina_force_cap = "10"
+smina_user_grid = "no"
+smina_user_grid_lambda = "no"
 
 # Functions
 ###############################################################################
@@ -990,126 +1017,7 @@ def set_log_level(level: ocerror.ReportLevel) -> None:
 
     ocerror.Error.set_output_level(ocerror.ReportLevel.WARNING)
 
-# Define Global Variables
 ###############################################################################
-# General variables
-global args
-global clrs
-global widgets
-global workdir
-
-global logdir
-global tmpdir
-global oddt_models_dir
-global cpu_cores
-global available_cores
-global multiprocess
-global update
-global config_file
-#global output_level
-global overwrite
-
-# DB variables
-global db_url
-global engine
-global session
-global optdb_url
-
-# Order variable
-global order
-global pdbbind_KdKi_order
-
-# Data from .cfg
-global ocdb_path
-global pca_path
-global vina
-global vina_split
-global dock6
-global smina
-global gnina
-global obabel
-global plants
-global dudez_download
-global pythonsh
-global prepare_ligand
-global prepare_receptor
-
-# Vina parameters
-global vina_scoring
-global vina_scoring_functions
-global vina_num_modes
-global vina_energy_range
-global vina_exhaustiveness
-
-# Smina parameters
-global smina_num_modes
-global smina_energy_range
-global smina_exhaustiveness
-global smina_scoring
-global smina_scoring_functions
-global smina_custom_scoring
-global smina_custom_atoms
-global smina_local_only
-global smina_minimize
-global smina_randomize_only
-global smina_minimize_iters
-global smina_accurate_line
-global smina_minimize_early_term
-global smina_approximation
-global smina_factor
-global smina_force_cap
-global smina_user_grid
-global smina_user_grid_lambda
-
-# Gnina parameters
-global gnina_exhaustiveness
-global gnina_num_modes
-global gnina_scoring
-global gnina_custom_scoring_file
-global gnina_custom_atoms
-global gnina_local_only
-global gnina_minimize
-global gnina_randomize_only
-global gnina_num_mc_steps
-global gnina_max_mc_steps
-global gnina_num_mc_saved
-global gnina_minimize_iters
-global gnina_simple_ascent
-global gnina_accurate_line
-global gnina_minimize_early_term
-global gnina_approximation
-global gnina_factor
-global gnina_force_cap
-global gnina_user_grid
-global gnina_user_grid_lambda
-global gnina_no_gpu
-
-# PLANTS parameters
-global plants_cluster_structures
-global plants_cluster_rmsd
-global plants_search_speed
-global plants_scoring
-global plants_scoring_functions
-
-# Dock6 parameters
-global dock6_vdw_defn_file
-global dock6_flex_defn_file
-global dock6_flex_drive_file
-
-# ODDT parameters
-global oddt_program
-global oddt_seed
-global oddt_chunk_size
-global oddt_scoring_functions
-
-# Database + OCDocker variables
-global dudez_archive
-global ocdocker_path
-global pdbbind_archive
-global parsed_archive
-
-# Other software
-global dssp
 
 # Aditional Variables
 ###############################################################################

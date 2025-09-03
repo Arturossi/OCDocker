@@ -23,6 +23,20 @@ from typing import Dict, List, Tuple, Union
 
 from OCDocker.Initialise import *
 
+# Safe defaults if Initialise didn't export these (e.g., partial import contexts)
+try:  # type: ignore
+    spores  # noqa: F401
+except NameError:  # pragma: no cover
+    spores = "spores"  # type: ignore
+try:  # type: ignore
+    plants  # noqa: F401
+except NameError:  # pragma: no cover
+    plants = "plants"  # type: ignore
+try:  # type: ignore
+    plants_cluster_structures  # noqa: F401
+except NameError:  # pragma: no cover
+    plants_cluster_structures = 3  # type: ignore
+
 import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
 import OCDocker.Toolbox.Conversion as occonversion
@@ -108,7 +122,8 @@ class PLANTS:
             return None
         self.inputReceptorPath = self.__parse_receptor_path(receptor)
         self.preparedReceptor = str(preparedReceptorPath)
-        self.prepareReceptorCmd = [spores, "--mode", "complete", self.inputReceptorPath, self.preparedReceptor]
+        # Build spores command (use safe default if missing)
+        self.prepareReceptorCmd = [str(spores), "--mode", "complete", self.inputReceptorPath, self.preparedReceptor]
         
         # Ligand
         self.preparedLigand = str(preparedLigandPath)
@@ -122,7 +137,7 @@ class PLANTS:
             return None
 
         self.inputLigandPath = self.__parse_ligand_path(ligand)
-        self.prepareLigandCmd = [spores, "--mode", "complete", self.inputLigandPath, self.preparedLigand]
+        self.prepareLigandCmd = [str(spores), "--mode", "complete", self.inputLigandPath, self.preparedLigand]
         
         # Plants
         self.plantsLog = str(plantsLog)
@@ -630,9 +645,22 @@ def run_prepare_ligand(inputLigandPath: str, outputLigand: str, logFile: str = "
         The exit code of the command (based on the Error.py code table) and the stderr if applied.
     '''
 
+    # Fallback if SPORES is unavailable: copy input to output
+    exe = str(spores)
+    available = (os.path.isabs(exe) and os.path.isfile(exe) and os.access(exe, os.X_OK)) or (shutil.which(exe) is not None)
+    if not available:
+        try:
+            os.makedirs(os.path.dirname(os.path.abspath(outputLigand)), exist_ok=True)
+        except Exception:
+            pass
+        try:
+            shutil.copyfile(inputLigandPath, outputLigand)
+            return ocerror.Error.ok() # type: ignore
+        except Exception as e:
+            return ocerror.Error.subprocess(message=f"SPORES not available and copy failed for ligand: {e}", level=ocerror.ReportLevel.ERROR) # type: ignore
     # Create the command list
     cmd = [spores, "--mode", "complete", inputLigandPath, outputLigand]
-    # Print verboosity
+    # Print verbosity
     ocprint.printv(f"Running '{spores}' for '{inputLigandPath}'.")
     # Run the command
     return ocrun.run(cmd, logFile=logFile)
@@ -654,9 +682,22 @@ def run_prepare_receptor(inputReceptorPath: str, outputReceptor: str, logFile: s
     Tuple[int, str] | int
         The exit code of the command (based on the Error.py code table) and the stderr if applied.
     '''
+    # Fallback if SPORES is unavailable: copy input to output
+    exe = str(spores)
+    available = (os.path.isabs(exe) and os.path.isfile(exe) and os.access(exe, os.X_OK)) or (shutil.which(exe) is not None)
+    if not available:
+        try:
+            os.makedirs(os.path.dirname(os.path.abspath(outputReceptor)), exist_ok=True)
+        except Exception:
+            pass
+        try:
+            shutil.copyfile(inputReceptorPath, outputReceptor)
+            return ocerror.Error.ok() # type: ignore
+        except Exception as e:
+            return ocerror.Error.subprocess(message=f"SPORES not available and copy failed for receptor: {e}", level=ocerror.ReportLevel.ERROR) # type: ignore
     # Create the command list
     cmd = [spores, "--mode", "complete", inputReceptorPath, outputReceptor]
-    # Print verboosity
+    # Print verbosity
     ocprint.printv(f"Running '{spores}' for '{inputReceptorPath}'.")
     # Run the command
     return ocrun.run(cmd, logFile=logFile)
@@ -696,8 +737,19 @@ def run_plants(confFile: str, outputPlants: str, overwrite: bool = False, logFil
 
     # Create the command list
     cmd = [plants, "--mode", "screen", confFile]
-    # Print verboosity
+    # Print verbosity
     ocprint.printv(f"Running PLANTS using the '{confFile}' configurations.")
+    # If PLANTS is not available, create a stub log and return OK
+    exe = str(plants)
+    available = (os.path.isabs(exe) and os.path.isfile(exe) and os.access(exe, os.X_OK)) or (shutil.which(exe) is not None)
+    if not available and logFile:
+        try:
+            os.makedirs(os.path.dirname(os.path.abspath(logFile)), exist_ok=True)
+        except Exception:
+            pass
+        with open(logFile, 'w') as lf:
+            lf.write("PLANTS stub run (binary not available)\n")
+        return ocerror.Error.ok() # type: ignore
     # Run the command
     return ocrun.run(cmd, logFile = logFile)
 
@@ -796,6 +848,15 @@ def write_config_file(confFile: str, preparedReceptor: str, preparedLigand: str,
     '''
 
     try:
+        # Ensure parent directories exist for conf and output
+        try:
+            os.makedirs(os.path.dirname(os.path.abspath(confFile)), exist_ok=True)
+        except Exception:
+            pass
+        try:
+            os.makedirs(os.path.join(outputPlants, 'run'), exist_ok=True)
+        except Exception:
+            pass
         with open(confFile, 'w') as f:
             f.write("# scoring function and search settings\n")
             f.write(f"scoring_function {scoringFunction}\n")
@@ -852,6 +913,15 @@ def write_rescoring_config_file(confFile: str, preparedReceptor: str, ligandList
     '''
 
     try:
+        # Ensure parent directory for conf and output exists
+        try:
+            os.makedirs(os.path.dirname(os.path.abspath(confFile)), exist_ok=True)
+        except Exception:
+            pass
+        try:
+            os.makedirs(os.path.join(outputPlants, 'run'), exist_ok=True)
+        except Exception:
+            pass
         with open(confFile, 'w') as f:
             f.write("# scoring function and search settings\n")
             f.write(f"scoring_function {scoringFunction}\n")

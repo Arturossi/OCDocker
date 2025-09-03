@@ -13,6 +13,7 @@ import OCDocker.Toolbox.Running as ocrun
 # Imports
 ###############################################################################
 import os
+import shutil
 import subprocess
 
 import OCDocker.Toolbox.Printing as ocprint
@@ -86,6 +87,17 @@ def run(cmd: List[str], logFile: str = "", cwd: str = "", timeout: Optional[int]
             timeout = timeout_env if timeout_env > 0 else None
         except Exception:
             timeout = None
+
+    # Validate executable availability (avoid PermissionError on empty string)
+    exe = str(cmd[0])
+    if not exe:
+        return ocerror.Error.subprocess(message = "Executable not set (empty). Check your configuration.", level=ocerror.ReportLevel.ERROR)
+    if os.path.isabs(exe):
+        if not (os.path.isfile(exe) and os.access(exe, os.X_OK)):
+            return ocerror.Error.subprocess(message = f"Executable not found or not executable: '{exe}'", level=ocerror.ReportLevel.ERROR)
+    else:
+        if shutil.which(exe) is None:
+            return ocerror.Error.subprocess(message = f"Executable not found on PATH: '{exe}'", level=ocerror.ReportLevel.ERROR)
 
     try:
         if cwd == "":
