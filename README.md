@@ -1,7 +1,10 @@
 ![OCDocker](./OCDocker.png "OCDocker")
 
-OCDocker installation
-=====================
+OCDocker
+========
+
+Installation
+------------
 
 Simplest methods
 ----------------
@@ -49,6 +52,7 @@ bash ./install.sh
 Prerequisites
 -------------
 
+- Python 3.10+
 - Ubuntu/Debian-like system with internet access
 - sudo privileges (required to install: DSSP, MySQL server, and place Vina in `/usr/bin`)
 - ~15–20 GB of free disk space for conda env + tools + caches
@@ -198,6 +202,118 @@ tar -xvzf autodock_vina_1_1_2_linux_x86.tgz
 ```
 
 * Option 2 (Use this all-in-one command. It seems to be more complicated, but its easier than option 2 and its easy to automate-it)
+
+Usage Overview
+--------------
+
+- CLI: `ocdocker` exposes subcommands for docking, pipelines, SHAP analysis, diagnostics, and an interactive console.
+- Programmatic: importing modules auto‑bootstraps once by default (see Bootstrap below). You can opt out via an env var and call `bootstrap()` explicitly.
+
+Bootstrap & Configuration
+-------------------------
+
+- Auto‑bootstrap on import: when you import OCDocker modules, the environment initializes once (config, DB, dirs). This is skipped during docs/tests.
+- Configuration file: set `OCDOCKER_CONFIG` to point to your `OCDocker.cfg` or place `OCDocker.cfg` in the working directory.
+- Disable auto‑bootstrap: set `OCDOCKER_NO_AUTO_BOOTSTRAP=1` and call `bootstrap()` explicitly:
+
+```python
+from OCDocker.Initialise import bootstrap
+import argparse
+bootstrap(argparse.Namespace(
+    multiprocess=True,
+    update=False,
+    config_file='OCDocker.cfg',
+    output_level=2,
+    overwrite=False,
+))
+```
+
+SQLite Fallback (optional)
+--------------------------
+
+- For development/tests, you can bypass MySQL entirely by setting `OCDOCKER_USE_SQLITE=1` before import or running the CLI.
+- This creates/uses a local `ocdocker.db` under the module directory.
+
+Diagnostics: `ocdocker doctor`
+--------------------------------
+
+Run a quick environment report:
+
+```bash
+ocdocker doctor --conf OCDocker.cfg
+```
+
+It checks:
+
+- Config path in use
+- Binaries: `vina`, `smina`, `plants` (presence on PATH or configured paths)
+- Python deps: rdkit, Biopython, ODDT, SQLAlchemy
+- DB connectivity (opens/closes a connection)
+
+Docking: Quick Examples
+-----------------------
+
+Single engine (Vina) with timeout, storing to DB:
+
+```bash
+ocdocker vs \
+  --engine vina \
+  --receptor path/to/receptor.pdb \
+  --ligand path/to/ligand.smi \
+  --box path/to/box.pdb \
+  --timeout 600 \
+  --store-db
+```
+
+Pipeline across engines with clustering and rescoring:
+
+```bash
+ocdocker pipeline \
+  --receptor path/to/receptor.pdb \
+  --ligand path/to/ligand.sdf \
+  --box path/to/box.pdb \
+  --engines vina,smina,plants \
+  --store-db
+```
+
+Notes:
+
+- `--timeout` limits external tool runtime (also via `OCDOCKER_TIMEOUT`).
+- `--store-db` auto‑creates tables and stores minimal metadata (name) in the DB.
+
+Timeouts & External Tools
+-------------------------
+
+- You can prevent hangs by defining a timeout:
+  - CLI: `--timeout <seconds>` (for `vs` and `pipeline`)
+  - Env: `OCDOCKER_TIMEOUT=<seconds>`
+
+Binary Checks
+-------------
+
+- The CLI validates presence of required binaries (`vina`/`smina`/`plants`) before running and errors early if missing. Use `ocdocker doctor` to see what’s available.
+
+Interactive Console
+-------------------
+
+```bash
+ocdocker console --conf OCDocker.cfg
+```
+
+This opens an interactive namespace with common OCDocker utilities imported.
+
+Environment Variables (reference)
+---------------------------------
+
+- `OCDOCKER_CONFIG`: path to `OCDocker.cfg` (config file with external tool paths and parameters).
+- `OCDOCKER_NO_AUTO_BOOTSTRAP`: if set to `1/true/yes`, disables auto‑bootstrap on import; call `bootstrap()` manually.
+- `OCDOCKER_USE_SQLITE`: if set to `1/true/yes`, uses a local SQLite DB instead of MySQL.
+- `OCDOCKER_TIMEOUT`: default timeout (seconds) for external tools when not provided via CLI.
+
+Python Support
+--------------
+
+- Requires Python 3.10+.
 
 ```bash
 mkdir vina && wget https://github.com/ccsb-scripps/AutoDock-Vina/releases/download/v1.2.3/vina_1.2.3_linux_x86_64 -O vina/vina && sudo cp vina/vina /usr/bin/vina

@@ -1442,19 +1442,28 @@ def bootstrap(ns: argparse.Namespace | None = None) -> None:
             elif line.startswith("DUDEz ="):
                 dudez_download = line.split("=")[1].strip()
 
-    # Ensure DB settings exist
-    if not HOST or not USER or not PASSWORD or not DATABASE or not PORT:
-        print(f"{clrs['r']}ERROR{clrs['n']}: The variables HOST, USER, PASSWORD, DATABASE and PORT must be set in the config file '{config_file}'")
-        raise SystemExit(2)
+    # Determine DB backend (MySQL default; optional SQLite fallback)
+    use_sqlite = str(os.getenv('OCDOCKER_USE_SQLITE', '')).lower() in ('1', 'true', 'yes', 'y')
 
     # Build DB URLs and connections
     global db_url, optdb_url, engine, session
-    db_url = URL.create(
-        drivername='mysql+pymysql', host=HOST, username=USER, password=PASSWORD, database=DATABASE, port=PORT  # type: ignore
-    )
-    optdb_url = URL.create(
-        drivername='mysql+pymysql', host=HOST, username=USER, password=PASSWORD, database=OPTIMIZEDB, port=PORT  # type: ignore
-    )
+    if use_sqlite:
+        _module_dir = os.path.dirname(os.path.abspath(__file__))
+        sqlite_path = os.path.join(_module_dir, 'ocdocker.db')
+        db_url = URL.create(drivername='sqlite', database=sqlite_path)
+        optdb_url = db_url
+    else:
+        # Ensure DB settings exist (MySQL mode)
+        if not HOST or not USER or not PASSWORD or not DATABASE or not PORT:
+            print(f"{clrs['r']}ERROR{clrs['n']}: The variables HOST, USER, PASSWORD, DATABASE and PORT must be set in the config file '{config_file}'")
+            raise SystemExit(2)
+        db_url = URL.create(
+            drivername='mysql+pymysql', host=HOST, username=USER, password=PASSWORD, database=DATABASE, port=PORT  # type: ignore
+        )
+        optdb_url = URL.create(
+            drivername='mysql+pymysql', host=HOST, username=USER, password=PASSWORD, database=OPTIMIZEDB, port=PORT  # type: ignore
+        )
+
     engine = create_engine(db_url)
     create_database_if_not_exists(engine.url)
     create_database_if_not_exists(optdb_url)
@@ -1505,9 +1514,9 @@ def bootstrap(ns: argparse.Namespace | None = None) -> None:
 
     bootstrapped = True
 
-# Autobootstrap on first import (non‑CLI contexts), except during docs/tests
+# Autobootstrap on first import (non‑CLI contexts), unless disabled via env
 try:
-    if not bootstrapped and not is_doc_build():
+    if not bootstrapped and not is_doc_build() and not os.getenv('OCDOCKER_NO_AUTO_BOOTSTRAP'):
         default_ns = argparse.Namespace(
             multiprocess=True,
             update=False,

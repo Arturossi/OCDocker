@@ -192,6 +192,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_console = sub.add_parser("console", help="Open interactive OCDocker console", parents=[parent])
     p_console.set_defaults(func=cmd_console)
 
+    # doctor (environment diagnostics)
+    p_doc = sub.add_parser("doctor", help="Check binaries, Python deps, and DB connectivity", parents=[parent])
+    p_doc.set_defaults(func=cmd_doctor)
+
     return parser
 
 def cmd_init_config(args: argparse.Namespace) -> int:
@@ -726,6 +730,68 @@ def cmd_console(args: argparse.Namespace) -> int:
     except Exception as e:
         print(f"Interactive console exited with error: {e}")
         return 1
+    return 0
+
+def cmd_doctor(args: argparse.Namespace) -> int:
+    """Run diagnostics: config, binaries, Python deps, DB connectivity."""
+    # Bootstrap to load config and DB
+    globals_ns = _preparse_global_args(sys.argv[1:])
+    _bootstrap_ocdocker_env(globals_ns)
+
+    report: Dict[str, Dict[str, str]] = {}
+
+    # Config source
+    try:
+        import OCDocker.Initialise as OCI  # type: ignore
+        cfg = getattr(OCI, 'config_file', None)
+        report['config'] = {
+            'path': str(cfg) if cfg else 'unknown',
+        }
+    except Exception as e:
+        report['config'] = {'error': f'{e}'}
+
+    # Engine binaries
+    def _exists_exe(p: str | None) -> bool:
+        if not p:
+            return False
+        if os.path.isabs(p):
+            return os.path.isfile(p) and os.access(p, os.X_OK)
+        return shutil.which(p) is not None
+
+    try:
+        v = getattr(OCI, 'vina', None); s = getattr(OCI, 'smina', None); p = getattr(OCI, 'plants', None)
+    except Exception:
+        v = s = p = None
+    report['binaries'] = {
+        'vina': 'OK' if _exists_exe(v) else 'MISSING',
+        'smina': 'OK' if _exists_exe(s) else 'MISSING',
+        'plants': 'OK' if _exists_exe(p) else 'MISSING',
+    }
+
+    # Python dependencies
+    pydeps = {}
+    for mod in ('rdkit', 'Bio', 'oddt', 'sqlalchemy'):
+        try:
+            __import__(mod)
+            pydeps[mod] = 'OK'
+        except Exception as e:
+            pydeps[mod] = f'MISSING ({e.__class__.__name__})'
+    report['python_deps'] = pydeps
+
+    # DB connectivity
+    try:
+        eng = getattr(OCI, 'engine', None)
+        if eng is None:
+            report['database'] = {'status': 'MISSING ENGINE'}
+        else:
+            conn = eng.connect()
+            conn.close()
+            report['database'] = {'status': 'OK'}
+    except Exception as e:
+        report['database'] = {'status': f'ERROR ({e})'}
+
+    # Summary printout
+    print(json.dumps(report, indent=2))
     return 0
 
 def main(argv: list[str] | None = None) -> int:
