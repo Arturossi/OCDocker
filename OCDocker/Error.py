@@ -312,11 +312,22 @@ class Error(metaclass = ErrorMeta):
         # If the level is a ReportLevel, just set it
         if isinstance(level, ReportLevel):
             cls.output_level = level
+            # Bridge to logging (lazy import to avoid cycles)
+            try:
+                import OCDocker.Toolbox.Logging as oclogging  # type: ignore
+                oclogging.set_level_from_report(level)  # type: ignore
+            except Exception:
+                pass
             return None
         elif isinstance(level, int):
             # If the level is an int, check if it is valid
             if level >= ReportLevel.NONE and level <= ReportLevel.DEBUG:
                 cls.output_level = ReportLevel(level)
+                try:
+                    import OCDocker.Toolbox.Logging as oclogging  # type: ignore
+                    oclogging.set_level_from_report(ReportLevel(level))  # type: ignore
+                except Exception:
+                    pass
                 return None
             else:
                 raise ValueError(f"Invalid output level: {level}.")

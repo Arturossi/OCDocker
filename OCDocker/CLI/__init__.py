@@ -42,6 +42,8 @@ def _preparse_global_args(argv: list[str]) -> argparse.Namespace:
         config_file=None,
         output_level=1,
         overwrite=False,
+        log_file=None,
+        no_stdout_log=False,
     )
 
     i = 0
@@ -72,6 +74,14 @@ def _preparse_global_args(argv: list[str]) -> argparse.Namespace:
             continue
         if tok == "--overwrite":
             ns.overwrite = True
+            i += 1
+            continue
+        if tok == "--log-file" and i + 1 < len(argv):
+            ns.log_file = argv[i + 1]
+            i += 2
+            continue
+        if tok == "--no-stdout-log":
+            ns.no_stdout_log = True
             i += 1
             continue
         # skip token
@@ -121,6 +131,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--conf", dest="config_file", type=str, help="Path to OCDocker.cfg")
     parser.add_argument("--output-level", dest="output_level", type=int, default=1, help="Log level (0-5)")
     parser.add_argument("--overwrite", dest="overwrite", action="store_true", default=False, help="Overwrite outputs when applicable")
+    parser.add_argument("--log-file", dest="log_file", type=str, default=None, help="Write logs to this file")
+    parser.add_argument("--no-stdout-log", dest="no_stdout_log", action="store_true", default=False, help="Disable logging to stdout")
 
     # Parent parser to allow repeating global options after subcommand
     parent = argparse.ArgumentParser(add_help=False)
@@ -129,6 +141,8 @@ def build_parser() -> argparse.ArgumentParser:
     parent.add_argument("--conf", dest="config_file", type=str)
     parent.add_argument("--output-level", dest="output_level", type=int, default=1)
     parent.add_argument("--overwrite", dest="overwrite", action="store_true", default=False)
+    parent.add_argument("--log-file", dest="log_file", type=str, default=None)
+    parent.add_argument("--no-stdout-log", dest="no_stdout_log", action="store_true", default=False)
 
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -248,6 +262,14 @@ def cmd_vs(args: argparse.Namespace) -> int:
     # Bootstrap environment before importing engines
     globals_ns = _preparse_global_args(sys.argv[1:])
     _bootstrap_ocdocker_env(globals_ns)
+
+    # Configure logging according to CLI flags
+    try:
+        import OCDocker.Error as ocerror  # type: ignore
+        import OCDocker.Toolbox.Logging as oclogging  # type: ignore
+        oclogging.configure(level=ocerror.Error.get_output_level(), log_file=args.log_file, to_stdout=(not args.no_stdout_log))
+    except Exception:
+        pass
 
     # Optionally set timeout for external processes
     if args.timeout:
@@ -490,6 +512,14 @@ def cmd_pipeline(args: argparse.Namespace) -> int:
     globals_ns = _preparse_global_args(sys.argv[1:])
     _bootstrap_ocdocker_env(globals_ns)
 
+    # Configure logging according to CLI flags
+    try:
+        import OCDocker.Error as ocerror  # type: ignore
+        import OCDocker.Toolbox.Logging as oclogging  # type: ignore
+        oclogging.configure(level=ocerror.Error.get_output_level(), log_file=args.log_file, to_stdout=(not args.no_stdout_log))
+    except Exception:
+        pass
+
     # Optionally set timeout for external processes
     if args.timeout:
         os.environ["OCDOCKER_TIMEOUT"] = str(args.timeout)
@@ -692,6 +722,14 @@ def cmd_console(args: argparse.Namespace) -> int:
     globals_ns = _preparse_global_args(sys.argv[1:])
     _bootstrap_ocdocker_env(globals_ns)
 
+    # Configure logging according to CLI flags
+    try:
+        import OCDocker.Error as ocerror  # type: ignore
+        import OCDocker.Toolbox.Logging as oclogging  # type: ignore
+        oclogging.configure(level=ocerror.Error.get_output_level(), log_file=args.log_file, to_stdout=(not args.no_stdout_log))
+    except Exception:
+        pass
+
     # Import console module and open interactive session with its namespace
     try:
         import OCDockerConsole as occ  # type: ignore
@@ -737,6 +775,14 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     # Bootstrap to load config and DB
     globals_ns = _preparse_global_args(sys.argv[1:])
     _bootstrap_ocdocker_env(globals_ns)
+
+    # Configure logging according to CLI flags
+    try:
+        import OCDocker.Error as ocerror  # type: ignore
+        import OCDocker.Toolbox.Logging as oclogging  # type: ignore
+        oclogging.configure(level=ocerror.Error.get_output_level(), log_file=args.log_file, to_stdout=(not args.no_stdout_log))
+    except Exception:
+        pass
 
     report: Dict[str, Dict[str, str]] = {}
 
