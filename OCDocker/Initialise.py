@@ -75,6 +75,17 @@ _description = tw.dedent("""\033[1;93m
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 \033[1;0m""")
 
+# Minimal defaults to avoid NameError in test/doc contexts (overridden by bootstrap)
+dssp = ""
+vina_energy_range = "10"
+vina_exhaustiveness = "5"
+vina_num_modes = "3"
+vina_scoring = "vina"
+smina_energy_range = "10"
+smina_exhaustiveness = "5"
+smina_num_modes = "3"
+smina_scoring = "vinardo"
+
 # Functions
 ###############################################################################
 def __inner_initialise_models(oddt_sf: str):

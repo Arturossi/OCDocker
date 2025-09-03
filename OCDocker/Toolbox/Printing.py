@@ -60,8 +60,10 @@ def printv(message: str) -> None:
     '''
 
     if ocerror.Error.output_level >= ocerror.ReportLevel.DEBUG:
+        # log + plain print for test expectations
         oclogging.configure(level=ocerror.Error.get_output_level())
         oclogging.get_logger("printing").debug(message)
+        print(message)
     return
 
 def print_info(message: str, force = False) -> None:
@@ -83,9 +85,11 @@ def print_info(message: str, force = False) -> None:
         oclogging.configure(level=ocerror.Error.get_output_level())
         log = oclogging.get_logger("printing")
         if ocerror.Error.output_level >= ocerror.ReportLevel.DEBUG:
-            log.info(f"INFO: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")  # type: ignore
+            msg = f"INFO: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'."  # type: ignore
         else:
-            log.info(f"INFO: {message}")
+            msg = f"INFO: {message}"
+        log.info(msg)
+        print(msg)
     return
 
 def print_success(message: str, force: bool = False) -> None:
@@ -107,9 +111,11 @@ def print_success(message: str, force: bool = False) -> None:
         oclogging.configure(level=ocerror.Error.get_output_level())
         log = oclogging.get_logger("printing")
         if ocerror.Error.output_level >= ocerror.ReportLevel.DEBUG:
-            log.info(f"SUCCESS: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")  # type: ignore
+            msg = f"SUCCESS: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'."  # type: ignore
         else:
-            log.info(f"SUCCESS: {message}")
+            msg = f"SUCCESS: {message}"
+        log.info(msg)
+        print(msg)
     return
 
 def print_warning(message: str, force: bool = False) -> None:
@@ -131,9 +137,11 @@ def print_warning(message: str, force: bool = False) -> None:
         oclogging.configure(level=ocerror.Error.get_output_level())
         log = oclogging.get_logger("printing")
         if ocerror.Error.output_level >= ocerror.ReportLevel.DEBUG:
-            log.warning(f"WARNING: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")  # type: ignore
+            msg = f"WARNING: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'."  # type: ignore
         else:
-            log.warning(f"WARNING: {message}")
+            msg = f"WARNING: {message}"
+        log.warning(msg)
+        print(msg)
     return
 
 def print_error(message: str, force: bool = False) -> None:
@@ -156,9 +164,11 @@ def print_error(message: str, force: bool = False) -> None:
         oclogging.configure(level=ocerror.Error.get_output_level())
         log = oclogging.get_logger("printing")
         if ocerror.Error.output_level >= ocerror.ReportLevel.DEBUG:
-            log.error(f"ERROR: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")  # type: ignore
+            msg = f"ERROR: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'."  # type: ignore
         else:
-            log.error(f"ERROR: {message}")
+            msg = f"ERROR: {message}"
+        log.error(msg)
+        print(msg)
     return
 
 def print_info_log(message: str, logfile:str, mode: str = 'a') -> None:
