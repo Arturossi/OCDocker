@@ -24,7 +24,7 @@ Public API (metrics/tables):
 '''
 
 from dataclasses import dataclass
-from typing import Iterable, List, Optional, Sequence, Dict
+from typing import Iterable, List, Optional, Sequence, Dict, Union
 
 import numpy as np
 import pandas as pd
@@ -59,7 +59,7 @@ class BootstrapCI:
 # --------------------------------------------------------------------------------------
 # Utilities
 # --------------------------------------------------------------------------------------
-def _to_binary(y: pd.Series, positive_label: Optional[str | int]) -> np.ndarray:
+def _to_binary(y: pd.Series, positive_label: Optional[Union[str, int]]) -> np.ndarray:
     """Map labels to 0/1 while tolerating strings/numbers/booleans."""
     if y.dtype == bool:
         return y.astype(int).to_numpy()
@@ -564,8 +564,8 @@ def build_summary_table(
     models: Sequence[str],
     eps: Sequence[int] = (1, 5, 10, 20, 30),
     include_pr_auc: bool = False,
-    pr_summary_targets: pd.DataFrame | None = None,
-    pr_summary_pooled: pd.DataFrame | None = None,
+    pr_summary_targets: Optional[pd.DataFrame] = None,
+    pr_summary_pooled: Optional[pd.DataFrame] = None,
 ) -> pd.DataFrame:
     """
     Create a presentation table combining median EF-ROC across targets and pooled EF-ROC at given epsilons.

@@ -1,86 +1,94 @@
 Usage
 =====
 
-This section provides instructions on how to use OCDocker.
+This section summarizes common CLI tasks, options, and environment variables.
 
-Basic Usage
------------
-
-After installing OCDocker, you can use it to perform various tasks.
-
-To run OCDocker, use the following command:
-
-.. code-block:: bash
-
-   ocdocker [options] [arguments]
-
-Example
--------
-
-Here is an example of how to use OCDocker:
+CLI overview
+------------
 
 .. code-block:: bash
 
    ocdocker --help
+   ocdocker <command> --help
 
-Common commands
----------------
+Commands
+--------
 
-- Virtual screening for a single entry (receptor/ligand/box):
-
-  .. code-block:: bash
-
-     ocdocker vs --engine vina \
-       --receptor path/to/receptor.pdb \
-       --ligand path/to/ligand.smi \
-       --box path/to/box0.pdb \
-       --outdir runs/exp1
-
-- Create a configuration file interactively:
+- vs: Dock a single receptor/ligand/box with one engine (vina/smina/plants)
 
   .. code-block:: bash
 
-     ocdocker init-config
+     ocdocker vs \\
+       --engine vina \\
+       --receptor path/to/receptor.pdb \\
+       --ligand path/to/ligand.smi \\
+       --box path/to/box0.pdb \\
+       --outdir runs/exp1 \\
+       --timeout 600 \\
+       --store-db
 
-- Run SHAP analysis (delegates to OCScore SHAP CLI):
+- pipeline: Multi‑engine docking + clustering + rescoring
 
   .. code-block:: bash
 
-   ocdocker shap --help
+     ocdocker pipeline \\
+       --receptor path/to/receptor.pdb \\
+       --ligand path/to/ligand.sdf \\
+       --box path/to/box0.pdb \\
+       --engines vina,smina,plants \\
+       --timeout 900 \\
+       --store-db
 
-- Full pipeline (multi-engine, clustering, rescoring):
+- shap: Delegate to OCScore SHAP CLI
 
   .. code-block:: bash
 
-     ocdocker pipeline \
-       --receptor path/to/receptor.pdb \
-       --ligand path/to/ligand.smi \
-       --box path/to/box0.pdb \
-       --engines vina,smina,plants \
-       --outdir runs/exp1
+     ocdocker shap --help
 
-- Open interactive console (with tab-completion and history):
+- console: Interactive console with tab‑completion and history
 
   .. code-block:: bash
 
      ocdocker console --conf OCDocker.cfg
 
-  Inside the console:
+- doctor: Diagnostics for binaries/deps/DB
 
-  .. code-block:: pycon
+  .. code-block:: bash
 
-     >>> print_args()               # environment overview
-     >>> print_args('all')          # all sections
-     >>> print_args('vina')         # also: smina, plants, gnina, oddt, db, paths
-     >>> debug_all()                # enable global DEBUG level
-     >>> debug_modules('vina,smina')# per-module debug prints
+     ocdocker doctor --conf OCDocker.cfg
 
-This command displays the help message with all available options and arguments.
+- init-config: Create a starter ``OCDocker.cfg`` from the example
 
-Advanced Usage
+  .. code-block:: bash
+
+     ocdocker init-config --conf OCDocker.cfg
+
+Global options
 --------------
 
-For more advanced usage, refer to the documentation of specific modules/packages:
+All commands accept the following global options:
+
+- ``--conf``: path to ``OCDocker.cfg``
+- ``--multiprocess``: enable multiprocessing for compatible tasks
+- ``--update-databases``: run DB updates at startup
+- ``--output-level``: control log level (0–5)
+- ``--overwrite``: allow overwriting outputs when applicable
+
+Bootstrap & environment
+-----------------------
+
+- Auto‑bootstrap happens on first import outside docs/tests.
+- Environment variables:
+
+  - ``OCDOCKER_CONFIG``: config file path
+  - ``OCDOCKER_NO_AUTO_BOOTSTRAP``: disable auto‑bootstrap on import
+  - ``OCDOCKER_USE_SQLITE``: opt‑in SQLite backend (local file), instead of MySQL
+  - ``OCDOCKER_TIMEOUT``: default timeout (seconds) for external tools
+
+See :doc:`OCDocker.Initialise` for details.
+
+Further reading
+---------------
 
 - :doc:`OCDocker`
 - :doc:`OCDocker.DB`
@@ -93,18 +101,3 @@ For more advanced usage, refer to the documentation of specific modules/packages
 - :doc:`OCDocker.Receptor`
 - :doc:`OCDocker.Rescoring`
 - :doc:`OCDocker.Toolbox`
-
-Debugging flags
----------------
-
-All subcommands accept debug flags:
-
-.. code-block:: bash
-
-   # Global DEBUG (equivalent to --output-level 5)
-   ocdocker vs ... --debug-all
-
-   # Module-specific debug (forces verbose prints for matching modules)
-   ocdocker pipeline ... --debug-modules vina,smina
-
-Modules are matched case-insensitively against file/module names. Use a comma-separated list or 'all'.

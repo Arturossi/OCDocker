@@ -20,6 +20,7 @@ import shutil
 import argparse
 
 import textwrap as tw
+from typing import Optional
 
 import OCDocker.Toolbox.Constants as occ
 import OCDocker.Error as ocerror
@@ -1209,7 +1210,7 @@ def print_description() -> None:
 
     print(_description)
     
-def bootstrap(ns: argparse.Namespace | None = None) -> None:
+def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
     """Explicitly bootstrap OCDocker environment (config, DB, paths).
 
     Must be called before using modules that depend on Initialise globals.

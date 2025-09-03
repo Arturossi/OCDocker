@@ -18,7 +18,7 @@ This module complements `OCDocker.OCScore.Analysis.Impact` with visual summaries
 '''
 
 from __future__ import annotations
-from typing import Iterable, Optional, Dict
+from typing import Iterable, Optional, Dict, Union
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -66,7 +66,7 @@ def prop_delta_2xk(contingency: pd.DataFrame) -> pd.DataFrame:
     # Return table with explicit column names
     return delta.to_frame("prop_delta").reset_index(names="MetricCategory")
 
-def plot_prop_delta(contingency: pd.DataFrame, title: str = 'Proportion delta (1 - 0)', outpath: str | None = None) -> None:
+def plot_prop_delta(contingency: pd.DataFrame, title: str = 'Proportion delta (1 - 0)', outpath: Optional[str] = None) -> None:
     '''Diverging bar chart of proportion deltas across metric categories.
 
     Parameters
@@ -109,9 +109,9 @@ def plot_prop_delta(contingency: pd.DataFrame, title: str = 'Proportion delta (1
 
 def plot_residuals_lollipop(residuals_df: pd.DataFrame,
                             feature_name: str,
-                            presence_level: int | str = 1,
+                            presence_level: Union[int, str] = 1,
                             title_suffix: str = 'Standardized residuals (feature=1)',
-                            outpath: str | None = None) -> None:
+                            outpath: Optional[str] = None) -> None:
     '''Lollipop plot of standardized residuals for the 'presence' row only.
 
     Draw reference lines at ±2 and ±3.
@@ -173,9 +173,9 @@ def plot_residuals_lollipop(residuals_df: pd.DataFrame,
 
 def plot_chi2_contrib(contingency: pd.DataFrame,
                       feature_name: str,
-                      presence_level: int | str = 1,
-                      title: str | None = None,
-                      outpath: str | None = None) -> None:
+                      presence_level: Union[int, str] = 1,
+                      title: Optional[str] = None,
+                      outpath: Optional[str] = None) -> None:
     '''Bar plot of per-category chi-square contributions for the presence row only.
 
     Contribution = (O-E)^2 / E ; normalized to percentage.
@@ -236,7 +236,7 @@ def plot_chi2_contrib(contingency: pd.DataFrame,
 def feature_report_2xk(feature: str,
                        contingency: pd.DataFrame,
                        residuals_df: pd.DataFrame,
-                       p_value: float | None = None,
+                       p_value: Optional[float] = None,
                        outpath: str = 'feature_report.png') -> None:
     '''Compose a 2x2 figure for a single feature.
 
@@ -333,7 +333,7 @@ def feature_report_2xk(feature: str,
     plt.close()
 
 def residuals_matrix_from_dict(residuals_dict: Dict[str, pd.DataFrame],
-                               presence_level: int | str = 1) -> pd.DataFrame:
+                               presence_level: Union[int, str] = 1) -> pd.DataFrame:
     '''Build a matrix (features x categories) with residuals for presence row only.
 
     Parameters
@@ -363,7 +363,7 @@ def residuals_matrix_from_dict(residuals_dict: Dict[str, pd.DataFrame],
     return pd.DataFrame(rows).T
 
 def plot_residuals_matrix(residuals_dict: Dict[str, pd.DataFrame],
-                          presence_level: int | str = 1,
+                          presence_level: Union[int, str] = 1,
                           order_by: str = 'maxabs',
                           outpath: str = 'residuals_matrix.png') -> None:
     '''Heatmap of features (rows) vs metric categories (columns), values = residuals (feature=1).

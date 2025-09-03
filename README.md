@@ -3,6 +3,24 @@
 OCDocker
 ========
 
+Project Description
+-------------------
+
+OCDocker is a Python toolkit and CLI for automated molecular docking, virtual
+screening, and AI‑assisted consensus scoring. It streamlines end‑to‑end flows
+from preparation through docking, pose clustering and rescoring, with optional
+database persistence and analysis utilities.
+
+Key capabilities:
+
+- Multi‑engine docking: AutoDock Vina, Smina, PLANTS (future: Gnina, others)
+- Pipelines: run engines, cluster poses by RMSD (medoid), rescore and export
+- Rescoring: built‑in engine rescoring and ODDT models (RFScore, NNScore, PLEC)
+- OCScore analytics: DNN/XGBoost/Transformer optimizers, ranking metrics, SHAP
+- Database integration: MySQL (default) or SQLite fallback for dev/tests
+- CLI and Python API: doctor diagnostics, timeouts, binary checks, reproducible configs
+- Packaging: conda/pip, Dockerfiles for engines, docs and examples
+
 Installation
 ------------
 
@@ -52,7 +70,7 @@ bash ./install.sh
 Prerequisites
 -------------
 
-- Python 3.10+
+- Python 3.9+
 - Ubuntu/Debian-like system with internet access
 - sudo privileges (required to install: DSSP, MySQL server, and place Vina in `/usr/bin`)
 - ~15–20 GB of free disk space for conda env + tools + caches

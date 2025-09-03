@@ -8,8 +8,8 @@ Prerequisites
 
 Make sure you have the following prerequisites installed:
 
-- Python (>=3.6)
-- pip
+- Python (>=3.9)
+- pip (or conda/mamba)
 
 Installing OCDocker
 --------------------
@@ -30,14 +30,20 @@ To install OCDocker, follow these steps:
       python -m venv venv
       source venv/bin/activate  # On Windows use `venv\\Scripts\\activate`
 
-3. Install the required dependencies:
-
-   .. code-block:: bash
-
-      pip install -r requirements.txt
-
-4. Install OCDocker:
+3. Install OCDocker and dependencies (pip):
 
    .. code-block:: bash
 
       pip install .
+
+   Or install from PyPI:
+
+   .. code-block:: bash
+
+      pip install ocdocker
+
+   Or use conda (recommended for binary deps like RDKit/OpenBabel):
+
+   .. code-block:: bash
+
+      mamba install arturossi/label/prealpha::ocdocker

@@ -28,7 +28,7 @@ import sys
 import json
 import shutil
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 def _preparse_global_args(argv: list[str]) -> argparse.Namespace:
     """Extract global flags from anywhere in argv.
@@ -272,7 +272,7 @@ def cmd_vs(args: argparse.Namespace) -> int:
     except Exception:
         _vina_bin = _smina_bin = _plants_bin = None
 
-    def _exists_exe(p: str | None) -> bool:
+    def _exists_exe(p: Optional[str]) -> bool:
         if not p:
             return False
         if os.path.isabs(p):
@@ -529,7 +529,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:
     except Exception:
         _vina_bin = _smina_bin = _plants_bin = None
 
-    def _exists_exe(p: str | None) -> bool:
+    def _exists_exe(p: Optional[str]) -> bool:
         if not p:
             return False
         if os.path.isabs(p):
@@ -751,7 +751,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         report['config'] = {'error': f'{e}'}
 
     # Engine binaries
-    def _exists_exe(p: str | None) -> bool:
+    def _exists_exe(p: Optional[str]) -> bool:
         if not p:
             return False
         if os.path.isabs(p):
@@ -794,7 +794,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     print(json.dumps(report, indent=2))
     return 0
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: Optional[list[str]] = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     parser = build_parser()
     args = parser.parse_args(argv)

@@ -13,7 +13,7 @@ Public API:
 - shap_importance_table
 """
 
-from typing import Callable, Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -40,7 +40,7 @@ def _require_shap() -> None:
         raise ImportError("shap is not installed. Please install `shap` to use Test2SHAP utilities.")
 
 
-def _ensure_2d(X: np.ndarray | pd.DataFrame) -> np.ndarray:
+def _ensure_2d(X: Union[np.ndarray, pd.DataFrame]) -> np.ndarray:
     """Guarantee 2D float64 array without copying unnecessarily."""
     if isinstance(X, pd.DataFrame):
         return X.to_numpy(dtype=float, copy=False)
@@ -54,7 +54,7 @@ def _ensure_2d(X: np.ndarray | pd.DataFrame) -> np.ndarray:
 # Background selection
 # --------------------------------------------------------------------------------------
 def build_stratified_background(
-    X: np.ndarray | pd.DataFrame,
+    X: Union[np.ndarray, pd.DataFrame],
     meta: pd.DataFrame,
     strata_cols: Sequence[str],
     per_stratum: int = 50,
@@ -91,8 +91,8 @@ def make_explainer(
     model,
     background: np.ndarray,
     method: str = "auto",
-    link: str | None = None,
-    predict_fn: Callable | None = None,
+    link: Optional[str] = None,
+    predict_fn: Optional[Callable] = None,
 ):
     """
     Create a SHAP Explainer for the given model and background.
@@ -155,9 +155,9 @@ def make_explainer(
 # --------------------------------------------------------------------------------------
 def compute_shap_values(
     explainer,
-    X_eval: np.ndarray | pd.DataFrame,
+    X_eval: Union[np.ndarray, pd.DataFrame],
     task: str = "binary",
-    nsamples: int | str | None = "auto",
+    nsamples: Optional[Union[int, str]] = "auto",
     class_index: int = 1,
 ) -> Dict[str, np.ndarray]:
     """
@@ -213,7 +213,7 @@ def compute_shap_values(
 # --------------------------------------------------------------------------------------
 def shap_importance_table(
     shap_values: np.ndarray,
-    feature_names: Sequence[str] | None = None,
+    feature_names: Optional[Sequence[str]] = None,
     k: Optional[int] = None,
 ) -> pd.DataFrame:
     """

@@ -18,7 +18,7 @@ class OutputPaths:
     feature_importance_png: str
     beeswarm_png: str
     shap_values_npy: str
-    shap_values_csv: str | None = None
+    shap_values_csv: Optional[str] = None
 
 def run_shap_analysis(
     studies: StudyHandles,
