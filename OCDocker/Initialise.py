@@ -31,10 +31,6 @@ from glob import glob
 global output_level
 output_level = ocerror.ReportLevel.NONE
 
-import oddt
-from oddt.scoring.functions.RFScore import rfscore
-from oddt.scoring.functions.NNScore import nnscore
-from oddt.scoring.functions.PLECscore import PLECscore
 from sqlalchemy.engine.url import URL
 
 # License
@@ -97,8 +93,9 @@ def __inner_initialise_models(oddt_sf: str):
     # Warn the user that the pickled model will be created
     print(f"{clrs['y']}WARNING{clrs['n']}: {oddt_sf} model is not pickled, it will be created now.")
 
-    # Discover the scoring function
+    # Discover the scoring function (lazy import to avoid hard dependency at import time)
     if oddt_sf.lower().startswith('rfscore'):
+        from oddt.scoring.functions.RFScore import rfscore  # type: ignore
         # Create the new kwargs dict
         new_kwargs = {}
         # For each bit in the oddt_sf string
@@ -111,6 +108,7 @@ def __inner_initialise_models(oddt_sf: str):
         # Load the scoring function (this will create the pickled model)
         _ = rfscore.load(**new_kwargs)
     elif oddt_sf.lower().startswith('nnscore'):
+        from oddt.scoring.functions.NNScore import nnscore  # type: ignore
         # Create the new kwargs dict
         new_kwargs = {}
         # For each bit in the oddt_sf string
@@ -121,6 +119,7 @@ def __inner_initialise_models(oddt_sf: str):
         # Load the scoring function (this will create the pickled model)
         _ = nnscore.load(**new_kwargs)
     elif oddt_sf.lower().startswith('plec'):
+        from oddt.scoring.functions.PLECscore import PLECscore  # type: ignore
         # Create the new kwargs dict
         new_kwargs = {}
         # For each bit in the oddt_sf string
@@ -1511,8 +1510,9 @@ def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
     else:
         ocerror.Error.set_output_level(ocerror.ReportLevel.NONE)
 
-    # Ensure ODDT models folder contents
-    initialise_oddt_models(oddt_models_dir, oddt_scoring_functions)  # type: ignore
+    # Ensure ODDT models folder contents (allow skipping for slim environments)
+    if not str(os.getenv('OCDOCKER_SKIP_ODDT', '')).lower() in ('1','true','yes','y'):
+        initialise_oddt_models(oddt_models_dir, oddt_scoring_functions)  # type: ignore
 
     bootstrapped = True
 
