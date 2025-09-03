@@ -14,8 +14,10 @@ import OCDocker.Toolbox.Printing as ocprint
 ###############################################################################
 import datetime
 import inspect
+from typing import Dict
 
-from OCDocker.Initialise import *
+import OCDocker.Error as ocerror
+import OCDocker.Toolbox.Logging as oclogging
 
 # License
 ###############################################################################
@@ -26,10 +28,11 @@ Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
-Licensed under the Apache License, Version 2.0 (January 2004)
-See: http://www.apache.org/licenses/LICENSE-2.0
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
 
-Commercial use requires a separate license.  
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
 
@@ -41,6 +44,8 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ## Private ##
 
 ## Public ##
+# Local fallback colors (no ANSI by default)
+clrs: Dict[str, str] = {"r":"","g":"","y":"","b":"","p":"","c":"","n":""}
 def printv(message: str) -> None:
     '''Function to print if verbosity mode is set.
 
@@ -55,8 +60,8 @@ def printv(message: str) -> None:
     '''
 
     if ocerror.Error.output_level >= ocerror.ReportLevel.DEBUG:
-        today = datetime.datetime.now()
-        print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {message}")
+        oclogging.configure(level=ocerror.Error.get_output_level())
+        oclogging.get_logger("printing").debug(message)
     return
 
 def print_info(message: str, force = False) -> None:
@@ -75,11 +80,12 @@ def print_info(message: str, force = False) -> None:
     '''
 
     if ocerror.Error.output_level >= ocerror.ReportLevel.INFO or force:
-        today = datetime.datetime.now()
+        oclogging.configure(level=ocerror.Error.get_output_level())
+        log = oclogging.get_logger("printing")
         if ocerror.Error.output_level >= ocerror.ReportLevel.DEBUG:
-            print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['c']}INFO{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.") # type: ignore
+            log.info(f"INFO: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")  # type: ignore
         else:
-            print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['c']}INFO{clrs['n']}: {message}")
+            log.info(f"INFO: {message}")
     return
 
 def print_success(message: str, force: bool = False) -> None:
@@ -98,11 +104,12 @@ def print_success(message: str, force: bool = False) -> None:
     '''
 
     if ocerror.Error.output_level >= ocerror.ReportLevel.SUCCESS or force:
-        today = datetime.datetime.now()
+        oclogging.configure(level=ocerror.Error.get_output_level())
+        log = oclogging.get_logger("printing")
         if ocerror.Error.output_level >= ocerror.ReportLevel.DEBUG:
-            print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['g']}SUCCESS{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.") # type: ignore
+            log.info(f"SUCCESS: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")  # type: ignore
         else:
-            print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['g']}SUCCESS{clrs['n']}: {message}")
+            log.info(f"SUCCESS: {message}")
     return
 
 def print_warning(message: str, force: bool = False) -> None:
@@ -121,11 +128,12 @@ def print_warning(message: str, force: bool = False) -> None:
     '''
 
     if ocerror.Error.output_level >= ocerror.ReportLevel.WARNING or force:
-        today = datetime.datetime.now()
+        oclogging.configure(level=ocerror.Error.get_output_level())
+        log = oclogging.get_logger("printing")
         if ocerror.Error.output_level >= ocerror.ReportLevel.DEBUG:
-            print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['y']}WARNING{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.") # type: ignore
+            log.warning(f"WARNING: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")  # type: ignore
         else:
-            print(f"[{clrs['c']}{today.strftime('%d-%m-%Y')}{clrs['n']}|{clrs['c']}{today.strftime('%H:%M:%S')}{clrs['n']}] {clrs['y']}WARNING{clrs['n']}: {message}")
+            log.warning(f"WARNING: {message}")
     return
 
 def print_error(message: str, force: bool = False) -> None:
@@ -145,11 +153,12 @@ def print_error(message: str, force: bool = False) -> None:
     '''
 
     if ocerror.Error.output_level >= ocerror.ReportLevel.ERROR or force:
-        today = datetime.datetime.now()
+        oclogging.configure(level=ocerror.Error.get_output_level())
+        log = oclogging.get_logger("printing")
         if ocerror.Error.output_level >= ocerror.ReportLevel.DEBUG:
-            print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] {clrs['r']}ERROR{clrs['n']}: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.") # type: ignore
+            log.error(f"ERROR: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.")  # type: ignore
         else:
-            print(f"[\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m] {clrs['r']}ERROR{clrs['n']}: {message}")
+            log.error(f"ERROR: {message}")
     return
 
 def print_info_log(message: str, logfile:str, mode: str = 'a') -> None:
