@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""
+'''
 OCDocker CLI
 ============
 
@@ -17,7 +17,7 @@ Main commands
 Global options
 - --conf, --multiprocess, --update-databases, --output-level, --overwrite:
   compatible with OCDocker.Initialise and used to bootstrap the environment.
-"""
+'''
 
 from __future__ import annotations
 
@@ -31,10 +31,21 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 
 def _preparse_global_args(argv: list[str]) -> argparse.Namespace:
-    """Extract global flags from anywhere in argv.
+    '''Extract global flags from anywhere in argv.
 
     Works around argparse limitation when global options appear after the subcommand.
-    """
+
+    Parameters
+    ----------
+    argv : list[str]
+        Command-line arguments.
+
+    Returns
+    -------
+    argparse.Namespace
+        Parsed global arguments.
+    '''
+    
     ns = argparse.Namespace(
         version=False,
         multiprocess=True,
@@ -89,11 +100,17 @@ def _preparse_global_args(argv: list[str]) -> argparse.Namespace:
     return ns
 
 def _bootstrap_ocdocker_env(ns: argparse.Namespace) -> None:
-    """Bootstrap OCDocker.Initialise explicitly (no import-time side effects).
+    '''Bootstrap OCDocker.Initialise explicitly (no import-time side effects).
 
     - Set `OCDOCKER_CONFIG` env var if provided
     - Call `OCDocker.Initialise.bootstrap(ns)`
-    """
+
+    Parameters
+    ----------
+    ns : argparse.Namespace
+        Parsed command-line arguments.
+    '''
+    
     if ns.config_file:
         os.environ["OCDOCKER_CONFIG"] = ns.config_file
     init_mod = importlib.import_module("OCDocker.Initialise")
@@ -104,11 +121,29 @@ def _bootstrap_ocdocker_env(ns: argparse.Namespace) -> None:
 
 
 def _require_file(p: str, label: str) -> Path:
-    """Ensure a file path exists. Print a helpful message and exit if not.
+    '''Ensure a file path exists. Print a helpful message and exit if not.
 
     Also warns if the path seems to contain a Unicode ellipsis (…)
     which is often a placeholder, not a real path.
-    """
+
+    Parameters
+    ----------
+    p : str
+        The file path to check.
+    label : str
+        A label for the file path (used in error messages).
+
+    Returns
+    -------
+    Path
+        The resolved file path.
+
+    Raises
+    ------
+    SystemExit
+        If the file path is invalid or not found.
+    '''
+    
     if "…" in p:
         print(f"Error: {label} contains an ellipsis character (…). Replace it with a real path.")
         raise SystemExit(2)
@@ -119,6 +154,14 @@ def _require_file(p: str, label: str) -> Path:
     return path
 
 def build_parser() -> argparse.ArgumentParser:
+    '''Build the main argument parser with subcommands.
+
+    Returns
+    -------
+    argparse.ArgumentParser
+        The constructed argument parser.
+    '''
+
     parser = argparse.ArgumentParser(
         prog="ocdocker",
         description="OCDocker CLI: docking, screening and analysis",
@@ -213,10 +256,21 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 def cmd_init_config(args: argparse.Namespace) -> int:
-    """Create a base OCDocker.cfg from the example file.
+    '''Create a base OCDocker.cfg from the example file.
 
     This avoids importing Initialise (which expects a ready config).
-    """
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Command-line arguments.
+
+    Returns
+    -------
+    int
+        Exit code (0 for success, 1 for failure).
+    '''
+    
     example = Path("OCDocker.cfg.example")
     if not example.exists():
         print("OCDocker.cfg.example not found in current directory.")
@@ -232,7 +286,19 @@ def cmd_init_config(args: argparse.Namespace) -> int:
     return 0
 
 def cmd_version(args: argparse.Namespace) -> int:
-    """Print package version without bootstrapping the full environment."""
+    '''Print package version without bootstrapping the full environment.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Command-line arguments.
+
+    Returns
+    -------
+    int
+        Exit code (0 for success, 1 for failure).
+    '''
+    
     try:
         import OCDocker as _oc
         v = getattr(_oc, "__version__", None)
@@ -253,11 +319,21 @@ def cmd_version(args: argparse.Namespace) -> int:
     return 0
 
 def cmd_vs(args: argparse.Namespace) -> int:
-    """Run a simple docking with the selected engine.
+    '''Run a simple docking with the selected engine.
 
     Flow: prepare receptor/ligand, run docking, split poses (when applicable),
     and optionally run rescoring.
-    """
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Command-line arguments.
+
+    Returns
+    -------
+    int
+        Exit code (0 for success, 1 for failure).
+    '''
 
     # Bootstrap environment before importing engines
     globals_ns = _preparse_global_args(sys.argv[1:])
@@ -454,6 +530,22 @@ def cmd_vs(args: argparse.Namespace) -> int:
     return 0
 
 def cmd_shap(args: argparse.Namespace) -> int:
+    '''Run SHAP analysis.
+
+    This function serves as a command-line interface for running SHAP analysis
+    on the specified data.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Command-line arguments.
+
+    Returns
+    -------
+    int
+        Exit code (0 for success, 1 for failure).
+    '''
+
     # No heavy OCDocker env needed for SHAP module, just dispatch
     from OCDocker.OCScore.Analysis.SHAP.Cli import main as shap_main  # type: ignore
     return int(shap_main([
@@ -476,10 +568,23 @@ def cmd_shap(args: argparse.Namespace) -> int:
 
 
 def _ensure_mol2_poses(pose_paths: List[str], dest_dir: Path) -> Tuple[List[str], Dict[str, str]]:
-    """Ensure a list of poses in MOL2 format, converting when needed.
+    '''Ensure a list of poses in MOL2 format, converting when needed.
 
     Returns a list of .mol2 paths and a mapping mol2->original path.
-    """
+
+    Parameters
+    ----------
+    pose_paths : List[str]
+        List of pose file paths to ensure are in MOL2 format.
+    dest_dir : Path
+        Destination directory for converted MOL2 files.
+
+    Returns
+    -------
+    Tuple[List[str], Dict[str, str]]
+        A tuple containing a list of .mol2 paths and a mapping from mol2 paths to original paths.
+    '''
+    
     dest_dir.mkdir(parents=True, exist_ok=True)
     mol2_paths: List[str] = []
     mapping: Dict[str, str] = {}
@@ -499,14 +604,24 @@ def _ensure_mol2_poses(pose_paths: List[str], dest_dir: Path) -> Tuple[List[str]
 
 
 def cmd_pipeline(args: argparse.Namespace) -> int:
-    """Full multi-engine flow with clustering, rescoring and export.
+    '''Full multi-engine flow with clustering, rescoring and export.
 
     1) Run docking on selected engines.
     2) Convert poses to MOL2, cluster by RMSD and pick the medoid of the largest cluster.
     3) Rescore only the representative pose.
     4) Save representative.mol2 and summary.json (rescoring results).
     5) (Optional) Store minimal metadata to DB.
-    """
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Command-line arguments.
+
+    Returns
+    -------
+    int
+        Exit code (0 for success, 1 for failure).
+    '''
 
     # Bootstrap env
     globals_ns = _preparse_global_args(sys.argv[1:])
@@ -714,10 +829,21 @@ def cmd_pipeline(args: argparse.Namespace) -> int:
     return 0
 
 def cmd_console(args: argparse.Namespace) -> int:
-    """Open an interactive console with OCDockerConsole namespace.
+    '''Open an interactive console with OCDockerConsole namespace.
 
     Respects global flags by bootstrapping environment first.
-    """
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Command-line arguments.
+
+    Returns
+    -------
+    int
+        Exit code (0 for success, 1 for failure).
+    '''
+    
     # Bootstrap env to ensure Initialise is safe to import
     globals_ns = _preparse_global_args(sys.argv[1:])
     _bootstrap_ocdocker_env(globals_ns)
@@ -771,7 +897,19 @@ def cmd_console(args: argparse.Namespace) -> int:
     return 0
 
 def cmd_doctor(args: argparse.Namespace) -> int:
-    """Run diagnostics: config, binaries, Python deps, DB connectivity."""
+    '''Run diagnostics: config, binaries, Python deps, DB connectivity.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Command-line arguments.
+
+    Returns
+    -------
+    int
+        Exit code (0 for success, 1 for failure).
+    '''
+    
     # Bootstrap to load config and DB
     globals_ns = _preparse_global_args(sys.argv[1:])
     _bootstrap_ocdocker_env(globals_ns)
@@ -841,6 +979,8 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     return 0
 
 def main(argv: Optional[list[str]] = None) -> int:
+    '''Main entry point for the CLI.'''
+    
     argv = sys.argv[1:] if argv is None else argv
     parser = build_parser()
     args = parser.parse_args(argv)

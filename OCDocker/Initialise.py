@@ -1152,7 +1152,14 @@ def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
     multiprocess = bool(getattr(ns, 'multiprocess', True))
     update = bool(getattr(ns, 'update', False))
     config_file = getattr(ns, 'config_file', None) or os.getenv('OCDOCKER_CONFIG', 'OCDocker.cfg')
-    output_level = getattr(ns, 'output_level', ocerror.ReportLevel.WARNING)
+
+    # Ensure output_level is ALWAYS a ReportLevel enum
+    raw_level = getattr(ns, 'output_level', ocerror.ReportLevel.WARNING)
+    try:
+        output_level = raw_level if isinstance(raw_level, ocerror.ReportLevel) else ocerror.ReportLevel(int(raw_level))
+    except Exception:
+        output_level = ocerror.ReportLevel.WARNING
+
     overwrite = bool(getattr(ns, 'overwrite', False))
     ocerror.Error.set_output_level(output_level)
 
@@ -1422,12 +1429,11 @@ def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
         available_cores = 1
 
     # Clamp output level
-    if output_level > ocerror.ReportLevel.DEBUG:
-        ocerror.Error.set_output_level(ocerror.ReportLevel.DEBUG)
-    elif output_level < ocerror.ReportLevel.NONE:
-        ocerror.Error.set_output_level(ocerror.ReportLevel(output_level))
-    else:
-        ocerror.Error.set_output_level(ocerror.ReportLevel.NONE)
+    if output_level.value > ocerror.ReportLevel.DEBUG.value:
+        output_level = ocerror.ReportLevel.DEBUG
+    elif output_level.value < ocerror.ReportLevel.NONE.value:
+        output_level = ocerror.ReportLevel.NONE
+    ocerror.Error.set_output_level(output_level)
 
     # Ensure ODDT models folder contents (allow skipping for slim environments)
     if not str(os.getenv('OCDOCKER_SKIP_ODDT', '')).lower() in ('1','true','yes','y'):

@@ -221,8 +221,7 @@ print(message)
 
 if __name__ == "__main__":
     # Set the variables based on args
-    set_argparse()
-    pass
+    bootstrap(argument_parsing())
 else:
     cpu_cores = 18
     available_cores = cpu_cores - 1
