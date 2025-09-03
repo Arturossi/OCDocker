@@ -1,66 +1,38 @@
 import os
 import sys
 import logging
-from pathlib import Path
 from unittest.mock import MagicMock
 
 logging.basicConfig(level=logging.DEBUG)
 
-# --- Path setup: add repo root (parent of the 'OCDocker' package) -----------
-HERE = Path(__file__).resolve()
-PROJECT_ROOT = HERE.parents[1]          # repo root if conf.py is in docs/
-sys.path.insert(0, str(PROJECT_ROOT))   # must be the parent dir that contains 'OCDocker'
+# Insert the project root into the system path
+sys.path.insert(0, os.path.abspath('../../'))
+sys.path.insert(0, '/data/hd4tb/OCDocker/OCDocker')
 
-# --- Mock class --------------------------------------------------------------
+# Mock modules
 class Mock(MagicMock):
     @classmethod
     def __getattr__(cls, name):
         return MagicMock()
 
-# --- Collect modules to mock -------------------------------------------------
-def get_all_modules(directory: Path):
+# Function to get all modules from a directory
+def get_all_modules(directory):
     modules = []
-    for path in directory.rglob("*.py"):
-        if path.name == "__init__.py":
-            continue
-        module = path.relative_to(directory).with_suffix("").as_posix().replace("/", ".")
-        # Prefix with top-level package name
-        modules.append(f"{directory.name}.{module}")
+    for root, _, files in os.walk(directory):
+        for file in files:
+            if file.endswith('.py') and file != '__init__.py':
+                module = os.path.relpath(os.path.join(root, file), directory)
+                module = module[:-3].replace(os.path.sep, '.')
+                modules.append(module)
     return modules
 
-pkg_dir = PROJECT_ROOT / "OCDocker"
-all_modules = get_all_modules(pkg_dir)
+# Get all modules in the project
+project_root = os.path.abspath('../../OCDocker')
+all_modules = get_all_modules(project_root)
 
-# --- Ensure parent packages exist, then mock every module --------------------
-def ensure_parents(fullname: str):
-    parts = fullname.split(".")
-    for i in range(1, len(parts)):
-        pkg = ".".join(parts[:i])
-        if pkg not in sys.modules:
-            sys.modules[pkg] = Mock(name=pkg)
-
+# Mock all modules
 for module in all_modules:
-    ensure_parents(module)
-    sys.modules[module] = Mock(name=module)
-
-# --- Force a stub for OCDocker.Initialise.session ---------------------------
-import types, importlib.machinery
-if "OCDocker" not in sys.modules or not isinstance(sys.modules["OCDocker"], types.ModuleType):
-    # turn top-level into a real-ish package so attribute access works, but keep mocks elsewhere
-    ocd_pkg = types.ModuleType("OCDocker")
-    ocd_pkg.__path__ = []
-    ocd_pkg.__spec__ = importlib.machinery.ModuleSpec("OCDocker", loader=None, is_package=True)
-    sys.modules["OCDocker"] = ocd_pkg
-else:
-    ocd_pkg = sys.modules["OCDocker"]
-
-init_mod = types.ModuleType("OCDocker.Initialise")
-init_mod.__spec__ = importlib.machinery.ModuleSpec("OCDocker.Initialise", loader=None, is_package=False)
-init_mod.__all__ = ["session"]
-init_mod.session = MagicMock(name="session")
-sys.modules["OCDocker.Initialise"] = init_mod
-setattr(ocd_pkg, "Initialise", init_mod)
-# ----------------------------------------------------------------------------- 
+    sys.modules[module] = Mock()
 
 # Configuration file for the Sphinx documentation builder.
 # For the full list of built-in configuration values, see the documentation:
@@ -70,11 +42,11 @@ setattr(ocd_pkg, "Initialise", init_mod)
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'OCDocker'
-copyright = '2025, Artur Duque Rossi'
+copyright = '2024, Artur Duque Rossi'
 author = 'Artur Duque Rossi'
 
-version = '0.10.1'
-release = '0.10.1'
+version = '0.9.1'
+release = '0.9.1'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
