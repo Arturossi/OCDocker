@@ -19,7 +19,8 @@ import pandas as pd
 
 import OCDocker.OCScore.Analysis.Correlation as occorrana
 import OCDocker.OCScore.Analysis.NNUtils as ocnnutils
-import OCDocker.OCScore.Analysis.Plotting as ocstatplot
+import OCDocker.OCScore.Analysis.Plotting.Colouring as ocstatcolour
+import OCDocker.OCScore.Analysis.Plotting.Stats as ocstatplot
 import OCDocker.OCScore.Analysis.StatTests as ocstat
 import OCDocker.OCScore.Utils.Data as ocscoredata
 import OCDocker.OCScore.Utils.Evaluation as ocseval
@@ -346,16 +347,16 @@ def get_feature_matrix(df_path: str) -> pd.DataFrame:
     return feature_df
 
 def run_full_analysis(
-    df_path: str,
-    base_path: str,
-    storage_str: str,
-    trials_list: List[int],
-    output_dir: str = "plots",
-    palette_colour: str = "glasbey",
-    rmse_threshold: float = 1.5,
-    feature_analysis: bool = True,
-    plot_summary: bool = True
-) -> None:
+        df_path: str,
+        base_path: str,
+        storage_str: str,
+        trials_list: List[int],
+        output_dir: str = "plots",
+        palette_colour: str = "glasbey",
+        rmse_threshold: float = 1.5,
+        feature_analysis: bool = True,
+        plot_summary: bool = True
+    ) -> None:
     '''
     Run the full evaluation and visualization pipeline.
 
@@ -416,7 +417,7 @@ def run_full_analysis(
             elif i == 2:
                 filtered_df = merged[merged['RMSE'] <= rmse_threshold].reset_index(drop=True)
 
-        colour_mapping = ocstatplot.set_color_mapping(filtered_df, palette_colour)
+        colour_mapping = ocstatcolour.set_color_mapping(filtered_df, palette_colour)
             
         if plot_summary:
             ocstatplot.plot_combined_metric_scatter(filtered_df, n_trials, colour_mapping, output_dir=output_dir)
@@ -444,6 +445,7 @@ def run_full_analysis(
 
     print("Full analysis completed.")
 
+'''
 base_path: str = "/data/hd4tb/OCDocker/data/ocdb"
 df_path: str = f"{base_path}/OCDocker.csv.gz"
 trials_list = [100]#[1, 5, 10, 50, 100, 500]
@@ -473,3 +475,4 @@ run_full_analysis(
     feature_analysis=True,
     plot_summary=True
 )
+'''

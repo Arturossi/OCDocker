@@ -22,6 +22,11 @@ import argparse
 import textwrap as tw
 from typing import Optional
 
+try:
+    from unittest.mock import MagicMock
+except Exception:
+    MagicMock = None
+
 import OCDocker.Toolbox.Constants as occ
 import OCDocker.Error as ocerror
 from OCDocker.DB.DBMinimal import create_database_if_not_exists, create_engine, create_session
@@ -1443,6 +1448,13 @@ def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
 
 # Autobootstrap on first import (non‑CLI contexts), unless disabled via env
 try:
+    # Provide harmless defaults when building docs (or tests)
+    if os.getenv("OC_BUILD_DOCS") == "1":
+        if "session" not in globals() and MagicMock:
+            session = MagicMock(name="session")
+        if "db_url" not in globals():
+            db_url = "sqlite:///:memory:"
+
     if not bootstrapped and not is_doc_build() and not os.getenv('OCDOCKER_NO_AUTO_BOOTSTRAP'):
         default_ns = argparse.Namespace(
             multiprocess=True,
