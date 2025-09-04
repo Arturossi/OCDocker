@@ -22,8 +22,9 @@ cd "$SCRIPT_DIR"
 
 # Set the Database user, password, and database name
 export DB_USER=ocdocker
-export DB_PASS=ocdocker
 export DB_NAME=ocdocker
+export DB_PASS=ocdocker
+export DB_NAME_OTIMIZATION=ocdocker
 
 info "Starting the installation process..."
 
@@ -82,6 +83,8 @@ info "Configuring MySQL, creating user and database..."
 sudo mysql -u root -e "CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';" || die "Failed to create MySQL user"
 sudo mysql -u root -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME};" || die "Failed to create MySQL database"
 sudo mysql -u root -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';" || die "Failed to grant privileges"
+sudo mysql -u root -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME_OPTIMIZATION};" || die "Failed to create MySQL database"
+sudo mysql -u root -e "GRANT ALL PRIVILEGES ON ${DB_NAME_OPTIMIZATION}.* TO '${DB_USER}'@'localhost';" || die "Failed to grant privileges"
 sudo mysql -u root -e "FLUSH PRIVILEGES;" || die "Failed to flush MySQL privileges"
 info "MySQL configuration complete."
 
