@@ -37,6 +37,16 @@ try:  # type: ignore
 except NameError:  # pragma: no cover
     plants_cluster_structures = 3  # type: ignore
 
+# Fallback tmpDir if Initialise did not set it (e.g., partial/CLI contexts)
+try:  # type: ignore
+    tmpDir  # noqa: F401
+except NameError:  # pragma: no cover
+    tmpDir = os.path.join(os.getcwd(), 'tmp')  # type: ignore
+    try:
+        os.makedirs(tmpDir, exist_ok=True)
+    except Exception:
+        pass
+
 import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
 import OCDocker.Toolbox.Conversion as occonversion
@@ -322,6 +332,11 @@ class PLANTS:
         # Print verboosity
         ocprint.printv(f"Running PLANTS using the '{self.config}' configurations.")
 
+        # Ensure tmpDir exists; PLANTS writes temp files there
+        try:
+            os.makedirs(tmpDir, exist_ok=True)
+        except Exception:
+            pass
         # Cd to tmpDir (because PLANTS keeps spamming annoying files) and run plants
         output = ocrun.run(self.plantsCmd, logFile=self.plantsLog, cwd=tmpDir)
 
@@ -848,13 +863,15 @@ def write_config_file(confFile: str, preparedReceptor: str, preparedLigand: str,
     '''
 
     try:
-        # Ensure parent directories exist for conf and output
+        # Ensure parent directory for config exists; let PLANTS create output_dir itself
         try:
             os.makedirs(os.path.dirname(os.path.abspath(confFile)), exist_ok=True)
         except Exception:
             pass
+        # Do not pre-create the PLANTS output_dir (some installations require it not to exist)
+        # It's safe to ensure the base output folder exists, but avoid creating the 'run' subfolder here.
         try:
-            os.makedirs(os.path.join(outputPlants, 'run'), exist_ok=True)
+            os.makedirs(outputPlants, exist_ok=True)
         except Exception:
             pass
         with open(confFile, 'w') as f:
@@ -913,13 +930,9 @@ def write_rescoring_config_file(confFile: str, preparedReceptor: str, ligandList
     '''
 
     try:
-        # Ensure parent directory for conf and output exists
+        # Ensure parent directory for config exists; avoid pre-creating rescoring output directory
         try:
             os.makedirs(os.path.dirname(os.path.abspath(confFile)), exist_ok=True)
-        except Exception:
-            pass
-        try:
-            os.makedirs(os.path.join(outputPlants, 'run'), exist_ok=True)
         except Exception:
             pass
         with open(confFile, 'w') as f:

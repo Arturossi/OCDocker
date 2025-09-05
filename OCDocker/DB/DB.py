@@ -57,10 +57,28 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 ## Public ##
 
-def create_tables(engine: Engine) -> None:
-    '''Create all ORM tables bound to the provided engine.'''
+def create_tables(engine: Optional[Engine] = None) -> None:
+    '''Create all ORM tables bound to the provided engine.
 
-    Base.metadata.create_all(engine)
+    If no engine is provided, attempts to resolve the engine from
+    OCDocker.Initialise (and creates one from db_url if necessary).
+    '''
+
+    eng = engine
+    if eng is None:
+        try:
+            import OCDocker.Initialise as init  # type: ignore
+            eng = getattr(init, 'engine', None)
+            if eng is None:
+                url = getattr(init, 'db_url', None)
+                if url is None:
+                    raise RuntimeError('Database URL is not configured')
+                from OCDocker.DB.DBMinimal import create_engine as _ce  # local import to avoid cycles at import-time
+                eng = _ce(url)
+        except Exception as e:  # pragma: no cover
+            raise RuntimeError(f'Could not resolve database engine to create tables: {e}')
+
+    Base.metadata.create_all(eng)  # type: ignore[arg-type]
 
 def setup_database() -> Engine:
     '''

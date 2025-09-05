@@ -143,6 +143,7 @@ Notes:
 
 - The SQLAlchemy URL uses the PyMySQL driver (`mysql+pymysql://...`). Ensure `pymysql` is installed (present in the provided `environment.yml`).
 - For CI/tests or local experiments, set `OCDOCKER_USE_SQLITE=1` to bypass MySQL.
+ - You can also set SQLite via config (`USE_SQLITE = yes`) and choose a custom file via `SQLITE_PATH`.
 
 Automated installer details
 ---------------------------
@@ -319,6 +320,32 @@ SQLite Fallback (optional)
 
 - For development/tests, you can bypass MySQL entirely by setting `OCDOCKER_USE_SQLITE=1` before import or running the CLI.
 - This creates/uses a local `ocdocker.db` under the module directory.
+
+Installer behavior with SQLite
+------------------------------
+
+- To skip installing and configuring MySQL during `install.sh`, enable SQLite mode before running it:
+
+```bash
+export OCDOCKER_USE_SQLITE=1                # select SQLite backend
+export OCDOCKER_SQLITE_PATH=/path/ocdocker.db  # optional custom path
+bash ./install.sh
+```
+
+- Alternatively, if you already have an `OCDocker.cfg` in the project directory, you can set in the file:
+  - `USE_SQLITE = yes`
+  - `SQLITE_PATH = /path/to/ocdocker.db` (optional)
+
+In both cases, the installer will:
+- Install only `dssp` (skips `mysql-server`)
+- Skip MySQL user/database creation
+- Proceed with the remaining steps normally
+
+Important note about SQLite
+---------------------------
+
+- SQLite is convenient for development and tests but has limitations for concurrent writes and larger workloads.
+- For production use, performance, and concurrency, a full MySQL installation is strongly recommended.
 
 Diagnostics: `ocdocker doctor`
 --------------------------------

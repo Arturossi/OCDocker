@@ -43,6 +43,17 @@ export DB_NAME=ocdocker
 export DB_PASS=ocdocker
 export DB_NAME_OPTIMIZATION=ocdocker
 
+# Decide whether to use SQLite (skip MySQL install/config)
+# Precedence: environment var OCDOCKER_USE_SQLITE, then config file USE_SQLITE (if present)
+truthy() { case "${1:-}" in 1|y|Y|yes|YES|true|TRUE|on|sqlite) return 0;; *) return 1;; esac; }
+USE_SQLITE=false
+if truthy "${OCDOCKER_USE_SQLITE:-}"; then
+  USE_SQLITE=true
+elif [[ -f "OCDocker.cfg" ]]; then
+  cfg_val=$(grep -E "^\s*USE_SQLITE\s*=\s*" OCDocker.cfg | tail -n1 | awk -F= '{print $2}' | xargs)
+  if truthy "$cfg_val"; then USE_SQLITE=true; fi
+fi
+
 info "Starting the installation process..."
 
 # Step 1: Download and install MGLTools
@@ -73,8 +84,14 @@ step "Initializing conda..." \
   "source \"$HOME/miniconda/etc/profile.d/conda.sh\""
 
 # Step 5: Install necessary system packages
-step "Installing required system packages (dssp, mysql-server)..." \
-  "sudo apt-get update -y && sudo apt-get install -y dssp mysql-server"
+if $USE_SQLITE; then
+  step "Installing required system packages (dssp)..." \
+    "sudo apt-get update -y && sudo apt-get install -y dssp"
+  info "SQLite mode selected — skipping MySQL server installation."
+else
+  step "Installing required system packages (dssp, mysql-server)..." \
+    "sudo apt-get update -y && sudo apt-get install -y dssp mysql-server"
+fi
 
 # Step 6: Install mamba
 step "Installing mamba..." \
@@ -89,14 +106,18 @@ else
 fi
 
 # Step 8: Configure MySQL
-step "Configuring MySQL: create user and databases..." \
-  "sudo mysql -u root -e \"CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';\" && \
-   sudo mysql -u root -e \"CREATE DATABASE IF NOT EXISTS ${DB_NAME};\" && \
-   sudo mysql -u root -e \"GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';\" && \
-   sudo mysql -u root -e \"CREATE DATABASE IF NOT EXISTS ${DB_NAME_OPTIMIZATION};\" && \
-   sudo mysql -u root -e \"GRANT ALL PRIVILEGES ON ${DB_NAME_OPTIMIZATION}.* TO '${DB_USER}'@'localhost';\" && \
-   sudo mysql -u root -e \"FLUSH PRIVILEGES;\""
-info "MySQL configuration step finished."
+if $USE_SQLITE; then
+  info "SQLite mode selected — skipping MySQL user/database configuration."
+else
+  step "Configuring MySQL: create user and databases..." \
+    "sudo mysql -u root -e \"CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';\" && \
+     sudo mysql -u root -e \"CREATE DATABASE IF NOT EXISTS ${DB_NAME};\" && \
+     sudo mysql -u root -e \"GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';\" && \
+     sudo mysql -u root -e \"CREATE DATABASE IF NOT EXISTS ${DB_NAME_OPTIMIZATION};\" && \
+     sudo mysql -u root -e \"GRANT ALL PRIVILEGES ON ${DB_NAME_OPTIMIZATION}.* TO '${DB_USER}'@'localhost';\" && \
+     sudo mysql -u root -e \"FLUSH PRIVILEGES;\""
+  info "MySQL configuration step finished."
+fi
 
 # Step 9: Activate the environment
 step "Activating the conda environment..." \

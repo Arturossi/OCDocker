@@ -1,10 +1,18 @@
 # Database
+# NOTE: To force a local SQLite backend (no MySQL), set the environment
+# variable OCDOCKER_USE_SQLITE=1 before running OCDocker/CLI.
+# When enabled, a file 'ocdocker.db' is created under the module folder and
+# the HOST/USER/PASSWORD settings below are ignored.
 HOST = localhost
 USER = ocdocker
-PASSWORD = pqd
+PASSWORD = your_passord_here
 DATABASE = ocdocker
 OPTIMIZEDB = optimization
 PORT = 3306
+
+# SQLite options (optional)
+USE_SQLITE = no
+SQLITE_PATH = 
 
 
 # Root directory for the OCDocker Database
@@ -15,9 +23,6 @@ pca = /data/hd4tb/OCDocker/data/pca
 
 # The default pdbbind KiKd magnitude [Y, Z, E, P, T, G, M, k, un, c, m, u, n, pf, a, z, y] (follow the unit prefix table)
 pdbbind_KdKi_order = u
-
-# dock6 path
-dock6 = /data/hd4tb/OCDocker/software/docking/dock6/bin
 
 # PLANTS and SPORES path
 plants = /data/hd4tb/OCDocker/software/docking/plants/PLANTS1.2_64bit
@@ -44,17 +49,6 @@ prepare_receptor = /data/hd4tb/OCDocker/mgltools/MGLToolsPckgs/AutoDockTools/Uti
 
 # Open Babel path
 obabel = /home/artur/miniconda3/envs/ocdocker/bin/obabel
-
-################# P2RANK PARAMETERS #################
-
-# P2Rank path
-prank = /data/hd4tb/OCDocker/software/search/p2rank_2.3/prank
-
-# p2rank box cutoff
-boxMaxCutoff = 0.5
-
-# p2rank pocket cutoff
-pocketCutoff = 0.1
 
 ############# DATABASE FETCH PARAMETERS #############
 
@@ -134,74 +128,6 @@ smina_user_grid = no
 # Scales user_grid and functional scoring
 smina_user_grid_lambda = -1
 
-################# GNINA PARAMETERS ###################
-
-# Exhaustiveness of the global search
-gnina_exaustiveness = 5
-
-# Maximum number of binding modes to generate
-gnina_num_modes = 3
-
-# Alternativa scoring function
-gnina_scoring = default
-
-# Custom scoring file
-gnina_custom_scoring = no
-
-# Custom atoms
-gnina_custom_atoms = no
-
-# Local search only using autobox (you probably want to use --minimize)
-gnina_local_only = no
-
-# Energy minimization
-gnina_minimize = no
-
-# Generate random poses, attempting to avoid clashes
-gnina_randomize_only = no
-
-# Number of monte carlo steps to take in each chain
-gnina_num_mc_steps = no
-
-# Cap on number of monte carlo steps to take in each chain
-gnina_max_mc_steps = no
-
-# Number of top poses saved in each monte carlo chain
-gnina_num_mc_saved = no
-
-# Number of top poses saved in each monte carlo chain
-gnina_randomize_only = no
-
-# Number iterations of steepest descent; default scales with rotors and usually isn't sufficient for convergence
-gnina_minimize_iters = 0
-
-# Use simple gradient ascent
-gnina_simple_ascent = no
-
-# Use accurate line search
-gnina_accurate_line = yes
-
-# Stop minimization before convergence conditions are fully met
-gnina_minimize_early_term = no
-
-# Approximation (linear, spline, or exact) to use
-gnina_approximation = spline
-
-# Approximation factor: higher results in a finer-grained approximation
-gnina_factor = 32
-
-# Max allowed force; lower values more gently minimize clashing structures
-gnina_force_cap = 10
-
-# Autodock map file for user grid data based calculations
-gnina_user_grid = no
-
-# Scales user_grid and functional scoring
-gnina_user_grid_lambda = -1
-
-# Wether to use the GPU or not
-gnina_no_gpu = no
-
 ################# PLANTS PARAMETERS ##################
 
 # Number of cluster structures
@@ -222,31 +148,6 @@ plants_scoring_functions = chemplp,plp,plp95
 # Plants rescoring mode
 plants_rescoring_mode = simplex
 
-################# DOCK6 PARAMETERS ##################
-
-# Path to the vdw defn file
-dock6_vdw_defn_file = /data/hd4tb/OCDocker/software/docking/dock6/vdw_AMBER_parm99.defn
-
-# Path to the flex defn file
-dock6_flex_defn_file = /data/hd4tb/OCDocker/software/docking/dock6/flex.defn
-
-# Path to the flex drive file
-dock6_flex_drive_file = /data/hd4tb/OCDocker/software/docking/dock6/flex_drive.tbl
-
-################# LEDOCK PARAMETERS #################
-
-# LeDock path
-ledock = /data/hd4tb/OCDocker/software/docking/ledock/ledock_linux_x86
-
-# Path to the LePro software
-lepro = /data/hd4tb/OCDocker/software/docking/ledock/lepro_linux_x86
-
-# LeDock RMSD parameter
-ledock_rmsd = 1.0
-
-# Maximum number of poses to generate
-ledock_num_poses = 20
-
 ################## ODDT PARAMETERS ##################
 
 # Path to the oddt_cli file
@@ -262,9 +163,6 @@ oddt_chunk_size = 100
 oddt_scoring_functions = rfscore_v1_pdbbind2016,rfscore_v2_pdbbind2016,rfscore_v3_pdbbind2016,nnscore_pdbbind2016,plecrf_pdbbind2016
 
 ################## OTHER SOFTWARE ###################
-
-# Chimeta program for dock file preparation
-chimera = /home/artur/miniconda3/bin/chimera
 
 # MSMS program for the surface calculation
 dssp = /usr/bin/dssp

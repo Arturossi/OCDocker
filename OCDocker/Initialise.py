@@ -1197,6 +1197,8 @@ def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
 
     HOST = USER = PASSWORD = DATABASE = OPTIMIZEDB = ""
     PORT = ""
+    CFG_USE_SQLITE = ""
+    CFG_SQLITE_PATH = ""
     ocdb_path = ""
     # Parse config
     with open(config_file, 'r') as fh:  # type: ignore
@@ -1217,6 +1219,10 @@ def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
                     print(f"{clrs['r']}ERROR{clrs['n']}: The port number must be an integer.")
                     raise SystemExit(2)
                 PORT = int(PORT)  # type: ignore
+            elif line.startswith("USE_SQLITE ="):
+                CFG_USE_SQLITE = line.split("=")[1].strip()
+            elif line.startswith("SQLITE_PATH ="):
+                CFG_SQLITE_PATH = line.split("=")[1].strip()
             elif line.startswith("ocdb ="):
                 ocdb_path = line.split("=")[1].strip()
             elif line.startswith("pca ="):
@@ -1375,15 +1381,30 @@ def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
                 dudez_download = line.split("=")[1].strip()
 
     # Determine DB backend (MySQL default; optional SQLite fallback)
-    use_sqlite = str(os.getenv('OCDOCKER_USE_SQLITE', '')).lower() in ('1', 'true', 'yes', 'y')
+    use_sqlite_env = str(os.getenv('OCDOCKER_USE_SQLITE', '')).lower() in ('1', 'true', 'yes', 'y')
+    use_sqlite_cfg = str(CFG_USE_SQLITE).lower() in ('1', 'true', 'yes', 'y', 'on', 'sqlite') if CFG_USE_SQLITE else False
+    use_sqlite = use_sqlite_env or use_sqlite_cfg
 
     # Build DB URLs and connections
     global db_url, optdb_url, engine, session
     if use_sqlite:
         _module_dir = os.path.dirname(os.path.abspath(__file__))
-        sqlite_path = os.path.join(_module_dir, 'ocdocker.db')
+        # Env var takes precedence, then config, then default path
+        sqlite_path_env = os.getenv('OCDOCKER_SQLITE_PATH', '').strip()
+        if sqlite_path_env:
+            sqlite_path = sqlite_path_env
+        elif CFG_SQLITE_PATH:
+            sqlite_path = CFG_SQLITE_PATH
+        else:
+            sqlite_path = os.path.join(_module_dir, 'ocdocker.db')
         db_url = URL.create(drivername='sqlite', database=sqlite_path)
         optdb_url = db_url
+        # Warn user about SQLite limitations
+        try:
+            print(f"{clrs['y']}WARNING{clrs['n']}: SQLite backend enabled. This is suitable for development/tests only. For performance and concurrency, a full MySQL installation is strongly recommended.")
+            print(f"{clrs['c']}INFO{clrs['n']}: To use MySQL, unset OCDOCKER_USE_SQLITE (or set USE_SQLITE = no in your OCDocker.cfg) and configure HOST/USER/PASSWORD/DATABASE/PORT.")
+        except Exception:
+            pass
     else:
         # Ensure DB settings exist (MySQL mode)
         if not HOST or not USER or not PASSWORD or not DATABASE or not PORT:

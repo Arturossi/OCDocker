@@ -165,6 +165,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="ocdocker",
         description="OCDocker CLI: docking, screening and analysis",
+        epilog=(
+            "Note: SQLite backend is intended for development/tests. "
+            "For production workloads (performance/concurrency), a full MySQL installation is strongly recommended."
+        ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
