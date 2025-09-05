@@ -24,24 +24,24 @@ from typing import Dict, List, Tuple, Union
 from OCDocker.Initialise import *
 
 # Safe defaults if Initialise didn't export these (e.g., partial import contexts)
-try:  # type: ignore
-    spores  # noqa: F401
+try:
+    spores # type: ignore
 except NameError:  # pragma: no cover
-    spores = "spores"  # type: ignore
-try:  # type: ignore
-    plants  # noqa: F401
+    spores = "spores"
+try:
+    plants # type: ignore
 except NameError:  # pragma: no cover
-    plants = "plants"  # type: ignore
-try:  # type: ignore
-    plants_cluster_structures  # noqa: F401
+    plants = "plants"
+try:
+    plants_cluster_structures # type: ignore
 except NameError:  # pragma: no cover
-    plants_cluster_structures = 3  # type: ignore
+    plants_cluster_structures = 3
 
 # Fallback tmpDir if Initialise did not set it (e.g., partial/CLI contexts)
-try:  # type: ignore
-    tmpDir  # noqa: F401
+try:
+    tmpDir # type: ignore
 except NameError:  # pragma: no cover
-    tmpDir = os.path.join(os.getcwd(), 'tmp')  # type: ignore
+    tmpDir = os.path.join(os.getcwd(), 'tmp')
     try:
         os.makedirs(tmpDir, exist_ok=True)
     except Exception:

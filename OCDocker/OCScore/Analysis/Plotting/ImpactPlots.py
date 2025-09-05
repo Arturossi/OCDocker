@@ -24,11 +24,27 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
 # Classes
 ###############################################################################
 
-
-# Functions
+# Methods
 ###############################################################################
 
 def prop_delta_2xk(contingency: pd.DataFrame) -> pd.DataFrame:
@@ -63,7 +79,7 @@ def prop_delta_2xk(contingency: pd.DataFrame) -> pd.DataFrame:
         delta = props.iloc[1] - props.iloc[0]
     
     # Return table with explicit column names
-    return delta.to_frame("prop_delta").reset_index(names="MetricCategory")
+    return delta.to_frame("prop_delta").reset_index(names="MetricCategory") # type: ignore
 
 def plot_prop_delta(contingency: pd.DataFrame, title: str = 'Proportion delta (1 - 0)', outpath: Optional[str] = None) -> None:
     '''Diverging bar chart of proportion deltas across metric categories.
@@ -88,7 +104,7 @@ def plot_prop_delta(contingency: pd.DataFrame, title: str = 'Proportion delta (1
     # Draw lollipop plot (horizontal stem + point)
     plt.figure(figsize=(7, 4))
     sns.barplot(data=df, x="prop_delta", y="MetricCategory", orient="h",
-                palette=df["prop_delta"].map(lambda v: "tab:red" if v>0 else "tab:blue"))
+                palette=df["prop_delta"].map(lambda v: "tab:red" if v>0 else "tab:blue")) # type: ignore
     # Draw reference at zero and annotate values
     plt.axvline(0, ls="--", c="k", lw=1)
     for _, r in df.iterrows():
@@ -151,8 +167,8 @@ def plot_residuals_lollipop(residuals_df: pd.DataFrame,
     # Create the diverging bar plot
     plt.figure(figsize=(7, 4))
     y = np.arange(len(cats))
-    plt.hlines(y, 0, x, lw=2)
-    plt.plot(x, y, "o")
+    plt.hlines(y, 0, x, lw=2) # type: ignore
+    plt.plot(x, y, "o") # type: ignore
     for xi, yi, cat in zip(x, y, cats):
         plt.text(xi + (0.1 if xi>=0 else -0.1), yi, f"{xi:.2f}",
                  va="center", ha="left" if xi>=0 else "right")
@@ -199,8 +215,8 @@ def plot_chi2_contrib(contingency: pd.DataFrame,
 
     # Compute row/column totals and the expected frequencies under independence
     total = contingency.values.sum()
-    row_sum = contingency.sum(axis=1).values[:, None]
-    col_sum = contingency.sum(axis=0).values[None, :]
+    row_sum = contingency.sum(axis=1).values[:, None] # type: ignore
+    col_sum = contingency.sum(axis=0).values[None, :] # type: ignore
     expected = (row_sum @ col_sum) / total
     expected_df = pd.DataFrame(expected, index=contingency.index, columns=contingency.columns)
 
@@ -268,7 +284,7 @@ def feature_report_2xk(feature: str,
     # Compute per-category Δ proportion
     df = prop_delta_2xk(contingency)
     sns.barplot(data=df, x="prop_delta", y="MetricCategory", orient="h",
-                palette=df["prop_delta"].map(lambda v: "tab:red" if v>0 else "tab:blue"), ax=axes[0,0])
+                palette=df["prop_delta"].map(lambda v: "tab:red" if v>0 else "tab:blue"), ax=axes[0,0]) # type: ignore
     axes[0,0].axvline(0, ls="--", c="k", lw=1)
     axes[0,0].set_title("Proportion delta (1 - 0)")
     axes[0,0].set_xlabel("Δ proportion")
@@ -300,8 +316,8 @@ def feature_report_2xk(feature: str,
 
     # (1,0) Chi-square contribution per category
     total = contingency.values.sum()
-    row_sum = contingency.sum(axis=1).values[:, None]
-    col_sum = contingency.sum(axis=0).values[None, :]
+    row_sum = contingency.sum(axis=1).values[:, None] # type: ignore
+    col_sum = contingency.sum(axis=0).values[None, :] # type: ignore
     expected = (row_sum @ col_sum) / total
     expected_df = pd.DataFrame(expected, index=contingency.index, columns=contingency.columns)
     row_key = 1 if 1 in contingency.index else ('1' if '1' in contingency.index else contingency.index[-1])
