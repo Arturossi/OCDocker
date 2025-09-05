@@ -61,12 +61,28 @@ def _cleanup_generated_top_level_dirs():
     lig_dir = tf / "compounds" / "ligands" / "ligand"
     plants_dir = lig_dir / "plantsFiles"
     plant_files = [
+        # prepared structures (mol2/pdbqt)
         tf / "prepared_receptor.mol2",
+        tf / "prepared_receptor.pdbqt",
         lig_dir / "prepared_ligand.mol2",
+        lig_dir / "prepared_ligand.pdbqt",
         lig_dir / "ligand.mol2",
+        lig_dir / "ligand_tmp.mol",
+        # descriptors
+        tf / "test_receptor_descriptors.json",
+        lig_dir / "test_ligand_descriptors.json",
+        # engine outputs/configs
+        vina_dir / "vina_config.txt",
+        vina_dir / "vina_out.pdbqt",
+        smina_dir / "smina_config.txt",
+        smina_dir / "smina_out.pdbqt",
     ]
     file_existed_before = {p: p.exists() for p in plant_files}
-    dir_existed_before = {plants_dir: plants_dir.exists()}
+    dir_existed_before = {
+        plants_dir: plants_dir.exists(),
+        vina_dir: vina_dir.exists(),
+        smina_dir: smina_dir.exists(),
+    }
 
     yield
 
@@ -78,7 +94,7 @@ def _cleanup_generated_top_level_dirs():
             except Exception:
                 pass
 
-    # Remove plantsFiles dir if it was created during tests
+    # Remove engine-specific dirs if created during tests
     for d, existed in dir_existed_before.items():
         if not existed and d.exists():
             try:
