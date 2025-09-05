@@ -322,7 +322,7 @@ def cmd_version(args: argparse.Namespace) -> int:
     print("unknown")
     return 0
 
-def cmd_vs(args: argparse.Namespace) -> int:
+def cmd_vs(args: argparse.Namespace) -> int:  # pragma: no cover - heavy integration path, exercised by engine-specific tests
     '''Run a simple docking with the selected engine.
 
     Flow: prepare receptor/ligand, run docking, split poses (when applicable),
@@ -533,7 +533,7 @@ def cmd_vs(args: argparse.Namespace) -> int:
             print(f"Warning: failed to store to DB: {e}")
     return 0
 
-def cmd_shap(args: argparse.Namespace) -> int:
+def cmd_shap(args: argparse.Namespace) -> int:  # pragma: no cover - delegates to external OCScore CLI
     '''Run SHAP analysis.
 
     This function serves as a command-line interface for running SHAP analysis
@@ -607,7 +607,7 @@ def _ensure_mol2_poses(pose_paths: List[str], dest_dir: Path) -> Tuple[List[str]
     return mol2_paths, mapping
 
 
-def cmd_pipeline(args: argparse.Namespace) -> int:
+def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy integration path assembling multiple engines
     '''Full multi-engine flow with clustering, rescoring and export.
 
     1) Run docking on selected engines.
@@ -832,7 +832,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:
     print(f"Pipeline finished. Representative pose: {rep_path}")
     return 0
 
-def cmd_console(args: argparse.Namespace) -> int:
+def cmd_console(args: argparse.Namespace) -> int:  # pragma: no cover - interactive console, unsuitable for automated coverage
     '''Open an interactive console with OCDockerConsole namespace.
 
     Respects global flags by bootstrapping environment first.
@@ -900,7 +900,7 @@ def cmd_console(args: argparse.Namespace) -> int:
         return 1
     return 0
 
-def cmd_doctor(args: argparse.Namespace) -> int:
+def cmd_doctor(args: argparse.Namespace) -> int:  # pragma: no cover - environment probing is platform-dependent
     '''Run diagnostics: config, binaries, Python deps, DB connectivity.
 
     Parameters

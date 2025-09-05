@@ -64,9 +64,6 @@ def _cleanup_generated_top_level_dirs():
     # Engine-specific output dirs used across tests
     vina_dir = lig_dir / "vinaFiles"
     smina_dir = lig_dir / "sminaFiles"
-    # Boxes may be created at two locations depending on the test
-    boxes_dir_base = tf / "boxes"
-    boxes_dir_lig = lig_dir / "boxes"
     plant_files = [
         # prepared structures (mol2/pdbqt)
         tf / "prepared_receptor.mol2",
@@ -87,9 +84,6 @@ def _cleanup_generated_top_level_dirs():
         smina_dir / "prepared_ligand.pdbqt",
         # PLANTS config
         plants_dir / "plants_config.txt",
-        # Boxes
-        boxes_dir_base / "box0.pdb",
-        boxes_dir_lig / "box0.pdb",
     ]
     file_existed_before = {p: p.exists() for p in plant_files}
     # Track descriptor JSONs present before tests to remove only new ones
@@ -141,8 +135,6 @@ def _cleanup_generated_top_level_dirs():
     # even if they existed before (they are safe to re-generate in tests).
     safe_always_remove = [
         plants_dir / "plants_config.txt",
-        boxes_dir_base / "box0.pdb",
-        boxes_dir_lig / "box0.pdb",
         lig_dir / "prepared_ligand.pdbqt",
         lig_dir / "prepared_ligand.mol2",
     ]
