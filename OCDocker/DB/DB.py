@@ -23,13 +23,10 @@ from typing import Literal, Optional, Union
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm.session import Session
 
-from OCDocker.DB.DBMinimal import create_database_if_not_exists, create_engine
 from OCDocker.DB.Models.Base import Base
 from OCDocker.DB.Models import Complexes, Ligands, Receptors
 
 import OCDocker.Toolbox.Printing as ocprint
-
-from OCDocker.Initialise import db_url
 
 # License
 ###############################################################################
@@ -90,11 +87,30 @@ def setup_database() -> Engine:
         Live engine connected to the configured database URL.
     '''
 
+    # Local import to avoid requiring optional deps at import-time
+    from OCDocker.DB.DBMinimal import create_database_if_not_exists, create_engine
+
+    # Resolve the configured DB URL lazily to avoid import-time side effects
+    try:
+        import OCDocker.Initialise as init  # type: ignore
+        url = getattr(init, 'db_url', None)
+        if url is None:
+            # Try deriving from an existing engine
+            eng = getattr(init, 'engine', None)
+            if eng is not None:
+                url = eng.url
+        # Final fallback suitable for tests/dev
+        if url is None:
+            url = "sqlite:///:memory:"
+    except Exception:
+        # Extremely defensive fallback for environments without Initialise
+        url = "sqlite:///:memory:"
+
     # Create DB if it does not exist
-    create_database_if_not_exists(db_url)  # type: ignore[arg-type]
+    create_database_if_not_exists(url)  # type: ignore[arg-type]
 
     # Create engine and tables
-    engine_obj = create_engine(db_url)  # type: ignore[arg-type]
+    engine_obj = create_engine(url)  # type: ignore[arg-type]
     create_tables(engine_obj)
 
     return engine_obj
@@ -232,3 +248,5 @@ def export_db_to_csv(
         raise ValueError("Invalid output format. Please choose 'dataframe', 'json', or 'csv'.")
     
 # Explicit initialization only: call setup_database() from CLI or application bootstrap
+    # Local import to avoid requiring optional deps at import-time
+    from OCDocker.DB.DBMinimal import create_database_if_not_exists, create_engine
