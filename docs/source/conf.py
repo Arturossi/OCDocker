@@ -54,6 +54,8 @@ init_mod.session = MagicMock(name="session")
 # Many DB modules expect a connection URL at import time.
 # Use an in-memory SQLite URL so imports don't fail.
 init_mod.db_url = "sqlite:///:memory:"
+init_mod.engine = MagicMock(name="engine")
+init_mod.__all__.append("engine")
 
 def _get_db_url():
     return init_mod.db_url

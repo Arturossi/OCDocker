@@ -1,4 +1,16 @@
 
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+SHAP computation helpers (background selection, explainer setup, shape wrangling)
+for Analysis workflows.
+'''
+
+# Imports
+###############################################################################
+
 from __future__ import annotations
 from typing import List, Optional, Union
 import numpy as np
@@ -6,10 +18,35 @@ import pandas as pd
 import torch
 import shap
 
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
+###############################################################################
+
+# Methods
+###############################################################################
+
 def _cuda_device() -> torch.device:
+    """Return a CUDA device if available; otherwise CPU."""
     return torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 def _squeeze_shap(values: Union[np.ndarray, List[np.ndarray]]) -> np.ndarray:
+    """Normalize SHAP outputs to a 2D array (n_samples, n_features)."""
     if isinstance(values, list):
         if len(values) == 1:
             values = values[0]
@@ -25,6 +62,7 @@ def _squeeze_shap(values: Union[np.ndarray, List[np.ndarray]]) -> np.ndarray:
     return arr
 
 def _stratified_indices(df: pd.DataFrame, n: int, by: Optional[List[str]], seed: int) -> np.ndarray:
+    """Draw up to n indices, stratified by the values of `by` columns."""
     if by is None or len(by) == 0:
         rng = np.random.default_rng(seed)
         n = min(n, len(df))

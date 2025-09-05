@@ -14,7 +14,7 @@ Public helpers
 """
 
 from __future__ import annotations
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Union
 import numpy as np
 import pandas as pd
 import os
@@ -117,7 +117,7 @@ def beeswarm(
     return out_png
 
 def shap_correlation_heatmap(
-    shap_values: np.ndarray | pd.DataFrame,
+    shap_values: Union[np.ndarray, pd.DataFrame],
     out_png: str,
     feature_names: Optional[List[str]] = None,
     figsize: Tuple[int, int] = (12, 10),

@@ -14,3 +14,13 @@ Modules
 - PDBbind: Database Utility for Data Extraction and Analysis in PDBbind database.
 
 """
+
+# Expose submodules so that Sphinx autodoc can import as `from OCDocker.DB import DB`.
+try:  # optional during docs build
+    from . import DB as DB  # type: ignore
+except Exception:
+    pass
+
+__all__ = [
+    'DB',
+]

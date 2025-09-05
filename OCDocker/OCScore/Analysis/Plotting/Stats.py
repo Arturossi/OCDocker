@@ -1,7 +1,50 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Plotting helpers for statistical summaries (scatter/box/bar, diagnostics, PCA
+importance). These utilities are used by Analysis workflows and StatTests.
+
+They are imported as:
+
+import OCDocker.OCScore.Analysis.Plotting.Stats as ocstatplot
+'''
+
+# Imports
+###############################################################################
+
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
+import numpy as np
+import scipy.stats as sstats
+
+from typing import Optional
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
+###############################################################################
+
+# Methods
+###############################################################################
 
 def plot_combined_metric_scatter(df: pd.DataFrame, n_trials: int, colour_mapping: dict[str, tuple[float, float, float]], output_dir: str, alpha: float = 0.9) -> None:
     '''
@@ -15,8 +58,10 @@ def plot_combined_metric_scatter(df: pd.DataFrame, n_trials: int, colour_mapping
         Number of top trials considered.
     colour_mapping : dict[str, tuple[float, float, float]]
         Dictionary mapping methodologies to colors.
-    alpha : float
-        Transparency for the markers.
+    output_dir : str
+        Directory to save the scatter plot image.
+    alpha : float, optional
+        Transparency for the markers. Default is 0.9.
     '''
 
     df = df.copy()
@@ -194,3 +239,351 @@ def plot_barplots(df: pd.DataFrame, n_trials: int, colour_mapping: dict[str, tup
     plt.tight_layout()
     plt.savefig(f'{output_dir}/barplot_rmse_auc_{n_trials}.png')
     plt.close()
+
+def plot_scatterplot(
+        df_all: pd.DataFrame,
+        df_rmse: pd.DataFrame,
+        df_auc: pd.DataFrame,
+        n_trials: int,
+        colour_mapping: dict[str, tuple[float, float, float]],
+        output_dir: str
+    ) -> None:
+    '''Create scatter plots of RMSE vs AUC for all methods and filtered subsets.
+
+    Create a 1x3 panel of scatter plots (RMSE vs AUC):
+    - All filtered points
+    - RMSE-filtered subset
+    - AUC-filtered subset
+
+    Parameters
+    ----------
+    df_all : pd.DataFrame
+        DataFrame with all filtered points.
+    df_rmse : pd.DataFrame
+        DataFrame filtered by RMSE threshold.
+    df_auc : pd.DataFrame
+        DataFrame filtered by AUC threshold.
+    n_trials : int
+        Number of top trials considered.
+    colour_mapping : dict[str, tuple[float, float, float]]
+        Dictionary mapping methodologies to colors.
+    output_dir : str
+        Directory to save the scatter plot image.
+    '''
+
+    plt.figure(figsize=(18, 5))
+    panels = [(df_all, 'All (post-filter)'), (df_rmse, 'RMSE-filtered'), (df_auc, 'AUC-filtered')]
+
+    for i, (df, title) in enumerate(panels, start=1):
+        plt.subplot(1, 3, i)
+        sns.scatterplot(
+            data=df,
+            x='RMSE',
+            y='AUC',
+            hue='Methodology',
+            palette=colour_mapping,
+            alpha=0.9,
+            s=70,
+            legend=False,
+        )
+        plt.title(title)
+        plt.grid(True, linestyle=':', linewidth=0.5)
+        plt.xlabel('RMSE')
+        plt.ylabel('AUC')
+
+    plt.tight_layout()
+    plt.savefig(f'{output_dir}/scatter_rmse_auc_panels_{n_trials}.png', dpi=300)
+    plt.close()
+
+def plot_bar_with_significance(
+        gh_df: pd.DataFrame,
+        metric: str,
+        y_col: str = 'diff',
+        colour_mapping: Optional[dict[str, tuple[float, float, float]]] = None,
+        output_dir: str = 'plots',
+        top_n: Optional[int] = 30
+    ) -> None:
+    '''
+    Plot Games-Howell pairwise differences as a horizontal bar chart.
+
+    Parameters
+    ----------
+    gh_df : pd.DataFrame
+        Output of pingouin.pairwise_gameshowell (expects columns 'A','B','diff','pval').
+    metric : str
+        Metric label for titling ('AUC' or 'RMSE').
+    y_col : str
+        Which column from gh_df to plot as bar length (default 'diff').
+    colour_mapping : dict | None, optional
+        Unused here, accepted for API compatibility. Default: None.
+    output_dir : str
+        Where to save the plot image. Default: 'plots'.
+    top_n : int | None, optional
+        If given, keep the top-N pairs by smallest p-value. Default: 30.
+    '''
+
+    df = gh_df.copy()
+    if 'pval' not in df.columns:
+        # pingouin sometimes returns 'pval'/'pval_corr'; tolerate variants
+        pcol = next((c for c in df.columns if c.startswith('pval')), None)
+        if pcol is None:
+            raise ValueError('Games-Howell dataframe must contain a p-value column.')
+        df['pval'] = df[pcol]
+
+    df['pair'] = df['A'].astype(str) + ' vs ' + df['B'].astype(str)
+    df.sort_values(by=['pval', y_col], ascending=[True, False], inplace=True)
+    if top_n is not None:
+        df = df.head(top_n)
+
+    # Color positive diffs blue, negative red for quick read
+    colors = df[y_col].map(lambda v: 'tab:blue' if v >= 0 else 'tab:red')
+
+    plt.figure(figsize=(max(8, 0.25 * len(df)), max(6, 0.35 * len(df))))
+    ax = sns.barplot(data=df, x=y_col, y='pair', palette=colors, orient='h')
+
+    # Annotate p-values and significance stars
+    def stars(p: float) -> str:
+        return '***' if p < 0.001 else ('**' if p < 0.01 else ('*' if p < 0.05 else ''))
+
+    for i, r in df.reset_index(drop=True).iterrows():
+        ax.text(r[y_col] + (0.01 if r[y_col] >= 0 else -0.01), i,
+                f"{r[y_col]:.3f}  (p={r['pval']:.2e}) {stars(r['pval'])}",
+                ha='left' if r[y_col] >= 0 else 'right', va='center', fontsize=8)
+
+    ax.set_title(f'Games-Howell pairwise differences — {metric}')
+    ax.set_xlabel(f'Difference in {metric}')
+    ax.set_ylabel('Pair (A vs B)')
+    plt.grid(True, axis='x', linestyle=':', linewidth=0.5)
+    plt.tight_layout()
+    plt.savefig(f"{output_dir}/games_howell_bar_{metric}.png", dpi=300)
+    plt.close()
+
+def plot_heatmap(
+        gh_df: pd.DataFrame,
+        title: str,
+        metric: str,
+        output_dir: str = 'plots'
+    ) -> None:
+    '''Heatmap of Games-Howell p-values across methodology pairs.
+    
+    Parameters
+    ----------
+    gh_df : pd.DataFrame
+        Output of pingouin.pairwise_gameshowell (expects columns 'A','B
+        'diff','pval').
+    title : str
+        Title for the heatmap.
+    metric : str
+        Metric label for titling ('AUC' or 'RMSE').
+    output_dir : str
+        Where to save the plot image. Default: 'plots'.
+    '''
+
+    df = gh_df.copy()
+    pcol = 'pval' if 'pval' in df.columns else next((c for c in df.columns if c.startswith('pval')), None)
+    if pcol is None:
+        raise ValueError('Games-Howell dataframe must contain a p-value column.')
+    mat = df.pivot(index='A', columns='B', values=pcol)
+    # Mirror to make a symmetric matrix, leaving diagonal as NaN
+    mat_full = mat.combine_first(mat.T)
+    np.fill_diagonal(mat_full.values, np.nan)
+
+    plt.figure(figsize=(max(8, 0.6 * mat_full.shape[1]), max(6, 0.35 * mat_full.shape[0])))
+    ax = sns.heatmap(-np.log10(mat_full), cmap='mako', annot=False, cbar_kws={'label': '-log10(p)'})
+    ax.set_title(title)
+    plt.tight_layout()
+    plt.savefig(f"{output_dir}/games_howell_heatmap_{metric}.png", dpi=300)
+    plt.close()
+
+def plot_normality_and_variance_diagnostics(
+        df: pd.DataFrame,
+        metric: str,
+        n_trials: int,
+        output_dir: str = 'plots'
+    ) -> None:
+    ''' Perform and plot normality and variance diagnostics across methodologies.
+
+    Quick diagnostics across groups:
+    - Shapiro-Wilk p-values per methodology (bar of -log10 p)
+    - Group variances (bar) and Levene's p-value annotated
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Data containing 'Methodology' and the specified metric.
+    metric : str
+        Metric column to analyze (e.g., 'AUC' or 'RMSE').
+    n_trials : int
+        Number of trials for title and output naming.
+    output_dir : str
+        Directory to save the diagnostics plot. Default: 'plots'.
+    '''
+
+    # Compute Shapiro p-values and variances per group
+    rows = []
+    groups = []
+
+    for method, sub in df.groupby('Methodology'):
+        x = pd.to_numeric(sub[metric], errors='coerce').dropna().to_numpy()
+        if x.size >= 3:
+            try:
+                p_shap = sstats.shapiro(x).pvalue
+            except Exception:
+                p_shap = np.nan
+        else:
+            p_shap = np.nan
+        var = float(np.var(x, ddof=1)) if x.size >= 2 else np.nan
+        rows.append({'Methodology': method, 'p_shapiro': p_shap, 'variance': var})
+        groups.append(x)
+
+    diag = pd.DataFrame(rows).sort_values(by='p_shapiro', ascending=True)
+
+    # Levene across all groups
+    try:
+        groups_nonempty = [g for g in groups if g.size >= 2]
+        p_levene = sstats.levene(*groups_nonempty).pvalue if len(groups_nonempty) >= 2 else np.nan
+    except Exception:
+        p_levene = np.nan
+
+    # Plot two panels
+    plt.figure(figsize=(16, 6))
+    plt.subplot(1, 2, 1)
+    sns.barplot(data=diag, x='Methodology', y=-np.log10(diag['p_shapiro']), color='steelblue')
+    plt.xticks(rotation=90)
+    plt.ylabel('-log10 Shapiro p-value')
+    plt.title(f'Normality (Shapiro) — {metric}')
+    plt.grid(True, axis='y', linestyle=':', linewidth=0.5)
+
+    plt.subplot(1, 2, 2)
+    sns.barplot(data=diag, x='Methodology', y='variance', color='tab:orange')
+    plt.xticks(rotation=90)
+    plt.ylabel('Group variance')
+    lev_txt = f"Levene p={p_levene:.2e}" if isinstance(p_levene, float) and np.isfinite(p_levene) else "Levene p=N/A"
+    plt.title(f'Variance across groups — {metric} ({lev_txt})')
+    plt.grid(True, axis='y', linestyle=':', linewidth=0.5)
+
+    plt.tight_layout()
+    plt.savefig(f"{output_dir}/diagnostics_{metric}_{n_trials}.png", dpi=300)
+    plt.close()
+
+def plot_pca_importance_barplot(
+        importance_df: pd.DataFrame,
+        pca_type: str,
+        n_features: int,
+        n_trials: int,
+        output_dir: str = 'plots'
+    ) -> None:
+    '''Barplot of top-N PCA feature importances.
+
+    Parameters
+    ----------
+    importance_df : pd.DataFrame
+        DataFrame with 'Feature' and 'Importance' columns.
+    pca_type : str
+        PCA type label for titling (e.g., '1', '2').
+    n_features : int
+        Number of top features to display.
+    n_trials : int
+        Number of trials for title and output naming.
+    output_dir : str
+        Directory to save the barplot image. Default: 'plots'.
+    '''
+
+    top = importance_df.head(n_features)
+
+    plt.figure(figsize=(10, max(5, 0.35 * len(top))))
+    sns.barplot(data=top, x='Importance', y='Feature', orient='h', color='steelblue')
+    plt.title(f'PCA{pca_type}: Top {len(top)} feature importances')
+    plt.xlabel('Importance (variance-weighted loadings)')
+    plt.ylabel('Feature')
+    plt.tight_layout()
+    plt.savefig(f"{output_dir}/pca{pca_type}_importance_top{len(top)}_{n_trials}.png", dpi=300)
+    plt.close()
+
+def plot_pca_importance_histogram(
+        importance_df: pd.DataFrame,
+        pca_type: str,
+        n_trials: int,
+        output_dir: str = 'plots'
+    ) -> None:
+    '''Histogram of PCA feature importances.
+
+    Parameters
+    ----------
+    importance_df : pd.DataFrame
+        DataFrame with 'Feature' and 'Importance' columns.
+    pca_type : str
+        PCA type label for titling (e.g., '1', '2').
+    n_trials : int
+        Number of trials for title and output naming.
+    output_dir : str
+        Directory to save the histogram image. Default: 'plots'.
+    '''
+
+    plt.figure(figsize=(8, 5))
+    sns.histplot(importance_df['Importance'], bins=30, color='tab:purple')
+    plt.title(f'PCA{pca_type}: Distribution of feature importances')
+    plt.xlabel('Importance')
+    plt.ylabel('Count')
+    plt.tight_layout()
+    plt.savefig(f"{output_dir}/pca{pca_type}_importance_hist_{n_trials}.png", dpi=300)
+    plt.close()
+
+def save_pca_importance_groups(
+        importance_df: pd.DataFrame,
+        pca_type: str,
+        n_trials: int,
+        output_dir: str = 'plots'
+    ) -> None:
+    '''Assign coarse groups by quantiles and save as CSV.
+
+    Parameters
+    ----------
+    importance_df : pd.DataFrame
+        DataFrame with 'Feature' and 'Importance' columns.
+    pca_type : str
+        PCA type label for titling (e.g., '1', '2').
+    n_trials : int
+        Number of trials for title and output naming.
+    output_dir : str
+        Directory to save the plot image. Default: 'plots'.
+    '''
+
+    q = importance_df['Importance'].quantile
+    bins = [0.0, q(0.2), q(0.4), q(0.6), q(0.8), q(1.0)]
+    labels = ['Very Low', 'Low', 'Medium', 'High', 'Very High']
+    df = importance_df.copy()
+    df['Group'] = pd.cut(df['Importance'], bins=bins, labels=labels, include_lowest=True, duplicates='drop')
+    df.to_csv(f"{output_dir}/pca{pca_type}_importance_groups_{n_trials}.csv", index=False)
+
+def save_pca_importance_bins(
+        importance_df: pd.DataFrame,
+        pca_type: str,
+        n_trials: int,
+        output_dir: str = 'plots',
+        n_bins: int = 10
+    ) -> None:
+    '''Assign quantile bins (qcut) and save as CSV.
+
+    Parameters
+    ----------
+    importance_df : pd.DataFrame
+        DataFrame with 'Feature' and 'Importance' columns.
+    pca_type : str
+        PCA type label for titling (e.g., '1', '2').
+    n_trials : int
+        Number of trials for title and output naming.
+    output_dir : str
+        Directory to save the plot image. Default: 'plots'.
+    n_bins : int
+        Number of quantile bins to create. Default: 10.
+    '''
+
+    df = importance_df.copy()
+    try:
+        df['bin'] = pd.qcut(df['Importance'], q=n_bins, labels=False, duplicates='drop')
+    except ValueError:
+        # Not enough unique values; fallback to rank-based bins
+        ranks = df['Importance'].rank(method='average', pct=True)
+        df['bin'] = (ranks * (n_bins - 1)).astype(int)
+    df.to_csv(f"{output_dir}/pca{pca_type}_importance_bins_{n_trials}.csv", index=False)

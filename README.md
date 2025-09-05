@@ -76,6 +76,74 @@ Prerequisites
 - ~15–20 GB of free disk space for conda env + tools + caches
 - bash shell (the installer uses `bash` and `conda.sh`)
 
+MySQL setup (quick tutorial)
+----------------------------
+
+OCDocker stores docking and optimization results in MySQL by default. If you don't already have a MySQL server, install it and create a user/database:
+
+1) Install and start MySQL (Ubuntu/Debian)
+
+```bash
+sudo apt-get update && sudo apt-get install -y mysql-server
+sudo systemctl enable --now mysql
+```
+
+2) Create a database and user (local-only access)
+
+```sql
+-- Enter the MySQL shell
+sudo mysql
+
+-- Create databases (adjust name as desired)
+CREATE DATABASE ocdocker CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE optimization CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Create user for local connections only
+CREATE USER 'ocdocker'@'localhost' IDENTIFIED BY 'strong_password_here';
+GRANT ALL PRIVILEGES ON ocdocker.* TO 'ocdocker'@'localhost';
+GRANT ALL PRIVILEGES ON optimization.* TO 'ocdocker'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+3) Optional: allow remote connections (use strong passwords and firewalls)
+
+```sql
+-- In the MySQL shell
+CREATE USER 'ocdocker'@'%' IDENTIFIED BY 'strong_password_here';
+GRANT ALL PRIVILEGES ON optimization.* TO 'ocdocker'@'%';
+FLUSH PRIVILEGES;
+```
+
+If you enable remote access, also edit `mysqld.cnf` to listen externally:
+
+```bash
+sudo sed -i "s/^bind-address.*/bind-address = 0.0.0.0/" /etc/mysql/mysql.conf.d/mysqld.cnf
+sudo systemctl restart mysql
+```
+
+4) Test connectivity from Python
+
+```python
+from sqlalchemy import create_engine
+from urllib.parse import quote_plus
+
+user = "ocdocker"
+password = quote_plus("strong_password_here")
+host = "localhost"  # or server IP
+port = 3306
+db   = "optimization"
+
+engine = create_engine(f"mysql+pymysql://{user}:{password}@{host}:{port}/{db}")
+with engine.connect() as conn:
+    print(conn.execute("SELECT 1").scalar())
+```
+
+Notes:
+
+- The SQLAlchemy URL uses the PyMySQL driver (`mysql+pymysql://...`). Ensure `pymysql` is installed (present in the provided `environment.yml`).
+- For CI/tests or local experiments, set `OCDOCKER_USE_SQLITE=1` to bypass MySQL.
+
 Automated installer details
 ---------------------------
 

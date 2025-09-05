@@ -31,7 +31,6 @@ import seaborn as sns
 # Functions
 ###############################################################################
 
-
 def prop_delta_2xk(contingency: pd.DataFrame) -> pd.DataFrame:
     '''For a 2xK contingency table, return per-category proportion deltas.
 

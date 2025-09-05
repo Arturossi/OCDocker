@@ -212,7 +212,7 @@ def roc_auc_per_target(
     score_cols: Sequence[str],
     n_boot: int = 500,
     seed: int = 0,
-    positive_label: Optional[str | int] = None,
+    positive_label: Optional[Union[str, int]] = None,
     auto_flip: bool = True,
 ) -> pd.DataFrame:
     """
@@ -256,7 +256,7 @@ def pr_auc_per_target(
     score_cols: Sequence[str],
     n_boot: int = 500,
     seed: int = 0,
-    positive_label: Optional[str | int] = None,
+    positive_label: Optional[Union[str, int]] = None,
     auto_flip: bool = True,
 ) -> pd.DataFrame:
     """
@@ -301,7 +301,7 @@ def efroc_per_target(
     epsilons: Sequence[float] = (0.01, 0.05, 0.10),
     n_boot: int = 500,
     seed: int = 0,
-    positive_label: Optional[str | int] = None,
+    positive_label: Optional[Union[str, int]] = None,
     auto_flip: bool = True,
 ) -> pd.DataFrame:
     """
@@ -345,7 +345,7 @@ def roc_auc_pooled(
     score_cols: Sequence[str],
     n_boot: int = 500,
     seed: int = 0,
-    positive_label: Optional[str | int] = None,
+    positive_label: Optional[Union[str, int]] = None,
     auto_flip: bool = True,
 ) -> pd.DataFrame:
     """
@@ -382,7 +382,7 @@ def pr_auc_pooled(
     score_cols: Sequence[str],
     n_boot: int = 500,
     seed: int = 0,
-    positive_label: Optional[str | int] = None,
+    positive_label: Optional[Union[str, int]] = None,
     auto_flip: bool = True,
 ) -> pd.DataFrame:
     """
@@ -420,7 +420,7 @@ def efroc_pooled(
     epsilons: Sequence[float] = (0.01, 0.05, 0.10),
     n_boot: int = 500,
     seed: int = 0,
-    positive_label: Optional[str | int] = None,
+    positive_label: Optional[Union[str, int]] = None,
     auto_flip: bool = True,
 ) -> pd.DataFrame:
     """
@@ -456,7 +456,7 @@ def build_test2_tables(
     models: Sequence[str],
     target_col: str = "target",
     label_col: str = "active",
-    positive_label: Optional[str | int] = None,
+    positive_label: Optional[Union[str, int]] = None,
     n_boot: int = 500,
     seed: int = 0,
     epsilons: Sequence[float] = (0.01, 0.05, 0.10),
@@ -465,16 +465,17 @@ def build_test2_tables(
     """
     Convenience wrapper to compute all tables at once.
 
-    Returns a dict of DataFrames:
-      {
-        "roc_auc_per_target": ...,
-        "pr_auc_per_target": ...,
-        "efroc_per_target": ...,
-        "roc_auc_pooled": ...,
-        "pr_auc_pooled": ...,
-        "efroc_pooled": ...,
-        "summary": ...
-      }
+    Returns
+    -------
+    dict[str, pandas.DataFrame]
+        Mapping with the following keys:
+        - "roc_auc_per_target": ROC AUC per target with bootstrap CIs.
+        - "pr_auc_per_target": PR AUC per target with bootstrap CIs.
+        - "efroc_per_target": EF-ROC table per target across epsilons.
+        - "roc_auc_pooled": Pooled ROC AUC across all targets with CIs.
+        - "pr_auc_pooled": Pooled PR AUC across all targets with CIs.
+        - "efroc_pooled": Pooled EF-ROC across epsilons with CIs.
+        - "summary": Compact table combining pooled ROC/PR with counts.
     """
     tables: Dict[str, pd.DataFrame] = {}
 
