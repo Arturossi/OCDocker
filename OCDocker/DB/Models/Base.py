@@ -23,7 +23,10 @@ from sqlalchemy import or_, and_
 from typing import Any, Dict, List, Union
 
 import OCDocker.Error as ocerror
-from OCDocker.Initialise import session
+try:  # tolerate import during isolated unit tests
+    from OCDocker.Initialise import session
+except Exception:  # pragma: no cover
+    session = None  # type: ignore
 
 OPMAP = {
     "==": lambda c, v: c == v,
@@ -64,8 +67,10 @@ class Base(declarative_base()):
     created_at = Column(DateTime, server_default = func.now())
     modified_at = Column(DateTime, server_default = None, onupdate = func.now())
 
-    # Add a column for the molecule name (the size of the name is 760 characters to allow proper indexing) Names are supposed to be unique!
-    name = Column(String(760), index = True, unique = True, nullable = False)
+    # Add a column for the molecule name (size 760 to allow indexing). Uniqueness
+    # already enforces an index in most backends, so we avoid setting index=True
+    # to prevent duplicate index DDL on SQLite (ix_<table>_name).
+    name = Column(String(760), unique = True, nullable = False)
 
 
     ## Class Methods ##
@@ -113,13 +118,13 @@ class Base(declarative_base()):
             The type of the column.
         ''' 
 
-        # Check if the descriptor is an integer, if not, it is a float
+        # Check if the descriptor is an integer-like count; otherwise use float
         if descriptor.startswith("fr_") or \
            descriptor.startswith("Num") or \
            descriptor.startswith("count") or \
            descriptor in ["HeavyAtomCount", "NHOHCount", "NOCount", "RingCount", "TotalAALength"]:
-            return Integer
-        return Float
+            return Integer()
+        return Float()
 
     @classmethod
     def add_dynamic_columns(cls, collection: List[str]) -> None:
@@ -137,8 +142,8 @@ class Base(declarative_base()):
             column_type = cls.determine_column_type(descriptor)
 
             # If the column type is Integer, and the descriptor is a count, set the default value to 0
-            if column_type == Integer and descriptor.lower().startswith("count") or descriptor.lower().startswith("fr") or descriptor.lower().startswith("num") or descriptor.lower().endswith("count") or descriptor.lower().endswith("num"):
-                setattr(cls, descriptor, Column(column_type, server_default = "0"))
+            if isinstance(column_type, Integer) and (descriptor.lower().startswith("count") or descriptor.lower().startswith("fr") or descriptor.lower().startswith("num") or descriptor.lower().endswith("count") or descriptor.lower().endswith("num")):
+                setattr(cls, descriptor, Column(column_type, server_default="0"))
             else:
                 # Set the column as an attribute of the class using the descriptor name as the attribute name and setting the type of the column based on the descriptor name
                 setattr(cls, descriptor, Column(column_type, server_default = None))

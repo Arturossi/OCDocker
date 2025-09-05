@@ -16,6 +16,7 @@ data that predates the test run.
 
 from __future__ import annotations
 from pathlib import Path
+import os
 import shutil
 import pytest
 
@@ -60,6 +61,9 @@ def _cleanup_generated_top_level_dirs():
     tf = repo_root / "test_files" / "test_ptn1"
     lig_dir = tf / "compounds" / "ligands" / "ligand"
     plants_dir = lig_dir / "plantsFiles"
+    # Engine-specific output dirs used across tests
+    vina_dir = lig_dir / "vinaFiles"
+    smina_dir = lig_dir / "sminaFiles"
     plant_files = [
         # prepared structures (mol2/pdbqt)
         tf / "prepared_receptor.mol2",
@@ -109,3 +113,27 @@ def _cleanup_generated_top_level_dirs():
                 f.unlink()
             except Exception:
                 pass
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _force_sqlite_backend_for_tests(tmp_path_factory):
+    """Force OCDocker to use a temporary SQLite file during tests.
+
+    Ensures no MySQL connections/tables are created and the SQLite file is
+    removed after the session ends.
+    """
+
+    db_dir = tmp_path_factory.mktemp("ocdocker_db")
+    db_file = db_dir / "ocdocker.db"
+    # Prefer test-local sqlite
+    os.environ.setdefault("OCDOCKER_USE_SQLITE", "1")
+    os.environ["OCDOCKER_SQLITE_PATH"] = str(db_file)
+
+    yield
+
+    # Cleanup sqlite file
+    try:
+        if db_file.exists():
+            db_file.unlink()
+    except Exception:
+        pass

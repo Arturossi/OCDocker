@@ -2,9 +2,9 @@
 
 # Description
 ###############################################################################
-
+'''
 Lightweight CLI coverage: ensure init-config and version commands run.
-
+'''
 
 from pathlib import Path
 
