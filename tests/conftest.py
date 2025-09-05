@@ -64,6 +64,9 @@ def _cleanup_generated_top_level_dirs():
     # Engine-specific output dirs used across tests
     vina_dir = lig_dir / "vinaFiles"
     smina_dir = lig_dir / "sminaFiles"
+    # Boxes may be created at two locations depending on the test
+    boxes_dir_base = tf / "boxes"
+    boxes_dir_lig = lig_dir / "boxes"
     plant_files = [
         # prepared structures (mol2/pdbqt)
         tf / "prepared_receptor.mol2",
@@ -75,13 +78,22 @@ def _cleanup_generated_top_level_dirs():
         # descriptors
         tf / "test_receptor_descriptors.json",
         lig_dir / "test_ligand_descriptors.json",
+        lig_dir / "ligand_test_descriptors.json",
         # engine outputs/configs
         vina_dir / "vina_config.txt",
         vina_dir / "vina_out.pdbqt",
         smina_dir / "smina_config.txt",
         smina_dir / "smina_out.pdbqt",
+        smina_dir / "prepared_ligand.pdbqt",
+        # PLANTS config
+        plants_dir / "plants_config.txt",
+        # Boxes
+        boxes_dir_base / "box0.pdb",
+        boxes_dir_lig / "box0.pdb",
     ]
     file_existed_before = {p: p.exists() for p in plant_files}
+    # Track descriptor JSONs present before tests to remove only new ones
+    desc_before = {p.name for p in lig_dir.glob("*_descriptors.json")}
     dir_existed_before = {
         plants_dir: plants_dir.exists(),
         vina_dir: vina_dir.exists(),
@@ -113,6 +125,43 @@ def _cleanup_generated_top_level_dirs():
                 f.unlink()
             except Exception:
                 pass
+
+    # Remove any newly created descriptor JSONs under the ligand directory
+    try:
+        for p in lig_dir.glob("*_descriptors.json"):
+            if p.name not in desc_before:
+                try:
+                    p.unlink()
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
+    # As a final safeguard, attempt to remove a known small set of test artifacts
+    # even if they existed before (they are safe to re-generate in tests).
+    safe_always_remove = [
+        plants_dir / "plants_config.txt",
+        boxes_dir_base / "box0.pdb",
+        boxes_dir_lig / "box0.pdb",
+        lig_dir / "prepared_ligand.pdbqt",
+        lig_dir / "prepared_ligand.mol2",
+    ]
+    for f in safe_always_remove:
+        try:
+            if f.exists():
+                f.unlink()
+        except Exception:
+            pass
+
+    # Also purge any descriptor JSONs in the ligand directory unconditionally
+    try:
+        for p in lig_dir.glob("*_descriptors.json"):
+            try:
+                p.unlink()
+            except Exception:
+                pass
+    except Exception:
+        pass
 
 
 @pytest.fixture(scope="session", autouse=True)
