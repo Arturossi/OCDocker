@@ -206,3 +206,9 @@ ODDT_models/
 # Ignore the output_files
 output_file.csv
 output_file2.csv
+
+# Coverage files
+htmlcov/
+htmlcov/*
+.coverage
+.coverage.*
