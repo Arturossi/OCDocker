@@ -49,4 +49,3 @@ echo "==> Generating XML report (coverage.xml)"
 coverage xml -o coverage.xml
 
 echo "Done. Open htmlcov/index.html for a detailed report."
-
