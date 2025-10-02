@@ -263,7 +263,7 @@ autodoc_member_order = "bysource"
 autodoc_typehints = "description"
 
 # Do NOT mock your own modules
-autodoc_mock_imports = []
+autodoc_mock_imports = ["cupy", "torch", "oddt", "openbabel", "rdkit"]
 
 # RST substitutions
 rst_prolog = """
