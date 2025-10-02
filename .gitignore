@@ -212,3 +212,7 @@ htmlcov/
 htmlcov/*
 .coverage
 .coverage.*
+
+# Docs build
+docs/build
+docs/_build

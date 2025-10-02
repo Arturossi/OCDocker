@@ -1,0 +1,35 @@
+name: Build and Deploy Docs
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - sphinx-documentation
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install "sphinx==7.2.6" "furo==2024.8.6" "myst-parser==2.0.0" sphinx-autodoc-typehints
+
+      - name: Build Sphinx docs
+        run: sphinx-build -b html docs/source _site
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: _site
+          force_orphan: true
+          enable_jekyll: false
