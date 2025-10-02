@@ -17,7 +17,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.11"
 
       - name: Install system deps
         run: sudo apt-get update && sudo apt-get install -y openbabel libopenbabel-dev swig python3-six
