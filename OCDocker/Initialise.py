@@ -18,6 +18,7 @@ import multiprocessing
 import os
 import shutil
 import argparse
+import inspect
 
 import textwrap as tw
 from typing import Optional
@@ -1126,6 +1127,53 @@ def is_doc_build() -> bool:
 
 bootstrapped = False
 
+# Sync star-import consumers
+_SYNC_SKIP_NAMES = {
+    "__annotations__", "__builtins__", "__cached__", "__doc__", "__file__", "__loader__", "__name__", "__package__", "__spec__"
+}
+
+def _sync_import_consumers() -> None:
+    '''Push updated globals to caller modules that pulled names via star-import.
+    '''
+
+    # Inspect the current frame to find the caller
+    frame = inspect.currentframe()
+
+    # If frame is None, return
+    if not frame:
+        return
+    try:
+        # Get the parent frame
+        parent = frame.f_back
+
+        # If parent frame is None, return
+        if not parent:
+            return
+    
+        # Get the module name of the parent frame
+        module_name = parent.f_globals.get("__name__")
+
+        # If module name is invalid, return
+        if not isinstance(module_name, str) or module_name in ("builtins", __name__):
+            return
+        
+        # Push public items to the parent frame's globals
+        public_items = {
+            name: value
+            for name, value in globals().items()
+            if not name.startswith("_") and name not in _SYNC_SKIP_NAMES
+        }
+
+        # Find shared names
+        shared = set(parent.f_globals.keys()).intersection(public_items.keys())
+
+        # Update parent frame globals
+        for name in shared:
+            parent.f_globals[name] = public_items[name]
+    finally:
+        # Cleanup to avoid reference cycles
+        del frame
+
 # Initialise
 ###############################################################################
 def print_description() -> None:
@@ -1465,6 +1513,7 @@ def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
     if not str(os.getenv('OCDOCKER_SKIP_ODDT', '')).lower() in ('1','true','yes','y'):
         initialise_oddt_models(oddt_models_dir, oddt_scoring_functions)  # type: ignore
 
+    _sync_import_consumers()
     bootstrapped = True
 
 # Autobootstrap on first import (non‑CLI contexts), unless disabled via env

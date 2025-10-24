@@ -15,9 +15,10 @@ from OCDocker.DB.Models.Base import base
 
 from sqlalchemy import Column, DateTime, Float, Index, Integer, String, func
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta
+from sqlalchemy.ext.declarative import DeclarativeMeta
+
 from sqlalchemy.inspection import inspect
-from sqlalchemy.orm import declared_attr
+from sqlalchemy.orm import DeclarativeBase, declared_attr
 from operator import eq, ne, lt, le, gt, ge
 from sqlalchemy import or_, and_
 from typing import Any, Dict, List, Union
@@ -29,22 +30,22 @@ except Exception:  # pragma: no cover
     session = None  # type: ignore
 
 OPMAP = {
-    "==": lambda c, v: c == v,
-    "!=": lambda c, v: c != v,
-    ">":  lambda c, v: c > v,
-    ">=": lambda c, v: c >= v,
-    "<":  lambda c, v: c < v,
-    "<=": lambda c, v: c <= v,
+    "==":     lambda c, v: c == v,
+    "!=":     lambda c, v: c != v,
+    ">":      lambda c, v: c > v,
+    ">=":     lambda c, v: c >= v,
+    "<":      lambda c, v: c < v,
+    "<=":     lambda c, v: c <= v,
     "like":   lambda c, v: c.like(v),
     "ilike":  lambda c, v: c.ilike(v),
     "in":     lambda c, v: c.in_(v if isinstance(v, (list, tuple, set)) else [v]),
 }
 
-class Base(declarative_base()):
+class Base(DeclarativeBase):
     """ Base class for all the tables. """
     
     # Set the table name
-    @declared_attr
+    @declared_attr.directive
     def __tablename__(cls):
         ''' Return the table name. '''
 
@@ -71,7 +72,6 @@ class Base(declarative_base()):
     # already enforces an index in most backends, so we avoid setting index=True
     # to prevent duplicate index DDL on SQLite (ix_<table>_name).
     name = Column(String(760), unique = True, nullable = False)
-
 
     ## Class Methods ##
 
@@ -507,50 +507,23 @@ class Base(declarative_base()):
         
         # Check if session is defined
         if session is None:
-            # The session s not defined
             _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.")  # type: ignore
-            # Return an empty list
+            return []
+
+        # Check if the operator is valid
+        if operator not in OPMAP:
+            _ = ocerror.Error.malformed_payload(f"Unsupported operator '{operator}'.")  # type: ignore
+            return []
+
+        # Get the column
+        try:
+            col = getattr(cls, column)
+        except AttributeError:
+            _ = ocerror.Error.malformed_payload(f"Unknown column '{column}'.")  # type: ignore
             return []
 
         # Open the session
         with session() as s:
-            try:
-            # Perform the search
-                results = cls._find_by(s, column=column, operator=operator, value=value)
-            except ValueError as e:
-                _ = ocerror.Error.malformed_payload(str(e))  # type: ignore
-                return []
-        return results
-
-    @classmethod
-    def find_attribute(cls, column: str, value: Any, operator: str = "==") -> List[DeclarativeMeta]:
-        ''' Search data in the database based on an attribute.
-
-        Parameters
-        ----------
-        column : str
-            The column name.
-        value : Any
-            The value to be searched.
-        operator : str
-            The operator to be used.
-
-        Returns
-        -------
-        List[DeclarativeMeta]
-            The data found.
-        '''
-
-        if session is None:
-            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.") # type: ignore
-
-            return []
-        
-        with session() as s:
-            data = s.query(cls).filter(
-                    eval(f"cls.{column} {operator} value")
-                ).all()
-
-        return data
+            return s.query(cls).filter(OPMAP[operator](col, value)).all()
 
 base = Base
