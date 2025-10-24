@@ -768,14 +768,14 @@ def run_plants(confFile: str, outputPlants: str, overwrite: bool = False, logFil
     # Run the command
     return ocrun.run(cmd, logFile = logFile)
 
-def run_rescore(confFile: str, pose_list: str, outPath: str, proteinFile: str, scoring_function: str, bindingSiteCenterX: float, bindingSiteCenterY: float, bindingSiteCenterZ: float, bindingSiteRadius: float, logFile: str = "", overwrite: bool = False) -> int:
+def run_rescore(confFile: str, pose_list_file: str, outPath: str, proteinFile: str, scoring_function: str, bindingSiteCenterX: float, bindingSiteCenterY: float, bindingSiteCenterZ: float, bindingSiteRadius: float, logFile: str = "", overwrite: bool = False) -> int:
     '''Run PLANTS to rescore the ligand.
 
     Parameters
     ----------
     confFile : str
         The path to the PLANTS configuration file.
-    pose_list : str
+    pose_list_file : str
         The path to the ligand poses list file.
     outPath : str
         The path to the output file.
@@ -815,7 +815,7 @@ def run_rescore(confFile: str, pose_list: str, outPath: str, proteinFile: str, s
                 return ocerror.Error.dir_exists(f"The folder '{outPath}' already exists. Skipping the PLANTS run.", level = ocerror.ReportLevel.WARNING) # type: ignore
 
         # Create the conf file (yes... again...)
-        _ = write_rescoring_config_file(confFile, proteinFile, pose_list, outPath, bindingSiteCenterX, bindingSiteCenterY, bindingSiteCenterZ, bindingSiteRadius, scoringFunction = scoring_function, rescoringMode = plants_rescoring_mode)
+        _ = write_rescoring_config_file(confFile, proteinFile, pose_list_file, outPath, bindingSiteCenterX, bindingSiteCenterY, bindingSiteCenterZ, bindingSiteRadius, scoringFunction = scoring_function, rescoringMode = plants_rescoring_mode)
 
         # Create the command list
         cmd = [plants, "--mode", "rescore", confFile]
