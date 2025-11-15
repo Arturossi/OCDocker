@@ -41,10 +41,11 @@ Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
-Licensed under the Apache License, Version 2.0 (January 2004)
-See: http://www.apache.org/licenses/LICENSE-2.0
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
 
-Commercial use requires a separate license.  
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
 
@@ -77,7 +78,8 @@ def __build_cmd(receptorPath: str, ligandPath: str, outputFile: str) -> Union[Li
         return ocerror.Error.unsupported_extension("The output file must be a csv file.", level = ocerror.ReportLevel.ERROR) # type: ignore
 
     # Start building the command
-    cmd = [oddt, ligandPath, "-O", outputFile, "--receptor", receptorPath, "-i", "pdbqt", "-n", "1"]
+    # Use configured ODDT CLI program from Initialise
+    cmd = [oddt_program, ligandPath, "-O", outputFile, "--receptor", receptorPath, "-i", "pdbqt", "-n", "1"]
 
     # Check if there are scoring functions to be used
     if isinstance(oddt_scoring_functions, list) and len(oddt_scoring_functions) > 0:

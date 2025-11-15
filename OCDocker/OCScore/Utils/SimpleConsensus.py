@@ -29,10 +29,10 @@ Authors: Rossi, A.D.; Torres, P.H.M.;
 Contact info:
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
-Av. Carlos Chagas Filho 373 - CCS - bloco G1-19,
-Cidade Universitária - Rio de Janeiro, RJ, CEP: 21941-902
+Av. Carlos Chagas Filho 373 - CCS - G1-19,
+University City - Rio de Janeiro, RJ, ZIP: 21941-902
 E-mail address:
-This project is licensed under Creative Commons license (CC-BY-4.0) (Ver qual)
+This project is licensed under Creative Commons (CC-BY-4.0).
 '''
 
 # Classes
@@ -93,6 +93,7 @@ def simple_consensus(
 def perform_simple_consensus(
         df_path : str,
         threshold : float = 1.2,
+        metrics : list[str] = ['mean', 'median', 'max', 'min', 'std', 'variance', 'sum', 'range', 'quantile_25', 'quantile_75', 'iqr', 'skewness', 'kurtosis'],
         verbose : bool = False
     ) -> pd.DataFrame:
     ''' Perform the simple consensus calculation for the given dataset.
@@ -103,6 +104,9 @@ def perform_simple_consensus(
         The path to the DataFrame.
     threshold : float, optional
         The threshold to filter the results. Default is 1.2.
+    metrics : list[str], optional
+        The list of metrics to calculate. Default is ['mean', 'median', 'max', 'min', 'std', 'variance', 'sum', 'range', 'quantile_25', 'quantile_75', 'iqr', 'skewness', 'kurtosis'].
+        If empty, all metrics will be calculated.
     verbose : bool, optional
         Whether to print the results. Default is False.
 
@@ -124,8 +128,13 @@ def perform_simple_consensus(
     # Create the final df to hold Error and AUC values
     final_df = pd.DataFrame()
 
+    # Check if the metrics list is empty
+    if not metrics:
+        # If empty, use all columns
+        metrics = ['mean', 'median', 'max', 'min', 'std', 'variance', 'sum', 'range', 'quantile_25', 'quantile_75', 'iqr', 'skewness', 'kurtosis']
+
     # Calculate the AUC for each new metric
-    for col in ['mean', 'median', 'max', 'min', 'std', 'variance', 'sum', 'range', 'quantile_25', 'quantile_75', 'iqr', 'skewness', 'kurtosis']:
+    for col in metrics:
         fpr, tpr, _ = roc_curve(dudez_stats_df['type'].map({'ligand': 1, 'decoy': 0}), dudez_stats_df[col])
 
         # Calculate the AUC

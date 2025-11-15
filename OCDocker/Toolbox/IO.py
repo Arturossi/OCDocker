@@ -26,10 +26,11 @@ Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
-Licensed under the Apache License, Version 2.0 (January 2004)
-See: http://www.apache.org/licenses/LICENSE-2.0
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
 
-Commercial use requires a separate license.  
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
 
@@ -99,13 +100,15 @@ def lazyread_reverse_order_mmap(file_name: str, decode: str = "utf-8") -> Genera
                 new_byte = mmap_obj.read(1)
                 # If the read byte is new line character then it means one line is read
                 if new_byte == b'\n':
-                    # Fetch the line from buffer and yield it
-                    yield buffer.decode(decode)[::-1]
-                    # Reinitialise the byte array to save next line
-                    buffer = bytearray()
+                    # Only yield if there is content accumulated (avoid empty line for trailing newline)
+                    if len(buffer) > 0:
+                        yield buffer.decode(decode)[::-1]
+                        # Reinitialise the byte array to save next line
+                        buffer = bytearray()
                 else:
                     # If last read character is not eol then add it in buffer
-                    buffer.extend(new_byte)
+                    if new_byte:
+                        buffer.extend(new_byte)
             # As file is read completely, if there is still data in buffer, then its the first line.
             if len(buffer) > 0:
                 # Yield the first line too
@@ -167,13 +170,15 @@ def lazyread_reverse_order(file_name: str, decode: str = "utf-8") -> Generator[s
             new_byte = read_obj.read(1)
             # If the read byte is new line character then it means one line is read
             if new_byte == b'\n':
-                # Fetch the line from buffer and yield it
-                yield buffer.decode(decode)[::-1]
-                # Reinitialie the byte array to save next line
-                buffer = bytearray()
+                # Only yield if there is content accumulated (avoid empty line for trailing newline)
+                if len(buffer) > 0:
+                    yield buffer.decode(decode)[::-1]
+                    # Reinitialie the byte array to save next line
+                    buffer = bytearray()
             else:
                 # If last read character is not eol then add it in buffer
-                buffer.extend(new_byte)
+                if new_byte:
+                    buffer.extend(new_byte)
         # As file is read completely, if there is still data in buffer, then its the first line.
         if len(buffer) > 0:
             # Yield the first line too

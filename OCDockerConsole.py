@@ -11,7 +11,7 @@ from pprint import pprint
 from glob import glob
 
 # The environment variable OCDOCKER_CONFIG must be set to the OCDocker.cfg file before importing OCDocker
-os.environ['OCDOCKER_CONFIG'] = 'OCDocker.cfg'
+cfg_path = os.environ.get('OCDOCKER_CONFIG') or 'OCDocker.cfg'
 
 from OCDocker.Initialise import *
 
@@ -19,9 +19,6 @@ output_level = ocerror.ReportLevel.NONE
 
 import OCDocker.Toolbox as octools
 
-import OCDocker.DB.baseDB as ocbdb
-import OCDocker.DB.DUDEz as ocdudez
-import OCDocker.DB.PDBbind as ocpdbbind
 import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
 import OCDocker.Docking.Vina as ocvina
@@ -42,10 +39,11 @@ Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
-Licensed under the Apache License, Version 2.0 (January 2004)
-See: http://www.apache.org/licenses/LICENSE-2.0
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
 
-Commercial use requires a separate license.  
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
 
@@ -63,6 +61,116 @@ the user to perform the steps step by step.
 
 # Functions
 ###############################################################################
+def print_args(program: str = "") -> None:
+    '''Print environment variables and optionally program-specific settings.
+
+    Console usage examples:
+      - print_args()                 # environment overview
+      - print_args('paths')          # relevant paths and binaries
+      - print_args('db')             # database connections
+      - print_args('vina')           # Vina parameters
+      - print_args('smina')          # Smina parameters
+      - print_args('plants')         # PLANTS parameters
+      - print_args('gnina')          # Gnina parameters (if configured)
+      - print_args('oddt')           # ODDT parameters
+      - print_args('all')            # print all sections
+    '''
+
+    def _g(name, default='-'):
+        return globals().get(name, default)
+
+    def _p(label, value):
+        try:
+            print(f"{label:<28}: {value}")
+        except Exception:
+            print(f"{label:<28}: <unprintable>")
+
+    prog = (program or "").strip().lower()
+    show_all = prog in ("all", "*")
+
+    # Overview
+    if not prog or show_all:
+        print("\n=== OCDocker Runtime Arguments ===")
+        _p("config_file", _g('config_file'))
+        _p("multiprocess", _g('multiprocess'))
+        _p("update", _g('update'))
+        ol = _g('output_level')
+        try:
+            ol_disp = ol.name if hasattr(ol, 'name') else ol
+        except Exception:
+            ol_disp = ol
+        _p("output_level", ol_disp)
+        _p("overwrite", _g('overwrite'))
+
+    if prog in ("paths",) or show_all:
+        print("\n=== Key Paths ===")
+        _p("ocdb_path", _g('ocdb_path'))
+        _p("pca_path", _g('pca_path'))
+        _p("logdir", _g('logdir'))
+        _p("oddt_models_dir", _g('oddt_models_dir'))
+
+        print("\n=== Docking Binaries ===")
+        _p("vina", _g('vina'))
+        _p("smina", _g('smina'))
+        _p("plants", _g('plants'))
+        _p("gnina", _g('gnina'))
+        _p("obabel", _g('obabel'))
+        _p("pythonsh", _g('pythonsh'))
+        _p("prepare_ligand", _g('prepare_ligand'))
+        _p("prepare_receptor", _g('prepare_receptor'))
+
+    if prog in ("db",) or show_all:
+        print("\n=== Database URLs ===")
+        _p("db_url", _g('db_url'))
+        _p("optdb_url", _g('optdb_url'))
+
+    if prog in ("vina",) or show_all:
+        print("\n=== Vina Parameters ===")
+        _p("vina_scoring", _g('vina_scoring'))
+        _p("vina_scoring_functions", _g('vina_scoring_functions'))
+        _p("vina_num_modes", _g('vina_num_modes'))
+        _p("vina_energy_range", _g('vina_energy_range'))
+        _p("vina_exhaustiveness", _g('vina_exhaustiveness'))
+
+    if prog in ("smina",) or show_all:
+        print("\n=== Smina Parameters ===")
+        for n in (
+            'smina_scoring','smina_scoring_functions','smina_num_modes','smina_energy_range',
+            'smina_exhaustiveness','smina_custom_scoring','smina_custom_atoms','smina_local_only',
+            'smina_minimize','smina_randomize_only','smina_minimize_iters','smina_accurate_line',
+            'smina_minimize_early_term','smina_approximation','smina_factor','smina_force_cap',
+            'smina_user_grid','smina_user_grid_lambda'
+        ):
+            _p(n, _g(n))
+
+    if prog in ("plants",) or show_all:
+        print("\n=== PLANTS Parameters ===")
+        for n in (
+            'plants_cluster_structures','plants_cluster_rmsd','plants_search_speed',
+            'plants_scoring','plants_scoring_functions'
+        ):
+            _p(n, _g(n))
+
+    if prog in ("gnina",) or show_all:
+        print("\n=== Gnina Parameters ===")
+        for n in (
+            'gnina_exhaustiveness','gnina_num_modes','gnina_scoring','gnina_custom_scoring_file',
+            'gnina_custom_atoms','gnina_local_only','gnina_minimize','gnina_randomize_only',
+            'gnina_num_mc_steps','gnina_max_mc_steps','gnina_num_mc_saved','gnina_minimize_iters',
+            'gnina_simple_ascent','gnina_accurate_line','gnina_minimize_early_term','gnina_approximation',
+            'gnina_factor','gnina_force_cap','gnina_user_grid','gnina_user_grid_lambda','gnina_no_gpu'
+        ):
+            _p(n, _g(n))
+
+    if prog in ("oddt",) or show_all:
+        print("\n=== ODDT Parameters ===")
+        for n in ('oddt_program','oddt_seed','oddt_chunk_size','oddt_scoring_functions'):
+            _p(n, _g(n))
+
+    if not prog and not show_all:
+        print("")
+    return None
+
 def clean_test_files(baseProtPath, baseLigPath, baseDecPath, baseCanPath) -> None:
     '''Rests the test_files folder to its original state
 
@@ -113,8 +221,7 @@ print(message)
 
 if __name__ == "__main__":
     # Set the variables based on args
-    #set_argparse()
-    pass
+    bootstrap(argument_parsing())
 else:
     cpu_cores = 18
     available_cores = cpu_cores - 1
@@ -288,14 +395,9 @@ for medoid in medoids:
         # Add it to the medoidsDict as a list with plants as the key
         medoidsDict[medoid] = plantsDockingResult[ocplants.get_pose_index_from_file_path(medoid)]
 
-# TODO: Find a way to compare PLANTS score with Vina/Smina/Gnina.....
-
-
 ##############
 ##   Gnina   #
 ##############
-
-## TODO: Fix the entire Gnina
 
 # Gnina
 gninaTest = ocgnina.Gnina(f"{baseLigPath}/{lig}/gninaFiles/conf_gnina.txt", f"{baseLigPath}/{lig}/boxes/box0.pdb", receptorTest, f"{baseProtPath}/prepared_receptor.pdbqt", ligandTest, f"{baseLigPath}/{lig}/prepared_ligand.pdbqt", f"{baseLigPath}/{lig}/gninaFiles/{lig}.log", f"{baseLigPath}/{lig}/gninaFiles/{lig}.pdbqt", name=f"Gnina {ptn}-{lig}")

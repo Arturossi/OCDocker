@@ -59,3 +59,18 @@ keywords = ["docking", "virtual screening", "AI", "bioinformatics", "drug discov
 Homepage = "https://github.com/Arturossi/OCDocker"
 Repository = "https://github.com/Arturossi/OCDocker"
 Issues = "https://github.com/Arturossi/OCDocker/issues"
+
+[project.scripts]
+ocdocker = "OCDocker.CLI:main"
+
+[project.optional-dependencies]
+dev = [
+  "pytest",
+  "pytest-cov",
+]
+docs = [
+  "sphinx",
+  "furo",
+  "sphinx-argparse",
+  "myst-parser",
+]

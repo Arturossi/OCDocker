@@ -13,8 +13,6 @@ import OCDocker.Toolbox.Validation as ocvalidation
 # Imports
 ###############################################################################
 import os
-import rdkit
-
 from Bio.PDB import MMCIFParser, PDBParser
 from typing import Union
 
@@ -31,10 +29,11 @@ Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
-Licensed under the Apache License, Version 2.0 (January 2004)
-See: http://www.apache.org/licenses/LICENSE-2.0
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
 
-Commercial use requires a separate license.  
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
 
@@ -116,6 +115,8 @@ def is_molecule_valid(molecule: str) -> bool:
                 return False
         elif type(validate_obabel_extension(molecule)) == str:
             try:
+                # Import RDKit lazily to avoid hard dependency at import time
+                import rdkit
                 # Check if the extension is within the supported ones, if yes, parse it
                 if extension == ".mol2":
                     _ = rdkit.Chem.rdmolfiles.MolFromMol2File(molecule, sanitize = True) # type: ignore
@@ -126,13 +127,19 @@ def is_molecule_valid(molecule: str) -> bool:
                 elif extension == ".pdbqt":
                     _ = rdkit.Chem.rdmolfiles.MolFromMolFile(molecule, sanitize = True) # type: ignore
                 elif extension in [".smi", ".smiles"]:
-                    _ = rdkit.Chem.rdmolfiles.MolFromSmiles(molecule, sanitize = True) # type: ignore
+                    # Read SMILES string from file and parse
+                    try:
+                        with open(molecule, "r") as f:
+                            smi = f.read().strip().split()[0]
+                    except Exception:
+                        return False
+                    _ = rdkit.Chem.rdmolfiles.MolFromSmiles(smi, sanitize = True) # type: ignore
                 else:
                     # Not suitable extension, so... say False!!!!
                     return False
                 # If no problems occur, the molecule should be fine
                 return True
-            except:
+            except Exception:
                 # Uh oh, some problem has been found
                 return False
     # No file, so it is False

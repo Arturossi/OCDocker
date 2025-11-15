@@ -38,10 +38,11 @@ Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
-Licensed under the Apache License, Version 2.0 (January 2004)
-See: http://www.apache.org/licenses/LICENSE-2.0
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
 
-Commercial use requires a separate license.  
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
 
@@ -79,7 +80,7 @@ def __core_generate_digest(path: str, ligandDir: str, archive: str, overwrite: b
 
     # If is the index directory, ignore
     if ptn in ['index']:
-        return ocerror.Error.unnalowed_dir()
+        return ocerror.Error.unnalowed_dir() # type: ignore
 
     ligandDescriptorPath = f"{ligandDir}/ligand_descriptors.json"
 
@@ -100,9 +101,9 @@ def __core_generate_digest(path: str, ligandDir: str, archive: str, overwrite: b
     else:
         errMsg = f"There is no ligand descriptor json file for the protein in the path '{ligandDescriptorPath}'."
         ocprint.print_error_log(errMsg, f"{logdir}/{archive}_docking_digest_run_report_ERROR.log")
-        return ocerror.Error.receptor_or_ligand_descriptor_does_not_exist(errMsg, level = ocerror.ReportLevel.ERROR)
+        return ocerror.Error.receptor_or_ligand_descriptor_does_not_exist(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
 
-    return ocerror.Error.ok()
+    return ocerror.Error.ok() # type: ignore
 
 def __thread_generate_digest(arguments: list) -> int:
     '''Thread aid function to call __core_generate_digest.
@@ -276,4 +277,3 @@ def generate_digest(paths: Union[List[Tuple[str, List[str]]], Tuple[str, List[st
             __generate_digest_no_parallel(paths, archive, overwrite, digestFormat, label)
     else:
         __generate_digest_single(paths, archive, overwrite, digestFormat, label)
-

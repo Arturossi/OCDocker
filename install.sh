@@ -1,129 +1,126 @@
-#!/usr/bin/sh
+#!/usr/bin/env bash
+
+# Description
+###############################################################################
+# OCDocker installer (Ubuntu-like systems)
+# - Installs MGLTools, AutoDock Vina, Miniconda (in $HOME/miniconda)
+# - Installs DSSP and MySQL server via apt
+# - Creates the conda environment defined in environment.yml
+# - Creates MySQL user/database for OCDocker
+
+set -uo pipefail
+IFS=$'\n\t'
+
+# Utilities
+###############################################################################
+info() { echo "[INFO] $*"; }
+
+# Run a step and, on failure, prompt whether to continue.
+# Usage: step "Description" <command...>
+step() {
+  local desc="$1"; shift
+  info "$desc"
+  # Run the command block under pipefail to catch failures in pipelines
+  bash -o pipefail -c "$*"
+  local ec=$?
+  if [ $ec -ne 0 ]; then
+    echo "[WARN] Step failed: $desc (exit $ec)" >&2
+    read -r -p "Continue anyway? [y/N] " ans
+    case "$ans" in
+      y|Y|yes|YES) echo "[INFO] Continuing after failure of: $desc";;
+      *) echo "[ABORT] Stopping at failed step: $desc"; exit $ec;;
+    esac
+  fi
+}
+
+# Resolve script directory to find environment.yml reliably
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
 
 # Set the Database user, password, and database name
 export DB_USER=ocdocker
-export DB_PASS=ocdocker
 export DB_NAME=ocdocker
+export DB_PASS=ocdocker
+export DB_NAME_OPTIMIZATION=ocdocker
 
-echo "Starting the installation process..."
+# Decide whether to use SQLite (skip MySQL install/config)
+# Precedence: environment var OCDOCKER_USE_SQLITE, then config file USE_SQLITE (if present)
+truthy() { case "${1:-}" in 1|y|Y|yes|YES|true|TRUE|on|sqlite) return 0;; *) return 1;; esac; }
+USE_SQLITE=false
+if truthy "${OCDOCKER_USE_SQLITE:-}"; then
+  USE_SQLITE=true
+elif [[ -f "OCDocker.cfg" ]]; then
+  cfg_val=$(grep -E "^\s*USE_SQLITE\s*=\s*" OCDocker.cfg | tail -n1 | awk -F= '{print $2}' | xargs)
+  if truthy "$cfg_val"; then USE_SQLITE=true; fi
+fi
+
+info "Starting the installation process..."
 
 # Step 1: Download and install MGLTools
-echo "Downloading and installing MGLTools..."
-wget https://ccsb.scripps.edu/download/532/ -O mgltools.tar.gz
-if [ $? -ne 0 ]; then
-    echo "Failed to download MGLTools."
-    exit 1
-fi
-
-mkdir -p mgltools && tar -xvzf mgltools.tar.gz -C mgltools --strip-components=1 && rm mgltools.tar.gz
-if [ $? -ne 0 ]; then
-    echo "Failed to extract MGLTools."
-    exit 1
-fi
-
-cd mgltools && source ./install.sh
-echo "MGLTools installation complete."
+step "Downloading and installing MGLTools..." \
+  "wget https://ccsb.scripps.edu/download/532/ -O mgltools.tar.gz && \
+   [[ -s mgltools.tar.gz ]] && \
+   mkdir -p mgltools && tar -xvzf mgltools.tar.gz -C mgltools --strip-components=1 && rm mgltools.tar.gz && \
+   pushd mgltools >/dev/null && source ./install.sh && popd >/dev/null"
+info "MGLTools installation step finished."
 
 # Step 2: Download and install Autodock Vina
-echo "Downloading and setting up Autodock Vina..."
-mkdir vina && wget https://github.com/ccsb-scripps/AutoDock-Vina/releases/download/v1.2.3/vina_1.2.3_linux_x86_64 -O vina/vina
-if [ $? -ne 0 ]; then
-    echo "Failed to download Autodock Vina."
-    exit 1
-fi
-
-sudo cp vina/vina /usr/bin/vina
-sudo chmod +x /usr/bin/vina
-if [ $? -ne 0 ]; then
-    echo "Failed to set up Autodock Vina."
-    exit 1
-fi
-
-echo "Autodock Vina setup complete."
+step "Downloading and setting up AutoDock Vina..." \
+  "mkdir -p vina && \
+   wget -O vina/vina https://github.com/ccsb-scripps/AutoDock-Vina/releases/download/v1.2.3/vina_1.2.3_linux_x86_64 && \
+   chmod +x vina/vina && \
+   sudo install -m 0755 vina/vina /usr/bin/vina"
+info "AutoDock Vina setup step finished."
 
 # Step 3: Download and install Miniconda
-echo "Downloading and installing Miniconda..."
-wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O Miniconda3.sh
-if [ $? -ne 0 ]; then
-    echo "Failed to download Miniconda."
-    exit 1
-fi
-
-sudo chmod +x Miniconda3.sh && ./Miniconda3.sh -b -p $HOME/miniconda
-
-if [ $? -ne 0 ]; then
-    echo "Failed to install Miniconda."
-    exit 1
-fi
-
-echo "Miniconda installation complete."
+step "Downloading and installing Miniconda..." \
+  "wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O Miniconda3.sh && \
+   [[ -s Miniconda3.sh ]] && chmod +x Miniconda3.sh && \
+   ./Miniconda3.sh -b -p \"$HOME/miniconda\""
+info "Miniconda installation step finished."
 
 # Step 4: Initialize conda
-echo "Initializing conda..."
-source "$HOME/miniconda/etc/profile.d/conda.sh"
-if [ $? -ne 0 ]; then
-    echo "Failed to initialize conda."
-    exit 1
-fi
+step "Initializing conda..." \
+  "source \"$HOME/miniconda/etc/profile.d/conda.sh\""
 
 # Step 5: Install necessary system packages
-echo "Installing required system packages (dssp, mysql-server)..."
-sudo apt install -y dssp mysql-server
-if [ $? -ne 0 ]; then
-    echo "Failed to install system packages."
-    exit 1
+if $USE_SQLITE; then
+  step "Installing required system packages (dssp)..." \
+    "sudo apt-get update -y && sudo apt-get install -y dssp"
+  info "SQLite mode selected — skipping MySQL server installation."
+else
+  step "Installing required system packages (dssp, mysql-server)..." \
+    "sudo apt-get update -y && sudo apt-get install -y dssp mysql-server"
 fi
 
 # Step 6: Install mamba
-echo "Installing mamba..."
-conda install -y conda-forge::mamba
-if [ $? -ne 0 ]; then
-    echo "Failed to install mamba."
-    exit 1
-fi
+step "Installing mamba..." \
+  "conda install -y -n base -c conda-forge mamba"
 
 # Step 7: Create the environment from the YAML file
-echo "Creating the environment from the environment.yml file..."
-mamba env create -f environment.yml
-if [ $? -ne 0 ]; then
-    echo "Failed to create conda environment."
-    exit 1
+if conda env list | grep -q "^ocdocker\s"; then
+    info "Conda env 'ocdocker' already exists; skipping creation."
+else
+    step "Creating conda environment 'ocdocker' from environment.yml..." \
+      "mamba env create -f \"$SCRIPT_DIR/environment.yml\""
 fi
 
 # Step 8: Configure MySQL
-echo "Configuring MySQL, creating user and database..."
-sudo mysql -u root -e "CREATE USER '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';"
-if [ $? -ne 0 ]; then
-    echo "Failed to create MySQL user."
-    exit 1
+if $USE_SQLITE; then
+  info "SQLite mode selected — skipping MySQL user/database configuration."
+else
+  step "Configuring MySQL: create user and databases..." \
+    "sudo mysql -u root -e \"CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';\" && \
+     sudo mysql -u root -e \"CREATE DATABASE IF NOT EXISTS ${DB_NAME};\" && \
+     sudo mysql -u root -e \"GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';\" && \
+     sudo mysql -u root -e \"CREATE DATABASE IF NOT EXISTS ${DB_NAME_OPTIMIZATION};\" && \
+     sudo mysql -u root -e \"GRANT ALL PRIVILEGES ON ${DB_NAME_OPTIMIZATION}.* TO '${DB_USER}'@'localhost';\" && \
+     sudo mysql -u root -e \"FLUSH PRIVILEGES;\""
+  info "MySQL configuration step finished."
 fi
-
-sudo mysql -u root -e "CREATE DATABASE ${DB_NAME};"
-if [ $? -ne 0 ]; then
-    echo "Failed to create MySQL database."
-    exit 1
-fi
-
-sudo mysql -u root -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';"
-if [ $? -ne 0 ]; then
-    echo "Failed to grant privileges on MySQL database."
-    exit 1
-fi
-
-sudo mysql -u root -e "FLUSH PRIVILEGES;"
-if [ $? -ne 0 ]; then
-    echo "Failed to flush MySQL privileges."
-    exit 1
-fi
-
-echo "MySQL configuration complete."
 
 # Step 9: Activate the environment
-echo "Activating the conda environment..."
-conda activate ocdocker
-if [ $? -ne 0 ]; then
-    echo "Failed to activate conda environment."
-    exit 1
-fi
-echo "Conda environment activated."
-echo "Installation process finished successfully!"
+step "Activating the conda environment..." \
+  "conda activate ocdocker"
+info "Conda environment activation step finished."
+info "Installation process finished (with prompts on failures)."

@@ -46,10 +46,11 @@ Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
-Licensed under the Apache License, Version 2.0 (January 2004)
-See: http://www.apache.org/licenses/LICENSE-2.0
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
 
-Commercial use requires a separate license.  
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
 
@@ -234,7 +235,7 @@ def __sub_core_prepare(dirsToProcess: str, dbName: str, overwrite: bool, mols : 
             shutil.move(mol, f"{mol}/{molName}/ligand.{molTmp[-1]}")  # type: ignore
 
     # Get the list of dirs to process
-    processDirs = [dirToProcess for dirToProcess in glob(f"{dirsToProcess}/*") if os.path.isdir(dirsToProcess)]
+    processDirs = [dirToProcess for dirToProcess in glob(f"{dirsToProcess}/*") if os.path.isdir(dirToProcess)]
 
     # For each directory (check to see if it is needed to generate descriptors)
     for processDir in processDirs:

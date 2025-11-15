@@ -18,8 +18,15 @@ import multiprocessing
 import os
 import shutil
 import argparse
+import inspect
 
 import textwrap as tw
+from typing import Optional
+
+try:
+    from unittest.mock import MagicMock
+except Exception:
+    MagicMock = None
 
 import OCDocker.Toolbox.Constants as occ
 import OCDocker.Error as ocerror
@@ -27,13 +34,8 @@ from OCDocker.DB.DBMinimal import create_database_if_not_exists, create_engine, 
 
 from glob import glob
 
-global output_level
 output_level = ocerror.ReportLevel.NONE
 
-import oddt
-from oddt.scoring.functions.RFScore import rfscore
-from oddt.scoring.functions.NNScore import nnscore
-from oddt.scoring.functions.PLECscore import PLECscore
 from sqlalchemy.engine.url import URL
 
 # License
@@ -45,10 +47,11 @@ Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
-Licensed under the Apache License, Version 2.0 (January 2004)
-See: http://www.apache.org/licenses/LICENSE-2.0
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
 
-Commercial use requires a separate license.  
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
 
@@ -77,6 +80,45 @@ _description = tw.dedent("""\033[1;93m
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 \033[1;0m""")
 
+# Minimal defaults to avoid NameError in test/doc contexts (overridden by bootstrap)
+dssp = "dssp"
+vina_energy_range = "10"
+vina_exhaustiveness = "5"
+vina_num_modes = "3"
+vina_scoring = "vina"
+smina_energy_range = "10"
+smina_exhaustiveness = "5"
+smina_num_modes = "3"
+smina_scoring = "vinardo"
+vina = "vina"
+vina_split = "vina_split"
+smina = "smina"
+plants = "plants"
+obabel = "obabel"
+spores = "spores"
+pythonsh = "pythonsh"
+prepare_ligand = "prepare_ligand4.py"
+prepare_receptor = "prepare_receptor4.py"
+plants_search_speed = "speed1"
+plants_cluster_structures = 3
+plants_cluster_rmsd = 2.0
+plants_scoring = "chemplp"
+plants_scoring_functions = ["chemplp","plp","plp95"]
+plants_rescoring_mode = "simplex"
+smina_custom_scoring = "no"
+smina_custom_atoms = "no"
+smina_local_only = "no"
+smina_minimize = "no"
+smina_randomize_only = "no"
+smina_minimize_iters = "0"
+smina_accurate_line = "no"
+smina_minimize_early_term = "no"
+smina_approximation = "spline"
+smina_factor = "32"
+smina_force_cap = "10"
+smina_user_grid = "no"
+smina_user_grid_lambda = "no"
+
 # Functions
 ###############################################################################
 def __inner_initialise_models(oddt_sf: str):
@@ -95,8 +137,9 @@ def __inner_initialise_models(oddt_sf: str):
     # Warn the user that the pickled model will be created
     print(f"{clrs['y']}WARNING{clrs['n']}: {oddt_sf} model is not pickled, it will be created now.")
 
-    # Discover the scoring function
+    # Discover the scoring function (lazy import to avoid hard dependency at import time)
     if oddt_sf.lower().startswith('rfscore'):
+        from oddt.scoring.functions.RFScore import rfscore  # type: ignore
         # Create the new kwargs dict
         new_kwargs = {}
         # For each bit in the oddt_sf string
@@ -109,6 +152,7 @@ def __inner_initialise_models(oddt_sf: str):
         # Load the scoring function (this will create the pickled model)
         _ = rfscore.load(**new_kwargs)
     elif oddt_sf.lower().startswith('nnscore'):
+        from oddt.scoring.functions.NNScore import nnscore  # type: ignore
         # Create the new kwargs dict
         new_kwargs = {}
         # For each bit in the oddt_sf string
@@ -119,6 +163,7 @@ def __inner_initialise_models(oddt_sf: str):
         # Load the scoring function (this will create the pickled model)
         _ = nnscore.load(**new_kwargs)
     elif oddt_sf.lower().startswith('plec'):
+        from oddt.scoring.functions.PLECscore import PLECscore  # type: ignore
         # Create the new kwargs dict
         new_kwargs = {}
         # For each bit in the oddt_sf string
@@ -580,6 +625,7 @@ def create_ocdocker_conf() -> None:
     try:
         confODDT = os.popen("which oddt_cli").read().replace('\n', '').strip()
     except:
+        
         confODDT = "/usr/bin/oddt_cli"
     
     confODDT_scoring_functions = "rfscore_v1_pdbbind2016,rfscore_v2_pdbbind2016,rfscore_v3_pdbbind2016,nnscore_pdbbind2016,plecrf_pdbbind2016"
@@ -977,126 +1023,7 @@ def set_log_level(level: ocerror.ReportLevel) -> None:
 
     ocerror.Error.set_output_level(ocerror.ReportLevel.WARNING)
 
-# Define Global Variables
 ###############################################################################
-# General variables
-global args
-global clrs
-global widgets
-global workdir
-
-global logdir
-global tmpdir
-global oddt_models_dir
-global cpu_cores
-global available_cores
-global multiprocess
-global update
-global config_file
-#global output_level
-global overwrite
-
-# DB variables
-global db_url
-global engine
-global session
-global optdb_url
-
-# Order variable
-global order
-global pdbbind_KdKi_order
-
-# Data from .cfg
-global ocdb_path
-global pca_path
-global vina
-global vina_split
-global dock6
-global smina
-global gnina
-global obabel
-global plants
-global dudez_download
-global pythonsh
-global prepare_ligand
-global prepare_receptor
-
-# Vina parameters
-global vina_scoring
-global vina_scoring_functions
-global vina_num_modes
-global vina_energy_range
-global vina_exhaustiveness
-
-# Smina parameters
-global smina_num_modes
-global smina_energy_range
-global smina_exhaustiveness
-global smina_scoring
-global smina_scoring_functions
-global smina_custom_scoring
-global smina_custom_atoms
-global smina_local_only
-global smina_minimize
-global smina_randomize_only
-global smina_minimize_iters
-global smina_accurate_line
-global smina_minimize_early_term
-global smina_approximation
-global smina_factor
-global smina_force_cap
-global smina_user_grid
-global smina_user_grid_lambda
-
-# Gnina parameters
-global gnina_exhaustiveness
-global gnina_num_modes
-global gnina_scoring
-global gnina_custom_scoring_file
-global gnina_custom_atoms
-global gnina_local_only
-global gnina_minimize
-global gnina_randomize_only
-global gnina_num_mc_steps
-global gnina_max_mc_steps
-global gnina_num_mc_saved
-global gnina_minimize_iters
-global gnina_simple_ascent
-global gnina_accurate_line
-global gnina_minimize_early_term
-global gnina_approximation
-global gnina_factor
-global gnina_force_cap
-global gnina_user_grid
-global gnina_user_grid_lambda
-global gnina_no_gpu
-
-# PLANTS parameters
-global plants_cluster_structures
-global plants_cluster_rmsd
-global plants_search_speed
-global plants_scoring
-global plants_scoring_functions
-
-# Dock6 parameters
-global dock6_vdw_defn_file
-global dock6_flex_defn_file
-global dock6_flex_drive_file
-
-# ODDT parameters
-global oddt_program
-global oddt_seed
-global oddt_chunk_size
-global oddt_scoring_functions
-
-# Database + OCDocker variables
-global dudez_archive
-global ocdocker_path
-global pdbbind_archive
-global parsed_archive
-
-# Other software
-global dssp
 
 # Aditional Variables
 ###############################################################################
@@ -1198,38 +1125,54 @@ def is_doc_build() -> bool:
 
     return False
 
-if not is_doc_build():
-    try:
-        args = argument_parsing()
-        multiprocess = args.multiprocess
-        update = args.update
-        config_file = args.config_file or os.getenv('OCDOCKER_CONFIG', 'OCDocker.cfg')
-        output_level = args.output_level
-        overwrite = args.overwrite
-        ocerror.Error.set_output_level(output_level)
-    except SystemExit:
-        print(f"{clrs['r']}ERROR{clrs['n']}: Invalid command line arguments.")
-        exit()
+bootstrapped = False
 
-    # proceed with full environment setup...
-    # config file loading, DB setup, oddt_models_dir, etc.
-else:
-    import sys
-    sys.argv = [sys.argv[0]]
-    # Minimal config to satisfy imports in Sphinx/test
-    args = argparse.Namespace(
-        multiprocess=False,
-        update=False,
-        config_file=os.getenv('OCDOCKER_CONFIG', 'OCDocker.cfg'),
-        output_level=ocerror.ReportLevel.WARNING,
-        overwrite=False
-    )
-    multiprocess = False
-    update = False
-    config_file = args.config_file
-    output_level = args.output_level
-    overwrite = False
-    ocerror.Error.set_output_level(output_level)
+# Sync star-import consumers
+_SYNC_SKIP_NAMES = {
+    "__annotations__", "__builtins__", "__cached__", "__doc__", "__file__", "__loader__", "__name__", "__package__", "__spec__"
+}
+
+def _sync_import_consumers() -> None:
+    '''Push updated globals to caller modules that pulled names via star-import.
+    '''
+
+    # Inspect the current frame to find the caller
+    frame = inspect.currentframe()
+
+    # If frame is None, return
+    if not frame:
+        return
+    try:
+        # Get the parent frame
+        parent = frame.f_back
+
+        # If parent frame is None, return
+        if not parent:
+            return
+    
+        # Get the module name of the parent frame
+        module_name = parent.f_globals.get("__name__")
+
+        # If module name is invalid, return
+        if not isinstance(module_name, str) or module_name in ("builtins", __name__):
+            return
+        
+        # Push public items to the parent frame's globals
+        public_items = {
+            name: value
+            for name, value in globals().items()
+            if not name.startswith("_") and name not in _SYNC_SKIP_NAMES
+        }
+
+        # Find shared names
+        shared = set(parent.f_globals.keys()).intersection(public_items.keys())
+
+        # Update parent frame globals
+        for name in shared:
+            parent.f_globals[name] = public_items[name]
+    finally:
+        # Cleanup to avoid reference cycles
+        del frame
 
 # Initialise
 ###############################################################################
@@ -1239,318 +1182,358 @@ def print_description() -> None:
 
     print(_description)
     
-# Retrieve the paths from provided configuration file
-if (not config_file or not os.path.isfile(config_file)) and not os.path.isfile("OCDocker.cfg"):
-    print("OCDocker configuration file has not been found in the provided path")
-    if __name__ == "__main__":
-        create_config = input("Do you wish to create it? (y/n) ")
-        if create_config.lower() in ["y", "ye", "yes"]:
-            create_ocdocker_conf()
-            exit()
+def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
+    """Explicitly bootstrap OCDocker environment (config, DB, paths).
+
+    Must be called before using modules that depend on Initialise globals.
+    """
+    global bootstrapped
+    if bootstrapped:
+        return
+
+    # Resolve arguments
+    if ns is None:
+        try:
+            ns = argument_parsing()
+        except SystemExit as e:
+            print(f"{clrs['r']}ERROR{clrs['n']}: Invalid command line arguments.")
+            raise
+
+    # Expose key settings
+    global args, multiprocess, update, config_file, output_level, overwrite
+    args = ns
+    multiprocess = bool(getattr(ns, 'multiprocess', True))
+    update = bool(getattr(ns, 'update', False))
+    config_file = getattr(ns, 'config_file', None) or os.getenv('OCDOCKER_CONFIG', 'OCDocker.cfg')
+
+    # Ensure output_level is ALWAYS a ReportLevel enum
+    raw_level = getattr(ns, 'output_level', ocerror.ReportLevel.WARNING)
+    try:
+        output_level = raw_level if isinstance(raw_level, ocerror.ReportLevel) else ocerror.ReportLevel(int(raw_level))
+    except Exception:
+        output_level = ocerror.ReportLevel.WARNING
+
+    overwrite = bool(getattr(ns, 'overwrite', False))
+    ocerror.Error.set_output_level(output_level)
+
+    # Locate configuration file
+    if (not config_file or not os.path.isfile(config_file)) and not os.path.isfile("OCDocker.cfg"):
+        print("OCDocker configuration file has not been found in the provided path")
+        raise SystemExit(2)
+    elif not config_file and os.path.isfile("OCDocker.cfg"):
+        config_file = "OCDocker.cfg"
+    elif config_file:
+        assert os.path.isfile(config_file), f"{clrs['r']}\n\n Not able to find configuration file.\n\n Does \"{config_file}\" exist?{clrs['n']}"
+
+    # Splash
+    print_description()
+
+    # Read settings
+    global ocdb_path, pca_path, pdbbind_KdKi_order
+    global pythonsh, prepare_ligand, prepare_receptor
+    global vina, vina_split, vina_energy_range, vina_exhaustiveness, vina_num_modes, vina_scoring, vina_scoring_functions
+    global smina, smina_energy_range, smina_exhaustiveness, smina_num_modes, smina_scoring, smina_scoring_functions
+    global smina_custom_scoring, smina_custom_atoms, smina_local_only, smina_minimize, smina_randomize_only
+    global smina_minimize_iters, smina_accurate_line, smina_minimize_early_term, smina_approximation, smina_factor, smina_force_cap, smina_user_grid, smina_user_grid_lambda
+    global gnina, gnina_exhaustiveness, gnina_num_modes, gnina_scoring, gnina_custom_scoring, gnina_custom_atoms, gnina_local_only, gnina_minimize, gnina_randomize_only
+    global gnina_num_mc_steps, gnina_max_mc_steps, gnina_num_mc_saved, gnina_minimize_iters, gnina_simple_ascent, gnina_accurate_line, gnina_minimize_early_term, gnina_approximation, gnina_factor, gnina_force_cap, gnina_user_grid, gnina_user_grid_lambda, gnina_no_gpu
+    global plants, plants_cluster_structures, plants_cluster_rmsd, plants_search_speed, plants_scoring, plants_scoring_functions, plants_rescoring_mode
+    global dock6, dock6_vdw_defn_file, dock6_flex_defn_file, dock6_flex_drive_file
+    global ledock, lepro, ledock_rmsd, ledock_num_poses
+    global oddt_program, oddt_seed, oddt_chunk_size, oddt_scoring_functions
+    global chimera, dssp, obabel, spores, dudez_download
+
+    HOST = USER = PASSWORD = DATABASE = OPTIMIZEDB = ""
+    PORT = ""
+    CFG_USE_SQLITE = ""
+    CFG_SQLITE_PATH = ""
+    ocdb_path = ""
+    # Parse config
+    with open(config_file, 'r') as fh:  # type: ignore
+        for line in fh:
+            if line.startswith("HOST ="):
+                HOST = line.split("=")[1].strip()
+            elif line.startswith("USER ="):
+                USER = line.split("=")[1].strip()
+            elif line.startswith("PASSWORD ="):
+                PASSWORD = line.split("=")[1].strip()
+            elif line.startswith("DATABASE ="):
+                DATABASE = line.split("=")[1].strip()
+            elif line.startswith("OPTIMIZEDB ="):
+                OPTIMIZEDB = line.split("=")[1].strip()
+            elif line.startswith("PORT ="):
+                PORT = line.split("=")[1].strip()
+                if not PORT.isdigit():
+                    print(f"{clrs['r']}ERROR{clrs['n']}: The port number must be an integer.")
+                    raise SystemExit(2)
+                PORT = int(PORT)  # type: ignore
+            elif line.startswith("USE_SQLITE ="):
+                CFG_USE_SQLITE = line.split("=")[1].strip()
+            elif line.startswith("SQLITE_PATH ="):
+                CFG_SQLITE_PATH = line.split("=")[1].strip()
+            elif line.startswith("ocdb ="):
+                ocdb_path = line.split("=")[1].strip()
+            elif line.startswith("pca ="):
+                pca_path = line.split("=")[1].strip()
+            elif line.startswith("pdbbind_KdKi_order ="):
+                pdbbind_KdKi_order = line.split("=")[1].strip()
+            elif line.startswith("pythonsh ="):
+                pythonsh = line.split("=")[1].strip()
+            elif line.startswith("prepare_ligand ="):
+                prepare_ligand = line.split("=")[1].strip()
+            elif line.startswith("prepare_receptor ="):
+                prepare_receptor = line.split("=")[1].strip()
+            elif line.startswith("vina ="):
+                vina = line.split("=")[1].strip()
+            elif line.startswith("vina_split ="):
+                vina_split = line.split("=")[1].strip()
+            elif line.startswith("vina_energy_range ="):
+                vina_energy_range = line.split("=")[1].strip()
+            elif line.startswith("vina_scoring ="):
+                vina_scoring = line.split("=")[1].strip()
+            elif line.startswith("vina_scoring_functions ="):
+                vina_scoring_functions = [l.strip() for l in line.split("=")[1].strip().split(",")]
+            elif line.startswith("vina_exhaustiveness ="):
+                vina_exhaustiveness = int(line.split("=")[1].strip())
+            elif line.startswith("vina_num_modes ="):
+                vina_num_modes = line.split("=")[1].strip()
+            elif line.startswith("smina ="):
+                smina = line.split("=")[1].strip()
+            elif line.startswith("smina_energy_range ="):
+                smina_energy_range = line.split("=")[1].strip()
+            elif line.startswith("smina_exhaustiveness ="):
+                smina_exhaustiveness = line.split("=")[1].strip()
+            elif line.startswith("smina_num_modes ="):
+                smina_num_modes = line.split("=")[1].strip()
+            elif line.startswith("smina_scoring ="):
+                smina_scoring = line.split("=")[1].strip()
+            elif line.startswith("smina_scoring_functions ="):
+                smina_scoring_functions = [l.strip() for l in line.split("=")[1].strip().split(",")]
+            elif line.startswith("smina_custom_scoring ="):
+                smina_custom_scoring = line.split("=")[1].strip()
+            elif line.startswith("smina_custom_atoms ="):
+                smina_custom_atoms = line.split("=")[1].strip()
+            elif line.startswith("smina_local_only ="):
+                smina_local_only = line.split("=")[1].strip()
+            elif line.startswith("smina_minimize ="):
+                smina_minimize = line.split("=")[1].strip()
+            elif line.startswith("smina_randomize_only ="):
+                smina_randomize_only = line.split("=")[1].strip()
+            elif line.startswith("smina_minimize_iters ="):
+                smina_minimize_iters = line.split("=")[1].strip()
+            elif line.startswith("smina_accurate_line ="):
+                smina_accurate_line = line.split("=")[1].strip()
+            elif line.startswith("smina_minimize_early_term ="):
+                smina_minimize_early_term = line.split("=")[1].strip()
+            elif line.startswith("smina_approximation ="):
+                smina_approximation = line.split("=")[1].strip()
+            elif line.startswith("smina_factor ="):
+                smina_factor = line.split("=")[1].strip()
+            elif line.startswith("smina_force_cap ="):
+                smina_force_cap = line.split("=")[1].strip()
+            elif line.startswith("smina_user_grid ="):
+                smina_user_grid = line.split("=")[1].strip()
+            elif line.startswith("smina_user_grid_lambda ="):
+                smina_user_grid_lambda = line.split("=")[1].strip()
+            elif line.startswith("gnina ="):
+                gnina = line.split("=")[1].strip()
+            elif line.startswith("gnina_exhaustiveness ="):
+                gnina_exhaustiveness = line.split("=")[1].strip()
+            elif line.startswith("gnina_num_modes ="):
+                gnina_num_modes = line.split("=")[1].strip()
+            elif line.startswith("gnina_scoring ="):
+                gnina_scoring = line.split("=")[1].strip()
+            elif line.startswith("gnina_custom_scoring ="):
+                gnina_custom_scoring = line.split("=")[1].strip()
+            elif line.startswith("gnina_custom_atoms ="):
+                gnina_custom_atoms = line.split("=")[1].strip()
+            elif line.startswith("gnina_local_only ="):
+                gnina_local_only = line.split("=")[1].strip()
+            elif line.startswith("gnina_minimize ="):
+                gnina_minimize = line.split("=")[1].strip()
+            elif line.startswith("gnina_randomize_only ="):
+                gnina_randomize_only = line.split("=")[1].strip()
+            elif line.startswith("gnina_num_mc_steps ="):
+                gnina_num_mc_steps = line.split("=")[1].strip()
+            elif line.startswith("gnina_max_mc_steps ="):
+                gnina_max_mc_steps = line.split("=")[1].strip()
+            elif line.startswith("gnina_num_mc_saved ="):
+                gnina_num_mc_saved = line.split("=")[1].strip()
+            elif line.startswith("gnina_minimize_iters ="):
+                gnina_minimize_iters = line.split("=")[1].strip()
+            elif line.startswith("gnina_simple_ascent ="):
+                gnina_simple_ascent = line.split("=")[1].strip()
+            elif line.startswith("gnina_accurate_line ="):
+                gnina_accurate_line = line.split("=")[1].strip()
+            elif line.startswith("gnina_minimize_early_term ="):
+                gnina_minimize_early_term = line.split("=")[1].strip()
+            elif line.startswith("gnina_approximation ="):
+                gnina_approximation = line.split("=")[1].strip()
+            elif line.startswith("gnina_factor ="):
+                gnina_factor = line.split("=")[1].strip()
+            elif line.startswith("gnina_force_cap ="):
+                gnina_force_cap = line.split("=")[1].strip()
+            elif line.startswith("gnina_user_grid ="):
+                gnina_user_grid = line.split("=")[1].strip()
+            elif line.startswith("gnina_user_grid_lambda ="):
+                gnina_user_grid_lambda = line.split("=")[1].strip()
+            elif line.startswith("gnina_no_gpu ="):
+                gnina_no_gpu = line.split("=")[1].strip()
+            elif line.startswith("plants ="):
+                plants = line.split("=")[1].strip()
+            elif line.startswith("plants_cluster_structures ="):
+                plants_cluster_structures = int(line.split("=")[1].strip())
+            elif line.startswith("plants_cluster_rmsd ="):
+                plants_cluster_rmsd = line.split("=")[1].strip()
+            elif line.startswith("plants_search_speed ="):
+                plants_search_speed = line.split("=")[1].strip()
+            elif line.startswith("plants_scoring ="):
+                plants_scoring = line.split("=")[1].strip()
+            elif line.startswith("plants_scoring_functions ="):
+                plants_scoring_functions = [l.strip() for l in line.split("=")[1].strip().split(",")]
+            elif line.startswith("plants_rescoring_mode ="):
+                plants_rescoring_mode = line.split("=")[1].strip()
+            elif line.startswith("dock6 ="):
+                dock6 = line.split("=")[1].strip()
+            elif line.startswith("dock6_vdw_defn_file ="):
+                dock6_vdw_defn_file = line.split("=")[1].strip()
+            elif line.startswith("dock6_flex_defn_file ="):
+                dock6_flex_defn_file = line.split("=")[1].strip()
+            elif line.startswith("dock6_flex_drive_file ="):
+                dock6_flex_drive_file = line.split("=")[1].strip()
+            elif line.startswith("ledock ="):
+                ledock = line.split("=")[1].strip()
+            elif line.startswith("lepro ="):
+                lepro = line.split("=")[1].strip()
+            elif line.startswith("ledock_rmsd ="):
+                ledock_rmsd = line.split("=")[1].strip()
+            elif line.startswith("ledock_num_poses ="):
+                ledock_num_poses = line.split("=")[1].strip()
+            elif line.startswith("oddt ="):
+                oddt_program = line.split("=")[1].strip()
+            elif line.startswith("oddt_seed ="):
+                oddt_seed = line.split("=")[1].strip()
+            elif line.startswith("oddt_chunk_size ="):
+                oddt_chunk_size = line.split("=")[1].strip()
+            elif line.startswith("oddt_scoring_functions ="):
+                oddt_scoring_functions = [l.strip() for l in line.split("=")[1].strip().split(",")]
+            elif line.startswith("chimera ="):
+                chimera = line.split("=")[1].strip()
+            elif line.startswith("dssp ="):
+                dssp = line.split("=")[1].strip()
+            elif line.startswith("obabel ="):
+                obabel = line.split("=")[1].strip()
+            elif line.startswith("spores ="):
+                spores = line.split("=")[1].strip()
+            elif line.startswith("DUDEz ="):
+                dudez_download = line.split("=")[1].strip()
+
+    # Determine DB backend (MySQL default; optional SQLite fallback)
+    use_sqlite_env = str(os.getenv('OCDOCKER_USE_SQLITE', '')).lower() in ('1', 'true', 'yes', 'y')
+    use_sqlite_cfg = str(CFG_USE_SQLITE).lower() in ('1', 'true', 'yes', 'y', 'on', 'sqlite') if CFG_USE_SQLITE else False
+    use_sqlite = use_sqlite_env or use_sqlite_cfg
+
+    # Build DB URLs and connections
+    global db_url, optdb_url, engine, session
+    if use_sqlite:
+        _module_dir = os.path.dirname(os.path.abspath(__file__))
+        # Env var takes precedence, then config, then default path
+        sqlite_path_env = os.getenv('OCDOCKER_SQLITE_PATH', '').strip()
+        if sqlite_path_env:
+            sqlite_path = sqlite_path_env
+        elif CFG_SQLITE_PATH:
+            sqlite_path = CFG_SQLITE_PATH
         else:
-            print("\n\nNo positive confirmation, please provide a valid configuration file.\n")
-            exit()
+            sqlite_path = os.path.join(_module_dir, 'ocdocker.db')
+        db_url = URL.create(drivername='sqlite', database=sqlite_path)
+        optdb_url = db_url
+        # Warn user about SQLite limitations
+        try:
+            print(f"{clrs['y']}WARNING{clrs['n']}: SQLite backend enabled. This is suitable for development/tests only. For performance and concurrency, a full MySQL installation is strongly recommended.")
+            print(f"{clrs['c']}INFO{clrs['n']}: To use MySQL, unset OCDOCKER_USE_SQLITE (or set USE_SQLITE = no in your OCDocker.cfg) and configure HOST/USER/PASSWORD/DATABASE/PORT.")
+        except Exception:
+            pass
     else:
-        print("Create the configuration file manually or set the path to it in the environment variable \"OCDOCKER_CONFIG\".")
-        exit()
+        # Ensure DB settings exist (MySQL mode)
+        if not HOST or not USER or not PASSWORD or not DATABASE or not PORT:
+            print(f"{clrs['r']}ERROR{clrs['n']}: The variables HOST, USER, PASSWORD, DATABASE and PORT must be set in the config file '{config_file}'")
+            raise SystemExit(2)
+        db_url = URL.create(
+            drivername='mysql+pymysql', host=HOST, username=USER, password=PASSWORD, database=DATABASE, port=PORT  # type: ignore
+        )
+        optdb_url = URL.create(
+            drivername='mysql+pymysql', host=HOST, username=USER, password=PASSWORD, database=OPTIMIZEDB, port=PORT  # type: ignore
+        )
 
-elif not config_file and os.path.isfile("OCDocker.cfg"):
-    config_file = "OCDocker.cfg"
+    engine = create_engine(db_url)
+    create_database_if_not_exists(engine.url)
+    create_database_if_not_exists(optdb_url)
+    session = create_session(engine)
 
-elif config_file:
-    assert os.path.isfile(config_file), f"{clrs['r']}\n\n Not able to find configuration file.\n\n Does \"{config_file}\" exist?{clrs['n']}"
-    config_file = config_file
+    # Paths and dirs
+    global ocdocker_path, dudez_archive, pdbbind_archive, parsed_archive, logdir, oddt_models_dir, available_cores
+    ocdocker_path = os.path.dirname(os.path.abspath(__file__))
+    if not ocdb_path:
+        print(f"{clrs['r']}ERROR{clrs['n']}: The variable ocdb_path is not set in the config file '{config_file}'")
+        raise SystemExit(2)
 
-print_description()
+    dudez_archive = os.path.join(ocdb_path, "DUDEz")
+    pdbbind_archive = os.path.join(ocdb_path, "PDBbind")
+    parsed_archive = os.path.join(ocdb_path, "Parsed")
+    logdir = f"{os.path.abspath(os.path.join(os.path.dirname(ocerror.__file__), os.pardir))}/logs"
+    oddt_models_dir = f"{os.path.abspath(os.path.join(os.path.dirname(ocerror.__file__), os.pardir))}/ODDT_models"
+    for d in (logdir, oddt_models_dir, pca_path):
+        if d and not os.path.isdir(d):
+            os.mkdir(d)
 
-# Set the ocdb path as an empty string
-ocdb_path = ""
+    # Reset tmp dir
+    tmpDir = f"{ocdocker_path}/tmp"
+    try:
+        if os.path.isdir(tmpDir):
+            shutil.rmtree(tmpDir)
+        os.mkdir(tmpDir)
+    except Exception:
+        pass
 
-# Set db variables as empty strings
-HOST = ""
-USER = ""
-PASSWORD = ""
-DATABASE = ""
-OPTIMIZEDB = ""
-PORT = ""
+    # CPU cores
+    if multiprocess:
+        n_cpu = multiprocessing.cpu_count() - 1
+        available_cores = n_cpu if n_cpu > 1 else 1
+    else:
+        available_cores = 1
 
-# Read the conf file and assign its data to its variables (The order matters here, if you follow the same order which is in the conf file less computation power will be needed! It is not much, but it is something.)
-for line in open(config_file, 'r'): # type: ignore
-    if line.startswith("HOST ="):
-        HOST = line.split("=")[1].strip()
-    elif line.startswith("USER ="):
-        USER = line.split("=")[1].strip()
-    elif line.startswith("PASSWORD ="):
-        PASSWORD = line.split("=")[1].strip()
-    elif line.startswith("DATABASE ="):
-        DATABASE = line.split("=")[1].strip()
-    elif line.startswith("OPTIMIZEDB ="):
-        OPTIMIZEDB = line.split("=")[1].strip()
-    elif line.startswith("PORT ="):
-        PORT = line.split("=")[1].strip()
-        # Check if the port is a number
-        if not PORT.isdigit():
-            print(f"{clrs['r']}ERROR{clrs['n']}: The port number must be an integer.")
-            exit()
-        # Parse the port as an integer
-        PORT = int(PORT)
-    elif line.startswith("ocdb ="):
-        ocdb_path = line.split("=")[1].strip()
-    elif line.startswith("pca ="):
-        pca_path = line.split("=")[1].strip()
-    elif line.startswith("pdbbind_KdKi_order ="):
-        pdbbind_KdKi_order = line.split("=")[1].strip()
-    elif line.startswith("pythonsh ="):
-        pythonsh = line.split("=")[1].strip()
-    elif line.startswith("prepare_ligand ="):
-        prepare_ligand = line.split("=")[1].strip()
-    elif line.startswith("prepare_receptor ="):
-        prepare_receptor = line.split("=")[1].strip()
-    elif line.startswith("vina ="):
-        vina = line.split("=")[1].strip()
-    elif line.startswith("vina_split ="):
-        vina_split = line.split("=")[1].strip()
-    elif line.startswith("vina_energy_range ="):
-        vina_energy_range = line.split("=")[1].strip()
-    elif line.startswith("vina_scoring ="):
-        vina_scoring = line.split("=")[1].strip()
-    elif line.startswith("vina_scoring_functions ="):
-        vina_scoring_functions = [l.strip() for l in line.split("=")[1].strip().split(",")]
-    elif line.startswith("vina_exhaustiveness ="):
-        vina_exhaustiveness = int(line.split("=")[1].strip())
-    elif line.startswith("vina_num_modes ="):
-        vina_num_modes = line.split("=")[1].strip()
-    elif line.startswith("smina ="):
-        smina = line.split("=")[1].strip()
-    elif line.startswith("smina_energy_range ="):
-        smina_energy_range = line.split("=")[1].strip()
-    elif line.startswith("smina_exhaustiveness ="):
-        smina_exhaustiveness = line.split("=")[1].strip()
-    elif line.startswith("smina_num_modes ="):
-        smina_num_modes = line.split("=")[1].strip()
-    elif line.startswith("smina_scoring ="):
-        smina_scoring = line.split("=")[1].strip()
-    elif line.startswith("smina_scoring_functions ="):
-        smina_scoring_functions = [l.strip() for l in line.split("=")[1].strip().split(",")]
-    elif line.startswith("smina_custom_scoring ="):
-        smina_custom_scoring = line.split("=")[1].strip()
-    elif line.startswith("smina_custom_atoms ="):
-        smina_custom_atoms = line.split("=")[1].strip()
-    elif line.startswith("smina_local_only ="):
-        smina_local_only = line.split("=")[1].strip()
-    elif line.startswith("smina_minimize ="):
-        smina_minimize = line.split("=")[1].strip()
-    elif line.startswith("smina_randomize_only ="):
-        smina_randomize_only = line.split("=")[1].strip()
-    elif line.startswith("smina_minimize_iters ="):
-        smina_minimize_iters = line.split("=")[1].strip()
-    elif line.startswith("smina_accurate_line ="):
-        smina_accurate_line = line.split("=")[1].strip()
-    elif line.startswith("smina_minimize_early_term ="):
-        smina_minimize_early_term = line.split("=")[1].strip()
-    elif line.startswith("smina_approximation ="):
-        smina_approximation = line.split("=")[1].strip()
-    elif line.startswith("smina_factor ="):
-        smina_factor = line.split("=")[1].strip()
-    elif line.startswith("smina_force_cap ="):
-        smina_force_cap = line.split("=")[1].strip()
-    elif line.startswith("smina_user_grid ="):
-        smina_user_grid = line.split("=")[1].strip()
-    elif line.startswith("smina_user_grid_lambda ="):
-        smina_user_grid_lambda = line.split("=")[1].strip()
-    elif line.startswith("gnina ="):
-        gnina = line.split("=")[1].strip()
-    elif line.startswith("gnina_exhaustiveness ="):
-        gnina_exhaustiveness = line.split("=")[1].strip()
-    elif line.startswith("gnina_num_modes ="):
-        gnina_num_modes = line.split("=")[1].strip()
-    elif line.startswith("gnina_scoring ="):
-        gnina_scoring = line.split("=")[1].strip()
-    elif line.startswith("gnina_custom_scoring ="):
-        gnina_custom_scoring = line.split("=")[1].strip()
-    elif line.startswith("gnina_custom_atoms ="):
-        gnina_custom_atoms = line.split("=")[1].strip()
-    elif line.startswith("gnina_local_only ="):
-        gnina_local_only = line.split("=")[1].strip()
-    elif line.startswith("gnina_minimize ="):
-        gnina_minimize = line.split("=")[1].strip()
-    elif line.startswith("gnina_randomize_only ="):
-        gnina_randomize_only = line.split("=")[1].strip()
-    elif line.startswith("gnina_num_mc_steps ="):
-        gnina_num_mc_steps = line.split("=")[1].strip()
-    elif line.startswith("gnina_max_mc_steps ="):
-        gnina_max_mc_steps = line.split("=")[1].strip()
-    elif line.startswith("gnina_num_mc_saved ="):
-        gnina_num_mc_saved = line.split("=")[1].strip()
-    elif line.startswith("gnina_minimize_iters ="):
-        gnina_minimize_iters = line.split("=")[1].strip()
-    elif line.startswith("gnina_simple_ascent ="):
-        gnina_simple_ascent = line.split("=")[1].strip()
-    elif line.startswith("gnina_accurate_line ="):
-        gnina_accurate_line = line.split("=")[1].strip()
-    elif line.startswith("gnina_minimize_early_term ="):
-        gnina_minimize_early_term = line.split("=")[1].strip()
-    elif line.startswith("gnina_approximation ="):
-        gnina_approximation = line.split("=")[1].strip()
-    elif line.startswith("gnina_factor ="):
-        gnina_factor = line.split("=")[1].strip()
-    elif line.startswith("gnina_force_cap ="):
-        gnina_force_cap = line.split("=")[1].strip()
-    elif line.startswith("gnina_user_grid ="):
-        gnina_user_grid = line.split("=")[1].strip()
-    elif line.startswith("gnina_user_grid_lambda ="):
-        gnina_user_grid_lambda = line.split("=")[1].strip()
-    elif line.startswith("gnina_no_gpu ="):
-        gnina_no_gpu = line.split("=")[1].strip()
-    elif line.startswith("plants ="):
-        plants = line.split("=")[1].strip()
-    elif line.startswith("plants_cluster_structures ="):
-        plants_cluster_structures = int(line.split("=")[1].strip())
-    elif line.startswith("plants_cluster_rmsd ="):
-        plants_cluster_rmsd = line.split("=")[1].strip()
-    elif line.startswith("plants_search_speed ="):
-        plants_search_speed = line.split("=")[1].strip()
-    elif line.startswith("plants_scoring ="):
-        plants_scoring = line.split("=")[1].strip()
-    elif line.startswith("plants_scoring_functions ="):
-        plants_scoring_functions = [l.strip() for l in line.split("=")[1].strip().split(",")]
-    elif line.startswith("plants_rescoring_mode ="):
-        plants_rescoring_mode = line.split("=")[1].strip()
-    elif line.startswith("dock6 ="):
-        dock6 = line.split("=")[1].strip()
-    elif line.startswith("dock6_vdw_defn_file ="):
-        dock6_vdw_defn_file = line.split("=")[1].strip()
-    elif line.startswith("dock6_flex_defn_file ="):
-        dock6_flex_defn_file = line.split("=")[1].strip()
-    elif line.startswith("dock6_flex_drive_file ="):
-        dock6_flex_drive_file = line.split("=")[1].strip()
-    elif line.startswith("ledock ="):
-        ledock = line.split("=")[1].strip()
-    elif line.startswith("lepro ="):
-        lepro = line.split("=")[1].strip()
-    elif line.startswith("ledock_rmsd ="):
-        ledock_rmsd = line.split("=")[1].strip()
-    elif line.startswith("ledock_num_poses ="):
-        ledock_num_poses = line.split("=")[1].strip()
-    elif line.startswith("oddt ="):
-        oddt_program = line.split("=")[1].strip()
-    elif line.startswith("oddt_seed ="):
-        oddt_seed = line.split("=")[1].strip()
-    elif line.startswith("oddt_chunk_size ="):
-        oddt_chunk_size = line.split("=")[1].strip()
-    elif line.startswith("oddt_scoring_functions ="):
-        oddt_scoring_functions = [l.strip() for l in line.split("=")[1].strip().split(",")]
-    elif line.startswith("chimera ="):
-        chimera = line.split("=")[1].strip()
-    elif line.startswith("dssp ="):
-        dssp = line.split("=")[1].strip()
-    elif line.startswith("obabel ="):
-        obabel = line.split("=")[1].strip()
-    elif line.startswith("spores ="):
-        spores = line.split("=")[1].strip()
-    elif line.startswith("DUDEz ="):
-        dudez_download = line.split("=")[1].strip()
+    # Clamp output level
+    if output_level.value > ocerror.ReportLevel.DEBUG.value:
+        output_level = ocerror.ReportLevel.DEBUG
+    elif output_level.value < ocerror.ReportLevel.NONE.value:
+        output_level = ocerror.ReportLevel.NONE
+    ocerror.Error.set_output_level(output_level)
 
-# Check if the db_config variables are empty
-if not HOST or not USER or not PASSWORD or not DATABASE or not PORT:
-    print(f"{clrs['r']}ERROR{clrs['n']}: The variables HOST, USER, PASSWORD, DATABASE and PORT must be set in the config file '{config_file}'")
-    exit()
+    # Ensure ODDT models folder contents (allow skipping for slim environments)
+    if not str(os.getenv('OCDOCKER_SKIP_ODDT', '')).lower() in ('1','true','yes','y'):
+        initialise_oddt_models(oddt_models_dir, oddt_scoring_functions)  # type: ignore
 
-# Create the database URLs
-db_url = URL.create(
-    drivername = 'mysql+pymysql',
-    host = HOST,
-    username = USER,
-    password = PASSWORD,
-    database = DATABASE,
-    port = PORT
-)
+    _sync_import_consumers()
+    bootstrapped = True
 
-optdb_url = URL.create(
-    drivername = 'mysql+pymysql',
-    host = HOST,
-    username = USER,
-    password = PASSWORD,
-    database = OPTIMIZEDB,
-    port = PORT
-)
-
-# Set the engine
-engine = create_engine(db_url)
-
-# Create the databases if it does not exist
-create_database_if_not_exists(engine.url)
-create_database_if_not_exists(optdb_url)
-
-# Set the session factory as scoped to ensure that the session is thread-safe
-session = create_session(engine)
-
-# Root directory for OCDocker module
-ocdocker_path = os.path.dirname(os.path.abspath( __file__ ))
-
-# Check if the ocdb_path is defined in the config file (empty string means not defined)
-if not ocdb_path:
-    print(f"{clrs['r']}ERROR{clrs['n']}: The variable ocdb_path is not set in the config file '{config_file}'")
-    exit()
-
-# Directory containing the dudez archive
-dudez_archive = os.path.join(ocdb_path, "DUDEz")
-
-# Directory containing the pdbbind archive
-pdbbind_archive = os.path.join(ocdb_path, "PDBbind")
-
-# Directory containing the pdbbind archive
-parsed_archive = os.path.join(ocdb_path, "Parsed")
-
-# Set the log directory
-logdir = f"{os.path.abspath(os.path.join(os.path.dirname(ocerror.__file__), os.pardir))}/logs"
-
-# Set the oddt model directory
-oddt_models_dir = f"{os.path.abspath(os.path.join(os.path.dirname(ocerror.__file__), os.pardir))}/ODDT_models"
-
-# Check if logdir exists, if not, create-it
-if not os.path.isdir(logdir):
-    os.mkdir(logdir)
-
-# Check if oddt_models_dir exists, if not, create-it
-if not os.path.isdir(oddt_models_dir):
-    os.mkdir(oddt_models_dir)
-
-# Check if pca_path exists, if not, create-it
-if not os.path.isdir(pca_path):
-    os.mkdir(pca_path)
-
-# Remove tmp path then create it again
-tmpDir = f"{ocdocker_path}/tmp"
-
+# Autobootstrap on first import (non‑CLI contexts), unless disabled via env
 try:
-    # If the dir exists
-    if os.path.isdir(tmpDir):
-        # Remove it with all its contents
-        shutil.rmtree(tmpDir)
-        
-    # Then create it since it does not exist
-    os.mkdir(tmpDir)
-except:
-    pass
+    # Provide harmless defaults when building docs (or tests)
+    if os.getenv("OC_BUILD_DOCS") == "1":
+        if "session" not in globals() and MagicMock:
+            session = MagicMock(name="session")
+        if "db_url" not in globals():
+            db_url = "sqlite:///:memory:"
 
-# Get number of CPUs (minus one) with a minimum of one
-if multiprocess:
-    n_cpu = multiprocessing.cpu_count() - 1
-    available_cores = n_cpu if n_cpu > 1 else 1
-else:
-    available_cores = 1
-
-# Limit the output_level between acceptable values [0-4]
-if output_level > ocerror.ReportLevel.DEBUG:
-    output_level = ocerror.ReportLevel.DEBUG
-elif output_level < ocerror.ReportLevel.NONE:
-    output_level = ocerror.ReportLevel(output_level)
-else:
-    output_level = ocerror.ReportLevel.NONE
-
-# Create error class object (making all errors standard)
-ocerror.Error.set_output_level(output_level)
-
-# Create the ODDT models
-initialise_oddt_models(oddt_models_dir, oddt_scoring_functions) # type: ignore
+    if not bootstrapped and not is_doc_build() and not os.getenv('OCDOCKER_NO_AUTO_BOOTSTRAP'):
+        default_ns = argparse.Namespace(
+            multiprocess=True,
+            update=False,
+            config_file=os.getenv('OCDOCKER_CONFIG', 'OCDocker.cfg'),
+            output_level=ocerror.ReportLevel.WARNING,
+            overwrite=False,
+        )
+        bootstrap(default_ns)
+except SystemExit:
+    # Propagate the failure semantics as before: importing without a valid config exits
+    raise

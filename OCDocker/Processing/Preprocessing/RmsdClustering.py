@@ -42,10 +42,11 @@ Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
-Licensed under the Apache License, Version 2.0 (January 2004)
-See: http://www.apache.org/licenses/LICENSE-2.0
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
 
-Commercial use requires a separate license.  
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
 
@@ -245,6 +246,23 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
             # Add a label to the distance threshold below the silhouette score
             plt.text(0.05, 0.9, f"Distance Threshold: {round(distance_threshold, 2)}", transform=plt.gca().transAxes, size=10, verticalalignment='top', horizontalalignment='left')
             plt.savefig(outputPlot)
+
+            # Also save an index-to-name mapping with representative flags (medoids)
+            try:
+                # Determine representative structures (medoids) using the computed clusters
+                medoids = set(get_medoids(data, results))  # type: ignore[arg-type]
+                labels = [str(x) for x in data.index.tolist()]
+                map_path = (
+                    f"{outputPlot.rsplit('.', 1)[0]}_labels.txt" if "." in outputPlot else f"{outputPlot}_labels.txt"
+                )
+                with open(map_path, 'w') as mf:
+                    mf.write("# Index\tName\tRepresentative\n")
+                    for i, name in enumerate(labels):
+                        rep = "YES" if name in medoids else "NO"
+                        mf.write(f"{i}\t{name}\t{rep}\n")
+            except Exception:
+                # Non-fatal: mapping is best-effort for users of the dendrogram
+                pass
         
         # Return the results
         return results # type: ignore

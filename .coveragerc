@@ -1,0 +1,17 @@
+[run]
+branch = True
+parallel = True
+source =
+    OCDocker
+omit =
+    # Omit heavyweight bootstrap that is not unit-test friendly
+    OCDocker/Initialise.py
+    */OCDocker/Initialise.py
+
+[report]
+show_missing = True
+skip_covered = False
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:  # noqa: E501
+    except Exception:

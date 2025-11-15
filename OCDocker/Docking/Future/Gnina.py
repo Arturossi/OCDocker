@@ -41,10 +41,11 @@ Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
-Licensed under the Apache License, Version 2.0 (January 2004)
-See: http://www.apache.org/licenses/LICENSE-2.0
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
 
-Commercial use requires a separate license.  
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
 
@@ -102,7 +103,7 @@ class Gnina:
         if type(ligand) == ocl.Ligand:
             self.inputLigand = ligand
             # Create the gninaFiles folder
-            _ = ocff.safe_create_dir(os.path.join(os.path.dirname(ligand.path), "plantsFiles"))
+            _ = ocff.safe_create_dir(os.path.join(os.path.dirname(ligand.path), "gninaFiles"))
         else:
             ocerror.Error.wrong_type(f"The ligand '{ligand}' has not a supported type. Expected 'ocl.Ligand' but got {type(ligand)} instead.", level = ocerror.ReportLevel.ERROR)
             return None
@@ -195,15 +196,15 @@ class Gnina:
 
         cmd = [gnina, "--config", self.config, "--ligand", self.preparedLigand]
 
-        if smina_local_only.lower() in ["y", "ye", "yes"]:
+        if gnina_local_only.lower() in ["y", "ye", "yes"]:
             cmd.append("--score_only")
-        if smina_minimize.lower() in ["y", "ye", "yes"]:
+        if gnina_minimize.lower() in ["y", "ye", "yes"]:
             cmd.append("--minimize")
-        if smina_randomize_only.lower() in ["y", "ye", "yes"]:
+        if gnina_randomize_only.lower() in ["y", "ye", "yes"]:
             cmd.append("--randomize_only")
-        if smina_accurate_line.lower() in ["y", "ye", "yes"]:
+        if gnina_accurate_line.lower() in ["y", "ye", "yes"]:
             cmd.append("--accurate_line")
-        if smina_minimize_early_term.lower() in ["y", "ye", "yes"]:
+        if gnina_minimize_early_term.lower() in ["y", "ye", "yes"]:
             cmd.append("--minimize_early_term")
         
         # Check if the no_gpu flag is set

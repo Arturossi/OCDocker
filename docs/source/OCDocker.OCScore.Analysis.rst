@@ -11,6 +11,8 @@ Submodules
    OCDocker.OCScore.Analysis.NNUtils
    OCDocker.OCScore.Analysis.PerformanceEvaluation
    OCDocker.OCScore.Analysis.Plotting
+   OCDocker.OCScore.Analysis.RankingMetrics
+   OCDocker.OCScore.Analysis.Impact
    OCDocker.OCScore.Analysis.StatTests
    OCDocker.OCScore.Analysis.StudyProcessing
 

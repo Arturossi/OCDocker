@@ -1,12 +1,24 @@
-"""
-The Analysis package is a collection of tools for analyzing and scoring outcomes of the OCScore package.
 
-Modules
--------
-- NNUtils: Utility functions for analyzing autoencoder-based feature importance and neural network representations.
-- Correlation: Module for calculating and visualizing correlations between scoring methods.
-- PerformanceEvaluation: Module for evaluating the performance of scoring methods.
-- Plotting: Module for plotting and visualizing results.
-- StatTests: Module for statistical tests and analysis of results.
-- StudyProcessing: Module for processing and analyzing Optuna study data.
-"""
+# Unified exports for Analysis package
+try:
+    from .SHAP import (
+        run_shap_analysis, OutputPaths,
+        StudyHandles, BestSelections, select_best_from_studies,
+        DataHandles, load_and_prepare_data,
+        build_neural_net, compute_shap_values, plots as shap_plots,
+    )
+except Exception:
+    # Keep optional dependency failures from breaking the package
+    pass
+
+from .Metrics import Ranking as RankingMetrics
+from .Plotting import MetricsPlots as PlottingMetrics
+
+try:
+    from .Impact import (
+        build_impact_overview,
+        plot_impact_arrows_inline_labels,
+        get_neutral_features,
+    )
+except Exception:
+    pass

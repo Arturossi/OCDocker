@@ -1,0 +1,41 @@
+name: Build and Deploy Docs
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-six openbabel libopenbabel-dev swig
+
+      - name: Install dependencies
+        run: |
+          pip install six
+          pip install "sphinx==7.2.6" "furo==2024.8.6" "myst-parser==2.0.0" sphinx-autodoc-typehints h5py tqdm biopython sphinx-argparse optuna scikit-learn pandas joblib sqlalchemy rdkit spyrmsd seaborn sqlalchemy_utils torch matplotlib xgboost
+
+      - name: Build Sphinx docs
+        run: sphinx-build -b html docs/source _site
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: _site
+          force_orphan: true
+          enable_jekyll: false

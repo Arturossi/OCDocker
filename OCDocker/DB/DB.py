@@ -18,15 +18,15 @@ import csv
 import json
 
 import pandas as pd
+from typing import Literal, Optional, Union
 
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm.session import Session
 
-from OCDocker.DB.DBMinimal import create_database_if_not_exists, create_engine
 from OCDocker.DB.Models.Base import Base
 from OCDocker.DB.Models import Complexes, Ligands, Receptors
 
-from OCDocker.Initialise import db_url, engine
+import OCDocker.Toolbox.Printing as ocprint
 
 # License
 ###############################################################################
@@ -37,10 +37,11 @@ Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
-Licensed under the Apache License, Version 2.0 (January 2004)
-See: http://www.apache.org/licenses/LICENSE-2.0
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
 
-Commercial use requires a separate license.  
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
 
@@ -53,90 +54,115 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 ## Public ##
 
-def create_tables() -> None:
-    ''' Create the tables.
+def create_tables(engine: Optional[Engine] = None) -> None:
+    '''Create all ORM tables bound to the provided engine.
 
-    Parameters
-    ----------
-    MockConnection : sqlalchemy.engine.mock.MockConnection
-        The engine.
+    If no engine is provided, attempts to resolve the engine from
+    OCDocker.Initialise (and creates one from db_url if necessary).
     '''
 
-    # Create the tables
-    Base.metadata.create_all(engine) # type: ignore
+    eng = engine
+    if eng is None:
+        try:
+            import OCDocker.Initialise as init  # type: ignore
+            eng = getattr(init, 'engine', None)
+            if eng is None:
+                url = getattr(init, 'db_url', None)
+                if url is None:
+                    raise RuntimeError('Database URL is not configured')
+                from OCDocker.DB.DBMinimal import create_engine as _ce  # local import to avoid cycles at import-time
+                eng = _ce(url)
+        except Exception as e:  # pragma: no cover
+            raise RuntimeError(f'Could not resolve database engine to create tables: {e}')
 
-    return None
+    Base.metadata.create_all(eng)  # type: ignore[arg-type]
 
 def setup_database() -> Engine:
-    ''' Setup the database. 
-    
-    Parameters
-    ----------
-    db_url : str | sqlalchemy.engine.url.URL
-        The database url.
-        
+    '''
+    Ensure the database exists, create a new Engine, and create tables.
+
     Returns
     -------
-    Engine : sqlalchemy.engine.base.Engine
-        The engine.
+    sqlalchemy.engine.base.Engine
+        Live engine connected to the configured database URL.
     '''
 
-    # Create the database if it does not exist
-    create_database_if_not_exists(db_url)
+    # Local import to avoid requiring optional deps at import-time
+    from OCDocker.DB.DBMinimal import create_database_if_not_exists, create_engine
 
-    # Create the engine
-    engine = create_engine(db_url)
+    # Resolve the configured DB URL lazily to avoid import-time side effects
+    try:
+        import OCDocker.Initialise as init  # type: ignore
+        url = getattr(init, 'db_url', None)
+        if url is None:
+            # Try deriving from an existing engine
+            eng = getattr(init, 'engine', None)
+            if eng is not None:
+                url = eng.url
+        # Final fallback suitable for tests/dev
+        if url is None:
+            url = "sqlite:///:memory:"
+    except Exception:
+        # Extremely defensive fallback for environments without Initialise
+        url = "sqlite:///:memory:"
 
-    # Create tables (nothing happens if table already exists) :)
-    create_tables()
-    
-    return engine
+    # Create DB if it does not exist
+    create_database_if_not_exists(url)  # type: ignore[arg-type]
 
-def export_table_to_csv(model: Base, filename: str, session: Session) -> None:
-    ''' Export a table to a CSV file.
-    
+    # Create engine and tables
+    engine_obj = create_engine(url)  # type: ignore[arg-type]
+    create_tables(engine_obj)
+
+    return engine_obj
+
+def export_table_to_csv(model: type[Base], filename: str, session: Session) -> None:
+    '''
+    Export a single ORM model's rows to CSV.
+
     Parameters
     ----------
-    model : Base
-        The model.
+    model : type[Base]
+        ORM model class to export.
     filename : str
-        The filename.
+        Output CSV file path.
     session : sqlalchemy.orm.session.Session
-        The session.
+        SQLAlchemy session bound to the database engine.
     '''
 
-    # Fetch all records
     data = session.query(model).all()
-    
-    # Get the column names
-    columns = model.__table__.columns.keys()
+    columns = list(model.__table__.columns.keys())
 
-    # Write to CSV
     with open(filename, 'w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(columns)  # Write header
+        writer.writerow(columns)
         for row in data:
             writer.writerow([getattr(row, col) for col in columns])
 
-def export_db_to_csv(session, output_format='dataframe', output_file=None, drop_na=True):
+def export_db_to_csv(
+    session: Session,
+    output_format: Literal['dataframe', 'json', 'csv'] = 'dataframe',
+    output_file: Optional[str] = None,
+    drop_na: bool = True
+) -> Union[pd.DataFrame, str, None]:
     """
-    Merges data from Complexes, Ligands, and Receptors tables.
-    
-    Parameters:
-    -----------
+    Merge data from Complexes, Ligands, and Receptors tables and export.
+
+    Parameters
+    ----------
     session : sqlalchemy.orm.session.Session
         The session object to use for querying the database.
-    output_format : str
-        The format of the output, either 'dataframe', 'json', or 'csv'. Defaults to 'dataframe'.
+    output_format : {'dataframe','json','csv'}
+        Output format. If 'dataframe', returns a DataFrame; for 'json'/'csv' returns a string
+        unless `output_file` is provided (then returns None).
     output_file : str | None
-        If provided, writes the result to this file, otherwise returns the result as a string.
+        Optional path to write the result to disk.
     drop_na : bool
         If True, drops rows with missing values. Defaults to True.
-    
-    Returns:
-    --------
-    str | None
-        Merged data in JSON or CSV format. Returns None if writing to a file.
+
+    Returns
+    -------
+    pandas.DataFrame | str | None
+        DataFrame or serialized string depending on `output_format`; None when writing to `output_file`.
     """
     
     # Query to fetch complexes with their ligands and receptors
@@ -159,13 +185,6 @@ def export_db_to_csv(session, output_format='dataframe', output_file=None, drop_
         }
 
         result.append(merged_entry)
-
-    column_order = [
-        'complex_name', 'receptor_name', 'ligand_name',
-        'SMINA_VINA', 'SMINA_SCORING_DKOES', 'SMINA_VINARDO', 'SMINA_OLD_SCORING_DKOES', 'SMINA_FAST_DKOES', 'SMINA_SCORING_AD4',
-        'VINA_VINA', 'VINA_VINARDO', 'PLANTS_CHEMPLP', 'PLANTS_PLP', 'PLANTS_PLP95',
-        'ODDT_RFSCORE_V1', 'ODDT_RFSCORE_V2', 'ODDT_RFSCORE_V3', 'ODDT_PLECRF_P5_L1_S65536', 'ODDT_NNSCORE'
-    ]
 
     # Get the column order based on the table structure
     complex_columns = [c.name for c in Complexes.Complexes.__table__.columns if c.name not in ['created_at', 'modified_at', 'id', 'name', 'ligand_id', 'receptor_id']]
@@ -228,5 +247,6 @@ def export_db_to_csv(session, output_format='dataframe', output_file=None, drop_
     else:
         raise ValueError("Invalid output format. Please choose 'dataframe', 'json', or 'csv'.")
     
-# Setup the database
-setup_database()
+# Explicit initialization only: call setup_database() from CLI or application bootstrap
+    # Local import to avoid requiring optional deps at import-time
+    from OCDocker.DB.DBMinimal import create_database_if_not_exists, create_engine

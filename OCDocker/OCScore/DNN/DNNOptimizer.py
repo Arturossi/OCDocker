@@ -46,10 +46,11 @@ Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
-Licensed under the Apache License, Version 2.0 (January 2004)
-See: http://www.apache.org/licenses/LICENSE-2.0
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
 
-Commercial use requires a separate license.  
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
 
@@ -138,7 +139,8 @@ class NeuralNet(nn.Module):
         self.layers = nn.ModuleList()
 
         # Set the mask
-        self.mask = mask if mask != None else []
+        #self.mask = mask if mask != None else []
+        self.mask = mask if mask is not None else []
 
         # Process the activation functions
         hidden_layers = []
@@ -588,7 +590,7 @@ class NeuralNet(nn.Module):
                 validation_predictions_np = validation_predictions.detach().cpu().numpy()
                 y_validation_np = y_validation.cpu().numpy() # type: ignore
 
-                self.prediction = y_validation_np
+                self.prediction = validation_predictions_np
 
                 # If there is a nan in the predictions, set the AUC to 0
                 if np.isnan(validation_predictions_np).any():
@@ -675,7 +677,8 @@ class DynamicNN(nn.Module):
         super(DynamicNN, self).__init__()
 
         # If the mask is None, set it to an empty list
-        if mask == None:
+        #if mask == None:
+        if mask is None:
             mask = []
 
         # Set input and output sizes
@@ -1193,7 +1196,7 @@ class DNNOptimizer:
         else:
             self.device = torch.device('cpu')
 
-        # Set the random seeds
+        # Set the activation functions
         self.activation_functions = [nn.GELU, nn.LeakyReLU, nn.Mish, nn.ReLU, nn.SELU, nn.Identity]
         self.activation_functions_str = ['GELU', 'LeakyReLU', 'Mish', 'ReLU', 'SELU', 'Identity']
 

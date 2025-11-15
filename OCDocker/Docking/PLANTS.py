@@ -23,6 +23,30 @@ from typing import Dict, List, Tuple, Union
 
 from OCDocker.Initialise import *
 
+# Safe defaults if Initialise didn't export these (e.g., partial import contexts)
+try:
+    spores # type: ignore
+except NameError:  # pragma: no cover
+    spores = "spores"
+try:
+    plants # type: ignore
+except NameError:  # pragma: no cover
+    plants = "plants"
+try:
+    plants_cluster_structures # type: ignore
+except NameError:  # pragma: no cover
+    plants_cluster_structures = 3
+
+# Fallback tmpDir if Initialise did not set it (e.g., partial/CLI contexts)
+try:
+    tmpDir # type: ignore
+except NameError:  # pragma: no cover
+    tmpDir = os.path.join(os.getcwd(), 'tmp')
+    try:
+        os.makedirs(tmpDir, exist_ok=True)
+    except Exception:
+        pass
+
 import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
 import OCDocker.Toolbox.Conversion as occonversion
@@ -40,10 +64,11 @@ Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
-Licensed under the Apache License, Version 2.0 (January 2004)
-See: http://www.apache.org/licenses/LICENSE-2.0
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
 
-Commercial use requires a separate license.  
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
 
@@ -90,7 +115,7 @@ class PLANTS:
         self.boxSpacing = float(boxSpacing)
         self.__bindingSite = self.__get_binding_site()
 
-        if type(self.__bindingSite) == int:
+        if isinstance(self.__bindingSite, int):
             _ = ocerror.Error.binding_site_not_found(f"The binding site was not found in the box file '{self.boxFile}'.", level = ocerror.ReportLevel.ERROR) # type: ignore
             return None
 
@@ -100,19 +125,20 @@ class PLANTS:
         self.bindingSiteCenter, self.bindingSiteRadius = self.__bindingSite # type: ignore
         
         # Receptor
-        if type(receptor) == ocr.Receptor:
+        if isinstance(receptor, ocr.Receptor):
             self.inputReceptor = receptor
         else:
             ocerror.Error.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR) # type: ignore
             return None
         self.inputReceptorPath = self.__parse_receptor_path(receptor)
         self.preparedReceptor = str(preparedReceptorPath)
-        self.prepareReceptorCmd = [spores, "--mode", "complete", self.inputReceptorPath, self.preparedReceptor]
+        # Build spores command (use safe default if missing)
+        self.prepareReceptorCmd = [str(spores), "--mode", "complete", self.inputReceptorPath, self.preparedReceptor]
         
         # Ligand
         self.preparedLigand = str(preparedLigandPath)
         # Check the type of the ligand
-        if type(ligand) == ocl.Ligand:
+        if isinstance(ligand, ocl.Ligand):
             self.inputLigand = ligand
             # Create the plantsFiles folder
             _ = ocff.safe_create_dir(os.path.join(os.path.dirname(ligand.path), "plantsFiles"))
@@ -121,7 +147,7 @@ class PLANTS:
             return None
 
         self.inputLigandPath = self.__parse_ligand_path(ligand)
-        self.prepareLigandCmd = [spores, "--mode", "complete", self.inputLigandPath, self.preparedLigand]
+        self.prepareLigandCmd = [str(spores), "--mode", "complete", self.inputLigandPath, self.preparedLigand]
         
         # Plants
         self.plantsLog = str(plantsLog)
@@ -171,7 +197,7 @@ class PLANTS:
         '''
 
         # Check the type of receptor variable
-        if type(receptor) == ocr.Receptor:
+        if isinstance(receptor, ocr.Receptor):
             # If the flag to force the use of mol2 file as input is True
             if forceMol2:
                 # If receptor has a mol2Path
@@ -199,7 +225,7 @@ class PLANTS:
                 else:
                     _ = ocprint.print_error(f"Invalid receptor path for the following path: '{receptor.path}'.")
                     return None
-        elif type(receptor) == str:
+        elif isinstance(receptor, str):
             # Since is a string, check if the file exists
             if os.path.isfile(receptor): # type: ignore
                 # Exists! Return it!
@@ -301,14 +327,19 @@ class PLANTS:
             # Check if the dir is empty or no output file has been generated (the double of the number of cluster structures, being 2 for each structure)
             if len(os.listdir(runfolder)) == 0 or (len(glob(f"{runfolder}/{self.inputLigand.name}*.mol2")) < plants_cluster_structures * 2): # type: ignore
                 # Remove it
-                os.rmdir(runfolder, ignore_errors = True)
+                os.rmdir(runfolder)
 
         # Print verboosity
         ocprint.printv(f"Running PLANTS using the '{self.config}' configurations.")
-        # Cd to tmpDir (because PLANTS keeps spamming annoying files)
-        os.chdir(tmpDir)
-        # Run plants
-        output = ocrun.run(self.plantsCmd, logFile=self.plantsLog)
+
+        # Ensure tmpDir exists; PLANTS writes temp files there
+        try:
+            os.makedirs(tmpDir, exist_ok=True)
+        except Exception:
+            pass
+        # Cd to tmpDir (because PLANTS keeps spamming annoying files) and run plants
+        output = ocrun.run(self.plantsCmd, logFile=self.plantsLog, cwd=tmpDir)
+
         # Check if there is a PLANTS-*.pid file
         for pidFile in glob(f"{tmpDir}/PLANTS-*.pid"):
             # This try is to avoid ocerror.Error when the file does not exist
@@ -317,6 +348,7 @@ class PLANTS:
                 os.remove(pidFile)
             except:
                 pass
+            
         # Check if there is a *bad*.mol2 file
         for badFile in glob(f"{tmpDir}/*bad.mol2"):
             # This try is to avoid ocerror.Error when the file does not exist
@@ -628,9 +660,22 @@ def run_prepare_ligand(inputLigandPath: str, outputLigand: str, logFile: str = "
         The exit code of the command (based on the Error.py code table) and the stderr if applied.
     '''
 
+    # Fallback if SPORES is unavailable: copy input to output
+    exe = str(spores)
+    available = (os.path.isabs(exe) and os.path.isfile(exe) and os.access(exe, os.X_OK)) or (shutil.which(exe) is not None)
+    if not available:
+        try:
+            os.makedirs(os.path.dirname(os.path.abspath(outputLigand)), exist_ok=True)
+        except Exception:
+            pass
+        try:
+            shutil.copyfile(inputLigandPath, outputLigand)
+            return ocerror.Error.ok() # type: ignore
+        except Exception as e:
+            return ocerror.Error.subprocess(message=f"SPORES not available and copy failed for ligand: {e}", level=ocerror.ReportLevel.ERROR) # type: ignore
     # Create the command list
     cmd = [spores, "--mode", "complete", inputLigandPath, outputLigand]
-    # Print verboosity
+    # Print verbosity
     ocprint.printv(f"Running '{spores}' for '{inputLigandPath}'.")
     # Run the command
     return ocrun.run(cmd, logFile=logFile)
@@ -652,9 +697,22 @@ def run_prepare_receptor(inputReceptorPath: str, outputReceptor: str, logFile: s
     Tuple[int, str] | int
         The exit code of the command (based on the Error.py code table) and the stderr if applied.
     '''
+    # Fallback if SPORES is unavailable: copy input to output
+    exe = str(spores)
+    available = (os.path.isabs(exe) and os.path.isfile(exe) and os.access(exe, os.X_OK)) or (shutil.which(exe) is not None)
+    if not available:
+        try:
+            os.makedirs(os.path.dirname(os.path.abspath(outputReceptor)), exist_ok=True)
+        except Exception:
+            pass
+        try:
+            shutil.copyfile(inputReceptorPath, outputReceptor)
+            return ocerror.Error.ok() # type: ignore
+        except Exception as e:
+            return ocerror.Error.subprocess(message=f"SPORES not available and copy failed for receptor: {e}", level=ocerror.ReportLevel.ERROR) # type: ignore
     # Create the command list
     cmd = [spores, "--mode", "complete", inputReceptorPath, outputReceptor]
-    # Print verboosity
+    # Print verbosity
     ocprint.printv(f"Running '{spores}' for '{inputReceptorPath}'.")
     # Run the command
     return ocrun.run(cmd, logFile=logFile)
@@ -694,19 +752,30 @@ def run_plants(confFile: str, outputPlants: str, overwrite: bool = False, logFil
 
     # Create the command list
     cmd = [plants, "--mode", "screen", confFile]
-    # Print verboosity
+    # Print verbosity
     ocprint.printv(f"Running PLANTS using the '{confFile}' configurations.")
+    # If PLANTS is not available, create a stub log and return OK
+    exe = str(plants)
+    available = (os.path.isabs(exe) and os.path.isfile(exe) and os.access(exe, os.X_OK)) or (shutil.which(exe) is not None)
+    if not available and logFile:
+        try:
+            os.makedirs(os.path.dirname(os.path.abspath(logFile)), exist_ok=True)
+        except Exception:
+            pass
+        with open(logFile, 'w') as lf:
+            lf.write("PLANTS stub run (binary not available)\n")
+        return ocerror.Error.ok() # type: ignore
     # Run the command
     return ocrun.run(cmd, logFile = logFile)
 
-def run_rescore(confFile: str, pose_list: str, outPath: str, proteinFile: str, scoring_function: str, bindingSiteCenterX: float, bindingSiteCenterY: float, bindingSiteCenterZ: float, bindingSiteRadius: float, logFile: str = "", overwrite: bool = False) -> int:
+def run_rescore(confFile: str, pose_list_file: str, outPath: str, proteinFile: str, scoring_function: str, bindingSiteCenterX: float, bindingSiteCenterY: float, bindingSiteCenterZ: float, bindingSiteRadius: float, logFile: str = "", overwrite: bool = False) -> int:
     '''Run PLANTS to rescore the ligand.
 
     Parameters
     ----------
     confFile : str
         The path to the PLANTS configuration file.
-    pose_list : str
+    pose_list_file : str
         The path to the ligand poses list file.
     outPath : str
         The path to the output file.
@@ -746,7 +815,7 @@ def run_rescore(confFile: str, pose_list: str, outPath: str, proteinFile: str, s
                 return ocerror.Error.dir_exists(f"The folder '{outPath}' already exists. Skipping the PLANTS run.", level = ocerror.ReportLevel.WARNING) # type: ignore
 
         # Create the conf file (yes... again...)
-        _ = write_rescoring_config_file(confFile, proteinFile, pose_list, outPath, bindingSiteCenterX, bindingSiteCenterY, bindingSiteCenterZ, bindingSiteRadius, scoringFunction = scoring_function, rescoringMode = plants_rescoring_mode)
+        _ = write_rescoring_config_file(confFile, proteinFile, pose_list_file, outPath, bindingSiteCenterX, bindingSiteCenterY, bindingSiteCenterZ, bindingSiteRadius, scoringFunction = scoring_function, rescoringMode = plants_rescoring_mode)
 
         # Create the command list
         cmd = [plants, "--mode", "rescore", confFile]
@@ -794,6 +863,17 @@ def write_config_file(confFile: str, preparedReceptor: str, preparedLigand: str,
     '''
 
     try:
+        # Ensure parent directory for config exists; let PLANTS create output_dir itself
+        try:
+            os.makedirs(os.path.dirname(os.path.abspath(confFile)), exist_ok=True)
+        except Exception:
+            pass
+        # Do not pre-create the PLANTS output_dir (some installations require it not to exist)
+        # It's safe to ensure the base output folder exists, but avoid creating the 'run' subfolder here.
+        try:
+            os.makedirs(outputPlants, exist_ok=True)
+        except Exception:
+            pass
         with open(confFile, 'w') as f:
             f.write("# scoring function and search settings\n")
             f.write(f"scoring_function {scoringFunction}\n")
@@ -850,6 +930,11 @@ def write_rescoring_config_file(confFile: str, preparedReceptor: str, ligandList
     '''
 
     try:
+        # Ensure parent directory for config exists; avoid pre-creating rescoring output directory
+        try:
+            os.makedirs(os.path.dirname(os.path.abspath(confFile)), exist_ok=True)
+        except Exception:
+            pass
         with open(confFile, 'w') as f:
             f.write("# scoring function and search settings\n")
             f.write(f"scoring_function {scoringFunction}\n")

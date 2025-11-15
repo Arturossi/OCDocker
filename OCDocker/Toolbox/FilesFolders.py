@@ -15,6 +15,7 @@ import OCDocker.Toolbox.FilesFolders as ocff
 ###############################################################################
 import json
 import os
+import shutil
 import h5py
 import pickle
 import tarfile
@@ -40,10 +41,11 @@ Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
-Licensed under the Apache License, Version 2.0 (January 2004)
-See: http://www.apache.org/licenses/LICENSE-2.0
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
 
-Commercial use requires a separate license.  
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
 
@@ -248,21 +250,23 @@ def safe_create_dir(dirname: Union[str, Path]) -> int:
                 return ocerror.Error.dir_exists(message=f"The dir '{dirname}' already exists!", level = ocerror.ReportLevel.WARNING) # type: ignore
         # Check if the dirname is a Path object
         elif isinstance(dirname, Path):
-            # If file does not exists
-            if not dirname.is_dir():
-                # Create it
-                dirname.mkdir(parents=True, exist_ok=True)
-                # Print verbosity
-                if ocerror.Error.output_level >= ocerror.ReportLevel.SUCCESS:
-                    return ocerror.Error.ok(f"Successfully created the directory '{dirname}'") # type: ignore
-            else:
-                # It is a file
-                return ocerror.Error.file_exists(message=f"The dir '{dirname}' is a file!", level = ocerror.ReportLevel.WARNING) # type: ignore
+            # If path is an existing directory
+            if dirname.is_dir():
+                return ocerror.Error.dir_exists(message=f"The dir '{dirname}' already exists!", level = ocerror.ReportLevel.WARNING) # type: ignore
+            # If path exists but is not a directory
+            if dirname.exists() and not dirname.is_dir():
+                return ocerror.Error.file_exists(message=f"The path '{dirname}' exists and is not a directory!", level = ocerror.ReportLevel.WARNING) # type: ignore
+            # Otherwise, create it (parents ok)
+            dirname.mkdir(parents=True, exist_ok=True)
+            if ocerror.Error.output_level >= ocerror.ReportLevel.SUCCESS:
+                return ocerror.Error.ok(f"Successfully created the directory '{dirname}'") # type: ignore
+            return ocerror.Error.ok() # type: ignore
     except Exception as e:
         # Some error has occurred
         return ocerror.Error.create_dir(message=f"Problem found while creating the dir '{dirname}': {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
+    
     # This should never appear since all the other paths ends in some kind of return
-    return ocerror.Error.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while creating a dir safetly.", level = ocerror.ReportLevel.ERROR) # type: ignore
+    return ocerror.Error.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while creating a dir safetly. The dir is '{dirname}'.", level = ocerror.ReportLevel.ERROR) # type: ignore
 
 def safe_remove_dir(dirname: str) -> int:
     ''' Remove a dir if exists.
@@ -358,10 +362,20 @@ def untar(fname: str, out_path: str = ".", delete: bool = False) -> int:
             ocprint.printv("Preparing to untar the file...")
             # open your tar.gz file
             with tarfile.open(name=fname) as tar:
+                # Prepare for safe extraction (prevent path traversal)
+                abs_out = os.path.abspath(out_path)
+                members = tar.getmembers()
                 # Redirect output to tqdm.write
                 with ocbasetools.redirect_to_tqdm():
                     # Go over each member
-                    for member in tqdm(iterable=tar.getmembers(), total=len(tar.getmembers())):
+                    for member in tqdm(iterable=members, total=len(members)):
+                        # Compute destination path and validate it's inside out_path
+                        dest_path = os.path.abspath(os.path.join(abs_out, member.name))
+                        if not (dest_path == abs_out or dest_path.startswith(abs_out + os.sep)):
+                            return ocerror.Error.untar_file(  # type: ignore
+                                message=f"Unsafe path detected in archive entry '{member.name}'. Aborting extraction to avoid path traversal.",
+                                level=ocerror.ReportLevel.ERROR,
+                            )
                         # Extract member
                         tar.extract(member=member, path=out_path)
             # Report success on untarring the file

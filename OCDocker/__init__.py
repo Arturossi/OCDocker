@@ -9,3 +9,6 @@ Packages
 - Rescoring: Rescoring routines.
 - Toolbox: Toolbox for OCDocker.
 """
+
+# Keep in sync with pyproject.toml
+__version__ = "0.10.1"
