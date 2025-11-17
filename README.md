@@ -52,6 +52,37 @@ If you prefer to use pip, you can install OCDocker with the following command:
 pip install ocdocker
 ```
 
+**Installing from source with pip:**
+
+For development or if you want to install from source using pip:
+
+```bash
+# Clone the repository
+git clone https://github.com/Arturossi/OCDocker
+cd OCDocker
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Install the package in development mode
+pip install -e .
+```
+
+**Note on chemistry packages (rdkit, openbabel):**
+
+Some packages like `rdkit` and `openbabel` are easier to install via conda due to their system dependencies. If you encounter installation issues with pip, you can install these via conda first:
+
+```bash
+# Install chemistry packages via conda
+conda install -c conda-forge rdkit openbabel
+
+# Then install the rest via pip
+pip install -r requirements.txt
+pip install -e .
+```
+
+Alternatively, you can use a hybrid approach: install the chemistry packages via conda, then use pip for the rest of the dependencies.
+
 From source
 -----------
 
