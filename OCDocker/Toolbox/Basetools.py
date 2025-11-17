@@ -45,26 +45,35 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 
 @contextlib.contextmanager
-def redirect_to_tqdm():
+def redirect_to_tqdm() -> contextlib.AbstractContextManager:
     '''Redirects the stdout to tqdm.write()
-
-    Parameters
-    ----------
-    None
 
     Returns
     -------
-    None
+    contextlib.AbstractContextManager
+        The context manager that redirects the stdout to tqdm.write().
     '''
 
     # Store builtin print
     old_print = print
-    def new_print(*args, **kwargs):
+    def new_print(*args, **kwargs) -> None:
+        '''New print function that redirects the stdout to tqdm.write().
+
+        Parameters
+        ----------
+        args : Any
+            The arguments to be passed to tqdm.write().
+        kwargs : Any
+            The keyword arguments to be passed to tqdm.write().
+        '''
+
         # If tqdm.write raises error, use builtin print
         try:
             tqdm.write(*args, **kwargs)
-        except:
+        except (OSError, IOError, AttributeError, BrokenPipeError):
+            # Fallback to builtin print if tqdm.write fails
             old_print(*args, ** kwargs)
+            
     try:
         # Globaly replace print with new_print
         inspect.builtins.print = new_print # type: ignore

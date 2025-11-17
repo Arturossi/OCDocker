@@ -15,6 +15,10 @@ class Mock(MagicMock):
     def __getattr__(cls, name):
         return MagicMock()
 
+
+
+
+
 # Function to get all modules from a directory
 def get_all_modules(directory):
     modules = []
@@ -45,8 +49,8 @@ project = 'OCDocker'
 copyright = '2024, Artur Duque Rossi'
 author = 'Artur Duque Rossi'
 
-version = '0.9.1'
-release = '0.9.1'
+version = '0.11.1'
+release = '0.11.1'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

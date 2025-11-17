@@ -5,7 +5,7 @@
 # the HOST/USER/PASSWORD settings below are ignored.
 HOST = localhost
 USER = ocdocker
-PASSWORD = your_passord_here
+PASSWORD = your_password_here
 DATABASE = ocdocker
 OPTIMIZEDB = optimization
 PORT = 3306

@@ -19,6 +19,8 @@ from typing import Iterable, Tuple, Dict
 import numpy as np
 from sklearn.metrics import roc_auc_score, average_precision_score, precision_recall_curve, roc_curve, auc
 
+
+
 # License
 ###############################################################################
 '''
@@ -42,6 +44,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Methods
 ###############################################################################
 
+
 def _validate(y_true: np.ndarray, y_score: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     '''Validate arrays and coerce types; ensure both classes present.
     
@@ -64,12 +67,17 @@ def _validate(y_true: np.ndarray, y_score: np.ndarray) -> Tuple[np.ndarray, np.n
     y_score = np.asarray(y_score).astype(float)
 
     if y_true.shape[0] != y_score.shape[0]:
+        # User-facing error: mismatched array lengths
+        ocerror.Error.value_error(f"y_true and y_score must have same length. Got y_true length {y_true.shape[0]}, y_score length {y_score.shape[0]}") # type: ignore
         raise ValueError("y_true and y_score must have same length")
     
     if len(np.unique(y_true)) < 2:
+        # User-facing error: insufficient classes for AUC
+        ocerror.Error.value_error(f"y_true must contain both classes for AUC metrics. Found {len(np.unique(y_true))} unique class(es)") # type: ignore
         raise ValueError("y_true must contain both classes for AUC metrics")
     
     return y_true, y_score
+
 
 def roc_auc(y_true: np.ndarray, y_score: np.ndarray) -> float:
     '''Compute ROC AUC with defensive validation.
@@ -92,6 +100,7 @@ def roc_auc(y_true: np.ndarray, y_score: np.ndarray) -> float:
     y_true, y_score = _validate(y_true, y_score)
     return float(roc_auc_score(y_true, y_score))
 
+
 def pr_auc(y_true: np.ndarray, y_score: np.ndarray) -> float:
     '''Compute average precision (area under PR curve).
 
@@ -112,6 +121,7 @@ def pr_auc(y_true: np.ndarray, y_score: np.ndarray) -> float:
 
     y_true, y_score = _validate(y_true, y_score)
     return float(average_precision_score(y_true, y_score))
+
 
 def top_k_precision(y_true: np.ndarray, y_score: np.ndarray, k: int) -> float:
     '''Precision among the top-k scored samples (descending by score).
@@ -139,6 +149,7 @@ def top_k_precision(y_true: np.ndarray, y_score: np.ndarray, k: int) -> float:
 
     return float(np.mean(y_true[idx] == 1))
 
+
 def top_fraction_precision(y_true: np.ndarray, y_score: np.ndarray, frac: float) -> float:
     '''Precision among the top fraction (e.g., 0.01 for top-1%).
 
@@ -164,6 +175,7 @@ def top_fraction_precision(y_true: np.ndarray, y_score: np.ndarray, frac: float)
     k = max(1, int(round(frac * len(y_true))))
 
     return top_k_precision(y_true, y_score, k)
+
 
 def enrichment_factor(y_true: np.ndarray, y_score: np.ndarray, fraction: float) -> float:
     '''EF@fraction (e.g., 0.01 for 1%). EF = hits_in_top_fraction / expected_hits_random.
@@ -201,6 +213,7 @@ def enrichment_factor(y_true: np.ndarray, y_score: np.ndarray, fraction: float) 
         return float('nan')
     
     return float(hits / expected)
+
 
 def bedroc(y_true: np.ndarray, y_score: np.ndarray, alpha: float = 20.0) -> float:
     '''BEDROC per Truchon & Bayly (2007), ranking by descending score.
@@ -241,6 +254,7 @@ def bedroc(y_true: np.ndarray, y_score: np.ndarray, alpha: float = 20.0) -> floa
 
     return float(bed)
 
+
 def riep(y_true: np.ndarray, y_score: np.ndarray, k: int) -> float:
     '''Relative enrichment among the top-k versus total positives.
     
@@ -266,6 +280,7 @@ def riep(y_true: np.ndarray, y_score: np.ndarray, k: int) -> float:
     order = np.argsort(-y_score)[:k]
 
     return float(np.sum(y_true[order] == 1) / max(1, np.sum(y_true == 1)))
+
 
 def threshold_at_precision(y_true: np.ndarray, y_score: np.ndarray, target_precision: float) -> Tuple[float, float, float]:
     '''Find first threshold achieving at least the given precision.
@@ -298,6 +313,7 @@ def threshold_at_precision(y_true: np.ndarray, y_score: np.ndarray, target_preci
     j = idx[0]
 
     return float(t[j]), float(p[j]), float(r[j])
+
 
 def groupwise(y_true: np.ndarray, y_score: np.ndarray, groups: Iterable) -> Dict[str, float]:
     '''Compute macro/micro ROC/PR AUC across discrete groups.

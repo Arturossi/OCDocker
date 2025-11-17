@@ -1,8 +1,11 @@
 import os
 
+import pytest
+
 import OCDocker.Toolbox.IO as ocio
 
 
+@pytest.mark.order(68)
 def test_lazyread_and_reverse(tmp_path):
     p = tmp_path / "sample.txt"
     lines = [f"line-{i}" for i in range(5)]

@@ -24,7 +24,7 @@ Public API (metrics/tables):
 '''
 
 from dataclasses import dataclass
-from typing import Iterable, List, Optional, Sequence, Dict, Union
+from typing import Callable, Iterable, List, Optional, Sequence, Dict, Union
 
 import numpy as np
 import pandas as pd
@@ -51,6 +51,18 @@ __all__ = [
 ###############################################################################
 @dataclass
 class BootstrapCI:
+    '''Bootstrap confidence interval dataclass.
+    
+    Attributes
+    ----------
+    point : float
+        The point estimate (mean/median) of the metric.
+    low : float
+        The lower bound of the confidence interval (e.g., 2.5th percentile).
+    high : float
+        The upper bound of the confidence interval (e.g., 97.5th percentile).
+    '''
+
     point: float
     low: float
     high: float
@@ -60,7 +72,21 @@ class BootstrapCI:
 # Utilities
 # --------------------------------------------------------------------------------------
 def _to_binary(y: pd.Series, positive_label: Optional[Union[str, int]]) -> np.ndarray:
-    """Map labels to 0/1 while tolerating strings/numbers/booleans."""
+    '''Map labels to 0/1 while tolerating strings/numbers/booleans.
+
+    Parameters
+    ----------
+    y : pd.Series
+        Labels to convert to binary.
+    positive_label : Optional[Union[str, int]]
+        Label to treat as positive (1). If None, infers from data.
+
+    Returns
+    -------
+    np.ndarray
+        Binary array (0/1).
+    '''
+
     if y.dtype == bool:
         return y.astype(int).to_numpy()
 
@@ -79,8 +105,24 @@ def _to_binary(y: pd.Series, positive_label: Optional[Union[str, int]]) -> np.nd
     return y_str.isin(positives).astype(int).to_numpy()
 
 
-def _safe_metric(metric_fn, y_true: np.ndarray, y_score: np.ndarray) -> float:
-    """Compute a metric defensively: handle NaNs, degenerate classes, exceptions."""
+def _safe_metric(metric_fn: Callable, y_true: np.ndarray, y_score: np.ndarray) -> float:
+    '''Compute a metric defensively: handle NaNs, degenerate classes, exceptions.
+
+    Parameters
+    ----------
+    metric_fn : Callable
+        Metric function to compute.
+    y_true : np.ndarray
+        True labels.
+    y_score : np.ndarray
+        Predicted scores.
+
+    Returns
+    -------
+    float
+        Metric value, or NaN if computation fails.
+    '''
+    
     try:
         mask = np.isfinite(y_score)
         y = y_true[mask]
@@ -88,18 +130,39 @@ def _safe_metric(metric_fn, y_true: np.ndarray, y_score: np.ndarray) -> float:
         if y.size == 0 or len(np.unique(y)) < 2:
             return float("nan")
         return float(metric_fn(y, s))
-    except Exception:
+    except (ValueError, TypeError, AttributeError):
+        # Fallback to NaN if metric calculation fails
         return float("nan")
 
 
 def _bootstrap_ci_on_scores(
     y_true: np.ndarray,
     y_score: np.ndarray,
-    metric_fn,
+    metric_fn: Callable,
     n_boot: int,
     seed: int,
 ) -> BootstrapCI:
-    """Percentile bootstrap [2.5%, 97.5%] on a score-based metric."""
+    '''Percentile bootstrap [2.5%, 97.5%] on a score-based metric.
+
+    Parameters
+    ----------
+    y_true : np.ndarray
+        True labels.
+    y_score : np.ndarray
+        Predicted scores.
+    metric_fn : Callable
+        Metric function to compute.
+    n_boot : int
+        Number of bootstrap iterations.
+    seed : int
+        Random seed for reproducibility.
+
+    Returns
+    -------
+    BootstrapCI
+        Bootstrap confidence interval (low, mean, high).
+    '''
+    
     rng = np.random.default_rng(seed)
     mask = np.isfinite(y_score)
     y_true = y_true[mask]
@@ -125,7 +188,21 @@ def _bootstrap_ci_on_scores(
 
 
 def _decide_flip(y_all: np.ndarray, s_all: np.ndarray) -> bool:
-    """Decide once per model if scores should be flipped (pooled ROC AUC < 0.5)."""
+    '''Decide once per model if scores should be flipped (pooled ROC AUC < 0.5).
+
+    Parameters
+    ----------
+    y_all : np.ndarray
+        All true labels.
+    s_all : np.ndarray
+        All predicted scores.
+
+    Returns
+    -------
+    bool
+        True if scores should be flipped (ROC AUC < 0.5).
+    '''
+    
     auc = _safe_metric(roc_auc_score, y_all, s_all)
     return not np.isnan(auc) and auc < 0.5
 
@@ -138,10 +215,25 @@ def _apply_flip(s: np.ndarray, do_flip: bool) -> np.ndarray:
 # EF-ROC helpers
 # --------------------------------------------------------------------------------------
 def _efroc(y_true: np.ndarray, y_score: np.ndarray, epsilons: Iterable[float]) -> pd.DataFrame:
-    """
+    '''Compute EF-ROC (Enrichment Factor at ROC) for multiple epsilon values.
+
     EF_ROC(eps) = TPR_at_FPR<=eps / eps. Random baseline = 1.
-    Returns columns: ["epsilon","ef_roc","tpr_at_epsilon"].
-    """
+
+    Parameters
+    ----------
+    y_true : np.ndarray
+        True binary labels.
+    y_score : np.ndarray
+        Predicted scores.
+    epsilons : Iterable[float]
+        List of epsilon (FPR) values to evaluate.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with columns: ["epsilon", "ef_roc", "tpr_at_epsilon"].
+    '''
+    
     if len(np.unique(y_true)) < 2:
         rows = [(float(eps), float("nan"), float("nan")) for eps in epsilons]
         return pd.DataFrame(rows, columns=["epsilon", "ef_roc", "tpr_at_epsilon"])
@@ -164,7 +256,23 @@ def _efroc_bootstrap_ci(
     n_boot: int,
     seed: int,
 ) -> pd.DataFrame:
-    """Bootstrap percentile CIs for EF-ROC across multiple epsilons."""
+    '''Bootstrap percentile CIs for EF-ROC across multiple epsilons.
+
+    Parameters
+    ----------
+    y_true : np.ndarray
+        True binary labels.
+    y_score : np.ndarray
+        Predicted scores.
+    epsilons : Iterable[float]
+        List of epsilon (FPR) values to evaluate.
+    
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with columns: ["epsilon", "ef_roc", "ci_low", "ci_high", "tpr_at_epsilon"].
+    '''
+
     rng = np.random.default_rng(seed)
     mask = np.isfinite(y_score)
     y_true = y_true[mask]
@@ -215,12 +323,34 @@ def roc_auc_per_target(
     positive_label: Optional[Union[str, int]] = None,
     auto_flip: bool = True,
 ) -> pd.DataFrame:
-    """
+    '''
     Compute ROC AUC with 95% CI per target for each score model.
 
-    Returns columns:
-      ["target","model","roc_auc","ci_low","ci_high","n_pos","n_neg"]
-    """
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame with the data.
+    target_col : str
+        Column name for the target.
+    label_col : str
+        Column name for the labels.
+    score_cols : Sequence[str]
+        Column names for the score models.
+    n_boot : int
+        Number of bootstrap iterations.
+    seed : int
+        Random seed for reproducibility.
+    positive_label : Optional[Union[str, int]]
+        Label to treat as positive (1). If None, infers from data.
+    auto_flip : bool
+        Whether to flip the scores if the ROC AUC is less than 0.5.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with columns: ["target", "model", "roc_auc", "ci_low", "ci_high", "n_pos", "n_neg"].
+    '''
+
     rows = []
     for m in score_cols:
         y_all = _to_binary(df[label_col], positive_label)
@@ -259,12 +389,34 @@ def pr_auc_per_target(
     positive_label: Optional[Union[str, int]] = None,
     auto_flip: bool = True,
 ) -> pd.DataFrame:
-    """
+    '''
     Compute PR AUC (Average Precision) with 95% CI per target for each score model.
 
-    Returns columns:
-      ["target","model","pr_auc","ci_low","ci_high","n_pos","n_neg"]
-    """
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame with the data.
+    target_col : str
+        Column name for the target.
+    label_col : str
+        Column name for the labels.
+    score_cols : Sequence[str]
+        Column names for the score models.
+    n_boot : int
+        Number of bootstrap iterations.
+    seed : int
+        Random seed for reproducibility.
+    positive_label : Optional[Union[str, int]]
+        Label to treat as positive (1). If None, infers from data.
+    auto_flip : bool
+        Whether to flip the scores if the PR AUC is less than 0.5.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with columns: ["target", "model", "pr_auc", "ci_low", "ci_high", "n_pos", "n_neg"].
+    '''
+    
     rows = []
     for m in score_cols:
         y_all = _to_binary(df[label_col], positive_label)
@@ -304,12 +456,36 @@ def efroc_per_target(
     positive_label: Optional[Union[str, int]] = None,
     auto_flip: bool = True,
 ) -> pd.DataFrame:
-    """
+    '''
     Compute EF-ROC per target for each score model, with bootstrap CIs.
 
-    Returns columns:
-      ["target","model","epsilon","ef_roc","ci_low","ci_high","tpr_at_epsilon","n_pos","n_neg"]
-    """
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame with the data.
+    target_col : str
+        Column name for the target.
+    label_col : str
+        Column name for the labels.
+    score_cols : Sequence[str]
+        Column names for the score models.
+    epsilons : Sequence[float]
+        List of epsilon (FPR) values to evaluate.
+    n_boot : int
+        Number of bootstrap iterations.
+    seed : int
+        Random seed for reproducibility.
+    positive_label : Optional[Union[str, int]]
+        Label to treat as positive (1). If None, infers from data.
+    auto_flip : bool
+        Whether to flip the scores if the EF-ROC is less than 0.5.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with columns: ["target", "model", "epsilon", "ef_roc", "ci_low", "ci_high", "tpr_at_epsilon", "n_pos", "n_neg"].
+    '''
+    
     all_rows = []
     for m in score_cols:
         y_all = _to_binary(df[label_col], positive_label)
@@ -348,12 +524,32 @@ def roc_auc_pooled(
     positive_label: Optional[Union[str, int]] = None,
     auto_flip: bool = True,
 ) -> pd.DataFrame:
-    """
+    '''
     Compute pooled ROC AUC with 95% CI for each score model.
 
-    Returns columns:
-      ["model","roc_auc","ci_low","ci_high","n_pos","n_neg"]
-    """
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame with the data.
+    label_col : str
+        Column name for the labels.
+    score_cols : Sequence[str]
+        Column names for the score models.
+    n_boot : int
+        Number of bootstrap iterations.
+    seed : int
+        Random seed for reproducibility.
+    positive_label : Optional[Union[str, int]]
+        Label to treat as positive (1). If None, infers from data.
+    auto_flip : bool
+        Whether to flip the scores if the ROC AUC is less than 0.5.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with columns: ["model", "roc_auc", "ci_low", "ci_high", "n_pos", "n_neg"].
+    '''
+    
     rows = []
     for m in score_cols:
         y = _to_binary(df[label_col], positive_label)
@@ -385,12 +581,32 @@ def pr_auc_pooled(
     positive_label: Optional[Union[str, int]] = None,
     auto_flip: bool = True,
 ) -> pd.DataFrame:
-    """
+    '''
     Compute pooled PR AUC (Average Precision) with 95% CI for each score model.
 
-    Returns columns:
-      ["model","pr_auc","ci_low","ci_high","n_pos","n_neg"]
-    """
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame with the data.
+    label_col : str
+        Column name for the labels.
+    score_cols : Sequence[str]
+        Column names for the score models.
+    n_boot : int
+        Number of bootstrap iterations.
+    seed : int
+        Random seed for reproducibility.
+    positive_label : Optional[Union[str, int]]
+        Label to treat as positive (1). If None, infers from data.
+    auto_flip : bool
+        Whether to flip the scores if the PR AUC is less than 0.5.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with columns: ["model", "pr_auc", "ci_low", "ci_high", "n_pos", "n_neg"].
+    '''
+
     rows = []
     for m in score_cols:
         y = _to_binary(df[label_col], positive_label)
@@ -423,12 +639,34 @@ def efroc_pooled(
     positive_label: Optional[Union[str, int]] = None,
     auto_flip: bool = True,
 ) -> pd.DataFrame:
-    """
+    '''
     Compute pooled EF-ROC for each score model with bootstrap CIs.
 
-    Returns columns:
-      ["model","epsilon","ef_roc","ci_low","ci_high","tpr_at_epsilon","n_pos","n_neg"]
-    """
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame with the data.
+    label_col : str
+        Column name for the labels.
+    score_cols : Sequence[str]
+        Column names for the score models.
+    epsilons : Sequence[float]
+        List of epsilon (FPR) values to evaluate.
+    n_boot : int
+        Number of bootstrap iterations.
+    seed : int
+        Random seed for reproducibility.
+    positive_label : Optional[Union[str, int]]
+        Label to treat as positive (1). If None, infers from data.
+    auto_flip : bool
+        Whether to flip the scores if the EF-ROC is less than 0.5.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with columns: ["model", "epsilon", "ef_roc", "ci_low", "ci_high", "tpr_at_epsilon", "n_pos", "n_neg"].
+    '''
+    
     all_rows = []
     for m in score_cols:
         y = _to_binary(df[label_col], positive_label)
@@ -462,8 +700,29 @@ def build_test2_tables(
     epsilons: Sequence[float] = (0.01, 0.05, 0.10),
     auto_flip: bool = True,
 ) -> Dict[str, pd.DataFrame]:
-    """
+    '''
     Convenience wrapper to compute all tables at once.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame with the data.
+    models : Sequence[str]
+        Column names for the score models.
+    target_col : str
+        Column name for the target.
+    label_col : str
+        Column name for the labels.
+    positive_label : Optional[Union[str, int]]
+        Label to treat as positive (1). If None, infers from data.
+    n_boot : int
+        Number of bootstrap iterations.
+    seed : int
+        Random seed for reproducibility.
+    epsilons : Sequence[float]
+        List of epsilon (FPR) values to evaluate.
+    auto_flip : bool
+        Whether to flip the scores if the ROC AUC is less than 0.5.
 
     Returns
     -------
@@ -476,7 +735,8 @@ def build_test2_tables(
         - "pr_auc_pooled": Pooled PR AUC across all targets with CIs.
         - "efroc_pooled": Pooled EF-ROC across epsilons with CIs.
         - "summary": Compact table combining pooled ROC/PR with counts.
-    """
+    '''
+    
     tables: Dict[str, pd.DataFrame] = {}
 
     tables["roc_auc_per_target"] = roc_auc_per_target(
@@ -568,15 +828,33 @@ def build_summary_table(
     pr_summary_targets: Optional[pd.DataFrame] = None,
     pr_summary_pooled: Optional[pd.DataFrame] = None,
 ) -> pd.DataFrame:
-    """
+    '''
     Create a presentation table combining median EF-ROC across targets and pooled EF-ROC at given epsilons.
 
     Optionally include PR-AUC (median and pooled).
 
-    Parameters are aligned with test_old/test2/clean_analysis.py, but labels are English:
-      - "Median EF-ROC X%" and "Pooled EF-ROC X%" columns
-      - If include_pr_auc: add "Median PR-AUC" and "Pooled PR-AUC"
-    """
+    Parameters
+    ----------
+    summary_targets : pd.DataFrame
+        DataFrame with the targets.
+    summary_pooled : pd.DataFrame
+        DataFrame with the pooled targets.
+    models : Sequence[str]
+        Column names for the score models.
+    eps : Sequence[int]
+        List of epsilon (FPR) values to evaluate.
+    include_pr_auc : bool
+        Whether to include the PR-AUC.
+    pr_summary_targets : Optional[pd.DataFrame]
+        DataFrame with the PR-AUC targets.
+    pr_summary_pooled : Optional[pd.DataFrame]
+        DataFrame with the PR-AUC pooled.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with the summary table.
+    '''
     eps = tuple(int(e) for e in eps)
     st = summary_targets[summary_targets["metric"].isin([f"EF_ROC_{e}%" for e in eps])].copy()
     med = (

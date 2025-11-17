@@ -2,12 +2,12 @@
 
 # Description
 ###############################################################################
-""" Module to run the Extreme Gradient Boost algorithm. 
+''' Module to run the Extreme Gradient Boost algorithm. 
 
 It is imported as:
 
 import OCDocker.OCScore.XGBoost.OCxgboost as OCxgboost
-"""
+'''
 
 # Imports
 ###############################################################################
@@ -45,6 +45,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 
+
 class XGBoostOptimizer:
     def __init__(self, 
             X_train : Union[np.ndarray, pd.DataFrame, pd.Series],
@@ -59,8 +60,8 @@ class XGBoostOptimizer:
             use_gpu : bool = False,
             random_state : int = 42,
             verbose : bool = False
-        ):
-        """
+        ) -> None:
+        '''
         Initializes the PreXGBoostOptimizer with training data and configuration.
 
         Parameters
@@ -89,7 +90,7 @@ class XGBoostOptimizer:
             The random state for reproducibility. Default is 42.
         verbose : bool, optional
             Whether to print the training logs. Default is False.
-        """
+        '''
 
         self.X_train = np.asarray(X_train)
         self.y_train = np.asarray(y_train)
@@ -123,12 +124,21 @@ class XGBoostOptimizer:
             self.params['device'] = 'cuda'
 
         # Set the storage string for the study
+
         self.storage = storage
+
+
+
+
+
+
+
+
 
     def objective(self,
             trial : optuna.trial.Trial
         ) -> Union[float, tuple[float, float]]:
-        """
+        '''
         The objective function for Optuna optimization to tune XGBoost hyperparameters.
 
         Parameters
@@ -140,7 +150,7 @@ class XGBoostOptimizer:
         -------
         float | tuple[float, float]
             The AUC of the model as a result of the suggested hyperparameters. If the validation dataset is provided, returns a tuple of AUC and RMSE.
-        """
+        '''
 
         # Create a local copy of params for this trial to prevent side-effects
         trial_params = self.params.copy()
@@ -230,7 +240,15 @@ class XGBoostOptimizer:
             _, metric = OCxgboost.run_xgboost(self.X_train, self.y_train, self.X_test, self.y_test, params = trial_params, verbose = self.verbose) # type: ignore
     
         # Return the trained AUC score
+
         return metric
+
+
+
+
+
+
+
 
     def optimize(self, 
                  direction : str = "minimize",
@@ -239,7 +257,7 @@ class XGBoostOptimizer:
                  study_name : str = "XGBoost pre-optimization",
                  load_if_exists : bool = True
                 ) -> optuna.study.Study:
-        """
+        '''
         Optimizes XGBoost hyperparameters using Optuna.
 
         Parameters
@@ -263,7 +281,7 @@ class XGBoostOptimizer:
             The best hyperparameters.
         float
             The best AUC score.
-        """
+        '''
 
 
         # Create the Sampler

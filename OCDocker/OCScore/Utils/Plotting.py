@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 
 from scipy.cluster.hierarchy import leaves_list, linkage
 from sklearn.metrics import auc, roc_curve
-from typing import Union
+from typing import Union, Optional
 
 # License
 ###############################################################################
@@ -45,7 +45,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Methods
 ###############################################################################
 
-def plot_correlation_similarity(df1 : pd.DataFrame, df2 : pd.DataFrame, columns : list = [], annot : bool = True, fontsize : Union[float, None] = None, normalize : bool = True) -> None:
+def plot_correlation_similarity(df1 : pd.DataFrame, df2 : pd.DataFrame, columns : list = [], annot : bool = True, fontsize : Optional[float] = None, normalize : bool = True) -> None:
     ''' Plots the similarity of correlation matrices from two DataFrames.
 
     Parameters
@@ -125,6 +125,7 @@ def plot_correlation_similarity(df1 : pd.DataFrame, df2 : pd.DataFrame, columns 
     plt.tight_layout()
     plt.savefig('correlation_similarity_sorted.png')
     plt.close()
+
 
 def plot_roc_curves(df : pd.DataFrame, feature_cols : list, labels : pd.Series, title : str = "ROC") -> None:
     ''' Plots ROC curves for a DataFrame.

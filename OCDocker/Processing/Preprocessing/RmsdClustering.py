@@ -31,7 +31,7 @@ from warnings import simplefilter
 
 import OCDocker.Toolbox.Printing as ocprint
 
-from OCDocker.Initialise import *
+import OCDocker.Error as ocerror
 
 # License
 ###############################################################################
@@ -129,6 +129,7 @@ def get_medoids(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], clusters
 
     # Return the medoid paths
     return medoids
+
 
 def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorithm: str = 'agglomerativeClustering', max_distance_threshold: float = 20.0, min_distance_threshold: float = 10.0, threshold_step: float = 0.1, outputPlot: str = "") -> Union[np.ndarray, int]:
     '''Cluster molecules based on their rmsd.
@@ -260,7 +261,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                     for i, name in enumerate(labels):
                         rep = "YES" if name in medoids else "NO"
                         mf.write(f"{i}\t{name}\t{rep}\n")
-            except Exception:
+            except (OSError, IOError, PermissionError):
                 # Non-fatal: mapping is best-effort for users of the dendrogram
                 pass
         

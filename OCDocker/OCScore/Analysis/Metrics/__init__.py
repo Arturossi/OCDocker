@@ -6,3 +6,7 @@ performance metrics for machine learning models.
 Import suggested as:
     import OCDocker.OCScore.Analysis.Metrics as ocstatmetrics
 """
+
+# Public API: Users should import metrics modules directly
+# No classes or functions exported at package level
+__all__ = []

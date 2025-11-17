@@ -5,6 +5,7 @@ from OCDocker.DB.Models.Base import base
 from OCDocker.DB.Models.Ligands import Ligands
 from OCDocker.DB.Models.Receptors import Receptors
 
+
 class Complexes(base):
     """ Define the Complex table """
     

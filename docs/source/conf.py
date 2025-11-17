@@ -17,6 +17,7 @@ logging.basicConfig(level=logging.DEBUG)
 # -----------------------------------------------------------------------------
 HERE = Path(__file__).resolve()
 
+
 def find_repo_root(start: Path) -> Path:
     for p in (start, *start.parents):
         pkg = p / "OCDocker"
@@ -24,11 +25,15 @@ def find_repo_root(start: Path) -> Path:
             return p
     raise RuntimeError("Could not find repo root with 'OCDocker/__init__.py' above this file.")
 
+
+
 REPO_ROOT = find_repo_root(HERE)
 sys.path.insert(0, str(REPO_ROOT))
 os.environ.setdefault("OC_BUILD_DOCS", "1")
 os.environ.setdefault("MPLBACKEND", "agg")
 logging.debug("Docs repo root: %s", REPO_ROOT)
+
+
 
 # -----------------------------------------------------------------------------
 # Levels & defaults FIRST (used by Error module and injections)
@@ -39,6 +44,8 @@ class ReportLevel(IntEnum):
     WARN  = 2
     ERROR = 3
     DEBUG = 4
+
+
 
 DEFAULT_LEVEL = ReportLevel.INFO
 
@@ -57,8 +64,11 @@ init_mod.db_url = "sqlite:///:memory:"
 init_mod.engine = MagicMock(name="engine")
 init_mod.__all__.append("engine")
 
+
 def _get_db_url():
     return init_mod.db_url
+
+
 
 init_mod.get_db_url = _get_db_url
 sys.modules["OCDocker.Initialise"] = init_mod
@@ -103,6 +113,8 @@ setattr(OCD, "ReportLevel", ReportLevel)    # OCDocker.ReportLevel
 setattr(OCD, "output_level", DEFAULT_LEVEL) # OCDocker.output_level
 sys.modules["OCDocker"] = OCD
 
+
+
 # -----------------------------------------------------------------------------
 # Import-time global injection for ALL OCDocker submodules
 # Ensures `output_level`, `ReportLevel`, `ocerror`, and `Error` are available
@@ -111,12 +123,29 @@ sys.modules["OCDocker"] = OCD
 class _InjectingLoader(Loader):
     def __init__(self, base_loader, injected: dict):
         self._base = base_loader
+
         self._injected = injected
+
+
+
+
+
+
+
+
 
     def create_module(self, spec):
         if hasattr(self._base, "create_module"):
             return self._base.create_module(spec)
+
         return None
+
+
+
+
+
+
+
 
     def exec_module(self, module):
         for k, v in self._injected.items():
@@ -124,10 +153,19 @@ class _InjectingLoader(Loader):
                 setattr(module, k, v)
         return self._base.exec_module(module)
 
+
 class _InjectingFinder(MetaPathFinder):
     def __init__(self, pkg_prefix: str, injected: dict):
         self._pkg_prefix = pkg_prefix
+
         self._injected = injected
+
+
+
+
+
+
+
 
     def find_spec(self, fullname, path=None, target=None):
         if not fullname.startswith(self._pkg_prefix):
@@ -138,6 +176,8 @@ class _InjectingFinder(MetaPathFinder):
         spec.loader = _InjectingLoader(spec.loader, self._injected)
         return spec
 
+
+
 _injected_globals = {
     "output_level": DEFAULT_LEVEL,
     "ReportLevel": ReportLevel,
@@ -147,6 +187,8 @@ _injected_globals = {
 
 if not any(isinstance(f, _InjectingFinder) for f in sys.meta_path):
     sys.meta_path.insert(0, _InjectingFinder("OCDocker", _injected_globals))
+
+
 
 # -----------------------------------------------------------------------------
 # Helper: load a specific module with extra injections (when needed)
@@ -217,8 +259,8 @@ for parent in (
 project = "OCDocker"
 copyright = "2025, Artur Duque Rossi"
 author = "Artur Duque Rossi"
-version = "0.10.1"
-release = "0.10.1"
+version = "0.11.1"
+release = "0.11.1"
 
 extensions = [
     "sphinxarg.ext",

@@ -2,14 +2,14 @@
 
 # Description
 ###############################################################################
-"""
+'''
 This module provides utilities to parse and structure Optuna study data
 into best-RMSE, best-AUC, and best-combined views, with consensus scores merged in.
 
 Usage:
 
 from OCDocker.OCScore.Analysis.StudyProcessing import get_study_data
-"""
+'''
 
 # Imports
 ###############################################################################
@@ -18,10 +18,13 @@ import pandas as pd
 
 from typing import Union
 
+
+
 import OCDocker.OCScore.Utils.StudyParser as ocstudy
 
 # Methods
 ###############################################################################
+
 
 def get_study_data(
     snames : list[str],
@@ -68,11 +71,15 @@ def get_study_data(
 
     if nn_ae_start is not None and nn_ae_end is not None:
         if nn_ae_start >= nn_ae_end:
+            # User-facing error: invalid index range
+            ocerror.Error.value_error(f"Invalid index range for 'NN + AE': start ({nn_ae_start}) must be less than end ({nn_ae_end})") # type: ignore
             raise ValueError("The start index for 'NN + AE' must be less than the end index.")
         results_df.loc[nn_ae_start:nn_ae_end - 1, 'study_type'] = 'NN + AE'
 
     if xgb_ga_start is not None and xgb_ga_end is not None:
         if xgb_ga_start >= xgb_ga_end:
+            # User-facing error: invalid index range
+            ocerror.Error.value_error(f"Invalid index range for 'XGB + GA': start ({xgb_ga_start}) must be less than end ({xgb_ga_end})") # type: ignore
             raise ValueError("The start index for 'XGB + GA' must be less than the end index.")
         results_df.loc[xgb_ga_start:xgb_ga_end - 1, 'study_type'] = 'XGB + GA'
 

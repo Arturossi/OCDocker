@@ -10,10 +10,13 @@ cleanly and export helpers return expected types on empty DBs.
 import pandas as pd
 from sqlalchemy.orm import sessionmaker
 
+import pytest
+
 import OCDocker.DB.DB as ocdb
 from OCDocker.DB.DBMinimal import create_engine
 
 
+@pytest.mark.order(36)
 def test_create_tables_and_exports_on_sqlite_memory():
     # In-memory engine for isolation
     engine = create_engine("sqlite:///:memory:")  # type: ignore[arg-type]

@@ -2,7 +2,7 @@
 
 # Description
 ###############################################################################
-"""
+'''
 This module provides utility functions for analyzing autoencoder (AE)-based
 feature importance and neural network representations, including permutation
 importance evaluation.
@@ -10,7 +10,7 @@ importance evaluation.
 Usage:
 
 import OCDocker.OCScore.Analysis.NNUtils as ocnnutils
-"""
+'''
 
 # Imports
 ###############################################################################
@@ -27,8 +27,9 @@ from sklearn.inspection import permutation_importance
 # Methods
 ###############################################################################
 
+
 def run_ae_feature_importance(
-    ae_model,
+    ae_model: Any,
     X_valid: np.ndarray,
     y_valid: np.ndarray,
     features: list[str],
@@ -67,7 +68,22 @@ def run_ae_feature_importance(
     if not hasattr(ae_model, 'predict'):
         raise ValueError("Model must implement a 'predict' method")
 
-    def score_fn(X):
+
+    def score_fn(X: np.ndarray) -> float:
+        ''' Score function for the permutation importance.
+
+        Parameters
+        ----------
+        X : np.ndarray
+            The input data.
+
+        Returns
+        -------
+        float
+            The score.
+        '''
+
+        # Convert the input data to a tensor
         X_tensor = torch.tensor(X, dtype=torch.float32)
         preds = ae_model.predict(X_tensor).detach().numpy()
         return -mean_squared_error(y_valid, preds)

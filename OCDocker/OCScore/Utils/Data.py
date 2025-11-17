@@ -21,12 +21,12 @@ import os
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.model_selection import train_test_split
-from typing import Any, Union
+from typing import Any, Union, Optional
 
 import numpy as np
 import pandas as pd
 
-from OCDocker.Initialise import *
+# No config needed - OCScore modules
 
 import OCDocker.OCScore.Utils.IO as ocscoreio
 
@@ -84,6 +84,8 @@ def apply_pca(df : pd.DataFrame, pca_model : Union[str, PCA], columns_to_skip_pc
     if isinstance(pca_model, str):
         # Check if pca_model_path is a valid file
         if not os.path.isfile(pca_model):
+            # User-facing error: file not found
+            ocerror.Error.file_not_exist(f"PCA model file not found: {pca_model}") # type: ignore
             raise FileNotFoundError(f"File {pca_model} not found")
 
         # Load the pre-trained PCA model
@@ -120,7 +122,8 @@ def apply_pca(df : pd.DataFrame, pca_model : Union[str, PCA], columns_to_skip_pc
     else:
         # Return a new DataFrame with PCA applied
         return combined_df
-    
+
+
 def calculate_metrics(df : pd.DataFrame, selected_columns : list) -> tuple[pd.DataFrame, list]:
     ''' Calculates additional metrics for a DataFrame. The metrics include average, median, 
     maximum, minimum, standard deviation, variance, sum, range, 25th and 75th percentiles.
@@ -143,6 +146,8 @@ def calculate_metrics(df : pd.DataFrame, selected_columns : list) -> tuple[pd.Da
     # Check if selected columns are present in the DataFrame
     for col in selected_columns:
         if col not in df.columns:
+            # User-facing error: missing required data in DataFrame
+            ocerror.Error.data_not_found(f"Column '{col}' not found in DataFrame") # type: ignore
             raise ValueError(f"Column {col} not found in DataFrame")
 
     # Calculate metrics
@@ -163,6 +168,7 @@ def calculate_metrics(df : pd.DataFrame, selected_columns : list) -> tuple[pd.Da
     # Return DataFrame with additional metrics
     return df, ["mean", "median", "max", "min", "std", "variance", "sum", "range", "quantile_25", "quantile_75", "iqr", "skewness", "kurtosis"]
 
+
 def compute_zscore(df : pd.DataFrame, columns : list) -> pd.DataFrame:
     ''' Computes the z-score for the specified columns in a DataFrame.
 
@@ -182,6 +188,8 @@ def compute_zscore(df : pd.DataFrame, columns : list) -> pd.DataFrame:
     # Check if the specified columns are present in the DataFrame
     for col in columns:
         if col not in df.columns:
+            # User-facing error: missing required data in DataFrame
+            ocerror.Error.data_not_found(f"Column '{col}' not found in DataFrame") # type: ignore
             raise ValueError(f"Column {col} not found in DataFrame")
 
     # Compute the z-score for the specified columns
@@ -190,7 +198,8 @@ def compute_zscore(df : pd.DataFrame, columns : list) -> pd.DataFrame:
 
     return zscore_df
 
-def invert_values_conditionally(df : pd.DataFrame, regex_pattern : str = r"^(VINA|SMINA|PLANTS).*|^experimental$", inplace : bool = False) -> Union[pd.DataFrame, None]:
+
+def invert_values_conditionally(df : pd.DataFrame, regex_pattern : str = r"^(VINA|SMINA|PLANTS).*|^experimental$", inplace : bool = False) -> Optional[pd.DataFrame]:
     ''' Inverts the values of specific columns in a DataFrame. The inversion 
     is applied to columns that start with 'VINA', 'SMINA', or 'PLANTS' as well
     as the column named 'experimental'.
@@ -235,6 +244,7 @@ def invert_values_conditionally(df : pd.DataFrame, regex_pattern : str = r"^(VIN
             df.loc[:, col] *= -1
     
     return None
+
 
 def load_data(
         base_models_folder : str,
@@ -400,7 +410,10 @@ def load_data(
         "y_test": y_test,
         "X_val": X_val,
         "y_val": y_val
+
+
     }
+
 
 def norm_data(df : pd.DataFrame, scaler : str = "standard", inplace : bool = False) -> Union[Any, pd.DataFrame]:
     ''' Preprocesses the input DataFrame by scaling selected feature columns using a Scaler.
@@ -423,6 +436,8 @@ def norm_data(df : pd.DataFrame, scaler : str = "standard", inplace : bool = Fal
 
     # Check the chosen scaler
     if scaler not in ["standard", "minmax"]:
+        # User-facing error: invalid value for scaler parameter
+        ocerror.Error.value_error(f"Invalid scaler: '{scaler}'. Please choose 'standard' or 'minmax'.") # type: ignore
         raise ValueError("Invalid scaler. Please choose 'standard' or 'minmax'.")
     
     # Initialize the scaler
@@ -443,6 +458,7 @@ def norm_data(df : pd.DataFrame, scaler : str = "standard", inplace : bool = Fal
     df_copy[feature_columns] = scaler_model.fit_transform(df_copy[feature_columns])
 
     return df_copy
+
 
 def remove_other_columns(df : pd.DataFrame, columns_to_keep : list, inplace : bool = False) -> Union[Any, pd.DataFrame]:
     ''' Removes columns from a DataFrame that are not in the specified list.
@@ -465,6 +481,8 @@ def remove_other_columns(df : pd.DataFrame, columns_to_keep : list, inplace : bo
     # Check if the specified columns are present in the DataFrame
     for col in columns_to_keep:
         if col not in df.columns:
+            # User-facing error: missing required data in DataFrame
+            ocerror.Error.data_not_found(f"Column '{col}' not found in DataFrame") # type: ignore
             raise ValueError(f"Column {col} not found in DataFrame")
 
     if inplace:
@@ -479,6 +497,7 @@ def remove_other_columns(df : pd.DataFrame, columns_to_keep : list, inplace : bo
     df_copy.drop(columns = df_copy.columns.difference(columns_to_keep), axis = 1, inplace = True)
 
     return df_copy
+
 
 def detect_extreme_outliers_iqr_columns_positive(df : pd.DataFrame, columns : list[str], extreme_factor : float = 3.0) -> dict:
     ''' Detects extreme outliers in specified columns of a DataFrame using the IQR method.
@@ -520,6 +539,7 @@ def detect_extreme_outliers_iqr_columns_positive(df : pd.DataFrame, columns : li
 
     return extreme_outliers_dict
 
+
 def remove_extreme_outliers_iqr_columns_positive(df : pd.DataFrame, columns : list[str], extreme_factor : float = 3.0) -> pd.DataFrame:
     ''' Removes rows with extreme outliers in specified columns of a DataFrame using the IQR method.
 
@@ -552,10 +572,11 @@ def remove_extreme_outliers_iqr_columns_positive(df : pd.DataFrame, columns : li
     
     return df_cleaned
 
+
 def preprocess_df(
     file_name : str, 
     score_columns_list : list[str] = ["SMINA", "VINA", "ODDT", "PLANTS"], 
-    outliers_columns_list : Union[list[str], None] = None, 
+    outliers_columns_list : Optional[list[str]] = None, 
     scaler : str = "standard", 
     invert_conditionally : bool = True, 
     normalize : bool = True
@@ -626,6 +647,7 @@ def preprocess_df(
 
     return dudez_data, pdbbind_data, score_columns # type: ignore
 
+
 def split_dataset(X : pd.DataFrame, y : pd.Series, test_size : float = 0.2, random_state : int = 42) -> list[Any]:
     ''' Split the data into training and testing sets.
 
@@ -654,6 +676,7 @@ def split_dataset(X : pd.DataFrame, y : pd.Series, test_size : float = 0.2, rand
     
     # Split the data into training and testing sets
     return train_test_split(X, y, test_size = test_size, random_state = random_state)
+
 
 def generate_mask(column_names : Union[list[str], pd.Index], score_columns : list[str]) -> list[np.ndarray]:
     '''
@@ -701,6 +724,7 @@ def generate_mask(column_names : Union[list[str], pd.Index], score_columns : lis
     
     return results
 
+
 def chunkenize_dataset(data : Union[list[Any], np.ndarray, pd.DataFrame], id : int, num_machines : int) -> Union[list[Any], np.ndarray, pd.DataFrame]:
     '''
     Split a dataset in multiple chunks.
@@ -722,6 +746,8 @@ def chunkenize_dataset(data : Union[list[Any], np.ndarray, pd.DataFrame], id : i
     
     # Sanity checks
     if id < 1 or id > num_machines:
+        # User-facing error: invalid id parameter value
+        ocerror.Error.value_error(f"Invalid id: {id}. It should be between 1 and {num_machines}.") # type: ignore
         raise ValueError(f"Invalid id. It should be between 1 and {num_machines}.")
     
     # Calculate the size of each chunk

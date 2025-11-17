@@ -2,13 +2,13 @@
 
 # Description
 ###############################################################################
-""" Module to perform the optimization of the Transformer parameters model
+''' Module to perform the optimization of the Transformer parameters model
 using Optuna.
 
 It is imported as:
 
 from OCDocker.OCScore.Transformer.TransOptimizer import TransOptimizer
-"""
+'''
 
 # Imports
 ###############################################################################
@@ -28,6 +28,8 @@ from optuna.samplers import TPESampler
 from sklearn.metrics import auc, roc_curve
 from torch.utils.data import Dataset, DataLoader
 from typing import Union
+
+
 
 import OCDocker.Toolbox.Printing as ocprint
 
@@ -51,8 +53,9 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 
+
 class CustomDataset(Dataset):
-    """ Create a custom dataset for the PyTorch DataLoader. """
+    ''' Create a custom dataset for the PyTorch DataLoader. '''
     def __init__(self, features: list, target: list) -> None:
         ''' Initialize the dataset.
         
@@ -67,6 +70,7 @@ class CustomDataset(Dataset):
         self.features = features
         self.target = target
 
+
         return None
 
     def __len__(self) -> int:
@@ -77,6 +81,7 @@ class CustomDataset(Dataset):
         int
             The length of the dataset.
         '''
+
 
         return len(self.features)
 
@@ -96,8 +101,9 @@ class CustomDataset(Dataset):
         
         return self.features[idx], self.target[idx]
 
+
 class TransformerModel(nn.Module):
-    """ Transformer-based neural network model with configurable initialization and structure.
+    ''' Transformer-based neural network model with configurable initialization and structure.
 
     Parameters
     ----------
@@ -125,8 +131,9 @@ class TransformerModel(nn.Module):
         The device to use (default is torch.device('cuda')).
     verbose : bool, optional
         If True, print the model summary (default is False).
-    """
-    
+    '''
+
+
     def __init__(self,
                  input_dim : int,
                  d_model : int,
@@ -228,6 +235,7 @@ class TransformerModel(nn.Module):
 
         if verbose:
             # Print the model
+
             ocprint.printv(self) # type: ignore
 
     def set_random_seed(self) -> torch.Generator:
@@ -266,6 +274,8 @@ class TransformerModel(nn.Module):
         if self.init_type in self.init_functions.keys():
             init_func = self.init_functions[self.init_type]
         else:
+            # User-facing error: invalid initialization function
+            ocerror.Error.value_error(f"Unknown initialization function: '{self.init_type}'") # type: ignore
             raise ValueError('Unknown initialization function')
 
         # Apply the initialization to all linear layers in the model
@@ -278,6 +288,7 @@ class TransformerModel(nn.Module):
                 else:
                     init_func(m.weight, **self.init_params, generator = self.generator)
                 if m.bias is not None:
+
                     init.zeros_(m.bias)
 
     def forward(self, src : torch.Tensor) -> torch.Tensor:
@@ -303,8 +314,9 @@ class TransformerModel(nn.Module):
 
         return output
 
+
 class Transformer(nn.Module):
-    """ Transformer-based neural network model with configurable initialization and structure.
+    ''' Transformer-based neural network model with configurable initialization and structure.
 
     Parameters
     ----------
@@ -320,7 +332,7 @@ class Transformer(nn.Module):
         If True, use GPU (default is True).
     verbose : bool, optional
         If True, print the model summary (default is False).
-    """
+    '''
 
     def __init__(self, 
             input_size : int,
@@ -401,6 +413,7 @@ class Transformer(nn.Module):
 
         # Print the model if verbose is True
         if verbose:
+
             ocprint.printv(self.trans) # type: ignore
 
     def set_random_seed(self) -> None:
@@ -425,8 +438,9 @@ class Transformer(nn.Module):
 
         # Set the backends for reproducibility
         torch.backends.cudnn.benchmark = False
+
         torch.backends.cudnn.deterministic = True
-        
+
     def train_model(self,
                     X_train : Union[np.ndarray, pd.DataFrame, list],
                     y_train : Union[np.ndarray, pd.DataFrame, list],
@@ -612,8 +626,9 @@ class Transformer(nn.Module):
         self.rmse = rmse
         self.validation_auc = validation_auc
 
+
         return True
-    
+
     def get_model(self) -> nn.Module:
         ''' Get the model.
 
@@ -625,8 +640,9 @@ class Transformer(nn.Module):
 
         return self.trans
 
+
 class TransOptimizer:
-    """ Class to optimize the Transformer model using Optuna.
+    ''' Class to optimize the Transformer model using Optuna.
 
     Parameters
     ----------
@@ -652,7 +668,7 @@ class TransOptimizer:
         If True, use GPU (default is True).
     verbose : bool, optional
         If True, print the model summary (default is False).
-    """
+    '''
 
     def __init__(self,
                  X_train : Union[np.ndarray, pd.DataFrame, list],
@@ -739,6 +755,7 @@ class TransOptimizer:
         self.verbose = verbose
 
         # Set the storage for the Optuna study
+
         self.storage = storage
 
     def set_random_seed(self) -> None:
@@ -753,6 +770,7 @@ class TransOptimizer:
 
         # If using GPU, set the seed for GPU as well in torch
         if self.use_gpu:
+
             torch.cuda.manual_seed_all(self.random_seed)
 
     def train_test_model(self,
@@ -872,6 +890,7 @@ class TransOptimizer:
         # Handle pruning based on the intermediate value.
         if trial.should_prune():
             raise optuna.exceptions.TrialPruned()
+
 
         return rmse
 
@@ -1001,6 +1020,7 @@ class TransOptimizer:
             trial.set_user_attr('AUC', validation_auc)
         else:
             validation_auc = None
+
 
         return test_loss
 

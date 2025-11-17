@@ -20,7 +20,7 @@ from typing import Dict, List, Callable
 
 import numpy as np
 
-from OCDocker.Initialise import *
+from OCDocker.Config import get_config
 import OCDocker.Error as ocerror
 import OCDocker.Toolbox.IO as ocio
 import OCDocker.Toolbox.Printing as ocprint
@@ -55,6 +55,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # ---------------------------------------------------------------------------
 # Generic helpers
 # ---------------------------------------------------------------------------
+
 
 def _read_log_generic(path: str, scoring_key: str, engine: str, error_log: str, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
     '''Read the vinalike log path, returning the data from complexes.
@@ -122,9 +123,10 @@ def _read_log_generic(path: str, scoring_key: str, engine: str, error_log: str, 
             except IOError as e:
                 if e.errno == errno.EPIPE:
                     ocprint.print_error(f"Problems while reading file '{path}'. Error: {e}")
+                    config = get_config()
                     ocprint.print_error_log(
                         f"Problems while reading file '{path}'. Error: {e}",
-                        f"{logdir}/{error_log}",
+                        f"{config.logdir}/{error_log}",
                     )
 
             # Return the df reversing the order and reseting the index
@@ -143,6 +145,7 @@ def _read_log_generic(path: str, scoring_key: str, engine: str, error_log: str, 
 
     # Return a dict with a NaN value
     return data
+
 
 def _read_rescoring_log_generic(path: str, start_string: str, engine: str, error_log: str) -> float:
     '''Read the vina rescoring log path, returning the computed affinity.
@@ -196,9 +199,10 @@ def _read_rescoring_log_generic(path: str, start_string: str, engine: str, error
             except IOError as e:
                 if e.errno == errno.EPIPE:
                     ocprint.print_error(f"Problems while reading file '{path}'. Error: {e}")
+                    config = get_config()
                     ocprint.print_error_log(
                         f"Problems while reading file '{path}'. Error: {e}",
-                        f"{logdir}/{error_log}",
+                        f"{config.logdir}/{error_log}",
                     )
             return np.NaN
         except Exception as e:
@@ -215,6 +219,7 @@ def _read_rescoring_log_generic(path: str, start_string: str, engine: str, error
 
     # Return NaN if the file does not exist
     return np.NaN
+
 
 def _generate_digest_generic(
     digestPath: str,
@@ -267,7 +272,7 @@ def _generate_digest_generic(
                                     f"The digest file '{digestPath}' is not valid.",
                                     ocerror.ReportLevel.ERROR,
                                 )
-                    except Exception:
+                    except (OSError, IOError, FileNotFoundError, json.JSONDecodeError):
                         return ocerror.Error.file_not_exist( # type: ignore
                             f"Could not read the digest file '{digestPath}'.",
                             ocerror.ReportLevel.ERROR,
@@ -297,7 +302,7 @@ def _generate_digest_generic(
                     with open(digestPath, "w") as f:
                         # Dump the data
                         json.dump(digest, f)
-                except Exception:
+                except (OSError, IOError, PermissionError):
                     return ocerror.Error.write_file( # type: ignore
                         f"Could not write the digest file '{digestPath}'.",
                         ocerror.ReportLevel.ERROR,
@@ -312,7 +317,10 @@ def _generate_digest_generic(
     return ocerror.Error.file_exists( # type: ignore
         f"The file '{digestPath}' already exists. If you want to overwrite it yse the overwrite flag.",
         level=ocerror.ReportLevel.WARNING,
+
+
     )
+
 
 def _get_docked_poses_generic(posesPath: str, error_method: Callable) -> List[str]:
     '''Get the docked poses from the poses path.
@@ -342,11 +350,16 @@ def _get_docked_poses_generic(posesPath: str, error_method: Callable) -> List[st
 
     return []
 
+
+
+
+
 ## Public ##
 
 # ---------------------------------------------------------------------------
 # Wrappers for Vina
 # ---------------------------------------------------------------------------
+
 
 def read_vina_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
     '''Wrapper for reading the Vina log file.
@@ -365,7 +378,9 @@ def read_vina_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, floa
     '''
 
     # Call the generic read log function with the Vina scoring key
-    return _read_log_generic(path, vina_scoring, "vina", "vina_read_log_ERROR.log", onlyBest)
+    config = get_config()
+    return _read_log_generic(path, config.vina.scoring, "vina", "vina_read_log_ERROR.log", onlyBest)
+
 
 def read_vina_rescoring_log(path: str) -> float:
     '''Wrapper for reading the Vina rescoring log file.
@@ -382,6 +397,7 @@ def read_vina_rescoring_log(path: str) -> float:
     '''
 
     return _read_rescoring_log_generic(path, "Estimated Free Energy of Binding", "vina", "vina_read_log_ERROR.log")
+
 
 def generate_vina_digest(digestPath: str, logPath: str, overwrite: bool = False, digestFormat: str = "json") -> int:
     '''Wrapper for generating the Vina digest.
@@ -406,12 +422,31 @@ def generate_vina_digest(digestPath: str, logPath: str, overwrite: bool = False,
     # Call the generic generate digest function with the Vina read log function
     return _generate_digest_generic(digestPath, logPath, read_vina_log, overwrite, digestFormat)
 
+
 def get_vina_docked_poses(posesPath: str) -> List[str]:
+    '''Get the paths for the docked poses from Vina output directory.
+    
+    Parameters
+    ----------
+    posesPath : str
+        The path to the directory containing the docked poses.
+    
+    Returns
+    -------
+    List[str]
+        A list with the paths for the docked poses. Returns an empty list if the directory does not exist.
+    '''
+    
     return _get_docked_poses_generic(posesPath, ocerror.Error.dir_not_exist) # type: ignore
+
+
+
+
 
 # ---------------------------------------------------------------------------
 # Wrappers for Smina
 # ---------------------------------------------------------------------------
+
 
 def read_smina_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
     '''Wrapper for reading the Smina log file.
@@ -430,7 +465,9 @@ def read_smina_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, flo
     '''
 
     # Call the generic read log function with the Smina scoring key
-    return _read_log_generic(path, smina_scoring, "smina", "smina_read_log_ERROR.log", onlyBest)
+    config = get_config()
+    return _read_log_generic(path, config.smina.scoring, "smina", "smina_read_log_ERROR.log", onlyBest)
+
 
 def read_smina_rescoring_log(path: str) -> float:
     '''Wrapper for reading the Smina rescoring log file.
@@ -447,6 +484,7 @@ def read_smina_rescoring_log(path: str) -> float:
     '''
 
     return _read_rescoring_log_generic(path, "Affinity", "smina", "smina_read_log_ERROR.log")
+
 
 def generate_smina_digest(digestPath: str, logPath: str, overwrite: bool = False, digestFormat: str = "json") -> int:
     '''Wrapper for generating the Smina digest.
@@ -470,6 +508,7 @@ def generate_smina_digest(digestPath: str, logPath: str, overwrite: bool = False
 
     # Call the generic generate digest function with the Smina read log function
     return _generate_digest_generic(digestPath, logPath, read_smina_log, overwrite, digestFormat)
+
 
 def get_smina_docked_poses(posesPath: str) -> List[str]:
     '''Wrapper for getting the Smina docked poses.

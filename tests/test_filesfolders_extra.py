@@ -1,8 +1,11 @@
 import json
 
+import pytest
+
 import OCDocker.Toolbox.FilesFolders as ocff
 
 
+@pytest.mark.order(64)
 def test_safe_create_and_remove(tmp_path):
     d = tmp_path / "d"
     # Create new
@@ -16,6 +19,7 @@ def test_safe_create_and_remove(tmp_path):
     assert isinstance(rc3, int)
 
 
+@pytest.mark.order(65)
 def test_empty_docking_digest_json(tmp_path):
     out = tmp_path / "digest.json"
     dct = ocff.empty_docking_digest(str(out), overwrite=True, digestFormat="json")

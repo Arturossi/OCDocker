@@ -21,6 +21,8 @@ Global options
 
 from __future__ import annotations
 
+__all__ = ['main']
+
 import argparse
 import importlib
 import os
@@ -79,7 +81,8 @@ def _preparse_global_args(argv: list[str]) -> argparse.Namespace:
         if tok == "--output-level" and i + 1 < len(argv):
             try:
                 ns.output_level = int(argv[i + 1])
-            except Exception:
+            except (ValueError, TypeError):
+                # Ignore invalid output level values
                 pass
             i += 2
             continue
@@ -275,10 +278,16 @@ def cmd_init_config(args: argparse.Namespace) -> int:
         Exit code (0 for success, 1 for failure).
     '''
     
+    # Look for example file in current directory or parent directories
     example = Path("OCDocker.cfg.example")
     if not example.exists():
-        print("OCDocker.cfg.example not found in current directory.")
-        return 1
+        # Try looking in the OCDocker package directory
+        import OCDocker
+        pkg_dir = Path(OCDocker.__file__).parent.parent
+        example = pkg_dir / "OCDocker.cfg.example"
+        if not example.exists():
+            print("OCDocker.cfg.example not found in current directory or package directory.")
+            return 1
 
     target = Path(args.config_file or "OCDocker.cfg")
     if target.exists():
@@ -309,14 +318,16 @@ def cmd_version(args: argparse.Namespace) -> int:
         if v:
             print(v)
             return 0
-    except Exception:
+    except (ImportError, AttributeError):
+        # Module import failed or version attribute missing
         pass
     # Fallback to importlib.metadata (may work when installed)
     try:
         from importlib.metadata import version as _pkg_version
         print(_pkg_version("OCDocker"))
         return 0
-    except Exception:
+    except (ImportError, AttributeError):
+        # importlib.metadata not available or package not found
         pass
     # Last resort: try legacy variable if available (avoid heavy import)
     print("unknown")
@@ -348,7 +359,8 @@ def cmd_vs(args: argparse.Namespace) -> int:  # pragma: no cover - heavy integra
         import OCDocker.Error as ocerror  # type: ignore
         import OCDocker.Toolbox.Logging as oclogging  # type: ignore
         oclogging.configure(level=ocerror.Error.get_output_level(), log_file=args.log_file, to_stdout=(not args.no_stdout_log))
-    except Exception:
+    except (ImportError, AttributeError, OSError):
+        # Ignore logging configuration errors (non-critical for core functionality)
         pass
 
     # Optionally set timeout for external processes
@@ -370,8 +382,13 @@ def cmd_vs(args: argparse.Namespace) -> int:  # pragma: no cover - heavy integra
 
     # Validate engine binary availability based on configuration
     try:
-        from OCDocker.Initialise import vina as _vina_bin, smina as _smina_bin, plants as _plants_bin  # type: ignore
-    except Exception:
+        from OCDocker.Config import get_config
+        config = get_config()
+        _vina_bin = config.vina.executable
+        _smina_bin = config.smina.executable
+        _plants_bin = config.plants.executable
+    except (ImportError, AttributeError):
+        # Fallback if binaries are not configured
         _vina_bin = _smina_bin = _plants_bin = None
 
     def _exists_exe(p: Optional[str]) -> bool:
@@ -433,19 +450,19 @@ def cmd_vs(args: argparse.Namespace) -> int:  # pragma: no cover - heavy integra
         dock = engine_mod.Vina
         runner = dock(
             str(conf_path), str(args.box), receptor, str(prep_rec), ligand,
-            str(prep_lig), str(log_path), str(out_pose), name=f"VINA {name}", overwriteConfig=True,
+            str(prep_lig), str(log_path), str(out_pose), name=f"VINA {name}", overwrite_config=True,
         )
     elif eng == "smina":
         dock = engine_mod.Smina
         runner = dock(
             str(conf_path), str(args.box), receptor, str(prep_rec), ligand,
-            str(prep_lig), str(log_path), str(out_pose), name=f"SMINA {name}", overwriteConfig=True,
+            str(prep_lig), str(log_path), str(out_pose), name=f"SMINA {name}", overwrite_config=True,
         )
     else:
         dock = engine_mod.PLANTS
         runner = dock(
             str(conf_path), str(args.box), receptor, str(prep_rec), ligand,
-            str(prep_lig), str(log_path), str(out_pose), name=f"PLANTS {name}", overwriteConfig=True,
+            str(prep_lig), str(log_path), str(out_pose), name=f"PLANTS {name}", overwrite_config=True,
         )
 
     # Prepare and run
@@ -457,12 +474,14 @@ def cmd_vs(args: argparse.Namespace) -> int:  # pragma: no cover - heavy integra
         try:
             if _os.path.isfile(prep_rec_path):
                 _os.remove(prep_rec_path)
-        except Exception:
+        except (OSError, FileNotFoundError, PermissionError):
+            # Ignore if file doesn't exist or can't be removed
             pass
         try:
             if _os.path.isfile(prep_lig_path):
                 _os.remove(prep_lig_path)
-        except Exception:
+        except (OSError, FileNotFoundError, PermissionError):
+            # Ignore if file doesn't exist or can't be removed
             pass
 
     # Logs for preparation
@@ -601,7 +620,7 @@ def _ensure_mol2_poses(pose_paths: List[str], dest_dir: Path) -> Tuple[List[str]
             mapping[str(src)] = str(src)
             continue
         out = dest_dir / (src.stem + ".mol2")
-        _ = occonversion.convertMols(str(src), str(out), overwrite=True)
+        _ = occonversion.convert_mols(str(src), str(out), overwrite=True)
         mol2_paths.append(str(out))
         mapping[str(out)] = str(src)
     return mol2_paths, mapping
@@ -636,7 +655,8 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
         import OCDocker.Error as ocerror  # type: ignore
         import OCDocker.Toolbox.Logging as oclogging  # type: ignore
         oclogging.configure(level=ocerror.Error.get_output_level(), log_file=args.log_file, to_stdout=(not args.no_stdout_log))
-    except Exception:
+    except (ImportError, AttributeError, OSError):
+        # Ignore logging configuration errors (non-critical for core functionality)
         pass
 
     # Optionally set timeout for external processes
@@ -674,8 +694,13 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
 
     # Validate required binaries are available
     try:
-        from OCDocker.Initialise import vina as _vina_bin, smina as _smina_bin, plants as _plants_bin  # type: ignore
-    except Exception:
+        from OCDocker.Config import get_config
+        config = get_config()
+        _vina_bin = config.vina.executable
+        _smina_bin = config.smina.executable
+        _plants_bin = config.plants.executable
+    except (ImportError, AttributeError):
+        # Fallback if binaries are not configured
         _vina_bin = _smina_bin = _plants_bin = None
 
     def _exists_exe(p: Optional[str]) -> bool:
@@ -705,7 +730,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
         if eng == "vina":
             conf = e_dir / "conf_vina.txt"; prep_r = outdir / "prepared_receptor.pdbqt"; prep_l = outdir / "prepared_ligand.pdbqt"
             log = e_dir / f"{name}.log"; outp = e_dir / f"{name}.pdbqt"
-            r = ocvina.Vina(str(conf), str(box_path), receptor, str(prep_r), ligand, str(prep_l), str(log), str(outp), name=f"VINA {name}", overwriteConfig=True)
+            r = ocvina.Vina(str(conf), str(box_path), receptor, str(prep_r), ligand, str(prep_l), str(log), str(outp), name=f"VINA {name}", overwrite_config=True)
             for fn in (r.run_prepare_receptor, r.run_prepare_ligand, r.run_docking):
                 rc = fn(); rc = rc[0] if isinstance(rc, tuple) else rc
                 if rc != 0: return int(rc)
@@ -715,7 +740,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
         elif eng == "smina":
             conf = e_dir / "conf_smina.txt"; prep_r = outdir / "prepared_receptor.pdbqt"; prep_l = outdir / "prepared_ligand.pdbqt"
             log = e_dir / f"{name}.log"; outp = e_dir / f"{name}.pdbqt"
-            r = ocsmina.Smina(str(conf), str(box_path), receptor, str(prep_r), ligand, str(prep_l), str(log), str(outp), name=f"SMINA {name}", overwriteConfig=True)
+            r = ocsmina.Smina(str(conf), str(box_path), receptor, str(prep_r), ligand, str(prep_l), str(log), str(outp), name=f"SMINA {name}", overwrite_config=True)
             for fn in (r.run_prepare_receptor, r.run_prepare_ligand, r.run_docking):
                 rc = fn(); rc = rc[0] if isinstance(rc, tuple) else rc
                 if rc != 0: return int(rc)
@@ -725,7 +750,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
         else:
             conf = e_dir / "conf_plants.txt"; prep_r = outdir / "prepared_receptor.mol2"; prep_l = outdir / "prepared_ligand.mol2"
             log = e_dir / f"{name}.log"; outp = e_dir
-            r = ocplants.PLANTS(str(conf), str(box_path), receptor, str(prep_r), ligand, str(prep_l), str(log), str(outp), name=f"PLANTS {name}", overwriteConfig=True)
+            r = ocplants.PLANTS(str(conf), str(box_path), receptor, str(prep_r), ligand, str(prep_l), str(log), str(outp), name=f"PLANTS {name}", overwrite_config=True)
             for fn in (r.run_prepare_receptor, r.run_prepare_ligand, r.run_docking):
                 rc = fn(); rc = rc[0] if isinstance(rc, tuple) else rc
                 if rc != 0: return int(rc)
@@ -780,7 +805,8 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                 try:
                     for _, vv in v.items():
                         vals[k] = float(vv if not isinstance(vv, (list, tuple)) else vv[0])
-                except Exception:
+                except (ValueError, TypeError, KeyError):
+                    # Ignore invalid float conversions or missing keys
                     pass
             rescoring["vina"] = vals
     # SMINA
@@ -796,7 +822,8 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                 try:
                     for _, vv in v.items():
                         vals[k] = float(vv if not isinstance(vv, (list, tuple)) else vv[0])
-                except Exception:
+                except (ValueError, TypeError, KeyError):
+                    # Ignore invalid float conversions or missing keys
                     pass
             rescoring["smina"] = vals
     # PLANTS
@@ -857,7 +884,8 @@ def cmd_console(args: argparse.Namespace) -> int:  # pragma: no cover - interact
         import OCDocker.Error as ocerror  # type: ignore
         import OCDocker.Toolbox.Logging as oclogging  # type: ignore
         oclogging.configure(level=ocerror.Error.get_output_level(), log_file=args.log_file, to_stdout=(not args.no_stdout_log))
-    except Exception:
+    except (ImportError, AttributeError, OSError):
+        # Ignore logging configuration errors (non-critical for core functionality)
         pass
 
     # Import console module and open interactive session with its namespace
@@ -883,9 +911,11 @@ def cmd_console(args: argparse.Namespace) -> int:  # pragma: no cover - interact
             hist = os.path.expanduser('~/.ocdocker_console_history')
             try:
                 readline.read_history_file(hist)
-            except Exception:
+            except (OSError, FileNotFoundError):
+                # Ignore if history file doesn't exist or can't be read
                 pass
-        except Exception:
+        except (ImportError, AttributeError):
+            # Ignore if readline is not available
             pass
         # Avoid printing the console banner twice: it's already printed on import
         code.interact(banner="", local=local_ns)
@@ -893,7 +923,8 @@ def cmd_console(args: argparse.Namespace) -> int:  # pragma: no cover - interact
         try:
             if 'readline' in sys.modules:
                 sys.modules['readline'].write_history_file(os.path.expanduser('~/.ocdocker_console_history'))
-        except Exception:
+        except (OSError, AttributeError):
+            # Ignore if history file can't be written or readline not available
             pass
     except Exception as e:
         print(f"Interactive console exited with error: {e}")
@@ -923,7 +954,8 @@ def cmd_doctor(args: argparse.Namespace) -> int:  # pragma: no cover - environme
         import OCDocker.Error as ocerror  # type: ignore
         import OCDocker.Toolbox.Logging as oclogging  # type: ignore
         oclogging.configure(level=ocerror.Error.get_output_level(), log_file=args.log_file, to_stdout=(not args.no_stdout_log))
-    except Exception:
+    except (ImportError, AttributeError, OSError):
+        # Ignore logging configuration errors (non-critical for core functionality)
         pass
 
     report: Dict[str, Dict[str, str]] = {}
@@ -947,8 +979,13 @@ def cmd_doctor(args: argparse.Namespace) -> int:  # pragma: no cover - environme
         return shutil.which(p) is not None
 
     try:
-        v = getattr(OCI, 'vina', None); s = getattr(OCI, 'smina', None); p = getattr(OCI, 'plants', None)
+        from OCDocker.Config import get_config
+        config = get_config()
+        v = config.vina.executable
+        s = config.smina.executable
+        p = config.plants.executable
     except Exception:
+        # Fallback if config is not available
         v = s = p = None
     report['binaries'] = {
         'vina': 'OK' if _exists_exe(v) else 'MISSING',
@@ -957,8 +994,18 @@ def cmd_doctor(args: argparse.Namespace) -> int:  # pragma: no cover - environme
     }
 
     # Python dependencies
+    # SECURITY NOTE: Dynamic import is used here to check for optional dependencies.
+    # The module names are hardcoded in a whitelist ('rdkit', 'Bio', 'oddt', 'sqlalchemy')
+    # and never come from user input, making this safer from injection attacks.
     pydeps = {}
-    for mod in ('rdkit', 'Bio', 'oddt', 'sqlalchemy'):
+    
+    # Whitelist of allowed module names for dependency checking
+    ALLOWED_DEPENDENCY_MODULES = ('rdkit', 'Bio', 'oddt', 'sqlalchemy')
+    for mod in ALLOWED_DEPENDENCY_MODULES:
+        # Validate module name contains only safe characters (alphanumeric and underscore)
+        if not isinstance(mod, str) or not mod.replace('_', '').isalnum():
+            pydeps[mod] = 'INVALID_MODULE_NAME'
+            continue
         try:
             __import__(mod)
             pydeps[mod] = 'OK'
@@ -980,14 +1027,27 @@ def cmd_doctor(args: argparse.Namespace) -> int:  # pragma: no cover - environme
 
     # Summary printout
     print(json.dumps(report, indent=2))
+
     return 0
 
 def main(argv: Optional[list[str]] = None) -> int:
-    '''Main entry point for the CLI.'''
+    '''Main entry point for the CLI.
+    
+    Parameters
+    ----------
+    argv : Optional[list[str]]
+        Command-line arguments.
+
+    Returns
+    -------
+    int
+        Exit code (0 for success, 1 for failure).
+    '''
     
     argv = sys.argv[1:] if argv is None else argv
     parser = build_parser()
     args = parser.parse_args(argv)
+    
     return args.func(args)
 
 if __name__ == "__main__":

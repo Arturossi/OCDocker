@@ -66,7 +66,8 @@ def printv(message: str) -> None:
         print(message)
     return
 
-def print_info(message: str, force = False) -> None:
+
+def print_info(message: str, force: bool = False) -> None:
     '''Function to print info.
 
     Parameters
@@ -91,6 +92,7 @@ def print_info(message: str, force = False) -> None:
         log.info(msg)
         print(msg)
     return
+
 
 def print_success(message: str, force: bool = False) -> None:
     '''Print success. [DEPRECATED]
@@ -118,6 +120,7 @@ def print_success(message: str, force: bool = False) -> None:
         print(msg)
     return
 
+
 def print_warning(message: str, force: bool = False) -> None:
     '''Function to print warning. [DEPRECATED]
 
@@ -143,6 +146,7 @@ def print_warning(message: str, force: bool = False) -> None:
         log.warning(msg)
         print(msg)
     return
+
 
 def print_error(message: str, force: bool = False) -> None:
     '''Print error. [DEPRECATED]
@@ -171,6 +175,7 @@ def print_error(message: str, force: bool = False) -> None:
         print(msg)
     return
 
+
 def print_info_log(message: str, logfile:str, mode: str = 'a') -> None:
     '''Function to print info into log.
 
@@ -192,6 +197,7 @@ def print_info_log(message: str, logfile:str, mode: str = 'a') -> None:
     with open(logfile, mode) as f:
         f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] INFO: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.\n") # type: ignore
     return
+
 
 def print_success_log(message: str, logfile: str, mode: str = 'a') -> None:
     '''Function to print success into log.
@@ -215,6 +221,7 @@ def print_success_log(message: str, logfile: str, mode: str = 'a') -> None:
         f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] SUCCESS: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.\n") # type: ignore
     return
 
+
 def print_warning_log(message: str, logfile: str, mode: str = 'a') -> None:
     '''Function to print warning into log.
 
@@ -236,6 +243,7 @@ def print_warning_log(message: str, logfile: str, mode: str = 'a') -> None:
     with open(logfile, mode) as f:
         f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] WARNING: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.\n") # type: ignore
     return
+
 
 def print_error_log(message: str, logfile: str, mode: str = 'a') -> None:
     '''Function to print error into log.
@@ -259,7 +267,8 @@ def print_error_log(message: str, logfile: str, mode: str = 'a') -> None:
         f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] ERROR: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.\n") # type: ignore
     return
 
-def print_section(n: int, name: str, logName = "OCDocker_Progress.out") -> None:
+
+def print_section(n: int, name: str, logName: str = "OCDocker_Progress.out") -> None:
     '''Print the section header and write progress to the progress file.
 
     Parameters
@@ -301,6 +310,7 @@ def print_section(n: int, name: str, logName = "OCDocker_Progress.out") -> None:
                 f.write(f"\n{datetime.now().strftime('%H:%M:%S')}: {str(name)}...\n") # type: ignore
     return
 
+
 def section(n: int, name: str) -> str:
     '''Return the section header.
 
@@ -333,6 +343,7 @@ def section(n: int, name: str) -> str:
                          clrs['n'])
 
     return section_string
+
 
 def print_subsection(n: int, name: str, logName: str = "OCDocker_Progress.out") -> None:
     '''Print the subsection header in progress file.
@@ -373,6 +384,7 @@ def print_subsection(n: int, name: str, logName: str = "OCDocker_Progress.out") 
             f.write(f"{datetime.now().strftime('%H:%M:%S')}: {str(name)}...\n") # type: ignore
     return
 
+
 def subsection(n: int, name: str) -> str:
     '''Return the subsection header.
 
@@ -407,6 +419,7 @@ def subsection(n: int, name: str) -> str:
                             clrs['n'])
 
     return subsection_string
+
 
 def print_sorry()-> None:
     '''Function to print sorry message.

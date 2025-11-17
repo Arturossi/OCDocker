@@ -2,13 +2,13 @@
 
 # Description
 ###############################################################################
-""" Module with a helper to perform the optimization of the Neural Network
+''' Module with a helper to perform the optimization of the Neural Network
 parameters model using Optuna.
 
 It is imported as:
 
 import OCDocker.OCScore.Optimization.DNN as ocdnn
-"""
+'''
 
 # Imports
 ###############################################################################
@@ -24,6 +24,8 @@ from joblib import Parallel, delayed
 from multiprocessing import Pool
 from sklearn.decomposition import PCA
 from typing import Union
+
+
 
 import OCDocker.OCScore.Utils.Data as ocscoredata
 import OCDocker.OCScore.Utils.Workers as ocscoreworkers
@@ -51,6 +53,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 # Methods
 ###############################################################################
+
 
 def perform_seed_ablation_study_NN(
         X_train : np.ndarray, y_train : np.ndarray,
@@ -196,9 +199,12 @@ def perform_seed_ablation_study_NN(
                 ) for pid, seed in enumerate(split_seeds)
             ])
     else:
+        # User-facing error: invalid parallel backend
+        ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.") # type: ignore
         raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
 
     return None
+
 
 def perform_ablation_study_NN(
         X_train : pd.DataFrame, y_train : pd.DataFrame,
@@ -218,7 +224,7 @@ def perform_ablation_study_NN(
         output_size : int = 1,
         parallel_backend : str = "joblib",
         n_jobs : int = 1
-    ):
+    ) -> None:
     ''' Perform the ablation study for the Neural Network.
 
     Parameters
@@ -297,7 +303,8 @@ def perform_ablation_study_NN(
 
             # Get the masks that have already been evaluated
             evaluated_masks = trials['user_attrs_Feature_Mask'].tolist()
-        except:
+        except (AttributeError, KeyError, ImportError):
+            # Fallback if optuna study is not available or missing attributes
             evaluated_masks = []
         
         # Apply each feature mask to the full_mask
@@ -375,9 +382,12 @@ def perform_ablation_study_NN(
                 ) for pid, mask in enumerate(split_masks)
             ])
     else:
+        # User-facing error: invalid parallel backend
+        ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.") # type: ignore
         raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
 
     return None
+
 
 def optimize_NN(
         df_path: str,
@@ -627,6 +637,8 @@ def optimize_NN(
                                 ) for pid in range(num_processes_autoencoder)
                             ])
                     else:
+                        # User-facing error: invalid parallel backend
+                        ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.") # type: ignore
                         raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
 
             for name in ["SF", "LIG", "REC"]:
@@ -706,6 +718,8 @@ def optimize_NN(
                             ) for pid in range(num_processes_autoencoder)
                         ])
                 else:
+                    # User-facing error: invalid parallel backend
+                    ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.") # type: ignore
                     raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
 
             # Load the study

@@ -2,12 +2,12 @@
 
 # Description
 ###############################################################################
-""" Module to perform the optimization of the Transformer parameters model
+''' Module to perform the optimization of the Transformer parameters model
 using Optuna.
 
 It is imported as:
 import OCDocker.OCScore.Utils.StudyParser as ocstudy
-"""
+'''
 
 # Imports
 ###############################################################################
@@ -39,6 +39,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 # Methods
 ###############################################################################
+
 
 def parse_study_type(
         name : str,
@@ -102,6 +103,7 @@ def parse_study_type(
         return f"{ml_method} + {dimensional}"
     else:
         return ml_method
+
 
 def analyze_studies_old(
         snames : list[str],
@@ -239,8 +241,11 @@ def analyze_studies_old(
     # Return the DataFrame
     return results_df, results_df_auc, results_df_rmse
 
+
+
 import optuna
 import pandas as pd
+
 
 def analyze_studies(
     snames: list[str],
@@ -248,14 +253,14 @@ def analyze_studies(
     n_trials: int = 5,
     verbose: bool = False
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """
+    '''
     For each study, load trials, filter COMPLETE + dedupe,
     compute combined_metric = RMSE - AUC, then pull out
     top-n by RMSE (smallest), top-n by AUC (largest),
     and top-n by combined_metric (smallest).
     Ablation studies also get a 'features' column.
     Returns three DataFrames: df_rmse, df_auc, df_combined.
-    """
+    '''
 
     rmse_results = []
     auc_results = []

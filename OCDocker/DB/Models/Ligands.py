@@ -4,6 +4,7 @@ from OCDocker.DB.Models.Base import base
 
 import OCDocker.Ligand as ocl
 
+
 class Ligands(base):
     """ Define the Ligand table """
 

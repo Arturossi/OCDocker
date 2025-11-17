@@ -12,11 +12,14 @@ for Analysis workflows.
 ###############################################################################
 
 from __future__ import annotations
-from typing import List, Optional, Union
+import OCDocker.Error as ocerror
+from typing import Any, List, Optional, Union
 import numpy as np
 import pandas as pd
 import torch
 import shap
+
+
 
 # License
 ###############################################################################
@@ -41,10 +44,12 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Methods
 ###############################################################################
 
+
 def _cuda_device() -> torch.device:
     '''Return a CUDA device if available; otherwise CPU.'''
 
     return torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+
 
 def _squeeze_shap(values: Union[np.ndarray, List[np.ndarray]]) -> np.ndarray:
     '''Normalize SHAP outputs to a 2D array (n_samples, n_features).
@@ -74,6 +79,7 @@ def _squeeze_shap(values: Union[np.ndarray, List[np.ndarray]]) -> np.ndarray:
     if arr.ndim != 2:
         raise ValueError(f"Unexpected SHAP values shape: {arr.shape}")
     return arr
+
 
 def _stratified_indices(df: pd.DataFrame, n: int, by: Optional[List[str]], seed: int) -> np.ndarray:
     '''Draw up to n indices, stratified by the values of `by` columns.
@@ -119,8 +125,9 @@ def _stratified_indices(df: pd.DataFrame, n: int, by: Optional[List[str]], seed:
 
     return np.array(sorted(picks))
 
+
 def compute_shap_values(
-        neural,
+        neural: Any,
         X_background: pd.DataFrame,
         X_eval: pd.DataFrame,
         explainer: str = "deep",
@@ -178,6 +185,19 @@ def compute_shap_values(
         shap_values = deep_explainer.shap_values(torch.tensor(eval_np, dtype=torch.float32, device=device))
     elif explainer.lower() == "kernel":
         def model_predict(x_numpy: np.ndarray) -> np.ndarray:
+            '''Predict using the neural network model for SHAP KernelExplainer.
+            
+            Parameters
+            ----------
+            x_numpy : np.ndarray
+                Input feature array.
+            
+            Returns
+            -------
+            np.ndarray
+                Model predictions as a numpy array.
+            '''
+            
             x_tensor = torch.tensor(x_numpy, dtype=torch.float32, device=device)
             with torch.no_grad():
                 out = neural.NN(x_tensor).detach().cpu().numpy().squeeze()
@@ -185,6 +205,8 @@ def compute_shap_values(
         kernel_explainer = shap.KernelExplainer(model_predict, bkg_np)
         shap_values = kernel_explainer.shap_values(eval_np)
     else:
+        # User-facing error: invalid explainer type
+        ocerror.Error.value_error(f"Invalid explainer type: '{explainer}'. Must be 'deep' or 'kernel'.") # type: ignore
         raise ValueError("explainer must be 'deep' or 'kernel'")
     
     shap_2d = _squeeze_shap(shap_values) # type: ignore

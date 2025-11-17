@@ -4,11 +4,12 @@
 ###############################################################################
 '''
 Exercise CRUD helpers in DB.Models.Base using an in-memory SQLite session and
-the concrete Ligands model. This boosts coverage of Base methods without
-touching a real DB.
+the concrete Ligands model.
 '''
 
 from sqlalchemy.orm import sessionmaker, scoped_session
+
+import pytest
 
 import OCDocker.DB.Models.Base as base_mod
 from OCDocker.DB.Models.Base import Base
@@ -16,6 +17,7 @@ from OCDocker.DB.Models.Ligands import Ligands
 from OCDocker.DB.DBMinimal import create_engine
 
 
+@pytest.mark.order(49)
 def test_base_crud_on_ligands_sqlite_memory():
     # Prepare transient engine + session and patch into Base module
     engine = create_engine("sqlite:///:memory:")  # type: ignore[arg-type]

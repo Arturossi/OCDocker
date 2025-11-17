@@ -2,12 +2,12 @@
 
 # Description
 ###############################################################################
-""" This module provides functions to perform statistical tests on scoring data.
+''' This module provides functions to perform statistical tests on scoring data.
 
 It is imported as:
 
 import OCDocker.OCScore.Analysis.StatTests as ocstat
-"""
+'''
 
 # Imports
 ###############################################################################
@@ -49,6 +49,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 # Methods
 ###############################################################################
+
 
 def run_statistical_tests(df: pd.DataFrame, n_trials: int, colour_mapping: dict[str, tuple[float, float, float]], output_dir: str) -> None:
     '''
@@ -101,6 +102,7 @@ def run_statistical_tests(df: pd.DataFrame, n_trials: int, colour_mapping: dict[
     print("\nStatistical analysis complete. Results saved to 'csvs/' and 'plots/'.")
     plt.close('all')
 
+
 def load_pca_model(pickle_file: str) -> PCA:
     ''' Load PCA model from disk.
     
@@ -116,6 +118,7 @@ def load_pca_model(pickle_file: str) -> PCA:
 
     with open(pickle_file, 'rb') as f:
         return pickle.load(f)
+
 
 def compute_pca_feature_importance(pca_model: PCA, feature_names: list[str]) -> pd.DataFrame:
     '''
@@ -145,6 +148,7 @@ def compute_pca_feature_importance(pca_model: PCA, feature_names: list[str]) -> 
     }).sort_values(by='Importance', ascending=False)
 
     return importance_df
+
 
 def run_pca_analysis(
     data_matrix: pd.DataFrame,

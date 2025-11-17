@@ -17,7 +17,8 @@ import os
 
 from glob import glob
 
-from OCDocker.Initialise import *
+from OCDocker.Config import get_config
+import OCDocker.Error as ocerror
 
 import OCDocker.Processing.Dock as ocdock
 import OCDocker.Processing.Preprocessing.Prepare as ocprepare
@@ -70,10 +71,11 @@ def prepare(archive: str, overwrite: bool = False, spacing: float = 0.33, saniti
     '''
 
     # Find which kind of archive it will be
+    config = get_config()
     if archive.lower() == "dudez":
-        chosenArchive = dudez_archive
+        chosenArchive = config.dudez_archive
     elif archive.lower() == "pdbbind":
-        chosenArchive = pdbbind_archive
+        chosenArchive = config.pdbbind_archive
     else:
         ocprint.print_error(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}.")
         return None
@@ -88,6 +90,7 @@ def prepare(archive: str, overwrite: bool = False, spacing: float = 0.33, saniti
     ocprepare.prepare(paths, overwrite, archive, sanitize, spacing)
 
     return None
+
 
 def run_docking(archive: str, dockingAlgorithm: str, digestFormat: str = "json", overwrite: bool = False) -> int:
     '''Run docking.
@@ -115,9 +118,11 @@ def run_docking(archive: str, dockingAlgorithm: str, digestFormat: str = "json",
     # TODO: add support to custom databases
     # Find which kind of archive it will be
     if archive == "dudez":
-        chosenArchive = dudez_archive
+        config = get_config()
+        chosenArchive = config.dudez_archive
     elif archive == "pdbbind":
-        chosenArchive = pdbbind_archive
+        config = get_config()
+        chosenArchive = config.pdbbind_archive
     else:
         return ocerror.Error.not_supported_archive(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}.") # type: ignore
 

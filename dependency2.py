@@ -2,6 +2,7 @@ import pkgutil
 import os
 from graphviz import Digraph
 
+
 def print_package_structure(package_path, package_name, dot=None):
     if dot is None:
         dot = Digraph()
@@ -29,6 +30,7 @@ def print_package_structure(package_path, package_name, dot=None):
             print_package_structure(subpackage_path, modname, dot)
 
     return dot
+
 
 def create_local_package_structure_diagram(package_dir, output_format='png', engine='dot', rankdir='TB'):
     # Ensure the specified path is a directory

@@ -19,12 +19,13 @@ import oddt as od
 import pandas as pd
 
 from glob import glob
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union, Optional
 
 from oddt.scoring import scorer
 from oddt.virtualscreening import virtualscreening as vs
 
-from OCDocker.Initialise import *
+from OCDocker.Config import get_config
+import OCDocker.Error as ocerror
 
 import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
@@ -92,6 +93,7 @@ def __build_cmd(receptorPath: str, ligandPath: str, outputFile: str) -> Union[Li
 
     return cmd
 
+
 ## Public ##
 def get_models(outputPath: str) -> List[str]:
     '''Get the models from the output path.
@@ -111,6 +113,7 @@ def get_models(outputPath: str) -> List[str]:
     models = glob(f"{outputPath}/*.pickle")
 
     return models
+
 
 def run_oddt_from_cli(receptor: Union[ocr.Receptor, str], ligand: Union[ocl.Ligand, str], outputPath: str, overwrite: bool = False, logFile: str = "", cleanModels: bool = False) -> Union[int, Tuple[int, str]]:
     '''Run ODDT using the oddt_cli command. UNSTABLE FUNCTION DO NOT USE.
@@ -190,7 +193,8 @@ def run_oddt_from_cli(receptor: Union[ocr.Receptor, str], ligand: Union[ocl.Liga
         return cmd
     
     # Run the command
-    exitCode = ocrun.run(cmd, logFile = logFile, cwd = oddt_models_dir)
+    config = get_config()
+    exitCode = ocrun.run(cmd, logFile = logFile, cwd = config.oddt_models_dir)
 
     # If the models should be deleted
     if cleanModels:
@@ -203,6 +207,7 @@ def run_oddt_from_cli(receptor: Union[ocr.Receptor, str], ligand: Union[ocl.Liga
             ocff.safe_remove_file(model)
     
     return exitCode
+
 
 def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]], ligandName: str, outputPath: str, returnData: bool = True, overwrite: bool = False, cleanModels: bool = False) -> Union[int, pd.DataFrame]:
     '''Run ODDT programatically.
@@ -244,7 +249,8 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
         preparedLigandPath = [preparedLigandPath]
 
     # Get the models (only files)
-    models = [model for model in glob(f"{oddt_models_dir}/*.pickle") if os.path.isfile(model)]
+    config = get_config()
+    models = [model for model in glob(f"{config.oddt_models_dir}/*.pickle") if os.path.isfile(model)]
 
     # Check if are there any model
     if len(models) <= 0:
@@ -378,6 +384,7 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
     # Just return an ok code
     return ocerror.Error.ok() # type: ignore
 
+
 def df_to_dict(data: pd.DataFrame) -> Dict[str, Dict[str, float]]:
     '''Convert the data from a pandas dataframe to a dict.
 
@@ -399,7 +406,8 @@ def df_to_dict(data: pd.DataFrame) -> Dict[str, Dict[str, float]]:
     # Convert the dataframe to dict, one row per index
     return data.to_dict(orient = "index") # type: ignore
 
-def read_log(path: str) -> Union[pd.DataFrame, None]:
+
+def read_log(path: str) -> Optional[pd.DataFrame]:
     '''Read the oddt log path, returning the data from complexes.
 
     Parameters

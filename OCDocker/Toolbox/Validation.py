@@ -18,7 +18,7 @@ from typing import Union
 
 import OCDocker.Toolbox.Printing as ocprint
 
-from OCDocker.Initialise import *
+import OCDocker.Error as ocerror
 
 # License
 ###############################################################################
@@ -45,6 +45,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ## Private ##
 
 ## Public ##
+
 
 def is_algorithm_allowed(path: str) -> bool:
     '''Finds if the given dir is a folder from an allowed algorithm.
@@ -74,6 +75,7 @@ def is_algorithm_allowed(path: str) -> bool:
     # Allowed algorithms
     allowed = ["ap", "ac", "bi", "db", "km", "ms", "mb", "na", "op", "sc"]
     return path.split(os.path.sep).pop() in allowed
+
 
 def is_molecule_valid(molecule: str) -> bool:
     '''Check if a molecule is valid (protein or ligand).
@@ -110,7 +112,7 @@ def is_molecule_valid(molecule: str) -> bool:
                 _ = parser.get_structure("Please, be ok", molecule)
                 # If no problems occur, the molecule should be fine
                 return True
-            except:
+            except (OSError, IOError, ValueError, AttributeError, ImportError):
                 # Uh oh, some problem has been found
                 return False
         elif type(validate_obabel_extension(molecule)) == str:
@@ -131,7 +133,7 @@ def is_molecule_valid(molecule: str) -> bool:
                     try:
                         with open(molecule, "r") as f:
                             smi = f.read().strip().split()[0]
-                    except Exception:
+                    except (OSError, IOError, FileNotFoundError, IndexError):
                         return False
                     _ = rdkit.Chem.rdmolfiles.MolFromSmiles(smi, sanitize = True) # type: ignore
                 else:
@@ -139,11 +141,12 @@ def is_molecule_valid(molecule: str) -> bool:
                     return False
                 # If no problems occur, the molecule should be fine
                 return True
-            except Exception:
+            except (OSError, IOError, ValueError, AttributeError, ImportError):
                 # Uh oh, some problem has been found
                 return False
     # No file, so it is False
     return False
+
 
 def validate_digest_extension(digestPath: str, digestFormat: str) -> bool:
     """Validates the digest extension.
@@ -175,6 +178,7 @@ def validate_digest_extension(digestPath: str, digestFormat: str) -> bool:
             return False
         return True
     return True
+
 
 def validate_obabel_extension(path: str) -> Union[str, int]:
     '''Validate the input file extension to ensure the compability with obabel lib.

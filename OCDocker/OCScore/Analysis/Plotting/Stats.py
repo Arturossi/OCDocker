@@ -23,6 +23,8 @@ import scipy.stats as sstats
 
 from typing import Optional
 
+# No config needed - OCScore modules
+
 # License
 ###############################################################################
 '''
@@ -45,6 +47,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 # Methods
 ###############################################################################
+
 
 def plot_combined_metric_scatter(df: pd.DataFrame, n_trials: int, colour_mapping: dict[str, tuple[float, float, float]], output_dir: str, alpha: float = 0.9) -> None:
     '''
@@ -121,6 +124,7 @@ def plot_combined_metric_scatter(df: pd.DataFrame, n_trials: int, colour_mapping
     plt.savefig(f'{output_dir}/scatter_combined_metric_{n_trials}.png', bbox_inches = 'tight', dpi = 300)
     plt.close()
 
+
 def plot_boxplots(df: pd.DataFrame, n_trials: int, colour_mapping: dict[str, tuple[float, float, float]], output_dir: str, show_simple_consensus: bool = False) -> None:
     '''
     Generate enhanced boxplots of RMSE and AUC across methodologies, with group shading and mean lines.
@@ -142,6 +146,7 @@ def plot_boxplots(df: pd.DataFrame, n_trials: int, colour_mapping: dict[str, tup
     plot_df = df.copy()
     if not show_simple_consensus:
         plot_df = plot_df[plot_df['Methodology'] != 'Simple consensus']
+        plot_df = plot_df[plot_df['Methodology'] != 'Mean consensus']
 
     plt.figure(figsize = (16, 12))
     mean_line_rmse, mean_line_auc = None, None
@@ -194,6 +199,7 @@ def plot_boxplots(df: pd.DataFrame, n_trials: int, colour_mapping: dict[str, tup
     plt.savefig(f'{output_dir}/boxplots_rmse_auc_{n_trials}.png', dpi = 300)
     plt.close()
 
+
 def plot_barplots(df: pd.DataFrame, n_trials: int, colour_mapping: dict[str, tuple[float, float, float]], output_dir: str) -> None:
     '''
     Generate sorted barplots of mean RMSE and AUC across methodologies with annotations.
@@ -240,13 +246,16 @@ def plot_barplots(df: pd.DataFrame, n_trials: int, colour_mapping: dict[str, tup
     plt.savefig(f'{output_dir}/barplot_rmse_auc_{n_trials}.png')
     plt.close()
 
+
 def plot_scatterplot(
-        df_all: pd.DataFrame,
         df_rmse: pd.DataFrame,
         df_auc: pd.DataFrame,
+        df_all: pd.DataFrame,
         n_trials: int,
         colour_mapping: dict[str, tuple[float, float, float]],
-        output_dir: str
+        output_dir: str,
+        orientation: str = 'horizontal',
+        alpha: float = 0.9
     ) -> None:
     '''Create scatter plots of RMSE vs AUC for all methods and filtered subsets.
 
@@ -269,31 +278,117 @@ def plot_scatterplot(
         Dictionary mapping methodologies to colors.
     output_dir : str
         Directory to save the scatter plot image.
+    orientation : str, optional
+        Orientation of the scatter plot. Default is 'horizontal'. Options: 'horizontal', 'vertical'.
+    alpha : float, optional
+        Transparency for the markers. Default is 0.9.
+    
+    Raises
+    ------
+    ValueError
+        If the orientation parameter is not 'horizontal' or 'vertical'.
     '''
 
-    plt.figure(figsize=(18, 5))
-    panels = [(df_all, 'All (post-filter)'), (df_rmse, 'RMSE-filtered'), (df_auc, 'AUC-filtered')]
+    # Make orientation case-insensitive
+    orientation = orientation.lower()
+
+    if orientation == 'vertical':
+        plt.figure(figsize=(8, 14))
+    elif orientation == 'horizontal':
+        plt.figure(figsize=(18, 8))
+    else:
+        # User-facing error: invalid orientation
+        ocerror.Error.value_error(f"Invalid orientation: '{orientation}'. Must be 'horizontal' or 'vertical'.") # type: ignore
+        raise ValueError(f"Orientation must be 'horizontal' or 'vertical', got {orientation}.")
+
+    panels = [
+        (df_rmse, 'Error vs. AUC (Smallest Error)'), 
+        (df_auc, 'Error vs. AUC (Biggest AUC)'), 
+        (df_all, 'Error vs. AUC (Smallest Error - AUC)')
+    ]
 
     for i, (df, title) in enumerate(panels, start=1):
-        plt.subplot(1, 3, i)
+
+        df = df.copy()
+        df['AUC_adj'] = df['AUC'].apply(lambda x: 1 - x if x < 0.5 else x)
+        df['AUC_category'] = df['AUC'].apply(lambda x: '>= 0.5' if x >= 0.5 else '< 0.5')
+        df.loc[df['AUC_category'] == '< 0.5', 'AUC'] = df['AUC_adj']
+
+        if orientation == 'vertical':
+            plt.subplot(3, 1, i)
+        else:
+            plt.subplot(1, 3, i)
+
+        # Scatter for AUC ≥ 0.5
         sns.scatterplot(
-            data=df,
-            x='RMSE',
-            y='AUC',
-            hue='Methodology',
-            palette=colour_mapping,
-            alpha=0.9,
-            s=70,
-            legend=False,
+            data = df[df['AUC_category'] == '>= 0.5'],
+            x = 'RMSE',
+            y = 'AUC',
+            hue = 'Methodology',
+            palette = colour_mapping,
+            alpha = alpha,
+            s = 30,
+            legend = False,
         )
+
+        # Scatter for AUC < 0.5
+        sns.scatterplot(
+            data = df[df['AUC_category'] == '< 0.5'],
+            x ='RMSE',
+            y ='AUC',
+            hue = 'Methodology',
+            palette = colour_mapping,
+            alpha = alpha,
+            s = 50,
+            legend = False,
+        )
+
         plt.title(title)
         plt.grid(True, linestyle=':', linewidth=0.5)
         plt.xlabel('RMSE')
         plt.ylabel('AUC')
 
-    plt.tight_layout()
+     if orientation == 'vertical':
+        # Methodology legend
+        plt.figlegend(method_handles, method_labels, title = 'Methodology',
+                    loc = 'lower center', bbox_to_anchor = (0.5, 0.09), ncol = 5)
+
+        # Shape legend
+        plt.figlegend(shape_handles, ['AUC ≥ 0.5', 'AUC < 0.5 (adjusted)'], title = 'Marker Type',
+                    loc = 'lower center', bbox_to_anchor = (0.5, 0.03), ncol = 2)
+        plt.tight_layout(rect = (0, 0.18, 1, 1))
+    else:
+        # Methodology legend
+        plt.figlegend(method_handles, method_labels, title = 'Methodology',
+                    loc = 'lower center', bbox_to_anchor = (0.5, 0.09), ncol = 5)
+
+        # Shape legend
+        plt.figlegend(shape_handles, ['AUC ≥ 0.5', 'AUC < 0.5 (adjusted)'], title = 'Marker Type',
+                    loc = 'lower center', bbox_to_anchor = (0.5, 0.02), ncol = 2)
+
+    # Legends
+    method_labels = df['Methodology'].unique().tolist()
+    method_handles = [mlines.Line2D([0], [0], color = colour_mapping[m], lw = 4.1) for m in method_labels]
+    shape_handles = [
+        mlines.Line2D([0], [0], marker = 'o', color = 'w', label = 'AUC ≥ 0.5', markerfacecolor = 'gray', markersize = 10),
+        mlines.Line2D([0], [0], marker = '*', color = 'w', label = 'AUC < 0.5 (adjusted)', markerfacecolor = 'gray', markersize = 12)
+    ]
+
+    # Methodology legend
+    plt.figlegend(method_handles, method_labels, title = 'Methodology',
+                  loc = 'lower center', bbox_to_anchor = (0.5, 0.09), ncol = 5)
+
+    # Shape legend
+    plt.figlegend(shape_handles, ['AUC ≥ 0.5', 'AUC < 0.5 (adjusted)'], title = 'Marker Type',
+                  loc = 'lower center', bbox_to_anchor = (0.5, 0.02), ncol = 2)
+
+    if orientation == 'vertical':
+        plt.subplots_adjust(bottom=0.28)
+        plt.tight_layout(rect = (0, 0.25, 1, 1))
+        
     plt.savefig(f'{output_dir}/scatter_rmse_auc_panels_{n_trials}.png', dpi=300)
     plt.close()
+
 
 def plot_bar_with_significance(
         gh_df: pd.DataFrame,
@@ -327,6 +422,8 @@ def plot_bar_with_significance(
         # pingouin sometimes returns 'pval'/'pval_corr'; tolerate variants
         pcol = next((c for c in df.columns if c.startswith('pval')), None)
         if pcol is None:
+            # User-facing error: missing required data in DataFrame
+            ocerror.Error.data_not_found("Games-Howell dataframe must contain a p-value column (pval, pval_corr, etc.)") # type: ignore
             raise ValueError('Games-Howell dataframe must contain a p-value column.')
         df['pval'] = df[pcol]
 
@@ -343,6 +440,19 @@ def plot_bar_with_significance(
 
     # Annotate p-values and significance stars
     def stars(p: float) -> str:
+        '''Convert p-value to significance stars.
+        
+        Parameters
+        ----------
+        p : float
+            The p-value to convert.
+        
+        Returns
+        -------
+        str
+            Significance stars: '***' for p < 0.001, '**' for p < 0.01, '*' for p < 0.05, '' otherwise.
+        '''
+        
         return '***' if p < 0.001 else ('**' if p < 0.01 else ('*' if p < 0.05 else ''))
 
     for i, r in df.reset_index(drop=True).iterrows():
@@ -357,6 +467,7 @@ def plot_bar_with_significance(
     plt.tight_layout()
     plt.savefig(f"{output_dir}/games_howell_bar_{metric}.png", dpi=300)
     plt.close()
+
 
 def plot_heatmap(
         gh_df: pd.DataFrame,
@@ -382,6 +493,8 @@ def plot_heatmap(
     df = gh_df.copy()
     pcol = 'pval' if 'pval' in df.columns else next((c for c in df.columns if c.startswith('pval')), None)
     if pcol is None:
+        # User-facing error: missing required data in DataFrame
+        ocerror.Error.data_not_found("Games-Howell dataframe must contain a p-value column (pval, pval_corr, etc.)") # type: ignore
         raise ValueError('Games-Howell dataframe must contain a p-value column.')
     mat = df.pivot(index='A', columns='B', values=pcol)
     # Mirror to make a symmetric matrix, leaving diagonal as NaN
@@ -394,6 +507,7 @@ def plot_heatmap(
     plt.tight_layout()
     plt.savefig(f"{output_dir}/games_howell_heatmap_{metric}.png", dpi=300)
     plt.close()
+
 
 def plot_normality_and_variance_diagnostics(
         df: pd.DataFrame,
@@ -428,7 +542,8 @@ def plot_normality_and_variance_diagnostics(
         if x.size >= 3:
             try:
                 p_shap = sstats.shapiro(x).pvalue
-            except Exception:
+            except (ValueError, TypeError, AttributeError):
+                # Fallback to NaN if statistical test fails
                 p_shap = np.nan
         else:
             p_shap = np.nan
@@ -442,7 +557,8 @@ def plot_normality_and_variance_diagnostics(
     try:
         groups_nonempty = [g for g in groups if g.size >= 2]
         p_levene = sstats.levene(*groups_nonempty).pvalue if len(groups_nonempty) >= 2 else np.nan
-    except Exception:
+    except (ValueError, TypeError, AttributeError):
+        # Fallback to NaN if statistical test fails
         p_levene = np.nan
 
     # Plot two panels
@@ -465,6 +581,7 @@ def plot_normality_and_variance_diagnostics(
     plt.tight_layout()
     plt.savefig(f"{output_dir}/diagnostics_{metric}_{n_trials}.png", dpi=300)
     plt.close()
+
 
 def plot_pca_importance_barplot(
         importance_df: pd.DataFrame,
@@ -500,6 +617,7 @@ def plot_pca_importance_barplot(
     plt.savefig(f"{output_dir}/pca{pca_type}_importance_top{len(top)}_{n_trials}.png", dpi=300)
     plt.close()
 
+
 def plot_pca_importance_histogram(
         importance_df: pd.DataFrame,
         pca_type: str,
@@ -529,6 +647,7 @@ def plot_pca_importance_histogram(
     plt.savefig(f"{output_dir}/pca{pca_type}_importance_hist_{n_trials}.png", dpi=300)
     plt.close()
 
+
 def save_pca_importance_groups(
         importance_df: pd.DataFrame,
         pca_type: str,
@@ -555,6 +674,7 @@ def save_pca_importance_groups(
     df = importance_df.copy()
     df['Group'] = pd.cut(df['Importance'], bins=bins, labels=labels, include_lowest=True, duplicates='drop')
     df.to_csv(f"{output_dir}/pca{pca_type}_importance_groups_{n_trials}.csv", index=False)
+
 
 def save_pca_importance_bins(
         importance_df: pd.DataFrame,

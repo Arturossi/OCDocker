@@ -38,30 +38,125 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 class ErrorMeta(type):
-    """ Metaclass to add error methods to the Error class. """
+    """Metaclass to add error methods to the Error class.
+
+    This metaclass automatically adds error reporting methods to the Error class
+    based on the ErrorCode enum and ErrorMessages.messages dictionary.
+    """
 
     def __new__(cls, name: str, bases: Tuple[Any], attrs: Dict[str, Any]):
         ''' Add error methods to the Error class.
 
         Parameters
         ----------
-        name : string
-            The name of the class.
+        name : str
+            The name of the class being created.
         bases : tuple
             The base classes of the class.
         attrs : dict
             The attributes of the class.
+
+        Returns
+        -------
+        type
+            The newly created class with error methods added if it's the Error class.
         '''
 
+        # Create the class normally
+        new_class = super().__new__(cls, name, bases, attrs)
+        
         # Test if the class is the Error class
         if name == "Error":
-            new_class = super().__new__(cls, name, bases, attrs)
             new_class._add_error_methods() # type: ignore
-            return new_class
-        return None
+        
+        return new_class
+
 
 class ErrorCode(IntEnum):
-    """ Class with all error codes used in OCDocker. """
+    """Error codes used throughout the OCDocker codebase.
+
+    This enumeration defines all possible error codes that can be returned
+    by OCDocker functions and methods. Each error code corresponds to a
+    specific error condition and is used in conjunction with the Error
+    class for consistent error reporting.
+
+    Attributes
+    ----------
+    OK : int
+        No error occurred (success).
+    ABORT : int
+        The process has been aborted.
+    SKIP : int
+        The process has been skipped.
+    UNKNOWN : int
+        An unknown error has occurred.
+    FILE_EXISTS : int
+        A file already exists.
+    FILE_NOT_EXIST : int
+        A file does not exist.
+    WRONG_TYPE : int
+        A variable has the wrong type.
+    NOT_SET : int
+        A variable has not been set.
+    EMPTY : int
+        A variable is empty.
+    VALUE_ERROR : int
+        A variable has a value error.
+    SUBPROCESS : int
+        A subprocess error has occurred.
+    PARSE_MOLECULE : int
+        A molecule could not be parsed.
+    MALFORMED_MOLECULE : int
+        A molecule is malformed.
+    LIGAND_NOT_PREPARED : int
+        A ligand could not be prepared.
+    RECEPTOR_NOT_PREPARED : int
+        A receptor could not be prepared.
+    INVALID_MOLECULE_NAME : int
+        A molecule has an invalid name.
+    DOCKING_OBJECT_NOT_GENERATED : int
+        A docking object has not been generated.
+    RECEPTOR_OR_LIGAND_NOT_GENERATED : int
+        A receptor or ligand object has not been generated.
+    RECEPTOR_OR_LIGAND_DESCRIPTOR_NOT_EXIST : int
+        A receptor or ligand has no descriptor file.
+    NOT_SUPPORTED_DOCKING_ALGORITHM : int
+        The docking algorithm is not supported.
+    BINDING_SITE_NOT_FOUND : int
+        The binding site has not been found.
+    DOCKING_FAILED : int
+        The docking run has failed.
+    READ_DOCKING_LOG_ERROR : int
+        The docking log had problems being read.
+    NOT_SUPPORTED_ARCHIVE : int
+        The archive format is not supported.
+    UNSUPPORTED_SCORING_FUNCTION : int
+        The scoring function is not supported.
+    RESCORING_FAILED : int
+        The rescoring process has failed.
+    MISSING_ODDT_MODELS : int
+        No ODDt models are available.
+    UNSUPPORTED_CLUSTERING_ALGORITHM : int
+        An unsupported clustering algorithm is specified.
+    CLUSTER_NOT_CONVERGED : int
+        The clustering process has not converged.
+    EMPTY_CLUSTER : int
+        The cluster is empty.
+    DATABASE_NOT_CONNECTED : int
+        The database is not connected.
+    DATABASE_NOT_CREATED : int
+        The database has not been created.
+    ENGINE_NOT_CREATED : int
+        The engine has not been created.
+    SESSION_NOT_CREATED : int
+        The session has not been created.
+    DATA_NOT_FOUND : int
+        The data has not been found.
+    DATA_ALREADY_EXISTS : int
+        The data already exists.
+    MALFORMED_PAYLOAD : int
+        The payload is malformed.
+    """
 
     # Common errors
     OK = 0
@@ -135,8 +230,29 @@ class ErrorCode(IntEnum):
     DATA_ALREADY_EXISTS = 805
     MALFORMED_PAYLOAD = 806
 
+
 class ReportLevel(IntEnum):
-    """ Class with all report levels used in OCDocker. """ 
+    """Report levels for error and information messages in OCDocker.
+
+    This enumeration defines the severity levels for messages printed by
+    the Error class and other reporting mechanisms. Messages can be filtered
+    based on these levels to control verbosity.
+
+    Attributes
+    ----------
+    NONE : int
+        No output (value: 0).
+    ERROR : int
+        Error messages only (value: 1).
+    WARNING : int
+        Warning messages and above (value: 2).
+    INFO : int
+        Informational messages and above (value: 3).
+    SUCCESS : int
+        Success messages and above (value: 4).
+    DEBUG : int
+        Debug messages and above (value: 5).
+    """ 
 
     DEBUG = 5
     SUCCESS = 4
@@ -145,8 +261,13 @@ class ReportLevel(IntEnum):
     ERROR = 1
     NONE = 0
 
+
 class ErrorMethodFactory:
-    """ Factory to create methods to report errors. """
+    """Factory to create methods to report errors.
+
+    This class provides a factory method to dynamically create error reporting
+    methods for each ErrorCode, ensuring consistent error handling across the codebase.
+    """
 
     @staticmethod
     def create_error_method(code: ErrorCode, description: str, default_level: ReportLevel) -> Callable:
@@ -155,22 +276,23 @@ class ErrorMethodFactory:
         Parameters
         ----------
         code : ErrorCode
-            The error code.
-        description : string
+            The error code enum value.
+        description : str
             The description of the error.
         default_level : ReportLevel
-            The default level of the message to be printed, options are:
-                - ReportLevel.DEBUG
-                - ReportLevel.SUCCESS
-                - ReportLevel.INFO
-                - ReportLevel.WARNING
-                - ReportLevel.ERROR
-                - ReportLevel.NONE
+            The default level of the message to be printed. Options are:
+            - ReportLevel.DEBUG
+            - ReportLevel.SUCCESS
+            - ReportLevel.INFO
+            - ReportLevel.WARNING
+            - ReportLevel.ERROR
+            - ReportLevel.NONE
 
         Returns
         -------
         Callable
-            The method to report the error.
+            A callable function that reports the error with the specified code.
+            The function signature is: (message: str = "", level: ReportLevel = default_level) -> int
         '''
         
         # Creating the method
@@ -185,7 +307,21 @@ class ErrorMethodFactory:
         
         return error_method
 
+
 class ErrorMessages:
+    """Error message mappings for all error codes.
+
+    This class contains a dictionary mapping ErrorCode values to tuples of
+    (description, default_report_level) for consistent error messaging across
+    the OCDocker codebase.
+
+    Attributes
+    ----------
+    messages : dict
+        Dictionary mapping ErrorCode enum values to tuples of (str, ReportLevel).
+        Each tuple contains the error description and the default report level.
+    """
+    
     messages = {
         # Common errors
         ErrorCode.OK: ("no error appears", ReportLevel.SUCCESS),
@@ -260,8 +396,34 @@ class ErrorMessages:
         ErrorCode.MALFORMED_PAYLOAD: ("the payload is malformed", ReportLevel.ERROR),
     }
 
+
 class Error(metaclass = ErrorMeta):
-    '''Class to handle errors and standarize them across the whole code.'''
+    """Central error handling class for the OCDocker codebase.
+
+    This class provides a standardized way to report errors throughout the
+    codebase. Error methods are dynamically generated for each ErrorCode
+    enum value, allowing consistent error reporting with appropriate severity
+    levels.
+
+    The class uses the ErrorMeta metaclass to automatically create error
+    reporting methods based on the ErrorCode enumeration and ErrorMessages
+    dictionary.
+
+    Class Attributes
+    ----------
+    output_level : ReportLevel
+        Current output level for error messages. Messages below this level
+        will not be printed.
+    color : dict
+        Dictionary mapping ReportLevel values to ANSI color codes for
+        terminal output.
+
+    Examples
+    --------
+    >>> result = Error.file_not_exist("input.pdb")
+    >>> if result != ErrorCode.OK:
+    ...     # Handle error
+    """
 
     # Class attributes
     output_level = ReportLevel.INFO
@@ -274,10 +436,11 @@ class Error(metaclass = ErrorMeta):
         ReportLevel.DEBUG: "\033[1;95m",
     }
 
+    ## Private ##
+
     @classmethod
-    def _add_error_methods(cls):
-        ''' Add error methods to the Error class.
-        '''
+    def _add_error_methods(cls) -> None:
+        ''' Add error methods to the Error class.'''
         
         # Iterate through the ErrorCode enumeration
         for code in ErrorCode:
@@ -293,8 +456,10 @@ class Error(metaclass = ErrorMeta):
             # Add the static method to the Error class
             setattr(cls, f"{code.name.lower()}", static_error_method)
 
+    ## Public ##
+
     @classmethod
-    def set_output_level(cls, level: Union[ReportLevel, int]):
+    def set_output_level(cls, level: Union[ReportLevel, int]) -> None:
         ''' Set the output level of the error messages.
 
         Parameters
@@ -316,9 +481,9 @@ class Error(metaclass = ErrorMeta):
             try:
                 import OCDocker.Toolbox.Logging as oclogging  # type: ignore
                 oclogging.set_level_from_report(level)  # type: ignore
-            except Exception:
+            except (ImportError, AttributeError):
+                # Ignore if logging module is not available
                 pass
-            return None
         elif isinstance(level, int):
             # If the level is an int, check if it is valid
             if level >= ReportLevel.NONE and level <= ReportLevel.DEBUG:
@@ -326,16 +491,40 @@ class Error(metaclass = ErrorMeta):
                 try:
                     import OCDocker.Toolbox.Logging as oclogging  # type: ignore
                     oclogging.set_level_from_report(ReportLevel(level))  # type: ignore
-                except Exception:
+                except (ImportError, AttributeError):
+                    # Ignore if logging module is not available
                     pass
-                return None
             else:
                 raise ValueError(f"Invalid output level: {level}.")
         else:
             raise TypeError(f"Invalid type for output level: {type(level)}.")
 
     @classmethod
-    def get_output_level(cls):
+    def get_output_level(cls) -> ReportLevel:
+        '''Get the current output level for error messages.
+
+        Returns the current ReportLevel that determines which error messages
+        will be printed. Messages with a level below the current output level
+        will be suppressed.
+
+        Returns
+        -------
+        ReportLevel
+            The current output level. Can be one of:
+            - ReportLevel.DEBUG (5)
+            - ReportLevel.SUCCESS (4)
+            - ReportLevel.INFO (3)
+            - ReportLevel.WARNING (2)
+            - ReportLevel.ERROR (1)
+            - ReportLevel.NONE (0)
+
+        Examples
+        --------
+        >>> current_level = Error.get_output_level()
+        >>> print(f"Current level: {current_level}")
+        Current level: ReportLevel.INFO
+        '''
+        
         return cls.output_level
 
     @staticmethod
@@ -365,9 +554,6 @@ class Error(metaclass = ErrorMeta):
         # Return the current time
         return f"\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m"
 
-    ## Private ##
-
-    ## Public ##
     @staticmethod
     def print_message(message: str, level: ReportLevel) -> None:
         ''' Print a message with a specific level.
@@ -387,7 +573,7 @@ class Error(metaclass = ErrorMeta):
 
         # If there is no message, return
         if not message:
-            return None
+            return
 
         # Get the color for the level
         setcolor = Error.color.get(level, '\033[1;0m')
@@ -405,8 +591,6 @@ class Error(metaclass = ErrorMeta):
             print(f"{base_message} {detailed_message}")
         else:
             print(f"{base_message}")
-        
-        return None
 
     @staticmethod
     def report(code: ErrorCode, message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
@@ -430,19 +614,14 @@ class Error(metaclass = ErrorMeta):
         Error.print_message(message, level)
         return code.value
 
-    # Debug functions
     @staticmethod
     def print_attributes() -> None:
-        ''' Print the class attributes.
+        """Print all error codes and their attributes to stdout.
 
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        '''
+        Displays a formatted table showing all ErrorCode enum values,
+        their descriptions, default report levels, and error codes,
+        organized by error category (Common, File, Directory, etc.).
+        """
         
         # Mapping sections to their corresponding attributes and codes
         error_sections = {
@@ -528,5 +707,3 @@ class Error(metaclass = ErrorMeta):
             print(f"\n\t~~~~~~~~~~~~~~~~ {section_name} ~~~~~~~~~~~~~~~~")
             for error_description, error_code in errors:
                 print(f"\t - {error_description}: {error_code}")
-
-        return None

@@ -76,14 +76,18 @@ def print_args(program: str = "") -> None:
       - print_args('all')            # print all sections
     '''
 
+
     def _g(name, default='-'):
         return globals().get(name, default)
+
 
     def _p(label, value):
         try:
             print(f"{label:<28}: {value}")
         except Exception:
             print(f"{label:<28}: <unprintable>")
+
+
 
     prog = (program or "").strip().lower()
     show_all = prog in ("all", "*")
@@ -170,6 +174,7 @@ def print_args(program: str = "") -> None:
     if not prog and not show_all:
         print("")
     return None
+
 
 def clean_test_files(baseProtPath, baseLigPath, baseDecPath, baseCanPath) -> None:
     '''Rests the test_files folder to its original state

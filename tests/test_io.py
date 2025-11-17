@@ -1,5 +1,9 @@
+import pytest
+
 import OCDocker.Toolbox.IO as ocio
 
+
+@pytest.mark.order(67)
 def test_lazyread(tmp_path):
     lines = ["line1\n", "line2\n", "line3"]
     file_path = tmp_path / "example.txt"

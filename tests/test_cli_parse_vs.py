@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 
 from __future__ import annotations
+
+import pytest
+
 from OCDocker.CLI.__init__ import build_parser
 
 
+@pytest.mark.order(24)
 def test_cli_vs_parse_smoke():
     parser = build_parser()
     argv = [

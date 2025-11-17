@@ -2,13 +2,13 @@
 
 # Description
 ###############################################################################
-""" This module provides functions to evaluate the performance of docking methods
+''' This module provides functions to evaluate the performance of docking methods
     using various metrics, statistical tests, and visualizations.
 
 It is imported as:
 
 import OCDocker.OCScore.Analysis.PerformanceEvaluation as ocperf
-"""
+'''
 
 # Imports
 ###############################################################################
@@ -49,6 +49,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 # Methods
 ###############################################################################
+
 
 def get_all_lists() -> tuple[list[str], int, int]:
     '''
@@ -262,11 +263,13 @@ def get_all_lists() -> tuple[list[str], int, int]:
     
     return snames, len(ao_nn_list), len(ga_xgb_list)
 
+
 def setup_dirs() -> None:
     '''Ensure the output directories for plots and CSVs exist.'''
 
     os.makedirs('plots', exist_ok=True)
     os.makedirs('csvs', exist_ok=True)
+
 
 def load_combined_metrics(df_path: str, metrics: list[str] = ['mean', 'median', 'max', 'min', 'std', 'variance', 'sum', 'range', 'quantile_25', 'quantile_75', 'iqr', 'skewness', 'kurtosis']) -> pd.DataFrame:
     '''
@@ -313,6 +316,7 @@ def load_combined_metrics(df_path: str, metrics: list[str] = ['mean', 'median', 
 
     return final_metrics
 
+
 def get_feature_matrix(df_path: str) -> pd.DataFrame:
     '''
     Load and return the feature matrix for PCA from the dataset.
@@ -345,6 +349,7 @@ def get_feature_matrix(df_path: str) -> pd.DataFrame:
     feature_df = df.drop(columns=[col for col in exclude_cols if col in df.columns], errors='ignore')
 
     return feature_df
+
 
 def run_full_analysis(
         df_path: str,

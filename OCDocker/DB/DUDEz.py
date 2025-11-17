@@ -16,8 +16,6 @@ import pandas as pd
 
 from typing import Dict, Union
 
-from OCDocker.Initialise import *
-
 import OCDocker.DB.baseDB as ocbdb
 
 # License
@@ -73,6 +71,7 @@ def prepare(overwrite: bool = False, spacing: float = 0.33, sanitize: bool = Tru
     
     return None
 
+
 def run_gnina(overwrite: bool = False) -> int:
     '''Runs gnina in the whole database.
 
@@ -92,6 +91,7 @@ def run_gnina(overwrite: bool = False) -> int:
     '''
 
     return ocbdb.run_docking("dudez", "gnina", overwrite = overwrite)
+
 
 def run_vina(overwrite: bool = False) -> int:
     '''Runs vina in the whole database.
@@ -113,6 +113,7 @@ def run_vina(overwrite: bool = False) -> int:
 
     return ocbdb.run_docking("dudez", "vina", overwrite = overwrite)
 
+
 def run_smina(overwrite: bool = False) -> int:
     '''Runs smina in the whole database.
 
@@ -132,6 +133,7 @@ def run_smina(overwrite: bool = False) -> int:
     '''
 
     return ocbdb.run_docking("dudez", "smina", overwrite = overwrite)
+
 
 def run_plants(overwrite: bool = False) -> int:
     '''Runs PLANTS in the whole database.

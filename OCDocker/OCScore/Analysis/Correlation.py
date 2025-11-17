@@ -2,14 +2,14 @@
 
 # Description
 ###############################################################################
-""" This module provides correlation analysis utilities for RMSE and AUC metrics.
+''' This module provides correlation analysis utilities for RMSE and AUC metrics.
 It computes and visualizes Pearson correlations across methodologies and optionally
 includes raw and consensus scores.
 
 Usage:
 
 import OCDocker.OCScore.Analysis.Correlation as occorrana
-"""
+'''
 
 # Imports
 ###############################################################################
@@ -22,6 +22,7 @@ from typing import Optional
 
 # Functions
 ###############################################################################
+
 
 def correlation_analysis(
     results_df: pd.DataFrame,

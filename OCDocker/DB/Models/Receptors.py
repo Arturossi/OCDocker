@@ -4,6 +4,7 @@ from OCDocker.DB.Models.Base import base
 
 import OCDocker.Receptor as ocr
 
+
 class Receptors(base):
     """ Define the Receptor table """
     

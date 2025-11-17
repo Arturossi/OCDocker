@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 import pytest
 
+
 @pytest.fixture
 def docking_modules(monkeypatch):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -16,11 +17,15 @@ def docking_modules(monkeypatch):
 
     ligand_mod = types.ModuleType('OCDocker.Ligand')
     class Ligand: pass
+
+
     ligand_mod.Ligand = Ligand # type: ignore
     monkeypatch.setitem(sys.modules, 'OCDocker.Ligand', ligand_mod)
 
     receptor_mod = types.ModuleType('OCDocker.Receptor')
     class Receptor: pass
+
+
     receptor_mod.Receptor = Receptor # type: ignore
     monkeypatch.setitem(sys.modules, 'OCDocker.Receptor', receptor_mod)
 
@@ -53,6 +58,8 @@ def docking_modules(monkeypatch):
         with open(file_name, 'r', encoding=decode) as f:
             for line in reversed(f.read().splitlines()):
                 yield line
+
+
     io_mod.lazyread_reverse_order_mmap = lazyread_reverse_order_mmap # type: ignore
     monkeypatch.setitem(sys.modules, 'OCDocker.Toolbox.IO', io_mod)
 
@@ -70,6 +77,8 @@ def docking_modules(monkeypatch):
     for mod in ['OCDocker.Docking.Vina', 'OCDocker.Docking.Smina']:
         sys.modules.pop(mod, None)
 
+
+@pytest.mark.order(85)
 def test_vina_log_parsing(docking_modules, tmp_path):
     ocvina, _ = docking_modules
     log_file = tmp_path / "vina.log"
@@ -77,10 +86,14 @@ def test_vina_log_parsing(docking_modules, tmp_path):
         "header\n-----+------------+----------+----------+\n" \
         "    1 -8.0 0.0 0.0\n    2 -7.5 1.0 2.0\n"
     )
+    from OCDocker.Config import get_config
+    config = get_config()
+    vina_scoring = config.vina.scoring
+    
     result = ocvina.read_log(str(log_file))
     expected = {
-        1: {ocvina.vina_scoring: "-8.0"},
-        2: {ocvina.vina_scoring: "-7.5"},
+        1: {vina_scoring: "-8.0"},
+        2: {vina_scoring: "-7.5"},
     }
     assert result == expected
 
@@ -92,6 +105,7 @@ def test_vina_log_parsing(docking_modules, tmp_path):
     assert affinity == -8.3
 
 
+@pytest.mark.order(86)
 def test_smina_log_parsing(docking_modules, tmp_path):
     _, ocsmina = docking_modules
     log_file = tmp_path / "smina.log"
@@ -99,8 +113,12 @@ def test_smina_log_parsing(docking_modules, tmp_path):
         "header\n-----+------------+----------+----------+\n" \
         "    1 -6.0 0.0 0.0\n"
     )
+    from OCDocker.Config import get_config
+    config = get_config()
+    smina_scoring = config.smina.scoring
+    
     result = ocsmina.read_log(str(log_file))
-    expected = {1: {ocsmina.smina_scoring: "-6.0"}}
+    expected = {1: {smina_scoring: "-6.0"}}
     assert result == expected
 
     rescoring = tmp_path / "smina_res.log"

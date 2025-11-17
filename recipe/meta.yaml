@@ -17,43 +17,36 @@ build:
 
 requirements:
   host:
-    - python =3.11
+    - python >=3.9
     - pip
-    - setuptools ==80.8.0
+    - setuptools >=80
 
   run:
-    - python >=3.9,<3.12
-    - rdkit ==2024.09.1
-    - pandas ==2.2.3
-    - scikit-learn ==1.5.2
-    - seaborn ==0.13.2
-    - matplotlib ==3.9.2
-    - scipy ==1.14.1
-    - openbabel ==3.1.1
-    - numpy ==1.26.4
-    - optuna ==3.6.1
-    - optuna-dashboard ==0.16.2
-    - optuna-integration ==4.0.0
-    - pingouin ==0.5.5
-    - pytorch ==2.4.1
-    - torchaudio ==2.4.1
-    - torchvision ==0.19.1
-    - xgboost ==2.1.1
-    - lime ==0.2.0.1
-    - pyyaml ==6.0.2
-    - joblib ==1.4.2
-    - biopython ==1.84
-    - dcor ==0.6
-    - fsspec ==2024.10.0
-    - numba ==0.60.0
-    - python-graphviz ==0.20.3
-    - pandas-flavor ==0.6.0
-    - scikit-image ==0.24.0
-    - statsmodels ==0.14.3
-    - xarray ==2024.10.0
-    - pillow ==10.4.0
-    - sphinx ==8.2.3
-    - setuptools-scm ==8.1.0
+    - python >=3.9
+    - rdkit
+    - pandas >=2.2
+    - scikit-learn >=1.5
+    - seaborn
+    - matplotlib
+    - scipy >=1.14
+    - openbabel
+    - numpy >=1.26
+    - optuna
+    - pingouin
+    - pytorch >=2.4
+    - torchaudio >=2.4
+    - torchvision >=0.19
+    - xgboost >=2.1
+    - lime
+    - pyyaml
+    - joblib
+    - biopython
+    - dcor
+    - fsspec
+    - numba >=0.60
+    - python-graphviz
+    - torchsummary
+    - torchviz
 
 about:
   home: https://github.com/Arturossi/OCDocker

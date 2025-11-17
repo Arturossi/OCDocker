@@ -20,6 +20,7 @@ Submodules
 .. toctree::
    :maxdepth: 4
 
+   OCDocker.Config
    OCDocker.Error
    OCDocker.Initialise
    OCDocker.Ligand

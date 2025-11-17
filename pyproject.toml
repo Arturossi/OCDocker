@@ -67,6 +67,7 @@ ocdocker = "OCDocker.CLI:main"
 dev = [
   "pytest",
   "pytest-cov",
+  "mypy>=1.0.0",
 ]
 docs = [
   "sphinx",

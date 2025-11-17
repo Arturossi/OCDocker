@@ -12,11 +12,28 @@ LOGGER = logging.getLogger("OCScore.SHAP.data")
 
 @dataclass
 class DataHandles:
+    '''Data container for SHAP analysis datasets.
+    
+    Attributes
+    ----------
+    X_train : pd.DataFrame
+        Training feature matrix.
+    X_val : pd.DataFrame
+        Validation feature matrix.
+    X_test : pd.DataFrame
+        Test feature matrix.
+    y_val : np.ndarray
+        Validation target values.
+    feature_names : List[str]
+        List of feature column names.
+    '''
+    
     X_train: pd.DataFrame
     X_val: pd.DataFrame
     X_test: pd.DataFrame
     y_val: np.ndarray
     feature_names: List[str]
+
 
 def load_and_prepare_data(
     df_path: str,
@@ -26,6 +43,29 @@ def load_and_prepare_data(
     use_pdb_train: bool = True,
     random_seed: int = 42,
 ) -> DataHandles:
+    '''Load and prepare datasets for SHAP analysis.
+    
+    Parameters
+    ----------
+    df_path : str
+        Path to the main dataframe file.
+    base_models_folder : str
+        Base path to the models folder.
+    study_number : int
+        Study number identifier.
+    use_pca : bool, optional
+        Whether to use PCA-transformed features. Default is False.
+    use_pdb_train: bool, optional
+        Whether to use PDBbind training data. Default is True.
+    random_seed : int, optional
+        Random seed for reproducibility. Default is 42.
+    
+    Returns
+    -------
+    DataHandles
+        Container with train/val/test feature matrices, validation targets, and feature names.
+    '''
+    
     LOGGER.info("Loading dataframes and preprocessed features")
     _df_dudez, _df_pdbbind, score_columns = ocscoredata.preprocess_df(df_path)
 

@@ -17,10 +17,10 @@ import shutil
 import subprocess
 
 import OCDocker.Toolbox.Printing as ocprint
+import OCDocker.Error as ocerror
 
 from typing import List, Tuple, Union, Optional
 
-from OCDocker.Initialise import *
 
 # License
 ###############################################################################
@@ -85,7 +85,8 @@ def run(cmd: List[str], logFile: str = "", cwd: str = "", timeout: Optional[int]
         try:
             timeout_env = int(os.getenv("OCDOCKER_TIMEOUT", "0"))
             timeout = timeout_env if timeout_env > 0 else None
-        except Exception:
+        except (ValueError, TypeError):
+            # Ignore invalid timeout values
             timeout = None
 
     # Validate executable availability (avoid PermissionError on empty string)
@@ -117,6 +118,25 @@ def run(cmd: List[str], logFile: str = "", cwd: str = "", timeout: Optional[int]
     if proc.returncode != 0:
         return ocerror.Error.subprocess(message = f"The command '{' '.join(cmd)}' has not been executed successfully!", level = ocerror.ReportLevel.ERROR), proc.stderr.decode("utf-8")
     return ocerror.Error.ok()
+
+
+def is_tool_available(exe: str) -> bool:
+    '''Check if a tool executable is available.
+    
+    Parameters
+    ----------
+    exe : str
+        Path to the executable (can be absolute or command name)
+        
+    Returns
+    -------
+    bool
+        True if the executable is available, False otherwise
+    '''
+    
+    if not exe:
+        return False
+    return (os.path.isabs(exe) and os.path.isfile(exe) and os.access(exe, os.X_OK)) or (shutil.which(exe) is not None)
 
 
 ### Special functions

@@ -8,6 +8,7 @@ import pytest
 class DummyEngine:
     pass
 
+
 class DummyURL:
     @classmethod
     def create(cls, drivername, database=None):
@@ -16,17 +17,22 @@ class DummyURL:
         inst.database = database # type: ignore
         return inst
 
-def dummy_create_engine(url, echo=False):
+
+def dummy_create_engine(url, echo=False, pool_size=None, max_overflow=None, pool_timeout=None, pool_recycle=None, pool_pre_ping=None, **kwargs):
     return DummyEngine()
+
 
 def dummy_sessionmaker(bind=None):
     def factory():
         return object()
+
     return factory
+
 
 class DummyScopedSession:
     def __init__(self, factory):
         self.factory = factory
+
 
 @pytest.fixture()
 def dbminimal(monkeypatch):
@@ -39,6 +45,7 @@ def dbminimal(monkeypatch):
     engine_base.Engine = DummyEngine # type: ignore
     engine_url = types.ModuleType("sqlalchemy.engine.url")
     engine_url.URL = DummyURL # type: ignore
+    engine_url.make_url = lambda url: url if isinstance(url, DummyURL) else DummyURL.create("sqlite", url) # type: ignore
     engine_mod.base = engine_base # type: ignore
     engine_mod.url = engine_url # type: ignore
     sqlalchemy.engine = engine_mod # type: ignore
@@ -56,8 +63,10 @@ def dbminimal(monkeypatch):
     monkeypatch.setitem(sys.modules, "sqlalchemy.orm", orm_mod)
 
     sqla_utils = types.ModuleType("sqlalchemy_utils")
+    
     def dummy_create_database(url):
         dummy_create_database.called = True
+
     dummy_create_database.called = False
     sqla_utils.create_database = dummy_create_database # type: ignore
     sqla_utils.database_exists = lambda url: True # type: ignore
@@ -80,6 +89,7 @@ def dbminimal(monkeypatch):
     return module
 
 
+@pytest.mark.order(50)
 def test_create_engine_returns_engine(dbminimal):
     dbm = dbminimal
     url = dbm.URL.create("sqlite+pysqlite", database=":memory:")
@@ -87,11 +97,13 @@ def test_create_engine_returns_engine(dbminimal):
     assert isinstance(engine, dbm.Engine)
 
 
+@pytest.mark.order(51)
 def test_create_session_none_returns_none(dbminimal):
     dbm = dbminimal
     assert dbm.create_session(None) is None
 
 
+@pytest.mark.order(52)
 def test_create_session_returns_scoped(dbminimal):
     dbm = dbminimal
     url = dbm.URL.create("sqlite+pysqlite", database=":memory:")
@@ -100,6 +112,7 @@ def test_create_session_returns_scoped(dbminimal):
     assert isinstance(session, dbm.scoped_session)
 
 
+@pytest.mark.order(53)
 def test_create_database_if_not_exists(monkeypatch, dbminimal):
     dbm = dbminimal
     url = dbm.URL.create("sqlite+pysqlite", database=":memory:")

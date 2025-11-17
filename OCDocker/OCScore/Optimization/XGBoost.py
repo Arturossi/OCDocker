@@ -2,13 +2,13 @@
 
 # Description
 ###############################################################################
-""" Module with a helper to perform the optimization of the Extreme Gradient
+''' Module with a helper to perform the optimization of the Extreme Gradient
 Boost (XGBoost) parameters model using Optuna.
 
 It is imported as:
 
 import OCDocker.OCScore.Optimization.XGBoost as ocxgb
-"""
+'''
 
 # Imports
 ###############################################################################
@@ -19,6 +19,8 @@ from joblib import Parallel, delayed
 from multiprocessing import Pool
 from sklearn.decomposition import PCA
 from typing import Union
+
+
 
 import OCDocker.OCScore.Utils.Data as ocscoredata
 import OCDocker.OCScore.Utils.Workers as ocscoreworkers
@@ -46,6 +48,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 # Methods
 ###############################################################################
+
 
 def optimize_XGB(
         df_path: str,
@@ -215,6 +218,8 @@ def optimize_XGB(
                     ) for i in range(num_processes_pre_XGB)
                 ])
         else:
+            # User-facing error: invalid parallel backend
+            ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.") # type: ignore
             raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
 
         # Load the study
@@ -291,6 +296,8 @@ def optimize_XGB(
                 ) for i in range(num_processes_GA)
                 ])
         else:
+            # User-facing error: invalid parallel backend
+            ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.") # type: ignore
             raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
 
         # Load the study
@@ -381,6 +388,8 @@ def optimize_XGB(
                     ) for i in range(num_processes_XGB)
                 ])
         else:
+            # User-facing error: invalid parallel backend
+            ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.") # type: ignore
             raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
 
     return None

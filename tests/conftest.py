@@ -1,23 +1,13 @@
-#!/usr/bin/env python3
+"""Pytest configuration and shared fixtures for OCDocker tests.
 
-# Description
-###############################################################################
-'''
-Pytest configuration: session-level cleanup of common, top-level artifacts
-that may be produced by tests when run from the repo root.
+This module provides:
+- Automatic cleanup of test files before and after test runs
+- Shared fixtures used across multiple test modules
+"""
 
-We only remove directories that did not exist before the test session and are
-known to be ephemeral (e.g., plots/, csvs/). This avoids deleting any user
-data that predates the test run.
-'''
-
-# Imports
-###############################################################################
-
-from __future__ import annotations
-from pathlib import Path
 import os
 import shutil
+from pathlib import Path
 import pytest
 
 # License
@@ -28,153 +18,127 @@ Authors: Rossi, A.D.; Torres, P.H.M.
 Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
-
-This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
-developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
-All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
-to formal authorization from UFRJ. See the LICENSE file for details.
-
-Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
-
-# Classes
 ###############################################################################
 
-# Methods
-###############################################################################
-
-@pytest.fixture(scope="session", autouse=True)
-def _cleanup_generated_top_level_dirs():
-    '''Record selected top-level dirs before tests and remove if newly created.'''
-
-    repo_root = Path(__file__).resolve().parent.parent
-
-    # Common top-level artifacts
-    candidates = [
-        repo_root / "plots",
-        repo_root / "csvs",
-        repo_root / "ocdocker_out",
-    ]
-    existed_before = {p: p.exists() for p in candidates}
-
-    # Docking artifacts under test_files (created by PLANTS tests)
-    tf = repo_root / "test_files" / "test_ptn1"
-    lig_dir = tf / "compounds" / "ligands" / "ligand"
-    plants_dir = lig_dir / "plantsFiles"
-    # Engine-specific output dirs used across tests
-    vina_dir = lig_dir / "vinaFiles"
-    smina_dir = lig_dir / "sminaFiles"
-    plant_files = [
-        # prepared structures (mol2/pdbqt)
-        tf / "prepared_receptor.mol2",
-        tf / "prepared_receptor.pdbqt",
-        lig_dir / "prepared_ligand.mol2",
-        lig_dir / "prepared_ligand.pdbqt",
-        lig_dir / "ligand.mol2",
-        lig_dir / "ligand_tmp.mol",
-        # descriptors
-        tf / "test_receptor_descriptors.json",
-        lig_dir / "test_ligand_descriptors.json",
-        lig_dir / "ligand_test_descriptors.json",
-        # engine outputs/configs
-        vina_dir / "vina_config.txt",
-        vina_dir / "vina_out.pdbqt",
-        smina_dir / "smina_config.txt",
-        smina_dir / "smina_out.pdbqt",
-        smina_dir / "prepared_ligand.pdbqt",
-        # PLANTS config
-        plants_dir / "plants_config.txt",
-    ]
-    file_existed_before = {p: p.exists() for p in plant_files}
-    # Track descriptor JSONs present before tests to remove only new ones
-    desc_before = {p.name for p in lig_dir.glob("*_descriptors.json")}
-    dir_existed_before = {
-        plants_dir: plants_dir.exists(),
-        vina_dir: vina_dir.exists(),
-        smina_dir: smina_dir.exists(),
-    }
-
-    yield
-
-    # Remove top-level dirs that were created by this test session
-    for p, existed in existed_before.items():
-        if not existed and p.exists():
-            try:
-                shutil.rmtree(p, ignore_errors=True)
-            except Exception:
-                pass
-
-    # Remove engine-specific dirs if created during tests
-    for d, existed in dir_existed_before.items():
-        if not existed and d.exists():
-            try:
-                shutil.rmtree(d, ignore_errors=True)
-            except Exception:
-                pass
-
-    # Remove generated docking files if they did not exist before
-    for f, existed in file_existed_before.items():
-        if not existed and f.exists():
-            try:
-                f.unlink()
-            except Exception:
-                pass
-
-    # Remove any newly created descriptor JSONs under the ligand directory
-    try:
-        for p in lig_dir.glob("*_descriptors.json"):
-            if p.name not in desc_before:
-                try:
-                    p.unlink()
-                except Exception:
-                    pass
-    except Exception:
-        pass
-
-    # As a final safeguard, attempt to remove a known small set of test artifacts
-    # even if they existed before (they are safe to re-generate in tests).
-    safe_always_remove = [
-        plants_dir / "plants_config.txt",
-        lig_dir / "prepared_ligand.pdbqt",
-        lig_dir / "prepared_ligand.mol2",
-    ]
-    for f in safe_always_remove:
-        try:
-            if f.exists():
-                f.unlink()
-        except Exception:
-            pass
-
-    # Also purge any descriptor JSONs in the ligand directory unconditionally
-    try:
-        for p in lig_dir.glob("*_descriptors.json"):
-            try:
-                p.unlink()
-            except Exception:
-                pass
-    except Exception:
-        pass
+def pytest_configure(config):
+    """Configure pytest hooks for test file cleanup."""
+    pass
 
 
 @pytest.fixture(scope="session", autouse=True)
-def _force_sqlite_backend_for_tests(tmp_path_factory):
-    """Force OCDocker to use a temporary SQLite file during tests.
-
-    Ensures no MySQL connections/tables are created and the SQLite file is
-    removed after the session ends.
+def cleanup_test_files():
+    """Clean up test files before and after test runs to ensure clean state.
+    
+    This fixture runs automatically before and after all tests and cleans up:
+    - Generated output files from previous test runs
+    - Temporary directories
+    - Log files
+    - Config files
+    - Descriptor JSON files
     """
-
-    db_dir = tmp_path_factory.mktemp("ocdocker_db")
-    db_file = db_dir / "ocdocker.db"
-    # Prefer test-local sqlite
-    os.environ.setdefault("OCDOCKER_USE_SQLITE", "1")
-    os.environ["OCDOCKER_SQLITE_PATH"] = str(db_file)
-
+    # Get the project root (assuming tests are in tests/ directory)
+    project_root = Path(__file__).resolve().parent.parent
+    test_files_dir = project_root / "test_files"
+    
+    # List of patterns/directories to clean
+    # Note: We exclude box files and input files since they are test fixtures
+    cleanup_patterns = [
+        "**/*.pdbqt",
+        "**/*.mol2",
+        "**/*plantsFiles*",
+        "**/*plants_config.txt",
+        "**/*vina_config.txt",
+        "**/*smina_config.txt",
+        "**/*.log",
+        "**/run/",
+        "**/*_descriptors.json",
+        "**/*_tmp.mol",
+    ]
+    
+    # Files/directories to explicitly exclude from cleanup (test fixtures)
+    exclude_patterns = [
+        "**/boxes/",
+        "**/ligand.smi",
+        "**/receptor.pdb",
+        "**/receptor.cif",
+    ]
+    
+    # Helper function to check if path should be excluded
+    def should_exclude(path: Path) -> bool:
+        """Check if a path matches any exclusion pattern."""
+        path_str = str(path)
+        # Check if path is within any boxes directory
+        if "/boxes/" in path_str or path_str.endswith("/boxes") or path.name == "boxes":
+            return True
+        # Check if path is a box file
+        if path.name.startswith("box") and path.suffix == ".pdb":
+            return True
+        # Check other exclusion patterns
+        for exclude_pattern in exclude_patterns:
+            # Convert glob pattern to check
+            if "**" in exclude_pattern:
+                pattern = exclude_pattern.replace("**", "")
+                if pattern.startswith("/"):
+                    pattern = pattern[1:]
+                if pattern in path_str or path_str.endswith(pattern):
+                    return True
+            elif path_str.endswith(exclude_pattern) or path.name == exclude_pattern:
+                return True
+        return False
+    
+    # Clean up files matching patterns BEFORE tests
+    if test_files_dir.exists():
+        for pattern in cleanup_patterns:
+            for path in test_files_dir.glob(pattern):
+                # Skip if path matches exclusion patterns
+                if should_exclude(path):
+                    continue
+                try:
+                    if path.is_file():
+                        path.unlink()
+                    elif path.is_dir():
+                        shutil.rmtree(path, ignore_errors=True)
+                except (OSError, PermissionError, FileNotFoundError):
+                    # Ignore errors during cleanup
+                    pass
+    
+    # Yield control to tests
     yield
+    
+    # Clean up files matching patterns AFTER tests
+    if test_files_dir.exists():
+        for pattern in cleanup_patterns:
+            for path in test_files_dir.glob(pattern):
+                # Skip if path matches exclusion patterns
+                if should_exclude(path):
+                    continue
+                try:
+                    if path.is_file():
+                        path.unlink()
+                    elif path.is_dir():
+                        shutil.rmtree(path, ignore_errors=True)
+                except (OSError, PermissionError, FileNotFoundError):
+                    # Ignore errors during cleanup
+                    pass
 
-    # Cleanup sqlite file
-    try:
-        if db_file.exists():
-            db_file.unlink()
-    except Exception:
-        pass
+
+@pytest.fixture(autouse=True)
+def ensure_clean_test_state(tmp_path):
+    """Ensure each test starts with a clean temporary directory.
+    
+    This fixture automatically runs before each test and ensures
+    that the tmp_path is clean and ready for use.
+    """
+    # Clear any existing files in tmp_path
+    if tmp_path.exists():
+        for item in tmp_path.iterdir():
+            try:
+                if item.is_file():
+                    item.unlink()
+                elif item.is_dir():
+                    shutil.rmtree(item, ignore_errors=True)
+            except (OSError, PermissionError):
+                pass
+    
+    yield tmp_path

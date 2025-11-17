@@ -24,6 +24,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+
+
 # License
 ###############################################################################
 '''
@@ -47,6 +49,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Methods
 ###############################################################################
 
+
 def prop_delta_2xk(contingency: pd.DataFrame) -> pd.DataFrame:
     '''For a 2xK contingency table, return per-category proportion deltas.
 
@@ -66,6 +69,8 @@ def prop_delta_2xk(contingency: pd.DataFrame) -> pd.DataFrame:
 
     # Validate shape: function expects exactly 2 rows (absence/presence)
     if contingency.shape[0] != 2:
+        # User-facing error: invalid contingency table shape
+        ocerror.Error.value_error(f"Invalid contingency table shape: expected 2 rows, got {contingency.shape[0]}. Contingency must be 2xK.") # type: ignore
         raise ValueError("contingency must be 2xK.")
     props = contingency.div(contingency.sum(axis=1).replace(0, np.nan), axis=0).fillna(0)
     
@@ -80,6 +85,7 @@ def prop_delta_2xk(contingency: pd.DataFrame) -> pd.DataFrame:
     
     # Return table with explicit column names
     return delta.to_frame("prop_delta").reset_index(names="MetricCategory") # type: ignore
+
 
 def plot_prop_delta(contingency: pd.DataFrame, title: str = 'Proportion delta (1 - 0)', outpath: Optional[str] = None) -> None:
     '''Diverging bar chart of proportion deltas across metric categories.
@@ -121,6 +127,7 @@ def plot_prop_delta(contingency: pd.DataFrame, title: str = 'Proportion delta (1
     if outpath:
         plt.savefig(outpath, dpi=300)
         plt.close()
+
 
 def plot_residuals_lollipop(residuals_df: pd.DataFrame,
                             feature_name: str,
@@ -186,6 +193,7 @@ def plot_residuals_lollipop(residuals_df: pd.DataFrame,
         plt.savefig(outpath, dpi=300)
         plt.close()
 
+
 def plot_chi2_contrib(contingency: pd.DataFrame,
                       feature_name: str,
                       presence_level: Union[int, str] = 1,
@@ -247,6 +255,7 @@ def plot_chi2_contrib(contingency: pd.DataFrame,
     if outpath:
         plt.savefig(outpath, dpi=300)
         plt.close()
+
 
 def feature_report_2xk(feature: str,
                        contingency: pd.DataFrame,
@@ -347,6 +356,7 @@ def feature_report_2xk(feature: str,
     plt.savefig(outpath, dpi=300)
     plt.close()
 
+
 def residuals_matrix_from_dict(residuals_dict: Dict[str, pd.DataFrame],
                                presence_level: Union[int, str] = 1) -> pd.DataFrame:
     '''Build a matrix (features x categories) with residuals for presence row only.
@@ -376,6 +386,7 @@ def residuals_matrix_from_dict(residuals_dict: Dict[str, pd.DataFrame],
         rows[feat] = row
     # Assemble into a features x categories matrix
     return pd.DataFrame(rows).T
+
 
 def plot_residuals_matrix(residuals_dict: Dict[str, pd.DataFrame],
                           presence_level: Union[int, str] = 1,

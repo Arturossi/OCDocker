@@ -7,6 +7,7 @@ import numpy as np
 import OCDocker.Toolbox.FilesFolders as ocff
 import OCDocker.Error as ocerror
 
+
 @pytest.mark.order(1)
 def test_untar_and_delete(tmp_path):
     src = tmp_path / "src"
@@ -29,6 +30,8 @@ def test_untar_and_delete(tmp_path):
     assert del_rc == ocerror.ErrorCode.OK
     assert not archive.exists()
 
+
+@pytest.mark.order(2)
 def test_empty_docking_digest_json(tmp_path):
     digest_file = tmp_path / "digest.json"
     digest = ocff.empty_docking_digest(str(digest_file), overwrite=True, digestFormat="json")
@@ -56,6 +59,8 @@ def test_empty_docking_digest_json(tmp_path):
     for v in data.values():
         assert np.isnan(v[0]) # type: ignore
 
+
+@pytest.mark.order(3)
 def test_hdf5_round_trip(tmp_path):
     data = {"a": np.array([1, 2, 3]), "b": np.array([4.0])} # type: ignore
     file_path = tmp_path / "data.h5"
@@ -68,6 +73,8 @@ def test_hdf5_round_trip(tmp_path):
     np.testing.assert_array_equal(loaded["a"], data["a"]) # type: ignore
     np.testing.assert_array_equal(loaded["b"], data["b"]) # type: ignore
 
+
+@pytest.mark.order(4)
 def test_pickle_round_trip(tmp_path):
     obj = {"x": [1, 2], "y": "test"}
     pkl = tmp_path / "obj.pkl"
@@ -76,6 +83,8 @@ def test_pickle_round_trip(tmp_path):
     loaded = ocff.from_pickle(str(pkl))
     assert loaded == obj
 
+
+@pytest.mark.order(5)
 def test_safe_create_and_remove_dir(tmp_path):
     dir_path = tmp_path / "newdir"
     code_create = ocff.safe_create_dir(str(dir_path))
@@ -88,6 +97,8 @@ def test_safe_create_and_remove_dir(tmp_path):
     code_remove_again = ocff.safe_remove_dir(str(dir_path))
     assert code_remove_again == ocerror.ErrorCode.DIR_NOT_EXIST
 
+
+@pytest.mark.order(6)
 def test_safe_remove_file(tmp_path):
     file_path = tmp_path / "file.txt"
     file_path.write_text("content")

@@ -20,6 +20,10 @@ import pickle
 
 from typing import Any
 
+import OCDocker.Error as ocerror
+
+
+
 # License
 ###############################################################################
 '''
@@ -42,6 +46,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 # Methods
 ###############################################################################
+
 
 def load_object(file_name : str, serialization_method : str = "joblib") -> Any:
     ''' Load an object from a file using pickle.
@@ -66,6 +71,8 @@ def load_object(file_name : str, serialization_method : str = "joblib") -> Any:
 
     # If the serialization method is not joblib or pickle, raise an error
     if serialization_method not in ["joblib", "pickle"]:
+        # User-facing error: invalid serialization method
+        ocerror.Error.value_error(f"Invalid serialization method: '{serialization_method}'. Must be either 'joblib' or 'pickle'.") # type: ignore
         raise ValueError("The serialization method must be either 'joblib' or 'pickle'.")
 
     if serialization_method == "joblib":
@@ -73,7 +80,8 @@ def load_object(file_name : str, serialization_method : str = "joblib") -> Any:
     
     with open(file_name, 'rb') as file:
         return pickle.load(file)
-    
+
+
 def load_data(file_name : str, exclude_column : str = 'experimental') -> pd.DataFrame:
     ''' Loads a CSV file into a DataFrame, removes rows with NaNs (except in a specified column), and notifies the user.
 
@@ -111,8 +119,8 @@ def load_data(file_name : str, exclude_column : str = 'experimental') -> pd.Data
         # Remove rows with NaN values (except in the specified column)
         df = df.dropna(subset=columns_to_check)
     
-    
     return df
+
 
 def save_object(obj : Any, filename : str) -> None:
     ''' Save an object to a file using pickle.

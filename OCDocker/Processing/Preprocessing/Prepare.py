@@ -23,7 +23,8 @@ from threading import Lock
 from tqdm import tqdm
 from typing import List, Tuple, Union
 
-from OCDocker.Initialise import *
+from OCDocker.Config import get_config
+import OCDocker.Error as ocerror
 
 import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
@@ -61,6 +62,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Functions
 ###############################################################################
 ## Private ##
+
 
 def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str, dbName: str, sanitize: bool, molName: str = "", targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None, alternativeLigand: rdkit.Chem.rdchem.Mol = None) -> None: # type: ignore
     '''Prepares a molecule, generating output to docking software.
@@ -138,7 +140,8 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                 errMsg = f"The molecule '{mol}' could not be parsed!"
 
                 _ = ocerror.Error.parse_molecule(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
-                ocprint.print_error_log(errMsg, f"{logdir}/{dbName}_error_Parse.log")
+                config = get_config()
+                ocprint.print_error_log(errMsg, f"{config.logdir}/{dbName}_error_Parse.log")
                 return None
 
         elif moltype == "receptor":
@@ -159,7 +162,8 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                         errMsg = f"The molecule '{mol[0]}' could not be parsed! Error {e}"
 
                         _ = ocerror.Error.parse_molecule(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
-                        ocprint.print_error_log(errMsg, f"{logdir}/{dbName}_error_Parse.log")
+                        config = get_config()
+                        ocprint.print_error_log(errMsg, f"{config.logdir}/{dbName}_error_Parse.log")
                         return None
                 else:
                     try:
@@ -173,7 +177,8 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                         errMsg = f"The molecule '{mol}' could not be parsed! Error {e}"
 
                         _ = ocerror.Error.parse_molecule(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
-                        ocprint.print_error_log(errMsg, f"{logdir}/{dbName}_error_Parse.log")
+                        config = get_config()
+                        ocprint.print_error_log(errMsg, f"{config.logdir}/{dbName}_error_Parse.log")
                         return None
         else:
             _ = ocerror.Error.unknown("Unknown molecule type", level = ocerror.ReportLevel.ERROR) # type: ignore
@@ -191,6 +196,7 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
             
     # Return
     return None
+
 
 def __sub_core_prepare(dirsToProcess: str, dbName: str, overwrite: bool, mols : List[str] = [], sanitize: bool = True,  targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> List[str]: # type: ignore
     '''Runs the prepare function for the dudez database subsets.
@@ -259,6 +265,7 @@ def __sub_core_prepare(dirsToProcess: str, dbName: str, overwrite: bool, mols : 
             __prepare_molecule(fligand, overwrite, "ligand", dbName, sanitize = sanitize, targetCentroid = targetCentroid)
 
     return processDirs
+
 
 def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spacing: float, targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> int: # type: ignore
     '''Prepares a database entry to be run in multiple docking software.
@@ -426,6 +433,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
 
     return ocerror.Error.ok() # type: ignore
 
+
 def __thread_prepare(arguments: Tuple[str, bool, str, bool, float]) -> int:
     '''Thread aid function to call __core_prepare.
 
@@ -443,6 +451,7 @@ def __thread_prepare(arguments: Tuple[str, bool, str, bool, float]) -> int:
     with ocbasetools.redirect_to_tqdm():
         # Call core prepare function (shared between thread and no thread)
         return __core_prepare(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4])
+
 
 def __prepare_parallel(paths: List[str], overwrite: bool, archive: str, sanitize: bool, spacing: float, desc: str) -> None:
     '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
@@ -479,17 +488,20 @@ def __prepare_parallel(paths: List[str], overwrite: bool, archive: str, sanitize
 
     try:
         # Create a Thread pool with the maximum available_cores
-        with Pool(available_cores) as p:
+        config = get_config()
+        with Pool(config.available_cores) as p:
             # Perform the multi process
             for _ in tqdm(p.imap_unordered(__thread_prepare, arguments), total = len(arguments), desc = desc):
                 # Clear the memory
                 gc.collect()
     except IOError as e:
         errMsg = f"Problem while preparing {archive}. Exception: {e}"
-        ocprint.print_error_log(errMsg, f"{logdir}/{archive}_prepare_report.log")
+        config = get_config()
+        ocprint.print_error_log(errMsg, f"{config.logdir}/{archive}_prepare_report.log")
         ocprint.print_error(errMsg)
     
     return None
+
 
 def __prepare_no_parallel(paths: List[str], overwrite: bool, archive: str, sanitize: bool, spacing: float, desc: str) -> None:
     '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_prepare function.
@@ -526,6 +538,7 @@ def __prepare_no_parallel(paths: List[str], overwrite: bool, archive: str, sanit
 
     return None
 
+
 def __prepare_single(path: str, overwrite: bool, archive: str, sanitize: bool, spacing: float) -> None:
     '''Warper to prepare the jobs, recieves a directory, and pass it to the __core_prepare function.
 
@@ -554,7 +567,12 @@ def __prepare_single(path: str, overwrite: bool, archive: str, sanitize: bool, s
 
     return None
 
+
+
+
+
 ## Public ##
+
 
 def prepare(paths: Union[List[str], str], overwrite: bool, archive: str, sanitize: bool, spacing: float) -> None:
     '''Prepare the files to be used in the docking process.
@@ -582,7 +600,8 @@ def prepare(paths: Union[List[str], str], overwrite: bool, archive: str, sanitiz
         label = f"Preparing {archive}"
 
         # Check if multiprocessing is enabled
-        if multiprocess:
+        config = get_config()
+        if config.multiprocess:
             # Prepare the pdbbind
             __prepare_parallel(paths, overwrite, archive, sanitize, spacing, label)
         else:

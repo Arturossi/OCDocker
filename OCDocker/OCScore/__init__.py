@@ -15,3 +15,7 @@ Modules
 -------
 - SimpleConsensus: Simple consensus scoring functions such as mean, median, max, min, std, variance, sum, range, 25th and 75th percentiles, kurtoisis, skewness.
 """
+
+# Public API: Users should import OCScore modules directly
+# No classes or functions exported at package level
+__all__ = []

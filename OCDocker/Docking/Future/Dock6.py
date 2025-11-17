@@ -23,7 +23,7 @@ import numpy as np
 from glob import glob
 from typing import Dict, List, Tuple, Union
 
-from OCDocker.Initialise import *
+# No config needed - Future docking modules
 
 import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
@@ -57,7 +57,8 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 class Dock6:
     """ Dock6 object with methods for easy run. """
 
-    def __init__(self, configPath: str, boxFile: str, receptor: ocr.Receptor, preparedReceptorPath: str, ligand: ocl.Ligand, preparedLigandPath: str, dock6Log: str, outputDock6: str, name: str = "", overwriteConfig: bool = False, spacing: float = 2.9) -> None:
+
+    def __init__(self, config_path: str, box_file: str, receptor: ocr.Receptor, prepared_receptor_path: str, ligand: ocl.Ligand, prepared_ligand_path: str, dock6_log: str, output_dock6: str, name: str = "", overwrite_config: bool = False, spacing: float = 2.9) -> None:
         '''Constructor of the class Dock6.
         
         Parameters

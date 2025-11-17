@@ -2,12 +2,12 @@
 
 # Description
 ###############################################################################
-""" Module to perform the optimization of the Autoencoder. 
+''' Module to perform the optimization of the Autoencoder. 
 
 It is imported as:
 
 from OCDocker.OCScore.NN.AutoencoderOptimizer import AutoencoderOptimizer
-"""
+'''
 
 # Imports
 ###############################################################################
@@ -48,14 +48,16 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 
+
 class AutoencoderDataset(Dataset):
-    """Dataset class for the Autoencoder. It is used to create the DataLoader for the training and testing of the Autoencoder.
+    '''Dataset class for the Autoencoder. It is used to create the DataLoader for the training and testing of the Autoencoder.
 
     Parameters
     ----------
     features : torch.Tensor
         The features to be used in the Autoencoder. It should be a torch.Tensor of shape (n_samples, n_features).
-    """
+    '''
+
 
     def __init__(self, features: torch.Tensor) -> None:
         '''Constructor for the AutoencoderDataset class. It is used to create the DataLoader for the training and testing of the Autoencoder.
@@ -66,8 +68,17 @@ class AutoencoderDataset(Dataset):
             The features to be used in the Autoencoder. It should be a torch.Tensor of shape (n_samples, n_features).
         '''
 
+
         self.features = features
-    
+
+
+
+
+
+
+
+
+
     def __len__(self) -> int:
         '''Returns the length of the dataset. It is used by the DataLoader to know how many samples are in the dataset.
 
@@ -77,8 +88,16 @@ class AutoencoderDataset(Dataset):
             The length of the dataset. It is used by the DataLoader to know how many samples are in the dataset.
         '''
 
+
         return len(self.features)
-    
+
+
+
+
+
+
+
+
     def __getitem__(self, idx: int) -> tuple:
         '''Returns the features and the target for the given index. It is used by the DataLoader to get the samples from the dataset.
 
@@ -94,8 +113,9 @@ class AutoencoderDataset(Dataset):
 
         return self.features[idx], self.features[idx]
 
+
 class Autoencoder(nn.Module):
-    """Autoencoder class. It is used to create the Autoencoder model. It is a subclass of nn.Module.
+    '''Autoencoder class. It is used to create the Autoencoder model. It is a subclass of nn.Module.
     It is used to create the Autoencoder model.
     
     Parameters
@@ -112,7 +132,8 @@ class Autoencoder(nn.Module):
         The size of the decoding. It should be a list of integers. 
     device : torch.device, optional
         The device to be used. It should be a torch.device. Default is torch.device("cpu").
-    """
+    '''
+
 
     def __init__(self,
                  input_size : int,
@@ -227,8 +248,16 @@ class Autoencoder(nn.Module):
             self.decoder = nn.Sequential(
                 nn.Linear(encoding_dim, input_size).to(self.device),
                 decoder_activation_fn.to(self.device)
+
             ).to(self.device)
-    
+
+
+
+
+
+
+
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         '''Forward pass of the Autoencoder. It is used to pass the input through the encoder and decoder.
 
@@ -261,8 +290,16 @@ class Autoencoder(nn.Module):
             for layer in self.decoder:
                 x = layer(x)
 
+
         return x
-    
+
+
+
+
+
+
+
+
     def get_encoder_topology(self) -> list:
         '''Get the topology of the encoder. It is used to get the layers of the encoder.
         
@@ -272,7 +309,15 @@ class Autoencoder(nn.Module):
             The topology of the encoder. It is used to get the layers of the encoder.
         '''
 
+
         return ['Linear', 'BatchNorm1d']
+
+
+
+
+
+
+
 
     def get_decoder_topology(self) -> list:
         '''Get the topology of the decoder. It is used to get the layers of the decoder.
@@ -283,7 +328,15 @@ class Autoencoder(nn.Module):
             The topology of the decoder. It is used to get the layers of the decoder.
         '''
 
+
         return ['Linear']
+
+
+
+
+
+
+
 
     def get_encoder(self) -> nn.Module:
         '''Get the encoder. It is used to get the encoder of the Autoencoder.
@@ -294,7 +347,15 @@ class Autoencoder(nn.Module):
             The encoder of the Autoencoder. It is used to get the encoder of the Autoencoder.
         '''
 
+
         return self.encoder
+
+
+
+
+
+
+
 
     def get_decoder(self) -> nn.Module:
         '''Get the decoder. It is used to get the decoder of the Autoencoder.
@@ -307,8 +368,9 @@ class Autoencoder(nn.Module):
 
         return self.decoder
 
+
 class AutoencoderOptimizer:
-    """AutoencoderOptimizer class. It is used to optimize the Autoencoder using Optuna. It is used to create the AutoencoderOptimizer object.
+    '''AutoencoderOptimizer class. It is used to optimize the Autoencoder using Optuna. It is used to create the AutoencoderOptimizer object.
 
     Parameters
     ----------
@@ -330,8 +392,8 @@ class AutoencoderOptimizer:
         If True, the Autoencoder will use the GPU. It should be a boolean. Default is True.
     verbose : bool, optional
         If True, the Autoencoder will print the training and testing information. It should be a boolean. Default is False.
-    """
-    
+    '''
+
     def __init__(self, 
             X_train: Union[np.ndarray, pd.DataFrame, pd.Series],
             X_test: Union[np.ndarray, pd.DataFrame, pd.Series],
@@ -339,9 +401,9 @@ class AutoencoderOptimizer:
             encoding_dims: tuple = (16, 256),
             storage: str = "sqlite:///autoencoder.db",
             models_folder: str = "./models/Autoencoder/",
-            random_seed = 42, 
-            use_gpu = True,
-            verbose = False
+            random_seed: int = 42, 
+            use_gpu: bool = True,
+            verbose: bool = False
         ) -> None:
         '''Constructor for the AutoencoderOptimizer class. It is used to create the AutoencoderOptimizer object.
 
@@ -414,7 +476,15 @@ class AutoencoderOptimizer:
 
         # Define the activation functions and their names
         self.activation_functions = [nn.GELU, nn.LeakyReLU, nn.Mish, nn.ReLU, nn.SELU, nn.Identity]
+
         self.activation_functions_str = ['GELU', 'LeakyReLU', 'Mish', 'ReLU', 'SELU', 'Identity']
+
+
+
+
+
+
+
 
     def set_random_seed(self) -> None:
         '''Set the random seed for the Autoencoder. It is used to set the random seed for the Autoencoder.'''
@@ -438,7 +508,15 @@ class AutoencoderOptimizer:
 
         # Set the backends for reproducibility
         torch.backends.cudnn.benchmark = False
+
         torch.backends.cudnn.deterministic = True
+
+
+
+
+
+
+
 
     def train_autoencoder(self,
                           model : nn.Module,
@@ -545,13 +623,21 @@ class AutoencoderOptimizer:
             if trial.should_prune():
                 raise optuna.exceptions.TrialPruned()
             
+
         return best_validation_rmse, best_train_rmse
+
+
+
+
+
+
+
 
     def evaluate_autoencoder(self,
                              model : nn.Module,
                              criterion : nn.Module,
                              loader : Union[None, DataLoader] = None
-                            ):
+                            ) -> float:
         '''Evaluate the Autoencoder. It is used to evaluate the Autoencoder.
 
         Parameters
@@ -605,7 +691,15 @@ class AutoencoderOptimizer:
         # Compute the RMSE
         rmse = np.sqrt(average_loss)
         
+
         return rmse
+
+
+
+
+
+
+
 
     def objective(self, trial : optuna.Trial) -> float:
         '''Objective function for the Optuna optimization. It is used to optimize the Autoencoder.
@@ -765,8 +859,16 @@ class AutoencoderOptimizer:
             # Set its rmse
             self.best_rmse = best_validation_rmse
 
+
         return evaluate_rmse
- 
+
+
+
+
+
+
+
+
     def optimize(self,
                  direction: str = "maximize",
                  n_trials : int = 10,
