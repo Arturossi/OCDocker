@@ -93,14 +93,15 @@ class Gnina:
             ocerror.Error.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR)
             return None
 
+        # Check if the folder where the config_path is located exists (remove the file name from the path)
+        _ = ocff.safe_create_dir(os.path.dirname(self.config))
+
         self.input_receptor_path = self.__parse_receptor_path(receptor)
         self.prepared_receptor = str(prepared_receptor_path)
 
         # Ligand
         if type(ligand) == ocl.Ligand:
             self.input_ligand = ligand
-            # Create the gninaFiles folder
-            _ = ocff.safe_create_dir(os.path.join(os.path.dirname(ligand.path), "gninaFiles"))
         else:
             ocerror.Error.wrong_type(f"The ligand '{ligand}' has not a supported type. Expected 'ocl.Ligand' but got {type(ligand)} instead.", level = ocerror.ReportLevel.ERROR)
             return None

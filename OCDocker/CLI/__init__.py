@@ -897,35 +897,43 @@ def cmd_console(args: argparse.Namespace) -> int:  # pragma: no cover - interact
 
     print("Launching OCDocker Console. Press Ctrl-D to exit.")
     try:
-        import code
         # Expose console namespace without dunders
         local_ns = {k: v for k, v in vars(occ).items() if not k.startswith('__')}
-        # Setup tab-completion with the console namespace, if readline is available
+        
+        # Try to use IPython if available, otherwise fallback to standard Python console
         try:
-            import readline  # type: ignore
-            import rlcompleter  # type: ignore
-            completer = rlcompleter.Completer(local_ns)
-            readline.set_completer(completer.complete)  # type: ignore
-            readline.parse_and_bind('tab: complete')  # type: ignore
-            # History file (optional)
-            hist = os.path.expanduser('~/.ocdocker_console_history')
+            from IPython import embed  # type: ignore
+            # Use IPython with the console namespace
+            embed(user_ns=local_ns, banner1="")
+        except ImportError:
+            # Fallback to standard Python console
+            import code
+            # Setup tab-completion with the console namespace, if readline is available
             try:
-                readline.read_history_file(hist)
-            except (OSError, FileNotFoundError):
-                # Ignore if history file doesn't exist or can't be read
+                import readline  # type: ignore
+                import rlcompleter  # type: ignore
+                completer = rlcompleter.Completer(local_ns)
+                readline.set_completer(completer.complete)  # type: ignore
+                readline.parse_and_bind('tab: complete')  # type: ignore
+                # History file (optional)
+                hist = os.path.expanduser('~/.ocdocker_console_history')
+                try:
+                    readline.read_history_file(hist)
+                except (OSError, FileNotFoundError):
+                    # Ignore if history file doesn't exist or can't be read
+                    pass
+            except (ImportError, AttributeError):
+                # Ignore if readline is not available
                 pass
-        except (ImportError, AttributeError):
-            # Ignore if readline is not available
-            pass
-        # Avoid printing the console banner twice: it's already printed on import
-        code.interact(banner="", local=local_ns)
-        # Save history (best-effort)
-        try:
-            if 'readline' in sys.modules:
-                sys.modules['readline'].write_history_file(os.path.expanduser('~/.ocdocker_console_history'))
-        except (OSError, AttributeError):
-            # Ignore if history file can't be written or readline not available
-            pass
+            # Avoid printing the console banner twice: it's already printed on import
+            code.interact(banner="", local=local_ns)
+            # Save history (best-effort)
+            try:
+                if 'readline' in sys.modules:
+                    sys.modules['readline'].write_history_file(os.path.expanduser('~/.ocdocker_console_history'))
+            except (OSError, AttributeError):
+                # Ignore if history file can't be written or readline not available
+                pass
     except Exception as e:
         print(f"Interactive console exited with error: {e}")
         return 1

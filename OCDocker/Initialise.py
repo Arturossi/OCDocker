@@ -1143,7 +1143,9 @@ def _parse_config_file(config_file: str) -> Dict[str, Any]:
         If the configuration file cannot be read or parsed
     '''
     
-    config = configparser.ConfigParser()
+    # Allow duplicate keys to maintain compatibility with legacy configs that
+    # may define the same option multiple times (last one wins).
+    config = configparser.ConfigParser(strict=False)
     
     # Read config file - configparser can handle files without sections
     # by using the DEFAULT section

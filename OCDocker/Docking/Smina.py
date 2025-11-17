@@ -114,8 +114,6 @@ class Smina:
         # Ligand
         if type(ligand) == ocl.Ligand:
             self.input_ligand = ligand
-            # Create the sminaFiles folder
-            _ = ocff.safe_create_dir(os.path.join(os.path.dirname(ligand.path), "sminaFiles"))
         else:
             ocerror.Error.wrong_type(f"The ligand '{ligand}' has not a supported type. Expected 'ocl.Ligand' but got {type(ligand)} instead.", level = ocerror.ReportLevel.ERROR) # type: ignore
             return None

@@ -117,8 +117,6 @@ class PLANTS:
         # Check the type of the ligand
         if isinstance(ligand, ocl.Ligand):
             self.input_ligand = ligand
-            # Create the plantsFiles folder
-            _ = ocff.safe_create_dir(os.path.join(os.path.dirname(ligand.path), "plantsFiles"))
         else:
             ocerror.Error.wrong_type(f"The ligand '{ligand}' has not a supported type. Expected 'ocl.Ligand' but got {type(ligand)} instead.", level = ocerror.ReportLevel.ERROR) # type: ignore
             return None
@@ -1233,8 +1231,13 @@ def get_pose_index_from_file_path(filePath: str) -> int:
         The pose index.
     '''
 
-    # Get the filename from the file path
-    filename = os.path.splitext(os.path.basename(filePath))[0]
+    filename = os.path.basename(filePath)
+    root, ext = os.path.splitext(filename)
+    known_exts = {'.mol2', '.pdb', '.pdbqt', '.sdf'}
+    # Only strip extensions we know belong to pose files; some PLANTS entries
+    # include dots (e.g. prepared_ligand._entry_00001) as part of the name.
+    if ext and ext.lower() in known_exts:
+        filename = root
     # Split the filename using the '_' string as delimiter then grab the end of the string
     filename = filename.split("_")[-1]
     # Return the filename
