@@ -523,8 +523,18 @@ class PLANTS:
 
         # For each rescore log path
         for rescoreLogPath in rescoreLogPaths:
-            # Get the filename from the log path
-            filename = os.path.basename(os.path.dirname(rescoreLogPath))
+            # Get the directory name from the log path (e.g., "run_chemplp")
+            dir_name = os.path.basename(os.path.dirname(rescoreLogPath))
+            
+            # Extract scoring function from directory name (remove "run_" prefix)
+            # Format: run_{scoring_function} -> plants_{scoring_function}
+            if dir_name.startswith("run_"):
+                scoring_function = dir_name[4:]  # Remove "run_" prefix
+                key = f"plants_{scoring_function}"
+            else:
+                # Fallback: use directory name as-is with plants_ prefix
+                key = f"plants_{dir_name}"
+            
             # Get the rescore log data (returns Dict[int, Dict] where int is pose number)
             log_data = read_log(rescoreLogPath, onlyBest = onlyBest)
             
@@ -537,15 +547,15 @@ class PLANTS:
                 # Convert lists with single values to just the value
                 # PLANTS read_log returns lists when onlyBest=True, but we want single values
                 converted_dict = {}
-                for key, value in inner_dict.items():
+                for dict_key, value in inner_dict.items():
                     if isinstance(value, list) and len(value) == 1:
-                        converted_dict[key] = value[0]
+                        converted_dict[dict_key] = value[0]
                     else:
-                        converted_dict[key] = value
-                rescoreLogData[filename] = converted_dict
+                        converted_dict[dict_key] = value
+                rescoreLogData[key] = converted_dict
             else:
                 # Empty log data
-                rescoreLogData[filename] = {}
+                rescoreLogData[key] = {}
         
         # Return the dictionary
 
