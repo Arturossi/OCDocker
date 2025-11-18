@@ -339,6 +339,28 @@ def safe_remove_dir(dirname: str) -> int:
     return ocerror.Error.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while creating a dir safetly.", level = ocerror.ReportLevel.ERROR) # type: ignore
 
 
+def normalize_path(path: str) -> str:
+    '''Normalize a path to an absolute path with normalized separators and components.
+    
+    This function normalizes paths by:
+    - Converting to absolute path
+    - Normalizing path separators
+    - Resolving . and .. components
+
+    Parameters
+    ----------
+    path : str
+        The path to normalize.
+    
+    Returns
+    -------
+    str
+        The normalized absolute path.
+    '''
+
+    return os.path.normpath(os.path.abspath(path))
+
+
 def ensure_parent_dir(path: str) -> None:
     '''Ensure parent directory exists, creating if necessary.
     

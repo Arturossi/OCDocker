@@ -360,17 +360,21 @@ class Smina:
             ""
         )
 
-    def run_rescore(self, outPath: str, logFile: str = "", skipDefaultScoring: bool = False, overwrite: bool = False) -> None:
+    def run_rescore(self, outPath: str, ligand: str, logFile: str = "", skipDefaultScoring: bool = False, splitLigand: bool = False, overwrite: bool = False) -> None:
         '''Run smina to rescore the ligand.
 
         Parameters
         ----------
         outPath : str
             Path to the output folder.
+        ligand : str
+            Path to the ligand to be rescored.
         logFile : str, optional
             Path to the logFile. If empty, suppress the output. By default "".
         skipDefaultScoring : bool, optional
             If True, skip the default scoring function. By default False.
+        splitLigand : bool, optional
+            If True, split the ligand before rescoring. By default False.
         overwrite : bool, optional
             If True, overwrite the logFile. By default False.
 
@@ -380,16 +384,13 @@ class Smina:
             The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
         '''
 
-        # Set the splitLigand as True
-        splitLigand = True
-
         # For each scoring function
         config = get_config()
         for scoring_function in config.smina.scoring_functions:
             # If is the default scoring function and skipDefaultScoring is True
             if not (scoring_function == config.smina.scoring and skipDefaultScoring):
                 # Run smina to rescore
-                _ = run_rescore(self.config, self.output_smina, outPath, scoring_function, logFile = logFile, splitLigand = splitLigand, overwrite = overwrite)
+                _ = run_rescore(self.config, ligand, outPath, scoring_function, logFile = logFile, splitLigand = splitLigand, overwrite = overwrite)
 
                 # Set the splitLigand as False (to avoid running it again without need)
                 splitLigand = False
@@ -813,6 +814,10 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
     # Print verboosity
     ocprint.printv(f"Running smina using the '{confFile}' configurations and scoring function '{scoring_function}'.")
 
+    # Normalize outPath to ensure it's absolute and doesn't have duplicate path components
+    outPath = ocff.normalize_path(outPath)
+    os.makedirs(outPath, exist_ok=True)
+
     # Check if the ligands is a string
     if isinstance(ligands, str):
         # Convert to list
@@ -823,23 +828,25 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
     
     # For each ligand
     for ligand in ligands:
-        # If need to split the ligand or overwrite is True
-        if splitLigand or overwrite:
+        # Only split if splitLigand is True (overwrite doesn't trigger splitting)
+        if splitLigand:
             # Get the ligand name
             ligandName = os.path.splitext(os.path.basename(ligand))[0]
             
-            # Split the ligand
+            # Split the ligand (only add _split_ suffix when actually splitting)
             _ = ocmolproc.split_poses(ligand, ligandName, outPath, logFile = "", suffix = "_split_")
 
             # Add the ligand name to the list
             ligandNames.append(ligandName)
         
-    # If splitLigand or overwrite is True means that it is needed to get the splited ligands again
-    if splitLigand or overwrite:
+    # If splitLigand is True, get the splited ligands (only for the provided ligand files)
+    if splitLigand:
         # Reset the ligand list
         ligands = []
-        # Append the splited ligands to the ligands list (using the glob function)
-        ligands.extend(glob(f"{outPath}/*_split_*.pdbqt"))
+        # Only get split files that match the ligand names we just split
+        for ligandName in ligandNames:
+            # Match only split files from this specific ligand
+            ligands.extend(glob(f"{outPath}/{ligandName}_split_*.pdbqt"))
 
     # For each ligand in the ligands list (newly splited ligands)
     for ligand in ligands:
@@ -848,10 +855,14 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
 
         # Create the command list
         cfg = get_config()
-        cmd = [cfg.smina.executable, "--scoring", scoring_function, "--score_only", "--config", confFile, "--ligand", ligand, "--log", f"{outPath}/{ligand_name}_{scoring_function}_rescoring.log", "--cpu", "1"]
+        # Ensure ligand path is absolute and normalized (remove duplicate directory components)
+        ligand = ocff.normalize_path(ligand)
+        # Construct log file path using os.path.join for proper path construction
+        log_file_path = ocff.normalize_path(os.path.join(outPath, f"{ligand_name}_{scoring_function}_rescoring.log"))
+        cmd = [cfg.smina.executable, "--scoring", scoring_function, "--score_only", "--config", confFile, "--ligand", ligand, "--log", log_file_path, "--cpu", "1"]
 
         # Create the log file path
-        logFile = f"{outPath}/{ligand_name}_{scoring_function}_rescoring.log"
+        logFile = log_file_path
 
         # If the logFile already exists, check also if the user wants to overwrite it
         if not os.path.isfile(logFile) or overwrite:
@@ -861,99 +872,27 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
             # Run the command
             _ = ocrun.run(cmd, logFile = logFile)
 
-            # Check if the logFile exists and it has the string "Estimated Free Energy of Binding" inside it
-            if not os.path.isfile(logFile) or not "Estimated Free Energy of Binding" in open(logFile).read():
-                # Print an error
-                ocprint.print_error(f"Problems while running smina for the ligand '{ligand_name}' using the scoring function '{scoring_function}'.")
+            # Check if the logFile exists and has valid output (Smina outputs "Affinity:" not "Estimated Free Energy of Binding")
+            log_file_valid = False
+            if os.path.isfile(logFile):
+                try:
+                    with open(logFile, 'r') as f:
+                        log_content = f.read()
+                        # Smina outputs "Affinity:" in rescoring logs
+                        if "Affinity" in log_content:
+                            log_file_valid = True
+                except (IOError, OSError):
+                    pass
+            
+            if not log_file_valid:
+                # Print an error (only once, not duplicated)
+                ocprint.print_error(f"Problems while running smina for the ligand '{ligand_name}' using the scoring function '{scoring_function}'. Check the log file: {logFile}")
 
-                # Remove the file
+                # Remove the invalid log file
                 _ = ocff.safe_remove_file(logFile)
         else:
             # Print verboosity
             ocprint.printv(f"The log file '{logFile}' already exists. Skipping the smina run for the ligand '{ligand_name}' using the scoring function '{scoring_function}'.")
-    
-    # Think about how can this be done to deal with multiple runs
-    return None
-
-
-def run_rescore_old(confFile: str, ligands: Union[List[str], str], outPath: str, scoring_function: str, logFile: str = "", splitLigand: bool = True, overwrite: bool = False) -> None:
-    '''Run smina to rescore the ligand.
-
-    Parameters
-    ----------
-    confFile : str
-        The path to the smina configuration file.
-    ligands : Union[List[str], str]
-        The path to a List of ligand files or the ligand file.
-    outPath : str
-        The path to the output file.
-    scoring_function : str
-        The scoring function to use.
-    logFile : str, optional
-        The path to the log file. If empty, suppress the output. By default "".
-    splitLigand : bool, optional
-        If True, split the ligand before running smina. By default True.
-    overwrite : bool, optional
-        If True, overwrite the logFile. By default False.
-
-    Returns
-    -------
-    int
-        The exit code of the command (based on the Error.py code table).
-    '''
-
-    # Print verboosity
-    ocprint.printv(f"Running smina using the '{confFile}' configurations and scoring function '{scoring_function}'.")
-
-    # Check if the ligands is a string
-    if isinstance(ligands, str):
-        # Convert to list
-        ligands = [ligands]
-
-    # Ligand name list
-    ligandNames = []
-    
-    # For each ligand
-    for ligand in ligands:
-        # If need to split the ligand or overwrite is True
-        if splitLigand or overwrite:
-            # Get the ligand name
-            ligandName = os.path.splitext(os.path.basename(ligand))[0]
-
-            _ = ocmolproc.split_poses(ligand, ligandName, outPath, logFile = "", suffix = "_split_")
-
-            # Add the ligand name to the list
-            ligandNames.append(ligandName)
-
-    # If splitLigand or overwrite is True means that it is needed to get the splited ligands again
-    if splitLigand or overwrite:
-        # Reset the ligand list
-        ligands = []
-        # Append the splited ligands to the ligands list (using the glob function)
-        ligands.extend(glob(f"{outPath}/*_split_*.pdbqt"))
-    
-    # For each ligand in the ligands list (newly splited ligands)
-    for ligand in ligands:
-        # Get the splited ligand name
-        ligand_name = os.path.splitext(os.path.basename(ligand))[0]
-
-        # Create the command list
-        cfg = get_config()
-        cmd = [cfg.smina.executable, "--scoring", scoring_function, "--score_only", "--config", confFile, "--ligand", ligand, "--log", f"{outPath}/{ligand_name}_{scoring_function}_rescoring.log", "--cpu", "1"]
-
-        # Run the command
-        _ = ocrun.run(cmd, logFile = logFile)
-
-        if not logFile:
-            # Set it as cmd log
-            logFile = f"{outPath}/{ligand_name}_{scoring_function}_rescoring.log"
-
-        # Check if the logFile exists and it has the string "Affinity:" inside it
-        if not os.path.isfile(logFile) or not "Affinity:" in open(logFile).read():
-            # Print an error
-            ocprint.print_error(f"Problems while running smina for the ligand '{ligand_name}' using the scoring function '{scoring_function}'.")
-            # Remove the file
-            _ = ocff.safe_remove_file(logFile)
     
     # Think about how can this be done to deal with multiple runs
     return None
@@ -990,14 +929,14 @@ def get_rescore_log_paths(outPath: str) -> List[str]:
     ----------
     outPath : str
         Path to the output folder where the rescoring logs are located.
-
+    
     Returns
     -------
     List[str]
         A list with the paths for the rescoring log files.
     '''
 
-    return [f for f in glob(f"{outPath}/*.log") if os.path.isfile(f)]
+    return [f for f in glob(f"{outPath}/*_rescoring.log") if os.path.isfile(f)]
 
 
 def read_rescore_logs(rescoreLogPaths: Union[List[str], str], onlyBest: bool = False) -> Dict[str, List[Union[str, float]]]:
@@ -1026,20 +965,46 @@ def read_rescore_logs(rescoreLogPaths: Union[List[str], str], onlyBest: bool = F
 
     # For each rescore log path
     for rescoreLogPath in rescoreLogPaths:
-        # Get the filename from the log path
-        filename = os.path.splitext(os.path.basename(rescoreLogPath))[0]
-        # Split the filename using the split string as delimiter then grab the end of the string
-        filename = filename.split("_split_")[-1]
-        # Remove the extension from the filename
-        filename = os.path.splitext(filename)[0]
-        # If onlyBest is True and the filename does not start with "1"
-        if onlyBest and not filename.startswith("1"):
-            # Skip this iteration
+        # Get the original filename without extension
+        original_filename = os.path.splitext(os.path.basename(rescoreLogPath))[0]
+        
+        # Extract scoring function from filename ending with _rescoring
+        # Get scoring functions from config and match against filename
+        config = get_config()
+        scoring_functions = getattr(config.smina, 'scoring_functions', [])
+        
+        scoring_function = None
+        if original_filename.endswith("_rescoring") and scoring_functions:
+            # Check if any scoring function from config appears in the filename
+            # Sort by length (longest first) to match longer names before shorter ones (e.g., "dkoes_scoring" before "scoring")
+            for sf in sorted(scoring_functions, key=len, reverse=True):
+                # Check if filename ends with _{scoring_function}_rescoring
+                if original_filename.endswith(f"_{sf}_rescoring"):
+                    scoring_function = sf
+                    break
+        
+        # Handle onlyBest filter after extracting scoring function
+        # Check if this is from a split file (pattern: {name}_split_{number}_{scoring_function}_rescoring)
+        if onlyBest and scoring_function:
+            # Check if there's a _split_ pattern with a number
+            if "_split_" in original_filename:
+                # Extract the part after _split_
+                after_split = original_filename.split("_split_", 1)[1]
+                # Check if it starts with a number followed by underscore
+                parts_after_split = after_split.split("_")
+                if parts_after_split and parts_after_split[0].isdigit():
+                    if parts_after_split[0] != "1":
+                        continue
+        
+        if scoring_function:
+            key = f"smina_{scoring_function}_rescoring"
+        else:
+            # If scoring function not found, skip this file with a warning
+            _ = ocerror.Error.value_error(message=f"The scoring function could not be found in the filename '{original_filename}'. Skipping this file.", level = ocerror.ReportLevel.WARNING)
             continue
-        # Reverse the filename with the delimiter as the underscore
-        filename = "_".join(reversed(filename.split("_")))
+        
         # Get the rescore log data
-        rescoreLogData[filename] = read_rescoring_log(rescoreLogPath)
+        rescoreLogData[key] = read_rescoring_log(rescoreLogPath)
     
     # Return the dictionary
     return rescoreLogData

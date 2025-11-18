@@ -903,8 +903,14 @@ def cmd_console(args: argparse.Namespace) -> int:  # pragma: no cover - interact
         # Try to use IPython if available, otherwise fallback to standard Python console
         try:
             from IPython import embed  # type: ignore
-            # Use IPython with the console namespace
-            embed(user_ns=local_ns, banner1="")
+            # Determine if colors should be enabled (when called from a terminal like bash)
+            colors = 'NoColor'
+            if sys.stdout.isatty() and os.getenv('TERM') and 'dumb' not in os.getenv('TERM', ''):
+                # Enable colors when running in a terminal (bash, etc.)
+                # 'Linux' provides good color scheme for terminals
+                colors = 'Linux'
+            # Use IPython with the console namespace and colors enabled
+            embed(user_ns=local_ns, banner1="", colors=colors)
         except ImportError:
             # Fallback to standard Python console
             import code

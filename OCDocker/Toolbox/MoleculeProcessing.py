@@ -22,6 +22,7 @@ from typing import Dict, List, Tuple, Union
 from OCDocker.Config import get_config
 import OCDocker.Error as ocerror
 
+import OCDocker.Toolbox.FilesFolders as ocff
 import OCDocker.Toolbox.Printing as ocprint
 import OCDocker.Toolbox.Running as ocrun
 
@@ -74,7 +75,16 @@ def split_poses(ligand: str, ligandName: str, outPath: str, suffix: str = "", lo
 
     # Split the input ligand
     config = get_config()
-    cmd = [config.vina.split_executable, "--input", ligand, "--flex", "''", "--ligand", f"{outPath}/{ligandName}{suffix}"]
+    
+    # Ensure ligand input path is absolute and normalized (remove duplicate directory components)
+    ligand = ocff.normalize_path(ligand)
+    # Ensure outPath is normalized (removes duplicate slashes, . and .. components, and duplicate directories) and absolute
+    outPath = ocff.normalize_path(outPath)
+    os.makedirs(outPath, exist_ok=True)
+    # Construct the output file prefix (vina_split will append numbers like _0, _1, etc.)
+    # Use normalize again to ensure no duplicate path components
+    output_prefix = ocff.normalize_path(os.path.join(outPath, f"{ligandName}{suffix}"))
+    cmd = [config.vina.split_executable, "--input", ligand, "--flex", "''", "--ligand", output_prefix]
 
     # Print verbosity
     ocprint.printv(f"Spliting the ligand '{ligand}'.")

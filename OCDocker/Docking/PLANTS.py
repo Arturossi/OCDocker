@@ -384,6 +384,12 @@ class PLANTS:
         Tuple[int, str] | int
             The exit code of the command (based on the Error.py code table) and the stderr if applied.
         '''
+
+        if not self.input_receptor_path:
+            return ocerror.Error.file_not_exist("No valid input receptor path provided.", level = ocerror.ReportLevel.ERROR) # type: ignore
+        
+        if not self.prepared_receptor:
+            return ocerror.Error.file_not_exist("No valid prepared receptor path provided.", level = ocerror.ReportLevel.ERROR) # type: ignore
         
         return self.preparation_strategy.prepare_receptor(
             self.input_receptor_path,
@@ -519,8 +525,27 @@ class PLANTS:
         for rescoreLogPath in rescoreLogPaths:
             # Get the filename from the log path
             filename = os.path.basename(os.path.dirname(rescoreLogPath))
-            # Get the rescore log data
-            rescoreLogData[filename] = read_log(rescoreLogPath, onlyBest = onlyBest)
+            # Get the rescore log data (returns Dict[int, Dict] where int is pose number)
+            log_data = read_log(rescoreLogPath, onlyBest = onlyBest)
+            
+            # Extract the inner dictionary (remove pose number key)
+            # Since rescoring typically uses onlyBest=True, there's usually one pose (key 1)
+            # But we'll handle multiple poses by taking the first (best) one
+            if log_data:
+                # Get the first (and typically only) value from the dict
+                inner_dict = next(iter(log_data.values()))
+                # Convert lists with single values to just the value
+                # PLANTS read_log returns lists when onlyBest=True, but we want single values
+                converted_dict = {}
+                for key, value in inner_dict.items():
+                    if isinstance(value, list) and len(value) == 1:
+                        converted_dict[key] = value[0]
+                    else:
+                        converted_dict[key] = value
+                rescoreLogData[filename] = converted_dict
+            else:
+                # Empty log data
+                rescoreLogData[filename] = {}
         
         # Return the dictionary
 
@@ -559,17 +584,28 @@ class PLANTS:
         print(f"Input receptor:              '{self.input_receptor if self.input_receptor else '-' }'")
         print(f"Input receptor path:         '{self.input_receptor_path if self.input_receptor_path else '-' }'")
         print(f"Prepared receptor path:      '{self.prepared_receptor if self.prepared_receptor else '-' }'")
-        prep_receptor_cmd = self.preparation_strategy.get_receptor_command(self.input_receptor_path, self.prepared_receptor)
-        print(f"Prepared receptor command:   '{' '.join(prep_receptor_cmd) if prep_receptor_cmd else '-' }'")
+
+        if not self.prepared_receptor or not self.input_receptor_path:
+            print("Prepared receptor command:   '-' ")
+        else:
+            prep_receptor_cmd = self.preparation_strategy.get_receptor_command(self.input_receptor_path, self.prepared_receptor)
+            print(f"Prepared receptor command:   '{' '.join(prep_receptor_cmd) if prep_receptor_cmd else '-' }'")
+        
         print(f"Input ligand:                '{self.input_ligand if self.input_ligand else '-' }'")
         print(f"Input ligand path:           '{self.input_ligand_path if self.input_ligand_path else '-' }'")
         print(f"Prepared ligand path:        '{self.prepared_ligand if self.prepared_ligand else '-' }'")
-        prep_ligand_cmd = self.preparation_strategy.get_ligand_command(self.input_ligand_path, self.prepared_ligand)
-        print(f"Prepared ligand command:     '{' '.join(prep_ligand_cmd) if prep_ligand_cmd else '-' }'")
+
+        if not self.prepared_ligand or not self.input_ligand_path:
+            print("Prepared ligand command:     '-' ")
+        else:
+            prep_ligand_cmd = self.preparation_strategy.get_ligand_command(self.input_ligand_path, self.prepared_ligand)
+            print(f"Prepared ligand command:     '{' '.join(prep_ligand_cmd) if prep_ligand_cmd else '-' }'")
+
         print(f"PLANTS execution log path:   '{self.plants_log if self.plants_log else '-' }'")
         print(f"PLANTS output path:          '{self.output_plants if self.output_plants else '-' }'")
         print(f"PLANTS output csv path:      '{self.output_csv if self.output_csv else '-' }'")
         print(f"PLANTS command:              '{' '.join(self.plants_cmd) if self.plants_cmd else '-' }'")
+        
         return None
 
 
@@ -1244,13 +1280,13 @@ def get_pose_index_from_file_path(filePath: str) -> int:
     return int(filename)
 
 
-def write_pose_list(dockedPoses: List[str], poseListPath: str, overwrite: bool = False) -> Optional[str]:
+def write_pose_list(dockedPoses: Union[str, List[str]], poseListPath: str, overwrite: bool = False) -> Optional[str]:
     ''' Write the pose_list file.
 
     Parameters
     ----------
-    dockedPoses : List[str]
-        The list with the docked poses.
+        dockedPoses : Union[str, List[str]]
+        The list with the docked poses. If a string is provided, it will be considered as a single pose.
     poseListPath : str
         The path to the pose_list file.
     overwrite : bool, optional
@@ -1264,6 +1300,9 @@ def write_pose_list(dockedPoses: List[str], poseListPath: str, overwrite: bool =
 
     # Check if the pose_list file exists
     if not os.path.isfile(poseListPath) or overwrite:
+        # If dockedPoses is a string, convert it to a list
+        if isinstance(dockedPoses, str):
+            dockedPoses = [dockedPoses]
         # Create the pose_list file
         with open(poseListPath, "w") as poseListFile:
             # Write the docked poses

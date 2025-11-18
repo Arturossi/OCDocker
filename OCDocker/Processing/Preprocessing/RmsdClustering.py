@@ -225,8 +225,52 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                 # Set the last result to the current result
                 last_result = results
 
-        # If the scores is -1
+        # If the scores is -1 (clustering didn't converge)
         if scores == -1:
+            # Check if last_result has any clusters with more than 1 member
+            if last_result.size > 0:
+                cluster_sizes_last = np.bincount(last_result)
+                # Check if any cluster has more than 1 member
+                if np.any(cluster_sizes_last > 1):
+                    # Find the maximum cluster size (clusters with most members)
+                    max_cluster_size = np.max(cluster_sizes_last)
+                    
+                    # Get clusters with the maximum size
+                    max_size_clusters = np.where(cluster_sizes_last == max_cluster_size)[0]
+                    
+                    # Find the cluster with the least difference among its members
+                    # (minimum maximum pairwise distance within cluster)
+                    # Only consider clusters with the maximum number of members
+                    unique_clusters_last = np.unique(last_result)
+                    min_max_distance = np.inf
+                    best_cluster = -1
+                    
+                    for cluster in unique_clusters_last:
+                        # Only consider clusters with the maximum size
+                        if cluster in max_size_clusters:
+                            # Get members of this cluster
+                            cluster_indices = np.where(last_result == cluster)[0]
+                            
+                            # Only consider clusters with more than 1 member
+                            if len(cluster_indices) > 1:
+                                # Get pairwise distances within this cluster
+                                cluster_data = npdata[cluster_indices]
+                                cluster_distances = pairwise_distances(cluster_data, metric='euclidean')
+                                # Maximum distance within cluster (diameter)
+                                max_distance_in_cluster = np.max(cluster_distances)
+                                
+                                # Track cluster with smallest maximum distance
+                                if max_distance_in_cluster < min_max_distance:
+                                    min_max_distance = max_distance_in_cluster
+                                    best_cluster = cluster
+                    
+                    # If we found a cluster with multiple members, use it
+                    if best_cluster >= 0:
+                        ocprint.print_warning(f"Clustering did not fully converge. Using cluster {best_cluster} (size: {max_cluster_size}) with smallest internal variance (max pairwise distance: {min_max_distance:.2f}).")
+                        return last_result
+                    
+            # If all clusters have only 1 member, fail
+            ocprint.print_warning("All clusters have only 1 member. Clustering failed.")
             # Print the message, returning the error code
             return ocerror.Error.cluster_not_converged(f"The clustering algorithm did not converge. The distance threshold is {distance_threshold}.") # type: ignore
 

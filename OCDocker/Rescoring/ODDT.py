@@ -475,7 +475,7 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
                         for mat in csr_matrices:
                             if not isinstance(mat, csr_matrix):
                                 mat = csr_matrix(mat)
-                            if mat.shape[1] != self.shape:
+                            if mat.shape[1] != self.shape: # type: ignore
                                 mat = csr_matrix((1, self.shape), dtype=np.uint8)
                             fixed.append(mat)
                         return sparse_vstack(fixed, format='csr')
