@@ -634,19 +634,36 @@ class NeuralNet(nn.Module):
                     log_loss_value = 0
                     mae = 0
                 else:
-                    # Calculate the ROC
-                    fpr, tpr, _ = roc_curve(y_validation_np, validation_predictions_np)
-                    validation_auc = auc(fpr, tpr)
-               
-                    # Calculate the PR AUC
-                    precision, recall, _ = precision_recall_curve(y_validation_np, validation_predictions_np)
-                    pr_auc = auc(recall, precision)
-                    
-                    # Calculate the log loss
-                    log_loss_value = log_loss(y_validation_np, validation_predictions_np)
-    
-                    # Calculate the Mean Absolute Error
-                    mae = mean_absolute_error(y_validation_np, validation_predictions_np)
+                    # Check if validation set has only one class (can't compute AUC/log_loss)
+                    unique_classes = np.unique(y_validation_np)
+                    if len(unique_classes) == 1:
+                        # Only one class in validation set - can't compute classification metrics
+                        validation_auc = 0.0
+                        pr_auc = 0.0
+                        log_loss_value = np.inf
+                        mae = mean_absolute_error(y_validation_np, validation_predictions_np)
+                        if self.verbose:
+                            ocprint.printv(f'Warning: Validation set contains only one class ({unique_classes[0]}). Cannot compute AUC/log_loss.') # type: ignore
+                    else:
+                        # Calculate the ROC
+                        fpr, tpr, _ = roc_curve(y_validation_np, validation_predictions_np)
+                        validation_auc = auc(fpr, tpr)
+                   
+                        # Calculate the PR AUC
+                        precision, recall, _ = precision_recall_curve(y_validation_np, validation_predictions_np)
+                        pr_auc = auc(recall, precision)
+                        
+                        # Calculate the log loss (with error handling for edge cases)
+                        try:
+                            log_loss_value = log_loss(y_validation_np, validation_predictions_np)
+                        except ValueError as e:
+                            # Handle cases where log_loss fails (e.g., single class, invalid predictions)
+                            log_loss_value = np.inf
+                            if self.verbose:
+                                ocprint.printv(f'Warning: Could not compute log_loss: {e}') # type: ignore
+        
+                        # Calculate the Mean Absolute Error
+                        mae = mean_absolute_error(y_validation_np, validation_predictions_np)
     
         # Set the optuna user attrs
         self.rmse = rmse
@@ -1838,19 +1855,32 @@ class DNNOptimizer:
                 log_loss_value = 0
                 mae = 0
             else:
-                # Calculate the ROC
-                fpr, tpr, _ = roc_curve(y_validation_np, validation_predictions_np) # type: ignore
-                validation_auc = auc(fpr, tpr)
+                # Check if validation set has only one class (can't compute AUC/log_loss)
+                unique_classes = np.unique(y_validation_np)
+                if len(unique_classes) == 1:
+                    # Only one class in validation set - can't compute classification metrics
+                    validation_auc = 0.0
+                    pr_auc = 0.0
+                    log_loss_value = np.inf
+                    mae = mean_absolute_error(y_validation_np, validation_predictions_np)
+                else:
+                    # Calculate the ROC
+                    fpr, tpr, _ = roc_curve(y_validation_np, validation_predictions_np) # type: ignore
+                    validation_auc = auc(fpr, tpr)
 
-                # Calculate the PR AUC
-                precision, recall, _ = precision_recall_curve(y_validation_np, validation_predictions_np)
-                pr_auc = auc(recall, precision)
-                
-                # Calculate the log loss
-                log_loss_value = log_loss(y_validation_np, validation_predictions_np)
+                    # Calculate the PR AUC
+                    precision, recall, _ = precision_recall_curve(y_validation_np, validation_predictions_np)
+                    pr_auc = auc(recall, precision)
+                    
+                    # Calculate the log loss (with error handling for edge cases)
+                    try:
+                        log_loss_value = log_loss(y_validation_np, validation_predictions_np)
+                    except ValueError as e:
+                        # Handle cases where log_loss fails (e.g., single class, invalid predictions)
+                        log_loss_value = np.inf
 
-                # Calculate the Mean Absolute Error
-                mae = mean_absolute_error(y_validation_np, validation_predictions_np)
+                    # Calculate the Mean Absolute Error
+                    mae = mean_absolute_error(y_validation_np, validation_predictions_np)
 
             # Set the optuna user attrs
             trial.set_user_attr('AUC', validation_auc)

@@ -48,10 +48,6 @@ def plot_bar_with_significance(data, metric, y_col='diff'):
     plt.tight_layout()
     plt.savefig(f"plots/games_howell_barplot_{metric}.png")
 
-
-
-
-
 # Heatmap for p-values
 def plot_heatmap(data, title, metric):
     methodologies = sorted(set(data['A']).union(set(data['B'])))
@@ -456,7 +452,6 @@ def get_ae_xgb_indices(n_ae: int, n_xgb: int, n_trials: int) -> tuple[int, int, 
     return nn_ae_start, nn_ae_end, xgb_ga_start, xgb_ga_end
 
 
-
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
@@ -660,7 +655,6 @@ def separate_dfs(best_rmse_df_filtered, best_auc_df_filtered, best_combined_df_f
         df_auc_concat = df_auc_concat[~df_auc_concat['Methodology'].str.startswith(m)]
 
     return df_error_concat, df_auc_concat
-
 
 
 import matplotlib.pyplot as plt
@@ -1108,7 +1102,6 @@ def perform_welch_anova_and_games_howell_posthoc_tests(df, n_trials):
     return None
 
 
-
 print("Starting the analysis of the results.")
 
 base_path: str = "/data/hd4tb/OCDocker/data/ocdb"
@@ -1205,15 +1198,11 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 
 
-
 # Function to load the saved PCA model
 def load_pca_model(pickle_file):
     with open(pickle_file, 'rb') as f:
         pca_model = pickle.load(f)
     return pca_model
-
-
-
 
 
 # Function to compute and visualize variable importance
@@ -1257,9 +1246,6 @@ def compute_variable_importance(pca_model, data, pca_number, n_most_important=No
     plt.savefig(f'plots/variable_importance_{pca_number}.png')
     
     return importance_df
-
-
-
 
 
 # Function to analyze and visualize variable importance

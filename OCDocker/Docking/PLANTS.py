@@ -1140,7 +1140,7 @@ def read_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
                     # For each row
                     for _, row in df.iterrows(): # type: ignore
                         # Add the data to the dict
-                        data[get_pose_index_from_file_path(row['LIGAND_ENTRY'])] = {
+                        data[get_pose_index_from_file_path(str(row['LIGAND_ENTRY']))] = {
                             "PLANTS_TOTAL_SCORE": row['TOTAL_SCORE'], # type: ignore
                             "PLANTS_SCORE_RB_PEN": row['SCORE_RB_PEN'], # type: ignore
                             "PLANTS_SCORE_NORM_HEVATOMS": row['SCORE_NORM_HEVATOMS'], # type: ignore

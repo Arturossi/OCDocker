@@ -13,6 +13,7 @@ Packages
 
 Modules
 -------
+- Scoring: Functions for loading models and applying scoring pipelines to get predictions.
 - SimpleConsensus: Simple consensus scoring functions such as mean, median, max, min, std, variance, sum, range, 25th and 75th percentiles, kurtoisis, skewness.
 """
 
