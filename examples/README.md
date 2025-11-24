@@ -78,6 +78,16 @@ Example of training machine learning models using data from the OCDocker databas
 - Saving trained models and masks
 - Using the full preprocessing pipeline
 
+### 12. Complete OCScore Pipeline (`12_python_api_complete_ocscore_pipeline.py`)
+Complete end-to-end pipeline to obtain OCScore results from scratch:
+- Receptor and ligand preparation
+- Multi-engine docking (Vina, PLANTS)
+- Pose clustering to find representative poses
+- Rescoring with multiple scoring functions (ODDT, PLANTS, Vina, SMINA)
+- Feature extraction (receptor and ligand descriptors)
+- Model inference using trained OCScore model
+- Automatic mapping of rescoring results to database column names
+
 ## Getting Started
 
 ### Prerequisites
