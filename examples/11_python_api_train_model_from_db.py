@@ -1,17 +1,32 @@
 #!/usr/bin/env python3
 """
-Training script that reads data from the database and trains a model using the full pipeline.
+Example: Train Model from Database
 
-This script:
-1. Reads data from the OCDocker database
-2. Applies the preprocessing pipeline
-3. Trains a model (XGBoost or DNN)
-4. Saves the model and mask to OCScore_models directory
+This example demonstrates how to train machine learning models (DNN or XGBoost) using data
+from the OCDocker database. The script:
+
+1. Reads data from the OCDocker database (or CSV file)
+2. Applies the full preprocessing pipeline (outlier removal, normalization, PCA, etc.)
+3. Finds the best hyperparameters across multiple Optuna studies
+4. Trains a model using the best hyperparameters
+5. Saves the trained model and feature mask to OCScore_models directory
+
+The script can work with:
+- Database data (using --from_db flag)
+- CSV files (using --df_path flag)
+- Multiple Optuna studies (finds best trial across all studies)
+- DNN or XGBoost models
+- Custom preprocessing options (PCA, feature selection, etc.)
 
 Usage:
-    python train_model_from_db.py --model_type XGB --model_name my_model
-    python train_model_from_db.py --model_type DNN --model_name my_model --use_gpu
-    python train_model_from_db.py --from_db --model_type DNN  --studies NN_Optimization_6 NN_Optimization_7 NN_Optimization_8 NN_Optimization_9 NN_Optimization_10 --use_gpu
+    # Train XGBoost model from CSV
+    python examples/11_python_api_train_model_from_db.py --model_type XGB --model_name my_model --df_path data.csv
+    
+    # Train DNN model from database with GPU
+    python examples/11_python_api_train_model_from_db.py --from_db --model_type DNN --model_name my_model --use_gpu
+    
+    # Train DNN model using best trial from multiple Optuna studies
+    python examples/11_python_api_train_model_from_db.py --from_db --model_type DNN --studies NN_Optimization_6 NN_Optimization_7 NN_Optimization_8 NN_Optimization_9 NN_Optimization_10 --use_gpu
 """
 
 import argparse

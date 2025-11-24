@@ -15,6 +15,14 @@ Subpackages
    OCDocker.OCScore.Utils
    OCDocker.OCScore.XGBoost
 
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   OCDocker.OCScore.Scoring
+
 Module contents
 ---------------
 

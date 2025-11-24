@@ -70,6 +70,14 @@ End-to-end workflow example:
 - Rescoring
 - Results analysis
 
+### 11. Train Model from Database (`11_python_api_train_model_from_db.py`)
+Example of training machine learning models using data from the OCDocker database:
+- Loading data from database
+- Finding best hyperparameters across multiple Optuna studies
+- Training DNN or XGBoost models
+- Saving trained models and masks
+- Using the full preprocessing pipeline
+
 ## Getting Started
 
 ### Prerequisites
