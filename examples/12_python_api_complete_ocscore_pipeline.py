@@ -90,26 +90,6 @@ SCORE_COLUMNS_LIST = ["SMINA", "VINA", "ODDT", "PLANTS"]
 # 
 ###############################################################################
 
-# Define the correct order of scoring function columns (for mask application)
-SCORING_FUNCTION_ORDER = [
-    'SMINA_VINA',
-    'SMINA_SCORING_DKOES',
-    'SMINA_VINARDO',
-    'SMINA_OLD_SCORING_DKOES',
-    'SMINA_FAST_DKOES',
-    'SMINA_SCORING_AD4',
-    'VINA_VINA',
-    'VINA_VINARDO',
-    'PLANTS_CHEMPLP',
-    'PLANTS_PLP',
-    'PLANTS_PLP95',
-    'ODDT_RFSCORE_V1',
-    'ODDT_RFSCORE_V2',
-    'ODDT_RFSCORE_V3',
-    'ODDT_PLECRF_P5_L1_S65536',
-    'ODDT_NNSCORE',
-]
-
 # GPU configuration
 USE_GPU = True  # Set to False to force CPU usage (useful if CUDA is not available or to avoid GPU memory issues)
 
@@ -118,7 +98,7 @@ OUTPUT_FILE = "ocscore_results.csv"  # CSV file to save results (None to skip sa
 SAVE_TO_FILE = True  # Set to False to only store results in memory
 
 # Multiprocessing configuration
-N_JOBS = 1  # Number of parallel jobs (cores) to use. Set to -1 for all available cores
+N_JOBS = 4  # Number of parallel jobs (cores) to use. Set to -1 for all available cores
 USE_MULTIPROCESSING = True  # Set to False to process ligands sequentially
 
 ###############################################################################
