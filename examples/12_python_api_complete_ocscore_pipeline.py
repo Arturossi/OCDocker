@@ -21,6 +21,11 @@ Usage:
 # USER CONFIGURATION - Update these variables to match your system
 ###############################################################################
 
+# OCDocker configuration file path
+# Set this to the absolute path of your OCDocker.cfg file
+# If None, will use OCDOCKER_CONFIG environment variable or search for OCDocker.cfg
+OCDOCKER_CONFIG_FILE = "/data/hd4tb/OCDocker/OCDocker/OCDocker.cfg"  # Update this path
+
 # Receptor configuration
 RECEPTOR_PATH = "/data/hd4tb/OCDocker/OCDocker/test_files/test_ptn1/receptor.pdb"
 RECEPTOR_NAME = "Receptor"
@@ -32,6 +37,9 @@ PREPARED_RECEPTOR_MOL2 = "/data/hd4tb/OCDocker/OCDocker/test_files/test_ptn1/pre
 # Ligand names are automatically extracted from the last folder name in each path
 LIGAND_PATHS = [
     "/data/hd4tb/OCDocker/OCDocker/test_files/test_ptn1/compounds/ligands/ligand",
+    "/data/hd4tb/OCDocker/OCDocker/test_files/test_ptn1/compounds/decoys/ZINC000000000015",
+    "/data/hd4tb/OCDocker/OCDocker/test_files/test_ptn1/compounds/decoys/ZINC000000000024",
+    "/data/hd4tb/OCDocker/OCDocker/test_files/test_ptn1/compounds/decoys/ZINC000000000030"
     # Add more ligand paths here (you can use glob to get all ligand folders):
     # "/path/to/ligand2",
     # "/path/to/ligand3",
@@ -48,6 +56,9 @@ INVERT_CONDITIONALLY = True
 NORMALIZE = True
 SCORE_COLUMNS_LIST = ["SMINA", "VINA", "ODDT", "PLANTS"]
 
+# GPU configuration
+USE_GPU = True  # Set to False to force CPU usage (useful if CUDA is not available or to avoid GPU memory issues)
+
 # Output configuration
 OUTPUT_FILE = "ocscore_results.csv"  # CSV file to save results (None to skip saving)
 SAVE_TO_FILE = True  # Set to False to only store results in memory
@@ -61,9 +72,37 @@ USE_MULTIPROCESSING = True  # Set to False to process ligands sequentially
 ###############################################################################
 
 # Imports
-from collections import defaultdict
 import os
+import numpy as np
 import pandas as pd
+import argparse
+import OCDocker.Initialise as init
+import OCDocker.Error as ocerror
+
+# Explicitly bootstrap OCDocker with the specified config file BEFORE other imports
+# This ensures the config is loaded correctly regardless of working directory
+# Set OCDOCKER_NO_AUTO_BOOTSTRAP to prevent auto-bootstrap from running first
+os.environ['OCDOCKER_NO_AUTO_BOOTSTRAP'] = '1'
+
+if OCDOCKER_CONFIG_FILE and os.path.isfile(OCDOCKER_CONFIG_FILE):
+    print(f"Loading OCDocker configuration from: {OCDOCKER_CONFIG_FILE}")
+    bootstrap_ns = argparse.Namespace(
+        multiprocess=USE_MULTIPROCESSING,
+        update=False,
+        config_file=OCDOCKER_CONFIG_FILE,
+        output_level=ocerror.ReportLevel.WARNING,
+        overwrite=False
+    )
+    init.bootstrap(bootstrap_ns)
+    print("OCDocker configuration loaded successfully.\n")
+else:
+    # Fall back to auto-bootstrap if config file not specified or not found
+    if OCDOCKER_CONFIG_FILE:
+        print(f"Warning: Config file not found at {OCDOCKER_CONFIG_FILE}, using auto-bootstrap...")
+    # Re-enable auto-bootstrap
+    os.environ.pop('OCDOCKER_NO_AUTO_BOOTSTRAP', None)
+
+# Now import other OCDocker modules (they won't trigger auto-bootstrap since we already bootstrapped)
 import OCDocker.Receptor as ocr
 import OCDocker.Ligand as ocl
 import OCDocker.Docking.Vina as ocvina
@@ -75,8 +114,6 @@ import OCDocker.Processing.Preprocessing.RmsdClustering as ocrmsdclust
 import OCDocker.Rescoring.ODDT as ocoddt
 import OCDocker.OCScore.Scoring as ocscoring
 import OCDocker.OCScore.Utils.IO as ocscoreio
-
-from OCDocker.Config import get_config
 
 # Configure sklearn/joblib to use threading backend for parallel execution
 # This allows sklearn models to use multiple threads while main process uses multiprocessing
@@ -368,10 +405,34 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
         )
         
         # Get PLANTS rescoring results and map to database column names
+        # PLANTS read_rescore_logs returns Dict[str, Dict[str, float]] where:
+        # - Outer key: "plants_{scoring_function}" (e.g., "plants_chemplp")
+        # - Inner dict: Contains PLANTS score keys (e.g., "PLANTS_TOTAL_SCORE", "PLANTS_SCORE_RB_PEN", etc.)
+        # For each PLANTS scoring function, we extract the PLANTS_TOTAL_SCORE value from the inner dict
         plants_rescoring = plants_ligand.read_rescore_logs(f"{ligand_path}/plantsFiles")
-        for key, value in plants_rescoring.items():
-            db_column_name = map_rescoring_key_to_db_column(key)
-            rescoringResult[db_column_name] = value
+        for outer_key, inner_dict in plants_rescoring.items():
+            # Map the outer key (e.g., "plants_chemplp") to database column name (e.g., "PLANTS_CHEMPLP")
+            db_column_name = map_rescoring_key_to_db_column(outer_key)
+            
+            if isinstance(inner_dict, dict):
+                # Extract PLANTS_TOTAL_SCORE from the inner dict
+                if "PLANTS_TOTAL_SCORE" in inner_dict:
+                    total_score = inner_dict["PLANTS_TOTAL_SCORE"]
+                    # Extract numeric value if it's in a list
+                    if isinstance(total_score, list) and len(total_score) > 0:
+                        rescoringResult[db_column_name] = total_score[0]
+                    elif isinstance(total_score, (int, float)):
+                        rescoringResult[db_column_name] = total_score
+                    else:
+                        print(f"Warning: PLANTS_TOTAL_SCORE for {outer_key} has non-numeric value: {total_score} (type: {type(total_score)})")
+                else:
+                    print(f"Warning: PLANTS_TOTAL_SCORE not found in inner dict for {outer_key}. Available keys: {list(inner_dict.keys())}")
+            else:
+                # Fallback: if inner_dict is not a dict, try to use it directly
+                if isinstance(inner_dict, list) and len(inner_dict) > 0:
+                    rescoringResult[db_column_name] = inner_dict[0]
+                else:
+                    rescoringResult[db_column_name] = inner_dict
         
         if medoid_extension != ".pdbqt":
             # Change the output file extension to pdbqt
@@ -408,7 +469,7 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
         for key, value in smina_rescoring.items():
             db_column_name = map_rescoring_key_to_db_column(key)
             rescoringResult[db_column_name] = value
-        
+
         ####################### FEATURE EXTRACTION #########################
         
         # Get receptor descriptors
@@ -457,17 +518,29 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
                 scaler=SCALER,
                 invert_conditionally=INVERT_CONDITIONALLY,
                 normalize=NORMALIZE,
-                serialization_method="auto"  # Auto-detect model format
+                serialization_method="auto",  # Auto-detect model format
+                use_gpu=USE_GPU  # Use GPU if available and USE_GPU=True
             )
             
             # Add OCScore to the feature dictionary
             if isinstance(ocscore_predictions, pd.DataFrame):
                 # If DataFrame, extract the prediction value
-                if 'OCSCORE' in ocscore_predictions.columns:
+                # Check for 'predicted_score' column (returned by get_score) or 'OCSCORE'
+                if 'predicted_score' in ocscore_predictions.columns:
+                    all_features['OCSCORE'] = ocscore_predictions['predicted_score'].iloc[0]
+                elif 'OCSCORE' in ocscore_predictions.columns:
                     all_features['OCSCORE'] = ocscore_predictions['OCSCORE'].iloc[0]
                 elif len(ocscore_predictions.columns) == 1:
-                    # Single prediction column
+                    # Single prediction column (use the first/only column)
                     all_features['OCSCORE'] = ocscore_predictions.iloc[0, 0]
+                else:
+                    # Multiple columns - try to find a numeric column
+                    numeric_cols = ocscore_predictions.select_dtypes(include=[np.number]).columns
+                    if len(numeric_cols) > 0:
+                        all_features['OCSCORE'] = ocscore_predictions[numeric_cols[0]].iloc[0]
+                    else:
+                        print(f"Warning: Could not extract OCScore from predictions DataFrame. Columns: {list(ocscore_predictions.columns)}")
+                        all_features['OCSCORE'] = None
             elif isinstance(ocscore_predictions, pd.Series):
                 all_features['OCSCORE'] = ocscore_predictions.iloc[0]
             else:
@@ -478,7 +551,10 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
             print(f"Warning: Model file not found for {ligand_name}: {e}")
             all_features['OCSCORE'] = None
         except Exception as e:
+            import traceback
             print(f"Error during model inference for {ligand_name}: {e}")
+            print("Full traceback:")
+            traceback.print_exc()
             all_features['OCSCORE'] = None
         
         return all_features
@@ -492,6 +568,11 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
 
 def main():
     '''Main function to process all ligands.'''
+    
+    # OCDocker auto-bootstraps on import, so configuration is already loaded
+    # If you need to verify bootstrap or use custom settings, you can:
+    # 1. Set OCDOCKER_NO_AUTO_BOOTSTRAP=1 environment variable
+    # 2. Import OCDocker.Initialise and call bootstrap() explicitly
     
     # Automatically derive ligand names from paths (last folder name)
     ligand_names = [os.path.basename(os.path.normpath(path)) for path in LIGAND_PATHS]
@@ -538,6 +619,55 @@ def main():
     
     # Convert results to DataFrame
     results_df = pd.DataFrame(results)
+    
+    # Debug: Print columns before reordering
+    print(f"Columns before reordering: {list(results_df.columns)[:10]}... (total: {len(results_df.columns)})")
+    if 'OCSCORE' in results_df.columns:
+        print(f"OCSCORE found in columns!")
+    else:
+        print(f"WARNING: OCSCORE NOT found in columns!")
+        print(f"Available columns: {list(results_df.columns)}")
+    
+    # Reorder columns: name, receptor, ligand, OCSCORE, then SFs, then other features
+    if not results_df.empty:
+        # Get all columns from the DataFrame
+        all_cols = list(results_df.columns)
+        ordered_cols = []
+        
+        # 1. Start with name, receptor, ligand (if they exist) - MUST be first
+        metadata_cols = ['name', 'receptor', 'ligand']
+        for col in metadata_cols:
+            if col in all_cols:
+                ordered_cols.append(col)
+        
+        # 2. Add OCSCORE right after ligand
+        if 'OCSCORE' in all_cols:
+            ordered_cols.append('OCSCORE')
+        
+        # 3. Add all scoring function columns (SFs)
+        # SF columns typically start with: VINA_, SMINA_, PLANTS_, ODDT_
+        sf_prefixes = ['VINA_', 'SMINA_', 'PLANTS_', 'ODDT_']
+        sf_cols = []
+        for col in all_cols:
+            # Exclude metadata columns and OCSCORE from SFs
+            if col not in ordered_cols and any(col.startswith(prefix) for prefix in sf_prefixes):
+                sf_cols.append(col)
+        # Sort SF columns alphabetically for consistency
+        sf_cols.sort()
+        ordered_cols.extend(sf_cols)
+        
+        # 4. Add all remaining columns (descriptors, etc.) - exclude already added columns
+        remaining_cols = [col for col in all_cols if col not in ordered_cols]
+        remaining_cols.sort()  # Sort alphabetically for consistency
+        ordered_cols.extend(remaining_cols)
+        
+        # Reorder the DataFrame - ensure all columns are included
+        results_df = results_df[ordered_cols]
+        
+        # Debug: Print first few columns after reordering
+        print(f"Columns after reordering: {list(results_df.columns)[:10]}...")
+        if 'OCSCORE' in results_df.columns:
+            print(f"OCSCORE position: {list(results_df.columns).index('OCSCORE')}")
     
     # Print summary
     print(f"\n{'='*60}")

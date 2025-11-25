@@ -60,7 +60,8 @@ def get_score(
     no_scores: bool = False,
     only_scores: bool = False,
     columns_to_skip_pca: Optional[list[str]] = None,
-    serialization_method: str = "joblib"
+    serialization_method: str = "auto",
+    use_gpu: bool = True
 ) -> Union[pd.DataFrame, np.ndarray]:
     ''' Get scores by loading a model and applying the same preprocessing pipeline.
     
@@ -130,11 +131,109 @@ def get_score(
         raise FileNotFoundError(f"Model file not found: {model_path}")
     
     # Load the model - IO module now handles format detection automatically
-    model = ocscoreio.load_object(model_path, serialization_method="auto")
+    loaded_obj = ocscoreio.load_object(model_path, serialization_method="auto")
+    
+    # Handle different model formats
+    # If loaded object is a dict, it might be a state_dict or a dict containing the model
+    if isinstance(loaded_obj, dict):
+        # Check if it's a state_dict (PyTorch model weights)
+        if 'state_dict' in loaded_obj or any(key.startswith(('layer', 'fc', 'linear', 'encoder', 'decoder')) for key in loaded_obj.keys()):
+            # This is likely a state_dict, but we need the model class to load it
+            # For now, raise an error asking for the model object
+            ocerror.Error.value_error("Model file contains a state_dict (weights only), not a complete model. Please load the model class first, then load_state_dict().") # type: ignore
+            raise ValueError("Model file contains a state_dict (weights only), not a complete model. Please load the model class first, then load_state_dict().")
+        elif 'model' in loaded_obj:
+            # Dict contains the model under 'model' key
+            model = loaded_obj['model']
+        elif 'network' in loaded_obj:
+            # Dict contains the model under 'network' key
+            model = loaded_obj['network']
+        else:
+            # Try to find any value that looks like a model object
+            for key, value in loaded_obj.items():
+                if hasattr(value, 'predict') or hasattr(value, 'forward'):
+                    model = value
+                    break
+            else:
+                ocerror.Error.value_error(f"Model file contains a dict but no model object found. Keys: {list(loaded_obj.keys())}") # type: ignore
+                raise ValueError(f"Model file contains a dict but no model object found. Keys: {list(loaded_obj.keys())}")
+    else:
+        # Loaded object is the model itself
+        model = loaded_obj
     
     # Set PyTorch models to eval mode for inference
     if hasattr(model, 'eval'):
         model.eval()
+    
+    # Determine device for PyTorch models
+    import torch
+    if use_gpu and torch.cuda.is_available():
+        device = torch.device('cuda')
+    else:
+        device = torch.device('cpu')
+    
+    # Move PyTorch model to the correct device
+    if hasattr(model, 'to'):
+        model = model.to(device)
+        # Also update model.device if it exists
+        if hasattr(model, 'device'):
+            model.device = device
+    
+    # Fix mask attribute if it's stored as dict/list instead of tensor
+    # This can happen when models are saved/loaded
+    def fix_mask_attribute(obj, device=None):
+        """Recursively fix mask attributes in model and nested modules."""
+        if hasattr(obj, 'mask'):
+            if obj.mask is None:
+                obj.mask = []
+            elif isinstance(obj.mask, dict):
+                # Extract array from dict
+                mask_value = None
+                for key in ['mask', 'array', 'feature_mask', 'ablation_mask']:
+                    if key in obj.mask:
+                        mask_value = obj.mask[key]
+                        break
+                if mask_value is None:
+                    for v in obj.mask.values():
+                        if isinstance(v, (list, np.ndarray, torch.Tensor)):
+                            mask_value = v
+                            break
+                if mask_value is None:
+                    obj.mask = []
+                elif isinstance(mask_value, torch.Tensor):
+                    obj.mask = mask_value.float()
+                elif isinstance(mask_value, np.ndarray):
+                    obj.mask = torch.from_numpy(mask_value).float()
+                elif isinstance(mask_value, list):
+                    obj.mask = torch.tensor(mask_value, dtype=torch.float32) if mask_value else []
+                else:
+                    obj.mask = []
+                
+                # Move to device
+                if isinstance(obj.mask, torch.Tensor):
+                    target_device = device if device else (obj.device if hasattr(obj, 'device') else torch.device('cpu'))
+                    obj.mask = obj.mask.to(target_device)
+            elif isinstance(obj.mask, (list, np.ndarray)) and not isinstance(obj.mask, torch.Tensor):
+                # Convert list/array to tensor
+                if isinstance(obj.mask, np.ndarray):
+                    obj.mask = torch.from_numpy(obj.mask).float()
+                elif isinstance(obj.mask, list):
+                    obj.mask = torch.tensor(obj.mask, dtype=torch.float32) if obj.mask else []
+                
+                # Move to device
+                if isinstance(obj.mask, torch.Tensor):
+                    target_device = device if device else (obj.device if hasattr(obj, 'device') else torch.device('cpu'))
+                    obj.mask = obj.mask.to(target_device)
+        
+        # Also check nested modules
+        if hasattr(obj, 'modules'):
+            for module in obj.modules():
+                if module is not obj:  # Avoid infinite recursion
+                    fix_mask_attribute(module, device)
+    
+    # Fix mask in the model and all nested modules
+    device = model.device if hasattr(model, 'device') else None
+    fix_mask_attribute(model, device)
     
     # Load or prepare the data
     if data is None:
@@ -251,7 +350,13 @@ def get_score(
     X = data[feature_cols].values
     
     # Apply mask if provided
-    if mask is not None:
+    # NOTE: If the model has its own mask (e.g., PyTorch DynamicNN), we should NOT apply
+    # the external mask here, as the model will apply its own mask in the forward pass.
+    # The external mask parameter is for models that don't have built-in masking.
+    model_has_mask = hasattr(model, 'mask') and model.mask is not None and len(model.mask) > 0
+    
+    if mask is not None and not model_has_mask:
+        # Only apply external mask if model doesn't have its own mask
         # Convert mask to numpy array if it's a list
         mask = np.asarray(mask, dtype=bool)
         
@@ -262,6 +367,11 @@ def get_score(
         
         # Apply mask to filter features
         X = X[:, mask]
+    elif mask is not None and model_has_mask:
+        # Model has its own mask, so we'll use that instead
+        # Just validate that the input size matches what the model expects
+        import OCDocker.Toolbox.Printing as ocprint
+        ocprint.print_warning("Model has its own mask, ignoring external mask parameter. The model's internal mask will be used.")
     
     # Make predictions
     try:
@@ -272,8 +382,72 @@ def get_score(
         elif hasattr(model, 'forward'):
             import torch
             model.eval()
+            
+            # Ensure mask is properly formatted before forward pass
+            # This is critical - the mask must be a tensor, not a dict/list
+            # Also ensure it's on the same device as the model
+            if hasattr(model, 'mask'):
+                if model.mask is None:
+                    # Set to empty list if None (DynamicNN expects list or tensor)
+                    model.mask = []
+                elif not isinstance(model.mask, torch.Tensor):
+                    # Convert mask to tensor if it's not already
+                    if isinstance(model.mask, dict):
+                        # Extract from dict - try common keys first
+                        mask_value = None
+                        for key in ['mask', 'array', 'feature_mask', 'ablation_mask']:
+                            if key in model.mask:
+                                mask_value = model.mask[key]
+                                break
+                        
+                        # If not found, try to find first array-like value
+                        if mask_value is None:
+                            for v in model.mask.values():
+                                if isinstance(v, (list, np.ndarray, torch.Tensor)):
+                                    mask_value = v
+                                    break
+                        
+                        # If still None, try first value
+                        if mask_value is None and model.mask:
+                            first_val = list(model.mask.values())[0]
+                            if isinstance(first_val, (list, np.ndarray, torch.Tensor)):
+                                mask_value = first_val
+                            else:
+                                mask_value = []
+                    elif isinstance(model.mask, (list, np.ndarray)):
+                        mask_value = model.mask
+                    else:
+                        mask_value = []
+                    
+                    # Convert to tensor
+                    if isinstance(mask_value, torch.Tensor):
+                        model.mask = mask_value.float()
+                    elif isinstance(mask_value, np.ndarray):
+                        model.mask = torch.from_numpy(mask_value).float()
+                    elif isinstance(mask_value, list):
+                        if len(mask_value) > 0:
+                            model.mask = torch.tensor(mask_value, dtype=torch.float32)
+                        else:
+                            model.mask = []
+                    else:
+                        model.mask = []
+            
+            # Final safety check: ensure mask is not a dict before forward pass
+            # This prevents the "dict * int" error in DynamicNN.forward()
+            if hasattr(model, 'mask') and isinstance(model.mask, dict):
+                # If still a dict after all conversion attempts, set to empty list
+                # This will prevent the multiplication error
+                model.mask = []
+            
             with torch.no_grad():
                 X_tensor = torch.FloatTensor(X)
+                # Move input tensor to the same device as the model
+                X_tensor = X_tensor.to(device)
+                
+                # Ensure mask is on the same device as the input tensor
+                if hasattr(model, 'mask') and isinstance(model.mask, torch.Tensor):
+                    model.mask = model.mask.to(device)
+                
                 predictions = model(X_tensor).cpu().numpy()
                 # Flatten if needed
                 if predictions.ndim > 1 and predictions.shape[1] == 1:
@@ -282,13 +456,20 @@ def get_score(
             ocerror.Error.value_error("Model does not have a predict or forward method.") # type: ignore
             raise ValueError("Model does not have a predict or forward method.")
     except Exception as e:
-        ocerror.Error.value_error(f"Error during prediction: {e}") # type: ignore
-        raise ValueError(f"Error during prediction: {e}")
+        import traceback
+        error_details = traceback.format_exc()
+        ocerror.Error.value_error(f"Error during prediction: {e}\n{error_details}") # type: ignore
+        raise ValueError(f"Error during prediction: {e}\n{error_details}")
     
     # Return results in appropriate format
     if is_dataframe:
         # Create result DataFrame with metadata if available
-        result = original_data[metadata_cols].copy() if any(col in original_data.columns for col in metadata_cols) else pd.DataFrame()
+        # Only include metadata columns that actually exist in the original data
+        available_metadata_cols = [col for col in metadata_cols if col in original_data.columns]
+        if available_metadata_cols:
+            result = original_data[available_metadata_cols].copy()
+        else:
+            result = pd.DataFrame()
         result['predicted_score'] = predictions
         return result
     else:

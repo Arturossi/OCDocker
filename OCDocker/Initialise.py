@@ -1366,14 +1366,36 @@ def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
     overwrite = bool(getattr(ns, 'overwrite', False))
     ocerror.Error.set_output_level(output_level)
 
-    # Locate configuration file
-    if (not config_file or not os.path.isfile(config_file)) and not os.path.isfile("OCDocker.cfg"):
-        print("OCDocker configuration file has not been found in the provided path")
-        raise SystemExit(2)
-    elif not config_file and os.path.isfile("OCDocker.cfg"):
-        config_file = "OCDocker.cfg"
-    elif config_file:
-        assert os.path.isfile(config_file), f"{clrs['r']}\n\n Not able to find configuration file.\n\n Does \"{config_file}\" exist?{clrs['n']}"
+    # Locate configuration file and convert to absolute path
+    # Try multiple locations if file not found
+    if config_file and os.path.isfile(config_file):
+        # File exists at specified path, convert to absolute
+        config_file = os.path.abspath(config_file)
+    elif os.path.isfile("OCDocker.cfg"):
+        # Found in current directory
+        config_file = os.path.abspath("OCDocker.cfg")
+    else:
+        # Try to find in common locations
+        _module_dir = os.path.dirname(os.path.abspath(__file__))
+        _package_root = os.path.dirname(os.path.dirname(_module_dir))  # Go up from OCDocker/Initialise.py to project root
+        possible_paths = [
+            os.path.join(_package_root, "OCDocker.cfg"),  # Project root
+            os.path.join(_module_dir, "..", "..", "OCDocker.cfg"),  # Alternative path
+        ]
+        
+        found = False
+        for path in possible_paths:
+            abs_path = os.path.abspath(path)
+            if os.path.isfile(abs_path):
+                config_file = abs_path
+                found = True
+                break
+        
+        if not found:
+            print(f"{clrs['r']}ERROR{clrs['n']}: OCDocker configuration file not found.")
+            print(f"  Searched in: current directory, {_package_root}")
+            print(f"  Set OCDOCKER_CONFIG environment variable to specify the config file path.")
+            raise SystemExit(2)
 
     # Splash
     print_description()

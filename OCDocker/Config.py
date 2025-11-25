@@ -236,9 +236,34 @@ class OCDockerConfig:
             Configured instance
         """
         # Import here to avoid circular dependency
+        import os
         from OCDocker.Initialise import _parse_config_file
         
+        # Resolve config file path if not provided or doesn't exist
+        # Bootstrap already resolves the path, so if provided and exists, use it as-is
+        if config_file and os.path.isfile(config_file):
+            # File exists, use it directly (bootstrap already resolved it)
+            pass
+        else:
+            # File doesn't exist or not provided, try to find it
+            if not config_file:
+                config_file = os.getenv('OCDOCKER_CONFIG', 'OCDocker.cfg')
+            
+            # Try to find the file
+            if not os.path.isfile(config_file):
+                if os.path.isfile("OCDocker.cfg"):
+                    config_file = os.path.abspath("OCDocker.cfg")
+                else:
+                    raise FileNotFoundError(f"Configuration file not found: {config_file}")
+            else:
+                # Convert to absolute path for consistency
+                config_file = os.path.abspath(config_file)
+        
         cfg = _parse_config_file(config_file)
+        
+        # Verify cfg is populated - if empty, something went wrong
+        if not cfg:
+            raise ValueError(f"Configuration file '{config_file}' was parsed but returned an empty dictionary")
         
         # Helper to convert string to bool
         def str_to_bool(val: str) -> bool:

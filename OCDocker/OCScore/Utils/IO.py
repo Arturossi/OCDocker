@@ -89,7 +89,9 @@ def load_object(file_name : str, serialization_method : str = "auto") -> Any:
     if serialization_method == "torch":
         try:
             import torch
-            return torch.load(file_name, map_location='cpu')
+            # Explicitly set weights_only=False to suppress FutureWarning
+            # This is safe for trusted model files
+            return torch.load(file_name, map_location='cpu', weights_only=False)
         except ImportError:
             ocerror.Error.value_error("PyTorch is not installed. Cannot load .pt/.pth files.") # type: ignore
             raise ValueError("PyTorch is not installed. Cannot load .pt/.pth files.")
@@ -306,10 +308,41 @@ def load_mask(name: str, models_dir: Optional[str] = None) -> np.ndarray:
         ocerror.Error.file_not_exist(f"Mask file not found: {filename}") # type: ignore
         raise FileNotFoundError(f"Mask file not found: {filename}")
     
-    # Load the mask
-    mask = load_object(filename, serialization_method="pickle")
+    # Load the mask - try different serialization methods
+    try:
+        # First try joblib (most common for masks)
+        mask = load_object(filename, serialization_method="joblib")
+    except (ValueError, EOFError, pickle.UnpicklingError) as e:
+        # If joblib fails, try pickle
+        try:
+            mask = load_object(filename, serialization_method="pickle")
+        except (ValueError, EOFError, pickle.UnpicklingError) as e2:
+            ocerror.Error.value_error(f"Failed to load mask from {filename}: {e}. Tried both joblib and pickle.") # type: ignore
+            raise ValueError(f"Failed to load mask from {filename}. The file may be corrupted or in an unsupported format. Error: {e}")
     
     # Ensure it's a numpy array
+    # Handle different mask formats
+    if isinstance(mask, dict):
+        # If mask is a dict, try to extract the array
+        if 'mask' in mask:
+            mask = mask['mask']
+        elif 'array' in mask:
+            mask = mask['array']
+        else:
+            # Try to get the first value that looks like an array
+            for key, value in mask.items():
+                if isinstance(value, (list, np.ndarray)):
+                    mask = value
+                    break
+            else:
+                ocerror.Error.value_error(f"Mask loaded as dict but no array found. Keys: {list(mask.keys())}") # type: ignore
+                raise ValueError(f"Mask loaded as dict but no array found. Keys: {list(mask.keys())}")
+    
     mask_array = np.asarray(mask, dtype=int)
+    
+    # Validate mask contains only 0s and 1s
+    if not np.all((mask_array == 0) | (mask_array == 1)):
+        ocerror.Error.value_error("Loaded mask must contain only 0s and 1s.") # type: ignore
+        raise ValueError("Loaded mask must contain only 0s and 1s.")
     
     return mask_array

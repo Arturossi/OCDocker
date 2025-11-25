@@ -498,7 +498,6 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
         
         universal_descriptor.build = _patched_universal_build
         _patch_oddt_descriptors_for_plec = True
-        ocprint.print_warning("Patched ODDT's descriptor generator to handle 0-d arrays (workaround for PLEC bug)")
     except (ImportError, AttributeError) as patch_err:
         ocprint.print_warning(f"Could not patch ODDT descriptor functions: {patch_err}")
     
