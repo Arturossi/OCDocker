@@ -56,6 +56,60 @@ INVERT_CONDITIONALLY = True
 NORMALIZE = True
 SCORE_COLUMNS_LIST = ["SMINA", "VINA", "ODDT", "PLANTS"]
 
+###############################################################################
+# !!! CRITICAL WARNING: SCORING FUNCTION COLUMN ORDER !!!
+###############################################################################
+# 
+# THE FOLLOWING ORDER MUST BE STRICTLY RESPECTED WHEN APPLYING MASKS:
+# 
+#   1. SMINA_VINA
+#   2. SMINA_SCORING_DKOES
+#   3. SMINA_VINARDO
+#   4. SMINA_OLD_SCORING_DKOES
+#   5. SMINA_FAST_DKOES
+#   6. SMINA_SCORING_AD4
+#   7. VINA_VINA
+#   8. VINA_VINARDO
+#   9. PLANTS_CHEMPLP
+#  10. PLANTS_PLP
+#  11. PLANTS_PLP95
+#  12. ODDT_RFSCORE_V1
+#  13. ODDT_RFSCORE_V2
+#  14. ODDT_RFSCORE_V3
+#  15. ODDT_PLECRF_P5_L1_S65536
+#  16. ODDT_NNSCORE
+# 
+# !!! WARNING: If you change the order of scoring function columns in the output,
+#   the mask will be applied incorrectly, leading to wrong predictions!
+# 
+# The mask is a 16-element array where each position corresponds to one of the
+# scoring functions above in the exact order listed. Position 0 = SMINA_VINA,
+# position 1 = SMINA_SCORING_DKOES, etc.
+# 
+# DO NOT MODIFY THE ORDER OF SCORING FUNCTION COLUMNS WITHOUT UPDATING THE MASK!
+# 
+###############################################################################
+
+# Define the correct order of scoring function columns (for mask application)
+SCORING_FUNCTION_ORDER = [
+    'SMINA_VINA',
+    'SMINA_SCORING_DKOES',
+    'SMINA_VINARDO',
+    'SMINA_OLD_SCORING_DKOES',
+    'SMINA_FAST_DKOES',
+    'SMINA_SCORING_AD4',
+    'VINA_VINA',
+    'VINA_VINARDO',
+    'PLANTS_CHEMPLP',
+    'PLANTS_PLP',
+    'PLANTS_PLP95',
+    'ODDT_RFSCORE_V1',
+    'ODDT_RFSCORE_V2',
+    'ODDT_RFSCORE_V3',
+    'ODDT_PLECRF_P5_L1_S65536',
+    'ODDT_NNSCORE',
+]
+
 # GPU configuration
 USE_GPU = True  # Set to False to force CPU usage (useful if CUDA is not available or to avoid GPU memory issues)
 
@@ -489,74 +543,8 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
         all_features['receptor'] = receptor.name
         all_features['ligand'] = ligand.name
         
-        ####################### MODEL INFERENCE #########################
-        
-        # Convert to DataFrame for model inference
-        feature_df = pd.DataFrame([all_features])
-        
-        # Path to your trained model
-        model_path = f"{MODELS_DIR}/{MODEL_NAME}.pt"
-        mask_path = f"{MODELS_DIR}/{MODEL_NAME}_mask.pkl"
-        
-        # Load the mask if it exists
-        mask = None
-        if os.path.isfile(mask_path):
-            try:
-                mask = ocscoreio.load_mask(MODEL_NAME, models_dir=MODELS_DIR)
-            except Exception as e:
-                print(f"Warning: Could not load mask for {ligand_name}: {e}")
-                mask = None
-        
-        # Get OCScore predictions
-        try:
-            ocscore_predictions = ocscoring.get_score(
-                model_path=model_path,
-                data=feature_df,
-                pca_model=PCA_MODEL_PATH,
-                mask=mask,
-                score_columns_list=SCORE_COLUMNS_LIST,
-                scaler=SCALER,
-                invert_conditionally=INVERT_CONDITIONALLY,
-                normalize=NORMALIZE,
-                serialization_method="auto",  # Auto-detect model format
-                use_gpu=USE_GPU  # Use GPU if available and USE_GPU=True
-            )
-            
-            # Add OCScore to the feature dictionary
-            if isinstance(ocscore_predictions, pd.DataFrame):
-                # If DataFrame, extract the prediction value
-                # Check for 'predicted_score' column (returned by get_score) or 'OCSCORE'
-                if 'predicted_score' in ocscore_predictions.columns:
-                    all_features['OCSCORE'] = ocscore_predictions['predicted_score'].iloc[0]
-                elif 'OCSCORE' in ocscore_predictions.columns:
-                    all_features['OCSCORE'] = ocscore_predictions['OCSCORE'].iloc[0]
-                elif len(ocscore_predictions.columns) == 1:
-                    # Single prediction column (use the first/only column)
-                    all_features['OCSCORE'] = ocscore_predictions.iloc[0, 0]
-                else:
-                    # Multiple columns - try to find a numeric column
-                    numeric_cols = ocscore_predictions.select_dtypes(include=[np.number]).columns
-                    if len(numeric_cols) > 0:
-                        all_features['OCSCORE'] = ocscore_predictions[numeric_cols[0]].iloc[0]
-                    else:
-                        print(f"Warning: Could not extract OCScore from predictions DataFrame. Columns: {list(ocscore_predictions.columns)}")
-                        all_features['OCSCORE'] = None
-            elif isinstance(ocscore_predictions, pd.Series):
-                all_features['OCSCORE'] = ocscore_predictions.iloc[0]
-            else:
-                # NumPy array
-                all_features['OCSCORE'] = float(ocscore_predictions[0])
-            
-        except FileNotFoundError as e:
-            print(f"Warning: Model file not found for {ligand_name}: {e}")
-            all_features['OCSCORE'] = None
-        except Exception as e:
-            import traceback
-            print(f"Error during model inference for {ligand_name}: {e}")
-            print("Full traceback:")
-            traceback.print_exc()
-            all_features['OCSCORE'] = None
-        
+        # Store features for batch prediction (don't call get_score here)
+        # We'll batch all ligands together for proper normalization
         return all_features
         
     except Exception as e:
@@ -617,6 +605,132 @@ def main():
         print("No ligands were successfully processed.")
         return
     
+    # Batch all ligands together for model inference
+    # This ensures proper normalization (scaler fit on all data, not single rows)
+    print(f"\n{'='*60}")
+    print(f"BATCH MODEL INFERENCE")
+    print(f"{'='*60}")
+    
+    # Convert all results to a single DataFrame
+    if results:
+        # Get all unique keys from all dictionaries
+        all_keys = set()
+        for result in results:
+            if result is not None:
+                all_keys.update(result.keys())
+        
+        # Ensure all dictionaries have all keys (fill missing with None)
+        normalized_results = []
+        for result in results:
+            if result is not None:
+                normalized_result = {key: result.get(key, None) for key in all_keys}
+                normalized_results.append(normalized_result)
+        
+        # Create DataFrame from normalized dictionaries
+        feature_df = pd.DataFrame(normalized_results)
+    else:
+        feature_df = pd.DataFrame()
+    
+    if feature_df.empty:
+        print("No features to process for model inference.")
+        return
+    
+    # Path to your trained model
+    model_path = f"{MODELS_DIR}/{MODEL_NAME}.pt"
+    mask_path = f"{MODELS_DIR}/{MODEL_NAME}_mask.pkl"
+    
+    # Load the mask if it exists
+    mask = None
+    if os.path.isfile(mask_path):
+        try:
+            mask = ocscoreio.load_mask(MODEL_NAME, models_dir=MODELS_DIR)
+        except Exception as e:
+            print(f"Warning: Could not load mask: {e}")
+            mask = None
+    
+    # Get OCScore predictions for all ligands at once
+    try:
+        print(f"Running model inference on {len(feature_df)} ligands...")
+        print(f"Feature DataFrame shape: {feature_df.shape}")
+        print(f"Feature DataFrame columns (first 10): {list(feature_df.columns[:10])}")
+        
+        # Check if features differ between ligands
+        if len(feature_df) > 1:
+            sample_cols = [col for col in feature_df.columns if any(col.startswith(prefix) for prefix in ['VINA_', 'SMINA_', 'PLANTS_', 'ODDT_'])][:5]
+            if sample_cols:
+                print(f"\nSample SF values for first 2 ligands:")
+                for idx in range(min(2, len(feature_df))):
+                    print(f"  Ligand {idx} ({feature_df.iloc[idx].get('ligand', 'unknown')}): {feature_df[sample_cols].iloc[idx].to_dict()}")
+        
+        ocscore_predictions = ocscoring.get_score(
+            model_path=model_path,
+            data=feature_df,
+            pca_model=PCA_MODEL_PATH,
+            mask=mask,
+            score_columns_list=SCORE_COLUMNS_LIST,
+            scaler=SCALER,
+            invert_conditionally=INVERT_CONDITIONALLY,
+            normalize=NORMALIZE,
+            serialization_method="auto",  # Auto-detect model format
+            use_gpu=USE_GPU  # Use GPU if available and USE_GPU=True
+        )
+        
+        # Debug: Print prediction details
+        print(f"\nPrediction type: {type(ocscore_predictions)}")
+        if isinstance(ocscore_predictions, pd.DataFrame):
+            print(f"Prediction DataFrame shape: {ocscore_predictions.shape}")
+            print(f"Prediction DataFrame columns: {list(ocscore_predictions.columns)}")
+            if 'predicted_score' in ocscore_predictions.columns:
+                print(f"All predicted_score values: {ocscore_predictions['predicted_score'].tolist()}")
+                print(f"Unique predicted_score values: {ocscore_predictions['predicted_score'].nunique()}")
+        elif isinstance(ocscore_predictions, (pd.Series, np.ndarray)):
+            predictions_array = np.asarray(ocscore_predictions)
+            print(f"Prediction array shape: {predictions_array.shape}")
+            print(f"All prediction values: {predictions_array.tolist()}")
+            print(f"Unique prediction values: {len(np.unique(predictions_array))}")
+        
+        # Add OCScore predictions to results
+        if isinstance(ocscore_predictions, pd.DataFrame):
+            if 'predicted_score' in ocscore_predictions.columns:
+                # Map predictions back to results by index
+                for idx, result in enumerate(results):
+                    if result is not None and idx < len(ocscore_predictions):
+                        result['OCSCORE'] = ocscore_predictions['predicted_score'].iloc[idx]
+                        print(f"  Mapped prediction {idx} to ligand {result.get('ligand', 'unknown')}: {result['OCSCORE']}")
+            elif len(ocscore_predictions.columns) == 1:
+                # Single prediction column
+                for idx, result in enumerate(results):
+                    if result is not None and idx < len(ocscore_predictions):
+                        result['OCSCORE'] = ocscore_predictions.iloc[idx, 0]
+            else:
+                # Try to find a numeric column
+                numeric_cols = ocscore_predictions.select_dtypes(include=[np.number]).columns
+                if len(numeric_cols) > 0:
+                    for idx, result in enumerate(results):
+                        if result is not None and idx < len(ocscore_predictions):
+                            result['OCSCORE'] = ocscore_predictions[numeric_cols[0]].iloc[idx]
+        elif isinstance(ocscore_predictions, (pd.Series, np.ndarray)):
+            # Array/Series of predictions
+            predictions_array = np.asarray(ocscore_predictions)
+            for idx, result in enumerate(results):
+                if result is not None and idx < len(predictions_array):
+                    result['OCSCORE'] = float(predictions_array[idx])
+        
+        print(f"Model inference completed for {len(results)} ligands.")
+        
+    except FileNotFoundError as e:
+        print(f"Warning: Model file not found: {e}")
+        for result in results:
+            if result is not None:
+                result['OCSCORE'] = None
+    except Exception as e:
+        print(f"Error during model inference: {e}")
+        import traceback
+        traceback.print_exc()
+        for result in results:
+            if result is not None:
+                result['OCSCORE'] = None
+    
     # Convert results to DataFrame
     # Use orient='index' and transpose to preserve order, then convert properly
     # First, ensure all dictionaries have the same keys (fill missing with None)
@@ -657,17 +771,32 @@ def main():
         if 'OCSCORE' in all_cols:
             ordered_cols.append('OCSCORE')
         
-        # 3. Add all scoring function columns (SFs)
-        # SF columns typically start with: VINA_, SMINA_, PLANTS_, ODDT_
+        # 3. Add all scoring function columns (SFs) in the CORRECT ORDER
+        # ⚠️ CRITICAL: The order must match SCORING_FUNCTION_ORDER for mask application!
+        # See the warning comment at the top of the file for the required order.
         sf_prefixes = ['VINA_', 'SMINA_', 'PLANTS_', 'ODDT_']
-        sf_cols = []
+        
+        # First, collect all SF columns
+        all_sf_cols = []
         for col in all_cols:
             # Exclude metadata columns and OCSCORE from SFs
             if col not in ordered_cols and any(col.startswith(prefix) for prefix in sf_prefixes):
-                sf_cols.append(col)
-        # Sort SF columns alphabetically for consistency
-        sf_cols.sort()
-        ordered_cols.extend(sf_cols)
+                all_sf_cols.append(col)
+        
+        # Order SF columns according to SCORING_FUNCTION_ORDER
+        # First, add columns in the specified order (if they exist)
+        ordered_sf_cols = []
+        for sf_name in SCORING_FUNCTION_ORDER:
+            if sf_name in all_sf_cols:
+                ordered_sf_cols.append(sf_name)
+        
+        # Then, add any remaining SF columns that weren't in the predefined order
+        # (in case there are additional SFs not in the standard list)
+        remaining_sf_cols = [col for col in all_sf_cols if col not in ordered_sf_cols]
+        remaining_sf_cols.sort()  # Sort alphabetically for any extras
+        ordered_sf_cols.extend(remaining_sf_cols)
+        
+        ordered_cols.extend(ordered_sf_cols)
         
         # 4. Add all remaining columns (descriptors, etc.) - exclude already added columns
         remaining_cols = [col for col in all_cols if col not in ordered_cols]
