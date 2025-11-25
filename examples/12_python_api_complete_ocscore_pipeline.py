@@ -208,17 +208,24 @@ def map_rescoring_key_to_db_column(key: str) -> str:
     key_lower = key.lower()
     
     # Mapping dictionary for rescoring keys to database column names
+    # !!! CRITICAL: These must match SCORING_FUNCTION_ORDER for mask application !!!
     mapping = {
         # VINA mappings
         'vina_vina_rescoring': 'VINA_VINA',
         'vina_vinardo_rescoring': 'VINA_VINARDO',
-        # SMINA mappings
+        # SMINA mappings - MUST match SCORING_FUNCTION_ORDER
         'smina_vina_rescoring': 'SMINA_VINA',
         'smina_vinardo_rescoring': 'SMINA_VINARDO',
         'smina_dkoes_scoring_rescoring': 'SMINA_SCORING_DKOES',
+        'smina_scoring_dkoes_rescoring': 'SMINA_SCORING_DKOES',  # Alternative format
         'smina_old_scoring_dkoes_rescoring': 'SMINA_OLD_SCORING_DKOES',
         'smina_fast_dkoes_rescoring': 'SMINA_FAST_DKOES',
         'smina_ad4_scoring_rescoring': 'SMINA_SCORING_AD4',
+        # Handle alternative SMINA key formats (from actual rescoring output)
+        'smina_dkoes_fast': 'SMINA_FAST_DKOES',
+        'smina_dkoes_scoring_old': 'SMINA_OLD_SCORING_DKOES',
+        'smina_dkoes_fast_rescoring': 'SMINA_FAST_DKOES',
+        'smina_dkoes_scoring_old_rescoring': 'SMINA_OLD_SCORING_DKOES',
         # PLANTS mappings
         'plants_chemplp': 'PLANTS_CHEMPLP',
         'plants_plp': 'PLANTS_PLP',
@@ -265,10 +272,14 @@ def map_rescoring_key_to_db_column(key: str) -> str:
         elif key_without_suffix.startswith('smina_'):
             sf = key_without_suffix.replace('smina_', '')
             # Handle special SMINA scoring function names
+            # !!! CRITICAL: These must match SCORING_FUNCTION_ORDER !!!
             sf_mapping = {
                 'dkoes_scoring': 'SCORING_DKOES',
+                'scoring_dkoes': 'SCORING_DKOES',  # Alternative format
                 'old_scoring_dkoes': 'OLD_SCORING_DKOES',
+                'dkoes_scoring_old': 'OLD_SCORING_DKOES',  # Alternative format
                 'fast_dkoes': 'FAST_DKOES',
+                'dkoes_fast': 'FAST_DKOES',  # Alternative format
                 'ad4_scoring': 'SCORING_AD4',
                 'vina': 'VINA',
                 'vinardo': 'VINARDO',
@@ -523,6 +534,20 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
         for key, value in smina_rescoring.items():
             db_column_name = map_rescoring_key_to_db_column(key)
             rescoringResult[db_column_name] = value
+        
+        # Normalize all SF column names to match SCORING_FUNCTION_ORDER exactly
+        # !!! CRITICAL: This ensures consistency for mask application !!!
+        # Fix common naming variations that might occur
+        sf_name_corrections = {
+            'SMINA_DKOES_FAST': 'SMINA_FAST_DKOES',
+            'SMINA_DKOES_SCORING_OLD': 'SMINA_OLD_SCORING_DKOES',
+            'SMINA_SCORING_DKOES_OLD': 'SMINA_OLD_SCORING_DKOES',
+            'SMINA_FAST_DKOES_RESCORING': 'SMINA_FAST_DKOES',
+            'SMINA_OLD_SCORING_DKOES_RESCORING': 'SMINA_OLD_SCORING_DKOES',
+        }
+        for old_name, correct_name in sf_name_corrections.items():
+            if old_name in rescoringResult and correct_name not in rescoringResult:
+                rescoringResult[correct_name] = rescoringResult.pop(old_name)
 
         ####################### FEATURE EXTRACTION #########################
         
