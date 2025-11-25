@@ -98,7 +98,7 @@ OUTPUT_FILE = "ocscore_results.csv"  # CSV file to save results (None to skip sa
 SAVE_TO_FILE = True  # Set to False to only store results in memory
 
 # Multiprocessing configuration
-N_JOBS = 4  # Number of parallel jobs (cores) to use. Set to -1 for all available cores
+N_JOBS = 4                  # Number of parallel jobs (cores) to use. Set to -1 for all available cores
 USE_MULTIPROCESSING = True  # Set to False to process ligands sequentially
 
 ###############################################################################
@@ -110,6 +110,10 @@ import os
 import numpy as np
 import pandas as pd
 import argparse
+import shutil
+import uuid
+import time
+from glob import glob
 import OCDocker.Initialise as init
 import OCDocker.Error as ocerror
 
@@ -155,6 +159,9 @@ import OCDocker.OCScore.Utils.Data as ocscoredata
 # The threading backend avoids the "Loky-backed parallel loops cannot be called in multiprocessing" issue
 import warnings
 warnings.filterwarnings('ignore', message='.*Loky-backed parallel loops cannot be called in a multiprocessing.*')
+
+# Note: We keep the default multiprocessing start method ('fork' on Linux)
+# which is faster and works well with proper tmp directory isolation
 
 try:
     import joblib
@@ -274,6 +281,121 @@ def map_rescoring_key_to_db_column(key: str) -> str:
     return key.upper()
 
 
+def wait_for_files_ready(file_paths: list, max_wait: float = 5.0, check_interval: float = 0.2) -> bool:
+    '''Wait for all files in a list to exist, be stable, and be readable.
+    
+    Parameters
+    ----------
+    file_paths : list
+        List of file paths to wait for
+    max_wait : float
+        Maximum time to wait in seconds
+    check_interval : float
+        Time between checks in seconds
+    
+    Returns
+    -------
+    bool
+        True if all files are ready, False if timeout
+    '''
+    
+    if not file_paths:
+        return True
+    
+    start_time = time.time()
+    ready_files = set()
+    
+    while time.time() - start_time < max_wait:
+        all_ready = True
+        for file_path in file_paths:
+            if file_path in ready_files:
+                continue
+                
+            if wait_for_file_stable(file_path, max_wait=check_interval * 2, check_interval=check_interval / 2):
+                ready_files.add(file_path)
+            else:
+                all_ready = False
+        
+        if all_ready and len(ready_files) == len(file_paths):
+            return True
+        
+        time.sleep(check_interval)
+    
+    return len(ready_files) == len(file_paths)
+
+
+def wait_for_file_stable(file_path: str, max_wait: float = 2.0, check_interval: float = 0.1) -> bool:
+    '''Wait for a file to stabilize (size stops changing).
+    
+    Parameters
+    ----------
+    file_path : str
+        Path to the file to check
+    max_wait : float
+        Maximum time to wait in seconds
+    check_interval : float
+        Time between checks in seconds
+    
+    Returns
+    -------
+    bool
+        True if file stabilized, False if timeout
+    '''
+    if not os.path.isfile(file_path):
+        return False
+    
+    start_time = time.time()
+    last_size = -1
+    stable_count = 0
+    required_stable_checks = 3  # File must be stable for 3 consecutive checks
+    
+    while time.time() - start_time < max_wait:
+        try:
+            current_size = os.path.getsize(file_path)
+            
+            if current_size == last_size:
+                stable_count += 1
+                if stable_count >= required_stable_checks:
+                    return True
+            else:
+                stable_count = 0
+                last_size = current_size
+            
+            time.sleep(check_interval)
+        except (OSError, IOError):
+            # File might be locked or deleted
+            time.sleep(check_interval)
+            continue
+    
+    return False
+
+
+def validate_molecule_file(file_path: str) -> bool:
+    '''Validate that a molecule file can be loaded and is complete.
+    
+    Parameters
+    ----------
+    file_path : str
+        Path to the molecule file
+    
+    Returns
+    -------
+    bool
+        True if file is valid and can be loaded
+    '''
+    from OCDocker.Toolbox import Validation as ocvalidation
+    
+    # First check if file is stable (not being written)
+    if not wait_for_file_stable(file_path, max_wait=2.0):
+        return False
+    
+    # Then validate the molecule structure
+    try:
+        return ocvalidation.is_molecule_valid(file_path)
+    except Exception:
+        return False
+
+
 def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Receptor) -> dict:
     ''' Process a single ligand through the complete OCScore pipeline.
     
@@ -319,31 +441,127 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
         
         # Get the docked poses for vina
         vina_ligand.split_poses()
+        
+        # Wait for split_poses to fully complete - get expected output directory
+        vina_poses_dir = os.path.dirname(vina_ligand.output_vina) if hasattr(vina_ligand, 'output_vina') else f"{ligand_path}/vinaFiles"
+        
+        # Wait for pose files to be generated and stable
+        # Check for expected pose files pattern
+        max_expected_poses = 10  # Reasonable upper limit
+        expected_pattern = f"{vina_poses_dir}/*_split_*.pdbqt"
+        
+        # Wait for at least some pose files to appear and stabilize
+        pose_files_found = False
+        for wait_iter in range(50):  # Wait up to 5 seconds (50 * 0.1s)
+            found_files = glob(expected_pattern)
+            if found_files:
+                # Wait for all found files to stabilize
+                if wait_for_files_ready(found_files, max_wait=2.0):
+                    pose_files_found = True
+                    break
+            time.sleep(0.1)
+        
+        if not pose_files_found:
+            print(f"Warning: No stable pose files found for Vina after waiting, proceeding anyway...")
+        
+        # Additional safety delay for multiprocessing
+        time.sleep(0.3)
+        
+        # Now get the docked poses
         vinaPoses = vina_ligand.get_docked_poses()
+        
+        # Wait for all retrieved pose files to be stable before proceeding
+        if vinaPoses:
+            if not wait_for_files_ready(vinaPoses, max_wait=3.0):
+                print(f"Warning: Some Vina pose files may not be fully ready, but proceeding...")
         
         ####################### PLANTS #########################
         
-        # Create object
-        plants_ligand = ocplants.PLANTS(
-            f"{ligand_path}/plantsFiles/conf_plants.txt", 
-            f"{ligand_path}/boxes/box0.pdb", 
-            receptor, PREPARED_RECEPTOR_MOL2, 
-            ligand, f"{ligand_path}/prepared_ligand.pdbqt", 
-            f"{ligand_path}/plantsFiles/plants.log", f"{ligand_path}/plantsFiles", 
-            name=f"Plants {receptor.name}-{ligand_name}"
-        )
+        # Create process-specific temporary directory for PLANTS to avoid multiprocessing conflicts
+        # Use both PID and a unique identifier to ensure isolation
+        process_id = f"{os.getpid()}_{uuid.uuid4().hex[:8]}"
+        process_tmp_dir = os.path.join(ligand_path, f"plants_tmp_{process_id}")
+        os.makedirs(process_tmp_dir, exist_ok=True)
         
-        # Prepare receptor
-        plants_ligand.run_prepare_receptor()
+        # Temporarily set process-specific tmp_dir in config for PLANTS execution
+        # Use a context manager approach to ensure cleanup even on exceptions
+        from OCDocker.Config import get_config
+        config = get_config()
+        original_tmp_dir = config.tmp_dir
         
-        # Prepare ligand
-        plants_ligand.run_prepare_ligand()
-        
-        # Run docking
-        plants_ligand.run_docking(overwrite=True)
+        try:
+            # Set process-specific tmp_dir (this is process-local, so safe)
+            config.tmp_dir = process_tmp_dir
+            
+            # Create object
+            plants_ligand = ocplants.PLANTS(
+                f"{ligand_path}/plantsFiles/conf_plants.txt", 
+                f"{ligand_path}/boxes/box0.pdb", 
+                receptor, PREPARED_RECEPTOR_MOL2, 
+                ligand, f"{ligand_path}/prepared_ligand.pdbqt", 
+                f"{ligand_path}/plantsFiles/plants.log", f"{ligand_path}/plantsFiles", 
+                name=f"Plants {receptor.name}-{ligand_name}"
+            )
+            
+            # Prepare receptor
+            plants_ligand.run_prepare_receptor()
+            
+            # Prepare ligand
+            plants_ligand.run_prepare_ligand()
+            
+            # Run docking
+            plants_ligand.run_docking(overwrite=True)
+            
+            # Wait for PLANTS docking to fully complete
+            # PLANTS writes to output directory, wait for expected output files
+            plants_output_dir = plants_ligand.output_plants if hasattr(plants_ligand, 'output_plants') else f"{ligand_path}/plantsFiles"
+            
+            # Wait for PLANTS output files to appear and stabilize
+            # PLANTS typically creates mol2 files with ligand name
+            ligand_name_for_plants = plants_ligand.input_ligand.name if hasattr(plants_ligand, 'input_ligand') and hasattr(plants_ligand.input_ligand, 'name') else ligand_name
+            expected_pattern = f"{plants_output_dir}/{ligand_name_for_plants}*.mol2"
+            
+            plants_files_found = False
+            for wait_iter in range(100):  # Wait up to 10 seconds (100 * 0.1s)
+                found_files = glob(expected_pattern)
+                if found_files:
+                    # Wait for all found files to stabilize
+                    if wait_for_files_ready(found_files, max_wait=2.0):
+                        plants_files_found = True
+                        break
+                time.sleep(0.1)
+            
+            if not plants_files_found:
+                print(f"Warning: No stable PLANTS output files found after waiting, proceeding anyway...")
+            
+            # Additional safety delay for multiprocessing
+            time.sleep(0.5)
+            
+        finally:
+            # Always restore original tmp_dir first
+            config.tmp_dir = original_tmp_dir
+            
+            # Then clean up process-specific tmp directory after a delay
+            # This ensures PLANTS has released all file handles
+            time.sleep(0.1)
+            try:
+                if os.path.isdir(process_tmp_dir):
+                    shutil.rmtree(process_tmp_dir, ignore_errors=True)
+            except Exception:
+                # If cleanup fails, try again later (files might still be in use)
+                pass
         
         # Get the docked poses for plants
+        # Additional delay to ensure PLANTS has fully released file handles
+        time.sleep(0.3)
+        
+        # Now get the docked poses
         plantsPoses = plants_ligand.get_docked_poses()
+        
+        # Wait for all retrieved pose files to be stable before proceeding
+        if plantsPoses:
+            if not wait_for_files_ready(plantsPoses, max_wait=3.0):
+                print(f"Warning: Some PLANTS pose files may not be fully ready, but proceeding...")
         
         ####################### SMINA #########################
         
@@ -362,8 +580,47 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
         # Make them one single list
         poses_list = vinaPoses + plantsPoses
         
-        # Get the rmsd matrix from the poses list
-        rmsdMatrix = ocmolproc.get_rmsd_matrix(poses_list)
+        # Ensure all pose files exist, are stable, and are valid before RMSD calculation
+        # This prevents race conditions in multiprocessing where files might be incomplete or corrupted
+        valid_poses = []
+        max_retries = 5
+        retry_delay = 0.3
+        
+        for pose_file in poses_list:
+            # Retry validation multiple times to handle race conditions
+            validated = False
+            for attempt in range(max_retries):
+                if validate_molecule_file(pose_file):
+                    valid_poses.append(pose_file)
+                    validated = True
+                    break
+                else:
+                    # Wait before retrying
+                    if attempt < max_retries - 1:
+                        time.sleep(retry_delay * (attempt + 1))  # Exponential backoff
+            
+            if not validated:
+                print(f"Warning: Could not validate pose file {pose_file} after {max_retries} attempts, skipping.")
+                continue
+        
+        if not valid_poses:
+            raise ValueError(f"No valid pose files found for ligand {ligand_name} after validation")
+        
+        if len(valid_poses) < 2:
+            raise ValueError(f"Need at least 2 valid poses for RMSD calculation, found {len(valid_poses)} for ligand {ligand_name}")
+        
+        # CRITICAL: Ensure all pose files are fully ready before RMSD calculation
+        # This is essential for multiprocessing to avoid reading incomplete files
+        if not wait_for_files_ready(valid_poses, max_wait=5.0):
+            print(f"Warning: Some pose files may not be fully ready for RMSD calculation, but proceeding...")
+        
+        # Additional safety delay before RMSD calculation to ensure all file I/O is complete
+        time.sleep(0.3)
+        
+        # Get the rmsd matrix from the valid poses list
+        # At this point, all files should be fully written and stable
+        # If there are still errors, they are likely real connectivity issues, not race conditions
+        rmsdMatrix = ocmolproc.get_rmsd_matrix(valid_poses)
         
         # Get the clusters
         clusters = ocrmsdclust.cluster_rmsd(
@@ -443,12 +700,42 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
         
         ocplants.write_pose_list(outfile, f"{ligand_path}/plantsFiles/plants_pose_list.txt")
         
-        # Run the rescoring (will create the config file and the output folder)
-        plants_ligand.run_rescore(
-            f"{ligand_path}/plantsFiles/plants_pose_list.txt", 
-            logFile="", 
-            overwrite=True
-        )
+        # Set process-specific tmp_dir for rescoring to avoid multiprocessing conflicts
+        # Use both PID and a unique identifier to ensure isolation
+        process_id_rescore = f"{os.getpid()}_{uuid.uuid4().hex[:8]}"
+        process_tmp_dir_rescore = os.path.join(ligand_path, f"plants_tmp_rescore_{process_id_rescore}")
+        os.makedirs(process_tmp_dir_rescore, exist_ok=True)
+        
+        from OCDocker.Config import get_config
+        config = get_config()
+        original_tmp_dir = config.tmp_dir
+        
+        try:
+            # Set process-specific tmp_dir for rescoring
+            config.tmp_dir = process_tmp_dir_rescore
+            
+            # Run the rescoring (will create the config file and the output folder)
+            plants_ligand.run_rescore(
+                f"{ligand_path}/plantsFiles/plants_pose_list.txt", 
+                logFile="", 
+                overwrite=True
+            )
+            
+            # Wait for PLANTS rescoring to fully complete
+            time.sleep(0.2)
+            
+        finally:
+            # Always restore original tmp_dir first
+            config.tmp_dir = original_tmp_dir
+            
+            # Then clean up process-specific tmp directory after a delay
+            time.sleep(0.1)
+            try:
+                if os.path.isdir(process_tmp_dir_rescore):
+                    shutil.rmtree(process_tmp_dir_rescore, ignore_errors=True)
+            except Exception:
+                # If cleanup fails, try again later (files might still be in use)
+                pass
         
         # Get PLANTS rescoring results and map to database column names
         # PLANTS read_rescore_logs returns Dict[str, Dict[str, float]] where:
