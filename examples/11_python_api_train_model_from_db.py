@@ -35,6 +35,14 @@ import sys
 import numpy as np
 import pandas as pd
 from typing import Optional, Any
+
+# Add parent directory to path to allow importing OCDocker
+# This allows the script to be run from any directory
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+_parent_dir = os.path.dirname(_script_dir)
+if _parent_dir not in sys.path:
+    sys.path.insert(0, _parent_dir)
+
 # Import OCDocker modules
 import OCDocker.Initialise as init
 import OCDocker.OCScore.Utils.Data as ocscoredata
@@ -318,6 +326,24 @@ def prepare_data_from_db(
                 inplace=False
             )
         study_name = f"PCA{pca_type}_{study_name}"
+    
+    # CRITICAL: Reorder columns to match reference column order from config
+    # This ensures the column order matches the training data order, which is essential
+    # for proper mask application and model inference consistency.
+    # Do this AFTER all transformations (score column handling, PCA, etc.) but BEFORE splitting
+    print("Reordering columns to match reference column order from config...")
+    dudez_data = ocscoredata.reorder_columns_to_match_data_order(
+        dudez_data,
+        data_source=None,  # Uses config.reference_column_order by default
+        keep_extra_columns=True,  # Keep any extra columns (e.g., PCA components) that might exist
+        fill_missing_columns=False  # Don't add missing columns as NaN
+    )
+    pdbbind_data = ocscoredata.reorder_columns_to_match_data_order(
+        pdbbind_data,
+        data_source=None,  # Uses config.reference_column_order by default
+        keep_extra_columns=True,  # Keep any extra columns (e.g., PCA components) that might exist
+        fill_missing_columns=False  # Don't add missing columns as NaN
+    )
     
     # Split data
     if use_pdb_train:
