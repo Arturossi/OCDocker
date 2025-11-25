@@ -618,15 +618,28 @@ def main():
         return
     
     # Convert results to DataFrame
-    results_df = pd.DataFrame(results)
-    
-    # Debug: Print columns before reordering
-    print(f"Columns before reordering: {list(results_df.columns)[:10]}... (total: {len(results_df.columns)})")
-    if 'OCSCORE' in results_df.columns:
-        print(f"OCSCORE found in columns!")
+    # Use orient='index' and transpose to preserve order, then convert properly
+    # First, ensure all dictionaries have the same keys (fill missing with None)
+    if results:
+        # Get all unique keys from all dictionaries
+        all_keys = set()
+        for result in results:
+            if result is not None:
+                all_keys.update(result.keys())
+        
+        # Ensure all dictionaries have all keys (fill missing with None)
+        normalized_results = []
+        for result in results:
+            if result is not None:
+                normalized_result = {key: result.get(key, None) for key in all_keys}
+                normalized_results.append(normalized_result)
+            else:
+                normalized_results.append({key: None for key in all_keys})
+        
+        # Create DataFrame from normalized dictionaries
+        results_df = pd.DataFrame(normalized_results)
     else:
-        print(f"WARNING: OCSCORE NOT found in columns!")
-        print(f"Available columns: {list(results_df.columns)}")
+        results_df = pd.DataFrame()
     
     # Reorder columns: name, receptor, ligand, OCSCORE, then SFs, then other features
     if not results_df.empty:
@@ -661,13 +674,10 @@ def main():
         remaining_cols.sort()  # Sort alphabetically for consistency
         ordered_cols.extend(remaining_cols)
         
-        # Reorder the DataFrame - ensure all columns are included
-        results_df = results_df[ordered_cols]
-        
-        # Debug: Print first few columns after reordering
-        print(f"Columns after reordering: {list(results_df.columns)[:10]}...")
-        if 'OCSCORE' in results_df.columns:
-            print(f"OCSCORE position: {list(results_df.columns).index('OCSCORE')}")
+        # Reorder the DataFrame - ensure all columns are included and in the correct order
+        # Only include columns that actually exist in the DataFrame
+        existing_ordered_cols = [col for col in ordered_cols if col in results_df.columns]
+        results_df = results_df[existing_ordered_cols]
     
     # Print summary
     print(f"\n{'='*60}")

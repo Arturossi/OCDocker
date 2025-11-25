@@ -367,11 +367,6 @@ def get_score(
         
         # Apply mask to filter features
         X = X[:, mask]
-    elif mask is not None and model_has_mask:
-        # Model has its own mask, so we'll use that instead
-        # Just validate that the input size matches what the model expects
-        import OCDocker.Toolbox.Printing as ocprint
-        ocprint.print_warning("Model has its own mask, ignoring external mask parameter. The model's internal mask will be used.")
     
     # Make predictions
     try:
