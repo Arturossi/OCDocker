@@ -168,6 +168,7 @@ import OCDocker.Processing.Preprocessing.RmsdClustering as ocrmsdclust
 import OCDocker.Rescoring.ODDT as ocoddt
 import OCDocker.OCScore.Scoring as ocscoring
 import OCDocker.OCScore.Utils.IO as ocscoreio
+import OCDocker.OCScore.Utils.Data as ocscoredata
 
 # Configure sklearn/joblib to use threading backend for parallel execution
 # This allows sklearn models to use multiple threads while main process uses multiprocessing
@@ -780,58 +781,33 @@ def main():
     else:
         results_df = pd.DataFrame()
     
-    # Reorder columns: name, receptor, ligand, OCSCORE, then SFs, then other features
+    # Reorder columns to match the data source order (from training data file)
+    # !!! CRITICAL: This ensures all columns (especially SFs) are in the exact same order
+    # as the training data, which is essential for proper mask application and model inference!
     if not results_df.empty:
-        # Get all columns from the DataFrame
-        all_cols = list(results_df.columns)
-        ordered_cols = []
+        # Get the column order from config (no file path needed)
+        # Uses reference_column_order from OCDocker.cfg
+        source_order = ocscoredata.get_column_order()  # Uses config by default
         
-        # 1. Start with name, receptor, ligand (if they exist) - MUST be first
-        metadata_cols = ['name', 'receptor', 'ligand']
-        for col in metadata_cols:
-            if col in all_cols:
-                ordered_cols.append(col)
+        # Use the reorder function to match the config column order
+        # This handles OCSCORE insertion and extra columns automatically
+        results_df = ocscoredata.reorder_columns_to_match_data_order(
+            df=results_df,
+            data_source=None,  # Uses config.reference_column_order by default
+            keep_extra_columns=True,  # Keep OCSCORE and any other extra columns
+            fill_missing_columns=False  # Don't add missing columns as NaN
+        )
         
-        # 2. Add OCSCORE right after ligand
-        if 'OCSCORE' in all_cols:
-            ordered_cols.append('OCSCORE')
-        
-        # 3. Add all scoring function columns (SFs) in the CORRECT ORDER
-        # ⚠️ CRITICAL: The order must match SCORING_FUNCTION_ORDER for mask application!
-        # See the warning comment at the top of the file for the required order.
-        sf_prefixes = ['VINA_', 'SMINA_', 'PLANTS_', 'ODDT_']
-        
-        # First, collect all SF columns
-        all_sf_cols = []
-        for col in all_cols:
-            # Exclude metadata columns and OCSCORE from SFs
-            if col not in ordered_cols and any(col.startswith(prefix) for prefix in sf_prefixes):
-                all_sf_cols.append(col)
-        
-        # Order SF columns according to SCORING_FUNCTION_ORDER
-        # First, add columns in the specified order (if they exist)
-        ordered_sf_cols = []
-        for sf_name in SCORING_FUNCTION_ORDER:
-            if sf_name in all_sf_cols:
-                ordered_sf_cols.append(sf_name)
-        
-        # Then, add any remaining SF columns that weren't in the predefined order
-        # (in case there are additional SFs not in the standard list)
-        remaining_sf_cols = [col for col in all_sf_cols if col not in ordered_sf_cols]
-        remaining_sf_cols.sort()  # Sort alphabetically for any extras
-        ordered_sf_cols.extend(remaining_sf_cols)
-        
-        ordered_cols.extend(ordered_sf_cols)
-        
-        # 4. Add all remaining columns (descriptors, etc.) - exclude already added columns
-        remaining_cols = [col for col in all_cols if col not in ordered_cols]
-        remaining_cols.sort()  # Sort alphabetically for consistency
-        ordered_cols.extend(remaining_cols)
-        
-        # Reorder the DataFrame - ensure all columns are included and in the correct order
-        # Only include columns that actually exist in the DataFrame
-        existing_ordered_cols = [col for col in ordered_cols if col in results_df.columns]
-        results_df = results_df[existing_ordered_cols]
+        # Manually insert OCSCORE right after 'ligand' if it exists
+        if 'OCSCORE' in results_df.columns:
+            cols = list(results_df.columns)
+            if 'ligand' in cols:
+                # Remove OCSCORE from current position
+                cols.remove('OCSCORE')
+                # Insert after 'ligand'
+                ligand_idx = cols.index('ligand')
+                cols.insert(ligand_idx + 1, 'OCSCORE')
+                results_df = results_df[cols]
     
     # Print summary
     print(f"\n{'='*60}")

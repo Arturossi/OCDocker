@@ -29,6 +29,7 @@ import pandas as pd
 # No config needed - OCScore modules
 
 import OCDocker.OCScore.Utils.IO as ocscoreio
+import OCDocker.Error as ocerror
 
 # License
 ###############################################################################
@@ -723,6 +724,154 @@ def generate_mask(column_names : Union[list[str], pd.Index], score_columns : lis
         results.append(arr)
     
     return results
+
+
+def get_column_order(data: Optional[Union[str, pd.DataFrame]] = None) -> list[str]:
+    '''Get the column order from a data source (file path or DataFrame) or from config.
+    
+    This function extracts the column order from either a file path, an existing
+    DataFrame, or from the config file if no data source is provided. This ensures
+    consistency with the order used during model training. This is critical for
+    proper mask application and feature alignment.
+    
+    Parameters
+    ----------
+    data : str | pd.DataFrame | None, optional
+        Either:
+        - A file path (CSV or gzipped CSV) to load column order from
+        - A pandas DataFrame to extract column order from
+        - None to use the column order from config (default: None)
+    
+    Returns
+    -------
+    list[str]
+        List of column names in the exact order they appear in the data source or config.
+    
+    Raises
+    ------
+    FileNotFoundError
+        If data is a string path and the file is not found.
+    TypeError
+        If data is neither a string, DataFrame, nor None.
+    ValueError
+        If data is None and config does not have reference_column_order set.
+    '''
+    
+    # If no data provided, try to get from config
+    if data is None:
+        try:
+            from OCDocker.Config import get_config
+            config = get_config()
+            if config.paths.reference_column_order:
+                return list(config.paths.reference_column_order)
+            else:
+                ocerror.Error.value_error("No data source provided and 'reference_column_order' not set in config file.") # type: ignore
+                raise ValueError("No data source provided and 'reference_column_order' not set in config file. Please provide a data source or set 'reference_column_order' in OCDocker.cfg")
+        except (ImportError, AttributeError) as e:
+            ocerror.Error.value_error(f"Could not load config: {e}. Please provide a data source.") # type: ignore
+            raise ValueError(f"Could not load config: {e}. Please provide a data source.")
+    
+    if isinstance(data, pd.DataFrame):
+        # Extract column order directly from DataFrame
+        return list(data.columns)
+    elif isinstance(data, str):
+        # Load column order from file
+        if not os.path.isfile(data):
+            ocerror.Error.file_not_exist(f"Data file not found: {data}") # type: ignore
+            raise FileNotFoundError(f"Data file not found: {data}")
+        
+        # Load just the header to get column order
+        try:
+            df = pd.read_csv(data, compression='infer', nrows=0)
+        except Exception as e:
+            # Fallback: try loading with ocscoreio
+            df = ocscoreio.load_data(data)
+            if len(df) > 0:
+                df = df.iloc[:0]  # Keep only column structure
+        
+        return list(df.columns)
+    else:
+        ocerror.Error.value_error(f"Invalid data type: {type(data)}. Expected str (file path), pd.DataFrame, or None.") # type: ignore
+        raise TypeError(f"Invalid data type: {type(data)}. Expected str (file path), pd.DataFrame, or None.")
+
+
+def reorder_columns_to_match_data_order(
+    df: pd.DataFrame,
+    data_source: Optional[Union[str, pd.DataFrame]] = None,
+    keep_extra_columns: bool = True,
+    fill_missing_columns: bool = False
+) -> pd.DataFrame:
+    '''Reorder DataFrame columns to match the column order from another data source.
+    
+    !!! CRITICAL: This function ensures that all columns are in the exact same order
+    as the data source, which is essential for proper mask application and model
+    inference. The order of scoring functions (SFs) is particularly important for masks.
+    
+    This is typically used to ensure prediction data has the same column order as
+    the training data, ensuring masks and models work correctly.
+    
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Input DataFrame to reorder.
+    data_source : str | pd.DataFrame | None, optional
+        Data source to match column order from. Either:
+        - A file path (CSV or gzipped CSV) to load column order from
+        - A pandas DataFrame to extract column order from
+        - None to use reference_column_order from config (default: None)
+    keep_extra_columns : bool, optional
+        If True, columns not in data_source are kept at the end (default: True).
+        If False, extra columns are dropped.
+    fill_missing_columns : bool, optional
+        If True, missing columns from data_source are added as NaN (default: False).
+        If False, missing columns are simply not included.
+    
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with columns reordered to match data_source column order.
+    
+    Raises
+    ------
+    FileNotFoundError
+        If data_source is a string path and the file is not found.
+    TypeError
+        If data_source is neither a string nor a DataFrame.
+    '''
+    
+    # Get the data source column order
+    source_order = get_column_order(data_source)
+    
+    # Get columns that exist in both DataFrames
+    common_cols = [col for col in source_order if col in df.columns]
+    
+    # Build the ordered column list
+    ordered_cols = common_cols.copy()
+    
+    # Add missing columns from data_source if requested
+    if fill_missing_columns:
+        missing_cols = [col for col in source_order if col not in df.columns]
+        ordered_cols.extend(missing_cols)
+    
+    # Add extra columns (not in data_source) if requested
+    if keep_extra_columns:
+        extra_cols = [col for col in df.columns if col not in source_order]
+        # Sort extra columns alphabetically for consistency
+        extra_cols.sort()
+        ordered_cols.extend(extra_cols)
+    
+    # Reorder the DataFrame
+    # First, add missing columns as NaN if fill_missing_columns is True
+    if fill_missing_columns:
+        missing_cols = [col for col in source_order if col not in df.columns]
+        for col in missing_cols:
+            df[col] = np.nan
+    
+    # Select columns in the correct order (only existing columns)
+    existing_ordered_cols = [col for col in ordered_cols if col in df.columns]
+    df_reordered = df[existing_ordered_cols].copy()
+    
+    return df_reordered
 
 
 def chunkenize_dataset(data : Union[list[Any], np.ndarray, pd.DataFrame], id : int, num_machines : int) -> Union[list[Any], np.ndarray, pd.DataFrame]:
