@@ -51,9 +51,11 @@ def _setup_stubs(monkeypatch, tmp_path):
     numpy_stub.isnan = lambda x: x != x  # type: ignore
     monkeypatch.setitem(sys.modules, 'numpy', numpy_stub)
     monkeypatch.setitem(sys.modules, 'pandas', types.ModuleType('pandas'))
-    # Create rdkit stub with Chem and rdchem attributes
+    # Create rdkit stub - make Chem a proper package to support submodule imports
     rdkit_mod = types.ModuleType('rdkit')
+    rdkit_mod.__path__ = []  # Make rdkit a package
     rdkit_chem_mod = types.ModuleType('rdkit.Chem')
+    rdkit_chem_mod.__path__ = []  # Make rdkit.Chem a package (required for submodule imports)
     # Create rdchem module with Mol class
     rdkit_chem_mod.rdchem = types.ModuleType('rdkit.Chem.rdchem')  # type: ignore
     # Add Mol class to rdchem stub (used in type hints)
@@ -63,11 +65,42 @@ def _setup_stubs(monkeypatch, tmp_path):
     rdkit_chem_mod.rdmolfiles = types.ModuleType('rdkit.Chem.rdmolfiles')  # type: ignore
     # Add MolToMolFile function to rdmolfiles stub
     rdkit_chem_mod.rdmolfiles.MolToMolFile = lambda *a, **k: None  # type: ignore
+    # Add AllChem stub (used by Conversion and Ligand modules)
+    allchem_mod = types.ModuleType('rdkit.Chem.AllChem')
+    allchem_mod.EmbedMolecule = lambda *a, **k: 0  # type: ignore
+    allchem_mod.ETKDG = lambda *a, **k: types.SimpleNamespace()  # type: ignore
+    allchem_mod.UFFOptimizeMolecule = lambda *a, **k: 0  # type: ignore
+    rdkit_chem_mod.AllChem = allchem_mod  # type: ignore
+    # Add SaltRemover stub (used by Conversion and Ligand modules)
+    saltremover_mod = types.ModuleType('rdkit.Chem.SaltRemover')
+    class SaltRemover:
+        def __init__(self, *a, **k):
+            pass
+    saltremover_mod.SaltRemover = SaltRemover  # type: ignore
+    rdkit_chem_mod.SaltRemover = saltremover_mod  # type: ignore
+    # Add rdMolTransforms stub (used by Ligand module)
+    rdmoltransforms_mod = types.ModuleType('rdkit.Chem.rdMolTransforms')
+    rdmoltransforms_mod.ComputeCentroid = lambda *a, **k: (0.0, 0.0, 0.0)  # type: ignore
+    rdkit_chem_mod.rdMolTransforms = rdmoltransforms_mod  # type: ignore
+    # Add other rdkit.Chem stubs (used by Ligand module)
+    rdkit_chem_mod.Descriptors = types.ModuleType('rdkit.Chem.Descriptors')  # type: ignore
+    rdkit_chem_mod.Descriptors3D = types.ModuleType('rdkit.Chem.Descriptors3D')  # type: ignore
+    rdkit_chem_mod.MACCSkeys = types.ModuleType('rdkit.Chem.MACCSkeys')  # type: ignore
+    # Add top-level rdkit imports
     rdkit_mod.Chem = rdkit_chem_mod  # type: ignore
+    rdkit_mod.DataStructs = types.ModuleType('rdkit.DataStructs')  # type: ignore
+    rdkit_mod.RDLogger = types.ModuleType('rdkit.RDLogger')  # type: ignore
+    rdkit_mod.RDLogger.DisableLog = lambda *a, **k: None  # type: ignore
     monkeypatch.setitem(sys.modules, 'rdkit', rdkit_mod)
     monkeypatch.setitem(sys.modules, 'rdkit.Chem', rdkit_chem_mod)
     monkeypatch.setitem(sys.modules, 'rdkit.Chem.rdchem', rdkit_chem_mod.rdchem)
     monkeypatch.setitem(sys.modules, 'rdkit.Chem.rdmolfiles', rdkit_chem_mod.rdmolfiles)
+    monkeypatch.setitem(sys.modules, 'rdkit.Chem.AllChem', allchem_mod)
+    monkeypatch.setitem(sys.modules, 'rdkit.Chem.SaltRemover', saltremover_mod)
+    monkeypatch.setitem(sys.modules, 'rdkit.Chem.rdMolTransforms', rdmoltransforms_mod)
+    monkeypatch.setitem(sys.modules, 'rdkit.DataStructs', rdkit_mod.DataStructs)
+    monkeypatch.setitem(sys.modules, 'rdkit.RDLogger', rdkit_mod.RDLogger)
+    monkeypatch.setitem(sys.modules, 'rdkit.Chem.AllChem', allchem_mod)
     ob = types.ModuleType('openbabel')
     # Create OBMessageHandler stub with SetOutputLevel method
     class OBMessageHandler:
@@ -80,7 +113,13 @@ def _setup_stubs(monkeypatch, tmp_path):
     tq = types.ModuleType('tqdm'); tq.tqdm = lambda x, **kw: x # type: ignore
     monkeypatch.setitem(sys.modules, 'tqdm', tq)
     monkeypatch.setitem(sys.modules, 'tqdm.auto', tq)
-    monkeypatch.setitem(sys.modules, 'spyrmsd', types.ModuleType('spyrmsd'))
+    # Stub spyrmsd (used by MoleculeProcessing module)
+    spyrmsd_mod = types.ModuleType('spyrmsd')
+    spyrmsd_mod.io = types.ModuleType('spyrmsd.io')  # type: ignore
+    spyrmsd_mod.rmsd = types.ModuleType('spyrmsd.rmsd')  # type: ignore
+    monkeypatch.setitem(sys.modules, 'spyrmsd', spyrmsd_mod)
+    monkeypatch.setitem(sys.modules, 'spyrmsd.io', spyrmsd_mod.io)
+    monkeypatch.setitem(sys.modules, 'spyrmsd.rmsd', spyrmsd_mod.rmsd)
 
     # Stub Toolbox modules with heavy dependencies
     conv_mod = types.ModuleType('OCDocker.Toolbox.Conversion')
@@ -95,6 +134,7 @@ def _setup_stubs(monkeypatch, tmp_path):
     filesfolders_mod = types.ModuleType('OCDocker.Toolbox.FilesFolders')
     filesfolders_mod.empty_docking_digest = lambda *a, **k: {}  # type: ignore
     filesfolders_mod.safe_create_dir = lambda *a, **k: None  # type: ignore
+    filesfolders_mod.ensure_parent_dir = lambda *a, **k: None  # type: ignore - used by Preparation
     monkeypatch.setitem(sys.modules, 'OCDocker.Toolbox.FilesFolders', filesfolders_mod)
     
     # Stub Validation (has heavy deps: Bio.PDB)
@@ -102,8 +142,9 @@ def _setup_stubs(monkeypatch, tmp_path):
     validation_mod.validate_digest_extension = lambda path, format_str: format_str.lower() == 'json'  # type: ignore
     monkeypatch.setitem(sys.modules, 'OCDocker.Toolbox.Validation', validation_mod)
     
-    # Stub Running (may have heavy deps)
+    # Stub Running (used by Preparation module)
     running_mod = types.ModuleType('OCDocker.Toolbox.Running')
+    running_mod.is_tool_available = lambda exe: True  # type: ignore - stub always returns True
     monkeypatch.setitem(sys.modules, 'OCDocker.Toolbox.Running', running_mod)
 
     # Ensure base package is loaded so submodules resolve correctly
@@ -113,130 +154,7 @@ def _setup_stubs(monkeypatch, tmp_path):
     # Use REAL Error module (lightweight)
     import OCDocker.Error as error_mod
 
-
-
-
-
-
-
-
-        @staticmethod
-
-
-        def file_not_exist(*a, **k):
-
-            return 0
-
-
-
-
-
-
-
-        @staticmethod
-
-
-        def read_file(*a, **k):
-            return 0
-
-
-
-
-
-
-
-        @staticmethod
-
-
-        def write_file(*a, **k):
-            return 0
-
-
-
-
-
-
-
-        @staticmethod
-
-
-        def dir_does_not_exist(*a, **k):
-            return 0
-
-
-
-
-
-
-
-        @staticmethod
-
-
-        def empty_file(*a, **k):
-            return 0
-
-
-
-
-
-
-
-        @staticmethod
-
-
-        def wrong_type(*a, **k):
-            return 0
-
-
-
-
-
-
-
-        @staticmethod
-
-
-        def unsupported_extension(*a, **k):
-            return 0
-
-
-
-
-
-
-
-        @staticmethod
-
-
-        def file_exists(*a, **k):
-            return 0
-
-
-
-
-
-
-
-        @staticmethod
-
-
-        def read_docking_log_error(*a, **k):
-            return 0
-
-
-
-
-
-
-
-        @staticmethod
-
-
-        def subprocess(*a, **k):
-            return 0
-
-
-    # Stub Initialise for Printing module (minimal stub)
+        # Stub Initialise for Printing module (minimal stub)
     init_mod = types.ModuleType('OCDocker.Initialise')
     defaults = {
         'smina_custom_scoring': 'no',
