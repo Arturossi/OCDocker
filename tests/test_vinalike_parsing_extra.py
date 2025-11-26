@@ -1,14 +1,93 @@
 import json
 import os
 from pathlib import Path
+import types
+import sys
 
 import pytest
+
+
+def _setup_basevina_stubs(monkeypatch, tmp_path):
+    """Set up minimal stubs needed for all BaseVinaLike tests.
+    
+    All tests need:
+    1. numpy - must be ModuleType (not SimpleNamespace) with nan/isnan
+    2. FilesFolders - must be stubbed to prevent it from importing real numpy
+    
+    Additional stubs based on what functions are tested:
+    - IO, Printing, Config: used by read_log and read_rescoring_log
+    - Validation, FilesFolders functions: used by generate_digest
+    """
+    # CRITICAL: Clear and set up numpy FIRST, before any other imports
+    if 'numpy' in sys.modules:
+        monkeypatch.delitem(sys.modules, 'numpy', raising=False)
+    numpy_stub = types.ModuleType('numpy')
+    numpy_stub.nan = float('nan')  # type: ignore
+    numpy_stub.isnan = lambda x: x != x  # type: ignore
+    monkeypatch.setitem(sys.modules, 'numpy', numpy_stub)
+    
+    # Clear modules that BaseVinaLike imports (to prevent cached imports)
+    for mod_name in ['OCDocker.Toolbox.FilesFolders', 'OCDocker.Toolbox.IO', 
+                     'OCDocker.Toolbox.Printing', 'OCDocker.Toolbox.Validation',
+                     'OCDocker.Config', 'OCDocker.Docking.BaseVinaLike']:
+        if mod_name in sys.modules:
+            monkeypatch.delitem(sys.modules, mod_name, raising=False)
+    
+    # Stub Toolbox package (needed for submodule imports)
+    toolbox_pkg = types.ModuleType('OCDocker.Toolbox')
+    toolbox_pkg.__path__ = []  # type: ignore
+    monkeypatch.setitem(sys.modules, 'OCDocker.Toolbox', toolbox_pkg)
+    
+    # Stub FilesFolders - CRITICAL: prevents real module from loading and importing numpy
+    # Also provide functions used by generate_digest
+    filesfolders_mod = types.ModuleType('OCDocker.Toolbox.FilesFolders')
+    def empty_docking_digest(path, overwrite=False):
+        # Minimal stub - just return empty dict
+        return {}
+    filesfolders_mod.empty_docking_digest = empty_docking_digest  # type: ignore
+    monkeypatch.setitem(sys.modules, 'OCDocker.Toolbox.FilesFolders', filesfolders_mod)
+    
+    # Stub IO (used by read_log and read_rescoring_log)
+    io_mod = types.ModuleType('OCDocker.Toolbox.IO')
+    def lazyread_reverse_order_mmap(path):
+        return []  # Empty iterator - tests will provide actual file content
+    io_mod.lazyread_reverse_order_mmap = lazyread_reverse_order_mmap  # type: ignore
+    monkeypatch.setitem(sys.modules, 'OCDocker.Toolbox.IO', io_mod)
+    
+    # Stub Printing (used by read_rescoring_log and generate_digest)
+    printing_mod = types.ModuleType('OCDocker.Toolbox.Printing')
+    printing_mod.print_error = lambda *a, **k: None  # type: ignore
+    printing_mod.print_error_log = lambda *a, **k: None  # type: ignore
+    printing_mod.printv = lambda *a, **k: None  # type: ignore
+    monkeypatch.setitem(sys.modules, 'OCDocker.Toolbox.Printing', printing_mod)
+    
+    # Stub Validation (used by generate_digest)
+    validation_mod = types.ModuleType('OCDocker.Toolbox.Validation')
+    def validate_digest_extension(path, format_str):
+        # Accept json, reject others
+        return format_str.lower() == 'json'
+    validation_mod.validate_digest_extension = validate_digest_extension  # type: ignore
+    monkeypatch.setitem(sys.modules, 'OCDocker.Toolbox.Validation', validation_mod)
+    
+    # Stub Config (used by read_rescoring_log and generate_digest)
+    config_mod = types.ModuleType('OCDocker.Config')
+    def get_config():
+        cfg = types.SimpleNamespace()
+        cfg.vina = types.SimpleNamespace(scoring='vina', scoring_functions=['vina'])
+        cfg.smina = types.SimpleNamespace(scoring='vinardo', scoring_functions=['vinardo'])
+        cfg.logdir = str(tmp_path)  # type: ignore
+        return cfg
+    config_mod.get_config = get_config  # type: ignore
+    monkeypatch.setitem(sys.modules, 'OCDocker.Config', config_mod)
+    
+    return numpy_stub
 
 
 @pytest.mark.order(99)
 def test_vina_log_and_rescoring_parsing(tmp_path, monkeypatch):
     # Avoid heavy Initialise auto-bootstrap on import
     monkeypatch.setenv("OCDOCKER_NO_AUTO_BOOTSTRAP", "1")
+    _setup_basevina_stubs(monkeypatch, tmp_path)
     import OCDocker.Docking.BaseVinaLike as basevina  # type: ignore
     log = tmp_path / "vina.log"
     # Header first, then rows (reverse reader stops at header when it reaches it)
@@ -48,6 +127,7 @@ def test_vina_log_and_rescoring_parsing(tmp_path, monkeypatch):
 @pytest.mark.order(100)
 def test_smina_log_and_rescoring_parsing(tmp_path, monkeypatch):
     monkeypatch.setenv("OCDOCKER_NO_AUTO_BOOTSTRAP", "1")
+    _setup_basevina_stubs(monkeypatch, tmp_path)
     import OCDocker.Docking.BaseVinaLike as basevina  # type: ignore
     log = tmp_path / "smina.log"
     log.write_text('''-----+ header
@@ -80,6 +160,7 @@ def test_read_log_empty_file(tmp_path, monkeypatch):
     '''Test reading an empty log file.'''
 
     monkeypatch.setenv("OCDOCKER_NO_AUTO_BOOTSTRAP", "1")
+    _setup_basevina_stubs(monkeypatch, tmp_path)
     import OCDocker.Docking.BaseVinaLike as basevina  # type: ignore
     
     empty_log = tmp_path / "empty.log"
@@ -94,6 +175,7 @@ def test_read_log_nonexistent_file(tmp_path, monkeypatch):
     '''Test reading a non-existent log file.'''
 
     monkeypatch.setenv("OCDOCKER_NO_AUTO_BOOTSTRAP", "1")
+    _setup_basevina_stubs(monkeypatch, tmp_path)
     import OCDocker.Docking.BaseVinaLike as basevina  # type: ignore
     
     nonexistent = tmp_path / "nonexistent.log"
@@ -106,6 +188,8 @@ def test_read_rescoring_log_empty_file(tmp_path, monkeypatch):
     '''Test reading an empty rescoring log file.'''
 
     monkeypatch.setenv("OCDOCKER_NO_AUTO_BOOTSTRAP", "1")
+    _setup_basevina_stubs(monkeypatch, tmp_path)
+    
     import OCDocker.Docking.BaseVinaLike as basevina  # type: ignore
     import numpy as np
     
@@ -121,6 +205,8 @@ def test_read_rescoring_log_nonexistent_file(tmp_path, monkeypatch):
     '''Test reading a non-existent rescoring log file.'''
 
     monkeypatch.setenv("OCDOCKER_NO_AUTO_BOOTSTRAP", "1")
+    _setup_basevina_stubs(monkeypatch, tmp_path)
+    
     import OCDocker.Docking.BaseVinaLike as basevina  # type: ignore
     import numpy as np
     
@@ -134,6 +220,8 @@ def test_read_rescoring_log_no_affinity_line(tmp_path, monkeypatch):
     '''Test reading rescoring log without affinity line.'''
 
     monkeypatch.setenv("OCDOCKER_NO_AUTO_BOOTSTRAP", "1")
+    _setup_basevina_stubs(monkeypatch, tmp_path)
+    
     import OCDocker.Docking.BaseVinaLike as basevina  # type: ignore
     import numpy as np
     
@@ -149,6 +237,7 @@ def test_read_smina_rescoring_log(tmp_path, monkeypatch):
     '''Test reading smina rescoring log.'''
 
     monkeypatch.setenv("OCDOCKER_NO_AUTO_BOOTSTRAP", "1")
+    _setup_basevina_stubs(monkeypatch, tmp_path)
     import OCDocker.Docking.BaseVinaLike as basevina  # type: ignore
     
     resc = tmp_path / "smina_rescore.log"
@@ -163,6 +252,7 @@ def test_generate_digest_file_exists_no_overwrite(tmp_path, monkeypatch):
     '''Test generate_digest when path is a directory and overwrite=False.'''
 
     monkeypatch.setenv("OCDOCKER_NO_AUTO_BOOTSTRAP", "1")
+    _setup_basevina_stubs(monkeypatch, tmp_path)
     import OCDocker.Docking.BaseVinaLike as basevina  # type: ignore
     import OCDocker.Error as ocerror
     

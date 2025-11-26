@@ -234,11 +234,11 @@ class NeuralNet(nn.Module):
         self.nn_params = nn_params
 
         # Set the AUC and rmse as nan
-        self.validation_auc = np.NaN
-        self.rmse = np.NaN
-        self.pr_auc = np.NaN
-        self.log_loss_value = np.NaN
-        self.mae = np.NaN
+        self.validation_auc = np.nan
+        self.rmse = np.nan
+        self.pr_auc = np.nan
+        self.log_loss_value = np.nan
+        self.mae = np.nan
 
         # Set the verbose flag
         self.verbose = verbose

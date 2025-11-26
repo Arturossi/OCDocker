@@ -179,7 +179,7 @@ def _read_rescoring_log_generic(path: str, start_string: str, engine: str, error
                     ocerror.ReportLevel.ERROR,
                 )
                 # Return NaN
-                return np.NaN
+                return np.nan
 
             # Try except to avoid broken pipe ocerror.Error
             try:
@@ -204,13 +204,13 @@ def _read_rescoring_log_generic(path: str, start_string: str, engine: str, error
                         f"Problems while reading file '{path}'. Error: {e}",
                         f"{config.logdir}/{error_log}",
                     )
-            return np.NaN
+            return np.nan
         except Exception as e:
             _ = ocerror.Error.read_docking_log_error( # type: ignore
                 f"Problems while reading the {engine} log file '{path}'. Error: {e}",
                 ocerror.ReportLevel.ERROR,
             )
-            return np.NaN
+            return np.nan
     
     # Throw an error
     _ = ocerror.Error.file_not_exist( # type: ignore
@@ -218,7 +218,7 @@ def _read_rescoring_log_generic(path: str, start_string: str, engine: str, error
     )
 
     # Return NaN if the file does not exist
-    return np.NaN
+    return np.nan
 
 
 def _generate_digest_generic(

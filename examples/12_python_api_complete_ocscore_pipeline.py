@@ -179,14 +179,19 @@ except (ImportError, AttributeError):
     print("Warning: joblib not available. Multiprocessing disabled.")
 
 # Mapping function to convert rescoring keys to database column names
-def map_rescoring_key_to_db_column(key: str) -> str:
+def map_rescoring_key_to_db_column(key: str, engine: str = None) -> str:
     '''Map rescoring result keys to database column names.
     
     Parameters
     ----------
     key : str
         The key from rescoring results (e.g., 'vina_vina_rescoring', 'smina_vinardo_rescoring', etc.)
-    
+    engine : str
+        The engine name (e.g., 'vina', 'smina')
+        If None, the engine will be inferred from the key.
+        If provided, the engine will be used to determine the database column name.
+        If not provided, the engine will be inferred from the key.
+
     Returns
     -------
     str
@@ -248,7 +253,79 @@ def map_rescoring_key_to_db_column(key: str) -> str:
         elif inner_key.lower() == 'nnscore':
             return 'ODDT_NNSCORE'
     
-    # Handle VINA/SMINA rescoring keys (remove _rescoring suffix if present)
+    # Handle new format: rescoring_{scoring_function}_{pose_number} or rescoring_{pose_number}
+    if key_lower.startswith('rescoring_'):
+        # Extract scoring function and pose number
+        # Format: rescoring_{scoring_function}_{pose_number} or rescoring_{pose_number}
+        parts = key_lower.split('_')
+        if len(parts) >= 2:
+            # Check if last part is a number (pose number)
+            if parts[-1].isdigit():
+                pose_number = parts[-1]
+                # Remove 'rescoring' and pose number, rest is scoring function
+                scoring_function_parts = parts[1:-1]
+            else:
+                # No pose number, just scoring function after 'rescoring'
+                scoring_function_parts = parts[1:]
+            
+            if scoring_function_parts:
+                # Reconstruct scoring function name
+                scoring_function = '_'.join(scoring_function_parts)
+                
+                # Use provided engine if available, otherwise try to detect
+                engines_to_try = [engine] if engine else ['vina', 'smina']
+                
+                # Try to match with known formats
+                for eng in engines_to_try:
+                    test_key_old = f'{eng}_{scoring_function}_rescoring'
+                    test_key_new = f'{eng}_{scoring_function}'
+                    if test_key_old in mapping:
+                        return mapping[test_key_old]
+                    if test_key_new in mapping:
+                        return mapping[test_key_new]
+                
+                # If not found in mapping, construct based on engine or scoring function
+                if engine:
+                    # Use provided engine
+                    if engine == 'vina':
+                        return f'VINA_{scoring_function.upper()}'
+                    elif engine == 'smina':
+                        sf_mapping = {
+                            'dkoes_scoring': 'SCORING_DKOES',
+                            'scoring_dkoes': 'SCORING_DKOES',
+                            'old_scoring_dkoes': 'OLD_SCORING_DKOES',
+                            'dkoes_scoring_old': 'OLD_SCORING_DKOES',
+                            'fast_dkoes': 'FAST_DKOES',
+                            'ad4_scoring': 'SCORING_AD4',
+                        }
+                        if scoring_function in sf_mapping:
+                            return f'SMINA_{sf_mapping[scoring_function]}'
+                        return f'SMINA_{scoring_function.upper()}'
+                else:
+                    # Try to detect engine from scoring function
+                    if scoring_function in ['vina', 'vinardo']:
+                        return f'VINA_{scoring_function.upper()}'
+                    else:
+                        # Assume smina for other scoring functions
+                        sf_mapping = {
+                            'dkoes_scoring': 'SCORING_DKOES',
+                            'scoring_dkoes': 'SCORING_DKOES',
+                            'old_scoring_dkoes': 'OLD_SCORING_DKOES',
+                            'dkoes_scoring_old': 'OLD_SCORING_DKOES',
+                            'fast_dkoes': 'FAST_DKOES',
+                            'ad4_scoring': 'SCORING_AD4',
+                        }
+                        if scoring_function in sf_mapping:
+                            return f'SMINA_{sf_mapping[scoring_function]}'
+                        return f'SMINA_{scoring_function.upper()}'
+            else:
+                # Just 'rescoring_{pose_number}' - no scoring function specified
+                # Use engine if provided, otherwise default to vina_vina
+                if engine == 'smina':
+                    return 'SMINA_VINARDO'  # Default SMINA scoring function
+                return 'VINA_VINA'  # Default VINA scoring function
+    
+    # Handle old format: VINA/SMINA rescoring keys (remove _rescoring suffix if present)
     if key_lower.endswith('_rescoring'):
         key_without_suffix = key_lower[:-10]  # Remove '_rescoring'
         if key_without_suffix in mapping:
@@ -786,8 +863,14 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
         # Get VINA rescoring results and map to database column names
         vina_rescoring = vina_ligand.read_rescore_logs(f"{ligand_path}/vinaFiles/rescoring")
         for key, value in vina_rescoring.items():
-            db_column_name = map_rescoring_key_to_db_column(key)
-            rescoringResult[db_column_name] = value
+            db_column_name = map_rescoring_key_to_db_column(key, engine='vina')
+            # Extract value from list if needed
+            if isinstance(value, list) and len(value) > 0:
+                rescoringResult[db_column_name] = value[0] if isinstance(value[0], (int, float)) else value[0]
+            elif isinstance(value, (int, float)):
+                rescoringResult[db_column_name] = value
+            else:
+                rescoringResult[db_column_name] = value
         
         # Run the rescoring with smina
         smina_ligand.run_rescore(
@@ -800,8 +883,14 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
         # Get SMINA rescoring results and map to database column names
         smina_rescoring = smina_ligand.read_rescore_logs(f"{ligand_path}/sminaFiles/rescoring")
         for key, value in smina_rescoring.items():
-            db_column_name = map_rescoring_key_to_db_column(key)
-            rescoringResult[db_column_name] = value
+            db_column_name = map_rescoring_key_to_db_column(key, engine='smina')
+            # Extract value from list if needed
+            if isinstance(value, list) and len(value) > 0:
+                rescoringResult[db_column_name] = value[0] if isinstance(value[0], (int, float)) else value[0]
+            elif isinstance(value, (int, float)):
+                rescoringResult[db_column_name] = value
+            else:
+                rescoringResult[db_column_name] = value
         
         # Normalize all SF column names to match SCORING_FUNCTION_ORDER exactly
         # !!! CRITICAL: This ensures consistency for mask application !!!

@@ -108,17 +108,17 @@ def empty_docking_digest(digestPath: str, overwrite: bool = False, digestFormat 
 
     # Create the empty digest variable
     digest = {
-        "smina_pose": [np.NaN],
-        "smina_affinity": [np.NaN], 
-        "PLANTS_TOTAL_SCORE": [np.NaN],
-        "PLANTS_SCORE_RB_PEN": [np.NaN],
-        "PLANTS_SCORE_NORM_HEVATOMS": [np.NaN],
-        "PLANTS_SCORE_NORM_CRT_HEVATOMS": [np.NaN], 
-        "PLANTS_SCORE_NORM_WEIGHT": [np.NaN],
-        "PLANTS_SCORE_NORM_CRT_WEIGHT": [np.NaN],
-        "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [np.NaN],
-        "vina_pose": [np.NaN],
-        "vina_affinity": [np.NaN]
+        "smina_pose": [np.nan],
+        "smina_affinity": [np.nan], 
+        "PLANTS_TOTAL_SCORE": [np.nan],
+        "PLANTS_SCORE_RB_PEN": [np.nan],
+        "PLANTS_SCORE_NORM_HEVATOMS": [np.nan],
+        "PLANTS_SCORE_NORM_CRT_HEVATOMS": [np.nan], 
+        "PLANTS_SCORE_NORM_WEIGHT": [np.nan],
+        "PLANTS_SCORE_NORM_CRT_WEIGHT": [np.nan],
+        "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [np.nan],
+        "vina_pose": [np.nan],
+        "vina_affinity": [np.nan]
         }
 
     # Check if the digest format is not empty

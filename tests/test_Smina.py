@@ -513,8 +513,8 @@ def test_get_rescore_log_paths(tmp_path):
     f3.write_text("x")
     
     found = ocsmina.get_rescore_log_paths(str(tmp_path))
-    # Function returns ALL .log files, not just rescoring logs
-    assert set(found) == {str(f1), str(f2), str(f3)}
+    # Function returns only rescoring log files (matching *_rescoring.log pattern)
+    assert set(found) == {str(f1), str(f2)}
 
 
 @pytest.mark.order(22)
@@ -852,6 +852,7 @@ def test_smina_run_rescore_instance_method(smina_inputs, tmp_path, monkeypatch):
     # Test run_rescore with skipDefaultScoring=True
     result = smina_instance.run_rescore(
         outPath=str(split_dir),
+        ligand=str(split_lig),
         logFile="",
         skipDefaultScoring=True,
         overwrite=False
@@ -886,6 +887,7 @@ def test_smina_run_rescore_overwrite_true(smina_inputs, tmp_path, monkeypatch):
     # Test run_rescore with overwrite=True
     result = smina_instance.run_rescore(
         outPath=str(split_dir),
+        ligand=str(split_lig),
         logFile="",
         skipDefaultScoring=False,
         overwrite=True

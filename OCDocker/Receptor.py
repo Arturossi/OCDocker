@@ -1069,28 +1069,28 @@ def read_descriptors_from_json(path: str, returnData: bool = False) -> Optional[
             ocerror.Error.data_not_found(f"Missing keys in JSON file '{path}': {', '.join(missing)}") # type: ignore
             raise KeyError(f"Missing keys in JSON file '{path}': {', '.join(missing)}")
 
-        # Create the countAA variable (here np.NaN does have an exact meaning, 0 is a valid value)
+        # Create the countAA variable (here np.nan does have an exact meaning, 0 is a valid value)
         countAA = {
-            "A": data["countA"] if data["countA"] != np.NaN else 0,
-            "R": data["countR"] if data["countR"] != np.NaN else 0,
-            "N": data["countN"] if data["countN"] != np.NaN else 0,
-            "D": data["countD"] if data["countD"] != np.NaN else 0,
-            "C": data["countC"] if data["countC"] != np.NaN else 0,
-            "Q": data["countQ"] if data["countQ"] != np.NaN else 0,
-            "E": data["countE"] if data["countE"] != np.NaN else 0,
-            "G": data["countG"] if data["countG"] != np.NaN else 0,
-            "H": data["countH"] if data["countH"] != np.NaN else 0,
-            "I": data["countI"] if data["countI"] != np.NaN else 0,
-            "L": data["countL"] if data["countL"] != np.NaN else 0,
-            "K": data["countK"] if data["countK"] != np.NaN else 0,
-            "M": data["countM"] if data["countM"] != np.NaN else 0,
-            "F": data["countF"] if data["countF"] != np.NaN else 0,
-            "P": data["countP"] if data["countP"] != np.NaN else 0,
-            "S": data["countS"] if data["countS"] != np.NaN else 0,
-            "T": data["countT"] if data["countT"] != np.NaN else 0,
-            "W": data["countW"] if data["countW"] != np.NaN else 0,
-            "Y": data["countY"] if data["countY"] != np.NaN else 0,
-            "V": data["countV"] if data["countV"] != np.NaN else 0
+            "A": data["countA"] if not np.isnan(data["countA"]) else 0,
+            "R": data["countR"] if not np.isnan(data["countR"]) else 0,
+            "N": data["countN"] if not np.isnan(data["countN"]) else 0,
+            "D": data["countD"] if not np.isnan(data["countD"]) else 0,
+            "C": data["countC"] if not np.isnan(data["countC"]) else 0,
+            "Q": data["countQ"] if not np.isnan(data["countQ"]) else 0,
+            "E": data["countE"] if not np.isnan(data["countE"]) else 0,
+            "G": data["countG"] if not np.isnan(data["countG"]) else 0,
+            "H": data["countH"] if not np.isnan(data["countH"]) else 0,
+            "I": data["countI"] if not np.isnan(data["countI"]) else 0,
+            "L": data["countL"] if not np.isnan(data["countL"]) else 0,
+            "K": data["countK"] if not np.isnan(data["countK"]) else 0,
+            "M": data["countM"] if not np.isnan(data["countM"]) else 0,
+            "F": data["countF"] if not np.isnan(data["countF"]) else 0,
+            "P": data["countP"] if not np.isnan(data["countP"]) else 0,
+            "S": data["countS"] if not np.isnan(data["countS"]) else 0,
+            "T": data["countT"] if not np.isnan(data["countT"]) else 0,
+            "W": data["countW"] if not np.isnan(data["countW"]) else 0,
+            "Y": data["countY"] if not np.isnan(data["countY"]) else 0,
+            "V": data["countV"] if not np.isnan(data["countV"]) else 0
         }
 
         # If the returnData flag is on

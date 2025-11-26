@@ -14,6 +14,7 @@ pandas>=2.2.3
 scipy>=1.14.1
 scikit-learn>=1.5.2
 scikit-image>=0.24.0
+six>=1.17.0
 
 # Machine learning and AI
 torch>=2.4.1
@@ -27,9 +28,9 @@ optuna-integration>=4.0.0
 # Chemistry and molecular modeling
 # NOTE: rdkit and openbabel may require conda installation
 rdkit>=2024.09.1
-openbabel>=3.1.1
+openbabel>=3.1.1.1
 biopython>=1.84
-oddt>=0.7
+oddt @ git+https://github.com/Arturossi/oddt.git@master
 spyrmsd>=0.8.0
 
 # Data analysis and visualization
@@ -54,7 +55,7 @@ joblib>=1.4.2
 dcor>=0.6
 fsspec>=2024.10.0
 numba>=0.60.0
-python-graphviz>=0.20.3
+graphviz>=0.20.3
 lime>=0.2.0.1
 
 # Network and graph analysis
@@ -64,6 +65,7 @@ rustworkx>=0.15.1
 # Database and SQL
 sqlalchemy>=2.0.35
 sqlalchemy-utils>=0.41.2
+pymysql>=1.1.1
 
 # Configuration and argument parsing
 configargparse>=1.7
@@ -120,11 +122,11 @@ jsonschema>=4.23.0
 pyparsing>=3.1.4
 decorator>=5.1.1
 attrs>=24.2.0
-six>=1.16.0
 certifi>=2025.4.26
 urllib3>=2.2.3
 charset-normalizer>=3.3.2
 idna>=3.10
+ipython=8.28.0
 
 # Scientific computing extensions
 sympy>=1.13.3

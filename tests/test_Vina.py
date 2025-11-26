@@ -472,7 +472,7 @@ def test_vina_print_attributes(vina_inputs, capsys):
         ligand=vina_inputs["ligand"],
         prepared_ligand_path=vina_inputs["ligand_path"],
         vina_log=vina_inputs["vina_log"],
-        output_vina=vina_inputs["output_dir"],
+        output_vina=vina_inputs["output"],
         name="test"
     )
     
@@ -962,6 +962,7 @@ def test_vina_run_rescore_instance_method(vina_inputs, tmp_path, monkeypatch):
     # Test run_rescore with skipDefaultScoring=True
     result = vina_instance.run_rescore(
         outPath=str(split_dir),
+        ligand=str(split_lig),
         logFile="",
         skipDefaultScoring=True,
         overwrite=False
@@ -996,6 +997,7 @@ def test_vina_run_rescore_overwrite_true(vina_inputs, tmp_path, monkeypatch):
     # Test run_rescore with overwrite=True
     result = vina_instance.run_rescore(
         outPath=str(split_dir),
+        ligand=str(split_lig),
         logFile="",
         skipDefaultScoring=False,
         overwrite=True

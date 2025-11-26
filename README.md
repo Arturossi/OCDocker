@@ -46,7 +46,13 @@ mamba install arturossi/label/prealpha::ocdocker
 pip
 ---
 
-If you prefer to use pip, you can install OCDocker with the following command:
+**Important:** Before installing via pip, you must install the required system dependencies:
+
+```bash
+sudo apt-get install openbabel libopenbabel-dev swig
+```
+
+Then install OCDocker:
 
 ```bash
 pip install ocdocker
@@ -61,6 +67,9 @@ For development or if you want to install from source using pip:
 git clone https://github.com/Arturossi/OCDocker
 cd OCDocker
 
+# Install system dependencies first (REQUIRED)
+sudo apt-get install openbabel libopenbabel-dev swig
+
 # Install dependencies
 pip install -r requirements.txt
 
@@ -70,7 +79,14 @@ pip install -e .
 
 **Note on chemistry packages (rdkit, openbabel):**
 
-Some packages like `rdkit` and `openbabel` are easier to install via conda due to their system dependencies. If you encounter installation issues with pip, you can install these via conda first:
+Some packages like `rdkit` and `openbabel` are easier to install via conda due to their system dependencies. Before installing, ensure you have the required system packages:
+
+```bash
+# Install system dependencies first (REQUIRED)
+sudo apt-get install openbabel libopenbabel-dev swig
+```
+
+If you encounter installation issues with pip, you can install these via conda first:
 
 ```bash
 # Install chemistry packages via conda
@@ -103,9 +119,19 @@ Prerequisites
 
 - Python 3.9+
 - Ubuntu/Debian-like system with internet access
-- sudo privileges (required to install: DSSP, MySQL server, and place Vina in `/usr/bin`)
+- sudo privileges (required to install: OpenBabel, DSSP, MySQL server, and place Vina in `/usr/bin`)
 - ~15–20 GB of free disk space for conda env + tools + caches
 - bash shell (the installer uses `bash` and `conda.sh`)
+
+**System Dependencies (Required Before Installation):**
+
+Before installing OCDocker, you must install the following system packages:
+
+```bash
+sudo apt-get install openbabel libopenbabel-dev swig
+```
+
+These packages are required for building and using OpenBabel Python bindings, which are essential for OCDocker's molecular processing capabilities.
 
 MySQL setup (quick tutorial)
 ----------------------------
@@ -184,7 +210,7 @@ The installer performs the following actions on Ubuntu-like systems:
 - Installs MGLTools locally under `./mgltools`.
 - Downloads AutoDock Vina and installs it to `/usr/bin/vina` (requires sudo).
 - Installs Miniconda under `$HOME/miniconda` (no sudo).
-- Installs DSSP and MySQL server via `apt-get` (requires sudo).
+- Installs system packages via `apt-get` (requires sudo): openbabel, libopenbabel-dev, swig, DSSP, and MySQL server (if not using SQLite).
 - Creates the conda environment defined by `environment.yml` (name: `ocdocker`).
 - Creates a MySQL user and database named `ocdocker` (configurable via environment variables `DB_USER`, `DB_PASS`, `DB_NAME` before running the script).
 

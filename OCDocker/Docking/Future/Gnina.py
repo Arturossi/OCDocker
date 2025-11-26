@@ -605,7 +605,7 @@ def read_log(path: str) -> Dict[str, List[Union[str, float]]]:
                 # Print the error
                 _ = ocerror.Error.empty_file(f"The gnina log file '{path}' is empty.", level = ocerror.ReportLevel.ERROR)
                 # Return the dictionary with invalid default data
-                return {"gnina_pose": [np.NaN], "gnina_affinity": [np.NaN]}
+                return {"gnina_pose": [np.nan], "gnina_affinity": [np.nan]}
 
             # Create a dictionary to store the info
             data = {"gnina_pose": [], "gnina_affinity": []}
@@ -635,8 +635,8 @@ def read_log(path: str) -> Dict[str, List[Union[str, float]]]:
             
             # Check if the len of the data["gnina_affinity"] is 0
             if len(data["gnina_pose"]) == 0:
-                data["gnina_pose"].append(np.NaN)
-                data["gnina_affinity"].append(np.NaN)
+                data["gnina_pose"].append(np.nan)
+                data["gnina_affinity"].append(np.nan)
 
             # Return the df reversing the order and reseting the index
             return data
@@ -644,13 +644,13 @@ def read_log(path: str) -> Dict[str, List[Union[str, float]]]:
         except Exception as e:
             _ = ocerror.Error.read_docking_log_error(f"Problems while reading the gnina log file '{path}'. Error: {e}", level = ocerror.ReportLevel.ERROR)
             # Return the dictionary with invalid default data
-            return {"gnina_pose": [np.NaN], "gnina_affinity": [np.NaN]}
+            return {"gnina_pose": [np.nan], "gnina_affinity": [np.nan]}
 
     # Throw an error
     _ = ocerror.Error.file_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
 
     # Return a dict with a NaN value
-    return {"gnina_pose": [np.NaN], "gnina_affinity": [np.NaN]}
+    return {"gnina_pose": [np.nan], "gnina_affinity": [np.nan]}
 
 
 def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, digestFormat : str = "json") -> int:

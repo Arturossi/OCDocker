@@ -403,8 +403,8 @@ class Transformer(nn.Module):
         self.trans_params = trans_params
 
         # Set the AUC and rmse as nan
-        self.validation_auc = np.NaN
-        self.rmse = np.NaN
+        self.validation_auc = np.nan
+        self.rmse = np.nan
 
         # Set the verbose flag
         self.verbose = verbose

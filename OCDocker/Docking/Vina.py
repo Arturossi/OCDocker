@@ -126,6 +126,9 @@ class Vina:
         self.vina_log = str(vina_log)
         self.output_vina = str(output_vina)
         
+        # Initialize vina_cmd to None in case of early return
+        self.vina_cmd = None
+        
         # Validate that output_vina is a file path, not a directory
         if os.path.isdir(self.output_vina):
             _ = ocerror.Error.wrong_type( # type: ignore
@@ -884,21 +887,29 @@ def read_rescore_logs(rescoreLogPaths: Union[List[str], str], onlyBest: bool = F
                     scoring_function = sf
                     break
         
-        # Handle onlyBest filter after extracting scoring function
-        # Check if this is from a split file (pattern: {name}_split_{number}_{scoring_function}_rescoring)
-        if onlyBest and scoring_function:
-            # Check if there's a _split_ pattern with a number
-            if "_split_" in original_filename:
-                # Extract the part after _split_
-                after_split = original_filename.split("_split_", 1)[1]
-                # Check if it starts with a number followed by underscore
-                parts_after_split = after_split.split("_")
-                if parts_after_split and parts_after_split[0].isdigit():
-                    if parts_after_split[0] != "1":
-                        continue
+        # Extract pose number if present (pattern: {name}_split_{number}_{scoring_function}_rescoring or {name}_split_{number}_rescoring)
+        pose_number = None
+        if "_split_" in original_filename:
+            # Extract the part after _split_
+            after_split = original_filename.split("_split_", 1)[1]
+            # Check if it starts with a number followed by underscore
+            parts_after_split = after_split.split("_")
+            if parts_after_split and parts_after_split[0].isdigit():
+                pose_number = parts_after_split[0]
+        
+        # Handle onlyBest filter after extracting scoring function and pose number
+        if onlyBest and pose_number:
+            if pose_number != "1":
+                continue
         
         if scoring_function:
-            key = f"vina_{scoring_function}_rescoring"
+            if pose_number:
+                key = f"rescoring_{scoring_function}_{pose_number}"
+            else:
+                key = f"vina_{scoring_function}_rescoring"
+        elif pose_number:
+            # If no scoring function but pose number exists, use simple format
+            key = f"rescoring_{pose_number}"
         else:
             # If scoring function not found, skip this file with a warning
             _ = ocerror.Error.value_error(message=f"The scoring function could not be found in the filename '{original_filename}'. Skipping this file.", level = ocerror.ReportLevel.WARNING)
