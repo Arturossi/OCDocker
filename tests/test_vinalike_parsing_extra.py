@@ -274,6 +274,7 @@ def test_generate_digest_invalid_existing_digest(tmp_path, monkeypatch):
     '''Test generate_digest with invalid existing digest file (not a dict).'''
 
     monkeypatch.setenv("OCDOCKER_NO_AUTO_BOOTSTRAP", "1")
+    _setup_basevina_stubs(monkeypatch, tmp_path)
     import OCDocker.Docking.BaseVinaLike as basevina  # type: ignore
     import OCDocker.Error as ocerror
     
@@ -294,6 +295,7 @@ def test_generate_digest_read_error(tmp_path, monkeypatch):
     '''Test generate_digest with unreadable digest file.'''
 
     monkeypatch.setenv("OCDOCKER_NO_AUTO_BOOTSTRAP", "1")
+    _setup_basevina_stubs(monkeypatch, tmp_path)
     import OCDocker.Docking.BaseVinaLike as basevina  # type: ignore
     import OCDocker.Error as ocerror
     
@@ -314,6 +316,7 @@ def test_generate_digest_unsupported_format(tmp_path, monkeypatch):
     '''Test generate_digest with unsupported format.'''
 
     monkeypatch.setenv("OCDOCKER_NO_AUTO_BOOTSTRAP", "1")
+    _setup_basevina_stubs(monkeypatch, tmp_path)
     import OCDocker.Docking.BaseVinaLike as basevina  # type: ignore
     import OCDocker.Error as ocerror
     
@@ -333,6 +336,7 @@ def test_get_docked_poses_nonexistent_directory(tmp_path, monkeypatch):
     '''Test get_docked_poses with non-existent directory.'''
 
     monkeypatch.setenv("OCDOCKER_NO_AUTO_BOOTSTRAP", "1")
+    _setup_basevina_stubs(monkeypatch, tmp_path)
     import OCDocker.Docking.BaseVinaLike as basevina  # type: ignore
     
     nonexistent = tmp_path / "nonexistent_poses"
@@ -345,6 +349,7 @@ def test_get_docked_poses_empty_directory(tmp_path, monkeypatch):
     '''Test get_docked_poses with empty directory.'''
 
     monkeypatch.setenv("OCDOCKER_NO_AUTO_BOOTSTRAP", "1")
+    _setup_basevina_stubs(monkeypatch, tmp_path)
     import OCDocker.Docking.BaseVinaLike as basevina  # type: ignore
     
     poses_dir = tmp_path / "poses"
@@ -359,6 +364,7 @@ def test_get_docked_poses_with_files(tmp_path, monkeypatch):
     '''Test get_docked_poses with matching pose files.'''
 
     monkeypatch.setenv("OCDOCKER_NO_AUTO_BOOTSTRAP", "1")
+    _setup_basevina_stubs(monkeypatch, tmp_path)
     import OCDocker.Docking.BaseVinaLike as basevina  # type: ignore
     
     poses_dir = tmp_path / "poses"
@@ -384,6 +390,7 @@ def test_read_log_with_exception(tmp_path, monkeypatch):
     '''Test read_log handling of general exceptions during file reading.'''
 
     monkeypatch.setenv("OCDOCKER_NO_AUTO_BOOTSTRAP", "1")
+    _setup_basevina_stubs(monkeypatch, tmp_path)
     import OCDocker.Docking.BaseVinaLike as basevina  # type: ignore
     
     log = tmp_path / "vina.log"
@@ -407,6 +414,7 @@ def test_read_log_invalid_line_format(tmp_path, monkeypatch):
     '''Test read_log with lines that don't have exactly 4 elements.'''
 
     monkeypatch.setenv("OCDOCKER_NO_AUTO_BOOTSTRAP", "1")
+    _setup_basevina_stubs(monkeypatch, tmp_path)
     import OCDocker.Docking.BaseVinaLike as basevina  # type: ignore
     from OCDocker.Config import get_config
     config = get_config()
@@ -433,6 +441,7 @@ def test_generate_digest_write_error(tmp_path, monkeypatch):
     '''Test generate_digest with write error.'''
     
     monkeypatch.setenv("OCDOCKER_NO_AUTO_BOOTSTRAP", "1")
+    _setup_basevina_stubs(monkeypatch, tmp_path)
     import OCDocker.Docking.BaseVinaLike as basevina  # type: ignore
     import OCDocker.Error as ocerror
     

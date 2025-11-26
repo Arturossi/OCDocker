@@ -68,11 +68,7 @@ def vina_mod(monkeypatch, tmp_path):
     # Provide a tiny numpy substitute
     fake_np = types.ModuleType("numpy")
     fake_np.nan = float("nan") # type: ignore
-    # Support both NumPy 1.x and 2.x compatibility
-    try:
-        fake_np.NaN = float("nan") # type: ignore
-    except AttributeError:
-        pass
+    fake_np.isnan = lambda x: x != x  # type: ignore
     monkeypatch.setitem(sys.modules, "numpy", fake_np)
 
     # Load Vina module from file

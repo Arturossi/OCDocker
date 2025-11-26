@@ -12,7 +12,6 @@ def docking_modules(monkeypatch):
     # stub packages requiring heavy deps
     numpy_stub = types.ModuleType('numpy')
     numpy_stub.nan = float('nan')  # type: ignore
-    numpy_stub.NaN = float('nan')  # type: ignore
     numpy_stub.isnan = lambda x: x != x  # type: ignore
     monkeypatch.setitem(sys.modules, 'numpy', numpy_stub)
     monkeypatch.setitem(sys.modules, 'pandas', types.ModuleType('pandas'))

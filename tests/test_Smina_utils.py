@@ -4,11 +4,27 @@ import sys
 import types
 import os
 from pathlib import Path
+import importlib.util as util
 import pytest
 
 
 def _setup_stubs(monkeypatch, tmp_path):
-    # Minimal stubs for heavy dependencies
+    """Set up minimal stubs for truly heavy external dependencies.
+    
+    Uses real implementations for:
+    - Error: lightweight module
+    - IO: only standard library deps
+    - Printing: only standard library deps (with minimal Initialise stub)
+    - Config: lightweight module
+    
+    Keeps stubs only for:
+    - External heavy deps: Bio, rdkit, openbabel, h5py, tqdm, spyrmsd, pandas
+    - Modules with heavy deps: FilesFolders, Validation, Conversion, MoleculeProcessing
+    - numpy: minimal stub (only nan/isnan needed)
+    """
+    root = Path(__file__).resolve().parents[1] / "OCDocker"
+    
+    # Minimal stubs for heavy external dependencies
     bio = types.ModuleType('Bio'); bio.__path__ = []
     pdb = types.ModuleType('Bio.PDB'); pdb.MMCIFParser = lambda *a, **k: None # type: ignore
     pdb.PDBParser = lambda *a, **k: None; pdb.PDBIO = lambda *a, **k: None # type: ignore
@@ -29,7 +45,11 @@ def _setup_stubs(monkeypatch, tmp_path):
     monkeypatch.setitem(sys.modules, 'Bio.SeqUtils', seq)
     monkeypatch.setitem(sys.modules, 'Bio.SeqUtils.ProtParam', prot)
 
-    monkeypatch.setitem(sys.modules, 'numpy', types.SimpleNamespace(NaN=float('nan')))
+    # Set up numpy mock - must be ModuleType (not SimpleNamespace) with nan/isnan
+    numpy_stub = types.ModuleType('numpy')
+    numpy_stub.nan = float('nan')  # type: ignore
+    numpy_stub.isnan = lambda x: x != x  # type: ignore
+    monkeypatch.setitem(sys.modules, 'numpy', numpy_stub)
     monkeypatch.setitem(sys.modules, 'pandas', types.ModuleType('pandas'))
     # Create rdkit stub with Chem and rdchem attributes
     rdkit_mod = types.ModuleType('rdkit')
@@ -62,6 +82,7 @@ def _setup_stubs(monkeypatch, tmp_path):
     monkeypatch.setitem(sys.modules, 'tqdm.auto', tq)
     monkeypatch.setitem(sys.modules, 'spyrmsd', types.ModuleType('spyrmsd'))
 
+    # Stub Toolbox modules with heavy dependencies
     conv_mod = types.ModuleType('OCDocker.Toolbox.Conversion')
     conv_mod.convert_mols = lambda *a, **k: 0 # type: ignore
     conv_mod.convert_mols_from_string = lambda *a, **k: 0 # type: ignore
@@ -69,26 +90,28 @@ def _setup_stubs(monkeypatch, tmp_path):
     molproc_mod.split_poses = lambda *a, **k: 0 # type: ignore
     monkeypatch.setitem(sys.modules, 'OCDocker.Toolbox.Conversion', conv_mod)
     monkeypatch.setitem(sys.modules, 'OCDocker.Toolbox.MoleculeProcessing', molproc_mod)
+    
+    # Stub FilesFolders (has heavy deps: h5py, numpy, tqdm)
+    filesfolders_mod = types.ModuleType('OCDocker.Toolbox.FilesFolders')
+    filesfolders_mod.empty_docking_digest = lambda *a, **k: {}  # type: ignore
+    filesfolders_mod.safe_create_dir = lambda *a, **k: None  # type: ignore
+    monkeypatch.setitem(sys.modules, 'OCDocker.Toolbox.FilesFolders', filesfolders_mod)
+    
+    # Stub Validation (has heavy deps: Bio.PDB)
+    validation_mod = types.ModuleType('OCDocker.Toolbox.Validation')
+    validation_mod.validate_digest_extension = lambda path, format_str: format_str.lower() == 'json'  # type: ignore
+    monkeypatch.setitem(sys.modules, 'OCDocker.Toolbox.Validation', validation_mod)
+    
+    # Stub Running (may have heavy deps)
+    running_mod = types.ModuleType('OCDocker.Toolbox.Running')
+    monkeypatch.setitem(sys.modules, 'OCDocker.Toolbox.Running', running_mod)
 
     # Ensure base package is loaded so submodules resolve correctly
     import OCDocker as base_pkg
     monkeypatch.setitem(sys.modules, 'OCDocker', base_pkg)
 
-    error_mod = types.ModuleType('OCDocker.Error')
-    class ReportLevel(int):
-        DEBUG = 5
-        SUCCESS = 4
-        INFO = 3
-        WARNING = 2
-        ERROR = 1
-        NONE = 0
-
-
-    class Error:
-        output_level = ReportLevel.INFO
-        @staticmethod
-        def ok(*a, **k):
-            return 0
+    # Use REAL Error module (lightweight)
+    import OCDocker.Error as error_mod
 
 
 
@@ -213,9 +236,7 @@ def _setup_stubs(monkeypatch, tmp_path):
             return 0
 
 
-    error_mod.Error = Error # type: ignore
-    error_mod.ReportLevel = ReportLevel # type: ignore
-    monkeypatch.setitem(sys.modules, 'OCDocker.Error', error_mod)
+    # Stub Initialise for Printing module (minimal stub)
     init_mod = types.ModuleType('OCDocker.Initialise')
     defaults = {
         'smina_custom_scoring': 'no',
@@ -247,15 +268,58 @@ def _setup_stubs(monkeypatch, tmp_path):
     for k, v in defaults.items():
         setattr(init_mod, k, v)
     init_mod.ocerror = error_mod # type: ignore
+    init_mod.clrs = {k: "" for k in ["r", "g", "y", "b", "p", "c", "n"]}  # type: ignore
+    init_mod.logdir = str(tmp_path)  # type: ignore
+    init_mod.vina_scoring = 'vina'  # type: ignore
+    init_mod.vina_scoring_functions = ['vina']  # type: ignore
+    init_mod.smina_scoring = 'vinardo'  # type: ignore
+    init_mod.smina_scoring_functions = ['vinardo']  # type: ignore
     monkeypatch.setitem(sys.modules, 'OCDocker.Initialise', init_mod)
+    
+    # Use REAL IO module (only standard library deps: os, mmap)
+    spec_io = util.spec_from_file_location(
+        "OCDocker.Toolbox.IO", root / "Toolbox" / "IO.py"
+    )
+    io_mod = util.module_from_spec(spec_io)  # type: ignore
+    assert spec_io.loader is not None  # type: ignore
+    spec_io.loader.exec_module(io_mod)  # type: ignore
+    monkeypatch.setitem(sys.modules, 'OCDocker.Toolbox.IO', io_mod)
+    
+    # Use REAL Printing module (only standard library deps)
+    spec_printing = util.spec_from_file_location(
+        "OCDocker.Toolbox.Printing", root / "Toolbox" / "Printing.py"
+    )
+    printing_mod = util.module_from_spec(spec_printing)  # type: ignore
+    assert spec_printing.loader is not None  # type: ignore
+    spec_printing.loader.exec_module(printing_mod)  # type: ignore
+    monkeypatch.setitem(sys.modules, 'OCDocker.Toolbox.Printing', printing_mod)
+    
+    # Stub Logging (used by Printing)
+    logging_mod = types.ModuleType('OCDocker.Toolbox.Logging')
+    monkeypatch.setitem(sys.modules, 'OCDocker.Toolbox.Logging', logging_mod)
+    
+    # Use REAL Config module (lightweight - only stdlib + Error)
+    spec_config = util.spec_from_file_location(
+        "OCDocker.Config", root / "Config.py"
+    )
+    config_mod = util.module_from_spec(spec_config)  # type: ignore
+    assert spec_config.loader is not None  # type: ignore
+    spec_config.loader.exec_module(config_mod)  # type: ignore
+    # Override get_config to set logdir for tests
+    original_get_config = config_mod.get_config
+    def get_config():
+        cfg = original_get_config()
+        cfg.logdir = str(tmp_path)  # type: ignore
+        return cfg
+    config_mod.get_config = get_config  # type: ignore
+    monkeypatch.setitem(sys.modules, 'OCDocker.Config', config_mod)
 
+    # Stub Ligand and Receptor (used by Smina class but not by utility functions)
     lig_mod = types.ModuleType('OCDocker.Ligand')
     class Ligand:
         def __init__(self, molecule, name='lig'):
             self.path = str(molecule)
             self.name = name
-
-
     lig_mod.Ligand = Ligand # type: ignore
     monkeypatch.setitem(sys.modules, 'OCDocker.Ligand', lig_mod)
 
@@ -264,8 +328,6 @@ def _setup_stubs(monkeypatch, tmp_path):
         def __init__(self, structure, name='rec'):
             self.path = str(structure)
             self.name = name
-
-
     rec_mod.Receptor = Receptor # type: ignore
     monkeypatch.setitem(sys.modules, 'OCDocker.Receptor', rec_mod)
 
