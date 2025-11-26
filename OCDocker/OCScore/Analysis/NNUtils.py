@@ -21,12 +21,12 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from typing import Any
 from sklearn.metrics import mean_squared_error
 from sklearn.inspection import permutation_importance
 
 # Methods
 ###############################################################################
-
 
 def run_ae_feature_importance(
     ae_model: Any,

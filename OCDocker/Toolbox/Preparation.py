@@ -8,14 +8,14 @@ Strategy Pattern implementation for molecule preparation.
 This module provides an abstract interface and concrete implementations for
 preparing ligands and receptors using different tools (MGLTools, SPORES, OpenBabel).
 
-They are imported as:
+They are imported as::
 
-from OCDocker.Toolbox.Preparation import (
-    PreparationStrategy,
-    MGLToolsPreparationStrategy,
-    SPORESPreparationStrategy,
-    OpenBabelPreparationStrategy
-)
+    from OCDocker.Toolbox.Preparation import (
+        PreparationStrategy,
+        MGLToolsPreparationStrategy,
+        SPORESPreparationStrategy,
+        OpenBabelPreparationStrategy
+    )
 '''
 
 # Imports

@@ -139,7 +139,10 @@ def create_session(engine: Optional[Engine]) -> Optional[scoped_session]:
     - The scoped_session registry is cleaned up automatically on application shutdown
     - For manual cleanup, call `cleanup_session(session)` or let atexit handlers run
     
-    Example:
+    Example
+    -------
+    ::
+    
         session = create_session(engine)
         with session() as s:
             result = s.query(Model).all()

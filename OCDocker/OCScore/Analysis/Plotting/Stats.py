@@ -348,7 +348,15 @@ def plot_scatterplot(
         plt.xlabel('RMSE')
         plt.ylabel('AUC')
 
-     if orientation == 'vertical':
+    # Legends - define before use
+    method_labels = df_all['Methodology'].unique().tolist()
+    method_handles = [mlines.Line2D([0], [0], color = colour_mapping[m], lw = 4.1) for m in method_labels]
+    shape_handles = [
+        mlines.Line2D([0], [0], marker = 'o', color = 'w', label = 'AUC ≥ 0.5', markerfacecolor = 'gray', markersize = 10),
+        mlines.Line2D([0], [0], marker = '*', color = 'w', label = 'AUC < 0.5 (adjusted)', markerfacecolor = 'gray', markersize = 12)
+    ]
+
+    if orientation == 'vertical':
         # Methodology legend
         plt.figlegend(method_handles, method_labels, title = 'Methodology',
                     loc = 'lower center', bbox_to_anchor = (0.5, 0.09), ncol = 5)
@@ -365,14 +373,6 @@ def plot_scatterplot(
         # Shape legend
         plt.figlegend(shape_handles, ['AUC ≥ 0.5', 'AUC < 0.5 (adjusted)'], title = 'Marker Type',
                     loc = 'lower center', bbox_to_anchor = (0.5, 0.02), ncol = 2)
-
-    # Legends
-    method_labels = df['Methodology'].unique().tolist()
-    method_handles = [mlines.Line2D([0], [0], color = colour_mapping[m], lw = 4.1) for m in method_labels]
-    shape_handles = [
-        mlines.Line2D([0], [0], marker = 'o', color = 'w', label = 'AUC ≥ 0.5', markerfacecolor = 'gray', markersize = 10),
-        mlines.Line2D([0], [0], marker = '*', color = 'w', label = 'AUC < 0.5 (adjusted)', markerfacecolor = 'gray', markersize = 12)
-    ]
 
     # Methodology legend
     plt.figlegend(method_handles, method_labels, title = 'Methodology',

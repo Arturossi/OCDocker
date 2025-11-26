@@ -39,12 +39,19 @@ logging.debug("Docs repo root: %s", REPO_ROOT)
 # Levels & defaults FIRST (used by Error module and injections)
 # -----------------------------------------------------------------------------
 class ReportLevel(IntEnum):
-    NONE  = 0
-    INFO  = 1
-    WARN  = 2
-    ERROR = 3
-    DEBUG = 4
-
+    """Report levels for error and information messages in OCDocker.
+    
+    This enumeration defines the severity levels for messages printed by
+    the Error class and other reporting mechanisms. Messages can be filtered
+    based on these levels to control verbosity.
+    """
+    
+    DEBUG = 5
+    SUCCESS = 4
+    INFO = 3
+    WARNING = 2
+    ERROR = 1
+    NONE = 0
 
 
 DEFAULT_LEVEL = ReportLevel.INFO
@@ -55,7 +62,7 @@ DEFAULT_LEVEL = ReportLevel.INFO
 
 # Provide OCDocker.Initialise with the attributes code expects
 init_mod = types.ModuleType("OCDocker.Initialise")
-init_mod.__all__ = ["session", "db_url", "get_db_url"]
+init_mod.__all__ = ["session", "db_url", "get_db_url", "clrs"]
 init_mod.session = MagicMock(name="session")
 
 # Many DB modules expect a connection URL at import time.
@@ -63,6 +70,17 @@ init_mod.session = MagicMock(name="session")
 init_mod.db_url = "sqlite:///:memory:"
 init_mod.engine = MagicMock(name="engine")
 init_mod.__all__.append("engine")
+
+# Provide clrs dictionary for color output (used by FilesFolders and other modules)
+init_mod.clrs = {
+    "r": "\033[1;91m",  # red
+    "g": "\033[1;92m",  # green
+    "y": "\033[1;93m",  # yellow
+    "b": "\033[1;94m",  # blue
+    "p": "\033[1;95m",  # purple
+    "c": "\033[1;96m",  # cyan
+    "n": "\033[1;0m"    # default
+}
 
 
 def _get_db_url():
@@ -303,12 +321,25 @@ napoleon_use_rtype = True
 # Autodoc
 autodoc_member_order = "bysource"
 autodoc_typehints = "description"
+# Exclude inherited members to avoid documenting SQLAlchemy internals
+autodoc_default_options = {
+    "members": True,
+    "undoc-members": False,
+    "inherited-members": False,
+    "show-inheritance": True,
+}
+
+# Suppress warnings about duplicate object descriptions and undefined references
+suppress_warnings = [
+    "ref.ref",
+]
 
 # Do NOT mock your own modules
-autodoc_mock_imports = ["cupy", "torch", "oddt", "openbabel", "rdkit"]
+autodoc_mock_imports = ["cupy", "torch", "oddt", "openbabel", "rdkit", "shap", "optuna"]
 
 # RST substitutions
 rst_prolog = """
 .. |NBS| replace:: Normalized Binding Score
 .. |NBS_norm| replace:: Normalized Binding Score (scaled)
+.. |SHAP| replace:: SHAP
 """

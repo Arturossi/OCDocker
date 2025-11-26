@@ -272,7 +272,7 @@ def shap_importance_table(
     feature_names: Optional[Sequence[str]] = None,
     k: Optional[int] = None,
 ) -> pd.DataFrame:
-    '''Compute mean(|SHAP|) per feature and return a ranked table.
+    '''Compute mean absolute SHAP values per feature and return a ranked table.
 
     Parameters
     ----------

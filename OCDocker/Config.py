@@ -548,4 +548,3 @@ def reset_config() -> None:
     global _config_instance
     with _config_lock:
         _config_instance = None
-

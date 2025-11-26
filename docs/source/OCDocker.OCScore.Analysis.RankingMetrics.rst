@@ -5,3 +5,4 @@ OCDocker.OCScore.Analysis.RankingMetrics
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:

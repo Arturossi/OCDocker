@@ -266,6 +266,10 @@ def get_all_lists() -> tuple[list[str], int, int]:
 
 def setup_dirs() -> None:
     '''Ensure the output directories for plots and CSVs exist.'''
+    
+    # Skip directory creation during Sphinx documentation builds
+    if os.environ.get('OC_BUILD_DOCS') == '1':
+        return
 
     os.makedirs('plots', exist_ok=True)
     os.makedirs('csvs', exist_ok=True)
