@@ -11,7 +11,6 @@ Example of training machine learning models using data from the OCDocker databas
 .. literalinclude:: ../../../examples/11_python_api_train_model_from_db.py
    :language: python
    :caption: Training model from database
-   :lines: 1-100
 
 This script demonstrates:
 
@@ -29,7 +28,6 @@ Complete end-to-end pipeline to obtain OCScore results from scratch:
 .. literalinclude:: ../../../examples/12_python_api_complete_ocscore_pipeline.py
    :language: python
    :caption: Complete OCScore pipeline
-   :lines: 1-150
 
 This script demonstrates:
 
