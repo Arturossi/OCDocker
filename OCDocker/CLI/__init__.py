@@ -890,7 +890,19 @@ def cmd_console(args: argparse.Namespace) -> int:  # pragma: no cover - interact
 
     # Import console module and open interactive session with its namespace
     try:
+        # OCDockerConsole.py is at project root, add it to path if needed
         import OCDockerConsole as occ  # type: ignore
+    except ImportError:
+        # Try to find OCDockerConsole.py relative to the package
+        try:
+            ocdocker_pkg = Path(__file__).resolve().parent.parent  # OCDocker package dir
+            project_root = ocdocker_pkg.parent  # Project root where OCDockerConsole.py lives
+            if project_root not in sys.path:
+                sys.path.insert(0, str(project_root))
+            import OCDockerConsole as occ  # type: ignore
+        except Exception as e:
+            print(f"Failed to import OCDockerConsole: {e}")
+            return 1
     except Exception as e:
         print(f"Failed to import OCDockerConsole: {e}")
         return 1
@@ -910,7 +922,7 @@ def cmd_console(args: argparse.Namespace) -> int:  # pragma: no cover - interact
                 # 'Linux' provides good color scheme for terminals
                 colors = 'Linux'
             # Use IPython with the console namespace and colors enabled
-            embed(user_ns=local_ns, banner1="", colors=colors)
+            embed(user_ns=local_ns, banner1="", colors=colors, display_banner=False)
         except ImportError:
             # Fallback to standard Python console
             import code
