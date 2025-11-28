@@ -167,7 +167,19 @@ def build_parser() -> argparse.ArgumentParser:
 
     parser = argparse.ArgumentParser(
         prog="ocdocker",
-        description="OCDocker CLI: docking, screening and analysis",
+        description=(
+            "OCDocker CLI: Unified command-line interface for molecular docking, virtual screening, and analysis.\n\n"
+            "Main commands:\n"
+            "  vs        - Single-engine docking with rescoring of all poses\n"
+            "  pipeline  - Multi-engine consensus docking with clustering and representative pose selection\n"
+            "  shap      - SHAP analysis for model interpretability\n"
+            "  console   - Interactive Python console with OCDocker pre-loaded\n"
+            "  script    - Run a Python script with OCDocker libraries pre-loaded\n"
+            "  doctor    - Environment diagnostics and setup verification\n"
+            "  init-config - Create starter configuration file\n"
+            "  version   - Print version information\n\n"
+            "Use 'ocdocker <command> --help' for detailed information about each command."
+        ),
         epilog=(
             "Note: SQLite backend is intended for development/tests. "
             "For production workloads (performance/concurrency), a full MySQL installation is strongly recommended."
@@ -176,88 +188,395 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     # Global options (mirrors OCDocker.Initialise)
-    parser.add_argument("--multiprocess", action="store_true", default=True, help="Enable multiprocessing for supported tasks")
-    parser.add_argument("-u", "--update-databases", dest="update", action="store_true", default=False, help="Update databases on startup")
-    parser.add_argument("--conf", dest="config_file", type=str, help="Path to OCDocker.cfg")
-    parser.add_argument("--output-level", dest="output_level", type=int, default=1, help="Log level (0-5)")
-    parser.add_argument("--overwrite", dest="overwrite", action="store_true", default=False, help="Overwrite outputs when applicable")
-    parser.add_argument("--log-file", dest="log_file", type=str, default=None, help="Write logs to this file")
-    parser.add_argument("--no-stdout-log", dest="no_stdout_log", action="store_true", default=False, help="Disable logging to stdout")
+    parser.add_argument(
+        "--multiprocess",
+        action="store_true",
+        default=True,
+        help="Enable multiprocessing for supported tasks. Allows parallel execution when possible. Default: enabled"
+    )
+    parser.add_argument(
+        "-u",
+        "--update-databases",
+        dest="update",
+        action="store_true",
+        default=False,
+        help="Update databases on startup. Runs database schema updates and migrations if needed."
+    )
+    parser.add_argument(
+        "--conf",
+        dest="config_file",
+        type=str,
+        help="Path to OCDocker.cfg configuration file. If not specified, uses default locations or OCDOCKER_CONFIG environment variable."
+    )
+    parser.add_argument(
+        "--output-level",
+        dest="output_level",
+        type=int,
+        default=1,
+        help="Logging verbosity level (0-5). Higher numbers provide more detailed output. 0=silent, 1=normal, 2-5=increasing verbosity. Default: 1"
+    )
+    parser.add_argument(
+        "--overwrite",
+        dest="overwrite",
+        action="store_true",
+        default=False,
+        help="Allow overwriting existing output files. By default, existing files are preserved to prevent accidental data loss."
+    )
+    parser.add_argument(
+        "--log-file",
+        dest="log_file",
+        type=str,
+        default=None,
+        help="Write log messages to this file in addition to stdout. Useful for saving detailed logs for later analysis."
+    )
+    parser.add_argument(
+        "--no-stdout-log",
+        dest="no_stdout_log",
+        action="store_true",
+        default=False,
+        help="Disable logging to stdout. Only log to file if --log-file is specified. Useful for cleaner console output."
+    )
 
     # Parent parser to allow repeating global options after subcommand
     parent = argparse.ArgumentParser(add_help=False)
-    parent.add_argument("--multiprocess", action="store_true", default=True)
-    parent.add_argument("-u", "--update-databases", dest="update", action="store_true", default=False)
-    parent.add_argument("--conf", dest="config_file", type=str)
-    parent.add_argument("--output-level", dest="output_level", type=int, default=1)
-    parent.add_argument("--overwrite", dest="overwrite", action="store_true", default=False)
-    parent.add_argument("--log-file", dest="log_file", type=str, default=None)
-    parent.add_argument("--no-stdout-log", dest="no_stdout_log", action="store_true", default=False)
+    parent.add_argument("--multiprocess", action="store_true", default=True, help="Enable multiprocessing for supported tasks")
+    parent.add_argument("-u", "--update-databases", dest="update", action="store_true", default=False, help="Update databases on startup")
+    parent.add_argument("--conf", dest="config_file", type=str, help="Path to OCDocker.cfg configuration file")
+    parent.add_argument("--output-level", dest="output_level", type=int, default=1, help="Logging verbosity level (0-5)")
+    parent.add_argument("--overwrite", dest="overwrite", action="store_true", default=False, help="Allow overwriting existing output files")
+    parent.add_argument("--log-file", dest="log_file", type=str, default=None, help="Write log messages to this file")
+    parent.add_argument("--no-stdout-log", dest="no_stdout_log", action="store_true", default=False, help="Disable logging to stdout")
 
     sub = parser.add_subparsers(dest="command", required=True)
 
     # init-config
-    p_init = sub.add_parser("init-config", help="Interactive creation of OCDocker.cfg", parents=[parent])
+    p_init = sub.add_parser(
+        "init-config",
+        description=(
+            "Create a starter OCDocker.cfg configuration file from the example template.\n"
+            "This command copies OCDocker.cfg.example to OCDocker.cfg in the current directory,\n"
+            "allowing you to customize paths to docking binaries, databases, and other settings."
+        ),
+        help="Create a starter OCDocker.cfg configuration file",
+        parents=[parent]
+    )
     p_init.set_defaults(func=cmd_init_config)
 
     # version
-    p_ver = sub.add_parser("version", help="Print OCDocker version", parents=[parent])
+    p_ver = sub.add_parser(
+        "version",
+        description="Print the installed version of OCDocker without bootstrapping the full environment.",
+        help="Print OCDocker version",
+        parents=[parent]
+    )
     p_ver.set_defaults(func=cmd_version)
 
     # vs (single-entry virtual screening)
-    p_vs = sub.add_parser("vs", help="Run docking + rescoring for a single receptor/ligand/box", parents=[parent])
-    p_vs.add_argument("--engine", choices=["vina", "smina", "plants"], default="vina", help="Docking engine")
-    p_vs.add_argument("--receptor", required=True, help="Path to receptor file (e.g., PDB)")
-    p_vs.add_argument("--ligand", required=True, help="Path to ligand file (smi/sdf/mol2/pdbqt)")
-    p_vs.add_argument("--box", required=True, help="Path to box file (PDB with REMARK center/size)")
-    p_vs.add_argument("--name", help="Job name (defaults to ligand stem)")
-    p_vs.add_argument("--outdir", default="./ocdocker_out", help="Output directory")
-    p_vs.add_argument("--skip-rescore", action="store_true", help="Skip rescoring phase")
-    p_vs.add_argument("--skip-split", action="store_true", help="Skip pose splitting (when applicable)")
-    p_vs.add_argument("--timeout", type=int, default=None, help="Timeout (sec) for external tools; overrides OCDOCKER_TIMEOUT")
-    p_vs.add_argument("--store-db", action="store_true", help="Store minimal metadata in DB (Complexes)")
+    p_vs = sub.add_parser(
+        "vs",
+        description=(
+            "Run docking with a single engine (Vina, Smina, or PLANTS) and optionally rescore all poses.\n\n"
+            "This command performs:\n"
+            "  1. Receptor and ligand preparation\n"
+            "  2. Docking with the selected engine\n"
+            "  3. Pose splitting (for Vina/Smina) into individual files\n"
+            "  4. Rescoring of all generated poses (unless --skip-rescore is used)\n\n"
+            "Use this mode for quick single-engine docking runs where you want all poses rescored.\n"
+            "For multi-engine consensus docking with clustering, use the 'pipeline' command instead."
+        ),
+        help="Run docking with one engine and rescore all poses",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        parents=[parent]
+    )
+    p_vs.add_argument(
+        "--engine",
+        choices=["vina", "smina", "plants"],
+        default="vina",
+        help="Docking engine to use. Options: 'vina' (AutoDock Vina), 'smina' (Vina with additional scoring functions), or 'plants' (PLANTS docking). Default: vina"
+    )
+    p_vs.add_argument(
+        "--receptor",
+        required=True,
+        help="Path to the receptor structure file (e.g., PDB format). The receptor will be prepared automatically if needed."
+    )
+    p_vs.add_argument(
+        "--ligand",
+        required=True,
+        help="Path to the ligand file. Supported formats: SMILES (.smi), SDF (.sdf), MOL2 (.mol2), or PDBQT (.pdbqt). The ligand will be prepared automatically if needed."
+    )
+    p_vs.add_argument(
+        "--box",
+        required=True,
+        help="Path to the binding site box definition file (PDB format with REMARK records containing center coordinates and size). This defines the search space for docking."
+    )
+    p_vs.add_argument(
+        "--name",
+        help="Job name identifier. If not provided, defaults to the ligand filename (without extension). Used for output file naming."
+    )
+    p_vs.add_argument(
+        "--outdir",
+        default="./ocdocker_out",
+        help="Output directory where all results will be saved. Default: ./ocdocker_out"
+    )
+    p_vs.add_argument(
+        "--skip-rescore",
+        action="store_true",
+        help="Skip the rescoring phase. Only perform docking without applying additional scoring functions. Useful for faster runs when rescoring is not needed."
+    )
+    p_vs.add_argument(
+        "--skip-split",
+        action="store_true",
+        help="Skip pose splitting step (only applicable for Vina/Smina). By default, poses are split into individual files. Use this to keep all poses in a single file."
+    )
+    p_vs.add_argument(
+        "--timeout",
+        type=int,
+        default=None,
+        help="Timeout in seconds for external docking tools. Overrides the OCDOCKER_TIMEOUT environment variable. If a tool exceeds this time, the process will be terminated."
+    )
+    p_vs.add_argument(
+        "--store-db",
+        action="store_true",
+        help="Store minimal metadata about this docking run in the database (Complexes table). Requires database to be configured and accessible."
+    )
     p_vs.set_defaults(func=cmd_vs)
 
     # shap passthrough (reuses existing module)
-    p_shap = sub.add_parser("shap", help="Run SHAP analysis (OCScore)", parents=[parent])
-    p_shap.add_argument("--storage", required=True)
-    p_shap.add_argument("--ao_study", required=True)
-    p_shap.add_argument("--nn_study", required=True)
-    p_shap.add_argument("--seed_study", required=True)
-    p_shap.add_argument("--mask_study", required=True)
-    p_shap.add_argument("--df_path", required=True)
-    p_shap.add_argument("--base_models", required=True)
-    p_shap.add_argument("--study_number", type=int, required=True)
-    p_shap.add_argument("--out_dir", required=True)
-    p_shap.add_argument("--explainer", default="deep", choices=["deep", "kernel"])
-    p_shap.add_argument("--background_size", type=int)
-    p_shap.add_argument("--eval_size", type=int)
-    p_shap.add_argument("--stratify_by", nargs="*")
-    p_shap.add_argument("--seed", type=int, default=0)
-    p_shap.add_argument("--no_csv", action="store_true")
+    p_shap = sub.add_parser(
+        "shap",
+        description=(
+            "Run SHAP (SHapley Additive exPlanations) analysis for OCScore models.\n\n"
+            "SHAP analysis provides interpretability for machine learning models by explaining\n"
+            "the contribution of each feature to the model's predictions. This command delegates\n"
+            "to the OCScore SHAP analysis module for detailed feature importance analysis.\n\n"
+            "This is an advanced analysis tool for understanding model behavior and feature contributions."
+        ),
+        help="Run SHAP analysis for OCScore model interpretability",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        parents=[parent]
+    )
+    p_shap.add_argument(
+        "--storage",
+        required=True,
+        help="Path to the storage directory containing study data and model files."
+    )
+    p_shap.add_argument(
+        "--ao_study",
+        required=True,
+        help="Name or identifier of the atom order (AO) study to analyze."
+    )
+    p_shap.add_argument(
+        "--nn_study",
+        required=True,
+        help="Name or identifier of the neural network (NN) study to analyze."
+    )
+    p_shap.add_argument(
+        "--seed_study",
+        required=True,
+        help="Name or identifier of the seed study to analyze."
+    )
+    p_shap.add_argument(
+        "--mask_study",
+        required=True,
+        help="Name or identifier of the mask study to analyze."
+    )
+    p_shap.add_argument(
+        "--df_path",
+        required=True,
+        help="Path to the dataframe file (CSV or similar) containing the data to analyze."
+    )
+    p_shap.add_argument(
+        "--base_models",
+        required=True,
+        help="Path or identifier for the base models to use for SHAP analysis."
+    )
+    p_shap.add_argument(
+        "--study_number",
+        type=int,
+        required=True,
+        help="Study number identifier for organizing the analysis results."
+    )
+    p_shap.add_argument(
+        "--out_dir",
+        required=True,
+        help="Output directory where SHAP analysis results will be saved."
+    )
+    p_shap.add_argument(
+        "--explainer",
+        default="deep",
+        choices=["deep", "kernel"],
+        help="SHAP explainer type to use. 'deep' uses DeepExplainer for neural networks, 'kernel' uses KernelExplainer (more general but slower). Default: deep"
+    )
+    p_shap.add_argument(
+        "--background_size",
+        type=int,
+        help="Size of the background dataset used for SHAP value computation. Larger values provide more stable estimates but take longer. If not specified, uses a default size."
+    )
+    p_shap.add_argument(
+        "--eval_size",
+        type=int,
+        help="Number of samples to evaluate and compute SHAP values for. If not specified, evaluates all samples in the dataset."
+    )
+    p_shap.add_argument(
+        "--stratify_by",
+        nargs="*",
+        help="Column names to stratify the dataset by when creating background/evaluation sets. Ensures balanced representation across groups."
+    )
+    p_shap.add_argument(
+        "--seed",
+        type=int,
+        default=0,
+        help="Random seed for reproducibility. Default: 0"
+    )
+    p_shap.add_argument(
+        "--no_csv",
+        action="store_true",
+        help="Do not generate CSV output files. Only save other output formats."
+    )
     p_shap.set_defaults(func=cmd_shap)
 
     # pipeline (multi‑engine + clustering + rescoring)
-    p_pipe = sub.add_parser("pipeline", help="Run docking (vina/smina/plants), cluster by RMSD, select representative pose, and apply rescoring", parents=[parent])
-    p_pipe.add_argument("--receptor", required=True, help="Path to receptor file (e.g., PDB)")
-    p_pipe.add_argument("--ligand", required=True, help="Path to ligand file (smi/sdf/mol2/pdbqt)")
-    p_pipe.add_argument("--box", required=True, help="Path to box file (PDB with REMARK center/size)")
-    p_pipe.add_argument("--engines", default="vina,smina,plants", help="Comma-separated list: vina,smina,plants")
-    p_pipe.add_argument("--name", help="Job name (defaults to ligand stem)")
-    p_pipe.add_argument("--outdir", default="./ocdocker_out", help="Output directory")
-    p_pipe.add_argument("--cluster-min", type=float, default=10.0, help="Minimum threshold for clustering")
-    p_pipe.add_argument("--cluster-max", type=float, default=20.0, help="Maximum threshold for clustering")
-    p_pipe.add_argument("--cluster-step", type=float, default=0.1, help="Search step for threshold")
-    p_pipe.add_argument("--store-db", action="store_true", help="Store minimal metadata in DB (Complexes)")
-    p_pipe.add_argument("--timeout", type=int, default=None, help="Timeout (sec) for external tools; overrides OCDOCKER_TIMEOUT")
+    p_pipe = sub.add_parser(
+        "pipeline",
+        description=(
+            "Run multi-engine docking with RMSD clustering and representative pose selection.\n\n"
+            "This command performs a complete workflow:\n"
+            "  1. Runs docking with multiple engines (Vina, Smina, PLANTS, or any combination)\n"
+            "  2. Collects all poses from all engines\n"
+            "  3. Converts poses to MOL2 format\n"
+            "  4. Clusters poses by RMSD similarity\n"
+            "  5. Selects the representative pose (medoid of the largest cluster)\n"
+            "  6. Rescores only the representative pose (not all poses)\n"
+            "  7. Saves representative.mol2 and summary.json with rescoring results\n\n"
+            "Use this mode for consensus docking where you want to combine results from multiple\n"
+            "engines and identify the most representative binding pose. This is more computationally\n"
+            "intensive but provides better confidence in the final pose selection.\n\n"
+            "Note: Only the representative pose is rescored, unlike 'vs' which rescores all poses."
+        ),
+        help="Multi-engine docking with clustering and representative pose selection",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        parents=[parent]
+    )
+    p_pipe.add_argument(
+        "--receptor",
+        required=True,
+        help="Path to the receptor structure file (e.g., PDB format). The receptor will be prepared automatically if needed."
+    )
+    p_pipe.add_argument(
+        "--ligand",
+        required=True,
+        help="Path to the ligand file. Supported formats: SMILES (.smi), SDF (.sdf), MOL2 (.mol2), or PDBQT (.pdbqt). The ligand will be prepared automatically if needed."
+    )
+    p_pipe.add_argument(
+        "--box",
+        required=True,
+        help="Path to the binding site box definition file (PDB format with REMARK records containing center coordinates and size). This defines the search space for docking."
+    )
+    p_pipe.add_argument(
+        "--engines",
+        default="vina,smina,plants",
+        help="Comma-separated list of docking engines to use. Options: 'vina', 'smina', 'plants', or any combination (e.g., 'vina,smina' or 'vina,plants'). Default: vina,smina,plants (all engines)"
+    )
+    p_pipe.add_argument(
+        "--name",
+        help="Job name identifier. If not provided, defaults to the ligand filename (without extension). Used for output file naming."
+    )
+    p_pipe.add_argument(
+        "--outdir",
+        default="./ocdocker_out",
+        help="Output directory where all results will be saved. Default: ./ocdocker_out"
+    )
+    p_pipe.add_argument(
+        "--cluster-min",
+        type=float,
+        default=10.0,
+        help="Minimum RMSD threshold (in Angstroms) for clustering. The clustering algorithm searches between --cluster-min and --cluster-max to find optimal clusters. Default: 10.0"
+    )
+    p_pipe.add_argument(
+        "--cluster-max",
+        type=float,
+        default=20.0,
+        help="Maximum RMSD threshold (in Angstroms) for clustering. Poses within this distance are considered similar. Default: 20.0"
+    )
+    p_pipe.add_argument(
+        "--cluster-step",
+        type=float,
+        default=0.1,
+        help="Step size (in Angstroms) for searching the optimal clustering threshold between --cluster-min and --cluster-max. Smaller values provide finer search but take longer. Default: 0.1"
+    )
+    p_pipe.add_argument(
+        "--store-db",
+        action="store_true",
+        help="Store minimal metadata about this docking run in the database (Complexes table). Requires database to be configured and accessible."
+    )
+    p_pipe.add_argument(
+        "--timeout",
+        type=int,
+        default=None,
+        help="Timeout in seconds for external docking tools. Overrides the OCDOCKER_TIMEOUT environment variable. If a tool exceeds this time, the process will be terminated."
+    )
     p_pipe.set_defaults(func=cmd_pipeline)
 
     # console (interactive mode)
-    p_console = sub.add_parser("console", help="Open interactive OCDocker console", parents=[parent])
+    p_console = sub.add_parser(
+        "console",
+        description=(
+            "Launch an interactive Python console with OCDocker pre-loaded.\n\n"
+            "This provides an interactive environment with tab-completion and command history,\n"
+            "allowing you to use OCDocker programmatically. All OCDocker modules are imported\n"
+            "and ready to use. Useful for exploratory work, debugging, or custom workflows\n"
+            "that don't fit the standard CLI commands."
+        ),
+        help="Open interactive OCDocker Python console",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        parents=[parent]
+    )
     p_console.set_defaults(func=cmd_console)
 
+    # script (run Python script with OCDocker pre-loaded)
+    p_script = sub.add_parser(
+        "script",
+        description=(
+            "Run a Python script with OCDocker libraries pre-loaded.\n\n"
+            "This command bootstraps the OCDocker environment, loads all OCDocker modules,\n"
+            "and executes your script file. All OCDocker classes and functions are available\n"
+            "in the script's namespace, just like in the interactive console.\n\n"
+            "Useful for running custom workflows, batch processing, or automation scripts\n"
+            "that use OCDocker functionality."
+        ),
+        help="Run a Python script with OCDocker libraries pre-loaded",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        parents=[parent]
+    )
+    p_script.add_argument(
+        "script_file",
+        help="Path to the Python script file to execute. The script will have access to all OCDocker modules."
+    )
+    p_script.add_argument(
+        "script_args",
+        nargs=argparse.REMAINDER,
+        help="Additional arguments to pass to the script (accessible via sys.argv in the script)."
+    )
+    p_script.set_defaults(func=cmd_script)
+
     # doctor (environment diagnostics)
-    p_doc = sub.add_parser("doctor", help="Check binaries, Python deps, and DB connectivity", parents=[parent])
+    p_doc = sub.add_parser(
+        "doctor",
+        description=(
+            "Run diagnostics to check your OCDocker environment setup.\n\n"
+            "This command verifies:\n"
+            "  - Availability and accessibility of docking engine binaries (Vina, Smina, PLANTS)\n"
+            "  - Python dependencies and package versions\n"
+            "  - Database connectivity and configuration\n"
+            "  - Configuration file validity\n\n"
+            "Use this command to troubleshoot installation or configuration issues before\n"
+            "running docking jobs. It provides detailed information about what's working\n"
+            "and what needs to be fixed."
+        ),
+        help="Check environment setup and diagnose issues",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        parents=[parent]
+    )
     p_doc.set_defaults(func=cmd_doctor)
 
     return parser
@@ -956,6 +1275,141 @@ def cmd_console(args: argparse.Namespace) -> int:  # pragma: no cover - interact
         print(f"Interactive console exited with error: {e}")
         return 1
     return 0
+
+def cmd_script(args: argparse.Namespace) -> int:  # pragma: no cover - script execution is user-provided code
+    '''Run a Python script with OCDocker libraries pre-loaded.
+
+    Bootstraps the environment, loads all OCDocker modules, and executes
+    the provided script file with those modules available in the namespace.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Command-line arguments. Must contain 'script_file' and optionally 'script_args'.
+
+    Returns
+    -------
+    int
+        Exit code (0 for success, 1 for failure).
+    '''
+    
+    # Bootstrap env to ensure Initialise is safe to import
+    globals_ns = _preparse_global_args(sys.argv[1:])
+    _bootstrap_ocdocker_env(globals_ns)
+
+    # Configure logging according to CLI flags
+    try:
+        import OCDocker.Error as ocerror  # type: ignore
+        import OCDocker.Toolbox.Logging as oclogging  # type: ignore
+        oclogging.configure(level=ocerror.Error.get_output_level(), log_file=args.log_file, to_stdout=(not args.no_stdout_log))
+    except (ImportError, AttributeError, OSError):
+        # Ignore logging configuration errors (non-critical for core functionality)
+        pass
+
+    # Validate script file exists
+    script_path = Path(args.script_file)
+    if not script_path.exists():
+        print(f"Error: Script file not found: {script_path}")
+        return 1
+    
+    if not script_path.is_file():
+        print(f"Error: Path is not a file: {script_path}")
+        return 1
+
+    # Load OCDocker libraries into namespace (similar to OCDockerConsole)
+    script_namespace = {}
+    
+    # Import all OCDocker modules
+    try:
+        # Import Initialise module and add all non-dunder symbols to namespace
+        import OCDocker.Initialise as ocinit  # type: ignore
+        for k, v in vars(ocinit).items():
+            if not k.startswith('__'):
+                script_namespace[k] = v
+        
+        import OCDocker.Toolbox as octools  # type: ignore
+        script_namespace['octools'] = octools
+        
+        import OCDocker.Ligand as ocl  # type: ignore
+        script_namespace['ocl'] = ocl
+        
+        import OCDocker.Receptor as ocr  # type: ignore
+        script_namespace['ocr'] = ocr
+        
+        import OCDocker.Docking.Vina as ocvina  # type: ignore
+        script_namespace['ocvina'] = ocvina
+        
+        import OCDocker.Docking.Smina as ocsmina  # type: ignore
+        script_namespace['ocsmina'] = ocsmina
+        
+        import OCDocker.Docking.PLANTS as ocplants  # type: ignore
+        script_namespace['ocplants'] = ocplants
+        
+        import OCDocker.Processing.Preprocessing.RmsdClustering as ocrmsdclust  # type: ignore
+        script_namespace['ocrmsdclust'] = ocrmsdclust
+        
+        import OCDocker.Rescoring.ODDT as ocoddt  # type: ignore
+        script_namespace['ocoddt'] = ocoddt
+        
+        import OCDocker.Toolbox.Conversion as occonversion  # type: ignore
+        script_namespace['occonversion'] = occonversion
+        
+        import OCDocker.Toolbox.MoleculeProcessing as ocmolproc  # type: ignore
+        script_namespace['ocmolproc'] = ocmolproc
+        
+        # Add standard library modules that scripts commonly need
+        from glob import glob
+        from pprint import pprint
+        script_namespace['os'] = os
+        script_namespace['sys'] = sys
+        script_namespace['Path'] = Path
+        script_namespace['glob'] = glob
+        script_namespace['pprint'] = pprint
+        
+    except Exception as e:
+        print(f"Error loading OCDocker libraries: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
+
+    # Update sys.argv to include script args for the script's use
+    original_argv = sys.argv[:]
+    try:
+        # Set sys.argv to: [script_file, ...script_args]
+        sys.argv = [str(script_path)] + (args.script_args or [])
+        
+        # Read and execute the script
+        script_content = script_path.read_text(encoding='utf-8')
+        
+        # Compile the script for better error messages
+        try:
+            compiled_script = compile(script_content, str(script_path), 'exec')
+        except SyntaxError as e:
+            print(f"Syntax error in script {script_path}:")
+            print(f"  Line {e.lineno}: {e.text}")
+            print(f"  {e.msg}")
+            return 1
+        
+        # Execute the script with the loaded namespace
+        exec(compiled_script, script_namespace)
+        
+        return 0
+        
+    except SystemExit as e:
+        # Script called sys.exit(), respect its exit code
+        return int(e.code) if e.code is not None else 0
+    except KeyboardInterrupt:
+        print("\nScript execution interrupted by user.")
+        return 130  # Standard exit code for SIGINT
+    except Exception as e:
+        print(f"Error executing script {script_path}:")
+        import traceback
+        traceback.print_exc()
+        return 1
+    finally:
+        # Restore original sys.argv
+        sys.argv = original_argv
+
 
 def cmd_doctor(args: argparse.Namespace) -> int:  # pragma: no cover - environment probing is platform-dependent
     '''Run diagnostics: config, binaries, Python deps, DB connectivity.

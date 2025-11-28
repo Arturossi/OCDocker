@@ -531,6 +531,33 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
     all_datas = []
     failed_scoring_functions = []
     
+    # Check if multiprocess is enabled (via config or n_cpu > 1)
+    # If so, use threading backend to avoid loky nested process issues
+    use_threading_backend = False
+    try:
+        config = get_config()
+        use_threading_backend = (config.multiprocess or n_cpu > 1)
+    except (ImportError, AttributeError):
+        # Fallback: check n_cpu if config not available
+        use_threading_backend = (n_cpu > 1)
+    
+    # Use threading backend context manager if multiprocess is enabled
+    # This prevents loky from trying to spawn new processes in nested multiprocessing contexts
+    if use_threading_backend:
+        try:
+            from joblib import parallel_backend
+            parallel_ctx = parallel_backend('threading')
+        except ImportError:
+            # joblib not available, continue without threading backend
+            parallel_ctx = None
+            ocprint.print_warning("joblib not available. Cannot use threading backend for ODDT scoring.")
+    else:
+        parallel_ctx = None
+    
+    # Use context manager to ensure proper cleanup
+    if parallel_ctx is not None:
+        parallel_ctx.__enter__()
+    
     try:
         # Add all scoring functions to pipeline
         for model, sf in scoring_functions_loaded:
@@ -555,6 +582,73 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
             # Check if there is anything in the data dict
             if len(data) > 0:
                 all_datas.append(data)
+        
+        # If group processing failed, try processing each scoring function individually
+        # Note: parallel_context is still active from above if use_threading_backend is True
+        if len(all_datas) == 0 and len(scoring_functions_loaded) > 0:
+            ocprint.print_warning("Processing scoring functions individually due to group processing failure...")
+            for model, sf in scoring_functions_loaded:
+                sf_name = model_sf_map.get(model, os.path.basename(model))
+                try:
+                    # Create a new pipeline for this scoring function
+                    individual_pipeline = vs(n_cpu=n_cpu, verbose=verbose, chunksize=chunksize)
+                    for ligand in preparedLigandPath:
+                        # Extract format using os.path.splitext for robustness
+                        ligand_ext = os.path.splitext(ligand)[1]
+                        if ligand_ext.startswith('.'):
+                            ligand_format = ligand_ext[1:]  # Remove leading dot
+                        else:
+                            ligand_format = ligand_ext
+                        individual_pipeline.load_ligands(ligand_format, ligand)
+                    
+                    # Add only this scoring function
+                    individual_pipeline.score(sf, receptorObj)
+                    
+                    # Fetch results
+                    for mol in individual_pipeline.fetch():
+                        data = mol.data.to_dict()
+                        data["ligand_name"] = ".".join(os.path.basename(mol.title).split(".")[:-1])
+                        
+                        blacklist_keys = ['OpenBabel Symmetry Classes', 'MOL Chiral Flag', 'PartialCharges', 'TORSDO', 'REMARK']
+                        
+                        for b in blacklist_keys:
+                            if b in data:
+                                del data[b]
+                        
+                        if len(data) > 0:
+                            all_datas.append(data)
+                        else:
+                            ocprint.print_warning(f"No data collected from '{sf_name}' for ligand '{ligandName}'")
+                            
+                except AttributeError as e2:
+                    # Handle scikit-learn version incompatibility
+                    if 'monotonic_cst' in str(e2) or 'DecisionTreeRegressor' in str(e2):
+                        error_msg = f"scikit-learn version incompatibility: {e2}"
+                        ocprint.print_error(f"Scoring function '{sf_name}' failed due to scikit-learn version mismatch")
+                        ocprint.print_error(f"Model was pickled with different scikit-learn version than current installation")
+                        full_traceback = traceback.format_exc()
+                        ocprint.print_error(f"Full traceback for '{sf_name}':\n{full_traceback}")
+                    else:
+                        error_msg = str(e2)
+                        full_traceback = traceback.format_exc()
+                        ocprint.print_error(f"Scoring function '{sf_name}' failed with AttributeError: {error_msg}")
+                        ocprint.print_error(f"Full traceback for '{sf_name}':\n{full_traceback}")
+                    failed_scoring_functions.append(sf_name)
+                    continue
+                except (TypeError, ValueError) as e2:
+                    error_msg = str(e2)
+                    full_traceback = traceback.format_exc()
+                    ocprint.print_error(f"Scoring function '{sf_name}' failed for ligand '{ligandName}': {error_msg}")
+                    ocprint.print_error(f"Full traceback for '{sf_name}':\n{full_traceback}")
+                    failed_scoring_functions.append(sf_name)
+                    continue
+                except Exception as e2:
+                    failed_scoring_functions.append(sf_name)
+                    full_traceback = traceback.format_exc()
+                    ocprint.print_error(f"Scoring function '{sf_name}' failed for ligand '{ligandName}': {e2}")
+                    ocprint.print_error(f"Error type: {type(e2).__name__}")
+                    ocprint.print_error(f"Full traceback for '{sf_name}':\n{full_traceback}")
+                    continue
                 
     except AttributeError as e:
         # Handle scikit-learn version incompatibility
@@ -586,71 +680,13 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
         ocprint.print_error(f"Error type: {type(e).__name__}")
         ocprint.print_error(f"Full traceback:\n{full_traceback}")
     
-    # If group processing failed, try processing each scoring function individually
-    if len(all_datas) == 0 and len(scoring_functions_loaded) > 0:
-        ocprint.print_warning("Processing scoring functions individually due to group processing failure...")
-        for model, sf in scoring_functions_loaded:
-            sf_name = model_sf_map.get(model, os.path.basename(model))
+    finally:
+        # Clean up parallel context if it was opened
+        if parallel_ctx is not None:
             try:
-                # Create a new pipeline for this scoring function
-                individual_pipeline = vs(n_cpu=n_cpu, verbose=verbose, chunksize=chunksize)
-                for ligand in preparedLigandPath:
-                    # Extract format using os.path.splitext for robustness
-                    ligand_ext = os.path.splitext(ligand)[1]
-                    if ligand_ext.startswith('.'):
-                        ligand_format = ligand_ext[1:]  # Remove leading dot
-                    else:
-                        ligand_format = ligand_ext
-                    individual_pipeline.load_ligands(ligand_format, ligand)
-                
-                # Add only this scoring function
-                individual_pipeline.score(sf, receptorObj)
-                
-                # Fetch results
-                for mol in individual_pipeline.fetch():
-                    data = mol.data.to_dict()
-                    data["ligand_name"] = ".".join(os.path.basename(mol.title).split(".")[:-1])
-                    
-                    blacklist_keys = ['OpenBabel Symmetry Classes', 'MOL Chiral Flag', 'PartialCharges', 'TORSDO', 'REMARK']
-                    
-                    for b in blacklist_keys:
-                        if b in data:
-                            del data[b]
-                    
-                    if len(data) > 0:
-                        all_datas.append(data)
-                    else:
-                        ocprint.print_warning(f"No data collected from '{sf_name}' for ligand '{ligandName}'")
-                        
-            except AttributeError as e2:
-                # Handle scikit-learn version incompatibility
-                if 'monotonic_cst' in str(e2) or 'DecisionTreeRegressor' in str(e2):
-                    error_msg = f"scikit-learn version incompatibility: {e2}"
-                    ocprint.print_error(f"Scoring function '{sf_name}' failed due to scikit-learn version mismatch")
-                    ocprint.print_error(f"Model was pickled with different scikit-learn version than current installation")
-                    full_traceback = traceback.format_exc()
-                    ocprint.print_error(f"Full traceback for '{sf_name}':\n{full_traceback}")
-                else:
-                    error_msg = str(e2)
-                    full_traceback = traceback.format_exc()
-                    ocprint.print_error(f"Scoring function '{sf_name}' failed with AttributeError: {error_msg}")
-                    ocprint.print_error(f"Full traceback for '{sf_name}':\n{full_traceback}")
-                failed_scoring_functions.append(sf_name)
-                continue
-            except (TypeError, ValueError) as e2:
-                error_msg = str(e2)
-                full_traceback = traceback.format_exc()
-                ocprint.print_error(f"Scoring function '{sf_name}' failed for ligand '{ligandName}': {error_msg}")
-                ocprint.print_error(f"Full traceback for '{sf_name}':\n{full_traceback}")
-                failed_scoring_functions.append(sf_name)
-                continue
-            except Exception as e2:
-                failed_scoring_functions.append(sf_name)
-                full_traceback = traceback.format_exc()
-                ocprint.print_error(f"Scoring function '{sf_name}' failed for ligand '{ligandName}': {e2}")
-                ocprint.print_error(f"Error type: {type(e2).__name__}")
-                ocprint.print_error(f"Full traceback for '{sf_name}':\n{full_traceback}")
-                continue
+                parallel_ctx.__exit__(None, None, None)
+            except Exception:
+                pass  # Ignore errors during cleanup
     
     # Check if we got any results
     if len(all_datas) == 0:

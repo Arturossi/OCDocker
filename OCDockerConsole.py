@@ -208,19 +208,22 @@ def clean_test_files(baseProtPath, baseLigPath, baseDecPath, baseCanPath) -> Non
 
     return None
 
-message = tw.dedent("""\033[1;93m
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\033[1;96m
-                                CONSOLE MODE\033[1;93m
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\033[1;0m
-            This mode is intended to make debug easier and allow the
-        user to interact with the OCDocker pipeline step by step.
+message = tw.dedent(f"""{clrs["y"]}
+      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{clrs["c"]}
+                              CONSOLE MODE{clrs["y"]}
+      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{clrs["n"]}
+          Welcome to the OCDocker interactive console!
 
-        \033[1;91mWARNING\033[1;0m: This mode is still experimental, some unexpected
-        behaviour might occur while using it.
+      This console allows you to interact with the OCDocker pipeline
+      step by step.
 
-        To check the args variable use print_args() function.\033[1;93m
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-\033[1;0m""")
+      {clrs["g"]}TIP{clrs["n"]} It's an interesting way to learn OCDocker, useful
+      for debugging, and great for quick API interaction and
+      experimentation.
+
+      To check the args variable use print_args() function.{clrs["y"]}
+      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+{clrs["n"]}""")
 
 print(message)
 

@@ -472,6 +472,29 @@ ocdocker console --conf OCDocker.cfg
 
 This opens an interactive namespace with common OCDocker utilities imported.
 
+Running Python Scripts
+----------------------
+
+Run Python scripts with all OCDocker libraries pre-loaded:
+
+```bash
+ocdocker script --conf OCDocker.cfg script.py [script_args...]
+```
+
+This command bootstraps the OCDocker environment, loads all modules (ocl, ocr, ocvina, etc.),
+and executes your script. All OCDocker classes and functions are available without imports.
+
+Example script:
+```python
+# script.py - All OCDocker modules are pre-loaded!
+receptor = ocr.Receptor("receptor.pdb")
+ligand = ocl.Ligand("ligand.smi")
+vina = ocvina.Vina(...)
+# ... use OCDocker functionality
+```
+
+See `examples/13_cli_script_example.py` for a complete example.
+
 Environment Variables (reference)
 ---------------------------------
 

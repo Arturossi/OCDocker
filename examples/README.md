@@ -31,9 +31,16 @@ Examples of checking your installation:
 ### 4. Interactive Console (`04_cli_console.py`)
 Guide to using the interactive console for step-by-step workflows.
 
+### 5. Running Scripts (`13_cli_script_example.py`)
+Example of running Python scripts with OCDocker libraries pre-loaded:
+- Using the `ocdocker script` command
+- Accessing pre-loaded OCDocker modules
+- Working with script arguments
+- Example workflow structure
+
 ## Python API Examples
 
-### 5. Vina Docking (`05_python_api_vina.py`)
+### 6. Vina Docking (`05_python_api_vina.py`)
 Complete example of using Vina programmatically:
 - Creating receptor and ligand objects
 - Preparing structures
@@ -41,36 +48,36 @@ Complete example of using Vina programmatically:
 - Reading results
 - Rescoring
 
-### 6. Smina Docking (`06_python_api_smina.py`)
+### 7. Smina Docking (`06_python_api_smina.py`)
 Example of using Smina for docking and rescoring:
 - Smina docking workflow
 - Using Smina for rescoring only (after Vina docking)
 
-### 7. PLANTS Docking (`07_python_api_plants.py`)
+### 8. PLANTS Docking (`07_python_api_plants.py`)
 Example of using PLANTS (uses MOL2 format):
 - PLANTS-specific preparation
 - Docking with PLANTS
 - Rescoring with PLANTS
 
-### 8. ODDT Rescoring (`08_python_api_rescoring_oddt.py`)
+### 9. ODDT Rescoring (`08_python_api_rescoring_oddt.py`)
 Example of using ODDT for rescoring:
 - Running ODDT rescoring on docked poses
 - Converting results to different formats
 
-### 9. RMSD Clustering (`09_python_api_clustering.py`)
+### 10. RMSD Clustering (`09_python_api_clustering.py`)
 Example of clustering poses from multiple engines:
 - Combining poses from different engines
 - Calculating RMSD matrix
 - Clustering and finding medoids
 
-### 10. Complete Workflow (`10_python_api_complete_workflow.py`)
+### 11. Complete Workflow (`10_python_api_complete_workflow.py`)
 End-to-end workflow example:
 - Multi-engine docking
 - Pose clustering
 - Rescoring
 - Results analysis
 
-### 11. Train Model from Database (`11_python_api_train_model_from_db.py`)
+### 12. Train Model from Database (`11_python_api_train_model_from_db.py`)
 Example of training machine learning models using data from the OCDocker database:
 - Loading data from database
 - Finding best hyperparameters across multiple Optuna studies
@@ -78,7 +85,7 @@ Example of training machine learning models using data from the OCDocker databas
 - Saving trained models and masks
 - Using the full preprocessing pipeline
 
-### 12. Complete OCScore Pipeline (`12_python_api_complete_ocscore_pipeline.py`)
+### 13. Complete OCScore Pipeline (`12_python_api_complete_ocscore_pipeline.py`)
 Complete end-to-end pipeline to obtain OCScore results from scratch:
 - Receptor and ligand preparation
 - Multi-engine docking (Vina, PLANTS)
