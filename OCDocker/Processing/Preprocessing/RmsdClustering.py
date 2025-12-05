@@ -302,35 +302,48 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                             medoid_indices.add(data.index.get_loc(medoid_path))
                 
                 # Define colors for clusters using colorblind-friendly palette
-                # Use Set3 (colorblind-friendly, no blue shades) or Set2 for small clusters
+                # Use Set2 (colorblind-friendly, no blue or yellow shades) for small clusters
                 import matplotlib.cm as cm
                 cluster_colors = []
                 
-                # Set3 is colorblind-friendly and doesn't use blue shades
-                if n_clusters <= 12:
-                    cmap = cm.get_cmap('Set3')
-                    cluster_colors = [cmap(i / max(n_clusters - 1, 1)) for i in range(n_clusters)]
-                elif n_clusters <= 20:
-                    # For more clusters, use Set2 (8 colors) and cycle
+                # Set2 is colorblind-friendly and doesn't use blue or yellow shades
+                if n_clusters <= 8:
                     cmap = cm.get_cmap('Set2')
-                    # Create more colors by cycling
-                    base_colors = [cmap(i / 7.0) for i in range(8)]
+                    cluster_colors = [cmap(i / max(n_clusters - 1, 1)) for i in range(n_clusters)]
+                elif n_clusters <= 12:
+                    # Use Set1 but filter out yellow and blue
+                    cmap = cm.get_cmap('Set1')
+                    all_colors = [cmap(i / 8.0) for i in range(9)]
+                    # Filter out yellow (high red+green, low blue) and blue (high blue component)
+                    filtered_colors = []
+                    for c in all_colors:
+                        # Skip yellow (high red and green, low blue) and blue (high blue)
+                        is_yellow = c[0] > 0.7 and c[1] > 0.7 and c[2] < 0.3
+                        is_blue = c[2] > 0.6
+                        if not (is_yellow or is_blue):
+                            filtered_colors.append(c)
+                    # Cycle through filtered colors
                     for i in range(n_clusters):
-                        cluster_colors.append(base_colors[i % 8])
+                        cluster_colors.append(filtered_colors[i % len(filtered_colors)])
                 else:
-                    # For many clusters, use a custom palette avoiding blue
-                    # Use colors from Set1, Set2, Set3, and Pastel1
+                    # For many clusters, use a custom palette avoiding blue and yellow
+                    # Use colors from Set1, Set2, and Pastel1, filtering out yellow and blue
                     colors1 = [cm.get_cmap('Set1')(i / 8.0) for i in range(9)]
                     colors2 = [cm.get_cmap('Set2')(i / 7.0) for i in range(8)]
-                    colors3 = [cm.get_cmap('Set3')(i / 11.0) for i in range(12)]
-                    # Combine and filter out blue shades (colors with high blue component)
+                    colors3 = [cm.get_cmap('Pastel1')(i / 8.0) for i in range(9)]
+                    # Combine and filter out blue and yellow shades
                     all_colors = colors1 + colors2 + colors3
-                    # Filter out colors that are too blue (blue component > 0.6)
-                    filtered_colors = [c for c in all_colors if c[2] < 0.6]  # RGB: c[2] is blue
+                    filtered_colors = []
+                    for c in all_colors:
+                        # Skip yellow (high red and green, low blue) and blue (high blue)
+                        is_yellow = c[0] > 0.7 and c[1] > 0.7 and c[2] < 0.3
+                        is_blue = c[2] > 0.6
+                        if not (is_yellow or is_blue):
+                            filtered_colors.append(c)
                     if len(filtered_colors) < n_clusters:
-                        # If not enough colors, add some from Pastel1
-                        pastel_colors = [cm.get_cmap('Pastel1')(i / 8.0) for i in range(9)]
-                        filtered_colors.extend([c for c in pastel_colors if c[2] < 0.6])
+                        # If not enough colors, cycle
+                        while len(filtered_colors) < n_clusters:
+                            filtered_colors.extend(filtered_colors[:min(len(filtered_colors), n_clusters - len(filtered_colors))])
                     cluster_colors = filtered_colors[:n_clusters]
                 
                 cluster_color_map = {int(cluster_id): cluster_colors[i] for i, cluster_id in enumerate(unique_clusters)}
@@ -491,37 +504,75 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                 if isinstance(data, pd.DataFrame):
                     # Get the actual file paths/names of medoids
                     medoid_paths = get_medoids(data, results, onlyBiggest=True)  # type: ignore
+                    
+                    # Create a set of medoid paths for quick lookup
+                    medoid_set = set(medoid_paths)
+                    
                     # Find their positions in the dendrogram
-                    for medoid_path in medoid_paths:
-                        if medoid_path in data.index:
-                            original_idx = data.index.get_loc(medoid_path)
-                            # Find this index in the leaf_order
-                            if original_idx in leaf_order:
-                                leaf_pos = list(leaf_order).index(original_idx)
-                                # Get the actual x-coordinate from the dendrogram's icoord
-                                # icoord contains x-coordinates for each internal node
-                                # We need to find the leaf's x-coordinate
+                    # The leaf_order is a list where leaf_order[i] gives the original index
+                    # that appears at leaf position i in the dendrogram
+                    # We need to iterate through leaf_order to find which leaf position
+                    # corresponds to each medoid
+                    for leaf_pos, original_idx in enumerate(leaf_order):
+                        # Get the path at this original index position in data.index
+                        if original_idx < len(data.index):
+                            path_at_idx = data.index[original_idx]
+                            # Check if this path is a medoid
+                            if path_at_idx in medoid_set:
+                                # Get the actual x-coordinate from the dendrogram
                                 # Leaves are at positions 0 to n_leaves-1 in the plot
                                 # The x-coordinates are spaced evenly: 5, 10, 15, ... (5 * (i+1))
                                 x_coord = 5 * (leaf_pos + 1)
                                 medoid_x_coords.append(x_coord)
+                                ocprint.printv(f"Medoid found: {path_at_idx} (original_idx={original_idx}, leaf_pos={leaf_pos}, x_coord={x_coord})")
                 
-                # Highlight medoids with a prominent star marker
+                # Highlight medoids with a dashed box around the x-axis label
                 if medoid_x_coords:
-                    # Calculate a visible y-position (slightly below 0, but within the plot area)
-                    max_distance = max(linkage_matrix[:, 2])
-                    marker_y = -max_distance * 0.08  # Position marker below the dendrogram
+                    from matplotlib.patches import Rectangle, FancyBboxPatch
+                    from matplotlib.transforms import Bbox, TransformedBbox
                     
-                    # Adjust y-axis limits to accommodate the marker
-                    current_ylim = ax.get_ylim()
-                    ax.set_ylim(marker_y * 1.2, current_ylim[1])
-                    
-                    # Draw star markers for each medoid
+                    # Draw dashed boxes around the representative labels on x-axis
+                    # We need to use axes coordinates (0-1) for y-position since labels are outside data area
                     for i, x_coord in enumerate(medoid_x_coords):
-                        # Draw a large, prominent star marker with red color and black edge
-                        ax.plot(x_coord, marker_y, 'r*', markersize=25, markeredgewidth=4, 
-                               markeredgecolor='black', markerfacecolor='red', zorder=100,
-                               label='Representative' if i == 0 else '')
+                        # Find the closest tick to our medoid x-coordinate
+                        tick_positions = ax.get_xticks()
+                        closest_tick_idx = min(range(len(tick_positions)), 
+                                              key=lambda j: abs(tick_positions[j] - x_coord))
+                        
+                        # Get the tick label
+                        tick_labels = ax.get_xticklabels()
+                        if closest_tick_idx < len(tick_labels):
+                            label = tick_labels[closest_tick_idx]
+                            
+                            # Get the bounding box of the label in display coordinates
+                            # We need to render the figure first to get accurate label positions
+                            fig.canvas.draw()
+                            label_bbox = label.get_window_extent()
+                            
+                            # Convert display coordinates to axes coordinates
+                            # This gives us the position in the axes coordinate system (0-1)
+                            label_bbox_axes = label_bbox.transformed(ax.transAxes.inverted())
+                            
+                            # Get the position and size
+                            box_x_axes = label_bbox_axes.x0
+                            box_y_axes = label_bbox_axes.y0
+                            box_width_axes = label_bbox_axes.width
+                            box_height_axes = label_bbox_axes.height
+                            
+                            # Add some padding around the label
+                            padding = 0.01  # 1% padding in axes coordinates
+                            box_x_axes = box_x_axes - padding
+                            box_y_axes = box_y_axes - padding
+                            box_width_axes = box_width_axes + 2 * padding
+                            box_height_axes = box_height_axes + 2 * padding
+                            
+                            # Draw the rectangle in axes coordinates
+                            rect = Rectangle((box_x_axes, box_y_axes), box_width_axes, box_height_axes,
+                                            transform=ax.transAxes,
+                                            linewidth=2, edgecolor='red', facecolor='none',
+                                            linestyle='--', zorder=100,
+                                            label='Representative' if i == 0 else '')
+                            ax.add_patch(rect)
                     
                     # Add a legend if we have medoids
                     if len(medoid_x_coords) > 0:
@@ -534,20 +585,62 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                 ax.set_title(title)
                 ax.set_xlabel('Data Points')
                 ax.set_ylabel('Distance (Å)')
-                # Extend the y-axis limits, adding a bit of buffer at the top to allow the text to fit
-                # If we have medoids, the y-axis was already adjusted, so preserve that
-                if not medoid_x_coords:
-                    ax.set_ylim(0, max(linkage_matrix[:, 2]) * 1.2)
-                else:
-                    # Ensure the top limit is still extended for text
-                    current_ylim = ax.get_ylim()
-                    ax.set_ylim(current_ylim[0], max(linkage_matrix[:, 2]) * 1.2)
-                # Add a red line at the distance threshold
+            # Extend the y-axis limits, adding a bit of buffer at the top to allow the text to fit
+                # Always start at 0 (no space below for markers - box is in axes coordinates)
+                ax.set_ylim(0, max(linkage_matrix[:, 2]) * 1.2)
+                
+                # Now that labels are set, render the figure to get accurate label positions
+                # Then draw the boxes around the representative labels
+                if medoid_x_coords:
+                    # Render the figure to get accurate label bounding boxes
+                    fig.canvas.draw()
+                    
+                    # Redraw the boxes around the representative labels using axes coordinates
+                    for i, x_coord in enumerate(medoid_x_coords):
+                        # Find the closest tick to our medoid x-coordinate
+                        tick_positions = ax.get_xticks()
+                        closest_tick_idx = min(range(len(tick_positions)), 
+                                              key=lambda j: abs(tick_positions[j] - x_coord))
+                        
+                        # Get the tick label
+                        tick_labels = ax.get_xticklabels()
+                        if closest_tick_idx < len(tick_labels):
+                            label = tick_labels[closest_tick_idx]
+                            
+                            # Get the bounding box of the label in display coordinates
+                            label_bbox = label.get_window_extent()
+                            
+                            # Convert display coordinates to axes coordinates
+                            # This gives us the position in the axes coordinate system (0-1)
+                            label_bbox_axes = label_bbox.transformed(ax.transAxes.inverted())
+                            
+                            # Get the position and size
+                            box_x_axes = label_bbox_axes.x0
+                            box_y_axes = label_bbox_axes.y0
+                            box_width_axes = label_bbox_axes.width
+                            box_height_axes = label_bbox_axes.height
+                            
+                            # Add some padding around the label
+                            padding = 0.01  # 1% padding in axes coordinates
+                            box_x_axes = box_x_axes - padding
+                            box_y_axes = box_y_axes - padding
+                            box_width_axes = box_width_axes + 2 * padding
+                            box_height_axes = box_height_axes + 2 * padding
+                            
+                            # Draw the rectangle in axes coordinates
+                            from matplotlib.patches import Rectangle
+                            rect = Rectangle((box_x_axes, box_y_axes), box_width_axes, box_height_axes,
+                                            transform=ax.transAxes,
+                                            linewidth=2, edgecolor='red', facecolor='none',
+                                            linestyle='--', zorder=100,
+                                            label='Representative' if i == 0 else '')
+                            ax.add_patch(rect)
+            # Add a red line at the distance threshold
                 ax.axhline(y=distance_threshold, color='r', linestyle='--', linewidth=2, label='Distance Threshold')
                 # Add the silhouette score (left, top) rounded to 2 decimals
                 ax.text(0.05, 0.95, f"Silhouette Score: ~{round(scores, 2)}", transform=ax.transAxes, size=10, verticalalignment='top', horizontalalignment='left')
                 # Add a label to the distance threshold below the silhouette score
-                ax.text(0.05, 0.9, f"Distance Threshold: {round(distance_threshold, 2)}", transform=ax.transAxes, size=10, verticalalignment='top', horizontalalignment='left')
+                ax.text(0.05, 0.9, f"Distance Threshold: {round(distance_threshold, 2)} Å", transform=ax.transAxes, size=10, verticalalignment='top', horizontalalignment='left')
                 plt.tight_layout()
                 plt.savefig(outputPlot, dpi=150)
                 plt.close()
