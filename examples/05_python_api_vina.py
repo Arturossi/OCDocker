@@ -30,14 +30,14 @@ receptor_path = "./test_files"
 
 # Create Vina docking object
 vina = Vina(
-    config_file=f"{ligand_path}/vinaFiles/conf_vina.txt",
+    config_path=f"{ligand_path}/vinaFiles/conf_vina.txt",
     box_file=f"{ligand_path}/boxes/box.pdb",
     receptor=receptor,
     prepared_receptor_path=f"{receptor_path}/prepared_receptor.pdbqt",
     ligand=ligand,
     prepared_ligand_path=f"{ligand_path}/prepared_ligand.pdbqt",
-    log_file=f"{ligand_path}/vinaFiles/vina.log",
-    output_file=f"{ligand_path}/vinaFiles/vina.pdbqt",
+    vina_log=f"{ligand_path}/vinaFiles/vina.log",
+    output_vina=f"{ligand_path}/vinaFiles/vina.pdbqt",
     name="Vina receptor-ligand"
 )
 
@@ -51,10 +51,12 @@ vina.run_prepare_ligand()
 vina.run_docking()
 
 # Split poses into individual files
-vina.split_poses(f"{ligand_path}/vinaFiles", log_file="")
+vina.split_poses(f"{ligand_path}/vinaFiles", logFile="")
 
 # Run rescoring (optional)
-vina.run_rescore(f"{ligand_path}/vinaFiles", skipDefaultScoring=True)
+# Note: run_rescore requires both outPath and ligand parameters
+# Use the output file from docking (contains all poses) for rescoring
+vina.run_rescore(f"{ligand_path}/vinaFiles", vina.output_vina, skipDefaultScoring=True)
 
 # Read docking results
 docking_results = vina.read_log()

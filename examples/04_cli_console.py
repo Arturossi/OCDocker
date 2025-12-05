@@ -22,13 +22,13 @@ $ ocdocker console --conf OCDocker.cfg
 >>> print_args('vina')  # Check Vina parameters
 
 >>> import OCDocker.Receptor as ocr
->>> receptor = ocr.Receptor("path/to/receptor.pdb", name="MyReceptor")
+>>> receptor = ocr.Receptor("./test_files/test_ptn1/receptor.pdb", name="MyReceptor")
 
 >>> import OCDocker.Ligand as ocl
->>> ligand = ocl.Ligand("path/to/ligand.smi", name="MyLigand")
+>>> ligand = ocl.Ligand("./test_files/test_ptn1/compounds/ligands/ligand/ligand.smi", name="MyLigand")
 
 >>> import OCDocker.Docking.Vina as ocvina
->>> vina = ocvina.Vina(...)
+>>> vina = ocvina.Vina(*parameters)
 >>> vina.run_prepare_receptor()
 >>> vina.run_prepare_ligand()
 >>> vina.run_docking()

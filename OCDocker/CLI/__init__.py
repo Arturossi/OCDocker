@@ -478,6 +478,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="Comma-separated list of docking engines to use. Options: 'vina', 'smina', 'plants', or any combination (e.g., 'vina,smina' or 'vina,plants'). Default: vina,smina,plants (all engines)"
     )
     p_pipe.add_argument(
+        "--rescoring-engines",
+        "--rescore-engines",  # Alias for convenience
+        dest="rescoring_engines",
+        default=None,
+        help="Comma-separated list of engines to use for rescoring. Options: 'vina', 'smina', 'plants', 'oddt', or any combination. If not specified, uses the same engines as --engines. Can be different from docking engines (e.g., dock with 'vina,plants' but rescore with 'vina,smina,oddt')."
+    )
+    p_pipe.add_argument(
         "--name",
         help="Job name identifier. If not provided, defaults to the ligand filename (without extension). Used for output file naming."
     )
@@ -909,10 +916,11 @@ def cmd_shap(args: argparse.Namespace) -> int:  # pragma: no cover - delegates t
     ]))
 
 
-def _ensure_mol2_poses(pose_paths: List[str], dest_dir: Path) -> Tuple[List[str], Dict[str, str]]:
+def _ensure_mol2_poses(pose_paths: List[str], dest_dir: Path, pose_engine_map: Dict[str, str] = None) -> Tuple[List[str], Dict[str, str]]:
     '''Ensure a list of poses in MOL2 format, converting when needed.
 
     Returns a list of .mol2 paths and a mapping mol2->original path.
+    Uses unique filenames based on engine source to avoid overwriting.
 
     Parameters
     ----------
@@ -920,6 +928,8 @@ def _ensure_mol2_poses(pose_paths: List[str], dest_dir: Path) -> Tuple[List[str]
         List of pose file paths to ensure are in MOL2 format.
     dest_dir : Path
         Destination directory for converted MOL2 files.
+    pose_engine_map : Dict[str, str], optional
+        Mapping from pose path to engine name (vina, smina, plants) to create unique filenames.
 
     Returns
     -------
@@ -935,10 +945,16 @@ def _ensure_mol2_poses(pose_paths: List[str], dest_dir: Path) -> Tuple[List[str]
     for p in pose_paths:
         src = Path(p)
         if src.suffix.lower() == ".mol2":
+            # Already MOL2 - use as-is but track mapping
             mol2_paths.append(str(src))
             mapping[str(src)] = str(src)
             continue
-        out = dest_dir / (src.stem + ".mol2")
+        
+        # Create unique filename based on engine and original filename
+        engine = pose_engine_map.get(str(src), "unknown") if pose_engine_map else "unknown"
+        # Include engine in filename to avoid collisions
+        unique_name = f"{engine}_{src.stem}.mol2"
+        out = dest_dir / unique_name
         _ = occonversion.convert_mols(str(src), str(out), overwrite=True)
         mol2_paths.append(str(out))
         mapping[str(out)] = str(src)
@@ -992,6 +1008,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
     import OCDocker.Toolbox.Printing as ocprint  # type: ignore
     import OCDocker.Processing.Preprocessing.RmsdClustering as ocrmsd  # type: ignore
     import pandas as pd  # type: ignore
+    import numpy as np  # type: ignore
     import json
 
     outdir = Path(args.outdir).resolve(); outdir.mkdir(parents=True, exist_ok=True)
@@ -1003,13 +1020,31 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
     box_path = _require_file(str(args.box), "--box")
 
     receptor = ocr.Receptor(str(receptor_path), name=f"{name}_receptor")
-    ligand = ocl.Ligand(str(ligand_path), name=f"{name}_ligand")
+    # Use just the name for ligand to avoid "ligand_ligand" duplication when input file is already named "ligand"
+    ligand_name = name if not name.endswith("_ligand") else name[:-7]  # Remove "_ligand" suffix if present
+    ligand = ocl.Ligand(str(ligand_path), name=ligand_name)
 
     engines = [e.strip().lower() for e in args.engines.split(',') if e.strip()]
     engines = [e for e in engines if e in ("vina", "smina", "plants")]
     if not engines:
         print("No valid engine provided. Use --engines vina,smina,plants")
         return 1
+    
+    # Get rescoring engines (default to same as docking engines if not specified)
+    rescoring_engines = engines
+    if args.rescoring_engines:
+        rescoring_engines = [e.strip().lower() for e in args.rescoring_engines.split(",") if e.strip()]
+        # Validate rescoring engines
+        valid_rescoring = {"vina", "smina", "plants", "oddt"}
+        invalid_rescoring = [e for e in rescoring_engines if e not in valid_rescoring]
+        if invalid_rescoring:
+            print(f"Error: invalid rescoring engines: {', '.join(invalid_rescoring)}. Valid options: vina, smina, plants, oddt")
+            return 2
+        # Filter to only valid engines
+        rescoring_engines = [e for e in rescoring_engines if e in valid_rescoring]
+        if not rescoring_engines:
+            print("Error: no valid rescoring engines specified. Valid options: vina, smina, plants, oddt")
+            return 2
 
     # Validate required binaries are available
     try:
@@ -1042,126 +1077,577 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
         return 2
 
     all_poses: List[str] = []
+    pose_engine_map: Dict[str, str] = {}  # Map pose path to engine name
     ctx: Dict[str, Dict[str, str]] = {}
+    engine_errors: Dict[str, str] = {}
+    import os as _os
 
     for eng in engines:
         e_dir = outdir / f"{eng}Files"; e_dir.mkdir(parents=True, exist_ok=True)
-        if eng == "vina":
-            conf = e_dir / "conf_vina.txt"; prep_r = outdir / "prepared_receptor.pdbqt"; prep_l = outdir / "prepared_ligand.pdbqt"
-            log = e_dir / f"{name}.log"; outp = e_dir / f"{name}.pdbqt"
-            r = ocvina.Vina(str(conf), str(box_path), receptor, str(prep_r), ligand, str(prep_l), str(log), str(outp), name=f"VINA {name}", overwrite_config=True)
-            for fn in (r.run_prepare_receptor, r.run_prepare_ligand, r.run_docking):
-                rc = fn(); rc = rc[0] if isinstance(rc, tuple) else rc
-                if rc != 0: return int(rc)
-            _ = r.split_poses(str(e_dir))
-            all_poses.extend(r.get_docked_poses())
-            ctx[eng] = {"conf": str(conf), "dir": str(e_dir)}
-        elif eng == "smina":
-            conf = e_dir / "conf_smina.txt"; prep_r = outdir / "prepared_receptor.pdbqt"; prep_l = outdir / "prepared_ligand.pdbqt"
-            log = e_dir / f"{name}.log"; outp = e_dir / f"{name}.pdbqt"
-            r = ocsmina.Smina(str(conf), str(box_path), receptor, str(prep_r), ligand, str(prep_l), str(log), str(outp), name=f"SMINA {name}", overwrite_config=True)
-            for fn in (r.run_prepare_receptor, r.run_prepare_ligand, r.run_docking):
-                rc = fn(); rc = rc[0] if isinstance(rc, tuple) else rc
-                if rc != 0: return int(rc)
-            _ = r.split_poses(str(e_dir))
-            all_poses.extend(r.get_docked_poses())
-            ctx[eng] = {"conf": str(conf), "dir": str(e_dir)}
-        else:
-            conf = e_dir / "conf_plants.txt"; prep_r = outdir / "prepared_receptor.mol2"; prep_l = outdir / "prepared_ligand.mol2"
-            log = e_dir / f"{name}.log"; outp = e_dir
-            r = ocplants.PLANTS(str(conf), str(box_path), receptor, str(prep_r), ligand, str(prep_l), str(log), str(outp), name=f"PLANTS {name}", overwrite_config=True)
-            for fn in (r.run_prepare_receptor, r.run_prepare_ligand, r.run_docking):
-                rc = fn(); rc = rc[0] if isinstance(rc, tuple) else rc
-                if rc != 0: return int(rc)
-            all_poses.extend(r.get_docked_poses())
-            ctx[eng] = {"conf": str(conf), "dir": str(e_dir), "prep_rec": str(prep_r)}
+        try:
+            if eng == "vina":
+                conf = e_dir / "conf_vina.txt"; prep_r = outdir / "prepared_receptor.pdbqt"; prep_l = outdir / "prepared_ligand.pdbqt"
+                log = e_dir / f"{name}.log"; outp = e_dir / f"{name}.pdbqt"
+                r = ocvina.Vina(str(conf), str(box_path), receptor, str(prep_r), ligand, str(prep_l), str(log), str(outp), name=f"VINA {name}", overwrite_config=True)
+                # Only prepare receptor/ligand if they don't exist
+                if not (_os.path.isfile(str(prep_r)) and _os.path.getsize(str(prep_r)) > 0):
+                    rc = r.run_prepare_receptor(); rc = rc[0] if isinstance(rc, tuple) else rc
+                    if rc != 0:
+                        engine_errors[eng] = f"Receptor preparation failed with code {rc}"
+                        ocprint.print_warning(f"Vina receptor preparation failed. Continuing with other engines...")
+                        continue
+                if not (_os.path.isfile(str(prep_l)) and _os.path.getsize(str(prep_l)) > 0):
+                    rc = r.run_prepare_ligand(); rc = rc[0] if isinstance(rc, tuple) else rc
+                    if rc != 0:
+                        engine_errors[eng] = f"Ligand preparation failed with code {rc}"
+                        ocprint.print_warning(f"Vina ligand preparation failed. Continuing with other engines...")
+                        continue
+                rc = r.run_docking(); rc = rc[0] if isinstance(rc, tuple) else rc
+                if rc != 0:
+                    engine_errors[eng] = f"Docking failed with code {rc}"
+                    ocprint.print_warning(f"Vina docking failed. Continuing with other engines...")
+                    continue
+                _ = r.split_poses(str(e_dir))
+                poses = r.get_docked_poses()
+                all_poses.extend(poses)
+                # Track which engine each pose came from
+                for pose in poses:
+                    pose_engine_map[pose] = eng
+                ctx[eng] = {"conf": str(conf), "dir": str(e_dir)}
+            elif eng == "smina":
+                conf = e_dir / "conf_smina.txt"; prep_r = outdir / "prepared_receptor.pdbqt"; prep_l = outdir / "prepared_ligand.pdbqt"
+                log = e_dir / f"{name}.log"; outp = e_dir / f"{name}.pdbqt"
+                r = ocsmina.Smina(str(conf), str(box_path), receptor, str(prep_r), ligand, str(prep_l), str(log), str(outp), name=f"SMINA {name}", overwrite_config=True)
+                # Only prepare receptor/ligand if they don't exist
+                if not (_os.path.isfile(str(prep_r)) and _os.path.getsize(str(prep_r)) > 0):
+                    rc = r.run_prepare_receptor(); rc = rc[0] if isinstance(rc, tuple) else rc
+                    if rc != 0:
+                        engine_errors[eng] = f"Receptor preparation failed with code {rc}"
+                        ocprint.print_warning(f"Smina receptor preparation failed. Continuing with other engines...")
+                        continue
+                if not (_os.path.isfile(str(prep_l)) and _os.path.getsize(str(prep_l)) > 0):
+                    rc = r.run_prepare_ligand(); rc = rc[0] if isinstance(rc, tuple) else rc
+                    if rc != 0:
+                        engine_errors[eng] = f"Ligand preparation failed with code {rc}"
+                        ocprint.print_warning(f"Smina ligand preparation failed. Continuing with other engines...")
+                        continue
+                rc = r.run_docking(); rc = rc[0] if isinstance(rc, tuple) else rc
+                if rc != 0:
+                    engine_errors[eng] = f"Docking failed with code {rc}"
+                    ocprint.print_warning(f"Smina docking failed. Continuing with other engines...")
+                    continue
+                _ = r.split_poses(str(e_dir))
+                poses = r.get_docked_poses()
+                all_poses.extend(poses)
+                # Track which engine each pose came from
+                for pose in poses:
+                    pose_engine_map[pose] = eng
+                ctx[eng] = {"conf": str(conf), "dir": str(e_dir)}
+            else:
+                conf = e_dir / "conf_plants.txt"; prep_r = outdir / "prepared_receptor.mol2"; prep_l = outdir / "prepared_ligand.mol2"
+                log = e_dir / f"{name}.log"; outp = e_dir
+                r = ocplants.PLANTS(str(conf), str(box_path), receptor, str(prep_r), ligand, str(prep_l), str(log), str(outp), name=f"PLANTS {name}", overwrite_config=True)
+                # Only prepare receptor/ligand if they don't exist
+                if not (_os.path.isfile(str(prep_r)) and _os.path.getsize(str(prep_r)) > 0):
+                    rc = r.run_prepare_receptor(); rc = rc[0] if isinstance(rc, tuple) else rc
+                    if rc != 0:
+                        engine_errors[eng] = f"Receptor preparation failed with code {rc}"
+                        ocprint.print_warning(f"PLANTS receptor preparation failed. Continuing with other engines...")
+                        continue
+                if not (_os.path.isfile(str(prep_l)) and _os.path.getsize(str(prep_l)) > 0):
+                    rc = r.run_prepare_ligand(); rc = rc[0] if isinstance(rc, tuple) else rc
+                    if rc != 0:
+                        engine_errors[eng] = f"Ligand preparation failed with code {rc}"
+                        ocprint.print_warning(f"PLANTS ligand preparation failed. Continuing with other engines...")
+                        continue
+                rc = r.run_docking(); rc = rc[0] if isinstance(rc, tuple) else rc
+                if rc != 0:
+                    engine_errors[eng] = f"Docking failed with code {rc}"
+                    ocprint.print_warning(f"PLANTS docking failed. Continuing with other engines...")
+                    continue
+                poses = r.get_docked_poses()
+                all_poses.extend(poses)
+                # Track which engine each pose came from
+                for pose in poses:
+                    pose_engine_map[pose] = eng
+                ctx[eng] = {"conf": str(conf), "dir": str(e_dir), "prep_rec": str(prep_r)}
+        except Exception as e:
+            engine_errors[eng] = f"Exception: {str(e)}"
+            ocprint.print_warning(f"{eng.capitalize()} failed with exception: {e}. Continuing with other engines...")
+            continue
 
+    # Report any engine errors
+    if engine_errors:
+        print("\n=== Engine Errors ===")
+        for eng, error_msg in engine_errors.items():
+            print(f"{eng.capitalize()}: {error_msg}")
+        print("")
+    
     if not all_poses:
-        print("No poses were generated.")
-        return 2
+        if engine_errors:
+            print("No poses were generated from any engine. All engines failed.")
+            return 2
+        else:
+            print("No poses were generated.")
+            return 2
 
     # Convert to MOL2 and cluster by RMSD
+    # Use unique filenames based on engine to avoid overwriting
     mol2_dir = outdir / "poses_mol2"
-    mol2_list, mol2_map = _ensure_mol2_poses(all_poses, mol2_dir)
+    mol2_list, mol2_map = _ensure_mol2_poses(all_poses, mol2_dir, pose_engine_map)
     rmsd = ocmolproc.get_rmsd_matrix(mol2_list)
     df = pd.DataFrame(rmsd).loc[mol2_list, mol2_list]
+    
+    # Save RMSD matrix for reference
+    rmsd_matrix_file = outdir / "rmsd_matrix.csv"
+    df.to_csv(rmsd_matrix_file)
+    
+    # Perform clustering with plot output
+    cluster_plot = outdir / "clustering_dendrogram.png"
     clusters = ocrmsd.cluster_rmsd(
         df,
         min_distance_threshold=args.cluster_min,
         max_distance_threshold=args.cluster_max,
         threshold_step=args.cluster_step,
+        outputPlot=str(cluster_plot),
+        molecule_name=name,
     )
+    
+    # Determine representative pose and save clustering results
+    clustering_info = {
+        "method": "rmsd_based_clustering",
+        "total_poses": len(mol2_list),
+        "representative_selection": None,
+        "clusters": None,
+        "cluster_sizes": None,
+        "medoids": None,
+    }
+    
     if isinstance(clusters, int) or getattr(clusters, "size", 0) == 0:
         ocprint.print_warning(
             "Clustering did not converge or returned no labels; using the first pose as representative."
         )
         rep_mol2 = mol2_list[0]
+        clustering_info["representative_selection"] = "first_pose_fallback"
+        clustering_info["reason"] = "clustering_failed_or_no_labels"
     else:
+        # Save cluster assignments
+        cluster_assignments = pd.DataFrame({
+            "pose_path": mol2_list,
+            "cluster_id": clusters
+        })
+        cluster_assignments_file = outdir / "cluster_assignments.csv"
+        cluster_assignments.to_csv(cluster_assignments_file, index=False)
+        
+        # Calculate cluster sizes
+        cluster_sizes = {}
+        unique_clusters, counts = np.unique(clusters, return_counts=True)
+        for cluster_id, size in zip(unique_clusters, counts):
+            cluster_sizes[int(cluster_id)] = int(size)
+        
+        clustering_info["clusters"] = int(len(unique_clusters))
+        clustering_info["cluster_sizes"] = cluster_sizes
+        
         meds = ocrmsd.get_medoids(df, clusters, onlyBiggest=True)
         if not meds:
             ocprint.print_warning(
                 "No medoid found from clusters; using the first pose as representative."
             )
-        rep_mol2 = meds[0] if meds else mol2_list[0]
+            rep_mol2 = mol2_list[0]
+            clustering_info["representative_selection"] = "first_pose_fallback"
+            clustering_info["reason"] = "no_medoid_found"
+        else:
+            rep_mol2 = meds[0]
+            clustering_info["representative_selection"] = "medoid_of_largest_cluster"
+            clustering_info["medoids"] = [str(m) for m in meds]
+            clustering_info["representative_pose"] = str(rep_mol2)
+            # Find which cluster the representative belongs to
+            rep_idx = mol2_list.index(rep_mol2)
+            rep_cluster_id = int(clusters[rep_idx])
+            clustering_info["representative_cluster_id"] = rep_cluster_id
+            clustering_info["representative_cluster_size"] = cluster_sizes.get(rep_cluster_id, 0)
 
-    rep_path = outdir / "representative.mol2"
-    # Copy to preserve source files
+    # Get the original pose path for the representative
+    rep_original = mol2_map.get(rep_mol2, rep_mol2)
+    rep_engine = pose_engine_map.get(rep_original, None)
+    
+    # Convert representative to appropriate format for each engine's rescoring
+    # Vina/Smina need PDBQT, PLANTS needs MOL2
+    rep_pdbqt = None
+    rep_mol2_final = None
+    
+    import OCDocker.Toolbox.Conversion as occonversion  # type: ignore
     import shutil
-    shutil.copyfile(rep_mol2, rep_path)
+    
+    if rep_original.endswith('.pdbqt'):
+        # Already PDBQT - use for vina/smina
+        rep_pdbqt = rep_original
+        # Convert to MOL2 for PLANTS if needed
+        rep_mol2_final = outdir / "representative_for_plants.mol2"
+        occonversion.convert_mols(rep_original, str(rep_mol2_final), overwrite=True)
+    elif rep_original.endswith('.mol2'):
+        # Already MOL2 - use for PLANTS
+        rep_mol2_final = rep_original
+        # Convert to PDBQT for vina/smina if needed
+        rep_pdbqt = outdir / "representative_for_vina_smina.pdbqt"
+        occonversion.convert_mols(rep_original, str(rep_pdbqt), overwrite=True)
+    else:
+        # Fallback: use the mol2 version we have
+        rep_mol2_final = rep_mol2
+        rep_pdbqt = outdir / "representative_for_vina_smina.pdbqt"
+        occonversion.convert_mols(rep_mol2, str(rep_pdbqt), overwrite=True)
+    
+    # Save representative in MOL2 format (for general use)
+    rep_path = outdir / "representative.mol2"
+    if rep_mol2_final and Path(rep_mol2_final).exists():
+        shutil.copyfile(rep_mol2_final, rep_path)
+    else:
+        shutil.copyfile(rep_mol2, rep_path)
+    
+    # Save clustering information
+    clustering_info_file = outdir / "clustering_info.json"
+    clustering_info_file.write_text(json.dumps(clustering_info, indent=2))
 
     # Rescoring (representative only)
+    # Only rescore with engines specified in --rescoring-engines (or same as docking engines if not specified)
     rescoring: Dict[str, Dict[str, float]] = {}
+    # Get config for scoring functions
+    from OCDocker.Config import get_config
+    config = get_config()
+    
     # VINA
-    if "vina" in ctx:
+    if "vina" in ctx and "vina" in rescoring_engines:
         from OCDocker.Docking.Vina import run_rescore as v_rescore, get_rescore_log_paths as v_logs, read_rescore_logs as v_read  # type: ignore
-        src = mol2_map.get(rep_mol2)
-        if src and src.endswith('.pdbqt'):
-            for sf in ("vina", "vinardo"):
-                v_rescore(ctx["vina"]["conf"], src, ctx["vina"]["dir"], sf, splitLigand=False, overwrite=True)
-            data = v_read(v_logs(ctx["vina"]["dir"]), onlyBest=True)
-            vals: Dict[str, float] = {}
-            for k, v in data.items():
+        if rep_pdbqt and Path(rep_pdbqt).exists():
+            # Get scoring functions from config
+            vina_sfs = config.vina.scoring_functions if config.vina.scoring_functions else ["vina"]
+            for sf in vina_sfs:
                 try:
-                    for _, vv in v.items():
-                        vals[k] = float(vv if not isinstance(vv, (list, tuple)) else vv[0])
-                except (ValueError, TypeError, KeyError):
-                    # Ignore invalid float conversions or missing keys
-                    pass
-            rescoring["vina"] = vals
+                    v_rescore(ctx["vina"]["conf"], str(rep_pdbqt), ctx["vina"]["dir"], sf, splitLigand=False, overwrite=True)
+                except Exception as e:
+                    ocprint.print_warning(f"Vina rescoring with {sf} failed: {e}. Continuing with other scoring functions...")
+            try:
+                # Wait a moment for files to be written (in case of async operations)
+                import time
+                time.sleep(0.5)
+                log_paths = v_logs(ctx["vina"]["dir"])
+                if not log_paths:
+                    ocprint.print_warning(f"No Vina rescoring log files found in {ctx['vina']['dir']}. Check if rescoring completed successfully.")
+                    # Debug: list files in directory
+                    if Path(ctx["vina"]["dir"]).exists():
+                        files = list(Path(ctx["vina"]["dir"]).glob("*"))
+                        ocprint.print_warning(f"Files in Vina directory: {[f.name for f in files]}")
+                else:
+                    ocprint.printv(f"Found Vina rescoring log files: {log_paths}")
+                    data = v_read(log_paths, onlyBest=True)
+                    if not data:
+                        ocprint.print_warning(f"Vina rescoring log files found but no data extracted. Log paths: {log_paths}")
+                    else:
+                        vals: Dict[str, float] = {}
+                        # Data structure: Dict[str, List[Union[str, float]]] according to type hint, but actual return is Dict[str, float]
+                        # Key format: "rescoring_{scoring_function}_{pose_number}" or "vina_{scoring_function}_rescoring"
+                        for k, v in data.items():
+                            try:
+                                # v can be a float or a list - handle both cases
+                                if isinstance(v, (int, float)):
+                                    # Normalize key: extract scoring function and create clean key
+                                    # Keys can be: "vina_vina_rescoring", "rescoring_vina_1", "rescoring_vinardo_1", etc.
+                                    if k.startswith("vina_") and k.endswith("_rescoring"):
+                                        # Format: "vina_{scoring_function}_rescoring"
+                                        sf_name = k.replace("vina_", "").replace("_rescoring", "")
+                                        clean_key = f"vina_{sf_name}"
+                                    elif k.startswith("rescoring_"):
+                                        # Format: "rescoring_{scoring_function}_{pose_number}"
+                                        parts = k.replace("rescoring_", "").split("_")
+                                        if len(parts) >= 1:
+                                            sf_name = parts[0]
+                                            clean_key = f"vina_{sf_name}"
+                                        else:
+                                            clean_key = k
+                                    else:
+                                        clean_key = k
+                                    vals[clean_key] = float(v)
+                                elif isinstance(v, list) and len(v) > 0:
+                                    # Handle list case (type hint says List[Union[str, float]])
+                                    # Extract the numeric value
+                                    numeric_val = None
+                                    for item in v:
+                                        if isinstance(item, (int, float)):
+                                            numeric_val = float(item)
+                                            break
+                                        elif isinstance(item, str):
+                                            try:
+                                                numeric_val = float(item)
+                                                break
+                                            except ValueError:
+                                                continue
+                                    if numeric_val is not None:
+                                        # Normalize key
+                                        if k.startswith("vina_") and k.endswith("_rescoring"):
+                                            sf_name = k.replace("vina_", "").replace("_rescoring", "")
+                                            clean_key = f"vina_{sf_name}"
+                                        elif k.startswith("rescoring_"):
+                                            parts = k.replace("rescoring_", "").split("_")
+                                            if len(parts) >= 1:
+                                                sf_name = parts[0]
+                                                clean_key = f"vina_{sf_name}"
+                                            else:
+                                                clean_key = k
+                                        else:
+                                            clean_key = k
+                                        vals[clean_key] = numeric_val
+                            except (ValueError, TypeError, KeyError) as e:
+                                ocprint.print_warning(f"Failed to parse Vina rescoring value for {k}: {e}. Value type: {type(v)}, value: {v}")
+                        if vals:
+                            rescoring["vina"] = vals
+                        else:
+                            ocprint.print_warning(f"Vina rescoring data found but no valid values extracted. Data structure: {data}")
+            except Exception as e:
+                ocprint.print_warning(f"Failed to read Vina rescoring results: {e}")
+                import traceback
+                ocprint.print_warning(f"Traceback: {traceback.format_exc()}")
     # SMINA
-    if "smina" in ctx:
+    if "smina" in rescoring_engines:
         from OCDocker.Docking.Smina import run_rescore as s_rescore, get_rescore_log_paths as s_logs, read_rescore_logs as s_read  # type: ignore
-        src = mol2_map.get(rep_mol2)
-        if src and src.endswith('.pdbqt'):
-            for sf in ("vina", "vinardo", "dkoes_scoring", "old_scoring_dkoes", "fast_dkoes", "ad4_scoring"):
-                s_rescore(ctx["smina"]["conf"], src, ctx["smina"]["dir"], sf, splitLigand=False, overwrite=True)
-            data = s_read(s_logs(ctx["smina"]["dir"]), onlyBest=True)
-            vals: Dict[str, float] = {}
-            for k, v in data.items():
-                try:
-                    for _, vv in v.items():
-                        vals[k] = float(vv if not isinstance(vv, (list, tuple)) else vv[0])
-                except (ValueError, TypeError, KeyError):
-                    # Ignore invalid float conversions or missing keys
+        if rep_pdbqt and Path(rep_pdbqt).exists():
+            # If smina wasn't docked, we can still use vina's prepared files (they share PDBQT format)
+            # Create smina context if it doesn't exist
+            if "smina" not in ctx:
+                # Use vina's config if available, otherwise create a new smina config
+                if "vina" in ctx:
+                    # Create smina directory and config
+                    smina_dir = outdir / "sminaFiles"
+                    smina_dir.mkdir(parents=True, exist_ok=True)
+                    smina_conf = smina_dir / "conf_smina.txt"
+                    # Create a Smina object just to generate the config file
+                    import OCDocker.Docking.Smina as ocsmina  # type: ignore
+                    prep_r = outdir / "prepared_receptor.pdbqt"
+                    prep_l = outdir / "prepared_ligand.pdbqt"
+                    smina_obj = ocsmina.Smina(str(smina_conf), str(box_path), receptor, str(prep_r), ligand, str(prep_l), str(smina_dir / f"{name}.log"), str(smina_dir / f"{name}.pdbqt"), name=f"SMINA {name}", overwrite_config=True)
+                    ctx["smina"] = {"conf": str(smina_conf), "dir": str(smina_dir)}
+                else:
+                    ocprint.print_warning("Smina rescoring requested but neither Smina nor Vina was docked. Smina rescoring requires PDBQT format files.")
+                    # Skip smina rescoring
                     pass
-            rescoring["smina"] = vals
+            if "smina" in ctx:
+                # Get scoring functions from config
+                smina_sfs = config.smina.scoring_functions if config.smina.scoring_functions else ["vinardo"]
+                for sf in smina_sfs:
+                    try:
+                        s_rescore(ctx["smina"]["conf"], str(rep_pdbqt), ctx["smina"]["dir"], sf, splitLigand=False, overwrite=True)
+                    except Exception as e:
+                        ocprint.print_warning(f"Smina rescoring with {sf} failed: {e}. Continuing with other scoring functions...")
+                try:
+                    # Wait a moment for files to be written (in case of async operations)
+                    import time
+                    time.sleep(0.5)
+                    log_paths = s_logs(ctx["smina"]["dir"])
+                    if not log_paths:
+                        ocprint.print_warning(f"No Smina rescoring log files found in {ctx['smina']['dir']}")
+                        # Debug: list files in directory
+                        if Path(ctx["smina"]["dir"]).exists():
+                            files = list(Path(ctx["smina"]["dir"]).glob("*"))
+                            ocprint.print_warning(f"Files in Smina directory: {[f.name for f in files]}")
+                    else:
+                        ocprint.printv(f"Found Smina rescoring log files: {log_paths}")
+                        data = s_read(log_paths, onlyBest=True)
+                        vals: Dict[str, float] = {}
+                        # Data structure: Dict[str, float] (read_rescoring_log returns float, not list)
+                        # Key format: "rescoring_{scoring_function}_{pose_number}" or "smina_{scoring_function}_rescoring"
+                        for k, v in data.items():
+                            try:
+                                # v is a float (from read_rescoring_log)
+                                if isinstance(v, (int, float)):
+                                    # Normalize key: extract scoring function and create clean key
+                                    # Keys can be: "smina_vinardo_rescoring", "rescoring_vina_1", "rescoring_dkoes_scoring_1", etc.
+                                    if k.startswith("smina_") and k.endswith("_rescoring"):
+                                        # Format: "smina_{scoring_function}_rescoring"
+                                        sf_name = k.replace("smina_", "").replace("_rescoring", "")
+                                        clean_key = f"smina_{sf_name}"
+                                    elif k.startswith("rescoring_"):
+                                        # Format: "rescoring_{scoring_function}_{pose_number}"
+                                        parts = k.replace("rescoring_", "").split("_")
+                                        if len(parts) >= 1:
+                                            # Handle multi-part scoring function names like "dkoes_scoring"
+                                            # Try to match against known scoring functions
+                                            sf_name = None
+                                            for known_sf in smina_sfs:
+                                                # Check if the key starts with this scoring function
+                                                if "_".join(parts[:len(known_sf.split("_"))]) == known_sf:
+                                                    sf_name = known_sf
+                                                    break
+                                            if not sf_name and parts:
+                                                # Fallback: use first part
+                                                sf_name = parts[0]
+                                            clean_key = f"smina_{sf_name}" if sf_name else k
+                                        else:
+                                            clean_key = k
+                                    else:
+                                        clean_key = k
+                                    vals[clean_key] = float(v)
+                                elif isinstance(v, list) and len(v) > 0:
+                                    # Handle list case (shouldn't happen but just in case)
+                                    vals[k] = float(v[0] if not isinstance(v[0], (list, tuple)) else v[0][0])
+                            except (ValueError, TypeError, KeyError) as e:
+                                ocprint.print_warning(f"Failed to parse Smina rescoring value for {k}: {e}")
+                        if vals:
+                            rescoring["smina"] = vals
+                        else:
+                            ocprint.print_warning(f"Smina rescoring data found but no valid values extracted. Data structure: {data}")
+                except Exception as e:
+                    ocprint.print_warning(f"Failed to read Smina rescoring results: {e}")
     # PLANTS
-    if "plants" in ctx:
+    if "plants" in ctx and "plants" in rescoring_engines:
         from OCDocker.Docking.PLANTS import write_rescoring_config_file, run_rescore as p_rescore, get_binding_site  # type: ignore
         pose_list = outdir / "pose_list_single.txt"
-        pose_list.write_text(str(rep_path) + "\n")
+        # Use MOL2 format for PLANTS rescoring
+        plants_rep = str(rep_mol2_final) if rep_mol2_final and Path(rep_mol2_final).exists() else str(rep_path)
+        pose_list.write_text(plants_rep + "\n")
         # Extract center/radius from the box
         center, radius = get_binding_site(str(box_path))  # type: ignore
-        for sf in ("chemplp", "plp", "plp95"):
-            conf_sf = outdir / f"conf_plants_rescore_{sf}.txt"
-            write_rescoring_config_file(str(conf_sf), ctx["plants"]["prep_rec"], str(pose_list), ctx["plants"]["dir"], center[0], center[1], center[2], radius, scoringFunction=sf)
-            p_rescore(str(conf_sf), str(pose_list), ctx["plants"]["dir"], ctx["plants"]["prep_rec"], sf, center[0], center[1], center[2], radius, overwrite=True)
-
+        # Get scoring functions from config
+        plants_sfs = config.plants.scoring_functions if config.plants.scoring_functions else ["chemplp", "plp", "plp95"]
+        for sf in plants_sfs:
+            try:
+                # Each scoring function must have its own output directory (PLANTS requirement)
+                outPath_sf = Path(ctx["plants"]["dir"]) / f"run_{sf}"
+                conf_sf = Path(ctx["plants"]["dir"]) / f"{name}_rescoring_{sf}.txt"
+                write_rescoring_config_file(str(conf_sf), ctx["plants"]["prep_rec"], str(pose_list), str(outPath_sf), center[0], center[1], center[2], radius, scoringFunction=sf)
+                p_rescore(str(conf_sf), str(pose_list), str(outPath_sf), ctx["plants"]["prep_rec"], sf, center[0], center[1], center[2], radius, overwrite=True)
+            except Exception as e:
+                ocprint.print_warning(f"PLANTS rescoring with {sf} failed: {e}. Continuing with other scoring functions...")
+        # Read PLANTS rescoring results
+        try:
+            from OCDocker.Docking.PLANTS import read_log as plants_read_log  # type: ignore
+            plants_rescoring_data: Dict[str, float] = {}
+            for sf in plants_sfs:
+                # Each scoring function has its own directory: run_{scoring_function}
+                ranking_file = Path(ctx["plants"]["dir"]) / f"run_{sf}" / "bestranking.csv"
+                if ranking_file.exists():
+                    try:
+                        log_data = plants_read_log(str(ranking_file), onlyBest=True)
+                        if log_data:
+                            # PLANTS returns Dict[int, Dict[int, float]] where first int is pose number, second is score type
+                            # When onlyBest=True, typically only one pose (key 1)
+                            for pose_num, scores in log_data.items():
+                                # scores is Dict[int, float] where int is score type code
+                                # We want TOTAL_SCORE which is typically the first or main score
+                                # Extract all scores and use meaningful keys
+                                for score_type_code, score_value in scores.items():
+                                    # Use scoring function name and score type
+                                    key = f"plants_{sf}"
+                                    # Store the main score (TOTAL_SCORE is typically the first one)
+                                    if key not in plants_rescoring_data or score_type_code == 0:
+                                        plants_rescoring_data[key] = float(score_value) if isinstance(score_value, (int, float)) else float(score_value[0]) if isinstance(score_value, (list, tuple)) else 0.0
+                                break  # Only take first pose when onlyBest=True
+                    except Exception as e:
+                        ocprint.print_warning(f"Failed to read PLANTS rescoring results for {sf}: {e}")
+                else:
+                    ocprint.print_warning(f"PLANTS rescoring ranking file not found: {ranking_file}")
+            if plants_rescoring_data:
+                rescoring["plants"] = plants_rescoring_data
+            else:
+                ocprint.print_warning("No PLANTS rescoring data found")
+        except Exception as e:
+            ocprint.print_warning(f"Failed to read PLANTS rescoring results: {e}")
+    
+    # ODDT (can rescore independently, doesn't require docking)
+    if "oddt" in rescoring_engines:
+        try:
+            from OCDocker.Rescoring.ODDT import run_oddt, df_to_dict  # type: ignore
+            # ODDT needs the prepared receptor - use from any available engine
+            prepared_receptor = None
+            if "vina" in ctx or "smina" in ctx:
+                # Use PDBQT receptor from vina/smina
+                prepared_receptor = str(outdir / "prepared_receptor.pdbqt")
+            elif "plants" in ctx:
+                # Use MOL2 receptor from PLANTS
+                prepared_receptor = ctx["plants"]["prep_rec"]
+            else:
+                # Fallback: try to find any prepared receptor
+                pdbqt_rec = outdir / "prepared_receptor.pdbqt"
+                mol2_rec = outdir / "prepared_receptor.mol2"
+                if pdbqt_rec.exists():
+                    prepared_receptor = str(pdbqt_rec)
+                elif mol2_rec.exists():
+                    prepared_receptor = str(mol2_rec)
+            
+            if prepared_receptor and Path(prepared_receptor).exists():
+                # ODDT needs MOL2 format for ligand
+                oddt_ligand = str(rep_mol2_final) if rep_mol2_final and Path(rep_mol2_final).exists() else str(rep_path)
+                oddt_output = outdir / "oddt_rescoring"
+                oddt_output.mkdir(parents=True, exist_ok=True)
+                
+                # Run ODDT rescoring
+                try:
+                    df = run_oddt(
+                        prepared_receptor,
+                        oddt_ligand,
+                        name,
+                        str(oddt_output),
+                        overwrite=True,
+                        returnData=True
+                    )
+                    
+                    # Check if run_oddt returned an error code (int) instead of DataFrame
+                    if isinstance(df, int):
+                        ocprint.print_warning(f"ODDT rescoring returned error code: {df}. Check ODDT configuration and logs.")
+                    elif df is not None:
+                        try:
+                            oddt_dict = df_to_dict(df)
+                            # Extract values from ODDT results
+                            oddt_vals: Dict[str, float] = {}
+                            if oddt_dict:
+                                # Get the first (and typically only) entry (ligand name is the key)
+                                first_key = list(oddt_dict.keys())[0]
+                                for score_name, score_value in oddt_dict[first_key].items():
+                                    try:
+                                        # Skip non-numeric columns
+                                        if score_name.lower() in ['ligand_name', 'name']:
+                                            continue
+                                        key = f"oddt_{score_name}"
+                                        if isinstance(score_value, (int, float)):
+                                            oddt_vals[key] = float(score_value)
+                                        elif isinstance(score_value, (list, tuple)) and len(score_value) > 0:
+                                            oddt_vals[key] = float(score_value[0])
+                                        elif isinstance(score_value, str):
+                                            # Try to convert string to float
+                                            try:
+                                                oddt_vals[key] = float(score_value)
+                                            except ValueError:
+                                                pass
+                                    except (ValueError, TypeError) as e:
+                                        ocprint.print_warning(f"Failed to parse ODDT score {score_name}: {e}")
+                            if oddt_vals:
+                                rescoring["oddt"] = oddt_vals
+                            else:
+                                ocprint.print_warning(f"ODDT rescoring completed but no valid scores extracted. Dict keys: {list(oddt_dict.keys()) if oddt_dict else 'None'}")
+                        except Exception as e:
+                            ocprint.print_warning(f"Failed to convert ODDT results to dictionary: {e}")
+                            import traceback
+                            ocprint.print_warning(f"Traceback: {traceback.format_exc()}")
+                    else:
+                        ocprint.print_warning("ODDT rescoring returned None. Check ODDT configuration and logs.")
+                except Exception as e:
+                    ocprint.print_warning(f"ODDT rescoring failed: {e}")
+                    import traceback
+                    ocprint.print_warning(f"Traceback: {traceback.format_exc()}")
+            else:
+                ocprint.print_warning("ODDT rescoring skipped: no prepared receptor found")
+        except ImportError as e:
+            ocprint.print_warning(f"ODDT rescoring not available (import error): {e}")
+        except Exception as e:
+            ocprint.print_warning(f"ODDT rescoring failed: {e}")
+    
     # Write summary
+    # Track which engines were actually used for rescoring (those with results)
+    rescoring_engines_used = list(rescoring.keys())
     summ = {
         "job": name,
         "engines": engines,
+        "rescoring_engines": rescoring_engines_used,  # Engines that actually produced rescoring results
         "representative_pose": str(rep_path),
+        "clustering": clustering_info,
         "rescoring": rescoring,
     }
     (outdir / "summary.json").write_text(json.dumps(summ, indent=2))

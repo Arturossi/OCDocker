@@ -4,28 +4,28 @@
 
 # Run pipeline with multiple engines
 ocdocker pipeline \
-  --receptor path/to/receptor.pdb \
-  --ligand path/to/ligand.sdf \
-  --box path/to/box.pdb \
+  --receptor ./test_files/test_ptn1/receptor.pdb \
+  --ligand ./test_files/test_ptn1/compounds/ligands/ligand/ligand.smi \
+  --box ./test_files/test_ptn1/compounds/ligands/ligand/boxes/box0.pdb \
   --engines vina,smina,plants \
   --outdir ./pipeline_output \
-  --timeout 900 \
-  --store-db
+  --timeout 900
 
 # Pipeline with only Vina and Smina
 ocdocker pipeline \
-  --receptor path/to/receptor.pdb \
-  --ligand path/to/ligand.sdf \
-  --box path/to/box.pdb \
+  --receptor ./test_files/test_ptn1/receptor.pdb \
+  --ligand ./test_files/test_ptn1/compounds/ligands/ligand/ligand.smi \
+  --box ./test_files/test_ptn1/compounds/ligands/ligand/boxes/box0.pdb \
   --engines vina,smina \
   --outdir ./pipeline_output
 
-# Pipeline with custom timeout
+# Pipeline with vina, plants, and rescore with all engines
 ocdocker pipeline \
-  --receptor path/to/receptor.pdb \
-  --ligand path/to/ligand.sdf \
-  --box path/to/box.pdb \
-  --engines vina,smina,plants \
-  --timeout 1200 \
-  --outdir ./pipeline_output
+  --receptor ./test_files/test_ptn1/receptor.pdb \
+  --ligand ./test_files/test_ptn1/compounds/ligands/ligand/ligand.smi \
+  --box ./test_files/test_ptn1/compounds/ligands/ligand/boxes/box0.pdb \
+  --engines vina,plants \
+  --rescoring-engines vina,smina,plants,oddt \
+  --outdir ./pipeline_output \
+  --multiprocess
 

@@ -126,9 +126,28 @@ def convert_mols_from_string(input: str, output: str, mol: Optional[rdkit.Chem.r
         MolToMolFile(mol, tmpOutput)
 
         # Convert it to the desired format (This will not cause an infinite loop since the input extension is always mol)
-        convert_mols(tmpOutput, output)
+        result = convert_mols(tmpOutput, output)
+        
+        # Clean up temporary file
+        try:
+            if os.path.isfile(tmpOutput):
+                os.remove(tmpOutput)
+        except (OSError, PermissionError):
+            # Ignore errors during cleanup (file might be in use or already deleted)
+            pass
+        
+        # Return the result of conversion
+        if result != ocerror.Error.ok(): # type: ignore
+            return result
         
     except Exception as e:
+        # Clean up temporary file on error
+        try:
+            tmpOutput = f"{os.path.splitext(output)[0]}_tmp.mol"
+            if os.path.isfile(tmpOutput):
+                os.remove(tmpOutput)
+        except (OSError, PermissionError):
+            pass
         return ocerror.Error.subprocess(message=f"Error while running molecule conversion from {inExtension} to {outExtension} using obabel python lib. Error: {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
 
     return ocerror.Error.ok() # type: ignore

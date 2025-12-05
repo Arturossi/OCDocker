@@ -107,6 +107,7 @@ USE_MULTIPROCESSING = True  # Set to False to process ligands sequentially
 
 # Imports
 import os
+from typing import Optional
 import numpy as np
 import pandas as pd
 import argparse
@@ -179,7 +180,7 @@ except (ImportError, AttributeError):
     print("Warning: joblib not available. Multiprocessing disabled.")
 
 # Mapping function to convert rescoring keys to database column names
-def map_rescoring_key_to_db_column(key: str, engine: str = None) -> str:
+def map_rescoring_key_to_db_column(key: str, engine: Optional[str] = None) -> str:
     '''Map rescoring result keys to database column names.
     
     Parameters
@@ -418,6 +419,7 @@ def wait_for_file_stable(file_path: str, max_wait: float = 2.0, check_interval: 
     bool
         True if file stabilized, False if timeout
     '''
+
     if not os.path.isfile(file_path):
         return False
     
@@ -460,6 +462,7 @@ def validate_molecule_file(file_path: str) -> bool:
     bool
         True if file is valid and can be loaded
     '''
+
     from OCDocker.Toolbox import Validation as ocvalidation
     
     # First check if file is stable (not being written)
@@ -473,7 +476,7 @@ def validate_molecule_file(file_path: str) -> bool:
         return False
 
 
-def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Receptor) -> dict:
+def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Receptor) -> Optional[dict]:
     ''' Process a single ligand through the complete OCScore pipeline.
     
     Parameters
@@ -487,8 +490,8 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
     
     Returns
     -------
-    dict
-        Dictionary containing all features and OCScore prediction
+    dict | None
+        Dictionary containing all features and OCScore prediction. None if processing fails.
     '''
 
     try:

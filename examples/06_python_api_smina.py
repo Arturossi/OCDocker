@@ -19,14 +19,14 @@ receptor_path = "./test_files"
 
 # Create Smina docking object
 smina = Smina(
-    config_file=f"{ligand_path}/sminaFiles/conf_smina.txt",
+    config_path=f"{ligand_path}/sminaFiles/conf_smina.txt",
     box_file=f"{ligand_path}/boxes/box.pdb",
     receptor=receptor,
     prepared_receptor_path=f"{receptor_path}/prepared_receptor.pdbqt",
     ligand=ligand,
     prepared_ligand_path=f"{ligand_path}/prepared_ligand.pdbqt",
-    log_file=f"{ligand_path}/sminaFiles/smina.log",
-    output_file=f"{ligand_path}/sminaFiles/smina.pdbqt",
+    smina_log=f"{ligand_path}/sminaFiles/smina.log",
+    output_smina=f"{ligand_path}/sminaFiles/smina.pdbqt",
     name="Smina receptor-ligand"
 )
 
@@ -42,7 +42,9 @@ if not os.path.isfile(f"{ligand_path}/prepared_ligand.pdbqt"):
 smina.run_docking()
 
 # Run rescoring with Smina
-smina.run_rescore(f"{ligand_path}/sminaFiles", skipDefaultScoring=True)
+# Note: run_rescore requires both outPath and ligand parameters
+# Use the output file from docking (contains all poses) for rescoring
+smina.run_rescore(f"{ligand_path}/sminaFiles", smina.output_smina, skipDefaultScoring=True)
 
 # Read results
 docking_results = smina.read_log()

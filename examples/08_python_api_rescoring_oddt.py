@@ -20,14 +20,14 @@ receptor_path = "./test_files"
 
 # Create and run Vina docking
 vina = Vina(
-    config_file=f"{ligand_path}/vinaFiles/conf_vina.txt",
+    config_path=f"{ligand_path}/vinaFiles/conf_vina.txt",
     box_file=f"{ligand_path}/boxes/box.pdb",
     receptor=receptor,
     prepared_receptor_path=f"{receptor_path}/prepared_receptor.pdbqt",
     ligand=ligand,
     prepared_ligand_path=f"{ligand_path}/prepared_ligand.pdbqt",
-    log_file=f"{ligand_path}/vinaFiles/vina.log",
-    output_file=f"{ligand_path}/vinaFiles/vina.pdbqt",
+    vina_log=f"{ligand_path}/vinaFiles/vina.log",
+    output_vina=f"{ligand_path}/vinaFiles/vina.pdbqt",
     name="Vina receptor-ligand"
 )
 
@@ -40,11 +40,12 @@ docked_poses = vina.get_docked_poses()
 
 # Run ODDT rescoring
 # This will compute various scoring functions (RFScore, NNScore, PLEC, etc.)
+# Note: run_oddt requires prepared receptor path, prepared ligand paths (list), ligand name, and output path
 oddt_results_df = run_oddt(
-    prepared_receptor=vina.preparedReceptor,
-    docked_poses=docked_poses,
-    ligand_name=vina.inputLigand.name,
-    output_dir=f"{ligand_path}/oddt"
+    preparedReceptorPath=vina.prepared_receptor,
+    preparedLigandPath=docked_poses,  # List of docked pose file paths
+    ligandName=vina.input_ligand.name,
+    outputPath=f"{ligand_path}/oddt"
 )
 
 # Convert DataFrame to dictionary if needed

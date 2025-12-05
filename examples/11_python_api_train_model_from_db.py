@@ -34,7 +34,7 @@ import os
 import sys
 import numpy as np
 import pandas as pd
-from typing import Optional, Any
+from typing import Optional, Any, List
 
 # Add parent directory to path to allow importing OCDocker
 # This allows the script to be run from any directory
@@ -231,7 +231,7 @@ def prepare_data_from_db(
         invert_conditionally: bool = True,
         normalize: bool = True,
         scaler: str = "standard",
-        methodology: str = None
+        methodology: Optional[str] = None
     ) -> dict:
     '''
     Prepare data from database using the full preprocessing pipeline.
@@ -422,7 +422,7 @@ def train_xgboost_model(
         pca_type: int = 95,
         no_scores: bool = False,
         only_scores: bool = False,
-        study_name: str = None,
+        study_name: Optional[str] = None,
         use_gpu: bool = False,
         verbose: bool = True
     ) -> tuple:
@@ -536,7 +536,8 @@ def train_dnn_model(
         mask: Optional[np.ndarray] = None,
         use_gpu: bool = True,
         verbose: bool = True,
-        best_trial: Optional[Any] = None  # Optional: if provided, use this trial instead of loading from study
+        best_trial: Optional[Any] = None,  # Optional: if provided, use this trial instead of loading from study
+        ao_study_numbers: Optional[List[int]] = None  # Optional: list of AO study numbers to search (e.g., [6, 7, 8, 9, 10])
     ) -> tuple:
     '''
     Train a DNN model.
@@ -588,23 +589,55 @@ def train_dnn_model(
     if mask is None:
         # Check if this is an AE with NN study (studies 6-10)
         if study_num and 6 <= study_num <= 10:
-            print(f"Fetching autoencoder params and mask for AE with NN study {study_num}...")
+            print(f"Fetching best autoencoder params across ALL AO studies...")
             import optuna
             
-            # Load autoencoder study to get encoder params
-            ao_study_name = f"AO_Optimization_{study_num}"
-            try:
-                ao_study = optuna.load_study(study_name=ao_study_name, storage=storage)
-                ao_df = ao_study.trials_dataframe()
-                ao_df = ao_df[ao_df['state'] == 'COMPLETE']
-                best_ao_df = ao_df.sort_values(by=['value', 'user_attrs_val_rmse'], ascending=[True, True])
-                best_ao_trial = ao_study.trials[best_ao_df.iloc[0].number]
-                encoder_params = best_ao_trial.params
+            # Find the best AE across ALL AO studies (not just the one matching the NN study number)
+            # This ensures we use the globally best autoencoder, not just the one from the matching study
+            # Use provided ao_study_numbers or default to [6, 7, 8, 9, 10] for AE with NN studies
+            if ao_study_numbers is None:
+                ao_study_numbers = [6, 7, 8, 9, 10]  # Default: All AE with NN study numbers
+            
+            all_ao_trials = []
+            
+            for ao_num in ao_study_numbers:
+                ao_study_name = f"AO_Optimization_{ao_num}"
+                try:
+                    ao_study = optuna.load_study(study_name=ao_study_name, storage=storage)
+                    ao_df = ao_study.trials_dataframe()
+                    ao_df = ao_df[ao_df['state'] == 'COMPLETE']
+                    
+                    if len(ao_df) > 0:
+                        # Sort by value (RMSE) and validation RMSE
+                        ao_df = ao_df.sort_values(by=['value', 'user_attrs_val_rmse'], ascending=[True, True])
+                        best_ao_trial = ao_study.trials[ao_df.iloc[0].number]
+                        all_ao_trials.append({
+                            'study_name': ao_study_name,
+                            'study_number': ao_num,
+                            'trial': best_ao_trial,
+                            'value': best_ao_trial.value,
+                            'val_rmse': best_ao_trial.user_attrs.get('val_rmse', float('inf'))
+                        })
+                        if verbose:
+                            print(f"  Found best trial in {ao_study_name}: RMSE={best_ao_trial.value:.4f}, Val_RMSE={best_ao_trial.user_attrs.get('val_rmse', 'N/A')}")
+                except Exception as e:
+                    if verbose:
+                        print(f"  Warning: Could not load autoencoder study {ao_study_name}: {e}")
+            
+            # Find the best AE trial across all studies
+            if len(all_ao_trials) > 0:
+                # Sort by value (RMSE) first, then by validation RMSE
+                best_ao_info = min(all_ao_trials, key=lambda x: (x['value'], x['val_rmse']))
+                encoder_params = best_ao_info['trial'].params
                 if verbose:
-                    print(f"Loaded autoencoder params from: {ao_study_name}")
-            except Exception as e:
+                    print(f"\nSelected best autoencoder from: {best_ao_info['study_name']}")
+                    print(f"  Trial number: {best_ao_info['trial'].number}")
+                    print(f"  RMSE: {best_ao_info['value']:.4f}")
+                    print(f"  Val RMSE: {best_ao_info['val_rmse']:.4f}")
+                    print(f"  (Selected from {len(all_ao_trials)} AO studies)")
+            else:
                 if verbose:
-                    print(f"Warning: Could not load autoencoder study {ao_study_name}: {e}")
+                    print(f"Warning: No autoencoder studies found. Training without autoencoder.")
             
             # Load ablation study to get mask
             ablation_study_name = "NN_Ablation_Optimization_1"
@@ -1168,6 +1201,20 @@ def main():
             verbose=args.verbose
         )
     else:  # DNN
+        # Extract AO study numbers from NN study names (for finding best AE)
+        # Extract numbers from study names like "NN_Optimization_6" -> [6, 7, 8, 9, 10]
+        ao_study_numbers = []
+        for study_name in args.studies:
+            match = re.search(r'_(\d+)$', study_name)
+            if match:
+                study_num = int(match.group(1))
+                # Only include if it's in the AE with NN range (typically 6-10, but be flexible)
+                if study_num >= 6:
+                    ao_study_numbers.append(study_num)
+        
+        # Remove duplicates and sort
+        ao_study_numbers = sorted(list(set(ao_study_numbers))) if ao_study_numbers else None
+        
         model, mask = train_dnn_model(
             data=data,
             storage=args.storage,
@@ -1181,7 +1228,8 @@ def main():
             study_name=best_study_name,  # Pass best study name for context
             use_gpu=args.use_gpu,
             verbose=args.verbose,
-            best_trial=best_trial  # Pass the best trial found across all studies
+            best_trial=best_trial,  # Pass the best trial found across all studies
+            ao_study_numbers=ao_study_numbers  # Pass AO study numbers to search for best AE
         )
     
     print(f"\n{'='*60}")

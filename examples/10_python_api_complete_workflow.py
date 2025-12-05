@@ -24,14 +24,14 @@ receptor_pdbqt = f"{receptor_path}/prepared_receptor.pdbqt"
 if not os.path.isfile(receptor_pdbqt):
     # Use Vina to prepare receptor (any engine can do this)
     temp_vina = Vina(
-        config_file=f"{ligand_path}/vinaFiles/conf_vina.txt",
+        config_path=f"{ligand_path}/vinaFiles/conf_vina.txt",
         box_file=f"{ligand_path}/boxes/box.pdb",
         receptor=receptor,
         prepared_receptor_path=receptor_pdbqt,
         ligand=ligand,
         prepared_ligand_path=f"{ligand_path}/prepared_ligand.pdbqt",
-        log_file=f"{ligand_path}/vinaFiles/temp.log",
-        output_file=f"{ligand_path}/vinaFiles/temp.pdbqt",
+        vina_log=f"{ligand_path}/vinaFiles/temp.log",
+        output_vina=f"{ligand_path}/vinaFiles/temp.pdbqt",
         name="temp"
     )
     temp_vina.run_prepare_receptor()
@@ -40,14 +40,14 @@ if not os.path.isfile(receptor_pdbqt):
 ligand_pdbqt = f"{ligand_path}/prepared_ligand.pdbqt"
 if not os.path.isfile(ligand_pdbqt):
     temp_vina = Vina(
-        config_file=f"{ligand_path}/vinaFiles/conf_vina.txt",
+        config_path=f"{ligand_path}/vinaFiles/conf_vina.txt",
         box_file=f"{ligand_path}/boxes/box.pdb",
         receptor=receptor,
         prepared_receptor_path=receptor_pdbqt,
         ligand=ligand,
         prepared_ligand_path=ligand_pdbqt,
-        log_file=f"{ligand_path}/vinaFiles/temp.log",
-        output_file=f"{ligand_path}/vinaFiles/temp.pdbqt",
+        vina_log=f"{ligand_path}/vinaFiles/temp.log",
+        output_vina=f"{ligand_path}/vinaFiles/temp.pdbqt",
         name="temp"
     )
     temp_vina.run_prepare_ligand()
@@ -55,14 +55,14 @@ if not os.path.isfile(ligand_pdbqt):
 # Step 4: Run docking with Vina
 print("Running Vina docking...")
 vina = Vina(
-    config_file=f"{ligand_path}/vinaFiles/conf_vina.txt",
+    config_path=f"{ligand_path}/vinaFiles/conf_vina.txt",
     box_file=f"{ligand_path}/boxes/box.pdb",
     receptor=receptor,
     prepared_receptor_path=receptor_pdbqt,
     ligand=ligand,
     prepared_ligand_path=ligand_pdbqt,
-    log_file=f"{ligand_path}/vinaFiles/vina.log",
-    output_file=f"{ligand_path}/vinaFiles/vina.pdbqt",
+    vina_log=f"{ligand_path}/vinaFiles/vina.log",
+    output_vina=f"{ligand_path}/vinaFiles/vina.pdbqt",
     name="Vina receptor-ligand"
 )
 vina.run_docking()
@@ -73,14 +73,14 @@ print(f"Vina: Found {len(vina_poses)} poses")
 # Step 5: Run docking with Smina
 print("Running Smina docking...")
 smina = Smina(
-    config_file=f"{ligand_path}/sminaFiles/conf_smina.txt",
+    config_path=f"{ligand_path}/sminaFiles/conf_smina.txt",
     box_file=f"{ligand_path}/boxes/box.pdb",
     receptor=receptor,
     prepared_receptor_path=receptor_pdbqt,
     ligand=ligand,
     prepared_ligand_path=ligand_pdbqt,
-    log_file=f"{ligand_path}/sminaFiles/smina.log",
-    output_file=f"{ligand_path}/sminaFiles/smina.pdbqt",
+    smina_log=f"{ligand_path}/sminaFiles/smina.log",
+    output_smina=f"{ligand_path}/sminaFiles/smina.pdbqt",
     name="Smina receptor-ligand"
 )
 smina.run_docking()
@@ -104,7 +104,8 @@ print(f"Found {len(medoids)} representative poses (medoids)")
 
 # Step 8: Rescore medoids with Smina
 print("Rescoring medoids with Smina...")
-smina.run_rescore(f"{ligand_path}/sminaFiles", skipDefaultScoring=True)
+# Note: run_rescore requires both outPath and ligand parameters
+smina.run_rescore(f"{ligand_path}/sminaFiles", smina.output_smina, skipDefaultScoring=True)
 rescoring_results = smina.read_rescore_logs(f"{ligand_path}/sminaFiles")
 
 # Step 9: Summary

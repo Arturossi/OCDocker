@@ -21,14 +21,14 @@ receptor_path = "./test_files"
 
 # Run Vina docking
 vina = Vina(
-    config_file=f"{ligand_path}/vinaFiles/conf_vina.txt",
+    config_path=f"{ligand_path}/vinaFiles/conf_vina.txt",
     box_file=f"{ligand_path}/boxes/box.pdb",
     receptor=receptor,
     prepared_receptor_path=f"{receptor_path}/prepared_receptor.pdbqt",
     ligand=ligand,
     prepared_ligand_path=f"{ligand_path}/prepared_ligand.pdbqt",
-    log_file=f"{ligand_path}/vinaFiles/vina.log",
-    output_file=f"{ligand_path}/vinaFiles/vina.pdbqt",
+    vina_log=f"{ligand_path}/vinaFiles/vina.log",
+    output_vina=f"{ligand_path}/vinaFiles/vina.pdbqt",
     name="Vina receptor-ligand"
 )
 
@@ -40,14 +40,14 @@ vina_poses = vina.get_docked_poses()
 
 # Run PLANTS docking
 plants = PLANTS(
-    config_file=f"{ligand_path}/plantsFiles/conf_plants.txt",
+    config_path=f"{ligand_path}/plantsFiles/conf_plants.txt",
     box_file=f"{ligand_path}/boxes/box.pdb",
     receptor=receptor,
     prepared_receptor_path=f"{receptor_path}/prepared_receptor.mol2",
     ligand=ligand,
     prepared_ligand_path=f"{ligand_path}/prepared_ligand.mol2",
-    log_file=f"{ligand_path}/plantsFiles/plants.log",
-    output_dir=f"{ligand_path}/plantsFiles",
+    plants_log=f"{ligand_path}/plantsFiles/plants.log",
+    output_plants=f"{ligand_path}/plantsFiles",
     name="PLANTS receptor-ligand"
 )
 

@@ -20,14 +20,14 @@ receptor_path = "./test_files"
 # Create PLANTS docking object
 # Note: PLANTS uses MOL2 format instead of PDBQT
 plants = PLANTS(
-    config_file=f"{ligand_path}/plantsFiles/conf_plants.txt",
+    config_path=f"{ligand_path}/plantsFiles/conf_plants.txt",
     box_file=f"{ligand_path}/boxes/box.pdb",
     receptor=receptor,
     prepared_receptor_path=f"{receptor_path}/prepared_receptor.mol2",
     ligand=ligand,
     prepared_ligand_path=f"{ligand_path}/prepared_ligand.mol2",
-    log_file=f"{ligand_path}/plantsFiles/plants.log",
-    output_dir=f"{ligand_path}/plantsFiles",
+    plants_log=f"{ligand_path}/plantsFiles/plants.log",
+    output_plants=f"{ligand_path}/plantsFiles",
     name="PLANTS receptor-ligand"
 )
 
@@ -48,7 +48,7 @@ print("PLANTS docking results:", docking_results)
 docking_poses = plants.get_docked_poses()
 
 # Write pose list for rescoring
-pose_list = plants.write_pose_list(docking_poses)
+pose_list = plants.write_pose_list()
 
 # Run rescoring
 plants.run_rescore(pose_list, logFile="", overwrite=False)
