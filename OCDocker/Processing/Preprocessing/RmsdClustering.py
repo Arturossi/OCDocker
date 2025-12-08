@@ -657,11 +657,25 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                             legend_labels.append(engine_name.capitalize())
                 
                 # Add legend with adjusted position to prevent overlap
-                if legend_handles:
-                    ax.legend(legend_handles, legend_labels, loc='upper right', fontsize=12, framealpha=0.9, bbox_to_anchor=(1.0, 1.0))
+                # Check if we have cluster entries (which can cause overlap issues)
+                has_cluster_entries = any('Cluster' in label for label in legend_labels)
                 
-                # Adjust layout to prevent text overlap - give more space on the right for legend
-                plt.tight_layout(rect=[0.05, 0.05, 0.88, 0.95])
+                if legend_handles:
+                    num_legend_entries = len(legend_handles)
+                    # If we have cluster entries or many entries, place legend outside to prevent overlap
+                    if has_cluster_entries or num_legend_entries > 3:
+                        # Place legend outside the plot area on the right
+                        legend = ax.legend(legend_handles, legend_labels, loc='upper left', fontsize=12, framealpha=0.9, bbox_to_anchor=(1.02, 1.0))
+                        # Adjust layout to give more space on the right for legend
+                        plt.tight_layout(rect=[0.05, 0.05, 0.80, 0.95])
+                    else:
+                        # Only threshold and engine entries, can place inside
+                        legend = ax.legend(legend_handles, legend_labels, loc='upper right', fontsize=12, framealpha=0.9, bbox_to_anchor=(0.98, 0.98))
+                        # Adjust layout - reduce right margin since legend is inside
+                        plt.tight_layout(rect=[0.05, 0.05, 0.92, 0.95])
+                else:
+                    # No legend, use standard layout
+                    plt.tight_layout(rect=[0.05, 0.05, 0.95, 0.95])
                 
                 # Add the silhouette score (left, top) rounded to 2 decimals
                 ax.text(0.02, 0.98, f"Silhouette Score: ~{round(scores, 2)}", transform=ax.transAxes, size=12, verticalalignment='top', horizontalalignment='left')
