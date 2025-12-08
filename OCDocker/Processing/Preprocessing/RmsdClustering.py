@@ -245,8 +245,15 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
 
             # If the biggest cluster is 1
             if len(biggest_cluster) == 1:
-                # If there is only one cluster, do not perform the silhouette score
-                if len(unique_clusters) > 1:
+                # If there is only one cluster, accept it as valid (single big cluster)
+                if len(unique_clusters) == 1:
+                    # Single cluster is valid - set scores to 0 (no need for silhouette with one cluster)
+                    scores = 0
+                    # Store results for plotting
+                    results = results
+                    # Break the loop
+                    break
+                elif len(unique_clusters) > 1:
                     # Get the silhouette score
                     scores = silhouette_score(npdata, results)
                     # Break the loop
@@ -297,35 +304,54 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                     # If we found a cluster with multiple members, use it
                     if best_cluster >= 0:
                         ocprint.print_warning(f"Clustering did not fully converge. Using cluster {best_cluster} (size: {max_cluster_size}) with smallest internal variance (max pairwise distance: {min_max_distance:.2f}).")
-                        return last_result
-                    
-            # If all clusters have only 1 member, fail
-            ocprint.print_warning("All clusters have only 1 member. Clustering failed.")
-            # Generate a plot even if clustering failed, then return error code
-            if outputPlot != "":
-                try:
-                    fig, ax = plt.subplots(figsize=(14, 9))
-                    linkage_matrix = sch.linkage(npdata, method='ward')
-                    _ = sch.dendrogram(linkage_matrix, ax=ax)
-                    title = 'Pose consensus'
-                    if molecule_name:
-                        title = f'{molecule_name} pose consensus'
-                    ax.set_title(title, fontsize=16)
-                    ax.set_xlabel('Data Points', fontsize=14)
-                    ax.set_ylabel('Distance (Å)', fontsize=14)
-                    ax.tick_params(axis='both', which='major', labelsize=12)
-                    # Add warning text
-                    ax.text(0.5, 0.5, 'Clustering did not converge.\nAll poses are too different.', 
-                           transform=ax.transAxes, fontsize=14, ha='center', va='center',
-                           bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.7))
-                    plt.tight_layout()
-                    plt.savefig(outputPlot, dpi=150)
-                    plt.close()
-                    ocprint.print_warning(f"Generated plot for failed clustering: {outputPlot}")
-                except Exception as e:
-                    ocprint.print_warning(f"Failed to generate plot for non-converged clustering: {e}")
-            # Print the message, returning the error code
-            return ocerror.Error.cluster_not_converged(f"The clustering algorithm did not converge. The distance threshold is {distance_threshold}.") # type: ignore
+                        # Set results and scores for plotting, then continue to plot generation
+                        results = last_result
+                        scores = 0  # Set to 0 to indicate we're using fallback result
+                        # Use the last distance threshold from the loop, or calculate a reasonable default
+                        if distance_threshold == -1:
+                            # Calculate a reasonable threshold from the linkage matrix
+                            linkage_matrix = sch.linkage(npdata, method='ward')
+                            distance_threshold = np.max(linkage_matrix[:, 2]) * 0.8  # 80% of max distance
+                        # Continue to plot generation (don't return early)
+                    else:
+                        # No valid cluster found, will fall through to error case
+                        pass
+                else:
+                    # All clusters have only 1 member
+                    pass
+            else:
+                # last_result is empty
+                pass
+            
+            # If we still have scores == -1, clustering truly failed
+            if scores == -1:
+                # If all clusters have only 1 member, fail
+                ocprint.print_warning("All clusters have only 1 member. Clustering failed.")
+                # Generate a plot even if clustering failed, then return error code
+                if outputPlot != "":
+                    try:
+                        fig, ax = plt.subplots(figsize=(14, 9))
+                        linkage_matrix = sch.linkage(npdata, method='ward')
+                        _ = sch.dendrogram(linkage_matrix, ax=ax)
+                        title = 'Pose consensus'
+                        if molecule_name:
+                            title = f'{molecule_name} pose consensus'
+                        ax.set_title(title, fontsize=16)
+                        ax.set_xlabel('Data Points', fontsize=14)
+                        ax.set_ylabel('Distance (Å)', fontsize=14)
+                        ax.tick_params(axis='both', which='major', labelsize=12)
+                        # Add warning text
+                        ax.text(0.5, 0.5, 'Clustering did not converge.\nAll poses are too different.', 
+                               transform=ax.transAxes, fontsize=14, ha='center', va='center',
+                               bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.7))
+                        plt.tight_layout()
+                        plt.savefig(outputPlot, dpi=150)
+                        plt.close()
+                        ocprint.print_warning(f"Generated plot for failed clustering: {outputPlot}")
+                    except Exception as e:
+                        ocprint.print_warning(f"Failed to generate plot for non-converged clustering: {e}")
+                # Print the message, returning the error code
+                return ocerror.Error.cluster_not_converged(f"The clustering algorithm did not converge. The distance threshold is {distance_threshold}.") # type: ignore
 
         # If the outputPlot is not ""
         if outputPlot != "":
@@ -716,7 +742,11 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                     plt.tight_layout(rect=[0.05, 0.05, 0.95, 0.95])
                 
                 # Add the silhouette score (left, top) rounded to 2 decimals
-                ax.text(0.02, 0.98, f"Silhouette Score: ~{round(scores, 2)}", transform=ax.transAxes, size=12, verticalalignment='top', horizontalalignment='left')
+                # For single cluster, silhouette score is not meaningful, show N/A
+                if scores == 0 and len(np.unique(results)) == 1:
+                    ax.text(0.02, 0.98, "Silhouette Score: N/A (single cluster)", transform=ax.transAxes, size=12, verticalalignment='top', horizontalalignment='left')
+                else:
+                    ax.text(0.02, 0.98, f"Silhouette Score: ~{round(scores, 2)}", transform=ax.transAxes, size=12, verticalalignment='top', horizontalalignment='left')
                 # Add a label to the distance threshold below the silhouette score
                 ax.text(0.02, 0.94, f"Distance Threshold: {round(distance_threshold, 2)} Å", transform=ax.transAxes, size=12, verticalalignment='top', horizontalalignment='left')
                 
