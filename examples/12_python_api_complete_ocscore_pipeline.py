@@ -54,6 +54,7 @@ PCA_MODEL_PATH = None  # Path to PCA model if used, e.g., f"{MODELS_DIR}/{MODEL_
 SCALER = "standard"  # "standard" or "minmax"
 INVERT_CONDITIONALLY = True
 NORMALIZE = True
+USE_MASK = True
 SCORE_COLUMNS_LIST = ["SMINA", "VINA", "ODDT", "PLANTS"]
 
 ###############################################################################
@@ -1008,6 +1009,7 @@ def main():
     print(f"{'='*60}")
     print(f"Receptor: {RECEPTOR_NAME}")
     print(f"Number of ligands: {len(ligand_tasks)}")
+    print(f"Use mask: {USE_MASK}")
     print(f"Multiprocessing: {USE_MULTIPROCESSING}")
     if USE_MULTIPROCESSING:
         print(f"Number of jobs: {N_JOBS}")
@@ -1074,7 +1076,7 @@ def main():
     
     # Load the mask if it exists
     mask = None
-    if os.path.isfile(mask_path):
+    if os.path.isfile(mask_path) and USE_MASK:
         try:
             mask = ocscoreio.load_mask(MODEL_NAME, models_dir=MODELS_DIR)
         except Exception as e:
@@ -1096,14 +1098,6 @@ def main():
         print(f"Running model inference on {len(feature_df)} ligands...")
         print(f"Feature DataFrame shape: {feature_df.shape}")
         
-        # Check if features differ between ligands
-        if len(feature_df) > 1:
-            sample_cols = [col for col in feature_df.columns if any(col.startswith(prefix) for prefix in ['VINA_', 'SMINA_', 'PLANTS_', 'ODDT_'])][:5]
-            if sample_cols:
-                print(f"\nSample SF values for first 2 ligands:")
-                for idx in range(min(2, len(feature_df))):
-                    print(f"  Ligand {idx} ({feature_df.iloc[idx].get('ligand', 'unknown')}): {feature_df[sample_cols].iloc[idx].to_dict()}")
-        
         ocscore_predictions = ocscoring.get_score(
             model_path=model_path,
             data=feature_df,
@@ -1118,8 +1112,6 @@ def main():
             use_gpu=USE_GPU  # Use GPU if available and USE_GPU=True
         )
         
-        # Debug: Print prediction details
-        print(f"\nPrediction type: {type(ocscore_predictions)}")
         if isinstance(ocscore_predictions, pd.DataFrame):
             print(f"Prediction DataFrame shape: {ocscore_predictions.shape}")
             print(f"Prediction DataFrame columns: {list(ocscore_predictions.columns)}")
