@@ -666,13 +666,13 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                     if has_cluster_entries or num_legend_entries > 3:
                         # Place legend outside the plot area on the right
                         legend = ax.legend(legend_handles, legend_labels, loc='upper left', fontsize=12, framealpha=0.9, bbox_to_anchor=(1.02, 1.0))
-                        # Adjust layout to give more space on the right for legend
-                        plt.tight_layout(rect=[0.05, 0.05, 0.80, 0.95])
+                        # Adjust layout to give more space on the right for legend, but don't distort
+                        plt.tight_layout(rect=[0.05, 0.05, 0.85, 0.95])
                     else:
                         # Only threshold and engine entries, can place inside
                         legend = ax.legend(legend_handles, legend_labels, loc='upper right', fontsize=12, framealpha=0.9, bbox_to_anchor=(0.98, 0.98))
-                        # Adjust layout - reduce right margin since legend is inside
-                        plt.tight_layout(rect=[0.05, 0.05, 0.92, 0.95])
+                        # Adjust layout - standard margins
+                        plt.tight_layout(rect=[0.05, 0.05, 0.95, 0.95])
                 else:
                     # No legend, use standard layout
                     plt.tight_layout(rect=[0.05, 0.05, 0.95, 0.95])
@@ -719,24 +719,30 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                     pass
             except Exception as e:
                 # If plotting fails, log the error but don't fail the entire clustering
+                import traceback
                 ocprint.print_warning(f"Failed to generate clustering plot: {e}")
+                ocprint.print_warning(f"Traceback: {traceback.format_exc()}")
                 # Try to create a simple plot as fallback
                 try:
-                    fig, ax = plt.subplots(figsize=(12, 8))
+                    fig, ax = plt.subplots(figsize=(14, 9))
                     linkage_matrix = sch.linkage(npdata, method='ward')
                     _ = sch.dendrogram(linkage_matrix, ax=ax)
-                    title = 'Agglomerative Clustering Dendrogram'
+                    title = 'Pose consensus'
                     if molecule_name:
-                        title = f'{title} - {molecule_name}'
-                    ax.set_title(title)
-                    ax.set_xlabel('Data Points')
-                    ax.set_ylabel('Distance')
-                    plt.axhline(y=distance_threshold, color='r', linestyle='--', linewidth=2)
+                        title = f'{molecule_name} pose consensus'
+                    ax.set_title(title, fontsize=16)
+                    ax.set_xlabel('Data Points', fontsize=14)
+                    ax.set_ylabel('Distance (Å)', fontsize=14)
+                    ax.tick_params(axis='both', which='major', labelsize=12)
+                    plt.axhline(y=distance_threshold, color='r', linestyle='--', linewidth=2, label='Distance Threshold')
+                    ax.legend(loc='upper right', fontsize=12, framealpha=0.9)
                     plt.tight_layout()
                     plt.savefig(outputPlot, dpi=150)
                     plt.close()
+                    ocprint.print_warning(f"Generated fallback plot for {outputPlot}")
                 except Exception as e2:
                     ocprint.print_warning(f"Failed to generate fallback plot: {e2}")
+                    ocprint.print_warning(f"Fallback traceback: {traceback.format_exc()}")
         
         # Return the results
         return results # type: ignore
