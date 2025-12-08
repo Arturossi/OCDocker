@@ -214,6 +214,29 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                     # Break the loop
                     break
                 else:
+                    # Generate a plot even if clustering failed, then return error code
+                    if outputPlot != "":
+                        try:
+                            fig, ax = plt.subplots(figsize=(14, 9))
+                            linkage_matrix = sch.linkage(npdata, method='ward')
+                            _ = sch.dendrogram(linkage_matrix, ax=ax)
+                            title = 'Pose consensus'
+                            if molecule_name:
+                                title = f'{molecule_name} pose consensus'
+                            ax.set_title(title, fontsize=16)
+                            ax.set_xlabel('Data Points', fontsize=14)
+                            ax.set_ylabel('Distance (Å)', fontsize=14)
+                            ax.tick_params(axis='both', which='major', labelsize=12)
+                            # Add warning text
+                            ax.text(0.5, 0.5, 'Clustering did not converge.\nAll poses are too different.', 
+                                   transform=ax.transAxes, fontsize=14, ha='center', va='center',
+                                   bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.7))
+                            plt.tight_layout()
+                            plt.savefig(outputPlot, dpi=150)
+                            plt.close()
+                            ocprint.print_warning(f"Generated plot for failed clustering: {outputPlot}")
+                        except Exception as e:
+                            ocprint.print_warning(f"Failed to generate plot for non-converged clustering: {e}")
                     # Print the message, returning the error code
                     return ocerror.Error.cluster_not_converged(f"The clustering algorithm did not converge. The distance threshold is {distance_threshold}.") # type: ignore
 
@@ -278,6 +301,29 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                     
             # If all clusters have only 1 member, fail
             ocprint.print_warning("All clusters have only 1 member. Clustering failed.")
+            # Generate a plot even if clustering failed, then return error code
+            if outputPlot != "":
+                try:
+                    fig, ax = plt.subplots(figsize=(14, 9))
+                    linkage_matrix = sch.linkage(npdata, method='ward')
+                    _ = sch.dendrogram(linkage_matrix, ax=ax)
+                    title = 'Pose consensus'
+                    if molecule_name:
+                        title = f'{molecule_name} pose consensus'
+                    ax.set_title(title, fontsize=16)
+                    ax.set_xlabel('Data Points', fontsize=14)
+                    ax.set_ylabel('Distance (Å)', fontsize=14)
+                    ax.tick_params(axis='both', which='major', labelsize=12)
+                    # Add warning text
+                    ax.text(0.5, 0.5, 'Clustering did not converge.\nAll poses are too different.', 
+                           transform=ax.transAxes, fontsize=14, ha='center', va='center',
+                           bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.7))
+                    plt.tight_layout()
+                    plt.savefig(outputPlot, dpi=150)
+                    plt.close()
+                    ocprint.print_warning(f"Generated plot for failed clustering: {outputPlot}")
+                except Exception as e:
+                    ocprint.print_warning(f"Failed to generate plot for non-converged clustering: {e}")
             # Print the message, returning the error code
             return ocerror.Error.cluster_not_converged(f"The clustering algorithm did not converge. The distance threshold is {distance_threshold}.") # type: ignore
 
