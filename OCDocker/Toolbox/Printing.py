@@ -140,11 +140,17 @@ def print_warning(message: str, force: bool = False) -> None:
         oclogging.configure(level=ocerror.Error.get_output_level())
         log = oclogging.get_logger("printing")
         if ocerror.Error.output_level >= ocerror.ReportLevel.DEBUG:
-            msg = f"WARNING: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'."  # type: ignore
+            # For logging, don't add "WARNING:" prefix since logger adds it via levelname
+            log_msg = f"{message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'."  # type: ignore
+            # For print, add "WARNING:" prefix
+            print_msg = f"WARNING: {log_msg}"
         else:
-            msg = f"WARNING: {message}"
-        log.warning(msg)
-        print(msg)
+            # For logging, don't add "WARNING:" prefix since logger adds it via levelname
+            log_msg = message
+            # For print, add "WARNING:" prefix
+            print_msg = f"WARNING: {message}"
+        log.warning(log_msg)
+        print(print_msg)
     return
 
 

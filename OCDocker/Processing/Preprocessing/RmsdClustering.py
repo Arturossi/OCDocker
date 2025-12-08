@@ -26,7 +26,7 @@ from scipy.cluster.hierarchy import ClusterWarning
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics import pairwise_distances, silhouette_score
 
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Optional
 from warnings import simplefilter
 
 import OCDocker.Toolbox.Printing as ocprint
@@ -131,7 +131,7 @@ def get_medoids(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], clusters
     return medoids
 
 
-def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorithm: str = 'agglomerativeClustering', max_distance_threshold: float = 20.0, min_distance_threshold: float = 10.0, threshold_step: float = 0.1, outputPlot: str = "", molecule_name: str = "") -> Union[np.ndarray, int]:
+def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorithm: str = 'agglomerativeClustering', max_distance_threshold: float = 20.0, min_distance_threshold: float = 10.0, threshold_step: float = 0.1, outputPlot: str = "", molecule_name: str = "", pose_engine_map: Optional[Dict[str, str]] = None, engine_colors: Optional[Dict[str, str]] = None) -> Union[np.ndarray, int]:
     '''Cluster molecules based on their rmsd.
 
     Parameters
@@ -150,6 +150,11 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
         The path to the output plot. The default is "". If it is "", the plot is not saved.
     molecule_name : str, optional
         The name of the molecule to include in the plot title. The default is "".
+    pose_engine_map : Dict[str, str], optional
+        Mapping from pose file paths to engine names ('vina', 'smina', 'plants'). Used for coloring labels in the plot.
+    engine_colors : Dict[str, str], optional
+        Mapping from engine names to colors. Default: {'plants': 'green', 'vina': '#9B59B6', 'smina': 'blue'}.
+        Engine names should be lowercase.
 
     Returns
     -------
@@ -306,39 +311,63 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                 import matplotlib.cm as cm
                 cluster_colors = []
                 
+                def is_light_grey(color):
+                    """Check if a color is light grey (too close to white/grey)."""
+                    r, g, b = color[0], color[1], color[2]
+                    # Light grey has all RGB components relatively high and similar
+                    # Check if all components are > 0.6 and within 0.15 of each other
+                    if min(r, g, b) > 0.6:
+                        if max(r, g, b) - min(r, g, b) < 0.15:
+                            return True
+                    return False
+                
                 # Set2 is colorblind-friendly and doesn't use blue or yellow shades
                 if n_clusters <= 8:
                     cmap = cm.get_cmap('Set2')
-                    cluster_colors = [cmap(i / max(n_clusters - 1, 1)) for i in range(n_clusters)]
+                    all_colors = [cmap(i / max(n_clusters - 1, 1)) for i in range(n_clusters)]
+                    # Filter out light grey
+                    cluster_colors = [c for c in all_colors if not is_light_grey(c)]
+                    # If we filtered out too many, add back some colors
+                    while len(cluster_colors) < n_clusters:
+                        # Try to get more colors from the colormap
+                        for i in range(n_clusters, n_clusters + 10):
+                            c = cmap(i / max(n_clusters + 9, 1))
+                            if not is_light_grey(c) and c not in cluster_colors:
+                                cluster_colors.append(c)
+                                if len(cluster_colors) >= n_clusters:
+                                    break
+                        if len(cluster_colors) < n_clusters:
+                            break
+                    cluster_colors = cluster_colors[:n_clusters]
                 elif n_clusters <= 12:
-                    # Use Set1 but filter out yellow and blue
+                    # Use Set1 but filter out yellow, blue, and light grey
                     cmap = cm.get_cmap('Set1')
                     all_colors = [cmap(i / 8.0) for i in range(9)]
-                    # Filter out yellow (high red+green, low blue) and blue (high blue component)
+                    # Filter out yellow (high red+green, low blue), blue (high blue component), and light grey
                     filtered_colors = []
                     for c in all_colors:
-                        # Skip yellow (high red and green, low blue) and blue (high blue)
+                        # Skip yellow (high red and green, low blue), blue (high blue), and light grey
                         is_yellow = c[0] > 0.7 and c[1] > 0.7 and c[2] < 0.3
                         is_blue = c[2] > 0.6
-                        if not (is_yellow or is_blue):
+                        if not (is_yellow or is_blue or is_light_grey(c)):
                             filtered_colors.append(c)
                     # Cycle through filtered colors
                     for i in range(n_clusters):
                         cluster_colors.append(filtered_colors[i % len(filtered_colors)])
                 else:
-                    # For many clusters, use a custom palette avoiding blue and yellow
-                    # Use colors from Set1, Set2, and Pastel1, filtering out yellow and blue
+                    # For many clusters, use a custom palette avoiding blue, yellow, and light grey
+                    # Use colors from Set1, Set2, and Pastel1, filtering out yellow, blue, and light grey
                     colors1 = [cm.get_cmap('Set1')(i / 8.0) for i in range(9)]
                     colors2 = [cm.get_cmap('Set2')(i / 7.0) for i in range(8)]
                     colors3 = [cm.get_cmap('Pastel1')(i / 8.0) for i in range(9)]
-                    # Combine and filter out blue and yellow shades
+                    # Combine and filter out blue, yellow, and light grey shades
                     all_colors = colors1 + colors2 + colors3
                     filtered_colors = []
                     for c in all_colors:
-                        # Skip yellow (high red and green, low blue) and blue (high blue)
+                        # Skip yellow (high red and green, low blue), blue (high blue), and light grey
                         is_yellow = c[0] > 0.7 and c[1] > 0.7 and c[2] < 0.3
                         is_blue = c[2] > 0.6
-                        if not (is_yellow or is_blue):
+                        if not (is_yellow or is_blue or is_light_grey(c)):
                             filtered_colors.append(c)
                     if len(filtered_colors) < n_clusters:
                         # If not enough colors, cycle
@@ -348,8 +377,8 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                 
                 cluster_color_map = {int(cluster_id): cluster_colors[i] for i, cluster_id in enumerate(unique_clusters)}
                 
-                # Create figure and axis
-                fig, ax = plt.subplots(figsize=(12, 8))
+                # Create figure and axis with larger size to accommodate text
+                fig, ax = plt.subplots(figsize=(14, 9))
                 
                 # Create dendrogram - this will create collections for each cluster
                 # Ensure all leaves are shown by setting count_sort and distance_sort
@@ -482,11 +511,13 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                 # not the number of data points. If multiple points merge below threshold, they form one colored branch.
                 colored_count = 0
                 blue_count = 0
+                clusters_actually_colored = set()  # Track which clusters are actually colored in the plot
                 for i, collection in enumerate(ax.collections):
                     cluster_id = collection_to_cluster.get(i, -1)
                     if cluster_id >= 0 and cluster_id in cluster_color_map:
                         # Only apply color if collection is entirely below threshold
                         collection.set_color(cluster_color_map[cluster_id])
+                        clusters_actually_colored.add(cluster_id)
                         colored_count += 1
                     else:
                         # Above threshold or crosses threshold - use gray instead of blue for colorblind-friendliness
@@ -497,10 +528,11 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                 ocprint.printv(f"Dendrogram: {len(clusters_at_threshold)} data points, {n_clusters} clusters at threshold {distance_threshold:.2f}")
                 ocprint.printv(f"  Colored branches (clusters): {colored_count}, Blue branches (above threshold): {blue_count}")
                 ocprint.printv(f"  Total collections: {len(ax.collections)}")
+                ocprint.printv(f"  Clusters actually colored in plot: {sorted(clusters_actually_colored)}")
                 
                 # Highlight representative elements (medoids) with a marker
-                # Find leaf positions and x-coordinates for medoids in the dendrogram
-                medoid_x_coords = []
+                # Find leaf positions for medoids in the dendrogram
+                medoid_leaf_positions = []  # Store leaf positions directly
                 if isinstance(data, pd.DataFrame):
                     # Get the actual file paths/names of medoids
                     medoid_paths = get_medoids(data, results, onlyBiggest=True)  # type: ignore
@@ -519,129 +551,139 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                             path_at_idx = data.index[original_idx]
                             # Check if this path is a medoid
                             if path_at_idx in medoid_set:
-                                # Get the actual x-coordinate from the dendrogram
-                                # Leaves are at positions 0 to n_leaves-1 in the plot
-                                # The x-coordinates are spaced evenly: 5, 10, 15, ... (5 * (i+1))
-                                x_coord = 5 * (leaf_pos + 1)
-                                medoid_x_coords.append(x_coord)
-                                ocprint.printv(f"Medoid found: {path_at_idx} (original_idx={original_idx}, leaf_pos={leaf_pos}, x_coord={x_coord})")
+                                # Store the leaf position directly (this corresponds to the label index)
+                                medoid_leaf_positions.append(leaf_pos)
+                                ocprint.printv(f"Medoid found: {path_at_idx} (original_idx={original_idx}, leaf_pos={leaf_pos})")
                 
-                # Highlight medoids with a dashed box around the x-axis label
-                if medoid_x_coords:
-                    from matplotlib.patches import Rectangle, FancyBboxPatch
-                    from matplotlib.transforms import Bbox, TransformedBbox
-                    
-                    # Draw dashed boxes around the representative labels on x-axis
-                    # We need to use axes coordinates (0-1) for y-position since labels are outside data area
-                    for i, x_coord in enumerate(medoid_x_coords):
-                        # Find the closest tick to our medoid x-coordinate
-                        tick_positions = ax.get_xticks()
-                        closest_tick_idx = min(range(len(tick_positions)), 
-                                              key=lambda j: abs(tick_positions[j] - x_coord))
-                        
-                        # Get the tick label
-                        tick_labels = ax.get_xticklabels()
-                        if closest_tick_idx < len(tick_labels):
-                            label = tick_labels[closest_tick_idx]
-                            
-                            # Get the bounding box of the label in display coordinates
-                            # We need to render the figure first to get accurate label positions
-                            fig.canvas.draw()
-                            label_bbox = label.get_window_extent()
-                            
-                            # Convert display coordinates to axes coordinates
-                            # This gives us the position in the axes coordinate system (0-1)
-                            label_bbox_axes = label_bbox.transformed(ax.transAxes.inverted())
-                            
-                            # Get the position and size
-                            box_x_axes = label_bbox_axes.x0
-                            box_y_axes = label_bbox_axes.y0
-                            box_width_axes = label_bbox_axes.width
-                            box_height_axes = label_bbox_axes.height
-                            
-                            # Add some padding around the label
-                            padding = 0.01  # 1% padding in axes coordinates
-                            box_x_axes = box_x_axes - padding
-                            box_y_axes = box_y_axes - padding
-                            box_width_axes = box_width_axes + 2 * padding
-                            box_height_axes = box_height_axes + 2 * padding
-                            
-                            # Draw the rectangle in axes coordinates
-                            rect = Rectangle((box_x_axes, box_y_axes), box_width_axes, box_height_axes,
-                                            transform=ax.transAxes,
-                                            linewidth=2, edgecolor='red', facecolor='none',
-                                            linestyle='--', zorder=100,
-                                            label='Representative' if i == 0 else '')
-                            ax.add_patch(rect)
-                    
-                    # Add a legend if we have medoids
-                    if len(medoid_x_coords) > 0:
-                        ax.legend(loc='upper right', fontsize=10, framealpha=0.9)
+                # Define engine color mapping (use provided or default)
+                if engine_colors is None:
+                    engine_colors = {
+                        'plants': 'green',
+                        'vina': '#9B59B6',
+                        'smina': 'blue'
+                    }
                 
-                # Set title with molecule name if provided
-                title = 'Agglomerative Clustering Dendrogram'
+                # Color leaf labels according to engine (before drawing boxes)
+                if pose_engine_map and isinstance(data, pd.DataFrame):
+                    tick_labels = ax.get_xticklabels()
+                    for i, label in enumerate(tick_labels):
+                        if i < len(leaf_order):
+                            original_idx = leaf_order[i]
+                            if original_idx < len(data.index):
+                                path_at_idx = data.index[original_idx]
+                                # Try to find engine for this pose
+                                engine = None
+                                # Check direct match
+                                if path_at_idx in pose_engine_map:
+                                    engine = pose_engine_map[path_at_idx].lower()
+                                else:
+                                    # Try to match by basename or partial path
+                                    for pose_path, eng in pose_engine_map.items():
+                                        if path_at_idx in pose_path or pose_path in path_at_idx:
+                                            engine = eng.lower()
+                                            break
+                                
+                                if engine and engine in engine_colors:
+                                    label.set_color(engine_colors[engine])
+                
+                # Render figure first to ensure labels are accessible and positioned
+                fig.canvas.draw()
+                
+                # Note: Representative poses are now shown as text below Distance Threshold
+                # No visual marking on the plot itself
+                
+                # Set title with ligand name
                 if molecule_name:
-                    title = f'{title} - {molecule_name}'
-                ax.set_title(title)
-                ax.set_xlabel('Data Points')
-                ax.set_ylabel('Distance (Å)')
-            # Extend the y-axis limits, adding a bit of buffer at the top to allow the text to fit
+                    title = f'{molecule_name} pose consensus'
+                else:
+                    title = 'Pose consensus'
+                ax.set_title(title, fontsize=16)
+                ax.set_xlabel('Data Points', fontsize=14)
+                ax.set_ylabel('Distance (Å)', fontsize=14)
+                
+                # Increase tick label font sizes
+                ax.tick_params(axis='both', which='major', labelsize=12)
+                # Extend the y-axis limits, adding a bit of buffer at the top to allow the text to fit
                 # Always start at 0 (no space below for markers - box is in axes coordinates)
                 ax.set_ylim(0, max(linkage_matrix[:, 2]) * 1.2)
                 
-                # Now that labels are set, render the figure to get accurate label positions
-                # Then draw the boxes around the representative labels
-                if medoid_x_coords:
-                    # Render the figure to get accurate label bounding boxes
-                    fig.canvas.draw()
+                # Add a red dashed line at the distance threshold
+                ax.axhline(y=distance_threshold, color='red', linestyle='--', linewidth=2, label='Distance Threshold', zorder=50)
+                
+                # Build legend entries
+                legend_handles = []
+                legend_labels = []
+                
+                # Add threshold line to legend
+                from matplotlib.lines import Line2D
+                legend_handles.append(Line2D([0], [0], color='red', linestyle='--', linewidth=2))
+                legend_labels.append('Distance Threshold')
+                
+                # Add cluster numbers and colors to legend (only clusters actually colored in the plot)
+                if cluster_color_map and len(clusters_actually_colored) > 1:
+                    # Get unique colors and their corresponding cluster IDs for actually colored clusters only
+                    color_to_clusters = {}
+                    for cluster_id in clusters_actually_colored:
+                        if cluster_id in cluster_color_map:
+                            cluster_color = cluster_color_map[cluster_id]
+                            # Convert color to tuple for comparison (handles both string and RGB tuple colors)
+                            if isinstance(cluster_color, str):
+                                color_key = cluster_color
+                            else:
+                                color_key = tuple(cluster_color) if hasattr(cluster_color, '__iter__') else cluster_color
+                            
+                            if color_key not in color_to_clusters:
+                                color_to_clusters[color_key] = []
+                            color_to_clusters[color_key].append(cluster_id)
                     
-                    # Redraw the boxes around the representative labels using axes coordinates
-                    for i, x_coord in enumerate(medoid_x_coords):
-                        # Find the closest tick to our medoid x-coordinate
-                        tick_positions = ax.get_xticks()
-                        closest_tick_idx = min(range(len(tick_positions)), 
-                                              key=lambda j: abs(tick_positions[j] - x_coord))
-                        
-                        # Get the tick label
-                        tick_labels = ax.get_xticklabels()
-                        if closest_tick_idx < len(tick_labels):
-                            label = tick_labels[closest_tick_idx]
-                            
-                            # Get the bounding box of the label in display coordinates
-                            label_bbox = label.get_window_extent()
-                            
-                            # Convert display coordinates to axes coordinates
-                            # This gives us the position in the axes coordinate system (0-1)
-                            label_bbox_axes = label_bbox.transformed(ax.transAxes.inverted())
-                            
-                            # Get the position and size
-                            box_x_axes = label_bbox_axes.x0
-                            box_y_axes = label_bbox_axes.y0
-                            box_width_axes = label_bbox_axes.width
-                            box_height_axes = label_bbox_axes.height
-                            
-                            # Add some padding around the label
-                            padding = 0.01  # 1% padding in axes coordinates
-                            box_x_axes = box_x_axes - padding
-                            box_y_axes = box_y_axes - padding
-                            box_width_axes = box_width_axes + 2 * padding
-                            box_height_axes = box_height_axes + 2 * padding
-                            
-                            # Draw the rectangle in axes coordinates
-                            from matplotlib.patches import Rectangle
-                            rect = Rectangle((box_x_axes, box_y_axes), box_width_axes, box_height_axes,
-                                            transform=ax.transAxes,
-                                            linewidth=2, edgecolor='red', facecolor='none',
-                                            linestyle='--', zorder=100,
-                                            label='Representative' if i == 0 else '')
-                            ax.add_patch(rect)
-            # Add a red line at the distance threshold
-                ax.axhline(y=distance_threshold, color='r', linestyle='--', linewidth=2, label='Distance Threshold')
+                    # If only one unique color, show just one entry
+                    if len(color_to_clusters) == 1:
+                        color_key = list(color_to_clusters.keys())[0]
+                        cluster_color = cluster_color_map[sorted(color_to_clusters[color_key])[0]]
+                        legend_handles.append(Line2D([0], [0], color=cluster_color, linestyle='-', linewidth=3))
+                        legend_labels.append('Cluster')
+                    else:
+                        # Multiple unique colors - show each unique color
+                        for color_key, cluster_ids in color_to_clusters.items():
+                            cluster_color = cluster_color_map[sorted(cluster_ids)[0]]  # Get color from first cluster with this color
+                            legend_handles.append(Line2D([0], [0], color=cluster_color, linestyle='-', linewidth=3))
+                            legend_labels.append(f'Cluster {sorted(cluster_ids)[0]}')
+                
+                # Add engine colors to legend if pose_engine_map is provided
+                if pose_engine_map:
+                    for engine_name, color in engine_colors.items():
+                        if any(eng.lower() == engine_name for eng in pose_engine_map.values()):
+                            legend_handles.append(Line2D([0], [0], color=color, linestyle='-', linewidth=2, marker='o', markersize=8))
+                            legend_labels.append(engine_name.capitalize())
+                
+                # Add legend with adjusted position to prevent overlap
+                if legend_handles:
+                    ax.legend(legend_handles, legend_labels, loc='upper right', fontsize=12, framealpha=0.9, bbox_to_anchor=(1.0, 1.0))
+                
+                # Adjust layout to prevent text overlap - give more space on the right for legend
+                plt.tight_layout(rect=[0.05, 0.05, 0.88, 0.95])
+                
                 # Add the silhouette score (left, top) rounded to 2 decimals
-                ax.text(0.05, 0.95, f"Silhouette Score: ~{round(scores, 2)}", transform=ax.transAxes, size=10, verticalalignment='top', horizontalalignment='left')
+                ax.text(0.02, 0.98, f"Silhouette Score: ~{round(scores, 2)}", transform=ax.transAxes, size=12, verticalalignment='top', horizontalalignment='left')
                 # Add a label to the distance threshold below the silhouette score
-                ax.text(0.05, 0.9, f"Distance Threshold: {round(distance_threshold, 2)} Å", transform=ax.transAxes, size=10, verticalalignment='top', horizontalalignment='left')
-                plt.tight_layout()
+                ax.text(0.02, 0.94, f"Distance Threshold: {round(distance_threshold, 2)} Å", transform=ax.transAxes, size=12, verticalalignment='top', horizontalalignment='left')
+                
+                # Add representative pose information below the distance threshold
+                if medoid_leaf_positions and isinstance(data, pd.DataFrame):
+                    # Get the original indices for medoids (matching medoids_labels.txt format)
+                    medoid_labels = []
+                    for leaf_pos in medoid_leaf_positions:
+                        # The leaf_pos corresponds to the position in the dendrogram
+                        # leaf_order[leaf_pos] gives the original index in the data
+                        if leaf_pos < len(leaf_order):
+                            original_idx = leaf_order[leaf_pos]
+                            # Display the original index to match medoids_labels.txt
+                            medoid_labels.append(str(original_idx))
+                    
+                    # Create representative text with data point numbers
+                    if medoid_labels:
+                        rep_text = f"Representative: {', '.join(medoid_labels)}"
+                        ax.text(0.02, 0.90, rep_text, transform=ax.transAxes, size=12, verticalalignment='top', horizontalalignment='left')
                 plt.savefig(outputPlot, dpi=150)
                 plt.close()
 

@@ -39,7 +39,7 @@ LIGAND_PATHS = [
     "/data/hd4tb/OCDocker/OCDocker/test_files/test_ptn1/compounds/ligands/ligand",
     "/data/hd4tb/OCDocker/OCDocker/test_files/test_ptn1/compounds/decoys/ZINC000000000015",
     "/data/hd4tb/OCDocker/OCDocker/test_files/test_ptn1/compounds/decoys/ZINC000000000024",
-    "/data/hd4tb/OCDocker/OCDocker/test_files/test_ptn1/compounds/decoys/ZINC000000000030"
+    "/data/hd4tb/OCDocker/OCDocker/test_files/test_ptn1/compounds/decoys/ZINC000000000044"
     # Add more ligand paths here (you can use glob to get all ligand folders):
     # "/path/to/ligand2",
     # "/path/to/ligand3",
@@ -359,7 +359,7 @@ def map_rescoring_key_to_db_column(key: str, engine: Optional[str] = None) -> st
     return key.upper()
 
 
-def wait_for_files_ready(file_paths: list, max_wait: float = 5.0, check_interval: float = 0.2) -> bool:
+def wait_for_files_ready(file_paths: list, max_wait: float = 8.0, check_interval: float = 0.2) -> bool:
     '''Wait for all files in a list to exist, be stable, and be readable.
     
     Parameters
@@ -402,7 +402,7 @@ def wait_for_files_ready(file_paths: list, max_wait: float = 5.0, check_interval
     return len(ready_files) == len(file_paths)
 
 
-def wait_for_file_stable(file_path: str, max_wait: float = 2.0, check_interval: float = 0.1) -> bool:
+def wait_for_file_stable(file_path: str, max_wait: float = 5.0, check_interval: float = 0.1) -> bool:
     '''Wait for a file to stabilize (size stops changing).
     
     Parameters
@@ -532,27 +532,27 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
         
         # Wait for at least some pose files to appear and stabilize
         pose_files_found = False
-        for wait_iter in range(50):  # Wait up to 5 seconds (50 * 0.1s)
+        for _ in range(50):  # Wait up to 10 seconds (50 * 0.2s)
             found_files = glob(expected_pattern)
             if found_files:
                 # Wait for all found files to stabilize
                 if wait_for_files_ready(found_files, max_wait=2.0):
                     pose_files_found = True
                     break
-            time.sleep(0.1)
+            time.sleep(0.2)
         
         if not pose_files_found:
             print(f"Warning: No stable pose files found for Vina after waiting, proceeding anyway...")
         
         # Additional safety delay for multiprocessing
-        time.sleep(0.3)
+        time.sleep(0.5)
         
         # Now get the docked poses
         vinaPoses = vina_ligand.get_docked_poses()
         
         # Wait for all retrieved pose files to be stable before proceeding
         if vinaPoses:
-            if not wait_for_files_ready(vinaPoses, max_wait=3.0):
+            if not wait_for_files_ready(vinaPoses, max_wait=5.0):
                 print(f"Warning: Some Vina pose files may not be fully ready, but proceeding...")
         
         ####################### PLANTS #########################
@@ -602,14 +602,14 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
             expected_pattern = f"{plants_output_dir}/{ligand_name_for_plants}*.mol2"
             
             plants_files_found = False
-            for wait_iter in range(100):  # Wait up to 10 seconds (100 * 0.1s)
+            for _ in range(100):  # Wait up to 20 seconds (100 * 0.1s)
                 found_files = glob(expected_pattern)
                 if found_files:
                     # Wait for all found files to stabilize
                     if wait_for_files_ready(found_files, max_wait=2.0):
                         plants_files_found = True
                         break
-                time.sleep(0.1)
+                time.sleep(0.2)
             
             if not plants_files_found:
                 print(f"Warning: No stable PLANTS output files found after waiting, proceeding anyway...")
@@ -623,7 +623,7 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
             
             # Then clean up process-specific tmp directory after a delay
             # This ensures PLANTS has released all file handles
-            time.sleep(0.1)
+            time.sleep(0.2)
             try:
                 if os.path.isdir(process_tmp_dir):
                     shutil.rmtree(process_tmp_dir, ignore_errors=True)
@@ -633,7 +633,7 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
         
         # Get the docked poses for plants
         # Additional delay to ensure PLANTS has fully released file handles
-        time.sleep(0.3)
+        time.sleep(0.5)
         
         # Now get the docked poses
         plantsPoses = plants_ligand.get_docked_poses()
@@ -689,38 +689,85 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
         if len(valid_poses) < 2:
             raise ValueError(f"Need at least 2 valid poses for RMSD calculation, found {len(valid_poses)} for ligand {ligand_name}")
         
+        # CRITICAL: Convert all poses to MOL2 format for consistent RMSD calculation
+        # Vina poses are in PDBQT format, PLANTS poses are in MOL2 format
+        # Converting all to MOL2 ensures consistent connectivity representation
+        mol2_poses_dir = f"{ligand_path}/poses_mol2"
+        os.makedirs(mol2_poses_dir, exist_ok=True)
+        mol2_poses = []
+        mol2_to_original_map = {}  # Map MOL2 pose paths back to original pose paths
+        
+        for pose_file in valid_poses:
+            pose_ext = os.path.splitext(pose_file)[1].lower()
+            pose_basename = os.path.basename(pose_file)
+            
+            if pose_ext == ".mol2":
+                # Already MOL2, use as-is
+                mol2_poses.append(pose_file)
+                mol2_to_original_map[pose_file] = pose_file
+            else:
+                # Convert to MOL2
+                mol2_path = os.path.join(mol2_poses_dir, f"{os.path.splitext(pose_basename)[0]}.mol2")
+                occonversion.convert_mols(pose_file, mol2_path, overwrite=True)
+                # Wait for conversion to complete
+                if wait_for_file_stable(mol2_path, max_wait=3.0):
+                    mol2_poses.append(mol2_path)
+                    mol2_to_original_map[mol2_path] = pose_file
+                else:
+                    print(f"Warning: Could not convert {pose_file} to MOL2 format, skipping for RMSD calculation")
+        
+        if len(mol2_poses) < 2:
+            raise ValueError(f"Need at least 2 valid MOL2 poses for RMSD calculation, found {len(mol2_poses)} for ligand {ligand_name}")
+        
         # CRITICAL: Ensure all pose files are fully ready before RMSD calculation
         # This is essential for multiprocessing to avoid reading incomplete files
-        if not wait_for_files_ready(valid_poses, max_wait=5.0):
-            print(f"Warning: Some pose files may not be fully ready for RMSD calculation, but proceeding...")
+        if not wait_for_files_ready(mol2_poses, max_wait=5.0):
+            print(f"Warning: Some MOL2 pose files may not be fully ready for RMSD calculation, but proceeding...")
         
         # Additional safety delay before RMSD calculation to ensure all file I/O is complete
-        time.sleep(0.3)
+        time.sleep(0.5)
         
-        # Get the rmsd matrix from the valid poses list
-        # At this point, all files should be fully written and stable
-        # If there are still errors, they are likely real connectivity issues, not race conditions
-        rmsdMatrix = ocmolproc.get_rmsd_matrix(valid_poses)
+        # Get the rmsd matrix from the MOL2 poses list
+        # All poses are now in the same format, ensuring consistent connectivity
+        rmsdMatrix = ocmolproc.get_rmsd_matrix(mol2_poses)
+        
+        # Create pose-to-engine mapping for plot coloring
+        # Map MOL2 poses back to original poses, then to engines
+        pose_engine_map = {}
+        for mol2_pose in mol2_poses:
+            original_pose = mol2_to_original_map.get(mol2_pose, mol2_pose)
+            if original_pose in vinaPoses:
+                pose_engine_map[mol2_pose] = 'vina'
+            elif original_pose in plantsPoses:
+                pose_engine_map[mol2_pose] = 'plants'
+            # Check if we have smina poses (if smina is used in the future)
+            # elif original_pose in sminaPoses:
+            #     pose_engine_map[mol2_pose] = 'smina'
         
         # Get the clusters
         clusters = ocrmsdclust.cluster_rmsd(
             rmsdMatrix, 
             algorithm='agglomerativeClustering', 
-            outputPlot=f"{ligand_path}/medoids.png"
+            outputPlot=f"{ligand_path}/medoids.png",
+            pose_engine_map=pose_engine_map
         )
         
         # Get the medoids (The plot is just for visualization, it is not required)
-        medoids = ocrmsdclust.get_medoids(
+        # Note: medoids will be MOL2 file paths
+        medoids_mol2 = ocrmsdclust.get_medoids(
             rmsdMatrix, 
             clusters, 
             onlyBiggest=True
         )
         
+        # Map MOL2 medoids back to original pose files
+        medoids = [mol2_to_original_map.get(medoid_mol2, medoid_mol2) for medoid_mol2 in medoids_mol2]
+        
         # Dictionary with the medoids and its docking method (to be correctly parsed by the next function)
         medoidsDict = {}
         
         ## Find which medoid has the lowest energy
-        # For each medoid
+        # For each medoid (now in original format)
         for medoid in medoids:
             # Check if it is contained in vinaPoses list
             if medoid in vinaPoses:
@@ -802,14 +849,14 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
             )
             
             # Wait for PLANTS rescoring to fully complete
-            time.sleep(0.2)
+            time.sleep(0.3)
             
         finally:
             # Always restore original tmp_dir first
             config.tmp_dir = original_tmp_dir
             
             # Then clean up process-specific tmp directory after a delay
-            time.sleep(0.1)
+            time.sleep(0.2)
             try:
                 if os.path.isdir(process_tmp_dir_rescore):
                     shutil.rmtree(process_tmp_dir_rescore, ignore_errors=True)
@@ -1037,7 +1084,6 @@ def main():
     try:
         print(f"Running model inference on {len(feature_df)} ligands...")
         print(f"Feature DataFrame shape: {feature_df.shape}")
-        print(f"Feature DataFrame columns (first 10): {list(feature_df.columns[:10])}")
         
         # Check if features differ between ligands
         if len(feature_df) > 1:

@@ -485,6 +485,9 @@ class Receptor:
 # Functions
 ###############################################################################
 ## Private ##
+# Cache to track which sequences we've already warned about
+_warned_sequences = set()
+
 def __filterSequence(residues: str) -> str:
     '''Filter the given sequence to avoid unsupported amino acid residues.
 
@@ -506,7 +509,12 @@ def __filterSequence(residues: str) -> str:
     residues = residues.upper()
 
     if 'X' in residues:
-        ocprint.print_warning(f"The gravy function does not supports the 'X' (unknown) amino acid. Stripping it to compute the GRAVY descriptor ({residues.count('X')} occurrences of {len(residues)} AAs).")
+        # Only warn once per unique sequence to avoid duplicate warnings
+        # Use a hash of the sequence to track warnings
+        sequence_hash = hash(residues)
+        if sequence_hash not in _warned_sequences:
+            _warned_sequences.add(sequence_hash)
+            ocprint.print_warning(f"The gravy function does not supports the 'X' (unknown) amino acid. Stripping it to compute the GRAVY descriptor ({residues.count('X')} occurrences of {len(residues)} AAs).")
         return residues.replace('X', '')
 
     return residues
@@ -801,7 +809,7 @@ def load_mol(structure: Union[str, os.PathLike, Bio.PDB.Structure.Structure], na
 
             # Check if the pdb file should be cleaned
             if clean:
-                # Clean the pdb file
+                # Clean the pdb file (renumber residues)
                 tmp_structure = renumber_pdb_residues(tmp_structure)
 
             # If there is a mol2 path and the file does not exist
