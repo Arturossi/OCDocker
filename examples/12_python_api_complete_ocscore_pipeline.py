@@ -1070,6 +1070,7 @@ def main():
     # Path to your trained model
     model_path = f"{MODELS_DIR}/{MODEL_NAME}.pt"
     mask_path = f"{MODELS_DIR}/{MODEL_NAME}_mask.pkl"
+    scaler_path = f"{MODELS_DIR}/{MODEL_NAME}_scaler.pkl"  # Path to saved scaler
     
     # Load the mask if it exists
     mask = None
@@ -1079,6 +1080,16 @@ def main():
         except Exception as e:
             print(f"Warning: Could not load mask: {e}")
             mask = None
+    
+    # Check if scaler exists (required for proper normalization)
+    if NORMALIZE and not os.path.isfile(scaler_path):
+        print(f"WARNING: Scaler file not found at {scaler_path}")
+        print("  This means normalization will use a NEW scaler fitted on prediction data,")
+        print("  which is INCORRECT. The scaler should be saved during training.")
+        print("  Predictions may be inaccurate!")
+        scaler_path = None  # Will create new scaler (incorrect but won't crash)
+    elif NORMALIZE:
+        print(f"Using saved scaler from: {scaler_path}")
     
     # Get OCScore predictions for all ligands at once
     try:
@@ -1100,6 +1111,7 @@ def main():
             mask=mask,
             score_columns_list=SCORE_COLUMNS_LIST,
             scaler=SCALER,
+            scaler_path=scaler_path if NORMALIZE else None,  # Use saved scaler if normalization is enabled
             invert_conditionally=INVERT_CONDITIONALLY,
             normalize=NORMALIZE,
             serialization_method="auto",  # Auto-detect model format

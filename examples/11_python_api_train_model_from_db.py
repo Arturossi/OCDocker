@@ -284,14 +284,27 @@ def prepare_data_from_db(
     print(f"Data loaded: {len(db_data)} rows")
     
     # Use preprocess_df exactly as in existing load_data function (mimics optimize_NN/optimize_XGB pattern)
-    dudez_data, pdbbind_data, score_columns = ocscoredata.preprocess_df(
-        file_name=temp_csv_path,
-        score_columns_list=["SMINA", "VINA", "ODDT", "PLANTS"],  # Default score columns
-        outliers_columns_list=None,  # No outlier removal by default
-        scaler=scaler,
-        invert_conditionally=invert_conditionally,
-        normalize=normalize
-    )
+    # Request scaler if normalization is enabled (needed for consistent scaling during prediction)
+    if normalize:
+        dudez_data, pdbbind_data, score_columns, fitted_scaler = ocscoredata.preprocess_df(
+            file_name=temp_csv_path,
+            score_columns_list=["SMINA", "VINA", "ODDT", "PLANTS"],  # Default score columns
+            outliers_columns_list=None,  # No outlier removal by default
+            scaler=scaler,
+            invert_conditionally=invert_conditionally,
+            normalize=normalize,
+            return_scaler=True  # Get the fitted scaler to save it
+        )
+    else:
+        dudez_data, pdbbind_data, score_columns = ocscoredata.preprocess_df(
+            file_name=temp_csv_path,
+            score_columns_list=["SMINA", "VINA", "ODDT", "PLANTS"],  # Default score columns
+            outliers_columns_list=None,  # No outlier removal by default
+            scaler=scaler,
+            invert_conditionally=invert_conditionally,
+            normalize=normalize
+        )
+        fitted_scaler = None
     
     # Handle score columns
     if no_scores:
@@ -399,7 +412,8 @@ def prepare_data_from_db(
         "y_test": y_test,
         "X_val": X_val,
         "y_val": y_val,
-        "feature_columns": feature_columns  # Add feature column names for mask application
+        "feature_columns": feature_columns,  # Add feature column names for mask application
+        "scaler": fitted_scaler  # Add fitted scaler (None if normalization is disabled)
     }
     
     # Clean up temporary file if we created it
@@ -1268,8 +1282,17 @@ def main():
     
     mask_path = ocscoreio.save_mask(mask, name=args.model_name, models_dir=models_dir)
     
+    # Save scaler if normalization was used
+    scaler_path = None
+    if data.get('scaler') is not None:
+        scaler_path = os.path.join(models_dir, f"{args.model_name}_scaler.pkl")
+        ocscoreio.save_object(data['scaler'], scaler_path, serialization_method="joblib")
+        print(f"Saved scaler to: {scaler_path}")
+    
     print(f"\nModel saved to: {model_path}")
     print(f"Mask saved to: {mask_path}")
+    if scaler_path:
+        print(f"Scaler saved to: {scaler_path}")
     print(f"\nTo use this model:")
     print(f"  import OCDocker.OCScore.Scoring as ocscoring")
     print(f"  import OCDocker.OCScore.Utils.IO as ocscoreio")
@@ -1291,11 +1314,19 @@ def main():
         print(f"  # mask = ocscoreio.load_mask('{args.model_name}', models_dir='/path/to/custom/dir')")
     print(f"  ")
     print(f"  # Get predictions")
-    print(f"  scores = ocscoring.get_score(")
-    print(f"      model_path='{model_path}',")
-    print(f"      data=your_data,  # DataFrame, CSV file path (str), or None for database")
-    print(f"      mask=mask")
-    print(f"  )")
+    if scaler_path:
+        print(f"  scores = ocscoring.get_score(")
+        print(f"      model_path='{model_path}',")
+        print(f"      data=your_data,  # DataFrame, CSV file path (str), or None for database")
+        print(f"      mask=mask,")
+        print(f"      scaler_path='{scaler_path}'  # IMPORTANT: Use the saved scaler")
+        print(f"  )")
+    else:
+        print(f"  scores = ocscoring.get_score(")
+        print(f"      model_path='{model_path}',")
+        print(f"      data=your_data,  # DataFrame, CSV file path (str), or None for database")
+        print(f"      mask=mask")
+        print(f"  )")
 
 
 if __name__ == "__main__":

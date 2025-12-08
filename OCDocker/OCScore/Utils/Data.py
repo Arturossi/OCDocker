@@ -416,49 +416,70 @@ def load_data(
     }
 
 
-def norm_data(df : pd.DataFrame, scaler : str = "standard", inplace : bool = False) -> Union[Any, pd.DataFrame]:
+def norm_data(df : pd.DataFrame, scaler : Union[str, StandardScaler, MinMaxScaler] = "standard", inplace : bool = False) -> Union[Any, pd.DataFrame, tuple[pd.DataFrame, Union[StandardScaler, MinMaxScaler]]]:
     ''' Preprocesses the input DataFrame by scaling selected feature columns using a Scaler.
-    The metadata columns ("receptor", "ligand", "name", "type", "db") are preserved.
+    The metadata columns ("receptor", "ligand", "name", "type", "db") and target variable
+    ("experimental") are preserved and excluded from scaling.
 
     Parameters
     ----------
     df: pd.DataFrame
         Input DataFrame.
-    scaler: str
-        Scaler to use. Options are "standard" and "minmax".
+    scaler: str | StandardScaler | MinMaxScaler
+        Scaler to use. Options are:
+        - "standard" or "minmax": Creates and fits a new scaler
+        - StandardScaler or MinMaxScaler object: Uses the provided pre-fitted scaler
     inplace: bool
         If True, the original DataFrame is modified. If False, a new DataFrame is returned.
 
     Returns
     -------
-    pd.DataFrame
-        DataFrame with normalized features while preserving metadata.
+    pd.DataFrame | tuple[pd.DataFrame, Union[StandardScaler, MinMaxScaler]]
+        DataFrame with normalized features while preserving metadata and target variable.
+        If scaler is a string (new scaler), returns tuple of (DataFrame, fitted_scaler) if inplace=False,
+        or just DataFrame if inplace=True.
+        If scaler is a pre-fitted object, returns only the DataFrame.
     '''
 
-    # Check the chosen scaler
-    if scaler not in ["standard", "minmax"]:
-        # User-facing error: invalid value for scaler parameter
-        ocerror.Error.value_error(f"Invalid scaler: '{scaler}'. Please choose 'standard' or 'minmax'.") # type: ignore
-        raise ValueError("Invalid scaler. Please choose 'standard' or 'minmax'.")
-    
-    # Initialize the scaler
-    scaler_model = StandardScaler() if scaler == "standard" else MinMaxScaler()
+    # Select columns to be scaled (exclude metadata and target variable)
+    # Metadata: receptor, ligand, name, type, db
+    # Target: experimental (should not be scaled)
+    feature_columns = df.columns.difference(["receptor", "ligand", "name", "type", "db", "experimental"])
 
-    # Select columns to be scaled
-    feature_columns = df.columns.difference(["receptor", "ligand", "name", "type", "db"])
+    # Check if scaler is a pre-fitted object
+    if isinstance(scaler, (StandardScaler, MinMaxScaler)):
+        # Use the provided pre-fitted scaler
+        scaler_model = scaler
+        use_fit = False
+    else:
+        # Check the chosen scaler string
+        if scaler not in ["standard", "minmax"]:
+            # User-facing error: invalid value for scaler parameter
+            ocerror.Error.value_error(f"Invalid scaler: '{scaler}'. Please choose 'standard' or 'minmax'.") # type: ignore
+            raise ValueError("Invalid scaler. Please choose 'standard' or 'minmax'.")
+        
+        # Initialize a new scaler
+        scaler_model = StandardScaler() if scaler == "standard" else MinMaxScaler()
+        use_fit = True
 
     if inplace:
         # Scale only the selected feature columns in the original DataFrame
-        df[feature_columns] = scaler_model.fit_transform(df[feature_columns])
+        if use_fit:
+            df[feature_columns] = scaler_model.fit_transform(df[feature_columns])
+        else:
+            df[feature_columns] = scaler_model.transform(df[feature_columns])
         return df
     
     # Create a copy of the DataFrame
     df_copy = df.copy()
 
     # Scale only the selected feature columns
-    df_copy[feature_columns] = scaler_model.fit_transform(df_copy[feature_columns])
-
-    return df_copy
+    if use_fit:
+        df_copy[feature_columns] = scaler_model.fit_transform(df_copy[feature_columns])
+        return df_copy, scaler_model
+    else:
+        df_copy[feature_columns] = scaler_model.transform(df_copy[feature_columns])
+        return df_copy
 
 
 def remove_other_columns(df : pd.DataFrame, columns_to_keep : list, inplace : bool = False) -> Union[Any, pd.DataFrame]:
@@ -580,8 +601,9 @@ def preprocess_df(
     outliers_columns_list : Optional[list[str]] = None, 
     scaler : str = "standard", 
     invert_conditionally : bool = True, 
-    normalize : bool = True
-) -> tuple[pd.DataFrame, pd.DataFrame, list[str]]:
+    normalize : bool = True,
+    return_scaler : bool = False
+) -> Union[tuple[pd.DataFrame, pd.DataFrame, list[str]], tuple[pd.DataFrame, pd.DataFrame, list[str], Union[StandardScaler, MinMaxScaler]]]:
     ''' Load a DataFrame from a file and preprocess it.
 
     Parameters
@@ -598,15 +620,15 @@ def preprocess_df(
         If True, the values in the score columns are inverted conditionally. The default is True.
     normalize : bool, optional
         If True, the data is normalized. The default is True.
+    return_scaler : bool, optional
+        If True, returns the fitted scaler along with the data. The scaler is fitted on
+        PDBbind data (training data) and used to transform both datasets. Default is False.
 
     Returns
     -------
-    pd.DataFrame
-        The DUDEz data.
-    pd.DataFrame
-        The PDBbind data.
-    list[str]
-        The list of score columns.
+    tuple
+        If return_scaler is False: (dudez_data, pdbbind_data, score_columns)
+        If return_scaler is True: (dudez_data, pdbbind_data, score_columns, fitted_scaler)
     '''
     
     # Load the data
@@ -640,13 +662,18 @@ def preprocess_df(
         dudez_data = dudez_data.drop(columns="experimental") # type: ignore
 
     if normalize:
-        # Normalize the PDBbind data
-        pdbbind_data = norm_data(pdbbind_data, scaler=scaler) # type: ignore
-
-        # Normalize the DUDEz data
-        dudez_data = norm_data(dudez_data, scaler=scaler) # type: ignore
-
-    return dudez_data, pdbbind_data, score_columns # type: ignore
+        # Fit scaler on PDBbind data (training data) and transform it
+        pdbbind_data, fitted_scaler = norm_data(pdbbind_data, scaler=scaler, inplace=False) # type: ignore
+        
+        # Use the same scaler to transform DUDEz data (validation/test data)
+        dudez_data = norm_data(dudez_data, scaler=fitted_scaler, inplace=False) # type: ignore
+        
+        if return_scaler:
+            return dudez_data, pdbbind_data, score_columns, fitted_scaler # type: ignore
+        else:
+            return dudez_data, pdbbind_data, score_columns # type: ignore
+    else:
+        return dudez_data, pdbbind_data, score_columns # type: ignore
 
 
 def split_dataset(X : pd.DataFrame, y : pd.Series, test_size : float = 0.2, random_state : int = 42) -> list[Any]:

@@ -148,3 +148,7 @@ packaging>=25.0
 # - pytorch: May require CUDA toolkit for GPU support
 # - xgboost: GPU version may require CUDA
 # - cupy: Requires CUDA (optional, for GPU acceleration)
+# Install with: pip install cupy-cuda11x  (for CUDA 11.x)
+# Or: pip install cupy-cuda12x  (for CUDA 12.x)
+# See: https://docs.cupy.dev/en/stable/install.html
+cupy-cuda11x>=13.0.0; sys_platform != "darwin"  # CUDA 11.x version (Linux/Windows only)

@@ -19,6 +19,7 @@ from typing import Any, Union, Optional
 import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
 import OCDocker.OCScore.Utils.IO as ocscoreio
 import OCDocker.OCScore.Utils.Data as ocscoredata
@@ -54,7 +55,8 @@ def get_score(
     pca_model: Optional[Union[str, PCA]] = None,
     mask: Optional[Union[list, np.ndarray]] = None,
     score_columns_list: list[str] = ["SMINA", "VINA", "ODDT", "PLANTS"],
-    scaler: str = "standard",
+    scaler: Optional[str] = "standard",
+    scaler_path: Optional[str] = None,
     invert_conditionally: bool = True,
     normalize: bool = True,
     no_scores: bool = False,
@@ -92,8 +94,13 @@ def get_score(
         List of score column prefixes to identify score columns. 
         Default is ["SMINA", "VINA", "ODDT", "PLANTS"].
     scaler : str, optional
-        Scaler to use for normalization. Options are "standard" or "minmax".
+        Scaler to use for normalization if scaler_path is not provided. 
+        Options are "standard" or "minmax". If scaler_path is provided, this is ignored.
         Default is "standard".
+    scaler_path : str, optional
+        Path to a saved scaler file (saved with joblib/pickle). If provided, the saved
+        scaler will be loaded and used instead of creating a new one. This ensures
+        the same scaling parameters from training are applied. Default is None.
     invert_conditionally : bool, optional
         Whether to invert values conditionally (for VINA, SMINA, PLANTS columns).
         Default is True.
@@ -326,7 +333,33 @@ def get_score(
     
     # Normalize data
     if normalize:
-        data = ocscoredata.norm_data(data, scaler=scaler, inplace=False)
+        # Try to load scaler from file if scaler_path is provided
+        scaler_obj = None
+        if scaler_path is not None:
+            if not os.path.isfile(scaler_path):
+                ocerror.Error.file_not_exist(f"Scaler file not found: {scaler_path}") # type: ignore
+                raise FileNotFoundError(f"Scaler file not found: {scaler_path}")
+            try:
+                scaler_obj = ocscoreio.load_object(scaler_path, serialization_method="auto")
+                # Verify it's a scaler object
+                if not isinstance(scaler_obj, (StandardScaler, MinMaxScaler)):
+                    ocerror.Error.value_error(f"File {scaler_path} does not contain a valid scaler object.") # type: ignore
+                    raise ValueError(f"File {scaler_path} does not contain a valid scaler object. Got {type(scaler_obj)}")
+            except Exception as e:
+                ocerror.Error.value_error(f"Failed to load scaler from {scaler_path}: {e}") # type: ignore
+                raise ValueError(f"Failed to load scaler from {scaler_path}: {e}")
+        
+        # Use the loaded scaler or the scaler string
+        if scaler_obj is not None:
+            data = ocscoredata.norm_data(data, scaler=scaler_obj, inplace=False)
+        else:
+            # Create a new scaler (this will fit on the prediction data - not ideal but backward compatible)
+            result = ocscoredata.norm_data(data, scaler=scaler, inplace=False)
+            # Handle tuple return (DataFrame, scaler) when fitting new scaler
+            if isinstance(result, tuple):
+                data = result[0]
+            else:
+                data = result
     
     # Apply PCA if pca_model is provided
     if pca_model is not None:
