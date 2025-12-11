@@ -46,11 +46,58 @@ mamba install arturossi/label/prealpha::ocdocker
 pip
 ---
 
-If you prefer to use pip, you can install OCDocker with the following command:
+**Important:** Before installing via pip, you must install the required system dependencies:
+
+```bash
+sudo apt-get install openbabel libopenbabel-dev swig
+```
+
+Then install OCDocker:
 
 ```bash
 pip install ocdocker
 ```
+
+**Installing from source with pip:**
+
+For development or if you want to install from source using pip:
+
+```bash
+# Clone the repository
+git clone https://github.com/Arturossi/OCDocker
+cd OCDocker
+
+# Install system dependencies first (REQUIRED)
+sudo apt-get install openbabel libopenbabel-dev swig
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Install the package in development mode
+pip install -e .
+```
+
+**Note on chemistry packages (rdkit, openbabel):**
+
+Some packages like `rdkit` and `openbabel` are easier to install via conda due to their system dependencies. Before installing, ensure you have the required system packages:
+
+```bash
+# Install system dependencies first (REQUIRED)
+sudo apt-get install openbabel libopenbabel-dev swig
+```
+
+If you encounter installation issues with pip, you can install these via conda first:
+
+```bash
+# Install chemistry packages via conda
+conda install -c conda-forge rdkit openbabel
+
+# Then install the rest via pip
+pip install -r requirements.txt
+pip install -e .
+```
+
+Alternatively, you can use a hybrid approach: install the chemistry packages via conda, then use pip for the rest of the dependencies.
 
 From source
 -----------
@@ -72,9 +119,19 @@ Prerequisites
 
 - Python 3.9+
 - Ubuntu/Debian-like system with internet access
-- sudo privileges (required to install: DSSP, MySQL server, and place Vina in `/usr/bin`)
+- sudo privileges (required to install: OpenBabel, DSSP, MySQL server, and place Vina in `/usr/bin`)
 - ~15–20 GB of free disk space for conda env + tools + caches
 - bash shell (the installer uses `bash` and `conda.sh`)
+
+**System Dependencies (Required Before Installation):**
+
+Before installing OCDocker, you must install the following system packages:
+
+```bash
+sudo apt-get install openbabel libopenbabel-dev swig
+```
+
+These packages are required for building and using OpenBabel Python bindings, which are essential for OCDocker's molecular processing capabilities.
 
 MySQL setup (quick tutorial)
 ----------------------------
@@ -153,7 +210,7 @@ The installer performs the following actions on Ubuntu-like systems:
 - Installs MGLTools locally under `./mgltools`.
 - Downloads AutoDock Vina and installs it to `/usr/bin/vina` (requires sudo).
 - Installs Miniconda under `$HOME/miniconda` (no sudo).
-- Installs DSSP and MySQL server via `apt-get` (requires sudo).
+- Installs system packages via `apt-get` (requires sudo): openbabel, libopenbabel-dev, swig, DSSP, and MySQL server (if not using SQLite).
 - Creates the conda environment defined by `environment.yml` (name: `ocdocker`).
 - Creates a MySQL user and database named `ocdocker` (configurable via environment variables `DB_USER`, `DB_PASS`, `DB_NAME` before running the script).
 
@@ -415,6 +472,29 @@ ocdocker console --conf OCDocker.cfg
 
 This opens an interactive namespace with common OCDocker utilities imported.
 
+Running Python Scripts
+----------------------
+
+Run Python scripts with all OCDocker libraries pre-loaded:
+
+```bash
+ocdocker script --conf OCDocker.cfg script.py [script_args...]
+```
+
+This command bootstraps the OCDocker environment, loads all modules (ocl, ocr, ocvina, etc.),
+and executes your script. All OCDocker classes and functions are available without imports.
+
+Example script:
+```python
+# script.py - All OCDocker modules are pre-loaded!
+receptor = ocr.Receptor("receptor.pdb")
+ligand = ocl.Ligand("ligand.smi")
+vina = ocvina.Vina(...)
+# ... use OCDocker functionality
+```
+
+See `examples/13_cli_script_example.py` for a complete example.
+
 Environment Variables (reference)
 ---------------------------------
 
@@ -544,7 +624,7 @@ import OCDocker.Ligand as ocl
 ligand = ocl.Ligand("./test_files/compounds/ligands/ligand/ligand.smi", name="Ligand")
 decoy  = ocl.Ligand("./test_files/compounds/decoys/ZINC000000000015/ligand.smi", name="ZINC000000000015")
 decoy2 = ocl.Ligand("./test_files/compounds/decoys/ZINC000000000024/ligand.smi", name="ZINC000000000024")
-decoy3 = ocl.Ligand("./test_files/compounds/decoys/ZINC000000000030/ligand.smi", name="ZINC000000000030")
+decoy3 = ocl.Ligand("./test_files/compounds/decoys/ZINC000000000044/ligand.smi", name="ZINC000000000044")
 ```
 
 Now we can create the docking objects, here how is it done:

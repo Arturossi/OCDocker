@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-"""
+'''
 CLI helper coverage: exercise lightweight helpers that don’t require external
 tools or full environment bootstrap.
-"""
+'''
 
 import argparse
 from pathlib import Path
@@ -16,6 +16,7 @@ from OCDocker.CLI.__init__ import (
 )
 
 
+@pytest.mark.order(19)
 def test_preparse_global_args_reads_scattered_flags(tmp_path):
     cfg = tmp_path / "OCDocker.cfg"
     argv = [
@@ -32,6 +33,7 @@ def test_preparse_global_args_reads_scattered_flags(tmp_path):
     assert ns.update is True
 
 
+@pytest.mark.order(20)
 def test_require_file_valid_and_errors(tmp_path):
     # Valid path returns Path
     f = tmp_path / "ok.txt"
@@ -51,6 +53,7 @@ def test_require_file_valid_and_errors(tmp_path):
     assert ei2.value.code == 2
 
 
+@pytest.mark.order(21)
 def test_build_parser_subcommands_and_parse():
     parser = build_parser()
     # A couple of subcommands should parse cleanly

@@ -23,18 +23,27 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem.rdmolfiles import MolToMolFile
 from rdkit.Chem.SaltRemover import SaltRemover
-from typing import Union
+from typing import Union, Optional
 
 import OCDocker.Toolbox.Printing as ocprint
 import OCDocker.Toolbox.Validation as ocvalidation
+import OCDocker.Toolbox.Constants as occ
 
-from OCDocker.Initialise import *
+from OCDocker.Config import get_config
+import OCDocker.Error as ocerror
+
+from OCDocker.Toolbox.Constants import order
 
 # Set output levels for openbabel
-pb_log_handler = pybel.ob.OBMessageHandler()
-ob_log_handler = openbabel.OBMessageHandler()
-pb_log_handler.SetOutputLevel(output_level.value)
-ob_log_handler.SetOutputLevel(output_level.value)
+try:
+    config = get_config()
+    pb_log_handler = pybel.ob.OBMessageHandler()
+    ob_log_handler = openbabel.OBMessageHandler()
+    pb_log_handler.SetOutputLevel(config.output_level.value)
+    ob_log_handler.SetOutputLevel(config.output_level.value)
+except (AttributeError, TypeError):
+    # Fallback if OBMessageHandler doesn't support SetOutputLevel or output_level isn't available
+    pass
 
 # License
 ###############################################################################
@@ -61,7 +70,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ## Private ##
 
 ## Public ##
-def convertMolsFromString(input: str, output: str, mol: Union[rdkit.Chem.rdchem.Mol, None] = None) -> Union[int, str]: # type: ignore
+def convert_mols_from_string(input: str, output: str, mol: Optional[rdkit.Chem.rdchem.Mol] = None) -> Union[int, str]:
     '''Currently only works with smiles. TODO: Add support to other formats.
 
     Parameters
@@ -117,14 +126,34 @@ def convertMolsFromString(input: str, output: str, mol: Union[rdkit.Chem.rdchem.
         MolToMolFile(mol, tmpOutput)
 
         # Convert it to the desired format (This will not cause an infinite loop since the input extension is always mol)
-        convertMols(tmpOutput, output)
+        result = convert_mols(tmpOutput, output)
+        
+        # Clean up temporary file
+        try:
+            if os.path.isfile(tmpOutput):
+                os.remove(tmpOutput)
+        except (OSError, PermissionError):
+            # Ignore errors during cleanup (file might be in use or already deleted)
+            pass
+        
+        # Return the result of conversion
+        if result != ocerror.Error.ok(): # type: ignore
+            return result
         
     except Exception as e:
+        # Clean up temporary file on error
+        try:
+            tmpOutput = f"{os.path.splitext(output)[0]}_tmp.mol"
+            if os.path.isfile(tmpOutput):
+                os.remove(tmpOutput)
+        except (OSError, PermissionError):
+            pass
         return ocerror.Error.subprocess(message=f"Error while running molecule conversion from {inExtension} to {outExtension} using obabel python lib. Error: {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
 
     return ocerror.Error.ok() # type: ignore
 
-def convertMols(input_file: str, output_file: str, return_molecule: bool = False, overwrite: bool = False) -> Union[int, str, rdkit.Chem.rdchem.Mol]: # type: ignore
+
+def convert_mols(input_file: str, output_file: str, return_molecule: bool = False, overwrite: bool = False) -> Union[int, str, rdkit.Chem.rdchem.Mol]: # type: ignore
     '''Convert a molecule file between two extensions which obabel supports.
 
     Parameters
@@ -173,12 +202,13 @@ def convertMols(input_file: str, output_file: str, return_molecule: bool = False
         with open(input_file, 'r') as file:
             data = file.read().strip()
         # Convert the string to the output file
-        return convertMolsFromString(data, output_file)
+        return convert_mols_from_string(data, output_file)
 
     # Ensure parent directory exists
     try:
         os.makedirs(os.path.dirname(os.path.abspath(output_file)), exist_ok=True)
-    except Exception:
+    except (OSError, PermissionError):
+        # Ignore errors if directory already exists or permission denied
         pass
 
     # Try to convert (if fails, throw exception for subprocess failing)
@@ -204,14 +234,15 @@ def convertMols(input_file: str, output_file: str, return_molecule: bool = False
             return mol
     except Exception as e:
         return ocerror.Error.subprocess(message=f"Error while running molecule conversion from {inExtension} to {outExtension} using obabel python lib. Error: {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
-    # Fallback: if file was not created, write a minimal stub so downstream steps can proceed in tests
     try:
         if not os.path.isfile(output_file):
             with open(output_file, 'w') as f:
                 f.write("\n")
-    except Exception:
+    except (OSError, IOError, PermissionError):
+        # Ignore errors if stub file can't be written
         pass
     return ocerror.Error.ok() # type: ignore
+
 
 def split_and_convert(path: str, out_path: str, extension: str, overwrite: bool = False) -> int:
     '''Splits a multi-molecule file then save the output in multiple single-molecule file with the desired extension. (Supported by openbabel)
@@ -267,7 +298,8 @@ def split_and_convert(path: str, out_path: str, extension: str, overwrite: bool 
     # Since everything gone ok, return the ok code
     return ocerror.Error.ok() # type: ignore
 
-def kikd_to_deltag(kikd: float, T: float = 273.15, kikd_order: str = "un", R: float = 8.314) -> float:
+
+def kikd_to_deltag(kikd: float, T: float = occ.STANDARD_TEMPERATURE_K, kikd_order: str = "un", R: float = occ.RJ) -> float:
     '''Converts Ki/Kd to deltaG.
 
     Parameters
@@ -275,11 +307,11 @@ def kikd_to_deltag(kikd: float, T: float = 273.15, kikd_order: str = "un", R: fl
     kikd : float
         Ki/Kd value.
     T : float, optional
-        Temperature in Kelvin. (default is 273.15)
+        Temperature in Kelvin. (default is STANDARD_TEMPERATURE_K, 298.15 K)
     kikd_order : str, optional
         Order of the Ki/Kd value. (default is "un")
     R : float, optional
-        Ideal gas constant in J/(mol·K). (default is 8.314)
+        Ideal gas constant in J/(mol·K). (default is RJ, 8.314462618 J/(mol·K))
 
     Returns
     -------

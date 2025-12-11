@@ -41,6 +41,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Methods
 ###############################################################################
 
+
 def apply_basic_style() -> None:
     '''Apply a lightweight, consistent Matplotlib style for analysis plots.'''
 
@@ -52,7 +53,10 @@ def apply_basic_style() -> None:
         "axes.labelsize": 10,
         "xtick.labelsize": 9,
         "ytick.labelsize": 9,
+
+
     })
+
 
 def new_fig(size: Tuple[float, float] = (6, 4)) -> Tuple[Figure, Axes]:
     '''Create a new figure and a single axes with the standard style.

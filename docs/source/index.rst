@@ -36,6 +36,7 @@ Welcome to the official documentation for OCDocker. This documentation provides 
    introduction
    installation
    modules
+   examples
    OCDocker
    OCDocker.DB
    OCDocker.Docking

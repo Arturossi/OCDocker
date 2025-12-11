@@ -5,21 +5,15 @@ This package collects the key functions/classes from its submodules so that
 `from OCDocker.OCScore.Analysis import SHAP` exposes a simple, consistent API.
 """
 
-try:
-    # High-level runner and output paths
-    from .Runner import run_shap_analysis, OutputPaths
-    # Study helpers
-    from .Studies import StudyHandles, BestSelections, select_best_from_studies
-    # Data loading/processing
-    from .Data import DataHandles, load_and_prepare_data
-    # Model and explainability
-    from .Model import build_neural_net
-    from .Explain import compute_shap_values
-    # Plot helpers module
-    from . import Plots as plots
-except Exception:  # pragma: no cover
-    # Keep import-time failures from breaking unrelated parts of the library
-    pass
+# Import Plots first since Runner depends on it
+from . import Plots as plots
+
+# Import each module separately so one failure doesn't break all imports
+from .Runner import run_shap_analysis, OutputPaths
+from .Studies import StudyHandles, BestSelections, select_best_from_studies
+from .Data import DataHandles, load_and_prepare_data
+from .Model import build_neural_net
+from .Explain import compute_shap_values
 
 __all__ = [
     "run_shap_analysis",

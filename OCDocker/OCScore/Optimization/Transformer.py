@@ -2,13 +2,13 @@
 
 # Description
 ###############################################################################
-""" Module with a helper  to perform the optimization of the Transformer
+''' Module with a helper  to perform the optimization of the Transformer
 parameters model using Optuna.
 
 It is imported as:
 
 import OCDocker.OCScore.Optimization.Transformer as octrans
-"""
+'''
 
 # Imports
 ###############################################################################
@@ -17,6 +17,8 @@ from joblib import Parallel, delayed
 from multiprocessing import Pool
 from sklearn.decomposition import PCA
 from typing import Union
+
+
 
 import OCDocker.OCScore.Utils.Data as ocscoredata
 import OCDocker.OCScore.Utils.IO as ocscoreio
@@ -45,6 +47,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 # Methods
 ###############################################################################
+
 
 def optimize_Transformer(
         df_path: str,
@@ -197,6 +200,8 @@ def optimize_Transformer(
                     ) for pid in range(num_processes_Trans)
                 ])
         else:
+            # User-facing error: invalid parallel backend
+            ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.") # type: ignore
             raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
 
 # Alias the function

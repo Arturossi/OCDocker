@@ -5,7 +5,7 @@ from pathlib import Path
 import OCDocker.Error as ocerror
 import pytest
 
-"""Load ``OCDocker.Docking.Vina`` with heavy dependencies stubbed."""
+'''Load ``OCDocker.Docking.Vina`` with heavy dependencies stubbed.'''
 @pytest.fixture
 def vina_mod(monkeypatch, tmp_path):
     root = Path(__file__).resolve().parents[1] / "OCDocker"
@@ -42,7 +42,7 @@ def vina_mod(monkeypatch, tmp_path):
     printing.printv = lambda *a, **k: None # type: ignore
     monkeypatch.setitem(sys.modules, "OCDocker.Toolbox.Printing", printing)
 
-    # Real IO module
+    # IO module
     spec_io = util.spec_from_file_location(
         "OCDocker.Toolbox.IO", root / "Toolbox" / "IO.py"
     )
@@ -67,7 +67,8 @@ def vina_mod(monkeypatch, tmp_path):
 
     # Provide a tiny numpy substitute
     fake_np = types.ModuleType("numpy")
-    fake_np.NaN = float("nan") # type: ignore
+    fake_np.nan = float("nan") # type: ignore
+    fake_np.isnan = lambda x: x != x  # type: ignore
     monkeypatch.setitem(sys.modules, "numpy", fake_np)
 
     # Load Vina module from file
@@ -80,6 +81,8 @@ def vina_mod(monkeypatch, tmp_path):
     monkeypatch.setitem(sys.modules, "OCDocker.Docking.Vina", vina)
     return vina
 
+
+@pytest.mark.order(16)
 def test_read_log(vina_mod, tmp_path):
     log = tmp_path / "vina.log"
     log.write_text(
@@ -88,13 +91,18 @@ def test_read_log(vina_mod, tmp_path):
         "    1          -7.0      0.0      0.0\n"
         "    2          -6.5      0.1      0.2\n"
     )
+    from OCDocker.Config import get_config
+    config = get_config()
+    vina_scoring = config.vina.scoring
+    
     data = vina_mod.read_log(str(log))
-    assert data[1][vina_mod.vina_scoring] == "-7.0"
-    assert data[2][vina_mod.vina_scoring] == "-6.5"
+    assert data[1][vina_scoring] == "-7.0"
+    assert data[2][vina_scoring] == "-6.5"
     best = vina_mod.read_log(str(log), onlyBest=True)
-    assert best == {1: {vina_mod.vina_scoring: "-7.0"}}
+    assert best == {1: {vina_scoring: "-7.0"}}
 
 
+@pytest.mark.order(17)
 def test_rescore_logs(vina_mod, tmp_path):
     r1 = tmp_path / "lig_split_1_rescoring.log"
     r1.write_text("Estimated Free Energy of Binding    -7.1 (kcal/mol)\n")
@@ -113,6 +121,7 @@ def test_rescore_logs(vina_mod, tmp_path):
     assert best == {"rescoring_1": -7.1}
 
 
+@pytest.mark.order(18)
 def test_get_pose_index(vina_mod):
-    """Ensure pose index is parsed correctly from file name."""
+    '''Ensure pose index is parsed correctly from file name.'''
     assert vina_mod.get_pose_index_from_file_path("lig_split_3.pdbqt") == 3

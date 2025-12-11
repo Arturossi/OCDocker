@@ -7,6 +7,16 @@ omit =
     # Omit heavyweight bootstrap that is not unit-test friendly
     OCDocker/Initialise.py
     */OCDocker/Initialise.py
+    # Omit Future directory (reference implementations for future work)
+    # Multiple patterns to catch all variations
+    OCDocker/Docking/Future/*
+    OCDocker/Docking/Future/**
+    Docking/Future/*
+    Docking/Future/**
+    **/Docking/Future/*
+    **/Docking/Future/**
+    *Docking/Future*
+    *Future*
 
 [report]
 show_missing = True

@@ -202,6 +202,7 @@ run_oddt.py
 
 # Ignore the ODDT_models folder
 ODDT_models/
+ODDT_models_old/
 
 # Ignore the output_files
 output_file.csv
@@ -216,3 +217,6 @@ htmlcov/*
 # Docs build
 docs/build
 docs/_build
+
+# plots
+plots/

@@ -9,3 +9,7 @@ Modules
 - Receptors: Receptor model, contains receptor descriptors.
 
 """
+
+# Public API: Users should import model modules directly
+# No classes or functions exported at package level
+__all__ = []

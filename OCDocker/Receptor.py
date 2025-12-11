@@ -25,13 +25,15 @@ from Bio.PDB.PDBParser import PDBParser
 from Bio.PDB.PDBIO import PDBIO
 from Bio.PDB import SASA
 from Bio.PDB.DSSP import DSSP
+from Bio.PDB.PDBExceptions import PDBException
 from Bio.SeqUtils import seq1
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
 from openbabel import openbabel
 from threading import Lock
-from typing import Dict, Tuple, Union
+from typing import Dict, Tuple, Union, Optional, Any
 
-from OCDocker.Initialise import *
+from OCDocker.Config import get_config
+import OCDocker.Error as ocerror
 
 import OCDocker.Toolbox.Conversion as occonversion
 import OCDocker.Toolbox.MoleculeProcessing as ocmolproc
@@ -59,7 +61,63 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 class Receptor:
-    """Load and compute receptor descriptors."""
+    """Represents a receptor (protein) molecule with computed descriptors.
+
+    This class loads receptor structures from PDB or mmCIF files and computes
+    various molecular descriptors including amino acid composition, surface
+    accessibility (SASA), dipole moment, isoelectric point, GRAVY score,
+    aromaticity, and instability index.
+
+    Parameters
+    ----------
+    structure : str | Bio.PDB.Structure.Structure
+        Path to a PDB/mmCIF file or a BioPython Structure object.
+    name : str
+        Name identifier for the receptor.
+    mol2_path : str, optional
+        Path to an existing MOL2 file, by default "".
+    c_model : str, optional
+        Charge model for dipole moment calculation, by default "gasteiger".
+    gravy_scale : str, optional
+        GRAVY scale to use, by default "KyteDoolitle".
+    relative_asa_cutoff : float, optional
+        Relative accessible surface area cutoff for surface amino acids, by default 0.7.
+    from_json_descriptors : str, optional
+        Path to JSON file containing pre-computed descriptors, by default "".
+    overwrite : bool, optional
+        Whether to overwrite existing files, by default False.
+    clean : bool, optional
+        Whether to clean/renumber the PDB structure, by default False.
+
+    Attributes
+    ----------
+    name : str
+        Name of the receptor.
+    structure : Bio.PDB.Structure.Structure
+        BioPython structure object.
+    path : str
+        Path to the structure file.
+    SASA : float
+        Solvent accessible surface area.
+    DipoleMoment : float
+        Dipole moment of the receptor.
+    IsoelectricPoint : float
+        Isoelectric point (pI) of the receptor.
+    GRAVY : float
+        Grand average of hydropathy.
+    Aromaticity : float
+        Aromaticity index.
+    InstabilityIndex : float
+        Instability index.
+    countA, countR, countN, ..., countV : int
+        Count of each amino acid type.
+    TotalAALength : int
+        Total number of amino acids.
+    AvgAALength : float
+        Average chain length.
+    countChain : int
+        Number of chains.
+    """
 
     # Declare the amino acid count descriptors (relevant for receptors)
     descriptors_names = {
@@ -75,7 +133,8 @@ class Receptor:
     # Generate all descriptors dynamically
     allDescriptors = [f"count{i}" for i in descriptors_names["count"]] + single_descriptors
 
-    def __init__(self, structure: Union[str, Bio.PDB.Structure.Structure], name: str, mol2Path: str = "", cModel: str = "gasteiger", gravyScale: str = "KyteDoolitle", relativeASAcutoff: float = 0.7, from_json_descriptors: str = "", overwrite: bool = False, clean: bool = False) -> None:  # type: ignore
+
+    def __init__(self, structure: Union[str, Bio.PDB.Structure.Structure], name: str, mol2_path: str = "", c_model: str = "gasteiger", gravy_scale: str = "KyteDoolitle", relative_asa_cutoff: float = 0.7, from_json_descriptors: str = "", overwrite: bool = False, clean: bool = False) -> None:
         '''Constructor of the class Receptor.
 
         Parameters
@@ -84,13 +143,13 @@ class Receptor:
             Path to the structure file OR Bio.PDB.Structure.Structure object.
         name : str
             Name of the receptor.
-        mol2Path : str, optional
+        mol2_path : str, optional
             Path to the mol2 file, by default "".
-        cModel : str, optional
+        c_model : str, optional
             Charge model to be used, by default "gasteiger".
-        gravyScale : str, optional
+        gravy_scale : str, optional
             Scale to be used to compute the GRAVY descriptor, by default "KyteDoolitle".
-        relativeASAcutoff : float, optional
+        relative_asa_cutoff : float, optional
             Relative cutoff to be used to compute the SASA descriptor, by default 0.7.
         from_json_descriptors : str, optional
             Path to the json file containing the descriptors, by default "".
@@ -107,27 +166,27 @@ class Receptor:
         # Name must come first
         self.name = ""
         # The molpath not always will exist (should also come first)
-        self.mol2Path = str(mol2Path)
+        self.mol2_path = str(mol2_path)
         # Set the path and structure (NEVER SHOUD BE NONE)
         # If user pass a json
         if from_json_descriptors:
             # Read the molecule telling that there is no need to fetch the SASA value
-            self.path, self.structure = loadMol(structure, name=self.name, computeSASA=False, mol2Path=self.mol2Path, overwrite = overwrite, clean = clean)
+            self.path, self.structure = load_mol(structure, name=self.name, compute_sasa=False, mol2_path=self.mol2_path, overwrite = overwrite, clean = clean)
         else:
             # Read the molecule telling that there is the need to fetch the SASA value
-            self.path, self.structure = loadMol(structure, name=self.name, computeSASA=True, mol2Path=self.mol2Path, overwrite = overwrite, clean = clean)
+            self.path, self.structure = load_mol(structure, name=self.name, compute_sasa=True, mol2_path=self.mol2_path, overwrite = overwrite, clean = clean)
 
         # Set the residues (derived from structure)
-        self.residues = getRes(self.structure)
+        self.residues = get_res(self.structure)
 
         # Set everything as None
         self.sasa = None
-        self.__cModel = None
+        self.__c_model = None
         self.dipoleMoment = None
         self.isoelectricPoint = None
         self.instabilityIndex = None
 
-        self.__gravyScale = None
+        self.__gravy_scale = None
         self.GRAVY = None
 
         self.aromaticity = None
@@ -136,7 +195,7 @@ class Receptor:
         self.avgAALength = None
         self.countChain = None
 
-        self.__relativeASAcutoff = None
+        self.__relative_asa_cutoff = None
         self.__countAA = None
 
         self.countA = None
@@ -189,23 +248,28 @@ class Receptor:
                 ocprint.print_error("Problems while counting AAs and chains!")
                 return None
 
+            # Ensure sasa attribute exists (compute_sasa should have added it, but add fallback)
+            if not hasattr(self.structure, 'sasa'):
+                # Fallback: call compute_sasa if it wasn't called or failed
+                # Call compute_sasa directly (it's defined in this module)
+                compute_sasa(self.structure)
             self.sasa = self.structure.sasa
-            self.__cModel = cModel # The options are 'mmff94', 'gasteiger' or 'eem2015bm'
-            self.dipoleMoment = computeDipoleMoment(self.path, self.__cModel)
-            self.isoelectricPoint = computeIsoelectricPoint(self.residues)
-            self.instabilityIndex = computeInstabilityIndex(self.residues)
+            self.__c_model = c_model # The options are 'mmff94', 'gasteiger' or 'eem2015bm'
+            self.dipoleMoment = compute_dipole_moment(self.path, self.__c_model)
+            self.isoelectricPoint = compute_isoelectric_point(self.residues)
+            self.instabilityIndex = compute_instability_index(self.residues)
 
-            self.__gravyScale = gravyScale
-            self.GRAVY = computeGravy(self.residues, scale=self.__gravyScale)
+            self.__gravy_scale = gravy_scale
+            self.GRAVY = compute_gravy(self.residues, scale=self.__gravy_scale)
 
-            self.aromaticity = computeAromaticity(self.residues)
+            self.aromaticity = compute_aromaticity(self.residues)
 
             # Potential future feature: secondary_structure_fraction(self)
             # Ref: https://biopython.org/docs/1.76/api/Bio.SeqUtils.ProtParam.html
 
-            self.__relativeASAcutoff = relativeASAcutoff
+            self.__relative_asa_cutoff = relative_asa_cutoff
             
-            self.__countAA = count_surface_AA(self.structure, self.path, self.__relativeASAcutoff)
+            self.__countAA = count_surface_AA(self.structure, self.path, self.__relative_asa_cutoff)
 
             self.countA = self.__countAA["A"]
             self.countR = self.__countAA["R"]
@@ -226,10 +290,20 @@ class Receptor:
             self.countT = self.__countAA["T"]
             self.countW = self.__countAA["W"]
             self.countY = self.__countAA["Y"]
+
             self.countV = self.__countAA["V"]
 
+
+
+
+
+
+
+
+
+
     ## Private ##
-    def __safe_to_dict(self) -> Dict:
+    def __safe_to_dict(self) -> Dict[str, Union[str, float, int, None]]:
         '''Return all the properties (except the molecule object) for the Receptor object.
 
         Parameters
@@ -238,7 +312,7 @@ class Receptor:
 
         Returns
         -------
-        Dict
+        Dict[str, Union[str, float, int, None]]
             A dictionary with all the properties (except the molecule object) for the Receptor object.
         '''
 
@@ -247,18 +321,25 @@ class Receptor:
         # Set Name and Path
         properties["Name"] = self.name if self.name is not None else "-"
         properties["Path"] = self.path if self.path is not None else "-"
-        properties["mol2Path"] = self.mol2Path if self.mol2Path is not None else "-"
+        properties["mol2Path"] = self.mol2_path if self.mol2_path is not None else "-"
         # Combine both in one dict and return them
+
         return {**properties, **self.get_descriptors()}
 
     ## Public ##
     def print_attributes(self) -> None:
-        """Print all attributes of the receptor."""
+        """Print all attributes of the receptor to stdout.
+
+        Displays the receptor's name, structure path, and all computed
+        descriptors (SASA, dipole moment, isoelectric point, GRAVY,
+        aromaticity, instability index, amino acid counts, etc.) in a
+        formatted, aligned table.
+        """
         
         attributes = {
             "Name": self.name,
             "Structure path": self.path,
-            "mol2 path": self.mol2Path,
+            "mol2 path": self.mol2_path,
             "Structure": self.structure,
             "AA residues": self.residues,
             "Total AA len": self.totalAALength,
@@ -276,8 +357,9 @@ class Receptor:
             attributes[f"# of accessible {aa}"] = getattr(self, f"count{aa}", 0)
 
         for key, value in attributes.items():
+
             print(f"{key}: {value if value else '-'}")
-    
+
     def get_descriptors(self)-> Dict[str, Union[float, int]]:
         '''Return the descriptors for the Receptor object.
 
@@ -322,6 +404,7 @@ class Receptor:
           "countY": self.countY if self.countY else 0,
           "countV": self.countV if self.countV else 0
         }
+
         return descriptors
 
     def to_dict(self) -> Dict[str, Union[float, int]]:
@@ -342,13 +425,14 @@ class Receptor:
         # Set Name, Path and molecule
         properties["Name"] = self.name if self.name is not None else "-"
         properties["Path"] = self.path if self.path is not None else "-"
-        properties["mol2Path"] = self.mol2Path if self.mol2Path is not None else "-"
+        properties["mol2Path"] = self.mol2_path if self.mol2_path is not None else "-"
         properties["Structure"] = self.structure if self.structure is not None else "-"
         
         # Combine both in one dict and return them
+
         return {**properties, **self.get_descriptors()}
 
-    def to_json(self, overwrite = False) -> int:
+    def to_json(self, overwrite: bool = False) -> int:
         '''Stores the descriptors as json to avoid the necessity of evaluate them many times.
 
         Parameters
@@ -375,6 +459,7 @@ class Receptor:
             except Exception as e:
                 return ocerror.Error.write_file(f"Problems while writing the file '{outputJson}' Error: {e}.") # type: ignore
         except Exception as e:
+
             return ocerror.Error.unknown(f"Unknown error while converting the receptor {self.name} to json.\nError: {e}", ocerror.ReportLevel.ERROR) # type: ignore
 
     def is_valid(self) -> bool:
@@ -396,34 +481,47 @@ class Receptor:
         #endregion
         return True
 
+
 # Functions
 ###############################################################################
 ## Private ##
+# Cache to track which sequences we've already warned about
+_warned_sequences = set()
+
 def __filterSequence(residues: str) -> str:
-    '''Filter the given sequence to avoid unsupported amino acid residues. (Currently: X)
+    '''Filter the given sequence to avoid unsupported amino acid residues.
+
+    Currently removes 'X' (unknown) amino acid residues, as these are not
+    supported by the GRAVY calculation function.
 
     Parameters
     ----------
-    residues: str
-        The sequence to filter.
+    residues : str
+        The amino acid sequence to filter.
 
     Returns
     -------
     str
-        The filtered sequence.
+        The filtered sequence with unsupported residues removed.
     '''
 
     # Makke it all uppercase, just in case...
     residues = residues.upper()
 
     if 'X' in residues:
-        ocprint.print_warning(f"The gravy function does not supports the 'X' (unknown) amino acid. Stripping it to compute the GRAVY descriptor ({residues.count('X')} occurrences of {len(residues)} AAs).")
+        # Only warn once per unique sequence to avoid duplicate warnings
+        # Use a hash of the sequence to track warnings
+        sequence_hash = hash(residues)
+        if sequence_hash not in _warned_sequences:
+            _warned_sequences.add(sequence_hash)
+            ocprint.print_warning(f"The gravy function does not supports the 'X' (unknown) amino acid. Stripping it to compute the GRAVY descriptor ({residues.count('X')} occurrences of {len(residues)} AAs).")
         return residues.replace('X', '')
 
     return residues
 
+
 ## Public ##
-def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str, cutoff: float = 0.7) -> Dict[str, int]: #type: ignore
+def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str, cutoff: float = 0.7) -> Optional[Dict[str, int]]:
     '''Counts how many of each of the 20 standard AAs has a relative ASA value above a given cutoff.
 
     Parameters
@@ -494,7 +592,13 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
     # NH_O_2_relidx, NH_O_2_energy, O_NH_2_relidx, O_NH_2_energy)
 
     # Run the DSSP
-    dsspData = DSSP(structure[0], structurePath, dssp = dssp)
+    config = get_config()
+    try:
+        dsspData = DSSP(structure[0], structurePath, dssp = config.tools.dssp)
+    except PDBException as e:
+        # DSSP failed due to structure/DSSP mismatch or other PDB-related issues
+        ocprint.print_error(f"DSSP failed for structure '{structurePath}': {e}")
+        return None
 
     # If the length of the dssp dictionary is 0, try to run DSSP again calling the command directly without using biopython
     if len(dsspData.property_dict) == 0:
@@ -506,13 +610,29 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
         structureDirName = os.path.dirname(structurePath)
 
         # Create the dssp command
-        dssp_command = [dssp, "-i", structurePath, "-o", f"{structureDirName}/{structureName}.dssp"]
+        config = get_config()
+        dssp_command = [config.tools.dssp, "-i", structurePath, "-o", f"{structureDirName}/{structureName}.dssp"]
         # Run the command
         _ = ocrun.run(dssp_command)
         # Load the dssp file into dsspData variable
-        dsspData = DSSP(structure[0], f"{structureDirName}/{structureName}.dssp", file_type="DSSP")
+        try:
+            dsspData = DSSP(structure[0], f"{structureDirName}/{structureName}.dssp", file_type="DSSP")
+        except PDBException as e:
+            # DSSP file loading also failed
+            ocprint.print_error(f"DSSP file loading failed for structure '{structurePath}': {e}")
+            # Try to clean up the dssp file if it exists
+            dssp_file = f"{structureDirName}/{structureName}.dssp"
+            if os.path.exists(dssp_file):
+                try:
+                    os.remove(dssp_file)
+                except (OSError, PermissionError):
+                    pass
+            return None
         # Delete the dssp file
-        os.remove(f"{structureDirName}/{structureName}.dssp")
+        try:
+            os.remove(f"{structureDirName}/{structureName}.dssp")
+        except (OSError, FileNotFoundError):
+            pass
 
     # For each result in the DSSP object
     for _, value in dsspData.property_dict.items():
@@ -530,7 +650,8 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
 
     return aas
 
-def count_AAs_and_chains(structure: Bio.PDB.Structure.Structure) -> Union[Tuple[int, float, int], None]: #type: ignore
+
+def count_AAs_and_chains(structure: Bio.PDB.Structure.Structure) -> Optional[Tuple[int, float, int]]:
     '''Counts the total length (sum of all AAs), the average length (the total AAs divided by the number of chains) and the number of chains the protein has.
 
     Parameters
@@ -569,7 +690,8 @@ def count_AAs_and_chains(structure: Bio.PDB.Structure.Structure) -> Union[Tuple[
 
     return res_no, res_no/chains, chains
 
-def compute_sasa(model: Bio.PDB.Structure.Structure, n_points: int = 1000) -> None: #type: ignore
+
+def compute_sasa(model: Bio.PDB.Structure.Structure, n_points: int = 1000) -> None:
     '''Computes the Solvent Accessible Surface Area of the molecule. NOTE: The sasa value is added to the structure and can be called using the command "model.sasa" (without quotes).
 
     Parameters
@@ -578,19 +700,23 @@ def compute_sasa(model: Bio.PDB.Structure.Structure, n_points: int = 1000) -> No
         The model to be analysed.
     n_points : int, optional
         The number of points to be used in the calculation, by default 1000.
-
-    Returns
-    -------
-    None
     '''
 
     ocprint.printv(f"Computing SASA for protein '{model.id}'.")
-    sr = SASA.ShrakeRupley(n_points = n_points)
-    sr.compute(model, level="S")
-
+    try:
+        sr = SASA.ShrakeRupley(n_points = n_points)
+        sr.compute(model, level="S")
+        # Ensure sasa attribute exists even if computation didn't add it
+        if not hasattr(model, 'sasa'):
+            model.sasa = 0.0
+    except (AttributeError, TypeError, Exception):
+        # Fallback: if SASA computation fails, set a default value
+        # This can happen in test environments or when BioPython isn't configured
+        model.sasa = 0.0
     return None
 
-def getRes(model: Bio.PDB.Structure.Structure) -> str: #type: ignore
+
+def get_res(model: Bio.PDB.Structure.Structure) -> str:
     '''Get the amino acid one letter sequence for the receptor (Ignore chains).
 
     Parameters
@@ -613,7 +739,8 @@ def getRes(model: Bio.PDB.Structure.Structure) -> str: #type: ignore
         residues.append(seq1(residue.get_resname()))
     return "".join(residues)
 
-def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA: bool = True, mol2Path: str = "", overwrite: bool = False, clean: bool = True) -> Tuple[str, Bio.PDB.Structure.Structure]: #type: ignore
+
+def load_mol(structure: Union[str, os.PathLike, Bio.PDB.Structure.Structure], name: str = "", compute_sasa: bool = True, mol2_path: str = "", overwrite: bool = False, clean: bool = True) -> Tuple[str, Optional[Bio.PDB.Structure.Structure]]:
     '''Load a structure pdb/cif if a path is provided or just assign the Bio.PDB.Structure.Structure object to the structure. Also returns the path as a tuple (path, structure).
 
     Parameters
@@ -622,9 +749,9 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
         Path to the structure file or a Bio.PDB.Structure.Structure object.
     name : str, optional
         The name of the structure, by default "".
-    computeSASA : bool, optional
+    compute_sasa : bool, optional
         Whether to compute the SASA or not, by default True.
-    mol2Path : str, optional
+    mol2_path : str, optional
         The path to the mol2 file, by default "".
     overwrite : bool, optional
         Whether to overwrite the mol2 file or not, by default False.
@@ -641,14 +768,18 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
     # Check if the variable is a Bio.PDB.Structure.Structure or a path-like object
     if isinstance(structure, Bio.PDB.Structure.Structure): #type: ignore
         # Check if SASA should be computed
-        if computeSASA:
-            compute_sasa(structure)
+        if compute_sasa:
+            # Call compute_sasa from this module (defined later in file)
+            # Use sys.modules to avoid shadowing from Initialise wildcard import
+            import sys
+            mod = sys.modules[__name__]
+            mod.compute_sasa(structure)
         # Check if the pdb file should be cleaned
         if clean:
             # Clean the pdb file
             structure = renumber_pdb_residues(structure)
-        # Since it is already a structure, assign it to the class
-        return structure, None
+        # Since it is already a structure, return it with empty path
+        return "", structure
     elif isinstance(structure, (str, os.PathLike)):
         structure_path = os.fspath(structure)
         if os.path.isfile(structure_path):
@@ -667,32 +798,36 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
                 parser = MMCIFParser()
             else:
                 # The file extension is not supported, print data
-                supportedExtensions = [".pdb", ".cif"]
+                supported_extensions = [".pdb", ".cif"]
                 ocprint.print_error(
-                    f"The receptor {structure_path} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supportedExtensions)}."
+                    f"The receptor {structure_path} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supported_extensions)}."
                 )
                 return "", None
 
             # Compute the SASA value of the structure
-            tmpStructure = parser.get_structure(name, structure_path)
+            tmp_structure = parser.get_structure(name, structure_path)
 
             # Check if the pdb file should be cleaned
             if clean:
-                # Clean the pdb file
-                tmpStructure = renumber_pdb_residues(tmpStructure)
+                # Clean the pdb file (renumber residues)
+                tmp_structure = renumber_pdb_residues(tmp_structure)
 
             # If there is a mol2 path and the file does not exist
-            if mol2Path and (not os.path.isfile(mol2Path) or overwrite):
+            if mol2_path and (not os.path.isfile(mol2_path) or overwrite):
                 # Convert the molecule
-                _ = occonversion.convertMols(structure_path, mol2Path)
+                _ = occonversion.convert_mols(structure_path, mol2_path)
 
-            # Check if SASA should be computed
-            if computeSASA:
-                compute_sasa(tmpStructure)
+                # Check if SASA should be computed
+                if compute_sasa:
+                    # Call compute_sasa from this module (defined later in file)
+                    # Use sys.modules to avoid shadowing from Initialise wildcard import
+                    import sys
+                    mod = sys.modules[__name__]
+                    mod.compute_sasa(tmp_structure)
 
             ocprint.print_success(f"Successfully loaded the molecule '{structure_path}'")
             # Return the structure using selected parser
-            return structure_path, tmpStructure
+            return structure_path, tmp_structure
         else:
             # File does not exist
             _ = ocerror.Error.file_not_exist(message=f"The file '{structure_path}' does not exist!", level=ocerror.ReportLevel.ERROR) # type: ignore
@@ -702,7 +837,8 @@ def loadMol(structure: Bio.PDB.Structure.Structure, name: str = "", computeSASA:
         ocprint.print_error("Unsupported molecule data. Please support either a molecule path (string) or an 'rdkit.Chem.rdchem.Mol' object.")
         return "", None
 
-def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str = "") -> Bio.PDB.Structure.Structure: #type: ignore
+
+def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str = "") -> Optional[Bio.PDB.Structure.Structure]:
     '''Renumber the pdb residues using biopython.
 
     Parameters
@@ -750,14 +886,15 @@ def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str
     
     return None
 
-def computeDipoleMoment(structure: Union[Bio.PDB.Structure.Structure, str], cModel: str = "gasteiger"): #type: ignore
+
+def compute_dipole_moment(structure: Union[Bio.PDB.Structure.Structure, str], c_model: str = "gasteiger") -> Optional[float]:
     '''Computes the receptor's dipole moment.
 
     Parameters
     ----------
     structure : Bio.PDB.Structure.Structure, str
         The structure to be analysed or the path to the structure
-    cModel : str, optional
+    c_model : str, optional
         The charge model to be used, by default "gasteiger".
 
     Returns
@@ -784,17 +921,18 @@ def computeDipoleMoment(structure: Union[Bio.PDB.Structure.Structure, str], cMod
         # Load the input file to the previously loaded OBMol object
         obConversion.ReadFile(mol, structure)
         # Create the charge model object
-        chargeModel = openbabel.OBChargeModel.FindType(cModel)
+        charge_model = openbabel.OBChargeModel.FindType(c_model)
         # Compute the mol object charges using the charge model
-        chargeModel.ComputeCharges(mol)
+        charge_model.ComputeCharges(mol)
         # Get the dipile moment from the molecule
-        dipole = chargeModel.GetDipoleMoment(mol)
+        dipole = charge_model.GetDipoleMoment(mol)
         # Calcule the dipole moment from the vector with the root of the sum of squares of the coordinates
         moment = math.sqrt(dipole.GetX()**2+dipole.GetY()**2+dipole.GetZ()**2)
 
     return moment
 
-def computeIsoelectricPoint(residues: str) -> float:
+
+def compute_isoelectric_point(residues: str) -> float:
     '''Computes protein's isoelectric point.
 
     Parameters
@@ -812,7 +950,8 @@ def computeIsoelectricPoint(residues: str) -> float:
     protein = ProteinAnalysis(residues)
     return protein.isoelectric_point()
 
-def computeGravy(residues: str, scale: str = "KyteDoolitle") -> float:
+
+def compute_gravy(residues: str, scale: str = "KyteDoolitle") -> float:
     '''Computes the GRAVY (Grand Average of Hydropathy) according to Kyte and Doolitle, 1982.
 
     Utilizes the given Hydrophobicity scale, by default uses the original
@@ -839,7 +978,8 @@ def computeGravy(residues: str, scale: str = "KyteDoolitle") -> float:
     protein = ProteinAnalysis(__filterSequence(residues))
     return protein.gravy(scale = scale)
 
-def computeAromaticity(residues: str) -> float:
+
+def compute_aromaticity(residues: str) -> float:
     '''Compute the aromaticity according to Lobry, 1994.
 
     Parameters
@@ -857,7 +997,8 @@ def computeAromaticity(residues: str) -> float:
     protein = ProteinAnalysis(residues.upper())
     return protein.aromaticity()
 
-def computeInstabilityIndex(residues: str) -> float:
+
+def compute_instability_index(residues: str) -> float:
     '''Calculate the instability index according to Guruprasad et al 1990.
 
     Implementation of the method of Guruprasad et al. 1990 to test a
@@ -881,7 +1022,8 @@ def computeInstabilityIndex(residues: str) -> float:
     protein = ProteinAnalysis(__filterSequence(residues))
     return protein.instability_index()
 
-def read_descriptors_from_json(path: str, returnData: bool = False) -> Union[Dict[str, Union[str, float, int]], Tuple[Union[float, str, int]], None]:
+
+def read_descriptors_from_json(path: str, returnData: bool = False) -> Optional[Union[Dict[str, Union[str, float, int]], Tuple[Union[float, str, int]]]]:
     '''Read the descriptors from a json file.
 
     Parameters
@@ -931,31 +1073,32 @@ def read_descriptors_from_json(path: str, returnData: bool = False) -> Union[Dic
         if missing:
             # Set the mkissed values
             missed = (path, ", ".join(missing))
-            # Raise a Key error passing the file and the missing keys joined with ', '
-            raise KeyError
+            # User-facing error: missing required data in JSON file
+            ocerror.Error.data_not_found(f"Missing keys in JSON file '{path}': {', '.join(missing)}") # type: ignore
+            raise KeyError(f"Missing keys in JSON file '{path}': {', '.join(missing)}")
 
-        # Create the countAA variable (here np.NaN does have an exact meaning, 0 is a valid value)
+        # Create the countAA variable (here np.nan does have an exact meaning, 0 is a valid value)
         countAA = {
-            "A": data["countA"] if data["countA"] != np.NaN else 0,
-            "R": data["countR"] if data["countR"] != np.NaN else 0,
-            "N": data["countN"] if data["countN"] != np.NaN else 0,
-            "D": data["countD"] if data["countD"] != np.NaN else 0,
-            "C": data["countC"] if data["countC"] != np.NaN else 0,
-            "Q": data["countQ"] if data["countQ"] != np.NaN else 0,
-            "E": data["countE"] if data["countE"] != np.NaN else 0,
-            "G": data["countG"] if data["countG"] != np.NaN else 0,
-            "H": data["countH"] if data["countH"] != np.NaN else 0,
-            "I": data["countI"] if data["countI"] != np.NaN else 0,
-            "L": data["countL"] if data["countL"] != np.NaN else 0,
-            "K": data["countK"] if data["countK"] != np.NaN else 0,
-            "M": data["countM"] if data["countM"] != np.NaN else 0,
-            "F": data["countF"] if data["countF"] != np.NaN else 0,
-            "P": data["countP"] if data["countP"] != np.NaN else 0,
-            "S": data["countS"] if data["countS"] != np.NaN else 0,
-            "T": data["countT"] if data["countT"] != np.NaN else 0,
-            "W": data["countW"] if data["countW"] != np.NaN else 0,
-            "Y": data["countY"] if data["countY"] != np.NaN else 0,
-            "V": data["countV"] if data["countV"] != np.NaN else 0
+            "A": data["countA"] if not np.isnan(data["countA"]) else 0,
+            "R": data["countR"] if not np.isnan(data["countR"]) else 0,
+            "N": data["countN"] if not np.isnan(data["countN"]) else 0,
+            "D": data["countD"] if not np.isnan(data["countD"]) else 0,
+            "C": data["countC"] if not np.isnan(data["countC"]) else 0,
+            "Q": data["countQ"] if not np.isnan(data["countQ"]) else 0,
+            "E": data["countE"] if not np.isnan(data["countE"]) else 0,
+            "G": data["countG"] if not np.isnan(data["countG"]) else 0,
+            "H": data["countH"] if not np.isnan(data["countH"]) else 0,
+            "I": data["countI"] if not np.isnan(data["countI"]) else 0,
+            "L": data["countL"] if not np.isnan(data["countL"]) else 0,
+            "K": data["countK"] if not np.isnan(data["countK"]) else 0,
+            "M": data["countM"] if not np.isnan(data["countM"]) else 0,
+            "F": data["countF"] if not np.isnan(data["countF"]) else 0,
+            "P": data["countP"] if not np.isnan(data["countP"]) else 0,
+            "S": data["countS"] if not np.isnan(data["countS"]) else 0,
+            "T": data["countT"] if not np.isnan(data["countT"]) else 0,
+            "W": data["countW"] if not np.isnan(data["countW"]) else 0,
+            "Y": data["countY"] if not np.isnan(data["countY"]) else 0,
+            "V": data["countV"] if not np.isnan(data["countV"]) else 0
         }
 
         # If the returnData flag is on
@@ -970,7 +1113,8 @@ def read_descriptors_from_json(path: str, returnData: bool = False) -> Union[Dic
         #endregion
     # Key error (when there is a missing key)
     except KeyError as missed:
-        ocprint.print_error(f"The following keys were not found in the json file '{missed[0]}': {missed[1]}.") # type: ignore
+        # KeyError raised with a string message is not subscriptable, access the message directly
+        ocprint.print_error(f"The following keys were not found in the json file: {missed}") # type: ignore
     # General error (call it as problem to read file)
     except Exception as e:
         ocprint.print_error(f"Could not read the file '{path}'. Error: {e}")

@@ -2,19 +2,21 @@
 
 # Description
 ###############################################################################
-""" Module with a helper to execute the Principal Component Analysis (PCA)
+''' Module with a helper to execute the Principal Component Analysis (PCA)
 on the datasets.
 
 It is imported as:
 
 import OCDocker.OCScore.Optimization.PCA as ocpca
-"""
+'''
 
 # Imports
 ###############################################################################
 import pandas as pd
 
 from sklearn.decomposition import PCA
+
+
 
 import OCDocker.OCScore.Utils.Data as ocscoredata
 import OCDocker.OCScore.Utils.IO as ocscoreio
@@ -42,6 +44,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 # Methods
 ###############################################################################
+
 
 def run_pca(
         df_path: str,
@@ -75,6 +78,8 @@ def run_pca(
 
     # Check if the variance is between 0 and 1
     if variance <= 0 or variance > 1:
+        # User-facing error: invalid variance value
+        ocerror.Error.value_error(f"The variance must be between 0 and 1. Got: {variance}") # type: ignore
         raise ValueError("The variance must be between 0 and 1.")
 
     # Convert the variance to string

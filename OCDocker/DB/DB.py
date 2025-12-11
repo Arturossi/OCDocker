@@ -25,6 +25,13 @@ from sqlalchemy.orm.session import Session
 
 from OCDocker.DB.Models.Base import Base
 from OCDocker.DB.Models import Complexes, Ligands, Receptors
+import OCDocker.Error as ocerror
+
+# May use session from Initialise - runtime global
+try:
+    from OCDocker.Initialise import session  # type: ignore
+except ImportError:
+    session = None  # type: ignore
 
 import OCDocker.Toolbox.Printing as ocprint
 
@@ -54,6 +61,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 ## Public ##
 
+
 def create_tables(engine: Optional[Engine] = None) -> None:
     '''Create all ORM tables bound to the provided engine.
 
@@ -76,6 +84,7 @@ def create_tables(engine: Optional[Engine] = None) -> None:
             raise RuntimeError(f'Could not resolve database engine to create tables: {e}')
 
     Base.metadata.create_all(eng)  # type: ignore[arg-type]
+
 
 def setup_database() -> Engine:
     '''
@@ -102,7 +111,7 @@ def setup_database() -> Engine:
         # Final fallback suitable for tests/dev
         if url is None:
             url = "sqlite:///:memory:"
-    except Exception:
+    except (ImportError, AttributeError):
         # Extremely defensive fallback for environments without Initialise
         url = "sqlite:///:memory:"
 
@@ -114,6 +123,7 @@ def setup_database() -> Engine:
     create_tables(engine_obj)
 
     return engine_obj
+
 
 def export_table_to_csv(model: type[Base], filename: str, session: Session) -> None:
     '''
@@ -137,6 +147,7 @@ def export_table_to_csv(model: type[Base], filename: str, session: Session) -> N
         writer.writerow(columns)
         for row in data:
             writer.writerow([getattr(row, col) for col in columns])
+
 
 def export_db_to_csv(
     session: Session,
@@ -245,6 +256,8 @@ def export_db_to_csv(
             return ''
 
     else:
+        # User-facing error: invalid output format
+        ocerror.Error.value_error(f"Invalid output format: '{output_format}'. Please choose 'dataframe', 'json', or 'csv'.") # type: ignore
         raise ValueError("Invalid output format. Please choose 'dataframe', 'json', or 'csv'.")
     
 # Explicit initialization only: call setup_database() from CLI or application bootstrap

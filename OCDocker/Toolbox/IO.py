@@ -65,6 +65,7 @@ def lazyread_mmap(file_name: str, decode: str = "utf-8") -> Generator[str, None,
             for line in iter(mmap_obj.readline, b''):
                 yield line.decode(decode)
 
+
 def lazyread_reverse_order_mmap(file_name: str, decode: str = "utf-8") -> Generator[str, None, None]:
     '''Read a file in reverse order using mmap.
 
@@ -114,6 +115,7 @@ def lazyread_reverse_order_mmap(file_name: str, decode: str = "utf-8") -> Genera
                 # Yield the first line too
                 yield buffer.decode(decode)[::-1]
 
+
 def lazyread(file_name: str, decode: str = "utf-8") -> Generator[str, None, None]:
     '''Read a file in sequential order.
 
@@ -135,6 +137,7 @@ def lazyread(file_name: str, decode: str = "utf-8") -> Generator[str, None, None
         # Read line by line
         for line in iter(read_obj.readline, b''):
             yield line.decode(decode)
+
 
 def lazyread_reverse_order(file_name: str, decode: str = "utf-8") -> Generator[str, None, None]:
     '''Read a file in reverse order.

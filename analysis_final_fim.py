@@ -1,7 +1,9 @@
 from matplotlib.ticker import MultipleLocator
 
+
 def _fmt_ci(m, lo, hi, dec=2):
     return f"{m:.{dec}f} [{lo:.{dec}f}–{hi:.{dec}f}]"
+
 
 def build_summary_table(summary_targets, summary_pooled, models, include_pr_auc=False, pr_summary_targets=None, pr_summary_pooled=None):
     # EF_AUC mediana por receptor (1% e 5%)
@@ -33,6 +35,8 @@ def build_summary_table(summary_targets, summary_pooled, models, include_pr_auc=
                   .join(poo_pr.rename(columns={"PR_AUC":"Pooled PR-AUC"})))
     return out
 
+
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -40,6 +44,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
+
 
 def plot_pooled_efauc(
     summary_pooled: pd.DataFrame,
@@ -174,6 +179,7 @@ def plot_pooled_efauc(
 
     return fig, ax
 
+
 def plot_by_target_DEPRECATED(pr_per_target, ef_per_target, models, eps=(1,5)):
     # pr_per_target: colunas ["model","target","PR_AUC"]
     # ef_per_target: colunas ["model","target","EF_AUC_1%","EF_AUC_5%"]
@@ -204,15 +210,20 @@ def plot_by_target_DEPRECATED(pr_per_target, ef_per_target, models, eps=(1,5)):
     plt.tight_layout()
     return fig, (ax1, ax2)
 
+
+
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
+
 def table_full_by_target(ef_per_target, models):
     cols = ["target","model","EF_AUC_1%","EF_AUC_5%","EF_AUC_10%","EF_AUC_20%","EF_AUC_30%"]
     t = ef_per_target[ef_per_target["model"].isin(models)][cols].copy()
     return t.sort_values(["target","model"])
+
+
 
 summary_table = build_summary_table(
     summary_targets=summary_targets,
@@ -235,6 +246,7 @@ fig1.savefig("Fig_Pooled_EF_AUC_1_5.png", dpi=300, bbox_inches="tight")
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+
 
 def plot_pooled_efauc_sorted_compact(
     summary_pooled: pd.DataFrame,

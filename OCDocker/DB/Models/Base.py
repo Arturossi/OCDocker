@@ -41,6 +41,7 @@ OPMAP = {
     "in":     lambda c, v: c.in_(v if isinstance(v, (list, tuple, set)) else [v]),
 }
 
+
 class Base(DeclarativeBase):
     """ Base class for all the tables. """
     
@@ -50,6 +51,7 @@ class Base(DeclarativeBase):
         ''' Return the table name. '''
 
         return cls.__name__.lower()
+
 
     ## Class Attributes ##
 
@@ -90,7 +92,8 @@ class Base(DeclarativeBase):
 
         # Return the representation
         return f"<{cls.__name__}({data})>"
-    
+
+
     @classmethod
     def to_dict(cls) -> Dict[str, Any]:
         ''' Return the object as a dictionary.
@@ -103,7 +106,9 @@ class Base(DeclarativeBase):
 
         return {column.key: getattr(cls, column.key) for column in inspect(cls).attrs if not column.key.startswith("_")}
     
+
     @classmethod
+
     def determine_column_type(cls, descriptor: str) -> Union[Integer, Float]:
         ''' Determine the type of column based on the descriptor. 
 
@@ -124,7 +129,9 @@ class Base(DeclarativeBase):
            descriptor.startswith("count") or \
            descriptor in ["HeavyAtomCount", "NHOHCount", "NOCount", "RingCount", "TotalAALength"]:
             return Integer()
+
         return Float()
+
 
     @classmethod
     def add_dynamic_columns(cls, collection: List[str]) -> None:
@@ -211,6 +218,7 @@ class Base(DeclarativeBase):
                 # Print the error
                 print(f"Error: {e}")
                 # Return False
+
                 return False
     
         return True
@@ -261,6 +269,7 @@ class Base(DeclarativeBase):
                 s.rollback()
                 # Print the error
                 print(f"Error: {e}")
+
                 # Return False
                 return False
     
@@ -315,6 +324,7 @@ class Base(DeclarativeBase):
                 # Rollback the session
                 s.rollback()
                 # Print the error
+
                 print(f"Error: {e}")
                 # Return False
                 return False
@@ -369,6 +379,7 @@ class Base(DeclarativeBase):
             except SQLAlchemyError as e:
                 # Rollback the session
                 s.rollback()
+
                 # Print the error
                 print(f"Error: {e}")
                 # Return False
@@ -460,7 +471,7 @@ class Base(DeclarativeBase):
             data = s.query(cls).all()
     
         return data
-    
+
     @classmethod
     def find_all_names(cls) -> List[str]:
         ''' Search all names in the database.
@@ -485,6 +496,7 @@ class Base(DeclarativeBase):
             data = s.query(cls.name).all()
     
         return data
+
 
     @classmethod
     def find_attribute(cls, column: str, value: Any, operator: str = "==") -> List[DeclarativeMeta]:

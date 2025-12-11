@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 
-"""
+'''
 Increase coverage of Vina/Smina config writers by asserting content under
 different Initialise settings (custom/user grid flags).
-"""
+'''
 
 from __future__ import annotations
 import sys
 import types
 from pathlib import Path
+
+import pytest
 
 import OCDocker.Docking.Vina as ocvina
 import OCDocker.Docking.Smina as ocsmina
@@ -40,17 +42,30 @@ def _install_init_defaults(monkeypatch, **overrides):
     err = types.ModuleType('OCDocker.Error')
     class RL(int):
         DEBUG=5; SUCCESS=4; INFO=3; WARNING=2; ERROR=1; NONE=0
+
+
     class E:
         @staticmethod
-        def ok(*a, **k): return 0
+        def ok(*a, **k):
+            return 0
+
         @staticmethod
-        def file_not_exist(*a, **k): return 101
+        def file_not_exist(*a, **k): 
+            return 101
+
         @staticmethod
-        def read_file(*a, **k): return 102
+        def read_file(*a, **k):
+            return 102
+
         @staticmethod
-        def write_file(*a, **k): return 103
+        def write_file(*a, **k):
+            return 103
+
         @staticmethod
-        def wrong_type(*a, **k): return 200
+        def wrong_type(*a, **k):
+            return 200
+
+
     err.Error = E  # type: ignore
     err.ReportLevel = RL  # type: ignore
     init.ocerror = err  # type: ignore
@@ -60,6 +75,7 @@ def _install_init_defaults(monkeypatch, **overrides):
     monkeypatch.setitem(sys.modules, 'OCDocker.Initialise', init)
 
 
+@pytest.mark.order(97)
 def test_box_to_vina_creates_conf(tmp_path, monkeypatch):
     _install_init_defaults(monkeypatch)
     # Use the tracked box fixture from the repo
@@ -76,27 +92,38 @@ def test_box_to_vina_creates_conf(tmp_path, monkeypatch):
     assert 'size_z = 102.582' in txt
 
 
+@pytest.mark.order(98)
 def test_gen_smina_conf_with_custom_flags(tmp_path, monkeypatch):
-    _install_init_defaults(
-        monkeypatch,
-        smina_custom_scoring='custom.score',
-        smina_custom_atoms='atoms.def',
-        smina_minimize_iters='5',
-        smina_user_grid='grid.map',
-        smina_user_grid_lambda='0.5',
-    )
-    # Reload Smina to bind updated Initialise constants into module namespace
-    if 'OCDocker.Docking.Smina' in sys.modules:
-        s_mod = importlib.reload(sys.modules['OCDocker.Docking.Smina'])
-    else:
-        s_mod = importlib.import_module('OCDocker.Docking.Smina')
+    '''Test gen_smina_conf with custom flags from Config.'''
+    
+    # Mock Config with custom attributes
+    def mock_get_config():
+        class MockSminaConfig:
+            custom_scoring = "custom.score"
+            custom_atoms = "atoms.def"
+            minimize_iters = "5"
+            user_grid = "grid.map"
+            user_grid_lambda = "0.5"
+            approximation = "spline"
+            factor = "32"
+            force_cap = "10"
+            energy_range = "10"
+            exhaustiveness = "5"
+            num_modes = "3"
+        class MockConfig:
+            smina = MockSminaConfig()
+            logdir = str(tmp_path)
+        return MockConfig()
+    
+    monkeypatch.setattr(ocsmina, 'get_config', mock_get_config)
+    
     root = Path(__file__).resolve()
     while root.name != 'OCDocker':
         root = root.parent
     box = root / 'test_files/test_ptn1/compounds/ligands/ligand/boxes/box0.pdb'
     conf = tmp_path / 'smina' / 'conf.txt'
     conf.parent.mkdir(parents=True, exist_ok=True)
-    rc = s_mod.gen_smina_conf(str(box), str(conf), 'rec.pdbqt')
+    rc = ocsmina.gen_smina_conf(str(box), str(conf), 'rec.pdbqt')
     assert rc == 0
     txt = conf.read_text()
     # Check custom flags are written

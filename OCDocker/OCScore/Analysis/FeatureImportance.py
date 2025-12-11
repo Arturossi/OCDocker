@@ -1,5 +1,6 @@
 from __future__ import annotations
-"""
+import OCDocker.Error as ocerror
+'''
 Test2 SHAP utilities (library style, no I/O, no plots).
 
 Focus on reproducible SHAP computation with stratified background selection and
@@ -11,12 +12,14 @@ Public API:
 - make_explainer
 - compute_shap_values
 - shap_importance_table
-"""
+'''
 
-from typing import Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
+
+
 
 try:
     import shap
@@ -36,12 +39,26 @@ __all__ = [
 # Helpers
 # --------------------------------------------------------------------------------------
 def _require_shap() -> None:
+    '''Require shap to be installed.'''
+    
     if shap is None:
         raise ImportError("shap is not installed. Please install `shap` to use Test2SHAP utilities.")
 
 
 def _ensure_2d(X: Union[np.ndarray, pd.DataFrame]) -> np.ndarray:
-    """Guarantee 2D float64 array without copying unnecessarily."""
+    '''Guarantee 2D float64 array without copying unnecessarily.
+    
+    Parameters
+    ----------
+    X : Union[np.ndarray, pd.DataFrame]
+        Feature matrix.
+
+    Returns
+    -------
+    np.ndarray
+        Feature matrix as a 2D float64 array.
+    '''
+
     if isinstance(X, pd.DataFrame):
         return X.to_numpy(dtype=float, copy=False)
     X = np.asarray(X)
@@ -60,13 +77,28 @@ def build_stratified_background(
     per_stratum: int = 50,
     seed: int = 0,
 ) -> np.ndarray:
-    """
-    Build a stratified background set by sampling up to `per_stratum` rows from each
+    '''Build a stratified background set by sampling up to `per_stratum` rows from each
     combination in `strata_cols` (e.g., ["target","active"]). Preserves class/target
     balance in the background while bounding its size.
 
-    Returns: background array with shape (n_bg, n_features).
-    """
+    Parameters
+    ----------
+    X : Union[np.ndarray, pd.DataFrame]
+        Feature matrix.
+    meta : pd.DataFrame
+        Metadata DataFrame with stratification columns.
+    strata_cols : Sequence[str]
+        Column names to stratify by.
+    per_stratum : int, optional
+        Number of samples per stratum. Default is 50.
+    seed : int, optional
+        Random seed. Default is 0.
+
+    Returns
+    -------
+    np.ndarray
+        Background array with shape (n_bg, n_features).
+    '''
     rng = np.random.default_rng(seed)
     X_arr = _ensure_2d(X)
     assert len(meta) == X_arr.shape[0], "meta rows must align with X rows"
@@ -88,23 +120,34 @@ def build_stratified_background(
 # Explainer selection
 # --------------------------------------------------------------------------------------
 def make_explainer(
-    model,
+    model: Any,
     background: np.ndarray,
     method: str = "auto",
     link: Optional[str] = None,
     predict_fn: Optional[Callable] = None,
-):
-    """
-    Create a SHAP Explainer for the given model and background.
+) -> Tuple[Any, int]:
+    '''Create a SHAP Explainer for the given model and background.
 
-    - method="auto": TreeExplainer if tree model; DeepExplainer if torch/TF; else KernelExplainer.
-    - link: optional link function (e.g., "logit") for KernelExplainer.
-    - predict_fn: override prediction function (expects shape (n, n_classes) or (n,) ).
+    Parameters
+    ----------
+    model : Any
+        The model to explain. Can be tree model, PyTorch/TensorFlow model, or any model.
+    background : np.ndarray
+        Background dataset for SHAP explainer.
+    method : str, optional
+        Method to use: "auto" (TreeExplainer if tree model; DeepExplainer if torch/TF; else KernelExplainer),
+        "tree", "deep", or "kernel". Default is "auto".
+    link : Optional[str], optional
+        Optional link function (e.g., "logit") for KernelExplainer. Default is None.
+    predict_fn : Optional[Callable], optional
+        Override prediction function (expects shape (n, n_classes) or (n,)). Default is None.
 
-    Returns: (explainer, predict_proba_index)
-      predict_proba_index = 1 is commonly used for binary classification when the
-      explainer returns per-class SHAP values (lists). You can change that later.
-    """
+    Returns
+    -------
+    Tuple[Any, int]
+        Tuple of (explainer, predict_proba_index). predict_proba_index = 1 is commonly used
+        for binary classification when the explainer returns per-class SHAP values (lists).
+    '''
     _require_shap()
     bg = _ensure_2d(background)
 
@@ -145,6 +188,8 @@ def make_explainer(
         explainer = shap.KernelExplainer(fn, bg, link=link_obj)
         proba_idx = 1
     else:
+        # User-facing error: unknown method
+        ocerror.Error.value_error(f"Unknown method: '{method}'. Must be 'tree', 'deep', or 'kernel'.") # type: ignore
         raise ValueError(f"Unknown method: {method}")
 
     return explainer, proba_idx
@@ -154,25 +199,36 @@ def make_explainer(
 # SHAP computation
 # --------------------------------------------------------------------------------------
 def compute_shap_values(
-    explainer,
+    explainer: Any,
     X_eval: Union[np.ndarray, pd.DataFrame],
     task: str = "binary",
     nsamples: Optional[Union[int, str]] = "auto",
     class_index: int = 1,
 ) -> Dict[str, np.ndarray]:
-    """
-    Compute SHAP values for the evaluation set.
+    '''Compute SHAP values for the evaluation set.
 
-    - For binary classification with explainers returning per-class arrays (list),
-      we select class_index (default = 1).
-    - nsamples is passed to KernelExplainer; ignored by Tree/Deep explainers when not applicable.
+    Parameters
+    ----------
+    explainer : Any
+        SHAP explainer object.
+    X_eval : Union[np.ndarray, pd.DataFrame]
+        Evaluation dataset.
+    task : str, optional
+        Task type. Default is "binary".
+    nsamples : Optional[Union[int, str]], optional
+        Number of samples for KernelExplainer. Ignored by Tree/Deep explainers when not applicable.
+        Default is "auto".
+    class_index : int, optional
+        For binary classification with explainers returning per-class arrays (list),
+        select this class index. Default is 1.
 
-    Returns dict:
-      {
-        "shap_values": (n_samples, n_features),
-        "base_values": (n_samples,) or scalar
-      }
-    """
+    Returns
+    -------
+    Dict[str, np.ndarray]
+        Dictionary with keys:
+        - "shap_values": (n_samples, n_features) array
+        - "base_values": (n_samples,) or scalar
+    '''
     _require_shap()
     X_eval_arr = _ensure_2d(X_eval)
 
@@ -216,12 +272,20 @@ def shap_importance_table(
     feature_names: Optional[Sequence[str]] = None,
     k: Optional[int] = None,
 ) -> pd.DataFrame:
-    """
-    Compute mean(|SHAP|) per feature and return a ranked table.
+    '''Compute mean absolute SHAP values per feature and return a ranked table.
 
-    Columns:
-      ["feature","mean_abs_shap","rank"]
-    """
+    Parameters
+    ----------
+    shap_values : np.ndarray
+        SHAP values array of shape (n_samples, n_features).
+    feature_names : Optional[Sequence[str]], optional
+        Names of features. If None, generates names like "f0", "f1", etc. Default is None.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with columns: ["feature", "mean_abs_shap", "rank"]
+    '''
     S = np.asarray(shap_values, dtype=float)
     mean_abs = np.nanmean(np.abs(S), axis=0)
 

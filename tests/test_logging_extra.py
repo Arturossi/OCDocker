@@ -1,9 +1,12 @@
 import os
 
+import pytest
+
 import OCDocker.Error as ocerror
 import OCDocker.Toolbox.Logging as oclogging
 
 
+@pytest.mark.order(69)
 def test_logging_config_and_file(tmp_path):
     log_file = tmp_path / "test.log"
 
@@ -17,6 +20,7 @@ def test_logging_config_and_file(tmp_path):
     assert "hello world" in contents
 
 
+@pytest.mark.order(70)
 def test_backup_log(tmp_path):
     # Prepare a file in the default logdir matching backup_log expectation
     logdir = oclogging._default_logdir()

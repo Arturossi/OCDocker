@@ -4,9 +4,10 @@ from rdkit.Chem import AllChem
 
 import OCDocker.Toolbox.MoleculeProcessing as ocmolproc
 
+
 @pytest.fixture
 def example_mols(tmp_path):
-    """Create three conformers of the same molecule and write to SDF files."""
+    '''Create three conformers of the same molecule and write to SDF files.'''
     # Three ethanol conformers with different embeddings
     mol1 = Chem.AddHs(Chem.MolFromSmiles("CCO"))
     AllChem.EmbedMolecule(mol1, randomSeed=0xf00d) # type: ignore
@@ -27,6 +28,7 @@ def example_mols(tmp_path):
 
     return files
 
+
 @pytest.mark.order(1)
 def test_get_rmsd(example_mols):
     mol_path = example_mols[0]
@@ -34,6 +36,7 @@ def test_get_rmsd(example_mols):
     if isinstance(rmsd, list):
         rmsd = rmsd[0]
     assert pytest.approx(0.0, abs=1e-3) == rmsd
+
 
 @pytest.mark.order(2)
 def test_get_rmsd_matrix_symmetry(example_mols):

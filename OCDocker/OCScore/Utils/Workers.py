@@ -2,14 +2,14 @@
 
 # Description
 ###############################################################################
-"""
+'''
 Set of functions to manage I/O operations in OCDocker in the context of scoring 
 functions.
 
 They are imported as:
 
 import OCDocker.OCScore.Utils.Workers as ocscoreworkers
-"""
+'''
 
 # Imports
 ###############################################################################
@@ -53,6 +53,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 # Methods
 ###############################################################################
+
 
 def AEworker(
         pid : int,
@@ -154,6 +155,7 @@ def AEworker(
 
     return study
 
+
 def GAWorker(
         pid : int,
         id : int,
@@ -238,6 +240,7 @@ def GAWorker(
         ocprint.printv(f"Process {pid} has completed the optimization")
 
     return study, best_features, best_score
+
 
 def NNworker(
         pid : int,
@@ -328,6 +331,7 @@ def NNworker(
         ocprint.printv(f"Process {pid} has completed the optimization")
 
     return None
+
 
 def NNSeedAblationworker(
         pid : int,
@@ -454,6 +458,7 @@ def NNSeedAblationworker(
 
     return None
 
+
 def NNAblationworker(
         pid : int,
         id : int,
@@ -579,6 +584,7 @@ def NNAblationworker(
 
     return None
 
+
 def Transworker(
             pid : int,
             id : int,
@@ -669,6 +675,7 @@ def Transworker(
 
         if verbose:
             ocprint.printv(f"Process {pid} has compleated optimization")
+
 
 def XGBworker(
         pid : int, id : int,

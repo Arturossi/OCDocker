@@ -17,6 +17,7 @@ logging.basicConfig(level=logging.DEBUG)
 # -----------------------------------------------------------------------------
 HERE = Path(__file__).resolve()
 
+
 def find_repo_root(start: Path) -> Path:
     for p in (start, *start.parents):
         pkg = p / "OCDocker"
@@ -24,21 +25,34 @@ def find_repo_root(start: Path) -> Path:
             return p
     raise RuntimeError("Could not find repo root with 'OCDocker/__init__.py' above this file.")
 
+
+
 REPO_ROOT = find_repo_root(HERE)
 sys.path.insert(0, str(REPO_ROOT))
 os.environ.setdefault("OC_BUILD_DOCS", "1")
 os.environ.setdefault("MPLBACKEND", "agg")
 logging.debug("Docs repo root: %s", REPO_ROOT)
 
+
+
 # -----------------------------------------------------------------------------
 # Levels & defaults FIRST (used by Error module and injections)
 # -----------------------------------------------------------------------------
 class ReportLevel(IntEnum):
-    NONE  = 0
-    INFO  = 1
-    WARN  = 2
-    ERROR = 3
-    DEBUG = 4
+    """Report levels for error and information messages in OCDocker.
+    
+    This enumeration defines the severity levels for messages printed by
+    the Error class and other reporting mechanisms. Messages can be filtered
+    based on these levels to control verbosity.
+    """
+    
+    DEBUG = 5
+    SUCCESS = 4
+    INFO = 3
+    WARNING = 2
+    ERROR = 1
+    NONE = 0
+
 
 DEFAULT_LEVEL = ReportLevel.INFO
 
@@ -48,7 +62,7 @@ DEFAULT_LEVEL = ReportLevel.INFO
 
 # Provide OCDocker.Initialise with the attributes code expects
 init_mod = types.ModuleType("OCDocker.Initialise")
-init_mod.__all__ = ["session", "db_url", "get_db_url"]
+init_mod.__all__ = ["session", "db_url", "get_db_url", "clrs"]
 init_mod.session = MagicMock(name="session")
 
 # Many DB modules expect a connection URL at import time.
@@ -57,8 +71,22 @@ init_mod.db_url = "sqlite:///:memory:"
 init_mod.engine = MagicMock(name="engine")
 init_mod.__all__.append("engine")
 
+# Provide clrs dictionary for color output (used by FilesFolders and other modules)
+init_mod.clrs = {
+    "r": "\033[1;91m",  # red
+    "g": "\033[1;92m",  # green
+    "y": "\033[1;93m",  # yellow
+    "b": "\033[1;94m",  # blue
+    "p": "\033[1;95m",  # purple
+    "c": "\033[1;96m",  # cyan
+    "n": "\033[1;0m"    # default
+}
+
+
 def _get_db_url():
     return init_mod.db_url
+
+
 
 init_mod.get_db_url = _get_db_url
 sys.modules["OCDocker.Initialise"] = init_mod
@@ -103,6 +131,8 @@ setattr(OCD, "ReportLevel", ReportLevel)    # OCDocker.ReportLevel
 setattr(OCD, "output_level", DEFAULT_LEVEL) # OCDocker.output_level
 sys.modules["OCDocker"] = OCD
 
+
+
 # -----------------------------------------------------------------------------
 # Import-time global injection for ALL OCDocker submodules
 # Ensures `output_level`, `ReportLevel`, `ocerror`, and `Error` are available
@@ -111,12 +141,29 @@ sys.modules["OCDocker"] = OCD
 class _InjectingLoader(Loader):
     def __init__(self, base_loader, injected: dict):
         self._base = base_loader
+
         self._injected = injected
+
+
+
+
+
+
+
+
 
     def create_module(self, spec):
         if hasattr(self._base, "create_module"):
             return self._base.create_module(spec)
+
         return None
+
+
+
+
+
+
+
 
     def exec_module(self, module):
         for k, v in self._injected.items():
@@ -124,10 +171,19 @@ class _InjectingLoader(Loader):
                 setattr(module, k, v)
         return self._base.exec_module(module)
 
+
 class _InjectingFinder(MetaPathFinder):
     def __init__(self, pkg_prefix: str, injected: dict):
         self._pkg_prefix = pkg_prefix
+
         self._injected = injected
+
+
+
+
+
+
+
 
     def find_spec(self, fullname, path=None, target=None):
         if not fullname.startswith(self._pkg_prefix):
@@ -138,6 +194,8 @@ class _InjectingFinder(MetaPathFinder):
         spec.loader = _InjectingLoader(spec.loader, self._injected)
         return spec
 
+
+
 _injected_globals = {
     "output_level": DEFAULT_LEVEL,
     "ReportLevel": ReportLevel,
@@ -147,6 +205,8 @@ _injected_globals = {
 
 if not any(isinstance(f, _InjectingFinder) for f in sys.meta_path):
     sys.meta_path.insert(0, _InjectingFinder("OCDocker", _injected_globals))
+
+
 
 # -----------------------------------------------------------------------------
 # Helper: load a specific module with extra injections (when needed)
@@ -217,8 +277,8 @@ for parent in (
 project = "OCDocker"
 copyright = "2025, Artur Duque Rossi"
 author = "Artur Duque Rossi"
-version = "0.10.1"
-release = "0.10.1"
+version = "0.11.1"
+release = "0.11.1"
 
 extensions = [
     "sphinxarg.ext",
@@ -261,12 +321,25 @@ napoleon_use_rtype = True
 # Autodoc
 autodoc_member_order = "bysource"
 autodoc_typehints = "description"
+# Exclude inherited members to avoid documenting SQLAlchemy internals
+autodoc_default_options = {
+    "members": True,
+    "undoc-members": False,
+    "inherited-members": False,
+    "show-inheritance": True,
+}
+
+# Suppress warnings about duplicate object descriptions and undefined references
+suppress_warnings = [
+    "ref.ref",
+]
 
 # Do NOT mock your own modules
-autodoc_mock_imports = ["cupy", "torch", "oddt", "openbabel", "rdkit"]
+autodoc_mock_imports = ["cupy", "torch", "oddt", "openbabel", "rdkit", "shap", "optuna"]
 
 # RST substitutions
 rst_prolog = """
 .. |NBS| replace:: Normalized Binding Score
 .. |NBS_norm| replace:: Normalized Binding Score (scaled)
+.. |SHAP| replace:: SHAP
 """

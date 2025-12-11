@@ -30,7 +30,9 @@ import OCDocker.Toolbox.Basetools as ocbasetools
 import OCDocker.Toolbox.Printing as ocprint
 import OCDocker.Toolbox.Validation as ocvalidation
 
-from OCDocker.Initialise import *
+import OCDocker.Error as ocerror
+
+from OCDocker.Initialise import clrs
 
 # License
 ###############################################################################
@@ -56,9 +58,38 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ###############################################################################
 ## Private ##
 
+
+def _validate_path_within_base(dest_path: str, base_path: str) -> bool:
+    '''Validate that a destination path is within a base directory to prevent path traversal attacks.
+    
+    This function ensures that the destination path cannot escape the base directory
+    using path traversal sequences like '..' or absolute paths.
+    
+    Parameters
+    ----------
+    dest_path : str
+        The destination path to validate (can be relative or absolute).
+    base_path : str
+        The base directory that the destination must be within.
+        
+    Returns
+    -------
+    bool
+        True if the destination path is within the base path, False otherwise.
+    '''
+    
+    # Resolve both paths to absolute paths for comparison
+    abs_dest = os.path.abspath(dest_path)
+    abs_base = os.path.abspath(base_path)
+    
+    # Check if destination is exactly the base or is a subdirectory of base
+    # Using os.sep ensures cross-platform compatibility
+    return abs_dest == abs_base or abs_dest.startswith(abs_base + os.sep)
+
+
 ## Public ##
 def empty_docking_digest(digestPath: str, overwrite: bool = False, digestFormat : str = "") -> Union[Dict[str, List[float]], int]:
-    """Create an empty digest file.
+    '''Create an empty digest file.
 
     Parameters
     ----------
@@ -73,21 +104,21 @@ def empty_docking_digest(digestPath: str, overwrite: bool = False, digestFormat 
     -------
     Dict[str, List[float]] | int
         The empty digest object or the error code.
-    """
+    '''
 
     # Create the empty digest variable
     digest = {
-        "smina_pose": [np.NaN],
-        "smina_affinity": [np.NaN], 
-        "PLANTS_TOTAL_SCORE": [np.NaN],
-        "PLANTS_SCORE_RB_PEN": [np.NaN],
-        "PLANTS_SCORE_NORM_HEVATOMS": [np.NaN],
-        "PLANTS_SCORE_NORM_CRT_HEVATOMS": [np.NaN], 
-        "PLANTS_SCORE_NORM_WEIGHT": [np.NaN],
-        "PLANTS_SCORE_NORM_CRT_WEIGHT": [np.NaN],
-        "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [np.NaN],
-        "vina_pose": [np.NaN],
-        "vina_affinity": [np.NaN]
+        "smina_pose": [np.nan],
+        "smina_affinity": [np.nan], 
+        "PLANTS_TOTAL_SCORE": [np.nan],
+        "PLANTS_SCORE_RB_PEN": [np.nan],
+        "PLANTS_SCORE_NORM_HEVATOMS": [np.nan],
+        "PLANTS_SCORE_NORM_CRT_HEVATOMS": [np.nan], 
+        "PLANTS_SCORE_NORM_WEIGHT": [np.nan],
+        "PLANTS_SCORE_NORM_CRT_WEIGHT": [np.nan],
+        "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [np.nan],
+        "vina_pose": [np.nan],
+        "vina_affinity": [np.nan]
         }
 
     # Check if the digest format is not empty
@@ -107,6 +138,7 @@ def empty_docking_digest(digestPath: str, overwrite: bool = False, digestFormat 
                     except Exception as e:
                         return ocerror.Error.write_file(f"Could not write the digest file '{digestPath}'.", level = ocerror.ReportLevel.ERROR) # type: ignore
     return digest
+
 
 def to_hdf5(filePath: str, data: Any) -> int:
     '''Save a data in a hdf5 file. If the data is a dict, use its keys as hdf5 key files. If is a list or tuple, use its indexes as keys. Otherwise, use the key 'data'.
@@ -143,7 +175,8 @@ def to_hdf5(filePath: str, data: Any) -> int:
     except Exception as e:
         return ocerror.Error.write_file(f"Problems while saving the hdf5 file '{filePath}'. Error: {e}") # type: ignore
     return ocerror.Error.ok() # type: ignore
-    
+
+
 def from_hdf5(filePath: str) -> Union[None, Any]:
     '''Read a data from a hdf5 file.
 
@@ -174,6 +207,7 @@ def from_hdf5(filePath: str) -> Union[None, Any]:
         _ = ocerror.Error.read_file(f"Problems while reading the hdf5 file '{filePath}'. Error: {e}") # type: ignore
     return data
 
+
 def to_pickle(filePath: str, data: Any) -> int:
     '''Pickle an object in a given path.
 
@@ -197,6 +231,7 @@ def to_pickle(filePath: str, data: Any) -> int:
         return ocerror.Error.write_file(f"Problems while pickling the file '{filePath}'. Error: {e}") # type: ignore
     return ocerror.Error.ok() # type: ignore
 
+
 def from_pickle(filePath: str) -> Union[None, Any]:
     '''Unpickle a pickle file into an object.
 
@@ -218,6 +253,7 @@ def from_pickle(filePath: str) -> Union[None, Any]:
     except Exception as e:
         _ = ocerror.Error.read_file(f"Problems while unpickling the file '{filePath}'. Error: {e}") # type: ignore
     return data
+
 
 def safe_create_dir(dirname: Union[str, Path]) -> int:
     '''Create a dir if not exists.
@@ -268,6 +304,7 @@ def safe_create_dir(dirname: Union[str, Path]) -> int:
     # This should never appear since all the other paths ends in some kind of return
     return ocerror.Error.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while creating a dir safetly. The dir is '{dirname}'.", level = ocerror.ReportLevel.ERROR) # type: ignore
 
+
 def safe_remove_dir(dirname: str) -> int:
     ''' Remove a dir if exists.
 
@@ -300,6 +337,50 @@ def safe_remove_dir(dirname: str) -> int:
         return ocerror.Error.remove_dir(message=f"Problem found while removing the dir '{dirname}': {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
     # This should never appear since all the other paths ends in some kind of return
     return ocerror.Error.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while creating a dir safetly.", level = ocerror.ReportLevel.ERROR) # type: ignore
+
+
+def normalize_path(path: str) -> str:
+    '''Normalize a path to an absolute path with normalized separators and components.
+    
+    This function normalizes paths by:
+    - Converting to absolute path
+    - Normalizing path separators
+    - Resolving . and .. components
+
+    Parameters
+    ----------
+    path : str
+        The path to normalize.
+    
+    Returns
+    -------
+    str
+        The normalized absolute path.
+    '''
+
+    return os.path.normpath(os.path.abspath(path))
+
+
+def ensure_parent_dir(path: str) -> None:
+    '''Ensure parent directory exists, creating if necessary.
+    
+    Parameters
+    ----------
+    path : str
+        Path to a file or directory. The parent directory will be created.
+        
+    Returns
+    -------
+    None
+        This function does not return a value. It silently handles errors.
+    '''
+    
+    try:
+        os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    except (OSError, PermissionError):
+        # Ignore errors if directory already exists or permission denied
+        pass
+
 
 def safe_remove_file(filePath: str) -> int:
     '''Remove a file if exists.
@@ -334,6 +415,7 @@ def safe_remove_file(filePath: str) -> int:
     # This should never appear since all the other paths ends in some kind of return
     return ocerror.Error.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while removing a file safetly.", level = ocerror.ReportLevel.ERROR) # type: ignore
 
+
 def untar(fname: str, out_path: str = ".", delete: bool = False) -> int:
     '''Untar a file.
 
@@ -363,6 +445,7 @@ def untar(fname: str, out_path: str = ".", delete: bool = False) -> int:
             # open your tar.gz file
             with tarfile.open(name=fname) as tar:
                 # Prepare for safe extraction (prevent path traversal)
+                # SECURITY: Path traversal protection ensures extracted files cannot escape the output directory
                 abs_out = os.path.abspath(out_path)
                 members = tar.getmembers()
                 # Redirect output to tqdm.write
@@ -370,8 +453,9 @@ def untar(fname: str, out_path: str = ".", delete: bool = False) -> int:
                     # Go over each member
                     for member in tqdm(iterable=members, total=len(members)):
                         # Compute destination path and validate it's inside out_path
-                        dest_path = os.path.abspath(os.path.join(abs_out, member.name))
-                        if not (dest_path == abs_out or dest_path.startswith(abs_out + os.sep)):
+                        dest_path = os.path.join(abs_out, member.name)
+                        # Use helper function for path traversal validation
+                        if not _validate_path_within_base(dest_path, abs_out):
                             return ocerror.Error.untar_file(  # type: ignore
                                 message=f"Unsafe path detected in archive entry '{member.name}'. Aborting extraction to avoid path traversal.",
                                 level=ocerror.ReportLevel.ERROR,

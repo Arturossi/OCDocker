@@ -2,10 +2,20 @@
 from __future__ import annotations
 import json
 import argparse
+from typing import Optional
 from .Runner import run_shap_analysis
 from .Studies import StudyHandles
 
-def build_argparser():
+
+def build_argparser() -> argparse.ArgumentParser:
+    '''Build command-line argument parser for SHAP analysis.
+    
+    Returns
+    -------
+    argparse.ArgumentParser
+        Configured argument parser with all SHAP analysis command-line arguments.
+    '''
+    
     p = argparse.ArgumentParser(description="Run SHAP analysis for OCScore NeuralNet.")
     p.add_argument("--storage", required=True)
     p.add_argument("--ao_study", required=True)
@@ -24,7 +34,16 @@ def build_argparser():
     p.add_argument("--no_csv", action="store_true")
     return p
 
-def main(argv=None):
+
+def main(argv: Optional[list[str]] = None) -> None:
+    '''Main entry point for SHAP analysis command-line interface.
+    
+    Parameters
+    ----------
+    argv : Optional[list[str]], optional
+        Command-line arguments to parse. If None, uses sys.argv. Default is None.
+    '''
+    
     args = build_argparser().parse_args(argv)
     studies = StudyHandles(
         ao_study_name=args.ao_study,

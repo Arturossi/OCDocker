@@ -48,6 +48,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Methods
 ###############################################################################
 
+
 def roc_plot(y_true: Union[Sequence[float], np.ndarray],
              y_score: Union[Sequence[float], np.ndarray],
              *,
@@ -79,6 +80,7 @@ def roc_plot(y_true: Union[Sequence[float], np.ndarray],
     ax.set_title("ROC Curve")
     ax.legend(loc="lower right")
     return fig, ax
+
 
 def pr_plot(y_true: Union[Sequence[float], np.ndarray],
             y_score: Union[Sequence[float], np.ndarray],
@@ -113,6 +115,7 @@ def pr_plot(y_true: Union[Sequence[float], np.ndarray],
     ax.legend(loc="lower left")
     
     return fig, ax
+
 
 def enrichment_plot(y_true: Union[Sequence[float], np.ndarray],
                     y_score: Union[Sequence[float], np.ndarray],

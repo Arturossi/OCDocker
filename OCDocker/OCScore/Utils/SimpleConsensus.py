@@ -2,12 +2,12 @@
 
 # Description
 ###############################################################################
-""" Module to perform the simple consensus calculation for the given dataset.
+''' Module to perform the simple consensus calculation for the given dataset.
 
 It is imported as:
 
 import OCDocker.OCScore.Utils.SimpleConsensus as ocsimple
-"""
+'''
 
 # Imports
 ###############################################################################
@@ -40,6 +40,7 @@ This project is licensed under Creative Commons (CC-BY-4.0).
 
 # Methods
 ###############################################################################
+
 
 def simple_consensus(
         data : pd.DataFrame,
@@ -89,6 +90,7 @@ def simple_consensus(
         df['type'] = data['type']
 
     return df
+
 
 def perform_simple_consensus(
         df_path : str,

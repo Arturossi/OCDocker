@@ -2,7 +2,7 @@
 
 # Description
 ###############################################################################
-""" This module provides utilities to summarize and visualize feature impact
+''' This module provides utilities to summarize and visualize feature impact
 using Net Benefit Score (NBS) and related statistics.
 
 It exposes high-level functions:
@@ -14,7 +14,7 @@ It exposes high-level functions:
 Import as:
 
 import OCDocker.OCScore.Analysis.Impact as ocimpact
-"""
+'''
 
 # Imports
 ###############################################################################
@@ -49,6 +49,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Helpers
 ###############################################################################
 
+
 def _strength_from_v(v: float) -> str:
     '''
     Map Cramér's V value to a qualitative strength label.
@@ -75,6 +76,7 @@ def _strength_from_v(v: float) -> str:
     if v < 0.50:
         return "strong"
     return "very strong"
+
 
 def _strength_from_nbs_norm(nbs_norm: float, thresholds: Sequence[float] = (0.10, 0.20, 0.35)) -> str:
     '''
@@ -103,6 +105,7 @@ def _strength_from_nbs_norm(nbs_norm: float, thresholds: Sequence[float] = (0.10
     if a < thresholds[2]:
         return "strong"
     return "very strong"
+
 
 def _beneficial_categories(metric: str, categories: Iterable[str], custom: Optional[Iterable[str]] = None) -> set[str]:
     '''
@@ -136,6 +139,7 @@ def _beneficial_categories(metric: str, categories: Iterable[str], custom: Optio
         k = len(cats)
         good = set(cats[k // 2 :])
     return good if good else set(cats[-max(1, len(cats) // 2) :])
+
 
 def _proportion_delta(contingency: pd.DataFrame, presence_level: Union[int, str] = 1) -> pd.Series:
     '''
@@ -173,6 +177,7 @@ def _proportion_delta(contingency: pd.DataFrame, presence_level: Union[int, str]
 
     return (props.loc[k1] - props.loc[k0]).astype(float)
 
+
 def _net_benefit(delta: pd.Series, beneficial: set[str]) -> float:
     '''
     Compute Net Benefit Score in [-1, 1] from Δp and beneficial categories.
@@ -196,8 +201,13 @@ def _net_benefit(delta: pd.Series, beneficial: set[str]) -> float:
     return float(delta[good].sum() - delta[bad].sum())
 
 
+
+
+
+
 # Public API
 ###############################################################################
+
 
 def build_impact_overview(
     chi_df: pd.DataFrame,
@@ -285,6 +295,7 @@ def build_impact_overview(
     out['NegLog10P'] = -np.log10(np.clip(out['p-value'].astype(float), 1e-300, 1.0))
     return out.sort_values(['Direction', '|NBS|', 'NegLog10P'], ascending=[True, False, False])
 
+
 def get_neutral_features(impact_df: pd.DataFrame, tau: float = 0.05) -> list[str]:
     '''
     Return a sorted list of neutral features by Direction or |NBS| < tau.
@@ -312,9 +323,12 @@ def get_neutral_features(impact_df: pd.DataFrame, tau: float = 0.05) -> list[str
     return (
         impact_df.loc[impact_df['NBS'].abs() < tau, 'Feature']
         .astype(str)
+
+
         .sort_values()
         .tolist()
     )
+
 
 def plot_impact_arrows_inline_labels(
     impact_df: pd.DataFrame,

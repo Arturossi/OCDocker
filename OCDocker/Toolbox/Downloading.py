@@ -40,7 +40,8 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ###############################################################################
 class DownloadProgressBar(tqdm):
     """Deal with the progress bar to track download. Extends the tqdm class."""
-    
+
+
     def update_to(self, b: int = 1, bsize: int = 1, tsize: int = 0) -> None:
         '''Update the progress bar.
 
@@ -61,6 +62,10 @@ class DownloadProgressBar(tqdm):
         if tsize is not None:
             self.total = tsize
         self.update(b * bsize - self.n)
+
+
+
+
 
 
 # Functions

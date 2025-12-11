@@ -19,7 +19,10 @@ from spyrmsd import io, rmsd
 from threading import Lock
 from typing import Dict, List, Tuple, Union
 
-from OCDocker.Initialise import *
+from OCDocker.Config import get_config
+import OCDocker.Error as ocerror
+
+import OCDocker.Toolbox.FilesFolders as ocff
 import OCDocker.Toolbox.Printing as ocprint
 import OCDocker.Toolbox.Running as ocrun
 
@@ -71,13 +74,24 @@ def split_poses(ligand: str, ligandName: str, outPath: str, suffix: str = "", lo
     '''
 
     # Split the input ligand
-    cmd = [vina_split, "--input", ligand, "--flex", "''", "--ligand", f"{outPath}/{ligandName}{suffix}"]
+    config = get_config()
+    
+    # Ensure ligand input path is absolute and normalized (remove duplicate directory components)
+    ligand = ocff.normalize_path(ligand)
+    # Ensure outPath is normalized (removes duplicate slashes, . and .. components, and duplicate directories) and absolute
+    outPath = ocff.normalize_path(outPath)
+    os.makedirs(outPath, exist_ok=True)
+    # Construct the output file prefix (vina_split will append numbers like _0, _1, etc.)
+    # Use normalize again to ensure no duplicate path components
+    output_prefix = ocff.normalize_path(os.path.join(outPath, f"{ligandName}{suffix}"))
+    cmd = [config.vina.split_executable, "--input", ligand, "--flex", "''", "--ligand", output_prefix]
 
     # Print verbosity
     ocprint.printv(f"Spliting the ligand '{ligand}'.")
 
     # Run the command
     return ocrun.run(cmd, logFile = logFile)
+
 
 def get_rmsd_matrix(molecules: List[str]) -> Dict[str, Dict[str, float]]:
     '''Get the rmsd matrix between a list of molecules.
@@ -118,6 +132,7 @@ def get_rmsd_matrix(molecules: List[str]) -> Dict[str, Dict[str, float]]:
 
     # Return the rmsd matrix
     return rmsdMatrix
+
 
 def get_rmsd(reference: str, molecule: str) -> Union[List[float], float]:
     '''Get the rmsd between a reference and a molecule file (it supports more than one molecule in this second file).
@@ -163,6 +178,7 @@ def get_rmsd(reference: str, molecule: str) -> Union[List[float], float]:
 
     # Return the symmetric rmsd (account for symmetry because it is important)
     return rmsd.symmrmsd(refCoordinates, molCoordinates, refAtmNum, molAtmNum, refAdjMat, molAdjMat)
+
 
 def make_only_ATOM_and_CRYST_pdb(structurePath: str) -> int:
     '''Make a pdb file with only ATOM and CRYST1 records.

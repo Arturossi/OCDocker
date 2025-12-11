@@ -8,6 +8,8 @@ Lightweight CLI coverage: ensure init-config and version commands run.
 
 from pathlib import Path
 
+import pytest
+
 from OCDocker.CLI.__init__ import cmd_init_config, cmd_version
 
 
@@ -16,6 +18,7 @@ class _Args:
         self.__dict__.update(kw)
 
 
+@pytest.mark.order(22)
 def test_cli_init_config(tmp_path):
     # Point target to tmp; read example from repo root CWD
     target = tmp_path / "OCDocker.cfg"
@@ -25,6 +28,7 @@ def test_cli_init_config(tmp_path):
     assert target.exists()
 
 
+@pytest.mark.order(23)
 def test_cli_version():
     # Should not raise; returns 0 and prints
     args = _Args()

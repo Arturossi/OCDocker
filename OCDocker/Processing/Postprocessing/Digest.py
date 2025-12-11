@@ -27,7 +27,8 @@ import OCDocker.Toolbox.Basetools as ocbasetools
 import OCDocker.Toolbox.Logging as oclogging
 import OCDocker.Toolbox.Printing as ocprint
 
-from OCDocker.Initialise import *
+from OCDocker.Config import get_config
+import OCDocker.Error as ocerror
 
 # License
 ###############################################################################
@@ -52,6 +53,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Functions
 ###############################################################################
 ## Private ##
+
 
 def __core_generate_digest(path: str, ligandDir: str, archive: str, overwrite: bool, digestFormat: str = "json") -> int:
     '''Generate the digest file for a given protein and ligand.
@@ -100,10 +102,12 @@ def __core_generate_digest(path: str, ligandDir: str, archive: str, overwrite: b
         _ = ocplants.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat)
     else:
         errMsg = f"There is no ligand descriptor json file for the protein in the path '{ligandDescriptorPath}'."
-        ocprint.print_error_log(errMsg, f"{logdir}/{archive}_docking_digest_run_report_ERROR.log")
+        config = get_config()
+        ocprint.print_error_log(errMsg, f"{config.logdir}/{archive}_docking_digest_run_report_ERROR.log")
         return ocerror.Error.receptor_or_ligand_descriptor_does_not_exist(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
 
     return ocerror.Error.ok() # type: ignore
+
 
 def __thread_generate_digest(arguments: list) -> int:
     '''Thread aid function to call __core_generate_digest.
@@ -125,6 +129,7 @@ def __thread_generate_digest(arguments: list) -> int:
         returnState = __core_generate_digest(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4])
 
     return returnState
+
 
 def __generate_digest_parallel(complexList: List[Tuple[str, List[str]]], archive: str, overwrite: bool, digestFormat: str, desc: str) -> int:
     '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
@@ -158,20 +163,32 @@ def __generate_digest_parallel(complexList: List[Tuple[str, List[str]]], archive
             # Add the arguments to the list (creating one execution for each pair receptor-ligand)
             arguments.append((cl[0], ligandDir, archive, overwrite, digestFormat))
 
+    # Track error codes from all digest operations
+    error_codes = []
+    
     try:
         # Create a Thread pool with the maximum available_cores
-        with Pool(available_cores) as p:
-            # Perform the multi process
-            for _ in tqdm(p.imap_unordered(__thread_generate_digest, arguments), total = len(arguments), desc = desc):
+        config = get_config()
+        with Pool(config.available_cores) as p:
+            # Perform the multi process and collect return codes
+            for return_code in tqdm(p.imap_unordered(__thread_generate_digest, arguments), total = len(arguments), desc = desc):
+                # Track non-zero error codes
+                if return_code != ocerror.ErrorCode.OK:
+                    error_codes.append(return_code)
                 # Clear the memory
                 gc.collect()
     except IOError as e:
         errMsg = f"Problem while generating docking digest in parallel. Exception: {e}"
-        ocprint.print_error_log(errMsg, f"{logdir}/{archive}_docking_report.log")
+        config = get_config()
+        ocprint.print_error_log(errMsg, f"{config.logdir}/{archive}_docking_report.log")
         return ocerror.Error.docking_failed(errMsg, level = ocerror.ReportLevel.ERROR)
 
-    # Return
-    return ocerror.Error.ok() # FIXME: This should be changed to return the error code in a way to track all docking ocerror.Error
+    # Return the most severe error code, or OK if all succeeded
+    if error_codes:
+        # Return the first non-OK error code (errors are already logged by core functions)
+        return error_codes[0]
+    return ocerror.Error.ok() # type: ignore
+
 
 def __generate_digest_no_parallel(complexList: List[Tuple[str, List[str]]], archive: str, overwrite: bool, digestFormat: str, desc: str) -> int:
     '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_generate_digest function.
@@ -195,20 +212,31 @@ def __generate_digest_no_parallel(complexList: List[Tuple[str, List[str]]], arch
         The exit code of the command (based on the Error.py code table).
     '''
 
+    # Track error codes from all digest operations
+    error_codes = []
+    
     # Redirect all prints to tqdm.write
     with ocbasetools.redirect_to_tqdm():
         # For each file in dirs
         for cl in tqdm(iterable = complexList, total = len(complexList), desc=desc):
             for ligandDir in cl[1]:
                 # Call the core dock function (shared between parallel and not parallel)
-                __core_generate_digest(cl[0], ligandDir, archive, overwrite, digestFormat)
+                return_code = __core_generate_digest(cl[0], ligandDir, archive, overwrite, digestFormat)
+                # Track non-zero error codes
+                if return_code != ocerror.ErrorCode.OK:
+                    error_codes.append(return_code)
 
             # Clear the memory
             gc.collect()
         # Clear the memory
         gc.collect()
 
-    return ocerror.Error.ok() # FIXME: This should be changed to return the error code in a way to track all docking ocerror.Error
+    # Return the most severe error code, or OK if all succeeded
+    if error_codes:
+        # Return the first non-OK error code (errors are already logged by core functions)
+        return error_codes[0]
+    return ocerror.Error.ok() # type: ignore
+
 
 def __generate_digest_single(complex: Tuple[str, List[str]], archive: str, overwrite: bool, digestFormat: str, desc: str) -> int:
     '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_generate_digest function.
@@ -232,17 +260,32 @@ def __generate_digest_single(complex: Tuple[str, List[str]], archive: str, overw
         The exit code of the command (based on the Error.py code table).
     '''
 
+    # Track error codes from all digest operations
+    error_codes = []
+    
     # For each file in dirs
     for ligandDir in tqdm(iterable = complex[1], total = len(complex[1]), desc=desc):
         # Call the core dock function (shared between parallel and not parallel)
-        __core_generate_digest(complex[0], ligandDir, archive, overwrite, digestFormat)
+        return_code = __core_generate_digest(complex[0], ligandDir, archive, overwrite, digestFormat)
+        # Track non-zero error codes
+        if return_code != ocerror.ErrorCode.OK:
+            error_codes.append(return_code)
 
         # Clear the memory
         gc.collect()
 
-    return ocerror.Error.ok() # FIXME: This should be changed to return the error code in a way to track all docking ocerror.Error
+    # Return the most severe error code, or OK if all succeeded
+    if error_codes:
+        # Return the first non-OK error code (errors are already logged by core functions)
+        return error_codes[0]
+    return ocerror.Error.ok() # type: ignore
+
+
+
+
 
 ## Public ##
+
 
 def generate_digest(paths: Union[List[Tuple[str, List[str]]], Tuple[str, List[str]]], archive: str, overwrite: bool, digestFormat: str = "json") -> None:
     '''Generate the digest for the docking output.
@@ -269,7 +312,8 @@ def generate_digest(paths: Union[List[Tuple[str, List[str]]], Tuple[str, List[st
         oclogging.backup_log(f"{archive}_docking_digest_run_report_ERROR")
 
         # Check if multiprocessing is enabled
-        if multiprocess:
+        config = get_config()
+        if config.multiprocess:
             # Prepare the pdbbind
             __generate_digest_parallel(paths, archive, overwrite, digestFormat, label)
         else:

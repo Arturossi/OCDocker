@@ -8,6 +8,7 @@ from OCDocker.DB.DBMinimal import create_engine
 from sqlalchemy.orm import sessionmaker
 
 
+@pytest.mark.order(34)
 def test_export_db_to_csv_returns_strings_on_empty_db():
     engine = create_engine("sqlite:///:memory:")  # type: ignore[arg-type]
     ocdb.create_tables(engine)
@@ -20,6 +21,7 @@ def test_export_db_to_csv_returns_strings_on_empty_db():
         assert isinstance(csv, str)
 
 
+@pytest.mark.order(35)
 def test_export_db_to_csv_invalid_format_raises():
     engine = create_engine("sqlite:///:memory:")  # type: ignore[arg-type]
     ocdb.create_tables(engine)

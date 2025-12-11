@@ -42,6 +42,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Methods
 ###############################################################################
 
+
 def bootstrap_ci(
         y_true: np.ndarray,
         y_score: np.ndarray,

@@ -3,7 +3,7 @@
 
 # Description
 ###############################################################################
-"""
+'''
 Utilities to visualize SHAP outputs.
 
 Public helpers
@@ -11,7 +11,7 @@ Public helpers
 - feature_importance_barh: horizontal bar chart of relative importance
 - beeswarm: wrapper around shap.summary_plot
 - shap_correlation_heatmap: correlation heatmap of SHAP values
-"""
+'''
 
 from __future__ import annotations
 from typing import List, Tuple, Optional, Union
@@ -25,8 +25,10 @@ import seaborn as sns
 # Functions
 ###############################################################################
 
+
 def _ensure_dir(path: str) -> None:
     os.makedirs(path, exist_ok=True)
+
 
 def _relative_importance(shap_2d: np.ndarray) -> np.ndarray:
     mean_abs = np.abs(shap_2d).mean(axis=0)
@@ -34,6 +36,7 @@ def _relative_importance(shap_2d: np.ndarray) -> np.ndarray:
     if denom <= 0:
         return np.zeros_like(mean_abs)
     return (mean_abs / denom) * 100.0
+
 
 def feature_importance_barh(
     shap_2d: np.ndarray,
@@ -81,6 +84,7 @@ def feature_importance_barh(
     plt.close()
     return out_png
 
+
 def beeswarm(
     shap_2d: np.ndarray,
     X_eval: pd.DataFrame,
@@ -115,6 +119,7 @@ def beeswarm(
     plt.savefig(out_png, dpi=300, bbox_inches='tight')
     plt.close()
     return out_png
+
 
 def shap_correlation_heatmap(
     shap_values: Union[np.ndarray, pd.DataFrame],

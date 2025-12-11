@@ -14,11 +14,28 @@ from . import plots
 
 @dataclass
 class OutputPaths:
+    '''Container for SHAP analysis output file paths.
+    
+    Attributes
+    ----------
+    out_dir : str
+        Base output directory.
+    feature_importance_png : str
+        Path to feature importance bar plot PNG file.
+    beeswarm_png : str
+        Path to SHAP beeswarm plot PNG file.
+    shap_values_npy : str
+        Path to SHAP values NumPy array file.
+    shap_values_csv : Optional[str], optional
+        Path to SHAP values CSV file. None if CSV was not saved. Default is None.
+    '''
+    
     out_dir: str
     feature_importance_png: str
     beeswarm_png: str
     shap_values_npy: str
     shap_values_csv: Optional[str] = None
+
 
 def run_shap_analysis(
     studies: StudyHandles,
@@ -33,6 +50,39 @@ def run_shap_analysis(
     seed: int = 0,
     save_csv: bool = True,
 ) -> OutputPaths:
+    '''Run complete SHAP analysis workflow.
+    
+    Parameters
+    ----------
+    studies : StudyHandles
+        Handles to Optuna studies for selecting best model parameters.
+    df_path : str
+        Path to the main dataframe file.
+    base_models_folder : str
+        Base path to the models folder.
+    study_number : int
+        Study number identifier.
+    out_dir : str
+        Output directory for SHAP results.
+    background_size : Optional[int], optional
+        Number of samples to use for SHAP background. If None, uses all training data. Default is None.
+    eval_size : Optional[int], optional
+        Number of samples to evaluate SHAP values for. If None, uses all test data. Default is None.
+    explainer : str, optional
+        SHAP explainer type: "deep" or "kernel". Default is "deep".
+    stratify_by : Optional[List[str]], optional
+        Column names to stratify sampling by. Default is None.
+    seed : int, optional
+        Random seed for reproducibility. Default is 0.
+    save_csv : bool, optional
+        Whether to save SHAP values as CSV file. Default is True.
+    
+    Returns
+    -------
+    OutputPaths
+        Container with paths to all generated output files.
+    '''
+    
     os.makedirs(out_dir, exist_ok=True)
     best = select_best_from_studies(studies)
     data = load_and_prepare_data(

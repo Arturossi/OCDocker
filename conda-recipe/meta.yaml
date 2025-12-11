@@ -1,3 +1,55 @@
 package:
   name: ocdocker
   version: "0.9.1"
+
+source:
+  path: ..
+
+build:
+  noarch: python
+  script: 
+    - "{{ PYTHON }} -m pip install . --no-deps -vv"
+  script_env:
+    - PIP_INDEX_URL=https://pypi.org/simple
+
+requirements:
+  host:
+    - python >=3.9
+    - pip
+    - setuptools >=80
+
+  run:
+    - python >=3.9
+    - rdkit
+    - pandas >=2.2
+    - scikit-learn >=1.5
+    - seaborn
+    - matplotlib
+    - scipy >=1.14
+    - openbabel
+    - numpy >=1.26
+    - optuna
+    - pingouin
+    - pytorch >=2.4
+    - torchaudio >=2.4
+    - torchvision >=0.19
+    - xgboost >=2.1
+    - lime
+    - pyyaml
+    - joblib
+    - biopython
+    - dcor
+    - fsspec
+    - numba >=0.60
+    - python-graphviz
+    - torchsummary
+    - torchviz
+
+about:
+  home: https://github.com/Arturossi/OCDocker
+  summary: "Molecular docking automation, virtual screening, and AI consensus scoring"
+  license: Apache-2.0
+
+extra:
+  recipe-maintainers:
+    - arturossi

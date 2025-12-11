@@ -2,12 +2,12 @@
 
 # Description
 ###############################################################################
-""" Module to perform the optimization of the Neural Network. 
+''' Module to perform the optimization of the Neural Network. 
 
 It is imported as:
 
 from OCDocker.OCScore.DNN.DNNOptimizer import DNNOptimizer
-"""
+'''
 
 # Imports
 ###############################################################################
@@ -57,8 +57,9 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 
+
 class NeuralNet(nn.Module):
-    """ Neural Network class for the optimization of the neural network.
+    ''' Neural Network class for the optimization of the neural network.
 
     Parameters
     ----------
@@ -78,7 +79,8 @@ class NeuralNet(nn.Module):
         Verbose mode for the neural network, by default False
     mask : Union[None, list[Union[int, bool]], np.ndarray], optional
         Mask for the neural network, by default None
-    """
+    '''
+
 
     def __init__(self, 
             input_size : int,
@@ -232,11 +234,11 @@ class NeuralNet(nn.Module):
         self.nn_params = nn_params
 
         # Set the AUC and rmse as nan
-        self.validation_auc = np.NaN
-        self.rmse = np.NaN
-        self.pr_auc = np.NaN
-        self.log_loss_value = np.NaN
-        self.mae = np.NaN
+        self.validation_auc = np.nan
+        self.rmse = np.nan
+        self.pr_auc = np.nan
+        self.log_loss_value = np.nan
+        self.mae = np.nan
 
         # Set the verbose flag
         self.verbose = verbose
@@ -246,7 +248,16 @@ class NeuralNet(nn.Module):
 
         # If verbose is True, print the neural network
         if verbose:
+
             ocprint.printv(self.NN) # type: ignore
+
+
+
+
+
+
+
+
 
     def __build_encoder(self, encoder_params : dict) -> list:
         ''' Build the encoder for the neural network
@@ -314,7 +325,15 @@ class NeuralNet(nn.Module):
                     ("Activation", encoder_activation)
                 ])
             
+
         return encoder
+
+
+
+
+
+
+
 
     def __build_encoder_layer(self, encoder_params : dict) -> list:
         ''' Build the encoder for the neural network
@@ -367,7 +386,15 @@ class NeuralNet(nn.Module):
             return encoder_layer[0]
         
         # Otherwise, return the list
+
         return encoder_layer
+
+
+
+
+
+
+
 
     def set_random_seed(self) -> None:
         '''Set the random seed for the Autoencoder. It is used to set the random seed for the Autoencoder.'''
@@ -391,8 +418,16 @@ class NeuralNet(nn.Module):
 
         # Set the backends for reproducibility
         torch.backends.cudnn.benchmark = False
+
         torch.backends.cudnn.deterministic = True
-        
+
+
+
+
+
+
+
+
     def train_model(self,
                     X_train : Union[list, torch.Tensor, np.ndarray],
                     y_train : Union[list, torch.Tensor, np.ndarray],
@@ -400,7 +435,7 @@ class NeuralNet(nn.Module):
                     y_test : Union[list, torch.Tensor, np.ndarray],
                     X_validation : Union[list, torch.Tensor, np.ndarray, None] = None,
                     y_validation : Union[list, torch.Tensor, np.ndarray, None] = None,
-                    criterion = nn.MSELoss()) -> None:
+                    criterion: nn.Module = nn.MSELoss()) -> None:
         '''Train the neural network
 
         Parameters
@@ -599,32 +634,58 @@ class NeuralNet(nn.Module):
                     log_loss_value = 0
                     mae = 0
                 else:
-                    # Calculate the ROC
-                    fpr, tpr, _ = roc_curve(y_validation_np, validation_predictions_np)
-                    validation_auc = auc(fpr, tpr)
-               
-                    # Calculate the PR AUC
-                    precision, recall, _ = precision_recall_curve(y_validation_np, validation_predictions_np)
-                    pr_auc = auc(recall, precision)
-                    
-                    # Calculate the log loss
-                    log_loss_value = log_loss(y_validation_np, validation_predictions_np)
-    
-                    # Calculate the Mean Absolute Error
-                    mae = mean_absolute_error(y_validation_np, validation_predictions_np)
+                    # Check if validation set has only one class (can't compute AUC/log_loss)
+                    unique_classes = np.unique(y_validation_np)
+                    if len(unique_classes) == 1:
+                        # Only one class in validation set - can't compute classification metrics
+                        validation_auc = 0.0
+                        pr_auc = 0.0
+                        log_loss_value = np.inf
+                        mae = mean_absolute_error(y_validation_np, validation_predictions_np)
+                        if self.verbose:
+                            ocprint.printv(f'Warning: Validation set contains only one class ({unique_classes[0]}). Cannot compute AUC/log_loss.') # type: ignore
+                    else:
+                        # Calculate the ROC
+                        fpr, tpr, _ = roc_curve(y_validation_np, validation_predictions_np)
+                        validation_auc = auc(fpr, tpr)
+                   
+                        # Calculate the PR AUC
+                        precision, recall, _ = precision_recall_curve(y_validation_np, validation_predictions_np)
+                        pr_auc = auc(recall, precision)
+                        
+                        # Calculate the log loss (with error handling for edge cases)
+                        try:
+                            log_loss_value = log_loss(y_validation_np, validation_predictions_np)
+                        except ValueError as e:
+                            # Handle cases where log_loss fails (e.g., single class, invalid predictions)
+                            log_loss_value = np.inf
+                            if self.verbose:
+                                ocprint.printv(f'Warning: Could not compute log_loss: {e}') # type: ignore
+        
+                        # Calculate the Mean Absolute Error
+                        mae = mean_absolute_error(y_validation_np, validation_predictions_np)
     
         # Set the optuna user attrs
         self.rmse = rmse
         self.validation_auc = validation_auc
         self.pr_auc = pr_auc
         self.log_loss_value = log_loss_value
+
         self.mae = mae
-    
+
+
+
+
+
+
+
+
     def get_model(self):
         return self.NN
-        
+
+
 class DynamicNN(nn.Module):
-    """ Dynamic Neural Network class for the optimization of the neural network.
+    ''' Dynamic Neural Network class for the optimization of the neural network.
     
     Parameters
     ----------
@@ -642,7 +703,8 @@ class DynamicNN(nn.Module):
         Device for the neural network, by default torch.device('cpu')
     mask : Union[None, list[Union[int, bool]], np.ndarray], optional
         Mask for the neural network, by default None
-    """
+    '''
+
 
     def __init__(self,
             input_size: int,
@@ -745,9 +807,17 @@ class DynamicNN(nn.Module):
                     # Append the activation function to the layers while setting the device
                     self.layers.append(act_func(**processed_act_params).to(self.device))
 
+
         return None
 
-    def __set_ablation_mask(self, mask) -> None:
+
+
+
+
+
+
+
+    def __set_ablation_mask(self, mask: list) -> None:
         ''' Set the mask for the ablation study
 
         Parameters
@@ -763,7 +833,15 @@ class DynamicNN(nn.Module):
         else:
             self.mask = []
 
+
         return None
+
+
+
+
+
+
+
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         '''
@@ -796,8 +874,9 @@ class DynamicNN(nn.Module):
 
         return x
 
+
 class MultiBranchDynamicNN(nn.Module):
-    """ Multi Branch Dynamic Neural Network class for the optimization of the neural network.
+    ''' Multi Branch Dynamic Neural Network class for the optimization of the neural network.
 
     Parameters
     ----------
@@ -813,7 +892,8 @@ class MultiBranchDynamicNN(nn.Module):
         Encoder for the neural network, by default None
     device : torch.device, optional
         Device for the neural network, by default torch.device('cpu')
-    """
+    '''
+
 
     def __init__(self,
             input_size: Union[int, list[int]],
@@ -925,7 +1005,15 @@ class MultiBranchDynamicNN(nn.Module):
                     # Append the activation function to the layers while setting the device
                     self.layers.append(act_func(**processed_act_params).to(self.device))
 
+
         return None
+
+
+
+
+
+
+
 
     def forward(self, xs: list[torch.Tensor]) -> torch.Tensor:
         '''
@@ -985,8 +1073,9 @@ class MultiBranchDynamicNN(nn.Module):
         # Return the tensor
         return x
 
+
 class CustomDataset(Dataset):
-    """ Custom dataset class for the neural network
+    ''' Custom dataset class for the neural network
 
     Parameters
     ----------
@@ -994,7 +1083,8 @@ class CustomDataset(Dataset):
         Features tensor
     target : torch.Tensor
         Target tensor
-    """
+    '''
+
 
     def __init__(self, features: torch.Tensor, target: torch.Tensor) -> None:
         ''' Initialize the CustomDataset class
@@ -1010,7 +1100,15 @@ class CustomDataset(Dataset):
         self.features = features
         self.target = target
 
+
         return None
+
+
+
+
+
+
+
 
     def __len__(self) -> int:
         ''' Get the length of the dataset
@@ -1021,7 +1119,15 @@ class CustomDataset(Dataset):
             Length of the dataset
         '''
 
+
         return len(self.features)
+
+
+
+
+
+
+
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
         ''' Get the item at the specified index
@@ -1039,8 +1145,9 @@ class CustomDataset(Dataset):
 
         return self.features[idx], self.target[idx]
 
+
 class MultiBranchCustomDataset(Dataset):
-    """ Custom dataset class for the multi branch neural network.
+    ''' Custom dataset class for the multi branch neural network.
 
     Parameters
     ----------
@@ -1052,7 +1159,8 @@ class MultiBranchCustomDataset(Dataset):
         Features tensor for the third branch
     target : torch.Tensor
         Target tensor
-    """
+    '''
+
 
     def __init__(self,
                  features1 : torch.Tensor,
@@ -1077,7 +1185,15 @@ class MultiBranchCustomDataset(Dataset):
         self.features1 = features1
         self.features2 = features2
         self.features3 = features3
+
         self.target = target
+
+
+
+
+
+
+
 
     def __len__(self) -> int:
         ''' Get the length of the dataset
@@ -1088,7 +1204,15 @@ class MultiBranchCustomDataset(Dataset):
             Length of the dataset
         '''
 
+
         return len(self.features1)
+
+
+
+
+
+
+
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         ''' Get the item at the specified index
@@ -1106,8 +1230,9 @@ class MultiBranchCustomDataset(Dataset):
 
         return self.features1[idx], self.features2[idx], self.features3[idx], self.target[idx]
 
+
 class DNNOptimizer:
-    """ Dynamic Neural Network Optimizer class for the optimization of the neural network.
+    ''' Dynamic Neural Network Optimizer class for the optimization of the neural network.
 
     Parameters
     ----------
@@ -1137,7 +1262,8 @@ class DNNOptimizer:
         Use GPU for the neural network, by default True
     verbose : bool, optional
         Verbose mode for the neural network, by default False
-    """
+    '''
+
 
     def __init__(self,
             X_train: Union[np.ndarray, pd.DataFrame, pd.Series, list[Union[np.ndarray, pd.DataFrame, pd.Series]]],
@@ -1295,7 +1421,15 @@ class DNNOptimizer:
             self.encoder = None
         
         # Set the storage string for the study
+
         self.storage = storage
+
+
+
+
+
+
+
 
     def __build_encoder(self, encoder_params : dict) -> list:
         ''' Build the encoder for the neural network
@@ -1379,7 +1513,15 @@ class DNNOptimizer:
                     ("Activation", encoder_activation)
                 ])
             
+
         return encoder
+
+
+
+
+
+
+
 
     def set_random_seed(self) -> None:
         '''Set the random seed for the Autoencoder. It is used to set the random seed for the Autoencoder.'''
@@ -1403,7 +1545,15 @@ class DNNOptimizer:
 
         # Set the backends for reproducibility
         torch.backends.cudnn.benchmark = False
+
         torch.backends.cudnn.deterministic = True
+
+
+
+
+
+
+
 
     def train_test_model(self,
                          model : nn.Module,
@@ -1543,7 +1693,15 @@ class DNNOptimizer:
         if trial.should_prune():
             raise optuna.exceptions.TrialPruned()
 
+
         return rmse
+
+
+
+
+
+
+
 
     def objective(self, trial : optuna.Trial) -> float:
         ''' Objective function for the Optuna study
@@ -1697,19 +1855,32 @@ class DNNOptimizer:
                 log_loss_value = 0
                 mae = 0
             else:
-                # Calculate the ROC
-                fpr, tpr, _ = roc_curve(y_validation_np, validation_predictions_np) # type: ignore
-                validation_auc = auc(fpr, tpr)
+                # Check if validation set has only one class (can't compute AUC/log_loss)
+                unique_classes = np.unique(y_validation_np)
+                if len(unique_classes) == 1:
+                    # Only one class in validation set - can't compute classification metrics
+                    validation_auc = 0.0
+                    pr_auc = 0.0
+                    log_loss_value = np.inf
+                    mae = mean_absolute_error(y_validation_np, validation_predictions_np)
+                else:
+                    # Calculate the ROC
+                    fpr, tpr, _ = roc_curve(y_validation_np, validation_predictions_np) # type: ignore
+                    validation_auc = auc(fpr, tpr)
 
-                # Calculate the PR AUC
-                precision, recall, _ = precision_recall_curve(y_validation_np, validation_predictions_np)
-                pr_auc = auc(recall, precision)
-                
-                # Calculate the log loss
-                log_loss_value = log_loss(y_validation_np, validation_predictions_np)
+                    # Calculate the PR AUC
+                    precision, recall, _ = precision_recall_curve(y_validation_np, validation_predictions_np)
+                    pr_auc = auc(recall, precision)
+                    
+                    # Calculate the log loss (with error handling for edge cases)
+                    try:
+                        log_loss_value = log_loss(y_validation_np, validation_predictions_np)
+                    except ValueError as e:
+                        # Handle cases where log_loss fails (e.g., single class, invalid predictions)
+                        log_loss_value = np.inf
 
-                # Calculate the Mean Absolute Error
-                mae = mean_absolute_error(y_validation_np, validation_predictions_np)
+                    # Calculate the Mean Absolute Error
+                    mae = mean_absolute_error(y_validation_np, validation_predictions_np)
 
             # Set the optuna user attrs
             trial.set_user_attr('AUC', validation_auc)
@@ -1717,8 +1888,16 @@ class DNNOptimizer:
             trial.set_user_attr('log_loss', log_loss_value)
             trial.set_user_attr('mae', float(mae))
 
+
         return test_loss
-    
+
+
+
+
+
+
+
+
     def objective_ablation(self, trial : optuna.Trial) -> float:
         ''' Objective function for the Optuna study for the ablation study
 
@@ -1789,7 +1968,15 @@ class DNNOptimizer:
         trial.set_user_attr('Feature_Mask', mask)
         trial.set_user_attr('random_seed', self.random_seed)
 
+
         return model.rmse # type: ignore
+
+
+
+
+
+
+
 
     def optimize(self,
                  direction: str = "maximize",
@@ -1842,7 +2029,15 @@ class DNNOptimizer:
         # If Verbose is set to True, print the optimization process info
         if self.verbose:
             best_params = study.best_params
+
             ocprint.printv(f"Best Hyperparameters: {best_params}")
+
+
+
+
+
+
+
 
     def ablate(self,
                network_params: dict[str, Any],

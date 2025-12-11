@@ -12,4 +12,8 @@ Submodules
 .. toctree::
    :maxdepth: 2
 
+   OCDocker.OCScore.Analysis.Plotting.Colouring
+   OCDocker.OCScore.Analysis.Plotting.Core
    OCDocker.OCScore.Analysis.Plotting.ImpactPlots
+   OCDocker.OCScore.Analysis.Plotting.MetricsPlots
+   OCDocker.OCScore.Analysis.Plotting.Stats

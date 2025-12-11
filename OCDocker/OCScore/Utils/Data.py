@@ -21,14 +21,15 @@ import os
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.model_selection import train_test_split
-from typing import Any, Union
+from typing import Any, Union, Optional
 
 import numpy as np
 import pandas as pd
 
-from OCDocker.Initialise import *
+# No config needed - OCScore modules
 
 import OCDocker.OCScore.Utils.IO as ocscoreio
+import OCDocker.Error as ocerror
 
 # License
 ###############################################################################
@@ -84,6 +85,8 @@ def apply_pca(df : pd.DataFrame, pca_model : Union[str, PCA], columns_to_skip_pc
     if isinstance(pca_model, str):
         # Check if pca_model_path is a valid file
         if not os.path.isfile(pca_model):
+            # User-facing error: file not found
+            ocerror.Error.file_not_exist(f"PCA model file not found: {pca_model}") # type: ignore
             raise FileNotFoundError(f"File {pca_model} not found")
 
         # Load the pre-trained PCA model
@@ -120,7 +123,8 @@ def apply_pca(df : pd.DataFrame, pca_model : Union[str, PCA], columns_to_skip_pc
     else:
         # Return a new DataFrame with PCA applied
         return combined_df
-    
+
+
 def calculate_metrics(df : pd.DataFrame, selected_columns : list) -> tuple[pd.DataFrame, list]:
     ''' Calculates additional metrics for a DataFrame. The metrics include average, median, 
     maximum, minimum, standard deviation, variance, sum, range, 25th and 75th percentiles.
@@ -143,6 +147,8 @@ def calculate_metrics(df : pd.DataFrame, selected_columns : list) -> tuple[pd.Da
     # Check if selected columns are present in the DataFrame
     for col in selected_columns:
         if col not in df.columns:
+            # User-facing error: missing required data in DataFrame
+            ocerror.Error.data_not_found(f"Column '{col}' not found in DataFrame") # type: ignore
             raise ValueError(f"Column {col} not found in DataFrame")
 
     # Calculate metrics
@@ -163,6 +169,7 @@ def calculate_metrics(df : pd.DataFrame, selected_columns : list) -> tuple[pd.Da
     # Return DataFrame with additional metrics
     return df, ["mean", "median", "max", "min", "std", "variance", "sum", "range", "quantile_25", "quantile_75", "iqr", "skewness", "kurtosis"]
 
+
 def compute_zscore(df : pd.DataFrame, columns : list) -> pd.DataFrame:
     ''' Computes the z-score for the specified columns in a DataFrame.
 
@@ -182,6 +189,8 @@ def compute_zscore(df : pd.DataFrame, columns : list) -> pd.DataFrame:
     # Check if the specified columns are present in the DataFrame
     for col in columns:
         if col not in df.columns:
+            # User-facing error: missing required data in DataFrame
+            ocerror.Error.data_not_found(f"Column '{col}' not found in DataFrame") # type: ignore
             raise ValueError(f"Column {col} not found in DataFrame")
 
     # Compute the z-score for the specified columns
@@ -190,7 +199,8 @@ def compute_zscore(df : pd.DataFrame, columns : list) -> pd.DataFrame:
 
     return zscore_df
 
-def invert_values_conditionally(df : pd.DataFrame, regex_pattern : str = r"^(VINA|SMINA|PLANTS).*|^experimental$", inplace : bool = False) -> Union[pd.DataFrame, None]:
+
+def invert_values_conditionally(df : pd.DataFrame, regex_pattern : str = r"^(VINA|SMINA|PLANTS).*|^experimental$", inplace : bool = False) -> Optional[pd.DataFrame]:
     ''' Inverts the values of specific columns in a DataFrame. The inversion 
     is applied to columns that start with 'VINA', 'SMINA', or 'PLANTS' as well
     as the column named 'experimental'.
@@ -235,6 +245,7 @@ def invert_values_conditionally(df : pd.DataFrame, regex_pattern : str = r"^(VIN
             df.loc[:, col] *= -1
     
     return None
+
 
 def load_data(
         base_models_folder : str,
@@ -400,49 +411,76 @@ def load_data(
         "y_test": y_test,
         "X_val": X_val,
         "y_val": y_val
+
+
     }
 
-def norm_data(df : pd.DataFrame, scaler : str = "standard", inplace : bool = False) -> Union[Any, pd.DataFrame]:
+
+def norm_data(df : pd.DataFrame, scaler : Union[str, StandardScaler, MinMaxScaler] = "standard", inplace : bool = False) -> Union[Any, pd.DataFrame, tuple[pd.DataFrame, Union[StandardScaler, MinMaxScaler]]]:
     ''' Preprocesses the input DataFrame by scaling selected feature columns using a Scaler.
-    The metadata columns ("receptor", "ligand", "name", "type", "db") are preserved.
+    The metadata columns ("receptor", "ligand", "name", "type", "db") and target variable
+    ("experimental") are preserved and excluded from scaling.
 
     Parameters
     ----------
     df: pd.DataFrame
         Input DataFrame.
-    scaler: str
-        Scaler to use. Options are "standard" and "minmax".
+    scaler: str | StandardScaler | MinMaxScaler
+        Scaler to use. Options are:
+        - "standard" or "minmax": Creates and fits a new scaler
+        - StandardScaler or MinMaxScaler object: Uses the provided pre-fitted scaler
     inplace: bool
         If True, the original DataFrame is modified. If False, a new DataFrame is returned.
 
     Returns
     -------
-    pd.DataFrame
-        DataFrame with normalized features while preserving metadata.
+    pd.DataFrame | tuple[pd.DataFrame, Union[StandardScaler, MinMaxScaler]]
+        DataFrame with normalized features while preserving metadata and target variable.
+        If scaler is a string (new scaler), returns tuple of (DataFrame, fitted_scaler) if inplace=False,
+        or just DataFrame if inplace=True.
+        If scaler is a pre-fitted object, returns only the DataFrame.
     '''
 
-    # Check the chosen scaler
-    if scaler not in ["standard", "minmax"]:
-        raise ValueError("Invalid scaler. Please choose 'standard' or 'minmax'.")
-    
-    # Initialize the scaler
-    scaler_model = StandardScaler() if scaler == "standard" else MinMaxScaler()
+    # Select columns to be scaled (exclude metadata and target variable)
+    # Metadata: receptor, ligand, name, type, db
+    # Target: experimental (should not be scaled)
+    feature_columns = df.columns.difference(["receptor", "ligand", "name", "type", "db", "experimental"])
 
-    # Select columns to be scaled
-    feature_columns = df.columns.difference(["receptor", "ligand", "name", "type", "db"])
+    # Check if scaler is a pre-fitted object
+    if isinstance(scaler, (StandardScaler, MinMaxScaler)):
+        # Use the provided pre-fitted scaler
+        scaler_model = scaler
+        use_fit = False
+    else:
+        # Check the chosen scaler string
+        if scaler not in ["standard", "minmax"]:
+            # User-facing error: invalid value for scaler parameter
+            ocerror.Error.value_error(f"Invalid scaler: '{scaler}'. Please choose 'standard' or 'minmax'.") # type: ignore
+            raise ValueError("Invalid scaler. Please choose 'standard' or 'minmax'.")
+        
+        # Initialize a new scaler
+        scaler_model = StandardScaler() if scaler == "standard" else MinMaxScaler()
+        use_fit = True
 
     if inplace:
         # Scale only the selected feature columns in the original DataFrame
-        df[feature_columns] = scaler_model.fit_transform(df[feature_columns])
+        if use_fit:
+            df[feature_columns] = scaler_model.fit_transform(df[feature_columns])
+        else:
+            df[feature_columns] = scaler_model.transform(df[feature_columns])
         return df
     
     # Create a copy of the DataFrame
     df_copy = df.copy()
 
     # Scale only the selected feature columns
-    df_copy[feature_columns] = scaler_model.fit_transform(df_copy[feature_columns])
+    if use_fit:
+        df_copy[feature_columns] = scaler_model.fit_transform(df_copy[feature_columns])
+        return df_copy, scaler_model
+    else:
+        df_copy[feature_columns] = scaler_model.transform(df_copy[feature_columns])
+        return df_copy
 
-    return df_copy
 
 def remove_other_columns(df : pd.DataFrame, columns_to_keep : list, inplace : bool = False) -> Union[Any, pd.DataFrame]:
     ''' Removes columns from a DataFrame that are not in the specified list.
@@ -465,6 +503,8 @@ def remove_other_columns(df : pd.DataFrame, columns_to_keep : list, inplace : bo
     # Check if the specified columns are present in the DataFrame
     for col in columns_to_keep:
         if col not in df.columns:
+            # User-facing error: missing required data in DataFrame
+            ocerror.Error.data_not_found(f"Column '{col}' not found in DataFrame") # type: ignore
             raise ValueError(f"Column {col} not found in DataFrame")
 
     if inplace:
@@ -479,6 +519,7 @@ def remove_other_columns(df : pd.DataFrame, columns_to_keep : list, inplace : bo
     df_copy.drop(columns = df_copy.columns.difference(columns_to_keep), axis = 1, inplace = True)
 
     return df_copy
+
 
 def detect_extreme_outliers_iqr_columns_positive(df : pd.DataFrame, columns : list[str], extreme_factor : float = 3.0) -> dict:
     ''' Detects extreme outliers in specified columns of a DataFrame using the IQR method.
@@ -520,6 +561,7 @@ def detect_extreme_outliers_iqr_columns_positive(df : pd.DataFrame, columns : li
 
     return extreme_outliers_dict
 
+
 def remove_extreme_outliers_iqr_columns_positive(df : pd.DataFrame, columns : list[str], extreme_factor : float = 3.0) -> pd.DataFrame:
     ''' Removes rows with extreme outliers in specified columns of a DataFrame using the IQR method.
 
@@ -552,14 +594,16 @@ def remove_extreme_outliers_iqr_columns_positive(df : pd.DataFrame, columns : li
     
     return df_cleaned
 
+
 def preprocess_df(
     file_name : str, 
     score_columns_list : list[str] = ["SMINA", "VINA", "ODDT", "PLANTS"], 
-    outliers_columns_list : Union[list[str], None] = None, 
+    outliers_columns_list : Optional[list[str]] = None, 
     scaler : str = "standard", 
     invert_conditionally : bool = True, 
-    normalize : bool = True
-) -> tuple[pd.DataFrame, pd.DataFrame, list[str]]:
+    normalize : bool = True,
+    return_scaler : bool = False
+) -> Union[tuple[pd.DataFrame, pd.DataFrame, list[str]], tuple[pd.DataFrame, pd.DataFrame, list[str], Union[StandardScaler, MinMaxScaler]]]:
     ''' Load a DataFrame from a file and preprocess it.
 
     Parameters
@@ -576,15 +620,15 @@ def preprocess_df(
         If True, the values in the score columns are inverted conditionally. The default is True.
     normalize : bool, optional
         If True, the data is normalized. The default is True.
+    return_scaler : bool, optional
+        If True, returns the fitted scaler along with the data. The scaler is fitted on
+        PDBbind data (training data) and used to transform both datasets. Default is False.
 
     Returns
     -------
-    pd.DataFrame
-        The DUDEz data.
-    pd.DataFrame
-        The PDBbind data.
-    list[str]
-        The list of score columns.
+    tuple
+        If return_scaler is False: (dudez_data, pdbbind_data, score_columns)
+        If return_scaler is True: (dudez_data, pdbbind_data, score_columns, fitted_scaler)
     '''
     
     # Load the data
@@ -618,13 +662,19 @@ def preprocess_df(
         dudez_data = dudez_data.drop(columns="experimental") # type: ignore
 
     if normalize:
-        # Normalize the PDBbind data
-        pdbbind_data = norm_data(pdbbind_data, scaler=scaler) # type: ignore
+        # Fit scaler on PDBbind data (training data) and transform it
+        pdbbind_data, fitted_scaler = norm_data(pdbbind_data, scaler=scaler, inplace=False) # type: ignore
+        
+        # Use the same scaler to transform DUDEz data (validation/test data)
+        dudez_data = norm_data(dudez_data, scaler=fitted_scaler, inplace=False) # type: ignore
+        
+        if return_scaler:
+            return dudez_data, pdbbind_data, score_columns, fitted_scaler # type: ignore
+        else:
+            return dudez_data, pdbbind_data, score_columns # type: ignore
+    else:
+        return dudez_data, pdbbind_data, score_columns # type: ignore
 
-        # Normalize the DUDEz data
-        dudez_data = norm_data(dudez_data, scaler=scaler) # type: ignore
-
-    return dudez_data, pdbbind_data, score_columns # type: ignore
 
 def split_dataset(X : pd.DataFrame, y : pd.Series, test_size : float = 0.2, random_state : int = 42) -> list[Any]:
     ''' Split the data into training and testing sets.
@@ -654,6 +704,7 @@ def split_dataset(X : pd.DataFrame, y : pd.Series, test_size : float = 0.2, rand
     
     # Split the data into training and testing sets
     return train_test_split(X, y, test_size = test_size, random_state = random_state)
+
 
 def generate_mask(column_names : Union[list[str], pd.Index], score_columns : list[str]) -> list[np.ndarray]:
     '''
@@ -701,6 +752,155 @@ def generate_mask(column_names : Union[list[str], pd.Index], score_columns : lis
     
     return results
 
+
+def get_column_order(data: Optional[Union[str, pd.DataFrame]] = None) -> list[str]:
+    '''Get the column order from a data source (file path or DataFrame) or from config.
+    
+    This function extracts the column order from either a file path, an existing
+    DataFrame, or from the config file if no data source is provided. This ensures
+    consistency with the order used during model training. This is critical for
+    proper mask application and feature alignment.
+    
+    Parameters
+    ----------
+    data : str | pd.DataFrame | None, optional
+        Either:
+        - A file path (CSV or gzipped CSV) to load column order from
+        - A pandas DataFrame to extract column order from
+        - None to use the column order from config (default: None)
+    
+    Returns
+    -------
+    list[str]
+        List of column names in the exact order they appear in the data source or config.
+    
+    Raises
+    ------
+    FileNotFoundError
+        If data is a string path and the file is not found.
+    TypeError
+        If data is neither a string, DataFrame, nor None.
+    ValueError
+        If data is None and config does not have reference_column_order set.
+    '''
+    
+    # If no data provided, try to get from config
+    if data is None:
+        try:
+            from OCDocker.Config import get_config
+            config = get_config()
+            if config.paths.reference_column_order:
+                return list(config.paths.reference_column_order)
+            else:
+                ocerror.Error.value_error("No data source provided and 'reference_column_order' not set in config file.") # type: ignore
+                raise ValueError("No data source provided and 'reference_column_order' not set in config file. Please provide a data source or set 'reference_column_order' in OCDocker.cfg")
+        except (ImportError, AttributeError) as e:
+            ocerror.Error.value_error(f"Could not load config: {e}. Please provide a data source.") # type: ignore
+            raise ValueError(f"Could not load config: {e}. Please provide a data source.")
+    
+    if isinstance(data, pd.DataFrame):
+        # Extract column order directly from DataFrame
+        return list(data.columns)
+    elif isinstance(data, str):
+        # Load column order from file
+        if not os.path.isfile(data):
+            ocerror.Error.file_not_exist(f"Data file not found: {data}") # type: ignore
+            raise FileNotFoundError(f"Data file not found: {data}")
+        
+        # Load just the header to get column order
+        try:
+            df = pd.read_csv(data, compression='infer', nrows=0)
+        except Exception as e:
+            # Fallback: try loading with ocscoreio
+            df = ocscoreio.load_data(data)
+            if len(df) > 0:
+                df = df.iloc[:0]  # Keep only column structure
+        
+        return list(df.columns)
+    else:
+        ocerror.Error.value_error(f"Invalid data type: {type(data)}. Expected str (file path), pd.DataFrame, or None.") # type: ignore
+        raise TypeError(f"Invalid data type: {type(data)}. Expected str (file path), pd.DataFrame, or None.")
+
+
+def reorder_columns_to_match_data_order(
+    df: pd.DataFrame,
+    data_source: Optional[Union[str, pd.DataFrame]] = None,
+    keep_extra_columns: bool = True,
+    fill_missing_columns: bool = False
+) -> pd.DataFrame:
+    '''Reorder DataFrame columns to match the column order from another data source.
+    
+    !!! CRITICAL: This function ensures that all columns are in the exact same order
+    as the data source, which is essential for proper mask application and model
+    inference. The order of scoring functions (SFs) is particularly important for masks.
+    
+    This is typically used to ensure prediction data has the same column order as
+    the training data, ensuring masks and models work correctly.
+    
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Input DataFrame to reorder.
+    data_source : str | pd.DataFrame | None, optional
+        Data source to match column order from. Either:
+        - A file path (CSV or gzipped CSV) to load column order from
+        - A pandas DataFrame to extract column order from
+        - None to use reference_column_order from config (default: None)
+    keep_extra_columns : bool, optional
+        If True, columns not in data_source are kept at the end (default: True).
+        If False, extra columns are dropped.
+    fill_missing_columns : bool, optional
+        If True, missing columns from data_source are added as NaN (default: False).
+        If False, missing columns are simply not included.
+    
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with columns reordered to match data_source column order.
+    
+    Raises
+    ------
+    FileNotFoundError
+        If data_source is a string path and the file is not found.
+    TypeError
+        If data_source is neither a string nor a DataFrame.
+    '''
+    
+    # Get the data source column order
+    source_order = get_column_order(data_source)
+    
+    # Get columns that exist in both DataFrames
+    common_cols = [col for col in source_order if col in df.columns]
+    
+    # Build the ordered column list
+    ordered_cols = common_cols.copy()
+    
+    # Add missing columns from data_source if requested
+    if fill_missing_columns:
+        missing_cols = [col for col in source_order if col not in df.columns]
+        ordered_cols.extend(missing_cols)
+    
+    # Add extra columns (not in data_source) if requested
+    if keep_extra_columns:
+        extra_cols = [col for col in df.columns if col not in source_order]
+        # Sort extra columns alphabetically for consistency
+        extra_cols.sort()
+        ordered_cols.extend(extra_cols)
+    
+    # Reorder the DataFrame
+    # First, add missing columns as NaN if fill_missing_columns is True
+    if fill_missing_columns:
+        missing_cols = [col for col in source_order if col not in df.columns]
+        for col in missing_cols:
+            df[col] = np.nan
+    
+    # Select columns in the correct order (only existing columns)
+    existing_ordered_cols = [col for col in ordered_cols if col in df.columns]
+    df_reordered = df[existing_ordered_cols].copy()
+    
+    return df_reordered
+
+
 def chunkenize_dataset(data : Union[list[Any], np.ndarray, pd.DataFrame], id : int, num_machines : int) -> Union[list[Any], np.ndarray, pd.DataFrame]:
     '''
     Split a dataset in multiple chunks.
@@ -722,6 +922,8 @@ def chunkenize_dataset(data : Union[list[Any], np.ndarray, pd.DataFrame], id : i
     
     # Sanity checks
     if id < 1 or id > num_machines:
+        # User-facing error: invalid id parameter value
+        ocerror.Error.value_error(f"Invalid id: {id}. It should be between 1 and {num_machines}.") # type: ignore
         raise ValueError(f"Invalid id. It should be between 1 and {num_machines}.")
     
     # Calculate the size of each chunk

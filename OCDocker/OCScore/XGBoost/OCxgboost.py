@@ -2,12 +2,12 @@
 
 # Description
 ###############################################################################
-""" Module to run the Extreme Gradient Boost algorithm. 
+''' Module to run the Extreme Gradient Boost algorithm. 
 
 It is imported as:
 
 import OCDocker.OCScore.XGBoost.OCxgboost as OCxgboost
-"""
+'''
 
 # Imports
 ###############################################################################
@@ -39,6 +39,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 # Methods
 ###############################################################################
+
 
 def run_xgboost(
         X_train : np.ndarray,

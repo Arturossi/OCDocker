@@ -8,6 +8,8 @@ def make_log(path: Path, lines: str) -> Path:
     path.write_text(lines)
     return path
 
+
+@pytest.mark.order(9)
 def test_read_log(tmp_path):
     log_file = tmp_path / "dock.log"
     # minimal smina log section
@@ -18,14 +20,20 @@ def test_read_log(tmp_path):
     )
     make_log(log_file, lines)
 
+    from OCDocker.Config import get_config
+    config = get_config()
+    smina_scoring = config.smina.scoring
+    
     data = ocsmina.read_log(str(log_file))
-    assert data[1][ocsmina.smina_scoring] == "-7.5" # type: ignore
-    assert data[2][ocsmina.smina_scoring] == "-6.5" # type: ignore
+    assert data[1][smina_scoring] == "-7.5" # type: ignore
+    assert data[2][smina_scoring] == "-6.5" # type: ignore
 
     best = ocsmina.read_log(str(log_file), onlyBest=True)
     assert list(best.keys()) == [1]
-    assert best[1][ocsmina.smina_scoring] == "-7.5" # type: ignore
+    assert best[1][smina_scoring] == "-7.5" # type: ignore
 
+
+@pytest.mark.order(10)
 def test_rescoring_logs(tmp_path):
     f1 = tmp_path / "lig_split_1_vinardo_rescoring.log"
     f2 = tmp_path / "lig_split_2_vinardo_rescoring.log"

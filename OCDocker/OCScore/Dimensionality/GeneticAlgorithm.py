@@ -2,12 +2,12 @@
 
 # Description
 ###############################################################################
-""" Module to perform the feature selection using the Genetic Algorithm. 
+''' Module to perform the feature selection using the Genetic Algorithm. 
 
 It is imported as:
 
 from OCDocker.OCScore.Dimensionality.GeneticAlgorithm import GeneticAlgorithm
-"""
+'''
 
 # Imports
 ###############################################################################
@@ -21,7 +21,7 @@ import pandas as pd
 from numpy.random import default_rng
 from sklearn.metrics import auc, roc_curve
 from tqdm import tqdm
-from typing import Union
+from typing import Any, Union
 
 import OCDocker.OCScore.XGBoost.OCxgboost as OCxgboost
 import OCDocker.Toolbox.Printing as ocprint
@@ -46,10 +46,12 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 
+
 class GeneticAlgorithm:
-    """
+    '''
     A class to optimize the feature selection for XGBoost using a genetic algorithm.
-    """
+    '''
+
 
     def __init__(self, 
             X_train: Union[np.ndarray, pd.DataFrame, pd.Series],
@@ -139,10 +141,19 @@ class GeneticAlgorithm:
         if "random_state" not in xgboost_params:
             self.xgboost_params["random_state"] = self.random_state
         
+
         self.storage = storage
 
+
+
+
+
+
+
+
+
     def fitness(self, individual: list) -> tuple:
-        """
+        '''
         A function to calculate the fitness of a set of features represented by an individual.
 
         Parameters
@@ -154,7 +165,7 @@ class GeneticAlgorithm:
         -------
         tuple
             The metric score of the selected features and the model.
-        """
+        '''
 
         # Determine which features to include based on the individual's genes
         selected_features_indices = np.where(individual)[0]
@@ -171,8 +182,16 @@ class GeneticAlgorithm:
         model, metric = OCxgboost.run_xgboost(X_train_filtered, self.y_train, X_test_filtered, self.y_test, params = self.xgboost_params, verbose = self.verbose) # type: ignore
 
         # Return the metric score and the model
+
         return metric, model
-        
+
+
+
+
+
+
+
+
     def initialize_population(self, number_of_features: int, population_size: int) -> np.ndarray:
         '''
         A function to initialize the population for the genetic algorithm.
@@ -213,7 +232,15 @@ class GeneticAlgorithm:
 
         assert all(individual.shape[0] == number_of_features for individual in population), "Inconsistent gene size detected in initialize pop."
 
+
         return population
+
+
+
+
+
+
+
 
     def tournament_selection(self, population: np.ndarray, fitnesses: np.ndarray, tournament_size: int = 3) -> np.ndarray:
         '''
@@ -249,7 +276,15 @@ class GeneticAlgorithm:
             winner_index = selected_indices[np.argmax(selected_fitnesses)]
 
         # Return the selected individual
+
         return population[winner_index]
+
+
+
+
+
+
+
 
     def crossover(self, parent1: np.ndarray, parent2: np.ndarray) -> np.ndarray:
         '''
@@ -275,7 +310,15 @@ class GeneticAlgorithm:
         child = np.hstack([parent1[:crossover_point], parent2[crossover_point:]])
 
         # Return the child individual
+
         return child
+
+
+
+
+
+
+
 
     def mutation(self, individual: np.ndarray, mutation_rate: float = 0.05) -> np.ndarray:
         '''
@@ -305,9 +348,17 @@ class GeneticAlgorithm:
                 individual[i] = not individual[i]
 
         # Return the mutated individual
+
         return individual
 
-    def genetic_algorithm(self, trial_params: dict, trial) -> tuple[np.ndarray, OCxgboost.XGBRegressor, float, Union[None, float]]:
+
+
+
+
+
+
+
+    def genetic_algorithm(self, trial_params: dict, trial: Any) -> tuple[np.ndarray, OCxgboost.XGBRegressor, float, Union[None, float]]:
         '''
         A function to perform the genetic algorithm for feature selection.
 
@@ -477,7 +528,15 @@ class GeneticAlgorithm:
             assert all(individual.shape[0] == number_of_features for individual in population), "Inconsistent gene size detected in entire population."
 
         # Return the best individual and the best score
+
         return best_individual, best_model, best_score, best_score2 # type: ignore
+
+
+
+
+
+
+
 
     def objective(self, trial: optuna.Trial) -> float:
         '''
@@ -522,7 +581,15 @@ class GeneticAlgorithm:
             trial.set_user_attr('best_AUC', best_score2)
 
         # Return the AUC score
+
         return best_score
+
+
+
+
+
+
+
 
     def optimize(self, direction: str = "maximize", n_trials: int = 100,  n_jobs: int = 1, study_name: str = "Genetic Algorithm for descriptor optimization", load_if_exists: bool = True, verbose: bool = False) -> tuple[optuna.study.Study, dict, float]:
         '''

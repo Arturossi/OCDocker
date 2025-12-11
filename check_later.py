@@ -67,6 +67,8 @@ def plot_heatmap(data, title, metric):
             return f"{x:.2e}".replace("e+00", "")  # Remove "e+00" if present
         return str(x)       # Default case, should not occur
 
+
+
     # Create annotations with custom format as strings
     annot_matrix = np.vectorize(custom_fmt)(p_matrix)
 
@@ -78,6 +80,7 @@ def plot_heatmap(data, title, metric):
     plt.title(title)
     plt.tight_layout()
     plt.savefig(f"plots/games_howell_heatmap_{metric}.png")
+
 
 def load_data(df_path: str) -> pd.DataFrame:
     # Load the DataFrames
@@ -120,6 +123,7 @@ def load_data(df_path: str) -> pd.DataFrame:
     final_metrics.rename(columns = {"score_column": "study_name"}, inplace = True)
 
     return final_metrics
+
 
 def get_all_lists() -> tuple[list[str], int, int]:
     #region lists
@@ -318,6 +322,7 @@ def get_all_lists() -> tuple[list[str], int, int]:
     
     return snames, len(ao_nn_list), len(ga_xgb_list)
 
+
 def get_study_data(
         snames, 
         storage, 
@@ -398,6 +403,7 @@ def get_study_data(
 
     return best_rmse_df_filtered, best_auc_df_filtered, best_combined_df_filtered, results_df, min_auc, max_auc, min_error, max_error, error_range, auc_range
 
+
 def setup_dirs() -> None:
     # If the plots and csvs folder does not exist, create it
     if not os.path.exists('plots'):
@@ -405,6 +411,7 @@ def setup_dirs() -> None:
     if not os.path.exists('csvs'):
         os.makedirs('csvs')
     return None
+
 
 def set_color_mapping(df, palette_colour = "glasbey") -> dict[str, str]:
     print("Setting the pallette, alpha, and error threshold for the plots.")
@@ -434,6 +441,7 @@ def set_color_mapping(df, palette_colour = "glasbey") -> dict[str, str]:
 
     return color_mapping, palette_colour
 
+
 def get_ae_xgb_indices(n_ae: int, n_xgb: int, n_trials: int) -> tuple[int, int, int, int]:
     # Calculate the index ranges dynamically
     nn_ae_start = 5 * n_trials  # Start index for 'NN + AE'
@@ -443,9 +451,11 @@ def get_ae_xgb_indices(n_ae: int, n_xgb: int, n_trials: int) -> tuple[int, int, 
 
     return nn_ae_start, nn_ae_end, xgb_ga_start, xgb_ga_end
 
+
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
+
 
 def plot_single_scatterplot(best_combined_df_filtered, n_trials, color_mapping, min_auc, max_auc, min_error, max_error, error_range, auc_range, alpha=0.9):
     # Create the figure
@@ -516,6 +526,7 @@ def plot_single_scatterplot(best_combined_df_filtered, n_trials, color_mapping, 
     plt.close('all')
 
     return None
+
 
 def plot_scatterplot(best_rmse_df_filtered, best_auc_df_filtered, best_combined_df_filtered, n_trials, color_mapping, min_auc, max_auc, min_error, max_error, error_range, auc_range, alpha = 0.9):
     # Plotting with the chosen palette and adjustments for marker and transparency
@@ -603,6 +614,7 @@ def plot_scatterplot(best_rmse_df_filtered, best_auc_df_filtered, best_combined_
 
     return None
 
+
 def separate_dfs(best_rmse_df_filtered, best_auc_df_filtered, best_combined_df_filtered, to_remove = []) -> tuple[pd.DataFrame, pd.DataFrame]:
     # Create three new dataframes, one for Error (Smallest Error), one for Error (Biggest AUC), and one for Error (Smallest Error - AUC)
     df_error_menor_erro = best_rmse_df_filtered[['Experiment', 'Methodology', 'RMSE']].copy()
@@ -644,10 +656,12 @@ def separate_dfs(best_rmse_df_filtered, best_auc_df_filtered, best_combined_df_f
 
     return df_error_concat, df_auc_concat
 
+
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 from matplotlib.patches import Patch
+
 
 def plot_boxplot_violinplot_clean(df_error_concat: pd.DataFrame, df_auc_concat: pd.DataFrame, n_trials: int, palette_colour: str, mean_rmse: float, mean_auc: float) -> None:
     # Set the font size
@@ -756,6 +770,7 @@ def plot_boxplot_violinplot_clean(df_error_concat: pd.DataFrame, df_auc_concat: 
             plt.savefig(f'plots/Experiments_{plot_type}_{aux_metric}_{n_trials}.png', bbox_inches='tight')
 
     plt.close('all')
+
 
 def plot_boxplot_violinplot(df_error_concat: pd.DataFrame, df_auc_concat: pd.DataFrame, n_trials: int, palette_colour: str) -> None:
     # Set the font size
@@ -867,6 +882,7 @@ def plot_boxplot_violinplot(df_error_concat: pd.DataFrame, df_auc_concat: pd.Dat
 
     plt.close('all')
 
+
 def plot_barplots(best_rmse_df_filtered: pd.DataFrame, best_auc_df_filtered: pd.DataFrame, best_combined_df_filtered: pd.DataFrame, n_trials: int, color_mapping: dict) -> None:
     # Define the plotting information
     plotting_info = [
@@ -924,6 +940,7 @@ def plot_barplots(best_rmse_df_filtered: pd.DataFrame, best_auc_df_filtered: pd.
 
     return None
 
+
 def correlation_analysis(results_df: pd.DataFrame, final_metrics: pd.DataFrame, n_trials: int, error_threshold: float = 1.5) -> None:
     # Create the dataframe from the results_df with the columns Methodology, RMSE, and AUC (RMSE will be the best_combined_value, AUC will be the best_combined_auc and Methodology will be the study_type)
     corr_data_df = results_df[['study_name', 'study_type', 'best_combined_value', 'best_combined_auc', 'best_combined_metric']].copy()
@@ -976,6 +993,7 @@ def correlation_analysis(results_df: pd.DataFrame, final_metrics: pd.DataFrame, 
     plt.close('all')
 
     return None
+
 
 def plot_bar_with_significance_metrics(df, metrics = list[str], n_columns: int = 4):
     # Group the data by methodology, excluding "Simple Consensus"
@@ -1040,6 +1058,7 @@ def plot_bar_with_significance_metrics(df, metrics = list[str], n_columns: int =
     
     return None
 
+
 def perform_welch_anova_and_games_howell_posthoc_tests(df, n_trials):
 
     # Welch's ANOVA for AUC
@@ -1081,6 +1100,7 @@ def perform_welch_anova_and_games_howell_posthoc_tests(df, n_trials):
     plot_heatmap(games_howell_rmse, "Games-Howell p-values for RMSE", metric="RMSE")
     
     return None
+
 
 print("Starting the analysis of the results.")
 
@@ -1130,7 +1150,8 @@ for n_trials in [1, 5, 10, 50, 100, 500]: # TODO: Check the behaviour for 50, 10
         nn_ae_start = nn_ae_start, 
         nn_ae_end = nn_ae_end, 
         xgb_ga_start = xgb_ga_start, 
-        xgb_ga_end = xgb_ga_end
+        xgb_ga_end = xgb_ga_end,
+        n_trials = n_trials
     )
 
     # Set the color mapping
@@ -1176,11 +1197,13 @@ import pickle
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 
+
 # Function to load the saved PCA model
 def load_pca_model(pickle_file):
     with open(pickle_file, 'rb') as f:
         pca_model = pickle.load(f)
     return pca_model
+
 
 # Function to compute and visualize variable importance
 def compute_variable_importance(pca_model, data, pca_number, n_most_important=None, min_importance=None):
@@ -1224,6 +1247,7 @@ def compute_variable_importance(pca_model, data, pca_number, n_most_important=No
     
     return importance_df
 
+
 # Function to analyze and visualize variable importance
 def analyze_pca_model(pca_model, data, pca_number):
     # Step 1: Get loadings (how much each feature contributes to each principal component)
@@ -1253,6 +1277,8 @@ def analyze_pca_model(pca_model, data, pca_number):
     plt.ylabel('Explained Variance Ratio')
     plt.title('Explained Variance by Principal Components')
     plt.savefig(f'plots/explained_variance_{pca_number}.png')
+
+
 
 # Filter the pdbbind data to remove unwanted columns ["receptor", "ligand", "name", "type", "db", "experimental"] + score_columns
 pdbbind_data_filter = pdbbind_data.drop(columns=["receptor", "ligand", "name", "type", "db", "experimental"] + score_columns)
@@ -1321,6 +1347,7 @@ import math
 import torch
 import random
 
+
 def parse_activation_func(encoder_activation_str, best_ao_params):
     activation_functions = [torch.nn.GELU, torch.nn.LeakyReLU, torch.nn.Mish, torch.nn.ReLU, torch.nn.SELU, torch.nn.Identity]
     activation_functions_str = ['GELU', 'LeakyReLU', 'Mish', 'ReLU', 'SELU', 'Identity']
@@ -1342,6 +1369,7 @@ def parse_activation_func(encoder_activation_str, best_ao_params):
 
     return encoder_activation_fn
 
+
 def set_random_seed(random_seed = 42):
     np.random.seed(random_seed)
     random.seed(random_seed)
@@ -1354,6 +1382,7 @@ def set_random_seed(random_seed = 42):
     #torch.backends.cudnn.enabled = False
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
+
 
 def evaluate_autoencoder(model, criterion, loader = None):
     set_random_seed()
@@ -1371,6 +1400,7 @@ def evaluate_autoencoder(model, criterion, loader = None):
     rmse = np.sqrt(average_loss)
     
     return rmse
+
 
 def train_autoencoder(model, optimizer, criterion, clip_grad, epochs):
     # Set the best validation and training rmse to infinity
@@ -1408,6 +1438,8 @@ def train_autoencoder(model, optimizer, criterion, clip_grad, epochs):
         print(f'Test RMSE: {rmse}')
         
         return best_train_rmse, best_validation_rmse, model
+
+
 
 # Separate the X and y data
 data = ocscoredata.load_data(
@@ -1481,6 +1513,8 @@ best_train_rmse, best_validation_rmse, model = train_autoencoder(best_ao_model, 
 # To get the permutation_importance
 from tqdm import tqdm
 
+
+
 # Define a function to calculate reconstruction error
 def compute_reconstruction_error(model, data_loader):
     model.eval()  # Set the model to evaluation mode
@@ -1496,11 +1530,15 @@ def compute_reconstruction_error(model, data_loader):
     
     return np.sqrt(total_loss / len(data_loader))
 
+
+
 # Get the validation data
 validation_data = torch.tensor(np.asarray(data['X_val']), dtype=torch.float32).to(torch.device('cuda'))
 
 # Calculate the original reconstruction error
 original_error = compute_reconstruction_error(best_ao_model, validation_loader)
+
+
 
 # Calculate permutation importance
 def permutation_importance_custom(model, data, original_error, n_repeats=30):
@@ -1527,6 +1565,8 @@ def permutation_importance_custom(model, data, original_error, n_repeats=30):
         importances.append(importance)
 
     return np.array(importances)
+
+
 
 # Compute permutation importance
 importances = permutation_importance_custom(best_ao_model, validation_data.cpu(), original_error)

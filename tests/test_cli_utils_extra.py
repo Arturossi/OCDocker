@@ -6,6 +6,7 @@ import pytest
 import OCDocker.CLI.__init__ as cli
 
 
+@pytest.mark.order(25)
 def test_preparse_global_args_and_require(tmp_path):
     ns = cli._preparse_global_args([
         "vs", "--output-level", "5", "--conf", "cfg.ini", "--overwrite", "--no-stdout-log",

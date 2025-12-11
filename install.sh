@@ -85,12 +85,12 @@ step "Initializing conda..." \
 
 # Step 5: Install necessary system packages
 if $USE_SQLITE; then
-  step "Installing required system packages (dssp)..." \
-    "sudo apt-get update -y && sudo apt-get install -y dssp"
+  step "Installing required system packages (openbabel, libopenbabel-dev, swig, dssp)..." \
+    "sudo apt-get update -y && sudo apt-get install -y openbabel libopenbabel-dev swig dssp"
   info "SQLite mode selected — skipping MySQL server installation."
 else
-  step "Installing required system packages (dssp, mysql-server)..." \
-    "sudo apt-get update -y && sudo apt-get install -y dssp mysql-server"
+  step "Installing required system packages (openbabel, libopenbabel-dev, swig, dssp, mysql-server)..." \
+    "sudo apt-get update -y && sudo apt-get install -y openbabel libopenbabel-dev swig dssp mysql-server"
 fi
 
 # Step 6: Install mamba

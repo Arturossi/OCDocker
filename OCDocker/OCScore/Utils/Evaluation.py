@@ -20,6 +20,8 @@ import pandas as pd
 from sklearn.metrics import auc, mean_squared_error, roc_curve
 from typing import Union
 
+
+
 import OCDocker.OCScore.Utils.Data as ocscoredata
 
 # License
@@ -93,6 +95,7 @@ def compute_auc(
     # Return the DataFrame with the metrics
     return pd.DataFrame(metrics)
 
+
 def compute_rmse(
         df : pd.DataFrame,
         score_columns : list[str],
@@ -129,6 +132,7 @@ def compute_rmse(
     
     # Return the DataFrame with the metrics
     return pd.DataFrame(metrics)
+
 
 def compute_metrics(
         df: pd.DataFrame, 
@@ -172,6 +176,8 @@ def compute_metrics(
 
     # Check if metric_db_name has two elements
     if len(metric_db_name) != 2:
+        # User-facing error: invalid metric_db_name format
+        ocerror.Error.value_error(f"metric_db_name must have two elements. Got {len(metric_db_name)} elements: {metric_db_name}") # type: ignore
         raise ValueError("metric_db_name must have two elements.")
 
     # Check if positive_class_names is a string

@@ -37,6 +37,15 @@ _FMT = "[%(asctime)s] %(levelname)s: %(message)s"
 
 
 def _default_logdir() -> str:
+    """Get the default log directory, using config if available, otherwise fallback."""
+    try:
+        from OCDocker.Config import get_config
+        config = get_config()
+        if config and config.logdir:
+            return config.logdir
+    except (ImportError, AttributeError, RuntimeError):
+        # Fallback if config not available
+        pass
     base = os.path.abspath(os.path.join(os.path.dirname(ocerror.__file__), os.pardir))
     return os.path.join(base, "logs")
 
@@ -68,7 +77,8 @@ def set_level_from_report(level: ocerror.ReportLevel) -> None:
     for h in logger.handlers:
         try:
             h.setLevel(py_level)
-        except Exception:
+        except AttributeError:
+            # Ignore if handler doesn't support setLevel
             pass
 
 
@@ -86,7 +96,8 @@ def configure(level: Optional[ocerror.ReportLevel] = None, log_file: Optional[st
     if log_file:
         try:
             os.makedirs(os.path.dirname(os.path.abspath(log_file)), exist_ok=True)
-        except Exception:
+        except (OSError, PermissionError):
+            # Ignore errors if directory already exists or permission denied
             pass
         fh = logging.FileHandler(log_file)
         fh.setFormatter(logging.Formatter(_FMT, datefmt=_DATEFMT))

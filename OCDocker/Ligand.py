@@ -25,9 +25,10 @@ from rdkit.Chem import AllChem, Descriptors, Descriptors3D, MACCSkeys
 from rdkit.Chem.SaltRemover import SaltRemover
 from rdkit.Chem.rdMolTransforms import ComputeCentroid
 from threading import Lock
-from typing import Callable, Dict, List, Tuple, Union
+from typing import Callable, Dict, List, Tuple, Union, Optional
 
-from OCDocker.Initialise import *
+from OCDocker.Config import get_config
+import OCDocker.Error as ocerror
 
 import OCDocker.Toolbox.Conversion as occonversion
 import OCDocker.Toolbox.FilesFolders as ocff
@@ -60,9 +61,24 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 class Ligand:
-    """Load and compute ligand descriptors. You can provide either a molecule file
-    (pdb/sdf/mol/mol2) or a rdkit.Chem.rdchem.Mol object. A name to indentify
-    the molecule can be provided aswell."""
+    """Represents a ligand (small molecule) with computed molecular descriptors.
+
+    This class loads ligand structures from various file formats (PDB, SDF, MOL,
+    MOL2, SMILES) or accepts RDKit molecule objects, and computes a wide range
+    of molecular descriptors including 2D descriptors (BalabanJ, BertzCT, etc.)
+    and 3D descriptors (RadiusOfGyration, Asphericity, etc.).
+
+    Parameters
+    ----------
+    molecule : str | rdkit.Chem.rdchem.Mol
+        Path to a molecule file or an RDKit molecule object.
+    name : str
+        Name identifier for the ligand.
+    sanitize : bool, optional
+        Whether to sanitize the molecule after loading, by default True.
+    from_json_descriptors : str, optional
+        Path to JSON file containing pre-computed descriptors, by default "".    
+    """
 
     # Declare the descriptors names as class attributes
     descriptors_names = {
@@ -95,7 +111,7 @@ class Ligand:
     # Create all the descriptors to be class attributes
     allDescriptors = [f'{desc_prefix}{i}' for desc_prefix, desc_indices in descriptors_names.items() for i in desc_indices] + single_descriptors
 
-    def __init__(self, molecule: Union[str, rdkit.Chem.rdchem.Mol], name: str, sanitize: bool = True, from_json_descriptors: str = "") -> Union[int, None]: # type: ignore
+    def __init__(self, molecule: Union[str, rdkit.Chem.rdchem.Mol], name: str, sanitize: bool = True, from_json_descriptors: str = "") -> Optional[int]:
         ''' Constructor for the Ligand class.
         
         Parameters
@@ -116,9 +132,9 @@ class Ligand:
         '''
 
         # Set the path and structure (NEVER SHOUD BE NONE)
-        self.path, self.molecule = loadMol(molecule, sanitize) # type: ignore
-        # Set the boxPath (removing the file from the path)
-        self.boxPath = os.path.join(os.path.dirname(self.path), "boxes/box0.pdb")
+        self.path, self.molecule = load_mol(molecule, sanitize) # type: ignore
+        # Set the box_path (removing the file from the path)
+        self.box_path = os.path.join(os.path.dirname(self.path), "boxes/box0.pdb")
         
         # Define everything as None, except for the name
         if not "_split_" in name:
@@ -146,7 +162,8 @@ class Ligand:
                 return None
             
             #region assign
-            self.name = data["Name"] # type: ignore
+            # Handle both 'Name' and 'Ligand' keys (read_descriptors_from_json with return_data=True renames 'Name' to 'Ligand')
+            self.name = data.get("Name") or data.get("Ligand") # type: ignore
 
             # All attribute initializations
             for desc in Ligand.allDescriptors:
@@ -163,6 +180,7 @@ class Ligand:
             # Single attribute initializations
             for desc in Ligand.allDescriptors:
                 result = globals()[f"find{desc}"](self.molecule)
+
                 setattr(self, f"{desc}", result)
 
     ## Private ##
@@ -187,9 +205,10 @@ class Ligand:
         properties["Path"] = self.path if self.path is not None else "-"
 
         # Combine both in one dict and return them
+
         return {**properties, **self.get_descriptors()}
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         '''Return a string representation of the Ligand object.
 
         Parameters
@@ -206,15 +225,11 @@ class Ligand:
 
     ## Public ##
     def print_attributes(self) -> None:
-        '''Print the class attributes.
+        '''Print all attributes of the ligand to stdout.
 
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
+        Displays the ligand's name, molecule object, and all computed
+        molecular descriptors (BalabanJ, BertzCT, RadiusOfGyration, etc.)
+        in a formatted, aligned table.
         '''
 
         #region prints
@@ -283,6 +298,7 @@ class Ligand:
         properties["Molecule"] = self.molecule if self.molecule is not None else "-"
 
         # Combine both in one dict and return them
+
         return {**properties, **self.get_descriptors()}
 
     def to_json(self, overwrite: bool = False) -> int:
@@ -323,6 +339,7 @@ class Ligand:
             except Exception as e:
                 return ocerror.Error.write_file(f"Problems while writing the file '{outputJson}' Error: {e}.") # type: ignore
         except Exception as e:
+
             return ocerror.Error.unknown(f"Unknown error while converting the ligand {self.name} to json.\nError: {e}", ocerror.ReportLevel.WARNING) # type: ignore
 
     def is_valid(self) -> bool:
@@ -360,7 +377,7 @@ class Ligand:
 
         return get_smiles(self.molecule)
 
-    def is_same_molecule(self, molecule: Union[rdkit.Chem.rdchem.Mol, Ligand], sanitize: bool = True) -> Union[bool, int]: # type: ignore
+    def is_same_molecule(self, molecule: Union[rdkit.Chem.rdchem.Mol, Ligand], sanitize: bool = True) -> Union[bool, int]:
         '''Compare two molecules to check if they are the same using their MACCSkeys.
 
         Parameters
@@ -396,12 +413,11 @@ class Ligand:
         if DataStructs.FingerprintSimilarity(ligandMACCSSKeys, targetMACCSSKeys) == 1.0:
             # If they are the same, return True
             return True
-        # Otherwise (they are not the same)
-        else:
-            # Return False
-            return False
 
-    def is_same_molecule_SMILES(self, molecule: Union[rdkit.Chem.rdchem.Mol, Ligand], sanitize: bool = True) -> Union[bool, int]: # type: ignore
+        # Otherwise (they are not the same)
+        return False
+
+    def is_same_molecule_SMILES(self, molecule: Union[rdkit.Chem.rdchem.Mol, Ligand], sanitize: bool = True) -> Union[bool, int]:
         '''Compare two molecules to check if they are the same using their SMILES and FpDensityMorgan 1 2 and 3.
 
         Parameters
@@ -428,7 +444,7 @@ class Ligand:
                 )
             # If it's an RDKit Mol, calculate the properties
             elif isinstance(molecule, Chem.rdchem.Mol):
-                mol = loadMol(molecule, sanitize=sanitize)
+                mol = load_mol(molecule, sanitize=sanitize)
                 target_molecule_smiles = get_smiles(mol)
                 target_mol_morgan_fps = (
                     findFpDensityMorgan1(mol), # type: ignore
@@ -453,9 +469,10 @@ class Ligand:
             return self_mol_morgan_fps == target_mol_morgan_fps
         except Exception as e:
             _ = ocerror.Error.unknown(f"Unknown error while checking smiles: {str(e)}") # type: ignore
-            return False
 
-    def get_centroid(self, sanitize: bool = True) -> rdkit.Geometry.rdGeometry.Point3D: # type: ignore
+        return False
+
+    def get_centroid(self, sanitize: bool = True) -> rdkit.Geometry.rdGeometry.Point3D:
         '''Get the centroid of the molecule.
 
         Parameters
@@ -472,16 +489,16 @@ class Ligand:
         # Compute the centroid of the molecule and return it
         return get_centroid(self.molecule, sanitize = sanitize)
 
-    def create_box(self, centroid: Union[Tuple[float, float, float], None] = None, savePath: str = "", boxLength: float = 2.9, overwrite: bool = False) -> Union[int, None]:
+    def create_box(self, centroid: Optional[Tuple[float, float, float]] = None, save_path: str = "", box_length: float = 2.9, overwrite: bool = False) -> Optional[int]:
         '''Create a box file to be used by docking software.
 
         Parameters
         ----------
         centroid : tuple | None, optional
             The centroid of the box. If not provided, the centroid of the molecule will be used. (default is None)
-        savePath : str, optional
-            The path to save the box file. If not provided, the box file will be saved in the same path as the molecule. (default is "", which turns into self.boxPath)
-        boxLength : float, optional
+        save_path : str, optional
+            The path to save the box file. If not provided, the box file will be saved in the same path as the molecule. (default is "", which turns into self.box_path)
+        box_length : float, optional
             The length of the box. (default is 2.9)
         overwrite : bool, optional
             Flag to allow, or not, the overwrite of the box file. (default is False)
@@ -493,9 +510,9 @@ class Ligand:
         '''
 
         # Check if the box file already exists
-        if os.path.isfile(f"{savePath}/box0.pdb") and not overwrite:
+        if os.path.isfile(f"{save_path}/box0.pdb") and not overwrite:
             # If it exists and the overwrite flag is False, return an error
-            return ocerror.Error.file_exists(f"The box file '{savePath}' already exists. If you want to overwrite it, set the 'overwrite' flag to True.") # type: ignore
+            return ocerror.Error.file_exists(f"The box file '{save_path}' already exists. If you want to overwrite it, set the 'overwrite' flag to True.") # type: ignore
             
         # If the centroid is not defined
         if not centroid:
@@ -507,7 +524,7 @@ class Ligand:
             centroid = (centroid.x, centroid.y, centroid.z) # type: ignore
 
         # Get the partial size for each axis (to determine how much should be expanded in each direction)
-        partialSize = (boxLength * self.RadiusOfGyration) / 2 # type: ignore
+        partialSize = (box_length * self.RadiusOfGyration) / 2 # type: ignore
 
         # Create the box using this Centroid
         box = {
@@ -549,22 +566,22 @@ class Ligand:
         center_y = " " * (8 - len(str(round(center_y, 3)))) + str(round(center_y, 3))
         center_z = " " * (8 - len(str(round(center_z, 3)))) + str(round(center_z, 3))
 
-        # If the savePath is not defined
-        if not savePath:
+        # If the save_path is not defined
+        if not save_path:
             # Set it as the same dir as the ligand
-            savePath = os.path.join(os.path.split(self.path)[0], 'boxes')
-            # If the savePath does not exist
-            if not os.path.exists(savePath):
+            save_path = os.path.join(os.path.split(self.path)[0], 'boxes')
+            # If the save_path does not exist
+            if not os.path.exists(save_path):
                 # Create it
-                _ = ocff.safe_create_dir(savePath)
+                _ = ocff.safe_create_dir(save_path)
         else:
-            # If the savePath does not exist, warn the user
-            if not os.path.exists(savePath):
-                _ =  ocerror.Error.dir_not_exist(f"The savePath '{savePath}' does not exist. Creating it.", level = ocerror.ReportLevel.WARNING) # type: ignore
-                os.mkdir(savePath)
+            # If the save_path does not exist, warn the user
+            if not os.path.exists(save_path):
+                _ =  ocerror.Error.dir_not_exist(f"The save_path '{save_path}' does not exist. Creating it.", level = ocerror.ReportLevel.WARNING) # type: ignore
+                os.mkdir(save_path)
 
         # Write out the box file (following the one given in the DUD-E database)
-        with open(f"{savePath}/box0.pdb", 'w') as f:
+        with open(f"{save_path}/box0.pdb", 'w') as f:
             f.write(f"HEADER    CORNERS OF BOX      {min_x}{min_y}{min_z}{max_x}{max_y}{max_z}\n")
             f.write(f"REMARK    CENTER (X Y Z)      {center_x}{center_y}{center_z}\n")
             f.write(f"REMARK    DIMENSIONS (X Y Z)  {dim_x}{dim_y}{dim_z}\n")
@@ -587,26 +604,28 @@ class Ligand:
         
         return None
 
+
 # Functions
 ###############################################################################
 ## Private ##
 
 ## Public ##
-def splitMolecules(molecule: str, outputDir: str = "", prefix: str = "ligand") -> List[str]:
+def split_molecules(molecule: str, output_dir: str = "", prefix: str = "ligand") -> List[str]:
     ''' Given a molecule file, checks if it has more than one ligand, if positive, splits the file into multiple single molecule files. Uses openbabel python library. TODO: Make this function work better with the new database structure.
 
     Parameters
     ----------
     molecule : str
         The path to the molecule file.
-    outputDir : str, optional
+    output_dir : str, optional
         The path to the output directory, by default ""
-    Input:
-      molecule  [string]                   - Path to the molecule.
-      outputDir [string] DEFAULT: ""       - The output directory. If it is empty the outputDir will be the input dir plus an extra dir called ligand.
-      prefix    [string] DEFAULT: "ligand" - The output prefix for ligand file name.
-    Return:
-      [list(string)] - A list of paths to the new files.
+    prefix : str, optional
+        The prefix for the output files, by default "ligand"
+
+    Returns
+    -------
+    List[str]
+        A list of paths to the new files.
     '''
 
     # Initialise an empty list to hold all files paths
@@ -614,10 +633,10 @@ def splitMolecules(molecule: str, outputDir: str = "", prefix: str = "ligand") -
     # Grab the extension and path
     extension = ocvalidation.validate_obabel_extension(molecule)
 
-    # If the outputDir is not defined
-    if not outputDir:
+    # If the output_dir is not defined
+    if not output_dir:
         # Set it as the same dir as the ligand
-        outputDir = f"{os.path.split(os.path.abspath(molecule))[0]}/compounds"
+        output_dir = f"{os.path.split(os.path.abspath(molecule))[0]}/compounds"
 
     # Check if the extension is valid
     if type(extension) != str:
@@ -635,7 +654,7 @@ def splitMolecules(molecule: str, outputDir: str = "", prefix: str = "ligand") -
         molNum = 1
         # For each molecule in the file
         while molecules:
-            out_path = f"{outputDir}/{prefix}_{molNum}.mol2"
+            out_path = f"{output_dir}/{prefix}_{molNum}.mol2"
             # Write the mol object to the output performing the conversion
             obConversion.WriteFile(mol, out_path)
             # Recreate mol object
@@ -649,7 +668,8 @@ def splitMolecules(molecule: str, outputDir: str = "", prefix: str = "ligand") -
 
     return ligand_files
 
-def multipleMoleculesSDF(molecule: Union[str, rdkit.Chem.rdchem.Mol]) -> List[Ligand]: # type: ignore
+
+def multiple_molecules_sdf(molecule: Union[str, rdkit.Chem.rdchem.Mol]) -> List[Ligand]:
     ''' Parse a .sdf or .mol2 file with multiple molecules returning a list of ligands.
 
     Parameters
@@ -673,7 +693,7 @@ def multipleMoleculesSDF(molecule: Union[str, rdkit.Chem.rdchem.Mol]) -> List[Li
             extension = os.path.splitext(molecule)[1]
             if extension in [".sdf", ".mol2"]:
                 # Split the mol file
-                molsPaths = splitMolecules(molecule)
+                molsPaths = split_molecules(molecule)
                 # For each molecule
                 for molPath in molsPaths:
                     # Get molecule name
@@ -695,7 +715,8 @@ def multipleMoleculesSDF(molecule: Union[str, rdkit.Chem.rdchem.Mol]) -> List[Li
 
     return ligands
 
-def loadMol(molecule: Union[str, Chem.rdchem.Mol], sanitize: bool = True) -> Tuple[str, Union[Chem.rdchem.Mol, None]]:
+
+def load_mol(molecule: Union[str, Chem.rdchem.Mol], sanitize: bool = True) -> Tuple[str, Optional[Chem.rdchem.Mol]]:
     ''' Load a molecule pdb/sdf/mol/mol2 if a path is provided or just assign the Mol object to the molecule.
 
     Parameters
@@ -816,16 +837,39 @@ def loadMol(molecule: Union[str, Chem.rdchem.Mol], sanitize: bool = True) -> Tup
         
         # If the molecule is not in mol2 format
         if extension != ".mol2":
-            # Since is needed to convert the ligand, create the output path
-            outputMoleculePath = f"{os.path.dirname(molecule)}/ligand.mol2"
+            # Use temporary directory instead of input directory to avoid polluting input folder
+            try:
+                from OCDocker.Config import get_config
+                config = get_config()
+                tmp_dir = config.tmp_dir if config.tmp_dir else None
+            except (ImportError, AttributeError):
+                tmp_dir = None
+            
+            # Fallback to system temp directory if config tmp_dir is not available
+            if not tmp_dir or not os.path.isdir(tmp_dir):
+                import tempfile
+                tmp_dir = tempfile.gettempdir()
+            
+            # Ensure tmp_dir exists
+            try:
+                os.makedirs(tmp_dir, exist_ok=True)
+            except (OSError, PermissionError):
+                # If we can't create tmp_dir, fall back to input directory (original behavior)
+                tmp_dir = os.path.dirname(molecule)
+            
+            # Create a unique filename to avoid conflicts in multiprocessing scenarios
+            import hashlib
+            molecule_hash = hashlib.md5(os.path.abspath(molecule).encode()).hexdigest()[:8]
+            ligand_basename = os.path.splitext(os.path.basename(molecule))[0]
+            outputMoleculePath = os.path.join(tmp_dir, f"{ligand_basename}_{molecule_hash}.mol2")
             
             # Check if it is not a smiles file
             if extension not in [".smi", ".smiles"]:
                 # Convert the molecule
-                occonversion.convertMols(molecule, outputMoleculePath)
+                occonversion.convert_mols(molecule, outputMoleculePath)
             else:
                 # Convert the molecule
-                occonversion.convertMolsFromString("", outputMoleculePath, mol = mol) # type: ignore
+                occonversion.convert_mols_from_string("", outputMoleculePath, mol = mol) # type: ignore
             
             # Return the molecule
             return outputMoleculePath, mol # type: ignore
@@ -838,7 +882,8 @@ def loadMol(molecule: Union[str, Chem.rdchem.Mol], sanitize: bool = True) -> Tup
 
     return "", None
 
-def read_descriptors_from_json(path: str, return_data: bool = False) -> Union[Dict[str, Union[str, float, int]], Tuple[Union[str, float, int]], None]:
+
+def read_descriptors_from_json(path: str, return_data: bool = False) -> Optional[Union[Dict[str, Union[str, float, int]], Tuple[Union[str, float, int]]]]:
     ''' Read the descriptors from a JSON file.
 
     Parameters
@@ -852,12 +897,8 @@ def read_descriptors_from_json(path: str, return_data: bool = False) -> Union[Di
     -------
     Dict[str, str | float | int]] | Tuple[str | float | int]] | None
         The descriptors or None if an error occurs.
-    
-    Raises
-    ------
-    KeyError
-        If the expected keys are not found in the JSON file.
     '''
+
     try:
         with open(path, 'r') as f:
             data = json.load(f)
@@ -868,7 +909,9 @@ def read_descriptors_from_json(path: str, return_data: bool = False) -> Union[Di
         # Check for missing keys
         missing_keys = [key for key in keys if key not in data]
         if missing_keys:
-            raise KeyError(f"Missing keys in JSON file '{path}': {', '.join(missing_keys)}")
+            # User-facing error: missing required data in JSON file
+            ocerror.Error.data_not_found(f"Missing keys in JSON file '{path}': {', '.join(missing_keys)}") # type: ignore
+            return None
 
         if return_data:
             # Rename 'Name' to 'Ligand' and remove 'Path' if they exist
@@ -882,13 +925,16 @@ def read_descriptors_from_json(path: str, return_data: bool = False) -> Union[Di
         return tuple(data[key] for key in keys) # type: ignore
 
     except KeyError as e:
+        # This should rarely happen now since we check for missing keys above
+        # But keep it as a fallback for other KeyError cases
         ocerror.Error.value_error(f"Error: {e}") # type: ignore
     except Exception as e:
-        ocerror.Error.file_not_exist(f"Could not read the file '{path}'. Error: {e}") # type: ignore
+        ocerror.Error.read_file(f"Could not read the file '{path}'. Error: {e}") # type: ignore
 
     return None
 
-def get_smiles(molecule: rdkit.Chem.rdchem.Mol) -> Union[str, int]: # type: ignore
+
+def get_smiles(molecule: rdkit.Chem.rdchem.Mol) -> Union[str, int]:
     ''' Return the smiles of the molecule
 
     Parameters
@@ -909,7 +955,8 @@ def get_smiles(molecule: rdkit.Chem.rdchem.Mol) -> Union[str, int]: # type: igno
 
     return ocerror.Error.not_set(f"The variable is not set.") # type: ignore
 
-def get_centroid(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize = True) -> rdkit.Geometry.rdGeometry.Point3D: # type: ignore
+
+def get_centroid(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize: bool = True) -> rdkit.Geometry.rdGeometry.Point3D:
     ''' Get the centroid of the molecule.
 
     Parameters
@@ -923,33 +970,53 @@ def get_centroid(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize = True) -
     -------
     rdkit.Geometry.rdGeometry.Point3D
         The centroid of the molecule.
+    
+    Raises
+    ------
+    ValueError
+        If the molecule cannot be loaded from the provided path.
     '''
 
     # Check if the molecule is a string (means that it is a path)
     if type(molecule) == str:
+        # Store the path before loading
+        molecule_path = molecule
         # Load it
-        _, molecule = loadMol(molecule, sanitize = sanitize)
+        _, molecule = load_mol(molecule, sanitize = sanitize)
+        # Check if molecule was loaded successfully
+        if molecule is None:
+            # User-facing error: molecule loading failure
+            ocerror.Error.parse_molecule(f"Could not load molecule from path: {molecule_path}") # type: ignore
+            raise ValueError(f"Could not load molecule from path: {molecule_path}")  # Still raise to maintain API contract
 
     # Get the molecule conformer
-    conf = molecule.GetConformer() # type: ignore
+    conf = molecule.GetConformer()  # type: ignore
 
     # Compute the centroid of the molecule and return it
     return ComputeCentroid(conf)
 
+
 # Factory functions and dynamic methods
 ##############################################################################
 
-def __descriptor_function_factory(descriptor_name: str) -> Callable[[rdkit.Chem.rdchem.Mol], Union[float, None]]: # type: ignore
-    ''' Factory function to create a function that computes a descriptor by its name.
+def __descriptor_function_factory(descriptor_name: str) -> Callable[[rdkit.Chem.rdchem.Mol], Optional[float]]:
+    '''Factory function to create a function that computes a descriptor by its name.
+
+    This function creates a descriptor computation function dynamically based on
+    the descriptor name. It handles both 2D and 3D descriptors from RDKit.
 
     Parameters
     ----------
     descriptor_name : str
-        The name of the descriptor to compute.
+        The name of the descriptor to compute (e.g., "BalabanJ", "BertzCT",
+        "RadiusOfGyration"). Must match a descriptor function name in either
+        rdkit.Chem.Descriptors or rdkit.Chem.Descriptors3D.
 
     Returns
     -------
-    Callable[[rdkit.Chem.rdchem.Mol], float | None]
+    Callable[[rdkit.Chem.rdchem.Mol], Optional[float]]
+        A function that takes a molecule and returns the descriptor value,
+        or None if computation fails.
     '''
 
     if descriptor_name in ["Asphericity", "Eccentricity", "InertialShapeFactor", "NPR1", "NPR2", "PMI1", "PMI2", "PMI3", "RadiusOfGyration", "SpherocityIndex"]:
@@ -958,8 +1025,23 @@ def __descriptor_function_factory(descriptor_name: str) -> Callable[[rdkit.Chem.
         descriptor_func = getattr(Descriptors, descriptor_name)
 
     # TODO: Check how to avoid this function to spam print the same error multiple times
+    def __compute_descriptor(molecule: rdkit.Chem.rdchem.Mol) -> Optional[float]:
+        '''Compute a descriptor value for a molecule.
 
-    def __compute_descriptor(molecule: rdkit.Chem.rdchem.Mol) -> Union[float, None]: # type: ignore 
+        This is a nested function created by the factory to compute a specific
+        molecular descriptor using RDKit descriptor functions.
+
+        Parameters
+        ----------
+        molecule : rdkit.Chem.rdchem.Mol
+            The molecule object to compute the descriptor for.
+
+        Returns
+        -------
+        Optional[float]
+            The descriptor value, or None if computation fails or molecule is invalid.
+        '''
+        
         if molecule:
             if isinstance(molecule, rdkit.Chem.rdchem.Mol): # type: ignore
                 try:
@@ -975,17 +1057,26 @@ def __descriptor_function_factory(descriptor_name: str) -> Callable[[rdkit.Chem.
 
     return __compute_descriptor
 
-def __descriptor_function_factory_class(descriptor_name: str) -> Callable[[rdkit.Chem.rdchem.Mol], Union[float, None]]: # type: ignore
-    ''' Factory function to create a function that computes a descriptor by its name.
+
+def __descriptor_function_factory_class(descriptor_name: str) -> Callable[[rdkit.Chem.rdchem.Mol], Optional[float]]:
+    '''Factory function to create a class method that computes a descriptor.
+
+    This function creates a descriptor computation method dynamically for the
+    Ligand class. The created method uses self.molecule as the input molecule.
 
     Parameters
     ----------
     descriptor_name : str
-        The name of the descriptor to compute.
+        The name of the descriptor to compute (e.g., "BalabanJ", "BertzCT",
+        "RadiusOfGyration"). Must match a descriptor function name in either
+        rdkit.Chem.Descriptors or rdkit.Chem.Descriptors3D.
 
     Returns
     -------
-    Callable[[rdkit.Chem.rdchem.Mol], float | None]
+    Callable[[rdkit.Chem.rdchem.Mol], Optional[float]]
+        A method that can be bound to the Ligand class. When called, it computes
+        the descriptor for self.molecule and returns the value, or None if
+        computation fails.
     '''
 
     # Check if the descriptor is 3D (in this case use the Descriptors3D module)
@@ -997,8 +1088,17 @@ def __descriptor_function_factory_class(descriptor_name: str) -> Callable[[rdkit
     # TODO: Check how to avoid this function to spam print the same error multiple times
 
     # Create the nested function as a method of the Ligand class
-    def __compute_descriptor_class(self) -> Union[float, None]:
-        ''' Compute the descriptor for the Ligand object. (Factory function)
+    def __compute_descriptor_class(self) -> Optional[float]:
+        '''Compute the descriptor for the Ligand object.
+
+        This is a nested function created by the factory to compute a specific
+        molecular descriptor for the Ligand instance using self.molecule.
+
+        Returns
+        -------
+        Optional[float]
+            The descriptor value for self.molecule, or None if computation fails
+            or molecule is invalid.
         '''
 
         molecule = self.molecule  # Use self.molecule from the Ligand instance
@@ -1020,6 +1120,7 @@ def __descriptor_function_factory_class(descriptor_name: str) -> Callable[[rdkit
         return None
 
     return __compute_descriptor_class
+
 
 # Using the factory function to create the descriptor functions add them to the global namespace and to the Ligand class
 for desc in Ligand.allDescriptors:
