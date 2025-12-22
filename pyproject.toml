@@ -8,7 +8,7 @@ include = ["OCDocker*"]
 
 [project]
 name = "OCDocker"
-version = "0.9.1"
+version = "0.11.1"
 description = "OCDocker is a Python package for molecular docking automation, virtual screening and AI consensus scoring."
 readme = "README.md"
 license = { file = "LICENSE" }
