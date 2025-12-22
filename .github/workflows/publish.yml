@@ -8,6 +8,7 @@ on:
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
+    environment: release  # Must match PyPI trusted publisher environment
 
     permissions:
       id-token: write  # Required for trusted publishing (OIDC)
@@ -31,10 +32,9 @@ jobs:
         with:
           packages-dir: dist/
           # For trusted publishing (OIDC), no password/token needed
-          # Make sure you've configured trusted publishing on PyPI:
-          # 1. Go to your PyPI project settings
-          # 2. Add a trusted publisher
-          # 3. Set: Owner: Arturossi, Repository: OCDocker, Workflow filename: release.yml
+          # Trusted publisher on PyPI should be configured as:
+          # - Workflow filename: publish.yml
+          # - Environment name: release
           # 
           # Alternative: If using API token instead, uncomment below and add PYPI_API_TOKEN secret:
           # password: ${{ secrets.PYPI_API_TOKEN }}
