@@ -220,3 +220,6 @@ docs/_build
 
 # plots
 plots/
+
+# Extra files
+auxiliary_files/
