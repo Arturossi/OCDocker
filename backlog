@@ -7,13 +7,11 @@
 
 ## Log
 ### 0
-- Change the structure of initialise.py to multiple files to make it easier to maintain. |  0
 
 ### 1
 - Add routines to deal with xplor files, such as '/data/hd4tb/OCDocker/data/ocdb/PDBbind/1lrh/receptor.pdb' from pdbbind. | 1
 - Fix the log generation, sometimes the logs can reach 100mb. | 1
-- Make a base docking class where other docking classes can inherit shared methods (such as all vina-based programs) | 1
-- Implement the new docking software | 1
+- Implement more docking software | 1
 - Update the pipeline, removing MGLtools and adding ADFR, also allowing the user to prepare the input with obabel (maybe it is interesting allowing obabel) | 1
 
 ### 2
