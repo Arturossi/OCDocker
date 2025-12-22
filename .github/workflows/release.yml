@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      id-token: write   # OBRIGATÓRIO para OIDC
+      id-token: write  # Required for trusted publishing (OIDC)
       contents: read
 
     steps:
@@ -20,12 +20,21 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Build
+      - name: Build package
         run: |
-          python -m pip install -U build
+          python -m pip install --upgrade pip
+          python -m pip install build
           python -m build
 
-      - name: Publish
+      - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist/
+          # For trusted publishing (OIDC), no password/token needed
+          # Make sure you've configured trusted publishing on PyPI:
+          # 1. Go to your PyPI project settings
+          # 2. Add a trusted publisher
+          # 3. Set: Owner: Arturossi, Repository: OCDocker, Workflow filename: release.yml
+          # 
+          # Alternative: If using API token instead, uncomment below and add PYPI_API_TOKEN secret:
+          # password: ${{ secrets.PYPI_API_TOKEN }}
