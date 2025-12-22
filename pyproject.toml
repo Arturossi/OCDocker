@@ -34,7 +34,6 @@ dependencies = [
   "rdkit>=2024.09.1",
   "openbabel>=3.1.1",
   "biopython>=1.84",
-  "oddt @ git+https://github.com/Arturossi/oddt.git@master",
   "spyrmsd>=0.8.0",
   # Data analysis and visualization
   "seaborn>=0.13.2",
