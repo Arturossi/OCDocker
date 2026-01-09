@@ -24,6 +24,22 @@ Key capabilities:
 Installation
 ------------
 
+Quickstart (minimal, SQLite)
+----------------------------
+
+If you want the fastest path without setting up MySQL, use SQLite (local file DB) as the default backend:
+
+1) Install system dependencies (see [System dependencies](#system-dependencies)).
+2) Install OCDocker (conda/mamba or pip; see below).
+3) Run with SQLite enabled:
+
+```bash
+export OCDOCKER_USE_SQLITE=1
+ocdocker doctor
+```
+
+SQLite is recommended for quick experiments and development. MySQL is optional and only needed for multi-user or long-running database workflows.
+
 Simplest methods
 ----------------
 
@@ -46,11 +62,7 @@ mamba install arturossi/label/prealpha::ocdocker
 pip
 ---
 
-**Important:** Before installing via pip, you must install the required system dependencies:
-
-```bash
-sudo apt-get install openbabel libopenbabel-dev swig
-```
+**Important:** Install the required system dependencies first (see [System dependencies](#system-dependencies)).
 
 Then install OCDocker:
 
@@ -60,15 +72,12 @@ pip install ocdocker
 
 **Installing from source with pip:**
 
-For development or if you want to install from source using pip:
+For development or if you want to install from source using pip. Ensure the system dependencies are installed first (see [System dependencies](#system-dependencies)).
 
 ```bash
 # Clone the repository
 git clone https://github.com/Arturossi/OCDocker
 cd OCDocker
-
-# Install system dependencies first (REQUIRED)
-sudo apt-get install openbabel libopenbabel-dev swig
 
 # Install dependencies
 pip install -r requirements.txt
@@ -79,12 +88,7 @@ pip install -e .
 
 **Note on chemistry packages (rdkit, openbabel):**
 
-Some packages like `rdkit` and `openbabel` are easier to install via conda due to their system dependencies. Before installing, ensure you have the required system packages:
-
-```bash
-# Install system dependencies first (REQUIRED)
-sudo apt-get install openbabel libopenbabel-dev swig
-```
+Some packages like `rdkit` and `openbabel` are easier to install via conda due to their system dependencies. Before installing, ensure you have the required system packages (see [System dependencies](#system-dependencies)).
 
 If you encounter installation issues with pip, you can install these via conda first:
 
@@ -117,13 +121,14 @@ bash ./install.sh
 Prerequisites
 -------------
 
-- Python 3.9+
+- Python 3.10+
 - Ubuntu/Debian-like system with internet access
-- sudo privileges (required to install: OpenBabel, DSSP, MySQL server, and place Vina in `/usr/bin`)
-- ~15–20 GB of free disk space for conda env + tools + caches
+- sudo privileges (needed for system packages, and optional MySQL/Vina installs)
+- ~15–20 GB of free disk space for full conda env + tools + caches (minimal installs use less)
 - bash shell (the installer uses `bash` and `conda.sh`)
 
-**System Dependencies (Required Before Installation):**
+System dependencies
+-------------------
 
 Before installing OCDocker, you must install the following system packages:
 
@@ -135,6 +140,8 @@ These packages are required for building and using OpenBabel Python bindings, wh
 
 MySQL setup (quick tutorial)
 ----------------------------
+
+This section is optional. Skip it if you are using SQLite (see [Quickstart](#quickstart-minimal-sqlite)).
 
 OCDocker stores docking and optimization results in MySQL by default. If you don't already have a MySQL server, install it and create a user/database:
 
@@ -345,7 +352,7 @@ To install it, you have 2 options:
 tar -xvzf autodock_vina_1_1_2_linux_x86.tgz
 ```
 
-* Option 2 (Use this all-in-one command. It seems to be more complicated, but its easier than option 2 and its easy to automate-it)
+* Option 2 (Use this all-in-one command. It seems to be more complicated, but it’s easier than option 1 and its easy to automate-it)
 
 Usage Overview
 --------------
