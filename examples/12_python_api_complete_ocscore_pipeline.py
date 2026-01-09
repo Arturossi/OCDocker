@@ -24,25 +24,20 @@ Usage:
 # OCDocker configuration file path
 # Set this to the absolute path of your OCDocker.cfg file
 # If None, will use OCDOCKER_CONFIG environment variable or search for OCDocker.cfg
-OCDOCKER_CONFIG_FILE = "/home/spelta/dev/OCDocker/OCDocker.cfg"  # Update this path
+OCDOCKER_CONFIG_FILE = "/path/to/OCDocker.cfg"  # Update this path
 
 # Receptor configuration
-RECEPTOR_PATH = "/home/spelta/dev/OCDocker/test_files/test_ptn1/receptor.pdb"
+RECEPTOR_PATH = "/path/to/receptor_directory/receptor.pdb"
 RECEPTOR_NAME = "Receptor"
-PREPARED_RECEPTOR_PDBQT = "/home/spelta/dev/OCDocker/test_files/test_ptn1/prepared_receptor.pdbqt"
-PREPARED_RECEPTOR_MOL2 = "/home/spelta/dev/OCDocker/test_files/test_ptn1/prepared_receptor.mol2"
+PREPARED_RECEPTOR_PDBQT = "/path/to/receptor_directory/prepared_receptor.pdbqt"
+PREPARED_RECEPTOR_MOL2 = "/path/to/receptor_directory/prepared_receptor.mol2"
 
-#BOX_CENTER = (1.33, 33.97, 6.21)
+BOX_CENTER = (0.0, 0.0, 0.0)  # (x, y, z) coordinates of the box center
 
 # Ligand configuration - List of ligand paths (base directories)
 # Each path should contain: {ligand_name}.smi, boxes/box0.pdb, and subdirectories for outputs
 # Ligand names are automatically extracted from the last folder name in each path
 LIGAND_PATHS = [
-    '/home/spelta/colab/artur/compounds/active/CHEMBL1223112',
-    '/home/spelta/colab/artur/compounds/active/CHEMBL412811',
-    '/home/spelta/colab/artur/compounds/active/CHEMBL1221644',
-    '/home/spelta/colab/artur/compounds/active/CHEMBL172196',
-    '/home/spelta/colab/artur/compounds/active/CHEMBL165535'
     ]
 
 # Add more ligand paths here (you can use glob to get all ligand folders):
@@ -503,7 +498,7 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
         # Ligand creation
         ligand = ocl.Ligand(f"{ligand_path}/{ligand_name}.smi", name=ligand_name)
         
-        ligand.create_box(centroid = None, save_path = f"{ligand_path}/boxes/")
+        ligand.create_box(centroid = BOX_CENTER, save_path = f"{ligand_path}/boxes/")
 
         ####################### VINA #########################
         
