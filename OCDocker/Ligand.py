@@ -495,7 +495,7 @@ class Ligand:
         Parameters
         ----------
         centroid : tuple | None, optional
-            The centroid of the box. If not provided, the centroid of the molecule will be used. (default is None)
+            The centroid of the box. If not provided, the centroid of the molecule will be used. (default is None) [WARNING]: Since normally when creating the box the molecule is not yet docked, the centroid of the molecule might not be the best option. Preferably, provide the centroid of the receptor binding site which should be determined beforehand.
         save_path : str, optional
             The path to save the box file. If not provided, the box file will be saved in the same path as the molecule. (default is "", which turns into self.box_path)
         box_length : float, optional

@@ -5,249 +5,348 @@
   <title>OCDocker README</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body { font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif; margin: 2rem; line-height: 1.5; }
-    pre { white-space: pre-wrap; word-wrap: break-word; background:#f7f7f7; padding:1rem; border-radius:6px; }
+    :root {
+      color-scheme: light;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      background: #f3f5f7;
+      color: #1a1a1a;
+      line-height: 1.6;
+    }
+    main {
+      max-width: 980px;
+      margin: 2rem auto;
+      background: #ffffff;
+      padding: 2rem 2.5rem;
+      border-radius: 12px;
+      box-shadow: 0 12px 30px rgba(20, 25, 30, 0.12);
+    }
+    img {
+      max-width: 100%;
+      height: auto;
+    }
+    code, pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.95em;
+    }
+    pre {
+      background: #f6f8fa;
+      border: 1px solid #e2e6ea;
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      overflow-x: auto;
+    }
+    code {
+      background: #f1f3f5;
+      padding: 0.1rem 0.3rem;
+      border-radius: 6px;
+    }
+    pre code {
+      background: none;
+      padding: 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.2rem 0;
+    }
+    th, td {
+      border: 1px solid #dfe3e6;
+      padding: 0.6rem 0.8rem;
+      text-align: left;
+    }
+    th {
+      background: #f5f7f9;
+    }
+    @media (max-width: 720px) {
+      main {
+        margin: 0;
+        border-radius: 0;
+        padding: 1.5rem;
+      }
+    }
   </style>
 </head>
 <body>
-  <pre>![OCDocker](./OCDocker.png "OCDocker")
-
-OCDocker
-========
-
-Project Description
--------------------
-
-OCDocker is a Python toolkit and CLI for automated molecular docking, virtual
+  <main>
+<p><img alt="OCDocker" src="./OCDocker.png" title="OCDocker" /></p>
+<h1 id="ocdocker">OCDocker</h1>
+<h2 id="project-description">Project Description</h2>
+<p>OCDocker is a Python toolkit and CLI for automated molecular docking, virtual
 screening, and AI‑assisted consensus scoring. It streamlines end‑to‑end flows
 from preparation through docking, pose clustering and rescoring, with optional
-database persistence and analysis utilities.
-
-Key capabilities:
-
-- Multi‑engine docking: AutoDock Vina, Smina, PLANTS (future: Gnina, others)
-- Pipelines: run engines, cluster poses by RMSD (medoid), rescore and export
-- Rescoring: built‑in engine rescoring and ODDT models (RFScore, NNScore, PLEC)
-- OCScore analytics: DNN/XGBoost/Transformer optimizers, ranking metrics, SHAP
-- Database integration: MySQL (default) or SQLite fallback for dev/tests
-- CLI and Python API: doctor diagnostics, timeouts, binary checks, reproducible configs
-- Packaging: conda/pip, Dockerfiles for engines, docs and examples
-
-Installation
-------------
-
-Simplest methods
-----------------
-
-Conda
------
-
-OCDocker is a conda package, so the simplest way to install it is to use conda. If you do not have conda installed, please follow the instructions at https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html.
-If you have conda installed, you can install OCDocker with the following command:
-
-```bash
-conda install arturossi/label/prealpha::ocdocker 
-```
-
-If you have mamba installed, you can install OCDocker with the following command:
-
-```bash
-mamba install arturossi/label/prealpha::ocdocker 
-```
-
-pip
----
-
-If you prefer to use pip, you can install OCDocker with the following command:
-
-```bash
-pip install ocdocker
-```
-
-From source
------------
-
-Download the source code from the GitHub repository:
-
-```bash
+database persistence and analysis utilities.</p>
+<p>Key capabilities:</p>
+<ul>
+<li>Multi‑engine docking: AutoDock Vina, Smina, PLANTS (future: Gnina, others)</li>
+<li>Pipelines: run engines, cluster poses by RMSD (medoid), rescore and export</li>
+<li>Rescoring: built‑in engine rescoring and ODDT models (RFScore, NNScore, PLEC)</li>
+<li>OCScore analytics: DNN/XGBoost/Transformer optimizers, ranking metrics, SHAP</li>
+<li>Database integration: MySQL (default) or SQLite fallback for dev/tests</li>
+<li>CLI and Python API: doctor diagnostics, timeouts, binary checks, reproducible configs</li>
+<li>Packaging: conda/pip, Dockerfiles for engines, docs and examples</li>
+</ul>
+<h2 id="installation">Installation</h2>
+<h2 id="quickstart-minimal-sqlite">Quickstart (minimal, SQLite)</h2>
+<p>If you want the fastest path without setting up MySQL, use SQLite (local file DB) as the default backend:</p>
+<p>1) Install system dependencies (see <a href="#system-dependencies">System dependencies</a>).
+2) Install OCDocker (conda/mamba or pip; see below).
+3) Run with SQLite enabled:</p>
+<pre><code class="language-bash">export OCDOCKER_USE_SQLITE=1
+ocdocker doctor
+</code></pre>
+<p>SQLite is recommended for quick experiments and development. MySQL is optional and only needed for multi-user or long-running database workflows.</p>
+<h2 id="simplest-methods">Simplest methods</h2>
+<h2 id="conda-mamba">Conda / Mamba</h2>
+<p>OCDocker is a conda package, so the simplest way to install it is to use conda. If you do not have conda installed, please follow the instructions at https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html.
+If you have conda installed, you can install OCDocker with the following command:</p>
+<pre><code class="language-bash">conda install arturossi/label/prealpha::ocdocker 
+</code></pre>
+<p>If you have mamba installed, you can install OCDocker with the following command:</p>
+<pre><code class="language-bash">mamba install arturossi/label/prealpha::ocdocker 
+</code></pre>
+<h2 id="pip">pip</h2>
+<p><strong>Important:</strong> Install the required system dependencies first (see <a href="#system-dependencies">System dependencies</a>).</p>
+<p>Then install OCDocker:</p>
+<pre><code class="language-bash">pip install ocdocker
+</code></pre>
+<p><strong>Installing from source with pip:</strong></p>
+<p>For development or if you want to install from source using pip. Ensure the system dependencies are installed first (see <a href="#system-dependencies">System dependencies</a>).</p>
+<pre><code class="language-bash"># Clone the repository
 git clone https://github.com/Arturossi/OCDocker
-```
+cd OCDocker
 
-Go to the OCDocker directory and execute the installer with:
+# Install dependencies
+pip install -r requirements.txt
 
-```bash
-bash ./install.sh
-```
+# Install the package in development mode
+pip install -e .
+</code></pre>
+<p><strong>Note on chemistry packages (rdkit, openbabel):</strong></p>
+<p>Some packages like <code>rdkit</code> and <code>openbabel</code> are easier to install via conda due to their system dependencies. Before installing, ensure you have the required system packages (see <a href="#system-dependencies">System dependencies</a>).</p>
+<p>If you encounter installation issues with pip, you can install these via conda first:</p>
+<pre><code class="language-bash"># Install chemistry packages via conda
+conda install -c conda-forge rdkit openbabel
 
-Prerequisites
--------------
+# Then install the rest via pip
+pip install -r requirements.txt
+pip install -e .
+</code></pre>
+<p>Alternatively, you can use a hybrid approach: install the chemistry packages via conda, then use pip for the rest of the dependencies.</p>
+<h2 id="from-source">From source</h2>
+<p>Download the source code from the GitHub repository:</p>
+<pre><code class="language-bash">git clone https://github.com/Arturossi/OCDocker
+</code></pre>
+<p>Go to the OCDocker directory and execute the installer with:</p>
+<pre><code class="language-bash">bash ./install.sh
+</code></pre>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>Python 3.10+</li>
+<li>Ubuntu/Debian-like system with internet access</li>
+<li>sudo privileges (needed for system packages, and optional MySQL/Vina installs)</li>
+<li>~15–20 GB of free disk space for full conda env + tools + caches (minimal installs use less)</li>
+<li>bash shell (the installer uses <code>bash</code> and <code>conda.sh</code>)</li>
+</ul>
+<h2 id="system-dependencies">System dependencies</h2>
+<p>Before installing OCDocker, you must install the following system packages:</p>
+<pre><code class="language-bash">sudo apt-get install openbabel libopenbabel-dev swig
+</code></pre>
+<p>These packages are required for building and using OpenBabel Python bindings, which are essential for OCDocker's molecular processing capabilities.</p>
+<h2 id="mysql-setup-quick-tutorial">MySQL setup (quick tutorial)</h2>
+<p>This section is optional. Skip it if you are using SQLite (see <a href="#quickstart-minimal-sqlite">Quickstart</a>).</p>
+<p>OCDocker stores docking and optimization results in MySQL by default. If you don't already have a MySQL server, install it and create a user/database:</p>
+<p>1) Install and start MySQL (Ubuntu/Debian)</p>
+<pre><code class="language-bash">sudo apt-get update &amp;&amp; sudo apt-get install -y mysql-server
+sudo systemctl enable --now mysql
+</code></pre>
+<p>2) Create a database and user (local-only access)</p>
+<pre><code class="language-sql">-- Enter the MySQL shell
+sudo mysql
 
-- Python 3.9+
-- Ubuntu/Debian-like system with internet access
-- sudo privileges (required to install: DSSP, MySQL server, and place Vina in `/usr/bin`)
-- ~15–20 GB of free disk space for conda env + tools + caches
-- bash shell (the installer uses `bash` and `conda.sh`)
+-- Create databases (adjust name as desired)
+CREATE DATABASE ocdocker CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE optimization CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-Automated installer details
----------------------------
+-- Create user for local connections only
+CREATE USER 'ocdocker'@'localhost' IDENTIFIED BY 'strong_password_here';
+GRANT ALL PRIVILEGES ON ocdocker.* TO 'ocdocker'@'localhost';
+GRANT ALL PRIVILEGES ON optimization.* TO 'ocdocker'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+</code></pre>
+<p>3) Optional: allow remote connections (use strong passwords and firewalls)</p>
+<pre><code class="language-sql">-- In the MySQL shell
+CREATE USER 'ocdocker'@'%' IDENTIFIED BY 'strong_password_here';
+GRANT ALL PRIVILEGES ON optimization.* TO 'ocdocker'@'%';
+FLUSH PRIVILEGES;
+</code></pre>
+<p>If you enable remote access, also edit <code>mysqld.cnf</code> to listen externally:</p>
+<pre><code class="language-bash">sudo sed -i &quot;s/^bind-address.*/bind-address = 0.0.0.0/&quot; /etc/mysql/mysql.conf.d/mysqld.cnf
+sudo systemctl restart mysql
+</code></pre>
+<p>4) Test connectivity from Python</p>
+<pre><code class="language-python">from sqlalchemy import create_engine
+from urllib.parse import quote_plus
 
-The installer performs the following actions on Ubuntu-like systems:
+user = &quot;ocdocker&quot;
+password = quote_plus(&quot;strong_password_here&quot;)
+host = &quot;localhost&quot;  # or server IP
+port = 3306
+db   = &quot;optimization&quot;
 
-- Installs MGLTools locally under `./mgltools`.
-- Downloads AutoDock Vina and installs it to `/usr/bin/vina` (requires sudo).
-- Installs Miniconda under `$HOME/miniconda` (no sudo).
-- Installs DSSP and MySQL server via `apt-get` (requires sudo).
-- Creates the conda environment defined by `environment.yml` (name: `ocdocker`).
-- Creates a MySQL user and database named `ocdocker` (configurable via environment variables `DB_USER`, `DB_PASS`, `DB_NAME` before running the script).
-
-Notes
------
-
-- You will be prompted for sudo privileges when needed (system packages and `/usr/bin/vina`).
-- The script is idempotent for major steps: it skips environment creation if `ocdocker` already exists and uses `IF NOT EXISTS` for MySQL user/database.
-- After completion, activate the environment with:
-
-```bash
-conda activate ocdocker
-```
-
-Log out then log in (or open a new shell) if you need to initialize conda’s base shell integration.
-
-Troubleshooting
----------------
-
-- MGLTools issues (e.g., NumPy import errors):
-  - Consider reinstalling MGLTools from source or using the official archives; ensure system Python/conda paths don’t shadow MGLTools’ bundled Python.
-  - Verify the `pythonsh` and `prepare_*` paths configured in `OCDocker.cfg`.
-
-- Conda not found after install:
-  - Open a new shell, or run `source "$HOME/miniconda/etc/profile.d/conda.sh"` before `conda activate ocdocker`.
-
-- MySQL authentication errors:
-  - Ensure `mysql-server` service is running (`sudo systemctl status mysql`).
-  - Re-run the user/database creation commands shown in `install.sh`, or set `DB_USER/DB_PASS/DB_NAME` and re-run the script.
-
-- DSSP not found:
-  - Install via `sudo apt-get install -y dssp`, or adjust the `dssp` path in `OCDocker.cfg` to match your system.
-
-GPU (optional)
---------------
-
-OCDocker can leverage NVIDIA GPUs for PyTorch-based components (e.g., OCScore DNN/SHAP pipelines). The provided environment pins:
-
-- PyTorch 2.4.1 with CUDA 12.1 (`pytorch-cuda=12.1`)
-- cuDNN bundled via conda
-
-### Requirements
-
-- Recent NVIDIA driver compatible with CUDA 12.1 (recommended ≥ 535)
-- No system CUDA toolkit is strictly required; the conda packages ship the CUDA runtime
-
-### Quick checks
-
-```bash
-# Driver + GPU visible?
+engine = create_engine(f&quot;mysql+pymysql://{user}:{password}@{host}:{port}/{db}&quot;)
+with engine.connect() as conn:
+    print(conn.execute(&quot;SELECT 1&quot;).scalar())
+</code></pre>
+<p>Notes:</p>
+<ul>
+<li>The SQLAlchemy URL uses the PyMySQL driver (<code>mysql+pymysql://...</code>). Ensure <code>pymysql</code> is installed (present in the provided <code>environment.yml</code>).</li>
+<li>For CI/tests or local experiments, set <code>OCDOCKER_USE_SQLITE=1</code> to bypass MySQL.</li>
+<li>You can also set SQLite via config (<code>USE_SQLITE = yes</code>) and choose a custom file via <code>SQLITE_PATH</code>.</li>
+</ul>
+<h2 id="automated-installer-details">Automated installer details</h2>
+<p>The installer performs the following actions on Ubuntu-like systems:</p>
+<ul>
+<li>Installs MGLTools locally under <code>./mgltools</code>.</li>
+<li>Downloads AutoDock Vina and installs it to <code>/usr/bin/vina</code> (requires sudo).</li>
+<li>Installs Miniconda under <code>$HOME/miniconda</code> (no sudo).</li>
+<li>Installs system packages via <code>apt-get</code> (requires sudo): openbabel, libopenbabel-dev, swig, DSSP, and MySQL server (if not using SQLite).</li>
+<li>Creates the conda environment defined by <code>environment.yml</code> (name: <code>ocdocker</code>).</li>
+<li>Creates a MySQL user and database named <code>ocdocker</code> (configurable via environment variables <code>DB_USER</code>, <code>DB_PASS</code>, <code>DB_NAME</code> before running the script).</li>
+</ul>
+<h2 id="notes">Notes</h2>
+<ul>
+<li>You will be prompted for sudo privileges when needed (system packages and <code>/usr/bin/vina</code>).</li>
+<li>The script is idempotent for major steps: it skips environment creation if <code>ocdocker</code> already exists and uses <code>IF NOT EXISTS</code> for MySQL user/database.</li>
+<li>After completion, activate the environment with:</li>
+</ul>
+<pre><code class="language-bash">conda activate ocdocker
+</code></pre>
+<p>Log out then log in (or open a new shell) if you need to initialize conda’s base shell integration.</p>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<ul>
+<li>MGLTools issues (e.g., NumPy import errors):</li>
+<li>Consider reinstalling MGLTools from source or using the official archives; ensure system Python/conda paths don’t shadow MGLTools’ bundled Python.</li>
+<li>
+<p>Verify the <code>pythonsh</code> and <code>prepare_*</code> paths configured in <code>OCDocker.cfg</code>.</p>
+</li>
+<li>
+<p>Conda not found after install:</p>
+</li>
+<li>
+<p>Open a new shell, or run <code>source "$HOME/miniconda/etc/profile.d/conda.sh"</code> before <code>conda activate ocdocker</code>.</p>
+</li>
+<li>
+<p>MySQL authentication errors:</p>
+</li>
+<li>Ensure <code>mysql-server</code> service is running (<code>sudo systemctl status mysql</code>).</li>
+<li>
+<p>Re-run the user/database creation commands shown in <code>install.sh</code>, or set <code>DB_USER/DB_PASS/DB_NAME</code> and re-run the script.</p>
+</li>
+<li>
+<p>DSSP not found:</p>
+</li>
+<li>Install via <code>sudo apt-get install -y dssp</code>, or adjust the <code>dssp</code> path in <code>OCDocker.cfg</code> to match your system.</li>
+</ul>
+<h2 id="gpu-optional">GPU (optional)</h2>
+<p>OCDocker can leverage NVIDIA GPUs for PyTorch-based components (e.g., OCScore DNN/SHAP pipelines). The provided environment pins:</p>
+<ul>
+<li>PyTorch 2.4.1 with CUDA 12.1 (<code>pytorch-cuda=12.1</code>)</li>
+<li>cuDNN bundled via conda</li>
+</ul>
+<h3 id="requirements">Requirements</h3>
+<ul>
+<li>Recent NVIDIA driver compatible with CUDA 12.1 (recommended ≥ 535)</li>
+<li>No system CUDA toolkit is strictly required; the conda packages ship the CUDA runtime</li>
+</ul>
+<h3 id="quick-checks">Quick checks</h3>
+<pre><code class="language-bash"># Driver + GPU visible?
 nvidia-smi
 
 # PyTorch sees the GPU?
 conda activate ocdocker
-python -c "import torch; print('CUDA available:', torch.cuda.is_available()); print('Device count:', torch.cuda.device_count())"
-```
-
-### Troubleshooting GPU
-
-- If `torch.cuda.is_available()` is False:
-  - Ensure the NVIDIA driver is installed and loaded (e.g., `sudo ubuntu-drivers autoinstall` then reboot)
-  - Verify driver ≥ 535 for CUDA 12.1
-  - Make sure you activated the correct conda env (`ocdocker`)
-  - Avoid mixing system CUDA with conda CUDA unless you know what you’re doing
-
-Or perform each software installation manually with the below steps.
-
-Download and install MGLTools
------------------------------
-
-Use either the step‑by‑step install or the single all‑in‑one command below.
-
-- Option 1 (Step‑by‑step)
-
-  - Download the archive
-
-    ```bash
-    wget https://ccsb.scripps.edu/download/532/ -O mgltools_install.tar.gz
-    ```
-
-  - Extract it
-
-    ```bash
-    tar -xvzf mgltools_install.tar.gz
-    ```
-
-  - Enter the created directory and run the installer
-
-    ```bash
-    cd mgltools_x86_64Linux2_1.5.X
-    source ./install.sh
-    ```
-
-- Option 2 (All‑in‑one, easy to automate)
-
-  ```bash
+python -c &quot;import torch; print('CUDA available:', torch.cuda.is_available()); print('Device count:', torch.cuda.device_count())&quot;
+</code></pre>
+<h3 id="troubleshooting-gpu">Troubleshooting GPU</h3>
+<ul>
+<li>If <code>torch.cuda.is_available()</code> is False:</li>
+<li>Ensure the NVIDIA driver is installed and loaded (e.g., <code>sudo ubuntu-drivers autoinstall</code> then reboot)</li>
+<li>Verify driver ≥ 535 for CUDA 12.1</li>
+<li>Make sure you activated the correct conda env (<code>ocdocker</code>)</li>
+<li>Avoid mixing system CUDA with conda CUDA unless you know what you’re doing</li>
+</ul>
+<p>Or perform each software installation manually with the below steps.</p>
+<h2 id="download-and-install-mgltools">Download and install MGLTools</h2>
+<p>Use either the step‑by‑step install or the single all‑in‑one command below.</p>
+<ul>
+<li>
+<p>Option 1 (Step‑by‑step)</p>
+</li>
+<li>
+<p>Download the archive</p>
+<p><code>bash
+wget https://ccsb.scripps.edu/download/532/ -O mgltools_install.tar.gz</code></p>
+</li>
+<li>
+<p>Extract it</p>
+<p><code>bash
+tar -xvzf mgltools_install.tar.gz</code></p>
+</li>
+<li>
+<p>Enter the created directory and run the installer</p>
+<p><code>bash
+cd mgltools_x86_64Linux2_1.5.X
+source ./install.sh</code></p>
+</li>
+<li>
+<p>Option 2 (All‑in‑one, easy to automate)</p>
+</li>
+</ul>
+<p><code>bash
   wget https://ccsb.scripps.edu/download/532/ -O mgltools_install.tar.gz \
     &amp;&amp; mkdir -p mgltools \
     &amp;&amp; tar -xvzf mgltools_install.tar.gz -C mgltools --strip-components=1 \
     &amp;&amp; rm mgltools_install.tar.gz \
     &amp;&amp; cd mgltools \
-    &amp;&amp; source ./install.sh
-  ```
-
-Note: The `prepare_*` scripts are located at `&lt;installation_dir&gt;/mgltools/MGLToolsPckgs/AutoDockTools`.
-
-If you still can’t run MGLTools (e.g., NumPy errors), consider reinstalling from source and ensure your environment paths don’t shadow the MGLTools Python.
-
-Install DSSP
----------------
-
-To install DSSP in Ubuntu 18.04+:
-
-```bash
-sudo apt install dssp
-```
-
-By default, the DSSP path is '/usr/bin/dssp'.
-
-
-Download and install AutoDock Vina
----------------
-
-To install it, you have 2 options:
-
-* Option 1 (Step-by-step)
-
-	- Go to the website http://vina.scripps.edu/download.html and download the Linux installer (tgz)
-	- Untar it:
-
-```bash
-tar -xvzf autodock_vina_1_1_2_linux_x86.tgz
-```
-
-* Option 2 (Use this all-in-one command. It seems to be more complicated, but its easier than option 2 and its easy to automate-it)
-
-Usage Overview
---------------
-
-- CLI: `ocdocker` exposes subcommands for docking, pipelines, SHAP analysis, diagnostics, and an interactive console.
-- Programmatic: importing modules auto‑bootstraps once by default (see Bootstrap below). You can opt out via an env var and call `bootstrap()` explicitly.
-
-Bootstrap &amp; Configuration
--------------------------
-
-- Auto‑bootstrap on import: when you import OCDocker modules, the environment initializes once (config, DB, dirs). This is skipped during docs/tests.
-- Configuration file: set `OCDOCKER_CONFIG` to point to your `OCDocker.cfg` or place `OCDocker.cfg` in the working directory.
-- Disable auto‑bootstrap: set `OCDOCKER_NO_AUTO_BOOTSTRAP=1` and call `bootstrap()` explicitly:
-
-```python
-from OCDocker.Initialise import bootstrap
+    &amp;&amp; source ./install.sh</code></p>
+<p>Note: The <code>prepare_*</code> scripts are located at <code>&lt;installation_dir&gt;/mgltools/MGLToolsPckgs/AutoDockTools</code>.</p>
+<p>If you still can’t run MGLTools (e.g., NumPy errors), consider reinstalling from source and ensure your environment paths don’t shadow the MGLTools Python.</p>
+<h2 id="install-dssp">Install DSSP</h2>
+<p>To install DSSP in Ubuntu 18.04+:</p>
+<pre><code class="language-bash">sudo apt install dssp
+</code></pre>
+<p>By default, the DSSP path is '/usr/bin/dssp'.</p>
+<h2 id="download-and-install-autodock-vina">Download and install AutoDock Vina</h2>
+<p>To install it, you have 2 options:</p>
+<ul>
+<li>
+<p>Option 1 (Step-by-step)</p>
+<ul>
+<li>Go to the website http://vina.scripps.edu/download.html and download the Linux installer (tgz)</li>
+<li>Untar it:</li>
+</ul>
+</li>
+</ul>
+<pre><code class="language-bash">tar -xvzf autodock_vina_1_1_2_linux_x86.tgz
+</code></pre>
+<ul>
+<li>Option 2 (Use this all-in-one command. It seems to be more complicated, but it’s easier than option 1 and its easy to automate-it)</li>
+</ul>
+<h2 id="usage-overview">Usage Overview</h2>
+<ul>
+<li>CLI: <code>ocdocker</code> exposes subcommands for docking, pipelines, SHAP analysis, diagnostics, and an interactive console.</li>
+<li>Programmatic: importing modules auto‑bootstraps once by default (see Bootstrap below). You can opt out via an env var and call <code>bootstrap()</code> explicitly.</li>
+</ul>
+<h2 id="bootstrap-configuration">Bootstrap &amp; Configuration</h2>
+<ul>
+<li>Auto‑bootstrap on import: when you import OCDocker modules, the environment initializes once (config, DB, dirs). This is skipped during docs/tests.</li>
+<li>Configuration file: set <code>OCDOCKER_CONFIG</code> to point to your <code>OCDocker.cfg</code> or place <code>OCDocker.cfg</code> in the working directory.</li>
+<li>Disable auto‑bootstrap: set <code>OCDOCKER_NO_AUTO_BOOTSTRAP=1</code> and call <code>bootstrap()</code> explicitly:</li>
+</ul>
+<pre><code class="language-python">from OCDocker.Initialise import bootstrap
 import argparse
 bootstrap(argparse.Namespace(
     multiprocess=True,
@@ -256,172 +355,150 @@ bootstrap(argparse.Namespace(
     output_level=2,
     overwrite=False,
 ))
-```
-
-SQLite Fallback (optional)
---------------------------
-
-- For development/tests, you can bypass MySQL entirely by setting `OCDOCKER_USE_SQLITE=1` before import or running the CLI.
-- This creates/uses a local `ocdocker.db` under the module directory.
-
-Diagnostics: `ocdocker doctor`
---------------------------------
-
-Run a quick environment report:
-
-```bash
-ocdocker doctor --conf OCDocker.cfg
-```
-
-It checks:
-
-- Config path in use
-- Binaries: `vina`, `smina`, `plants` (presence on PATH or configured paths)
-- Python deps: rdkit, Biopython, ODDT, SQLAlchemy
-- DB connectivity (opens/closes a connection)
-
-Docking: Quick Examples
------------------------
-
-Single engine (Vina) with timeout, storing to DB:
-
-```bash
-ocdocker vs \
+</code></pre>
+<h2 id="sqlite-fallback-optional">SQLite Fallback (optional)</h2>
+<ul>
+<li>For development/tests, you can bypass MySQL entirely by setting <code>OCDOCKER_USE_SQLITE=1</code> before import or running the CLI.</li>
+<li>This creates/uses a local <code>ocdocker.db</code> under the module directory.</li>
+</ul>
+<h2 id="installer-behavior-with-sqlite">Installer behavior with SQLite</h2>
+<ul>
+<li>To skip installing and configuring MySQL during <code>install.sh</code>, enable SQLite mode before running it:</li>
+</ul>
+<pre><code class="language-bash">export OCDOCKER_USE_SQLITE=1                # select SQLite backend
+export OCDOCKER_SQLITE_PATH=/path/ocdocker.db  # optional custom path
+bash ./install.sh
+</code></pre>
+<ul>
+<li>Alternatively, if you already have an <code>OCDocker.cfg</code> in the project directory, you can set in the file:</li>
+<li><code>USE_SQLITE = yes</code></li>
+<li><code>SQLITE_PATH = /path/to/ocdocker.db</code> (optional)</li>
+</ul>
+<p>In both cases, the installer will:
+- Install only <code>dssp</code> (skips <code>mysql-server</code>)
+- Skip MySQL user/database creation
+- Proceed with the remaining steps normally</p>
+<h2 id="important-note-about-sqlite">Important note about SQLite</h2>
+<ul>
+<li>SQLite is convenient for development and tests but has limitations for concurrent writes and larger workloads.</li>
+<li>For production use, performance, and concurrency, a full MySQL installation is strongly recommended.</li>
+</ul>
+<h2 id="diagnostics-ocdocker-doctor">Diagnostics: <code>ocdocker doctor</code></h2>
+<p>Run a quick environment report:</p>
+<pre><code class="language-bash">ocdocker doctor --conf OCDocker.cfg
+</code></pre>
+<p>It checks:</p>
+<ul>
+<li>Config path in use</li>
+<li>Binaries: <code>vina</code>, <code>smina</code>, <code>plants</code> (presence on PATH or configured paths)</li>
+<li>Python deps: rdkit, Biopython, ODDT, SQLAlchemy</li>
+<li>DB connectivity (opens/closes a connection)</li>
+</ul>
+<h2 id="docking-quick-examples">Docking: Quick Examples</h2>
+<p>Single engine (Vina) with timeout, storing to DB:</p>
+<pre><code class="language-bash">ocdocker vs \
   --engine vina \
   --receptor path/to/receptor.pdb \
   --ligand path/to/ligand.smi \
   --box path/to/box.pdb \
   --timeout 600 \
   --store-db
-```
-
-Pipeline across engines with clustering and rescoring:
-
-```bash
-ocdocker pipeline \
+</code></pre>
+<p>Pipeline across engines with clustering and rescoring:</p>
+<pre><code class="language-bash">ocdocker pipeline \
   --receptor path/to/receptor.pdb \
   --ligand path/to/ligand.sdf \
   --box path/to/box.pdb \
   --engines vina,smina,plants \
   --store-db
-```
-
-Notes:
-
-- `--timeout` limits external tool runtime (also via `OCDOCKER_TIMEOUT`).
-- `--store-db` auto‑creates tables and stores minimal metadata (name) in the DB.
-
-Timeouts &amp; External Tools
--------------------------
-
-- You can prevent hangs by defining a timeout:
-  - CLI: `--timeout &lt;seconds&gt;` (for `vs` and `pipeline`)
-  - Env: `OCDOCKER_TIMEOUT=&lt;seconds&gt;`
-
-Binary Checks
--------------
-
-- The CLI validates presence of required binaries (`vina`/`smina`/`plants`) before running and errors early if missing. Use `ocdocker doctor` to see what’s available.
-
-Interactive Console
--------------------
-
-```bash
-ocdocker console --conf OCDocker.cfg
-```
-
-This opens an interactive namespace with common OCDocker utilities imported.
-
-Environment Variables (reference)
----------------------------------
-
-- `OCDOCKER_CONFIG`: path to `OCDocker.cfg` (config file with external tool paths and parameters).
-- `OCDOCKER_NO_AUTO_BOOTSTRAP`: if set to `1/true/yes`, disables auto‑bootstrap on import; call `bootstrap()` manually.
-- `OCDOCKER_USE_SQLITE`: if set to `1/true/yes`, uses a local SQLite DB instead of MySQL.
-- `OCDOCKER_TIMEOUT`: default timeout (seconds) for external tools when not provided via CLI.
-
-Python Support
---------------
-
-- Requires Python 3.10+.
-
-```bash
-mkdir vina &amp;&amp; wget https://github.com/ccsb-scripps/AutoDock-Vina/releases/download/v1.2.3/vina_1.2.3_linux_x86_64 -O vina/vina &amp;&amp; sudo cp vina/vina /usr/bin/vina
-```
-
-Note: The Vina executable will be located in ``installation_dir/vina/bin``.
-
-Testing
-=======
-
-This repository ships a test suite under `tests/` that exercises the core library (Toolbox, Docking helpers, DB minimal, parsing, etc.).
-
-Quick start
------------
-
-```bash
-conda activate ocdocker
+</code></pre>
+<p>Notes:</p>
+<ul>
+<li><code>--timeout</code> limits external tool runtime (also via <code>OCDOCKER_TIMEOUT</code>).</li>
+<li><code>--store-db</code> auto‑creates tables and stores minimal metadata (name) in the DB.</li>
+</ul>
+<h2 id="timeouts-external-tools">Timeouts &amp; External Tools</h2>
+<ul>
+<li>You can prevent hangs by defining a timeout:</li>
+<li>CLI: <code>--timeout &lt;seconds&gt;</code> (for <code>vs</code> and <code>pipeline</code>)</li>
+<li>Env: <code>OCDOCKER_TIMEOUT=&lt;seconds&gt;</code></li>
+</ul>
+<h2 id="binary-checks">Binary Checks</h2>
+<ul>
+<li>The CLI validates presence of required binaries (<code>vina</code>/<code>smina</code>/<code>plants</code>) before running and errors early if missing. Use <code>ocdocker doctor</code> to see what’s available.</li>
+</ul>
+<h2 id="interactive-console">Interactive Console</h2>
+<pre><code class="language-bash">ocdocker console --conf OCDocker.cfg
+</code></pre>
+<p>This opens an interactive namespace with common OCDocker utilities imported.</p>
+<h2 id="running-python-scripts">Running Python Scripts</h2>
+<p>Run Python scripts with all OCDocker libraries pre-loaded:</p>
+<pre><code class="language-bash">ocdocker script --conf OCDocker.cfg script.py [script_args...]
+</code></pre>
+<p>This command bootstraps the OCDocker environment, loads all modules (ocl, ocr, ocvina, etc.),
+and executes your script. All OCDocker classes and functions are available without imports.</p>
+<p>Example script:</p>
+<pre><code class="language-python"># script.py - All OCDocker modules are pre-loaded!
+receptor = ocr.Receptor(&quot;receptor.pdb&quot;)
+ligand = ocl.Ligand(&quot;ligand.smi&quot;)
+vina = ocvina.Vina(...)
+# ... use OCDocker functionality
+</code></pre>
+<p>See <code>examples/13_cli_script_example.py</code> for a complete example.</p>
+<h2 id="environment-variables-reference">Environment Variables (reference)</h2>
+<ul>
+<li><code>OCDOCKER_CONFIG</code>: path to <code>OCDocker.cfg</code> (config file with external tool paths and parameters).</li>
+<li><code>OCDOCKER_NO_AUTO_BOOTSTRAP</code>: if set to <code>1/true/yes</code>, disables auto‑bootstrap on import; call <code>bootstrap()</code> manually.</li>
+<li><code>OCDOCKER_USE_SQLITE</code>: if set to <code>1/true/yes</code>, uses a local SQLite DB instead of MySQL.</li>
+<li><code>OCDOCKER_TIMEOUT</code>: default timeout (seconds) for external tools when not provided via CLI.</li>
+</ul>
+<h2 id="python-support">Python Support</h2>
+<ul>
+<li>Requires Python 3.10+.</li>
+</ul>
+<pre><code class="language-bash">mkdir vina &amp;&amp; wget https://github.com/ccsb-scripps/AutoDock-Vina/releases/download/v1.2.3/vina_1.2.3_linux_x86_64 -O vina/vina &amp;&amp; sudo cp vina/vina /usr/bin/vina
+</code></pre>
+<p>Note: The Vina executable will be located in <code>installation_dir/vina/bin</code>.</p>
+<h1 id="testing">Testing</h1>
+<p>This repository ships a test suite under <code>tests/</code> that exercises the core library (Toolbox, Docking helpers, DB minimal, parsing, etc.).</p>
+<h2 id="quick-start">Quick start</h2>
+<pre><code class="language-bash">conda activate ocdocker
 pytest -q
-```
-
-Useful commands
----------------
-
-- Run a specific test file:
-
-  ```bash
-  pytest tests/test_Vina.py -q
-  ```
-
-- Show test names while running:
-
-  ```bash
-  pytest -q -k vina -vv
-  ```
-
-- Coverage (if `pytest-cov` is present):
-
-  ```bash
-  pytest --cov=OCDocker --cov-report=term-missing
-  ```
-
-Notes for testing
------------------
-
-- The tests operate on sample data under `test_files/` and do not require external binaries to actually run (they validate parsing/IO helpers, config generation, log readers, etc.).
-- If you want to run end‑to‑end docking locally, ensure you’ve installed external tools (MGLTools, Vina, Smina/PLANTS where applicable) and set paths in `OCDocker.cfg`.
-- Some modules (e.g., Initialise) perform environment bootstrapping; the test suite avoids heavy side effects, but for interactive usage consider setting `OCDOCKER_CONFIG=./OCDocker.cfg`.
-
-
-Download and install SMINA
----------------
-
-First of all make sure that you have all required libs installed (openbabel must be v3+).
-
-```bash
-sudo apt install git libboost-all-dev libopenbabel-dev build-essential libeigen3-dev openbabel
-```
-
-Now clone the smina repo then enter it, create a build folder, enter the build folder, perform the cmake using the parent folder as the source and finally use the make with 12 jobs (you can increase/decrease the number of jobs if you want, but 12 is what is written in smina's doc).
-
-```bash
-git clone https://git.code.sf.net/p/smina/code smina-code &amp;&amp; cd smina-code &amp;&amp; mkdir build &amp;&amp; cd build &amp;&amp; cmake .. &amp;&amp; make -j12
-```
-
-
-Download and install PLANTS
----------------
-
-Go to http://www.tcd.uni-konstanz.de/plants_download/ and demand a license
-
-
-EXPLAINING THE OCDOCKER FILE STRUCTURE
-============
-
-OCDocker has been designed to use the following structure of files:
-
-```
-└── receptor
+</code></pre>
+<h2 id="useful-commands">Useful commands</h2>
+<ul>
+<li>Run a specific test file:</li>
+</ul>
+<p><code>bash
+  pytest tests/test_Vina.py -q</code></p>
+<ul>
+<li>Show test names while running:</li>
+</ul>
+<p><code>bash
+  pytest -q -k vina -vv</code></p>
+<ul>
+<li>Coverage (if <code>pytest-cov</code> is present):</li>
+</ul>
+<p><code>bash
+  pytest --cov=OCDocker --cov-report=term-missing</code></p>
+<h2 id="notes-for-testing">Notes for testing</h2>
+<ul>
+<li>The tests operate on sample data under <code>test_files/</code> and do not require external binaries to actually run (they validate parsing/IO helpers, config generation, log readers, etc.).</li>
+<li>If you want to run end‑to‑end docking locally, ensure you’ve installed external tools (MGLTools, Vina, Smina/PLANTS where applicable) and set paths in <code>OCDocker.cfg</code>.</li>
+<li>Some modules (e.g., Initialise) perform environment bootstrapping; the test suite avoids heavy side effects, but for interactive usage consider setting <code>OCDOCKER_CONFIG=./OCDocker.cfg</code>.</li>
+</ul>
+<h2 id="download-and-install-smina">Download and install SMINA</h2>
+<p>First of all make sure that you have all required libs installed (openbabel must be v3+).</p>
+<pre><code class="language-bash">sudo apt install git libboost-all-dev libopenbabel-dev build-essential libeigen3-dev openbabel
+</code></pre>
+<p>Now clone the smina repo then enter it, create a build folder, enter the build folder, perform the cmake using the parent folder as the source and finally use the make with 12 jobs (you can increase/decrease the number of jobs if you want, but 12 is what is written in smina's doc).</p>
+<pre><code class="language-bash">git clone https://git.code.sf.net/p/smina/code smina-code &amp;&amp; cd smina-code &amp;&amp; mkdir build &amp;&amp; cd build &amp;&amp; cmake .. &amp;&amp; make -j12
+</code></pre>
+<h2 id="download-and-install-plants">Download and install PLANTS</h2>
+<p>Go to http://www.tcd.uni-konstanz.de/plants_download/ and demand a license</p>
+<h1 id="explaining-the-ocdocker-file-structure">EXPLAINING THE OCDOCKER FILE STRUCTURE</h1>
+<p>OCDocker has been designed to use the following structure of files:</p>
+<pre><code>└── receptor
     └── compounds
         ├── candidates
         │   ├── molecule_1
@@ -432,66 +509,74 @@ OCDocker has been designed to use the following structure of files:
         └── ligands
             ├── molecule_a
             └── molecule_b
-```
-
-| Folder | Description |
-| ------------ | ------------ |
-| receptor | Contains the receptor file (.pdb). |
-| compounds | Used to keep things organized. Contains just the next three folders. |
-| candidates | Any folder inside this folder will be flagged as a candidate compound, which means that it is not known the nature of its interaction with the receptor. (In a real world VS, only this folder will be populated.) |
-| decoys | Any folder inside this folder will be flagged as a decoy. (This folder is used to validate ML results, probably not being used for real VS.) |
-| ligands | Any folder inside this folder will be flagged as a ligand. (This folder is used to train and validate ML results, probably not being used for real VS.) |
-
-USAGE
-======
-
-&gt; :warning: To perform docking using the OCDocker library docking functions you must first install the abovementioned software.
-
-In OCDocker the docking routines are oriented towards a Receptor and a Ligand, therefore, first of all, it is needed to create the receptor and ligand objects.
-
-Here is an example of receptor and multiple ligand creations using files found in test_files folder:
-
-```python
-# Receptor import and creation
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Folder</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>receptor</td>
+<td>Contains the receptor file (.pdb).</td>
+</tr>
+<tr>
+<td>compounds</td>
+<td>Used to keep things organized. Contains just the next three folders.</td>
+</tr>
+<tr>
+<td>candidates</td>
+<td>Any folder inside this folder will be flagged as a candidate compound, which means that it is not known the nature of its interaction with the receptor. (In a real world VS, only this folder will be populated.)</td>
+</tr>
+<tr>
+<td>decoys</td>
+<td>Any folder inside this folder will be flagged as a decoy. (This folder is used to validate ML results, probably not being used for real VS.)</td>
+</tr>
+<tr>
+<td>ligands</td>
+<td>Any folder inside this folder will be flagged as a ligand. (This folder is used to train and validate ML results, probably not being used for real VS.)</td>
+</tr>
+</tbody>
+</table>
+<h1 id="usage">USAGE</h1>
+<blockquote>
+<p>:warning: To perform docking using the OCDocker library docking functions you must first install the abovementioned software.</p>
+</blockquote>
+<p>In OCDocker the docking routines are oriented towards a Receptor and a Ligand, therefore, first of all, it is needed to create the receptor and ligand objects.</p>
+<p>Here is an example of receptor and multiple ligand creations using files found in test_files folder:</p>
+<pre><code class="language-python"># Receptor import and creation
 import OCDocker.Receptor as ocr
-receptor = ocr.Receptor("./test_files/receptor.pdb", name="Receptor")
+receptor = ocr.Receptor(&quot;./test_files/receptor.pdb&quot;, name=&quot;Receptor&quot;)
 
 # Ligand import and creation
 import OCDocker.Ligand as ocl
-ligand = ocl.Ligand("./test_files/compounds/ligands/ligand/ligand.smi", name="Ligand")
-decoy  = ocl.Ligand("./test_files/compounds/decoys/ZINC000000000015/ligand.smi", name="ZINC000000000015")
-decoy2 = ocl.Ligand("./test_files/compounds/decoys/ZINC000000000024/ligand.smi", name="ZINC000000000024")
-decoy3 = ocl.Ligand("./test_files/compounds/decoys/ZINC000000000044/ligand.smi", name="ZINC000000000044")
-```
-
-Now we can create the docking objects, here how is it done:
-
-Pre steps
--------
-
-```python
-# Parameterize the path to make easier
-ligandPath = f"./test_files/compounds/ligands/ligand"
-```
-
-
-SMINA
------
-```python
-# Import
+ligand = ocl.Ligand(&quot;./test_files/compounds/ligands/ligand/ligand.smi&quot;, name=&quot;Ligand&quot;)
+decoy  = ocl.Ligand(&quot;./test_files/compounds/decoys/ZINC000000000015/ligand.smi&quot;, name=&quot;ZINC000000000015&quot;)
+decoy2 = ocl.Ligand(&quot;./test_files/compounds/decoys/ZINC000000000024/ligand.smi&quot;, name=&quot;ZINC000000000024&quot;)
+decoy3 = ocl.Ligand(&quot;./test_files/compounds/decoys/ZINC000000000044/ligand.smi&quot;, name=&quot;ZINC000000000044&quot;)
+</code></pre>
+<p>Now we can create the docking objects, here how is it done:</p>
+<h2 id="pre-steps">Pre steps</h2>
+<pre><code class="language-python"># Parameterize the path to make easier
+ligandPath = f&quot;./test_files/compounds/ligands/ligand&quot;
+</code></pre>
+<h2 id="smina">SMINA</h2>
+<pre><code class="language-python"># Import
 import OCDocker.Docking.Smina as ocsmina
 
 # Create object
 smina_ligand = ocsmina.Smina(
-    f"{ligandPath}/sminaFiles/conf_smina.txt",
-    f"{ligandPath}/boxes/box.pdb",
+    f&quot;{ligandPath}/sminaFiles/conf_smina.txt&quot;,
+    f&quot;{ligandPath}/boxes/box.pdb&quot;,
     receptor,
-    f"./test_files/prepared_receptor.pdbqt",
+    f&quot;./test_files/prepared_receptor.pdbqt&quot;,
     ligand,
-    f"{ligandPath}/prepared_ligand.pdbqt",
-    f"{ligandPath}/sminaFiles/smina.log",
-    f"{ligandPath}/sminaFiles/smina.pdbqt",
-    name=f"Smina receptor-ligand",
+    f&quot;{ligandPath}/prepared_ligand.pdbqt&quot;,
+    f&quot;{ligandPath}/sminaFiles/smina.log&quot;,
+    f&quot;{ligandPath}/sminaFiles/smina.pdbqt&quot;,
+    name=f&quot;Smina receptor-ligand&quot;,
 )
 
 # Prepare receptor
@@ -502,25 +587,22 @@ smina_ligand.run_prepare_ligand()
 
 # Run docking
 smina_ligand.run_docking()
-```
-
-Vina
-----
-```python
-# Import
+</code></pre>
+<h2 id="vina">Vina</h2>
+<pre><code class="language-python"># Import
 import OCDocker.Docking.Vina as ocvina
 
 # Create object
 vina_ligand = ocvina.Vina(
-    f"{ligandPath}/vinaFiles/conf_vina.txt",
-    f"{ligandPath}/boxes/box.pdb",
+    f&quot;{ligandPath}/vinaFiles/conf_vina.txt&quot;,
+    f&quot;{ligandPath}/boxes/box.pdb&quot;,
     receptor,
-    f"./test_files/prepared_receptor.pdbqt",
+    f&quot;./test_files/prepared_receptor.pdbqt&quot;,
     ligand,
-    f"{ligandPath}/prepared_ligand.pdbqt",
-    f"{ligandPath}/vinaFiles/vina.log",
-    f"{ligandPath}/vinaFiles/vina.pdbqt",
-    name=f"Vina receptor-ligand",
+    f&quot;{ligandPath}/prepared_ligand.pdbqt&quot;,
+    f&quot;{ligandPath}/vinaFiles/vina.log&quot;,
+    f&quot;{ligandPath}/vinaFiles/vina.pdbqt&quot;,
+    name=f&quot;Vina receptor-ligand&quot;,
 )
 
 # Prepare receptor
@@ -531,42 +613,36 @@ vina_ligand.run_prepare_ligand()
 
 # Run docking
 vina_ligand.run_docking()
-```
-
-These steps will be the same for any pairs receptor-ligand!
-
-## License
-
-This software is proprietary and owned by the Federal University of Rio de Janeiro (UFRJ). See the `LICENSE` file for full terms.
-
-Testing
-=======
-This repository ships a test suite under `tests/` that exercises the core library (Toolbox, Docking helpers, DB minimal, parsing, etc.).
-Quick start
------------
-```bash
-conda activate ocdocker
+</code></pre>
+<p>These steps will be the same for any pairs receptor-ligand!</p>
+<h2 id="license">License</h2>
+<p>This software is proprietary and owned by the Federal University of Rio de Janeiro (UFRJ). See the <code>LICENSE</code> file for full terms.</p>
+<h1 id="testing_1">Testing</h1>
+<p>This repository ships a test suite under <code>tests/</code> that exercises the core library (Toolbox, Docking helpers, DB minimal, parsing, etc.).
+Quick start</p>
+<hr />
+<pre><code class="language-bash">conda activate ocdocker
 pytest -q
-```
-Useful commands
----------------
-- Run a specific test file:
-  ```bash
-  pytest tests/test_Vina.py -q
-  ```
-- Show test names while running:
-  ```bash
-  pytest -q -k vina -vv
-  ```
-- Coverage (if `pytest-cov` is present):
-  ```bash
-  pytest --cov=OCDocker --cov-report=term-missing
-  ```
-Notes for testing
------------------
-- The tests operate on sample data under `test_files/` and do not require external binaries to actually run (they validate parsing/IO helpers, config generation, log readers, etc.).
-- If you want to run end‑to‑end docking locally, ensure you’ve installed external tools (MGLTools, Vina, Smina/PLANTS where applicable) and set paths in `OCDocker.cfg`.
-- Some modules (e.g., Initialise) perform environment bootstrapping; the test suite avoids heavy side effects, but for interactive usage consider setting `OCDOCKER_CONFIG=./OCDocker.cfg`.
-</pre>
+</code></pre>
+<h2 id="useful-commands_1">Useful commands</h2>
+<ul>
+<li>Run a specific test file:
+  <code>bash
+  pytest tests/test_Vina.py -q</code></li>
+<li>Show test names while running:
+  <code>bash
+  pytest -q -k vina -vv</code></li>
+<li>Coverage (if <code>pytest-cov</code> is present):
+  <code>bash
+  pytest --cov=OCDocker --cov-report=term-missing</code>
+Notes for testing</li>
+</ul>
+<hr />
+<ul>
+<li>The tests operate on sample data under <code>test_files/</code> and do not require external binaries to actually run (they validate parsing/IO helpers, config generation, log readers, etc.).</li>
+<li>If you want to run end‑to‑end docking locally, ensure you’ve installed external tools (MGLTools, Vina, Smina/PLANTS where applicable) and set paths in <code>OCDocker.cfg</code>.</li>
+<li>Some modules (e.g., Initialise) perform environment bootstrapping; the test suite avoids heavy side effects, but for interactive usage consider setting <code>OCDOCKER_CONFIG=./OCDocker.cfg</code>.</li>
+</ul>
+  </main>
 </body>
 </html>

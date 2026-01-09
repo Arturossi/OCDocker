@@ -14,12 +14,12 @@ build:
 
 requirements:
   host:
-    - python >=3.9
+    - python >=3.10
     - pip
     - setuptools >=80
 
   run:
-    - python >=3.9
+    - python >=3.10
     - rdkit
     - pandas >=2.2
     - scikit-learn >=1.5

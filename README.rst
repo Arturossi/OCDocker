@@ -1,3 +1,8 @@
+.. important::
+   This file is legacy and may be out of date. The canonical README is
+   ``README.md``. Update that file and regenerate any derived formats
+   (for example, ``README.html``).
+
 OCDocker installation instructions Step-by-step
 ===============================================
 
@@ -35,7 +40,7 @@ To install it, you have 3 options:
 	.. code-block:: bash
 		$ source ./install.sh
 
-* Option 3 (Use this all-in-one command. It seems to be more complicated, but its easier than option 2 and its easy to automate-it)
+* Option 3 (Use this all-in-one command. It seems to be more complicated, but it’s easier than option 1 and its easy to automate-it)
 
 .. code-block:: bash
 	$ wget https://ccsb.scripps.edu/download/532/ -O mgltools_install.tar.gz --no-check-certificate && mkdir -p mgltools && tar -xvzf mgltools_install.tar.gz -C mgltools --strip-components=1 && rm mgltools_install.tar.gz && cd mgltools && source ./install.sh
@@ -86,7 +91,7 @@ To install it, you have 3 options:
 	.. code-block:: bash
 		$ source ~/.bashrc
 
-* Option 3 (Use this all-in-one command. It seems to be more complicated, but its easier than option 2 and its easy to automate-it)
+* Option 3 (Use this all-in-one command. It seems to be more complicated, but it’s easier than option 2 and its easy to automate-it)
 
 .. code-block:: bash
 	$ wget https://ccsb.scripps.edu/adfr/download/1028/ --no-check-certificate -O adfr_install && mkdir -p mgltools && tar -xvzf adfr_install.tar.gz -C ADFRsuite --strip-components=1 && rm adfr_install.tar.gz && cd ADFRsuite && source ./install.sh && echo "PATH=`pwd`/bin:"'$PATH' >> ~/.bashrc && source ~/.bashrc
