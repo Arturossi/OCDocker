@@ -111,7 +111,7 @@ class Ligand:
     # Create all the descriptors to be class attributes
     allDescriptors = [f'{desc_prefix}{i}' for desc_prefix, desc_indices in descriptors_names.items() for i in desc_indices] + single_descriptors
 
-    def __init__(self, molecule: Union[str, rdkit.Chem.rdchem.Mol], name: str, sanitize: bool = True, from_json_descriptors: str = "") -> Optional[int]:
+    def __init__(self, molecule: Union[str, rdkit.Chem.rdchem.Mol], name: str, sanitize: bool = True, from_json_descriptors: str = "") -> None:
         ''' Constructor for the Ligand class.
         
         Parameters
@@ -140,7 +140,8 @@ class Ligand:
         if not "_split_" in name:
             self.name = name
         else:
-            return ocerror.Error.invalid_molecule_name("The name of the ligand cannot contain the string '_split_'") # type: ignore
+            _ = ocerror.Error.invalid_molecule_name("The name of the ligand cannot contain the string '_split_'") # type: ignore
+            return None
 
         # All attribute initializations
         for desc in Ligand.allDescriptors:
@@ -167,7 +168,7 @@ class Ligand:
 
             # All attribute initializations
             for desc in Ligand.allDescriptors:
-                setattr(self, desc, f"{data[desc]}") # type: ignore
+                setattr(self, desc, data[desc]) # type: ignore
             #endregion
 
         else:
@@ -609,6 +610,175 @@ class Ligand:
 ###############################################################################
 ## Private ##
 
+def _get_etkdg_params() -> AllChem.EmbedParameters:
+    '''Get RDKit ETKDG embedding parameters with safer defaults.
+
+    Returns
+    -------
+    rdkit.Chem.AllChem.EmbedParameters
+        Configured ETKDG parameters object.
+    '''
+
+    if hasattr(AllChem, "ETKDGv3"):
+        params = AllChem.ETKDGv3() # type: ignore
+    else:
+        params = AllChem.ETKDG() # type: ignore
+    params.useRandomCoords = True
+    params.maxAttempts = 1000
+    return params
+
+
+def _try_embed_rdkit(mol: Chem.rdchem.Mol, max_attempts: int = 10) -> bool:
+    '''Try embedding a molecule with RDKit using multiple seeds.
+
+    Parameters
+    ----------
+    mol : rdkit.Chem.rdchem.Mol
+        Molecule to embed (modified in place).
+    max_attempts : int, optional
+        Maximum number of embedding attempts, by default 10.
+
+    Returns
+    -------
+    bool
+        True if embedding succeeded and a conformer exists, False otherwise.
+    '''
+
+    params = _get_etkdg_params()
+    for attempt in range(max_attempts):
+        params.randomSeed = 0xC0FFEE + attempt
+        if AllChem.EmbedMolecule(mol, params) == 0 and mol.GetNumConformers() > 0: # type: ignore
+            return True
+    return False
+
+
+def _openbabel_3d_from_smiles(smiles: str, sanitize: bool) -> Optional[Chem.rdchem.Mol]:
+    '''Generate a 3D RDKit molecule from SMILES via OpenBabel.
+
+    Parameters
+    ----------
+    smiles : str
+        SMILES string to build in 3D.
+    sanitize : bool
+        Whether to sanitize the RDKit molecule.
+
+    Returns
+    -------
+    rdkit.Chem.rdchem.Mol | None
+        RDKit molecule with 3D conformer if successful, otherwise None.
+    '''
+
+    ob_conversion = openbabel.OBConversion()
+    if not ob_conversion.SetInFormat("smi"):
+        return None
+    if not ob_conversion.SetOutFormat("mol2"):
+        return None
+
+    ob_mol = openbabel.OBMol()
+    if not ob_conversion.ReadString(ob_mol, smiles):
+        return None
+
+    ob_mol.AddHydrogens()
+    builder = openbabel.OBBuilder()
+    if not builder.Build(ob_mol):
+        return None
+
+    ff = openbabel.OBForceField.FindForceField("uff")
+    if ff and ff.Setup(ob_mol):
+        ff.ConjugateGradients(250)
+        ff.GetCoordinates(ob_mol)
+
+    mol2_block = ob_conversion.WriteString(ob_mol)
+    return Chem.MolFromMol2Block(mol2_block, sanitize=sanitize, removeHs=False) # type: ignore
+
+
+def _ensure_3d_conformer(
+    mol: Chem.rdchem.Mol,
+    sanitize: bool,
+    smiles_source: str = "",
+    add_hs: bool = True,
+    max_attempts: int = 10
+) -> Optional[Chem.rdchem.Mol]:
+    '''Ensure a molecule has a 3D conformer, using RDKit and OpenBabel fallbacks.
+
+    Parameters
+    ----------
+    mol : rdkit.Chem.rdchem.Mol
+        Molecule to ensure has a 3D conformer.
+    sanitize : bool
+        Whether to sanitize the molecule during conversion.
+    smiles_source : str, optional
+        Optional SMILES string to use for OpenBabel fallback, by default "".
+    add_hs : bool, optional
+        If True, adds hydrogens before embedding, by default True.
+    max_attempts : int, optional
+        Maximum number of RDKit embedding attempts, by default 10.
+
+    Returns
+    -------
+    rdkit.Chem.rdchem.Mol | None
+        Molecule with 3D conformer if successful, otherwise None.
+    '''
+
+    if mol.GetNumConformers() > 0:
+        try:
+            if mol.GetConformer().Is3D(): # type: ignore
+                return mol
+        except Exception:
+            return mol
+        mol.RemoveAllConformers()
+
+    if add_hs:
+        mol = Chem.AddHs(mol) # type: ignore
+
+    if _try_embed_rdkit(mol, max_attempts=max_attempts):
+        return mol
+
+    if not smiles_source:
+        try:
+            smiles_source = Chem.MolToSmiles(mol) # type: ignore
+        except Exception:
+            smiles_source = ""
+
+    if smiles_source:
+        ob_mol = _openbabel_3d_from_smiles(smiles_source, sanitize)
+        if ob_mol and ob_mol.GetNumConformers() > 0: # type: ignore
+            return ob_mol
+
+    return None
+
+
+def _optimize_mol(mol: Chem.rdchem.Mol) -> bool:
+    '''Optimize a molecule geometry using MMFF (preferred) or UFF.
+
+    Parameters
+    ----------
+    mol : rdkit.Chem.rdchem.Mol
+        Molecule with a 3D conformer to optimize.
+
+    Returns
+    -------
+    bool
+        True if optimization converged, False otherwise.
+    '''
+
+    if mol.GetNumConformers() == 0: # type: ignore
+        return False
+    try:
+        mmff_props = AllChem.MMFFGetMoleculeProperties(mol) # type: ignore
+        if mmff_props is not None:
+            status = AllChem.MMFFOptimizeMolecule(mol, mmff_props) # type: ignore
+            if status == 0:
+                return True
+    except Exception:
+        pass
+    try:
+        status = AllChem.UFFOptimizeMolecule(mol) # type: ignore
+        return status == 0
+    except Exception:
+        return False
+
+
 ## Public ##
 def split_molecules(molecule: str, output_dir: str = "", prefix: str = "ligand") -> List[str]:
     ''' Given a molecule file, checks if it has more than one ligand, if positive, splits the file into multiple single molecule files. Uses openbabel python library. TODO: Make this function work better with the new database structure.
@@ -703,12 +873,12 @@ def multiple_molecules_sdf(molecule: Union[str, rdkit.Chem.rdchem.Mol]) -> List[
             else:
                 # This case the return code is suppressed because it is needed to return None in case of failure
                 _ = ocerror.Error.wrong_type(message=f"The molecule file MUST be the .sdf format!", level=ocerror.ReportLevel.WARNING) # type: ignore
-        elif isinstance(molecule, Chem.rdchem.Mol):
-            name = molecule.GetProp("_Name") if molecule.HasProp("_Name") else "ligand"
-            ligands.append(Ligand(molecule, name=name))
         else:
             # File does not exist
             _ = ocerror.Error.wrong_type(message=f"The molecule MUST be either a file path or rdkit.Chem.rdchem.Mol!", level=ocerror.ReportLevel.WARNING) # type: ignore
+    elif isinstance(molecule, Chem.rdchem.Mol):
+        name = molecule.GetProp("_Name") if molecule.HasProp("_Name") else "ligand"
+        ligands.append(Ligand(molecule, name=name))
     else:
         # This case the return code is suppressed because it is needed to return None in case of failure
         _ = ocerror.Error.wrong_type(message=f"The molecule file path MUST be a string!", level=ocerror.ReportLevel.WARNING) # type: ignore
@@ -789,8 +959,19 @@ def load_mol(molecule: Union[str, Chem.rdchem.Mol], sanitize: bool = True) -> Tu
                 # Add the hydrogens
                 mol = Chem.AddHs(mol) # type: ignore
 
-                # Embed the molecule
-                AllChem.EmbedMolecule(mol, AllChem.ETKDG()) # type: ignore
+                mol = _ensure_3d_conformer(
+                    mol,
+                    sanitize=sanitize,
+                    smiles_source=smiles,
+                    add_hs=False
+                )
+                if mol is None:
+                    _ = ocerror.Error.parse_molecule(
+                        f"The molecule '{molecule}' could not be embedded in 3D.",
+                        level = ocerror.ReportLevel.WARNING
+                    ) # type: ignore
+                    return "", None
+                mol.SetProp("_Name", name)
 
                 # Ensure that the ring information is initialized
                 _ = mol.GetRingInfo()
@@ -801,7 +982,11 @@ def load_mol(molecule: Union[str, Chem.rdchem.Mol], sanitize: bool = True) -> Tu
                     Chem.SanitizeMol(mol)
 
                 # Optimize the molecule
-                AllChem.UFFOptimizeMolecule(mol) # type: ignore
+                if not _optimize_mol(mol):
+                    _ = ocerror.Error.parse_molecule(
+                        f"The molecule '{molecule}' could not be optimized in 3D.",
+                        level = ocerror.ReportLevel.WARNING
+                    ) # type: ignore
             else:
                 # The molecule could not be loaded
                 _ = ocerror.Error.parse_molecule(f"The molecule '{molecule}' could not be parsed from smiles.", level = ocerror.ReportLevel.WARNING) # type: ignore
@@ -818,6 +1003,27 @@ def load_mol(molecule: Union[str, Chem.rdchem.Mol], sanitize: bool = True) -> Tu
         if mol is None: # type: ignore
             _ = ocerror.Error.parse_molecule(f"The molecule '{molecule}' could not be parsed.", level = ocerror.ReportLevel.WARNING) # type: ignore
             return "", None
+
+        needs_3d = mol.GetNumConformers() == 0 # type: ignore
+        if not needs_3d:
+            try:
+                needs_3d = not mol.GetConformer().Is3D() # type: ignore
+            except Exception:
+                needs_3d = False
+
+        if needs_3d:
+            mol = _ensure_3d_conformer(mol, sanitize=sanitize)
+            if mol is None: # type: ignore
+                _ = ocerror.Error.parse_molecule(
+                    f"The molecule '{molecule}' could not be embedded in 3D.",
+                    level = ocerror.ReportLevel.WARNING
+                ) # type: ignore
+                return "", None
+            if not _optimize_mol(mol):
+                _ = ocerror.Error.parse_molecule(
+                    f"The molecule '{molecule}' could not be optimized in 3D.",
+                    level = ocerror.ReportLevel.WARNING
+                ) # type: ignore
 
         # If sanitize is off
         if not sanitize:
@@ -850,13 +1056,8 @@ def load_mol(molecule: Union[str, Chem.rdchem.Mol], sanitize: bool = True) -> Tu
             ligand_basename = os.path.splitext(os.path.basename(molecule))[0]
             outputMoleculePath = os.path.join(output_dir, f"{ligand_basename}_{molecule_hash}.mol2")
             
-            # Check if it is not a smiles file
-            if extension not in [".smi", ".smiles"]:
-                # Convert the molecule
-                occonversion.convert_mols(molecule, outputMoleculePath)
-            else:
-                # Convert the molecule
-                occonversion.convert_mols_from_string("", outputMoleculePath, mol = mol) # type: ignore
+            # Convert using the RDKit molecule to preserve 3D geometry
+            occonversion.convert_mols_from_string("", outputMoleculePath, mol = mol) # type: ignore
             
             # Return the molecule
             return outputMoleculePath, mol # type: ignore

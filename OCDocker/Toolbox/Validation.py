@@ -127,7 +127,19 @@ def is_molecule_valid(molecule: str) -> bool:
                 elif extension == ".mol":
                     _ = rdkit.Chem.rdmolfiles.MolFromMolFile(molecule, sanitize = True) # type: ignore
                 elif extension == ".pdbqt":
-                    _ = rdkit.Chem.rdmolfiles.MolFromMolFile(molecule, sanitize = True) # type: ignore
+                    mol = rdkit.Chem.rdmolfiles.MolFromPDBFile( # type: ignore
+                        molecule, sanitize = True, removeHs = False
+                    )
+                    if mol is None:
+                        try:
+                            from openbabel import openbabel
+                            ob_conversion = openbabel.OBConversion()
+                            ob_conversion.SetInFormat("pdbqt")
+                            ob_mol = openbabel.OBMol()
+                            if not ob_conversion.ReadFile(ob_mol, molecule):
+                                return False
+                        except Exception:
+                            return False
                 elif extension in [".smi", ".smiles"]:
                     # Read SMILES string from file and parse
                     try:
