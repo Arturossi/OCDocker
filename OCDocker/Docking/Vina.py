@@ -304,7 +304,7 @@ class Vina:
             logFile
         )
 
-    def run_prepare_receptor(self, logFile:str = "", useOpenBabel:bool = False) -> Union[int, str, Tuple[int, str]]:
+    def run_prepare_receptor(self, logFile:str = "", useOpenBabel:bool = False, overwrite:bool = False) -> Union[int, str, Tuple[int, str]]:
         '''Run 'prepare_receptor4' or openbabel to prepare the receptor.
 
         Parameters
@@ -313,6 +313,8 @@ class Vina:
             Path to the logFile. If empty, suppress the output.
         useOpenBabel : bool
             If True, use openbabel instead of prepare_receptor4.
+        overwrite : bool
+            If True, overwrite the prepared receptor file.
 
         Returns
         -------
@@ -327,7 +329,8 @@ class Vina:
         return self.preparation_strategy.prepare_receptor(
             self.input_receptor_path,
             self.prepared_receptor,
-            logFile
+            logFile,
+            overwrite
         )
 
     def run_rescore(self, outPath: str, ligand: str, logFile: str = "", skipDefaultScoring: bool = False, splitLigand: bool = False, overwrite: bool = False) -> None:
