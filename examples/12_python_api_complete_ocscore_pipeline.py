@@ -513,13 +513,13 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
         )
         
         # Prepare receptor
-        vina_ligand.run_prepare_receptor()
+        vina_ligand.run_prepare_receptor(overwrite=True)
         
         # Prepare ligand
-        vina_ligand.run_prepare_ligand()
+        vina_ligand.run_prepare_ligand(overwrite=True)
         
         # Run docking
-        vina_ligand.run_docking()
+        vina_ligand.run_docking(overwrite=True)
         
         # Get the docked poses for vina
         vina_ligand.split_poses()
@@ -586,10 +586,10 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
             )
             
             # Prepare receptor
-            plants_ligand.run_prepare_receptor()
+            plants_ligand.run_prepare_receptor(overwrite=True)
             
             # Prepare ligand
-            plants_ligand.run_prepare_ligand()
+            plants_ligand.run_prepare_ligand(overwrite=True)
             
             # Run docking
             plants_ligand.run_docking(overwrite=True)

@@ -275,7 +275,7 @@ class Gnina:
             logFile
         )
 
-    def run_prepare_ligand(self) -> Union[int, Tuple[int, str]]:
+    def run_prepare_ligand(self, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
         '''Run the convert ligand command to pdbqt.
 
         Returns
@@ -284,9 +284,9 @@ class Gnina:
             The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
         '''
 
-        return run_prepare_ligand(self.input_ligand_path, self.prepared_ligand)
+        return run_prepare_ligand(self.input_ligand_path, self.prepared_ligand, overwrite=overwrite)
 
-    def run_prepare_receptor_from_cmd(self, logFile: str = "") -> Union[int, Tuple[int, str]]:
+    def run_prepare_receptor_from_cmd(self, logFile: str = "", overwrite: bool = False) -> Union[int, Tuple[int, str]]:
         '''Run obabel convert receptor to pdbqt script using the 'self.prepareReceptorCmd' attribute. [DEPRECATED]
 
         Parameters
@@ -306,7 +306,7 @@ class Gnina:
         cmd = [config.tools.pythonsh, config.tools.prepare_receptor, "-r", self.input_receptor_path, "-o", self.prepared_receptor, "-A", "hydrogens", "-U", "nphs_lps_waters"]
         return ocrun.run(cmd, logFile=logFile)
 
-    def run_prepare_receptor(self) -> Union[int, Tuple[int, str]]:
+    def run_prepare_receptor(self, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
         '''Run obabel convert receptor to pdbqt using the openbabel python library.
 
         Returns
@@ -318,7 +318,8 @@ class Gnina:
         return self.preparation_strategy.prepare_receptor(
             self.input_receptor_path,
             self.prepared_receptor,
-            ""
+            "",
+            overwrite=overwrite
         )
 
     def print_attributes(self) -> None:
@@ -473,7 +474,7 @@ def run_prepare_ligand_from_cmd(inputLigandPath: str, preparedLigand: str, logFi
     return ocrun.run(cmd, logFile=logFile)
 
 
-def run_prepare_ligand(inputLigandPath: str, preparedLigand: str) -> Union[int, Tuple[int, str]]:
+def run_prepare_ligand(inputLigandPath: str, preparedLigand: str, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
     '''Run obabel convert ligand to pdbqt using the openbabel python library.
 
     Parameters
@@ -489,7 +490,7 @@ def run_prepare_ligand(inputLigandPath: str, preparedLigand: str) -> Union[int, 
         The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
     '''
     strategy = OpenBabelPreparationStrategy()
-    return strategy.prepare_ligand(inputLigandPath, preparedLigand, "")
+    return strategy.prepare_ligand(inputLigandPath, preparedLigand, "", overwrite=overwrite)
 
 
 def run_prepare_receptor_from_cmd(inputReceptorPath: str, outputReceptor: str, logFile: str = "") -> Union[int, Tuple[int, str]]:
@@ -517,7 +518,7 @@ def run_prepare_receptor_from_cmd(inputReceptorPath: str, outputReceptor: str, l
     return ocrun.run(cmd, logFile=logFile)
 
 
-def run_prepare_receptor(inputReceptorPath: str, preparedReceptor: str) -> Union[int, Tuple[int, str]]:
+def run_prepare_receptor(inputReceptorPath: str, preparedReceptor: str, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
     '''Run obabel convert receptor to pdbqt using the openbabel python library.
 
     Parameters
@@ -534,7 +535,7 @@ def run_prepare_receptor(inputReceptorPath: str, preparedReceptor: str) -> Union
     '''
 
     strategy = OpenBabelPreparationStrategy()
-    return strategy.prepare_receptor(inputReceptorPath, preparedReceptor, "")
+    return strategy.prepare_receptor(inputReceptorPath, preparedReceptor, "", overwrite=overwrite)
 
 
 def run_gnina(config: str, preparedLigand: str, outputGnina: str, gninaLog: str, logPath: str) -> Union[int, Tuple[int, str]]:

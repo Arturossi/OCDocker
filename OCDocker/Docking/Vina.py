@@ -83,6 +83,8 @@ class Vina:
             The path for the vina output files.
         name : str, optional
             The name of the vina object, by default "".
+        overwrite_config : bool, optional
+            If True, overwrite the config file if it already exists, by default False.
 
         Returns
         -------
@@ -258,18 +260,28 @@ class Vina:
 
         return read_log(self.vina_log, onlyBest = onlyBest)
 
-    def run_vina(self) -> Union[int, Tuple[int, str]]:
+    def run_vina(self, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
         '''Run vina.
 
         Parameters
         ----------
-        None
+        overwrite : bool, optional
+            If True, overwrite existing output/log files.
 
         Returns
         -------
         int | Tuple[int, str]
             The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
         '''
+
+        # Remove existing outputs if requested
+        if overwrite:
+            for path in (self.output_vina, self.vina_log):
+                if path and os.path.isfile(path):
+                    try:
+                        os.remove(path)
+                    except (OSError, PermissionError):
+                        pass
 
         # Print verboosity
         ocprint.printv(f"Running vina using the '{self.config}' configurations.")
@@ -278,7 +290,7 @@ class Vina:
 
         return ocrun.run(self.vina_cmd, logFile = self.vina_log)
 
-    def run_prepare_ligand(self, logFile: str = "", useOpenBabel: bool = False) -> Union[int, str, Tuple[int, str]]:
+    def run_prepare_ligand(self, logFile: str = "", useOpenBabel: bool = False, overwrite: bool = False) -> Union[int, str, Tuple[int, str]]:
         '''Run 'prepare_ligand4' or openbabel to prepare the ligand.
 
         Parameters
@@ -287,6 +299,8 @@ class Vina:
             Path to the logFile. If empty, suppress the output.
         useOpenBabel : bool
             If True, use openbabel instead of prepare_ligand4.
+        overwrite : bool
+            If True, overwrite existing output file.
         
         Returns
         -------
@@ -296,12 +310,13 @@ class Vina:
 
         # If True, use openbabel
         if useOpenBabel:
-            return occonversion.convert_mols(self.input_ligand_path, self.prepared_ligand)
+            return occonversion.convert_mols(self.input_ligand_path, self.prepared_ligand, overwrite=overwrite)
 
         return self.preparation_strategy.prepare_ligand(
             self.input_ligand_path,
             self.prepared_ligand,
-            logFile
+            logFile,
+            overwrite=overwrite
         )
 
     def run_prepare_receptor(self, logFile:str = "", useOpenBabel:bool = False, overwrite:bool = False) -> Union[int, str, Tuple[int, str]]:
@@ -569,7 +584,7 @@ def box_to_vina(box_file: str, conf_file: str, receptor: str) -> int:
     return ocerror.Error.ok() # type: ignore
 
 
-def run_prepare_ligand(inputLigandPath: str, outputLigand: str, logFile: str = "") -> Union[int, Tuple[int, str]]:
+def run_prepare_ligand(inputLigandPath: str, outputLigand: str, logFile: str = "", overwrite: bool = False) -> Union[int, Tuple[int, str]]:
     '''Prepares the ligand using 'prepare_ligand' from MGLTools suite.
 
     Parameters
@@ -587,10 +602,10 @@ def run_prepare_ligand(inputLigandPath: str, outputLigand: str, logFile: str = "
         The exit code of the command (based on the Error.py code table).
     '''
     strategy = MGLToolsPreparationStrategy()
-    return strategy.prepare_ligand(inputLigandPath, outputLigand, logFile)
+    return strategy.prepare_ligand(inputLigandPath, outputLigand, logFile, overwrite=overwrite)
 
 
-def run_prepare_receptor(inputReceptorPath: str, outputReceptor: str, logFile: str = "") -> Union[int, Tuple[int, str]]:
+def run_prepare_receptor(inputReceptorPath: str, outputReceptor: str, logFile: str = "", overwrite: bool = False) -> Union[int, Tuple[int, str]]:
     '''Convert a box (DUDE like format) to vina input.
 
     Parameters
@@ -608,7 +623,7 @@ def run_prepare_receptor(inputReceptorPath: str, outputReceptor: str, logFile: s
         The exit code of the command (based on the Error.py code table).
     '''
     strategy = MGLToolsPreparationStrategy()
-    return strategy.prepare_receptor(inputReceptorPath, outputReceptor, logFile)
+    return strategy.prepare_receptor(inputReceptorPath, outputReceptor, logFile, overwrite=overwrite)
 
 
 def run_vina(confFile: str, ligand: str, outPath: str, logFile: str = "") -> int:

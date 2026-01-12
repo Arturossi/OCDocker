@@ -242,19 +242,30 @@ class Smina:
 
         return read_log(self.smina_log, onlyBest = onlyBest) # type: ignore
 
-    def run_smina(self, logFile: str = "") -> Union[int, Tuple[int, str]]:
+    def run_smina(self, logFile: str = "", overwrite: bool = False) -> Union[int, Tuple[int, str]]:
         '''Run smina.
 
         Parameters
         ----------
         logFile : str
             The path for the log file.
+        overwrite : bool, optional
+            If True, overwrite existing output/log files.
         
         Returns
         -------
         int | Tuple[int, str]
             The exit code of the command (based on the Error.py code table).   
         '''
+
+        # Remove existing outputs if requested
+        if overwrite:
+            for path in (self.output_smina, logFile):
+                if path and os.path.isfile(path):
+                    try:
+                        os.remove(path)
+                    except (OSError, PermissionError):
+                        pass
 
         # If smina is not available, create a stub output and log, then return OK
         config = get_config()
@@ -306,7 +317,7 @@ class Smina:
             logFile
         )
 
-    def run_prepare_ligand(self) -> Union[int, Tuple[int, str]]:
+    def run_prepare_ligand(self, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
         '''Run the convert ligand command to pdbqt.
 
         Returns
@@ -318,10 +329,11 @@ class Smina:
         return self.preparation_strategy.prepare_ligand(
             self.input_ligand_path,
             self.prepared_ligand,
-            ""
+            "",
+            overwrite=overwrite
         )
 
-    def run_prepare_receptor_from_cmd(self, logFile: str = "") -> Union[int, Tuple[int, str]]:
+    def run_prepare_receptor_from_cmd(self, logFile: str = "", overwrite: bool = False) -> Union[int, Tuple[int, str]]:
         '''Run obabel convert receptor to pdbqt script using the 'self.prepareReceptorCmd' attribute. [DEPRECATED]
 
         Parameters
@@ -340,10 +352,11 @@ class Smina:
         return obabel_strategy.prepare_receptor(
             self.input_receptor_path,
             self.prepared_receptor,
-            logFile
+            logFile,
+            overwrite=overwrite
         )
 
-    def run_prepare_receptor(self) -> Union[int, Tuple[int, str]]:
+    def run_prepare_receptor(self, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
         '''Run obabel convert receptor to pdbqt using the openbabel python library.
 
         Returns
@@ -357,7 +370,8 @@ class Smina:
         return obabel_strategy.prepare_receptor(
             self.input_receptor_path,
             self.prepared_receptor,
-            ""
+            "",
+            overwrite=overwrite
         )
 
     def run_rescore(self, outPath: str, ligand: str, logFile: str = "", skipDefaultScoring: bool = False, splitLigand: bool = False, overwrite: bool = False) -> None:
@@ -629,7 +643,7 @@ def run_prepare_ligand_from_cmd(input_ligand_path: str, prepared_ligand: str, lo
     return ocrun.run(cmd, logFile=log_file)
 
 
-def run_prepare_ligand(input_ligand_path: str, prepared_ligand: str) -> Union[int, Tuple[int, str]]:
+def run_prepare_ligand(input_ligand_path: str, prepared_ligand: str, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
     '''Run obabel convert ligand to pdbqt using the openbabel python library.
 
     Parameters
@@ -666,7 +680,7 @@ def run_prepare_ligand(input_ligand_path: str, prepared_ligand: str) -> Union[in
 
         # Use MGLTools strategy (includes extension validation above)
         strategy = MGLToolsPreparationStrategy()
-        return strategy.prepare_ligand(input_ligand_path, prepared_ligand, "")
+        return strategy.prepare_ligand(input_ligand_path, prepared_ligand, "", overwrite=overwrite)
     except Exception as e:
         return ocerror.Error.subprocess(message=f"Error while running ligand conversion: {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
 
@@ -696,7 +710,7 @@ def run_prepare_receptor_from_cmd(input_receptor_path: str, output_receptor: str
     return ocrun.run(cmd, logFile=log_file)
 
 
-def run_prepare_receptor(input_receptor_path: str, prepared_receptor: str) -> Union[int, Tuple[int, str]]:
+def run_prepare_receptor(input_receptor_path: str, prepared_receptor: str, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
     '''Run obabel convert receptor to pdbqt using the openbabel python library.
 
     Parameters
@@ -714,7 +728,7 @@ def run_prepare_receptor(input_receptor_path: str, prepared_receptor: str) -> Un
     
     # Smina uses OpenBabel for receptor preparation
     strategy = OpenBabelPreparationStrategy()
-    return strategy.prepare_receptor(input_receptor_path, prepared_receptor, "")
+    return strategy.prepare_receptor(input_receptor_path, prepared_receptor, "", overwrite=overwrite)
 
 
 def run_smina(config: str, prepared_ligand: str, output_smina: str, smina_log: str, log_path: str) -> Union[int, Tuple[int, str]]:

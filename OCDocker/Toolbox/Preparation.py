@@ -60,7 +60,8 @@ class PreparationStrategy(ABC):
         self,
         input_path: str,
         output_path: str,
-        log_file: str = ""
+        log_file: str = "",
+        overwrite: bool = False
     ) -> Union[int, Tuple[int, str]]:
         '''Prepare a ligand molecule.
         
@@ -72,6 +73,8 @@ class PreparationStrategy(ABC):
             Path to output prepared ligand file
         log_file : str, optional
             Path to log file (empty to suppress)
+        overwrite : bool, optional
+            Whether to overwrite existing output file (default is False)
             
         Returns
         -------
@@ -86,7 +89,8 @@ class PreparationStrategy(ABC):
         self,
         input_path: str,
         output_path: str,
-        log_file: str = ""
+        log_file: str = "",
+        overwrite: bool = False
     ) -> Union[int, Tuple[int, str]]:
         '''Prepare a receptor molecule.
         
@@ -98,6 +102,8 @@ class PreparationStrategy(ABC):
             Path to output prepared receptor file
         log_file : str, optional
             Path to log file (empty to suppress)
+        overwrite : bool, optional
+            Whether to overwrite existing output file (default is False)
             
         Returns
         -------
@@ -233,7 +239,8 @@ class MGLToolsPreparationStrategy(PreparationStrategy):
         self,
         input_path: str,
         output_path: str,
-        log_file: str = ""
+        log_file: str = "",
+        overwrite: bool = False
     ) -> Union[int, Tuple[int, str]]:
         '''Prepare a ligand molecule.
         
@@ -245,12 +252,27 @@ class MGLToolsPreparationStrategy(PreparationStrategy):
             Path to output prepared ligand file
         log_file : str, optional
             Path to log file (empty to suppress)
+        overwrite : bool, optional
+            Whether to overwrite existing output file (default is False)
             
         Returns
         -------
         Union[int, Tuple[int, str]]
             Error code or tuple of (error_code, stderr)
         '''
+
+        # If file exists and overwrite is False, skip preparation
+        if os.path.exists(output_path) and not overwrite:
+            print_warning(
+                f"Prepared ligand '{output_path}' already exists and overwrite is False. Skipping preparation."
+            )
+            return ocerror.Error.ok()  # type: ignore
+
+        if overwrite and os.path.exists(output_path):
+            try:
+                os.remove(output_path)
+            except (OSError, PermissionError):
+                pass
 
         config = get_config()
         exe = str(config.tools.pythonsh)
@@ -391,7 +413,8 @@ class SPORESPreparationStrategy(PreparationStrategy):
         self,
         input_path: str,
         output_path: str,
-        log_file: str = ""
+        log_file: str = "",
+        overwrite: bool = False
     ) -> Union[int, Tuple[int, str]]:
         '''Prepare a ligand molecule.
         
@@ -403,12 +426,27 @@ class SPORESPreparationStrategy(PreparationStrategy):
             Path to output prepared ligand file
         log_file : str, optional
             Path to log file (empty to suppress)
+        overwrite : bool, optional
+            Whether to overwrite existing output file (default is False)
             
         Returns
         -------
         Union[int, Tuple[int, str]]
             Error code or tuple of (error_code, stderr)
         '''
+
+        # If file exists and overwrite is False, skip preparation
+        if os.path.exists(output_path) and not overwrite:
+            print_warning(
+                f"Prepared ligand '{output_path}' already exists and overwrite is False. Skipping preparation."
+            )
+            return ocerror.Error.ok()  # type: ignore
+
+        if overwrite and os.path.exists(output_path):
+            try:
+                os.remove(output_path)
+            except (OSError, PermissionError):
+                pass
 
         config = get_config()
         exe = str(config.tools.spores)
@@ -461,10 +499,11 @@ class SPORESPreparationStrategy(PreparationStrategy):
         self,
         input_path: str,
         output_path: str,
-        log_file: str = ""
+        log_file: str = "",
+        overwrite: bool = False
     ) -> Union[int, Tuple[int, str]]:
         # Same as ligand for SPORES
-        return self.prepare_ligand(input_path, output_path, log_file)
+        return self.prepare_ligand(input_path, output_path, log_file, overwrite=overwrite)
     
     def get_receptor_command(self, input_path: str, output_path: str) -> list[str]:
         '''Get the command list that would be used to prepare a receptor.
@@ -492,7 +531,8 @@ class OpenBabelPreparationStrategy(PreparationStrategy):
         self,
         input_path: str,
         output_path: str,
-        log_file: str = ""
+        log_file: str = "",
+        overwrite: bool = False
     ) -> Union[int, Tuple[int, str]]:
         '''Prepare a ligand molecule.
 
@@ -504,6 +544,8 @@ class OpenBabelPreparationStrategy(PreparationStrategy):
             Path to output prepared ligand file
         log_file : str, optional
             Path to log file (empty to suppress)
+        overwrite : bool, optional
+            Whether to overwrite existing output file (default is False)
             
         Returns
         -------
@@ -543,13 +585,14 @@ class OpenBabelPreparationStrategy(PreparationStrategy):
         
         # Use conversion utility
         from OCDocker.Toolbox import Conversion as occonversion
-        return occonversion.convert_mols(input_path, output_path)  # type: ignore
+        return occonversion.convert_mols(input_path, output_path, overwrite=overwrite)  # type: ignore
     
     def prepare_receptor(
         self,
         input_path: str,
         output_path: str,
-        log_file: str = ""
+        log_file: str = "",
+        overwrite: bool = False
     ) -> Union[int, Tuple[int, str]]:
         '''Prepare a receptor molecule.
         
@@ -561,6 +604,8 @@ class OpenBabelPreparationStrategy(PreparationStrategy):
             Path to output prepared receptor file
         log_file : str, optional
             Path to log file (empty to suppress)
+        overwrite : bool, optional
+            Whether to overwrite existing output file (default is False)
 
         Returns
         -------
@@ -570,7 +615,7 @@ class OpenBabelPreparationStrategy(PreparationStrategy):
 
         # Similar to ligand but for receptor
         from OCDocker.Toolbox import Conversion as occonversion
-        return occonversion.convert_mols(input_path, output_path)  # type: ignore
+        return occonversion.convert_mols(input_path, output_path, overwrite=overwrite)  # type: ignore
     
     def get_ligand_command(self, input_path: str, output_path: str) -> list[str]:
         '''Get the command list that would be used to prepare a ligand.

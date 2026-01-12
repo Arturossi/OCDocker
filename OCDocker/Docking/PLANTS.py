@@ -352,13 +352,15 @@ class PLANTS:
 
         return output
 
-    def run_prepare_ligand(self, logFile: str = "") -> Union[Tuple[int, str], int]:
+    def run_prepare_ligand(self, logFile: str = "", overwrite: bool = False) -> Union[Tuple[int, str], int]:
         '''Run SPORES for ligand.
 
         Parameters
         ----------
         logFile : str, optional
             The path for the log file. Default is "".
+        overwrite : bool, optional
+            Whether to overwrite existing output file (default is False).
 
         Returns
         -------
@@ -368,16 +370,19 @@ class PLANTS:
         return self.preparation_strategy.prepare_ligand(
             self.input_ligand_path,
             self.prepared_ligand,
-            logFile
+            logFile,
+            overwrite=overwrite
         )
 
-    def run_prepare_receptor(self, logFile: str = "") -> Union[Tuple[int, str], int]:
+    def run_prepare_receptor(self, logFile: str = "", overwrite: bool = False) -> Union[Tuple[int, str], int]:
         '''Run SPORES for receptor.
 
         Parameters
         ----------
         logFile : str, optional
             The path for the log file. Default is "".
+        overwrite : bool, optional
+            Whether to overwrite existing output file (default is False).
 
         Returns
         -------
@@ -394,7 +399,8 @@ class PLANTS:
         return self.preparation_strategy.prepare_receptor(
             self.input_receptor_path,
             self.prepared_receptor,
-            logFile
+            logFile,
+            overwrite=overwrite
         )
 
     def run_rescore(self, pose_list: str, logFile: str = "", skipDefaultScoring: bool = False, overwrite: bool = False) -> None:
@@ -669,7 +675,7 @@ def box_to_plants(box_file: str, conf_file: str, receptor: str, ligand: str, out
     return write_config_file(conf_file, receptor, ligand, output_plants, center[0], center[1], center[2], binding_site_radius) # type: ignore
 
 
-def run_prepare_ligand(input_ligand_path: str, output_ligand: str, log_file: str = "") -> Union[Tuple[int, str], int]:
+def run_prepare_ligand(input_ligand_path: str, output_ligand: str, log_file: str = "", overwrite: bool = False) -> Union[Tuple[int, str], int]:
     ''' Run SPORES for ligand.
 
     Parameters
@@ -687,10 +693,10 @@ def run_prepare_ligand(input_ligand_path: str, output_ligand: str, log_file: str
         The exit code of the command (based on the Error.py code table) and the stderr if applied.
     '''
     strategy = SPORESPreparationStrategy()
-    return strategy.prepare_ligand(input_ligand_path, output_ligand, log_file)
+    return strategy.prepare_ligand(input_ligand_path, output_ligand, log_file, overwrite=overwrite)
 
 
-def run_prepare_receptor(input_receptor_path: str, output_receptor: str, log_file: str = "") -> Union[Tuple[int, str], int]:
+def run_prepare_receptor(input_receptor_path: str, output_receptor: str, log_file: str = "", overwrite: bool = False) -> Union[Tuple[int, str], int]:
     ''' Run SPORES for receptor.
 
     Parameters
@@ -708,7 +714,7 @@ def run_prepare_receptor(input_receptor_path: str, output_receptor: str, log_fil
         The exit code of the command (based on the Error.py code table) and the stderr if applied.
     '''
     strategy = SPORESPreparationStrategy()
-    return strategy.prepare_receptor(input_receptor_path, output_receptor, log_file)
+    return strategy.prepare_receptor(input_receptor_path, output_receptor, log_file, overwrite=overwrite)
 
 
 def run_plants(confFile: str, outputPlants: str, overwrite: bool = False, logFile: str = "") -> Union[Tuple[int, str], int]:

@@ -161,7 +161,7 @@ def __run_gnina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
                     with lock:
                         try:
                             # Run the prepare ligand
-                            result = gnina.run_prepare_ligand()
+                            result = gnina.run_prepare_ligand(overwrite=overwrite)
                             # If result is a tuple
                             if isinstance(result, tuple):
                                 # If the result is not 0
@@ -196,7 +196,7 @@ def __run_gnina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
                     with lock:
                         try:
                             # Run the prepare receptor
-                            result = gnina.run_prepare_receptor()
+                            result = gnina.run_prepare_receptor(overwrite=overwrite)
                             # If result is a tuple
                             if isinstance(result, tuple):
                                 # If the result is not 0
@@ -358,7 +358,7 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
                     with lock:
                         try:
                             # Run the prepare ligand
-                            result = vina.run_prepare_ligand(useOpenBabel = False) # useOpenBabel has proven to be a dangerous option, it is better to avoid its use for
+                            result = vina.run_prepare_ligand(useOpenBabel = False, overwrite=overwrite) # useOpenBabel has proven to be a dangerous option, it is better to avoid its use for
                             # If result is a tuple
                             if isinstance(result, tuple):
                                 # If the result is not 0
@@ -393,7 +393,7 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
                     with lock:
                         try:
                             # Run the prepare receptor
-                            result = vina.run_prepare_receptor(useOpenBabel = False) # useOpenBabel has proven to be a dangerous option, it is better to avoid its use for now
+                            result = vina.run_prepare_receptor(useOpenBabel = False, overwrite=overwrite) # useOpenBabel has proven to be a dangerous option, it is better to avoid its use for now
                             # If result is a tuple
                             if isinstance(result, tuple):
                                 # If the result is not 0
@@ -426,7 +426,7 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
                     # Start the lock with statement
                     with lock:
                         # Run vina
-                        vina.run_vina()
+                        vina.run_vina(overwrite=overwrite)
 
                         # Append to the digest the results
                         _ = ocvina.generate_digest(f"{ligandDir}/dockingDigest.json", vina.vinaLog, overwrite = overwrite, digestFormat = digestFormat)
@@ -538,7 +538,7 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
                 with lock:
                     try:
                         # Run the prepare ligand
-                        result = smina.run_prepare_ligand()
+                        result = smina.run_prepare_ligand(overwrite=overwrite)
                         # If result is a tuple
                         if isinstance(result, tuple):
                             # If the result is not 0
@@ -572,7 +572,7 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
                 with lock:
                     try:
                         # Run the prepare receptor
-                        result = smina.run_prepare_receptor()
+                        result = smina.run_prepare_receptor(overwrite=overwrite)
                         # If result is a tuple
                         if isinstance(result, tuple):
                             # If the result is not 0
@@ -603,7 +603,7 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
             # Start the lock with statement
             with lock:
                 # Run smina (no need to recheck for overwrite or output existance because it is already done some lines ago)
-                smina.run_smina()
+                smina.run_smina(overwrite=overwrite)
 
                 # Append to the digest the results
                 _ = ocsmina.generate_digest(f"{ligandDir}/dockingDigest.json", smina.sminaLog, overwrite = overwrite, digestFormat = digestFormat)
@@ -728,7 +728,7 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
                     with lock:
                         try:
                             # Run the prepare ligand
-                            result = plants.run_prepare_ligand()
+                            result = plants.run_prepare_ligand(overwrite=overwrite)
                             # If result is a tuple
                             if isinstance(result, tuple):
                                 # If the result is not 0
@@ -762,7 +762,7 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
                     with lock:
                         try:
                             # Run the prepare receptor
-                            result = plants.run_prepare_receptor()
+                            result = plants.run_prepare_receptor(overwrite=overwrite)
                             # If result is a tuple
                             if isinstance(result, tuple):
                                 # If the result is not 0
