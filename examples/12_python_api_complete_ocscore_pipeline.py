@@ -595,17 +595,20 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
             plants_ligand.run_docking(overwrite=True)
             
             # Wait for PLANTS docking to fully complete
-            # PLANTS writes to output directory, wait for expected output files
+            # PLANTS writes outputs under output_dir/run in the config
             plants_output_dir = plants_ligand.output_plants if hasattr(plants_ligand, 'output_plants') else f"{ligand_path}/plantsFiles"
+            plants_run_dir = os.path.join(plants_output_dir, "run")
             
             # Wait for PLANTS output files to appear and stabilize
-            # PLANTS typically creates mol2 files with ligand name
-            ligand_name_for_plants = plants_ligand.input_ligand.name if hasattr(plants_ligand, 'input_ligand') and hasattr(plants_ligand.input_ligand, 'name') else ligand_name
-            expected_pattern = f"{plants_output_dir}/{ligand_name_for_plants}*.mol2"
+            # Use a broad mol2 glob in the run directory to avoid name mismatches
+            expected_pattern = f"{plants_run_dir}/*.mol2"
             
             plants_files_found = False
             for _ in range(100):  # Wait up to 20 seconds (100 * 0.1s)
-                found_files = glob(expected_pattern)
+                found_files = [
+                    f for f in glob(expected_pattern)
+                    if not f.endswith("_protein.mol2") and not f.endswith("_fixed.mol2")
+                ]
                 if found_files:
                     # Wait for all found files to stabilize
                     if wait_for_files_ready(found_files, max_wait=2.0):
@@ -787,6 +790,7 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
         
         # Run ODDT and get the result as a dataframe
         # Use threading backend for sklearn models to allow parallelization in multiprocessing context
+        oddt_outdir = os.path.join(ligand_path, "oddt")
         try:
             from joblib import parallel_backend
             with parallel_backend('threading'):
@@ -794,7 +798,7 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
                     vina_ligand.prepared_receptor, 
                     list(medoidsDict.keys())[0], 
                     ligand.name, 
-                    f"{vina_ligand.get_input_ligand_path()}/oddt",
+                    oddt_outdir,
                     overwrite=True
                 )
         except ImportError:
@@ -803,7 +807,7 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
                 vina_ligand.prepared_receptor, 
                 list(medoidsDict.keys())[0], 
                 ligand.name, 
-                f"{vina_ligand.get_input_ligand_path()}/oddt",
+                oddt_outdir,
                 overwrite=True
             )
         

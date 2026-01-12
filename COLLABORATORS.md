@@ -10,6 +10,8 @@ To be listed here, you must have contributed in a verifiable way — such as cod
 
 - Artur Duque Rossi – Project creator and lead developer  
 - Pedro H. M. Torres – Scientific advisor  
+- Guilherme Ian Spelta – Project collaborator
+- Maria Clara Esteves Monachesi – Project collaborator
 - [Your Name] – [Brief, factual description of your contribution (OPTIONAL)]
 
 ---

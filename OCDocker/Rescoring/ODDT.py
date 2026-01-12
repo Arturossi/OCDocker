@@ -13,6 +13,7 @@ import OCDocker.Rescoring.ODDT as ocoddt
 # Imports
 ###############################################################################
 import os
+from pathlib import Path
 import six
 import traceback
 
@@ -253,10 +254,9 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
 
     # Check if the output dir exists
     if not os.path.isdir(outputPath):
-        # Try to create it
-        try:
-            _ = ocff.safe_create_dir(outputPath)
-        except Exception as e:
+        # Try to create it (parents included)
+        _ = ocff.safe_create_dir(Path(outputPath))
+        if not os.path.isdir(outputPath):
             return ocerror.Error.dir_not_exist(f"The output directory '{outputPath}' does not exist.", level = ocerror.ReportLevel.ERROR) # type: ignore
         
     # If the ligand path is a string

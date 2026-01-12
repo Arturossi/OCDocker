@@ -27,6 +27,7 @@ import shutil
 
 from OCDocker.Config import get_config
 from OCDocker.Toolbox import Running as ocrun
+from OCDocker.Toolbox.Printing import print_warning
 from OCDocker.Toolbox.Running import is_tool_available
 from OCDocker.Toolbox.FilesFolders import ensure_parent_dir
 import OCDocker.Error as ocerror
@@ -194,6 +195,27 @@ class PreparationStrategy(ABC):
             Error code or tuple of (error_code, stderr)
         '''
 
+        in_ext = os.path.splitext(input_path)[1].lower()
+        out_ext = os.path.splitext(output_path)[1].lower()
+
+        if in_ext and out_ext and in_ext != out_ext:
+            from OCDocker.Toolbox import Conversion as occonversion
+            from OCDocker.Toolbox import Printing as ocprint
+
+            ocprint.print_warning(
+                f"{tool_name} not available; converting '{input_path}' to '{output_path}' with OpenBabel."
+            )
+            try:
+                result = occonversion.convert_mols(input_path, output_path, overwrite=True)
+            except Exception as e:
+                return ocerror.Error.subprocess(
+                    message=f"{tool_name} not available and conversion failed: {e}",
+                    level=ocerror.ReportLevel.ERROR
+                )  # type: ignore
+            if result != ocerror.Error.ok():  # type: ignore
+                return result  # type: ignore
+            return ocerror.Error.ok()  # type: ignore
+
         try:
             shutil.copyfile(input_path, output_path)
             return ocerror.Error.ok()  # type: ignore
@@ -281,7 +303,8 @@ class MGLToolsPreparationStrategy(PreparationStrategy):
         self,
         input_path: str,
         output_path: str,
-        log_file: str = ""
+        log_file: str = "",
+        overwrite: bool = False
     ) -> Union[int, Tuple[int, str]]:
         '''Prepare a receptor molecule.
         
@@ -293,12 +316,21 @@ class MGLToolsPreparationStrategy(PreparationStrategy):
             Path to output prepared receptor file
         log_file : str, optional
             Path to log file (empty to suppress)
+        overwrite : bool, optional
+            Whether to overwrite existing output file (default is False)
             
         Returns
         -------
         Union[int, Tuple[int, str]]
             Error code or tuple of (error_code, stderr)
         '''
+
+        # If file exists and overwrite is False, skip preparation
+        if os.path.exists(output_path) and not overwrite:
+            print_warning(
+                f"Prepared receptor '{output_path}' already exists and overwrite is False. Skipping preparation."
+            )
+            return ocerror.Error.ok()  # type: ignore
 
         config = get_config()
         exe = str(config.tools.pythonsh)
