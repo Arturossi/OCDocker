@@ -114,6 +114,14 @@ class PLANTS:
         
         # Ligand
         self.prepared_ligand = str(prepared_ligand_path)
+        if self.prepared_ligand.lower().endswith(".pdbqt"):
+            # PLANTS expects MOL2; avoid overwriting pdbqt outputs
+            new_path = f"{os.path.splitext(self.prepared_ligand)[0]}.mol2"
+            ocprint.print_warning(
+                f"PLANTS prepared ligand path '{self.prepared_ligand}' ends with .pdbqt; "
+                f"using '{new_path}' instead."
+            )
+            self.prepared_ligand = new_path
         # Check the type of the ligand
         if isinstance(ligand, ocl.Ligand):
             self.input_ligand = ligand
@@ -316,19 +324,17 @@ class PLANTS:
         # Print verboosity
         ocprint.printv(f"Running PLANTS using the '{self.config}' configurations.")
 
-        # Ensure tmpDir exists; PLANTS writes temp files there
-        config = get_config()
-        tmp_dir = config.tmp_dir if config.tmp_dir else os.path.join(os.getcwd(), 'tmp')
+        # Run PLANTS in the output directory to keep files localized
+        run_dir = self.output_plants if self.output_plants else os.getcwd()
         try:
-            os.makedirs(tmp_dir, exist_ok=True)
+            os.makedirs(run_dir, exist_ok=True)
         except (OSError, PermissionError):
             # Ignore errors if directory already exists or permission denied
             pass
-        # Cd to tmpDir (because PLANTS keeps spamming annoying files) and run plants
-        output = ocrun.run(self.plants_cmd, logFile=self.plants_log, cwd=tmp_dir)
+        output = ocrun.run(self.plants_cmd, logFile=self.plants_log, cwd=run_dir)
 
         # Check if there is a PLANTS-*.pid file
-        for pidFile in glob(f"{tmp_dir}/PLANTS-*.pid"):
+        for pidFile in glob(f"{run_dir}/PLANTS-*.pid"):
             # This try is to avoid ocerror.Error when the file does not exist
             try:
                 # Remove it
@@ -338,9 +344,7 @@ class PLANTS:
                 pass
             
         # Check if there is a *bad*.mol2 file
-        config = get_config()
-        tmp_dir = config.tmp_dir if config.tmp_dir else os.path.join(os.getcwd(), 'tmp')
-        for badFile in glob(f"{tmp_dir}/*bad.mol2"):
+        for badFile in glob(f"{run_dir}/*bad.mol2"):
             # This try is to avoid ocerror.Error when the file does not exist
             try:
                 # Remove it

@@ -111,8 +111,6 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 import argparse
-import shutil
-import uuid
 import time
 from glob import glob
 import OCDocker.Initialise as init
@@ -559,82 +557,52 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
         
         ####################### PLANTS #########################
         
-        # Create process-specific temporary directory for PLANTS to avoid multiprocessing conflicts
-        # Use both PID and a unique identifier to ensure isolation
-        process_id = f"{os.getpid()}_{uuid.uuid4().hex[:8]}"
-        process_tmp_dir = os.path.join(ligand_path, f"plants_tmp_{process_id}")
-        os.makedirs(process_tmp_dir, exist_ok=True)
+        # Create object
+        plants_ligand = ocplants.PLANTS(
+            f"{ligand_path}/plantsFiles/conf_plants.txt", 
+            f"{ligand_path}/boxes/box0.pdb", 
+            receptor, PREPARED_RECEPTOR_MOL2, 
+            ligand, f"{ligand_path}/prepared_ligand.mol2", 
+            f"{ligand_path}/plantsFiles/plants.log", f"{ligand_path}/plantsFiles", 
+            name=f"Plants {receptor.name}-{ligand_name}"
+        )
         
-        # Temporarily set process-specific tmp_dir in config for PLANTS execution
-        # Use a context manager approach to ensure cleanup even on exceptions
-        from OCDocker.Config import get_config
-        config = get_config()
-        original_tmp_dir = config.tmp_dir
+        # Prepare receptor
+        plants_ligand.run_prepare_receptor(overwrite=True)
         
-        try:
-            # Set process-specific tmp_dir (this is process-local, so safe)
-            config.tmp_dir = process_tmp_dir
-            
-            # Create object
-            plants_ligand = ocplants.PLANTS(
-                f"{ligand_path}/plantsFiles/conf_plants.txt", 
-                f"{ligand_path}/boxes/box0.pdb", 
-                receptor, PREPARED_RECEPTOR_MOL2, 
-                ligand, f"{ligand_path}/prepared_ligand.pdbqt", 
-                f"{ligand_path}/plantsFiles/plants.log", f"{ligand_path}/plantsFiles", 
-                name=f"Plants {receptor.name}-{ligand_name}"
-            )
-            
-            # Prepare receptor
-            plants_ligand.run_prepare_receptor(overwrite=True)
-            
-            # Prepare ligand
-            plants_ligand.run_prepare_ligand(overwrite=True)
-            
-            # Run docking
-            plants_ligand.run_docking(overwrite=True)
-            
-            # Wait for PLANTS docking to fully complete
-            # PLANTS writes outputs under output_dir/run in the config
-            plants_output_dir = plants_ligand.output_plants if hasattr(plants_ligand, 'output_plants') else f"{ligand_path}/plantsFiles"
-            plants_run_dir = os.path.join(plants_output_dir, "run")
-            
-            # Wait for PLANTS output files to appear and stabilize
-            # Use a broad mol2 glob in the run directory to avoid name mismatches
-            expected_pattern = f"{plants_run_dir}/*.mol2"
-            
-            plants_files_found = False
-            for _ in range(100):  # Wait up to 20 seconds (100 * 0.1s)
-                found_files = [
-                    f for f in glob(expected_pattern)
-                    if not f.endswith("_protein.mol2") and not f.endswith("_fixed.mol2")
-                ]
-                if found_files:
-                    # Wait for all found files to stabilize
-                    if wait_for_files_ready(found_files, max_wait=2.0):
-                        plants_files_found = True
-                        break
-                time.sleep(0.2)
-            
-            if not plants_files_found:
-                print(f"Warning: No stable PLANTS output files found after waiting, proceeding anyway...")
-            
-            # Additional safety delay for multiprocessing
-            time.sleep(0.5)
-            
-        finally:
-            # Always restore original tmp_dir first
-            config.tmp_dir = original_tmp_dir
-            
-            # Then clean up process-specific tmp directory after a delay
-            # This ensures PLANTS has released all file handles
+        # Prepare ligand
+        plants_ligand.run_prepare_ligand(overwrite=True)
+        
+        # Run docking
+        plants_ligand.run_docking(overwrite=True)
+        
+        # Wait for PLANTS docking to fully complete
+        # PLANTS writes outputs under output_dir/run in the config
+        plants_output_dir = plants_ligand.output_plants if hasattr(plants_ligand, 'output_plants') else f"{ligand_path}/plantsFiles"
+        plants_run_dir = os.path.join(plants_output_dir, "run")
+        
+        # Wait for PLANTS output files to appear and stabilize
+        # Use a broad mol2 glob in the run directory to avoid name mismatches
+        expected_pattern = f"{plants_run_dir}/*.mol2"
+        
+        plants_files_found = False
+        for _ in range(100):  # Wait up to 20 seconds (100 * 0.1s)
+            found_files = [
+                f for f in glob(expected_pattern)
+                if not f.endswith("_protein.mol2") and not f.endswith("_fixed.mol2")
+            ]
+            if found_files:
+                # Wait for all found files to stabilize
+                if wait_for_files_ready(found_files, max_wait=2.0):
+                    plants_files_found = True
+                    break
             time.sleep(0.2)
-            try:
-                if os.path.isdir(process_tmp_dir):
-                    shutil.rmtree(process_tmp_dir, ignore_errors=True)
-            except Exception:
-                # If cleanup fails, try again later (files might still be in use)
-                pass
+        
+        if not plants_files_found:
+            print(f"Warning: No stable PLANTS output files found after waiting, proceeding anyway...")
+        
+        # Additional safety delay for multiprocessing
+        time.sleep(0.5)
         
         # Get the docked poses for plants
         # Additional delay to ensure PLANTS has fully released file handles
@@ -833,42 +801,15 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
         
         ocplants.write_pose_list(outfile, f"{ligand_path}/plantsFiles/plants_pose_list.txt")
         
-        # Set process-specific tmp_dir for rescoring to avoid multiprocessing conflicts
-        # Use both PID and a unique identifier to ensure isolation
-        process_id_rescore = f"{os.getpid()}_{uuid.uuid4().hex[:8]}"
-        process_tmp_dir_rescore = os.path.join(ligand_path, f"plants_tmp_rescore_{process_id_rescore}")
-        os.makedirs(process_tmp_dir_rescore, exist_ok=True)
+        # Run the rescoring (will create the config file and the output folder)
+        plants_ligand.run_rescore(
+            f"{ligand_path}/plantsFiles/plants_pose_list.txt", 
+            logFile="", 
+            overwrite=True
+        )
         
-        from OCDocker.Config import get_config
-        config = get_config()
-        original_tmp_dir = config.tmp_dir
-        
-        try:
-            # Set process-specific tmp_dir for rescoring
-            config.tmp_dir = process_tmp_dir_rescore
-            
-            # Run the rescoring (will create the config file and the output folder)
-            plants_ligand.run_rescore(
-                f"{ligand_path}/plantsFiles/plants_pose_list.txt", 
-                logFile="", 
-                overwrite=True
-            )
-            
-            # Wait for PLANTS rescoring to fully complete
-            time.sleep(0.3)
-            
-        finally:
-            # Always restore original tmp_dir first
-            config.tmp_dir = original_tmp_dir
-            
-            # Then clean up process-specific tmp directory after a delay
-            time.sleep(0.2)
-            try:
-                if os.path.isdir(process_tmp_dir_rescore):
-                    shutil.rmtree(process_tmp_dir_rescore, ignore_errors=True)
-            except Exception:
-                # If cleanup fails, try again later (files might still be in use)
-                pass
+        # Wait for PLANTS rescoring to fully complete
+        time.sleep(0.3)
         
         # Get PLANTS rescoring results and map to database column names
         # PLANTS read_rescore_logs returns Dict[str, Dict[str, float]] where:

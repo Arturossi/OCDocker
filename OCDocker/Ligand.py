@@ -837,31 +837,18 @@ def load_mol(molecule: Union[str, Chem.rdchem.Mol], sanitize: bool = True) -> Tu
         
         # If the molecule is not in mol2 format
         if extension != ".mol2":
-            # Use temporary directory instead of input directory to avoid polluting input folder
+            # Use input directory to keep derived files alongside ligand
+            output_dir = os.path.dirname(molecule) or "."
             try:
-                from OCDocker.Config import get_config
-                config = get_config()
-                tmp_dir = config.tmp_dir if config.tmp_dir else None
-            except (ImportError, AttributeError):
-                tmp_dir = None
-            
-            # Fallback to system temp directory if config tmp_dir is not available
-            if not tmp_dir or not os.path.isdir(tmp_dir):
-                import tempfile
-                tmp_dir = tempfile.gettempdir()
-            
-            # Ensure tmp_dir exists
-            try:
-                os.makedirs(tmp_dir, exist_ok=True)
+                os.makedirs(output_dir, exist_ok=True)
             except (OSError, PermissionError):
-                # If we can't create tmp_dir, fall back to input directory (original behavior)
-                tmp_dir = os.path.dirname(molecule)
+                pass
             
             # Create a unique filename to avoid conflicts in multiprocessing scenarios
             import hashlib
             molecule_hash = hashlib.md5(os.path.abspath(molecule).encode()).hexdigest()[:8]
             ligand_basename = os.path.splitext(os.path.basename(molecule))[0]
-            outputMoleculePath = os.path.join(tmp_dir, f"{ligand_basename}_{molecule_hash}.mol2")
+            outputMoleculePath = os.path.join(output_dir, f"{ligand_basename}_{molecule_hash}.mol2")
             
             # Check if it is not a smiles file
             if extension not in [".smi", ".smiles"]:
