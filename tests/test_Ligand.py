@@ -215,9 +215,7 @@ def test_ligand_from_json_descriptors(sample_ligand, tmp_path):
 def test_ligand_invalid_name_with_split(sample_ligand):
     '''Test Ligand initialization with invalid name containing _split_.'''
 
-    # Python's __init__ cannot return a non-None value.
-    # When __init__ tries to return an int (error code), Python raises TypeError.
-    with pytest.raises(TypeError, match="__init__\\(\\) should return None"):
+    with pytest.raises(ValueError, match="cannot contain the string '_split_'"):
         ocl.Ligand(
             molecule=str(sample_ligand["mol"]),
             name="test_split_invalid"
@@ -388,16 +386,8 @@ def test_standalone_multiple_molecules_sdf(sample_ligand, tmp_path):
 def test_ligand_init_empty_name(sample_ligand):
     '''Test Ligand initialization with empty name.'''
 
-    # Python's __init__ cannot prevent object creation - it always returns None
-    # When name is empty, __init__ returns early, but the object is still created
-    # The code sets self.name = name first (line 141), then checks if empty and returns None (line 177)
-    # So the object will have name = "" (empty string) but will be in incomplete state
-    result = ocl.Ligand(molecule=str(sample_ligand["mol"]), name="")
-    # The object is created, but with empty name and incomplete initialization
-    # Check that name is empty (the object was created but initialization failed)
-    assert result is not None  # Object is created
-    assert hasattr(result, 'name')
-    assert result.name == ""  # Name is empty string
+    with pytest.raises(ValueError, match="should not be empty"):
+        ocl.Ligand(molecule=str(sample_ligand["mol"]), name="")
 
 
 @pytest.mark.order(26)
