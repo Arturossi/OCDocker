@@ -27,7 +27,6 @@ from rdkit.Chem.rdMolTransforms import ComputeCentroid
 from threading import Lock
 from typing import Callable, Dict, List, Tuple, Union, Optional
 
-from OCDocker.Config import get_config
 import OCDocker.Error as ocerror
 
 import OCDocker.Toolbox.Conversion as occonversion
@@ -77,7 +76,11 @@ class Ligand:
     sanitize : bool, optional
         Whether to sanitize the molecule after loading, by default True.
     from_json_descriptors : str, optional
-        Path to JSON file containing pre-computed descriptors, by default "".    
+        Path to JSON file containing pre-computed descriptors, by default "".
+    embed_max_attempts : int, optional
+        Maximum number of RDKit embedding attempts (outer loop), by default 10.
+    etkdg_max_attempts : int, optional
+        RDKit ETKDG internal attempts (maxAttempts/maxIterations), by default 1000.
     """
 
     # Declare the descriptors names as class attributes
@@ -111,7 +114,15 @@ class Ligand:
     # Create all the descriptors to be class attributes
     allDescriptors = [f'{desc_prefix}{i}' for desc_prefix, desc_indices in descriptors_names.items() for i in desc_indices] + single_descriptors
 
-    def __init__(self, molecule: Union[str, rdkit.Chem.rdchem.Mol], name: str, sanitize: bool = True, from_json_descriptors: str = "") -> None:
+    def __init__(
+            self,
+            molecule: Union[str, rdkit.Chem.rdchem.Mol],
+            name: str,
+            sanitize: bool = True,
+            from_json_descriptors: str = "",
+            embed_max_attempts: int = 10,
+            etkdg_max_attempts: int = 1000
+        ) -> None:
         ''' Constructor for the Ligand class.
         
         Parameters
@@ -124,6 +135,10 @@ class Ligand:
             If True, the molecule will be sanitized.
         from_json_descriptors : str
             If a path to a json file is provided, the descriptors will be read from the file instead of being computed.
+        embed_max_attempts : int, optional
+            Maximum number of RDKit embedding attempts (outer loop), by default 10.
+        etkdg_max_attempts : int, optional
+            RDKit ETKDG internal attempts (maxAttempts/maxIterations), by default 1000.
 
         Raises
         ------
@@ -132,7 +147,12 @@ class Ligand:
         '''
 
         # Set the path and structure (NEVER SHOUD BE NONE)
-        self.path, self.molecule = load_mol(molecule, sanitize) # type: ignore
+        self.path, self.molecule = load_mol(
+            molecule,
+            sanitize,
+            embed_max_attempts=embed_max_attempts,
+            etkdg_max_attempts=etkdg_max_attempts
+        ) # type: ignore
         if self.molecule is None:
             message = "The molecule could not be loaded."
             raise ValueError(message)
@@ -663,8 +683,13 @@ class Ligand:
 ###############################################################################
 ## Private ##
 
-def _get_etkdg_params() -> AllChem.EmbedParameters:
+def _get_etkdg_params(max_attempts: int = 1000) -> AllChem.EmbedParameters:
     '''Get RDKit ETKDG embedding parameters with safer defaults.
+
+    Parameters
+    ----------
+    max_attempts : int, optional
+        RDKit ETKDG internal attempts (maxAttempts/maxIterations), by default 1000.
 
     Returns
     -------
@@ -677,11 +702,14 @@ def _get_etkdg_params() -> AllChem.EmbedParameters:
     else:
         params = AllChem.ETKDG() # type: ignore
     params.useRandomCoords = True
-    params.maxAttempts = 1000
     return params
 
 
-def _try_embed_rdkit(mol: Chem.rdchem.Mol, max_attempts: int = 10) -> bool:
+def _try_embed_rdkit(
+        mol: Chem.rdchem.Mol,
+        max_attempts: int = 10,
+        etkdg_max_attempts: int = 1000
+    ) -> bool:
     '''Try embedding a molecule with RDKit using multiple seeds.
 
     Parameters
@@ -690,6 +718,8 @@ def _try_embed_rdkit(mol: Chem.rdchem.Mol, max_attempts: int = 10) -> bool:
         Molecule to embed (modified in place).
     max_attempts : int, optional
         Maximum number of embedding attempts, by default 10.
+    etkdg_max_attempts : int, optional
+        RDKit ETKDG internal attempts (maxAttempts/maxIterations), by default 1000.
 
     Returns
     -------
@@ -697,7 +727,7 @@ def _try_embed_rdkit(mol: Chem.rdchem.Mol, max_attempts: int = 10) -> bool:
         True if embedding succeeded and a conformer exists, False otherwise.
     '''
 
-    params = _get_etkdg_params()
+    params = _get_etkdg_params(max_attempts=etkdg_max_attempts)
     for attempt in range(max_attempts):
         params.randomSeed = 0xC0FFEE + attempt
         if AllChem.EmbedMolecule(mol, params) == 0 and mol.GetNumConformers() > 0: # type: ignore
@@ -750,7 +780,8 @@ def _ensure_3d_conformer(
         sanitize: bool,
         smiles_source: str = "",
         add_hs: bool = True,
-        max_attempts: int = 10
+        max_attempts: int = 10,
+        etkdg_max_attempts: int = 1000
     ) -> Optional[Chem.rdchem.Mol]:
     '''Ensure a molecule has a 3D conformer, using RDKit and OpenBabel fallbacks.
 
@@ -766,6 +797,8 @@ def _ensure_3d_conformer(
         If True, adds hydrogens before embedding, by default True.
     max_attempts : int, optional
         Maximum number of RDKit embedding attempts, by default 10.
+    etkdg_max_attempts : int, optional
+        RDKit ETKDG internal attempts (maxAttempts/maxIterations), by default 1000.
 
     Returns
     -------
@@ -784,7 +817,11 @@ def _ensure_3d_conformer(
     if add_hs:
         mol = Chem.AddHs(mol) # type: ignore
 
-    if _try_embed_rdkit(mol, max_attempts=max_attempts):
+    if _try_embed_rdkit(
+        mol,
+        max_attempts=max_attempts,
+        etkdg_max_attempts=etkdg_max_attempts
+    ):
         return mol
 
     if not smiles_source:
@@ -950,13 +987,24 @@ def multiple_molecules_sdf(molecule: Union[str, rdkit.Chem.rdchem.Mol]) -> List[
     return ligands
 
 
-def load_mol(molecule: Union[str, Chem.rdchem.Mol], sanitize: bool = True) -> Tuple[str, Optional[Chem.rdchem.Mol]]:
+def load_mol(
+        molecule: Union[str, Chem.rdchem.Mol],
+        sanitize: bool = True,
+        embed_max_attempts: int = 10,
+        etkdg_max_attempts: int = 1000
+    ) -> Tuple[str, Optional[Chem.rdchem.Mol]]:
     ''' Load a molecule pdb/sdf/mol/mol2 if a path is provided or just assign the Mol object to the molecule.
 
     Parameters
     ----------
     molecule : str/rdkit.Chem.rdchem.Mol
         The molecule path or the Mol object.
+    sanitize : bool
+        Whether to sanitize the molecule.
+    embed_max_attempts : int, optional
+        Maximum number of RDKit embedding attempts (outer loop), by default 10.
+    etkdg_max_attempts : int, optional
+        RDKit ETKDG internal attempts (maxAttempts/maxIterations), by default 1000.
 
     Returns
     -------
@@ -976,7 +1024,12 @@ def load_mol(molecule: Union[str, Chem.rdchem.Mol], sanitize: bool = True) -> Tu
                 needs_3d = False
 
         if needs_3d:
-            mol = _ensure_3d_conformer(mol, sanitize=sanitize)
+            mol = _ensure_3d_conformer(
+                mol,
+                sanitize=sanitize,
+                max_attempts=embed_max_attempts,
+                etkdg_max_attempts=etkdg_max_attempts
+            )
             if mol is None: # type: ignore
                 _ = ocerror.Error.parse_molecule(
                     "The provided RDKit molecule could not be embedded in 3D.",
@@ -1063,7 +1116,9 @@ def load_mol(molecule: Union[str, Chem.rdchem.Mol], sanitize: bool = True) -> Tu
                     mol,
                     sanitize=sanitize,
                     smiles_source=smiles,
-                    add_hs=False
+                    add_hs=False,
+                    max_attempts=embed_max_attempts,
+                    etkdg_max_attempts=etkdg_max_attempts
                 )
                 if mol is None:
                     _ = ocerror.Error.parse_molecule(
@@ -1112,7 +1167,12 @@ def load_mol(molecule: Union[str, Chem.rdchem.Mol], sanitize: bool = True) -> Tu
                 needs_3d = False
 
         if needs_3d:
-            mol = _ensure_3d_conformer(mol, sanitize=sanitize)
+            mol = _ensure_3d_conformer(
+                mol,
+                sanitize=sanitize,
+                max_attempts=embed_max_attempts,
+                etkdg_max_attempts=etkdg_max_attempts
+            )
             if mol is None: # type: ignore
                 _ = ocerror.Error.parse_molecule(
                     f"The molecule '{molecule}' could not be embedded in 3D.",
