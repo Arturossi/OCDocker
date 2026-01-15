@@ -191,7 +191,7 @@ def __run_gnina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
                         return ocerror.Error.ligand_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
 
                 # If prepared receptor has the overwrite flag on, does not exists, has size 0 or is not valid
-                if overwrite or not os.path.isfile(gnina.preparedReceptor) or os.path.getsize(gnina.preparedReceptor) == 0 or not ocvalidation.is_molecule_valid(gnina.preparedReceptor):
+                if overwrite or not os.path.isfile(gnina.preparedReceptor) or not ocvalidation.is_molecule_valid_with_retry(gnina.preparedReceptor):
                     # Start the lock with statement
                     with lock:
                         try:
@@ -217,7 +217,7 @@ def __run_gnina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
                             return ocerror.Error.receptor_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
 
                     # Check if the generated receptor has size 0 or is invalid
-                    if os.path.getsize(gnina.preparedReceptor) == 0 or not ocvalidation.is_molecule_valid(gnina.preparedReceptor):
+                    if not ocvalidation.is_molecule_valid_with_retry(gnina.preparedReceptor):
                         errMsg = f"The prepare receptor has made an output of 0kb for receptor '{gnina.preparedReceptor}' or is not valid... Here is its command line so you might be able to debug it by hand.\n{' '.join(gnina.prepareReceptorCmd)}"
 
                         config = get_config()
@@ -388,7 +388,7 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
                         return ocerror.Error.ligand_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
 
                 # If prepared receptor has the overwrite flag on, does not exists, has size 0 or is not valid
-                if overwrite or not os.path.isfile(vina.preparedReceptor) or os.path.getsize(vina.preparedReceptor) == 0 or not ocvalidation.is_molecule_valid(vina.preparedReceptor):
+                if overwrite or not os.path.isfile(vina.preparedReceptor) or not ocvalidation.is_molecule_valid_with_retry(vina.preparedReceptor):
                     # Start the lock with statement
                     with lock:
                         try:
@@ -414,7 +414,7 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
                             return ocerror.Error.receptor_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
                         
                     # Check if the generated receptor has size 0 or is invalid
-                    if os.path.getsize(vina.preparedReceptor) == 0 or not ocvalidation.is_molecule_valid(vina.preparedReceptor):
+                    if not ocvalidation.is_molecule_valid_with_retry(vina.preparedReceptor):
                         errMsg = f"The prepare receptor has made an output of 0kb for receptor '{vina.preparedReceptor}' or is not valid... Here is its command line so you might be able to debug it by hand.\n{' '.join(vina.prepareReceptorCmd)}"
 
                         config = get_config()
@@ -567,7 +567,7 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
                     return ocerror.Error.ligand_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
                     
             # If prepared receptor has the overwrite flag on, does not exists, has size 0 or is not valid
-            if overwrite or not os.path.isfile(smina.preparedReceptor) or os.path.getsize(smina.preparedReceptor) == 0 or not ocvalidation.is_molecule_valid(smina.preparedReceptor):
+            if overwrite or not os.path.isfile(smina.preparedReceptor) or not ocvalidation.is_molecule_valid_with_retry(smina.preparedReceptor):
                 # Start the lock with statement
                 with lock:
                     try:
@@ -593,7 +593,7 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
                         return ocerror.Error.ligand_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
 
                 # Check if the generated receptor has size 0 or is invalid
-                if os.path.getsize(smina.preparedReceptor) == 0 or not ocvalidation.is_molecule_valid(smina.preparedReceptor):
+                if not ocvalidation.is_molecule_valid_with_retry(smina.preparedReceptor):
                     errMsg = f"The prepare receptor has made an output of 0kb for receptor '{smina.preparedReceptor}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(smina.prepareReceptorCmd)}"
 
                     config = get_config()
@@ -757,7 +757,7 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
                         return ocerror.Error.ligand_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
 
                 # If prepared receptor has the overwrite flag on, does not exists, has size 0 or is not valid
-                if overwrite or not os.path.isfile(plants.preparedReceptor) or os.path.getsize(plants.preparedReceptor) == 0 or not ocvalidation.is_molecule_valid(plants.preparedReceptor):
+                if overwrite or not os.path.isfile(plants.preparedReceptor) or not ocvalidation.is_molecule_valid_with_retry(plants.preparedReceptor):
                     # Start the lock with statement
                     with lock:
                         try:
@@ -783,7 +783,7 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
                             return ocerror.Error.ligand_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
 
                     # Check if the generated receptor has size 0 or is invalid
-                    if os.path.getsize(plants.preparedReceptor) == 0 or not ocvalidation.is_molecule_valid(plants.preparedReceptor):
+                    if not ocvalidation.is_molecule_valid_with_retry(plants.preparedReceptor):
                         errMsg = f"SPORES has made an output of 0kb for receptor '{plants.preparedReceptor}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(plants.prepareReceptorCmd)}"
                         config = get_config()
                         ocprint.print_error_log(errMsg, f"{config.logdir}/{archive}_plants_run_report_ERROR.log")
@@ -1064,12 +1064,7 @@ def __run_dock_no_parallel(complexList: List[Tuple[str, List[str]]], archive: st
     return ocerror.Error.ok() # type: ignore
 
 
-
-
-
 ## Public ##
-
-
 def run_dock(paths: Union[List[Tuple[str, List[str]]], Tuple[str, List[str]]], archive: str, dockingAlgorithm: str, overwrite: bool, digestFormat: str) -> int:
     '''Run the docking software in parallel or not, based on the multiprocessing flag and input path.
 

@@ -13,6 +13,7 @@ import OCDocker.Toolbox.Validation as ocvalidation
 # Imports
 ###############################################################################
 import os
+import time
 from Bio.PDB import MMCIFParser, PDBParser
 from typing import Union
 
@@ -157,6 +158,40 @@ def is_molecule_valid(molecule: str) -> bool:
                 # Uh oh, some problem has been found
                 return False
     # No file, so it is False
+    return False
+
+
+def is_molecule_valid_with_retry(molecule: str, retries: int = 5, delay: float = 1.0) -> bool:
+    '''Check if a molecule is valid, retrying when the file is empty or mid-write.
+
+    Parameters
+    ----------
+    molecule : str
+        The molecule to be checked.
+    retries : int, optional
+        Number of read attempts before giving up. Default is 5.
+    delay : float, optional
+        Delay in seconds between attempts. Default is 1.0.
+
+    Returns
+    -------
+    bool
+        True if the molecule is valid within the retry window, False otherwise.
+    '''
+
+    attempts = max(1, retries)
+    for attempt in range(attempts):
+        size_ok = False
+        if os.path.isfile(molecule):
+            try:
+                size_ok = os.path.getsize(molecule) > 0
+            except OSError:
+                size_ok = False
+        if size_ok:
+            if is_molecule_valid(molecule):
+                return True
+        if attempt < attempts - 1 and delay > 0:
+            time.sleep(delay)
     return False
 
 

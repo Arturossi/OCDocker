@@ -13,6 +13,7 @@ import OCDocker.Rescoring.ODDT as ocoddt
 # Imports
 ###############################################################################
 import os
+import time
 from pathlib import Path
 import six
 import traceback
@@ -103,6 +104,43 @@ def __build_cmd(receptorPath: str, ligandPath: str, outputFile: str) -> Union[Li
         ocprint.print_error("No scoring functions were provided to ODDT. Please check your configuration file.")
 
     return cmd
+
+
+def __read_receptor_with_retry(receptor_format: str, receptor_path: str, retries: int = 5, delay: float = 1.0) -> Tuple[Optional[object], Optional[Exception]]:
+    '''Read a prepared receptor with retries to avoid transient empty-file reads.
+
+    Parameters
+    ----------
+    receptor_format : str
+        The receptor format (e.g., pdbqt, mol2).
+    receptor_path : str
+        Path to the prepared receptor file.
+    retries : int, optional
+        Number of read attempts before giving up. Default is 5.
+    delay : float, optional
+        Delay in seconds between attempts. Default is 1.0.
+
+    Returns
+    -------
+    Tuple[Optional[object], Optional[Exception]]
+        The receptor object or None, plus the last error if any.
+    '''
+
+    attempts = max(1, retries)
+    last_error: Optional[Exception] = None
+    for attempt in range(attempts):
+        try:
+            receptor_obj = six.next(od.toolkit.readfile(receptor_format, receptor_path))
+            if receptor_obj is not None:
+                return receptor_obj, None
+            last_error = ValueError("ODDT returned None for receptor object.")
+        except StopIteration as exc:
+            last_error = exc
+        except Exception as exc:
+            last_error = exc
+        if attempt < attempts - 1 and delay > 0:
+            time.sleep(delay)
+    return None, last_error
 
 
 ## Public ##
@@ -220,7 +258,7 @@ def run_oddt_from_cli(receptor: Union[ocr.Receptor, str], ligand: Union[ocl.Liga
     return exitCode
 
 
-def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]], ligandName: str, outputPath: str, returnData: bool = True, overwrite: bool = False, cleanModels: bool = False, n_cpu: int = -1, verbose: bool = False, chunksize: int = 100) -> Union[int, pd.DataFrame]:
+def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]], ligandName: str, outputPath: str, returnData: bool = True, overwrite: bool = False, cleanModels: bool = False, n_cpu: int = -1, verbose: bool = False, chunksize: int = 100, read_receptor_retries: int = 5, read_receptor_delay: float = 1.0) -> Union[int, pd.DataFrame]:
     '''Run ODDT programatically.
 
     Parameters
@@ -245,6 +283,10 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
         If True, the output will be verbose. The default is False.
     chunksize : int, optional
         The chunksize to be used. The default is 100.
+    read_receptor_retries : int, optional
+        Number of attempts to read the prepared receptor. The default is 5.
+    read_receptor_delay : float, optional
+        Delay in seconds between attempts to read the prepared receptor. The default is 1.0.
     
     Returns
     -------
@@ -309,11 +351,20 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
     else:
         receptor_format = receptor_ext
     
-    receptorObj = six.next(od.toolkit.readfile(receptor_format, preparedReceptorPath))
+    receptorObj, receptor_err = __read_receptor_with_retry(
+        receptor_format,
+        preparedReceptorPath,
+        retries=read_receptor_retries,
+        delay=read_receptor_delay
+    )
 
     # Check if the receptor is None
     if receptorObj is None:
-        return ocerror.Error.empty(f"The rescoring of the ligand '{ligandName}' failed.", level = ocerror.ReportLevel.ERROR) # type: ignore
+        err_note = f" Last error: {receptor_err}" if receptor_err else ""
+        return ocerror.Error.rescoring_failed(
+            f"ODDT could not read receptor file '{preparedReceptorPath}' after {max(1, read_receptor_retries)} attempts.{err_note}",
+            level = ocerror.ReportLevel.ERROR
+        ) # type: ignore
     
     receptorObj.protein = True
 
