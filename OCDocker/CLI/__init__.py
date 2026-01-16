@@ -684,7 +684,11 @@ def cmd_vs(args: argparse.Namespace) -> int:  # pragma: no cover - heavy integra
     try:
         import OCDocker.Error as ocerror  # type: ignore
         import OCDocker.Toolbox.Logging as oclogging  # type: ignore
-        oclogging.configure(level=ocerror.Error.get_output_level(), log_file=args.log_file, to_stdout=(not args.no_stdout_log))
+        oclogging.configure(
+            level=ocerror.Error.get_output_level(),
+            log_file=args.log_file,
+            to_stdout=(not args.no_stdout_log),
+        )
     except (ImportError, AttributeError, OSError):
         # Ignore logging configuration errors (non-critical for core functionality)
         pass
@@ -989,7 +993,11 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
     try:
         import OCDocker.Error as ocerror  # type: ignore
         import OCDocker.Toolbox.Logging as oclogging  # type: ignore
-        oclogging.configure(level=ocerror.Error.get_output_level(), log_file=args.log_file, to_stdout=(not args.no_stdout_log))
+        oclogging.configure(
+            level=ocerror.Error.get_output_level(),
+            log_file=args.log_file,
+            to_stdout=(not args.no_stdout_log),
+        )
     except (ImportError, AttributeError, OSError):
         # Ignore logging configuration errors (non-critical for core functionality)
         pass
@@ -1688,7 +1696,12 @@ def cmd_console(args: argparse.Namespace) -> int:  # pragma: no cover - interact
     try:
         import OCDocker.Error as ocerror  # type: ignore
         import OCDocker.Toolbox.Logging as oclogging  # type: ignore
-        oclogging.configure(level=ocerror.Error.get_output_level(), log_file=args.log_file, to_stdout=(not args.no_stdout_log))
+        oclogging.configure(
+            level=ocerror.Error.get_output_level(),
+            log_file=args.log_file,
+            to_stdout=False,
+            use_rich=True,
+        )
     except (ImportError, AttributeError, OSError):
         # Ignore logging configuration errors (non-critical for core functionality)
         pass

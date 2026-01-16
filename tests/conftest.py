@@ -22,7 +22,7 @@ Laboratory for Molecular Modeling and Dynamics
 ###############################################################################
 
 def pytest_configure(config):
-    """Configure pytest hooks for test file cleanup."""
+    '''Configure pytest hooks for test file cleanup.'''
     pass
 
 

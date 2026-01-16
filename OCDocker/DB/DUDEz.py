@@ -55,10 +55,6 @@ def prepare(overwrite: bool = False, spacing: float = 0.33, sanitize: bool = Tru
     sanitize : bool, optional
         If True, sanitizes the ligands, by default True.
 
-    Returns
-    -------
-    None
-
     Raise
     -----
     None

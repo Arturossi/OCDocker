@@ -51,7 +51,7 @@ __all__ = [
 ###############################################################################
 @dataclass
 class BootstrapCI:
-    '''Bootstrap confidence interval dataclass.
+    """Bootstrap confidence interval dataclass.
     
     Attributes
     ----------
@@ -61,7 +61,7 @@ class BootstrapCI:
         The lower bound of the confidence interval (e.g., 2.5th percentile).
     high : float
         The upper bound of the confidence interval (e.g., 97.5th percentile).
-    '''
+    """
 
     point: float
     low: float

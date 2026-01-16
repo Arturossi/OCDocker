@@ -46,6 +46,19 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ## Public ##
 # Local fallback colors (no ANSI by default)
 clrs: Dict[str, str] = {"r":"","g":"","y":"","b":"","p":"","c":"","n":""}
+
+def _should_print() -> bool:
+    '''Check whether direct prints should be emitted.
+
+    Returns
+    -------
+    bool
+        False when Rich logging is enabled, True otherwise.
+    '''
+    try:
+        return not oclogging.is_rich_enabled()
+    except Exception:
+        return True
 def printv(message: str) -> None:
     '''Function to print if verbosity mode is set.
 
@@ -53,17 +66,14 @@ def printv(message: str) -> None:
     ----------
     message : str
         Message to be printed.
-
-    Returns
-    -------
-    None
     '''
 
     if ocerror.Error.output_level >= ocerror.ReportLevel.DEBUG:
         # log + plain print for test expectations
         oclogging.configure(level=ocerror.Error.get_output_level())
         oclogging.get_logger("printing").debug(message)
-        print(message)
+        if _should_print():
+            print(message)
     return
 
 
@@ -90,7 +100,8 @@ def print_info(message: str, force: bool = False) -> None:
         else:
             msg = f"INFO: {message}"
         log.info(msg)
-        print(msg)
+        if _should_print():
+            print(msg)
     return
 
 
@@ -117,7 +128,8 @@ def print_success(message: str, force: bool = False) -> None:
         else:
             msg = f"SUCCESS: {message}"
         log.info(msg)
-        print(msg)
+        if _should_print():
+            print(msg)
     return
 
 
@@ -150,7 +162,8 @@ def print_warning(message: str, force: bool = False) -> None:
             # For print, add "WARNING:" prefix
             print_msg = f"WARNING: {message}"
         log.warning(log_msg)
-        print(print_msg)
+        if _should_print():
+            print(print_msg)
     return
 
 
@@ -178,7 +191,8 @@ def print_error(message: str, force: bool = False) -> None:
         else:
             msg = f"ERROR: {message}"
         log.error(msg)
-        print(msg)
+        if _should_print():
+            print(msg)
     return
 
 

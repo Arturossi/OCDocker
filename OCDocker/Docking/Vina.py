@@ -387,10 +387,6 @@ class Vina:
     def get_docked_poses(self) -> List[str]:
         '''Get the paths for the docked poses.
 
-        Parameters
-        ----------
-        None
-
         Returns
         -------
         List[str]

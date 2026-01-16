@@ -224,7 +224,7 @@ class OCDockerConfig:
     
     @classmethod
     def from_config_file(cls, config_file: str) -> 'OCDockerConfig':
-        """Load configuration from config file.
+        '''Load configuration from config file.
         
         Parameters
         ----------
@@ -235,7 +235,7 @@ class OCDockerConfig:
         -------
         OCDockerConfig
             Configured instance
-        """
+        '''
         # Import here to avoid circular dependency
         import os
         from OCDocker.Initialise import _parse_config_file
