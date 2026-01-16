@@ -58,7 +58,6 @@ class AutoencoderDataset(Dataset):
         The features to be used in the Autoencoder. It should be a torch.Tensor of shape (n_samples, n_features).
     '''
 
-
     def __init__(self, features: torch.Tensor) -> None:
         '''Constructor for the AutoencoderDataset class. It is used to create the DataLoader for the training and testing of the Autoencoder.
 
@@ -72,13 +71,6 @@ class AutoencoderDataset(Dataset):
         self.features = features
 
 
-
-
-
-
-
-
-
     def __len__(self) -> int:
         '''Returns the length of the dataset. It is used by the DataLoader to know how many samples are in the dataset.
 
@@ -88,14 +80,7 @@ class AutoencoderDataset(Dataset):
             The length of the dataset. It is used by the DataLoader to know how many samples are in the dataset.
         '''
 
-
         return len(self.features)
-
-
-
-
-
-
 
 
     def __getitem__(self, idx: int) -> tuple:
@@ -133,7 +118,6 @@ class Autoencoder(nn.Module):
     device : torch.device, optional
         The device to be used. It should be a torch.device. Default is torch.device("cpu").
     '''
-
 
     def __init__(self,
                  input_size : int,
@@ -252,12 +236,6 @@ class Autoencoder(nn.Module):
             ).to(self.device)
 
 
-
-
-
-
-
-
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         '''Forward pass of the Autoencoder. It is used to pass the input through the encoder and decoder.
 
@@ -294,12 +272,6 @@ class Autoencoder(nn.Module):
         return x
 
 
-
-
-
-
-
-
     def get_encoder_topology(self) -> list:
         '''Get the topology of the encoder. It is used to get the layers of the encoder.
         
@@ -311,12 +283,6 @@ class Autoencoder(nn.Module):
 
 
         return ['Linear', 'BatchNorm1d']
-
-
-
-
-
-
 
 
     def get_decoder_topology(self) -> list:
@@ -332,12 +298,6 @@ class Autoencoder(nn.Module):
         return ['Linear']
 
 
-
-
-
-
-
-
     def get_encoder(self) -> nn.Module:
         '''Get the encoder. It is used to get the encoder of the Autoencoder.
 
@@ -347,14 +307,7 @@ class Autoencoder(nn.Module):
             The encoder of the Autoencoder. It is used to get the encoder of the Autoencoder.
         '''
 
-
         return self.encoder
-
-
-
-
-
-
 
 
     def get_decoder(self) -> nn.Module:
@@ -480,12 +433,6 @@ class AutoencoderOptimizer:
         self.activation_functions_str = ['GELU', 'LeakyReLU', 'Mish', 'ReLU', 'SELU', 'Identity']
 
 
-
-
-
-
-
-
     def set_random_seed(self) -> None:
         '''Set the random seed for the Autoencoder. It is used to set the random seed for the Autoencoder.'''
 
@@ -510,12 +457,6 @@ class AutoencoderOptimizer:
         torch.backends.cudnn.benchmark = False
 
         torch.backends.cudnn.deterministic = True
-
-
-
-
-
-
 
 
     def train_autoencoder(self,
@@ -627,12 +568,6 @@ class AutoencoderOptimizer:
         return best_validation_rmse, best_train_rmse
 
 
-
-
-
-
-
-
     def evaluate_autoencoder(self,
                              model : nn.Module,
                              criterion : nn.Module,
@@ -693,12 +628,6 @@ class AutoencoderOptimizer:
         
 
         return rmse
-
-
-
-
-
-
 
 
     def objective(self, trial : optuna.Trial) -> float:
@@ -861,12 +790,6 @@ class AutoencoderOptimizer:
 
 
         return evaluate_rmse
-
-
-
-
-
-
 
 
     def optimize(self,

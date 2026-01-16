@@ -128,13 +128,6 @@ class XGBoostOptimizer:
         self.storage = storage
 
 
-
-
-
-
-
-
-
     def objective(self,
             trial : optuna.trial.Trial
         ) -> Union[float, tuple[float, float]]:
@@ -242,12 +235,6 @@ class XGBoostOptimizer:
         # Return the trained AUC score
 
         return metric
-
-
-
-
-
-
 
 
     def optimize(self, 

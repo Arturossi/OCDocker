@@ -26,13 +26,11 @@ def find_repo_root(start: Path) -> Path:
     raise RuntimeError("Could not find repo root with 'OCDocker/__init__.py' above this file.")
 
 
-
 REPO_ROOT = find_repo_root(HERE)
 sys.path.insert(0, str(REPO_ROOT))
 os.environ.setdefault("OC_BUILD_DOCS", "1")
 os.environ.setdefault("MPLBACKEND", "agg")
 logging.debug("Docs repo root: %s", REPO_ROOT)
-
 
 
 # -----------------------------------------------------------------------------
@@ -85,7 +83,6 @@ init_mod.clrs = {
 
 def _get_db_url():
     return init_mod.db_url
-
 
 
 init_mod.get_db_url = _get_db_url
@@ -145,24 +142,11 @@ class _InjectingLoader(Loader):
         self._injected = injected
 
 
-
-
-
-
-
-
-
     def create_module(self, spec):
         if hasattr(self._base, "create_module"):
             return self._base.create_module(spec)
 
         return None
-
-
-
-
-
-
 
 
     def exec_module(self, module):
@@ -179,12 +163,6 @@ class _InjectingFinder(MetaPathFinder):
         self._injected = injected
 
 
-
-
-
-
-
-
     def find_spec(self, fullname, path=None, target=None):
         if not fullname.startswith(self._pkg_prefix):
             return None
@@ -193,7 +171,6 @@ class _InjectingFinder(MetaPathFinder):
             return None
         spec.loader = _InjectingLoader(spec.loader, self._injected)
         return spec
-
 
 
 _injected_globals = {
@@ -205,7 +182,6 @@ _injected_globals = {
 
 if not any(isinstance(f, _InjectingFinder) for f in sys.meta_path):
     sys.meta_path.insert(0, _InjectingFinder("OCDocker", _injected_globals))
-
 
 
 # -----------------------------------------------------------------------------

@@ -52,7 +52,6 @@ class GeneticAlgorithm:
     A class to optimize the feature selection for XGBoost using a genetic algorithm.
     '''
 
-
     def __init__(self, 
             X_train: Union[np.ndarray, pd.DataFrame, pd.Series],
             y_train: Union[np.ndarray, pd.DataFrame, pd.Series],
@@ -145,13 +144,6 @@ class GeneticAlgorithm:
         self.storage = storage
 
 
-
-
-
-
-
-
-
     def fitness(self, individual: list) -> tuple:
         '''
         A function to calculate the fitness of a set of features represented by an individual.
@@ -184,12 +176,6 @@ class GeneticAlgorithm:
         # Return the metric score and the model
 
         return metric, model
-
-
-
-
-
-
 
 
     def initialize_population(self, number_of_features: int, population_size: int) -> np.ndarray:
@@ -236,12 +222,6 @@ class GeneticAlgorithm:
         return population
 
 
-
-
-
-
-
-
     def tournament_selection(self, population: np.ndarray, fitnesses: np.ndarray, tournament_size: int = 3) -> np.ndarray:
         '''
         A function to perform tournament selection for the genetic algorithm.
@@ -280,12 +260,6 @@ class GeneticAlgorithm:
         return population[winner_index]
 
 
-
-
-
-
-
-
     def crossover(self, parent1: np.ndarray, parent2: np.ndarray) -> np.ndarray:
         '''
         A function to perform crossover for the genetic algorithm.
@@ -312,12 +286,6 @@ class GeneticAlgorithm:
         # Return the child individual
 
         return child
-
-
-
-
-
-
 
 
     def mutation(self, individual: np.ndarray, mutation_rate: float = 0.05) -> np.ndarray:
@@ -350,12 +318,6 @@ class GeneticAlgorithm:
         # Return the mutated individual
 
         return individual
-
-
-
-
-
-
 
 
     def genetic_algorithm(self, trial_params: dict, trial: Any) -> tuple[np.ndarray, OCxgboost.XGBRegressor, float, Union[None, float]]:
@@ -532,12 +494,6 @@ class GeneticAlgorithm:
         return best_individual, best_model, best_score, best_score2 # type: ignore
 
 
-
-
-
-
-
-
     def objective(self, trial: optuna.Trial) -> float:
         '''
         The objective function for the Optuna optimization.
@@ -583,12 +539,6 @@ class GeneticAlgorithm:
         # Return the AUC score
 
         return best_score
-
-
-
-
-
-
 
 
     def optimize(self, direction: str = "maximize", n_trials: int = 100,  n_jobs: int = 1, study_name: str = "Genetic Algorithm for descriptor optimization", load_if_exists: bool = True, verbose: bool = False) -> tuple[optuna.study.Study, dict, float]:
