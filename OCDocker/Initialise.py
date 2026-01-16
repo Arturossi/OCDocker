@@ -96,10 +96,6 @@ def __inner_initialise_models(oddt_sf: str) -> None:
     ----------
     oddt_sf : str
         The scoring function to be initialised
-
-    Returns
-    -------
-    None
     '''
 
     # Warn the user that the pickled model will be created
@@ -119,6 +115,7 @@ def __inner_initialise_models(oddt_sf: str) -> None:
                 new_kwargs['version'] = int(bit.replace('v', ''))
         # Load the scoring function (this will create the pickled model)
         _ = rfscore.load(**new_kwargs)
+
     elif oddt_sf.lower().startswith('nnscore'):
         from oddt.scoring.functions.NNScore import nnscore  # type: ignore
         # Create the new kwargs dict
@@ -130,6 +127,7 @@ def __inner_initialise_models(oddt_sf: str) -> None:
                 new_kwargs['pdbbind_version'] = int(bit.replace('pdbbind', ''))
         # Load the scoring function (this will create the pickled model)
         _ = nnscore.load(**new_kwargs)
+
     elif oddt_sf.lower().startswith('plec'):
         from oddt.scoring.functions.PLECscore import PLECscore  # type: ignore
         # Create the new kwargs dict
@@ -157,10 +155,6 @@ def __inner_initialise_models(oddt_sf: str) -> None:
 def get_argument_parsing() -> argparse.ArgumentParser:
     '''Get data to generate vina conf file from box file.
     
-    Parameters
-    ----------
-    None
-
     Returns
     -------
     argparse.ArgumentParser
@@ -216,10 +210,6 @@ def get_argument_parsing() -> argparse.ArgumentParser:
 def argument_parsing() -> argparse.Namespace:
     '''Parse the arguments from the command line.
 
-    Parameters
-    ----------
-    None
-
     Returns
     -------
     argparse.Namespace
@@ -233,13 +223,6 @@ def argument_parsing() -> argparse.Namespace:
 def create_ocdocker_conf() -> None:
     '''Creates the 'ocdocker.conf' file.
 
-    Parameters
-    ----------
-    None
-
-    Returns
-    -------
-    None
     '''
 
     #region Database config
@@ -933,10 +916,6 @@ def initialise_oddt_models(oddt_models_dir: str, oddt_scoring_functions_aux: lis
         The path to the ODDT models directory.
     oddt_scoring_functions_aux : list
         The list of scoring functions to initialise.
-
-    Returns
-    -------
-    None
     '''
 
     # Flag to print the warning only once
@@ -985,7 +964,6 @@ def set_log_level(level: ocerror.ReportLevel) -> None:
     ocerror.Error.set_output_level(ocerror.ReportLevel.WARNING)
 
 
-
 ###############################################################################
 
 # Aditional Variables
@@ -1008,18 +986,15 @@ from OCDocker.Toolbox.Constants import order
 # Parse command line arguments
 ###############################################################################
 
-'''
-    args = argument_parsing()
-    multiprocess = args.multiprocess
-    update = args.update
-    config_file = args.config_file or os.getenv('OCDOCKER_CONFIG', 'OCDocker.cfg')
-    output_level = args.output_level
-    overwrite = args.overwrite
-'''
-
-
 def is_doc_build() -> bool:
-    '''Detects if the code is being run in a documentation (e.g., Sphinx) or test context.'''
+    '''Detects if the code is being run in a documentation (e.g., Sphinx) or test context.
+    
+    Returns
+    -------
+    bool
+        True if running in a doc/test context, False otherwise.
+    '''
+
     import sys
     import inspect
 
@@ -1045,8 +1020,7 @@ _SYNC_SKIP_NAMES = {
 
 
 def _sync_import_consumers() -> None:
-    '''Push updated globals to caller modules that pulled names via star-import.
-    '''
+    '''Push updated globals to caller modules that pulled names via star-import.'''
 
     # Inspect the current frame to find the caller
     frame = inspect.currentframe()
@@ -1090,8 +1064,7 @@ def _sync_import_consumers() -> None:
 # Initialise
 ###############################################################################
 def print_description() -> None:
-    ''' Print the description of the program.
-    '''
+    ''' Print the description of the program.'''
 
     print(_description)
 
@@ -1119,6 +1092,7 @@ def _register_db_cleanup() -> None:
     This ensures that database sessions and engines are properly closed
     when the application exits, preventing connection leaks.
     '''
+
     atexit.register(cleanup_database_resources)
 
 
@@ -1339,10 +1313,16 @@ def _parse_config_file(config_file: str) -> Dict[str, Any]:
 
 
 def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
-    """Explicitly bootstrap OCDocker environment (config, DB, paths).
+    '''Explicitly bootstrap OCDocker environment (config, DB, paths).
 
     Must be called before using modules that depend on Initialise globals.
-    """
+
+    Parameters
+    ----------
+    ns : argparse.Namespace, optional
+        Parsed command line arguments (if already available), by default None
+    '''
+    
     global bootstrapped
     if bootstrapped:
         return

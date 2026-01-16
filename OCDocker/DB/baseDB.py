@@ -64,10 +64,6 @@ def prepare(archive: str, overwrite: bool = False, spacing: float = 0.33, saniti
         The spacing to be used in the grid. The default is 0.33.
     sanitize : bool, optional
         If True sanitizes the ligands, if False does not sanitize the ligands. The default is True.
-
-    Returns
-    -------
-    None
     '''
 
     # Find which kind of archive it will be

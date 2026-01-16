@@ -155,7 +155,7 @@ def export_db_to_csv(
     output_file: Optional[str] = None,
     drop_na: bool = True
 ) -> Union[pd.DataFrame, str, None]:
-    """
+    '''
     Merge data from Complexes, Ligands, and Receptors tables and export.
 
     Parameters
@@ -174,7 +174,7 @@ def export_db_to_csv(
     -------
     pandas.DataFrame | str | None
         DataFrame or serialized string depending on `output_format`; None when writing to `output_file`.
-    """
+    '''
     
     # Query to fetch complexes with their ligands and receptors
     merged_data = session.query(Complexes.Complexes, Ligands.Ligands, Receptors.Receptors)\

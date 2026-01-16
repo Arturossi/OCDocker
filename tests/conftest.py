@@ -28,7 +28,7 @@ def pytest_configure(config):
 
 @pytest.fixture(scope="session", autouse=True)
 def cleanup_test_files():
-    """Clean up test files before and after test runs to ensure clean state.
+    '''Clean up test files before and after test runs to ensure clean state.
     
     This fixture runs automatically before and after all tests and cleans up:
     - Generated output files from previous test runs
@@ -36,7 +36,8 @@ def cleanup_test_files():
     - Log files
     - Config files
     - Descriptor JSON files
-    """
+    '''
+
     # Get the project root (assuming tests are in tests/ directory)
     project_root = Path(__file__).resolve().parent.parent
     test_files_dir = project_root / "test_files"
@@ -66,7 +67,19 @@ def cleanup_test_files():
     
     # Helper function to check if path should be excluded
     def should_exclude(path: Path) -> bool:
-        """Check if a path matches any exclusion pattern."""
+        '''Check if a path matches any exclusion pattern.
+        
+        Parameters
+        ----------
+        path : Path
+            The file or directory path to check.
+
+        Returns
+        -------
+        bool
+            True if the path should be excluded from cleanup, False otherwise.
+        '''
+
         path_str = str(path)
         # Check if path is within any boxes directory
         if "/boxes/" in path_str or path_str.endswith("/boxes") or path.name == "boxes":
@@ -125,11 +138,12 @@ def cleanup_test_files():
 
 @pytest.fixture(autouse=True)
 def ensure_clean_test_state(tmp_path):
-    """Ensure each test starts with a clean temporary directory.
+    '''Ensure each test starts with a clean temporary directory.
     
     This fixture automatically runs before each test and ensures
     that the tmp_path is clean and ready for use.
-    """
+    '''
+    
     # Clear any existing files in tmp_path
     if tmp_path.exists():
         for item in tmp_path.iterdir():

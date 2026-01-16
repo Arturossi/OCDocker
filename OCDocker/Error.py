@@ -616,12 +616,12 @@ class Error(metaclass = ErrorMeta):
 
     @staticmethod
     def print_attributes() -> None:
-        """Print all error codes and their attributes to stdout.
+        '''Print all error codes and their attributes to stdout.
 
         Displays a formatted table showing all ErrorCode enum values,
         their descriptions, default report levels, and error codes,
         organized by error category (Common, File, Directory, etc.).
-        """
+        '''
         
         # Mapping sections to their corresponding attributes and codes
         error_sections = {

@@ -14,7 +14,7 @@ from . import plots
 
 @dataclass
 class OutputPaths:
-    '''Container for SHAP analysis output file paths.
+    """Container for SHAP analysis output file paths.
     
     Attributes
     ----------
@@ -28,7 +28,7 @@ class OutputPaths:
         Path to SHAP values NumPy array file.
     shap_values_csv : Optional[str], optional
         Path to SHAP values CSV file. None if CSV was not saved. Default is None.
-    '''
+    """
     
     out_dir: str
     feature_importance_png: str

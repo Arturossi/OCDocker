@@ -12,7 +12,7 @@ LOGGER = logging.getLogger("OCScore.SHAP.data")
 
 @dataclass
 class DataHandles:
-    '''Data container for SHAP analysis datasets.
+    """Data container for SHAP analysis datasets.
     
     Attributes
     ----------
@@ -26,7 +26,7 @@ class DataHandles:
         Validation target values.
     feature_names : List[str]
         List of feature column names.
-    '''
+    """
     
     X_train: pd.DataFrame
     X_val: pd.DataFrame

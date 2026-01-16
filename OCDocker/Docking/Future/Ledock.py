@@ -81,10 +81,6 @@ class Ledock:
             The name of the Ledock object, by default "".
         spacing : float, optional
             The spacing between to expand the box, by default 2.9.
-
-        Returns
-        -------
-        None
         '''
 
         pass

@@ -83,10 +83,6 @@ class Dock3:
             The name of the Dock3 object, by default "".
         spacing : float, optional
             The spacing between to expand the box, by default 2.9.
-
-        Returns
-        -------
-        None
         '''
 
         pass

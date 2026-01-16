@@ -55,6 +55,7 @@ def _should_print() -> bool:
     bool
         False when Rich logging is enabled, True otherwise.
     '''
+
     try:
         return not oclogging.is_rich_enabled()
     except Exception:
@@ -86,10 +87,6 @@ def print_info(message: str, force: bool = False) -> None:
         Message to be printed.
     force : bool, optional
         Forces the system to print the message, even if output_level is turning it off (USE WITH CAUTION!!!).
-
-    Returns
-    -------
-    None
     '''
 
     if ocerror.Error.output_level >= ocerror.ReportLevel.INFO or force:
@@ -114,10 +111,6 @@ def print_success(message: str, force: bool = False) -> None:
         Message to be printed.
     force : bool, optional
         Forces the system to print the message, even if output_level is turning it off (USE WITH CAUTION!!!).
-
-    Returns
-    -------
-    None
     '''
 
     if ocerror.Error.output_level >= ocerror.ReportLevel.SUCCESS or force:
@@ -141,11 +134,7 @@ def print_warning(message: str, force: bool = False) -> None:
     message : str
         Message to be printed.
     force : bool, optional
-        Forces the system to print the message, even if output_level is turning it off (USE WITH CAUTION!!!).
-        
-    Returns
-    -------
-    None
+        Forces the system to print the message, even if output_level is turning it off (USE WITH CAUTION!!!). 
     '''
 
     if ocerror.Error.output_level >= ocerror.ReportLevel.WARNING or force:
@@ -176,11 +165,6 @@ def print_error(message: str, force: bool = False) -> None:
         Message to be printed.
     force : bool, optional
         Forces the system to print the message, even if output_level is turning it off (USE WITH CAUTION!!!).
-
-    Returns
-    -------
-    None
-
     '''
 
     if ocerror.Error.output_level >= ocerror.ReportLevel.ERROR or force:
@@ -207,10 +191,6 @@ def print_info_log(message: str, logfile:str, mode: str = 'a') -> None:
         Log file to be used.
     mode : str, optional
         Mode to open the file. Default is 'a' (append).
-
-    Returns
-    -------
-    None
     '''
 
     today = datetime.datetime.now()
@@ -230,10 +210,6 @@ def print_success_log(message: str, logfile: str, mode: str = 'a') -> None:
         Log file to be used.
     mode : str, optional
         Mode to open the file. Default is 'a' (append).
-
-    Returns
-    -------
-    None
     '''
 
     today = datetime.datetime.now()
@@ -253,10 +229,6 @@ def print_warning_log(message: str, logfile: str, mode: str = 'a') -> None:
         Log file to be used.
     mode : str, optional
         Mode to open the file. Default is 'a' (append).
-
-    Returns
-    -------
-    None
     '''
 
     today = datetime.datetime.now()
@@ -276,10 +248,6 @@ def print_error_log(message: str, logfile: str, mode: str = 'a') -> None:
         Log file to be used.
     mode : str, optional
         Mode to open the file. Default is 'a' (append).
-
-    Returns
-    -------
-    None
     '''
 
     today = datetime.datetime.now()
@@ -299,10 +267,6 @@ def print_section(n: int, name: str, logName: str = "OCDocker_Progress.out") -> 
         Section name (empty string for no log).
     logName : str, optional
         Log file name. Default is "OCDocker_Progress.out".
-
-    Returns
-    -------
-    None
     '''
 
     # Print a nice section header
@@ -376,10 +340,6 @@ def print_subsection(n: int, name: str, logName: str = "OCDocker_Progress.out") 
         Subsection name.
     logName : str
         Log file name. Default is "OCDocker_Progress.out".
-
-    Returns
-    -------
-    None
     '''
 
     # Print a nice subsection header
@@ -442,16 +402,7 @@ def subsection(n: int, name: str) -> str:
 
 
 def print_sorry()-> None:
-    '''Function to print sorry message.
-
-    Parameters
-    ----------
-    None
-
-    Returns
-    -------
-    None
-    '''
+    '''Function to print sorry message.'''
 
     # Print a nice looking sorry message :/
     print(f"**We are {clrs['y']}t{clrs['r']}e"+

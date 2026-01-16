@@ -213,10 +213,6 @@ class Ligand:
     def __safe_to_dict(self) -> Dict[str, Union[int, float]]:
         '''Return all the properties (except the molecule object) for the Ligand object.
 
-        Parameters
-        ----------
-        None
-        
         Returns
         -------
         Dict[str, int | float]
@@ -236,10 +232,6 @@ class Ligand:
 
     def __repr__(self) -> str:
         '''Return a string representation of the Ligand object.
-
-        Parameters
-        ----------
-        None
 
         Returns
         -------
@@ -283,10 +275,6 @@ class Ligand:
     def get_descriptors(self) -> Dict[str, Union[int, float]]:
         '''Return the descriptors for the Ligand object.
 
-        Parameters
-        ----------
-        None
-
         Returns
         -------
         Dict[str, Union[int, float]]
@@ -304,10 +292,6 @@ class Ligand:
 
     def to_dict(self) -> Dict[str, Union[int, float, str]]:
         '''Return all the properties for the Ligand object.
-
-        Parameters
-        ----------
-        None
 
         Returns
         -------
@@ -378,10 +362,6 @@ class Ligand:
     def is_valid(self) -> bool:
         '''Check if a Ligand object is valid.
 
-        Parameters
-        ----------
-        None
-
         Returns
         -------
         bool
@@ -397,10 +377,6 @@ class Ligand:
 
     def to_smiles(self) -> Union[str, int]:
         '''Return the smiles of the molecule.
-
-        Parameters
-        ----------
-        None
 
         Returns
         -------

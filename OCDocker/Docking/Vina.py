@@ -60,6 +60,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ###############################################################################
 class Vina:
     """Vina object with methods for easy run."""
+
     def __init__(self, config_path: str, box_file: str, receptor: ocr.Receptor, prepared_receptor_path: str, ligand: ocl.Ligand, prepared_ligand_path: str, vina_log: str, output_vina: str, name: str = "", overwrite_config: bool = False) -> None:
         '''Constructor of the class Vina.
         
@@ -85,10 +86,6 @@ class Vina:
             The name of the vina object, by default "".
         overwrite_config : bool, optional
             If True, overwrite the config file if it already exists, by default False.
-
-        Returns
-        -------
-        None
         '''
 
         self.name = str(name)
@@ -257,7 +254,6 @@ class Vina:
             A dictionary with the data from the vina log file. If any error occurs, it will return the exit code of the command (based on the Error.py code table).
         '''
 
-
         return read_log(self.vina_log, onlyBest = onlyBest)
 
     def run_vina(self, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
@@ -267,11 +263,6 @@ class Vina:
         ----------
         overwrite : bool, optional
             If True, overwrite existing output/log files.
-
-        Returns
-        -------
-        int | Tuple[int, str]
-            The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
         '''
 
         # Remove existing outputs if requested
@@ -365,11 +356,6 @@ class Vina:
             If True, split the ligand before running vina. By default False.
         overwrite : bool, optional
             If True, overwrite the logFile. By default False.
-
-        Returns
-        -------
-        int | Tuple[int, str]
-            The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
         '''
 
         # For each scoring function
@@ -393,15 +379,10 @@ class Vina:
             A list with the paths for the docked poses.
         '''
 
-
         return get_docked_poses(os.path.dirname(self.output_vina))
 
     def get_input_ligand_path(self) -> str:
         ''' Get the input ligand path.
-
-        Parameters
-        ----------
-        None
 
         Returns
         -------
@@ -409,22 +390,16 @@ class Vina:
             The input ligand path.
         '''
 
-
         return os.path.dirname(self.input_ligand_path)
 
     def get_input_receptor_path(self) -> str:
         ''' Get the input receptor path.
-
-        Parameters
-        ----------
-        None
 
         Returns
         -------
         str
             The input receptor path.
         '''
-
 
         return os.path.dirname(self.input_receptor_path)
 
@@ -448,7 +423,6 @@ class Vina:
         rescoreLogPaths = get_rescore_log_paths(outPath)
 
         # Call the function
-
         return read_rescore_logs(rescoreLogPaths, onlyBest = onlyBest)
 
     def split_poses(self, outPath: str = "", logFile: str = "") -> int:
@@ -472,20 +446,10 @@ class Vina:
             # Set the outPath as the same folder as the vina output
             outPath = os.path.dirname(self.output_vina)
 
-
         return ocmolproc.split_poses(self.output_vina, self.input_ligand.name, outPath, logFile = logFile, suffix = "_split_") # type: ignore
 
     def print_attributes(self) -> None:
-        '''Print the class attributes.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        '''
+        '''Print the class attributes.'''
 
         print(f"Name:                        '{self.name if self.name else '-' }'")
         print(f"Box path:                    '{self.box_file if self.box_file else '-' }'")
@@ -523,11 +487,6 @@ def box_to_vina(box_file: str, conf_file: str, receptor: str) -> int:
         The path to the vina configuration file.
     receptor : str
         The path to the receptor file.
-
-    Returns
-    -------
-    int
-        The exit code of the command (based on the Error.py code table).
     '''
 
     ocprint.printv(f"Converting the box file '{box_file}' to Vina conf file as '{conf_file}' file.")
@@ -591,12 +550,8 @@ def run_prepare_ligand(inputLigandPath: str, outputLigand: str, logFile: str = "
         The path to the output ligand.
     logFile : str
         The path to the log file. If empty, suppress the output.
-
-    Returns
-    -------
-    int
-        The exit code of the command (based on the Error.py code table).
     '''
+
     strategy = MGLToolsPreparationStrategy()
     return strategy.prepare_ligand(inputLigandPath, outputLigand, logFile, overwrite=overwrite)
 
@@ -612,12 +567,13 @@ def run_prepare_receptor(inputReceptorPath: str, outputReceptor: str, logFile: s
         The path to the output receptor file.
     logFile : str
         The path to the log file. If empty, suppress the output.
-    
+
     Returns
     -------
-    int
-        The exit code of the command (based on the Error.py code table).
+    int | Tuple[int, str]
+        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
     '''
+
     strategy = MGLToolsPreparationStrategy()
     return strategy.prepare_receptor(inputReceptorPath, outputReceptor, logFile, overwrite=overwrite)
 
@@ -696,11 +652,6 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
         If True, split the ligand before running vina. By default True.
     overwrite : bool, optional
         If True, overwrite the logFile. By default False.
-
-    Returns
-    -------
-    int
-        The exit code of the command (based on the Error.py code table).
     '''
 
     # Print verboosity
@@ -790,10 +741,6 @@ def generate_vina_files_database(path: str, protein: str, boxPath: str = "") -> 
         The path of the protein.
     boxPath : str
         The path to the box file. If empty, it will set as path + "/boxes"
-    
-    Returns
-    -------
-    None
     '''
     
     # Parameterize the vina and box paths
@@ -846,7 +793,6 @@ def get_rescore_log_paths(outPath: str) -> List[str]:
     ----------
     outPath : str
         Path to the output folder where the rescoring logs are located.
-    
 
     Returns
     -------
@@ -934,3 +880,4 @@ def read_rescore_logs(rescoreLogPaths: Union[List[str], str], onlyBest: bool = F
     
     # Return the dictionary
     return rescoreLogData
+

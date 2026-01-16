@@ -55,6 +55,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ###############################################################################
 class PLANTS:
     """PLANTS object with methods for easy run."""
+
     def __init__(self, config_path: str, box_file: str, receptor: ocr.Receptor, prepared_receptor_path: str, ligand: ocl.Ligand, prepared_ligand_path: str, plants_log: str, output_plants: str, name: str = "", box_spacing: float = 2.9, overwrite_config: bool = False) -> None:
         ''' Constructor for the PLANTS object.
         
@@ -82,10 +83,6 @@ class PLANTS:
             Spacing for the PLANTS box, by default 0.33.
         overwrite_config : bool, optional
             Overwrite the PLANTS config file, by default False.
-
-        Returns
-        -------
-        None
         '''
         
         self.name = str(name)
@@ -155,16 +152,11 @@ class PLANTS:
     def __get_binding_site(self) -> Union[Tuple[Tuple[float, float, float], float], int]:
         '''Get the binding site from a box file.
 
-        Parameters
-        ----------
-        None
-
         Returns
         -------
         Tuple[Tuple[float, float, float], float] | int
             Tuple with the center and radius of the binding site. If there is an error, the error code is returned.
         '''
-
 
         return get_binding_site(self.box_file, self.box_spacing)
 
@@ -252,15 +244,10 @@ class PLANTS:
     def write_config_file(self) -> int:
         '''Write the config file.
 
-        Parameters
-        ----------
-        None
-
         Returns
         -------
         int
             The exit code of the command (based on the Error.py code table).
-    
         '''
 
         return write_config_file(self.config, self.prepared_receptor, self.prepared_ligand, self.output_plants, self.binding_site_center[0], self.binding_site_center[1], self.binding_site_center[2], self.binding_site_radius)
@@ -353,7 +340,6 @@ class PLANTS:
                 # Ignore if file doesn't exist or can't be removed
                 pass
 
-
         return output
 
     def run_prepare_ligand(self, logFile: str = "", overwrite: bool = False) -> Union[Tuple[int, str], int]:
@@ -371,6 +357,7 @@ class PLANTS:
         Tuple[int, str] | int
             The exit code of the command (based on the Error.py code table) and the stderr if applied.
         '''
+
         return self.preparation_strategy.prepare_ligand(
             self.input_ligand_path,
             self.prepared_ligand,
@@ -420,11 +407,6 @@ class PLANTS:
             If True, skip the default scoring function. By default False.
         overwrite : bool, optional
             If True, overwrite the logFile. Default is False.
-
-        Returns
-        -------
-        int | Tuple[int, str]
-            The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
         '''
 
         # For each scoring function
@@ -595,8 +577,7 @@ class PLANTS:
         return write_pose_list(dockedPoses, poseListPath, overwrite = overwrite)
 
     def print_attributes(self) -> None:
-        '''Print the class attributes.
-        '''
+        '''Print the class attributes.'''
 
         print(f"Name:                        '{self.name if self.name else '-' }'")
         print(f"Box path:                    '{self.box_file if self.box_file else '-' }'")
@@ -655,11 +636,6 @@ def box_to_plants(box_file: str, conf_file: str, receptor: str, ligand: str, out
         The radius of the box. Default is None and it will be calculated.
     spacing : float, optional
         The spacing between the grid points. Default is 2.9.
-
-    Returns
-    -------
-    int
-        The exit code of the command (based on the Error.py code table).
     '''
 
     ocprint.printv(f"Converting the box file '{box_file}' to PLANTS conf file as '{conf_file}' file.")
@@ -675,6 +651,7 @@ def box_to_plants(box_file: str, conf_file: str, receptor: str, ligand: str, out
 
         # Get the center and the binding site center
         center, binding_site_radius = binding_site # type: ignore
+
     # Write the file
     return write_config_file(conf_file, receptor, ligand, output_plants, center[0], center[1], center[2], binding_site_radius) # type: ignore
 
@@ -696,6 +673,7 @@ def run_prepare_ligand(input_ligand_path: str, output_ligand: str, log_file: str
     Tuple[int, str] | int
         The exit code of the command (based on the Error.py code table) and the stderr if applied.
     '''
+
     strategy = SPORESPreparationStrategy()
     return strategy.prepare_ligand(input_ligand_path, output_ligand, log_file, overwrite=overwrite)
 
@@ -717,6 +695,7 @@ def run_prepare_receptor(input_receptor_path: str, output_receptor: str, log_fil
     Tuple[int, str] | int
         The exit code of the command (based on the Error.py code table) and the stderr if applied.
     '''
+
     strategy = SPORESPreparationStrategy()
     return strategy.prepare_receptor(input_receptor_path, output_receptor, log_file, overwrite=overwrite)
 
@@ -838,9 +817,7 @@ def run_rescore(confFile: str, pose_list_file: str, outPath: str, proteinFile: s
         return ocerror.Error.ok() # type: ignore
     else:
         # Print verboosity
-        return ocerror.Error.file_exists(f"The file '{confFile}' already exists. Skipping the PLANTS run.", level = ocerror.ReportLevel.WARNING) # type: ignore
-        
-    return None 
+        return ocerror.Error.file_exists(f"The file '{confFile}' already exists. Skipping the PLANTS run.", level = ocerror.ReportLevel.WARNING) # type: ignore 
 
 
 def write_config_file(confFile: str, preparedReceptor: str, preparedLigand: str, outputPlants: str, bindingSiteCenterX: float, bindingSiteCenterY: float, bindingSiteCenterZ: float, bindingSiteRadius: float, scoringFunction: str = "chemplp") -> int:
@@ -1075,11 +1052,6 @@ def generate_plants_files_database(path: str, protein: str, ligand: str, spacing
         The spacing between the box and the binding site.
     boxPath : str, optional
         The path to the box file. If empty, it will set as path + "/boxes"
-
-    Returns
-    -------
-    int
-        The exit code of the command (based on the Error.py code table).
     '''
 
     # Parameterize the PLANTS and paths
@@ -1174,7 +1146,7 @@ def read_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
 
 
 def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, digestFormat : str = "json") -> int:
-    """Generate the docking digest.
+    '''Generate the docking digest.
     
     Parameters
     ----------
@@ -1191,7 +1163,7 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
     -------
     int
         The exit code of the command (based on the Error.py code table).
-    """
+    '''
 
     # Check if the file does not exists or if the overwrite flag is true
     if not os.path.isdir(digestPath) or overwrite:

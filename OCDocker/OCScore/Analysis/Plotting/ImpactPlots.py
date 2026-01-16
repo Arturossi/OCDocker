@@ -98,10 +98,6 @@ def plot_prop_delta(contingency: pd.DataFrame, title: str = 'Proportion delta (1
         Plot title. Default is 'Proportion delta (1 - 0)'.
     outpath : str | None, optional
         If provided, saves the figure to this path.
-
-    Returns
-    -------
-    None
     '''
 
     # Compute per-category Δ proportion
@@ -150,10 +146,6 @@ def plot_residuals_lollipop(residuals_df: pd.DataFrame,
         Suffix to include in the plot title.
     outpath : str | None, optional
         If provided, saves the figure to this path.
-
-    Returns
-    -------
-    None
     '''
 
     # Select the 'presence' row using provided key (tolerate int/str),
@@ -215,10 +207,6 @@ def plot_chi2_contrib(contingency: pd.DataFrame,
         Title override. If None, an informative default is used.
     outpath : str | None, optional
         If provided, saves the figure to this path.
-
-    Returns
-    -------
-    None
     '''
 
     # Compute row/column totals and the expected frequencies under independence
@@ -280,10 +268,6 @@ def feature_report_2xk(feature: str,
         Optional p-value to include in the text box.
     outpath : str, optional
         Output image path (default 'feature_report.png').
-
-    Returns
-    -------
-    None
     '''
 
     # Create a 2x2 figure grid
@@ -373,6 +357,7 @@ def residuals_matrix_from_dict(residuals_dict: Dict[str, pd.DataFrame],
     pd.DataFrame
         Matrix with features as rows and categories as columns.
     '''
+
     # Build a dict of rows by selecting the 'presence' row from each residuals DF
     rows = {}
     for feat, resdf in residuals_dict.items():
@@ -404,10 +389,6 @@ def plot_residuals_matrix(residuals_dict: Dict[str, pd.DataFrame],
         How to order features. Options: 'maxabs' (default) or 'chi2' (reserved for future use).
     outpath : str, optional
         Output image path (default 'residuals_matrix.png').
-
-    Returns
-    -------
-    None
     '''
     
     # Build matrix and order rows by the chosen criterion
@@ -425,3 +406,4 @@ def plot_residuals_matrix(residuals_dict: Dict[str, pd.DataFrame],
     plt.tight_layout()
     plt.savefig(outpath, dpi=300)
     plt.close()
+

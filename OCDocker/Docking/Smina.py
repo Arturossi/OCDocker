@@ -303,11 +303,6 @@ class Smina:
         ----------
         logFile : str
             The path for the log file.
-
-        Returns
-        -------
-        int | Tuple[int, str]
-            The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
         '''
 
         # DEPRECATED: Use run_prepare_ligand() instead
@@ -391,11 +386,6 @@ class Smina:
             If True, split the ligand before rescoring. By default False.
         overwrite : bool, optional
             If True, overwrite the logFile. By default False.
-
-        Returns
-        -------
-        int | Tuple[int, str]
-            The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
         '''
 
         # For each scoring function
@@ -528,11 +518,6 @@ def gen_smina_conf(box_file: str, conf_file: str, receptor: str) -> int:
         The path for the conf file.
     receptor : str
         The path for the receptor.
-
-    Returns
-    -------
-    int
-        The exit code of the command (based on the Error.py code table).
     '''
 
     # Test if the file box_file exists
@@ -818,11 +803,6 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
         If True, split the ligand before running smina. By default True.
     overwrite : bool, optional
         If True, overwrite the logFile. By default False.
-
-    Returns
-    -------
-    int
-        The exit code of the command (based on the Error.py code table).
     '''
 
     # Print verboosity

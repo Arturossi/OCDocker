@@ -59,7 +59,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 
 class NeuralNet(nn.Module):
-    ''' Neural Network class for the optimization of the neural network.
+    """ Neural Network class for the optimization of the neural network.
 
     Parameters
     ----------
@@ -79,7 +79,7 @@ class NeuralNet(nn.Module):
         Verbose mode for the neural network, by default False
     mask : Union[None, list[Union[int, bool]], np.ndarray], optional
         Mask for the neural network, by default None
-    '''
+    """
 
 
     def __init__(self, 
@@ -252,13 +252,6 @@ class NeuralNet(nn.Module):
             ocprint.printv(self.NN) # type: ignore
 
 
-
-
-
-
-
-
-
     def __build_encoder(self, encoder_params : dict) -> list:
         ''' Build the encoder for the neural network
         
@@ -324,15 +317,8 @@ class NeuralNet(nn.Module):
                     ("BatchNorm1d", encoder_params[f'n_units_layer_{i}_encoder']), 
                     ("Activation", encoder_activation)
                 ])
-            
 
         return encoder
-
-
-
-
-
-
 
 
     def __build_encoder_layer(self, encoder_params : dict) -> list:
@@ -390,12 +376,6 @@ class NeuralNet(nn.Module):
         return encoder_layer
 
 
-
-
-
-
-
-
     def set_random_seed(self) -> None:
         '''Set the random seed for the Autoencoder. It is used to set the random seed for the Autoencoder.'''
 
@@ -420,12 +400,6 @@ class NeuralNet(nn.Module):
         torch.backends.cudnn.benchmark = False
 
         torch.backends.cudnn.deterministic = True
-
-
-
-
-
-
 
 
     def train_model(self,
@@ -674,18 +648,14 @@ class NeuralNet(nn.Module):
         self.mae = mae
 
 
+    def get_model(self) -> nn.Module:
+        '''Get the neural network model.'''
 
-
-
-
-
-
-    def get_model(self):
         return self.NN
 
 
 class DynamicNN(nn.Module):
-    ''' Dynamic Neural Network class for the optimization of the neural network.
+    """ Dynamic Neural Network class for the optimization of the neural network.
     
     Parameters
     ----------
@@ -703,8 +673,7 @@ class DynamicNN(nn.Module):
         Device for the neural network, by default torch.device('cpu')
     mask : Union[None, list[Union[int, bool]], np.ndarray], optional
         Mask for the neural network, by default None
-    '''
-
+    """
 
     def __init__(self,
             input_size: int,
@@ -807,14 +776,7 @@ class DynamicNN(nn.Module):
                     # Append the activation function to the layers while setting the device
                     self.layers.append(act_func(**processed_act_params).to(self.device))
 
-
         return None
-
-
-
-
-
-
 
 
     def __set_ablation_mask(self, mask: list) -> None:
@@ -833,14 +795,7 @@ class DynamicNN(nn.Module):
         else:
             self.mask = []
 
-
         return None
-
-
-
-
-
-
 
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -876,7 +831,7 @@ class DynamicNN(nn.Module):
 
 
 class MultiBranchDynamicNN(nn.Module):
-    ''' Multi Branch Dynamic Neural Network class for the optimization of the neural network.
+    """ Multi Branch Dynamic Neural Network class for the optimization of the neural network.
 
     Parameters
     ----------
@@ -892,8 +847,7 @@ class MultiBranchDynamicNN(nn.Module):
         Encoder for the neural network, by default None
     device : torch.device, optional
         Device for the neural network, by default torch.device('cpu')
-    '''
-
+    """
 
     def __init__(self,
             input_size: Union[int, list[int]],
@@ -1005,14 +959,7 @@ class MultiBranchDynamicNN(nn.Module):
                     # Append the activation function to the layers while setting the device
                     self.layers.append(act_func(**processed_act_params).to(self.device))
 
-
         return None
-
-
-
-
-
-
 
 
     def forward(self, xs: list[torch.Tensor]) -> torch.Tensor:
@@ -1075,7 +1022,7 @@ class MultiBranchDynamicNN(nn.Module):
 
 
 class CustomDataset(Dataset):
-    ''' Custom dataset class for the neural network
+    """ Custom dataset class for the neural network
 
     Parameters
     ----------
@@ -1083,8 +1030,7 @@ class CustomDataset(Dataset):
         Features tensor
     target : torch.Tensor
         Target tensor
-    '''
-
+    """
 
     def __init__(self, features: torch.Tensor, target: torch.Tensor) -> None:
         ''' Initialize the CustomDataset class
@@ -1104,12 +1050,6 @@ class CustomDataset(Dataset):
         return None
 
 
-
-
-
-
-
-
     def __len__(self) -> int:
         ''' Get the length of the dataset
         
@@ -1121,12 +1061,6 @@ class CustomDataset(Dataset):
 
 
         return len(self.features)
-
-
-
-
-
-
 
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
@@ -1147,7 +1081,7 @@ class CustomDataset(Dataset):
 
 
 class MultiBranchCustomDataset(Dataset):
-    ''' Custom dataset class for the multi branch neural network.
+    """ Custom dataset class for the multi branch neural network.
 
     Parameters
     ----------
@@ -1159,8 +1093,7 @@ class MultiBranchCustomDataset(Dataset):
         Features tensor for the third branch
     target : torch.Tensor
         Target tensor
-    '''
-
+    """
 
     def __init__(self,
                  features1 : torch.Tensor,
@@ -1189,12 +1122,6 @@ class MultiBranchCustomDataset(Dataset):
         self.target = target
 
 
-
-
-
-
-
-
     def __len__(self) -> int:
         ''' Get the length of the dataset
 
@@ -1204,14 +1131,7 @@ class MultiBranchCustomDataset(Dataset):
             Length of the dataset
         '''
 
-
         return len(self.features1)
-
-
-
-
-
-
 
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -1232,7 +1152,7 @@ class MultiBranchCustomDataset(Dataset):
 
 
 class DNNOptimizer:
-    ''' Dynamic Neural Network Optimizer class for the optimization of the neural network.
+    """ Dynamic Neural Network Optimizer class for the optimization of the neural network.
 
     Parameters
     ----------
@@ -1262,8 +1182,7 @@ class DNNOptimizer:
         Use GPU for the neural network, by default True
     verbose : bool, optional
         Verbose mode for the neural network, by default False
-    '''
-
+    """
 
     def __init__(self,
             X_train: Union[np.ndarray, pd.DataFrame, pd.Series, list[Union[np.ndarray, pd.DataFrame, pd.Series]]],
@@ -1425,12 +1344,6 @@ class DNNOptimizer:
         self.storage = storage
 
 
-
-
-
-
-
-
     def __build_encoder(self, encoder_params : dict) -> list:
         ''' Build the encoder for the neural network
 
@@ -1517,12 +1430,6 @@ class DNNOptimizer:
         return encoder
 
 
-
-
-
-
-
-
     def set_random_seed(self) -> None:
         '''Set the random seed for the Autoencoder. It is used to set the random seed for the Autoencoder.'''
 
@@ -1547,12 +1454,6 @@ class DNNOptimizer:
         torch.backends.cudnn.benchmark = False
 
         torch.backends.cudnn.deterministic = True
-
-
-
-
-
-
 
 
     def train_test_model(self,
@@ -1695,12 +1596,6 @@ class DNNOptimizer:
 
 
         return rmse
-
-
-
-
-
-
 
 
     def objective(self, trial : optuna.Trial) -> float:
@@ -1888,14 +1783,7 @@ class DNNOptimizer:
             trial.set_user_attr('log_loss', log_loss_value)
             trial.set_user_attr('mae', float(mae))
 
-
         return test_loss
-
-
-
-
-
-
 
 
     def objective_ablation(self, trial : optuna.Trial) -> float:
@@ -1972,12 +1860,6 @@ class DNNOptimizer:
         return model.rmse # type: ignore
 
 
-
-
-
-
-
-
     def optimize(self,
                  direction: str = "maximize",
                  n_trials : int = 10,
@@ -2031,12 +1913,6 @@ class DNNOptimizer:
             best_params = study.best_params
 
             ocprint.printv(f"Best Hyperparameters: {best_params}")
-
-
-
-
-
-
 
 
     def ablate(self,
