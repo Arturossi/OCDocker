@@ -580,7 +580,7 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
 
     # Check if file is a PDB file
     if structurePath.endswith(".pdb"):
-        _ = ocmolproc.make_only_ATOM_and_CRYST_pdb(structurePath)
+        _ = ocmolproc.clean_for_dssp(structurePath)
 
     # Load the clean Structure
     #cleanStructure = loadMol(cleanStructurePath)
@@ -594,7 +594,20 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
     # Run the DSSP
     config = get_config()
     try:
-        dsspData = DSSP(structure[0], structurePath, dssp = config.tools.dssp)
+        # Get the extension of the structure path
+        extension = os.path.splitext(structurePath)[1].lower()
+
+        # Check if the file is a mmCIF or PDB file
+        if extension in [".cif", ".mmcif"]:
+            extension = "MMCIF"
+        elif extension in [".pdb", ".ent", ".pdbqt"]:
+            extension = "PDB"
+        else:
+            # Print a warning telling that the file may not load properly and force to be pdb
+            ocprint.print_warning(f"The structure file '{structurePath}' does not have a .cif or .mmcif extension. Assuming it is a PDB file for DSSP processing.")
+            extension = "PDB"
+
+        dsspData = DSSP(structure[0], structurePath, dssp = config.tools.dssp, file_type=extension)
     except PDBException as e:
         # DSSP failed due to structure/DSSP mismatch or other PDB-related issues
         ocprint.print_error(f"DSSP failed for structure '{structurePath}': {e}")

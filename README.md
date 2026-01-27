@@ -133,7 +133,7 @@ System dependencies
 Before installing OCDocker, you must install the following system packages:
 
 ```bash
-sudo apt-get install openbabel libopenbabel-dev swig
+sudo apt-get install openbabel libopenbabel-dev swig cmake g++
 ```
 
 These packages are required for building and using OpenBabel Python bindings, which are essential for OCDocker's molecular processing capabilities.
@@ -154,10 +154,14 @@ sudo systemctl enable --now mysql
 
 2) Create a database and user (local-only access)
 
-```sql
+Start the MySQL shell:
+```bash
 -- Enter the MySQL shell
 sudo mysql
+```
 
+Create the user and databases:
+```sql
 -- Create databases (adjust name as desired)
 CREATE DATABASE ocdocker CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE DATABASE optimization CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -175,6 +179,7 @@ EXIT;
 ```sql
 -- In the MySQL shell
 CREATE USER 'ocdocker'@'%' IDENTIFIED BY 'strong_password_here';
+GRANT ALL PRIVILEGES ON ocdocker.* TO 'ocdocker'@'%';
 GRANT ALL PRIVILEGES ON optimization.* TO 'ocdocker'@'%';
 FLUSH PRIVILEGES;
 ```

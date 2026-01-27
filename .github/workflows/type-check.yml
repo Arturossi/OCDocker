@@ -16,10 +16,26 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install system deps (OpenBabel + SWIG)
+    - name: Install system deps (OpenBabel + SWIG + cmake + g++)
       run: |
         sudo apt-get update
-        sudo apt-get install -y openbabel libopenbabel-dev swig
+        sudo apt-get install -y openbabel libopenbabel-dev swig cmake g++
+    
+    - name: Make OpenBabel visible under /usr/local (for PyPI openbabel build)
+      run: |
+        # Headers: apt puts them in /usr/include/openbabel3, but PyPI build guesses /usr/local/include/openbabel3
+        sudo mkdir -p /usr/local/include/openbabel3
+        if [ ! -e /usr/local/include/openbabel3/openbabel ]; then
+          sudo ln -s /usr/include/openbabel3/openbabel /usr/local/include/openbabel3/openbabel
+        fi
+
+        # Libraries: apt usually puts them in /usr/lib/x86_64-linux-gnu, but PyPI build often guesses /usr/local/lib
+        sudo mkdir -p /usr/local/lib
+        for f in /usr/lib/x86_64-linux-gnu/libopenbabel* /usr/lib/libopenbabel* /usr/lib64/libopenbabel*; do
+          if [ -e "$f" ]; then sudo ln -sf "$f" /usr/local/lib/; fi
+        done
+
+        sudo ldconfig
     
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5

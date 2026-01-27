@@ -180,8 +180,8 @@ def get_rmsd(reference: str, molecule: str) -> Union[List[float], float]:
     return rmsd.symmrmsd(refCoordinates, molCoordinates, refAtmNum, molAtmNum, refAdjMat, molAdjMat)
 
 
-def make_only_ATOM_and_CRYST_pdb(structurePath: str) -> int:
-    '''Make a pdb file with only ATOM and CRYST1 records.
+def clean_for_dssp(structurePath: str) -> int:
+    '''Make a pdb file with HEADER (empty), then CRYST1 and finally ATOM records only.
 
     Parameters
     ----------
@@ -196,6 +196,9 @@ def make_only_ATOM_and_CRYST_pdb(structurePath: str) -> int:
 
     # Initialise hasCryst1 flag
     hasCryst1 = False
+
+    # Inigialise hasHeader flag
+    hasHeader = False
     
     # List of lines and dssp lines
     lines = []
@@ -206,9 +209,17 @@ def make_only_ATOM_and_CRYST_pdb(structurePath: str) -> int:
         with open(structurePath, 'r') as pdbFile:
             # For each line in pdbFile
             for line in pdbFile:
-                if not line.startswith("CRYST1") and not hasCryst1:
+                if not line.startswith("HEADER") and not hasHeader:
+                    # Set the hasHeader flag to True
+                    hasHeader = True
+                    
+                    # Add the line to the list
+                    lines.append("HEADER    \n")
+
+                if not line.startswith("CRYST1") and hasHeader and not hasCryst1:
                     # Set the hasCryst1 flag to True
                     hasCryst1 = True
+                    
                     # Add the line to the list
                     lines.append("CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1\n")
 
@@ -218,10 +229,13 @@ def make_only_ATOM_and_CRYST_pdb(structurePath: str) -> int:
                     if line[21] == " ":
                         # Assume that the protein has only one chain and call it A
                         line = f"{line[:21]}A{line[22:]}"
+                    
                     # Add the line to the list
                     lines.append(line)
+
         # Create a lock for multithreading
         lock = Lock()
+        
         # Start the lock with statement
         with lock:
             # Write the lines to the file
