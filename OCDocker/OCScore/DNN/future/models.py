@@ -37,7 +37,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 
 class MLP(nn.Module):
-    '''Simple MLP with optional batch norm and dropout.
+    """Simple MLP with optional batch norm and dropout.
 
     Parameters
     ----------
@@ -51,7 +51,7 @@ class MLP(nn.Module):
         Dropout probability applied after activation, by default 0.0.
     batch_norm : bool, optional
         Use BatchNorm1d after Linear, by default True.
-    '''
+    """
 
     def __init__(
             self,
@@ -61,6 +61,22 @@ class MLP(nn.Module):
             dropout: float = 0.0,
             batch_norm: bool = True
         ) -> None:
+        '''Initialize MLP.
+
+        Parameters
+        ----------
+        input_size : int
+            Input feature dimension.
+        layer_sizes : list[int]
+            Layer sizes.
+        activations : str | list[tuple[str, dict]], optional
+            Activation configuration, by default "GELU".
+        dropout : float, optional
+            Dropout probability, by default 0.0.
+        batch_norm : bool, optional
+            Use BatchNorm1d, by default True.
+        '''
+
         super(MLP, self).__init__()
 
         if not layer_sizes:
@@ -88,11 +104,24 @@ class MLP(nn.Module):
 
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        '''Forward pass.
+        
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor.
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor.
+        '''
+
         return self.net(x)
 
 
 class MultiTaskModel(nn.Module):
-    '''Shared encoder with heads for energy, activity, embedding and reconstruction.
+    """Shared encoder with heads for energy, activity, embedding and reconstruction.
 
     Parameters
     ----------
@@ -116,7 +145,7 @@ class MultiTaskModel(nn.Module):
         Use BatchNorm1d.
     mask : torch.Tensor | None
         Feature mask.
-    '''
+    """
 
     def __init__(
             self,
@@ -131,6 +160,32 @@ class MultiTaskModel(nn.Module):
             batch_norm: bool = True,
             mask: Union[torch.Tensor, None] = None
         ) -> None:
+        '''Initialize multi-task model.
+
+        Parameters
+        ----------
+        input_size : int
+            Input feature dimension.
+        encoder_params : dict | None
+            Encoder parameters (legacy format).
+        shared_sizes : list[int]
+            Shared encoder layer sizes.
+        shared_activation : str, optional
+            Activation name, by default "GELU".
+        decoder_sizes : list[int] | None, optional
+            Decoder sizes for reconstruction, by default None.
+        head_sizes : list[int], optional
+            Head hidden sizes, by default [128, 64].
+        embedding_dim : int | None, optional
+            Embedding dimension, by default 64.
+        dropout : float, optional
+            Dropout probability, by default 0.0.
+        batch_norm : bool, optional
+            Use BatchNorm1d, by default True.
+        mask : torch.Tensor | None, optional
+            Feature mask, by default None.
+        '''
+
         super(MultiTaskModel, self).__init__()
 
         self.mask = mask
@@ -195,6 +250,21 @@ class MultiTaskModel(nn.Module):
 
 
     def forward(self, x: torch.Tensor, return_reconstruction: bool = False) -> Dict[str, torch.Tensor]:
+        '''Forward pass.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor.
+        return_reconstruction : bool, optional
+            Whether to return reconstruction, by default False.
+
+        Returns
+        -------
+        dict[str, torch.Tensor]
+            Dictionary with latent, energy, activity, embedding and reconstruction tensors.
+        '''
+
         if self.mask is not None:
             x = x * self.mask
         latent = self.encoder(x)
@@ -223,9 +293,22 @@ class MultiTaskModel(nn.Module):
 
 # Methods
 ###############################################################################
-
-
 def _build_activation(name: str, params: Dict[str, Any]) -> nn.Module:
+    '''Build activation module from name and parameters.
+
+    Parameters
+    ----------
+    name : str
+        Activation name.
+    params : Dict[str, Any]
+        Activation parameters.
+
+    Returns
+    -------
+    nn.Module
+        Activation module.
+    '''
+
     name = name or "ReLU"
 
     if name == "LeakyReLU":
@@ -249,7 +332,18 @@ def _build_activation(name: str, params: Dict[str, Any]) -> nn.Module:
 
 
 def parse_encoder_params(encoder_params: Dict[str, Any]) -> Tuple[List[int], List[Tuple[str, Dict[str, Any]]]]:
-    '''Parse old-style encoder params into layer sizes and activation configs.'''
+    '''Parse old-style encoder params into layer sizes and activation configs.
+
+    Parameters
+    ----------
+    encoder_params : Dict[str, Any]
+        Encoder parameters dictionary.
+
+    Returns
+    -------
+    tuple[list[int], list[tuple[str, dict]]]
+        Layer sizes and activation configs.
+    '''
 
     if "encoding_dim" in encoder_params:
         layer_sizes = [int(encoder_params["encoding_dim"])]
@@ -287,3 +381,4 @@ def parse_encoder_params(encoder_params: Dict[str, Any]) -> Tuple[List[int], Lis
         raise ValueError("encoder_params must define at least one layer")
 
     return layer_sizes, activations
+

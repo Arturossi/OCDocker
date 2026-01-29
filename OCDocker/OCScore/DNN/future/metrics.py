@@ -42,9 +42,22 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 # Methods
 ###############################################################################
-
-
 def safe_auc(y_true: np.ndarray, y_score: np.ndarray) -> float:
+    '''Compute ROC AUC with guards for degenerate labels.
+
+    Parameters
+    ----------
+    y_true : np.ndarray
+        Ground-truth labels.
+    y_score : np.ndarray
+        Predicted scores.
+
+    Returns
+    -------
+    float
+        ROC AUC value or 0.0 if undefined.
+    '''
+
     try:
         if len(np.unique(y_true)) < 2:
             return 0.0
@@ -54,6 +67,21 @@ def safe_auc(y_true: np.ndarray, y_score: np.ndarray) -> float:
 
 
 def safe_pr_auc(y_true: np.ndarray, y_score: np.ndarray) -> float:
+    '''Compute PR AUC with guards for degenerate labels.
+
+    Parameters
+    ----------
+    y_true : np.ndarray
+        Ground-truth labels.
+    y_score : np.ndarray
+        Predicted scores.
+
+    Returns
+    -------
+    float
+        PR AUC value or 0.0 if undefined.
+    '''
+
     try:
         if len(np.unique(y_true)) < 2:
             return 0.0
@@ -63,6 +91,21 @@ def safe_pr_auc(y_true: np.ndarray, y_score: np.ndarray) -> float:
 
 
 def safe_log_loss(y_true: np.ndarray, y_score: np.ndarray) -> float:
+    '''Compute log-loss with guards for degenerate labels.
+
+    Parameters
+    ----------
+    y_true : np.ndarray
+        Ground-truth labels.
+    y_score : np.ndarray
+        Predicted scores.
+
+    Returns
+    -------
+    float
+        Log-loss value or inf if undefined.
+    '''
+
     try:
         if len(np.unique(y_true)) < 2:
             return float("inf")
@@ -72,7 +115,22 @@ def safe_log_loss(y_true: np.ndarray, y_score: np.ndarray) -> float:
 
 
 def partial_auc(y_true: np.ndarray, y_score: np.ndarray, max_fpr: float = 0.05) -> float:
-    '''Compute partial AUC up to max_fpr.'''
+    '''Compute partial AUC up to max_fpr.
+
+    Parameters
+    ----------
+    y_true : np.ndarray
+        Ground-truth labels.
+    y_score : np.ndarray
+        Predicted scores.
+    max_fpr : float, optional
+        Maximum false positive rate, by default 0.05.
+
+    Returns
+    -------
+    float
+        Normalized partial AUC.
+    '''
 
     try:
         if len(np.unique(y_true)) < 2:
@@ -108,6 +166,23 @@ def partial_auc(y_true: np.ndarray, y_score: np.ndarray, max_fpr: float = 0.05) 
 
 
 def ndcg_at_k(y_true: np.ndarray, y_score: np.ndarray, k: int) -> float:
+    '''Compute NDCG@k.
+
+    Parameters
+    ----------
+    y_true : np.ndarray
+        Ground-truth labels.
+    y_score : np.ndarray
+        Predicted scores.
+    k : int
+        Rank cutoff.
+
+    Returns
+    -------
+    float
+        NDCG@k value.
+    '''
+
     y_true = np.asarray(y_true)
     y_score = np.asarray(y_score)
 
@@ -136,7 +211,24 @@ def compute_group_metrics(
         target_ids: np.ndarray,
         k_fractions: Tuple[float, float] = (0.01, 0.05)
     ) -> Dict[str, float]:
-    '''Compute ranking metrics per target and macro-average them.'''
+    '''Compute ranking metrics per target and macro-average them.
+
+    Parameters
+    ----------
+    y_true : np.ndarray
+        Ground-truth labels.
+    y_score : np.ndarray
+        Predicted scores.
+    target_ids : np.ndarray
+        Target identifiers per sample.
+    k_fractions : tuple[float, float], optional
+        Fractions for top-k metrics, by default (0.01, 0.05).
+
+    Returns
+    -------
+    Dict[str, float]
+        Macro-averaged ranking metrics.
+    '''
 
     unique_targets = np.unique(target_ids)
     ef_1 = []
@@ -162,6 +254,19 @@ def compute_group_metrics(
         ndcg_5.append(ndcg_at_k(yt, ys, k2))
 
     def _safe_mean(values: List[float]) -> float:
+        '''Compute mean while ignoring NaNs.
+
+        Parameters
+        ----------
+        values : list[float]
+            Input values.
+
+        Returns
+        -------
+        float
+            Mean of non-NaN values or 0.0 if empty.
+        '''
+
         vals = [v for v in values if not np.isnan(v)]
         if not vals:
             return 0.0
@@ -181,7 +286,24 @@ def compute_classification_metrics(
         target_ids: np.ndarray | None = None,
         k_fractions: Tuple[float, float] = (0.01, 0.05)
     ) -> Dict[str, float]:
-    '''Compute classification and ranking metrics for DUDE.'''
+    '''Compute classification and ranking metrics for a labeled ranking dataset.
+
+    Parameters
+    ----------
+    y_true : np.ndarray
+        Ground-truth labels.
+    y_score : np.ndarray
+        Predicted scores.
+    target_ids : np.ndarray | None, optional
+        Target identifiers per sample, by default None.
+    k_fractions : tuple[float, float], optional
+        Fractions for top-k metrics, by default (0.01, 0.05).
+
+    Returns
+    -------
+    Dict[str, float]
+        Metrics dictionary.
+    '''
 
     metrics: Dict[str, float] = {}
 
@@ -196,3 +318,4 @@ def compute_classification_metrics(
         metrics.update(group_metrics)
 
     return metrics
+

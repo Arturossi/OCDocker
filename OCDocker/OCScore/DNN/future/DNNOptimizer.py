@@ -66,22 +66,22 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 
 class DNNOptimizer:
-    '''Future DNN optimizer with multi-stage, multi-task training.
+    """Future DNN optimizer with multi-stage, multi-task training.
 
     Parameters
     ----------
     X_train : np.ndarray | pd.DataFrame
-        PDBbind training features.
+        Primary regression training features.
     y_train : np.ndarray | pd.Series
-        PDBbind training experimental energies.
+        Primary regression training targets.
     X_test : np.ndarray | pd.DataFrame
-        PDBbind testing features.
+        Primary regression testing features.
     y_test : np.ndarray | pd.Series
-        PDBbind testing experimental energies.
+        Primary regression testing targets.
     X_validation : np.ndarray | pd.DataFrame | None, optional
-        DUDE features (if provided). Default is None.
+        Ranking/classification features (if provided). Default is None.
     y_validation : np.ndarray | pd.Series | None, optional
-        DUDE labels (if provided). Default is None.
+        Ranking/classification labels (if provided). Default is None.
     mask : list[int|bool] | np.ndarray, optional
         Feature mask for ablation/feature selection (single-branch only).
     storage : str, optional
@@ -103,7 +103,7 @@ class DNNOptimizer:
     -------
     >>> trainer = DNNOptimizer(X_train, y_train, X_test, y_test, X_validation, y_validation)
     >>> trainer.optimize(n_trials=5)
-    '''
+    """
 
     def __init__(
             self,
@@ -122,6 +122,39 @@ class DNNOptimizer:
             verbose: bool = False,
             future_config: Optional[dict] = None
         ) -> None:
+        '''Initialize the future DNN optimizer.
+
+        Parameters
+        ----------
+        X_train : np.ndarray | pd.DataFrame
+            Primary regression training features.
+        y_train : np.ndarray | pd.Series
+            Primary regression training targets.
+        X_test : np.ndarray | pd.DataFrame
+            Primary regression testing features.
+        y_test : np.ndarray | pd.Series
+            Primary regression testing targets.
+        X_validation : np.ndarray | pd.DataFrame | None, optional
+            Ranking/classification features, by default None.
+        y_validation : np.ndarray | pd.Series | None, optional
+            Ranking/classification labels, by default None.
+        mask : list[int | bool] | np.ndarray, optional
+            Feature mask, by default [].
+        storage : str, optional
+            Optuna storage string, by default "sqlite:///NNoptimization.db".
+        encoder_params : dict | None, optional
+            Legacy encoder parameters, by default None.
+        output_size : int, optional
+            Output size (compat), by default 1.
+        random_seed : int, optional
+            Random seed, by default 42.
+        use_gpu : bool, optional
+            Use GPU if available, by default True.
+        verbose : bool, optional
+            Verbose mode, by default False.
+        future_config : dict | None, optional
+            Configuration overrides, by default None.
+        '''
 
         self.random_seed = random_seed
         self.use_gpu = use_gpu
@@ -142,7 +175,7 @@ class DNNOptimizer:
         # Merge configuration
         self.config = self._merge_config(future_config)
 
-        # Prepare PDBbind data
+        # Prepare primary regression data
         self.X_pdb_train = self._to_numpy(X_train)
         self.y_pdb_train = np.asarray(y_train).reshape(-1, 1)
         self.X_pdb_test = self._to_numpy(X_test)
@@ -153,7 +186,7 @@ class DNNOptimizer:
             raise ValueError("Multi-branch inputs are not supported in the future DNN optimizer")
         self.input_size = self._infer_input_size(self.X_pdb_train)
 
-        # Prepare DUDE data (train/val)
+        # Prepare ranking data (train/val)
         self.dude_train = None
         self.dude_val = None
 
@@ -178,6 +211,19 @@ class DNNOptimizer:
 
 
     def _merge_config(self, future_config: Optional[dict]) -> dict:
+        '''Merge default configuration with overrides.
+
+        Parameters
+        ----------
+        future_config : dict | None
+            User-provided configuration overrides.
+
+        Returns
+        -------
+        dict
+            Merged configuration dictionary.
+        '''
+
         default_config = {
             "model": {
                 "shared_sizes": [512, 256, 128],
@@ -254,12 +300,38 @@ class DNNOptimizer:
 
 
     def _to_numpy(self, data: Union[np.ndarray, pd.DataFrame]) -> np.ndarray:
+        '''Convert input data to numpy array.
+
+        Parameters
+        ----------
+        data : np.ndarray | pd.DataFrame
+            Input data.
+
+        Returns
+        -------
+        np.ndarray
+            Numpy array representation.
+        '''
+
         if isinstance(data, pd.DataFrame):
             return data.values
         return np.asarray(data)
 
 
     def _infer_input_size(self, data: np.ndarray) -> int:
+        '''Infer input feature dimension from data.
+
+        Parameters
+        ----------
+        data : np.ndarray
+            Feature matrix.
+
+        Returns
+        -------
+        int
+            Input feature dimension.
+        '''
+
         return int(data.shape[1])
 
 
@@ -269,6 +341,17 @@ class DNNOptimizer:
             y_validation: Union[np.ndarray, pd.Series, None],
             future_config: Optional[dict]
         ) -> None:
+        '''Prepare ranking/classification data splits for stage2.
+
+        Parameters
+        ----------
+        X_validation : np.ndarray | pd.DataFrame | None
+            Feature matrix for ranking/classification dataset.
+        y_validation : np.ndarray | pd.Series | None
+            Labels for ranking/classification dataset.
+        future_config : dict | None
+            Optional overrides containing pre-split data or target ids.
+        '''
 
         if future_config and "dude_train_data" in future_config:
             dude_train = future_config["dude_train_data"]
@@ -281,7 +364,7 @@ class DNNOptimizer:
         if X_validation is None or y_validation is None:
             return
 
-        # Convert DUDE data
+        # Convert ranking data
         X_dude = self._to_numpy(X_validation)
         y_dude = np.asarray(y_validation).astype(int)
 
@@ -301,7 +384,7 @@ class DNNOptimizer:
 
         target_ids = np.asarray(target_ids)
 
-        # Split DUDE into train/val
+        # Split ranking data into train/val
         val_fraction = float(self.config["data"].get("dude_validation_fraction", 0.2))
         if val_fraction <= 0.0 or val_fraction >= 1.0:
             self.dude_train = {"X": X_dude, "y": y_dude, "targets": target_ids}
@@ -332,10 +415,38 @@ class DNNOptimizer:
 
 
     def _select_rows(self, data: np.ndarray, idx: np.ndarray) -> np.ndarray:
+        '''Select rows from an array by indices.
+
+        Parameters
+        ----------
+        data : np.ndarray
+            Input array.
+        idx : np.ndarray
+            Indices to select.
+
+        Returns
+        -------
+        np.ndarray
+            Selected rows.
+        '''
+
         return data[idx]
 
 
     def _build_model(self, model_config: dict) -> nn.Module:
+        '''Build the multi-task model for the future pipeline.
+
+        Parameters
+        ----------
+        model_config : dict
+            Model configuration dictionary.
+
+        Returns
+        -------
+        nn.Module
+            Initialized model.
+        '''
+
         mask = self.mask
         model_cfg = copy.deepcopy(model_config)
 
@@ -365,6 +476,21 @@ class DNNOptimizer:
 
 
     def _apply_noise(self, x: torch.Tensor, stage_cfg: dict) -> torch.Tensor:
+        '''Apply input noise during stage1 training.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input batch tensor.
+        stage_cfg : dict
+            Stage configuration.
+
+        Returns
+        -------
+        torch.Tensor
+            Noised tensor.
+        '''
+
         noise_type = stage_cfg.get("noise_type", "mask")
         if noise_type == "none":
             return x
@@ -387,6 +513,19 @@ class DNNOptimizer:
 
 
     def _make_pdb_loader(self, split: str = "train") -> DataLoader:
+        '''Create DataLoader for primary regression dataset.
+
+        Parameters
+        ----------
+        split : str, optional
+            Split name ("train" or "val"), by default "train".
+
+        Returns
+        -------
+        DataLoader
+            DataLoader for regression data.
+        '''
+
         if split == "train":
             dataset = EnergyDataset(self.X_pdb_train, self.y_pdb_train, mask=self.mask.cpu().numpy() if self.mask is not None else None)
             batch_size = self.config["stage1"]["batch_size"]
@@ -400,8 +539,16 @@ class DNNOptimizer:
 
 
     def _make_dude_loaders(self) -> tuple[DataLoader, Optional[DataLoader]]:
+        '''Create DataLoaders for ranking/classification dataset.
+
+        Returns
+        -------
+        tuple[DataLoader, Optional[DataLoader]]
+            Training and validation loaders.
+        '''
+
         if self.dude_train is None:
-            raise ValueError("DUDE training data not provided")
+            raise ValueError("Ranking training data not provided")
 
         train_dataset = TargetRankingDataset(
             self.dude_train["X"],
@@ -434,12 +581,37 @@ class DNNOptimizer:
 
 
     def _compute_energy_loss(self, preds: torch.Tensor, targets: torch.Tensor, stage_cfg: dict) -> torch.Tensor:
+        '''Compute energy regression loss.
+
+        Parameters
+        ----------
+        preds : torch.Tensor
+            Predicted energies.
+        targets : torch.Tensor
+            Target energies.
+        stage_cfg : dict
+            Stage configuration containing loss type.
+
+        Returns
+        -------
+        torch.Tensor
+            Loss value.
+        '''
+
         if stage_cfg.get("energy_loss", "huber") == "mse":
             return nn.MSELoss()(preds, targets)
         return nn.HuberLoss()(preds, targets)
 
 
     def _train_stage1(self, model: nn.Module) -> None:
+        '''Train stage1 on regression + reconstruction objectives.
+
+        Parameters
+        ----------
+        model : nn.Module
+            Model to train.
+        '''
+
         stage_cfg = self.config["stage1"]
         if not stage_cfg.get("enabled", True):
             return
@@ -530,6 +702,19 @@ class DNNOptimizer:
 
 
     def _train_stage2(self, model: nn.Module) -> Dict[str, float]:
+        '''Train stage2 on ranking/classification objectives.
+
+        Parameters
+        ----------
+        model : nn.Module
+            Model to train.
+
+        Returns
+        -------
+        Dict[str, float]
+            Validation metrics if available.
+        '''
+
         stage_cfg = self.config["stage2"]
         if not stage_cfg.get("enabled", True):
             return {}
@@ -607,7 +792,7 @@ class DNNOptimizer:
 
                 running_loss += loss.item()
 
-            # Optional energy regularization using PDBbind
+            # Optional energy regularization using regression data
             if pdb_loader is not None and (stage_cfg["lambda_energy"] > 0 or stage_cfg["lambda_recon"] > 0):
                 model.train()
                 for batch in pdb_loader:
@@ -664,6 +849,21 @@ class DNNOptimizer:
 
 
     def _evaluate_dude(self, model: nn.Module, loader: DataLoader) -> Dict[str, float]:
+        '''Evaluate ranking/classification metrics.
+
+        Parameters
+        ----------
+        model : nn.Module
+            Model to evaluate.
+        loader : DataLoader
+            DataLoader for ranking/classification data.
+
+        Returns
+        -------
+        Dict[str, float]
+            Metrics dictionary.
+        '''
+        
         model.eval()
 
         all_scores = []
@@ -689,8 +889,19 @@ class DNNOptimizer:
         return compute_classification_metrics(y_true, y_score, target_ids, self.config["stage2"]["rank_k_fractions"])
 
 
-    def _evaluate_pdbbind_energy(self, model: nn.Module) -> Dict[str, float]:
-        '''Evaluate energy regression performance on PDBbind test set.'''
+    def _evaluate_energy(self, model: nn.Module) -> Dict[str, float]:
+        '''Evaluate energy regression performance on validation split.
+
+        Parameters
+        ----------
+        model : nn.Module
+            Model to evaluate.
+
+        Returns
+        -------
+        Dict[str, float]
+            Energy regression metrics.
+        '''
 
         model.eval()
 
@@ -720,6 +931,11 @@ class DNNOptimizer:
 
     def objective(self, trial: optuna.Trial) -> float | tuple:
         '''Objective function for Optuna.
+
+        Parameters
+        ----------
+        trial : optuna.Trial
+            Optuna trial.
 
         Returns
         -------
@@ -756,7 +972,7 @@ class DNNOptimizer:
         ndcg_value = metrics.get("NDCG@1%", 0.0)
         ef_value = metrics.get("EF@1%", 0.0)
 
-        energy_metrics = self._evaluate_pdbbind_energy(model)
+        energy_metrics = self._evaluate_energy(model)
 
         trial.set_user_attr("AUC", auc_value)
         trial.set_user_attr("PR_AUC", metrics.get("PR_AUC", 0.0))

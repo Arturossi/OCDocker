@@ -39,7 +39,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 
 class EnergyDataset(Dataset):
-    '''Dataset for regression targets (energy labels).
+    """Dataset for regression targets (energy labels).
 
     Parameters
     ----------
@@ -49,7 +49,19 @@ class EnergyDataset(Dataset):
         Regression targets (e.g., energies).
     mask : np.ndarray | None, optional
         Feature mask for single-branch inputs.
-    '''
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from OCDocker.OCScore.Dimensionality.future.datasets import EnergyDataset
+    >>> features = np.random.rand(100, 20)  # 100 samples, 20 features each
+    >>> energies = np.random.rand(100)      # 100 energy labels
+    >>> mask = np.random.randint(0, 2, size=(100, 20))  # Random binary mask
+    >>> dataset = EnergyDataset(features, energies, mask)
+    >>> sample_features, sample_energy = dataset[0]
+    >>> print(sample_features.shape)  # torch.Size([20])
+    >>> print(sample_energy.shape)    # torch.Size([1])
+    """
 
     def __init__(
             self,
@@ -57,6 +69,18 @@ class EnergyDataset(Dataset):
             energies: np.ndarray,
             mask: Union[np.ndarray, None] = None
         ) -> None:
+        '''Initialize energy dataset.
+
+        Parameters
+        ----------
+        features : np.ndarray
+            Input features.
+        energies : np.ndarray
+            Energy targets.
+        mask : np.ndarray | None, optional
+            Feature mask, by default None.
+        '''
+
         feat = np.asarray(features)
         if mask is not None:
             feat = feat * mask
@@ -66,15 +90,36 @@ class EnergyDataset(Dataset):
 
 
     def __len__(self) -> int:
+        '''Return dataset length.
+
+        Returns
+        -------
+        int
+            Number of samples.
+        '''
+
         return self.features.shape[0]
 
 
     def __getitem__(self, idx: int) -> tuple:
+        '''Return a dataset sample.
+
+        Parameters
+        ----------
+        idx : int
+            Sample index.
+
+        Returns
+        -------
+        tuple
+            Features and energy target tensors.
+        '''
+
         return self.features[idx], self.energies[idx]
 
 
 class TargetRankingDataset(Dataset):
-    '''Dataset for ranking with per-target grouping.
+    """Dataset for ranking with per-target grouping.
 
     Parameters
     ----------
@@ -86,7 +131,7 @@ class TargetRankingDataset(Dataset):
         Target identifiers per sample (used for grouping).
     mask : np.ndarray | None, optional
         Feature mask for single-branch inputs.
-    '''
+    """
 
     def __init__(
             self,
@@ -95,6 +140,19 @@ class TargetRankingDataset(Dataset):
             target_ids: Sequence[str],
             mask: Union[np.ndarray, None] = None
         ) -> None:
+        '''Initialize target ranking dataset.
+
+        Parameters
+        ----------
+        features : np.ndarray
+            Input features.
+        labels : np.ndarray
+            Binary labels.
+        target_ids : Sequence[str]
+            Target identifiers.
+        mask : np.ndarray | None, optional
+            Feature mask, by default None.
+        '''
 
         if len(target_ids) != len(labels):
             raise ValueError("target_ids must have the same length as labels")
@@ -118,15 +176,36 @@ class TargetRankingDataset(Dataset):
 
 
     def __len__(self) -> int:
+        '''Return dataset length.
+
+        Returns
+        -------
+        int
+            Number of samples.
+        '''
+
         return self.features.shape[0]
 
 
     def __getitem__(self, idx: int) -> tuple:
+        '''Return a dataset sample.
+
+        Parameters
+        ----------
+        idx : int
+            Sample index.
+
+        Returns
+        -------
+        tuple
+            Features, label, and target id.
+        '''
+
         return self.features[idx], self.labels[idx], self.target_ids[idx]
 
 
 class TargetBatchSampler(Sampler[List[int]]):
-    '''Sampler that yields batches grouped by target.
+    """Sampler that yields batches grouped by target.
 
     Parameters
     ----------
@@ -139,7 +218,25 @@ class TargetBatchSampler(Sampler[List[int]]):
     split_target_batches : bool, optional
         If True, split each target into multiple batches of size batch_size.
         If False, sample a single batch per target. Default False.
-    '''
+    
+    Examples
+    --------
+    >>> from OCDocker.OCScore.Dimensionality.future.datasets import TargetBatchSampler
+    >>> target_to_indices = {
+    ...     0: [0, 1, 2, 3],
+    ...     1: [4, 5, 6],
+    ...     2: [7, 8]
+    ... }
+    >>> sampler = TargetBatchSampler(target_to_indices, batch_size=2, shuffle=False,
+    ...                              split_target_batches=True)
+    >>> for batch in sampler:
+    ...     print(batch)
+    [0, 1]
+    [2, 3]
+    [4, 5]
+    [6]
+    [7, 8]
+    """
 
     def __init__(
             self,
@@ -148,6 +245,19 @@ class TargetBatchSampler(Sampler[List[int]]):
             shuffle: bool = True,
             split_target_batches: bool = False
         ) -> None:
+        '''Initialize target batch sampler.
+
+        Parameters
+        ----------
+        target_to_indices : dict[int, list[int]]
+            Mapping from target id to indices.
+        batch_size : int | None, optional
+            Maximum batch size per target, by default None.
+        shuffle : bool, optional
+            Shuffle targets each epoch, by default True.
+        split_target_batches : bool, optional
+            Split targets into multiple batches, by default False.
+        '''
 
         self.target_to_indices = target_to_indices
         self.batch_size = batch_size
@@ -158,6 +268,14 @@ class TargetBatchSampler(Sampler[List[int]]):
 
 
     def __iter__(self):
+        '''Yield batches grouped by target.
+
+        Yields
+        ------
+        list[int]
+            Indices for a batch.
+        '''
+
         target_ids = self.target_ids[:]
         if self.shuffle:
             random.shuffle(target_ids)
@@ -181,6 +299,14 @@ class TargetBatchSampler(Sampler[List[int]]):
 
 
     def __len__(self) -> int:
+        '''Return number of batches.
+
+        Returns
+        -------
+        int
+            Number of batches per epoch.
+        '''
+
         if self.batch_size is None or not self.split_target_batches:
             return len(self.target_ids)
 
@@ -189,3 +315,4 @@ class TargetBatchSampler(Sampler[List[int]]):
         for idxs in self.target_to_indices.values():
             total += int(math.ceil(len(idxs) / float(self.batch_size)))
         return total
+

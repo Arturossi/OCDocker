@@ -38,7 +38,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 
 class UncertaintyWeighting(nn.Module):
-    '''Uncertainty-based loss balancing for multi-task objectives.
+    """Uncertainty-based loss balancing for multi-task objectives.
 
     Parameters
     ----------
@@ -46,9 +46,35 @@ class UncertaintyWeighting(nn.Module):
         Names of tasks to balance. The order defines parameter indexing.
     init_log_var : float, optional
         Initial value for log-variance parameters, by default 0.0.
-    '''
+    
+    Examples
+    --------
+    >>> import torch
+    >>> from OCDocker.OCScore.DNN.future.losses import UncertaintyWeighting
+    >>> task_names = ["regression", "classification"]
+    >>> model = UncertaintyWeighting(task_names)
+    >>> losses = {
+    ...     "regression": torch.tensor(2.0),
+    ...     "classification": torch.tensor(1.0)
+    ... }
+    >>> total_loss, weights = model(losses)
+    >>> print(total_loss)
+    tensor(3.6931, grad_fn=<AddBackward0>)
+    >>> print(weights)
+    {'regression': 0.6065306663513184, 'classification': 1.0}
+    """
 
     def __init__(self, task_names: Iterable[str], init_log_var: float = 0.0) -> None:
+        '''Initialize uncertainty weighting module.
+
+        Parameters
+        ----------
+        task_names : Iterable[str]
+            Task names to balance.
+        init_log_var : float, optional
+            Initial log-variance value, by default 0.0.
+        '''
+
         super(UncertaintyWeighting, self).__init__()
 
         self.task_names = list(task_names)
@@ -192,6 +218,21 @@ def supervised_contrastive_loss(
 
 
 def _safe_k(k: float | int, n: int) -> int:
+    '''Convert k fraction or integer into a safe integer within [1, n].
+
+    Parameters
+    ----------
+    k : float | int
+        Fraction (0-1) or absolute integer k.
+    n : int
+        Total number of items.
+
+    Returns
+    -------
+    int
+        Safe integer k within bounds.
+    '''
+
     if n <= 0:
         return 0
     if isinstance(k, float):
@@ -242,6 +283,23 @@ def lambda_rank_ndcg_loss(
 
 
 def _lambda_rank_loss_single_k(scores: torch.Tensor, labels: torch.Tensor, k: float | int) -> torch.Tensor:
+    '''LambdaRank loss for a single k (fraction or integer).
+
+    Parameters
+    ----------
+    scores : torch.Tensor
+        Predicted scores (N,).
+    labels : torch.Tensor
+        Binary labels (N,).
+    k : float | int
+        Fraction or integer defining top-k cutoff.
+
+    Returns
+    -------
+    torch.Tensor
+        LambdaRank loss value for this k.
+    '''
+
     n = labels.shape[0]
     if n <= 1:
         return torch.tensor(0.0, device=scores.device)
@@ -291,3 +349,4 @@ def _lambda_rank_loss_single_k(scores: torch.Tensor, labels: torch.Tensor, k: fl
     loss = (pair_loss * delta).mean() / (idcg + 1e-8)
 
     return loss
+
