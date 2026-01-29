@@ -82,17 +82,21 @@ class AutoencoderDataset(Dataset):
 
         feat = np.asarray(features, dtype=np.float32)
         if feature_mask is not None:
+            # Apply mask once to keep dataset sampling fast.
             feat = feat * np.asarray(feature_mask, dtype=np.float32)
         self.features = torch.tensor(feat, dtype=torch.float32)
 
         if energies is None:
+            # Use NaNs to represent missing labels; mask marks unlabeled samples.
             self.energies = torch.full((self.features.shape[0], 1), float('nan'))
             self.energy_mask = torch.zeros(self.features.shape[0], dtype=torch.bool)
         else:
             energies_arr = np.asarray(energies, dtype=np.float32).reshape(-1, 1)
+            # Treat NaN energies as missing labels for mixed datasets.
             mask = ~np.isnan(energies_arr)
             energies_arr = np.where(mask, energies_arr, 0.0)
             self.energies = torch.tensor(energies_arr, dtype=torch.float32)
+            # Mask marks samples with valid energy labels.
             self.energy_mask = torch.tensor(mask.reshape(-1), dtype=torch.bool)
 
 
@@ -123,4 +127,3 @@ class AutoencoderDataset(Dataset):
         '''
 
         return self.features[idx], self.energies[idx], self.energy_mask[idx]
-

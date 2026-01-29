@@ -61,8 +61,10 @@ def reconstruction_loss(
     if loss_type == "mae":
         return nn.L1Loss()(pred, target)
     if loss_type == "huber":
+        # Huber is robust to outliers while remaining differentiable.
         return nn.SmoothL1Loss(beta=huber_delta)(pred, target)
     if loss_type == "rmse":
+        # RMSE preserves original unit scale.
         mse = nn.MSELoss()(pred, target)
         return torch.sqrt(mse + 1e-8)
     return nn.MSELoss()(pred, target)
@@ -113,6 +115,7 @@ def kl_divergence(mu: torch.Tensor, logvar: torch.Tensor) -> torch.Tensor:
     '''
 
     kld = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp(), dim=1)
+    # Mean over batch to keep scale stable across batch sizes.
     return kld.mean()
 
 
@@ -137,6 +140,7 @@ def contractive_penalty(embeddings: torch.Tensor, inputs: torch.Tensor) -> torch
 
     penalty = torch.tensor(0.0, device=inputs.device)
     for i in range(embeddings.shape[1]):
+        # Accumulate per-latent Jacobian norm (contractive penalty).
         grad = torch.autograd.grad(
             embeddings[:, i].sum(),
             inputs,
@@ -147,4 +151,3 @@ def contractive_penalty(embeddings: torch.Tensor, inputs: torch.Tensor) -> torch
         penalty = penalty + (grad.pow(2).sum(dim=1)).mean()
 
     return penalty
-

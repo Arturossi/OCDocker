@@ -53,7 +53,7 @@ class EnergyDataset(Dataset):
     Examples
     --------
     >>> import numpy as np
-    >>> from OCDocker.OCScore.Dimensionality.future.datasets import EnergyDataset
+    >>> from OCDocker.OCScore.DNN.future.datasets import EnergyDataset
     >>> features = np.random.rand(100, 20)  # 100 samples, 20 features each
     >>> energies = np.random.rand(100)      # 100 energy labels
     >>> mask = np.random.randint(0, 2, size=(100, 20))  # Random binary mask
@@ -83,9 +83,11 @@ class EnergyDataset(Dataset):
 
         feat = np.asarray(features)
         if mask is not None:
+            # Apply feature mask once to avoid per-batch overhead.
             feat = feat * mask
         self.features = torch.tensor(feat, dtype=torch.float32)
 
+        # Ensure regression targets have shape [N, 1] for consistent batching.
         self.energies = torch.tensor(np.asarray(energies), dtype=torch.float32).view(-1, 1)
 
 
@@ -159,12 +161,14 @@ class TargetRankingDataset(Dataset):
 
         feat = np.asarray(features)
         if mask is not None:
+            # Mask is applied once to keep dataset sampling fast.
             feat = feat * mask
         self.features = torch.tensor(feat, dtype=torch.float32)
 
         self.labels = torch.tensor(np.asarray(labels), dtype=torch.float32)
 
         # Map target identifiers to integers for efficient grouping
+        # dict.fromkeys preserves order of first appearance for stable target ids.
         unique_targets = list(dict.fromkeys(target_ids))
         self.target_to_index = {t: i for i, t in enumerate(unique_targets)}
         self.target_ids = np.array([self.target_to_index[t] for t in target_ids], dtype=int)
@@ -172,6 +176,7 @@ class TargetRankingDataset(Dataset):
         # Precompute target -> indices mapping
         self.target_to_indices: Dict[int, List[int]] = {}
         for idx, t in enumerate(self.target_ids):
+            # Cache indices per target for fast grouped sampling.
             self.target_to_indices.setdefault(int(t), []).append(idx)
 
 
@@ -201,6 +206,7 @@ class TargetRankingDataset(Dataset):
             Features, label, and target id.
         '''
 
+        # Return raw tensors; model heads apply any normalization.
         return self.features[idx], self.labels[idx], self.target_ids[idx]
 
 
@@ -221,7 +227,7 @@ class TargetBatchSampler(Sampler[List[int]]):
     
     Examples
     --------
-    >>> from OCDocker.OCScore.Dimensionality.future.datasets import TargetBatchSampler
+    >>> from OCDocker.OCScore.DNN.future.datasets import TargetBatchSampler
     >>> target_to_indices = {
     ...     0: [0, 1, 2, 3],
     ...     1: [4, 5, 6],
@@ -278,6 +284,7 @@ class TargetBatchSampler(Sampler[List[int]]):
 
         target_ids = self.target_ids[:]
         if self.shuffle:
+            # Shuffle targets to avoid ordering bias across epochs.
             random.shuffle(target_ids)
 
         for target_id in target_ids:
@@ -288,10 +295,10 @@ class TargetBatchSampler(Sampler[List[int]]):
                 continue
 
             if not self.split_target_batches:
-                # Sample a single subset for this target
+                # Sample a single subset for this target to keep batches compact.
                 yield random.sample(indices, self.batch_size)
             else:
-                # Split into multiple batches
+                # Split into multiple batches for long target lists.
                 shuffled = indices[:]
                 random.shuffle(shuffled)
                 for i in range(0, len(shuffled), self.batch_size):
@@ -315,4 +322,3 @@ class TargetBatchSampler(Sampler[List[int]]):
         for idxs in self.target_to_indices.values():
             total += int(math.ceil(len(idxs) / float(self.batch_size)))
         return total
-

@@ -200,6 +200,7 @@ class AETrainer:
         val_dataset = self._build_dataset(X_val, y_val, feature_mask) if X_val is not None else None
 
         if X_unlabeled is not None:
+            # Concatenate unlabeled data for reconstruction-only regularization.
             unlabeled_dataset = self._build_dataset(X_unlabeled, None, feature_mask)
             train_dataset = ConcatDataset([train_dataset, unlabeled_dataset])
 
@@ -219,6 +220,7 @@ class AETrainer:
 
             stage_best = float(metrics.get("best_val_loss", float("inf")))
             if stage_best < best_val:
+                # Track best-performing state across stages.
                 best_val = stage_best
                 best_state = {k: v.cpu() for k, v in self.model.state_dict().items()}
                 best_metrics = metrics
@@ -295,6 +297,7 @@ class AETrainer:
 
         optimizer = self._build_optimizer(stage_cfg)
 
+        # Mixed precision is optional and only enabled on CUDA.
         use_amp = bool(stage_cfg.get("mixed_precision", False) and self.device.type == "cuda")
         scaler = torch.cuda.amp.GradScaler(enabled=use_amp)
 
@@ -357,6 +360,7 @@ class AETrainer:
 
         params = list(self.model.parameters())
         if self.uncertainty is not None:
+            # Include uncertainty weights as learnable parameters.
             params += list(self.uncertainty.parameters())
 
         return optim.AdamW(params, lr=lr, weight_decay=weight_decay)
@@ -424,6 +428,7 @@ class AETrainer:
             )
 
             if lambda_contractive > 0.0:
+                # Contractive penalty requires gradients w.r.t. input.
                 noisy.requires_grad_(True)
 
             optimizer.zero_grad(set_to_none=True)
@@ -437,18 +442,21 @@ class AETrainer:
                 energy_loss_val = None
 
                 if outputs["energy"] is not None and energy_mask.any():
+                    # Only compute energy loss where labels are available.
                     energy_pred = outputs["energy"][energy_mask]
                     energy_true = energies[energy_mask]
                     energy_loss_val = energy_loss(energy_pred, energy_true, loss_type=energy_type, huber_delta=huber_delta)
 
                 kld = torch.tensor(0.0, device=self.device)
                 if self.model.use_vae:
+                    # KL term only applies when VAE is enabled.
                     kld = kl_divergence(outputs["mu"], outputs["logvar"])
 
                 l2_penalty = latent.pow(2).mean() if lambda_l2 > 0.0 else torch.tensor(0.0, device=self.device)
 
                 contractive = torch.tensor(0.0, device=self.device)
                 if lambda_contractive > 0.0:
+                    # Contractive penalty requires input gradients.
                     contractive = contractive_penalty(latent, noisy)
 
                 total = self._combine_losses(
@@ -467,6 +475,7 @@ class AETrainer:
             scaler.scale(total).backward()
 
             if stage_cfg.get("clip_grad", 0.0) > 0.0:
+                # Unscale before clipping for correct gradient norms.
                 scaler.unscale_(optimizer)
                 nn.utils.clip_grad_norm_(self.model.parameters(), float(stage_cfg.get("clip_grad", 1.0)))
 
@@ -540,8 +549,10 @@ class AETrainer:
             losses["energy"] = energy_loss_val * lambda_energy
 
         if self.loss_balancing == "uncertainty" and self.uncertainty is not None and len(losses) > 0:
+            # Learn task weights dynamically.
             total, _ = self.uncertainty(losses)
         elif self.loss_balancing == "gradnorm" and len(losses) > 0:
+            # Balance tasks by equalizing gradient norms.
             total = self._gradnorm_total(losses)
         else:
             total = sum(losses.values()) if losses else torch.tensor(0.0, device=self.device)
@@ -578,6 +589,7 @@ class AETrainer:
         shared_params = [p for p in self.model.encoder.parameters() if p.requires_grad]
         g_norms = []
         for loss in losses.values():
+            # Per-task gradients computed on shared encoder parameters.
             grads = torch.autograd.grad(loss, shared_params, retain_graph=True, create_graph=False)
             norm = torch.sqrt(sum((g ** 2).sum() for g in grads))
             g_norms.append(norm)
@@ -769,6 +781,7 @@ class AETrainer:
                 embeddings.append(z.detach().cpu().numpy())
 
                 if energy_mask.any():
+                    # Correlate embedding norms with energy when labels exist.
                     energies.append(energy_vals[energy_mask].detach().cpu().numpy().reshape(-1))
                     energy_embeddings.append(z[energy_mask].detach().cpu().numpy())
 
@@ -841,4 +854,3 @@ class AETrainer:
         torch.save(self.model.state_dict(), model_path)
         if self.config.get("checkpoint", {}).get("save_encoder", True):
             torch.save(self.model.encoder.state_dict(), encoder_path)
-

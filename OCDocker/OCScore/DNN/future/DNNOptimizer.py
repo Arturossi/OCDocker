@@ -289,6 +289,7 @@ class DNNOptimizer:
             return default_config
 
         # Deep merge with overrides
+        # Only one level deep to keep config predictable and avoid accidental deletions.
         merged = copy.deepcopy(default_config)
         for key, sub in future_config.items():
             if isinstance(sub, dict) and key in merged:
@@ -452,6 +453,7 @@ class DNNOptimizer:
 
         recon_enabled = self.config["stage1"].get("lambda_recon", 0.0) > 0 or self.config["stage2"].get("lambda_recon", 0.0) > 0
         if recon_enabled and model_cfg.get("decoder_sizes") is None:
+            # Mirror encoder sizes to build a light decoder when reconstruction is enabled.
             if isinstance(self.encoder_params, dict):
                 layer_sizes, _ = parse_encoder_params(self.encoder_params)
                 decoder_sizes = list(reversed(layer_sizes[:-1])) + [int(self.input_size)]
@@ -499,6 +501,7 @@ class DNNOptimizer:
             mask_prob = float(stage_cfg.get("mask_prob", 0.1))
             if mask_prob <= 0.0:
                 return x
+            # Bernoulli mask zeros out a fraction of features.
             mask = torch.bernoulli(torch.full_like(x, 1.0 - mask_prob))
             return x * mask
 
@@ -506,6 +509,7 @@ class DNNOptimizer:
             std = float(stage_cfg.get("gaussian_std", 0.01))
             if std <= 0.0:
                 return x
+            # Additive Gaussian noise for denoising pretraining.
             noise = torch.randn_like(x) * std
             return x + noise
 
@@ -627,6 +631,7 @@ class DNNOptimizer:
         loss_balancing = self.config["optimization"].get("loss_balancing", "fixed")
         balancer = None
         if loss_balancing == "uncertainty":
+            # Learn task weights from data to avoid manual tuning.
             balancer = UncertaintyWeighting(["recon", "energy"]).to(self.device)
             optimizer.add_param_group({"params": balancer.parameters()})
 
@@ -649,6 +654,7 @@ class DNNOptimizer:
                 features = features.to(self.device)
                 energies = energies.to(self.device)
 
+                # Denoising pretraining: reconstruct clean features from noisy inputs.
                 noisy = self._apply_noise(features, stage_cfg)
                 outputs = model(noisy, return_reconstruction=stage_cfg["lambda_recon"] > 0)
 
@@ -684,10 +690,11 @@ class DNNOptimizer:
 
             mean_val = float(np.mean(val_energy)) if val_energy else float("inf")
 
-            if mean_val < best_metric:
-                best_metric = mean_val
-                best_state = copy.deepcopy(model.state_dict())
-                patience_counter = 0
+                if mean_val < best_metric:
+                    # Track the best state based on validation energy loss.
+                    best_metric = mean_val
+                    best_state = copy.deepcopy(model.state_dict())
+                    patience_counter = 0
             else:
                 patience_counter += 1
 
@@ -731,15 +738,17 @@ class DNNOptimizer:
         loss_balancing = self.config["optimization"].get("loss_balancing", "fixed")
         balancer = None
         if loss_balancing == "uncertainty":
+            # Balancer adapts weights across ranking/classification/contrastive terms.
             balancer = UncertaintyWeighting(["rank", "cls", "con", "energy", "recon"]).to(self.device)
             optimizer.add_param_group({"params": balancer.parameters()})
 
-        # Compute pos_weight for BCE if needed
+        # Compute pos_weight for BCE if needed (handles strong class imbalance).
         pos_weight = None
         if stage_cfg.get("bce_pos_weight") is None and self.dude_train is not None:
             labels = np.asarray(self.dude_train["y"]).astype(int)
             pos = max(1, int(labels.sum()))
             neg = max(1, int(len(labels) - pos))
+            # Balance BCE for strong class imbalance.
             pos_weight = torch.tensor([neg / pos], device=self.device, dtype=torch.float32)
         elif stage_cfg.get("bce_pos_weight") is not None:
             pos_weight = torch.tensor([float(stage_cfg["bce_pos_weight"])], device=self.device, dtype=torch.float32)
@@ -762,6 +771,7 @@ class DNNOptimizer:
                 outputs = model(features)
                 scores = outputs["activity"].view(-1)
 
+                # Ranking loss focuses on early recognition.
                 rank_loss = lambda_rank_ndcg_loss(scores, labels, stage_cfg["rank_k_fractions"], stage_cfg["rank_weights"])
 
                 if stage_cfg.get("use_focal", False):
@@ -794,6 +804,7 @@ class DNNOptimizer:
 
             # Optional energy regularization using regression data
             if pdb_loader is not None and (stage_cfg["lambda_energy"] > 0 or stage_cfg["lambda_recon"] > 0):
+                # Energy/reconstruction regularize stage2 when requested.
                 model.train()
                 for batch in pdb_loader:
                     optimizer.zero_grad()
@@ -821,10 +832,10 @@ class DNNOptimizer:
 
             # Validation
             metrics = {}
-            if val_loader is not None:
-                metrics = self._evaluate_dude(model, val_loader)
-                metric_key = self.config["optimization"].get("metric_for_best", "AUC")
-                metric_value = metrics.get(metric_key, 0.0)
+        if val_loader is not None:
+            metrics = self._evaluate_dude(model, val_loader)
+            metric_key = self.config["optimization"].get("metric_for_best", "AUC")
+            metric_value = metrics.get(metric_key, 0.0)
 
                 if metric_value > best_metric:
                     best_metric = metric_value

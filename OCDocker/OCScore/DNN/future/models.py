@@ -97,6 +97,7 @@ class MLP(nn.Module):
                 layers.append(nn.BatchNorm1d(size))
             layers.append(_build_activation(act_name, act_params))
             if dropout > 0.0:
+                # Dropout after activation to regularize intermediate representations.
                 layers.append(nn.Dropout(dropout))
             prev = size
 
@@ -191,6 +192,7 @@ class MultiTaskModel(nn.Module):
         self.mask = mask
 
         if encoder_params is not None:
+            # Legacy path keeps backward compatibility with old encoder configs.
             layer_sizes, activations = parse_encoder_params(encoder_params)
             self.encoder = MLP(
                 input_size=input_size,
@@ -227,6 +229,7 @@ class MultiTaskModel(nn.Module):
         )
 
         if embedding_dim is not None and embedding_dim > 0:
+            # Embedding head is used by contrastive or ranking losses.
             self.embedding_head = MLP(
                 input_size=latent_dim,
                 layer_sizes=[embedding_dim],
@@ -238,6 +241,7 @@ class MultiTaskModel(nn.Module):
             self.embedding_head = None
 
         if decoder_sizes is not None:
+            # Decoder is optional to avoid extra compute when reconstruction isn't needed.
             self.decoder = MLP(
                 input_size=latent_dim,
                 layer_sizes=decoder_sizes,
@@ -266,6 +270,7 @@ class MultiTaskModel(nn.Module):
         '''
 
         if self.mask is not None:
+            # Feature mask enables ablation studies or selective feature use.
             x = x * self.mask
         latent = self.encoder(x)
 
@@ -274,12 +279,14 @@ class MultiTaskModel(nn.Module):
 
         if self.embedding_head is not None:
             embedding = self.embedding_head(latent)
+            # Normalize embeddings for contrastive or ranking losses.
             embedding = F.normalize(embedding, dim=1)
         else:
             embedding = None
 
         reconstruction = None
         if return_reconstruction and self.decoder is not None:
+            # Reconstruction is optional to keep inference lightweight.
             reconstruction = self.decoder(latent)
 
         return {
@@ -381,4 +388,3 @@ def parse_encoder_params(encoder_params: Dict[str, Any]) -> Tuple[List[int], Lis
         raise ValueError("encoder_params must define at least one layer")
 
     return layer_sizes, activations
-

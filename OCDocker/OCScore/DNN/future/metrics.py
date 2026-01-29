@@ -63,6 +63,7 @@ def safe_auc(y_true: np.ndarray, y_score: np.ndarray) -> float:
             return 0.0
         return float(roc_auc_score(y_true, y_score))
     except Exception:
+        # Guard against degenerate label distributions or numerical issues.
         return 0.0
 
 
@@ -140,7 +141,7 @@ def partial_auc(y_true: np.ndarray, y_score: np.ndarray, max_fpr: float = 0.05) 
         # Ensure max_fpr within bounds
         max_fpr = max(1e-6, min(1.0, float(max_fpr)))
 
-        # Add point at max_fpr by linear interpolation if needed
+        # Add point at max_fpr by linear interpolation if needed.
         if max_fpr not in fpr:
             idx = np.searchsorted(fpr, max_fpr)
             if idx == 0:
@@ -191,6 +192,7 @@ def ndcg_at_k(y_true: np.ndarray, y_score: np.ndarray, k: int) -> float:
 
     k = max(1, min(int(k), y_true.size))
     order = np.argsort(-y_score)
+    # Standard DCG uses exponential gains and log2 discounts.
     gains = (2.0 ** y_true) - 1.0
     discounts = 1.0 / np.log2(np.arange(2, k + 2))
 
@@ -230,6 +232,7 @@ def compute_group_metrics(
         Macro-averaged ranking metrics.
     '''
 
+    # Macro-average across targets to avoid dominance by large groups.
     unique_targets = np.unique(target_ids)
     ef_1 = []
     ef_5 = []
@@ -244,9 +247,11 @@ def compute_group_metrics(
         if yt.size == 0:
             continue
 
+        # Compute per-target top-k cutoffs based on group size.
         k1 = max(1, int(round(k_fractions[0] * yt.size)))
         k2 = max(1, int(round(k_fractions[1] * yt.size)))
 
+        # Enrichment factor uses a fraction-of-list cutoff.
         ef_1.append(ocrank.enrichment_factor(yt, ys, k_fractions[0]))
         ef_5.append(ocrank.enrichment_factor(yt, ys, k_fractions[1]))
 
@@ -314,8 +319,8 @@ def compute_classification_metrics(
     metrics["pAUC@5%"] = partial_auc(y_true, y_score, max_fpr=0.05)
 
     if target_ids is not None:
+        # Only compute group-based metrics when target ids are available.
         group_metrics = compute_group_metrics(y_true, y_score, target_ids, k_fractions)
         metrics.update(group_metrics)
 
     return metrics
-

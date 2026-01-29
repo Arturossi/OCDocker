@@ -67,9 +67,11 @@ def apply_noise(
     x = inputs
 
     if "gaussian" in noise_type and gaussian_std > 0.0:
+        # Additive noise perturbs continuous inputs.
         x = x + torch.randn_like(x) * gaussian_std
 
     if "mask" in noise_type and mask_prob > 0.0:
+        # Feature masking simulates missing data and encourages robustness.
         mask = torch.rand_like(x) < mask_prob
         x = x.masked_fill(mask, 0.0)
 
@@ -79,6 +81,7 @@ def apply_noise(
             perm = torch.randperm(batch_size, device=x.device)
             swap_mask = torch.rand_like(x) < swap_prob
             swapped = x[perm]
+            # Swap features across samples to encourage robustness.
             x = torch.where(swap_mask, swapped, x)
 
     return x
@@ -115,6 +118,7 @@ def ramp_weight(
     progress = min(1.0, max(0.0, float(epoch + 1) / float(ramp_epochs)))
 
     if ramp_type == "sigmoid":
+        # Sigmoid ramp grows slowly then saturates.
         return float(target) * (1.0 / (1.0 + np.exp(-10.0 * (progress - 0.5))))
 
     return float(target) * progress
@@ -135,6 +139,7 @@ def _rankdata(values: np.ndarray) -> np.ndarray:
     '''
 
     order = np.argsort(values)
+    # Ranks are zero-based; ties are not specially handled (consistent ordering).
     ranks = np.empty_like(order, dtype=float)
     ranks[order] = np.arange(len(values), dtype=float)
     return ranks
@@ -195,6 +200,7 @@ def embedding_stats(embeddings: np.ndarray, collapse_threshold: float = 1e-6) ->
         }
 
     var = np.var(embeddings, axis=0)
+    # Collapse rate captures fraction of near-zero variance dimensions.
     collapse_rate = float(np.mean(var < collapse_threshold))
     mean_norm = float(np.mean(np.linalg.norm(embeddings, axis=1)))
 
@@ -203,4 +209,3 @@ def embedding_stats(embeddings: np.ndarray, collapse_threshold: float = 1e-6) ->
         "collapse_rate": collapse_rate,
         "mean_norm": mean_norm
     }
-

@@ -106,11 +106,13 @@ class MLP(nn.Module):
                 layers.append(norm_layer)
 
             if idx == len(layer_sizes) - 1:
+                # Allow a distinct output activation for the final layer.
                 layers.append(_build_activation(output_activation or act_name, {}))
             else:
                 layers.append(_build_activation(act_name, act_params))
 
             if dropout > 0.0:
+                # Dropout after activation to regularize hidden representations.
                 layers.append(nn.Dropout(dropout))
 
             prev = size
@@ -265,6 +267,7 @@ class EncoderModule(nn.Module):
         '''
 
         if self.latent_norm is not None:
+            # Latent normalization stabilizes scale for downstream heads.
             z = self.latent_norm(z)
         z = self.latent_activation(z)
         return z
@@ -287,6 +290,7 @@ class EncoderModule(nn.Module):
         '''
 
         std = torch.exp(0.5 * logvar)
+        # Random noise ensures stochastic sampling from the posterior.
         eps = torch.randn_like(std)
         return mu + eps * std
 
@@ -321,6 +325,7 @@ class EncoderModule(nn.Module):
             logvar = self.fc_logvar(h)
             z = self.reparameterize(mu, logvar) if sample else mu
         else:
+            # Zero stats keep downstream loss code consistent without VAE.
             mu = torch.zeros(h.shape[0], self.latent_dim, device=h.device)
             logvar = torch.zeros_like(mu)
             z = self.fc_latent(h)
@@ -428,6 +433,7 @@ class Autoencoder(nn.Module):
 
         if decoder_sizes is None:
             if encoder_hidden_sizes:
+                # Mirror encoder sizes for a symmetric decoder by default.
                 decoder_sizes = list(reversed(encoder_hidden_sizes)) + [self.input_size]
             else:
                 decoder_sizes = [self.input_size]
@@ -454,6 +460,7 @@ class Autoencoder(nn.Module):
         )
 
         if energy_head_sizes is not None and len(energy_head_sizes) > 0:
+            # Optional energy head for auxiliary regression supervision.
             self.energy_head = MLP(
                 input_size=self.latent_dim,
                 layer_sizes=energy_head_sizes + [1],
@@ -535,10 +542,12 @@ class Autoencoder(nn.Module):
             z, mu, logvar = self.encode(x, sample=sample, return_stats=True)
         else:
             z = self.encode(x, sample=False, return_stats=False)
+            # Use zero stats to keep downstream loss handling consistent.
             mu = torch.zeros_like(z)
             logvar = torch.zeros_like(z)
 
         z_used = self.encoder.latent_dropout(z)
+        # Reconstruction uses possibly dropped-out latents for robustness.
         reconstruction = self.decoder(z_used)
         energy = self.energy_head(z_used) if self.energy_head is not None else None
 
@@ -640,6 +649,7 @@ class Autoencoder(nn.Module):
         '''
 
         self.eval()
+        # Synthetic batch validates tensor shapes without external data.
         x = torch.randn(batch_size, self.input_size, device=self.device)
         with torch.no_grad():
             out = self.forward(x, sample=False)
@@ -716,4 +726,3 @@ def _build_norm(norm: str, num_features: int) -> Optional[nn.Module]:
     if norm == "layer":
         return nn.LayerNorm(num_features)
     return None
-

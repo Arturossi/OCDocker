@@ -105,6 +105,7 @@ class UncertaintyWeighting(nn.Module):
             if name not in losses:
                 continue
             log_var = self.log_vars[i]
+            # Precision = exp(-log_var), consistent with Kendall et al. uncertainty weighting.
             precision = torch.exp(-log_var)
             total = total + precision * losses[name] + log_var
             weights[name] = float(precision.detach().cpu().item())
@@ -145,7 +146,9 @@ def focal_binary_loss(
     '''
 
     targets = targets.float()
+    # Sigmoid over logits keeps computation stable for probabilities.
     probs = torch.sigmoid(logits)
+    # pt is probability of the true class; focal term downweights easy examples.
     pt = torch.where(targets == 1.0, probs, 1.0 - probs)
     alpha_t = torch.where(targets == 1.0, alpha, 1.0 - alpha)
     loss = -alpha_t * (1.0 - pt).pow(gamma) * torch.log(pt + 1e-8)
@@ -192,6 +195,7 @@ def supervised_contrastive_loss(
     embeddings = F.normalize(embeddings, dim=1)
 
     # Similarity matrix
+    # Temperature controls softness of similarity distribution.
     logits = torch.matmul(embeddings, embeddings.T) / max(temperature, 1e-8)
 
     # Mask self-contrast cases
@@ -206,7 +210,7 @@ def supervised_contrastive_loss(
     if labels_equal.sum() == 0:
         return torch.tensor(0.0, device=device)
 
-    # Log-softmax over rows
+    # Log-softmax over rows to form normalized similarities.
     log_prob = logits - torch.logsumexp(logits, dim=1, keepdim=True)
 
     # Mean log-prob of positives
@@ -276,6 +280,7 @@ def lambda_rank_ndcg_loss(
 
     total_loss = torch.tensor(0.0, device=scores.device)
 
+    # Aggregate multiple top-k cutoffs to emphasize early recognition.
     for frac, weight in zip(k_fractions, weights):
         total_loss = total_loss + weight * _lambda_rank_loss_single_k(scores, labels, frac)
 
@@ -319,7 +324,7 @@ def _lambda_rank_loss_single_k(scores: torch.Tensor, labels: torch.Tensor, k: fl
     if idcg.item() <= 0:
         return torch.tensor(0.0, device=scores.device)
 
-    # Predicted ranks
+    # Predicted ranks based on model scores (higher is better).
     _, order = torch.sort(scores, descending=True)
     ranks = torch.empty_like(order, dtype=torch.float32)
     ranks[order] = torch.arange(1, n + 1, device=scores.device, dtype=torch.float32)
@@ -349,4 +354,3 @@ def _lambda_rank_loss_single_k(scores: torch.Tensor, labels: torch.Tensor, k: fl
     loss = (pair_loss * delta).mean() / (idcg + 1e-8)
 
     return loss
-

@@ -202,6 +202,7 @@ class AutoencoderOptimizer:
             Merged configuration dictionary.
         '''
 
+        # Conservative latent size default based on input dimensionality.
         latent_default = min(128, max(8, self.input_size // 2))
 
         default_config = {
@@ -286,6 +287,7 @@ class AutoencoderOptimizer:
         if not future_config:
             return default_config
 
+        # One-level deep merge to keep overrides predictable.
         merged = copy.deepcopy(default_config)
         for key, sub in future_config.items():
             if isinstance(sub, dict) and key in merged:
@@ -367,6 +369,7 @@ class AutoencoderOptimizer:
         stage1_cfg = cfg.get("stage1", {})
 
         min_latent, max_latent = self.encoding_dims
+        # Clamp latent dimension bounds to feature dimensionality.
         max_latent = min(int(max_latent), int(self.input_size))
         min_latent = min(int(min_latent), max_latent)
 
@@ -382,6 +385,7 @@ class AutoencoderOptimizer:
         model_cfg["norm"] = trial.suggest_categorical("norm", ["batch", "layer", "none"])
 
         if cfg.get("optimization", {}).get("search_vae", False):
+            # Optional VAE search extends the objective to generative structure.
             model_cfg["use_vae"] = trial.suggest_categorical("use_vae", [False, True])
             stage1_cfg["beta_vae"] = trial.suggest_float("beta_vae", 0.5, 4.0)
 
@@ -389,6 +393,7 @@ class AutoencoderOptimizer:
         stage1_cfg["weight_decay"] = trial.suggest_float("weight_decay", 1e-7, 1e-4, log=True)
 
         stage1_cfg["noise_type"] = trial.suggest_categorical("noise_type", ["mask", "gaussian", "swap", "mask+gaussian", "none"])
+        # Noise strengths are tuned independently for denoising robustness.
         stage1_cfg["mask_prob"] = trial.suggest_float("mask_prob", 0.0, 0.3)
         stage1_cfg["gaussian_std"] = trial.suggest_float("gaussian_std", 0.0, 0.05)
         stage1_cfg["swap_prob"] = trial.suggest_float("swap_prob", 0.0, 0.2)
@@ -418,6 +423,7 @@ class AutoencoderOptimizer:
         config = self._prepare_trial_config(trial)
 
         if self.y_train is None or not config.get("data", {}).get("use_energy_head", True):
+            # Disable energy head when labels are not provided.
             config["model"]["energy_head_sizes"] = None
 
         model = self._build_model(config.get("model", {}))
@@ -432,6 +438,7 @@ class AutoencoderOptimizer:
             run_name=run_name
         )
 
+        # Prefer validation if available; fallback to test split for evaluation metrics.
         eval_X = self.X_validation if self.X_validation is not None else self.X_test
         eval_y = self.y_validation if self.y_validation is not None else self.y_test
 
