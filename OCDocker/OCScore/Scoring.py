@@ -50,21 +50,22 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 
 def get_score(
-    model_path: str,
-    data: Optional[Union[pd.DataFrame, str]] = None,
-    pca_model: Optional[Union[str, PCA]] = None,
-    mask: Optional[Union[list, np.ndarray]] = None,
-    score_columns_list: list[str] = ["SMINA", "VINA", "ODDT", "PLANTS"],
-    scaler: Optional[str] = "standard",
-    scaler_path: Optional[str] = None,
-    invert_conditionally: bool = True,
-    normalize: bool = True,
-    no_scores: bool = False,
-    only_scores: bool = False,
-    columns_to_skip_pca: Optional[list[str]] = None,
-    serialization_method: str = "auto",
-    use_gpu: bool = True
-) -> Union[pd.DataFrame, np.ndarray]:
+        model_path: str,
+        data: Optional[Union[pd.DataFrame, str]] = None,
+        pca_model: Optional[Union[str, PCA]] = None,
+        mask: Optional[Union[list, np.ndarray]] = None,
+        score_columns_list: list[str] = ["SMINA", "VINA", "ODDT", "PLANTS"],
+        scaler: Optional[str] = "standard",
+        scaler_path: Optional[str] = None,
+        invert_conditionally: bool = True,
+        normalize: bool = True,
+        no_scores: bool = False,
+        only_scores: bool = False,
+        columns_to_skip_pca: Optional[list[str]] = None,
+        serialization_method: str = "auto",
+        use_gpu: bool = True,
+        enforce_reference_column_order: bool = True
+    ) -> Union[pd.DataFrame, np.ndarray]:
     ''' Get scores by loading a model and applying the same preprocessing pipeline.
     
     This function loads a trained model and applies it to input data following
@@ -117,6 +118,10 @@ def get_score(
     serialization_method : str, optional
         Serialization method used to save the model. Options are "joblib" or "pickle".
         Default is "joblib".
+    enforce_reference_column_order : bool, optional
+        If True, reorder columns to match the `reference_column_order` from the
+        config file before any preprocessing (scaling/PCA/masking). This is
+        critical to keep feature alignment consistent with training. Default is True.
     
     Returns
     -------
@@ -305,6 +310,25 @@ def get_score(
         ocerror.Error.value_error("Data must be a pandas DataFrame or a path to a CSV file.") # type: ignore
         raise ValueError("Data must be a pandas DataFrame or a path to a CSV file.")
     
+    # Enforce column order from config before any preprocessing (scaler/PCA/mask)
+    if enforce_reference_column_order:
+        try:
+            from OCDocker.Config import get_config
+            config = get_config()
+            if config.paths.reference_column_order:
+                data = ocscoredata.reorder_columns_to_match_data_order(
+                    data,
+                    data_source=None,
+                    keep_extra_columns=True,
+                    fill_missing_columns=False
+                )
+            else:
+                ocerror.Error.value_error("reference_column_order not set in config file. Cannot enforce column order.") # type: ignore
+                raise ValueError("reference_column_order not set in config file. Cannot enforce column order.")
+        except Exception as e:
+            ocerror.Error.value_error(f"Failed to enforce reference column order: {e}") # type: ignore
+            raise
+
     # Store original data structure for return format
     original_data = data.copy()
     is_dataframe = True
@@ -502,4 +526,3 @@ def get_score(
         return result
     else:
         return predictions
-

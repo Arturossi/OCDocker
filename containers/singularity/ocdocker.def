@@ -1,0 +1,32 @@
+Bootstrap: docker
+From: mambaorg/micromamba:1.5.8
+
+%post
+    apt-get update \
+        && apt-get install -y --no-install-recommends \
+            openbabel \
+            libopenbabel-dev \
+            swig \
+            cmake \
+            g++ \
+            dssp \
+            git \
+        && rm -rf /var/lib/apt/lists/*
+
+    micromamba create -y -n ocdocker -f /tmp/environment.yml
+    micromamba clean -a -y
+
+    micromamba run -n ocdocker pip install -e /workspace
+
+%files
+    ../../environment.yml /tmp/environment.yml
+    ../../ /workspace
+    ./OCDocker.cfg.singularity /opt/ocdocker/OCDocker.cfg
+
+%environment
+    export MAMBA_ROOT_PREFIX=/opt/conda
+    export PYTHONUNBUFFERED=1
+    export OCDOCKER_CONFIG=/opt/ocdocker/OCDocker.cfg
+
+%runscript
+    exec micromamba run -n ocdocker ocdocker "$@"
