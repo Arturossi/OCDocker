@@ -209,3 +209,4 @@ def embedding_stats(embeddings: np.ndarray, collapse_threshold: float = 1e-6) ->
         "collapse_rate": collapse_rate,
         "mean_norm": mean_norm
     }
+

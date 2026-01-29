@@ -374,6 +374,14 @@ class Autoencoder(nn.Module):
     -------
     >>> model = Autoencoder(input_size=256, encoder_hidden_sizes=[512, 256], latent_dim=64)
     >>> z = model.encode(torch.randn(8, 256))
+
+    Notes
+    -----
+    Forward returns a dictionary with:
+    - reconstruction: decoded input
+    - latent: latent embedding
+    - mu/logvar: VAE statistics (zeros when use_vae=False)
+    - energy: optional energy head output (None if disabled)
     """
 
     def __init__(
@@ -536,6 +544,11 @@ class Autoencoder(nn.Module):
         -------
         Dict[str, torch.Tensor]
             Dictionary with reconstruction, latent, and auxiliary outputs.
+
+        Notes
+        -----
+        When use_vae is False, mu/logvar are zero tensors for API consistency.
+        When energy_head is disabled, energy is returned as None.
         '''
 
         if self.use_vae:

@@ -86,6 +86,103 @@ class AutoencoderOptimizer:
     future_config : dict | None, optional
         Configuration overrides for the future pipeline.
 
+    Notes
+    -----
+    The configuration supports two training stages:
+    - stage1: denoising reconstruction + optional energy supervision (default enabled).
+    - stage2: optional fine-tuning stage with alternate weights/noise settings.
+
+    Data Flow
+    ---------
+    - Features: X_train is used for training; X_validation (if provided) is used
+      for validation, otherwise X_test is used as the evaluation split.
+    - Energy labels: y_train/y_validation/y_test are optional. If labels are not
+      provided, the energy head is disabled and only reconstruction is optimized.
+    - Extra unlabeled data: X_unlabeled is concatenated to X_train for
+      reconstruction-only learning (no energy labels are expected for it).
+
+    Configuration
+    -------------
+    The future_config dict is merged into the defaults using keys below:
+
+    model
+        - encoder_hidden_sizes : list[int]
+            Hidden sizes for the encoder (excluding latent).
+        - latent_dim : int
+            Latent embedding dimension.
+        - decoder_sizes : list[int] | None
+            Decoder sizes; if None, a mirrored decoder is built.
+        - activation : str
+            Activation for encoder/decoder hidden layers.
+        - latent_activation : str
+            Activation applied to latent embeddings.
+        - decoder_output_activation : str
+            Activation for the decoder output layer.
+        - dropout, latent_dropout : float
+            Dropout probabilities.
+        - norm : str
+            Normalization type ("batch", "layer", "none").
+        - use_vae : bool
+            Enable VAE reparameterization and KL term.
+        - energy_head_sizes : list[int] | None
+            Hidden sizes for energy head (None disables).
+
+    stage1 / stage2
+        - enabled : bool
+            Whether to run the stage.
+        - epochs, batch_size : int
+            Training schedule and batch size.
+        - lr, weight_decay : float
+            Optimizer hyperparameters.
+        - clip_grad : float
+            Gradient clipping max-norm (0 disables).
+        - recon_loss : str
+            Reconstruction loss type ("mse", "rmse", "mae", "huber").
+        - energy_loss : str
+            Energy loss type ("mse", "rmse", "mae", "huber").
+        - huber_delta : float
+            Delta parameter for Huber/SmoothL1.
+        - lambda_recon, lambda_energy : float
+            Weights for reconstruction and energy losses.
+        - lambda_l2 : float
+            L2 penalty weight on latent embeddings.
+        - lambda_contractive : float
+            Contractive penalty weight (Jacobian norm).
+        - beta_vae : float
+            KL weight when use_vae is True.
+        - noise_type : str
+            Noise type ("mask", "gaussian", "swap", "mask+gaussian", "none").
+        - mask_prob, gaussian_std, swap_prob : float
+            Noise parameters.
+        - ramp_epochs_energy, ramp_epochs_recon : int
+            Epochs for ramping loss weights.
+        - ramp_type : str
+            Ramp schedule ("linear" or "sigmoid").
+        - early_stopping_patience : int
+            Stop after this many epochs without improvement.
+        - mixed_precision : bool
+            Enable AMP when running on CUDA.
+
+    optimization
+        - loss_balancing : str
+            "fixed", "uncertainty", or "gradnorm".
+        - gradnorm_alpha : float
+            GradNorm alpha (only used when loss_balancing="gradnorm").
+        - objective_metric : str
+            Metric key to optimize (e.g., "val_combined_loss").
+        - search_vae : bool
+            If True, Optuna can toggle VAE usage and beta.
+
+    checkpoint
+        - save_best : bool
+            Save best model checkpoint.
+        - save_encoder : bool
+            Save encoder-only checkpoint.
+
+    data
+        - use_energy_head : bool
+            If False, energy head is disabled regardless of labels.
+
     Example
     -------
     >>> trainer = AutoencoderOptimizer(X_train, X_test, X_validation, verbose=True)
@@ -160,8 +257,6 @@ class AutoencoderOptimizer:
         self.y_test = self._to_numpy(y_test) if y_test is not None else None
         self.y_validation = self._to_numpy(y_validation) if y_validation is not None else None
 
-        if isinstance(self.X_train, list):
-            raise ValueError("Multi-branch inputs are not supported in the future Autoencoder optimizer")
 
         self.input_size = int(self.X_train.shape[1])
         self.encoding_dims = encoding_dims

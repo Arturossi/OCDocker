@@ -50,6 +50,10 @@ class EnergyDataset(Dataset):
     mask : np.ndarray | None, optional
         Feature mask for single-branch inputs.
 
+    Notes
+    -----
+    Returns (features, energy) where energy has shape (1,).
+
     Examples
     --------
     >>> import numpy as np
@@ -133,6 +137,11 @@ class TargetRankingDataset(Dataset):
         Target identifiers per sample (used for grouping).
     mask : np.ndarray | None, optional
         Feature mask for single-branch inputs.
+
+    Notes
+    -----
+    Returns (features, label, target_id) where target_id is an integer index.
+    Target ids are stable based on first appearance order in target_ids.
     """
 
     def __init__(
@@ -224,6 +233,11 @@ class TargetBatchSampler(Sampler[List[int]]):
     split_target_batches : bool, optional
         If True, split each target into multiple batches of size batch_size.
         If False, sample a single batch per target. Default False.
+
+    Notes
+    -----
+    This sampler groups indices by target id to preserve per-target ranking
+    structure during training.
     
     Examples
     --------

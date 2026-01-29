@@ -113,6 +113,20 @@ class EarlyStopping:
 class AETrainer:
     """Trainer for the future Autoencoder.
 
+    Notes
+    -----
+    This trainer supports two stages with separate configs:
+    - stage1: denoising reconstruction + optional energy supervision (default enabled).
+    - stage2: optional fine-tuning stage with different weights/noise settings.
+
+    Data Flow
+    ---------
+    - Each batch provides (features, energies, energy_mask).
+    - energy_mask marks which samples have valid energy labels; energy loss is
+      only computed on those samples.
+    - Unlabeled samples can be added via X_unlabeled and are used only for
+      reconstruction (energy_mask False).
+
     Example
     -------
     >>> trainer = AETrainer(model, config, device)
@@ -194,6 +208,14 @@ class AETrainer:
         -------
         Dict[str, object]
             Training metrics and embedding statistics.
+
+        Notes
+        -----
+        Stage semantics are defined by the configuration:
+        - stage1 focuses on denoising reconstruction and (if available) energy supervision.
+        - stage2 is optional and can reweight losses or change noise to refine the latent space.
+        If y_train/y_val are None, the energy head is ignored and only reconstruction
+        loss is optimized (energy_mask is all False).
         '''
 
         train_dataset = self._build_dataset(X_train, y_train, feature_mask)

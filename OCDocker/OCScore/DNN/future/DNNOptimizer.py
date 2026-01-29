@@ -83,7 +83,7 @@ class DNNOptimizer:
     y_validation : np.ndarray | pd.Series | None, optional
         Ranking/classification labels (if provided). Default is None.
     mask : list[int|bool] | np.ndarray, optional
-        Feature mask for ablation/feature selection (single-branch only).
+        Feature mask for ablation/feature selection.
     storage : str, optional
         Optuna storage string.
     encoder_params : dict | None, optional
@@ -99,10 +99,144 @@ class DNNOptimizer:
     future_config : dict | None, optional
         Configuration overrides for future pipeline.
 
+    Notes
+    -----
+    The training flow is split into two stages:
+    - stage1: regression + optional reconstruction (pretraining on continuous targets).
+    - stage2: ranking/classification with optional energy/reconstruction regularization.
+
+    Data Flow
+    ---------
+    - Regression data: (X_train, y_train) are used for stage1 energy regression.
+      (X_test, y_test) are used as the stage1 validation split.
+    - Ranking data: (X_validation, y_validation) are used to build stage2 train/val
+      loaders (grouped by target ids). If these are missing, stage2 cannot run.
+    - Target grouping: if X_validation is a DataFrame and contains the column
+      given by data.ranking_target_column (default "receptor"), that column is used
+      as target ids. Otherwise, future_config["ranking_targets"] can supply them.
+      If still unavailable, all samples are treated as one target.
+    - Custom splits: future_config may provide pre-split dictionaries
+      "ranking_train_data" and "ranking_val_data" with keys {X, y, targets}.
+
+    Clarification
+    ------------
+    The reconstruction head in stage1 is only a regularizer. It does not replace
+    the standalone Autoencoder pipeline and is not a dimensionality reduction
+    step by itself. If you want explicit dimensionality reduction, run it
+    upstream (e.g., PCA/AE) and pass the resulting embeddings as X, setting
+    lambda_recon=0 to disable reconstruction.
+
+    Configuration
+    -------------
+    The future_config dict is merged into the defaults using keys below:
+
+    model
+        - shared_sizes : list[int]
+            Hidden sizes for the shared encoder (used when encoder_params is None).
+        - shared_activation : str
+            Activation for shared encoder layers.
+        - decoder_sizes : list[int] | None
+            Reconstruction decoder sizes; if None and recon loss enabled,
+            a mirrored decoder is built automatically.
+        - head_sizes : list[int]
+            Hidden sizes for energy/activity heads.
+        - embedding_dim : int | None
+            Output size for embedding head (None disables).
+        - dropout : float
+            Dropout probability for encoder/heads.
+        - batch_norm : bool
+            Whether to use BatchNorm1d.
+
+    stage1
+        - enabled : bool
+            Whether to run stage1 training.
+        - epochs : int
+            Number of training epochs.
+        - batch_size : int
+            Batch size for regression data.
+        - lr, weight_decay : float
+            Optimizer hyperparameters.
+        - lambda_recon, lambda_energy : float
+            Weights for reconstruction and energy losses.
+        - energy_loss : str
+            Energy loss type ("mse" or "huber").
+        - noise_type : str
+            Input noise type ("mask", "gaussian", or "none").
+        - mask_prob, gaussian_std : float
+            Noise parameters.
+        - clip_grad : float
+            Gradient clipping max-norm (0 disables).
+        - early_stopping_patience : int
+            Stop after this many epochs without improvement.
+
+    stage2
+        - enabled : bool
+            Whether to run stage2 ranking/classification.
+        - epochs : int
+            Number of training epochs.
+        - batch_size_per_target : int | None
+            Optional per-target batch size for ranking.
+        - split_target_batches : bool
+            Whether to split large targets into multiple batches.
+        - lr, weight_decay : float
+            Optimizer hyperparameters.
+        - lambda_rank, lambda_cls, lambda_con : float
+            Weights for ranking, classification, and contrastive losses.
+        - lambda_energy, lambda_recon : float
+            Optional regularizers from regression data.
+        - rank_k_fractions : tuple[float, float]
+            Top-k fractions for LambdaRank weighting.
+        - rank_weights : tuple[float, float]
+            Weights per k fraction.
+        - temperature : float
+            Temperature for contrastive loss.
+        - clip_grad : float
+            Gradient clipping max-norm (0 disables).
+        - use_focal : bool
+            Use focal loss instead of BCE for classification.
+        - focal_alpha, focal_gamma : float
+            Focal loss parameters.
+        - bce_pos_weight : float | None
+            Optional positive class weight for BCE.
+        - early_stopping_patience : int
+            Stop after this many epochs without improvement.
+        - energy_batch_ratio : float
+            Ratio of regression batches used in stage2 regularization.
+
+    optimization
+        - loss_balancing : str
+            "fixed" or "uncertainty" (learns task weights).
+        - metric_for_best : str
+            Metric key used to track best validation model.
+        - multi_objective : bool
+            Whether to return a multi-objective tuple to Optuna.
+        - objective_metric : str
+            Metric key to optimize when not multi-objective.
+
+    data
+        - ranking_validation_fraction : float
+            Fraction of ranking data held out for validation.
+        - ranking_split_by_target : bool
+            If True, split by target ids (GroupShuffleSplit).
+        - ranking_target_column : str
+            Column name in X_validation (DataFrame) containing target ids.
+
     Example
     -------
     >>> trainer = DNNOptimizer(X_train, y_train, X_test, y_test, X_validation, y_validation)
     >>> trainer.optimize(n_trials=5)
+    >>> # AE -> DNN pipeline with precomputed embeddings
+    >>> import torch
+    >>> from OCDocker.OCScore.Dimensionality.future.Autoencoder import Autoencoder
+    >>> ae = Autoencoder(input_size=20, encoder_hidden_sizes=[32, 16], latent_dim=8, energy_head_sizes=None)
+    >>> with torch.no_grad():
+    ...     Z_train = ae.encode(torch.tensor(X_train, dtype=torch.float32)).cpu().numpy()
+    ...     Z_test = ae.encode(torch.tensor(X_test, dtype=torch.float32)).cpu().numpy()
+    >>> dnn = DNNOptimizer.from_embeddings(
+    ...     Z_train, y_train, Z_test, y_test,
+    ...     future_config={"stage1": {"lambda_recon": 0.0, "noise_type": "none"}, "stage2": {"enabled": False}}
+    ... )
+    >>> dnn.optimize(n_trials=1)
     """
 
     def __init__(
@@ -176,21 +310,72 @@ class DNNOptimizer:
         self.config = self._merge_config(future_config)
 
         # Prepare primary regression data
-        self.X_pdb_train = self._to_numpy(X_train)
-        self.y_pdb_train = np.asarray(y_train).reshape(-1, 1)
-        self.X_pdb_test = self._to_numpy(X_test)
-        self.y_pdb_test = np.asarray(y_test).reshape(-1, 1)
+        self.X_reg_train = self._to_numpy(X_train)
+        self.y_reg_train = np.asarray(y_train).reshape(-1, 1)
+        self.X_reg_test = self._to_numpy(X_test)
+        self.y_reg_test = np.asarray(y_test).reshape(-1, 1)
 
         # Determine input size
-        if isinstance(self.X_pdb_train, list):
-            raise ValueError("Multi-branch inputs are not supported in the future DNN optimizer")
-        self.input_size = self._infer_input_size(self.X_pdb_train)
+        if isinstance(self.X_reg_train, list):
+        self.input_size = self._infer_input_size(self.X_reg_train)
 
         # Prepare ranking data (train/val)
-        self.dude_train = None
-        self.dude_val = None
+        self.rank_train = None
+        self.rank_val = None
 
-        self._prepare_dude_data(X_validation, y_validation, future_config)
+        self._prepare_ranking_data(X_validation, y_validation, future_config)
+
+
+    @classmethod
+    def from_embeddings(
+            cls,
+            X_embeddings_train: Union[np.ndarray, pd.DataFrame],
+            y_train: Union[np.ndarray, pd.Series],
+            X_embeddings_test: Union[np.ndarray, pd.DataFrame],
+            y_test: Union[np.ndarray, pd.Series],
+            X_embeddings_validation: Union[np.ndarray, pd.DataFrame, None] = None,
+            y_validation: Union[np.ndarray, pd.Series, None] = None,
+            **kwargs: Any
+        ) -> "DNNOptimizer":
+        '''Construct a DNNOptimizer from precomputed embeddings.
+
+        Parameters
+        ----------
+        X_embeddings_train : np.ndarray | pd.DataFrame
+            Training embeddings (output of a dimensionality reducer).
+        y_train : np.ndarray | pd.Series
+            Training regression targets.
+        X_embeddings_test : np.ndarray | pd.DataFrame
+            Test embeddings.
+        y_test : np.ndarray | pd.Series
+            Test regression targets.
+        X_embeddings_validation : np.ndarray | pd.DataFrame | None, optional
+            Optional ranking/classification embeddings, by default None.
+        y_validation : np.ndarray | pd.Series | None, optional
+            Optional ranking/classification labels, by default None.
+        **kwargs : Any
+            Additional keyword arguments forwarded to DNNOptimizer.
+
+        Returns
+        -------
+        DNNOptimizer
+            Configured optimizer instance.
+
+        Notes
+        -----
+        When using embeddings, set stage1.lambda_recon=0 and noise_type="none"
+        to avoid reconstructing already-reduced features.
+        '''
+
+        return cls(
+            X_train=X_embeddings_train,
+            y_train=y_train,
+            X_test=X_embeddings_test,
+            y_test=y_test,
+            X_validation=X_embeddings_validation,
+            y_validation=y_validation,
+            **kwargs
+        )
 
 
     def set_random_seed(self) -> None:
@@ -279,9 +464,9 @@ class DNNOptimizer:
                 "objective_metric": "AUC"
             },
             "data": {
-                "dude_validation_fraction": 0.2,
-                "dude_split_by_target": True,
-                "dude_target_column": "receptor"
+                "ranking_validation_fraction": 0.2,
+                "ranking_split_by_target": True,
+                "ranking_target_column": "receptor"
             }
         }
 
@@ -336,7 +521,7 @@ class DNNOptimizer:
         return int(data.shape[1])
 
 
-    def _prepare_dude_data(
+    def _prepare_ranking_data(
             self,
             X_validation: Union[np.ndarray, pd.DataFrame, None],
             y_validation: Union[np.ndarray, pd.Series, None],
@@ -352,65 +537,66 @@ class DNNOptimizer:
             Labels for ranking/classification dataset.
         future_config : dict | None
             Optional overrides containing pre-split data or target ids.
+
         '''
 
-        if future_config and "dude_train_data" in future_config:
-            dude_train = future_config["dude_train_data"]
-            dude_val = future_config.get("dude_val_data")
+        if future_config and "ranking_train_data" in future_config:
+            rank_train = future_config.get("ranking_train_data")
+            rank_val = future_config.get("ranking_val_data")
 
-            self.dude_train = dude_train
-            self.dude_val = dude_val
+            self.rank_train = rank_train
+            self.rank_val = rank_val
             return
 
         if X_validation is None or y_validation is None:
             return
 
         # Convert ranking data
-        X_dude = self._to_numpy(X_validation)
-        y_dude = np.asarray(y_validation).astype(int)
+        X_rank = self._to_numpy(X_validation)
+        y_rank = np.asarray(y_validation).astype(int)
 
         # Extract target IDs if available
         target_ids = None
         if isinstance(X_validation, pd.DataFrame):
-            target_col = self.config["data"].get("dude_target_column", "receptor")
+            target_col = self.config["data"].get("ranking_target_column", "receptor")
             if target_col in X_validation.columns:
                 target_ids = X_validation[target_col].values
 
-        if future_config and "dude_targets" in future_config:
-            target_ids = future_config["dude_targets"]
+        if future_config and "ranking_targets" in future_config:
+            target_ids = future_config["ranking_targets"]
 
         if target_ids is None:
             # Fallback: use a single target for all samples
-            target_ids = np.array(["TARGET_0"] * len(y_dude))
+            target_ids = np.array(["TARGET_0"] * len(y_rank))
 
         target_ids = np.asarray(target_ids)
 
         # Split ranking data into train/val
-        val_fraction = float(self.config["data"].get("dude_validation_fraction", 0.2))
+        val_fraction = float(self.config["data"].get("ranking_validation_fraction", 0.2))
         if val_fraction <= 0.0 or val_fraction >= 1.0:
-            self.dude_train = {"X": X_dude, "y": y_dude, "targets": target_ids}
-            self.dude_val = None
+            self.rank_train = {"X": X_rank, "y": y_rank, "targets": target_ids}
+            self.rank_val = None
             return
 
-        if self.config["data"].get("dude_split_by_target", True):
+        if self.config["data"].get("ranking_split_by_target", True):
             splitter = GroupShuffleSplit(n_splits=1, test_size=val_fraction, random_state=self.random_seed)
-            idx_train, idx_val = next(splitter.split(X_dude, y_dude, groups=target_ids))
+            idx_train, idx_val = next(splitter.split(X_rank, y_rank, groups=target_ids))
         else:
             idx_train, idx_val = train_test_split(
-                np.arange(len(y_dude)),
+                np.arange(len(y_rank)),
                 test_size=val_fraction,
                 random_state=self.random_seed,
-                stratify=y_dude if len(np.unique(y_dude)) > 1 else None
+                stratify=y_rank if len(np.unique(y_rank)) > 1 else None
             )
 
-        self.dude_train = {
-            "X": self._select_rows(X_dude, idx_train),
-            "y": y_dude[idx_train],
+        self.rank_train = {
+            "X": self._select_rows(X_rank, idx_train),
+            "y": y_rank[idx_train],
             "targets": target_ids[idx_train]
         }
-        self.dude_val = {
-            "X": self._select_rows(X_dude, idx_val),
-            "y": y_dude[idx_val],
+        self.rank_val = {
+            "X": self._select_rows(X_rank, idx_val),
+            "y": y_rank[idx_val],
             "targets": target_ids[idx_val]
         }
 
@@ -516,7 +702,7 @@ class DNNOptimizer:
         return x
 
 
-    def _make_pdb_loader(self, split: str = "train") -> DataLoader:
+    def _make_reg_loader(self, split: str = "train") -> DataLoader:
         '''Create DataLoader for primary regression dataset.
 
         Parameters
@@ -531,18 +717,18 @@ class DNNOptimizer:
         '''
 
         if split == "train":
-            dataset = EnergyDataset(self.X_pdb_train, self.y_pdb_train, mask=self.mask.cpu().numpy() if self.mask is not None else None)
+            dataset = EnergyDataset(self.X_reg_train, self.y_reg_train, mask=self.mask.cpu().numpy() if self.mask is not None else None)
             batch_size = self.config["stage1"]["batch_size"]
             shuffle = True
         else:
-            dataset = EnergyDataset(self.X_pdb_test, self.y_pdb_test, mask=self.mask.cpu().numpy() if self.mask is not None else None)
+            dataset = EnergyDataset(self.X_reg_test, self.y_reg_test, mask=self.mask.cpu().numpy() if self.mask is not None else None)
             batch_size = self.config["stage1"]["batch_size"]
             shuffle = False
 
         return DataLoader(dataset=dataset, batch_size=batch_size, shuffle=shuffle)
 
 
-    def _make_dude_loaders(self) -> tuple[DataLoader, Optional[DataLoader]]:
+    def _make_ranking_loaders(self) -> tuple[DataLoader, Optional[DataLoader]]:
         '''Create DataLoaders for ranking/classification dataset.
 
         Returns
@@ -551,13 +737,13 @@ class DNNOptimizer:
             Training and validation loaders.
         '''
 
-        if self.dude_train is None:
+        if self.rank_train is None:
             raise ValueError("Ranking training data not provided")
 
         train_dataset = TargetRankingDataset(
-            self.dude_train["X"],
-            self.dude_train["y"],
-            self.dude_train["targets"],
+            self.rank_train["X"],
+            self.rank_train["y"],
+            self.rank_train["targets"],
             mask=self.mask.cpu().numpy() if self.mask is not None else None
         )
 
@@ -571,11 +757,11 @@ class DNNOptimizer:
         train_loader = DataLoader(dataset=train_dataset, batch_sampler=sampler)
 
         val_loader = None
-        if self.dude_val is not None:
+        if self.rank_val is not None:
             val_dataset = TargetRankingDataset(
-                self.dude_val["X"],
-                self.dude_val["y"],
-                self.dude_val["targets"],
+                self.rank_val["X"],
+                self.rank_val["y"],
+                self.rank_val["targets"],
                 mask=self.mask.cpu().numpy() if self.mask is not None else None
             )
             val_sampler = TargetBatchSampler(val_dataset.target_to_indices, batch_size=None, shuffle=False)
@@ -635,8 +821,8 @@ class DNNOptimizer:
             balancer = UncertaintyWeighting(["recon", "energy"]).to(self.device)
             optimizer.add_param_group({"params": balancer.parameters()})
 
-        train_loader = self._make_pdb_loader("train")
-        val_loader = self._make_pdb_loader("val")
+        train_loader = self._make_reg_loader("train")
+        val_loader = self._make_reg_loader("val")
 
         best_metric = float("inf")
         patience = int(stage_cfg.get("early_stopping_patience", 20))
@@ -690,11 +876,11 @@ class DNNOptimizer:
 
             mean_val = float(np.mean(val_energy)) if val_energy else float("inf")
 
-                if mean_val < best_metric:
-                    # Track the best state based on validation energy loss.
-                    best_metric = mean_val
-                    best_state = copy.deepcopy(model.state_dict())
-                    patience_counter = 0
+            if mean_val < best_metric:
+                # Track the best state based on validation energy loss.
+                best_metric = mean_val
+                best_state = copy.deepcopy(model.state_dict())
+                patience_counter = 0
             else:
                 patience_counter += 1
 
@@ -726,8 +912,8 @@ class DNNOptimizer:
         if not stage_cfg.get("enabled", True):
             return {}
 
-        train_loader, val_loader = self._make_dude_loaders()
-        pdb_loader = self._make_pdb_loader("train") if stage_cfg.get("lambda_energy", 0.0) > 0 or stage_cfg.get("lambda_recon", 0.0) > 0 else None
+        train_loader, val_loader = self._make_ranking_loaders()
+        reg_loader = self._make_reg_loader("train") if stage_cfg.get("lambda_energy", 0.0) > 0 or stage_cfg.get("lambda_recon", 0.0) > 0 else None
 
         optimizer = optim.AdamW(
             model.parameters(),
@@ -744,8 +930,8 @@ class DNNOptimizer:
 
         # Compute pos_weight for BCE if needed (handles strong class imbalance).
         pos_weight = None
-        if stage_cfg.get("bce_pos_weight") is None and self.dude_train is not None:
-            labels = np.asarray(self.dude_train["y"]).astype(int)
+        if stage_cfg.get("bce_pos_weight") is None and self.rank_train is not None:
+            labels = np.asarray(self.rank_train["y"]).astype(int)
             pos = max(1, int(labels.sum()))
             neg = max(1, int(len(labels) - pos))
             # Balance BCE for strong class imbalance.
@@ -803,10 +989,10 @@ class DNNOptimizer:
                 running_loss += loss.item()
 
             # Optional energy regularization using regression data
-            if pdb_loader is not None and (stage_cfg["lambda_energy"] > 0 or stage_cfg["lambda_recon"] > 0):
+            if reg_loader is not None and (stage_cfg["lambda_energy"] > 0 or stage_cfg["lambda_recon"] > 0):
                 # Energy/reconstruction regularize stage2 when requested.
                 model.train()
-                for batch in pdb_loader:
+                for batch in reg_loader:
                     optimizer.zero_grad()
                     features, energies = batch
                     features = features.to(self.device)
@@ -833,33 +1019,33 @@ class DNNOptimizer:
             # Validation
             metrics = {}
         if val_loader is not None:
-            metrics = self._evaluate_dude(model, val_loader)
+                metrics = self._evaluate_ranking(model, val_loader)
             metric_key = self.config["optimization"].get("metric_for_best", "AUC")
             metric_value = metrics.get(metric_key, 0.0)
 
-                if metric_value > best_metric:
-                    best_metric = metric_value
-                    best_state = copy.deepcopy(model.state_dict())
-                    patience_counter = 0
-                else:
-                    patience_counter += 1
+            if metric_value > best_metric:
+                best_metric = metric_value
+                best_state = copy.deepcopy(model.state_dict())
+                patience_counter = 0
+            else:
+                patience_counter += 1
 
-                if self.verbose:
-                    ocprint.printv(f"[Stage2] Epoch {epoch+1}/{stage_cfg['epochs']} loss={running_loss:.4f} {metric_key}={metric_value:.4f}")
+            if self.verbose:
+                ocprint.printv(f"[Stage2] Epoch {epoch+1}/{stage_cfg['epochs']} loss={running_loss:.4f} {metric_key}={metric_value:.4f}")
 
-                if patience_counter >= patience:
-                    break
+            if patience_counter >= patience:
+                break
 
         if best_state is not None:
             model.load_state_dict(best_state)
 
         # Return final validation metrics if available
         if val_loader is not None:
-            return self._evaluate_dude(model, val_loader)
+            return self._evaluate_ranking(model, val_loader)
         return {}
 
 
-    def _evaluate_dude(self, model: nn.Module, loader: DataLoader) -> Dict[str, float]:
+    def _evaluate_ranking(self, model: nn.Module, loader: DataLoader) -> Dict[str, float]:
         '''Evaluate ranking/classification metrics.
 
         Parameters
@@ -874,7 +1060,7 @@ class DNNOptimizer:
         Dict[str, float]
             Metrics dictionary.
         '''
-        
+
         model.eval()
 
         all_scores = []
@@ -916,7 +1102,7 @@ class DNNOptimizer:
 
         model.eval()
 
-        loader = self._make_pdb_loader("val")
+        loader = self._make_reg_loader("val")
         preds = []
         targets = []
 

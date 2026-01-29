@@ -354,3 +354,4 @@ def _lambda_rank_loss_single_k(scores: torch.Tensor, labels: torch.Tensor, k: fl
     loss = (pair_loss * delta).mean() / (idcg + 1e-8)
 
     return loss
+

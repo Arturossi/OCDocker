@@ -48,6 +48,13 @@ class AutoencoderDataset(Dataset):
     feature_mask : np.ndarray | None, optional
         Feature mask (element-wise) applied to inputs.
 
+    Notes
+    -----
+    The dataset always returns a triplet:
+    - features: torch.Tensor of shape (F,)
+    - energies: torch.Tensor of shape (1,) (filled with 0.0 if missing)
+    - energy_mask: torch.Tensor bool indicating if the energy label is valid
+
     Examples
     --------
     >>> import numpy as np
