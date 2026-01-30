@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 # Description
 ###############################################################################
 '''
@@ -22,6 +20,8 @@ Public API (metrics/tables):
 - build_test2_tables
 - build_summary_table
 '''
+
+from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Callable, Iterable, List, Optional, Sequence, Dict, Union
@@ -855,6 +855,7 @@ def build_summary_table(
     pd.DataFrame
         DataFrame with the summary table.
     '''
+
     eps = tuple(int(e) for e in eps)
     st = summary_targets[summary_targets["metric"].isin([f"EF_ROC_{e}%" for e in eps])].copy()
     med = (
@@ -899,3 +900,4 @@ def build_summary_table(
         )
 
     return out
+

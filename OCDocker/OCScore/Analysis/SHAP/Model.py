@@ -1,16 +1,24 @@
+# Description
+###############################################################################
+'''OCDocker.OCScore.Analysis.SHAP.Model module: Neural network model construction for SHAP analysis.
+'''
 
+# Imports
+###############################################################################
 from __future__ import annotations
 from typing import Dict, Union, Optional
 import torch
 from OCDocker.OCScore.DNN.DNNOptimizer import NeuralNet
 
 
+# Functions
+###############################################################################
 def build_neural_net(
     input_dim: int,
     autoencoder_params: Dict[str, Union[int, float, str, bool]],
     nn_params: Dict[str, Union[int, float, str, bool]],
     seed: int,
-    mask: Optional = None,
+    mask: Optional[Union[list[int], list[bool]]] = None,
     use_gpu: Optional[bool] = None,
     verbose: bool = False,
 ) -> NeuralNet:
@@ -26,7 +34,7 @@ def build_neural_net(
         Parameters for the neural network component.
     seed : int
         Random seed for reproducibility.
-    mask : Optional
+    mask : Optional[list[int] | list[bool]], optional
         Feature mask to apply. Default is None.
     use_gpu : Optional[bool], optional
         Whether to use GPU. If None, auto-detects CUDA availability. Default is None.

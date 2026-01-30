@@ -47,6 +47,36 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 
 class XGBoostOptimizer:
+    """Class to optimize XGBoost hyperparameters using Optuna.
+    
+    Parameters
+    ----------
+    X_train : np.ndarray | pd.DataFrame | pd.Series
+        The training dataset.
+    y_train : np.ndarray | pd.DataFrame | pd.Series
+        The training labels.
+    X_test : np.ndarray | pd.DataFrame | pd.Series
+        The test dataset.
+    y_test : np.ndarray | pd.DataFrame | pd.Series
+        The test labels.
+    X_validation : np.ndarray | pd.DataFrame | pd.Series, optional
+        The validation dataset and labels. Default is None.
+    y_validation : np.ndarray | pd.DataFrame | pd.Series, optional
+        The validation labels. Default is None.
+    storage : str, optional
+        The storage path/URL for the Optuna study. Default is "sqlite:///pre_xgboost.db".
+    params : dict, optional
+        The hyperparameters for the XGBoost model. Default is an empty dictionary.
+    early_stopping_rounds : int, optional
+        The number of early stopping rounds for the XGBoost model. Default is 20.
+    use_gpu : bool, optional
+        Whether to use the GPU for training the XGBoost model. Default is False.
+    random_state : int, optional
+        The random state for reproducibility. Default is 42.
+    verbose : bool, optional
+        Whether to print the training logs. Default is False.
+    """
+    
     def __init__(self, 
             X_train : Union[np.ndarray, pd.DataFrame, pd.Series],
             y_train : Union[np.ndarray, pd.DataFrame, pd.Series],

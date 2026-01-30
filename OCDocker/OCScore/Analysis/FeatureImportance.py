@@ -1,5 +1,3 @@
-from __future__ import annotations
-import OCDocker.Error as ocerror
 '''
 Test2 SHAP utilities (library style, no I/O, no plots).
 
@@ -14,12 +12,13 @@ Public API:
 - shap_importance_table
 '''
 
+from __future__ import annotations
+import OCDocker.Error as ocerror
+
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
-
-
 
 try:
     import shap
@@ -99,6 +98,7 @@ def build_stratified_background(
     np.ndarray
         Background array with shape (n_bg, n_features).
     '''
+
     rng = np.random.default_rng(seed)
     X_arr = _ensure_2d(X)
     assert len(meta) == X_arr.shape[0], "meta rows must align with X rows"
@@ -148,6 +148,7 @@ def make_explainer(
         Tuple of (explainer, predict_proba_index). predict_proba_index = 1 is commonly used
         for binary classification when the explainer returns per-class SHAP values (lists).
     '''
+
     _require_shap()
     bg = _ensure_2d(background)
 
@@ -229,6 +230,7 @@ def compute_shap_values(
         - "shap_values": (n_samples, n_features) array
         - "base_values": (n_samples,) or scalar
     '''
+
     _require_shap()
     X_eval_arr = _ensure_2d(X_eval)
 
@@ -286,6 +288,7 @@ def shap_importance_table(
     pd.DataFrame
         DataFrame with columns: ["feature", "mean_abs_shap", "rank"]
     '''
+
     S = np.asarray(shap_values, dtype=float)
     mean_abs = np.nanmean(np.abs(S), axis=0)
 
@@ -302,3 +305,4 @@ def shap_importance_table(
         df = df.reset_index(drop=True)
 
     return df
+

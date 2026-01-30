@@ -502,6 +502,20 @@ class SPORESPreparationStrategy(PreparationStrategy):
         log_file: str = "",
         overwrite: bool = False
     ) -> Union[int, Tuple[int, str]]:
+        '''Prepare a receptor molecule.
+        
+        Parameters
+        ----------
+        input_path : str
+            Path to input receptor file
+        output_path : str
+            Path to output prepared receptor file
+        log_file : str, optional
+            Path to log file (empty to suppress)
+        overwrite : bool, optional
+            Whether to overwrite existing output file (default is False)        
+        '''
+        
         # Same as ligand for SPORES
         return self.prepare_ligand(input_path, output_path, log_file, overwrite=overwrite)
     

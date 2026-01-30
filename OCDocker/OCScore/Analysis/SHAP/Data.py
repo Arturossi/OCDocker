@@ -1,4 +1,10 @@
+# Description
+###############################################################################
+'''OCDocker.OCScore.Analysis.SHAP.Data module: Data loading and preparation for SH AP analysis.
+'''
 
+# Imports
+###############################################################################
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import List
@@ -10,6 +16,8 @@ import OCDocker.OCScore.Utils.Data as ocscoredata
 
 LOGGER = logging.getLogger("OCScore.SHAP.data")
 
+# Functions
+###############################################################################
 @dataclass
 class DataHandles:
     """Data container for SHAP analysis datasets.

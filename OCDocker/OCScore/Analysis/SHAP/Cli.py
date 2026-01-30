@@ -1,4 +1,11 @@
+# Description
+###############################################################################
+'''
+OCDocker.OCScore.Analysis.SHAP.Cli module: Command-line interface for SHAP analysis.
+'''
 
+# Imports
+###############################################################################
 from __future__ import annotations
 import json
 import argparse
@@ -6,7 +13,8 @@ from typing import Optional
 from .Runner import run_shap_analysis
 from .Studies import StudyHandles
 
-
+# Functions
+###############################################################################
 def build_argparser() -> argparse.ArgumentParser:
     '''Build command-line argument parser for SHAP analysis.
     

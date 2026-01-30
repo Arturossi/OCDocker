@@ -6,7 +6,17 @@ import OCDocker.Ligand as ocl
 
 
 class Ligands(base):
-    """ Define the Ligand table """
+    """ Define the Ligand table 
+    
+    Attributes
+    ----------
+    id : Integer
+        Primary key of the table
+    complexes : list
+        Relationship to the Complexes table
+    allDescriptors : list
+        List of all descriptor column names
+    """
 
     # Relationships
     complexes = relationship("Complexes", back_populates = "ligand", cascade = "all, delete-orphan", lazy = "joined")

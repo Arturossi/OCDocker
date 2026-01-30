@@ -6,7 +6,17 @@ import OCDocker.Receptor as ocr
 
 
 class Receptors(base):
-    """ Define the Receptor table """
+    """ Define the Receptor table
+    
+    Attributes
+    ----------
+    id : Integer
+        Primary key of the table
+    complexes : list
+        Relationship to the Complexes table
+    allDescriptors : list
+        List of all descriptor column names
+    """
     
     # Relationships
     complexes = relationship("Complexes", back_populates = "receptor", cascade = "all, delete-orphan")

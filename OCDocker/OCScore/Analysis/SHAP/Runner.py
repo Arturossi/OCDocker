@@ -1,4 +1,10 @@
+# Description
+###############################################################################
+'''OCDocker.OCScore.Analysis.SHAP.Runner module: Main runner for SHAP analysis workflow.
+'''
 
+# Imports
+###############################################################################
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import List, Optional
@@ -12,6 +18,8 @@ from .Model import build_neural_net
 from .Explain import compute_shap_values
 from . import plots
 
+# Functions
+###############################################################################
 @dataclass
 class OutputPaths:
     """Container for SHAP analysis output file paths.

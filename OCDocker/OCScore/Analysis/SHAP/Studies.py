@@ -1,4 +1,10 @@
+# Description
+###############################################################################
+'''OCDocker.OCScore.Analysis.SHAP.Studies module: Management of Optuna studies for SHAP analysis.
+'''
 
+# Imports
+###############################################################################
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, Union
@@ -8,6 +14,8 @@ import logging
 
 LOGGER = logging.getLogger("OCScore.SHAP.studies")
 
+# Functions
+###############################################################################
 @dataclass
 class StudyHandles:
     """Container for Optuna study handles and storage information.

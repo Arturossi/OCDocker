@@ -7,7 +7,23 @@ from OCDocker.DB.Models.Receptors import Receptors
 
 
 class Complexes(base):
-    """ Define the Complex table """
+    """ Define the Complex table 
+    
+    Attributes
+    ----------
+    id : Integer
+        Primary key of the table
+    ligand_id : Integer
+        Foreign key referencing the Ligands table
+    receptor_id : Integer
+        Foreign key referencing the Receptors table
+    ligand : Ligands
+        Relationship to the Ligands table
+    receptor : Receptors
+        Relationship to the Receptors table
+    allDescriptors : list
+        List of all descriptor column names
+    """
     
     # Relationships
     ligand_id = Column(Integer, ForeignKey("ligands.id"))

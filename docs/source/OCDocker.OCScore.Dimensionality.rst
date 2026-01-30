@@ -10,6 +10,7 @@ Submodules
    OCDocker.OCScore.Dimensionality.AutoencoderOptimizer
    OCDocker.OCScore.Dimensionality.GeneticAlgorithm
    OCDocker.OCScore.Dimensionality.PCA
+   OCDocker.OCScore.Dimensionality.future
 
 Module contents
 ---------------
