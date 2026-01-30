@@ -97,6 +97,10 @@ class Receptor:
         BioPython structure object.
     path : str
         Path to the structure file.
+    original_path : str
+        Original input path (e.g., .cif/.mmcif) when conversion occurs.
+    clean_source_path : str
+        Previous path before cleaning, when a cleaned file is generated.
     SASA : float
         Solvent accessible surface area.
     DipoleMoment : float
@@ -134,7 +138,7 @@ class Receptor:
     allDescriptors = [f"count{i}" for i in descriptors_names["count"]] + single_descriptors
 
 
-    def __init__(self, structure: Union[str, Bio.PDB.Structure.Structure], name: str, mol2_path: str = "", c_model: str = "gasteiger", gravy_scale: str = "KyteDoolitle", relative_asa_cutoff: float = 0.7, from_json_descriptors: str = "", overwrite: bool = False, clean: bool = False) -> None:
+    def __init__(self, structure: Union[str, Bio.PDB.Structure.Structure], name: str, mol2_path: str = "", c_model: str = "gasteiger", gravy_scale: str = "KyteDoolitle", relative_asa_cutoff: float = 0.7, from_json_descriptors: str = "", overwrite: bool = False, clean: bool = False, canonicalize_pdb: Union[bool, str] = "auto") -> None:
         '''Constructor of the class Receptor.
 
         Parameters
@@ -157,6 +161,8 @@ class Receptor:
             Flag to denote if files will be overwritten, by default False.
         clean : bool, optional
             Flag to denote if the pdb file will be cleaned, by default False.
+        canonicalize_pdb : bool | str, optional
+            Whether to canonicalize CHARMM-style PDB names. Use True, False, or "auto".
         
         Returns
         -------
@@ -165,17 +171,32 @@ class Receptor:
 
         # Name must come first
         self.name = ""
+        # Track original input path (if any)
+        self.original_path = os.fspath(structure) if isinstance(structure, (str, os.PathLike)) else ""
+        # Track pre-clean path (if any)
+        self.clean_source_path = ""
         # The molpath not always will exist (should also come first)
         self.mol2_path = str(mol2_path)
         # Set the path and structure (NEVER SHOUD BE NONE)
         # If user pass a json
         if from_json_descriptors:
             # Read the molecule telling that there is no need to fetch the SASA value
-            self.path, self.structure = load_mol(structure, name=self.name, compute_sasa=False, mol2_path=self.mol2_path, overwrite = overwrite, clean = clean)
+            self.path, self.structure = load_mol(structure, name=self.name, compute_sasa=False, mol2_path=self.mol2_path, overwrite = overwrite, clean = clean, canonicalize_pdb=canonicalize_pdb)
         else:
             # Read the molecule telling that there is the need to fetch the SASA value
-            self.path, self.structure = load_mol(structure, name=self.name, compute_sasa=True, mol2_path=self.mol2_path, overwrite = overwrite, clean = clean)
+            self.path, self.structure = load_mol(structure, name=self.name, compute_sasa=True, mol2_path=self.mol2_path, overwrite = overwrite, clean = clean, canonicalize_pdb=canonicalize_pdb)
 
+        # If no conversion happened, clear original_path
+        if not self.path or not self.original_path or os.path.abspath(self.path) == os.path.abspath(self.original_path):
+            self.original_path = ""
+        # If cleaned file was generated, store the pre-clean path
+        if self.path and self.path.endswith("_clean.pdb") and self.original_path:
+            base, ext = os.path.splitext(self.path)
+            if base.endswith("_clean"):
+                self.clean_source_path = f"{base[:-6]}{ext}"
+                # If original_path is just the pre-clean PDB, clear it to avoid duplication
+                if self.original_path and os.path.abspath(self.original_path) == os.path.abspath(self.clean_source_path):
+                    self.original_path = ""
         # Set the residues (derived from structure)
         self.residues = get_res(self.structure)
 
@@ -339,6 +360,8 @@ class Receptor:
         attributes = {
             "Name": self.name,
             "Structure path": self.path,
+            "Original path": self.original_path,
+            "Clean source path": self.clean_source_path,
             "mol2 path": self.mol2_path,
             "Structure": self.structure,
             "AA residues": self.residues,
@@ -753,8 +776,43 @@ def get_res(model: Bio.PDB.Structure.Structure) -> str:
     return "".join(residues)
 
 
-def load_mol(structure: Union[str, os.PathLike, Bio.PDB.Structure.Structure], name: str = "", compute_sasa: bool = True, mol2_path: str = "", overwrite: bool = False, clean: bool = True) -> Tuple[str, Optional[Bio.PDB.Structure.Structure]]:
-    '''Load a structure pdb/cif if a path is provided or just assign the Bio.PDB.Structure.Structure object to the structure. Also returns the path as a tuple (path, structure).
+def _convert_cif_to_pdb(structure_path: str, structure: Bio.PDB.Structure.Structure, overwrite: bool = False) -> Optional[str]:
+    '''Convert a mmCIF/cif file to PDB format and return the new path.'''
+
+    extension = os.path.splitext(structure_path)[1].lower()
+    if extension not in [".cif", ".mmcif"]:
+        return None
+
+    base_dir = os.path.dirname(structure_path)
+    base_name = os.path.splitext(os.path.basename(structure_path))[0]
+    pdb_path = os.path.join(base_dir, f"{base_name}.pdb")
+
+    if os.path.isfile(pdb_path) and not overwrite:
+        ocprint.print_warning(f"Converted PDB already exists at '{pdb_path}'. Reusing it.")
+        return pdb_path
+
+    try:
+        io = PDBIO()
+        io.set_structure(structure)
+        io.save(pdb_path)
+        ocprint.print_success(f"Converted '{structure_path}' to PDB '{pdb_path}'.")
+        return pdb_path
+    except Exception as e:
+        ocprint.print_warning(f"Failed to convert '{structure_path}' to PDB. Using original file. Error: {e}")
+        return None
+
+
+def _clean_pdb_path(structure_path: str) -> str:
+    '''Return a cleaned PDB path derived from the input path.'''
+
+    base, ext = os.path.splitext(structure_path)
+    if base.endswith("_clean"):
+        return structure_path
+    return f"{base}_clean{ext}"
+
+
+def load_mol(structure: Union[str, os.PathLike, Bio.PDB.Structure.Structure], name: str = "", compute_sasa: bool = True, mol2_path: str = "", overwrite: bool = False, clean: bool = True, canonicalize_pdb: Union[bool, str] = "auto") -> Tuple[str, Optional[Bio.PDB.Structure.Structure]]:
+    '''Load a structure pdb/cif/mmcif if a path is provided or just assign the Bio.PDB.Structure.Structure object to the structure. Also returns the path as a tuple (path, structure).
 
     Parameters
     ----------
@@ -770,6 +828,8 @@ def load_mol(structure: Union[str, os.PathLike, Bio.PDB.Structure.Structure], na
         Whether to overwrite the mol2 file or not, by default False.
     clean : bool, optional
         Whether to clean the protein file or not, by default True.
+    canonicalize_pdb : bool | str, optional
+        Whether to canonicalize CHARMM-style PDB names. Use True, False, or "auto".
 
     Returns
     -------
@@ -802,27 +862,98 @@ def load_mol(structure: Union[str, os.PathLike, Bio.PDB.Structure.Structure], na
                 name = "Generic structure"
             
             # Now we know that it is a file path, check which is its extension to use the correct function
-            extension = os.path.splitext(structure_path)[1]
+            extension = os.path.splitext(structure_path)[1].lower()
+
+            # Normalize canonicalization mode
+            canonicalize_mode: Union[bool, str]
+            if isinstance(canonicalize_pdb, str):
+                canonicalize_mode = canonicalize_pdb.lower()
+                if canonicalize_mode not in ["auto", "true", "false"]:
+                    ocprint.print_warning(f"Invalid canonicalize_pdb value '{canonicalize_pdb}'. Using 'auto'.")
+                    canonicalize_mode = "auto"
+                if canonicalize_mode == "true":
+                    canonicalize_mode = True
+                elif canonicalize_mode == "false":
+                    canonicalize_mode = False
+            elif isinstance(canonicalize_pdb, bool):
+                canonicalize_mode = canonicalize_pdb
+            else:
+                ocprint.print_warning(f"Invalid canonicalize_pdb type '{type(canonicalize_pdb)}'. Using 'auto'.")
+                canonicalize_mode = "auto"
 
             # Choose the parser based on extension
             if extension == ".pdb":
-                parser = PDBParser()
-            elif extension == ".cif":
-                parser = MMCIFParser()
+                if canonicalize_mode is True or canonicalize_mode == "auto":
+                    needs_fix = True
+                    if canonicalize_mode == "auto":
+                        needs_fix = ocmolproc.needs_canonical_pdb_fix(structure_path, collapse_resnames=True)
+                    if needs_fix:
+                        result = ocmolproc.convert_pdb_charmm_to_canonical(
+                            structure_path,
+                            structure_path,
+                            collapse_resnames=True,
+                            overwrite=overwrite,
+                            in_place=True,
+                        )
+                        if result != ocerror.Error.ok():  # type: ignore
+                            ocprint.print_warning(f"Failed to canonicalize '{structure_path}'. Using original file.")
+
+                # Clean file to a sidecar path when requested
+                if clean:
+                    clean_path = _clean_pdb_path(structure_path)
+                    result = ocmolproc.clean_pdb_file(structure_path, clean_path, overwrite=overwrite, keep_hetatm=False)
+                    if result == ocerror.Error.ok():  # type: ignore
+                        structure_path = clean_path
+                    else:
+                        ocprint.print_warning(f"Failed to clean '{structure_path}'. Using original file.")
+
+                tmp_structure = PDBParser().get_structure(name, structure_path)
+
+            elif extension in [".cif", ".mmcif"]:
+                tmp_structure = MMCIFParser().get_structure(name, structure_path)
             else:
                 # The file extension is not supported, print data
-                supported_extensions = [".pdb", ".cif"]
+                supported_extensions = [".pdb", ".cif", ".mmcif"]
                 ocprint.print_error(
                     f"The receptor {structure_path} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supported_extensions)}."
                 )
                 return "", None
 
-            # Compute the SASA value of the structure
-            tmp_structure = parser.get_structure(name, structure_path)
+            # Convert mmCIF/cif to PDB for downstream compatibility
+            if extension in [".cif", ".mmcif"]:
+                converted_path = _convert_cif_to_pdb(structure_path, tmp_structure, overwrite=overwrite)
+                if converted_path:
+                    structure_path = converted_path
+                    # Apply CHARMM -> canonical renaming if requested
+                    if canonicalize_mode is True or canonicalize_mode == "auto":
+                        needs_fix = True
+                        if canonicalize_mode == "auto":
+                            needs_fix = ocmolproc.needs_canonical_pdb_fix(structure_path, collapse_resnames=True)
+                        if needs_fix:
+                            result = ocmolproc.convert_pdb_charmm_to_canonical(
+                                structure_path,
+                                structure_path,
+                                collapse_resnames=True,
+                                overwrite=overwrite,
+                                in_place=True,
+                            )
+                            if result != ocerror.Error.ok():  # type: ignore
+                                ocprint.print_warning(f"Failed to canonicalize '{structure_path}'. Using original file.")
 
-            # Check if the pdb file should be cleaned
+                    # Clean file to a sidecar path when requested
+                    if clean:
+                        clean_path = _clean_pdb_path(structure_path)
+                        result = ocmolproc.clean_pdb_file(structure_path, clean_path, overwrite=overwrite, keep_hetatm=False)
+                        if result == ocerror.Error.ok():  # type: ignore
+                            structure_path = clean_path
+                        else:
+                            ocprint.print_warning(f"Failed to clean '{structure_path}'. Using original file.")
+
+                    # Re-parse from the (possibly cleaned) PDB to keep structure aligned
+                    tmp_structure = PDBParser().get_structure(name, structure_path)
+
+            # Check if the pdb file should be cleaned (renumber residues)
             if clean:
-                # Clean the pdb file (renumber residues)
                 tmp_structure = renumber_pdb_residues(tmp_structure)
 
             # If there is a mol2 path and the file does not exist

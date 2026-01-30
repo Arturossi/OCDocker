@@ -140,13 +140,12 @@ def plot_boxplots(df: pd.DataFrame, n_trials: int, colour_mapping: dict[str, tup
     output_dir : str
         Directory to save the boxplot images.
     show_simple_consensus : bool
-        Whether to include the 'Simple consensus' box in the plots.
+        Whether to include consensus methodologies (any label ending with "consensus").
     '''
 
     plot_df = df.copy()
     if not show_simple_consensus:
-        plot_df = plot_df[plot_df['Methodology'] != 'Simple consensus']
-        plot_df = plot_df[plot_df['Methodology'] != 'Mean consensus']
+        plot_df = plot_df[~plot_df['Methodology'].str.endswith('consensus', na = False)]
 
     plt.figure(figsize = (16, 12))
     mean_line_rmse, mean_line_auc = None, None

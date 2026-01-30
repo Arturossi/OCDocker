@@ -135,6 +135,14 @@ def perform_simple_consensus(
         # If empty, use all columns
         metrics = ['mean', 'median', 'max', 'min', 'std', 'variance', 'sum', 'range', 'quantile_25', 'quantile_75', 'iqr', 'skewness', 'kurtosis']
 
+    available_metrics = [m for m in dudez_stats_df.columns if m not in ['experimental', 'type']]
+    unknown_metrics = [m for m in metrics if m not in available_metrics]
+    if unknown_metrics:
+        raise ValueError(
+            f"Unknown consensus metrics: {unknown_metrics}. "
+            f"Available metrics are: {available_metrics}."
+        )
+
     # Calculate the AUC for each new metric
     for col in metrics:
         fpr, tpr, _ = roc_curve(dudez_stats_df['type'].map({'ligand': 1, 'decoy': 0}), dudez_stats_df[col])

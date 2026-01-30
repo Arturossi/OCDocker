@@ -97,14 +97,14 @@ def is_molecule_valid(molecule: str) -> bool:
         # Check which is its extension to use the correct function
         extension = os.path.splitext(molecule)[1]
         # Test if the molecule should be loaded with biopython or rdkit
-        if molecule.endswith((".cif", ".pdb")):
+        if molecule.lower().endswith((".cif", ".mmcif", ".pdb")):
             try:
                 # Now we know that it is a file path, check which is its extension to use the correct function
-                extension = os.path.splitext(molecule)[1]
+                extension = os.path.splitext(molecule)[1].lower()
                 # Choose the parser based on extension
                 if extension == ".pdb":
                     parser = PDBParser()
-                elif extension == ".cif":
+                elif extension in [".cif", ".mmcif"]:
                     parser = MMCIFParser()
                 else:
                     # Not suitable extension, so... say False!!!
@@ -128,19 +128,19 @@ def is_molecule_valid(molecule: str) -> bool:
                 elif extension == ".mol":
                     _ = rdkit.Chem.rdmolfiles.MolFromMolFile(molecule, sanitize = True) # type: ignore
                 elif extension == ".pdbqt":
-                    mol = rdkit.Chem.rdmolfiles.MolFromPDBFile( # type: ignore
-                        molecule, sanitize = True, removeHs = False
-                    )
-                    if mol is None:
-                        try:
-                            from openbabel import openbabel
-                            ob_conversion = openbabel.OBConversion()
-                            ob_conversion.SetInFormat("pdbqt")
-                            ob_mol = openbabel.OBMol()
-                            if not ob_conversion.ReadFile(ob_mol, molecule):
-                                return False
-                        except Exception:
+                    # RDKit's PDB parser can misread PDBQT atom types (e.g., "A") as elements.
+                    # Use OpenBabel to validate PDBQT files instead.
+                    try:
+                        from openbabel import openbabel
+                        ob_conversion = openbabel.OBConversion()
+                        ob_conversion.SetInFormat("pdbqt")
+                        ob_mol = openbabel.OBMol()
+                        if not ob_conversion.ReadFile(ob_mol, molecule):
                             return False
+                        if ob_mol.NumAtoms() <= 0:
+                            return False
+                    except Exception:
+                        return False
                 elif extension in [".smi", ".smiles"]:
                     # Read SMILES string from file and parse
                     try:
