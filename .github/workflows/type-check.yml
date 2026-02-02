@@ -2,9 +2,9 @@ name: Type Checking and Coverage
 
 on:
   push:
-    branches: [ main, master, develop ]
+    branches: [ main, dev ]
   pull_request:
-    branches: [ main, master, develop ]
+    branches: [ main, dev ]
 
 jobs:
   type-check:
@@ -64,4 +64,3 @@ jobs:
         name: codecov-umbrella
         fail_ci_if_error: false
       continue-on-error: true
-
