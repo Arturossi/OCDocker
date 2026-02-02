@@ -511,7 +511,68 @@ class Receptor:
 # Cache to track which sequences we've already warned about
 _warned_sequences = set()
 
-def __filterSequence(residues: str) -> str:
+def _convert_cif_to_pdb(structure_path: str, structure: Bio.PDB.Structure.Structure, overwrite: bool = False) -> Optional[str]:
+    '''Convert a mmCIF/cif file to PDB format and return the new path.
+    
+    Parameters
+    ----------
+    structure_path : str
+        The path to the original structure file.
+    structure : Bio.PDB.Structure.Structure
+        The structure object to be saved as PDB.
+    overwrite : bool, optional
+        Whether to overwrite existing PDB file, by default False.
+
+    Returns
+    -------
+    Optional[str]
+        The path to the converted PDB file, or None if conversion was not performed.
+    '''
+
+    extension = os.path.splitext(structure_path)[1].lower()
+    if extension not in [".cif", ".mmcif"]:
+        return None
+
+    base_dir = os.path.dirname(structure_path)
+    base_name = os.path.splitext(os.path.basename(structure_path))[0]
+    pdb_path = os.path.join(base_dir, f"{base_name}.pdb")
+
+    if os.path.isfile(pdb_path) and not overwrite:
+        ocprint.print_warning(f"Converted PDB already exists at '{pdb_path}'. Reusing it.")
+        return pdb_path
+
+    try:
+        io = PDBIO()
+        io.set_structure(structure)
+        io.save(pdb_path)
+        ocprint.print_success(f"Converted '{structure_path}' to PDB '{pdb_path}'.")
+        return pdb_path
+    except Exception as e:
+        ocprint.print_warning(f"Failed to convert '{structure_path}' to PDB. Using original file. Error: {e}")
+        return None
+
+
+def _clean_pdb_path(structure_path: str) -> str:
+    '''Return a cleaned PDB path derived from the input path.
+    
+    Parameters
+    ----------
+    structure_path : str
+        The path to the original structure file.
+
+    Returns
+    -------
+    str
+        The path to the cleaned PDB file.
+    '''
+
+    base, ext = os.path.splitext(structure_path)
+    if base.endswith("_clean"):
+        return structure_path
+    return f"{base}_clean{ext}"
+
+
+def _filterSequence(residues: str) -> str:
     '''Filter the given sequence to avoid unsupported amino acid residues.
 
     Currently removes 'X' (unknown) amino acid residues, as these are not
@@ -782,41 +843,6 @@ def get_res(model: Bio.PDB.Structure.Structure) -> str:
         # Append to the residue list the one letter residue (using the conversion list from Initialise.py)
         residues.append(seq1(residue.get_resname()))
     return "".join(residues)
-
-
-def _convert_cif_to_pdb(structure_path: str, structure: Bio.PDB.Structure.Structure, overwrite: bool = False) -> Optional[str]:
-    '''Convert a mmCIF/cif file to PDB format and return the new path.'''
-
-    extension = os.path.splitext(structure_path)[1].lower()
-    if extension not in [".cif", ".mmcif"]:
-        return None
-
-    base_dir = os.path.dirname(structure_path)
-    base_name = os.path.splitext(os.path.basename(structure_path))[0]
-    pdb_path = os.path.join(base_dir, f"{base_name}.pdb")
-
-    if os.path.isfile(pdb_path) and not overwrite:
-        ocprint.print_warning(f"Converted PDB already exists at '{pdb_path}'. Reusing it.")
-        return pdb_path
-
-    try:
-        io = PDBIO()
-        io.set_structure(structure)
-        io.save(pdb_path)
-        ocprint.print_success(f"Converted '{structure_path}' to PDB '{pdb_path}'.")
-        return pdb_path
-    except Exception as e:
-        ocprint.print_warning(f"Failed to convert '{structure_path}' to PDB. Using original file. Error: {e}")
-        return None
-
-
-def _clean_pdb_path(structure_path: str) -> str:
-    '''Return a cleaned PDB path derived from the input path.'''
-
-    base, ext = os.path.splitext(structure_path)
-    if base.endswith("_clean"):
-        return structure_path
-    return f"{base}_clean{ext}"
 
 
 def load_mol(structure: Union[str, os.PathLike, Bio.PDB.Structure.Structure], name: str = "", compute_sasa: bool = True, mol2_path: str = "", overwrite: bool = False, clean: bool = True, canonicalize_pdb: Union[bool, str] = "auto") -> Tuple[str, Optional[Bio.PDB.Structure.Structure]]:
@@ -1127,7 +1153,7 @@ def compute_gravy(residues: str, scale: str = "KyteDoolitle") -> float:
     '''
 
     ocprint.printv(f"Computing the GRAVY (Grand Average of Hydropathy) for protein with amino acid sequence of '{residues}'.")
-    protein = ProteinAnalysis(__filterSequence(residues))
+    protein = ProteinAnalysis(_filterSequence(residues))
     return protein.gravy(scale = scale)
 
 
@@ -1171,7 +1197,7 @@ def compute_instability_index(residues: str) -> float:
     '''
 
     ocprint.printv(f"Computing the Instability Index for protein with amino acid sequence of '{residues}'.")
-    protein = ProteinAnalysis(__filterSequence(residues))
+    protein = ProteinAnalysis(_filterSequence(residues))
     return protein.instability_index()
 
 
@@ -1271,3 +1297,4 @@ def read_descriptors_from_json(path: str, returnData: bool = False) -> Optional[
     except Exception as e:
         ocprint.print_error(f"Could not read the file '{path}'. Error: {e}")
     return None
+

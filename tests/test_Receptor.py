@@ -114,7 +114,7 @@ def test_filter_sequence_warn(monkeypatch):
         calls.append(message)
 
     monkeypatch.setattr(ocprint, "print_warning", fake_warning)
-    result = ocr.__filterSequence("AXXTY")
+    result = ocr._filterSequence("AXXTY")
 
     assert result == "ATY"
     assert len(calls) == 1
@@ -476,9 +476,9 @@ def test_get_res(sample_receptor):
 
 @pytest.mark.order(31)
 def test_filter_sequence_no_x():
-    '''Test __filterSequence with no X residues.'''
+    '''Test _filterSequence with no X residues.'''
     
-    result = ocr.__filterSequence("ATY")
+    result = ocr._filterSequence("ATY")
     
     assert result == "ATY"
     assert "X" not in result
@@ -486,7 +486,7 @@ def test_filter_sequence_no_x():
 
 @pytest.mark.order(32)
 def test_filter_sequence_empty():
-    '''Test __filterSequence with empty string.'''
+    '''Test _filterSequence with empty string.'''
     
     result = ocr.__filterSequence("")
     
