@@ -1,16 +1,24 @@
-"""
-Utils package for OCScore holds utility functions to be used in OCScore package.
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Utilities for the OCScore package.
+
+Usage:
+
+import OCDocker.OCScore.Utils as ocscoreutils
 
 Modules
 -------
-- Data: Data manipulation functions.
-- Evaluation: Functions for evaluating model performance.
-- IO: Input/Output functions, including save_mask and load_mask for managing feature masks.
-- Plotting: Plotting functions.
-- SimpleConsensus: Simple consensus scoring functions such as mean, median, max, min, std, variance, sum, range, 25th and 75th percentiles, kurtosis, skewness.
-- StudyParser: Functions for parsing optuna studies.
-- Workers: Functions for parallel processing of optimization tasks.
-"""
+- Data: Data manipulation utilities.
+- Evaluation: Scoring evaluation helpers.
+- IO: Load/save helpers for OCScore artifacts.
+- Plotting: Plotting utilities for OCScore analyses.
+- SimpleConsensus: Consensus scoring helpers.
+- StudyParser: Optuna study parsing utilities.
+- Workers: Optuna worker helpers for optimization runs.
+'''
 
 # Public API: Users should import utils modules directly
 # No classes or functions exported at package level

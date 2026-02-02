@@ -5,7 +5,7 @@
 '''
 Sets of classes and functions that are used to print informations.
 
-They are imported as:
+Usage:
 
 import OCDocker.Toolbox.Printing as ocprint
 '''

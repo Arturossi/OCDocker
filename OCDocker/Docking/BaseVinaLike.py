@@ -5,7 +5,7 @@
 '''
 Set of generic functions to read and write Vina-like docking logs, generate docking digests, and retrieve docked poses.
 
-They are imported as:
+Usage:
 
 import OCDocker.Docking.BaseVinaLike as ocbasevina
 '''

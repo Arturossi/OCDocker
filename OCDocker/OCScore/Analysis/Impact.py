@@ -2,8 +2,12 @@
 
 # Description
 ###############################################################################
-''' This module provides utilities to summarize and visualize feature impact
-using Net Benefit Score (NBS) and related statistics.
+'''
+Summarize and visualize feature impact using Net Benefit Score (NBS) and related statistics.
+
+Usage:
+
+import OCDocker.OCScore.Analysis.Impact as ocimpact
 
 It exposes high-level functions:
 
@@ -11,9 +15,6 @@ It exposes high-level functions:
 - plot_impact_arrows_inline_labels: render arrow plot with inline labels
 - get_neutral_features: list neutral features by |NBS| < tau or Direction == 'neutral'
 
-Import as:
-
-import OCDocker.OCScore.Analysis.Impact as ocimpact
 '''
 
 # Imports

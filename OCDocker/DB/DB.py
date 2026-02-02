@@ -6,7 +6,7 @@
 Sets of classes and functions that are used for creating everything required
 for the database.
 
-They are imported as:
+Usage:
 
 import OCDocker.DB.DB as ocdb
 '''

@@ -6,7 +6,7 @@
 '''
 Core ranking metrics used across Analysis (ROC AUC, PR AUC, EF, BEDROC, etc.).
 
-They are imported as:
+Usage:
 
 from OCDocker.OCScore.Analysis.Metrics import Ranking as Rank
 '''

@@ -5,7 +5,7 @@
 '''
 Sets of classes and functions that are used to prepare smina files and run it.
 
-They are imported as:
+Usage:
 
 import OCDocker.Docking.Smina as ocsmina
 '''

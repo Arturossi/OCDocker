@@ -1,9 +1,22 @@
-"""
-Plotting package exports commonly used plotting utilities across Analysis.
+#!/usr/bin/env python3
 
-Suggested import:
-    import OCDocker.OCScore.Analysis.Plotting as ocstatplot
-"""
+# Description
+###############################################################################
+'''
+Plotting package exports commonly used Analysis plotting utilities.
+
+Usage:
+
+import OCDocker.OCScore.Analysis.Plotting as ocstatplot
+
+Modules
+-------
+- Colouring: Color palette helpers.
+- Core: Matplotlib styling helpers.
+- ImpactPlots: Feature impact plotting utilities.
+- MetricsPlots: ROC/PR/enrichment plotting utilities.
+- Stats: Statistical summary plots.
+'''
 
 from .Stats import (
     plot_combined_metric_scatter,

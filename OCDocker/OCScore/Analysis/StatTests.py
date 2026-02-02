@@ -2,9 +2,10 @@
 
 # Description
 ###############################################################################
-''' This module provides functions to perform statistical tests on scoring data.
+'''
+Statistical tests for scoring data.
 
-It is imported as:
+Usage:
 
 import OCDocker.OCScore.Analysis.StatTests as ocstat
 '''

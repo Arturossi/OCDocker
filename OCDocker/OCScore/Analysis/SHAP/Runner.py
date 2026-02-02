@@ -1,6 +1,13 @@
+#!/usr/bin/env python3
+
 # Description
 ###############################################################################
-'''OCDocker.OCScore.Analysis.SHAP.Runner module: Main runner for SHAP analysis workflow.
+'''
+Run the end-to-end SHAP analysis workflow.
+
+Usage:
+
+from OCDocker.OCScore.Analysis.SHAP.Runner import run_shap_analysis
 '''
 
 # Imports

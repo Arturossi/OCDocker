@@ -6,7 +6,7 @@
 Sets of classes and functions that are used to extract and process information
 of any kind of molecule.
 
-They are imported as:
+Usage:
 
 import OCDocker.Toolbox.MoleculeProcessing as ocmolproc
 '''

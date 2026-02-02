@@ -5,7 +5,7 @@
 '''
 Sets of classes and functions that are used to handle I/O operations.
 
-They are imported as:
+Usage:
 
 import OCDocker.Toolbox.IO as ocio
 '''

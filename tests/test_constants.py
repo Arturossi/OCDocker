@@ -1,3 +1,15 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Tests for physical constants and conversion helpers.
+
+Usage:
+
+pytest tests/test_constants.py
+'''
+
 import math
 import pytest
 

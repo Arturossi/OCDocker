@@ -6,7 +6,7 @@
 Sets of classes and functions that are used as base for all databases. It
 contains functions that are common to all databases.
 
-They are imported as:
+Usage:
 
 import OCDocker.DB.baseDB as ocbdb
 '''

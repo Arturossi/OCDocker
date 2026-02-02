@@ -1,3 +1,15 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Tests for toolbox conversion utilities.
+
+Usage:
+
+pytest tests/test_conversion.py
+'''
+
 import math
 import pytest
 

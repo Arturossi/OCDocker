@@ -1,3 +1,15 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Tests for Smina utility helpers with stubbed dependencies.
+
+Usage:
+
+pytest tests/test_Smina_utils.py
+'''
+
 import json
 import importlib
 import sys

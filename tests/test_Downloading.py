@@ -1,3 +1,15 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Tests for download helpers and progress reporting.
+
+Usage:
+
+pytest tests/test_Downloading.py
+'''
+
 import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock, call
@@ -187,4 +199,3 @@ def test_download_url_creates_file(monkeypatch, tmp_path):
     # Verify file was created
     assert output_file.exists()
     assert output_file.read_text() == "downloaded content"
-

@@ -5,7 +5,7 @@
 '''
 Sets of classes and functions that are used to process the DUDE-Z dataset.
 
-They are imported as:
+Usage:
 
 import OCDocker.DB.DUDEz as ocdudez
 '''

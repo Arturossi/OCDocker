@@ -1,10 +1,18 @@
-"""
-Rescoring package tools
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Rescoring package tools.
+
+Usage:
+
+import OCDocker.Rescoring as ocrescore
 
 Modules
 -------
-- ODDT: Sets of classes and functions that are used to rescore molecules with ODDT.
-"""
+- ODDT: ODDT-based rescoring helpers.
+'''
 
 # Public API: Users should import rescoring modules directly
 # e.g., `import OCDocker.Rescoring.ODDT as ocoddt`

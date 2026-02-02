@@ -1,9 +1,11 @@
+#!/usr/bin/env python3
+
 # Description
 ###############################################################################
 '''
 Ranking metrics and tables for Test2-style analyses (no CLI, no I/O).
 
-They are imported as:
+Usage:
 
 import OCDocker.OCScore.Analysis.RankingMetrics as ocrank
 
@@ -900,4 +902,3 @@ def build_summary_table(
         )
 
     return out
-

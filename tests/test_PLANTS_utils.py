@@ -1,4 +1,14 @@
-'''Tests for PLANTS utility helpers.'''
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Tests for PLANTS utility helpers.
+
+Usage:
+
+pytest tests/test_PLANTS_utils.py
+'''
 
 import importlib
 import sys

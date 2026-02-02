@@ -1,3 +1,15 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Tests for PLANTS docking integration.
+
+Usage:
+
+pytest tests/test_PLANTS.py
+'''
+
 import pytest
 import shutil
 

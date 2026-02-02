@@ -1,21 +1,28 @@
-"""
-The OCScore package is a collection of tools for scoring and ranking docking poses.
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+OCScore package for scoring and ranking docking poses.
+
+Usage:
+
+import OCDocker.OCScore as ocscore
 
 Packages
 --------
-- Analysis: Analysis functions for scoring outcomes of the OCScore package.
-- Dimensionality: Dimensionality reduction methods.
-- NN: Neural network training functions.
-- Optimization: Optimization algorithms, it contains helpers for training functions and it is the module that probably you are looking for.
-- Transformer: Transformer training functions.
-- Utils: Utility functions.
-- XGBoost: XGBoost training functions.
+- Analysis: Analysis workflows and plotting.
+- DNN: Deep neural network utilities.
+- Dimensionality: Dimensionality reduction utilities.
+- Optimization: Model training and optimization pipelines.
+- Transformer: Transformer training utilities.
+- Utils: Shared OCScore utilities.
+- XGBoost: XGBoost utilities.
 
 Modules
 -------
-- Scoring: Functions for loading models and applying scoring pipelines to get predictions.
-- SimpleConsensus: Simple consensus scoring functions such as mean, median, max, min, std, variance, sum, range, 25th and 75th percentiles, kurtoisis, skewness.
-"""
+- Scoring: Model loading and scoring pipelines.
+'''
 
 # Public API: Users should import OCScore modules directly
 # No classes or functions exported at package level

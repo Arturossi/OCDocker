@@ -1,59 +1,14 @@
 #!/usr/bin/env python3
 
-"""
-Constants and utility functions for unit conversions and thermodynamic calculations.
+# Description
+###############################################################################
+'''
+Physical constants and unit-conversion helpers.
 
-This module provides fundamental physical constants and conversion functions used
-throughout the OCDocker library. It includes temperature constants, gas constants,
-conversion factors, and utility functions for converting between different units
-and calculating thermodynamic properties.
+Usage:
 
-**Usage:**
-
-.. code-block:: python
-
-    import OCDocker.Toolbox.Constants as occ
-    
-    # Use constants
-    temp_kelvin = occ.STANDARD_TEMPERATURE_K
-    gas_constant = occ.RJ
-    
-    # Use conversion functions
-    joules = occ.cal_to_J(100.0)  # Convert 100 calories to Joules
-    kelvin = occ.C_to_K(25.0)  # Convert 25°C to Kelvin
-
-**Constants:**
-
-The module defines the following fundamental constants:
-
-* **Temperature Constants:**
-  * :const:`STANDARD_TEMPERATURE_K` - Standard temperature (298.15 K = 25°C)
-  * :const:`ZERO_C_IN_K` - Absolute zero in Celsius (273.15 K = 0°C)
-
-* **Conversion Constants:**
-  * :const:`CAL_TO_J` - Calories to Joules conversion factor (4.184)
-
-* **Gas Constants:**
-  * :const:`R` - Gas constant in cal/(mol·K) (1.9872036)
-  * :const:`Rk` - Gas constant in kcal/(mol·K) (0.0019872036)
-  * :const:`RJ` - Gas constant in J/(mol·K) (8.314462618)
-  * :const:`RJK` - Gas constant in kJ/(mol·K) (0.008314462618)
-
-* **Unit Conversion:**
-  * :const:`order` - Dictionary for unit conversion between different orders of magnitude
-
-**Functions:**
-
-The module provides conversion functions for:
-* Energy units (calories ↔ Joules)
-* Temperature units (Celsius ↔ Kelvin)
-* Thermodynamic calculations (equilibrium constants ↔ Gibbs free energy)
-
-.. note::
-    All constants are defined at the module level and can be used in function
-    default parameters. They are fundamental physical constants and should not
-    be modified.
-"""
+import OCDocker.Toolbox.Constants as occ
+'''
 
 # Imports
 ###############################################################################

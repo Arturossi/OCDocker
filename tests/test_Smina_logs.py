@@ -1,3 +1,15 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Tests for Smina log parsing helpers.
+
+Usage:
+
+pytest tests/test_Smina_logs.py
+'''
+
 import pytest
 from pathlib import Path
 

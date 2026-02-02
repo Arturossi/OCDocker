@@ -5,7 +5,7 @@
 '''
 Color palette utilities for Analysis plots.
 
-They are imported as:
+Usage:
 
 import OCDocker.OCScore.Analysis.Plotting.Colouring as ocstatcolour
 '''

@@ -1,3 +1,15 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Tests for Ligand descriptor loading and preparation.
+
+Usage:
+
+pytest tests/test_Ligand.py
+'''
+
 import pytest
 
 from pathlib import Path

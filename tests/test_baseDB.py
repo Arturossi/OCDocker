@@ -1,3 +1,15 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Tests for base database preparation helpers.
+
+Usage:
+
+pytest tests/test_baseDB.py
+'''
+
 import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
@@ -314,4 +326,3 @@ def test_run_docking_excludes_index_directory(mock_config, monkeypatch, tmp_path
     complex_paths = [str(c[0]) for c in docking_complex_list]
     assert str(dudez_dir / "index") not in complex_paths
     assert str(dudez_dir / "protein1") in complex_paths
-

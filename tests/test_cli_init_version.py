@@ -4,6 +4,10 @@
 ###############################################################################
 '''
 Lightweight CLI coverage: ensure init-config and version commands run.
+
+Usage:
+
+pytest tests/test_cli_init_version.py
 '''
 
 from pathlib import Path

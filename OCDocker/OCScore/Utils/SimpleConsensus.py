@@ -2,9 +2,10 @@
 
 # Description
 ###############################################################################
-''' Module to perform the simple consensus calculation for the given dataset.
+'''
+Simple consensus calculation for score datasets.
 
-It is imported as:
+Usage:
 
 import OCDocker.OCScore.Utils.SimpleConsensus as ocsimple
 '''

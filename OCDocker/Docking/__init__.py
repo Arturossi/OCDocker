@@ -1,13 +1,22 @@
-"""
-Docking package.
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Docking engines and helpers.
+
+Usage:
+
+import OCDocker.Docking as ocdocking
 
 Modules
 -------
-- Gnina: Responsible for the gnina processing.
-- PLANTS: Responsible for the plants processing.
-- Smina: Responsible for the smina processing.
-- Vina: Responsible for the vina processing.
-"""
+- BaseVinaLike: Shared helpers for Vina-like logs and parsing.
+- PLANTS: PLANTS docking wrapper.
+- Smina: Smina docking wrapper.
+- Vina: Vina docking wrapper.
+- Future: Experimental docking engines.
+'''
 
 # Public API: Users should import docking modules directly
 # e.g., `import OCDocker.Docking.Vina as ocvina`

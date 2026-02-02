@@ -7,7 +7,7 @@ Sets of classes and functions that are used to prepare Dock3 files and run it.
 
 TODO: Unfinished!!!
 
-They are imported as:
+Usage:
 
 import OCDocker.Docking.Dock3 as ocdock3
 '''

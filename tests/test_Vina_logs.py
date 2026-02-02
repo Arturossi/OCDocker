@@ -1,3 +1,15 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Tests for Vina log parsing helpers with stubs.
+
+Usage:
+
+pytest tests/test_Vina_logs.py
+'''
+
 import sys
 import types
 import importlib.util as util

@@ -3,10 +3,9 @@
 # Description
 ###############################################################################
 '''
-Set of functions to manage I/O operations in OCDocker in the context of scoring 
-functions.
+Parallel worker utilities for Optuna-based model optimization.
 
-They are imported as:
+Usage:
 
 import OCDocker.OCScore.Utils.Workers as ocscoreworkers
 '''

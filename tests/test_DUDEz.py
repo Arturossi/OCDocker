@@ -1,3 +1,15 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Tests for DUDEz database helpers.
+
+Usage:
+
+pytest tests/test_DUDEz.py
+'''
+
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 
@@ -165,4 +177,3 @@ def test_run_plants(monkeypatch):
     assert docking_called[0][1] == "plants"  # algorithm
     assert docking_called[0][2] is False  # overwrite
     assert result == ocerror.Error.ok() # type: ignore
-

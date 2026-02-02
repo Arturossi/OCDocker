@@ -5,7 +5,7 @@
 '''
 Sets of classes and functions that are used to process the PDBbind dataset.
 
-They are imported as:
+Usage:
 
 import OCDocker.DB.PDBbind as ocpdbbind
 '''

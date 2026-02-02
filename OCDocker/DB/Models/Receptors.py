@@ -1,3 +1,15 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+SQLAlchemy model for receptor descriptors and complex relationships.
+
+Usage:
+
+from OCDocker.DB.Models.Receptors import Receptors
+'''
+
 from sqlalchemy import Column, ForeignKey, Integer
 from sqlalchemy.orm import relationship
 from OCDocker.DB.Models.Base import base

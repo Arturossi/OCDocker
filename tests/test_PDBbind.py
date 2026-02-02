@@ -1,3 +1,15 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Tests for PDBbind dataset helpers.
+
+Usage:
+
+pytest tests/test_PDBbind.py
+'''
+
 import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
@@ -316,4 +328,3 @@ def test_read_index_with_different_units(mock_index_file, monkeypatch):
     # The exact values depend on the order constants, but they should be numbers
     for pdb_id, entry in result.items():
         assert isinstance(entry["Ki/Kd_value"], (int, float))
-

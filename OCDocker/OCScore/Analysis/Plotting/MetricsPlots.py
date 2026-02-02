@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 
 # Description
@@ -6,7 +5,7 @@
 '''
 Core metric plots (ROC/PR/enrichment) for Analysis.
 
-They are imported as:
+Usage:
 
 from OCDocker.OCScore.Analysis.Plotting import MetricsPlots as PlottingMetrics
 '''

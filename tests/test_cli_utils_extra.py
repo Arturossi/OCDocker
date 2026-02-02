@@ -1,3 +1,15 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Extra CLI utility tests for argument handling.
+
+Usage:
+
+pytest tests/test_cli_utils_extra.py
+'''
+
 import os
 from pathlib import Path
 
@@ -23,4 +35,3 @@ def test_preparse_global_args_and_require(tmp_path):
 
     with pytest.raises(SystemExit):
         _ = cli._require_file("…/fake.pdb", "--receptor")
-

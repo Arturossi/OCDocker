@@ -5,7 +5,7 @@
 '''
 Sets of classes and functions that are used to validate data.
 
-They are imported as:
+Usage:
 
 import OCDocker.Toolbox.Validation as ocvalidation
 '''

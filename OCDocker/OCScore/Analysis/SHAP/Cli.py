@@ -1,7 +1,13 @@
+#!/usr/bin/env python3
+
 # Description
 ###############################################################################
 '''
-OCDocker.OCScore.Analysis.SHAP.Cli module: Command-line interface for SHAP analysis.
+Command-line interface for SHAP analysis runs.
+
+Usage:
+
+from OCDocker.OCScore.Analysis.SHAP.Cli import main
 '''
 
 # Imports

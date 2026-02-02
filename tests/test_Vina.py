@@ -1,3 +1,15 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Tests for Vina docking integration.
+
+Usage:
+
+pytest tests/test_Vina.py
+'''
+
 import pytest
 
 from pathlib import Path

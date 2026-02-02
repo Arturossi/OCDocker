@@ -6,7 +6,7 @@
 Plotting helpers for statistical summaries (scatter/box/bar, diagnostics, PCA
 importance). These utilities are used by Analysis workflows and StatTests.
 
-They are imported as:
+Usage:
 
 import OCDocker.OCScore.Analysis.Plotting.Stats as ocstatplot
 '''

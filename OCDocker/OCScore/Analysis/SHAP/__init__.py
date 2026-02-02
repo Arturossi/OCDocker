@@ -1,9 +1,24 @@
-"""
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
 Re-export SHAP public API for convenience.
 
-This package collects the key functions/classes from its submodules so that
-`from OCDocker.OCScore.Analysis import SHAP` exposes a simple, consistent API.
-"""
+Usage:
+
+import OCDocker.OCScore.Analysis.SHAP as ocshap
+
+Modules
+-------
+- Cli: Command-line entry point for SHAP runs.
+- Data: Data loading and preparation helpers.
+- Explain: SHAP computation helpers.
+- Model: Neural network builder for SHAP runs.
+- Plots: SHAP visualization utilities.
+- Runner: End-to-end SHAP workflow runner.
+- Studies: Optuna study selection helpers.
+'''
 
 # Import Plots first since Runner depends on it
 from . import Plots as plots

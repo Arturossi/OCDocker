@@ -1,5 +1,15 @@
 #!/usr/bin/env python3
 
+# Description
+###############################################################################
+'''
+CLI parser smoke tests for virtual screening commands.
+
+Usage:
+
+pytest tests/test_cli_parse_vs.py
+'''
+
 from __future__ import annotations
 
 import pytest
@@ -32,4 +42,3 @@ def test_cli_vs_parse_smoke():
     assert ns.skip_rescore and ns.skip_split
     assert ns.timeout == 60 and ns.store_db
     assert ns.overwrite and ns.no_stdout_log
-

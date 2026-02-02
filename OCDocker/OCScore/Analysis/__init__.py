@@ -1,3 +1,28 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Unified exports for the OCScore Analysis package.
+
+Usage:
+
+import OCDocker.OCScore.Analysis as ocanalysis
+
+Modules
+-------
+- Correlation: Correlation analysis helpers.
+- FeatureImportance: SHAP-style feature importance utilities.
+- Impact: Feature impact summaries and plots.
+- Metrics: Metric computation helpers.
+- NNUtils: Neural network helper utilities.
+- PerformanceEvaluation: Performance evaluation workflows.
+- Plotting: Plotting helpers for analyses.
+- RankingMetrics: Ranking metrics and tables.
+- SHAP: SHAP analysis workflows.
+- StatTests: Statistical test helpers.
+- StudyProcessing: Study parsing and aggregation utilities.
+'''
 
 # Unified exports for Analysis package
 try:

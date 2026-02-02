@@ -5,7 +5,7 @@
 '''
 Sets of classes and functions that are used for setting up the database.
 
-They are imported as:
+Usage:
 
 import OCDocker.DB.DBMinimal as ocdbmin
 '''

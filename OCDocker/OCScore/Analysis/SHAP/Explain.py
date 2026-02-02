@@ -6,6 +6,10 @@
 '''
 SHAP computation helpers (background selection, explainer setup, shape wrangling)
 for Analysis workflows.
+
+Usage:
+
+from OCDocker.OCScore.Analysis.SHAP.Explain import compute_shap_values
 '''
 
 # Imports

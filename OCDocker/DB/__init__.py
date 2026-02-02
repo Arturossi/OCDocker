@@ -1,19 +1,23 @@
-"""
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
 Database package.
 
-Subpackages
------------
-- Models: Models of the database.
+Usage:
+
+import OCDocker.DB as ocdb
 
 Modules
 -------
-- baseDB: Base classes for database models and operations.
-- DB: Responsible for the database creation and session management.
-- DBMinimal: Minimalist database interface for lightweight use cases.
-- DUDEz: Database Utility for Data Extraction and Analysis in DUDEz database.
-- PDBbind: Database Utility for Data Extraction and Analysis in PDBbind database.
-
-"""
+- baseDB: Base database helpers and shared workflows.
+- DB: Database creation and ORM utilities.
+- DBMinimal: Minimal database helpers.
+- DUDEz: DUDE-Z dataset helpers.
+- PDBbind: PDBbind dataset helpers.
+- Models: ORM model definitions.
+'''
 
 # Expose submodules so that Sphinx autodoc can import as `from OCDocker.DB import DB`.
 try:  # optional during docs build

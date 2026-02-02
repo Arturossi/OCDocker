@@ -6,7 +6,7 @@
 Set of functions to manage evaluation operations in OCDocker in the context of
 scoring functions.
 
-They are imported as:
+Usage:
 
 import OCDocker.OCScore.Utils.Evaluation as ocseval
 '''

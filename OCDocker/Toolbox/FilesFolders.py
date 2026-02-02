@@ -6,7 +6,7 @@
 Sets of classes and functions that are used to manipulate and create files and
 folders.
 
-They are imported as:
+Usage:
 
 import OCDocker.Toolbox.FilesFolders as ocff
 '''

@@ -1,9 +1,13 @@
-'''
-Test2 SHAP utilities (library style, no I/O, no plots).
+#!/usr/bin/env python3
 
-Focus on reproducible SHAP computation with stratified background selection and
-uniform outputs (arrays and tables). Works with tree/NN/black-box models via
-auto selection of the appropriate Explainer.
+# Description
+###############################################################################
+'''
+Test2 SHAP utilities for reproducible computation (no I/O, no plots).
+
+Usage:
+
+from OCDocker.OCScore.Analysis.FeatureImportance import compute_shap_values
 
 Public API:
 - build_stratified_background
@@ -305,4 +309,3 @@ def shap_importance_table(
         df = df.reset_index(drop=True)
 
     return df
-

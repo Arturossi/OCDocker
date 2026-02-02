@@ -1,6 +1,13 @@
+#!/usr/bin/env python3
+
 # Description
 ###############################################################################
-'''OCDocker.OCScore.Analysis.SHAP.Data module: Data loading and preparation for SH AP analysis.
+'''
+Data loading and preparation for SHAP analysis.
+
+Usage:
+
+from OCDocker.OCScore.Analysis.SHAP.Data import load_and_prepare_data
 '''
 
 # Imports

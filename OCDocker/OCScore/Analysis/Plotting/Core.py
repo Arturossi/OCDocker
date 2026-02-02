@@ -1,10 +1,13 @@
-
 #!/usr/bin/env python3
 
 # Description
 ###############################################################################
 '''
 Matplotlib styling and single-axes figure helper for Analysis plots.
+
+Usage:
+
+from OCDocker.OCScore.Analysis.Plotting import Core as ocplotcore
 '''
 
 # Imports

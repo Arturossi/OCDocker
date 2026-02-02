@@ -11,6 +11,10 @@ Public helpers
 - feature_importance_barh: horizontal bar chart of relative importance
 - beeswarm: wrapper around shap.summary_plot
 - shap_correlation_heatmap: correlation heatmap of SHAP values
+
+Usage:
+
+from OCDocker.OCScore.Analysis.SHAP.Plots import feature_importance_barh
 '''
 
 from __future__ import annotations

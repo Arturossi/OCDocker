@@ -1,3 +1,15 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Tests for Smina docking integration.
+
+Usage:
+
+pytest tests/test_Smina.py
+'''
+
 import pytest
 
 from pathlib import Path

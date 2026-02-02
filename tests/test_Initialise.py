@@ -1,3 +1,15 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Tests for Initialise helpers and doc-build detection.
+
+Usage:
+
+pytest tests/test_Initialise.py
+'''
+
 import sys
 import inspect
 import ast

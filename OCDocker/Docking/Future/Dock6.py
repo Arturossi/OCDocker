@@ -7,7 +7,7 @@ Sets of classes and functions that are used to prepare Dock6 files and run it.
 
 TODO: Unfinished!!!
 
-They are imported as:
+Usage:
 
 import OCDocker.Docking.Dock6 as ocdock6
 '''

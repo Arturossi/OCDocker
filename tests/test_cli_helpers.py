@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 
+# Description
+###############################################################################
 '''
-CLI helper coverage: exercise lightweight helpers that don’t require external
-tools or full environment bootstrap.
+CLI helper coverage for lightweight helpers.
+
+Usage:
+
+pytest tests/test_cli_helpers.py
 '''
 
 import argparse
@@ -61,4 +66,3 @@ def test_build_parser_subcommands_and_parse():
     assert callable(getattr(ns, "func", None))
     ns2 = parser.parse_args(["init-config"])  # also sets func
     assert callable(getattr(ns2, "func", None))
-

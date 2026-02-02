@@ -6,7 +6,7 @@
 '''
 Bootstrap utilities for metric confidence intervals.
 
-They are imported as:
+Usage:
 
 from OCDocker.OCScore.Analysis.Metrics import Bootstrap as Boot
 '''

@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 
+# Description
+###############################################################################
 '''
-OCDocker CLI
-============
-
 Unified command-line interface for OCDocker tasks.
+
+Usage:
+
+import OCDocker.CLI as occli
 
 Main commands
 - version: prints library version.
@@ -17,6 +20,10 @@ Main commands
 Global options
 - --conf, --multiprocess, --update-databases, --output-level, --overwrite:
   compatible with OCDocker.Initialise and used to bootstrap the environment.
+
+Modules
+-------
+- __init__: CLI entry points, command parsing, and dispatch.
 '''
 
 from __future__ import annotations

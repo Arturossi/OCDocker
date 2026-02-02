@@ -6,7 +6,7 @@
 Sets of classes and functions that are used to convert informations such as
 molecules.
 
-They are imported as:
+Usage:
 
 import OCDocker.Toolbox.Conversion as occonversion
 '''

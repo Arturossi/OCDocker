@@ -5,7 +5,7 @@
 '''
 Sets of classes and functions that are used to prepare vina files and run it.
 
-They are imported as:
+Usage:
 
 import OCDocker.Docking.Vina as ocvina
 '''
@@ -880,4 +880,3 @@ def read_rescore_logs(rescoreLogPaths: Union[List[str], str], onlyBest: bool = F
     
     # Return the dictionary
     return rescoreLogData
-

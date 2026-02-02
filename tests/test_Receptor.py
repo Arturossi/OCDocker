@@ -1,3 +1,15 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Tests for Receptor descriptor loading and preparation.
+
+Usage:
+
+pytest tests/test_Receptor.py
+'''
+
 import pytest
 
 from pathlib import Path

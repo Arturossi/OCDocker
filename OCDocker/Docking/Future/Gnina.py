@@ -5,7 +5,7 @@
 '''
 Sets of classes and functions that are used to prepare gnina files and run it.
 
-They are imported as:
+Usage:
 
 import OCDocker.Docking.Gnina as ocgnina
 '''

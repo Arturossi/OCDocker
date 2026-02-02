@@ -1,20 +1,14 @@
 #!/usr/bin/env python3
 
-"""
-Logging wrapper for OCDocker.
-
-Provides a bridge to Python's logging so the project can centrally control
-formatting, levels, and handlers while keeping legacy print helpers working.
+# Description
+###############################################################################
+'''
+Logging wrapper that bridges OCDocker logging to Python's logging.
 
 Usage:
-  import OCDocker.Toolbox.Logging as oclogging
-  log = oclogging.get_logger()
-  log.info("Hello")
 
-Configure:
-  oclogging.configure(level=ocerror.ReportLevel.INFO, log_file="path/to/file.log")
-  oclogging.set_level_from_report(ocerror.ReportLevel.DEBUG)
-"""
+import OCDocker.Toolbox.Logging as oclogging
+'''
 
 import inspect
 import logging

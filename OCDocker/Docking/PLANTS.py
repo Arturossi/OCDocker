@@ -5,7 +5,7 @@
 '''
 Sets of classes and functions that are used to prepare dock6 files and run it.
 
-They are imported as:
+Usage:
 
 import OCDocker.Docking.PLANTS as ocplants
 '''

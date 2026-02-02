@@ -5,7 +5,7 @@
 '''
 Base class for all the tables in the database.
 
-They are imported as:
+Usage:
 
 from OCDocker.DB.Models.Base import base
 '''

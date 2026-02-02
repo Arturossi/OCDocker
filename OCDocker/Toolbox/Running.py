@@ -5,7 +5,7 @@
 '''
 Sets of classes and functions that are used to run commands in the OS.
 
-They are imported as:
+Usage:
 
 import OCDocker.Toolbox.Running as ocrun
 '''

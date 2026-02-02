@@ -1,9 +1,14 @@
-"""Pytest configuration and shared fixtures for OCDocker tests.
+#!/usr/bin/env python3
 
-This module provides:
-- Automatic cleanup of test files before and after test runs
-- Shared fixtures used across multiple test modules
-"""
+# Description
+###############################################################################
+'''
+Pytest configuration and shared fixtures for OCDocker tests.
+
+Usage:
+
+pytest tests
+'''
 
 import os
 import shutil

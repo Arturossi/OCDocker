@@ -5,7 +5,7 @@
 '''
 Plotting utilities for feature impact analysis (2xK contingencies, residuals, chi-square share).
 
-They are imported as:
+Usage:
 
 import OCDocker.OCScore.Analysis.Plotting.ImpactPlots as ocimpactplots
 
@@ -406,4 +406,3 @@ def plot_residuals_matrix(residuals_dict: Dict[str, pd.DataFrame],
     plt.tight_layout()
     plt.savefig(outpath, dpi=300)
     plt.close()
-

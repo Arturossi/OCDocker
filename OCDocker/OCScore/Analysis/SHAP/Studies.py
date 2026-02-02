@@ -1,6 +1,13 @@
+#!/usr/bin/env python3
+
 # Description
 ###############################################################################
-'''OCDocker.OCScore.Analysis.SHAP.Studies module: Management of Optuna studies for SHAP analysis.
+'''
+Manage Optuna studies used by SHAP analysis.
+
+Usage:
+
+from OCDocker.OCScore.Analysis.SHAP.Studies import select_best_from_studies
 '''
 
 # Imports

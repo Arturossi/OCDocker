@@ -5,7 +5,7 @@
 '''
 Sets of classes and functions that are for basic uses.
 
-They are imported as:
+Usage:
 
 import OCDocker.Toolbox.Basetools as ocbasetools
 '''

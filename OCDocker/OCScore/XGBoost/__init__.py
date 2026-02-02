@@ -1,10 +1,19 @@
-"""
-XGBoost Module to hold modules of XGBoost training.
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+XGBoost training and optimization utilities.
+
+Usage:
+
+import OCDocker.OCScore.XGBoost as ocxgb
 
 Modules
 -------
-- XGBoostOptimizer: Class for optimizing and training XGBoost models.
-"""
+- OCxgboost: Model wrapper helpers for XGBoost runs.
+- XGBoostOptimizer: XGBoost training and optimization helpers.
+'''
 
 # Public API: Users should import XGBoost modules directly
 # No classes or functions exported at package level

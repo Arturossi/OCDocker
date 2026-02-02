@@ -7,7 +7,7 @@ Sets of classes and functions that are used to prepare GEMDOCK files and run it.
 
 TODO: Unfinished!!! http://gemdock.life.nctu.edu.tw/dock/
 
-They are imported as:
+Usage:
 
 import OCDocker.Docking.GEMDOCK as ocgemdock
 '''

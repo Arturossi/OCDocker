@@ -1,14 +1,32 @@
-"""
-The main OCDocker package
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+The main OCDocker package.
+
+Usage:
+
+import OCDocker as ocdocker
 
 Packages
 --------
-- DB: Database management for OCDocker.
+- CLI: Command-line interface helpers.
+- DB: Database management utilities.
 - Docking: Docking routines.
-- Processing: From pre to post processing data in OCDocker.
+- OCScore: Scoring and ML utilities.
+- Processing: Pre/post-processing workflows.
 - Rescoring: Rescoring routines.
-- Toolbox: Toolbox for OCDocker.
-"""
+- Toolbox: Shared toolbox utilities.
+
+Modules
+-------
+- Config: Configuration helpers.
+- Error: Error reporting utilities.
+- Initialise: Runtime initialization helpers.
+- Ligand: Ligand model and descriptors.
+- Receptor: Receptor model and descriptors.
+'''
 
 # Keep in sync with pyproject.toml
 __version__ = "0.11.1"
