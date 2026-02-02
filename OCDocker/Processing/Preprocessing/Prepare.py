@@ -255,7 +255,7 @@ def __sub_core_prepare(dirsToProcess: str, dbName: str, overwrite: bool, mols : 
     return processDirs
 
 
-def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spacing: float, targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> int: # type: ignore
+def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spacing: float, targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None, all_boxes: bool = False) -> int: # type: ignore
     '''Prepares a database entry to be run in multiple docking software.
 
     Parameters
@@ -376,40 +376,64 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
             ocprint.print_warning(f"No box files found for '{processDir}'. Skipping this molecule.")
             continue
 
-        # If overwrite mode is on or there is not the same amount of box files as folders in gninaFiles folder
-        if len(glob(f"{processDir}/gninaFiles/*")) != boxCount or len(glob(f"{processDir}/gninaFiles/*")) == 0 or overwrite:
-            # Create the vina inputs from the boxes
-            ocgnina.gen_gnina_conf(f"{processDir}/boxes/box0.pdb", f"{processDir}/gninaFiles/conf_gnina.conf", preparedReceptorPdbqt)
-        else:
-            ocprint.print_info(f"The protein '{processDir}' already has its gnina file generated, skipping its execution.")
-        
-        # If overwrite mode is on or there is not the same amount of box files as folders in vinaFiles folder
-        if len(glob(f"{processDir}/vinaFiles/*")) != boxCount or len(glob(f"{processDir}/vinaFiles/*")) == 0 or overwrite:
-            # Create the vina inputs from the boxes
-            ocvina.generate_vina_files_database(processDir, preparedReceptorPdbqt, boxPath = f"{processDir}/boxes")
-        else:
-            ocprint.print_info(f"The protein '{processDir}' already has its vina file generated, skipping its execution.")
+        box_files = sorted(glob(f"{processDir}/boxes/box*.pdb"))
+        if not all_boxes or len(box_files) <= 1:
+            # If overwrite mode is on or there is not the same amount of box files as folders in gninaFiles folder
+            if len(glob(f"{processDir}/gninaFiles/*")) != boxCount or len(glob(f"{processDir}/gninaFiles/*")) == 0 or overwrite:
+                # Create the gnina inputs from the boxes
+                ocgnina.gen_gnina_conf(f"{processDir}/boxes/box0.pdb", f"{processDir}/gninaFiles/conf_gnina.conf", preparedReceptorPdbqt)
+            else:
+                ocprint.print_info(f"The protein '{processDir}' already has its gnina file generated, skipping its execution.")
+            
+            # If overwrite mode is on or there is not the same amount of box files as folders in vinaFiles folder
+            if len(glob(f"{processDir}/vinaFiles/*")) != boxCount or len(glob(f"{processDir}/vinaFiles/*")) == 0 or overwrite:
+                # Create the vina inputs from the boxes
+                ocvina.generate_vina_files_database(processDir, preparedReceptorPdbqt, boxPath = f"{processDir}/boxes")
+            else:
+                ocprint.print_info(f"The protein '{processDir}' already has its vina file generated, skipping its execution.")
 
-        # If overwrite mode is on or there is not the same amount of box files as folders in plantsFiles folder
-        if len(glob(f"{processDir}/plantsFiles/*")) != boxCount or len(glob(f"{processDir}/plantsFiles/*")) == 0 or overwrite:
-            # Set the fligand variable to the dir + ligandName + .mol2
-            fligand = f"{processDir}/ligand.mol2"
-            # Create the PLANTS inputs from the boxes
-            ocplants.generate_plants_files_database(processDir, preparedReceptorMol2, fligand, spacing, boxPath = f"{processDir}/boxes")
-        else:
-            ocprint.print_info(f"The protein '{processDir}' already has its PLANTS file generated, skipping its execution.")
+            # If overwrite mode is on or there is not the same amount of box files as folders in plantsFiles folder
+            if len(glob(f"{processDir}/plantsFiles/*")) != boxCount or len(glob(f"{processDir}/plantsFiles/*")) == 0 or overwrite:
+                # Set the fligand variable to the dir + ligandName + .mol2
+                fligand = f"{processDir}/ligand.mol2"
+                # Create the PLANTS inputs from the boxes
+                ocplants.generate_plants_files_database(processDir, preparedReceptorMol2, fligand, spacing, boxPath = f"{processDir}/boxes")
+            else:
+                ocprint.print_info(f"The protein '{processDir}' already has its PLANTS file generated, skipping its execution.")
 
-        # If overwrite mode is on or there not any conf file in the sminaFiles folder
-        if len(glob(f"{processDir}/sminaFiles/*.conf")) == 0 or overwrite:
-            # Create the smina inputs
-            ocsmina.gen_smina_conf(f"{processDir}/boxes/box0.pdb", f"{processDir}/sminaFiles/conf_smina.conf", preparedReceptorPdbqt)
+            # If overwrite mode is on or there not any conf file in the sminaFiles folder
+            if len(glob(f"{processDir}/sminaFiles/*.conf")) == 0 or overwrite:
+                # Create the smina inputs
+                ocsmina.gen_smina_conf(f"{processDir}/boxes/box0.pdb", f"{processDir}/sminaFiles/conf_smina.conf", preparedReceptorPdbqt)
+            else:
+                ocprint.print_info(f"The protein '{processDir}' already has its smina file generated, skipping its execution.")
         else:
-            ocprint.print_info(f"The protein '{processDir}' already has its smina file generated, skipping its execution.")
+            # Multi-box mode: generate per-box configs
+            for box_file in box_files:
+                box_id = os.path.splitext(os.path.basename(box_file))[0]
+                gnina_dir = f"{processDir}/gninaFiles/{box_id}"
+                vina_dir = f"{processDir}/vinaFiles/{box_id}"
+                plants_dir = f"{processDir}/plantsFiles/{box_id}"
+                smina_dir = f"{processDir}/sminaFiles/{box_id}"
+                _ = ocff.safe_create_dir(gnina_dir)
+                _ = ocff.safe_create_dir(vina_dir)
+                _ = ocff.safe_create_dir(plants_dir)
+                _ = ocff.safe_create_dir(smina_dir)
+
+                # GNINA conf
+                ocgnina.gen_gnina_conf(box_file, f"{gnina_dir}/conf_gnina.conf", preparedReceptorPdbqt)
+                # Vina conf
+                ocvina.box_to_vina(box_file, f"{vina_dir}/conf_vina.conf", preparedReceptorPdbqt)
+                # Smina conf
+                ocsmina.gen_smina_conf(box_file, f"{smina_dir}/conf_smina.conf", preparedReceptorPdbqt)
+                # PLANTS conf
+                fligand = f"{processDir}/ligand.mol2"
+                ocplants.box_to_plants(box_file, f"{plants_dir}/conf_plants.txt", preparedReceptorMol2, fligand, f"{plants_dir}/run", spacing = spacing)
 
     return ocerror.Error.ok() # type: ignore
 
 
-def __thread_prepare(arguments: Tuple[str, bool, str, bool, float]) -> int:
+def __thread_prepare(arguments: Tuple[str, bool, str, bool, float, bool]) -> int:
     '''Thread aid function to call __core_prepare.
 
     Parameters
@@ -425,10 +449,10 @@ def __thread_prepare(arguments: Tuple[str, bool, str, bool, float]) -> int:
     # Redirect all prints to tqdm.write
     with ocbasetools.redirect_to_tqdm():
         # Call core prepare function (shared between thread and no thread)
-        return __core_prepare(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4])
+        return __core_prepare(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4], all_boxes = arguments[5])
 
 
-def __prepare_parallel(paths: List[str], overwrite: bool, archive: str, sanitize: bool, spacing: float, desc: str) -> None:
+def __prepare_parallel(paths: List[str], overwrite: bool, archive: str, sanitize: bool, spacing: float, desc: str, all_boxes: bool) -> None:
     '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
 
     TODO: Add the support to custom databases.
@@ -459,7 +483,7 @@ def __prepare_parallel(paths: List[str], overwrite: bool, archive: str, sanitize
     # For each file in the glob
     for path in paths:
         # Append a tuple containing the file name and ovewrite flag to the arguments list
-        arguments.append((path, overwrite, archive, sanitize, spacing))
+        arguments.append((path, overwrite, archive, sanitize, spacing, all_boxes))
 
     try:
         # Create a Thread pool with the maximum available_cores
@@ -478,7 +502,7 @@ def __prepare_parallel(paths: List[str], overwrite: bool, archive: str, sanitize
     return None
 
 
-def __prepare_no_parallel(paths: List[str], overwrite: bool, archive: str, sanitize: bool, spacing: float, desc: str) -> None:
+def __prepare_no_parallel(paths: List[str], overwrite: bool, archive: str, sanitize: bool, spacing: float, desc: str, all_boxes: bool) -> None:
     '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_prepare function.
 
     TODO: Add the support to custom databases.
@@ -507,14 +531,14 @@ def __prepare_no_parallel(paths: List[str], overwrite: bool, archive: str, sanit
     with ocbasetools.redirect_to_tqdm():
         for path in tqdm(iterable=paths, total=len(paths), desc=desc):
             # Call the core prepare function
-            __core_prepare(path, overwrite, archive, sanitize, spacing)
+            __core_prepare(path, overwrite, archive, sanitize, spacing, all_boxes = all_boxes)
             # Clear the memory
             gc.collect()
 
     return None
 
 
-def __prepare_single(path: str, overwrite: bool, archive: str, sanitize: bool, spacing: float) -> None:
+def __prepare_single(path: str, overwrite: bool, archive: str, sanitize: bool, spacing: float, all_boxes: bool) -> None:
     '''Warper to prepare the jobs, recieves a directory, and pass it to the __core_prepare function.
 
     TODO: Add the support to custom databases.
@@ -537,7 +561,7 @@ def __prepare_single(path: str, overwrite: bool, archive: str, sanitize: bool, s
     None
     '''
 
-    __core_prepare(path, overwrite, archive, sanitize, spacing)
+    __core_prepare(path, overwrite, archive, sanitize, spacing, all_boxes = all_boxes)
     gc.collect()
 
     return None
@@ -549,7 +573,7 @@ def __prepare_single(path: str, overwrite: bool, archive: str, sanitize: bool, s
 ## Public ##
 
 
-def prepare(paths: Union[List[str], str], overwrite: bool, archive: str, sanitize: bool, spacing: float) -> None:
+def prepare(paths: Union[List[str], str], overwrite: bool, archive: str, sanitize: bool, spacing: float, all_boxes: bool = False) -> None:
     '''Prepare the files to be used in the docking process.
 
     Parameters
@@ -578,9 +602,9 @@ def prepare(paths: Union[List[str], str], overwrite: bool, archive: str, sanitiz
         config = get_config()
         if config.multiprocess:
             # Prepare the pdbbind
-            __prepare_parallel(paths, overwrite, archive, sanitize, spacing, label)
+            __prepare_parallel(paths, overwrite, archive, sanitize, spacing, label, all_boxes)
         else:
             # Prepare the database
-            __prepare_no_parallel(paths, overwrite, archive, sanitize, spacing, label)
+            __prepare_no_parallel(paths, overwrite, archive, sanitize, spacing, label, all_boxes)
     else:
-        __prepare_single(paths, overwrite, archive, sanitize, spacing)
+        __prepare_single(paths, overwrite, archive, sanitize, spacing, all_boxes)

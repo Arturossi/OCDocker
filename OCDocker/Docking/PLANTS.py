@@ -1145,7 +1145,7 @@ def read_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
     return {}
 
 
-def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, digestFormat : str = "json") -> int:
+def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, digestFormat : str = "json", box_id: Optional[str] = None) -> int:
     '''Generate the docking digest.
     
     Parameters
@@ -1200,7 +1200,13 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
                 return ocerror.Error.wrong_type(f"The docking digest file '{digestPath}' is not valid.", ocerror.ReportLevel.ERROR) # type: ignore
             
             # Merge the digest and the docking digest
-            digest = { **digest, **dockingDigest } # type: ignore
+            if box_id:
+                box_key = str(box_id)
+                if box_key not in digest or not isinstance(digest.get(box_key), dict):
+                    digest[box_key] = {}
+                digest[box_key] = {**digest[box_key], **dockingDigest} # type: ignore
+            else:
+                digest = { **digest, **dockingDigest } # type: ignore
 
             # Write the digest file
             if digestFormat == "json":

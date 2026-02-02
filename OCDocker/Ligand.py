@@ -1186,11 +1186,14 @@ def load_mol(
             except (OSError, PermissionError):
                 pass
             
-            # Create a unique filename to avoid conflicts in multiprocessing scenarios
-            import hashlib
-            molecule_hash = hashlib.md5(os.path.abspath(molecule).encode()).hexdigest()[:8]
+            # Preserve the original basename; warn if it collides
             ligand_basename = os.path.splitext(os.path.basename(molecule))[0]
-            outputMoleculePath = os.path.join(output_dir, f"{ligand_basename}_{molecule_hash}.mol2")
+            outputMoleculePath = os.path.join(output_dir, f"{ligand_basename}.mol2")
+            if os.path.isfile(outputMoleculePath):
+                _ = ocerror.Error.file_exists( # type: ignore
+                    f"The file '{outputMoleculePath}' already exists and will be overwritten.",
+                    level = ocerror.ReportLevel.WARNING,
+                )
             
             # Convert using the RDKit molecule to preserve 3D geometry
             occonversion.convert_mols_from_string("", outputMoleculePath, mol = mol) # type: ignore

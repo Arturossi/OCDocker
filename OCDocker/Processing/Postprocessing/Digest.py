@@ -14,6 +14,7 @@ import OCDocker.Processing.Postprocessing.Digest as ocdigest
 ###############################################################################
 import gc
 import os
+from glob import glob
 
 from multiprocessing import Pool
 from tqdm import tqdm
@@ -55,7 +56,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ## Private ##
 
 
-def __core_generate_digest(path: str, ligandDir: str, archive: str, overwrite: bool, digestFormat: str = "json") -> int:
+def __core_generate_digest(path: str, ligandDir: str, archive: str, overwrite: bool, digestFormat: str = "json", all_boxes: bool = False) -> int:
     '''Generate the digest file for a given protein and ligand.
 
     Parameters
@@ -88,18 +89,35 @@ def __core_generate_digest(path: str, ligandDir: str, archive: str, overwrite: b
 
     # If the complex has descriptor files for ligand
     if os.path.isfile(ligandDescriptorPath):
-        # Run for gnina
-        logPath = f"{ligandDir}/gninaFiles/gnina_0.log" # TODO: add support to multiple boxes/runs
-        _ = ocgnina.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat)
-        # Run for vina
-        logPath = f"{ligandDir}/vinaFiles/vina_0.log" # TODO: add support to multiple boxes/runs
-        _ = ocvina.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat)
-        # Run for smina
-        logPath = f"{ligandDir}/sminaFiles/smina_0.log" # TODO: add support to multiple boxes/runs
-        _ = ocsmina.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat)
-        # Run for PLANTS
-        logPath = f"{ligandDir}/plantsFiles/run/bestranking.csv" # TODO: add support to multiple boxes/runs
-        _ = ocplants.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat)
+        if all_boxes:
+            boxes = sorted(glob(f"{ligandDir}/boxes/box*.pdb"))
+            for box_file in boxes:
+                box_id = os.path.splitext(os.path.basename(box_file))[0]
+                # Run for gnina
+                logPath = f"{ligandDir}/gninaFiles/{box_id}/gnina_0.log"
+                _ = ocgnina.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat, box_id = box_id)
+                # Run for vina
+                logPath = f"{ligandDir}/vinaFiles/{box_id}/vina_0.log"
+                _ = ocvina.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat, box_id = box_id)
+                # Run for smina
+                logPath = _resolve_smina_log(f"{ligandDir}/sminaFiles/{box_id}")
+                _ = ocsmina.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat, box_id = box_id)
+                # Run for PLANTS
+                logPath = f"{ligandDir}/plantsFiles/{box_id}/run/bestranking.csv"
+                _ = ocplants.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat, box_id = box_id)
+        else:
+            # Run for gnina
+            logPath = f"{ligandDir}/gninaFiles/gnina_0.log" # TODO: add support to multiple boxes/runs
+            _ = ocgnina.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat)
+            # Run for vina
+            logPath = f"{ligandDir}/vinaFiles/vina_0.log" # TODO: add support to multiple boxes/runs
+            _ = ocvina.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat)
+            # Run for smina
+            logPath = _resolve_smina_log(f"{ligandDir}/sminaFiles") # TODO: add support to multiple boxes/runs
+            _ = ocsmina.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat)
+            # Run for PLANTS
+            logPath = f"{ligandDir}/plantsFiles/run/bestranking.csv" # TODO: add support to multiple boxes/runs
+            _ = ocplants.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat)
     else:
         errMsg = f"There is no ligand descriptor json file for the protein in the path '{ligandDescriptorPath}'."
         config = get_config()
@@ -126,12 +144,12 @@ def __thread_generate_digest(arguments: list) -> int:
     # Redirect all prints to tqdm.write
     with ocbasetools.redirect_to_tqdm():
         # Call the core dock function passing the arguments correctly
-        returnState = __core_generate_digest(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4])
+        returnState = __core_generate_digest(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4], arguments[5])
 
     return returnState
 
 
-def __generate_digest_parallel(complexList: List[Tuple[str, List[str]]], archive: str, overwrite: bool, digestFormat: str, desc: str) -> int:
+def __generate_digest_parallel(complexList: List[Tuple[str, List[str]]], archive: str, overwrite: bool, digestFormat: str, desc: str, all_boxes: bool) -> int:
     '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
 
     Parameters
@@ -161,7 +179,7 @@ def __generate_digest_parallel(complexList: List[Tuple[str, List[str]]], archive
         # Now loop over the ligands of this protein
         for ligandDir in cl[1]:
             # Add the arguments to the list (creating one execution for each pair receptor-ligand)
-            arguments.append((cl[0], ligandDir, archive, overwrite, digestFormat))
+            arguments.append((cl[0], ligandDir, archive, overwrite, digestFormat, all_boxes))
 
     # Track error codes from all digest operations
     error_codes = []
@@ -190,7 +208,7 @@ def __generate_digest_parallel(complexList: List[Tuple[str, List[str]]], archive
     return ocerror.Error.ok() # type: ignore
 
 
-def __generate_digest_no_parallel(complexList: List[Tuple[str, List[str]]], archive: str, overwrite: bool, digestFormat: str, desc: str) -> int:
+def __generate_digest_no_parallel(complexList: List[Tuple[str, List[str]]], archive: str, overwrite: bool, digestFormat: str, desc: str, all_boxes: bool) -> int:
     '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_generate_digest function.
 
     Parameters
@@ -221,7 +239,7 @@ def __generate_digest_no_parallel(complexList: List[Tuple[str, List[str]]], arch
         for cl in tqdm(iterable = complexList, total = len(complexList), desc=desc):
             for ligandDir in cl[1]:
                 # Call the core dock function (shared between parallel and not parallel)
-                return_code = __core_generate_digest(cl[0], ligandDir, archive, overwrite, digestFormat)
+                return_code = __core_generate_digest(cl[0], ligandDir, archive, overwrite, digestFormat, all_boxes)
                 # Track non-zero error codes
                 if return_code != ocerror.ErrorCode.OK:
                     error_codes.append(return_code)
@@ -238,7 +256,7 @@ def __generate_digest_no_parallel(complexList: List[Tuple[str, List[str]]], arch
     return ocerror.Error.ok() # type: ignore
 
 
-def __generate_digest_single(complex: Tuple[str, List[str]], archive: str, overwrite: bool, digestFormat: str, desc: str) -> int:
+def __generate_digest_single(complex: Tuple[str, List[str]], archive: str, overwrite: bool, digestFormat: str, desc: str, all_boxes: bool) -> int:
     '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_generate_digest function.
 
     Parameters
@@ -266,7 +284,7 @@ def __generate_digest_single(complex: Tuple[str, List[str]], archive: str, overw
     # For each file in dirs
     for ligandDir in tqdm(iterable = complex[1], total = len(complex[1]), desc=desc):
         # Call the core dock function (shared between parallel and not parallel)
-        return_code = __core_generate_digest(complex[0], ligandDir, archive, overwrite, digestFormat)
+        return_code = __core_generate_digest(complex[0], ligandDir, archive, overwrite, digestFormat, all_boxes)
         # Track non-zero error codes
         if return_code != ocerror.ErrorCode.OK:
             error_codes.append(return_code)
@@ -287,7 +305,7 @@ def __generate_digest_single(complex: Tuple[str, List[str]], archive: str, overw
 ## Public ##
 
 
-def generate_digest(paths: Union[List[Tuple[str, List[str]]], Tuple[str, List[str]]], archive: str, overwrite: bool, digestFormat: str = "json") -> None:
+def generate_digest(paths: Union[List[Tuple[str, List[str]]], Tuple[str, List[str]]], archive: str, overwrite: bool, digestFormat: str = "json", all_boxes: bool = False) -> None:
     '''Generate the digest for the docking output.
 
     Parameters
@@ -315,9 +333,15 @@ def generate_digest(paths: Union[List[Tuple[str, List[str]]], Tuple[str, List[st
         config = get_config()
         if config.multiprocess:
             # Prepare the pdbbind
-            __generate_digest_parallel(paths, archive, overwrite, digestFormat, label)
+            __generate_digest_parallel(paths, archive, overwrite, digestFormat, label, all_boxes)
         else:
             # Prepare the database
-            __generate_digest_no_parallel(paths, archive, overwrite, digestFormat, label)
+            __generate_digest_no_parallel(paths, archive, overwrite, digestFormat, label, all_boxes)
     else:
-        __generate_digest_single(paths, archive, overwrite, digestFormat, label)
+        __generate_digest_single(paths, archive, overwrite, digestFormat, label, all_boxes)
+def _resolve_smina_log(run_dir: str) -> str:
+    '''Resolve smina log path with backward-compatible fallback.'''
+    log_path = f"{run_dir}/smina.log"
+    if os.path.isfile(log_path):
+        return log_path
+    return f"{run_dir}/smina_0.log"

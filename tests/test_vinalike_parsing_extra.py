@@ -42,15 +42,22 @@ def _setup_basevina_stubs(monkeypatch, tmp_path):
     # Also provide functions used by generate_digest
     filesfolders_mod = types.ModuleType('OCDocker.Toolbox.FilesFolders')
     def empty_docking_digest(path, overwrite=False):
-        # Minimal stub - just return empty dict
-        return {}
+        # Minimal stub - include base keys expected in tests
+        return {
+            "vina_affinity": [float("nan")],
+            "smina_affinity": [float("nan")],
+        }
     filesfolders_mod.empty_docking_digest = empty_docking_digest  # type: ignore
     monkeypatch.setitem(sys.modules, 'OCDocker.Toolbox.FilesFolders', filesfolders_mod)
     
     # Stub IO (used by read_log and read_rescoring_log)
     io_mod = types.ModuleType('OCDocker.Toolbox.IO')
     def lazyread_reverse_order_mmap(path):
-        return []  # Empty iterator - tests will provide actual file content
+        try:
+            with open(path, "r") as f:
+                return reversed(f.read().splitlines())
+        except FileNotFoundError:
+            return []
     io_mod.lazyread_reverse_order_mmap = lazyread_reverse_order_mmap  # type: ignore
     monkeypatch.setitem(sys.modules, 'OCDocker.Toolbox.IO', io_mod)
     
@@ -291,6 +298,26 @@ def test_generate_digest_invalid_existing_digest(tmp_path, monkeypatch):
 
 
 @pytest.mark.order(109)
+def test_generate_digest_with_box_id(tmp_path, monkeypatch):
+    '''Test generate_digest with box_id grouping.'''
+
+    monkeypatch.setenv("OCDOCKER_NO_AUTO_BOOTSTRAP", "1")
+    _setup_basevina_stubs(monkeypatch, tmp_path)
+    import OCDocker.Docking.BaseVinaLike as basevina  # type: ignore
+
+    log = tmp_path / "vina.log"
+    log.write_text('''-----+ header
+1 -7.50 0 0
+''')
+
+    digest = tmp_path / "digest.json"
+    rc = basevina.generate_vina_digest(str(digest), str(log), overwrite=True, box_id="box1")
+    assert rc == 0
+    data = json.loads(digest.read_text())
+    assert "box1" in data
+
+
+@pytest.mark.order(110)
 def test_generate_digest_read_error(tmp_path, monkeypatch):
     '''Test generate_digest with unreadable digest file.'''
 
@@ -311,7 +338,7 @@ def test_generate_digest_read_error(tmp_path, monkeypatch):
     assert rc == ocerror.Error.file_not_exist()  # type: ignore
 
 
-@pytest.mark.order(110)
+@pytest.mark.order(111)
 def test_generate_digest_unsupported_format(tmp_path, monkeypatch):
     '''Test generate_digest with unsupported format.'''
 
@@ -331,7 +358,7 @@ def test_generate_digest_unsupported_format(tmp_path, monkeypatch):
     assert rc == ocerror.Error.unsupported_extension()  # type: ignore
 
 
-@pytest.mark.order(111)
+@pytest.mark.order(112)
 def test_get_docked_poses_nonexistent_directory(tmp_path, monkeypatch):
     '''Test get_docked_poses with non-existent directory.'''
 
@@ -344,7 +371,7 @@ def test_get_docked_poses_nonexistent_directory(tmp_path, monkeypatch):
     assert result == []  # Should return empty list
 
 
-@pytest.mark.order(112)
+@pytest.mark.order(113)
 def test_get_docked_poses_empty_directory(tmp_path, monkeypatch):
     '''Test get_docked_poses with empty directory.'''
 
@@ -359,7 +386,7 @@ def test_get_docked_poses_empty_directory(tmp_path, monkeypatch):
     assert result == []  # Should return empty list when no matching files
 
 
-@pytest.mark.order(113)
+@pytest.mark.order(114)
 def test_get_docked_poses_with_files(tmp_path, monkeypatch):
     '''Test get_docked_poses with matching pose files.'''
 
@@ -385,7 +412,7 @@ def test_get_docked_poses_with_files(tmp_path, monkeypatch):
     assert any("lig_split_2.pdbqt" in p for p in result)
 
 
-@pytest.mark.order(114)
+@pytest.mark.order(115)
 def test_read_log_with_exception(tmp_path, monkeypatch):
     '''Test read_log handling of general exceptions during file reading.'''
 
@@ -409,7 +436,7 @@ def test_read_log_with_exception(tmp_path, monkeypatch):
     assert result == {}  # Should return empty dict on exception
 
 
-@pytest.mark.order(115)
+@pytest.mark.order(116)
 def test_read_log_invalid_line_format(tmp_path, monkeypatch):
     '''Test read_log with lines that don't have exactly 4 elements.'''
 
@@ -436,7 +463,7 @@ def test_read_log_invalid_line_format(tmp_path, monkeypatch):
     assert result[3][vina_scoring] == "-5.50"
 
 
-@pytest.mark.order(116)
+@pytest.mark.order(117)
 def test_generate_digest_write_error(tmp_path, monkeypatch):
     '''Test generate_digest with write error.'''
     

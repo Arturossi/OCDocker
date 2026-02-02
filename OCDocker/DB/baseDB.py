@@ -51,7 +51,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ## Private ##
 
 ## Public ##
-def prepare(archive: str, overwrite: bool = False, spacing: float = 0.33, sanitize: bool = True) -> None:
+def prepare(archive: str, overwrite: bool = False, spacing: float = 0.33, sanitize: bool = True, all_boxes: bool = False) -> None:
     '''Prepares the database.
 
     Parameters
@@ -83,12 +83,12 @@ def prepare(archive: str, overwrite: bool = False, spacing: float = 0.33, saniti
     ocprint.printv("Generating information regarding possible ligand site.")
 
     # Prepare it
-    ocprepare.prepare(paths, overwrite, archive, sanitize, spacing)
+    ocprepare.prepare(paths, overwrite, archive, sanitize, spacing, all_boxes = all_boxes)
 
     return None
 
 
-def run_docking(archive: str, dockingAlgorithm: str, digestFormat: str = "json", overwrite: bool = False) -> int:
+def run_docking(archive: str, dockingAlgorithm: str, digestFormat: str = "json", overwrite: bool = False, all_boxes: bool = False) -> int:
     '''Run docking.
 
     Parameters
@@ -144,4 +144,4 @@ def run_docking(archive: str, dockingAlgorithm: str, digestFormat: str = "json",
         complexList.append((ptnDir, glob(f"{ligands}/*") + glob(f"{decoys}/*") + glob(f"{candidates}/*")))
     
     # Run docking
-    return ocdock.run_docking(complexList, archive, dockingAlgorithm, overwrite, digestFormat)
+    return ocdock.run_docking(complexList, archive, dockingAlgorithm, overwrite, digestFormat, all_boxes = all_boxes)

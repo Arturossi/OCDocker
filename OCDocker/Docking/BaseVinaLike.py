@@ -16,7 +16,7 @@ import errno
 import json
 import os
 from glob import glob
-from typing import Dict, List, Callable
+from typing import Dict, List, Callable, Optional
 
 import numpy as np
 
@@ -227,6 +227,7 @@ def _generate_digest_generic(
     read_log_func: Callable[[str], Dict[int, Dict[int, float]]],
     overwrite: bool = False,
     digestFormat: str = "json",
+    box_id: Optional[str] = None,
 ) -> int:
     '''Generate the docking digest.
     
@@ -292,7 +293,13 @@ def _generate_digest_generic(
                 )
         
             # Merge the digest and the docking digest
-            digest = {**digest, **dockingDigest} # type: ignore
+            if box_id:
+                box_key = str(box_id)
+                if box_key not in digest or not isinstance(digest.get(box_key), dict):
+                    digest[box_key] = {}
+                digest[box_key] = {**digest[box_key], **dockingDigest} # type: ignore
+            else:
+                digest = {**digest, **dockingDigest} # type: ignore
 
             # If the format is json, write the digest file
             if digestFormat == "json":
@@ -399,7 +406,7 @@ def read_vina_rescoring_log(path: str) -> float:
     return _read_rescoring_log_generic(path, "Estimated Free Energy of Binding", "vina", "vina_read_log_ERROR.log")
 
 
-def generate_vina_digest(digestPath: str, logPath: str, overwrite: bool = False, digestFormat: str = "json") -> int:
+def generate_vina_digest(digestPath: str, logPath: str, overwrite: bool = False, digestFormat: str = "json", box_id: Optional[str] = None) -> int:
     '''Wrapper for generating the Vina digest.
     
     Parameters
@@ -420,7 +427,7 @@ def generate_vina_digest(digestPath: str, logPath: str, overwrite: bool = False,
     '''
 
     # Call the generic generate digest function with the Vina read log function
-    return _generate_digest_generic(digestPath, logPath, read_vina_log, overwrite, digestFormat)
+    return _generate_digest_generic(digestPath, logPath, read_vina_log, overwrite, digestFormat, box_id)
 
 
 def get_vina_docked_poses(posesPath: str) -> List[str]:
@@ -486,7 +493,7 @@ def read_smina_rescoring_log(path: str) -> float:
     return _read_rescoring_log_generic(path, "Affinity", "smina", "smina_read_log_ERROR.log")
 
 
-def generate_smina_digest(digestPath: str, logPath: str, overwrite: bool = False, digestFormat: str = "json") -> int:
+def generate_smina_digest(digestPath: str, logPath: str, overwrite: bool = False, digestFormat: str = "json", box_id: Optional[str] = None) -> int:
     '''Wrapper for generating the Smina digest.
 
     Parameters
@@ -507,7 +514,7 @@ def generate_smina_digest(digestPath: str, logPath: str, overwrite: bool = False
     '''
 
     # Call the generic generate digest function with the Smina read log function
-    return _generate_digest_generic(digestPath, logPath, read_smina_log, overwrite, digestFormat)
+    return _generate_digest_generic(digestPath, logPath, read_smina_log, overwrite, digestFormat, box_id)
 
 
 def get_smina_docked_poses(posesPath: str) -> List[str]:

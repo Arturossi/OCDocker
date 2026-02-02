@@ -19,7 +19,7 @@ import os
 import numpy as np
 import pandas as pd
 
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union, Optional
 
 from OCDocker.Config import get_config
 import OCDocker.Error as ocerror
@@ -654,7 +654,7 @@ def read_log(path: str) -> Dict[str, List[Union[str, float]]]:
     return {"gnina_pose": [np.nan], "gnina_affinity": [np.nan]}
 
 
-def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, digestFormat : str = "json") -> int:
+def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, digestFormat : str = "json", box_id: Optional[str] = None) -> int:
     '''Generate the docking digest.
     
     Parameters
@@ -709,7 +709,13 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
                 return ocerror.Error.wrong_type(f"The docking digest file '{digestPath}' is not valid.", level = ocerror.ReportLevel.ERROR)
             
             # Merge the digest and the docking digest
-            digest = { **digest, **dockingDigest } # type: ignore
+            if box_id:
+                box_key = str(box_id)
+                if box_key not in digest or not isinstance(digest.get(box_key), dict):
+                    digest[box_key] = {}
+                digest[box_key] = {**digest[box_key], **dockingDigest} # type: ignore
+            else:
+                digest = { **digest, **dockingDigest } # type: ignore
 
             # Write the digest file
             if digestFormat == "json":
