@@ -21,6 +21,12 @@ Key capabilities:
 - CLI and Python API: doctor diagnostics, timeouts, binary checks, reproducible configs
 - Packaging: conda/pip, Dockerfiles for engines, docs and examples
 
+Documentation
+-------------
+
+- Manual (GitHub): [MANUAL.md](MANUAL.md)
+- Sphinx docs: `docs/` (build with `make -C docs html`)
+
 Installation
 ------------
 
