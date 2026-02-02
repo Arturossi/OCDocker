@@ -8,7 +8,7 @@ Configuration management for OCDocker using dataclasses and singleton pattern.
 This module provides a structured way to manage OCDocker configuration,
 replacing the global variables in Initialise.py with type-safe dataclasses.
 
-They are imported as:
+Usage:
 
 from OCDocker.Config import get_config, OCDockerConfig
 '''

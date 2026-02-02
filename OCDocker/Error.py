@@ -5,7 +5,7 @@
 '''
 Handles all standardized return codes and error reporting in OCDocker.
 
-They are imported as:
+Usage:
 
 import OCDocker.Error as ocerror
 '''

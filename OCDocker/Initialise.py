@@ -6,7 +6,7 @@
 First set of primordial variables and functions that are used to initialise the
 OCDocker library.\n
 
-They are imported as:
+Usage:
 
 from OCDocker.Initialise import *
 '''
@@ -60,7 +60,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 # Splash, version & clear tmp
 ###############################################################################
-ocVersion = "0.11.1"
+ocVersion = "0.12.1"
 
 _description = tw.dedent("""\033[1;93m
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -69,9 +69,9 @@ _description = tw.dedent("""\033[1;93m
     +-+-+-+-+-+-+-+-+-+- \033[1;96m┗━┛┗━╸╺┻━┛┗━┛┗━╸╹ ╹┗━╸╹┗╸ \033[1;93m-+-+-+-+-+-+-+-+-+-+
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 \033[1;0m
-      Copyright (C) 2025  Rossi, A.D; Torres, P.H.M.
+      Copyright (C) 2026  Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 \033[1;95m
-                  [The Federal University of Rio de Janeiro]
+                  [Universidade Federal do Rio de Janeiro - UFRJ]
 \033[1;0m
           This program comes with ABSOLUTELY NO WARRANTY
 

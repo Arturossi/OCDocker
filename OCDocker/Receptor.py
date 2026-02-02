@@ -6,7 +6,7 @@
 Sets of classes and functions that are used to process all content related to
 the ligand.
 
-They are imported as:
+Usage:
 
 import OCDocker.Receptor as ocr
 '''

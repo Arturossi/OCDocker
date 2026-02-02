@@ -6,7 +6,7 @@
 Set of functions to manage scoring and prediction in OCDocker in the context of
 scoring functions.
 
-They are imported as:
+Usage:
 
 import OCDocker.OCScore.Scoring as ocscoring
 '''

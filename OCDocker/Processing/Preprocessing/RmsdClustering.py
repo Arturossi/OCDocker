@@ -6,7 +6,7 @@
 Sets of classes and functions that are used to cluster molecules based on their
 rmsd.
 
-They are imported as:
+Usage:
 
 import OCDocker.Processing.Preprocessing.RmsdClustering as ocrmsdclust
 '''

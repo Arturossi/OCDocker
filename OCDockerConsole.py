@@ -263,16 +263,19 @@ def print_args(program: str = "") -> None:
     return None
 
 
-def clean_test_files(baseProtPath, baseLigPath, baseDecPath, baseCanPath) -> None:
+def clean_test_files(baseProtPath: str, baseLigPath: str, baseDecPath: str, baseCanPath: str) -> None:
     '''Rests the test_files folder to its original state
 
     Parameters
     ----------
-    None
-
-    Returns
-    -------
-    None
+    baseProtPath : str
+        Path to the base protein folder
+    baseLigPath : str
+        Path to the base ligand folder
+    baseDecPath : str
+        Path to the base decoy folder
+    baseCanPath : str
+        Path to the base candidates folder
     '''
 
     # Remove all files in the baseProtPath except the receptor.pdb
