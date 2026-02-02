@@ -1,7 +1,7 @@
 """
 OCDocker - Open Consensus Docker
 
-Authors: Rossi, A.D.; Torres, P.H.M.
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 
 [The Federal University of Rio de Janeiro]
 

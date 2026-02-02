@@ -1,6 +1,13 @@
+#!/usr/bin/env python3
+
 # Description
 ###############################################################################
-'''OCDocker.OCScore.Analysis.SHAP.Model module: Neural network model construction for SHAP analysis.
+'''
+Build neural network models for SHAP analysis in OCScore.
+
+Usage:
+
+from OCDocker.OCScore.Analysis.SHAP.Model import build_neural_net
 '''
 
 # Imports

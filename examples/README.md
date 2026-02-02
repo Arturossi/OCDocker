@@ -95,6 +95,10 @@ Complete end-to-end pipeline to obtain OCScore results from scratch:
 - Model inference using trained OCScore model
 - Automatic mapping of rescoring results to database column names
 
+### 14. Future AE -> DNN Pipeline (`14_python_api_future_ae_dnn.py`)
+Example of training the future Autoencoder to generate embeddings and using them
+to train the future DNN optimizer.
+
 ## Getting Started
 
 ### Prerequisites
@@ -187,4 +191,3 @@ See the main README.md for more details on the file structure.
 
 These examples are part of OCDocker and are subject to the same license terms.
 See the LICENSE file in the main directory for details.
-

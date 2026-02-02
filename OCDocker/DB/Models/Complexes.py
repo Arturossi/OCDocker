@@ -1,3 +1,15 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+SQLAlchemy model for docking complexes with dynamic descriptor columns.
+
+Usage:
+
+from OCDocker.DB.Models.Complexes import Complexes
+'''
+
 from sqlalchemy import Column, ForeignKey, Integer
 from sqlalchemy.orm import relationship
 from OCDocker.DB.Models.Base import base

@@ -34,7 +34,7 @@ import OCDocker.Error as ocerror
 ###############################################################################
 '''
 OCDocker
-Authors: Rossi, A.D.; Torres, P.H.M.
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics

@@ -24,7 +24,7 @@ import OCDocker.Toolbox.Printing as ocprint
 ###############################################################################
 '''
 OCDocker
-Authors: Rossi, A.D.; Torres, P.H.M.;
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.;
 [The Federal University of Rio de Janeiro]
 Contact info:
 Carlos Chagas Filho Institute of Biophysics

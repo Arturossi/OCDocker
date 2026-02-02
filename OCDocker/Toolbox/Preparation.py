@@ -36,13 +36,13 @@ import OCDocker.Error as ocerror
 ###############################################################################
 '''
 OCDocker
-Authors: Rossi, A.D.; Torres, P.H.M.
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
-developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
 All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
 to formal authorization from UFRJ. See the LICENSE file for details.
 
@@ -201,27 +201,6 @@ class PreparationStrategy(ABC):
             Error code or tuple of (error_code, stderr)
         '''
 
-        in_ext = os.path.splitext(input_path)[1].lower()
-        out_ext = os.path.splitext(output_path)[1].lower()
-
-        if in_ext and out_ext and in_ext != out_ext:
-            from OCDocker.Toolbox import Conversion as occonversion
-            from OCDocker.Toolbox import Printing as ocprint
-
-            ocprint.print_warning(
-                f"{tool_name} not available; converting '{input_path}' to '{output_path}' with OpenBabel."
-            )
-            try:
-                result = occonversion.convert_mols(input_path, output_path, overwrite=True)
-            except Exception as e:
-                return ocerror.Error.subprocess(
-                    message=f"{tool_name} not available and conversion failed: {e}",
-                    level=ocerror.ReportLevel.ERROR
-                )  # type: ignore
-            if result != ocerror.Error.ok():  # type: ignore
-                return result  # type: ignore
-            return ocerror.Error.ok()  # type: ignore
-
         try:
             shutil.copyfile(input_path, output_path)
             return ocerror.Error.ok()  # type: ignore
@@ -230,6 +209,43 @@ class PreparationStrategy(ABC):
                 message=f"{tool_name} not available and copy failed: {e}",
                 level=ocerror.ReportLevel.ERROR
             )  # type: ignore
+
+    def _handle_existing_output(
+        self,
+        output_path: str,
+        overwrite: bool,
+        entity_label: str
+    ) -> Union[int, None]:
+        '''Handle existing output files (shared utility).
+
+        Parameters
+        ----------
+        output_path : str
+            Path to the output file
+        overwrite : bool
+            Whether to overwrite existing output file
+        entity_label : str
+            Label for the entity being prepared (e.g., "ligand", "receptor")
+
+        Returns
+        -------
+        int | None
+            Error code if skipping, otherwise None to continue
+        '''
+
+        if os.path.exists(output_path):
+            if overwrite:
+                try:
+                    os.remove(output_path)
+                except (OSError, PermissionError):
+                    pass
+            else:
+                print_warning(
+                    f"Prepared {entity_label} '{output_path}' already exists and overwrite is False. "
+                    f"Skipping preparation."
+                )
+                return ocerror.Error.ok()  # type: ignore
+        return None
 
 
 class MGLToolsPreparationStrategy(PreparationStrategy):
@@ -261,18 +277,9 @@ class MGLToolsPreparationStrategy(PreparationStrategy):
             Error code or tuple of (error_code, stderr)
         '''
 
-        # If file exists and overwrite is False, skip preparation
-        if os.path.exists(output_path) and not overwrite:
-            print_warning(
-                f"Prepared ligand '{output_path}' already exists and overwrite is False. Skipping preparation."
-            )
-            return ocerror.Error.ok()  # type: ignore
-
-        if overwrite and os.path.exists(output_path):
-            try:
-                os.remove(output_path)
-            except (OSError, PermissionError):
-                pass
+        result = self._handle_existing_output(output_path, overwrite, "ligand")
+        if result is not None:
+            return result
 
         config = get_config()
         exe = str(config.tools.pythonsh)
@@ -347,12 +354,9 @@ class MGLToolsPreparationStrategy(PreparationStrategy):
             Error code or tuple of (error_code, stderr)
         '''
 
-        # If file exists and overwrite is False, skip preparation
-        if os.path.exists(output_path) and not overwrite:
-            print_warning(
-                f"Prepared receptor '{output_path}' already exists and overwrite is False. Skipping preparation."
-            )
-            return ocerror.Error.ok()  # type: ignore
+        result = self._handle_existing_output(output_path, overwrite, "receptor")
+        if result is not None:
+            return result
 
         config = get_config()
         exe = str(config.tools.pythonsh)
@@ -377,7 +381,7 @@ class MGLToolsPreparationStrategy(PreparationStrategy):
             "-U", "nphs_lps_waters"
         ]
         
-        return ocrun.run(cmd, logFile=log_file)
+        return ocrun.run(cmd, logFile=log_file, cwd=os.path.dirname(input_path))
     
     def get_receptor_command(self, input_path: str, output_path: str) -> list[str]:
         '''Get the command list that would be used to prepare a receptor.
@@ -408,7 +412,42 @@ class MGLToolsPreparationStrategy(PreparationStrategy):
 
 class SPORESPreparationStrategy(PreparationStrategy):
     """Preparation strategy using SPORES."""
-    
+
+    def _prepare(
+        self,
+        input_path: str,
+        output_path: str,
+        log_file: str,
+        overwrite: bool,
+        entity_label: str
+    ) -> Union[int, Tuple[int, str]]:
+        result = self._handle_existing_output(output_path, overwrite, entity_label)
+        if result is not None:
+            return result
+
+        config = get_config()
+        exe = str(config.tools.spores)
+
+        if not self._check_tool_available(exe):
+            self._ensure_output_dir(output_path)
+            return self._fallback_copy(input_path, output_path, "SPORES")
+
+        self._ensure_output_dir(output_path)
+
+        # Create command
+        cmd = [
+            config.tools.spores,
+            "--mode", "complete",
+            input_path,
+            output_path
+        ]
+
+        # Print verbosity
+        from OCDocker.Toolbox import Printing as ocprint
+        ocprint.printv(f"Running '{config.tools.spores}' for '{input_path}'.")
+
+        return ocrun.run(cmd, logFile=log_file)
+
     def prepare_ligand(
         self,
         input_path: str,
@@ -417,7 +456,7 @@ class SPORESPreparationStrategy(PreparationStrategy):
         overwrite: bool = False
     ) -> Union[int, Tuple[int, str]]:
         '''Prepare a ligand molecule.
-        
+
         Parameters
         ----------
         input_path : str
@@ -435,41 +474,13 @@ class SPORESPreparationStrategy(PreparationStrategy):
             Error code or tuple of (error_code, stderr)
         '''
 
-        # If file exists and overwrite is False, skip preparation
-        if os.path.exists(output_path) and not overwrite:
-            print_warning(
-                f"Prepared ligand '{output_path}' already exists and overwrite is False. Skipping preparation."
-            )
-            return ocerror.Error.ok()  # type: ignore
-
-        if overwrite and os.path.exists(output_path):
-            try:
-                os.remove(output_path)
-            except (OSError, PermissionError):
-                pass
-
-        config = get_config()
-        exe = str(config.tools.spores)
-        
-        if not self._check_tool_available(exe):
-            self._ensure_output_dir(output_path)
-            return self._fallback_copy(input_path, output_path, "SPORES")
-        
-        self._ensure_output_dir(output_path)
-        
-        # Create command
-        cmd = [
-            config.tools.spores,
-            "--mode", "complete",
+        return self._prepare(
             input_path,
-            output_path
-        ]
-        
-        # Print verbosity
-        from OCDocker.Toolbox import Printing as ocprint
-        ocprint.printv(f"Running '{config.tools.spores}' for '{input_path}'.")
-        
-        return ocrun.run(cmd, logFile=log_file)
+            output_path,
+            log_file,
+            overwrite,
+            "ligand"
+        )
     
     def get_ligand_command(self, input_path: str, output_path: str) -> list[str]:
         '''Get the command list that would be used to prepare a ligand.
@@ -516,8 +527,13 @@ class SPORESPreparationStrategy(PreparationStrategy):
             Whether to overwrite existing output file (default is False)        
         '''
         
-        # Same as ligand for SPORES
-        return self.prepare_ligand(input_path, output_path, log_file, overwrite=overwrite)
+        return self._prepare(
+            input_path,
+            output_path,
+            log_file,
+            overwrite,
+            "receptor"
+        )
     
     def get_receptor_command(self, input_path: str, output_path: str) -> list[str]:
         '''Get the command list that would be used to prepare a receptor.
@@ -567,9 +583,12 @@ class OpenBabelPreparationStrategy(PreparationStrategy):
             Error code or tuple of (error_code, stderr)
         '''
 
+        result = self._handle_existing_output(output_path, overwrite, "ligand")
+        if result is not None:
+            return result
+
         # OpenBabel strategy may include extension validation
         from OCDocker.Toolbox import Validation as ocvalidation
-        from OCDocker.Initialise import clrs
         
         extension = ocvalidation.validate_obabel_extension(input_path)
         if type(extension) != str:
@@ -583,8 +602,8 @@ class OpenBabelPreparationStrategy(PreparationStrategy):
             from OCDocker.Toolbox import Printing as ocprint
             ocprint.print_warning(
                 f"The output extension is not '.pdbqt', is {out_extension}. "
-                f"This function converts {clrs['r']}ONLY{clrs['n']} to '.pdbqt'. "
-                f"Please pay attention, since this might be a problem in the future for you!"
+                f"If you expected a .pdbqt file, please double-check your output path, "
+                f"since downstream tools may assume that format."
             )
         
         # Handle SMILES files if needed
@@ -596,6 +615,14 @@ class OpenBabelPreparationStrategy(PreparationStrategy):
                 f"extension to '.mol2' to be able to read it."
             )
             input_path = f"{os.path.dirname(input_path)}/ligand.mol2"
+            if not os.path.isfile(input_path):
+                ocprint.print_error(
+                    f"Expected companion mol2 file for smiles input was not found: '{input_path}'."
+                )
+                return ocerror.Error.file_not_exist(
+                    message=f"Companion mol2 file missing: '{input_path}'.",
+                    level=ocerror.ReportLevel.ERROR
+                )  # type: ignore
         
         # Use conversion utility
         from OCDocker.Toolbox import Conversion as occonversion
@@ -626,6 +653,10 @@ class OpenBabelPreparationStrategy(PreparationStrategy):
         Union[int, Tuple[int, str]]
             Error code or tuple of (error_code, stderr)
         '''
+
+        result = self._handle_existing_output(output_path, overwrite, "receptor")
+        if result is not None:
+            return result
 
         # Similar to ligand but for receptor
         from OCDocker.Toolbox import Conversion as occonversion

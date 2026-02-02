@@ -3,8 +3,8 @@
 # Description
 ###############################################################################
 '''
-This module provides utilities to parse and structure Optuna study data
-into best-RMSE, best-AUC, and best-combined views, with consensus scores merged in.
+Parse and structure Optuna study results into best-RMSE, best-AUC, and
+best-combined views with consensus metrics.
 
 Usage:
 
@@ -18,14 +18,10 @@ import pandas as pd
 
 from typing import Union
 
-
-
 import OCDocker.OCScore.Utils.StudyParser as ocstudy
 
 # Methods
 ###############################################################################
-
-
 def get_study_data(
     snames : list[str],
     storage : str,
