@@ -235,6 +235,11 @@ def to_pickle(filePath: str, data: Any) -> int:
 def from_pickle(filePath: str) -> Union[None, Any]:
     '''Unpickle a pickle file into an object.
 
+    Security
+    --------
+    Only load pickle files from trusted sources. Pickle deserialization can
+    execute arbitrary code if the file is malicious or untrusted.
+
     Parameters
     ----------
     filePath : str

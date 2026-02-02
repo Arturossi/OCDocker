@@ -225,8 +225,8 @@ def test_get_binding_site_from_box(plants_inputs):
     assert isinstance(result, tuple), "Expected result to be a tuple. Int means error."
     assert len(result) == 2, "Expected result to have two elements"
     center, radius = result
-    assert center == (36.552, 39.252, 51.291)
-    assert radius == pytest.approx(70.274, abs=1e-3)
+    assert center == (32.698, 38.446, 58.497)
+    assert radius == pytest.approx(27.011, abs=1e-3)
 
 
 @pytest.mark.order(9)

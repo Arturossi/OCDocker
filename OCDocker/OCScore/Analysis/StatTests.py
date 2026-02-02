@@ -107,6 +107,11 @@ def run_statistical_tests(df: pd.DataFrame, n_trials: int, colour_mapping: dict[
 def load_pca_model(pickle_file: str) -> PCA:
     ''' Load PCA model from disk.
     
+    Security
+    --------
+    Only load pickle files from trusted sources. Pickle deserialization can
+    execute arbitrary code if the file is malicious or untrusted.
+
     Parameters
     ----------
     pickle_file : str

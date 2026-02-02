@@ -244,6 +244,8 @@ def run_oddt_from_cli(receptor: Union[ocr.Receptor, str], ligand: Union[ocl.Liga
     # Run the command
     config = get_config()
     exitCode = ocrun.run(cmd, logFile = logFile, cwd = config.oddt_models_dir)
+    if isinstance(exitCode, tuple):
+        exitCode = exitCode[0]
 
     # If the models should be deleted
     if cleanModels:

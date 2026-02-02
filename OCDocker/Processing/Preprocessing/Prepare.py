@@ -19,7 +19,6 @@ import shutil
 
 from glob import glob
 from multiprocessing import Pool
-from threading import Lock
 from tqdm import tqdm
 from typing import List, Tuple, Union
 
@@ -111,30 +110,26 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
             _ = ocff.safe_create_dir(f"{molPath}/gninaFiles")
 
             try:
-                # Create a lock for multithreading
-                lock = Lock()
-                # Start the lock with statement
-                with lock:
-                    # Create the ligand object
-                    m = ocl.Ligand(mol, molName, sanitize = sanitize)
-                    # Test if the Radius of Gyration is None
-                    if not m.RadiusOfGyration: # type: ignore
+                # Create the ligand object
+                m = ocl.Ligand(mol, molName, sanitize = sanitize)
+                # Test if the Radius of Gyration is None
+                if not m.RadiusOfGyration: # type: ignore
+                    # Print a warning
+                    ocprint.print_warning(f"The ligand '{molName}' has a Radius of Gyration of None, trying to load its alternative ligand.")
+                    # If so, try to load the alternative ligand
+                    if alternativeLigand:
+                        # Create the ligand object
+                        m = ocl.Ligand(alternativeLigand, molName, sanitize = sanitize)
+                        # Check the radius of gyration again
+                        if not m.RadiusOfGyration: # type: ignore
+                            # If it is still None, print a warning and return
+                            ocprint.print_warning(f"The ligand '{molName}' has a Radius of Gyration of None, even with the alternative ligand, skipping.")
+                    else:
                         # Print a warning
-                        ocprint.print_warning(f"The ligand '{molName}' has a Radius of Gyration of None, trying to load its alternative ligand.")
-                        # If so, try to load the alternative ligand
-                        if alternativeLigand:
-                            # Create the ligand object
-                            m = ocl.Ligand(alternativeLigand, molName, sanitize = sanitize)
-                            # Check the radius of gyration again
-                            if not m.RadiusOfGyration: # type: ignore
-                                # If it is still None, print a warning and return
-                                ocprint.print_warning(f"The ligand '{molName}' has a Radius of Gyration of None, even with the alternative ligand, skipping.")
-                        else:
-                            # Print a warning
-                            ocprint.print_warning(f"The ligand '{molName}' has a Radius of Gyration of None and no alternative ligand was provided.")
+                        ocprint.print_warning(f"The ligand '{molName}' has a Radius of Gyration of None and no alternative ligand was provided.")
 
-                    # Create a box around the ligand
-                    m.create_box(centroid = targetCentroid, overwrite = overwrite)
+                # Create a box around the ligand
+                m.create_box(centroid = targetCentroid, overwrite = overwrite)
             # If m is not valid
             except Exception as e:
                 errMsg = f"The molecule '{mol}' could not be parsed!"
@@ -148,16 +143,12 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                 # If is a tuple
                 if type(mol) == tuple:
                     try:
-                        # Create a lock for multithreading
-                        lock = Lock()
-                        # Start the lock with statement
-                        with lock:
-                            # Check if the extension is pdb
-                            if mol[0].endswith(".pdb"):
-                                # Clean the receptor
-                                _ = ocmolproc.make_only_ATOM_and_CRYST_pdb(structurePath = mol[0])
-                            # Create the receptor object
-                            m = ocr.Receptor(mol[0], molName, mol2Path = mol[1])
+                        # Check if the extension is pdb
+                        if mol[0].endswith(".pdb"):
+                            # Clean the receptor
+                            _ = ocmolproc.make_only_ATOM_and_CRYST_pdb(structurePath = mol[0])
+                        # Create the receptor object
+                        m = ocr.Receptor(mol[0], molName, mol2Path = mol[1])
                     except Exception as e:
                         errMsg = f"The molecule '{mol[0]}' could not be parsed! Error {e}"
 
@@ -167,12 +158,8 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                         return None
                 else:
                     try:
-                        # Create a lock for multithreading
-                        lock = Lock()
-                        # Start the lock with statement
-                        with lock:
-                            # Create the receptor object
-                            m = ocr.Receptor(mol, molName)
+                        # Create the receptor object
+                        m = ocr.Receptor(mol, molName)
                     except Exception as e:
                         errMsg = f"The molecule '{mol}' could not be parsed! Error {e}"
 
@@ -189,7 +176,8 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
             errMsg = f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!"
 
             _ = ocerror.Error.malformed_molecule(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
-            ocprint.print_error_log(errMsg, f"{logdir}/{dbName}_error_Parse.log")
+            config = get_config()
+            ocprint.print_error_log(errMsg, f"{config.logdir}/{dbName}_error_Parse.log")
         else:
             # Export its descriptors
             _ = m.to_json(overwrite)
@@ -384,50 +372,37 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
     for processDir in processDirs:
         # Check if there is a box for the ligand
         boxCount = len(glob(f"{processDir}/boxes/box*.pdb"))
+        if boxCount == 0:
+            ocprint.print_warning(f"No box files found for '{processDir}'. Skipping this molecule.")
+            continue
 
         # If overwrite mode is on or there is not the same amount of box files as folders in gninaFiles folder
-        if boxCount == 0 or len(glob(f"{processDir}/gninaFiles/*")) != boxCount or len(glob(f"{processDir}/gninaFiles/*")) == 0 or overwrite:
-            # Create a lock for multithreading
-            lock = Lock()
-            # Start the lock with statement
-            with lock:
-                # Create the vina inputs from the boxes
-                ocgnina.gen_gnina_conf(f"{processDir}/boxes/box0.pdb", f"{processDir}/sminaFiles/conf_smina.conf", preparedReceptorPdbqt)
+        if len(glob(f"{processDir}/gninaFiles/*")) != boxCount or len(glob(f"{processDir}/gninaFiles/*")) == 0 or overwrite:
+            # Create the vina inputs from the boxes
+            ocgnina.gen_gnina_conf(f"{processDir}/boxes/box0.pdb", f"{processDir}/gninaFiles/conf_gnina.conf", preparedReceptorPdbqt)
         else:
             ocprint.print_info(f"The protein '{processDir}' already has its gnina file generated, skipping its execution.")
         
         # If overwrite mode is on or there is not the same amount of box files as folders in vinaFiles folder
-        if boxCount == 0 or len(glob(f"{processDir}/vinaFiles/*")) != boxCount or len(glob(f"{processDir}/vinaFiles/*")) == 0 or overwrite:
-            # Create a lock for multithreading
-            lock = Lock()
-            # Start the lock with statement
-            with lock:
-                # Create the vina inputs from the boxes
-                ocvina.generate_vina_files_database(processDir, preparedReceptorPdbqt, boxPath = f"{processDir}/boxes")
+        if len(glob(f"{processDir}/vinaFiles/*")) != boxCount or len(glob(f"{processDir}/vinaFiles/*")) == 0 or overwrite:
+            # Create the vina inputs from the boxes
+            ocvina.generate_vina_files_database(processDir, preparedReceptorPdbqt, boxPath = f"{processDir}/boxes")
         else:
             ocprint.print_info(f"The protein '{processDir}' already has its vina file generated, skipping its execution.")
 
         # If overwrite mode is on or there is not the same amount of box files as folders in plantsFiles folder
-        if boxCount == 0 or len(glob(f"{processDir}/plantsFiles/*")) != boxCount or len(glob(f"{processDir}/plantsFiles/*")) == 0 or overwrite:
+        if len(glob(f"{processDir}/plantsFiles/*")) != boxCount or len(glob(f"{processDir}/plantsFiles/*")) == 0 or overwrite:
             # Set the fligand variable to the dir + ligandName + .mol2
             fligand = f"{processDir}/ligand.mol2"
-            # Create a lock for multithreading
-            lock = Lock()
-            # Start the lock with statement
-            with lock:
-                # Create the PLANTS inputs from the boxes
-                ocplants.generate_plants_files_database(processDir, preparedReceptorMol2, fligand, spacing, boxPath = f"{processDir}/boxes")
+            # Create the PLANTS inputs from the boxes
+            ocplants.generate_plants_files_database(processDir, preparedReceptorMol2, fligand, spacing, boxPath = f"{processDir}/boxes")
         else:
             ocprint.print_info(f"The protein '{processDir}' already has its PLANTS file generated, skipping its execution.")
 
         # If overwrite mode is on or there not any conf file in the sminaFiles folder
         if len(glob(f"{processDir}/sminaFiles/*.conf")) == 0 or overwrite:
-            # Create a lock for multithreading
-            lock = Lock()
-            # Start the lock with statement
-            with lock:
-                # Create the smina inputs
-                ocsmina.gen_smina_conf(f"{processDir}/boxes/box0.pdb", f"{processDir}/sminaFiles/conf_smina.conf", preparedReceptorPdbqt)
+            # Create the smina inputs
+            ocsmina.gen_smina_conf(f"{processDir}/boxes/box0.pdb", f"{processDir}/sminaFiles/conf_smina.conf", preparedReceptorPdbqt)
         else:
             ocprint.print_info(f"The protein '{processDir}' already has its smina file generated, skipping its execution.")
 

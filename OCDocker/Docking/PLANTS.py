@@ -319,6 +319,8 @@ class PLANTS:
             # Ignore errors if directory already exists or permission denied
             pass
         output = ocrun.run(self.plants_cmd, logFile=self.plants_log, cwd=run_dir)
+        if isinstance(output, tuple):
+            output = output[0]
 
         # Check if there is a PLANTS-*.pid file
         for pidFile in glob(f"{run_dir}/PLANTS-*.pid"):
@@ -993,14 +995,12 @@ def get_binding_site(boxFile: str, spacing: float = 2.9) -> Union[Tuple[Tuple[fl
             # For each line in the file
             for line in box_file:
                 # If it starts with REMARK
-                if line.startswith("REMARK"):
+                if line.startswith("REMARK") and center['x'] is None:
                     # Slice the line in right positions
                     center['x'] = float(line[30:38])
                     center['y'] = float(line[38:46])
                     center['z'] = float(line[46:54])
-                    # Break the loop (optimization)
-                    break
-                # If it starts with ATOM
+                # If it starts with HEADER
                 elif line.startswith("HEADER"):
                     # Slice the line in right positions
                     positions['min_x'] = float(line[30:38])

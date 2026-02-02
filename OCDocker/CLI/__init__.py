@@ -77,6 +77,10 @@ def _preparse_global_args(argv: list[str]) -> argparse.Namespace:
             ns.multiprocess = True
             i += 1
             continue
+        if tok == "--no-multiprocess":
+            ns.multiprocess = False
+            i += 1
+            continue
         if tok in ("-u", "--update-databases"):
             ns.update = True
             i += 1
@@ -197,9 +201,16 @@ def build_parser() -> argparse.ArgumentParser:
     # Global options (mirrors OCDocker.Initialise)
     parser.add_argument(
         "--multiprocess",
+        dest="multiprocess",
         action="store_true",
         default=True,
         help="Enable multiprocessing for supported tasks. Allows parallel execution when possible. Default: enabled"
+    )
+    parser.add_argument(
+        "--no-multiprocess",
+        dest="multiprocess",
+        action="store_false",
+        help="Disable multiprocessing for supported tasks. Useful for stability/debugging."
     )
     parser.add_argument(
         "-u",
@@ -246,7 +257,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     # Parent parser to allow repeating global options after subcommand
     parent = argparse.ArgumentParser(add_help=False)
-    parent.add_argument("--multiprocess", action="store_true", default=True, help="Enable multiprocessing for supported tasks")
+    parent.add_argument("--multiprocess", dest="multiprocess", action="store_true", default=True, help="Enable multiprocessing for supported tasks")
+    parent.add_argument("--no-multiprocess", dest="multiprocess", action="store_false", help="Disable multiprocessing for supported tasks")
     parent.add_argument("-u", "--update-databases", dest="update", action="store_true", default=False, help="Update databases on startup")
     parent.add_argument("--conf", dest="config_file", type=str, help="Path to OCDocker.cfg configuration file")
     parent.add_argument("--output-level", dest="output_level", type=int, default=1, help="Logging verbosity level (0-5)")
@@ -552,6 +564,7 @@ def build_parser() -> argparse.ArgumentParser:
         "script",
         description=(
             "Run a Python script with OCDocker libraries pre-loaded.\n\n"
+            "Security note: This executes the script directly in-process. Only run scripts you trust.\n\n"
             "This command bootstraps the OCDocker environment, loads all OCDocker modules,\n"
             "and executes your script file. All OCDocker classes and functions are available\n"
             "in the script's namespace, just like in the interactive console.\n\n"

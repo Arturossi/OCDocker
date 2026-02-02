@@ -234,7 +234,11 @@ def clear_past_logs() -> None:
     logdir = _default_logdir()
     for past in [d for d in glob(f"{logdir}/*") if os.path.isdir(d)]:
         if past.endswith("past"):
-            shutil.rmtree(past)
+            try:
+                shutil.rmtree(past)
+            except (OSError, PermissionError):
+                # Ignore errors when cleaning old logs
+                pass
 
 
 def backup_log(logname: str) -> None:
@@ -253,4 +257,8 @@ def backup_log(logname: str) -> None:
         if not os.path.isdir(dst_dir):
             ocff.safe_create_dir(dst_dir)
         dst = os.path.join(dst_dir, f"{logname}_{time.strftime('%d%m%Y-%H%M%S')}.log")
-        os.rename(src, dst)
+        try:
+            os.rename(src, dst)
+        except (OSError, PermissionError):
+            # Ignore errors when archiving logs
+            pass

@@ -17,6 +17,7 @@ from OCDocker.Initialise import *
 import multiprocessing
 import os
 import shutil
+import tempfile
 import argparse
 import inspect
 import atexit
@@ -177,6 +178,10 @@ def get_argument_parsing() -> argparse.ArgumentParser:
                         action="store_true",
                         default=True,
                         help="Defines whether python multiprocessing should be enabled for compatible lenghty tasks")
+    parser.add_argument("--no-multiprocess",
+                        dest="multiprocess",
+                        action="store_false",
+                        help="Disable multiprocessing for compatible tasks (useful for stability/debugging)")
 
     parser.add_argument("-u", "--update-databases",
                         dest="update",
@@ -1461,17 +1466,29 @@ def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
     oddt_models_dir = config.oddt_models_dir if config.oddt_models_dir else f"{os.path.abspath(os.path.join(os.path.dirname(ocerror.__file__), os.pardir))}/ODDT_models"
     for d in (logdir, oddt_models_dir, config.paths.pca_path):
         if d and not os.path.isdir(d):
-            os.mkdir(d)
+            try:
+                os.makedirs(d, exist_ok=True)
+            except (OSError, PermissionError):
+                # Ignore directory creation errors (non-critical)
+                pass
 
     # Reset tmp dir
     tmpDir = f"{ocdocker_path}/tmp"
+    tmp_ok = False
     try:
         if os.path.isdir(tmpDir):
             shutil.rmtree(tmpDir)
-        os.mkdir(tmpDir)
+        os.makedirs(tmpDir, exist_ok=True)
+        tmp_ok = os.path.isdir(tmpDir)
     except (OSError, PermissionError, shutil.Error):
-        # Ignore errors during tmp directory cleanup/creation (non-critical)
-        pass
+        tmp_ok = False
+
+    if not tmp_ok:
+        # Fall back to a system temp directory if the project tmp cannot be created
+        try:
+            tmpDir = tempfile.mkdtemp(prefix="ocdocker_")
+        except Exception:
+            tmpDir = tempfile.gettempdir()
 
     # CPU cores (stored in config only, no global)
     if config.multiprocess:

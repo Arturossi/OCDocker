@@ -53,6 +53,11 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 def load_object(file_name : str, serialization_method : str = "auto") -> Any:
     ''' Load an object from a file using pickle, joblib, or torch.
 
+    Security
+    --------
+    Only load serialized files from trusted sources. Pickle/joblib deserialization
+    can execute arbitrary code if the file is malicious or untrusted.
+
     Parameters
     ----------
     file_name : str

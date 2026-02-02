@@ -176,8 +176,8 @@ def test_get_binding_site(ocplants):
     assert not isinstance(result, int), f"get_binding_site returned error code: {result}"
     # Unpack the tuple
     center, radius = result
-    assert center == (36.552, 39.252, 51.291)
-    assert round(radius,3) == 70.274
+    assert center == (32.698, 38.446, 58.497)
+    assert round(radius,3) == 27.011
 
 
 @pytest.mark.order(4)

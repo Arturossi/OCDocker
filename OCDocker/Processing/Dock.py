@@ -16,8 +16,8 @@ import gc
 import os
 import shutil
 
-from multiprocessing import Pool
-from threading import Lock
+import multiprocessing as mp
+from multiprocessing import Pool, Lock
 from tqdm import tqdm
 from typing import List, Tuple, Union
 
@@ -58,6 +58,12 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Functions
 ###############################################################################
 ## Private ##
+def __normalize_run_result(result: Union[int, Tuple[int, str]]) -> Tuple[int, str]:
+    '''Normalize subprocess return values to (exit_code, stderr).'''
+    if isinstance(result, tuple):
+        return result[0], result[1]
+    return result, ""
+
 def __run_gnina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, receptorDescriptorPath: str, boxPath: str, ptn: str, archive: str, lock: Lock, overwrite: bool = False, digestFormat: str = "json") -> int:
     '''Runs gnina.
 
@@ -226,13 +232,19 @@ def __run_gnina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
 
                 # Check if gnina output exists
                 if overwrite or not os.path.isfile(gninaOutput) or not os.path.isfile(gninaLog):
-                    # Start the lock with statement
-                    with lock:
-                        # Run gnina
-                        gnina.run_gnina()
+                    # Run gnina
+                    run_result = gnina.run_gnina()
+                    exit_code, stderr = __normalize_run_result(run_result)
+                    if exit_code != ocerror.ErrorCode.OK:
+                        errMsg = f"Gnina failed for '{ptn}' run '{runNumber}'."
+                        if stderr:
+                            errMsg += f" Stderr: {stderr}"
+                        config = get_config()
+                        ocprint.print_error_log(errMsg, f"{config.logdir}/{archive}_gnina_run_report_ERROR.log")
+                        return exit_code
 
-                        # Append to the digest the results
-                        _ = ocgnina.generate_digest(f"{ligandDir}/dockingDigest.json", gnina.gninaLog, overwrite = overwrite, digestFormat = digestFormat)
+                    # Append to the digest the results
+                    _ = ocgnina.generate_digest(f"{ligandDir}/dockingDigest.json", gnina.gninaLog, overwrite = overwrite, digestFormat = digestFormat)
                 else:
                     errMsg = f"The gnina output for '{ptn}' run '{runNumber}' is already generated and you can check it at the '{runPath}/gnina_{runNumber}.log' path. Gnina execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true"
 
@@ -423,13 +435,19 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
 
                 # Check if vina output exists
                 if overwrite or not os.path.isfile(vinaOutput) or not os.path.isfile(vinaLog):
-                    # Start the lock with statement
-                    with lock:
-                        # Run vina
-                        vina.run_vina(overwrite=overwrite)
+                    # Run vina
+                    run_result = vina.run_vina(overwrite=overwrite)
+                    exit_code, stderr = __normalize_run_result(run_result)
+                    if exit_code != ocerror.ErrorCode.OK:
+                        errMsg = f"Vina failed for '{ptn}' run '{runNumber}'."
+                        if stderr:
+                            errMsg += f" Stderr: {stderr}"
+                        config = get_config()
+                        ocprint.print_error_log(errMsg, f"{config.logdir}/{archive}_vina_run_report_ERROR.log")
+                        return exit_code
 
-                        # Append to the digest the results
-                        _ = ocvina.generate_digest(f"{ligandDir}/dockingDigest.json", vina.vinaLog, overwrite = overwrite, digestFormat = digestFormat)
+                    # Append to the digest the results
+                    _ = ocvina.generate_digest(f"{ligandDir}/dockingDigest.json", vina.vinaLog, overwrite = overwrite, digestFormat = digestFormat)
                 else:
                     errMsg = f"The vina output for '{ptn}' run '{runNumber}' is already generated and you can check it at the '{runPath}/vina_{runNumber}.log' path. Vina execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true"
 
@@ -600,13 +618,19 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
                     ocprint.print_error_log(errMsg, f"{config.logdir}/{archive}_smina_run_report_ERROR.log")
                     return ocerror.Error.receptor_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
 
-            # Start the lock with statement
-            with lock:
-                # Run smina (no need to recheck for overwrite or output existance because it is already done some lines ago)
-                smina.run_smina(overwrite=overwrite)
+            # Run smina (no need to recheck for overwrite or output existance because it is already done some lines ago)
+            run_result = smina.run_smina(overwrite=overwrite)
+            exit_code, stderr = __normalize_run_result(run_result)
+            if exit_code != ocerror.ErrorCode.OK:
+                errMsg = f"Smina failed for '{ptn}'."
+                if stderr:
+                    errMsg += f" Stderr: {stderr}"
+                config = get_config()
+                ocprint.print_error_log(errMsg, f"{config.logdir}/{archive}_smina_run_report_ERROR.log")
+                return exit_code
 
-                # Append to the digest the results
-                _ = ocsmina.generate_digest(f"{ligandDir}/dockingDigest.json", smina.sminaLog, overwrite = overwrite, digestFormat = digestFormat)
+            # Append to the digest the results
+            _ = ocsmina.generate_digest(f"{ligandDir}/dockingDigest.json", smina.sminaLog, overwrite = overwrite, digestFormat = digestFormat)
         else:
             errMsg = f"Could not generate receptor or ligand object for the protein in dir '{ligandPath}'. Error found while trying to run the 'smina' docking software."
 
@@ -790,19 +814,25 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
                         return ocerror.Error.receptor_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
 
                 # Check if PLANTS output exists and its size is not 0
-                if overwrite or not os.path.isdir(plantsOutput) or not os.path.isfile(plantsRankingCsv) and not os.path.getsize(plantsRankingCsv) == 0:
+                if overwrite or not os.path.isdir(plantsOutput) or not os.path.isfile(plantsRankingCsv) or os.path.getsize(plantsRankingCsv) == 0:
                     # If there is already a PLANTS output (PLANTS do not run if the folder is already created. And knowing that PLANTS will ALWAYS run if this code is interpreted, just delete the folder if it exists and lets avoid headaches)
                     if os.path.isdir(plantsOutput):
                         # Remove the folder and its contets
                         shutil.rmtree(plantsOutput)
 
-                    # Start the lock with statement
-                    with lock:
-                        # Run PLANTS
-                        plants.run_plants(overwrite=overwrite)
+                    # Run PLANTS
+                    run_result = plants.run_plants(overwrite=overwrite)
+                    exit_code, stderr = __normalize_run_result(run_result)
+                    if exit_code != ocerror.ErrorCode.OK:
+                        errMsg = f"PLANTS failed for '{ptn}' run '{runNumber}'."
+                        if stderr:
+                            errMsg += f" Stderr: {stderr}"
+                        config = get_config()
+                        ocprint.print_error_log(errMsg, f"{config.logdir}/{archive}_plants_run_report_ERROR.log")
+                        return exit_code
 
-                        # Append to the digest the results
-                        _ = ocplants.generate_digest(f"{ligandDir}/dockingDigest.json", plants.plantsLog, overwrite = overwrite, digestFormat = digestFormat)
+                    # Append to the digest the results
+                    _ = ocplants.generate_digest(f"{ligandDir}/dockingDigest.json", plants.plantsLog, overwrite = overwrite, digestFormat = digestFormat)
                 else:
                     errMsg = f"The PLANTS output for '{ptn}' run '{runNumber}' is already generated and you can check it at the '*/run/plants_<runNumber>.log' path. PLANTS execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true."
 
@@ -877,6 +907,12 @@ def __core_run_dock(path: str, ligandDir: str, archive: str, dockingAlgorithm: s
 
         # Get the box path TODO: add support to multiple boxes
         boxPath = f"{ligandDir}/boxes/box0.pdb"
+        if not os.path.isfile(boxPath):
+            errMsg = f"No box file found at '{boxPath}'. Skipping docking for ligand '{ligandDir}'."
+            config = get_config()
+            ocprint.print_warning_log(errMsg, f"{config.logdir}/{archive}_{dockingAlgorithm}_run_report_WARNING.log")
+            ocprint.print_warning(errMsg)
+            return ocerror.Error.skip() # type: ignore
 
         # Initialise an return state 
         returnState = 0
@@ -941,11 +977,8 @@ def __thread_run_dock_parallel(arguments: list) -> int:
 
     # Redirect all prints to tqdm.write
     with ocbasetools.redirect_to_tqdm():
-        # Initialize a single lock for this worker
-        lock = Lock()
-
         # Call the core dock function passing the arguments correctly
-        returnState = __core_run_dock(arguments[0], arguments[1], arguments[2], arguments[3], lock, arguments[4],  arguments[5])
+        returnState = __core_run_dock(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4], arguments[5],  arguments[6])
 
     return returnState
 
@@ -988,8 +1021,15 @@ def __run_dock_parallel(complexList: List[Tuple[str, List[str]]], archive: str, 
     error_codes = []
     
     try:
-        # Create a Thread pool with the maximum available_cores
+        # Create a shared lock for all workers to guard shared outputs
         config = get_config()
+        shared_lock = mp.Lock()
+        # Inject lock into arguments
+        arguments = [
+            (arg[0], arg[1], arg[2], arg[3], shared_lock, arg[4], arg[5])
+            for arg in arguments
+        ]
+        # Create a Thread pool with the maximum available_cores
         with Pool(config.available_cores) as p:
             # Perform the multi process and collect return codes
             for return_code in tqdm(p.imap_unordered(__thread_run_dock_parallel, arguments), total = len(arguments), desc = desc):
