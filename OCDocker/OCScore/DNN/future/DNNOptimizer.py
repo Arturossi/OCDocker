@@ -316,7 +316,6 @@ class DNNOptimizer:
         self.y_reg_test = np.asarray(y_test).reshape(-1, 1)
 
         # Determine input size
-        if isinstance(self.X_reg_train, list):
         self.input_size = self._infer_input_size(self.X_reg_train)
 
         # Prepare ranking data (train/val)
@@ -1018,23 +1017,23 @@ class DNNOptimizer:
 
             # Validation
             metrics = {}
-        if val_loader is not None:
+            if val_loader is not None:
                 metrics = self._evaluate_ranking(model, val_loader)
-            metric_key = self.config["optimization"].get("metric_for_best", "AUC")
-            metric_value = metrics.get(metric_key, 0.0)
+                metric_key = self.config["optimization"].get("metric_for_best", "AUC")
+                metric_value = metrics.get(metric_key, 0.0)
 
-            if metric_value > best_metric:
-                best_metric = metric_value
-                best_state = copy.deepcopy(model.state_dict())
-                patience_counter = 0
-            else:
-                patience_counter += 1
+                if metric_value > best_metric:
+                    best_metric = metric_value
+                    best_state = copy.deepcopy(model.state_dict())
+                    patience_counter = 0
+                else:
+                    patience_counter += 1
 
-            if self.verbose:
-                ocprint.printv(f"[Stage2] Epoch {epoch+1}/{stage_cfg['epochs']} loss={running_loss:.4f} {metric_key}={metric_value:.4f}")
+                if self.verbose:
+                    ocprint.printv(f"[Stage2] Epoch {epoch+1}/{stage_cfg['epochs']} loss={running_loss:.4f} {metric_key}={metric_value:.4f}")
 
-            if patience_counter >= patience:
-                break
+                if patience_counter >= patience:
+                    break
 
         if best_state is not None:
             model.load_state_dict(best_state)

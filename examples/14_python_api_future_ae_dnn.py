@@ -69,6 +69,10 @@ def main() -> None:
     # -----------------------
     # 3) Train future DNN on embeddings
     # -----------------------
+    # Create a simple ranking dataset from the regression targets.
+    # NOTE: In real projects, use a proper ranking dataset instead of reusing X_train.
+    y_rank = (y_train > np.median(y_train)).astype(np.int64)
+
     dnn_config = {
         "model": {
             "shared_sizes": [16],
@@ -83,7 +87,20 @@ def main() -> None:
             "noise_type": "none",
             "lambda_recon": 0.0  # reconstruction disabled when using embeddings
         },
-        "stage2": {"enabled": False}
+        "stage2": {
+            "enabled": True,
+            "epochs": 1,
+            "batch_size_per_target": None,
+            "split_target_batches": False,
+            "lambda_rank": 1.0,
+            "lambda_cls": 1.0,
+            "lambda_con": 0.0,
+            "temperature": 0.1
+        },
+        "data": {
+            "ranking_validation_fraction": 0.2,
+            "ranking_split_by_target": False
+        }
     }
 
     dnn = DNNOptimizer.from_embeddings(
@@ -91,6 +108,8 @@ def main() -> None:
         y_train,
         Z_test,
         y_test,
+        X_embeddings_validation=Z_train,
+        y_validation=y_rank,
         storage="sqlite:///:memory:",
         random_seed=42,
         use_gpu=False,
@@ -98,7 +117,7 @@ def main() -> None:
         future_config=dnn_config
     )
 
-    study = dnn.optimize(n_trials=1, n_jobs=1)
+    study = dnn.optimize(n_trials=25, n_jobs=1)
     print("DNN optimization completed. Best trial value:", study.best_trial.value)
 
 
