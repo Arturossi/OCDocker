@@ -16,8 +16,7 @@ import pandas as pd
 
 from sklearn.decomposition import PCA
 
-
-
+import OCDocker.Error as ocerror
 import OCDocker.OCScore.Utils.Data as ocscoredata
 import OCDocker.OCScore.Utils.IO as ocscoreio
 import OCDocker.Toolbox.Printing as ocprint
@@ -42,8 +41,11 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 
-# Methods
+# Functions
 ###############################################################################
+## Private ##
+
+## Public ##
 
 
 def run_pca(

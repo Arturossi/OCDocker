@@ -268,48 +268,6 @@ class OCDockerConfig:
         if not cfg:
             raise ValueError(f"Configuration file '{config_file}' was parsed but returned an empty dictionary")
         
-        # Helper to convert string to bool
-        def str_to_bool(val: str) -> bool:
-            '''Convert a string value to a boolean.
-            
-            Parameters
-            ----------
-            val : str
-                The string value to convert. Accepts '1', 'true', 'yes', 'y', 'on' (case-insensitive).
-            
-            Returns
-            -------
-            bool
-                True if the value is a recognized truthy string, False otherwise.
-            '''
-
-            return str(val).lower() in ('1', 'true', 'yes', 'y', 'on')
-        
-        # Helper to convert exhaustiveness (can be int or str)
-        def get_exhaustiveness(key: str, default: Any) -> Any:
-            '''Get exhaustiveness value from configuration, handling both int and str types.
-            
-            Parameters
-            ----------
-            key : str
-                The configuration key to retrieve.
-            default : Any
-                The default value to return if the key is not found or conversion fails.
-            
-            Returns
-            -------
-            Any
-                The exhaustiveness value as int if convertible, otherwise as str. Returns default if key not found.
-            '''
-            
-            val = cfg.get(key, default)
-            if isinstance(val, int):
-                return val
-            try:
-                return int(val)
-            except (ValueError, TypeError):
-                return str(val)
-        
         # Build configuration
         config = cls(
             # Vina
@@ -317,7 +275,7 @@ class OCDockerConfig:
                 executable=cfg.get('vina', 'vina'),
                 split_executable=cfg.get('vina_split', 'vina_split'),
                 energy_range=cfg.get('vina_energy_range', '10'),
-                exhaustiveness=get_exhaustiveness('vina_exhaustiveness', 5),
+                exhaustiveness=_get_exhaustiveness(cfg, 'vina_exhaustiveness', 5),
                 num_modes=cfg.get('vina_num_modes', '3'),
                 scoring=cfg.get('vina_scoring', 'vina'),
                 scoring_functions=cfg.get('vina_scoring_functions', ['vina']),
@@ -500,6 +458,32 @@ class OCDockerConfig:
 # Functions
 ###############################################################################
 ## Private ##
+
+def _get_exhaustiveness(cfg: Dict[str, Any], key: str, default: Any) -> Any:
+    '''Get exhaustiveness value from configuration, handling both int and str types.
+    
+    Parameters
+    ----------
+    cfg : Dict[str, Any]
+        Parsed configuration dictionary.
+    key : str
+        The configuration key to retrieve.
+    default : Any
+        The default value to return if the key is not found or conversion fails.
+    
+    Returns
+    -------
+    Any
+        The exhaustiveness value as int if convertible, otherwise as str. Returns default if key not found.
+    '''
+    
+    val = cfg.get(key, default)
+    if isinstance(val, int):
+        return val
+    try:
+        return int(val)
+    except (ValueError, TypeError):
+        return str(val)
 
 # Singleton Pattern
 _config_lock = threading.Lock()

@@ -15,9 +15,8 @@ from OCDocker.DB.Models.Ligands import Ligands
 from sqlalchemy import Column, ForeignKey, Integer
 from sqlalchemy.orm import relationship
 
-from OCDocker.DB.Models.Base import base
-
 import OCDocker.Ligand as ocl
+from OCDocker.DB.Models.Base import base
 
 # License
 ###############################################################################

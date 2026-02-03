@@ -23,8 +23,6 @@ import numpy as np
 from glob import glob
 from typing import Dict, List, Tuple, Union
 
-# No config needed - Future docking modules
-
 import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
 import OCDocker.Toolbox.Conversion as occonversion

@@ -11,36 +11,30 @@ from OCDocker.OCScore.DNN.future.DNNOptimizer import DNNOptimizer
 
 # Imports
 ###############################################################################
-
 from __future__ import annotations
 
 import copy
+import optuna
 import random
-from typing import Any, Dict, List, Optional, Union
+import torch
 
 import numpy as np
 import pandas as pd
-
-import torch
 import torch.nn as nn
 import torch.optim as optim
 
-import optuna
 from optuna.samplers import TPESampler
-
 from sklearn.model_selection import GroupShuffleSplit, train_test_split
-
 from torch.utils.data import DataLoader
+from typing import Any, Dict, List, Optional, Union
 
 import OCDocker.Toolbox.Printing as ocprint
 
 from OCDocker.OCScore.DNN.future.datasets import EnergyDataset, TargetRankingDataset, TargetBatchSampler
-from OCDocker.OCScore.DNN.future.losses import (
-    UncertaintyWeighting,
-    focal_binary_loss,
-    lambda_rank_ndcg_loss,
-    supervised_contrastive_loss
-)
+from OCDocker.OCScore.DNN.future.losses import UncertaintyWeighting
+from OCDocker.OCScore.DNN.future.losses import focal_binary_loss
+from OCDocker.OCScore.DNN.future.losses import lambda_rank_ndcg_loss
+from OCDocker.OCScore.DNN.future.losses import supervised_contrastive_loss
 from OCDocker.OCScore.DNN.future.metrics import compute_classification_metrics
 from OCDocker.OCScore.DNN.future.models import MultiTaskModel, parse_encoder_params
 
@@ -63,8 +57,6 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 # Classes
 ###############################################################################
-
-
 class DNNOptimizer:
     """Future DNN optimizer with multi-stage, multi-task training.
 
@@ -324,75 +316,268 @@ class DNNOptimizer:
 
         self._prepare_ranking_data(X_validation, y_validation, future_config)
 
-
-    @classmethod
-    def from_embeddings(
-            cls,
-            X_embeddings_train: Union[np.ndarray, pd.DataFrame],
-            y_train: Union[np.ndarray, pd.Series],
-            X_embeddings_test: Union[np.ndarray, pd.DataFrame],
-            y_test: Union[np.ndarray, pd.Series],
-            X_embeddings_validation: Union[np.ndarray, pd.DataFrame, None] = None,
-            y_validation: Union[np.ndarray, pd.Series, None] = None,
-            **kwargs: Any
-        ) -> "DNNOptimizer":
-        '''Construct a DNNOptimizer from precomputed embeddings.
+    def _apply_noise(self, x: torch.Tensor, stage_cfg: dict) -> torch.Tensor:
+        '''Apply input noise during stage1 training.
 
         Parameters
         ----------
-        X_embeddings_train : np.ndarray | pd.DataFrame
-            Training embeddings (output of a dimensionality reducer).
-        y_train : np.ndarray | pd.Series
-            Training regression targets.
-        X_embeddings_test : np.ndarray | pd.DataFrame
-            Test embeddings.
-        y_test : np.ndarray | pd.Series
-            Test regression targets.
-        X_embeddings_validation : np.ndarray | pd.DataFrame | None, optional
-            Optional ranking/classification embeddings, by default None.
-        y_validation : np.ndarray | pd.Series | None, optional
-            Optional ranking/classification labels, by default None.
-        **kwargs : Any
-            Additional keyword arguments forwarded to DNNOptimizer.
+        x : torch.Tensor
+            Input batch tensor.
+        stage_cfg : dict
+            Stage configuration.
 
         Returns
         -------
-        DNNOptimizer
-            Configured optimizer instance.
-
-        Notes
-        -----
-        When using embeddings, set stage1.lambda_recon=0 and noise_type="none"
-        to avoid reconstructing already-reduced features.
+        torch.Tensor
+            Noised tensor.
         '''
 
-        return cls(
-            X_train=X_embeddings_train,
-            y_train=y_train,
-            X_test=X_embeddings_test,
-            y_test=y_test,
-            X_validation=X_embeddings_validation,
-            y_validation=y_validation,
-            **kwargs
+        noise_type = stage_cfg.get("noise_type", "mask")
+        if noise_type == "none":
+            return x
+
+        if noise_type == "mask":
+            mask_prob = float(stage_cfg.get("mask_prob", 0.1))
+            if mask_prob <= 0.0:
+                return x
+            # Bernoulli mask zeros out a fraction of features.
+            mask = torch.bernoulli(torch.full_like(x, 1.0 - mask_prob))
+            return x * mask
+
+        if noise_type == "gaussian":
+            std = float(stage_cfg.get("gaussian_std", 0.01))
+            if std <= 0.0:
+                return x
+            # Additive Gaussian noise for denoising pretraining.
+            noise = torch.randn_like(x) * std
+            return x + noise
+
+        return x
+
+    def _build_model(self, model_config: dict) -> nn.Module:
+        '''Build the multi-task model for the future pipeline.
+
+        Parameters
+        ----------
+        model_config : dict
+            Model configuration dictionary.
+
+        Returns
+        -------
+        nn.Module
+            Initialized model.
+        '''
+
+        mask = self.mask
+        model_cfg = copy.deepcopy(model_config)
+
+        recon_enabled = self.config["stage1"].get("lambda_recon", 0.0) > 0 or self.config["stage2"].get("lambda_recon", 0.0) > 0
+        if recon_enabled and model_cfg.get("decoder_sizes") is None:
+            # Mirror encoder sizes to build a light decoder when reconstruction is enabled.
+            if isinstance(self.encoder_params, dict):
+                layer_sizes, _ = parse_encoder_params(self.encoder_params)
+                decoder_sizes = list(reversed(layer_sizes[:-1])) + [int(self.input_size)]
+            else:
+                decoder_sizes = list(reversed(model_cfg["shared_sizes"][:-1])) + [int(self.input_size)]
+            model_cfg["decoder_sizes"] = decoder_sizes
+
+        model = MultiTaskModel(
+            input_size=self.input_size,
+            encoder_params=self.encoder_params,
+            shared_sizes=model_cfg["shared_sizes"],
+            shared_activation=model_cfg["shared_activation"],
+            decoder_sizes=model_cfg.get("decoder_sizes"),
+            head_sizes=model_cfg["head_sizes"],
+            embedding_dim=model_cfg.get("embedding_dim"),
+            dropout=model_cfg.get("dropout", 0.0),
+            batch_norm=model_cfg.get("batch_norm", True),
+            mask=mask
         )
 
+        return model.to(self.device)
 
-    def set_random_seed(self) -> None:
-        '''Set the random seed for reproducibility.'''
+    def _compute_energy_loss(self, preds: torch.Tensor, targets: torch.Tensor, stage_cfg: dict) -> torch.Tensor:
+        '''Compute energy regression loss.
 
-        np.random.seed(self.random_seed)
-        random.seed(self.random_seed)
-        torch.manual_seed(self.random_seed)
+        Parameters
+        ----------
+        preds : torch.Tensor
+            Predicted energies.
+        targets : torch.Tensor
+            Target energies.
+        stage_cfg : dict
+            Stage configuration containing loss type.
 
-        if self.use_gpu and torch.cuda.is_available():
-            self.device = torch.device('cuda')
-            torch.cuda.manual_seed_all(self.random_seed)
+        Returns
+        -------
+        torch.Tensor
+            Loss value.
+        '''
+
+        if stage_cfg.get("energy_loss", "huber") == "mse":
+            return nn.MSELoss()(preds, targets)
+        return nn.HuberLoss()(preds, targets)
+
+    def _evaluate_energy(self, model: nn.Module) -> Dict[str, float]:
+        '''Evaluate energy regression performance on validation split.
+
+        Parameters
+        ----------
+        model : nn.Module
+            Model to evaluate.
+
+        Returns
+        -------
+        Dict[str, float]
+            Energy regression metrics.
+        '''
+
+        model.eval()
+
+        loader = self._make_reg_loader("val")
+        preds = []
+        targets = []
+
+        with torch.no_grad():
+            for batch in loader:
+                features, energies = batch
+                features = features.to(self.device)
+                outputs = model(features)
+                preds.append(outputs["energy"].detach().cpu().numpy())
+                targets.append(energies.detach().cpu().numpy())
+
+        if not preds:
+            return {"energy_rmse": float("inf"), "energy_mae": float("inf")}
+
+        y_pred = np.concatenate(preds).reshape(-1)
+        y_true = np.concatenate(targets).reshape(-1)
+
+        rmse = float(np.sqrt(np.mean((y_pred - y_true) ** 2)))
+        mae = float(np.mean(np.abs(y_pred - y_true)))
+
+        return {"energy_rmse": rmse, "energy_mae": mae}
+
+    def _evaluate_ranking(self, model: nn.Module, loader: DataLoader) -> Dict[str, float]:
+        '''Evaluate ranking/classification metrics.
+
+        Parameters
+        ----------
+        model : nn.Module
+            Model to evaluate.
+        loader : DataLoader
+            DataLoader for ranking/classification data.
+
+        Returns
+        -------
+        Dict[str, float]
+            Metrics dictionary.
+        '''
+
+        model.eval()
+
+        all_scores = []
+        all_labels = []
+        all_targets = []
+
+        with torch.no_grad():
+            for batch in loader:
+                features, labels, targets = batch
+                features = features.to(self.device)
+                labels = labels.to(self.device)
+                outputs = model(features)
+                scores = outputs["activity"].view(-1)
+
+                all_scores.append(scores.detach().cpu().numpy())
+                all_labels.append(labels.detach().cpu().numpy())
+                all_targets.append(np.asarray(targets))
+
+        y_score = np.concatenate(all_scores) if all_scores else np.array([])
+        y_true = np.concatenate(all_labels) if all_labels else np.array([])
+        target_ids = np.concatenate(all_targets) if all_targets else np.array([])
+
+        return compute_classification_metrics(y_true, y_score, target_ids, self.config["stage2"]["rank_k_fractions"])
+
+    def _infer_input_size(self, data: np.ndarray) -> int:
+        '''Infer input feature dimension from data.
+
+        Parameters
+        ----------
+        data : np.ndarray
+            Feature matrix.
+
+        Returns
+        -------
+        int
+            Input feature dimension.
+        '''
+
+        return int(data.shape[1])
+
+    def _make_ranking_loaders(self) -> tuple[DataLoader, Optional[DataLoader]]:
+        '''Create DataLoaders for ranking/classification dataset.
+
+        Returns
+        -------
+        tuple[DataLoader, Optional[DataLoader]]
+            Training and validation loaders.
+        '''
+
+        if self.rank_train is None:
+            raise ValueError("Ranking training data not provided")
+
+        train_dataset = TargetRankingDataset(
+            self.rank_train["X"],
+            self.rank_train["y"],
+            self.rank_train["targets"],
+            mask=self.mask.cpu().numpy() if self.mask is not None else None
+        )
+
+        sampler = TargetBatchSampler(
+            train_dataset.target_to_indices,
+            batch_size=self.config["stage2"].get("batch_size_per_target"),
+            shuffle=True,
+            split_target_batches=self.config["stage2"].get("split_target_batches", False)
+        )
+
+        train_loader = DataLoader(dataset=train_dataset, batch_sampler=sampler)
+
+        val_loader = None
+        if self.rank_val is not None:
+            val_dataset = TargetRankingDataset(
+                self.rank_val["X"],
+                self.rank_val["y"],
+                self.rank_val["targets"],
+                mask=self.mask.cpu().numpy() if self.mask is not None else None
+            )
+            val_sampler = TargetBatchSampler(val_dataset.target_to_indices, batch_size=None, shuffle=False)
+            val_loader = DataLoader(dataset=val_dataset, batch_sampler=val_sampler)
+
+        return train_loader, val_loader
+
+    def _make_reg_loader(self, split: str = "train") -> DataLoader:
+        '''Create DataLoader for primary regression dataset.
+
+        Parameters
+        ----------
+        split : str, optional
+            Split name ("train" or "val"), by default "train".
+
+        Returns
+        -------
+        DataLoader
+            DataLoader for regression data.
+        '''
+
+        if split == "train":
+            dataset = EnergyDataset(self.X_reg_train, self.y_reg_train, mask=self.mask.cpu().numpy() if self.mask is not None else None)
+            batch_size = self.config["stage1"]["batch_size"]
+            shuffle = True
         else:
-            self.device = torch.device('cpu')
+            dataset = EnergyDataset(self.X_reg_test, self.y_reg_test, mask=self.mask.cpu().numpy() if self.mask is not None else None)
+            batch_size = self.config["stage1"]["batch_size"]
+            shuffle = False
 
-        torch.backends.cudnn.benchmark = False
-        torch.backends.cudnn.deterministic = True
-
+        return DataLoader(dataset=dataset, batch_size=batch_size, shuffle=shuffle)
 
     def _merge_config(self, future_config: Optional[dict]) -> dict:
         '''Merge default configuration with overrides.
@@ -483,43 +668,6 @@ class DNNOptimizer:
 
         return merged
 
-
-    def _to_numpy(self, data: Union[np.ndarray, pd.DataFrame]) -> np.ndarray:
-        '''Convert input data to numpy array.
-
-        Parameters
-        ----------
-        data : np.ndarray | pd.DataFrame
-            Input data.
-
-        Returns
-        -------
-        np.ndarray
-            Numpy array representation.
-        '''
-
-        if isinstance(data, pd.DataFrame):
-            return data.values
-        return np.asarray(data)
-
-
-    def _infer_input_size(self, data: np.ndarray) -> int:
-        '''Infer input feature dimension from data.
-
-        Parameters
-        ----------
-        data : np.ndarray
-            Feature matrix.
-
-        Returns
-        -------
-        int
-            Input feature dimension.
-        '''
-
-        return int(data.shape[1])
-
-
     def _prepare_ranking_data(
             self,
             X_validation: Union[np.ndarray, pd.DataFrame, None],
@@ -599,7 +747,6 @@ class DNNOptimizer:
             "targets": target_ids[idx_val]
         }
 
-
     def _select_rows(self, data: np.ndarray, idx: np.ndarray) -> np.ndarray:
         '''Select rows from an array by indices.
 
@@ -618,179 +765,23 @@ class DNNOptimizer:
 
         return data[idx]
 
-
-    def _build_model(self, model_config: dict) -> nn.Module:
-        '''Build the multi-task model for the future pipeline.
-
-        Parameters
-        ----------
-        model_config : dict
-            Model configuration dictionary.
-
-        Returns
-        -------
-        nn.Module
-            Initialized model.
-        '''
-
-        mask = self.mask
-        model_cfg = copy.deepcopy(model_config)
-
-        recon_enabled = self.config["stage1"].get("lambda_recon", 0.0) > 0 or self.config["stage2"].get("lambda_recon", 0.0) > 0
-        if recon_enabled and model_cfg.get("decoder_sizes") is None:
-            # Mirror encoder sizes to build a light decoder when reconstruction is enabled.
-            if isinstance(self.encoder_params, dict):
-                layer_sizes, _ = parse_encoder_params(self.encoder_params)
-                decoder_sizes = list(reversed(layer_sizes[:-1])) + [int(self.input_size)]
-            else:
-                decoder_sizes = list(reversed(model_cfg["shared_sizes"][:-1])) + [int(self.input_size)]
-            model_cfg["decoder_sizes"] = decoder_sizes
-
-        model = MultiTaskModel(
-            input_size=self.input_size,
-            encoder_params=self.encoder_params,
-            shared_sizes=model_cfg["shared_sizes"],
-            shared_activation=model_cfg["shared_activation"],
-            decoder_sizes=model_cfg.get("decoder_sizes"),
-            head_sizes=model_cfg["head_sizes"],
-            embedding_dim=model_cfg.get("embedding_dim"),
-            dropout=model_cfg.get("dropout", 0.0),
-            batch_norm=model_cfg.get("batch_norm", True),
-            mask=mask
-        )
-
-        return model.to(self.device)
-
-
-    def _apply_noise(self, x: torch.Tensor, stage_cfg: dict) -> torch.Tensor:
-        '''Apply input noise during stage1 training.
+    def _to_numpy(self, data: Union[np.ndarray, pd.DataFrame]) -> np.ndarray:
+        '''Convert input data to numpy array.
 
         Parameters
         ----------
-        x : torch.Tensor
-            Input batch tensor.
-        stage_cfg : dict
-            Stage configuration.
+        data : np.ndarray | pd.DataFrame
+            Input data.
 
         Returns
         -------
-        torch.Tensor
-            Noised tensor.
+        np.ndarray
+            Numpy array representation.
         '''
 
-        noise_type = stage_cfg.get("noise_type", "mask")
-        if noise_type == "none":
-            return x
-
-        if noise_type == "mask":
-            mask_prob = float(stage_cfg.get("mask_prob", 0.1))
-            if mask_prob <= 0.0:
-                return x
-            # Bernoulli mask zeros out a fraction of features.
-            mask = torch.bernoulli(torch.full_like(x, 1.0 - mask_prob))
-            return x * mask
-
-        if noise_type == "gaussian":
-            std = float(stage_cfg.get("gaussian_std", 0.01))
-            if std <= 0.0:
-                return x
-            # Additive Gaussian noise for denoising pretraining.
-            noise = torch.randn_like(x) * std
-            return x + noise
-
-        return x
-
-
-    def _make_reg_loader(self, split: str = "train") -> DataLoader:
-        '''Create DataLoader for primary regression dataset.
-
-        Parameters
-        ----------
-        split : str, optional
-            Split name ("train" or "val"), by default "train".
-
-        Returns
-        -------
-        DataLoader
-            DataLoader for regression data.
-        '''
-
-        if split == "train":
-            dataset = EnergyDataset(self.X_reg_train, self.y_reg_train, mask=self.mask.cpu().numpy() if self.mask is not None else None)
-            batch_size = self.config["stage1"]["batch_size"]
-            shuffle = True
-        else:
-            dataset = EnergyDataset(self.X_reg_test, self.y_reg_test, mask=self.mask.cpu().numpy() if self.mask is not None else None)
-            batch_size = self.config["stage1"]["batch_size"]
-            shuffle = False
-
-        return DataLoader(dataset=dataset, batch_size=batch_size, shuffle=shuffle)
-
-
-    def _make_ranking_loaders(self) -> tuple[DataLoader, Optional[DataLoader]]:
-        '''Create DataLoaders for ranking/classification dataset.
-
-        Returns
-        -------
-        tuple[DataLoader, Optional[DataLoader]]
-            Training and validation loaders.
-        '''
-
-        if self.rank_train is None:
-            raise ValueError("Ranking training data not provided")
-
-        train_dataset = TargetRankingDataset(
-            self.rank_train["X"],
-            self.rank_train["y"],
-            self.rank_train["targets"],
-            mask=self.mask.cpu().numpy() if self.mask is not None else None
-        )
-
-        sampler = TargetBatchSampler(
-            train_dataset.target_to_indices,
-            batch_size=self.config["stage2"].get("batch_size_per_target"),
-            shuffle=True,
-            split_target_batches=self.config["stage2"].get("split_target_batches", False)
-        )
-
-        train_loader = DataLoader(dataset=train_dataset, batch_sampler=sampler)
-
-        val_loader = None
-        if self.rank_val is not None:
-            val_dataset = TargetRankingDataset(
-                self.rank_val["X"],
-                self.rank_val["y"],
-                self.rank_val["targets"],
-                mask=self.mask.cpu().numpy() if self.mask is not None else None
-            )
-            val_sampler = TargetBatchSampler(val_dataset.target_to_indices, batch_size=None, shuffle=False)
-            val_loader = DataLoader(dataset=val_dataset, batch_sampler=val_sampler)
-
-        return train_loader, val_loader
-
-
-    def _compute_energy_loss(self, preds: torch.Tensor, targets: torch.Tensor, stage_cfg: dict) -> torch.Tensor:
-        '''Compute energy regression loss.
-
-        Parameters
-        ----------
-        preds : torch.Tensor
-            Predicted energies.
-        targets : torch.Tensor
-            Target energies.
-        stage_cfg : dict
-            Stage configuration containing loss type.
-
-        Returns
-        -------
-        torch.Tensor
-            Loss value.
-        '''
-
-        if stage_cfg.get("energy_loss", "huber") == "mse":
-            return nn.MSELoss()(preds, targets)
-        return nn.HuberLoss()(preds, targets)
-
+        if isinstance(data, pd.DataFrame):
+            return data.values
+        return np.asarray(data)
 
     def _train_stage1(self, model: nn.Module) -> None:
         '''Train stage1 on regression + reconstruction objectives.
@@ -891,7 +882,6 @@ class DNNOptimizer:
 
         if best_state is not None:
             model.load_state_dict(best_state)
-
 
     def _train_stage2(self, model: nn.Module) -> Dict[str, float]:
         '''Train stage2 on ranking/classification objectives.
@@ -1043,87 +1033,56 @@ class DNNOptimizer:
             return self._evaluate_ranking(model, val_loader)
         return {}
 
-
-    def _evaluate_ranking(self, model: nn.Module, loader: DataLoader) -> Dict[str, float]:
-        '''Evaluate ranking/classification metrics.
-
-        Parameters
-        ----------
-        model : nn.Module
-            Model to evaluate.
-        loader : DataLoader
-            DataLoader for ranking/classification data.
-
-        Returns
-        -------
-        Dict[str, float]
-            Metrics dictionary.
-        '''
-
-        model.eval()
-
-        all_scores = []
-        all_labels = []
-        all_targets = []
-
-        with torch.no_grad():
-            for batch in loader:
-                features, labels, targets = batch
-                features = features.to(self.device)
-                labels = labels.to(self.device)
-                outputs = model(features)
-                scores = outputs["activity"].view(-1)
-
-                all_scores.append(scores.detach().cpu().numpy())
-                all_labels.append(labels.detach().cpu().numpy())
-                all_targets.append(np.asarray(targets))
-
-        y_score = np.concatenate(all_scores) if all_scores else np.array([])
-        y_true = np.concatenate(all_labels) if all_labels else np.array([])
-        target_ids = np.concatenate(all_targets) if all_targets else np.array([])
-
-        return compute_classification_metrics(y_true, y_score, target_ids, self.config["stage2"]["rank_k_fractions"])
-
-
-    def _evaluate_energy(self, model: nn.Module) -> Dict[str, float]:
-        '''Evaluate energy regression performance on validation split.
+    @classmethod
+    def from_embeddings(
+            cls,
+            X_embeddings_train: Union[np.ndarray, pd.DataFrame],
+            y_train: Union[np.ndarray, pd.Series],
+            X_embeddings_test: Union[np.ndarray, pd.DataFrame],
+            y_test: Union[np.ndarray, pd.Series],
+            X_embeddings_validation: Union[np.ndarray, pd.DataFrame, None] = None,
+            y_validation: Union[np.ndarray, pd.Series, None] = None,
+            **kwargs: Any
+        ) -> "DNNOptimizer":
+        '''Construct a DNNOptimizer from precomputed embeddings.
 
         Parameters
         ----------
-        model : nn.Module
-            Model to evaluate.
+        X_embeddings_train : np.ndarray | pd.DataFrame
+            Training embeddings (output of a dimensionality reducer).
+        y_train : np.ndarray | pd.Series
+            Training regression targets.
+        X_embeddings_test : np.ndarray | pd.DataFrame
+            Test embeddings.
+        y_test : np.ndarray | pd.Series
+            Test regression targets.
+        X_embeddings_validation : np.ndarray | pd.DataFrame | None, optional
+            Optional ranking/classification embeddings, by default None.
+        y_validation : np.ndarray | pd.Series | None, optional
+            Optional ranking/classification labels, by default None.
+        **kwargs : Any
+            Additional keyword arguments forwarded to DNNOptimizer.
 
         Returns
         -------
-        Dict[str, float]
-            Energy regression metrics.
+        DNNOptimizer
+            Configured optimizer instance.
+
+        Notes
+        -----
+        When using embeddings, set stage1.lambda_recon=0 and noise_type="none"
+        to avoid reconstructing already-reduced features.
         '''
 
-        model.eval()
-
-        loader = self._make_reg_loader("val")
-        preds = []
-        targets = []
-
-        with torch.no_grad():
-            for batch in loader:
-                features, energies = batch
-                features = features.to(self.device)
-                outputs = model(features)
-                preds.append(outputs["energy"].detach().cpu().numpy())
-                targets.append(energies.detach().cpu().numpy())
-
-        if not preds:
-            return {"energy_rmse": float("inf"), "energy_mae": float("inf")}
-
-        y_pred = np.concatenate(preds).reshape(-1)
-        y_true = np.concatenate(targets).reshape(-1)
-
-        rmse = float(np.sqrt(np.mean((y_pred - y_true) ** 2)))
-        mae = float(np.mean(np.abs(y_pred - y_true)))
-
-        return {"energy_rmse": rmse, "energy_mae": mae}
-
+        return cls(
+            X_train=X_embeddings_train,
+            y_train=y_train,
+            X_test=X_embeddings_test,
+            y_test=y_test,
+            X_validation=X_embeddings_validation,
+            y_validation=y_validation,
+            **kwargs
+        )
 
     def objective(self, trial: optuna.Trial) -> float | tuple:
         '''Objective function for Optuna.
@@ -1193,7 +1152,6 @@ class DNNOptimizer:
         objective_metric = self.config["optimization"].get("objective_metric", "AUC")
         return float(metrics.get(objective_metric, auc_value))
 
-
     def optimize(
             self,
             direction: str = "maximize",
@@ -1250,6 +1208,25 @@ class DNNOptimizer:
 
         return study
 
+    def set_random_seed(self) -> None:
+        '''Set the random seed for reproducibility.'''
 
-# Methods
+        np.random.seed(self.random_seed)
+        random.seed(self.random_seed)
+        torch.manual_seed(self.random_seed)
+
+        if self.use_gpu and torch.cuda.is_available():
+            self.device = torch.device('cuda')
+            torch.cuda.manual_seed_all(self.random_seed)
+        else:
+            self.device = torch.device('cpu')
+
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = True
+
+
+# Functions
 ###############################################################################
+## Private ##
+
+## Public ##

@@ -13,16 +13,36 @@ from OCDocker.OCScore.Analysis.SHAP.Studies import select_best_from_studies
 # Imports
 ###############################################################################
 from __future__ import annotations
+import logging
+
+import optuna
+import numpy as np
+
 from dataclasses import dataclass
 from typing import Dict, Union
-import numpy as np
-import optuna
-import logging
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
+###############################################################################
 
 LOGGER = logging.getLogger("OCScore.SHAP.studies")
 
-# Functions
-###############################################################################
 @dataclass
 class StudyHandles:
     """Container for Optuna study handles and storage information.
@@ -69,6 +89,11 @@ class BestSelections:
     mask: np.ndarray
 
 
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##
 def select_best_from_studies(handles: StudyHandles) -> BestSelections:
     '''Select best parameters from multiple Optuna optimization studies.
     

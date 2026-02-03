@@ -11,7 +11,6 @@ from OCDocker.OCScore.Dimensionality.GeneticAlgorithm import GeneticAlgorithm
 
 # Imports
 ###############################################################################
-
 import optuna
 
 import cupy as cp
@@ -45,8 +44,6 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 # Classes
 ###############################################################################
-
-
 class GeneticAlgorithm:
     '''
     A class to optimize the feature selection for XGBoost using a genetic algorithm.
@@ -143,6 +140,32 @@ class GeneticAlgorithm:
 
         self.storage = storage
 
+    def crossover(self, parent1: np.ndarray, parent2: np.ndarray) -> np.ndarray:
+        '''
+        A function to perform crossover for the genetic algorithm.
+        
+        Parameters
+        ----------
+        parent1 : np.ndarray
+            The first parent.
+        parent2 : np.ndarray
+            The second parent.
+
+        Returns
+        -------
+        np.ndarray
+            The child individual.
+        '''
+
+        # Select a random crossover point
+        crossover_point = self.rng.integers(low = 0, high = len(parent1))
+
+        # Create the child individual by combining the parents
+        child = np.hstack([parent1[:crossover_point], parent2[crossover_point:]])
+
+        # Return the child individual
+
+        return child
 
     def fitness(self, individual: list) -> tuple:
         '''
@@ -176,149 +199,6 @@ class GeneticAlgorithm:
         # Return the metric score and the model
 
         return metric, model
-
-
-    def initialize_population(self, number_of_features: int, population_size: int) -> np.ndarray:
-        '''
-        A function to initialize the population for the genetic algorithm.
-
-        Parameters
-        ----------
-        number_of_features : int
-            The number of features in the dataset.
-        population_size : int
-            The size of the population.
-
-        Returns
-        -------
-        np.ndarray
-            The initialized population.
-        '''
-
-        # Create the initial population with a random selection of True/False for each feature
-        population = self.rng.choice([False, True], size=(population_size, number_of_features))
-
-        # For each individual in the population, ensure that fixed features are always included
-        # and at least one feature is True
-        for individual in population:
-            # Ensure fixed features are set to True
-            for index in self.fixed_features_index:
-                individual[index] = True
-            
-            # Check if at least one feature is True, if not, randomly select one (non-fixed, if possible) to set to True
-            if not individual.any():
-                # Attempt to choose a non-fixed feature if possible
-                non_fixed_indices = [i for i in range(number_of_features) if i not in self.fixed_features_index]
-                if non_fixed_indices:
-                    random_index = self.rng.choice(non_fixed_indices)
-                else:
-                    # If all features are fixed, choose from all features
-                    random_index = self.rng.integers(0, number_of_features)
-                individual[random_index] = True
-
-        assert all(individual.shape[0] == number_of_features for individual in population), "Inconsistent gene size detected in initialize pop."
-
-
-        return population
-
-
-    def tournament_selection(self, population: np.ndarray, fitnesses: np.ndarray, tournament_size: int = 3) -> np.ndarray:
-        '''
-        A function to perform tournament selection for the genetic algorithm.
-
-        Parameters
-        ----------
-        population : np.ndarray
-            The current population.
-        fitnesses : np.ndarray
-            The fitness scores of the population.
-        tournament_size : int, optional
-            The size of the tournament. Default is 3.
-
-        Returns
-        -------
-        np.ndarray
-            The selected individual.
-        '''
-
-        # Select a random subset of the population
-        selected_indices = self.rng.choice(range(len(population)), size = tournament_size, replace = False)
-
-        # Get the fitness scores of the selected individuals
-        selected_fitnesses = fitnesses[selected_indices]
-
-        # If the direction in study is minimize
-        if self.direction == "minimize":
-            # Get the individual with the lowest fitness score
-            winner_index = selected_indices[np.argmin(selected_fitnesses)]
-        else:
-            # Get the individual with the highest fitness score
-            winner_index = selected_indices[np.argmax(selected_fitnesses)]
-
-        # Return the selected individual
-
-        return population[winner_index]
-
-
-    def crossover(self, parent1: np.ndarray, parent2: np.ndarray) -> np.ndarray:
-        '''
-        A function to perform crossover for the genetic algorithm.
-        
-        Parameters
-        ----------
-        parent1 : np.ndarray
-            The first parent.
-        parent2 : np.ndarray
-            The second parent.
-
-        Returns
-        -------
-        np.ndarray
-            The child individual.
-        '''
-
-        # Select a random crossover point
-        crossover_point = self.rng.integers(low = 0, high = len(parent1))
-
-        # Create the child individual by combining the parents
-        child = np.hstack([parent1[:crossover_point], parent2[crossover_point:]])
-
-        # Return the child individual
-
-        return child
-
-
-    def mutation(self, individual: np.ndarray, mutation_rate: float = 0.05) -> np.ndarray:
-        '''
-        A function to perform mutation for the genetic algorithm.
-
-        Parameters
-        ----------
-        individual : np.ndarray
-            The individual to be mutated.
-        mutation_rate : float, optional
-            The mutation rate. Default is 0.05.
-
-        Returns
-        -------
-        np.ndarray
-            The mutated individual.
-        '''
-
-        # Perform mutation for each feature in the individual
-        for i in range(len(individual)):
-            # If it is a score column, do not mutate
-            if i in self.fixed_features_index:
-                continue
-            # If the mutation rate is less than the mutation rate, flip the feature
-            if self.rng.random() < mutation_rate:
-                # Flip the feature
-                individual[i] = not individual[i]
-
-        # Return the mutated individual
-
-        return individual
-
 
     def genetic_algorithm(self, trial_params: dict, trial: Any) -> tuple[np.ndarray, OCxgboost.XGBRegressor, float, Union[None, float]]:
         '''
@@ -493,6 +373,79 @@ class GeneticAlgorithm:
 
         return best_individual, best_model, best_score, best_score2 # type: ignore
 
+    def initialize_population(self, number_of_features: int, population_size: int) -> np.ndarray:
+        '''
+        A function to initialize the population for the genetic algorithm.
+
+        Parameters
+        ----------
+        number_of_features : int
+            The number of features in the dataset.
+        population_size : int
+            The size of the population.
+
+        Returns
+        -------
+        np.ndarray
+            The initialized population.
+        '''
+
+        # Create the initial population with a random selection of True/False for each feature
+        population = self.rng.choice([False, True], size=(population_size, number_of_features))
+
+        # For each individual in the population, ensure that fixed features are always included
+        # and at least one feature is True
+        for individual in population:
+            # Ensure fixed features are set to True
+            for index in self.fixed_features_index:
+                individual[index] = True
+            
+            # Check if at least one feature is True, if not, randomly select one (non-fixed, if possible) to set to True
+            if not individual.any():
+                # Attempt to choose a non-fixed feature if possible
+                non_fixed_indices = [i for i in range(number_of_features) if i not in self.fixed_features_index]
+                if non_fixed_indices:
+                    random_index = self.rng.choice(non_fixed_indices)
+                else:
+                    # If all features are fixed, choose from all features
+                    random_index = self.rng.integers(0, number_of_features)
+                individual[random_index] = True
+
+        assert all(individual.shape[0] == number_of_features for individual in population), "Inconsistent gene size detected in initialize pop."
+
+
+        return population
+
+    def mutation(self, individual: np.ndarray, mutation_rate: float = 0.05) -> np.ndarray:
+        '''
+        A function to perform mutation for the genetic algorithm.
+
+        Parameters
+        ----------
+        individual : np.ndarray
+            The individual to be mutated.
+        mutation_rate : float, optional
+            The mutation rate. Default is 0.05.
+
+        Returns
+        -------
+        np.ndarray
+            The mutated individual.
+        '''
+
+        # Perform mutation for each feature in the individual
+        for i in range(len(individual)):
+            # If it is a score column, do not mutate
+            if i in self.fixed_features_index:
+                continue
+            # If the mutation rate is less than the mutation rate, flip the feature
+            if self.rng.random() < mutation_rate:
+                # Flip the feature
+                individual[i] = not individual[i]
+
+        # Return the mutated individual
+
+        return individual
 
     def objective(self, trial: optuna.Trial) -> float:
         '''
@@ -539,7 +492,6 @@ class GeneticAlgorithm:
         # Return the AUC score
 
         return best_score
-
 
     def optimize(self, direction: str = "maximize", n_trials: int = 100,  n_jobs: int = 1, study_name: str = "Genetic Algorithm for descriptor optimization", load_if_exists: bool = True, verbose: bool = False) -> tuple[optuna.study.Study, dict, float]:
         '''
@@ -593,5 +545,46 @@ class GeneticAlgorithm:
         
         return study, best_params, best_score
 
-# Methods
+    def tournament_selection(self, population: np.ndarray, fitnesses: np.ndarray, tournament_size: int = 3) -> np.ndarray:
+        '''
+        A function to perform tournament selection for the genetic algorithm.
+
+        Parameters
+        ----------
+        population : np.ndarray
+            The current population.
+        fitnesses : np.ndarray
+            The fitness scores of the population.
+        tournament_size : int, optional
+            The size of the tournament. Default is 3.
+
+        Returns
+        -------
+        np.ndarray
+            The selected individual.
+        '''
+
+        # Select a random subset of the population
+        selected_indices = self.rng.choice(range(len(population)), size = tournament_size, replace = False)
+
+        # Get the fitness scores of the selected individuals
+        selected_fitnesses = fitnesses[selected_indices]
+
+        # If the direction in study is minimize
+        if self.direction == "minimize":
+            # Get the individual with the lowest fitness score
+            winner_index = selected_indices[np.argmin(selected_fitnesses)]
+        else:
+            # Get the individual with the highest fitness score
+            winner_index = selected_indices[np.argmax(selected_fitnesses)]
+
+        # Return the selected individual
+
+        return population[winner_index]
+
+
+# Functions
 ###############################################################################
+## Private ##
+
+## Public ##

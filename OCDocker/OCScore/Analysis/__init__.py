@@ -24,6 +24,38 @@ Modules
 - StudyProcessing: Study parsing and aggregation utilities.
 '''
 
+# Imports
+###############################################################################
+from .Metrics import Ranking as RankingMetrics
+from .Plotting import MetricsPlots as PlottingMetrics
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
+###############################################################################
+
+
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##
+
 # Unified exports for Analysis package
 try:
     from .SHAP import (
@@ -44,9 +76,6 @@ except Exception:
     build_neural_net = None  # type: ignore
     compute_shap_values = None  # type: ignore
     shap_plots = None  # type: ignore
-
-from .Metrics import Ranking as RankingMetrics
-from .Plotting import MetricsPlots as PlottingMetrics
 
 try:
     from .Impact import (

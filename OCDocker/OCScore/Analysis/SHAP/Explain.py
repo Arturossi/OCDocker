@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 
 # Description
@@ -14,14 +13,16 @@ from OCDocker.OCScore.Analysis.SHAP.Explain import compute_shap_values
 
 # Imports
 ###############################################################################
-
 from __future__ import annotations
-import OCDocker.Error as ocerror
-from typing import Any, List, Optional, Union
+
+import shap
+import torch
 import numpy as np
 import pandas as pd
-import torch
-import shap
+
+from typing import Any, List, Optional, Union
+
+import OCDocker.Error as ocerror
 
 
 
@@ -45,8 +46,11 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 
-# Methods
+# Functions
 ###############################################################################
+## Private ##
+
+## Public ##
 
 
 def _cuda_device() -> torch.device:

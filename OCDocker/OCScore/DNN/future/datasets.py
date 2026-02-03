@@ -6,16 +6,16 @@
 
 # Imports
 ###############################################################################
-
 from __future__ import annotations
 
-import random
 import math
-from typing import Dict, List, Sequence, Union
+import random
+import torch
 
 import numpy as np
-import torch
+
 from torch.utils.data import Dataset, Sampler
+from typing import Dict, List, Sequence, Union
 
 # License
 ###############################################################################
@@ -36,8 +36,6 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 # Classes
 ###############################################################################
-
-
 class EnergyDataset(Dataset):
     """Dataset for regression targets (energy labels).
 
@@ -67,6 +65,22 @@ class EnergyDataset(Dataset):
     >>> print(sample_energy.shape)    # torch.Size([1])
     """
 
+    def __getitem__(self, idx: int) -> tuple:
+        '''Return a dataset sample.
+
+        Parameters
+        ----------
+        idx : int
+            Sample index.
+
+        Returns
+        -------
+        tuple
+            Features and energy target tensors.
+        '''
+
+        return self.features[idx], self.energies[idx]
+
     def __init__(
             self,
             features: np.ndarray,
@@ -94,7 +108,6 @@ class EnergyDataset(Dataset):
         # Ensure regression targets have shape [N, 1] for consistent batching.
         self.energies = torch.tensor(np.asarray(energies), dtype=torch.float32).view(-1, 1)
 
-
     def __len__(self) -> int:
         '''Return dataset length.
 
@@ -105,23 +118,6 @@ class EnergyDataset(Dataset):
         '''
 
         return self.features.shape[0]
-
-
-    def __getitem__(self, idx: int) -> tuple:
-        '''Return a dataset sample.
-
-        Parameters
-        ----------
-        idx : int
-            Sample index.
-
-        Returns
-        -------
-        tuple
-            Features and energy target tensors.
-        '''
-
-        return self.features[idx], self.energies[idx]
 
 
 class TargetRankingDataset(Dataset):
@@ -143,6 +139,23 @@ class TargetRankingDataset(Dataset):
     Returns (features, label, target_id) where target_id is an integer index.
     Target ids are stable based on first appearance order in target_ids.
     """
+
+    def __getitem__(self, idx: int) -> tuple:
+        '''Return a dataset sample.
+
+        Parameters
+        ----------
+        idx : int
+            Sample index.
+
+        Returns
+        -------
+        tuple
+            Features, label, and target id.
+        '''
+
+        # Return raw tensors; model heads apply any normalization.
+        return self.features[idx], self.labels[idx], self.target_ids[idx]
 
     def __init__(
             self,
@@ -188,7 +201,6 @@ class TargetRankingDataset(Dataset):
             # Cache indices per target for fast grouped sampling.
             self.target_to_indices.setdefault(int(t), []).append(idx)
 
-
     def __len__(self) -> int:
         '''Return dataset length.
 
@@ -199,24 +211,6 @@ class TargetRankingDataset(Dataset):
         '''
 
         return self.features.shape[0]
-
-
-    def __getitem__(self, idx: int) -> tuple:
-        '''Return a dataset sample.
-
-        Parameters
-        ----------
-        idx : int
-            Sample index.
-
-        Returns
-        -------
-        tuple
-            Features, label, and target id.
-        '''
-
-        # Return raw tensors; model heads apply any normalization.
-        return self.features[idx], self.labels[idx], self.target_ids[idx]
 
 
 class TargetBatchSampler(Sampler[List[int]]):
@@ -286,7 +280,6 @@ class TargetBatchSampler(Sampler[List[int]]):
 
         self.target_ids = list(self.target_to_indices.keys())
 
-
     def __iter__(self):
         '''Yield batches grouped by target.
 
@@ -318,7 +311,6 @@ class TargetBatchSampler(Sampler[List[int]]):
                 for i in range(0, len(shuffled), self.batch_size):
                     yield shuffled[i:i + self.batch_size]
 
-
     def __len__(self) -> int:
         '''Return number of batches.
 
@@ -336,3 +328,10 @@ class TargetBatchSampler(Sampler[List[int]]):
         for idxs in self.target_to_indices.values():
             total += int(math.ceil(len(idxs) / float(self.batch_size)))
         return total
+
+
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##

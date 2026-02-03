@@ -55,6 +55,52 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ###############################################################################
 class Gnina:
     """Gnina object with methods for easy run."""
+    ## Private ##
+
+    def __gnina_cmd(self) -> List[str]:
+        '''Generate the gnina command.
+
+        Returns
+        -------
+        List[str]
+            The gnina command.
+        '''
+
+        config = get_config()
+        cmd = [config.gnina.executable, "--config", self.config, "--ligand", self.prepared_ligand]
+
+        if config.gnina.local_only.lower() in ["y", "ye", "yes"]:
+            cmd.append("--score_only")
+        if config.gnina.minimize.lower() in ["y", "ye", "yes"]:
+            cmd.append("--minimize")
+        if config.gnina.randomize_only.lower() in ["y", "ye", "yes"]:
+            cmd.append("--randomize_only")
+        if config.gnina.accurate_line.lower() in ["y", "ye", "yes"]:
+            cmd.append("--accurate_line")
+        if config.gnina.minimize_early_term.lower() in ["y", "ye", "yes"]:
+            cmd.append("--minimize_early_term")
+        
+        # Check if the no_gpu flag is set
+        if config.gnina.no_gpu.lower() in ["y", "ye", "yes"]:
+            # Set the no gpu flag
+            cmd.append("--no_gpu")
+        else:
+            # Check if CUDA_VISIBLE_DEVICES is set
+            if os.environ.get("CUDA_VISIBLE_DEVICES") is not None:
+                # Set the GPU variable
+                CUDA_VISIBLE_DEVICES = os.environ.get("CUDA_VISIBLE_DEVICES")
+                # Check if it is a list
+                if "," in CUDA_VISIBLE_DEVICES: # type: ignore
+                    # It is a list, get the first element
+                    CUDA_VISIBLE_DEVICES = CUDA_VISIBLE_DEVICES.split(",")[0] # type: ignore
+                # Set the GPU
+                cmd.extend(["--device", CUDA_VISIBLE_DEVICES]) # type: ignore
+
+        cmd.extend(["--out", self.output_gnina, "--log", self.gnina_log, "--cpu", "1"])
+
+        return cmd
+
+
     def __init__(self, config_path: str, box_file: str, receptor: ocr.Receptor, prepared_receptor_path: str, ligand: ocl.Ligand, prepared_ligand_path: str, gnina_log: str, output_gnina: str, name: str = "", overwrite_config: bool = False) -> None:
         '''Constructor of the class Gnina.
 
@@ -123,49 +169,6 @@ class Gnina:
 
             gen_gnina_conf(self.box_file, self.config, self.prepared_receptor)
 
-    ## Private ##
-    def __gnina_cmd(self) -> List[str]:
-        '''Generate the gnina command.
-
-        Returns
-        -------
-        List[str]
-            The gnina command.
-        '''
-
-        config = get_config()
-        cmd = [config.gnina.executable, "--config", self.config, "--ligand", self.prepared_ligand]
-
-        if config.gnina.local_only.lower() in ["y", "ye", "yes"]:
-            cmd.append("--score_only")
-        if config.gnina.minimize.lower() in ["y", "ye", "yes"]:
-            cmd.append("--minimize")
-        if config.gnina.randomize_only.lower() in ["y", "ye", "yes"]:
-            cmd.append("--randomize_only")
-        if config.gnina.accurate_line.lower() in ["y", "ye", "yes"]:
-            cmd.append("--accurate_line")
-        if config.gnina.minimize_early_term.lower() in ["y", "ye", "yes"]:
-            cmd.append("--minimize_early_term")
-        
-        # Check if the no_gpu flag is set
-        if config.gnina.no_gpu.lower() in ["y", "ye", "yes"]:
-            # Set the no gpu flag
-            cmd.append("--no_gpu")
-        else:
-            # Check if CUDA_VISIBLE_DEVICES is set
-            if os.environ.get("CUDA_VISIBLE_DEVICES") is not None:
-                # Set the GPU variable
-                CUDA_VISIBLE_DEVICES = os.environ.get("CUDA_VISIBLE_DEVICES")
-                # Check if it is a list
-                if "," in CUDA_VISIBLE_DEVICES: # type: ignore
-                    # It is a list, get the first element
-                    CUDA_VISIBLE_DEVICES = CUDA_VISIBLE_DEVICES.split(",")[0] # type: ignore
-                # Set the GPU
-                cmd.extend(["--device", CUDA_VISIBLE_DEVICES]) # type: ignore
-
-        cmd.extend(["--out", self.output_gnina, "--log", self.gnina_log, "--cpu", "1"])
-
-        return cmd
 
     def __parse_ligand_path(self, ligand: Union[str, ocl.Ligand]) -> str:
         '''Parse the ligand path, handling its type.
@@ -195,6 +198,7 @@ class Gnina:
         _ = ocerror.Error.wrong_type(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.", level = ocerror.ReportLevel.ERROR)
 
         return ""
+
 
     def __parse_receptor_path(self, receptor: Union[str, ocr.Receptor]) -> str:
         '''Parse the receptor path, handling its type.
@@ -227,6 +231,7 @@ class Gnina:
         return ""
 
     ## Public ##
+
     def print_attributes(self) -> None:
         '''Print the class attributes.'''
 
@@ -248,6 +253,7 @@ class Gnina:
         
         return
 
+
     def read_log(self) -> Union[pd.DataFrame, int]:
         '''Read the gnina log path, returning a pd.dataframe with data from complexes.
 
@@ -258,6 +264,7 @@ class Gnina:
         '''
 
         return read_log(self.gnina_log) # type: ignore
+
 
     def run_gnina(self, logFile: str = "") -> Union[int, Tuple[int, str]]:
         '''Run gnina.
@@ -275,6 +282,7 @@ class Gnina:
 
         return ocrun.run(self.gnina_cmd, logFile=logFile)
 
+
     def run_prepare_ligand(self, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
         '''Run the convert ligand command to pdbqt.
 
@@ -285,6 +293,7 @@ class Gnina:
         '''
 
         return run_prepare_ligand(self.input_ligand_path, self.prepared_ligand, overwrite=overwrite)
+
 
     def run_prepare_ligand_from_cmd(self, logFile: str = "") -> Union[int, Tuple[int, str]]:
         '''Run obabel convert ligand to pdbqt using the 'self.inputLigandPath' attribute. [DEPRECATED]
@@ -307,6 +316,7 @@ class Gnina:
             logFile
         )
 
+
     def run_prepare_receptor(self, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
         '''Run obabel convert receptor to pdbqt using the openbabel python library.
 
@@ -322,6 +332,7 @@ class Gnina:
             "",
             overwrite=overwrite
         )
+
 
     def run_prepare_receptor_from_cmd(self, logFile: str = "", overwrite: bool = False) -> Union[int, Tuple[int, str]]:
         '''Run obabel convert receptor to pdbqt script using the 'self.prepareReceptorCmd' attribute. [DEPRECATED]
@@ -342,6 +353,17 @@ class Gnina:
         config = get_config()
         cmd = [config.tools.pythonsh, config.tools.prepare_receptor, "-r", self.input_receptor_path, "-o", self.prepared_receptor, "-A", "hydrogens", "-U", "nphs_lps_waters"]
         return ocrun.run(cmd, logFile=logFile)
+
+
+
+
+
+
+
+
+
+
+
 
 
 # Functions

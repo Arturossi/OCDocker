@@ -13,17 +13,37 @@ from OCDocker.OCScore.Analysis.SHAP.Data import load_and_prepare_data
 # Imports
 ###############################################################################
 from __future__ import annotations
-from dataclasses import dataclass
-from typing import List
+
+import logging
+
 import numpy as np
 import pandas as pd
-import logging
+
+from dataclasses import dataclass
+from typing import List
 
 import OCDocker.OCScore.Utils.Data as ocscoredata
 
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
 LOGGER = logging.getLogger("OCScore.SHAP.data")
 
-# Functions
+# Classes
 ###############################################################################
 @dataclass
 class DataHandles:
@@ -49,6 +69,12 @@ class DataHandles:
     y_val: np.ndarray
     feature_names: List[str]
 
+    
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##
 
 def load_and_prepare_data(
     df_path: str,

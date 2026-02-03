@@ -20,15 +20,42 @@ Modules
 - Studies: Optuna study selection helpers.
 '''
 
-# Import Plots first since Runner depends on it
+# Imports
+###############################################################################
 from . import Plots as plots
 
-# Import each module separately so one failure doesn't break all imports
-from .Runner import run_shap_analysis, OutputPaths
-from .Studies import StudyHandles, BestSelections, select_best_from_studies
 from .Data import DataHandles, load_and_prepare_data
-from .Model import build_neural_net
 from .Explain import compute_shap_values
+from .Model import build_neural_net
+from .Runner import OutputPaths, run_shap_analysis
+from .Studies import BestSelections, StudyHandles, select_best_from_studies
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
+###############################################################################
+
+
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##
 
 __all__ = [
     "run_shap_analysis",

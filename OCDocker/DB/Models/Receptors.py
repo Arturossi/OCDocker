@@ -15,9 +15,8 @@ from OCDocker.DB.Models.Receptors import Receptors
 from sqlalchemy import Column, ForeignKey, Integer
 from sqlalchemy.orm import relationship
 
-from OCDocker.DB.Models.Base import base
-
 import OCDocker.Receptor as ocr
+from OCDocker.DB.Models.Base import base
 
 # License
 ###############################################################################

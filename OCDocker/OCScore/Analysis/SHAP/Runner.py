@@ -13,19 +13,37 @@ from OCDocker.OCScore.Analysis.SHAP.Runner import run_shap_analysis
 # Imports
 ###############################################################################
 from __future__ import annotations
-from dataclasses import dataclass
-from typing import List, Optional
 import os
 import numpy as np
 import pandas as pd
 
-from .Studies import StudyHandles, select_best_from_studies
-from .Data import load_and_prepare_data
-from .Model import build_neural_net
-from .Explain import compute_shap_values
-from . import plots
+from dataclasses import dataclass
+from typing import List, Optional
 
-# Functions
+from . import plots
+from .Data import load_and_prepare_data
+from .Explain import compute_shap_values
+from .Model import build_neural_net
+from .Studies import StudyHandles, select_best_from_studies
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
 ###############################################################################
 @dataclass
 class OutputPaths:
@@ -52,6 +70,11 @@ class OutputPaths:
     shap_values_csv: Optional[str] = None
 
 
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##
 def run_shap_analysis(
     studies: StudyHandles,
     df_path: str,

@@ -11,28 +11,23 @@ from OCDocker.OCScore.DNN.DNNOptimizer import DNNOptimizer
 
 # Imports
 ###############################################################################
-
 import optuna
 import random
 import re
+import torch
 
 import numpy as np
 import pandas as pd
-
-import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from torch.utils.data import Dataset, DataLoader
-
 from optuna.samplers import TPESampler
-from sklearn.metrics import (
-    auc, 
-    log_loss,
-    mean_absolute_error,
-    precision_recall_curve, 
-    roc_curve
-)
+from sklearn.metrics import auc
+from sklearn.metrics import log_loss
+from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import precision_recall_curve
+from sklearn.metrics import roc_curve
+from torch.utils.data import DataLoader, Dataset
 from typing import Any, Union
 
 import OCDocker.Toolbox.Printing as ocprint
@@ -56,8 +51,6 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 # Classes
 ###############################################################################
-
-
 class NeuralNet(nn.Module):
     """ Neural Network class for the optimization of the neural network.
 
@@ -81,6 +74,127 @@ class NeuralNet(nn.Module):
         Mask for the neural network, by default None
     """
 
+    def __build_encoder(self, encoder_params : dict) -> list:
+        ''' Build the encoder for the neural network
+        
+        Parameters
+        ----------
+        encoder_params : dict
+            Parameters for the encoder
+            
+        Returns
+        -------
+        list
+            List of tuples with the encoder layers
+        '''
+
+        # If the encoder_params has the key 'encoder_activation'
+        if 'encoder_activation' in encoder_params:
+            # Find which activation function to use and set the parameters accordingly
+            # If the activation function is LeakyReLU, set the negative_slope
+            if encoder_params['encoder_activation'] == 'LeakyReLU':
+                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])](negative_slope = encoder_params['negative_slope_encoder'])
+            # If the activation function is GELU, set the approximate
+            elif encoder_params['encoder_activation'] == 'GELU':
+                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])](approximate = encoder_params['approximate_encoder'])
+            # Otherwise, just set the activation function since it does not have any parameters to be set
+            else:
+                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])]()
+
+            # Build just the encoder
+            return [("Linear", self.input_size, encoder_params['encoding_dim']), ("BatchNorm1d", encoder_params['encoding_dim']), ("Activation", encoder_activation)]
+        
+        # Create an empty list to store the encoder
+        encoder = []
+
+        # Get all the keys from the encoder_params which starts with 'activation_function'
+        activation_keys = [key for key in encoder_params.keys() if key.startswith('activation_function') and key.endswith('encoder')]
+        
+        # If there are no activation functions
+        if not activation_keys:
+            raise ValueError("The encoder_params should have at least one activation function")
+
+        # Process the activation functions
+        for i in range(encoder_params['n_layers_encoder']):
+            # Now suggest the parameters for the activation function
+            if encoder_params[f'activation_function_{i}_encoder'] == 'LeakyReLU':
+                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params[f'activation_function_{i}_encoder'])](negative_slope = encoder_params[f'negative_slope_{i}_encoder'])
+            elif encoder_params[f'activation_function_{i}_encoder'] == 'GELU':
+                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params[f'activation_function_{i}_encoder'])](approximate = encoder_params[f'approximate_{i}_encoder'])
+            else:
+                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params[f'activation_function_{i}_encoder'])]()
+            
+            # If it is the first layer
+            if i == 0:
+                # Add the encoder layer to the encoder list
+                encoder.extend([
+                    ("Linear", self.input_size, encoder_params[f'n_units_layer_{i}_encoder']), 
+                    ("BatchNorm1d", encoder_params[f'n_units_layer_{i}_encoder']), 
+                    ("Activation", encoder_activation)
+                ])
+            else:
+                # Add the encoder layer to the encoder list
+                encoder.extend([
+                    ("Linear", encoder_params[f'n_units_layer_{i-1}_encoder'], encoder_params[f'n_units_layer_{i}_encoder']), 
+                    ("BatchNorm1d", encoder_params[f'n_units_layer_{i}_encoder']), 
+                    ("Activation", encoder_activation)
+                ])
+
+        return encoder
+
+    def __build_encoder_layer(self, encoder_params : dict) -> list:
+        ''' Build the encoder for the neural network
+
+        Parameters
+        ----------
+        encoder_params : dict
+            Parameters for the encoder
+        
+        Returns
+        -------
+        list
+            List of tuples with the encoder layers
+        '''
+
+        # Create an empty list to store the encoder layers
+        encoder_layer = []
+
+        # For each key in the encoder_param
+        for key in encoder_params.keys():
+            # Check if the key is an activation function for the encoder
+            if key.startswith('activation_function') and key.endswith('encoder'):
+                # Get the index of the activation function (index -2 since -1 will be 'encoder')
+                index = int(key.split('_')[-2])
+                
+                if encoder_params[f'activation_function_{index}_encoder'] == 'LeakyReLU':
+                    encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params[f'activation_function_{index}_encoder'])](negative_slope = encoder_params[f'negative_slope_{index}_encoder'])
+                elif encoder_params[f'activation_function_{index}_encoder'] == 'GELU':
+                    encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params[f'activation_function_{index}_encoder'])](approximate = encoder_params[f'approximate_{index}_encoder'])
+                else:
+                    encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params[f'activation_function_{index}_encoder'])]()
+
+                if index == 0:
+                    # Add the encoder layer to the encoder list
+                    encoder_layer.append([
+                        ("Linear", self.input_size, encoder_params[f'n_units_layer_{index}_encoder']), 
+                        ("BatchNorm1d", encoder_params[f'n_units_layer_{index}_encoder']), 
+                        ("Activation", encoder_activation)
+                    ])
+                else:
+                    # Add the encoder layer to the encoder list
+                    encoder_layer.append([
+                        ("Linear", encoder_params[f'n_units_layer_{index - 1}_encoder'], encoder_params[f'n_units_layer_{index}_encoder']), 
+                        ("BatchNorm1d", encoder_params[f'n_units_layer_{index}_encoder']), 
+                        ("Activation", encoder_activation)
+                    ])
+
+        # If the encoder_layer has only one element, return the element
+        if len(encoder_layer) == 1:
+            return encoder_layer[0]
+        
+        # Otherwise, return the list
+
+        return encoder_layer
 
     def __init__(self, 
             input_size : int,
@@ -251,130 +365,10 @@ class NeuralNet(nn.Module):
 
             ocprint.printv(self.NN) # type: ignore
 
+    def get_model(self) -> nn.Module:
+        '''Get the neural network model.'''
 
-    def __build_encoder(self, encoder_params : dict) -> list:
-        ''' Build the encoder for the neural network
-        
-        Parameters
-        ----------
-        encoder_params : dict
-            Parameters for the encoder
-            
-        Returns
-        -------
-        list
-            List of tuples with the encoder layers
-        '''
-
-        # If the encoder_params has the key 'encoder_activation'
-        if 'encoder_activation' in encoder_params:
-            # Find which activation function to use and set the parameters accordingly
-            # If the activation function is LeakyReLU, set the negative_slope
-            if encoder_params['encoder_activation'] == 'LeakyReLU':
-                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])](negative_slope = encoder_params['negative_slope_encoder'])
-            # If the activation function is GELU, set the approximate
-            elif encoder_params['encoder_activation'] == 'GELU':
-                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])](approximate = encoder_params['approximate_encoder'])
-            # Otherwise, just set the activation function since it does not have any parameters to be set
-            else:
-                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])]()
-
-            # Build just the encoder
-            return [("Linear", self.input_size, encoder_params['encoding_dim']), ("BatchNorm1d", encoder_params['encoding_dim']), ("Activation", encoder_activation)]
-        
-        # Create an empty list to store the encoder
-        encoder = []
-
-        # Get all the keys from the encoder_params which starts with 'activation_function'
-        activation_keys = [key for key in encoder_params.keys() if key.startswith('activation_function') and key.endswith('encoder')]
-        
-        # If there are no activation functions
-        if not activation_keys:
-            raise ValueError("The encoder_params should have at least one activation function")
-
-        # Process the activation functions
-        for i in range(encoder_params['n_layers_encoder']):
-            # Now suggest the parameters for the activation function
-            if encoder_params[f'activation_function_{i}_encoder'] == 'LeakyReLU':
-                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params[f'activation_function_{i}_encoder'])](negative_slope = encoder_params[f'negative_slope_{i}_encoder'])
-            elif encoder_params[f'activation_function_{i}_encoder'] == 'GELU':
-                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params[f'activation_function_{i}_encoder'])](approximate = encoder_params[f'approximate_{i}_encoder'])
-            else:
-                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params[f'activation_function_{i}_encoder'])]()
-            
-            # If it is the first layer
-            if i == 0:
-                # Add the encoder layer to the encoder list
-                encoder.extend([
-                    ("Linear", self.input_size, encoder_params[f'n_units_layer_{i}_encoder']), 
-                    ("BatchNorm1d", encoder_params[f'n_units_layer_{i}_encoder']), 
-                    ("Activation", encoder_activation)
-                ])
-            else:
-                # Add the encoder layer to the encoder list
-                encoder.extend([
-                    ("Linear", encoder_params[f'n_units_layer_{i-1}_encoder'], encoder_params[f'n_units_layer_{i}_encoder']), 
-                    ("BatchNorm1d", encoder_params[f'n_units_layer_{i}_encoder']), 
-                    ("Activation", encoder_activation)
-                ])
-
-        return encoder
-
-
-    def __build_encoder_layer(self, encoder_params : dict) -> list:
-        ''' Build the encoder for the neural network
-
-        Parameters
-        ----------
-        encoder_params : dict
-            Parameters for the encoder
-        
-        Returns
-        -------
-        list
-            List of tuples with the encoder layers
-        '''
-
-        # Create an empty list to store the encoder layers
-        encoder_layer = []
-
-        # For each key in the encoder_param
-        for key in encoder_params.keys():
-            # Check if the key is an activation function for the encoder
-            if key.startswith('activation_function') and key.endswith('encoder'):
-                # Get the index of the activation function (index -2 since -1 will be 'encoder')
-                index = int(key.split('_')[-2])
-                
-                if encoder_params[f'activation_function_{index}_encoder'] == 'LeakyReLU':
-                    encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params[f'activation_function_{index}_encoder'])](negative_slope = encoder_params[f'negative_slope_{index}_encoder'])
-                elif encoder_params[f'activation_function_{index}_encoder'] == 'GELU':
-                    encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params[f'activation_function_{index}_encoder'])](approximate = encoder_params[f'approximate_{index}_encoder'])
-                else:
-                    encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params[f'activation_function_{index}_encoder'])]()
-
-                if index == 0:
-                    # Add the encoder layer to the encoder list
-                    encoder_layer.append([
-                        ("Linear", self.input_size, encoder_params[f'n_units_layer_{index}_encoder']), 
-                        ("BatchNorm1d", encoder_params[f'n_units_layer_{index}_encoder']), 
-                        ("Activation", encoder_activation)
-                    ])
-                else:
-                    # Add the encoder layer to the encoder list
-                    encoder_layer.append([
-                        ("Linear", encoder_params[f'n_units_layer_{index - 1}_encoder'], encoder_params[f'n_units_layer_{index}_encoder']), 
-                        ("BatchNorm1d", encoder_params[f'n_units_layer_{index}_encoder']), 
-                        ("Activation", encoder_activation)
-                    ])
-
-        # If the encoder_layer has only one element, return the element
-        if len(encoder_layer) == 1:
-            return encoder_layer[0]
-        
-        # Otherwise, return the list
-
-        return encoder_layer
-
+        return self.NN
 
     def set_random_seed(self) -> None:
         '''Set the random seed for the Autoencoder. It is used to set the random seed for the Autoencoder.'''
@@ -400,7 +394,6 @@ class NeuralNet(nn.Module):
         torch.backends.cudnn.benchmark = False
 
         torch.backends.cudnn.deterministic = True
-
 
     def train_model(self,
                     X_train : Union[list, torch.Tensor, np.ndarray],
@@ -648,12 +641,6 @@ class NeuralNet(nn.Module):
         self.mae = mae
 
 
-    def get_model(self) -> nn.Module:
-        '''Get the neural network model.'''
-
-        return self.NN
-
-
 class DynamicNN(nn.Module):
     """ Dynamic Neural Network class for the optimization of the neural network.
     
@@ -778,7 +765,6 @@ class DynamicNN(nn.Module):
 
         return None
 
-
     def __set_ablation_mask(self, mask: list) -> None:
         ''' Set the mask for the ablation study
 
@@ -796,7 +782,6 @@ class DynamicNN(nn.Module):
             self.mask = []
 
         return None
-
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         '''
@@ -961,7 +946,6 @@ class MultiBranchDynamicNN(nn.Module):
 
         return None
 
-
     def forward(self, xs: list[torch.Tensor]) -> torch.Tensor:
         '''
         Forward pass through the network.
@@ -1032,6 +1016,22 @@ class CustomDataset(Dataset):
         Target tensor
     """
 
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
+        ''' Get the item at the specified index
+
+        Parameters
+        ----------
+        idx : int
+            Index of the item
+
+        Returns
+        -------
+        tuple[torch.Tensor, torch.Tensor]
+            Tuple of features and target at the specified index
+        '''
+
+        return self.features[idx], self.target[idx]
+
     def __init__(self, features: torch.Tensor, target: torch.Tensor) -> None:
         ''' Initialize the CustomDataset class
 
@@ -1049,7 +1049,6 @@ class CustomDataset(Dataset):
 
         return None
 
-
     def __len__(self) -> int:
         ''' Get the length of the dataset
         
@@ -1061,23 +1060,6 @@ class CustomDataset(Dataset):
 
 
         return len(self.features)
-
-
-    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
-        ''' Get the item at the specified index
-
-        Parameters
-        ----------
-        idx : int
-            Index of the item
-
-        Returns
-        -------
-        tuple[torch.Tensor, torch.Tensor]
-            Tuple of features and target at the specified index
-        '''
-
-        return self.features[idx], self.target[idx]
 
 
 class MultiBranchCustomDataset(Dataset):
@@ -1094,6 +1076,22 @@ class MultiBranchCustomDataset(Dataset):
     target : torch.Tensor
         Target tensor
     """
+
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        ''' Get the item at the specified index
+
+        Parameters
+        ----------
+        idx : int
+            Index of the item
+        
+        Returns
+        -------
+        tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+            Tuple of features1, features2, features3 and target at the specified index
+        '''
+
+        return self.features1[idx], self.features2[idx], self.features3[idx], self.target[idx]
 
     def __init__(self,
                  features1 : torch.Tensor,
@@ -1121,7 +1119,6 @@ class MultiBranchCustomDataset(Dataset):
 
         self.target = target
 
-
     def __len__(self) -> int:
         ''' Get the length of the dataset
 
@@ -1132,23 +1129,6 @@ class MultiBranchCustomDataset(Dataset):
         '''
 
         return len(self.features1)
-
-
-    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        ''' Get the item at the specified index
-
-        Parameters
-        ----------
-        idx : int
-            Index of the item
-        
-        Returns
-        -------
-        tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
-            Tuple of features1, features2, features3 and target at the specified index
-        '''
-
-        return self.features1[idx], self.features2[idx], self.features3[idx], self.target[idx]
 
 
 class DNNOptimizer:
@@ -1183,6 +1163,91 @@ class DNNOptimizer:
     verbose : bool, optional
         Verbose mode for the neural network, by default False
     """
+
+    def __build_encoder(self, encoder_params : dict) -> list:
+        ''' Build the encoder for the neural network
+
+        Parameters
+        ----------
+        encoder_params : dict
+            Encoder parameters for the neural network
+
+        Returns
+        -------
+        list
+            List of encoder layers
+
+        Raises
+        ------
+        ValueError
+            If the encoder_params have not at least one activation function
+        '''
+
+        # Build the encoder #
+
+        # If the encoder_params has the key 'encoder_activation'
+        if 'encoder_activation' in encoder_params:
+            # If the activation function is LeakyReLU
+            if encoder_params['encoder_activation'] == 'LeakyReLU':
+                # Set its parameters
+                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])](negative_slope = encoder_params['negative_slope_encoder'])
+            # If the activation function is GELU
+            elif encoder_params['encoder_activation'] == 'GELU':
+                # Set its parameters
+                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])](approximate = encoder_params['approximate_encoder'])
+            # If the activation function is not in the list
+            else:
+                # Do not set any parameters
+                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])]()
+
+            # Build just the encoder
+            return [("Linear", self.input_size, encoder_params['encoding_dim']), ("BatchNorm1d", encoder_params['encoding_dim']), ("Activation", encoder_activation)]
+        
+        # Create an empty list to store the encoder
+        encoder = []
+
+        # Get all the keys from the encoder_params which starts with 'activation_function'
+        activation_keys = [key for key in encoder_params.keys() if key.startswith('activation_function') and key.endswith('encoder')]
+        
+        # If there are no activation functions
+        if not activation_keys:
+            raise ValueError("The encoder_params should have at least one activation function")
+
+        # Build the Network #
+
+        # Process the activation functions
+        for i in range(encoder_params['n_layers_encoder']):
+            # If the activation function is LeakyReLU
+            if encoder_params[f'activation_function_{i}_encoder'] == 'LeakyReLU':
+                # Set its parameters
+                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params[f'activation_function_{i}_encoder'])](negative_slope = 
+                encoder_params[f'negative_slope_{i}_encoder'])
+            # If the activation function is GELU
+            elif encoder_params[f'activation_function_{i}_encoder'] == 'GELU':
+                # Set its parameters
+                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params[f'activation_function_{i}_encoder'])](approximate = encoder_params[f'approximate_{i}_encoder'])
+            else:
+                # Do not set any parameters
+                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params[f'activation_function_{i}_encoder'])]()
+            
+            # If it is the first layer
+            if i == 0:
+                # Add the encoder layer to the encoder list
+                encoder.extend([
+                    ("Linear", self.input_size, encoder_params[f'n_units_layer_{i}_encoder']), 
+                    ("BatchNorm1d", encoder_params[f'n_units_layer_{i}_encoder']), 
+                    ("Activation", encoder_activation)
+                ])
+            else:
+                # Add the encoder layer to the encoder list
+                encoder.extend([
+                    ("Linear", encoder_params[f'n_units_layer_{i-1}_encoder'], encoder_params[f'n_units_layer_{i}_encoder']), 
+                    ("BatchNorm1d", encoder_params[f'n_units_layer_{i}_encoder']), 
+                    ("Activation", encoder_activation)
+                ])
+            
+
+        return encoder
 
     def __init__(self,
             X_train: Union[np.ndarray, pd.DataFrame, pd.Series, list[Union[np.ndarray, pd.DataFrame, pd.Series]]],
@@ -1343,260 +1408,53 @@ class DNNOptimizer:
 
         self.storage = storage
 
-
-    def __build_encoder(self, encoder_params : dict) -> list:
-        ''' Build the encoder for the neural network
-
-        Parameters
-        ----------
-        encoder_params : dict
-            Encoder parameters for the neural network
-
-        Returns
-        -------
-        list
-            List of encoder layers
-
-        Raises
-        ------
-        ValueError
-            If the encoder_params have not at least one activation function
-        '''
-
-        # Build the encoder #
-
-        # If the encoder_params has the key 'encoder_activation'
-        if 'encoder_activation' in encoder_params:
-            # If the activation function is LeakyReLU
-            if encoder_params['encoder_activation'] == 'LeakyReLU':
-                # Set its parameters
-                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])](negative_slope = encoder_params['negative_slope_encoder'])
-            # If the activation function is GELU
-            elif encoder_params['encoder_activation'] == 'GELU':
-                # Set its parameters
-                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])](approximate = encoder_params['approximate_encoder'])
-            # If the activation function is not in the list
-            else:
-                # Do not set any parameters
-                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params['encoder_activation'])]()
-
-            # Build just the encoder
-            return [("Linear", self.input_size, encoder_params['encoding_dim']), ("BatchNorm1d", encoder_params['encoding_dim']), ("Activation", encoder_activation)]
-        
-        # Create an empty list to store the encoder
-        encoder = []
-
-        # Get all the keys from the encoder_params which starts with 'activation_function'
-        activation_keys = [key for key in encoder_params.keys() if key.startswith('activation_function') and key.endswith('encoder')]
-        
-        # If there are no activation functions
-        if not activation_keys:
-            raise ValueError("The encoder_params should have at least one activation function")
-
-        # Build the Network #
-
-        # Process the activation functions
-        for i in range(encoder_params['n_layers_encoder']):
-            # If the activation function is LeakyReLU
-            if encoder_params[f'activation_function_{i}_encoder'] == 'LeakyReLU':
-                # Set its parameters
-                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params[f'activation_function_{i}_encoder'])](negative_slope = 
-                encoder_params[f'negative_slope_{i}_encoder'])
-            # If the activation function is GELU
-            elif encoder_params[f'activation_function_{i}_encoder'] == 'GELU':
-                # Set its parameters
-                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params[f'activation_function_{i}_encoder'])](approximate = encoder_params[f'approximate_{i}_encoder'])
-            else:
-                # Do not set any parameters
-                encoder_activation = self.activation_functions[self.activation_functions_str.index(encoder_params[f'activation_function_{i}_encoder'])]()
-            
-            # If it is the first layer
-            if i == 0:
-                # Add the encoder layer to the encoder list
-                encoder.extend([
-                    ("Linear", self.input_size, encoder_params[f'n_units_layer_{i}_encoder']), 
-                    ("BatchNorm1d", encoder_params[f'n_units_layer_{i}_encoder']), 
-                    ("Activation", encoder_activation)
-                ])
-            else:
-                # Add the encoder layer to the encoder list
-                encoder.extend([
-                    ("Linear", encoder_params[f'n_units_layer_{i-1}_encoder'], encoder_params[f'n_units_layer_{i}_encoder']), 
-                    ("BatchNorm1d", encoder_params[f'n_units_layer_{i}_encoder']), 
-                    ("Activation", encoder_activation)
-                ])
-            
-
-        return encoder
-
-
-    def set_random_seed(self) -> None:
-        '''Set the random seed for the Autoencoder. It is used to set the random seed for the Autoencoder.'''
-
-        # Set the random seed for numpy and random
-        np.random.seed(self.random_seed)
-        random.seed(self.random_seed)
-
-        # If using GPU, set the seed for GPU as well
-        if self.use_gpu and torch.cuda.is_available():
-            self.device = torch.device('cuda')
-            torch.cuda.manual_seed_all(self.random_seed)
-        else:
-            self.device = torch.device('cpu')
-
-        # Set the seed for CPU
-        torch.manual_seed(self.random_seed)
-        
-        # This is not recommended for performance since it will disable the cudnn auto-tuner (reason why it is commented)
-        #torch.backends.cudnn.enabled = False
-
-        # Set the backends for reproducibility
-        torch.backends.cudnn.benchmark = False
-
-        torch.backends.cudnn.deterministic = True
-
-
-    def train_test_model(self,
-                         model : nn.Module,
-                         train_loader : DataLoader,
-                         test_loader : DataLoader,
-                         optimizer : optim.Optimizer,
-                         criterion : nn.Module,
-                         clip_grad : float,
-                         trial : optuna.Trial,
-                         epochs : int = 100) -> float:
-        ''' Train and test the model
+    def ablate(self,
+               network_params: dict[str, Any],
+               n_trials : int = 1,
+               study_name : str = "NN_Ablation_Optimization",
+               load_if_exists : bool = True,
+               n_jobs : int = 1
+               ) -> None:
+        ''' Perform an ablation study on the model. Here Optuna will not optimize the model, but will just run the trials with the given parameters and log them in the database.
 
         Parameters
         ----------
-        model : nn.Module
-            Model to train and test
-        train_loader : DataLoader
-            DataLoader for the training data
-        test_loader : DataLoader
-            DataLoader for the testing data
-        optimizer : optim.Optimizer
-            Optimizer for the model
-        criterion : nn.Module
-            Loss function for the model
-        clip_grad : float
-            Gradient clipping value
-        trial : optuna.Trial
-            Optuna trial object
-        epochs : int, optional
-            Number of epochs to train the model, by default 100
-        
-        Returns
-        -------
-        float
-            RMSE of the model
+        network_params : dict[str, Any]
+            Network parameters for the model
+        n_trials : int, optional
+            Number of trials to run, by default 1
+        study_name : str, optional
+            Name of the study, by default "NN_Ablation_Optimization"
+        load_if_exists : bool, optional
+            Load the study if it exists, by default True
+        n_jobs : int, optional
+            Number of jobs to run in parallel, by default 1
         '''
 
-        # For each epoch
-        for epoch in range(epochs):
-            # Set the model to training mode
-            model.train()
-
-            # Set the running loss to 0            
-            running_loss = 0.0
-
-            # If the train loader is a multi branch dataset
-            if isinstance(train_loader.dataset, MultiBranchCustomDataset):
-                # For each batch in the train loader
-                for i, (inputs1, inputs2, inputs3, labels) in enumerate(train_loader):
-                    # Zero the gradients
-                    optimizer.zero_grad()
-
-                    outputs = model([inputs1, inputs2, inputs3])             # Forward pass
-                    loss = criterion(outputs, labels.view(-1, 1))            # Calculate the loss
-                    loss.backward()                                          # Backward pass
-                    nn.utils.clip_grad_norm_(model.parameters(), clip_grad)  # Clip the gradients
-                    optimizer.step()                                         # Update weights
-
-                    # Accumulate the loss
-                    running_loss = running_loss + loss.item()
-            else:
-                # For each batch in the train loader
-                for i, (inputs, labels) in enumerate(train_loader):
-                    # Zero the gradients
-                    optimizer.zero_grad()
-
-                    outputs = model(inputs)                                  # Forward pass
-                    loss = criterion(outputs, labels.view(-1, 1))            # Calculate the loss
-                    loss.backward()                                          # Backward pass
-                    nn.utils.clip_grad_norm_(model.parameters(), clip_grad)  # Clip the gradients
-                    optimizer.step()                                         # Update weights
-
-                    # Accumulate the loss
-                    running_loss = running_loss + loss.item()
-
-            # Set the model to evaluation mode
-            model.eval()
-
-            # Set the running loss to 0.0
-            running_loss = 0.0
-
-            # Set the predictions and labels to empty lists
-            all_predictions = []
-            all_labels = []
-
-            # If the test loader is a list
-            if isinstance(test_loader.dataset, MultiBranchCustomDataset):
-                # For each batch in the test loader
-                for inputs1, inputs2, inputs3, labels in test_loader:
-                    # Get the predictions
-                    predicted = model([inputs1, inputs2, inputs3])
-
-                    # Calculate the loss
-                    loss = criterion(predicted, labels.view(-1, 1))
-
-                    # Accumulate the loss
-                    running_loss = running_loss + loss.item()
-                    
-                    # Extend the predictions and labels lists while detaching them from the GPU
-                    all_predictions.extend(predicted.cpu().detach().numpy())
-
-                    # Do the same for the labels
-                    all_labels.extend(labels.cpu().detach().numpy())
-            else:
-                # For each batch in the test loader
-                for inputs, labels in test_loader:
-                    # Get the predictions
-                    predicted = model(inputs)
-
-                    # Calculate the loss
-                    loss = criterion(predicted, labels.view(-1, 1))
-
-                    # Accumulate the loss
-                    running_loss = running_loss + loss.item()
-                    
-                    # Extend the predictions and labels lists while detaching them from the GPU
-                    all_predictions.extend(predicted.cpu().detach().numpy())
-
-                    # Do the same for the labels
-                    all_labels.extend(labels.cpu().detach().numpy())
-
-        # Get the RMSE
-        average_loss = running_loss / len(test_loader) # type: ignore
-
-        # Calculate the RMSE
-        rmse = np.sqrt(average_loss)
-
-        # If the verbose flag is set to True, print the results
+        # If verbose is set to True, print the optimization process info
         if self.verbose:
-            ocprint.printv(f'Test Loss: {average_loss}')
-            ocprint.printv(f'Test RMSE: {rmse}')
-
-        # Report the RMSE to Optuna
-        trial.report(rmse, epoch)
+            ocprint.printv("Starting ablation study...")
         
-        # Handle pruning based on the intermediate value.
-        if trial.should_prune():
-            raise optuna.exceptions.TrialPruned()
+        try:
+            # Set the network parameters
+            self.network_params = network_params
 
+            # Create the study
+            study = optuna.create_study(
+                study_name=study_name, 
+                storage=self.storage, 
+                load_if_exists=load_if_exists,
+            )
 
-        return rmse
+            # Optimize the study
+            study.optimize(self.objective_ablation, n_trials=n_trials, n_jobs=n_jobs)
 
+            # If Verbose is set to True, print the optimization process info
+            if self.verbose:
+                ocprint.printv("Finished Ablation Study. Best trial:")
+                ocprint.printv(f"{study.best_trial}")
+        except Exception as e:
+            ocprint.print_error(f"An error occurred: {e}")
 
     def objective(self, trial : optuna.Trial) -> float:
         ''' Objective function for the Optuna study
@@ -1785,7 +1643,6 @@ class DNNOptimizer:
 
         return test_loss
 
-
     def objective_ablation(self, trial : optuna.Trial) -> float:
         ''' Objective function for the Optuna study for the ablation study
 
@@ -1859,7 +1716,6 @@ class DNNOptimizer:
 
         return model.rmse # type: ignore
 
-
     def optimize(self,
                  direction: str = "maximize",
                  n_trials : int = 10,
@@ -1914,54 +1770,175 @@ class DNNOptimizer:
 
             ocprint.printv(f"Best Hyperparameters: {best_params}")
 
+    def set_random_seed(self) -> None:
+        '''Set the random seed for the Autoencoder. It is used to set the random seed for the Autoencoder.'''
 
-    def ablate(self,
-               network_params: dict[str, Any],
-               n_trials : int = 1,
-               study_name : str = "NN_Ablation_Optimization",
-               load_if_exists : bool = True,
-               n_jobs : int = 1
-               ) -> None:
-        ''' Perform an ablation study on the model. Here Optuna will not optimize the model, but will just run the trials with the given parameters and log them in the database.
+        # Set the random seed for numpy and random
+        np.random.seed(self.random_seed)
+        random.seed(self.random_seed)
+
+        # If using GPU, set the seed for GPU as well
+        if self.use_gpu and torch.cuda.is_available():
+            self.device = torch.device('cuda')
+            torch.cuda.manual_seed_all(self.random_seed)
+        else:
+            self.device = torch.device('cpu')
+
+        # Set the seed for CPU
+        torch.manual_seed(self.random_seed)
+        
+        # This is not recommended for performance since it will disable the cudnn auto-tuner (reason why it is commented)
+        #torch.backends.cudnn.enabled = False
+
+        # Set the backends for reproducibility
+        torch.backends.cudnn.benchmark = False
+
+        torch.backends.cudnn.deterministic = True
+
+    def train_test_model(self,
+                         model : nn.Module,
+                         train_loader : DataLoader,
+                         test_loader : DataLoader,
+                         optimizer : optim.Optimizer,
+                         criterion : nn.Module,
+                         clip_grad : float,
+                         trial : optuna.Trial,
+                         epochs : int = 100) -> float:
+        ''' Train and test the model
 
         Parameters
         ----------
-        network_params : dict[str, Any]
-            Network parameters for the model
-        n_trials : int, optional
-            Number of trials to run, by default 1
-        study_name : str, optional
-            Name of the study, by default "NN_Ablation_Optimization"
-        load_if_exists : bool, optional
-            Load the study if it exists, by default True
-        n_jobs : int, optional
-            Number of jobs to run in parallel, by default 1
+        model : nn.Module
+            Model to train and test
+        train_loader : DataLoader
+            DataLoader for the training data
+        test_loader : DataLoader
+            DataLoader for the testing data
+        optimizer : optim.Optimizer
+            Optimizer for the model
+        criterion : nn.Module
+            Loss function for the model
+        clip_grad : float
+            Gradient clipping value
+        trial : optuna.Trial
+            Optuna trial object
+        epochs : int, optional
+            Number of epochs to train the model, by default 100
+        
+        Returns
+        -------
+        float
+            RMSE of the model
         '''
 
-        # If verbose is set to True, print the optimization process info
+        # For each epoch
+        for epoch in range(epochs):
+            # Set the model to training mode
+            model.train()
+
+            # Set the running loss to 0            
+            running_loss = 0.0
+
+            # If the train loader is a multi branch dataset
+            if isinstance(train_loader.dataset, MultiBranchCustomDataset):
+                # For each batch in the train loader
+                for i, (inputs1, inputs2, inputs3, labels) in enumerate(train_loader):
+                    # Zero the gradients
+                    optimizer.zero_grad()
+
+                    outputs = model([inputs1, inputs2, inputs3])             # Forward pass
+                    loss = criterion(outputs, labels.view(-1, 1))            # Calculate the loss
+                    loss.backward()                                          # Backward pass
+                    nn.utils.clip_grad_norm_(model.parameters(), clip_grad)  # Clip the gradients
+                    optimizer.step()                                         # Update weights
+
+                    # Accumulate the loss
+                    running_loss = running_loss + loss.item()
+            else:
+                # For each batch in the train loader
+                for i, (inputs, labels) in enumerate(train_loader):
+                    # Zero the gradients
+                    optimizer.zero_grad()
+
+                    outputs = model(inputs)                                  # Forward pass
+                    loss = criterion(outputs, labels.view(-1, 1))            # Calculate the loss
+                    loss.backward()                                          # Backward pass
+                    nn.utils.clip_grad_norm_(model.parameters(), clip_grad)  # Clip the gradients
+                    optimizer.step()                                         # Update weights
+
+                    # Accumulate the loss
+                    running_loss = running_loss + loss.item()
+
+            # Set the model to evaluation mode
+            model.eval()
+
+            # Set the running loss to 0.0
+            running_loss = 0.0
+
+            # Set the predictions and labels to empty lists
+            all_predictions = []
+            all_labels = []
+
+            # If the test loader is a list
+            if isinstance(test_loader.dataset, MultiBranchCustomDataset):
+                # For each batch in the test loader
+                for inputs1, inputs2, inputs3, labels in test_loader:
+                    # Get the predictions
+                    predicted = model([inputs1, inputs2, inputs3])
+
+                    # Calculate the loss
+                    loss = criterion(predicted, labels.view(-1, 1))
+
+                    # Accumulate the loss
+                    running_loss = running_loss + loss.item()
+                    
+                    # Extend the predictions and labels lists while detaching them from the GPU
+                    all_predictions.extend(predicted.cpu().detach().numpy())
+
+                    # Do the same for the labels
+                    all_labels.extend(labels.cpu().detach().numpy())
+            else:
+                # For each batch in the test loader
+                for inputs, labels in test_loader:
+                    # Get the predictions
+                    predicted = model(inputs)
+
+                    # Calculate the loss
+                    loss = criterion(predicted, labels.view(-1, 1))
+
+                    # Accumulate the loss
+                    running_loss = running_loss + loss.item()
+                    
+                    # Extend the predictions and labels lists while detaching them from the GPU
+                    all_predictions.extend(predicted.cpu().detach().numpy())
+
+                    # Do the same for the labels
+                    all_labels.extend(labels.cpu().detach().numpy())
+
+        # Get the RMSE
+        average_loss = running_loss / len(test_loader) # type: ignore
+
+        # Calculate the RMSE
+        rmse = np.sqrt(average_loss)
+
+        # If the verbose flag is set to True, print the results
         if self.verbose:
-            ocprint.printv("Starting ablation study...")
+            ocprint.printv(f'Test Loss: {average_loss}')
+            ocprint.printv(f'Test RMSE: {rmse}')
+
+        # Report the RMSE to Optuna
+        trial.report(rmse, epoch)
         
-        try:
-            # Set the network parameters
-            self.network_params = network_params
+        # Handle pruning based on the intermediate value.
+        if trial.should_prune():
+            raise optuna.exceptions.TrialPruned()
 
-            # Create the study
-            study = optuna.create_study(
-                study_name=study_name, 
-                storage=self.storage, 
-                load_if_exists=load_if_exists,
-            )
 
-            # Optimize the study
-            study.optimize(self.objective_ablation, n_trials=n_trials, n_jobs=n_jobs)
+        return rmse
 
-            # If Verbose is set to True, print the optimization process info
-            if self.verbose:
-                ocprint.printv("Finished Ablation Study. Best trial:")
-                ocprint.printv(f"{study.best_trial}")
-        except Exception as e:
-            ocprint.print_error(f"An error occurred: {e}")
 
-# Methods
+# Functions
 ###############################################################################
+## Private ##
+
+## Public ##

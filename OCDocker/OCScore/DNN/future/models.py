@@ -6,14 +6,14 @@
 
 # Imports
 ###############################################################################
-
 from __future__ import annotations
 
-from typing import Any, Dict, List, Tuple, Union
-
 import torch
+
 import torch.nn as nn
 import torch.nn.functional as F
+
+from typing import Any, Dict, List, Tuple, Union
 
 # License
 ###############################################################################
@@ -34,8 +34,6 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 # Classes
 ###############################################################################
-
-
 class MLP(nn.Module):
     """Simple MLP with optional batch norm and dropout.
 
@@ -119,6 +117,7 @@ class MLP(nn.Module):
         '''
 
         return self.net(x)
+
 
 
 class MultiTaskModel(nn.Module):
@@ -298,8 +297,11 @@ class MultiTaskModel(nn.Module):
         }
 
 
-# Methods
+
+# Functions
 ###############################################################################
+## Private ##
+
 def _build_activation(name: str, params: Dict[str, Any]) -> nn.Module:
     '''Build activation module from name and parameters.
 
@@ -337,6 +339,8 @@ def _build_activation(name: str, params: Dict[str, Any]) -> nn.Module:
 
     return nn.ReLU()
 
+
+## Public ##
 
 def parse_encoder_params(encoder_params: Dict[str, Any]) -> Tuple[List[int], List[Tuple[str, Dict[str, Any]]]]:
     '''Parse old-style encoder params into layer sizes and activation configs.
