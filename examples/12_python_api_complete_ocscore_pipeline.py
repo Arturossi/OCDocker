@@ -106,15 +106,18 @@ USE_MULTIPROCESSING = True  # Set to False to process ligands sequentially
 ###############################################################################
 
 # Imports
+import argparse
 import os
-from typing import Optional
+import time
+
 import numpy as np
 import pandas as pd
-import argparse
-import time
+
 from glob import glob
-import OCDocker.Initialise as init
+from typing import Optional
+
 import OCDocker.Error as ocerror
+import OCDocker.Initialise as init
 
 # Explicitly bootstrap OCDocker with the specified config file BEFORE other imports
 # This ensures the config is loaded correctly regardless of working directory
@@ -140,18 +143,18 @@ else:
     os.environ.pop('OCDOCKER_NO_AUTO_BOOTSTRAP', None)
 
 # Now import other OCDocker modules (they won't trigger auto-bootstrap since we already bootstrapped)
-import OCDocker.Receptor as ocr
-import OCDocker.Ligand as ocl
-import OCDocker.Docking.Vina as ocvina
 import OCDocker.Docking.PLANTS as ocplants
 import OCDocker.Docking.Smina as ocsmina
+import OCDocker.Docking.Vina as ocvina
+import OCDocker.Ligand as ocl
+import OCDocker.OCScore.Scoring as ocscoring
+import OCDocker.OCScore.Utils.Data as ocscoredata
+import OCDocker.OCScore.Utils.IO as ocscoreio
+import OCDocker.Processing.Preprocessing.RmsdClustering as ocrmsdclust
+import OCDocker.Receptor as ocr
+import OCDocker.Rescoring.ODDT as ocoddt
 import OCDocker.Toolbox.Conversion as occonversion
 import OCDocker.Toolbox.MoleculeProcessing as ocmolproc
-import OCDocker.Processing.Preprocessing.RmsdClustering as ocrmsdclust
-import OCDocker.Rescoring.ODDT as ocoddt
-import OCDocker.OCScore.Scoring as ocscoring
-import OCDocker.OCScore.Utils.IO as ocscoreio
-import OCDocker.OCScore.Utils.Data as ocscoredata
 
 # Configure sklearn/joblib to use threading backend for parallel execution
 # This allows sklearn models to use multiple threads while main process uses multiprocessing
@@ -176,6 +179,257 @@ except (ImportError, AttributeError):
     JOBLIB_AVAILABLE = False
     USE_MULTIPROCESSING = False
     print("Warning: joblib not available. Multiprocessing disabled.")
+
+def main():
+    '''Main function to process all ligands.'''
+    
+    # OCDocker auto-bootstraps on import, so configuration is already loaded
+    # If you need to verify bootstrap or use custom settings, you can:
+    # 1. Set OCDOCKER_NO_AUTO_BOOTSTRAP=1 environment variable
+    # 2. Import OCDocker.Initialise and call bootstrap() explicitly
+    
+    # Automatically derive ligand names from paths (last folder name)
+    ligand_names = [os.path.basename(os.path.normpath(path)) for path in LIGAND_PATHS]
+    
+    # Create receptor object
+    receptor = ocr.Receptor(RECEPTOR_PATH, name=RECEPTOR_NAME)
+    
+    # Prepare list of (ligand_path, ligand_name) tuples
+    ligand_tasks = list(zip(LIGAND_PATHS, ligand_names))
+    
+    print(f"\n{'='*60}")
+    print(f"OCSCORE PIPELINE")
+    print(f"{'='*60}")
+    print(f"Receptor: {RECEPTOR_NAME}")
+    print(f"Number of ligands: {len(ligand_tasks)}")
+    print(f"Use mask: {USE_MASK}")
+    print(f"Multiprocessing: {USE_MULTIPROCESSING}")
+    if USE_MULTIPROCESSING:
+        print(f"Number of jobs: {N_JOBS}")
+    print(f"{'='*60}\n")
+    
+    # Process ligands
+    if USE_MULTIPROCESSING and JOBLIB_AVAILABLE and len(ligand_tasks) > 1:
+        # Use joblib for parallel processing
+        print(f"Processing {len(ligand_tasks)} ligands in parallel using {N_JOBS} cores...")
+        results = Parallel(n_jobs=N_JOBS)(
+            delayed(process_single_ligand)(ligand_path, ligand_name, receptor)
+            for ligand_path, ligand_name in ligand_tasks
+        )
+    else:
+        # Process sequentially
+        print(f"Processing {len(ligand_tasks)} ligands sequentially...")
+        results = []
+        for ligand_path, ligand_name in ligand_tasks:
+            print(f"Processing ligand: {ligand_name}")
+            result = process_single_ligand(ligand_path, ligand_name, receptor)
+            results.append(result)
+    
+    # Filter out None results (failed processing)
+    results = [r for r in results if r is not None]
+    
+    if not results:
+        print("No ligands were successfully processed.")
+        return
+    
+    # Batch all ligands together for model inference
+    # This ensures proper normalization (scaler fit on all data, not single rows)
+    print(f"\n{'='*60}")
+    print(f"BATCH MODEL INFERENCE")
+    print(f"{'='*60}")
+    
+    # Convert all results to a single DataFrame
+    if results:
+        # Get all unique keys from all dictionaries
+        all_keys = set()
+        for result in results:
+            if result is not None:
+                all_keys.update(result.keys())
+        
+        # Ensure all dictionaries have all keys (fill missing with None)
+        normalized_results = []
+        for result in results:
+            if result is not None:
+                normalized_result = {key: result.get(key, None) for key in all_keys}
+                normalized_results.append(normalized_result)
+        
+        # Create DataFrame from normalized dictionaries
+        feature_df = pd.DataFrame(normalized_results)
+    else:
+        feature_df = pd.DataFrame()
+    
+    if feature_df.empty:
+        print("No features to process for model inference.")
+        return
+    
+    # Path to your trained model
+    model_path = f"{MODELS_DIR}/{MODEL_NAME}.pt"
+    mask_path = f"{MODELS_DIR}/{MODEL_NAME}_mask.pkl"
+    scaler_path = f"{MODELS_DIR}/{MODEL_NAME}_scaler.pkl"  # Path to saved scaler
+    
+    # Load the mask if it exists
+    mask = None
+    if os.path.isfile(mask_path) and USE_MASK:
+        try:
+            mask = ocscoreio.load_mask(MODEL_NAME, models_dir=MODELS_DIR)
+        except Exception as e:
+            print(f"Warning: Could not load mask: {e}")
+            mask = None
+    
+    # Check if scaler exists (required for proper normalization)
+    if NORMALIZE and not os.path.isfile(scaler_path):
+        print(f"WARNING: Scaler file not found at {scaler_path}")
+        print("  This means normalization will use a NEW scaler fitted on prediction data,")
+        print("  which is INCORRECT. The scaler should be saved during training.")
+        print("  Predictions may be inaccurate!")
+        scaler_path = None  # Will create new scaler (incorrect but won't crash)
+    elif NORMALIZE:
+        print(f"Using saved scaler from: {scaler_path}")
+    
+    # Get OCScore predictions for all ligands at once
+    try:
+        print(f"Running model inference on {len(feature_df)} ligands...")
+        print(f"Feature DataFrame shape: {feature_df.shape}")
+        
+        ocscore_predictions = ocscoring.get_score(
+            model_path=model_path,
+            data=feature_df,
+            pca_model=PCA_MODEL_PATH,
+            mask=mask,
+            score_columns_list=SCORE_COLUMNS_LIST,
+            scaler=SCALER,
+            scaler_path=scaler_path if NORMALIZE else None,  # Use saved scaler if normalization is enabled
+            invert_conditionally=INVERT_CONDITIONALLY,
+            normalize=NORMALIZE,
+            serialization_method="auto",  # Auto-detect model format
+            use_gpu=USE_GPU  # Use GPU if available and USE_GPU=True
+        )
+        
+        if isinstance(ocscore_predictions, pd.DataFrame):
+            print(f"Prediction DataFrame shape: {ocscore_predictions.shape}")
+            print(f"Prediction DataFrame columns: {list(ocscore_predictions.columns)}")
+            if 'predicted_score' in ocscore_predictions.columns:
+                print(f"All predicted_score values: {ocscore_predictions['predicted_score'].tolist()}")
+                print(f"Unique predicted_score values: {ocscore_predictions['predicted_score'].nunique()}")
+        elif isinstance(ocscore_predictions, (pd.Series, np.ndarray)):
+            predictions_array = np.asarray(ocscore_predictions)
+            print(f"Prediction array shape: {predictions_array.shape}")
+            print(f"All prediction values: {predictions_array.tolist()}")
+            print(f"Unique prediction values: {len(np.unique(predictions_array))}")
+        
+        # Add OCScore predictions to results
+        if isinstance(ocscore_predictions, pd.DataFrame):
+            if 'predicted_score' in ocscore_predictions.columns:
+                # Map predictions back to results by index
+                for idx, result in enumerate(results):
+                    if result is not None and idx < len(ocscore_predictions):
+                        result['OCSCORE'] = ocscore_predictions['predicted_score'].iloc[idx]
+                        print(f"  Mapped prediction {idx} to ligand {result.get('ligand', 'unknown')}: {result['OCSCORE']}")
+            elif len(ocscore_predictions.columns) == 1:
+                # Single prediction column
+                for idx, result in enumerate(results):
+                    if result is not None and idx < len(ocscore_predictions):
+                        result['OCSCORE'] = ocscore_predictions.iloc[idx, 0]
+            else:
+                # Try to find a numeric column
+                numeric_cols = ocscore_predictions.select_dtypes(include=[np.number]).columns
+                if len(numeric_cols) > 0:
+                    for idx, result in enumerate(results):
+                        if result is not None and idx < len(ocscore_predictions):
+                            result['OCSCORE'] = ocscore_predictions[numeric_cols[0]].iloc[idx]
+        elif isinstance(ocscore_predictions, (pd.Series, np.ndarray)):
+            # Array/Series of predictions
+            predictions_array = np.asarray(ocscore_predictions)
+            for idx, result in enumerate(results):
+                if result is not None and idx < len(predictions_array):
+                    result['OCSCORE'] = float(predictions_array[idx])
+        
+        print(f"Model inference completed for {len(results)} ligands.")
+        
+    except FileNotFoundError as e:
+        print(f"Warning: Model file not found: {e}")
+        for result in results:
+            if result is not None:
+                result['OCSCORE'] = None
+    except Exception as e:
+        print(f"Error during model inference: {e}")
+        import traceback
+        traceback.print_exc()
+        for result in results:
+            if result is not None:
+                result['OCSCORE'] = None
+    
+    # Convert results to DataFrame
+    # Use orient='index' and transpose to preserve order, then convert properly
+    # First, ensure all dictionaries have the same keys (fill missing with None)
+    if results:
+        # Get all unique keys from all dictionaries
+        all_keys = set()
+        for result in results:
+            if result is not None:
+                all_keys.update(result.keys())
+        
+        # Ensure all dictionaries have all keys (fill missing with None)
+        normalized_results = []
+        for result in results:
+            if result is not None:
+                normalized_result = {key: result.get(key, None) for key in all_keys}
+                normalized_results.append(normalized_result)
+            else:
+                normalized_results.append({key: None for key in all_keys})
+        
+        # Create DataFrame from normalized dictionaries
+        results_df = pd.DataFrame(normalized_results)
+    else:
+        results_df = pd.DataFrame()
+    
+    # Reorder columns to match the data source order (from training data file)
+    # !!! CRITICAL: This ensures all columns (especially SFs) are in the exact same order
+    # as the training data, which is essential for proper mask application and model inference!
+    if not results_df.empty:
+        # Get the column order from config (no file path needed)
+        # Uses reference_column_order from OCDocker.cfg
+        source_order = ocscoredata.get_column_order()  # Uses config by default
+        
+        # Use the reorder function to match the config column order
+        # This handles OCSCORE insertion and extra columns automatically
+        results_df = ocscoredata.reorder_columns_to_match_data_order(
+            df=results_df,
+            data_source=None,  # Uses config.reference_column_order by default
+            keep_extra_columns=True,  # Keep OCSCORE and any other extra columns
+            fill_missing_columns=False  # Don't add missing columns as NaN
+        )
+        
+        # Manually insert OCSCORE right after 'ligand' if it exists
+        if 'OCSCORE' in results_df.columns:
+            cols = list(results_df.columns)
+            if 'ligand' in cols:
+                # Remove OCSCORE from current position
+                cols.remove('OCSCORE')
+                # Insert after 'ligand'
+                ligand_idx = cols.index('ligand')
+                cols.insert(ligand_idx + 1, 'OCSCORE')
+                results_df = results_df[cols]
+    
+    # Print summary
+    print(f"\n{'='*60}")
+    print(f"PROCESSING COMPLETE")
+    print(f"{'='*60}")
+    print(f"Successfully processed: {len(results)}/{len(ligand_tasks)} ligands")
+    if 'OCSCORE' in results_df.columns:
+        print(f"OCScore predictions: {results_df['OCSCORE'].notna().sum()}/{len(results_df)}")
+        if results_df['OCSCORE'].notna().any():
+            print(f"OCScore range: {results_df['OCSCORE'].min():.4f} - {results_df['OCSCORE'].max():.4f}")
+    print(f"{'='*60}\n")
+    
+    # Save to file if requested
+    if SAVE_TO_FILE and OUTPUT_FILE:
+        output_path = OUTPUT_FILE
+        results_df.to_csv(output_path, index=False)
+        print(f"Results saved to: {output_path}")
+    
+    return results_df
+
 
 # Mapping function to convert rescoring keys to database column names
 def map_rescoring_key_to_db_column(key: str, engine: Optional[str] = None) -> str:
@@ -355,123 +609,6 @@ def map_rescoring_key_to_db_column(key: str, engine: Optional[str] = None) -> st
     
     # If no mapping found, return uppercase version of the key
     return key.upper()
-
-
-def wait_for_files_ready(file_paths: list, max_wait: float = 8.0, check_interval: float = 0.2) -> bool:
-    '''Wait for all files in a list to exist, be stable, and be readable.
-    
-    Parameters
-    ----------
-    file_paths : list
-        List of file paths to wait for
-    max_wait : float
-        Maximum time to wait in seconds
-    check_interval : float
-        Time between checks in seconds
-    
-    Returns
-    -------
-    bool
-        True if all files are ready, False if timeout
-    '''
-    
-    if not file_paths:
-        return True
-    
-    start_time = time.time()
-    ready_files = set()
-    
-    while time.time() - start_time < max_wait:
-        all_ready = True
-        for file_path in file_paths:
-            if file_path in ready_files:
-                continue
-                
-            if wait_for_file_stable(file_path, max_wait=check_interval * 2, check_interval=check_interval / 2):
-                ready_files.add(file_path)
-            else:
-                all_ready = False
-        
-        if all_ready and len(ready_files) == len(file_paths):
-            return True
-        
-        time.sleep(check_interval)
-    
-    return len(ready_files) == len(file_paths)
-
-
-def wait_for_file_stable(file_path: str, max_wait: float = 5.0, check_interval: float = 0.1) -> bool:
-    '''Wait for a file to stabilize (size stops changing).
-    
-    Parameters
-    ----------
-    file_path : str
-        Path to the file to check
-    max_wait : float
-        Maximum time to wait in seconds
-    check_interval : float
-        Time between checks in seconds
-    
-    Returns
-    -------
-    bool
-        True if file stabilized, False if timeout
-    '''
-
-    if not os.path.isfile(file_path):
-        return False
-    
-    start_time = time.time()
-    last_size = -1
-    stable_count = 0
-    required_stable_checks = 3  # File must be stable for 3 consecutive checks
-    
-    while time.time() - start_time < max_wait:
-        try:
-            current_size = os.path.getsize(file_path)
-            
-            if current_size == last_size:
-                stable_count += 1
-                if stable_count >= required_stable_checks:
-                    return True
-            else:
-                stable_count = 0
-                last_size = current_size
-            
-            time.sleep(check_interval)
-        except (OSError, IOError):
-            # File might be locked or deleted
-            time.sleep(check_interval)
-            continue
-    
-    return False
-
-
-def validate_molecule_file(file_path: str) -> bool:
-    '''Validate that a molecule file can be loaded and is complete.
-    
-    Parameters
-    ----------
-    file_path : str
-        Path to the molecule file
-    
-    Returns
-    -------
-    bool
-        True if file is valid and can be loaded
-    '''
-
-    from OCDocker.Toolbox import Validation as ocvalidation
-    
-    # First check if file is stable (not being written)
-    if not wait_for_file_stable(file_path, max_wait=2.0):
-        return False
-    
-    # Then validate the molecule structure
-    try:
-        return ocvalidation.is_molecule_valid(file_path)
-    except Exception:
-        return False
 
 
 def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Receptor) -> Optional[dict]:
@@ -933,255 +1070,121 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
         return None
 
 
-def main():
-    '''Main function to process all ligands.'''
+def validate_molecule_file(file_path: str) -> bool:
+    '''Validate that a molecule file can be loaded and is complete.
     
-    # OCDocker auto-bootstraps on import, so configuration is already loaded
-    # If you need to verify bootstrap or use custom settings, you can:
-    # 1. Set OCDOCKER_NO_AUTO_BOOTSTRAP=1 environment variable
-    # 2. Import OCDocker.Initialise and call bootstrap() explicitly
+    Parameters
+    ----------
+    file_path : str
+        Path to the molecule file
     
-    # Automatically derive ligand names from paths (last folder name)
-    ligand_names = [os.path.basename(os.path.normpath(path)) for path in LIGAND_PATHS]
+    Returns
+    -------
+    bool
+        True if file is valid and can be loaded
+    '''
+
+    from OCDocker.Toolbox import Validation as ocvalidation
     
-    # Create receptor object
-    receptor = ocr.Receptor(RECEPTOR_PATH, name=RECEPTOR_NAME)
+    # First check if file is stable (not being written)
+    if not wait_for_file_stable(file_path, max_wait=2.0):
+        return False
     
-    # Prepare list of (ligand_path, ligand_name) tuples
-    ligand_tasks = list(zip(LIGAND_PATHS, ligand_names))
-    
-    print(f"\n{'='*60}")
-    print(f"OCSCORE PIPELINE")
-    print(f"{'='*60}")
-    print(f"Receptor: {RECEPTOR_NAME}")
-    print(f"Number of ligands: {len(ligand_tasks)}")
-    print(f"Use mask: {USE_MASK}")
-    print(f"Multiprocessing: {USE_MULTIPROCESSING}")
-    if USE_MULTIPROCESSING:
-        print(f"Number of jobs: {N_JOBS}")
-    print(f"{'='*60}\n")
-    
-    # Process ligands
-    if USE_MULTIPROCESSING and JOBLIB_AVAILABLE and len(ligand_tasks) > 1:
-        # Use joblib for parallel processing
-        print(f"Processing {len(ligand_tasks)} ligands in parallel using {N_JOBS} cores...")
-        results = Parallel(n_jobs=N_JOBS)(
-            delayed(process_single_ligand)(ligand_path, ligand_name, receptor)
-            for ligand_path, ligand_name in ligand_tasks
-        )
-    else:
-        # Process sequentially
-        print(f"Processing {len(ligand_tasks)} ligands sequentially...")
-        results = []
-        for ligand_path, ligand_name in ligand_tasks:
-            print(f"Processing ligand: {ligand_name}")
-            result = process_single_ligand(ligand_path, ligand_name, receptor)
-            results.append(result)
-    
-    # Filter out None results (failed processing)
-    results = [r for r in results if r is not None]
-    
-    if not results:
-        print("No ligands were successfully processed.")
-        return
-    
-    # Batch all ligands together for model inference
-    # This ensures proper normalization (scaler fit on all data, not single rows)
-    print(f"\n{'='*60}")
-    print(f"BATCH MODEL INFERENCE")
-    print(f"{'='*60}")
-    
-    # Convert all results to a single DataFrame
-    if results:
-        # Get all unique keys from all dictionaries
-        all_keys = set()
-        for result in results:
-            if result is not None:
-                all_keys.update(result.keys())
-        
-        # Ensure all dictionaries have all keys (fill missing with None)
-        normalized_results = []
-        for result in results:
-            if result is not None:
-                normalized_result = {key: result.get(key, None) for key in all_keys}
-                normalized_results.append(normalized_result)
-        
-        # Create DataFrame from normalized dictionaries
-        feature_df = pd.DataFrame(normalized_results)
-    else:
-        feature_df = pd.DataFrame()
-    
-    if feature_df.empty:
-        print("No features to process for model inference.")
-        return
-    
-    # Path to your trained model
-    model_path = f"{MODELS_DIR}/{MODEL_NAME}.pt"
-    mask_path = f"{MODELS_DIR}/{MODEL_NAME}_mask.pkl"
-    scaler_path = f"{MODELS_DIR}/{MODEL_NAME}_scaler.pkl"  # Path to saved scaler
-    
-    # Load the mask if it exists
-    mask = None
-    if os.path.isfile(mask_path) and USE_MASK:
-        try:
-            mask = ocscoreio.load_mask(MODEL_NAME, models_dir=MODELS_DIR)
-        except Exception as e:
-            print(f"Warning: Could not load mask: {e}")
-            mask = None
-    
-    # Check if scaler exists (required for proper normalization)
-    if NORMALIZE and not os.path.isfile(scaler_path):
-        print(f"WARNING: Scaler file not found at {scaler_path}")
-        print("  This means normalization will use a NEW scaler fitted on prediction data,")
-        print("  which is INCORRECT. The scaler should be saved during training.")
-        print("  Predictions may be inaccurate!")
-        scaler_path = None  # Will create new scaler (incorrect but won't crash)
-    elif NORMALIZE:
-        print(f"Using saved scaler from: {scaler_path}")
-    
-    # Get OCScore predictions for all ligands at once
+    # Then validate the molecule structure
     try:
-        print(f"Running model inference on {len(feature_df)} ligands...")
-        print(f"Feature DataFrame shape: {feature_df.shape}")
-        
-        ocscore_predictions = ocscoring.get_score(
-            model_path=model_path,
-            data=feature_df,
-            pca_model=PCA_MODEL_PATH,
-            mask=mask,
-            score_columns_list=SCORE_COLUMNS_LIST,
-            scaler=SCALER,
-            scaler_path=scaler_path if NORMALIZE else None,  # Use saved scaler if normalization is enabled
-            invert_conditionally=INVERT_CONDITIONALLY,
-            normalize=NORMALIZE,
-            serialization_method="auto",  # Auto-detect model format
-            use_gpu=USE_GPU  # Use GPU if available and USE_GPU=True
-        )
-        
-        if isinstance(ocscore_predictions, pd.DataFrame):
-            print(f"Prediction DataFrame shape: {ocscore_predictions.shape}")
-            print(f"Prediction DataFrame columns: {list(ocscore_predictions.columns)}")
-            if 'predicted_score' in ocscore_predictions.columns:
-                print(f"All predicted_score values: {ocscore_predictions['predicted_score'].tolist()}")
-                print(f"Unique predicted_score values: {ocscore_predictions['predicted_score'].nunique()}")
-        elif isinstance(ocscore_predictions, (pd.Series, np.ndarray)):
-            predictions_array = np.asarray(ocscore_predictions)
-            print(f"Prediction array shape: {predictions_array.shape}")
-            print(f"All prediction values: {predictions_array.tolist()}")
-            print(f"Unique prediction values: {len(np.unique(predictions_array))}")
-        
-        # Add OCScore predictions to results
-        if isinstance(ocscore_predictions, pd.DataFrame):
-            if 'predicted_score' in ocscore_predictions.columns:
-                # Map predictions back to results by index
-                for idx, result in enumerate(results):
-                    if result is not None and idx < len(ocscore_predictions):
-                        result['OCSCORE'] = ocscore_predictions['predicted_score'].iloc[idx]
-                        print(f"  Mapped prediction {idx} to ligand {result.get('ligand', 'unknown')}: {result['OCSCORE']}")
-            elif len(ocscore_predictions.columns) == 1:
-                # Single prediction column
-                for idx, result in enumerate(results):
-                    if result is not None and idx < len(ocscore_predictions):
-                        result['OCSCORE'] = ocscore_predictions.iloc[idx, 0]
+        return ocvalidation.is_molecule_valid(file_path)
+    except Exception:
+        return False
+
+
+def wait_for_file_stable(file_path: str, max_wait: float = 5.0, check_interval: float = 0.1) -> bool:
+    '''Wait for a file to stabilize (size stops changing).
+    
+    Parameters
+    ----------
+    file_path : str
+        Path to the file to check
+    max_wait : float
+        Maximum time to wait in seconds
+    check_interval : float
+        Time between checks in seconds
+    
+    Returns
+    -------
+    bool
+        True if file stabilized, False if timeout
+    '''
+
+    if not os.path.isfile(file_path):
+        return False
+    
+    start_time = time.time()
+    last_size = -1
+    stable_count = 0
+    required_stable_checks = 3  # File must be stable for 3 consecutive checks
+    
+    while time.time() - start_time < max_wait:
+        try:
+            current_size = os.path.getsize(file_path)
+            
+            if current_size == last_size:
+                stable_count += 1
+                if stable_count >= required_stable_checks:
+                    return True
             else:
-                # Try to find a numeric column
-                numeric_cols = ocscore_predictions.select_dtypes(include=[np.number]).columns
-                if len(numeric_cols) > 0:
-                    for idx, result in enumerate(results):
-                        if result is not None and idx < len(ocscore_predictions):
-                            result['OCSCORE'] = ocscore_predictions[numeric_cols[0]].iloc[idx]
-        elif isinstance(ocscore_predictions, (pd.Series, np.ndarray)):
-            # Array/Series of predictions
-            predictions_array = np.asarray(ocscore_predictions)
-            for idx, result in enumerate(results):
-                if result is not None and idx < len(predictions_array):
-                    result['OCSCORE'] = float(predictions_array[idx])
-        
-        print(f"Model inference completed for {len(results)} ligands.")
-        
-    except FileNotFoundError as e:
-        print(f"Warning: Model file not found: {e}")
-        for result in results:
-            if result is not None:
-                result['OCSCORE'] = None
-    except Exception as e:
-        print(f"Error during model inference: {e}")
-        import traceback
-        traceback.print_exc()
-        for result in results:
-            if result is not None:
-                result['OCSCORE'] = None
+                stable_count = 0
+                last_size = current_size
+            
+            time.sleep(check_interval)
+        except (OSError, IOError):
+            # File might be locked or deleted
+            time.sleep(check_interval)
+            continue
     
-    # Convert results to DataFrame
-    # Use orient='index' and transpose to preserve order, then convert properly
-    # First, ensure all dictionaries have the same keys (fill missing with None)
-    if results:
-        # Get all unique keys from all dictionaries
-        all_keys = set()
-        for result in results:
-            if result is not None:
-                all_keys.update(result.keys())
-        
-        # Ensure all dictionaries have all keys (fill missing with None)
-        normalized_results = []
-        for result in results:
-            if result is not None:
-                normalized_result = {key: result.get(key, None) for key in all_keys}
-                normalized_results.append(normalized_result)
+    return False
+
+
+def wait_for_files_ready(file_paths: list, max_wait: float = 8.0, check_interval: float = 0.2) -> bool:
+    '''Wait for all files in a list to exist, be stable, and be readable.
+    
+    Parameters
+    ----------
+    file_paths : list
+        List of file paths to wait for
+    max_wait : float
+        Maximum time to wait in seconds
+    check_interval : float
+        Time between checks in seconds
+    
+    Returns
+    -------
+    bool
+        True if all files are ready, False if timeout
+    '''
+    
+    if not file_paths:
+        return True
+    
+    start_time = time.time()
+    ready_files = set()
+    
+    while time.time() - start_time < max_wait:
+        all_ready = True
+        for file_path in file_paths:
+            if file_path in ready_files:
+                continue
+                
+            if wait_for_file_stable(file_path, max_wait=check_interval * 2, check_interval=check_interval / 2):
+                ready_files.add(file_path)
             else:
-                normalized_results.append({key: None for key in all_keys})
+                all_ready = False
         
-        # Create DataFrame from normalized dictionaries
-        results_df = pd.DataFrame(normalized_results)
-    else:
-        results_df = pd.DataFrame()
-    
-    # Reorder columns to match the data source order (from training data file)
-    # !!! CRITICAL: This ensures all columns (especially SFs) are in the exact same order
-    # as the training data, which is essential for proper mask application and model inference!
-    if not results_df.empty:
-        # Get the column order from config (no file path needed)
-        # Uses reference_column_order from OCDocker.cfg
-        source_order = ocscoredata.get_column_order()  # Uses config by default
+        if all_ready and len(ready_files) == len(file_paths):
+            return True
         
-        # Use the reorder function to match the config column order
-        # This handles OCSCORE insertion and extra columns automatically
-        results_df = ocscoredata.reorder_columns_to_match_data_order(
-            df=results_df,
-            data_source=None,  # Uses config.reference_column_order by default
-            keep_extra_columns=True,  # Keep OCSCORE and any other extra columns
-            fill_missing_columns=False  # Don't add missing columns as NaN
-        )
-        
-        # Manually insert OCSCORE right after 'ligand' if it exists
-        if 'OCSCORE' in results_df.columns:
-            cols = list(results_df.columns)
-            if 'ligand' in cols:
-                # Remove OCSCORE from current position
-                cols.remove('OCSCORE')
-                # Insert after 'ligand'
-                ligand_idx = cols.index('ligand')
-                cols.insert(ligand_idx + 1, 'OCSCORE')
-                results_df = results_df[cols]
+        time.sleep(check_interval)
     
-    # Print summary
-    print(f"\n{'='*60}")
-    print(f"PROCESSING COMPLETE")
-    print(f"{'='*60}")
-    print(f"Successfully processed: {len(results)}/{len(ligand_tasks)} ligands")
-    if 'OCSCORE' in results_df.columns:
-        print(f"OCScore predictions: {results_df['OCSCORE'].notna().sum()}/{len(results_df)}")
-        if results_df['OCSCORE'].notna().any():
-            print(f"OCScore range: {results_df['OCSCORE'].min():.4f} - {results_df['OCSCORE'].max():.4f}")
-    print(f"{'='*60}\n")
-    
-    # Save to file if requested
-    if SAVE_TO_FILE and OUTPUT_FILE:
-        output_path = OUTPUT_FILE
-        results_df.to_csv(output_path, index=False)
-        print(f"Results saved to: {output_path}")
-    
-    return results_df
+    return len(ready_files) == len(file_paths)
 
 
 if __name__ == "__main__":

@@ -32,9 +32,13 @@ Usage:
 import argparse
 import os
 import sys
+
 import numpy as np
 import pandas as pd
-from typing import Optional, Any, List
+
+from sqlalchemy.orm import Session
+from typing import Any, List, Optional
+from urllib.parse import quote_plus, urlparse, urlunparse
 
 # Add parent directory to path to allow importing OCDocker
 # This allows the script to be run from any directory
@@ -45,41 +49,13 @@ if _parent_dir not in sys.path:
 
 # Import OCDocker modules
 import OCDocker.Initialise as init
+import OCDocker.OCScore.Optimization.XGBoost as ocxgb
 import OCDocker.OCScore.Utils.Data as ocscoredata
 import OCDocker.OCScore.Utils.IO as ocscoreio
-import OCDocker.OCScore.Optimization.XGBoost as ocxgb
-from OCDocker.OCScore.DNN.DNNOptimizer import DNNOptimizer
+
 from OCDocker.DB.DB import export_db_to_csv
 from OCDocker.DB.Models import Complexes, Ligands, Receptors
-from sqlalchemy.orm import Session
-from urllib.parse import urlparse, urlunparse, quote_plus
-
-
-def mask_password_in_url(url: str) -> str:
-    '''Mask password in a database URL for secure printing.
-    
-    Parameters
-    ----------
-    url : str
-        Database URL (e.g., mysql+pymysql://user:password@host:port/db)
-    
-    Returns
-    -------
-    str
-        URL with password masked (e.g., mysql+pymysql://user:***@host:port/db)
-    '''
-    try:
-        parsed = urlparse(url)
-        if parsed.password:
-            # Replace password with ***
-            masked_netloc = f"{parsed.username}:***@{parsed.hostname}"
-            if parsed.port:
-                masked_netloc += f":{parsed.port}"
-            return urlunparse(parsed._replace(netloc=masked_netloc))
-        return url
-    except Exception:
-        # If parsing fails, just return the URL (might be SQLite path)
-        return url
+from OCDocker.OCScore.DNN.DNNOptimizer import DNNOptimizer
 
 
 def load_data_from_database(session: Session, methodology: Optional[str] = None) -> pd.DataFrame:
@@ -215,684 +191,6 @@ def load_data_from_database(session: Session, methodology: Optional[str] = None)
     
     # Always return DataFrame (we'll handle CSV saving separately if needed)
     return df
-
-
-def prepare_data_from_db(
-        session,
-        storage_id: int,
-        optimization_type: str = "XGB",
-        pca_model: str = "",
-        use_PCA: bool = False,
-        pca_type: int = 95,
-        no_scores: bool = False,
-        only_scores: bool = False,
-        use_pdb_train: bool = True,
-        random_seed: int = 42,
-        invert_conditionally: bool = True,
-        normalize: bool = True,
-        scaler: str = "standard",
-        methodology: Optional[str] = None
-    ) -> dict:
-    '''
-    Prepare data from database using the full preprocessing pipeline.
-    
-    Parameters
-    ----------
-    session : sqlalchemy.orm.session.Session
-        Database session
-    storage_id : int
-        Storage ID for the study
-    optimization_type : str
-        Type of optimization (XGB, NN, etc.)
-    pca_model : str
-        Path to PCA model (if using PCA)
-    use_PCA : bool
-        Whether to use PCA
-    pca_type : int
-        PCA variance percentage
-    no_scores : bool
-        Whether to exclude score columns
-    only_scores : bool
-        Whether to use only score columns
-    use_pdb_train : bool
-        Whether to use PDBbind for training
-    random_seed : int
-        Random seed
-    invert_conditionally : bool
-        Whether to invert the conditionally
-    normalize : bool
-        Whether to normalize the data
-    scaler : str
-        The scaler to use
-    methodology : str
-        The methodology to use
-
-    Returns
-    -------
-    dict
-        Dictionary with preprocessed data (X_train, X_test, y_train, y_test, etc.)
-    '''
-    
-    # Load data from database
-    print(f"Loading data from database{f' (methodology: {methodology})' if methodology else ''}...")
-    db_data = load_data_from_database(session, methodology=methodology)
-    
-    # Save to temporary CSV for compatibility with preprocess_df
-    temp_csv_path = "/tmp/ocscore_db_data.csv"
-    db_data.to_csv(temp_csv_path, index=False)
-    
-    print(f"Data loaded: {len(db_data)} rows")
-    
-    # Use preprocess_df exactly as in existing load_data function (mimics optimize_NN/optimize_XGB pattern)
-    # Request scaler if normalization is enabled (needed for consistent scaling during prediction)
-    if normalize:
-        dudez_data, pdbbind_data, score_columns, fitted_scaler = ocscoredata.preprocess_df(
-            file_name=temp_csv_path,
-            score_columns_list=["SMINA", "VINA", "ODDT", "PLANTS"],  # Default score columns
-            outliers_columns_list=None,  # No outlier removal by default
-            scaler=scaler,
-            invert_conditionally=invert_conditionally,
-            normalize=normalize,
-            return_scaler=True  # Get the fitted scaler to save it
-        )
-    else:
-        dudez_data, pdbbind_data, score_columns = ocscoredata.preprocess_df(
-            file_name=temp_csv_path,
-            score_columns_list=["SMINA", "VINA", "ODDT", "PLANTS"],  # Default score columns
-            outliers_columns_list=None,  # No outlier removal by default
-            scaler=scaler,
-            invert_conditionally=invert_conditionally,
-            normalize=normalize
-        )
-        fitted_scaler = None
-    
-    # Handle score columns
-    if no_scores:
-        dudez_data = dudez_data.drop(columns=score_columns, errors='ignore')
-        pdbbind_data = pdbbind_data.drop(columns=score_columns, errors='ignore')
-        study_name = f"NoScores_{optimization_type}_Optimization"
-    elif only_scores:
-        metadata_cols = ["receptor", "ligand", "name", "type", "db"]
-        columns_to_keep = [col for col in metadata_cols if col in dudez_data.columns] + score_columns
-        dudez_data = ocscoredata.remove_other_columns(dudez_data, columns_to_keep, inplace=False)
-        columns_to_keep = [col for col in metadata_cols + ["experimental"] if col in pdbbind_data.columns] + score_columns
-        pdbbind_data = ocscoredata.remove_other_columns(pdbbind_data, columns_to_keep, inplace=False)
-        study_name = f"ScoreOnly_{optimization_type}_Optimization"
-    else:
-        study_name = f"{optimization_type}_Optimization"
-    
-    # Apply PCA if needed
-    if use_PCA and pca_model:
-        columns_to_skip_pca = ["receptor", "ligand", "name", "type", "db", "experimental"] + score_columns
-        pdbbind_data = ocscoredata.apply_pca(
-            pdbbind_data, 
-            pca_model, 
-            columns_to_skip_pca=columns_to_skip_pca, 
-            inplace=False
-        )
-        if use_pdb_train:
-            columns_to_skip_pca = ["receptor", "ligand", "name", "type", "db"] + score_columns
-            dudez_data = ocscoredata.apply_pca(
-                dudez_data, 
-                pca_model, 
-                columns_to_skip_pca=columns_to_skip_pca, 
-                inplace=False
-            )
-        study_name = f"PCA{pca_type}_{study_name}"
-    
-    # CRITICAL: Reorder columns to match reference column order from config
-    # This ensures the column order matches the training data order, which is essential
-    # for proper mask application and model inference consistency.
-    # Do this AFTER all transformations (score column handling, PCA, etc.) but BEFORE splitting
-    print("Reordering columns to match reference column order from config...")
-    dudez_data = ocscoredata.reorder_columns_to_match_data_order(
-        dudez_data,
-        data_source=None,  # Uses config.reference_column_order by default
-        keep_extra_columns=True,  # Keep any extra columns (e.g., PCA components) that might exist
-        fill_missing_columns=False  # Don't add missing columns as NaN
-    )
-    pdbbind_data = ocscoredata.reorder_columns_to_match_data_order(
-        pdbbind_data,
-        data_source=None,  # Uses config.reference_column_order by default
-        keep_extra_columns=True,  # Keep any extra columns (e.g., PCA components) that might exist
-        fill_missing_columns=False  # Don't add missing columns as NaN
-    )
-    
-    # Split data
-    if use_pdb_train:
-        X_train_df = pdbbind_data.drop(
-            columns=["receptor", "ligand", "name", "type", "db", "experimental"],
-            errors="ignore"
-        )
-        X_train, X_test, y_train, y_test = ocscoredata.split_dataset(
-            X_train_df,
-            pdbbind_data["experimental"],
-            test_size=0.25,
-            random_state=random_seed
-        )
-        X_val_df = dudez_data.drop(
-            columns=["receptor", "ligand", "name", "type", "db", "experimental"],
-            errors="ignore"
-        )
-        X_val = X_val_df
-        y_val = dudez_data["type"].map({"ligand": 1, "decoy": 0})
-        # Get feature column names from DataFrame before converting to numpy
-        feature_columns = X_train_df.columns.tolist()
-    else:
-        X_train_df = dudez_data.drop(
-            columns=["receptor", "ligand", "name", "type", "db", "experimental"],
-            errors="ignore"
-        )
-        X_train = X_train_df
-        y_train = dudez_data["experimental"]
-        X_test_df = dudez_data.drop(
-            columns=["receptor", "ligand", "name", "type", "db", "experimental"],
-            errors="ignore"
-        )
-        X_test = X_test_df
-        y_test = dudez_data["type"].map({"ligand": 1, "decoy": 0})
-        X_val = None
-        y_val = None
-        # Get feature column names from DataFrame before converting to numpy
-        feature_columns = X_train_df.columns.tolist()
-    
-    # Convert to numpy arrays for compatibility with existing code
-    X_train = X_train.values if isinstance(X_train, pd.DataFrame) else X_train
-    X_test = X_test.values if isinstance(X_test, pd.DataFrame) else X_test
-    X_val = X_val.values if isinstance(X_val, pd.DataFrame) else X_val if X_val is not None else None
-    
-    # Add storage_id to study name to match the pattern: {prefix}_Optimization_{storage_id}
-    study_name_with_id = f"{study_name}_{storage_id}"
-    
-    data = {
-        "study_name": study_name_with_id,
-        "X_train": X_train,
-        "X_test": X_test,
-        "y_train": y_train,
-        "y_test": y_test,
-        "X_val": X_val,
-        "y_val": y_val,
-        "feature_columns": feature_columns,  # Add feature column names for mask application
-        "scaler": fitted_scaler  # Add fitted scaler (None if normalization is disabled)
-    }
-    
-    # Clean up temporary file if we created it
-    if temp_csv_path and os.path.exists(temp_csv_path) and temp_csv_path.startswith('/tmp/'):
-        try:
-            os.remove(temp_csv_path)
-        except:
-            pass
-    
-    return data
-
-
-def train_xgboost_model(
-        data: dict,
-        storage: str,
-        storage_id: int,
-        model_name: str,
-        optimization_type: str = "XGB",
-        use_PCA: bool = False,
-        pca_type: int = 95,
-        no_scores: bool = False,
-        only_scores: bool = False,
-        study_name: Optional[str] = None,
-        use_gpu: bool = False,
-        verbose: bool = True
-    ) -> tuple:
-    '''
-    Train an XGBoost model.
-    
-    Parameters
-    ----------
-    data : dict
-        The data dictionary.
-    storage : str
-        The storage to use.
-    storage_id : int
-        The storage ID to use.
-    model_name : str
-        The name of the model.
-    optimization_type : str
-        The optimization type.
-    use_PCA : bool
-        If True, use PCA.
-    pca_type : int
-        The PCA type to use.
-    no_scores : bool
-        If True, don't use scores.
-    only_scores : bool
-        If True, only use scores.
-    study_name : str
-        The name of the study.
-    use_gpu : bool
-        If True, use the GPU.
-    verbose : bool
-        If True, print the output.
-
-    Returns
-    -------
-    tuple
-        (model, mask) - trained model and feature mask
-    '''
-    
-    print("Training XGBoost model...")
-    
-    # Import XGBoost optimizer
-    from OCDocker.OCScore.XGBoost.XGBoostOptimizer import XGBoostOptimizer
-    
-    # Create optimizer
-    optimizer = XGBoostOptimizer(
-        X_train=data['X_train'],
-        y_train=data['y_train'],
-        X_test=data['X_test'],
-        y_test=data['y_test'],
-        X_validation=data.get('X_val'),
-        y_validation=data.get('y_val'),
-        storage=storage,
-        use_gpu=use_gpu,
-        verbose=verbose
-    )
-    
-    # Use provided study_name or build from methodology parameters
-    import optuna
-    if study_name is None:
-        if use_PCA:
-            study_name = f"PCA{pca_type}_{optimization_type}_Optimization_{storage_id}"
-        elif only_scores:
-            study_name = f"ScoreOnly_{optimization_type}_Optimization_{storage_id}"
-        elif no_scores:
-            study_name = f"NoScores_{optimization_type}_Optimization_{storage_id}"
-        else:
-            study_name = f"{optimization_type}_Optimization_{storage_id}"
-    
-    # Load existing study (must exist - we're using best trial only)
-    study = optuna.load_study(study_name=study_name, storage=storage)
-    if verbose:
-        print(f"Loaded study: {study_name}")
-    
-    # Get best trial from existing study (no new optimization)
-    best_trial = study.best_trial
-    if verbose:
-        print(f"Best trial: {best_trial.number}, RMSE: {best_trial.value:.4f}")
-    best_params = best_trial.params
-    
-    # Train final model with best parameters
-    import OCDocker.OCScore.XGBoost.OCxgboost as OCxgboost
-    model, _ = OCxgboost.run_xgboost(
-        data['X_train'],
-        data['y_train'],
-        data['X_test'],
-        data['y_test'],
-        params=best_params,
-        verbose=verbose
-    )
-    
-    # Create mask (all 1s for XGBoost, as it handles feature selection internally)
-    mask = np.ones(data['X_train'].shape[1], dtype=int)
-    
-    print(f"XGBoost training completed. Best RMSE: {best_trial.value:.4f}")
-    
-    return model, mask
-
-
-def train_dnn_model(
-        data: dict,
-        storage: str,
-        storage_id: int,
-        model_name: str,
-        optimization_type: str = "NN",
-        use_PCA: bool = False,
-        pca_type: int = 95,
-        no_scores: bool = False,
-        only_scores: bool = False,
-        study_name: Optional[str] = None,
-        mask: Optional[np.ndarray] = None,
-        use_gpu: bool = True,
-        verbose: bool = True,
-        best_trial: Optional[Any] = None,  # Optional: if provided, use this trial instead of loading from study
-        ao_study_numbers: Optional[List[int]] = None  # Optional: list of AO study numbers to search (e.g., [6, 7, 8, 9, 10])
-    ) -> tuple:
-    '''
-    Train a DNN model.
-
-    Parameters
-    ----------
-    data : dict
-        The data dictionary.
-    storage : str
-        The storage to use.
-    storage_id : int
-        The storage ID to use.
-    model_name : str
-        The name of the model.
-    optimization_type : str
-        The optimization type.
-    use_PCA : bool
-        If True, use PCA.
-    pca_type : int
-        The PCA type to use.
-    no_scores : bool
-        If True, don't use scores.
-    only_scores : bool
-        If True, only use scores.
-    study_name : str
-        The name of the study.
-    mask : np.ndarray
-        The mask to use.
-    use_gpu : bool
-        If True, use the GPU.
-    verbose : bool
-        If True, print the output.
-    
-    Returns
-    -------
-    tuple
-        (model, mask) - trained model and feature mask
-    '''
-    
-    print("Training DNN model...")
-    
-    # Extract study number from study name
-    import re
-    match = re.search(r'_(\d+)$', study_name)
-    study_num = int(match.group(1)) if match else None
-    
-    # Fetch mask from ablation study and autoencoder params for AE with NN studies (6-10)
-    encoder_params = None
-    if mask is None:
-        # Check if this is an AE with NN study (studies 6-10)
-        if study_num and 6 <= study_num <= 10:
-            print(f"Fetching best autoencoder params across ALL AO studies...")
-            import optuna
-            
-            # Find the best AE across ALL AO studies (not just the one matching the NN study number)
-            # This ensures we use the globally best autoencoder, not just the one from the matching study
-            # Use provided ao_study_numbers or default to [6, 7, 8, 9, 10] for AE with NN studies
-            if ao_study_numbers is None:
-                ao_study_numbers = [6, 7, 8, 9, 10]  # Default: All AE with NN study numbers
-            
-            all_ao_trials = []
-            
-            for ao_num in ao_study_numbers:
-                ao_study_name = f"AO_Optimization_{ao_num}"
-                try:
-                    ao_study = optuna.load_study(study_name=ao_study_name, storage=storage)
-                    ao_df = ao_study.trials_dataframe()
-                    ao_df = ao_df[ao_df['state'] == 'COMPLETE']
-                    
-                    if len(ao_df) > 0:
-                        # Sort by value (RMSE) and validation RMSE
-                        ao_df = ao_df.sort_values(by=['value', 'user_attrs_val_rmse'], ascending=[True, True])
-                        best_ao_trial = ao_study.trials[ao_df.iloc[0].number]
-                        all_ao_trials.append({
-                            'study_name': ao_study_name,
-                            'study_number': ao_num,
-                            'trial': best_ao_trial,
-                            'value': best_ao_trial.value,
-                            'val_rmse': best_ao_trial.user_attrs.get('val_rmse', float('inf'))
-                        })
-                        if verbose:
-                            print(f"  Found best trial in {ao_study_name}: RMSE={best_ao_trial.value:.4f}, Val_RMSE={best_ao_trial.user_attrs.get('val_rmse', 'N/A')}")
-                except Exception as e:
-                    if verbose:
-                        print(f"  Warning: Could not load autoencoder study {ao_study_name}: {e}")
-            
-            # Find the best AE trial across all studies
-            if len(all_ao_trials) > 0:
-                # Sort by value (RMSE) first, then by validation RMSE
-                best_ao_info = min(all_ao_trials, key=lambda x: (x['value'], x['val_rmse']))
-                encoder_params = best_ao_info['trial'].params
-                if verbose:
-                    print(f"\nSelected best autoencoder from: {best_ao_info['study_name']}")
-                    print(f"  Trial number: {best_ao_info['trial'].number}")
-                    print(f"  RMSE: {best_ao_info['value']:.4f}")
-                    print(f"  Val RMSE: {best_ao_info['val_rmse']:.4f}")
-                    print(f"  (Selected from {len(all_ao_trials)} AO studies)")
-            else:
-                if verbose:
-                    print(f"Warning: No autoencoder studies found. Training without autoencoder.")
-            
-            # Load ablation study to get mask
-            ablation_study_name = "NN_Ablation_Optimization_1"
-            try:
-                ablation_study = optuna.load_study(study_name=ablation_study_name, storage=storage)
-                ablation_df = ablation_study.trials_dataframe()
-                
-                # Filter to only complete trials
-                ablation_df = ablation_df[ablation_df['state'] == 'COMPLETE']
-                ablation_df = ablation_df.reset_index(drop=True)
-                
-                # Rename columns for clarity
-                ablation_df = ablation_df.rename(columns={
-                    'value': 'RMSE',
-                    'user_attrs_Feature_Mask': 'Feature_Mask',
-                    'user_attrs_AUC': 'AUC'
-                })
-                
-                # Compute score (RMSE - AUC) and get best
-                ablation_df['score'] = ablation_df['RMSE'] - ablation_df['AUC']
-                best_ablation_df = ablation_df.sort_values(by=['score'], ascending=[True])
-                
-                # Get mask from best ablation trial
-                mask_str = best_ablation_df.iloc[0]['Feature_Mask']
-                
-                # Convert mask string to numpy array of 0s and 1s
-                mask_from_study = np.array([int(x) for x in mask_str])
-                
-                # The ablation study creates masks for SFs (scoring functions) only
-                # The mask stored is a full-length mask where only SF positions are modified
-                # We need to identify SF columns in the current data and extract/apply the mask correctly
-                
-                # Get feature column names (if available)
-                feature_columns = data.get('feature_columns')
-                
-                # Create full mask (all 1s)
-                mask = np.ones(data['X_train'].shape[1], dtype=int)
-                
-                if len(mask_from_study) == 16:
-                    # This is an SF-only mask (16 values for 16 SFs)
-                    # We need to find SF column indices in current data and apply mask there
-                    if feature_columns is not None:
-                        # Identify SF columns (VINA*, SMINA*, ODDT*, PLANTS*)
-                        import re
-                        sf_pattern = re.compile(r'^(VINA|SMINA|ODDT|PLANTS)', re.IGNORECASE)
-                        sf_indices = [i for i, col in enumerate(feature_columns) if sf_pattern.match(str(col))]
-                        
-                        if len(sf_indices) == 16:
-                            # Apply the 16-element mask to SF positions
-                            for idx, mask_val in zip(sf_indices, mask_from_study):
-                                mask[idx] = mask_val
-                            print(f"Applied 16-element SF mask to {len(sf_indices)} SF features.")
-                        else:
-                            print(f"Warning: Found {len(sf_indices)} SF features, but mask has 16 elements.")
-                            print(f"  SF features found: {sf_indices[:10]}..." if len(sf_indices) > 10 else f"  SF features: {sf_indices}")
-                            print(f"  Using default mask (all 1s).")
-                    else:
-                        print(f"Warning: Cannot identify SF positions - feature column names not available.")
-                        print(f"  Using default mask (all 1s).")
-                elif len(mask_from_study) == data['X_train'].shape[1]:
-                    # This is a full-length mask that matches current data shape
-                    # Extract only SF positions if we have feature names
-                    if feature_columns is not None:
-                        import re
-                        sf_pattern = re.compile(r'^(VINA|SMINA|ODDT|PLANTS)', re.IGNORECASE)
-                        sf_indices = [i for i, col in enumerate(feature_columns) if sf_pattern.match(str(col))]
-                        
-                        if len(sf_indices) == 16:
-                            # Create mask: all 1s, but apply SF mask values to SF positions
-                            for idx, sf_idx in enumerate(sf_indices):
-                                mask[sf_idx] = mask_from_study[sf_idx]
-                            print(f"Extracted SF mask from full mask and applied to {len(sf_indices)} SF features.")
-                        else:
-                            # Use full mask as-is
-                            mask = mask_from_study
-                            print(f"Using full-length mask from ablation study ({len(mask_from_study)} features).")
-                    else:
-                        # Use full mask as-is
-                        mask = mask_from_study
-                        print(f"Using full-length mask from ablation study ({len(mask_from_study)} features).")
-                else:
-                    # Mask size doesn't match - ablation study was run on different data
-                    print(f"Warning: Mask from ablation study has {len(mask_from_study)} elements,")
-                    print(f"  but current data has {data['X_train'].shape[1]} features.")
-                    print(f"  The ablation study was likely run on different data.")
-                    print(f"  Using default mask (all 1s).")
-                
-                if verbose:
-                    print(f"Loaded mask from ablation study: {ablation_study_name}")
-                    print(f"Original mask shape: {mask_from_study.shape}")
-                    print(f"Applied mask shape: {mask.shape}, sum: {mask.sum()}")
-                    print(f"Mask (first 50 values): {mask[:50] if len(mask) > 50 else mask}")
-            except Exception as e:
-                print(f"Warning: Could not load mask from ablation study: {e}")
-                print("Using default mask (all 1s)")
-                mask = np.ones(data['X_train'].shape[1], dtype=int)
-        else:
-            # For other studies, use default mask (all 1s)
-            mask = np.ones(data['X_train'].shape[1], dtype=int)
-    
-    # Print mask information
-    print(f"\n{'='*60}")
-    print(f"Using mask:")
-    print(f"  Shape: {mask.shape}")
-    print(f"  Sum (active features): {mask.sum()}/{len(mask)}")
-    print(f"  Source: {'Ablation study' if study_num and 6 <= study_num <= 10 and mask.sum() < len(mask) else 'Default (all 1s)'}")
-    
-    # Identify which scoring functions are kept/removed
-    feature_columns = data.get('feature_columns')
-    sf_indices = []
-    if feature_columns is not None:
-        import re
-        sf_pattern = re.compile(r'^(VINA|SMINA|ODDT|PLANTS)', re.IGNORECASE)
-        sf_indices = [i for i, col in enumerate(feature_columns) if sf_pattern.match(str(col))]
-        
-        # Print mask preview for SF values only (n = number of SFs)
-        if len(sf_indices) > 0:
-            sf_mask_values = [mask[idx] for idx in sf_indices]
-            print(f"  SF mask values ({len(sf_indices)} SFs): {sf_mask_values}")
-        else:
-            # Fallback: print first n values where n is a reasonable default
-            n = min(16, len(mask))
-            print(f"  Mask preview (first {n}): {mask[:n]}")
-    
-    if feature_columns is not None and len(sf_indices) > 0:
-        print(f"\n  Scoring Functions (SFs) status:")
-        kept_sfs = []
-        removed_sfs = []
-        for sf_idx in sf_indices:
-            sf_name = feature_columns[sf_idx]
-            if mask[sf_idx] == 1:
-                kept_sfs.append(sf_name)
-            else:
-                removed_sfs.append(sf_name)
-        
-        print(f"    Kept ({len(kept_sfs)}/{len(sf_indices)}): {', '.join(kept_sfs) if kept_sfs else 'None'}")
-        if removed_sfs:
-            print(f"    Removed ({len(removed_sfs)}/{len(sf_indices)}): {', '.join(removed_sfs)}")
-        else:
-            print(f"    Removed (0/{len(sf_indices)}): None")
-    
-    print(f"{'='*60}\n")
-    
-    # Create optimizer
-    optimizer = DNNOptimizer(
-        X_train=data['X_train'],
-        y_train=data['y_train'],
-        X_test=data['X_test'],
-        y_test=data['y_test'],
-        X_validation=data.get('X_val'),
-        y_validation=data.get('y_val'),
-        mask=mask,
-        storage=storage,
-        output_size=1,
-        random_seed=42,
-        use_gpu=use_gpu,
-        verbose=verbose
-    )
-    
-    # Use provided study_name (must be provided - we're using existing studies)
-    if study_name is None:
-        raise ValueError(f"study_name must be provided when using existing studies")
-    
-    # Use provided best_trial or load from study
-    import optuna
-    if best_trial is None:
-        # Load existing study and find best trial
-        study = optuna.load_study(study_name=study_name, storage=storage)
-        if verbose:
-            print(f"Loaded study: {study_name}")
-        
-        # Get best trial using combined metric (RMSE - AUC) as in your scripts
-        nn_df = study.trials_dataframe()
-        nn_df = nn_df[nn_df['state'] == 'COMPLETE']
-        nn_df['combined_metric'] = nn_df['value'] - nn_df['user_attrs_AUC']
-        best_nn_df = nn_df.sort_values(by=['combined_metric'], ascending=[True])
-        best_trial = study.trials[best_nn_df.iloc[0].number]
-        
-        if verbose:
-            print(f"Best trial: {best_trial.number}, RMSE: {best_trial.value:.4f}, AUC: {best_trial.user_attrs.get('AUC', 'N/A')}, Combined: {best_trial.value - best_trial.user_attrs.get('AUC', 0):.4f}")
-    else:
-        # Use provided best_trial
-        if verbose:
-            print(f"Using provided best trial: {best_trial.number}, RMSE: {best_trial.value:.4f}, AUC: {best_trial.user_attrs.get('AUC', 'N/A')}, Combined: {best_trial.value - best_trial.user_attrs.get('AUC', 0):.4f}")
-    
-    # Build and train final model
-    from OCDocker.OCScore.DNN.DNNOptimizer import NeuralNet
-    neural = NeuralNet(
-        data['X_train'].shape[1],
-        1,
-        encoder_params=encoder_params,  # Use autoencoder params if available (for AE with NN)
-        nn_params=best_trial.params,
-        random_seed=42,
-        use_gpu=use_gpu,
-        verbose=verbose,
-        mask=mask
-    )
-    
-    # Train the model using the best hyperparameters
-    print(f"\n{'='*60}")
-    print(f"TRAINING MODEL")
-    print(f"{'='*60}")
-    print(f"Training model with best hyperparameters from trial {best_trial.number}...")
-    print(f"  Epochs: {best_trial.params.get('epochs', 'N/A')}")
-    print(f"  Batch size: {best_trial.params.get('batch_size', 'N/A')}")
-    print(f"  Learning rate: {best_trial.params.get('lr', 'N/A')}")
-    print(f"  Optimizer: {best_trial.params.get('optimizer', 'N/A')}")
-    print(f"  Using GPU: {use_gpu}")
-    print(f"  Training samples: {data['X_train'].shape[0]}")
-    print(f"  Test samples: {data['X_test'].shape[0]}")
-    if data.get('X_val') is not None:
-        print(f"  Validation samples: {data['X_val'].shape[0]}")
-    print(f"{'='*60}\n")
-    
-    # Train the model - this will run the full training loop
-    neural.train_model(
-        X_train=data['X_train'],
-        y_train=data['y_train'],
-        X_test=data['X_test'],
-        y_test=data['y_test'],
-        X_validation=data.get('X_val'),
-        y_validation=data.get('y_val')
-    )
-    
-    # Get the trained model (now with trained weights!)
-    model = neural.NN
-    
-    print(f"\n{'='*60}")
-    print(f"TRAINING COMPLETED")
-    print(f"{'='*60}")
-    print(f"  Model trained using best hyperparameters from Optuna trial {best_trial.number}")
-    print(f"  Best trial metrics (from Optuna optimization):")
-    print(f"    RMSE: {best_trial.value:.4f}")
-    auc_value = best_trial.user_attrs.get('AUC', None)
-    if auc_value is not None:
-        print(f"    AUC: {auc_value:.4f}")
-    combined_metric = best_trial.value - (auc_value if auc_value is not None else 0)
-    print(f"    Combined metric (RMSE - AUC): {combined_metric:.4f}")
-    print(f"{'='*60}\n")
-    
-    return model, mask
 
 
 def main():
@@ -1329,6 +627,710 @@ def main():
         print(f"  )")
 
 
+def mask_password_in_url(url: str) -> str:
+    '''Mask password in a database URL for secure printing.
+    
+    Parameters
+    ----------
+    url : str
+        Database URL (e.g., mysql+pymysql://user:password@host:port/db)
+    
+    Returns
+    -------
+    str
+        URL with password masked (e.g., mysql+pymysql://user:***@host:port/db)
+    '''
+    try:
+        parsed = urlparse(url)
+        if parsed.password:
+            # Replace password with ***
+            masked_netloc = f"{parsed.username}:***@{parsed.hostname}"
+            if parsed.port:
+                masked_netloc += f":{parsed.port}"
+            return urlunparse(parsed._replace(netloc=masked_netloc))
+        return url
+    except Exception:
+        # If parsing fails, just return the URL (might be SQLite path)
+        return url
+
+
+def prepare_data_from_db(
+        session,
+        storage_id: int,
+        optimization_type: str = "XGB",
+        pca_model: str = "",
+        use_PCA: bool = False,
+        pca_type: int = 95,
+        no_scores: bool = False,
+        only_scores: bool = False,
+        use_pdb_train: bool = True,
+        random_seed: int = 42,
+        invert_conditionally: bool = True,
+        normalize: bool = True,
+        scaler: str = "standard",
+        methodology: Optional[str] = None
+    ) -> dict:
+    '''
+    Prepare data from database using the full preprocessing pipeline.
+    
+    Parameters
+    ----------
+    session : sqlalchemy.orm.session.Session
+        Database session
+    storage_id : int
+        Storage ID for the study
+    optimization_type : str
+        Type of optimization (XGB, NN, etc.)
+    pca_model : str
+        Path to PCA model (if using PCA)
+    use_PCA : bool
+        Whether to use PCA
+    pca_type : int
+        PCA variance percentage
+    no_scores : bool
+        Whether to exclude score columns
+    only_scores : bool
+        Whether to use only score columns
+    use_pdb_train : bool
+        Whether to use PDBbind for training
+    random_seed : int
+        Random seed
+    invert_conditionally : bool
+        Whether to invert the conditionally
+    normalize : bool
+        Whether to normalize the data
+    scaler : str
+        The scaler to use
+    methodology : str
+        The methodology to use
+
+    Returns
+    -------
+    dict
+        Dictionary with preprocessed data (X_train, X_test, y_train, y_test, etc.)
+    '''
+    
+    # Load data from database
+    print(f"Loading data from database{f' (methodology: {methodology})' if methodology else ''}...")
+    db_data = load_data_from_database(session, methodology=methodology)
+    
+    # Save to temporary CSV for compatibility with preprocess_df
+    temp_csv_path = "/tmp/ocscore_db_data.csv"
+    db_data.to_csv(temp_csv_path, index=False)
+    
+    print(f"Data loaded: {len(db_data)} rows")
+    
+    # Use preprocess_df exactly as in existing load_data function (mimics optimize_NN/optimize_XGB pattern)
+    # Request scaler if normalization is enabled (needed for consistent scaling during prediction)
+    if normalize:
+        dudez_data, pdbbind_data, score_columns, fitted_scaler = ocscoredata.preprocess_df(
+            file_name=temp_csv_path,
+            score_columns_list=["SMINA", "VINA", "ODDT", "PLANTS"],  # Default score columns
+            outliers_columns_list=None,  # No outlier removal by default
+            scaler=scaler,
+            invert_conditionally=invert_conditionally,
+            normalize=normalize,
+            return_scaler=True  # Get the fitted scaler to save it
+        )
+    else:
+        dudez_data, pdbbind_data, score_columns = ocscoredata.preprocess_df(
+            file_name=temp_csv_path,
+            score_columns_list=["SMINA", "VINA", "ODDT", "PLANTS"],  # Default score columns
+            outliers_columns_list=None,  # No outlier removal by default
+            scaler=scaler,
+            invert_conditionally=invert_conditionally,
+            normalize=normalize
+        )
+        fitted_scaler = None
+    
+    # Handle score columns
+    if no_scores:
+        dudez_data = dudez_data.drop(columns=score_columns, errors='ignore')
+        pdbbind_data = pdbbind_data.drop(columns=score_columns, errors='ignore')
+        study_name = f"NoScores_{optimization_type}_Optimization"
+    elif only_scores:
+        metadata_cols = ["receptor", "ligand", "name", "type", "db"]
+        columns_to_keep = [col for col in metadata_cols if col in dudez_data.columns] + score_columns
+        dudez_data = ocscoredata.remove_other_columns(dudez_data, columns_to_keep, inplace=False)
+        columns_to_keep = [col for col in metadata_cols + ["experimental"] if col in pdbbind_data.columns] + score_columns
+        pdbbind_data = ocscoredata.remove_other_columns(pdbbind_data, columns_to_keep, inplace=False)
+        study_name = f"ScoreOnly_{optimization_type}_Optimization"
+    else:
+        study_name = f"{optimization_type}_Optimization"
+    
+    # Apply PCA if needed
+    if use_PCA and pca_model:
+        columns_to_skip_pca = ["receptor", "ligand", "name", "type", "db", "experimental"] + score_columns
+        pdbbind_data = ocscoredata.apply_pca(
+            pdbbind_data, 
+            pca_model, 
+            columns_to_skip_pca=columns_to_skip_pca, 
+            inplace=False
+        )
+        if use_pdb_train:
+            columns_to_skip_pca = ["receptor", "ligand", "name", "type", "db"] + score_columns
+            dudez_data = ocscoredata.apply_pca(
+                dudez_data, 
+                pca_model, 
+                columns_to_skip_pca=columns_to_skip_pca, 
+                inplace=False
+            )
+        study_name = f"PCA{pca_type}_{study_name}"
+    
+    # CRITICAL: Reorder columns to match reference column order from config
+    # This ensures the column order matches the training data order, which is essential
+    # for proper mask application and model inference consistency.
+    # Do this AFTER all transformations (score column handling, PCA, etc.) but BEFORE splitting
+    print("Reordering columns to match reference column order from config...")
+    dudez_data = ocscoredata.reorder_columns_to_match_data_order(
+        dudez_data,
+        data_source=None,  # Uses config.reference_column_order by default
+        keep_extra_columns=True,  # Keep any extra columns (e.g., PCA components) that might exist
+        fill_missing_columns=False  # Don't add missing columns as NaN
+    )
+    pdbbind_data = ocscoredata.reorder_columns_to_match_data_order(
+        pdbbind_data,
+        data_source=None,  # Uses config.reference_column_order by default
+        keep_extra_columns=True,  # Keep any extra columns (e.g., PCA components) that might exist
+        fill_missing_columns=False  # Don't add missing columns as NaN
+    )
+    
+    # Split data
+    if use_pdb_train:
+        X_train_df = pdbbind_data.drop(
+            columns=["receptor", "ligand", "name", "type", "db", "experimental"],
+            errors="ignore"
+        )
+        X_train, X_test, y_train, y_test = ocscoredata.split_dataset(
+            X_train_df,
+            pdbbind_data["experimental"],
+            test_size=0.25,
+            random_state=random_seed
+        )
+        X_val_df = dudez_data.drop(
+            columns=["receptor", "ligand", "name", "type", "db", "experimental"],
+            errors="ignore"
+        )
+        X_val = X_val_df
+        y_val = dudez_data["type"].map({"ligand": 1, "decoy": 0})
+        # Get feature column names from DataFrame before converting to numpy
+        feature_columns = X_train_df.columns.tolist()
+    else:
+        X_train_df = dudez_data.drop(
+            columns=["receptor", "ligand", "name", "type", "db", "experimental"],
+            errors="ignore"
+        )
+        X_train = X_train_df
+        y_train = dudez_data["experimental"]
+        X_test_df = dudez_data.drop(
+            columns=["receptor", "ligand", "name", "type", "db", "experimental"],
+            errors="ignore"
+        )
+        X_test = X_test_df
+        y_test = dudez_data["type"].map({"ligand": 1, "decoy": 0})
+        X_val = None
+        y_val = None
+        # Get feature column names from DataFrame before converting to numpy
+        feature_columns = X_train_df.columns.tolist()
+    
+    # Convert to numpy arrays for compatibility with existing code
+    X_train = X_train.values if isinstance(X_train, pd.DataFrame) else X_train
+    X_test = X_test.values if isinstance(X_test, pd.DataFrame) else X_test
+    X_val = X_val.values if isinstance(X_val, pd.DataFrame) else X_val if X_val is not None else None
+    
+    # Add storage_id to study name to match the pattern: {prefix}_Optimization_{storage_id}
+    study_name_with_id = f"{study_name}_{storage_id}"
+    
+    data = {
+        "study_name": study_name_with_id,
+        "X_train": X_train,
+        "X_test": X_test,
+        "y_train": y_train,
+        "y_test": y_test,
+        "X_val": X_val,
+        "y_val": y_val,
+        "feature_columns": feature_columns,  # Add feature column names for mask application
+        "scaler": fitted_scaler  # Add fitted scaler (None if normalization is disabled)
+    }
+    
+    # Clean up temporary file if we created it
+    if temp_csv_path and os.path.exists(temp_csv_path) and temp_csv_path.startswith('/tmp/'):
+        try:
+            os.remove(temp_csv_path)
+        except:
+            pass
+    
+    return data
+
+
+def train_dnn_model(
+        data: dict,
+        storage: str,
+        storage_id: int,
+        model_name: str,
+        optimization_type: str = "NN",
+        use_PCA: bool = False,
+        pca_type: int = 95,
+        no_scores: bool = False,
+        only_scores: bool = False,
+        study_name: Optional[str] = None,
+        mask: Optional[np.ndarray] = None,
+        use_gpu: bool = True,
+        verbose: bool = True,
+        best_trial: Optional[Any] = None,  # Optional: if provided, use this trial instead of loading from study
+        ao_study_numbers: Optional[List[int]] = None  # Optional: list of AO study numbers to search (e.g., [6, 7, 8, 9, 10])
+    ) -> tuple:
+    '''
+    Train a DNN model.
+
+    Parameters
+    ----------
+    data : dict
+        The data dictionary.
+    storage : str
+        The storage to use.
+    storage_id : int
+        The storage ID to use.
+    model_name : str
+        The name of the model.
+    optimization_type : str
+        The optimization type.
+    use_PCA : bool
+        If True, use PCA.
+    pca_type : int
+        The PCA type to use.
+    no_scores : bool
+        If True, don't use scores.
+    only_scores : bool
+        If True, only use scores.
+    study_name : str
+        The name of the study.
+    mask : np.ndarray
+        The mask to use.
+    use_gpu : bool
+        If True, use the GPU.
+    verbose : bool
+        If True, print the output.
+    
+    Returns
+    -------
+    tuple
+        (model, mask) - trained model and feature mask
+    '''
+    
+    print("Training DNN model...")
+    
+    # Extract study number from study name
+    import re
+    match = re.search(r'_(\d+)$', study_name)
+    study_num = int(match.group(1)) if match else None
+    
+    # Fetch mask from ablation study and autoencoder params for AE with NN studies (6-10)
+    encoder_params = None
+    if mask is None:
+        # Check if this is an AE with NN study (studies 6-10)
+        if study_num and 6 <= study_num <= 10:
+            print(f"Fetching best autoencoder params across ALL AO studies...")
+            import optuna
+            
+            # Find the best AE across ALL AO studies (not just the one matching the NN study number)
+            # This ensures we use the globally best autoencoder, not just the one from the matching study
+            # Use provided ao_study_numbers or default to [6, 7, 8, 9, 10] for AE with NN studies
+            if ao_study_numbers is None:
+                ao_study_numbers = [6, 7, 8, 9, 10]  # Default: All AE with NN study numbers
+            
+            all_ao_trials = []
+            
+            for ao_num in ao_study_numbers:
+                ao_study_name = f"AO_Optimization_{ao_num}"
+                try:
+                    ao_study = optuna.load_study(study_name=ao_study_name, storage=storage)
+                    ao_df = ao_study.trials_dataframe()
+                    ao_df = ao_df[ao_df['state'] == 'COMPLETE']
+                    
+                    if len(ao_df) > 0:
+                        # Sort by value (RMSE) and validation RMSE
+                        ao_df = ao_df.sort_values(by=['value', 'user_attrs_val_rmse'], ascending=[True, True])
+                        best_ao_trial = ao_study.trials[ao_df.iloc[0].number]
+                        all_ao_trials.append({
+                            'study_name': ao_study_name,
+                            'study_number': ao_num,
+                            'trial': best_ao_trial,
+                            'value': best_ao_trial.value,
+                            'val_rmse': best_ao_trial.user_attrs.get('val_rmse', float('inf'))
+                        })
+                        if verbose:
+                            print(f"  Found best trial in {ao_study_name}: RMSE={best_ao_trial.value:.4f}, Val_RMSE={best_ao_trial.user_attrs.get('val_rmse', 'N/A')}")
+                except Exception as e:
+                    if verbose:
+                        print(f"  Warning: Could not load autoencoder study {ao_study_name}: {e}")
+            
+            # Find the best AE trial across all studies
+            if len(all_ao_trials) > 0:
+                # Sort by value (RMSE) first, then by validation RMSE
+                best_ao_info = min(all_ao_trials, key=lambda x: (x['value'], x['val_rmse']))
+                encoder_params = best_ao_info['trial'].params
+                if verbose:
+                    print(f"\nSelected best autoencoder from: {best_ao_info['study_name']}")
+                    print(f"  Trial number: {best_ao_info['trial'].number}")
+                    print(f"  RMSE: {best_ao_info['value']:.4f}")
+                    print(f"  Val RMSE: {best_ao_info['val_rmse']:.4f}")
+                    print(f"  (Selected from {len(all_ao_trials)} AO studies)")
+            else:
+                if verbose:
+                    print(f"Warning: No autoencoder studies found. Training without autoencoder.")
+            
+            # Load ablation study to get mask
+            ablation_study_name = "NN_Ablation_Optimization_1"
+            try:
+                ablation_study = optuna.load_study(study_name=ablation_study_name, storage=storage)
+                ablation_df = ablation_study.trials_dataframe()
+                
+                # Filter to only complete trials
+                ablation_df = ablation_df[ablation_df['state'] == 'COMPLETE']
+                ablation_df = ablation_df.reset_index(drop=True)
+                
+                # Rename columns for clarity
+                ablation_df = ablation_df.rename(columns={
+                    'value': 'RMSE',
+                    'user_attrs_Feature_Mask': 'Feature_Mask',
+                    'user_attrs_AUC': 'AUC'
+                })
+                
+                # Compute score (RMSE - AUC) and get best
+                ablation_df['score'] = ablation_df['RMSE'] - ablation_df['AUC']
+                best_ablation_df = ablation_df.sort_values(by=['score'], ascending=[True])
+                
+                # Get mask from best ablation trial
+                mask_str = best_ablation_df.iloc[0]['Feature_Mask']
+                
+                # Convert mask string to numpy array of 0s and 1s
+                mask_from_study = np.array([int(x) for x in mask_str])
+                
+                # The ablation study creates masks for SFs (scoring functions) only
+                # The mask stored is a full-length mask where only SF positions are modified
+                # We need to identify SF columns in the current data and extract/apply the mask correctly
+                
+                # Get feature column names (if available)
+                feature_columns = data.get('feature_columns')
+                
+                # Create full mask (all 1s)
+                mask = np.ones(data['X_train'].shape[1], dtype=int)
+                
+                if len(mask_from_study) == 16:
+                    # This is an SF-only mask (16 values for 16 SFs)
+                    # We need to find SF column indices in current data and apply mask there
+                    if feature_columns is not None:
+                        # Identify SF columns (VINA*, SMINA*, ODDT*, PLANTS*)
+                        import re
+                        sf_pattern = re.compile(r'^(VINA|SMINA|ODDT|PLANTS)', re.IGNORECASE)
+                        sf_indices = [i for i, col in enumerate(feature_columns) if sf_pattern.match(str(col))]
+                        
+                        if len(sf_indices) == 16:
+                            # Apply the 16-element mask to SF positions
+                            for idx, mask_val in zip(sf_indices, mask_from_study):
+                                mask[idx] = mask_val
+                            print(f"Applied 16-element SF mask to {len(sf_indices)} SF features.")
+                        else:
+                            print(f"Warning: Found {len(sf_indices)} SF features, but mask has 16 elements.")
+                            print(f"  SF features found: {sf_indices[:10]}..." if len(sf_indices) > 10 else f"  SF features: {sf_indices}")
+                            print(f"  Using default mask (all 1s).")
+                    else:
+                        print(f"Warning: Cannot identify SF positions - feature column names not available.")
+                        print(f"  Using default mask (all 1s).")
+                elif len(mask_from_study) == data['X_train'].shape[1]:
+                    # This is a full-length mask that matches current data shape
+                    # Extract only SF positions if we have feature names
+                    if feature_columns is not None:
+                        import re
+                        sf_pattern = re.compile(r'^(VINA|SMINA|ODDT|PLANTS)', re.IGNORECASE)
+                        sf_indices = [i for i, col in enumerate(feature_columns) if sf_pattern.match(str(col))]
+                        
+                        if len(sf_indices) == 16:
+                            # Create mask: all 1s, but apply SF mask values to SF positions
+                            for idx, sf_idx in enumerate(sf_indices):
+                                mask[sf_idx] = mask_from_study[sf_idx]
+                            print(f"Extracted SF mask from full mask and applied to {len(sf_indices)} SF features.")
+                        else:
+                            # Use full mask as-is
+                            mask = mask_from_study
+                            print(f"Using full-length mask from ablation study ({len(mask_from_study)} features).")
+                    else:
+                        # Use full mask as-is
+                        mask = mask_from_study
+                        print(f"Using full-length mask from ablation study ({len(mask_from_study)} features).")
+                else:
+                    # Mask size doesn't match - ablation study was run on different data
+                    print(f"Warning: Mask from ablation study has {len(mask_from_study)} elements,")
+                    print(f"  but current data has {data['X_train'].shape[1]} features.")
+                    print(f"  The ablation study was likely run on different data.")
+                    print(f"  Using default mask (all 1s).")
+                
+                if verbose:
+                    print(f"Loaded mask from ablation study: {ablation_study_name}")
+                    print(f"Original mask shape: {mask_from_study.shape}")
+                    print(f"Applied mask shape: {mask.shape}, sum: {mask.sum()}")
+                    print(f"Mask (first 50 values): {mask[:50] if len(mask) > 50 else mask}")
+            except Exception as e:
+                print(f"Warning: Could not load mask from ablation study: {e}")
+                print("Using default mask (all 1s)")
+                mask = np.ones(data['X_train'].shape[1], dtype=int)
+        else:
+            # For other studies, use default mask (all 1s)
+            mask = np.ones(data['X_train'].shape[1], dtype=int)
+    
+    # Print mask information
+    print(f"\n{'='*60}")
+    print(f"Using mask:")
+    print(f"  Shape: {mask.shape}")
+    print(f"  Sum (active features): {mask.sum()}/{len(mask)}")
+    print(f"  Source: {'Ablation study' if study_num and 6 <= study_num <= 10 and mask.sum() < len(mask) else 'Default (all 1s)'}")
+    
+    # Identify which scoring functions are kept/removed
+    feature_columns = data.get('feature_columns')
+    sf_indices = []
+    if feature_columns is not None:
+        import re
+        sf_pattern = re.compile(r'^(VINA|SMINA|ODDT|PLANTS)', re.IGNORECASE)
+        sf_indices = [i for i, col in enumerate(feature_columns) if sf_pattern.match(str(col))]
+        
+        # Print mask preview for SF values only (n = number of SFs)
+        if len(sf_indices) > 0:
+            sf_mask_values = [mask[idx] for idx in sf_indices]
+            print(f"  SF mask values ({len(sf_indices)} SFs): {sf_mask_values}")
+        else:
+            # Fallback: print first n values where n is a reasonable default
+            n = min(16, len(mask))
+            print(f"  Mask preview (first {n}): {mask[:n]}")
+    
+    if feature_columns is not None and len(sf_indices) > 0:
+        print(f"\n  Scoring Functions (SFs) status:")
+        kept_sfs = []
+        removed_sfs = []
+        for sf_idx in sf_indices:
+            sf_name = feature_columns[sf_idx]
+            if mask[sf_idx] == 1:
+                kept_sfs.append(sf_name)
+            else:
+                removed_sfs.append(sf_name)
+        
+        print(f"    Kept ({len(kept_sfs)}/{len(sf_indices)}): {', '.join(kept_sfs) if kept_sfs else 'None'}")
+        if removed_sfs:
+            print(f"    Removed ({len(removed_sfs)}/{len(sf_indices)}): {', '.join(removed_sfs)}")
+        else:
+            print(f"    Removed (0/{len(sf_indices)}): None")
+    
+    print(f"{'='*60}\n")
+    
+    # Create optimizer
+    optimizer = DNNOptimizer(
+        X_train=data['X_train'],
+        y_train=data['y_train'],
+        X_test=data['X_test'],
+        y_test=data['y_test'],
+        X_validation=data.get('X_val'),
+        y_validation=data.get('y_val'),
+        mask=mask,
+        storage=storage,
+        output_size=1,
+        random_seed=42,
+        use_gpu=use_gpu,
+        verbose=verbose
+    )
+    
+    # Use provided study_name (must be provided - we're using existing studies)
+    if study_name is None:
+        raise ValueError(f"study_name must be provided when using existing studies")
+    
+    # Use provided best_trial or load from study
+    import optuna
+    if best_trial is None:
+        # Load existing study and find best trial
+        study = optuna.load_study(study_name=study_name, storage=storage)
+        if verbose:
+            print(f"Loaded study: {study_name}")
+        
+        # Get best trial using combined metric (RMSE - AUC) as in your scripts
+        nn_df = study.trials_dataframe()
+        nn_df = nn_df[nn_df['state'] == 'COMPLETE']
+        nn_df['combined_metric'] = nn_df['value'] - nn_df['user_attrs_AUC']
+        best_nn_df = nn_df.sort_values(by=['combined_metric'], ascending=[True])
+        best_trial = study.trials[best_nn_df.iloc[0].number]
+        
+        if verbose:
+            print(f"Best trial: {best_trial.number}, RMSE: {best_trial.value:.4f}, AUC: {best_trial.user_attrs.get('AUC', 'N/A')}, Combined: {best_trial.value - best_trial.user_attrs.get('AUC', 0):.4f}")
+    else:
+        # Use provided best_trial
+        if verbose:
+            print(f"Using provided best trial: {best_trial.number}, RMSE: {best_trial.value:.4f}, AUC: {best_trial.user_attrs.get('AUC', 'N/A')}, Combined: {best_trial.value - best_trial.user_attrs.get('AUC', 0):.4f}")
+    
+    # Build and train final model
+    from OCDocker.OCScore.DNN.DNNOptimizer import NeuralNet
+    neural = NeuralNet(
+        data['X_train'].shape[1],
+        1,
+        encoder_params=encoder_params,  # Use autoencoder params if available (for AE with NN)
+        nn_params=best_trial.params,
+        random_seed=42,
+        use_gpu=use_gpu,
+        verbose=verbose,
+        mask=mask
+    )
+    
+    # Train the model using the best hyperparameters
+    print(f"\n{'='*60}")
+    print(f"TRAINING MODEL")
+    print(f"{'='*60}")
+    print(f"Training model with best hyperparameters from trial {best_trial.number}...")
+    print(f"  Epochs: {best_trial.params.get('epochs', 'N/A')}")
+    print(f"  Batch size: {best_trial.params.get('batch_size', 'N/A')}")
+    print(f"  Learning rate: {best_trial.params.get('lr', 'N/A')}")
+    print(f"  Optimizer: {best_trial.params.get('optimizer', 'N/A')}")
+    print(f"  Using GPU: {use_gpu}")
+    print(f"  Training samples: {data['X_train'].shape[0]}")
+    print(f"  Test samples: {data['X_test'].shape[0]}")
+    if data.get('X_val') is not None:
+        print(f"  Validation samples: {data['X_val'].shape[0]}")
+    print(f"{'='*60}\n")
+    
+    # Train the model - this will run the full training loop
+    neural.train_model(
+        X_train=data['X_train'],
+        y_train=data['y_train'],
+        X_test=data['X_test'],
+        y_test=data['y_test'],
+        X_validation=data.get('X_val'),
+        y_validation=data.get('y_val')
+    )
+    
+    # Get the trained model (now with trained weights!)
+    model = neural.NN
+    
+    print(f"\n{'='*60}")
+    print(f"TRAINING COMPLETED")
+    print(f"{'='*60}")
+    print(f"  Model trained using best hyperparameters from Optuna trial {best_trial.number}")
+    print(f"  Best trial metrics (from Optuna optimization):")
+    print(f"    RMSE: {best_trial.value:.4f}")
+    auc_value = best_trial.user_attrs.get('AUC', None)
+    if auc_value is not None:
+        print(f"    AUC: {auc_value:.4f}")
+    combined_metric = best_trial.value - (auc_value if auc_value is not None else 0)
+    print(f"    Combined metric (RMSE - AUC): {combined_metric:.4f}")
+    print(f"{'='*60}\n")
+    
+    return model, mask
+
+
+def train_xgboost_model(
+        data: dict,
+        storage: str,
+        storage_id: int,
+        model_name: str,
+        optimization_type: str = "XGB",
+        use_PCA: bool = False,
+        pca_type: int = 95,
+        no_scores: bool = False,
+        only_scores: bool = False,
+        study_name: Optional[str] = None,
+        use_gpu: bool = False,
+        verbose: bool = True
+    ) -> tuple:
+    '''
+    Train an XGBoost model.
+    
+    Parameters
+    ----------
+    data : dict
+        The data dictionary.
+    storage : str
+        The storage to use.
+    storage_id : int
+        The storage ID to use.
+    model_name : str
+        The name of the model.
+    optimization_type : str
+        The optimization type.
+    use_PCA : bool
+        If True, use PCA.
+    pca_type : int
+        The PCA type to use.
+    no_scores : bool
+        If True, don't use scores.
+    only_scores : bool
+        If True, only use scores.
+    study_name : str
+        The name of the study.
+    use_gpu : bool
+        If True, use the GPU.
+    verbose : bool
+        If True, print the output.
+
+    Returns
+    -------
+    tuple
+        (model, mask) - trained model and feature mask
+    '''
+    
+    print("Training XGBoost model...")
+    
+    # Import XGBoost optimizer
+    from OCDocker.OCScore.XGBoost.XGBoostOptimizer import XGBoostOptimizer
+    
+    # Create optimizer
+    optimizer = XGBoostOptimizer(
+        X_train=data['X_train'],
+        y_train=data['y_train'],
+        X_test=data['X_test'],
+        y_test=data['y_test'],
+        X_validation=data.get('X_val'),
+        y_validation=data.get('y_val'),
+        storage=storage,
+        use_gpu=use_gpu,
+        verbose=verbose
+    )
+    
+    # Use provided study_name or build from methodology parameters
+    import optuna
+    if study_name is None:
+        if use_PCA:
+            study_name = f"PCA{pca_type}_{optimization_type}_Optimization_{storage_id}"
+        elif only_scores:
+            study_name = f"ScoreOnly_{optimization_type}_Optimization_{storage_id}"
+        elif no_scores:
+            study_name = f"NoScores_{optimization_type}_Optimization_{storage_id}"
+        else:
+            study_name = f"{optimization_type}_Optimization_{storage_id}"
+    
+    # Load existing study (must exist - we're using best trial only)
+    study = optuna.load_study(study_name=study_name, storage=storage)
+    if verbose:
+        print(f"Loaded study: {study_name}")
+    
+    # Get best trial from existing study (no new optimization)
+    best_trial = study.best_trial
+    if verbose:
+        print(f"Best trial: {best_trial.number}, RMSE: {best_trial.value:.4f}")
+    best_params = best_trial.params
+    
+    # Train final model with best parameters
+    import OCDocker.OCScore.XGBoost.OCxgboost as OCxgboost
+    model, _ = OCxgboost.run_xgboost(
+        data['X_train'],
+        data['y_train'],
+        data['X_test'],
+        data['y_test'],
+        params=best_params,
+        verbose=verbose
+    )
+    
+    # Create mask (all 1s for XGBoost, as it handles feature selection internally)
+    mask = np.ones(data['X_train'].shape[1], dtype=int)
+    
+    print(f"XGBoost training completed. Best RMSE: {best_trial.value:.4f}")
+    
+    return model, mask
+
+
 if __name__ == "__main__":
     main()
-

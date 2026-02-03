@@ -6,10 +6,11 @@ Note: ODDT is used only for rescoring, so docking must be done first
 """
 
 import os
-from OCDocker.Receptor import Receptor
-from OCDocker.Ligand import Ligand
+
 from OCDocker.Docking.Vina import Vina
-from OCDocker.Rescoring.ODDT import run_oddt, df_to_dict
+from OCDocker.Ligand import Ligand
+from OCDocker.Receptor import Receptor
+from OCDocker.Rescoring.ODDT import df_to_dict, run_oddt
 
 # First, perform docking (using Vina as example)
 receptor = Receptor("./test_files/receptor.pdb", name="MyReceptor")
@@ -55,4 +56,3 @@ print("ODDT rescoring results (DataFrame):")
 print(oddt_results_df)
 print("\nODDT rescoring results (Dictionary):")
 print(oddt_results_dict)
-

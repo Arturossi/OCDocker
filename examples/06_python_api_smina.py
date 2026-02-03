@@ -5,9 +5,10 @@ This example shows how to use OCDocker programmatically with Smina
 """
 
 import os
-from OCDocker.Receptor import Receptor
-from OCDocker.Ligand import Ligand
+
 from OCDocker.Docking.Smina import Smina
+from OCDocker.Ligand import Ligand
+from OCDocker.Receptor import Receptor
 
 # Create receptor and ligand objects
 receptor = Receptor("./test_files/receptor.pdb", name="MyReceptor")
@@ -69,4 +70,3 @@ print("Smina rescoring results:", rescoring_results)
 #         scoring_function,
 #         splitLigand=False
 #     )
-
