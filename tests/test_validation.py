@@ -41,9 +41,12 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ## Public ##
 
 @pytest.mark.order(1)
+@pytest.mark.parametrize("path,expected", [
+    ("/tmp/ap", True),
+    ("/tmp/not_allowed", False),
+])
 def test_is_algorithm_allowed(path, expected):
     assert ocvalidation.is_algorithm_allowed(path) is expected
-
 
 
 @pytest.mark.order(6)
@@ -53,12 +56,10 @@ def test_is_molecule_valid_bad_extension(tmp_path):
     assert not ocvalidation.is_molecule_valid(str(bad))
 
 
-
 @pytest.mark.order(5)
 def test_is_molecule_valid_missing_file(tmp_path):
     missing = tmp_path / "missing.pdb"
     assert not ocvalidation.is_molecule_valid(str(missing))
-
 
 
 @pytest.mark.order(4)
@@ -71,7 +72,6 @@ def test_is_molecule_valid_pdb():
     assert ocvalidation.is_molecule_valid(str(path))
 
 
-
 @pytest.mark.order(2)
 def test_validate_digest_extension():
     # valid extension
@@ -79,23 +79,8 @@ def test_validate_digest_extension():
     # invalid extension should return False after warning
     assert not ocvalidation.validate_digest_extension("results.hdf5", "hdf5")
 
+
 @pytest.mark.order(3)
-def test_validate_obabel_extension(file_path, expected):
-    result = ocvalidation.validate_obabel_extension(file_path)
-    if isinstance(expected, str):
-        assert result == expected
-    else:
-        assert result == expected
-
-# Tests for is_algorithm_allowed
-@pytest.mark.parametrize("path,expected", [
-    ("/tmp/ap", True),
-    ("/tmp/not_allowed", False),
-])
-
-
-
-# Tests for validate_obabel_extension
 @pytest.mark.parametrize(
     "file_path,expected",
     [
@@ -103,3 +88,9 @@ def test_validate_obabel_extension(file_path, expected):
         ("molecule.bad", ocerror.ErrorCode.UNSUPPORTED_EXTENSION),
     ],
 )
+def test_validate_obabel_extension(file_path, expected):
+    result = ocvalidation.validate_obabel_extension(file_path)
+    if isinstance(expected, str):
+        assert result == expected
+    else:
+        assert result == expected
