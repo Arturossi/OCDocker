@@ -10,13 +10,42 @@ Usage:
 pytest tests/test_DUDEz.py
 '''
 
+# Imports
+###############################################################################
 import pytest
-from unittest.mock import Mock, patch, MagicMock
 
-import OCDocker.DB.DUDEz as ocdudez
+from unittest.mock import MagicMock, Mock, patch
+
 import OCDocker.DB.baseDB as ocbdb
+import OCDocker.DB.DUDEz as ocdudez
 import OCDocker.Error as ocerror
 
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
+###############################################################################
+
+
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##
 
 @pytest.mark.order(1)
 def test_prepare(monkeypatch):
@@ -110,9 +139,9 @@ def test_run_gnina_default(monkeypatch):
     assert result == ocerror.Error.ok() # type: ignore
 
 
-@pytest.mark.order(5)
-def test_run_vina(monkeypatch):
-    '''Test DUDEz.run_vina function.'''
+@pytest.mark.order(7)
+def test_run_plants(monkeypatch):
+    '''Test DUDEz.run_plants function.'''
     
     # Mock ocbdb.run_docking
     docking_called = []
@@ -122,13 +151,13 @@ def test_run_vina(monkeypatch):
     
     monkeypatch.setattr("OCDocker.DB.DUDEz.ocbdb.run_docking", mock_run_docking)
     
-    # Call run_vina
-    result = ocdudez.run_vina(overwrite=False)
+    # Call run_plants
+    result = ocdudez.run_plants(overwrite=False)
     
     # Verify run_docking was called with correct arguments
     assert len(docking_called) == 1
     assert docking_called[0][0] == "dudez"  # archive
-    assert docking_called[0][1] == "vina"  # algorithm
+    assert docking_called[0][1] == "plants"  # algorithm
     assert docking_called[0][2] is False  # overwrite
     assert result == ocerror.Error.ok() # type: ignore
 
@@ -156,9 +185,9 @@ def test_run_smina(monkeypatch):
     assert result == ocerror.Error.ok() # type: ignore
 
 
-@pytest.mark.order(7)
-def test_run_plants(monkeypatch):
-    '''Test DUDEz.run_plants function.'''
+@pytest.mark.order(5)
+def test_run_vina(monkeypatch):
+    '''Test DUDEz.run_vina function.'''
     
     # Mock ocbdb.run_docking
     docking_called = []
@@ -168,12 +197,12 @@ def test_run_plants(monkeypatch):
     
     monkeypatch.setattr("OCDocker.DB.DUDEz.ocbdb.run_docking", mock_run_docking)
     
-    # Call run_plants
-    result = ocdudez.run_plants(overwrite=False)
+    # Call run_vina
+    result = ocdudez.run_vina(overwrite=False)
     
     # Verify run_docking was called with correct arguments
     assert len(docking_called) == 1
     assert docking_called[0][0] == "dudez"  # archive
-    assert docking_called[0][1] == "plants"  # algorithm
+    assert docking_called[0][1] == "vina"  # algorithm
     assert docking_called[0][2] is False  # overwrite
     assert result == ocerror.Error.ok() # type: ignore

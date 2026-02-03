@@ -1,12 +1,47 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Tests for DBMinimal helpers using dummy SQLAlchemy stubs.
+'''
+
+# Imports
+###############################################################################
+import importlib.util
+import pytest
 import sys
 import types
-import importlib.util
-from pathlib import Path
-import pytest
 
-# Dummy classes and functions to stand in for SQLAlchemy
+from pathlib import Path
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
+###############################################################################
+# Dummy classes to stand in for SQLAlchemy types.
 class DummyEngine:
     pass
+
+
+class DummyScopedSession:
+    def __init__(self, factory):
+        self.factory = factory
 
 
 class DummyURL:
@@ -18,22 +53,9 @@ class DummyURL:
         return inst
 
 
-def dummy_create_engine(url, echo=False, pool_size=None, max_overflow=None, pool_timeout=None, pool_recycle=None, pool_pre_ping=None, **kwargs):
-    return DummyEngine()
-
-
-def dummy_sessionmaker(bind=None):
-    def factory():
-        return object()
-
-    return factory
-
-
-class DummyScopedSession:
-    def __init__(self, factory):
-        self.factory = factory
-
-
+# Functions
+###############################################################################
+## Private ##
 @pytest.fixture()
 def dbminimal(monkeypatch):
     project_root = Path(__file__).resolve().parents[1]
@@ -63,7 +85,7 @@ def dbminimal(monkeypatch):
     monkeypatch.setitem(sys.modules, "sqlalchemy.orm", orm_mod)
 
     sqla_utils = types.ModuleType("sqlalchemy_utils")
-    
+
     def dummy_create_database(url):
         dummy_create_database.called = True
 
@@ -89,6 +111,28 @@ def dbminimal(monkeypatch):
     return module
 
 
+def dummy_create_engine(url, echo=False, pool_size=None, max_overflow=None, pool_timeout=None, pool_recycle=None, pool_pre_ping=None, **kwargs):
+    return DummyEngine()
+
+
+def dummy_sessionmaker(bind=None):
+    def factory():
+        return object()
+
+    return factory
+
+
+## Public ##
+@pytest.mark.order(53)
+def test_create_database_if_not_exists(monkeypatch, dbminimal):
+    dbm = dbminimal
+    url = dbm.URL.create("sqlite+pysqlite", database=":memory:")
+    monkeypatch.setattr(dbm, "database_exists", lambda url: False)
+    dbm.create_database.called = False
+    dbm.create_database_if_not_exists(url)
+    assert dbm.create_database.called is True
+
+
 @pytest.mark.order(50)
 def test_create_engine_returns_engine(dbminimal):
     dbm = dbminimal
@@ -110,13 +154,3 @@ def test_create_session_returns_scoped(dbminimal):
     engine = dbm.create_engine(url)
     session = dbm.create_session(engine)
     assert isinstance(session, dbm.scoped_session)
-
-
-@pytest.mark.order(53)
-def test_create_database_if_not_exists(monkeypatch, dbminimal):
-    dbm = dbminimal
-    url = dbm.URL.create("sqlite+pysqlite", database=":memory:")
-    monkeypatch.setattr(dbm, "database_exists", lambda url: False)
-    dbm.create_database.called = False
-    dbm.create_database_if_not_exists(url)
-    assert dbm.create_database.called is True

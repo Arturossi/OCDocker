@@ -1,30 +1,53 @@
-import numpy as np
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Tests for future Autoencoder models and optimizers.
+'''
+
+# Imports
+###############################################################################
 import pytest
 
-try:
-    import torch  # noqa: F401
-except Exception:  # pragma: no cover
-    pytest.skip("torch not available", allow_module_level=True)
+import numpy as np
 
-from OCDocker.OCScore.Dimensionality.future.Autoencoder import Autoencoder
-from OCDocker.OCScore.Dimensionality.future.AutoencoderOptimizer import AutoencoderOptimizer
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
+###############################################################################
 
 
-def test_future_autoencoder_sanity():
-    model = Autoencoder(
-        input_size=16,
-        encoder_hidden_sizes=[32, 16],
-        latent_dim=8,
-        energy_head_sizes=[16]
-    )
+# Functions
+###############################################################################
+## Private ##
+def _import_future_autoencoder():
+    pytest.importorskip("torch")
+    from OCDocker.OCScore.Dimensionality.future.Autoencoder import Autoencoder
+    from OCDocker.OCScore.Dimensionality.future.AutoencoderOptimizer import AutoencoderOptimizer
 
-    info = model.sanity_check(batch_size=4)
-    assert info["input_shape"] == (4, 16)
-    assert info["latent_shape"] == (4, 8)
-    assert info["reconstruction_shape"] == (4, 16)
+    return Autoencoder, AutoencoderOptimizer
 
+
+## Public ##
 
 def test_future_autoencoder_optimizer_minimal():
+    Autoencoder, AutoencoderOptimizer = _import_future_autoencoder()
     rng = np.random.default_rng(0)
 
     X_train = rng.normal(size=(32, 12)).astype(np.float32)
@@ -67,3 +90,18 @@ def test_future_autoencoder_optimizer_minimal():
     study = trainer.optimize(n_trials=1, n_jobs=1)
     assert study is not None
     assert "recon_loss_train" in study.best_trial.user_attrs
+
+
+def test_future_autoencoder_sanity():
+    Autoencoder, _ = _import_future_autoencoder()
+    model = Autoencoder(
+        input_size=16,
+        encoder_hidden_sizes=[32, 16],
+        latent_dim=8,
+        energy_head_sizes=[16]
+    )
+
+    info = model.sanity_check(batch_size=4)
+    assert info["input_shape"] == (4, 16)
+    assert info["latent_shape"] == (4, 8)
+    assert info["reconstruction_shape"] == (4, 16)
