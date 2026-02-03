@@ -10,14 +10,46 @@ Usage:
 pytest tests/test_Smina_utils.py
 '''
 
-import json
+# Imports
+###############################################################################
 import importlib
+import json
+import os
+import pytest
 import sys
 import types
-import os
-from pathlib import Path
+
 import importlib.util as util
-import pytest
+
+from pathlib import Path
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
+###############################################################################
+
+
+# Functions
+###############################################################################
+## Private ##
+def _create_log(path: Path):
+    path.write_text('header\n-----+------------+----------+----------+\n 2 -7.0 0 0\n 1 -7.5 0 0\n')
+    return path
 
 
 def _setup_stubs(monkeypatch, tmp_path):
@@ -262,6 +294,21 @@ def _setup_stubs(monkeypatch, tmp_path):
     monkeypatch.setitem(sys.modules, 'OCDocker.Receptor', rec_mod)
 
 
+## Public ##
+@pytest.fixture
+def sample_paths(tmp_path):
+    root = Path(__file__).resolve()
+    while root.name != 'OCDocker':
+        root = root.parent
+    base = root / 'test_files/test_ptn1'
+    return {
+        'box': base / 'compounds/ligands/ligand/boxes/box0.pdb',
+        'ligand': base / 'compounds/ligands/ligand/ligand.smi',
+        'receptor': base / 'receptor.pdb',
+        'tmp': tmp_path
+    }
+
+
 @pytest.fixture
 def smina(monkeypatch, tmp_path):
     _setup_stubs(monkeypatch, tmp_path)
@@ -283,25 +330,6 @@ def smina(monkeypatch, tmp_path):
     return mod
 
 
-@pytest.fixture
-def sample_paths(tmp_path):
-    root = Path(__file__).resolve()
-    while root.name != 'OCDocker':
-        root = root.parent
-    base = root / 'test_files/test_ptn1'
-    return {
-        'box': base / 'compounds/ligands/ligand/boxes/box0.pdb',
-        'ligand': base / 'compounds/ligands/ligand/ligand.smi',
-        'receptor': base / 'receptor.pdb',
-        'tmp': tmp_path
-    }
-
-
-def _create_log(path: Path):
-    path.write_text('header\n-----+------------+----------+----------+\n 2 -7.0 0 0\n 1 -7.5 0 0\n')
-    return path
-
-
 @pytest.mark.order(11)
 def test_gen_smina_conf(smina, sample_paths):
     conf = sample_paths['tmp'] / 'conf.txt'
@@ -310,13 +338,6 @@ def test_gen_smina_conf(smina, sample_paths):
     assert f'receptor = {sample_paths["receptor"]}' in text
     assert 'center_x = 36.552' in text
     assert 'size_z = 102.582' in text
-
-
-@pytest.mark.order(12)
-def test_read_rescoring_log(smina, sample_paths):
-    path = sample_paths['tmp'] / 'rescore.log'
-    path.write_text('Affinity: -8.1 (kcal/mol)\n')
-    assert smina.read_rescoring_log(str(path)) == -8.1
 
 
 @pytest.mark.order(13)
@@ -341,6 +362,13 @@ def test_get_docked_poses_and_index(smina, sample_paths):
     result = smina.get_docked_poses(str(poses_dir))
     assert set(map(Path, result)) == {p1, p2}
     assert smina.get_pose_index_from_file_path(str(p1)) == 1
+
+
+@pytest.mark.order(12)
+def test_read_rescoring_log(smina, sample_paths):
+    path = sample_paths['tmp'] / 'rescore.log'
+    path.write_text('Affinity: -8.1 (kcal/mol)\n')
+    assert smina.read_rescoring_log(str(path)) == -8.1
 
 
 @pytest.mark.order(15)

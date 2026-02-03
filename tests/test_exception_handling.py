@@ -12,15 +12,43 @@ These tests ensure that:
 - Error codes are returned correctly
 '''
 
+# Imports
+###############################################################################
 import os
 import pytest
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import OCDocker.Error as ocerror
 import OCDocker.Toolbox.FilesFolders as ocff
 import OCDocker.Toolbox.Validation as ocvalidation
 
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
+###############################################################################
+
+
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##
 
 @pytest.mark.order(54)
 def test_file_operations_log_errors(tmp_path, caplog):
@@ -185,4 +213,3 @@ def test_error_reporting_levels():
     assert hasattr(ocerror.ErrorCode, 'OK')
     assert hasattr(ocerror.ErrorCode, 'FILE_NOT_EXIST')
     assert hasattr(ocerror.ErrorCode, 'DIR_NOT_EXIST')
-

@@ -10,10 +10,13 @@ Usage:
 pytest tests
 '''
 
+# Imports
+###############################################################################
 import os
-import shutil
-from pathlib import Path
 import pytest
+import shutil
+
+from pathlib import Path
 
 # License
 ###############################################################################
@@ -23,13 +26,24 @@ Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
+
+# Classes
 ###############################################################################
 
-def pytest_configure(config):
-    '''Configure pytest hooks for test file cleanup.'''
-    pass
 
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##
 
 @pytest.fixture(scope="session", autouse=True)
 def cleanup_test_files():
@@ -161,3 +175,8 @@ def ensure_clean_test_state(tmp_path):
                 pass
     
     yield tmp_path
+
+
+def pytest_configure(config):
+    '''Configure pytest hooks for test file cleanup.'''
+    pass
