@@ -13,24 +13,23 @@ import OCDocker.Toolbox.FilesFolders as ocff
 
 # Imports
 ###############################################################################
+import h5py
 import json
 import os
-import shutil
-import h5py
 import pickle
+import shutil
 import tarfile
 
 import numpy as np
 
-from tqdm import tqdm
 from pathlib import Path
+from tqdm import tqdm
 from typing import Any, Dict, List, Union
 
+import OCDocker.Error as ocerror
 import OCDocker.Toolbox.Basetools as ocbasetools
 import OCDocker.Toolbox.Printing as ocprint
 import OCDocker.Toolbox.Validation as ocvalidation
-
-import OCDocker.Error as ocerror
 
 from OCDocker.Initialise import clrs
 
@@ -88,6 +87,7 @@ def _validate_path_within_base(dest_path: str, base_path: str) -> bool:
 
 
 ## Public ##
+
 def empty_docking_digest(digestPath: str, overwrite: bool = False, digestFormat : str = "") -> Union[Dict[str, List[float]], int]:
     '''Create an empty digest file.
 
@@ -139,43 +139,25 @@ def empty_docking_digest(digestPath: str, overwrite: bool = False, digestFormat 
                         return ocerror.Error.write_file(f"Could not write the digest file '{digestPath}'.", level = ocerror.ReportLevel.ERROR) # type: ignore
     return digest
 
-
-def to_hdf5(filePath: str, data: Any) -> int:
-    '''Save a data in a hdf5 file. If the data is a dict, use its keys as hdf5 key files. If is a list or tuple, use its indexes as keys. Otherwise, use the key 'data'.
-
+def ensure_parent_dir(path: str) -> None:
+    '''Ensure parent directory exists, creating if necessary.
+    
     Parameters
     ----------
-    filePath : str
-        Path to the hdf5 file.
-    data : Any
-        Data to be saved.
-
+    path : str
+        Path to a file or directory. The parent directory will be created.
+        
     Returns
     -------
-    int
-        The exit code of the command (based on the Error.py code table).
+    None
+        This function does not return a value. It silently handles errors.
     '''
-
+    
     try:
-        with h5py.File(filePath, 'w') as hf:
-            # Check if the data is a dict
-            if isinstance(data, dict):
-                # Iterate over the keys
-                for key in data:
-                    # Save the data
-                    hf.create_dataset(key, data = data[key])
-            elif isinstance(data, (list, tuple)):
-                # Iterate over the indexes
-                for i in range(len(data)):
-                    # Save the data
-                    hf.create_dataset(str(i), data = data[i])
-            else:
-                # Save the data
-                hf.create_dataset("data", data = data)
-    except Exception as e:
-        return ocerror.Error.write_file(f"Problems while saving the hdf5 file '{filePath}'. Error: {e}") # type: ignore
-    return ocerror.Error.ok() # type: ignore
-
+        os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    except (OSError, PermissionError):
+        # Ignore errors if directory already exists or permission denied
+        pass
 
 def from_hdf5(filePath: str) -> Union[None, Any]:
     '''Read a data from a hdf5 file.
@@ -207,31 +189,6 @@ def from_hdf5(filePath: str) -> Union[None, Any]:
         _ = ocerror.Error.read_file(f"Problems while reading the hdf5 file '{filePath}'. Error: {e}") # type: ignore
     return data
 
-
-def to_pickle(filePath: str, data: Any) -> int:
-    '''Pickle an object in a given path.
-
-    Parameters
-    ----------
-    filePath : str
-        Path to the pickle file.
-    data : Any
-        Data to be pickled.
-
-    Returns
-    -------
-    int
-        The exit code of the command (based on the Error.py code table).
-    '''
-
-    try:
-        with open(filePath, 'wb') as handle:
-            pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
-    except Exception as e:
-        return ocerror.Error.write_file(f"Problems while pickling the file '{filePath}'. Error: {e}") # type: ignore
-    return ocerror.Error.ok() # type: ignore
-
-
 def from_pickle(filePath: str) -> Union[None, Any]:
     '''Unpickle a pickle file into an object.
 
@@ -259,6 +216,26 @@ def from_pickle(filePath: str) -> Union[None, Any]:
         _ = ocerror.Error.read_file(f"Problems while unpickling the file '{filePath}'. Error: {e}") # type: ignore
     return data
 
+def normalize_path(path: str) -> str:
+    '''Normalize a path to an absolute path with normalized separators and components.
+    
+    This function normalizes paths by:
+    - Converting to absolute path
+    - Normalizing path separators
+    - Resolving . and .. components
+
+    Parameters
+    ----------
+    path : str
+        The path to normalize.
+    
+    Returns
+    -------
+    str
+        The normalized absolute path.
+    '''
+
+    return os.path.normpath(os.path.abspath(path))
 
 def safe_create_dir(dirname: Union[str, Path]) -> int:
     '''Create a dir if not exists.
@@ -309,7 +286,6 @@ def safe_create_dir(dirname: Union[str, Path]) -> int:
     # This should never appear since all the other paths ends in some kind of return
     return ocerror.Error.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while creating a dir safetly. The dir is '{dirname}'.", level = ocerror.ReportLevel.ERROR) # type: ignore
 
-
 def safe_remove_dir(dirname: str) -> int:
     ''' Remove a dir if exists.
 
@@ -342,50 +318,6 @@ def safe_remove_dir(dirname: str) -> int:
         return ocerror.Error.remove_dir(message=f"Problem found while removing the dir '{dirname}': {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
     # This should never appear since all the other paths ends in some kind of return
     return ocerror.Error.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while creating a dir safetly.", level = ocerror.ReportLevel.ERROR) # type: ignore
-
-
-def normalize_path(path: str) -> str:
-    '''Normalize a path to an absolute path with normalized separators and components.
-    
-    This function normalizes paths by:
-    - Converting to absolute path
-    - Normalizing path separators
-    - Resolving . and .. components
-
-    Parameters
-    ----------
-    path : str
-        The path to normalize.
-    
-    Returns
-    -------
-    str
-        The normalized absolute path.
-    '''
-
-    return os.path.normpath(os.path.abspath(path))
-
-
-def ensure_parent_dir(path: str) -> None:
-    '''Ensure parent directory exists, creating if necessary.
-    
-    Parameters
-    ----------
-    path : str
-        Path to a file or directory. The parent directory will be created.
-        
-    Returns
-    -------
-    None
-        This function does not return a value. It silently handles errors.
-    '''
-    
-    try:
-        os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
-    except (OSError, PermissionError):
-        # Ignore errors if directory already exists or permission denied
-        pass
-
 
 def safe_remove_file(filePath: str) -> int:
     '''Remove a file if exists.
@@ -420,6 +352,64 @@ def safe_remove_file(filePath: str) -> int:
     # This should never appear since all the other paths ends in some kind of return
     return ocerror.Error.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while removing a file safetly.", level = ocerror.ReportLevel.ERROR) # type: ignore
 
+def to_hdf5(filePath: str, data: Any) -> int:
+    '''Save a data in a hdf5 file. If the data is a dict, use its keys as hdf5 key files. If is a list or tuple, use its indexes as keys. Otherwise, use the key 'data'.
+
+    Parameters
+    ----------
+    filePath : str
+        Path to the hdf5 file.
+    data : Any
+        Data to be saved.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+    '''
+
+    try:
+        with h5py.File(filePath, 'w') as hf:
+            # Check if the data is a dict
+            if isinstance(data, dict):
+                # Iterate over the keys
+                for key in data:
+                    # Save the data
+                    hf.create_dataset(key, data = data[key])
+            elif isinstance(data, (list, tuple)):
+                # Iterate over the indexes
+                for i in range(len(data)):
+                    # Save the data
+                    hf.create_dataset(str(i), data = data[i])
+            else:
+                # Save the data
+                hf.create_dataset("data", data = data)
+    except Exception as e:
+        return ocerror.Error.write_file(f"Problems while saving the hdf5 file '{filePath}'. Error: {e}") # type: ignore
+    return ocerror.Error.ok() # type: ignore
+
+def to_pickle(filePath: str, data: Any) -> int:
+    '''Pickle an object in a given path.
+
+    Parameters
+    ----------
+    filePath : str
+        Path to the pickle file.
+    data : Any
+        Data to be pickled.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+    '''
+
+    try:
+        with open(filePath, 'wb') as handle:
+            pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    except Exception as e:
+        return ocerror.Error.write_file(f"Problems while pickling the file '{filePath}'. Error: {e}") # type: ignore
+    return ocerror.Error.ok() # type: ignore
 
 def untar(fname: str, out_path: str = ".", delete: bool = False) -> int:
     '''Untar a file.

@@ -14,12 +14,12 @@ import OCDocker.Toolbox.Validation as ocvalidation
 ###############################################################################
 import os
 import time
+
 from Bio.PDB import MMCIFParser, PDBParser
 from typing import Union
 
-import OCDocker.Toolbox.Printing as ocprint
-
 import OCDocker.Error as ocerror
+import OCDocker.Toolbox.Printing as ocprint
 
 # License
 ###############################################################################

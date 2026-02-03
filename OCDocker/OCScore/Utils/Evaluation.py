@@ -97,44 +97,6 @@ def compute_auc(
     return pd.DataFrame(metrics)
 
 
-def compute_rmse(
-        df : pd.DataFrame,
-        score_columns : list[str],
-        target_column_name : str
-    ) -> pd.DataFrame:
-    ''' Compute the RMSE for the scores in given score_columns.
-
-    Parameters
-    ----------
-    df : pd.DataFrame
-        The DataFrame containing the scores.
-    score_columns : list[str]
-        The list of columns containing the scores.
-    target_column_name : str
-        The name of the column containing the target values.
-
-    Returns
-    -------
-    pd.DataFrame
-        The DataFrame with the computed RMSE.
-    '''
-    
-    metrics = []
-
-    for score_column in score_columns:
-        # Compute the RMSE
-        rmse = np.sqrt(mean_squared_error(df[target_column_name], df[score_column]))
-
-        # Append the metrics to the list
-        metrics.append({
-            "score_column": score_column,
-            "RMSE": rmse
-        })
-    
-    # Return the DataFrame with the metrics
-    return pd.DataFrame(metrics)
-
-
 def compute_metrics(
         df: pd.DataFrame, 
         score_columns: list[str],
@@ -218,6 +180,44 @@ def compute_metrics(
             "score_column": score_column,
             "RMSE": rmse,
             "AUC": roc_auc
+        })
+    
+    # Return the DataFrame with the metrics
+    return pd.DataFrame(metrics)
+
+
+def compute_rmse(
+        df : pd.DataFrame,
+        score_columns : list[str],
+        target_column_name : str
+    ) -> pd.DataFrame:
+    ''' Compute the RMSE for the scores in given score_columns.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The DataFrame containing the scores.
+    score_columns : list[str]
+        The list of columns containing the scores.
+    target_column_name : str
+        The name of the column containing the target values.
+
+    Returns
+    -------
+    pd.DataFrame
+        The DataFrame with the computed RMSE.
+    '''
+    
+    metrics = []
+
+    for score_column in score_columns:
+        # Compute the RMSE
+        rmse = np.sqrt(mean_squared_error(df[target_column_name], df[score_column]))
+
+        # Append the metrics to the list
+        metrics.append({
+            "score_column": score_column,
+            "RMSE": rmse
         })
     
     # Return the DataFrame with the metrics

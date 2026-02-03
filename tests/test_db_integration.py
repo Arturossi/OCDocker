@@ -17,9 +17,9 @@ These tests verify that:
 import os
 import pytest
 
-from sqlalchemy import text
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy import text
 
 from OCDocker.DB.DB import create_tables
 from OCDocker.DB.DBMinimal import cleanup_engine, cleanup_session, create_engine, create_session
@@ -51,6 +51,17 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 ## Public ##
 
+
+# Classes
+###############################################################################
+
+
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##
+
 @pytest.fixture
 def mysql_engine():
     '''Create a MySQL engine for testing (if MySQL is available).
@@ -67,6 +78,7 @@ def mysql_engine():
     yield engine
     cleanup_engine(engine)
 
+
 @pytest.fixture
 def sqlite_engine(tmp_path):
     '''Create a SQLite engine for testing.'''
@@ -76,6 +88,7 @@ def sqlite_engine(tmp_path):
     engine = create_engine(url)
     yield engine
     cleanup_engine(engine)
+
 
 @pytest.mark.order(48)
 def test_database_cleanup_on_exit(sqlite_engine):
@@ -98,6 +111,7 @@ def test_database_cleanup_on_exit(sqlite_engine):
     # Cleanup again should be safe (idempotent)
     cleanup_session(session)
     cleanup_engine(sqlite_engine)
+
 
 @pytest.mark.order(47)
 def test_engine_pool_configuration_differences(sqlite_engine, mysql_engine):
@@ -127,6 +141,7 @@ def test_engine_pool_configuration_differences(sqlite_engine, mysql_engine):
         cleanup_session(sqlite_session)
         cleanup_session(mysql_session)
 
+
 @pytest.mark.order(45)
 def test_mysql_connection_pooling(mysql_engine):
     '''Test that MySQL engine uses connection pooling correctly.'''
@@ -148,6 +163,7 @@ def test_mysql_connection_pooling(mysql_engine):
     finally:
         cleanup_session(session)
 
+
 @pytest.mark.order(43)
 def test_mysql_create_tables(mysql_engine):
     '''Test that tables can be created in MySQL database.'''
@@ -165,6 +181,7 @@ def test_mysql_create_tables(mysql_engine):
         # Should have at least some tables created
         assert len(tables) > 0
 
+
 @pytest.mark.order(44)
 def test_mysql_session_operations(mysql_engine):
     '''Test basic session operations with MySQL.'''
@@ -180,6 +197,7 @@ def test_mysql_session_operations(mysql_engine):
             assert result.scalar() == 1
     finally:
         cleanup_session(session)
+
 
 @pytest.mark.order(42)
 def test_sqlite_connection_pooling(sqlite_engine):
@@ -202,6 +220,7 @@ def test_sqlite_connection_pooling(sqlite_engine):
     finally:
         cleanup_session(session)
 
+
 @pytest.mark.order(40)
 def test_sqlite_create_tables(sqlite_engine):
     '''Test that tables can be created in SQLite database.'''
@@ -218,6 +237,7 @@ def test_sqlite_create_tables(sqlite_engine):
         # Should have at least some tables created
         assert len(tables) > 0
 
+
 @pytest.mark.order(41)
 def test_sqlite_session_operations(sqlite_engine):
     '''Test basic session operations with SQLite.'''
@@ -233,6 +253,7 @@ def test_sqlite_session_operations(sqlite_engine):
             assert result.scalar() == 1
     finally:
         cleanup_session(session)
+
 
 @pytest.mark.order(46)
 def test_sqlite_vs_mysql_compatibility(sqlite_engine, mysql_engine):

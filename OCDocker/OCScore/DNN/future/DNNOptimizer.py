@@ -30,11 +30,11 @@ from typing import Any, Dict, List, Optional, Union
 
 import OCDocker.Toolbox.Printing as ocprint
 
-from OCDocker.OCScore.DNN.future.datasets import EnergyDataset, TargetRankingDataset, TargetBatchSampler
-from OCDocker.OCScore.DNN.future.losses import UncertaintyWeighting
+from OCDocker.OCScore.DNN.future.datasets import EnergyDataset, TargetBatchSampler, TargetRankingDataset
 from OCDocker.OCScore.DNN.future.losses import focal_binary_loss
 from OCDocker.OCScore.DNN.future.losses import lambda_rank_ndcg_loss
 from OCDocker.OCScore.DNN.future.losses import supervised_contrastive_loss
+from OCDocker.OCScore.DNN.future.losses import UncertaintyWeighting
 from OCDocker.OCScore.DNN.future.metrics import compute_classification_metrics
 from OCDocker.OCScore.DNN.future.models import MultiTaskModel, parse_encoder_params
 

@@ -10,17 +10,40 @@ Usage:
 import OCDocker.Toolbox.Logging as oclogging
 '''
 
+# Imports
+###############################################################################
 import inspect
 import logging
 import os
-import sys
 import shutil
+import sys
 import time
-from typing import Optional
+
 from glob import glob
+from typing import Optional
 
 import OCDocker.Error as ocerror
 import OCDocker.Toolbox.FilesFolders as ocff
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
+###############################################################################
 
 _STATE = {
     "configured": False,
@@ -35,26 +58,9 @@ _FMT = "[%(asctime)s] %(levelname)s: %(message)s"
 _RICH_TIME_STYLE = "bright_black"
 
 
-def _default_logdir() -> str:
-    '''Get the default log directory, using config if available, otherwise fallback.
-    
-    Returns
-    -------
-    str
-        The log directory path.
-    '''
-
-    try:
-        from OCDocker.Config import get_config
-        config = get_config()
-        if config and config.logdir:
-            return config.logdir
-    except (ImportError, AttributeError, RuntimeError):
-        # Fallback if config not available
-        pass
-    base = os.path.abspath(os.path.join(os.path.dirname(ocerror.__file__), os.pardir))
-    return os.path.join(base, "logs")
-
+# Functions
+###############################################################################
+## Private ##
 
 def _build_stream_handler(to_stdout: bool, use_rich: bool) -> tuple[logging.Handler, bool]:
     '''Create the console logging handler.
@@ -102,6 +108,27 @@ def _build_stream_handler(to_stdout: bool, use_rich: bool) -> tuple[logging.Hand
     return handler, False
 
 
+def _default_logdir() -> str:
+    '''Get the default log directory, using config if available, otherwise fallback.
+    
+    Returns
+    -------
+    str
+        The log directory path.
+    '''
+
+    try:
+        from OCDocker.Config import get_config
+        config = get_config()
+        if config and config.logdir:
+            return config.logdir
+    except (ImportError, AttributeError, RuntimeError):
+        # Fallback if config not available
+        pass
+    base = os.path.abspath(os.path.join(os.path.dirname(ocerror.__file__), os.pardir))
+    return os.path.join(base, "logs")
+
+
 def _ensure_configured(to_stdout: bool = True, use_rich: Optional[bool] = None) -> None:
     '''Ensure the logger has a configured console handler.
 
@@ -133,32 +160,42 @@ def _ensure_configured(to_stdout: bool = True, use_rich: Optional[bool] = None) 
     _STATE["stream_handler"] = handler
 
 
-def set_level_from_report(level: ocerror.ReportLevel) -> None:
-    '''Map ocerror.ReportLevel to logging level and set it.
-    
+## Public ##
+
+def backup_log(logname: str) -> None:
+    '''Backup the current log under <logdir>/read_log_past.
+
     Parameters
     ----------
-    level : ocerror.ReportLevel
-        The report level to set.
+    logname : str
+        The base name of the log file (without .log extension).
     '''
 
-    lvl_map = {
-        ocerror.ReportLevel.NONE: logging.CRITICAL + 10,
-        ocerror.ReportLevel.ERROR: logging.ERROR,
-        ocerror.ReportLevel.WARNING: logging.WARNING,
-        ocerror.ReportLevel.INFO: logging.INFO,
-        ocerror.ReportLevel.SUCCESS: logging.INFO,
-        ocerror.ReportLevel.DEBUG: logging.DEBUG,
-    }
-    py_level = lvl_map.get(level, logging.INFO)
-    logger = _STATE["logger"]
-    logger.setLevel(py_level)
-    for h in logger.handlers:
+    logdir = _default_logdir()
+    src = os.path.join(logdir, f"{logname}.log")
+    if os.path.isfile(src):
+        dst_dir = os.path.join(logdir, "read_log_past")
+        if not os.path.isdir(dst_dir):
+            ocff.safe_create_dir(dst_dir)
+        dst = os.path.join(dst_dir, f"{logname}_{time.strftime('%d%m%Y-%H%M%S')}.log")
         try:
-            h.setLevel(py_level)
-        except AttributeError:
-            # Ignore if handler doesn't support setLevel
+            os.rename(src, dst)
+        except (OSError, PermissionError):
+            # Ignore errors when archiving logs
             pass
+
+
+def clear_past_logs() -> None:
+    '''Clear past logs under the default log directory/past folders.'''
+
+    logdir = _default_logdir()
+    for past in [d for d in glob(f"{logdir}/*") if os.path.isdir(d)]:
+        if past.endswith("past"):
+            try:
+                shutil.rmtree(past)
+            except (OSError, PermissionError):
+                # Ignore errors when cleaning old logs
+                pass
 
 
 def configure(
@@ -217,6 +254,7 @@ def get_logger(name: Optional[str] = None) -> logging.Logger:
 
     return _STATE["logger"] if not name else _STATE["logger"].getChild(name)
 
+
 def is_rich_enabled() -> bool:
     '''Check whether Rich is the active console handler.
 
@@ -228,37 +266,29 @@ def is_rich_enabled() -> bool:
     return bool(_STATE.get("use_rich"))
 
 
-def clear_past_logs() -> None:
-    '''Clear past logs under the default log directory/past folders.'''
-
-    logdir = _default_logdir()
-    for past in [d for d in glob(f"{logdir}/*") if os.path.isdir(d)]:
-        if past.endswith("past"):
-            try:
-                shutil.rmtree(past)
-            except (OSError, PermissionError):
-                # Ignore errors when cleaning old logs
-                pass
-
-
-def backup_log(logname: str) -> None:
-    '''Backup the current log under <logdir>/read_log_past.
-
+def set_level_from_report(level: ocerror.ReportLevel) -> None:
+    '''Map ocerror.ReportLevel to logging level and set it.
+    
     Parameters
     ----------
-    logname : str
-        The base name of the log file (without .log extension).
+    level : ocerror.ReportLevel
+        The report level to set.
     '''
 
-    logdir = _default_logdir()
-    src = os.path.join(logdir, f"{logname}.log")
-    if os.path.isfile(src):
-        dst_dir = os.path.join(logdir, "read_log_past")
-        if not os.path.isdir(dst_dir):
-            ocff.safe_create_dir(dst_dir)
-        dst = os.path.join(dst_dir, f"{logname}_{time.strftime('%d%m%Y-%H%M%S')}.log")
+    lvl_map = {
+        ocerror.ReportLevel.NONE: logging.CRITICAL + 10,
+        ocerror.ReportLevel.ERROR: logging.ERROR,
+        ocerror.ReportLevel.WARNING: logging.WARNING,
+        ocerror.ReportLevel.INFO: logging.INFO,
+        ocerror.ReportLevel.SUCCESS: logging.INFO,
+        ocerror.ReportLevel.DEBUG: logging.DEBUG,
+    }
+    py_level = lvl_map.get(level, logging.INFO)
+    logger = _STATE["logger"]
+    logger.setLevel(py_level)
+    for h in logger.handlers:
         try:
-            os.rename(src, dst)
-        except (OSError, PermissionError):
-            # Ignore errors when archiving logs
+            h.setLevel(py_level)
+        except AttributeError:
+            # Ignore if handler doesn't support setLevel
             pass

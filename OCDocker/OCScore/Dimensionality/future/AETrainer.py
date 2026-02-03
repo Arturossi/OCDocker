@@ -21,7 +21,6 @@ from typing import Dict, List, Optional
 
 import OCDocker.Toolbox.Printing as ocprint
 
-from OCDocker.OCScore.DNN.future.losses import UncertaintyWeighting
 from OCDocker.OCScore.Dimensionality.future.Autoencoder import Autoencoder
 from OCDocker.OCScore.Dimensionality.future.datasets import AutoencoderDataset
 from OCDocker.OCScore.Dimensionality.future.losses import contractive_penalty
@@ -32,6 +31,7 @@ from OCDocker.OCScore.Dimensionality.future.utils import apply_noise
 from OCDocker.OCScore.Dimensionality.future.utils import embedding_stats
 from OCDocker.OCScore.Dimensionality.future.utils import ramp_weight
 from OCDocker.OCScore.Dimensionality.future.utils import spearman_corr
+from OCDocker.OCScore.DNN.future.losses import UncertaintyWeighting
 
 # License
 ###############################################################################

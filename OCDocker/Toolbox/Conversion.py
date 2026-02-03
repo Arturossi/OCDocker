@@ -23,27 +23,15 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem.rdmolfiles import MolToMolFile
 from rdkit.Chem.SaltRemover import SaltRemover
-from typing import Union, Optional
+from typing import Optional, Union
 
+import OCDocker.Error as ocerror
+import OCDocker.Toolbox.Constants as occ
 import OCDocker.Toolbox.Printing as ocprint
 import OCDocker.Toolbox.Validation as ocvalidation
-import OCDocker.Toolbox.Constants as occ
 
 from OCDocker.Config import get_config
-import OCDocker.Error as ocerror
-
 from OCDocker.Toolbox.Constants import order
-
-# Set output levels for openbabel
-try:
-    config = get_config()
-    pb_log_handler = pybel.ob.OBMessageHandler()
-    ob_log_handler = openbabel.OBMessageHandler()
-    pb_log_handler.SetOutputLevel(config.output_level.value)
-    ob_log_handler.SetOutputLevel(config.output_level.value)
-except (AttributeError, TypeError):
-    # Fallback if OBMessageHandler doesn't support SetOutputLevel or output_level isn't available
-    pass
 
 # License
 ###############################################################################
@@ -62,6 +50,17 @@ to formal authorization from UFRJ. See the LICENSE file for details.
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
 
+# Set output levels for openbabel
+try:
+    config = get_config()
+    pb_log_handler = pybel.ob.OBMessageHandler()
+    ob_log_handler = openbabel.OBMessageHandler()
+    pb_log_handler.SetOutputLevel(config.output_level.value)
+    ob_log_handler.SetOutputLevel(config.output_level.value)
+except (AttributeError, TypeError):
+    # Fallback if OBMessageHandler doesn't support SetOutputLevel or output_level isn't available
+    pass
+
 # Classes
 ###############################################################################
 
@@ -70,88 +69,6 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ## Private ##
 
 ## Public ##
-def convert_mols_from_string(input: str, output: str, mol: Optional[rdkit.Chem.rdchem.Mol] = None) -> Union[int, str]:
-    '''Currently only works with smiles. TODO: Add support to other formats.
-
-    Parameters
-    ----------
-    input : str
-        Input file content as string.
-    output : str
-        Output file name.
-    mol : rdkit.Chem.rdchem.Mol | None, optional
-        The molecule object to be used to convert the input string to a file. If None, it will be created. (default is None)
-
-    Returns
-    -------
-    int | str
-        The exit code of the command (based on the Error.py code table) if fails or the extension of the input file otherwise returns the extension itself.
-    '''
-
-    # Get the in and out extensions 
-    inExtension = "smi" # TODO: Add support to other formats
-    outExtension = ocvalidation.validate_obabel_extension(output)
-
-    # Check if the output extension is valid
-    if type(outExtension) != str:
-        ocprint.print_error(f"Problems while pre-processing the molecule from output file '{output}'.")
-        return outExtension
-
-    try:
-        # If mol is undefined, create it
-        if not mol:
-            # Initializ e the salt remover
-            remover = SaltRemover()
-            # Load the molecule
-            mol = rdkit.Chem.rdmolfiles.MolFromSmiles(input) # type: ignore
-            # Remove the salts
-            mol = remover.StripMol(mol)
-            # Add the hydrogens
-            mol = Chem.AddHs(mol) # type: ignore
-            # Embed the molecule
-            _ = AllChem.EmbedMolecule(mol, AllChem.ETKDG()) # type: ignore
-            # Optimize the molecule
-            _ = AllChem.UFFOptimizeMolecule(mol) # type: ignore
-        
-        # Check if the output is mol
-        if outExtension == "mol":
-            # Write the molecule to the output file
-            MolToMolFile(mol, output)
-            return ocerror.Error.ok() # type: ignore
-        
-        # Replace the extension to to mol
-        tmpOutput = f"{os.path.splitext(output)[0]}_tmp.mol"
-        
-        # Write the molecule to the output file
-        MolToMolFile(mol, tmpOutput)
-
-        # Convert it to the desired format (This will not cause an infinite loop since the input extension is always mol)
-        result = convert_mols(tmpOutput, output)
-        
-        # Clean up temporary file
-        try:
-            if os.path.isfile(tmpOutput):
-                os.remove(tmpOutput)
-        except (OSError, PermissionError):
-            # Ignore errors during cleanup (file might be in use or already deleted)
-            pass
-        
-        # Return the result of conversion
-        if result != ocerror.Error.ok(): # type: ignore
-            return result
-        
-    except Exception as e:
-        # Clean up temporary file on error
-        try:
-            tmpOutput = f"{os.path.splitext(output)[0]}_tmp.mol"
-            if os.path.isfile(tmpOutput):
-                os.remove(tmpOutput)
-        except (OSError, PermissionError):
-            pass
-        return ocerror.Error.subprocess(message=f"Error while running molecule conversion from {inExtension} to {outExtension} using obabel python lib. Error: {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
-
-    return ocerror.Error.ok() # type: ignore
-
 
 def convert_mols(input_file: str, output_file: str, return_molecule: bool = False, overwrite: bool = False) -> Union[int, str, rdkit.Chem.rdchem.Mol]: # type: ignore
     '''Convert a molecule file between two extensions which obabel supports.
@@ -243,6 +160,129 @@ def convert_mols(input_file: str, output_file: str, return_molecule: bool = Fals
         pass
     return ocerror.Error.ok() # type: ignore
 
+def convert_mols_from_string(input: str, output: str, mol: Optional[rdkit.Chem.rdchem.Mol] = None) -> Union[int, str]:
+    '''Currently only works with smiles. TODO: Add support to other formats.
+
+    Parameters
+    ----------
+    input : str
+        Input file content as string.
+    output : str
+        Output file name.
+    mol : rdkit.Chem.rdchem.Mol | None, optional
+        The molecule object to be used to convert the input string to a file. If None, it will be created. (default is None)
+
+    Returns
+    -------
+    int | str
+        The exit code of the command (based on the Error.py code table) if fails or the extension of the input file otherwise returns the extension itself.
+    '''
+
+    # Get the in and out extensions 
+    inExtension = "smi" # TODO: Add support to other formats
+    outExtension = ocvalidation.validate_obabel_extension(output)
+
+    # Check if the output extension is valid
+    if type(outExtension) != str:
+        ocprint.print_error(f"Problems while pre-processing the molecule from output file '{output}'.")
+        return outExtension
+
+    try:
+        # If mol is undefined, create it
+        if not mol:
+            # Initializ e the salt remover
+            remover = SaltRemover()
+            # Load the molecule
+            mol = rdkit.Chem.rdmolfiles.MolFromSmiles(input) # type: ignore
+            # Remove the salts
+            mol = remover.StripMol(mol)
+            # Add the hydrogens
+            mol = Chem.AddHs(mol) # type: ignore
+            # Embed the molecule
+            _ = AllChem.EmbedMolecule(mol, AllChem.ETKDG()) # type: ignore
+            # Optimize the molecule
+            _ = AllChem.UFFOptimizeMolecule(mol) # type: ignore
+        
+        # Check if the output is mol
+        if outExtension == "mol":
+            # Write the molecule to the output file
+            MolToMolFile(mol, output)
+            return ocerror.Error.ok() # type: ignore
+        
+        # Replace the extension to to mol
+        tmpOutput = f"{os.path.splitext(output)[0]}_tmp.mol"
+        
+        # Write the molecule to the output file
+        MolToMolFile(mol, tmpOutput)
+
+        # Convert it to the desired format (This will not cause an infinite loop since the input extension is always mol)
+        result = convert_mols(tmpOutput, output)
+        
+        # Clean up temporary file
+        try:
+            if os.path.isfile(tmpOutput):
+                os.remove(tmpOutput)
+        except (OSError, PermissionError):
+            # Ignore errors during cleanup (file might be in use or already deleted)
+            pass
+        
+        # Return the result of conversion
+        if result != ocerror.Error.ok(): # type: ignore
+            return result
+        
+    except Exception as e:
+        # Clean up temporary file on error
+        try:
+            tmpOutput = f"{os.path.splitext(output)[0]}_tmp.mol"
+            if os.path.isfile(tmpOutput):
+                os.remove(tmpOutput)
+        except (OSError, PermissionError):
+            pass
+        return ocerror.Error.subprocess(message=f"Error while running molecule conversion from {inExtension} to {outExtension} using obabel python lib. Error: {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
+
+    return ocerror.Error.ok() # type: ignore
+
+def kikd_to_deltag(kikd: float, T: float = occ.STANDARD_TEMPERATURE_K, kikd_order: str = "un", R: float = occ.RJ) -> float:
+    '''Converts Ki/Kd to deltaG.
+
+    Parameters
+    ----------
+    kikd : float
+        Ki/Kd value.
+    T : float, optional
+        Temperature in Kelvin. (default is STANDARD_TEMPERATURE_K, 298.15 K)
+    kikd_order : str, optional
+        Order of the Ki/Kd value. (default is "un")
+    R : float, optional
+        Ideal gas constant in J/(mol·K). (default is RJ, 8.314462618 J/(mol·K))
+
+    Returns
+    -------
+    float
+        The deltaG value.
+    '''
+
+    # If the length of the kikd_order is greater than 1
+    if len(kikd_order) > 1:
+        # If the Ki/Kd order is not un
+        if kikd_order != "un":
+            # Make it be just the first letter
+            kikd_order = kikd_order[0]
+        # Now check if the length of the kikd_order is more than 3
+        elif len(kikd_order) > 3:
+            # Check if starts with un
+            if kikd_order.startswith("un"):
+                # Make it be just the first letter
+                kikd_order = kikd_order[2]
+            # Use the first letter
+            else:
+                kikd_order = kikd_order[0]
+
+    # Calculate deltaG
+    deltag = - R * T * math.log(kikd * order[kikd_order]["un"])
+
+    # Return the deltaG
+    return deltag
 
 def split_and_convert(path: str, out_path: str, extension: str, overwrite: bool = False) -> int:
     '''Splits a multi-molecule file then save the output in multiple single-molecule file with the desired extension. (Supported by openbabel)
@@ -297,46 +337,3 @@ def split_and_convert(path: str, out_path: str, extension: str, overwrite: bool 
             return ocerror.Error.write_file(f"Problems while writing the file '{outfile}'. Error: {e}") # type: ignore
     # Since everything gone ok, return the ok code
     return ocerror.Error.ok() # type: ignore
-
-
-def kikd_to_deltag(kikd: float, T: float = occ.STANDARD_TEMPERATURE_K, kikd_order: str = "un", R: float = occ.RJ) -> float:
-    '''Converts Ki/Kd to deltaG.
-
-    Parameters
-    ----------
-    kikd : float
-        Ki/Kd value.
-    T : float, optional
-        Temperature in Kelvin. (default is STANDARD_TEMPERATURE_K, 298.15 K)
-    kikd_order : str, optional
-        Order of the Ki/Kd value. (default is "un")
-    R : float, optional
-        Ideal gas constant in J/(mol·K). (default is RJ, 8.314462618 J/(mol·K))
-
-    Returns
-    -------
-    float
-        The deltaG value.
-    '''
-
-    # If the length of the kikd_order is greater than 1
-    if len(kikd_order) > 1:
-        # If the Ki/Kd order is not un
-        if kikd_order != "un":
-            # Make it be just the first letter
-            kikd_order = kikd_order[0]
-        # Now check if the length of the kikd_order is more than 3
-        elif len(kikd_order) > 3:
-            # Check if starts with un
-            if kikd_order.startswith("un"):
-                # Make it be just the first letter
-                kikd_order = kikd_order[2]
-            # Use the first letter
-            else:
-                kikd_order = kikd_order[0]
-
-    # Calculate deltaG
-    deltag = - R * T * math.log(kikd * order[kikd_order]["un"])
-
-    # Return the deltaG
-    return deltag

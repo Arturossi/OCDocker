@@ -20,17 +20,18 @@ from OCDocker.Toolbox.Preparation import (
 
 # Imports
 ###############################################################################
-from abc import ABC, abstractmethod
-from typing import Union, Tuple
 import os
 import shutil
 
-from OCDocker.Config import get_config
-from OCDocker.Toolbox import Running as ocrun
-from OCDocker.Toolbox.Printing import print_warning
-from OCDocker.Toolbox.Running import is_tool_available
-from OCDocker.Toolbox.FilesFolders import ensure_parent_dir
+from abc import ABC, abstractmethod
+from typing import Tuple, Union
+
 import OCDocker.Error as ocerror
+from OCDocker.Config import get_config
+from OCDocker.Toolbox.FilesFolders import ensure_parent_dir
+from OCDocker.Toolbox.Printing import print_warning
+from OCDocker.Toolbox import Running as ocrun
+from OCDocker.Toolbox.Running import is_tool_available
 
 # License
 ###############################################################################
@@ -55,102 +56,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 class PreparationStrategy(ABC):
     """Abstract base class for molecule preparation strategies."""
     
-    @abstractmethod
-    def prepare_ligand(
-        self,
-        input_path: str,
-        output_path: str,
-        log_file: str = "",
-        overwrite: bool = False
-    ) -> Union[int, Tuple[int, str]]:
-        '''Prepare a ligand molecule.
-        
-        Parameters
-        ----------
-        input_path : str
-            Path to input ligand file
-        output_path : str
-            Path to output prepared ligand file
-        log_file : str, optional
-            Path to log file (empty to suppress)
-        overwrite : bool, optional
-            Whether to overwrite existing output file (default is False)
-            
-        Returns
-        -------
-        Union[int, Tuple[int, str]]
-            Error code or tuple of (error_code, stderr)
-        '''
 
-        pass
-    
-    @abstractmethod
-    def prepare_receptor(
-        self,
-        input_path: str,
-        output_path: str,
-        log_file: str = "",
-        overwrite: bool = False
-    ) -> Union[int, Tuple[int, str]]:
-        '''Prepare a receptor molecule.
-        
-        Parameters
-        ----------
-        input_path : str
-            Path to input receptor file
-        output_path : str
-            Path to output prepared receptor file
-        log_file : str, optional
-            Path to log file (empty to suppress)
-        overwrite : bool, optional
-            Whether to overwrite existing output file (default is False)
-            
-        Returns
-        -------
-        Union[int, Tuple[int, str]]
-            Error code or tuple of (error_code, stderr)
-        '''
-
-        pass
-    
-    def get_ligand_command(self, input_path: str, output_path: str) -> list[str]:
-        '''Get the command list that would be used to prepare a ligand.
-        
-        Parameters
-        ----------
-        input_path : str
-            Path to input ligand file
-        output_path : str
-            Path to output prepared ligand file
-            
-        Returns
-        -------
-        list[str]
-            Command list that would be executed
-        '''
-        
-        # Default implementation - should be overridden by subclasses
-        return []
-    
-    def get_receptor_command(self, input_path: str, output_path: str) -> list[str]:
-        '''Get the command list that would be used to prepare a receptor.
-        
-        Parameters
-        ----------
-        input_path : str
-            Path to input receptor file
-        output_path : str
-            Path to output prepared receptor file
-            
-        Returns
-        -------
-        list[str]
-            Command list that would be executed
-        '''
-        
-        # Default implementation - should be overridden by subclasses
-        return []
-    
     def _check_tool_available(self, exe: str) -> bool:
         '''Check if tool executable is available (shared utility).
         
@@ -166,7 +72,7 @@ class PreparationStrategy(ABC):
         '''
 
         return is_tool_available(exe)
-    
+
     def _ensure_output_dir(self, output_path: str) -> None:
         '''Ensure output directory exists (shared utility).
         
@@ -177,7 +83,7 @@ class PreparationStrategy(ABC):
         '''
 
         ensure_parent_dir(output_path)
-    
+
     def _fallback_copy(
         self,
         input_path: str,
@@ -247,10 +153,157 @@ class PreparationStrategy(ABC):
                 return ocerror.Error.ok()  # type: ignore
         return None
 
+    def get_ligand_command(self, input_path: str, output_path: str) -> list[str]:
+        '''Get the command list that would be used to prepare a ligand.
+        
+        Parameters
+        ----------
+        input_path : str
+            Path to input ligand file
+        output_path : str
+            Path to output prepared ligand file
+            
+        Returns
+        -------
+        list[str]
+            Command list that would be executed
+        '''
+        
+        # Default implementation - should be overridden by subclasses
+        return []
+
+    def get_receptor_command(self, input_path: str, output_path: str) -> list[str]:
+        '''Get the command list that would be used to prepare a receptor.
+        
+        Parameters
+        ----------
+        input_path : str
+            Path to input receptor file
+        output_path : str
+            Path to output prepared receptor file
+            
+        Returns
+        -------
+        list[str]
+            Command list that would be executed
+        '''
+        
+        # Default implementation - should be overridden by subclasses
+        return []
+
+    @abstractmethod
+    def prepare_ligand(
+        self,
+        input_path: str,
+        output_path: str,
+        log_file: str = "",
+        overwrite: bool = False
+    ) -> Union[int, Tuple[int, str]]:
+        '''Prepare a ligand molecule.
+        
+        Parameters
+        ----------
+        input_path : str
+            Path to input ligand file
+        output_path : str
+            Path to output prepared ligand file
+        log_file : str, optional
+            Path to log file (empty to suppress)
+        overwrite : bool, optional
+            Whether to overwrite existing output file (default is False)
+            
+        Returns
+        -------
+        Union[int, Tuple[int, str]]
+            Error code or tuple of (error_code, stderr)
+        '''
+
+        pass
+
+    @abstractmethod
+    def prepare_receptor(
+        self,
+        input_path: str,
+        output_path: str,
+        log_file: str = "",
+        overwrite: bool = False
+    ) -> Union[int, Tuple[int, str]]:
+        '''Prepare a receptor molecule.
+        
+        Parameters
+        ----------
+        input_path : str
+            Path to input receptor file
+        output_path : str
+            Path to output prepared receptor file
+        log_file : str, optional
+            Path to log file (empty to suppress)
+        overwrite : bool, optional
+            Whether to overwrite existing output file (default is False)
+            
+        Returns
+        -------
+        Union[int, Tuple[int, str]]
+            Error code or tuple of (error_code, stderr)
+        '''
+
+        pass
+
 
 class MGLToolsPreparationStrategy(PreparationStrategy):
     """Preparation strategy using MGLTools (prepare_ligand4.py/prepare_receptor4.py)."""
     
+
+    def get_ligand_command(self, input_path: str, output_path: str) -> list[str]:
+        '''Get the command list that would be used to prepare a ligand.
+        
+        Parameters
+        ----------
+        input_path : str
+            Path to input ligand file
+        output_path : str
+            Path to output prepared ligand file
+            
+        Returns
+        -------
+        list[str]
+            Command list that would be executed
+        '''
+        
+        config = get_config()
+        return [
+            config.tools.pythonsh,
+            config.tools.prepare_ligand,
+            "-l", input_path,
+            "-C", "-o", output_path
+        ]
+
+    def get_receptor_command(self, input_path: str, output_path: str) -> list[str]:
+        '''Get the command list that would be used to prepare a receptor.
+        
+        Parameters
+        ----------
+        input_path : str
+            Path to input receptor file
+        output_path : str
+            Path to output prepared receptor file
+            
+        Returns
+        -------
+        list[str]
+            Command list that would be executed
+        '''
+        
+        config = get_config()
+        return [
+            config.tools.pythonsh,
+            config.tools.prepare_receptor,
+            "-r", input_path,
+            "-o", output_path,
+            "-A", "hydrogens",
+            "-U", "nphs_lps_waters"
+        ]
+
     def prepare_ligand(
         self,
         input_path: str,
@@ -303,31 +356,7 @@ class MGLToolsPreparationStrategy(PreparationStrategy):
         ]
         
         return ocrun.run(cmd, logFile=log_file, cwd=os.path.dirname(input_path))
-    
-    def get_ligand_command(self, input_path: str, output_path: str) -> list[str]:
-        '''Get the command list that would be used to prepare a ligand.
-        
-        Parameters
-        ----------
-        input_path : str
-            Path to input ligand file
-        output_path : str
-            Path to output prepared ligand file
-            
-        Returns
-        -------
-        list[str]
-            Command list that would be executed
-        '''
-        
-        config = get_config()
-        return [
-            config.tools.pythonsh,
-            config.tools.prepare_ligand,
-            "-l", input_path,
-            "-C", "-o", output_path
-        ]
-    
+
     def prepare_receptor(
         self,
         input_path: str,
@@ -383,35 +412,10 @@ class MGLToolsPreparationStrategy(PreparationStrategy):
         
         return ocrun.run(cmd, logFile=log_file, cwd=os.path.dirname(input_path))
     
-    def get_receptor_command(self, input_path: str, output_path: str) -> list[str]:
-        '''Get the command list that would be used to prepare a receptor.
-        
-        Parameters
-        ----------
-        input_path : str
-            Path to input receptor file
-        output_path : str
-            Path to output prepared receptor file
-            
-        Returns
-        -------
-        list[str]
-            Command list that would be executed
-        '''
-        
-        config = get_config()
-        return [
-            config.tools.pythonsh,
-            config.tools.prepare_receptor,
-            "-r", input_path,
-            "-o", output_path,
-            "-A", "hydrogens",
-            "-U", "nphs_lps_waters"
-        ]
-    
 
 class SPORESPreparationStrategy(PreparationStrategy):
     """Preparation strategy using SPORES."""
+
 
     def _prepare(
         self,
@@ -448,6 +452,48 @@ class SPORESPreparationStrategy(PreparationStrategy):
 
         return ocrun.run(cmd, logFile=log_file)
 
+    def get_ligand_command(self, input_path: str, output_path: str) -> list[str]:
+        '''Get the command list that would be used to prepare a ligand.
+        
+        Parameters
+        ----------
+        input_path : str
+            Path to input ligand file
+        output_path : str
+            Path to output prepared ligand file
+            
+        Returns
+        -------
+        list[str]
+            Command list that would be executed
+        '''
+        
+        config = get_config()
+        return [
+            config.tools.spores,
+            "--mode", "complete",
+            input_path,
+            output_path
+        ]
+
+    def get_receptor_command(self, input_path: str, output_path: str) -> list[str]:
+        '''Get the command list that would be used to prepare a receptor.
+        
+        Parameters
+        ----------
+        input_path : str
+            Path to input receptor file
+        output_path : str
+            Path to output prepared receptor file
+            
+        Returns
+        -------
+        list[str]
+            Command list that would be executed (same as ligand for SPORES)
+        '''
+        
+        return self.get_ligand_command(input_path, output_path)
+
     def prepare_ligand(
         self,
         input_path: str,
@@ -481,31 +527,7 @@ class SPORESPreparationStrategy(PreparationStrategy):
             overwrite,
             "ligand"
         )
-    
-    def get_ligand_command(self, input_path: str, output_path: str) -> list[str]:
-        '''Get the command list that would be used to prepare a ligand.
-        
-        Parameters
-        ----------
-        input_path : str
-            Path to input ligand file
-        output_path : str
-            Path to output prepared ligand file
-            
-        Returns
-        -------
-        list[str]
-            Command list that would be executed
-        '''
-        
-        config = get_config()
-        return [
-            config.tools.spores,
-            "--mode", "complete",
-            input_path,
-            output_path
-        ]
-    
+
     def prepare_receptor(
         self,
         input_path: str,
@@ -534,7 +556,37 @@ class SPORESPreparationStrategy(PreparationStrategy):
             overwrite,
             "receptor"
         )
+
+
+class OpenBabelPreparationStrategy(PreparationStrategy):
+    """Preparation strategy using OpenBabel (for Gnina and similar)."""
     
+
+    def get_ligand_command(self, input_path: str, output_path: str) -> list[str]:
+        '''Get the command list that would be used to prepare a ligand.
+        
+        Parameters
+        ----------
+        input_path : str
+            Path to input ligand file
+        output_path : str
+            Path to output prepared ligand file
+            
+        Returns
+        -------
+        list[str]
+            Command list that would be executed (OpenBabel conversion)
+        '''
+        
+        config = get_config()
+        # OpenBabel uses obabel command
+        exe = str(config.tools.obabel)
+        return [
+            exe,
+            input_path,
+            "-O", output_path
+        ]
+
     def get_receptor_command(self, input_path: str, output_path: str) -> list[str]:
         '''Get the command list that would be used to prepare a receptor.
         
@@ -548,15 +600,12 @@ class SPORESPreparationStrategy(PreparationStrategy):
         Returns
         -------
         list[str]
-            Command list that would be executed (same as ligand for SPORES)
+            Command list that would be executed (OpenBabel conversion)
         '''
         
+        # Same as ligand for OpenBabel
         return self.get_ligand_command(input_path, output_path)
 
-
-class OpenBabelPreparationStrategy(PreparationStrategy):
-    """Preparation strategy using OpenBabel (for Gnina and similar)."""
-    
     def prepare_ligand(
         self,
         input_path: str,
@@ -627,7 +676,14 @@ class OpenBabelPreparationStrategy(PreparationStrategy):
         # Use conversion utility
         from OCDocker.Toolbox import Conversion as occonversion
         return occonversion.convert_mols(input_path, output_path, overwrite=overwrite)  # type: ignore
-    
+
+
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##
+
     def prepare_receptor(
         self,
         input_path: str,
@@ -661,47 +717,3 @@ class OpenBabelPreparationStrategy(PreparationStrategy):
         # Similar to ligand but for receptor
         from OCDocker.Toolbox import Conversion as occonversion
         return occonversion.convert_mols(input_path, output_path, overwrite=overwrite)  # type: ignore
-    
-    def get_ligand_command(self, input_path: str, output_path: str) -> list[str]:
-        '''Get the command list that would be used to prepare a ligand.
-        
-        Parameters
-        ----------
-        input_path : str
-            Path to input ligand file
-        output_path : str
-            Path to output prepared ligand file
-            
-        Returns
-        -------
-        list[str]
-            Command list that would be executed (OpenBabel conversion)
-        '''
-        
-        config = get_config()
-        # OpenBabel uses obabel command
-        exe = str(config.tools.obabel)
-        return [
-            exe,
-            input_path,
-            "-O", output_path
-        ]
-    
-    def get_receptor_command(self, input_path: str, output_path: str) -> list[str]:
-        '''Get the command list that would be used to prepare a receptor.
-        
-        Parameters
-        ----------
-        input_path : str
-            Path to input receptor file
-        output_path : str
-            Path to output prepared receptor file
-            
-        Returns
-        -------
-        list[str]
-            Command list that would be executed (OpenBabel conversion)
-        '''
-        
-        # Same as ligand for OpenBabel
-        return self.get_ligand_command(input_path, output_path)

@@ -17,8 +17,8 @@ import optuna
 import numpy as np
 import pandas as pd
 
-from optuna.samplers import TPESampler
 from optuna.integration import XGBoostPruningCallback
+from optuna.samplers import TPESampler
 from sklearn.metrics import auc, roc_curve
 from typing import Union
 
@@ -326,5 +326,8 @@ class XGBoostOptimizer:
 
         return study
 
-# Methods
+# Functions
 ###############################################################################
+## Private ##
+
+## Public ##

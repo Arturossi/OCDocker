@@ -15,8 +15,6 @@ import OCDocker.Processing.Preprocessing.RmsdClustering as ocrmsdclust
 ###############################################################################
 import matplotlib
 
-matplotlib.use('agg')
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -29,9 +27,8 @@ from sklearn.metrics import pairwise_distances, silhouette_score
 from typing import Dict, List, Union, Optional
 from warnings import simplefilter
 
-import OCDocker.Toolbox.Printing as ocprint
-
 import OCDocker.Error as ocerror
+import OCDocker.Toolbox.Printing as ocprint
 
 # License
 ###############################################################################
@@ -50,6 +47,8 @@ to formal authorization from UFRJ. See the LICENSE file for details.
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
 
+matplotlib.use('agg')
+
 # Classes
 ###############################################################################
 
@@ -58,78 +57,6 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ## Private ##
 
 ## Public ##
-def get_medoids(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], clusters: np.ndarray, onlyBiggest: bool = True) -> List[str]:
-    '''Get the medoids of the clusters.
-
-    Parameters
-    ----------
-    data : Union[Dict[str, Dict[str, float]], pd.DataFrame]
-        The rmsd matrix.
-    clusters : np.ndarray
-        The clusters.
-    onlyBiggest : bool, optional
-        If True, only the medoid of the biggest clusters are returned. The default is True.
-
-    Returns
-    -------
-    List[str]
-        The paths to the medoids.
-    '''
-
-    # Check if the data is a dict
-    if isinstance(data, dict):
-        # Convert the dict to a DataFrame
-        data = pd.DataFrame(data)
-
-    if isinstance(clusters, int):
-        print(clusters)
-    
-    # Check if the clusters is an int or is not empty or invalid
-    if isinstance(clusters, int) or clusters.size == 0 or np.any(clusters < 0):
-        return []
-    
-    # If onlyBiggest is True
-    if onlyBiggest:
-        # Get the size of each cluster
-        cluster_sizes = np.bincount(clusters)
-
-        # Get the label of the biggest clusters (may be more than one)
-        unique_clusters = np.where(cluster_sizes == np.max(cluster_sizes))[0]
-    else:
-        # Get the unique clusters
-        unique_clusters = np.unique(clusters)
-
-    # Initialize a list to store medoids
-    medoids = []
-
-    # Calculate medoid for each cluster
-    for cluster in unique_clusters:
-        # Select data points belonging to the current cluster
-        cluster_data = data[clusters == cluster]
-
-        # Check if the cluster is empty
-        if cluster_data.empty:
-            _ = ocerror.Error.empty_cluster(f"The cluster {cluster} is empty.") # type: ignore
-            continue
-
-        # Calculate pairwise distances within the cluster
-        distances = pairwise_distances(cluster_data, metric='euclidean')
-
-        # Calculate the sum of distances for each data point
-        sum_distances = np.sum(distances, axis=1)
-        
-        # Find the index of the data point with the smallest sum of distances
-        medoid_index = np.argmin(sum_distances)
-
-        # Get the index name
-        medoid_index_label = cluster_data.index[medoid_index]
-        
-        # Append the medoid to the list of medoids
-        medoids.append(medoid_index_label)
-
-    # Return the medoid paths
-    return medoids
-
 
 def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorithm: str = 'agglomerativeClustering', max_distance_threshold: float = 20.0, min_distance_threshold: float = 10.0, threshold_step: float = 0.1, outputPlot: str = "", molecule_name: str = "", pose_engine_map: Optional[Dict[str, str]] = None, engine_colors: Optional[Dict[str, str]] = None) -> Union[np.ndarray, int]:
     '''Cluster molecules based on their rmsd.
@@ -817,3 +744,75 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
     
     else:
         return ocerror.Error.unsupported_clustering_algorithm(f"The clustering algorithm '{algorithm}' is not supported. Currently the supported algorithms are: 'agglomerativeClustering'.") # type: ignore
+
+def get_medoids(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], clusters: np.ndarray, onlyBiggest: bool = True) -> List[str]:
+    '''Get the medoids of the clusters.
+
+    Parameters
+    ----------
+    data : Union[Dict[str, Dict[str, float]], pd.DataFrame]
+        The rmsd matrix.
+    clusters : np.ndarray
+        The clusters.
+    onlyBiggest : bool, optional
+        If True, only the medoid of the biggest clusters are returned. The default is True.
+
+    Returns
+    -------
+    List[str]
+        The paths to the medoids.
+    '''
+
+    # Check if the data is a dict
+    if isinstance(data, dict):
+        # Convert the dict to a DataFrame
+        data = pd.DataFrame(data)
+
+    if isinstance(clusters, int):
+        print(clusters)
+    
+    # Check if the clusters is an int or is not empty or invalid
+    if isinstance(clusters, int) or clusters.size == 0 or np.any(clusters < 0):
+        return []
+    
+    # If onlyBiggest is True
+    if onlyBiggest:
+        # Get the size of each cluster
+        cluster_sizes = np.bincount(clusters)
+
+        # Get the label of the biggest clusters (may be more than one)
+        unique_clusters = np.where(cluster_sizes == np.max(cluster_sizes))[0]
+    else:
+        # Get the unique clusters
+        unique_clusters = np.unique(clusters)
+
+    # Initialize a list to store medoids
+    medoids = []
+
+    # Calculate medoid for each cluster
+    for cluster in unique_clusters:
+        # Select data points belonging to the current cluster
+        cluster_data = data[clusters == cluster]
+
+        # Check if the cluster is empty
+        if cluster_data.empty:
+            _ = ocerror.Error.empty_cluster(f"The cluster {cluster} is empty.") # type: ignore
+            continue
+
+        # Calculate pairwise distances within the cluster
+        distances = pairwise_distances(cluster_data, metric='euclidean')
+
+        # Calculate the sum of distances for each data point
+        sum_distances = np.sum(distances, axis=1)
+        
+        # Find the index of the data point with the smallest sum of distances
+        medoid_index = np.argmin(sum_distances)
+
+        # Get the index name
+        medoid_index_label = cluster_data.index[medoid_index]
+        
+        # Append the medoid to the list of medoids
+        medoids.append(medoid_index_label)
+
+    # Return the medoid paths
+    return medoids

@@ -37,9 +37,11 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ###############################################################################
 
 
-# Methods
+# Functions
 ###############################################################################
+## Private ##
 
+## Public ##
 
 def run_xgboost(
         X_train : np.ndarray,

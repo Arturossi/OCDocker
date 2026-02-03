@@ -8,8 +8,9 @@ Sanity checks for the future DNN optimization pipeline.
 
 # Imports
 ###############################################################################
-import numpy as np
 import pytest
+
+import numpy as np
 
 from OCDocker.OCScore.DNN.future.DNNOptimizer import DNNOptimizer
 

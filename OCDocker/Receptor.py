@@ -20,19 +20,18 @@ import os
 
 import numpy as np
 
-from Bio.PDB.MMCIFParser import MMCIFParser
-from Bio.PDB.PDBParser import PDBParser
-from Bio.PDB.PDBIO import PDBIO
-from Bio.PDB import SASA
 from Bio.PDB.DSSP import DSSP
+from Bio.PDB.MMCIFParser import MMCIFParser
 from Bio.PDB.PDBExceptions import PDBException
-from Bio.SeqUtils import seq1
+from Bio.PDB.PDBIO import PDBIO
+from Bio.PDB.PDBParser import PDBParser
+from Bio.PDB import SASA
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
+from Bio.SeqUtils import seq1
 from openbabel import openbabel
 from threading import Lock
-from typing import Dict, Tuple, Union, Optional, Any
+from typing import Any, Dict, Optional, Tuple, Union
 
-from OCDocker.Config import get_config
 import OCDocker.Error as ocerror
 
 import OCDocker.Toolbox.Conversion as occonversion
@@ -40,6 +39,8 @@ import OCDocker.Toolbox.MoleculeProcessing as ocmolproc
 import OCDocker.Toolbox.Printing as ocprint
 import OCDocker.Toolbox.Running as ocrun
 import OCDocker.Toolbox.Validation as ocvalidation
+
+from OCDocker.Config import get_config
 
 # License
 ###############################################################################
@@ -348,40 +349,6 @@ class Receptor:
         return {**properties, **self.get_descriptors()}
 
     ## Public ##
-    def print_attributes(self) -> None:
-        """Print all attributes of the receptor to stdout.
-
-        Displays the receptor's name, structure path, and all computed
-        descriptors (SASA, dipole moment, isoelectric point, GRAVY,
-        aromaticity, instability index, amino acid counts, etc.) in a
-        formatted, aligned table.
-        """
-        
-        attributes = {
-            "Name": self.name,
-            "Structure path": self.path,
-            "Original path": self.original_path,
-            "Clean source path": self.clean_source_path,
-            "mol2 path": self.mol2_path,
-            "Structure": self.structure,
-            "AA residues": self.residues,
-            "Total AA len": self.totalAALength,
-            "Average AA len": self.avgAALength,
-            "# of chains": self.countChain,
-            "SASA": self.sasa,
-            "Dipole Moment": self.dipoleMoment,
-            "Isoelectric Point": self.isoelectricPoint,
-            "GRAVY": self.GRAVY,
-            "Aromaticity": self.aromaticity,
-            "Instability Index": self.instabilityIndex
-        }
-
-        for aa in self.descriptors_names["count"]:
-            attributes[f"# of accessible {aa}"] = getattr(self, f"count{aa}", 0)
-
-        for key, value in attributes.items():
-
-            print(f"{key}: {value if value else '-'}")
 
     def get_descriptors(self)-> Dict[str, Union[float, int]]:
         '''Return the descriptors for the Receptor object.
@@ -429,6 +396,60 @@ class Receptor:
         }
 
         return descriptors
+
+    def is_valid(self) -> bool:
+        '''Check if a Receptor object is valid.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        bool
+            True if the Receptor object is valid, False otherwise.
+        '''
+
+        #region if any attribute is None
+        if self.name is None or self.path is None or self.structure is None or self.residues is None or self.sasa is None or self.dipoleMoment is None or self.isoelectricPoint is None or self.instabilityIndex is None or self.GRAVY is None or self.aromaticity is None or self.__countAA is None or self.totalAALength is None or self.avgAALength is None or self.countChain is None:
+            return False
+        #endregion
+        return True
+
+    def print_attributes(self) -> None:
+        """Print all attributes of the receptor to stdout.
+
+        Displays the receptor's name, structure path, and all computed
+        descriptors (SASA, dipole moment, isoelectric point, GRAVY,
+        aromaticity, instability index, amino acid counts, etc.) in a
+        formatted, aligned table.
+        """
+        
+        attributes = {
+            "Name": self.name,
+            "Structure path": self.path,
+            "Original path": self.original_path,
+            "Clean source path": self.clean_source_path,
+            "mol2 path": self.mol2_path,
+            "Structure": self.structure,
+            "AA residues": self.residues,
+            "Total AA len": self.totalAALength,
+            "Average AA len": self.avgAALength,
+            "# of chains": self.countChain,
+            "SASA": self.sasa,
+            "Dipole Moment": self.dipoleMoment,
+            "Isoelectric Point": self.isoelectricPoint,
+            "GRAVY": self.GRAVY,
+            "Aromaticity": self.aromaticity,
+            "Instability Index": self.instabilityIndex
+        }
+
+        for aa in self.descriptors_names["count"]:
+            attributes[f"# of accessible {aa}"] = getattr(self, f"count{aa}", 0)
+
+        for key, value in attributes.items():
+
+            print(f"{key}: {value if value else '-'}")
 
     def to_dict(self) -> Dict[str, Union[float, int]]:
         '''Return all the properties for the Receptor object.
@@ -485,31 +506,32 @@ class Receptor:
 
             return ocerror.Error.unknown(f"Unknown error while converting the receptor {self.name} to json.\nError: {e}", ocerror.ReportLevel.ERROR) # type: ignore
 
-    def is_valid(self) -> bool:
-        '''Check if a Receptor object is valid.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        bool
-            True if the Receptor object is valid, False otherwise.
-        '''
-
-        #region if any attribute is None
-        if self.name is None or self.path is None or self.structure is None or self.residues is None or self.sasa is None or self.dipoleMoment is None or self.isoelectricPoint is None or self.instabilityIndex is None or self.GRAVY is None or self.aromaticity is None or self.__countAA is None or self.totalAALength is None or self.avgAALength is None or self.countChain is None:
-            return False
-        #endregion
-        return True
-
 
 # Functions
 ###############################################################################
 ## Private ##
 # Cache to track which sequences we've already warned about
 _warned_sequences = set()
+
+
+def _clean_pdb_path(structure_path: str) -> str:
+    '''Return a cleaned PDB path derived from the input path.
+    
+    Parameters
+    ----------
+    structure_path : str
+        The path to the original structure file.
+
+    Returns
+    -------
+    str
+        The path to the cleaned PDB file.
+    '''
+
+    base, ext = os.path.splitext(structure_path)
+    if base.endswith("_clean"):
+        return structure_path
+    return f"{base}_clean{ext}"
 
 def _convert_cif_to_pdb(structure_path: str, structure: Bio.PDB.Structure.Structure, overwrite: bool = False) -> Optional[str]:
     '''Convert a mmCIF/cif file to PDB format and return the new path.
@@ -551,27 +573,6 @@ def _convert_cif_to_pdb(structure_path: str, structure: Bio.PDB.Structure.Struct
         ocprint.print_warning(f"Failed to convert '{structure_path}' to PDB. Using original file. Error: {e}")
         return None
 
-
-def _clean_pdb_path(structure_path: str) -> str:
-    '''Return a cleaned PDB path derived from the input path.
-    
-    Parameters
-    ----------
-    structure_path : str
-        The path to the original structure file.
-
-    Returns
-    -------
-    str
-        The path to the cleaned PDB file.
-    '''
-
-    base, ext = os.path.splitext(structure_path)
-    if base.endswith("_clean"):
-        return structure_path
-    return f"{base}_clean{ext}"
-
-
 def _filterSequence(residues: str) -> str:
     '''Filter the given sequence to avoid unsupported amino acid residues.
 
@@ -602,9 +603,202 @@ def _filterSequence(residues: str) -> str:
         return residues.replace('X', '')
 
     return residues
-
-
 ## Public ##
+
+def compute_aromaticity(residues: str) -> float:
+    '''Compute the aromaticity according to Lobry, 1994.
+
+    Parameters
+    ----------
+    residues : str
+        The residues of the protein.
+
+    Returns
+    -------
+    float
+        The aromaticity of the protein.
+    '''
+
+    ocprint.printv(f"Computing the Aromaticity for protein with amino acid sequence of '{residues}'.")
+    protein = ProteinAnalysis(residues.upper())
+    return protein.aromaticity()
+
+def compute_dipole_moment(structure: Union[Bio.PDB.Structure.Structure, str], c_model: str = "gasteiger") -> Optional[float]:
+    '''Computes the receptor's dipole moment.
+
+    Parameters
+    ----------
+    structure : Bio.PDB.Structure.Structure, str
+        The structure to be analysed or the path to the structure
+    c_model : str, optional
+        The charge model to be used, by default "gasteiger".
+
+    Returns
+    -------
+    float
+        The dipole moment of the receptor.
+    '''
+
+    ocprint.printv(f"Computing Dipole moment for protein '{structure}'.")
+    # Grab the extension and path
+    extension = ocvalidation.validate_obabel_extension(structure)
+    # Set the moment as None
+    moment = None
+    # Check if the extension is valid
+    if type(extension) != str:
+        ocprint.print_error(f"Problems while reading the ligand file '{structure}'.")
+    else:
+        # Create the conversion object
+        obConversion = openbabel.OBConversion()
+        # Set the input format
+        obConversion.SetInFormat(extension)
+        # Create the OBMol object
+        mol = openbabel.OBMol()
+        # Load the input file to the previously loaded OBMol object
+        obConversion.ReadFile(mol, structure)
+        # Create the charge model object
+        charge_model = openbabel.OBChargeModel.FindType(c_model)
+        # Compute the mol object charges using the charge model
+        charge_model.ComputeCharges(mol)
+        # Get the dipile moment from the molecule
+        dipole = charge_model.GetDipoleMoment(mol)
+        # Calcule the dipole moment from the vector with the root of the sum of squares of the coordinates
+        moment = math.sqrt(dipole.GetX()**2+dipole.GetY()**2+dipole.GetZ()**2)
+
+    return moment
+
+def compute_gravy(residues: str, scale: str = "KyteDoolitle") -> float:
+    '''Computes the GRAVY (Grand Average of Hydropathy) according to Kyte and Doolitle, 1982.
+
+    Utilizes the given Hydrophobicity scale, by default uses the original
+    proposed by Kyte and Doolittle (KyteDoolitle). Other options are:
+    Aboderin, AbrahamLeo, Argos, BlackMould, BullBreese, Casari, Cid,
+    Cowan3.4, Cowan7.5, Eisenberg, Engelman, Fasman, Fauchere, GoldSack,
+    Guy, Jones, Juretic, Kidera, Miyazawa, Parker,Ponnuswamy, Rose,
+    Roseman, Sweet, Tanford, Wilson and Zimmerman.
+
+    Parameters
+    ----------
+    residues : str
+        The residues of the protein.
+    scale : str, optional
+        The hydrophobicity scale to be used, by default "KyteDoolitle".
+
+    Returns
+    -------
+    float
+        The GRAVY of the protein.
+    '''
+
+    ocprint.printv(f"Computing the GRAVY (Grand Average of Hydropathy) for protein with amino acid sequence of '{residues}'.")
+    protein = ProteinAnalysis(_filterSequence(residues))
+    return protein.gravy(scale = scale)
+
+def compute_instability_index(residues: str) -> float:
+    '''Calculate the instability index according to Guruprasad et al 1990.
+
+    Implementation of the method of Guruprasad et al. 1990 to test a
+    protein for stability. Any value above 40 means the protein is unstable
+    (has a short half life).
+    See: Guruprasad K., Reddy B.V.B., Pandit M.W.
+    Protein Engineering 4:155-161(1990).
+
+    Parameters
+    ----------
+    residues : str
+        The residues of the protein.
+
+    Returns
+    -------
+    float
+        The instability index of the protein.
+    '''
+
+    ocprint.printv(f"Computing the Instability Index for protein with amino acid sequence of '{residues}'.")
+    protein = ProteinAnalysis(_filterSequence(residues))
+    return protein.instability_index()
+
+def compute_isoelectric_point(residues: str) -> float:
+    '''Computes protein's isoelectric point.
+
+    Parameters
+    ----------
+    residues : str
+        The residues of the protein.
+
+    Returns
+    -------
+    float
+        The isoelectric point of the protein.
+    '''
+
+    ocprint.printv(f"Computing the isoelectric point for protein with amino acid sequence of '{residues}'.")
+    protein = ProteinAnalysis(residues)
+    return protein.isoelectric_point()
+
+def compute_sasa(model: Bio.PDB.Structure.Structure, n_points: int = 1000) -> None:
+    '''Computes the Solvent Accessible Surface Area of the molecule. NOTE: The sasa value is added to the structure and can be called using the command "model.sasa" (without quotes).
+
+    Parameters
+    ----------
+    model : Bio.PDB.Structure.Structure
+        The model to be analysed.
+    n_points : int, optional
+        The number of points to be used in the calculation, by default 1000.
+    '''
+
+    ocprint.printv(f"Computing SASA for protein '{model.id}'.")
+    try:
+        sr = SASA.ShrakeRupley(n_points = n_points)
+        sr.compute(model, level="S")
+        # Ensure sasa attribute exists even if computation didn't add it
+        if not hasattr(model, 'sasa'):
+            model.sasa = 0.0
+    except (AttributeError, TypeError, Exception):
+        # Fallback: if SASA computation fails, set a default value
+        # This can happen in test environments or when BioPython isn't configured
+        model.sasa = 0.0
+    return None
+
+def count_AAs_and_chains(structure: Bio.PDB.Structure.Structure) -> Optional[Tuple[int, float, int]]:
+    '''Counts the total length (sum of all AAs), the average length (the total AAs divided by the number of chains) and the number of chains the protein has.
+
+    Parameters
+    ----------
+    structure : Bio.PDB.Structure.Structure
+        The structure to be analysed.
+
+    Returns
+    -------
+    Tuple[int, float, int] | None
+        The total length, the average length and the number of chains. If the structure is not valid, returns None.
+    '''
+
+    # If the model is not set
+    if not structure:
+        _ = ocerror.Error.not_set(message=f"The model object is not set!", level=ocerror.ReportLevel.ERROR) # type: ignore
+        return None #type: ignore
+    # Initialise the counter of number of residues and chains
+    res_no = 0
+    chains = 0
+    # For each model in the structure
+    for model in structure:
+        # For each chain in the model
+        for chain in model:
+            # Add one more chain
+            chains += 1
+            # For each residue in the chain
+            for r in chain.get_residues():
+                # If the first position of the residue id is empty, then it is an AA (this may be more robust than the PDB.is_aa() method)
+                if r.id[0] == ' ':
+                    res_no += 1
+    # Check if the number of chains is not 0
+    if chains == 0:
+        ocprint.print_error("The number of chains for the provided model is 0. This is not acceptable!")
+        return None
+
+    return res_no, res_no/chains, chains
+
 def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str, cutoff: float = 0.7) -> Optional[Dict[str, int]]:
     '''Counts how many of each of the 20 standard AAs has a relative ASA value above a given cutoff.
 
@@ -755,72 +949,6 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
 
     return aas
 
-
-def count_AAs_and_chains(structure: Bio.PDB.Structure.Structure) -> Optional[Tuple[int, float, int]]:
-    '''Counts the total length (sum of all AAs), the average length (the total AAs divided by the number of chains) and the number of chains the protein has.
-
-    Parameters
-    ----------
-    structure : Bio.PDB.Structure.Structure
-        The structure to be analysed.
-
-    Returns
-    -------
-    Tuple[int, float, int] | None
-        The total length, the average length and the number of chains. If the structure is not valid, returns None.
-    '''
-
-    # If the model is not set
-    if not structure:
-        _ = ocerror.Error.not_set(message=f"The model object is not set!", level=ocerror.ReportLevel.ERROR) # type: ignore
-        return None #type: ignore
-    # Initialise the counter of number of residues and chains
-    res_no = 0
-    chains = 0
-    # For each model in the structure
-    for model in structure:
-        # For each chain in the model
-        for chain in model:
-            # Add one more chain
-            chains += 1
-            # For each residue in the chain
-            for r in chain.get_residues():
-                # If the first position of the residue id is empty, then it is an AA (this may be more robust than the PDB.is_aa() method)
-                if r.id[0] == ' ':
-                    res_no += 1
-    # Check if the number of chains is not 0
-    if chains == 0:
-        ocprint.print_error("The number of chains for the provided model is 0. This is not acceptable!")
-        return None
-
-    return res_no, res_no/chains, chains
-
-
-def compute_sasa(model: Bio.PDB.Structure.Structure, n_points: int = 1000) -> None:
-    '''Computes the Solvent Accessible Surface Area of the molecule. NOTE: The sasa value is added to the structure and can be called using the command "model.sasa" (without quotes).
-
-    Parameters
-    ----------
-    model : Bio.PDB.Structure.Structure
-        The model to be analysed.
-    n_points : int, optional
-        The number of points to be used in the calculation, by default 1000.
-    '''
-
-    ocprint.printv(f"Computing SASA for protein '{model.id}'.")
-    try:
-        sr = SASA.ShrakeRupley(n_points = n_points)
-        sr.compute(model, level="S")
-        # Ensure sasa attribute exists even if computation didn't add it
-        if not hasattr(model, 'sasa'):
-            model.sasa = 0.0
-    except (AttributeError, TypeError, Exception):
-        # Fallback: if SASA computation fails, set a default value
-        # This can happen in test environments or when BioPython isn't configured
-        model.sasa = 0.0
-    return None
-
-
 def get_res(model: Bio.PDB.Structure.Structure) -> str:
     '''Get the amino acid one letter sequence for the receptor (Ignore chains).
 
@@ -843,7 +971,6 @@ def get_res(model: Bio.PDB.Structure.Structure) -> str:
         # Append to the residue list the one letter residue (using the conversion list from Initialise.py)
         residues.append(seq1(residue.get_resname()))
     return "".join(residues)
-
 
 def load_mol(structure: Union[str, os.PathLike, Bio.PDB.Structure.Structure], name: str = "", compute_sasa: bool = True, mol2_path: str = "", overwrite: bool = False, clean: bool = True, canonicalize_pdb: Union[bool, str] = "auto") -> Tuple[str, Optional[Bio.PDB.Structure.Structure]]:
     '''Load a structure pdb/cif/mmcif if a path is provided or just assign the Bio.PDB.Structure.Structure object to the structure. Also returns the path as a tuple (path, structure).
@@ -1015,192 +1142,6 @@ def load_mol(structure: Union[str, os.PathLike, Bio.PDB.Structure.Structure], na
         ocprint.print_error("Unsupported molecule data. Please support either a molecule path (string) or an 'rdkit.Chem.rdchem.Mol' object.")
         return "", None
 
-
-def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str = "") -> Optional[Bio.PDB.Structure.Structure]:
-    '''Renumber the pdb residues using biopython.
-
-    Parameters
-    ----------
-    structure : Bio.PDB.Structure.Structure
-        The structure to be renumbered.
-    outputPdb : str, optional
-        The output pdb file. If not provided, the structure will be renumbered in place, by default "".
-
-    Returns
-    -------
-    Bio.PDB.Structure.Structure
-        The renumbered structure.
-    '''
-
-    try:
-        # Get the model
-        model = structure[0]
-        # For each chain
-        for chain in model:
-            res_id = 1
-            # For each residue
-            for residue in chain.get_residues():
-                # Check if the sidue number is greater than 0
-                if residue.id[1] > 0:
-                    # Change the residue number
-                    residue.id = (' ', res_id, ' ')
-                    # Increment the residue number
-                    res_id += 1
-
-        # Check if an output pdb was provided
-        if outputPdb:
-            # Create a lock for multithreading
-            lock = Lock()
-            # Start the lock with statement
-            with lock:
-                # Save the structure
-                io = PDBIO()
-                io.set_structure(structure)
-                io.save(outputPdb)
-
-        return structure
-    except Exception as e:
-        _ = ocerror.Error.unknown(f"Could not reset indexes for this protein and save it on path '{outputPdb}'. Error: {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
-    
-    return None
-
-
-def compute_dipole_moment(structure: Union[Bio.PDB.Structure.Structure, str], c_model: str = "gasteiger") -> Optional[float]:
-    '''Computes the receptor's dipole moment.
-
-    Parameters
-    ----------
-    structure : Bio.PDB.Structure.Structure, str
-        The structure to be analysed or the path to the structure
-    c_model : str, optional
-        The charge model to be used, by default "gasteiger".
-
-    Returns
-    -------
-    float
-        The dipole moment of the receptor.
-    '''
-
-    ocprint.printv(f"Computing Dipole moment for protein '{structure}'.")
-    # Grab the extension and path
-    extension = ocvalidation.validate_obabel_extension(structure)
-    # Set the moment as None
-    moment = None
-    # Check if the extension is valid
-    if type(extension) != str:
-        ocprint.print_error(f"Problems while reading the ligand file '{structure}'.")
-    else:
-        # Create the conversion object
-        obConversion = openbabel.OBConversion()
-        # Set the input format
-        obConversion.SetInFormat(extension)
-        # Create the OBMol object
-        mol = openbabel.OBMol()
-        # Load the input file to the previously loaded OBMol object
-        obConversion.ReadFile(mol, structure)
-        # Create the charge model object
-        charge_model = openbabel.OBChargeModel.FindType(c_model)
-        # Compute the mol object charges using the charge model
-        charge_model.ComputeCharges(mol)
-        # Get the dipile moment from the molecule
-        dipole = charge_model.GetDipoleMoment(mol)
-        # Calcule the dipole moment from the vector with the root of the sum of squares of the coordinates
-        moment = math.sqrt(dipole.GetX()**2+dipole.GetY()**2+dipole.GetZ()**2)
-
-    return moment
-
-
-def compute_isoelectric_point(residues: str) -> float:
-    '''Computes protein's isoelectric point.
-
-    Parameters
-    ----------
-    residues : str
-        The residues of the protein.
-
-    Returns
-    -------
-    float
-        The isoelectric point of the protein.
-    '''
-
-    ocprint.printv(f"Computing the isoelectric point for protein with amino acid sequence of '{residues}'.")
-    protein = ProteinAnalysis(residues)
-    return protein.isoelectric_point()
-
-
-def compute_gravy(residues: str, scale: str = "KyteDoolitle") -> float:
-    '''Computes the GRAVY (Grand Average of Hydropathy) according to Kyte and Doolitle, 1982.
-
-    Utilizes the given Hydrophobicity scale, by default uses the original
-    proposed by Kyte and Doolittle (KyteDoolitle). Other options are:
-    Aboderin, AbrahamLeo, Argos, BlackMould, BullBreese, Casari, Cid,
-    Cowan3.4, Cowan7.5, Eisenberg, Engelman, Fasman, Fauchere, GoldSack,
-    Guy, Jones, Juretic, Kidera, Miyazawa, Parker,Ponnuswamy, Rose,
-    Roseman, Sweet, Tanford, Wilson and Zimmerman.
-
-    Parameters
-    ----------
-    residues : str
-        The residues of the protein.
-    scale : str, optional
-        The hydrophobicity scale to be used, by default "KyteDoolitle".
-
-    Returns
-    -------
-    float
-        The GRAVY of the protein.
-    '''
-
-    ocprint.printv(f"Computing the GRAVY (Grand Average of Hydropathy) for protein with amino acid sequence of '{residues}'.")
-    protein = ProteinAnalysis(_filterSequence(residues))
-    return protein.gravy(scale = scale)
-
-
-def compute_aromaticity(residues: str) -> float:
-    '''Compute the aromaticity according to Lobry, 1994.
-
-    Parameters
-    ----------
-    residues : str
-        The residues of the protein.
-
-    Returns
-    -------
-    float
-        The aromaticity of the protein.
-    '''
-
-    ocprint.printv(f"Computing the Aromaticity for protein with amino acid sequence of '{residues}'.")
-    protein = ProteinAnalysis(residues.upper())
-    return protein.aromaticity()
-
-
-def compute_instability_index(residues: str) -> float:
-    '''Calculate the instability index according to Guruprasad et al 1990.
-
-    Implementation of the method of Guruprasad et al. 1990 to test a
-    protein for stability. Any value above 40 means the protein is unstable
-    (has a short half life).
-    See: Guruprasad K., Reddy B.V.B., Pandit M.W.
-    Protein Engineering 4:155-161(1990).
-
-    Parameters
-    ----------
-    residues : str
-        The residues of the protein.
-
-    Returns
-    -------
-    float
-        The instability index of the protein.
-    '''
-
-    ocprint.printv(f"Computing the Instability Index for protein with amino acid sequence of '{residues}'.")
-    protein = ProteinAnalysis(_filterSequence(residues))
-    return protein.instability_index()
-
-
 def read_descriptors_from_json(path: str, returnData: bool = False) -> Optional[Union[Dict[str, Union[str, float, int]], Tuple[Union[float, str, int]]]]:
     '''Read the descriptors from a json file.
 
@@ -1298,3 +1239,50 @@ def read_descriptors_from_json(path: str, returnData: bool = False) -> Optional[
         ocprint.print_error(f"Could not read the file '{path}'. Error: {e}")
     return None
 
+def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str = "") -> Optional[Bio.PDB.Structure.Structure]:
+    '''Renumber the pdb residues using biopython.
+
+    Parameters
+    ----------
+    structure : Bio.PDB.Structure.Structure
+        The structure to be renumbered.
+    outputPdb : str, optional
+        The output pdb file. If not provided, the structure will be renumbered in place, by default "".
+
+    Returns
+    -------
+    Bio.PDB.Structure.Structure
+        The renumbered structure.
+    '''
+
+    try:
+        # Get the model
+        model = structure[0]
+        # For each chain
+        for chain in model:
+            res_id = 1
+            # For each residue
+            for residue in chain.get_residues():
+                # Check if the sidue number is greater than 0
+                if residue.id[1] > 0:
+                    # Change the residue number
+                    residue.id = (' ', res_id, ' ')
+                    # Increment the residue number
+                    res_id += 1
+
+        # Check if an output pdb was provided
+        if outputPdb:
+            # Create a lock for multithreading
+            lock = Lock()
+            # Start the lock with statement
+            with lock:
+                # Save the structure
+                io = PDBIO()
+                io.set_structure(structure)
+                io.save(outputPdb)
+
+        return structure
+    except Exception as e:
+        _ = ocerror.Error.unknown(f"Could not reset indexes for this protein and save it on path '{outputPdb}'. Error: {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
+    
+    return None

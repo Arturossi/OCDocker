@@ -22,12 +22,7 @@ from sqlalchemy import create_engine as sqlalchemy_create_engine, text
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import scoped_session, sessionmaker
 
-from OCDocker.DB.DBMinimal import (
-    create_engine,
-    create_session,
-    cleanup_session,
-    cleanup_engine,
-)
+from OCDocker.DB.DBMinimal import cleanup_engine, cleanup_session, create_engine, create_session
 
 # License
 ###############################################################################
@@ -45,6 +40,17 @@ to formal authorization from UFRJ. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
+
+# Classes
+###############################################################################
+
+
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##
+
 
 # Classes
 ###############################################################################
@@ -83,6 +89,7 @@ def test_atexit_cleanup_registration(monkeypatch):
     mock_cleanup()
     assert len(cleanup_called) == 1
 
+
 @pytest.mark.order(30)
 def test_cleanup_with_exception(tmp_path):
     '''Test that cleanup functions handle exceptions gracefully.'''
@@ -103,6 +110,7 @@ def test_cleanup_with_exception(tmp_path):
     # Cleanup again (should be safe)
     cleanup_session(session)
     cleanup_engine(engine)
+
 
 @pytest.mark.order(33)
 def test_connection_pool_configuration(tmp_path):
@@ -134,6 +142,7 @@ def test_connection_pool_configuration(tmp_path):
     
     cleanup_engine(engine)
 
+
 @pytest.mark.order(27)
 def test_engine_cleanup_disposes_connections(tmp_path):
     '''Test that cleanup_engine properly disposes of connections.'''
@@ -154,6 +163,7 @@ def test_engine_cleanup_disposes_connections(tmp_path):
     # Verify cleanup doesn't raise errors
     cleanup_engine(engine)  # Should be idempotent
     cleanup_engine(None)  # Should handle None gracefully
+
 
 @pytest.mark.order(31)
 def test_engine_pool_size_after_cleanup(tmp_path):
@@ -179,6 +189,7 @@ def test_engine_pool_size_after_cleanup(tmp_path):
         # Already disposed is fine
         pass
 
+
 @pytest.mark.order(29)
 def test_multiple_sessions_cleanup(tmp_path):
     '''Test that multiple sessions are all cleaned up properly.'''
@@ -199,6 +210,7 @@ def test_multiple_sessions_cleanup(tmp_path):
     # All should be cleaned up
     cleanup_session(session)
     cleanup_engine(engine)
+
 
 @pytest.mark.order(26)
 def test_session_cleanup_removes_registry(tmp_path):
@@ -222,6 +234,7 @@ def test_session_cleanup_removes_registry(tmp_path):
     # Verify cleanup doesn't raise errors
     cleanup_session(session)  # Should be idempotent
     cleanup_session(None)  # Should handle None gracefully
+
 
 @pytest.mark.order(28)
 def test_session_context_manager_closes_connections(tmp_path):

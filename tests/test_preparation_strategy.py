@@ -1,27 +1,70 @@
 #!/usr/bin/env python3
 
-"""
+# Description
+###############################################################################
+'''
 Integration tests for the Preparation Strategy Pattern.
 
 These tests verify that the Strategy Pattern implementation works correctly
 for all preparation strategies (MGLTools, SPORES, OpenBabel).
-"""
+'''
 
+# Imports
+###############################################################################
 from __future__ import annotations
-from pathlib import Path
+
 import os
 import pytest
 import shutil
 
-from OCDocker.Toolbox.Preparation import (
-    PreparationStrategy,
-    MGLToolsPreparationStrategy,
-    SPORESPreparationStrategy,
-    OpenBabelPreparationStrategy,
-)
-import OCDocker.Docking.Vina as ocvina
-import OCDocker.Docking.Smina as ocsmina
+from pathlib import Path
+
 import OCDocker.Docking.PLANTS as ocplants
+import OCDocker.Docking.Smina as ocsmina
+import OCDocker.Docking.Vina as ocvina
+
+from OCDocker.Toolbox.Preparation import MGLToolsPreparationStrategy, OpenBabelPreparationStrategy, PreparationStrategy, SPORESPreparationStrategy
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
+###############################################################################
+
+
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##
+
+
+@pytest.fixture
+def sample_ligand(test_files):
+    '''Use ligand file for testing.'''
+
+    return str(test_files['ligand'])
+
+
+@pytest.fixture
+def sample_receptor(test_files):
+    '''Use receptor file for testing.'''
+
+    return str(test_files['receptor'])
 
 
 @pytest.fixture
@@ -64,28 +107,9 @@ def test_files():
         'box': box_file,
     }
 
-@pytest.fixture
-def sample_ligand(test_files):
-    '''Use ligand file for testing.'''
-
-    return str(test_files['ligand'])
-
-@pytest.fixture
-def sample_receptor(test_files):
-    '''Use receptor file for testing.'''
-
-    return str(test_files['receptor'])
-
-
 class TestMGLToolsPreparationStrategy:
     """Test MGLTools preparation strategy."""
-    
-    def test_strategy_instantiation(self):
-        '''Test that MGLTools strategy can be instantiated.'''
 
-        strategy = MGLToolsPreparationStrategy()
-        assert isinstance(strategy, PreparationStrategy)
-        assert isinstance(strategy, MGLToolsPreparationStrategy)
     
     def test_prepare_ligand(self, tmp_path, sample_ligand):
         '''Test ligand preparation with tools.'''
@@ -97,6 +121,7 @@ class TestMGLToolsPreparationStrategy:
         
         # Result should be an int or tuple (may succeed or fail depending on tool availability)
         assert isinstance(result, (int, tuple))
+
     
     def test_prepare_receptor(self, tmp_path, sample_receptor):
         '''Test receptor preparation with tools.'''
@@ -108,6 +133,7 @@ class TestMGLToolsPreparationStrategy:
         
         # Result should be an int or tuple (may succeed or fail depending on tool availability)
         assert isinstance(result, (int, tuple))
+
     
     def test_shared_utilities(self):
         '''Test that shared utility methods work correctly.'''
@@ -120,18 +146,20 @@ class TestMGLToolsPreparationStrategy:
         # Test directory creation
         test_path = "/tmp/test_prep/output.pdbqt"
         strategy._ensure_output_dir(test_path)
+
+    
+    def test_strategy_instantiation(self):
+        '''Test that MGLTools strategy can be instantiated.'''
+
+        strategy = MGLToolsPreparationStrategy()
+        assert isinstance(strategy, PreparationStrategy)
+        assert isinstance(strategy, MGLToolsPreparationStrategy)
         # Should not raise exception
 
 
 class TestSPORESPreparationStrategy:
     """Test SPORES preparation strategy."""
-    
-    def test_strategy_instantiation(self):
-        '''Test that SPORES strategy can be instantiated.'''
-        
-        strategy = SPORESPreparationStrategy()
-        assert isinstance(strategy, PreparationStrategy)
-        assert isinstance(strategy, SPORESPreparationStrategy)
+
     
     def test_prepare_ligand(self, tmp_path, sample_ligand):
         '''Test ligand preparation with tools.'''
@@ -143,6 +171,7 @@ class TestSPORESPreparationStrategy:
         
         # Result should be an int or tuple (may succeed or fail depending on tool availability)
         assert isinstance(result, (int, tuple))
+
     
     def test_prepare_receptor(self, tmp_path, sample_receptor):
         '''Test receptor preparation with tools.'''
@@ -155,16 +184,18 @@ class TestSPORESPreparationStrategy:
         # Result should be an int or tuple (may succeed or fail depending on tool availability)
         assert isinstance(result, (int, tuple))
 
+    
+    def test_strategy_instantiation(self):
+        '''Test that SPORES strategy can be instantiated.'''
+        
+        strategy = SPORESPreparationStrategy()
+        assert isinstance(strategy, PreparationStrategy)
+        assert isinstance(strategy, SPORESPreparationStrategy)
+
 
 class TestOpenBabelPreparationStrategy:
     """Test OpenBabel preparation strategy."""
-    
-    def test_strategy_instantiation(self):
-        '''Test that OpenBabel strategy can be instantiated.'''
-        
-        strategy = OpenBabelPreparationStrategy()
-        assert isinstance(strategy, PreparationStrategy)
-        assert isinstance(strategy, OpenBabelPreparationStrategy)
+
     
     def test_prepare_ligand_with_valid_file(self, tmp_path, sample_ligand):
         '''Test ligand preparation with valid mol2 file.'''
@@ -177,6 +208,7 @@ class TestOpenBabelPreparationStrategy:
         
         # Result should be an int or tuple
         assert isinstance(result, (int, tuple))
+
     
     def test_prepare_receptor_with_valid_file(self, tmp_path, sample_receptor):
         '''Test receptor preparation with valid pdb file.'''
@@ -190,35 +222,18 @@ class TestOpenBabelPreparationStrategy:
         # Result should be an int or tuple
         assert isinstance(result, (int, tuple))
 
+    
+    def test_strategy_instantiation(self):
+        '''Test that OpenBabel strategy can be instantiated.'''
+        
+        strategy = OpenBabelPreparationStrategy()
+        assert isinstance(strategy, PreparationStrategy)
+        assert isinstance(strategy, OpenBabelPreparationStrategy)
+
 
 class TestStrategyPatternIntegration:
     """Integration tests for Strategy Pattern usage in docking classes."""
-    
-    def test_vina_uses_mgltools_strategy(self, test_files, tmp_path):
-        '''Test that Vina class uses MGLTools strategy.'''
-        
-        from OCDocker.Docking.Vina import Vina
-        from OCDocker.Receptor import Receptor
-        from OCDocker.Ligand import Ligand
-        
-        config = tmp_path / "config.txt"
-        config.write_text("")
-        prep_rec = tmp_path / "prep_rec.pdbqt"
-        prep_lig = tmp_path / "prep_lig.pdbqt"
-        log = tmp_path / "log.txt"
-        out = tmp_path / "out.pdbqt"
-        
-        receptor = Receptor(str(test_files['receptor']), name="test_receptor")
-        ligand = Ligand(str(test_files['ligand']), name="test_ligand")
-        
-        vina = Vina(
-            str(config), str(test_files['box']), receptor, str(prep_rec),
-            ligand, str(prep_lig), str(log), str(out)
-        )
-        
-        # Check that preparation_strategy is set
-        assert hasattr(vina, 'preparation_strategy')
-        assert isinstance(vina.preparation_strategy, MGLToolsPreparationStrategy)
+
     
     def test_plants_uses_spores_strategy(self, test_files, tmp_path):
         '''Test that PLANTS class uses SPORES strategy.'''
@@ -245,6 +260,7 @@ class TestStrategyPatternIntegration:
         # Check that preparation_strategy is set
         assert hasattr(plants, 'preparation_strategy')
         assert isinstance(plants.preparation_strategy, SPORESPreparationStrategy)
+
     
     def test_smina_uses_correct_strategies(self, test_files, tmp_path):
         '''Test that Smina uses MGLTools for ligand and OpenBabel for receptor.'''
@@ -277,3 +293,30 @@ class TestStrategyPatternIntegration:
         # Check that preparation_strategy is set (for ligand)
         assert hasattr(smina, 'preparation_strategy')
         assert isinstance(smina.preparation_strategy, MGLToolsPreparationStrategy)
+
+    
+    def test_vina_uses_mgltools_strategy(self, test_files, tmp_path):
+        '''Test that Vina class uses MGLTools strategy.'''
+        
+        from OCDocker.Docking.Vina import Vina
+        from OCDocker.Receptor import Receptor
+        from OCDocker.Ligand import Ligand
+        
+        config = tmp_path / "config.txt"
+        config.write_text("")
+        prep_rec = tmp_path / "prep_rec.pdbqt"
+        prep_lig = tmp_path / "prep_lig.pdbqt"
+        log = tmp_path / "log.txt"
+        out = tmp_path / "out.pdbqt"
+        
+        receptor = Receptor(str(test_files['receptor']), name="test_receptor")
+        ligand = Ligand(str(test_files['ligand']), name="test_ligand")
+        
+        vina = Vina(
+            str(config), str(test_files['box']), receptor, str(prep_rec),
+            ligand, str(prep_lig), str(log), str(out)
+        )
+        
+        # Check that preparation_strategy is set
+        assert hasattr(vina, 'preparation_strategy')
+        assert isinstance(vina.preparation_strategy, MGLToolsPreparationStrategy)

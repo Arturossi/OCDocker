@@ -18,10 +18,10 @@ import shutil
 import subprocess
 import time
 
-import OCDocker.Toolbox.Printing as ocprint
-import OCDocker.Error as ocerror
+from typing import Dict, List, Optional, Tuple, Union
 
-from typing import Dict, List, Tuple, Union, Optional
+import OCDocker.Error as ocerror
+import OCDocker.Toolbox.Printing as ocprint
 
 
 # License
@@ -44,11 +44,6 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 
-# Functions
-###############################################################################
-## Private ##
-
-## Public ##
 class SubprocessError(RuntimeError):
     '''Exception raised when a subprocess fails and OCDOCKER_RAISE_SUBPROCESS is enabled.
 
@@ -88,6 +83,9 @@ class SubprocessError(RuntimeError):
         self.stdout_log = stdout_log
         self.report_path = report_path
 
+# Functions
+###############################################################################
+## Private ##
 
 def _env_flag(name: str) -> bool:
     '''Check if an environment flag is enabled.
@@ -125,78 +123,6 @@ def _env_int(name: str, default: int) -> int:
         return value if value > 0 else default
     except (ValueError, TypeError):
         return default
-
-
-def _format_cmd(cmd: List[str]) -> str:
-    '''Format a command list into a shell-friendly string.
-
-    Parameters
-    ----------
-    cmd : List[str]
-        Command and arguments.
-
-    Returns
-    -------
-    str
-        Shell-escaped command string.
-    '''
-    return " ".join(shlex.quote(str(part)) for part in cmd)
-
-
-def _tail_text(text: str, max_lines: int) -> str:
-    '''Return the last N lines of a text string.
-
-    Parameters
-    ----------
-    text : str
-        Text to truncate.
-    max_lines : int
-        Maximum number of lines to return.
-
-    Returns
-    -------
-    str
-        Tail of the input text.
-    '''
-    if not text:
-        return ""
-    lines = text.splitlines()
-    if max_lines <= 0 or len(lines) <= max_lines:
-        return text.strip()
-    return "\n".join(lines[-max_lines:])
-
-
-def _tail_file(path: str, max_lines: int, max_bytes: int = 65536) -> str:
-    '''Return the last N lines of a file.
-
-    Parameters
-    ----------
-    path : str
-        File path.
-    max_lines : int
-        Maximum number of lines to return.
-    max_bytes : int, optional
-        Maximum bytes to read from the file tail.
-
-    Returns
-    -------
-    str
-        Tail of the file content, or empty string if unavailable.
-    '''
-    if not path or path == os.devnull or not os.path.isfile(path):
-        return ""
-    try:
-        with open(path, "rb") as handle:
-            handle.seek(0, os.SEEK_END)
-            size = handle.tell()
-            if size <= 0:
-                return ""
-            read_size = min(size, max_bytes)
-            handle.seek(-read_size, os.SEEK_END)
-            data = handle.read()
-        return _tail_text(data.decode("utf-8", errors="replace"), max_lines)
-    except OSError:
-        return ""
 
 
 def _env_snapshot(keys: List[str]) -> Dict[str, str]:
@@ -243,6 +169,78 @@ def _failure_report_path() -> str:
     return os.path.join(base_dir, "subprocess_failures.log")
 
 
+def _format_cmd(cmd: List[str]) -> str:
+    '''Format a command list into a shell-friendly string.
+
+    Parameters
+    ----------
+    cmd : List[str]
+        Command and arguments.
+
+    Returns
+    -------
+    str
+        Shell-escaped command string.
+    '''
+    return " ".join(shlex.quote(str(part)) for part in cmd)
+
+
+def _tail_file(path: str, max_lines: int, max_bytes: int = 65536) -> str:
+    '''Return the last N lines of a file.
+
+    Parameters
+    ----------
+    path : str
+        File path.
+    max_lines : int
+        Maximum number of lines to return.
+    max_bytes : int, optional
+        Maximum bytes to read from the file tail.
+
+    Returns
+    -------
+    str
+        Tail of the file content, or empty string if unavailable.
+    '''
+    if not path or path == os.devnull or not os.path.isfile(path):
+        return ""
+    try:
+        with open(path, "rb") as handle:
+            handle.seek(0, os.SEEK_END)
+            size = handle.tell()
+            if size <= 0:
+                return ""
+            read_size = min(size, max_bytes)
+            handle.seek(-read_size, os.SEEK_END)
+            data = handle.read()
+        return _tail_text(data.decode("utf-8", errors="replace"), max_lines)
+    except OSError:
+        return ""
+
+
+def _tail_text(text: str, max_lines: int) -> str:
+    '''Return the last N lines of a text string.
+
+    Parameters
+    ----------
+    text : str
+        Text to truncate.
+    max_lines : int
+        Maximum number of lines to return.
+
+    Returns
+    -------
+    str
+        Tail of the input text.
+    '''
+    if not text:
+        return ""
+    lines = text.splitlines()
+    if max_lines <= 0 or len(lines) <= max_lines:
+        return text.strip()
+    return "\n".join(lines[-max_lines:])
+
+
 def _write_failure_report(report: str) -> str:
     '''Append a failure report to the report file.
 
@@ -267,6 +265,27 @@ def _write_failure_report(report: str) -> str:
     except OSError:
         return ""
     return path
+
+
+## Public ##
+
+def is_tool_available(exe: str) -> bool:
+    '''Check if a tool executable is available.
+    
+    Parameters
+    ----------
+    exe : str
+        Path to the executable (can be absolute or command name)
+        
+    Returns
+    -------
+    bool
+        True if the executable is available, False otherwise
+    '''
+    
+    if not exe:
+        return False
+    return (os.path.isabs(exe) and os.path.isfile(exe) and os.access(exe, os.X_OK)) or (shutil.which(exe) is not None)
 
 
 def run(cmd: List[str], logFile: str = "", cwd: str = "", timeout: Optional[int] = None) -> Union[int, Tuple[int, str]]:
@@ -419,25 +438,6 @@ def run(cmd: List[str], logFile: str = "", cwd: str = "", timeout: Optional[int]
             )
         return ocerror.Error.subprocess(message=summary, level=ocerror.ReportLevel.ERROR), stderr_text
     return ocerror.Error.ok()
-
-
-def is_tool_available(exe: str) -> bool:
-    '''Check if a tool executable is available.
-    
-    Parameters
-    ----------
-    exe : str
-        Path to the executable (can be absolute or command name)
-        
-    Returns
-    -------
-    bool
-        True if the executable is available, False otherwise
-    '''
-    
-    if not exe:
-        return False
-    return (os.path.isabs(exe) and os.path.isfile(exe) and os.access(exe, os.X_OK)) or (shutil.which(exe) is not None)
 
 
 ### Special functions

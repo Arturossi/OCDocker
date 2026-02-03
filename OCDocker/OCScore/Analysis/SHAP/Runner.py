@@ -20,10 +20,10 @@ import pandas as pd
 from dataclasses import dataclass
 from typing import List, Optional
 
-from . import plots
 from .Data import load_and_prepare_data
 from .Explain import compute_shap_values
 from .Model import build_neural_net
+from . import plots
 from .Studies import StudyHandles, select_best_from_studies
 
 # License

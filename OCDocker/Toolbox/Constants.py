@@ -34,6 +34,10 @@ to formal authorization from UFRJ. See the LICENSE file for details.
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
 
+# Classes
+###############################################################################
+
+
 # Constants (defined early for use in function defaults)
 ###############################################################################
 
@@ -104,6 +108,25 @@ Value: 0.008314462618 kJ/(mol·K)
 
 # Functions
 ###############################################################################
+## Private ##
+
+## Public ##
+
+def C_to_K(C: float) -> float:
+    ''' Convert Celsius to Kelvin.
+
+    Parameters
+    ----------
+    C : float
+        Value in Celsius.
+
+    Returns
+    -------
+    float
+        Value in Kelvin.
+    '''
+
+    return C + ZERO_C_IN_K
 
 
 def cal_to_J(cal: float) -> float:
@@ -123,6 +146,50 @@ def cal_to_J(cal: float) -> float:
     return cal * CAL_TO_J
 
 
+def convert_dG_to_Ki_Kd(dG: float, T: float = STANDARD_TEMPERATURE_K) -> float:
+    ''' Convert Gibbs free energy to equilibrium constant.
+
+    Parameters
+    ----------
+    dG : float
+        Gibbs free energy.
+    T : float
+        Temperature in Kelvin.
+
+    Returns
+    -------
+    float
+        Equilibrium constant.
+    '''
+
+    # Calculate K
+    K = math.exp(-dG / (R * T))
+    
+    return K
+
+
+def convert_Ki_Kd_to_dG(K: float, T: float = STANDARD_TEMPERATURE_K) -> float:
+    ''' Convert equilibrium constant to Gibbs free energy.
+
+    Parameters
+    ----------
+    K : float
+        Equilibrium constant.
+    T : float
+        Temperature in Kelvin.
+
+    Returns
+    -------
+    float
+        Gibbs free energy.
+    '''
+
+    # Calculate dG
+    dG = R * T * math.log(K)
+    
+    return dG
+
+
 def J_to_cal(J: float) -> float:
     ''' Convert Joules to calories.
 
@@ -138,23 +205,6 @@ def J_to_cal(J: float) -> float:
     '''
 
     return J / CAL_TO_J
-
-
-def C_to_K(C: float) -> float:
-    ''' Convert Celsius to Kelvin.
-
-    Parameters
-    ----------
-    C : float
-        Value in Celsius.
-
-    Returns
-    -------
-    float
-        Value in Kelvin.
-    '''
-
-    return C + ZERO_C_IN_K
 
 
 def K_to_C(K: float) -> float:
@@ -183,51 +233,6 @@ def K_to_C(K: float) -> float:
         raise ValueError("Kelvin cannot be negative.")
 
     return K - ZERO_C_IN_K
-
-
-def convert_Ki_Kd_to_dG(K: float, T: float = STANDARD_TEMPERATURE_K) -> float:
-    ''' Convert equilibrium constant to Gibbs free energy.
-
-    Parameters
-    ----------
-    K : float
-        Equilibrium constant.
-    T : float
-        Temperature in Kelvin.
-
-    Returns
-    -------
-    float
-        Gibbs free energy.
-    '''
-
-    # Calculate dG
-    dG = R * T * math.log(K)
-    
-    return dG
-
-
-def convert_dG_to_Ki_Kd(dG: float, T: float = STANDARD_TEMPERATURE_K) -> float:
-    ''' Convert Gibbs free energy to equilibrium constant.
-
-    Parameters
-    ----------
-    dG : float
-        Gibbs free energy.
-    T : float
-        Temperature in Kelvin.
-
-    Returns
-    -------
-    float
-        Equilibrium constant.
-    '''
-
-    # Calculate K
-    K = math.exp(-dG / (R * T))
-    
-    return K
-    
 
 # Constants
 ###############################################################################

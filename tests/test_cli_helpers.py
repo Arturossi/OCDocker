@@ -17,11 +17,7 @@ import pytest
 
 from pathlib import Path
 
-from OCDocker.CLI.__init__ import (
-    _preparse_global_args,
-    _require_file,
-    build_parser,
-)
+from OCDocker.CLI.__init__ import _preparse_global_args, _require_file, build_parser
 
 # License
 ###############################################################################

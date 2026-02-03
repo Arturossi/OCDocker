@@ -24,8 +24,8 @@ from typing import Literal, Optional, Union
 import OCDocker.Error as ocerror
 import OCDocker.Toolbox.Printing as ocprint
 
-from OCDocker.DB.Models import Complexes, Ligands, Receptors
 from OCDocker.DB.Models.Base import Base
+from OCDocker.DB.Models import Complexes, Ligands, Receptors
 
 # License
 ###############################################################################

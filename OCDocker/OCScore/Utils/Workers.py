@@ -23,9 +23,9 @@ from typing import Any, Union
 
 import OCDocker.Toolbox.Printing as ocprint
 
-from OCDocker.OCScore.DNN.DNNOptimizer import DNNOptimizer
 from OCDocker.OCScore.Dimensionality.AutoencoderOptimizer import AutoencoderOptimizer
 from OCDocker.OCScore.Dimensionality.GeneticAlgorithm import GeneticAlgorithm
+from OCDocker.OCScore.DNN.DNNOptimizer import DNNOptimizer
 from OCDocker.OCScore.Transformer.TransOptimizer import TransOptimizer
 from OCDocker.OCScore.XGBoost.XGBoostOptimizer import XGBoostOptimizer
 
