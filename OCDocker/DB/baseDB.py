@@ -17,13 +17,14 @@ import os
 
 from glob import glob
 
-from OCDocker.Config import get_config
 import OCDocker.Error as ocerror
 
 import OCDocker.Processing.Dock as ocdock
 import OCDocker.Processing.Preprocessing.Prepare as ocprepare
 
 import OCDocker.Toolbox.Printing as ocprint
+
+from OCDocker.Config import get_config
 
 
 # License

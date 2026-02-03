@@ -49,6 +49,61 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ## Public ##
 
 
+def cleanup_engine(engine: Optional[Engine]) -> None:
+    ''' Clean up an engine by disposing of all connections in the pool.
+
+    This function closes all connections in the connection pool and disposes of
+    the engine. It's automatically called on application shutdown via atexit handlers.
+    
+    Parameters
+    ----------
+    engine : Engine | None
+        The engine to clean up.
+        
+    Notes
+    -----
+    - This is safe to call multiple times (idempotent)
+    - Errors during cleanup are silently ignored
+    - Typically called automatically on application exit
+    - Prevents connection leaks, especially important for MySQL
+    '''
+    if engine is not None:
+        try:
+            # Dispose of all connections in the pool
+            # close=True ensures connections are properly closed, not just returned to pool
+            engine.dispose(close=True)
+        except (AttributeError, RuntimeError):
+            # Ignore errors during cleanup (engine may already be disposed)
+            pass
+
+
+def cleanup_session(session: Optional[scoped_session]) -> None:
+    ''' Clean up a scoped session by removing all sessions from the registry.
+
+    This function removes all thread-local session instances from the scoped_session
+    registry. It's automatically called on application shutdown via atexit handlers.
+    
+    Parameters
+    ----------
+    session : scoped_session | None
+        The scoped session to clean up.
+        
+    Notes
+    -----
+    - This is safe to call multiple times (idempotent)
+    - Errors during cleanup are silently ignored
+    - Typically called automatically on application exit
+    '''
+    if session is not None:
+        try:
+            # Remove all thread-local sessions from the registry
+            # This closes all active sessions and releases connections
+            session.remove()
+        except (AttributeError, RuntimeError):
+            # Ignore errors during cleanup (session may already be closed or removed)
+            pass
+
+
 def create_database_if_not_exists(url: Union[str, URL]) -> None:
     ''' Create the database if it does not exist.
     
@@ -164,57 +219,3 @@ def create_session(engine: Optional[Engine]) -> Optional[scoped_session]:
     # Return the session
     return session
 
-
-def cleanup_session(session: Optional[scoped_session]) -> None:
-    ''' Clean up a scoped session by removing all sessions from the registry.
-
-    This function removes all thread-local session instances from the scoped_session
-    registry. It's automatically called on application shutdown via atexit handlers.
-    
-    Parameters
-    ----------
-    session : scoped_session | None
-        The scoped session to clean up.
-        
-    Notes
-    -----
-    - This is safe to call multiple times (idempotent)
-    - Errors during cleanup are silently ignored
-    - Typically called automatically on application exit
-    '''
-    if session is not None:
-        try:
-            # Remove all thread-local sessions from the registry
-            # This closes all active sessions and releases connections
-            session.remove()
-        except (AttributeError, RuntimeError):
-            # Ignore errors during cleanup (session may already be closed or removed)
-            pass
-
-
-def cleanup_engine(engine: Optional[Engine]) -> None:
-    ''' Clean up an engine by disposing of all connections in the pool.
-
-    This function closes all connections in the connection pool and disposes of
-    the engine. It's automatically called on application shutdown via atexit handlers.
-    
-    Parameters
-    ----------
-    engine : Engine | None
-        The engine to clean up.
-        
-    Notes
-    -----
-    - This is safe to call multiple times (idempotent)
-    - Errors during cleanup are silently ignored
-    - Typically called automatically on application exit
-    - Prevents connection leaks, especially important for MySQL
-    '''
-    if engine is not None:
-        try:
-            # Dispose of all connections in the pool
-            # close=True ensures connections are properly closed, not just returned to pool
-            engine.dispose(close=True)
-        except (AttributeError, RuntimeError):
-            # Ignore errors during cleanup (engine may already be disposed)
-            pass

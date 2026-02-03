@@ -8,8 +8,10 @@ Sets of classes and functions that are used to prepare Dock6 files and run it.
 Usage:
 
 import OCDocker.Docking.Dock6 as ocdock6
+
+TODO: Finish this.
 '''
-# TODO: Finish this
+
 # Imports
 ###############################################################################
 import errno
@@ -84,3 +86,10 @@ class Ledock:
         '''
 
         pass
+
+
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##

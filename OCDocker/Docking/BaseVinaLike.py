@@ -15,17 +15,19 @@ import OCDocker.Docking.BaseVinaLike as ocbasevina
 import errno
 import json
 import os
-from glob import glob
-from typing import Dict, List, Callable, Optional
 
 import numpy as np
 
-from OCDocker.Config import get_config
+from glob import glob
+from typing import Callable, Dict, List, Optional
+
 import OCDocker.Error as ocerror
+import OCDocker.Toolbox.FilesFolders as ocff
 import OCDocker.Toolbox.IO as ocio
 import OCDocker.Toolbox.Printing as ocprint
 import OCDocker.Toolbox.Validation as ocvalidation
-import OCDocker.Toolbox.FilesFolders as ocff
+
+from OCDocker.Config import get_config
 
 # License
 ###############################################################################
@@ -55,6 +57,143 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # ---------------------------------------------------------------------------
 # Generic helpers
 # ---------------------------------------------------------------------------
+
+
+def _generate_digest_generic(
+    digestPath: str,
+    logPath: str,
+    read_log_func: Callable[[str], Dict[int, Dict[int, float]]],
+    overwrite: bool = False,
+    digestFormat: str = "json",
+    box_id: Optional[str] = None,
+) -> int:
+    '''Generate the docking digest.
+    
+    Parameters
+    ----------
+    digestPath : str
+        Where to store the digest file.
+    logPath : str
+        The log path.
+    overwrite : bool, optional
+        If True, overwrites the output files if they already exist. (default is False)
+    digestFormat : str, optional
+        The format of the digest file. The options are: [ json (default), hdf5 (not implemented) ]
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+    '''
+
+    # Check if the file does not exists or if the overwrite flag is true
+    if not os.path.isdir(digestPath) or overwrite:
+        # Check if the digest extension is supported
+        if ocvalidation.validate_digest_extension(digestPath, digestFormat):
+
+            # Create the digest variable
+            digest = None
+
+            # Check if the file exists
+            if os.path.isfile(digestPath):
+                # If is a json file
+                if digestFormat == "json":
+                    # Read the json file
+                    try:
+                        # Open the json file in read mode
+                        with open(digestPath, "r") as f:
+                            # Load the data
+                            digest = json.load(f)
+
+                            # Check if the digest variable is fine
+                            if not isinstance(digest, dict):
+                                return ocerror.Error.wrong_type( # type: ignore
+                                    f"The digest file '{digestPath}' is not valid.",
+                                    ocerror.ReportLevel.ERROR,
+                                )
+                    except (OSError, IOError, FileNotFoundError, json.JSONDecodeError):
+                        return ocerror.Error.file_not_exist( # type: ignore
+                            f"Could not read the digest file '{digestPath}'.",
+                            ocerror.ReportLevel.ERROR,
+                        )
+            else:
+                # Since it does not exists, create it
+                digest = ocff.empty_docking_digest(digestPath, overwrite)
+            
+            # Read the docking object log to generate the docking digest
+            dockingDigest = read_log_func(logPath)
+
+            # Check if the digest variable is fine
+            if not isinstance(digest, dict):
+                return ocerror.Error.wrong_type( # type: ignore
+                    f"The docking digest file '{digestPath}' is not valid.",
+                    ocerror.ReportLevel.ERROR,
+                )
+        
+            # Merge the digest and the docking digest
+            if box_id:
+                box_key = str(box_id)
+                if box_key not in digest or not isinstance(digest.get(box_key), dict):
+                    digest[box_key] = {}
+                digest[box_key] = {**digest[box_key], **dockingDigest} # type: ignore
+            else:
+                digest = {**digest, **dockingDigest} # type: ignore
+
+            # If the format is json, write the digest file
+            if digestFormat == "json":
+                # Write the json file
+                try:
+                    # Open the json file in write mode
+                    with open(digestPath, "w") as f:
+                        # Dump the data
+                        json.dump(digest, f)
+                except (OSError, IOError, PermissionError):
+                    return ocerror.Error.write_file( # type: ignore
+                        f"Could not write the digest file '{digestPath}'.",
+                        ocerror.ReportLevel.ERROR,
+                    )
+            return ocerror.Error.ok()  # type: ignore
+        
+        return ocerror.Error.unsupported_extension( # type: ignore
+            f"The provided extension '{digestFormat}' is not supported.",
+            ocerror.ReportLevel.ERROR,
+        )
+    
+    return ocerror.Error.file_exists( # type: ignore
+        f"The file '{digestPath}' already exists. If you want to overwrite it yse the overwrite flag.",
+        level=ocerror.ReportLevel.WARNING,
+
+
+    )
+
+
+def _get_docked_poses_generic(posesPath: str, error_method: Callable) -> List[str]:
+    '''Get the docked poses from the poses path.
+
+    Parameters
+    ----------
+    posesPath : str
+        The path to the poses folder.
+    error_method : Callable
+        The error method to be used in case the poses path does not exist.
+
+    Returns
+    -------
+    List[str]
+        A list with the paths to the docked poses.
+    '''
+
+    # Check if the posesPath exists
+    if os.path.isdir(posesPath):
+        return [d for d in glob(f"{posesPath}/*_split_*.pdbqt") if os.path.isfile(d)]
+    
+    # Print an error message
+    error_method(
+        message=f"The poses path '{posesPath}' does not exist.",
+        level=ocerror.ReportLevel.ERROR,
+    )
+
+    return []
 
 
 def _read_log_generic(path: str, scoring_key: str, engine: str, error_log: str, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
@@ -221,189 +360,30 @@ def _read_rescoring_log_generic(path: str, start_string: str, engine: str, error
     return np.nan
 
 
-def _generate_digest_generic(
-    digestPath: str,
-    logPath: str,
-    read_log_func: Callable[[str], Dict[int, Dict[int, float]]],
-    overwrite: bool = False,
-    digestFormat: str = "json",
-    box_id: Optional[str] = None,
-) -> int:
-    '''Generate the docking digest.
-    
+## Public ##
+
+def generate_smina_digest(digestPath: str, logPath: str, overwrite: bool = False, digestFormat: str = "json", box_id: Optional[str] = None) -> int:
+    '''Wrapper for generating the Smina digest.
+
     Parameters
     ----------
     digestPath : str
         Where to store the digest file.
     logPath : str
-        The log path.
+        The path to the Smina log file.
     overwrite : bool, optional
         If True, overwrites the output files if they already exist. (default is False)
     digestFormat : str, optional
         The format of the digest file. The options are: [ json (default), hdf5 (not implemented) ]
-
+    
     Returns
     -------
     int
         The exit code of the command (based on the Error.py code table).
     '''
 
-    # Check if the file does not exists or if the overwrite flag is true
-    if not os.path.isdir(digestPath) or overwrite:
-        # Check if the digest extension is supported
-        if ocvalidation.validate_digest_extension(digestPath, digestFormat):
-
-            # Create the digest variable
-            digest = None
-
-            # Check if the file exists
-            if os.path.isfile(digestPath):
-                # If is a json file
-                if digestFormat == "json":
-                    # Read the json file
-                    try:
-                        # Open the json file in read mode
-                        with open(digestPath, "r") as f:
-                            # Load the data
-                            digest = json.load(f)
-
-                            # Check if the digest variable is fine
-                            if not isinstance(digest, dict):
-                                return ocerror.Error.wrong_type( # type: ignore
-                                    f"The digest file '{digestPath}' is not valid.",
-                                    ocerror.ReportLevel.ERROR,
-                                )
-                    except (OSError, IOError, FileNotFoundError, json.JSONDecodeError):
-                        return ocerror.Error.file_not_exist( # type: ignore
-                            f"Could not read the digest file '{digestPath}'.",
-                            ocerror.ReportLevel.ERROR,
-                        )
-            else:
-                # Since it does not exists, create it
-                digest = ocff.empty_docking_digest(digestPath, overwrite)
-            
-            # Read the docking object log to generate the docking digest
-            dockingDigest = read_log_func(logPath)
-
-            # Check if the digest variable is fine
-            if not isinstance(digest, dict):
-                return ocerror.Error.wrong_type( # type: ignore
-                    f"The docking digest file '{digestPath}' is not valid.",
-                    ocerror.ReportLevel.ERROR,
-                )
-        
-            # Merge the digest and the docking digest
-            if box_id:
-                box_key = str(box_id)
-                if box_key not in digest or not isinstance(digest.get(box_key), dict):
-                    digest[box_key] = {}
-                digest[box_key] = {**digest[box_key], **dockingDigest} # type: ignore
-            else:
-                digest = {**digest, **dockingDigest} # type: ignore
-
-            # If the format is json, write the digest file
-            if digestFormat == "json":
-                # Write the json file
-                try:
-                    # Open the json file in write mode
-                    with open(digestPath, "w") as f:
-                        # Dump the data
-                        json.dump(digest, f)
-                except (OSError, IOError, PermissionError):
-                    return ocerror.Error.write_file( # type: ignore
-                        f"Could not write the digest file '{digestPath}'.",
-                        ocerror.ReportLevel.ERROR,
-                    )
-            return ocerror.Error.ok()  # type: ignore
-        
-        return ocerror.Error.unsupported_extension( # type: ignore
-            f"The provided extension '{digestFormat}' is not supported.",
-            ocerror.ReportLevel.ERROR,
-        )
-    
-    return ocerror.Error.file_exists( # type: ignore
-        f"The file '{digestPath}' already exists. If you want to overwrite it yse the overwrite flag.",
-        level=ocerror.ReportLevel.WARNING,
-
-
-    )
-
-
-def _get_docked_poses_generic(posesPath: str, error_method: Callable) -> List[str]:
-    '''Get the docked poses from the poses path.
-
-    Parameters
-    ----------
-    posesPath : str
-        The path to the poses folder.
-    error_method : Callable
-        The error method to be used in case the poses path does not exist.
-
-    Returns
-    -------
-    List[str]
-        A list with the paths to the docked poses.
-    '''
-
-    # Check if the posesPath exists
-    if os.path.isdir(posesPath):
-        return [d for d in glob(f"{posesPath}/*_split_*.pdbqt") if os.path.isfile(d)]
-    
-    # Print an error message
-    error_method(
-        message=f"The poses path '{posesPath}' does not exist.",
-        level=ocerror.ReportLevel.ERROR,
-    )
-
-    return []
-
-
-
-
-
-## Public ##
-
-# ---------------------------------------------------------------------------
-# Wrappers for Vina
-# ---------------------------------------------------------------------------
-
-
-def read_vina_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
-    '''Wrapper for reading the Vina log file.
-    
-    Parameters
-    ----------
-    path : str
-        The path to the Vina log file.
-    onlyBest : bool, optional
-        If True, only the best pose will be returned. By default False.
-    
-    Returns
-    -------
-    Dict[int, Dict[int, float]]
-        A dictionary with the data from the Vina log file.
-    '''
-
-    # Call the generic read log function with the Vina scoring key
-    config = get_config()
-    return _read_log_generic(path, config.vina.scoring, "vina", "vina_read_log_ERROR.log", onlyBest)
-
-
-def read_vina_rescoring_log(path: str) -> float:
-    '''Wrapper for reading the Vina rescoring log file.
-
-    Parameters
-    ----------
-    path : str
-        The path to the Vina rescoring log file.
-    
-    Returns
-    -------
-    float
-        The estimated free energy of binding from the Vina rescoring log file.
-    '''
-
-    return _read_rescoring_log_generic(path, "Estimated Free Energy of Binding", "vina", "vina_read_log_ERROR.log")
+    # Call the generic generate digest function with the Smina read log function
+    return _generate_digest_generic(digestPath, logPath, read_smina_log, overwrite, digestFormat, box_id)
 
 
 def generate_vina_digest(digestPath: str, logPath: str, overwrite: bool = False, digestFormat: str = "json", box_id: Optional[str] = None) -> int:
@@ -430,6 +410,27 @@ def generate_vina_digest(digestPath: str, logPath: str, overwrite: bool = False,
     return _generate_digest_generic(digestPath, logPath, read_vina_log, overwrite, digestFormat, box_id)
 
 
+def get_smina_docked_poses(posesPath: str) -> List[str]:
+    '''Wrapper for getting the Smina docked poses.
+
+    Parameters
+    ----------
+    posesPath : str
+        The path to the Smina docked poses folder.
+
+    Returns
+    -------
+    List[str]
+        A list with the paths to the Smina docked poses.
+    '''
+
+    # Use the Error class to get the error method for directory not existing
+    err = getattr(ocerror.Error, "dir_does_not_exist", ocerror.Error.dir_not_exist) # type: ignore
+
+    # Call the generic get docked poses function
+    return _get_docked_poses_generic(posesPath, err)
+
+
 def get_vina_docked_poses(posesPath: str) -> List[str]:
     '''Get the paths for the docked poses from Vina output directory.
     
@@ -445,14 +446,6 @@ def get_vina_docked_poses(posesPath: str) -> List[str]:
     '''
     
     return _get_docked_poses_generic(posesPath, ocerror.Error.dir_not_exist) # type: ignore
-
-
-
-
-
-# ---------------------------------------------------------------------------
-# Wrappers for Smina
-# ---------------------------------------------------------------------------
 
 
 def read_smina_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
@@ -493,46 +486,39 @@ def read_smina_rescoring_log(path: str) -> float:
     return _read_rescoring_log_generic(path, "Affinity", "smina", "smina_read_log_ERROR.log")
 
 
-def generate_smina_digest(digestPath: str, logPath: str, overwrite: bool = False, digestFormat: str = "json", box_id: Optional[str] = None) -> int:
-    '''Wrapper for generating the Smina digest.
-
+def read_vina_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
+    '''Wrapper for reading the Vina log file.
+    
     Parameters
     ----------
-    digestPath : str
-        Where to store the digest file.
-    logPath : str
-        The path to the Smina log file.
-    overwrite : bool, optional
-        If True, overwrites the output files if they already exist. (default is False)
-    digestFormat : str, optional
-        The format of the digest file. The options are: [ json (default), hdf5 (not implemented) ]
+    path : str
+        The path to the Vina log file.
+    onlyBest : bool, optional
+        If True, only the best pose will be returned. By default False.
     
     Returns
     -------
-    int
-        The exit code of the command (based on the Error.py code table).
+    Dict[int, Dict[int, float]]
+        A dictionary with the data from the Vina log file.
     '''
 
-    # Call the generic generate digest function with the Smina read log function
-    return _generate_digest_generic(digestPath, logPath, read_smina_log, overwrite, digestFormat, box_id)
+    # Call the generic read log function with the Vina scoring key
+    config = get_config()
+    return _read_log_generic(path, config.vina.scoring, "vina", "vina_read_log_ERROR.log", onlyBest)
 
 
-def get_smina_docked_poses(posesPath: str) -> List[str]:
-    '''Wrapper for getting the Smina docked poses.
+def read_vina_rescoring_log(path: str) -> float:
+    '''Wrapper for reading the Vina rescoring log file.
 
     Parameters
     ----------
-    posesPath : str
-        The path to the Smina docked poses folder.
-
+    path : str
+        The path to the Vina rescoring log file.
+    
     Returns
     -------
-    List[str]
-        A list with the paths to the Smina docked poses.
+    float
+        The estimated free energy of binding from the Vina rescoring log file.
     '''
 
-    # Use the Error class to get the error method for directory not existing
-    err = getattr(ocerror.Error, "dir_does_not_exist", ocerror.Error.dir_not_exist) # type: ignore
-
-    # Call the generic get docked poses function
-    return _get_docked_poses_generic(posesPath, err)
+    return _read_rescoring_log_generic(path, "Estimated Free Energy of Binding", "vina", "vina_read_log_ERROR.log")

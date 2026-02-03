@@ -89,8 +89,8 @@ def run_gnina(overwrite: bool = False) -> int:
     return ocbdb.run_docking("dudez", "gnina", overwrite = overwrite)
 
 
-def run_vina(overwrite: bool = False) -> int:
-    '''Runs vina in the whole database.
+def run_plants(overwrite: bool = False) -> int:
+    '''Runs PLANTS in the whole database.
 
     Parameters
     ----------
@@ -100,14 +100,14 @@ def run_vina(overwrite: bool = False) -> int:
     Returns
     -------
     int
-        The exit code of the command (based on the Error.py code table).
+        The exit code of the command (based on the Error.py code table)
 
     Raise
     -----
     None
     '''
 
-    return ocbdb.run_docking("dudez", "vina", overwrite = overwrite)
+    return ocbdb.run_docking("dudez", "plants", overwrite = overwrite)
 
 
 def run_smina(overwrite: bool = False) -> int:
@@ -131,8 +131,8 @@ def run_smina(overwrite: bool = False) -> int:
     return ocbdb.run_docking("dudez", "smina", overwrite = overwrite)
 
 
-def run_plants(overwrite: bool = False) -> int:
-    '''Runs PLANTS in the whole database.
+def run_vina(overwrite: bool = False) -> int:
+    '''Runs vina in the whole database.
 
     Parameters
     ----------
@@ -142,11 +142,11 @@ def run_plants(overwrite: bool = False) -> int:
     Returns
     -------
     int
-        The exit code of the command (based on the Error.py code table)
+        The exit code of the command (based on the Error.py code table).
 
     Raise
     -----
     None
     '''
 
-    return ocbdb.run_docking("dudez", "plants", overwrite = overwrite)
+    return ocbdb.run_docking("dudez", "vina", overwrite = overwrite)

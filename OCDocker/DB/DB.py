@@ -13,27 +13,19 @@ import OCDocker.DB.DB as ocdb
 
 # Imports
 ###############################################################################
-
 import csv
 import json
 
 import pandas as pd
-from typing import Literal, Optional, Union
-
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm.session import Session
+from typing import Literal, Optional, Union
 
-from OCDocker.DB.Models.Base import Base
-from OCDocker.DB.Models import Complexes, Ligands, Receptors
 import OCDocker.Error as ocerror
-
-# May use session from Initialise - runtime global
-try:
-    from OCDocker.Initialise import session  # type: ignore
-except ImportError:
-    session = None  # type: ignore
-
 import OCDocker.Toolbox.Printing as ocprint
+
+from OCDocker.DB.Models import Complexes, Ligands, Receptors
+from OCDocker.DB.Models.Base import Base
 
 # License
 ###############################################################################
@@ -54,6 +46,12 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 # Classes
 ###############################################################################
+
+# May use session from Initialise - runtime global
+try:
+    from OCDocker.Initialise import session  # type: ignore
+except ImportError:
+    session = None  # type: ignore
 
 # Functions
 ###############################################################################
@@ -84,69 +82,6 @@ def create_tables(engine: Optional[Engine] = None) -> None:
             raise RuntimeError(f'Could not resolve database engine to create tables: {e}')
 
     Base.metadata.create_all(eng)  # type: ignore[arg-type]
-
-
-def setup_database() -> Engine:
-    '''
-    Ensure the database exists, create a new Engine, and create tables.
-
-    Returns
-    -------
-    sqlalchemy.engine.base.Engine
-        Live engine connected to the configured database URL.
-    '''
-
-    # Local import to avoid requiring optional deps at import-time
-    from OCDocker.DB.DBMinimal import create_database_if_not_exists, create_engine
-
-    # Resolve the configured DB URL lazily to avoid import-time side effects
-    try:
-        import OCDocker.Initialise as init  # type: ignore
-        url = getattr(init, 'db_url', None)
-        if url is None:
-            # Try deriving from an existing engine
-            eng = getattr(init, 'engine', None)
-            if eng is not None:
-                url = eng.url
-        # Final fallback suitable for tests/dev
-        if url is None:
-            url = "sqlite:///:memory:"
-    except (ImportError, AttributeError):
-        # Extremely defensive fallback for environments without Initialise
-        url = "sqlite:///:memory:"
-
-    # Create DB if it does not exist
-    create_database_if_not_exists(url)  # type: ignore[arg-type]
-
-    # Create engine and tables
-    engine_obj = create_engine(url)  # type: ignore[arg-type]
-    create_tables(engine_obj)
-
-    return engine_obj
-
-
-def export_table_to_csv(model: type[Base], filename: str, session: Session) -> None:
-    '''
-    Export a single ORM model's rows to CSV.
-
-    Parameters
-    ----------
-    model : type[Base]
-        ORM model class to export.
-    filename : str
-        Output CSV file path.
-    session : sqlalchemy.orm.session.Session
-        SQLAlchemy session bound to the database engine.
-    '''
-
-    data = session.query(model).all()
-    columns = list(model.__table__.columns.keys())
-
-    with open(filename, 'w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(columns)
-        for row in data:
-            writer.writerow([getattr(row, col) for col in columns])
 
 
 def export_db_to_csv(
@@ -259,7 +194,67 @@ def export_db_to_csv(
         # User-facing error: invalid output format
         ocerror.Error.value_error(f"Invalid output format: '{output_format}'. Please choose 'dataframe', 'json', or 'csv'.") # type: ignore
         raise ValueError("Invalid output format. Please choose 'dataframe', 'json', or 'csv'.")
-    
+
+
+def export_table_to_csv(model: type[Base], filename: str, session: Session) -> None:
+    '''
+    Export a single ORM model's rows to CSV.
+
+    Parameters
+    ----------
+    model : type[Base]
+        ORM model class to export.
+    filename : str
+        Output CSV file path.
+    session : sqlalchemy.orm.session.Session
+        SQLAlchemy session bound to the database engine.
+    '''
+
+    data = session.query(model).all()
+    columns = list(model.__table__.columns.keys())
+
+    with open(filename, 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(columns)
+        for row in data:
+            writer.writerow([getattr(row, col) for col in columns])
+
+
 # Explicit initialization only: call setup_database() from CLI or application bootstrap
+def setup_database() -> Engine:
+    '''
+    Ensure the database exists, create a new Engine, and create tables.
+
+    Returns
+    -------
+    sqlalchemy.engine.base.Engine
+        Live engine connected to the configured database URL.
+    '''
+
     # Local import to avoid requiring optional deps at import-time
     from OCDocker.DB.DBMinimal import create_database_if_not_exists, create_engine
+
+    # Resolve the configured DB URL lazily to avoid import-time side effects
+    try:
+        import OCDocker.Initialise as init  # type: ignore
+        url = getattr(init, 'db_url', None)
+        if url is None:
+            # Try deriving from an existing engine
+            eng = getattr(init, 'engine', None)
+            if eng is not None:
+                url = eng.url
+        # Final fallback suitable for tests/dev
+        if url is None:
+            url = "sqlite:///:memory:"
+    except (ImportError, AttributeError):
+        # Extremely defensive fallback for environments without Initialise
+        url = "sqlite:///:memory:"
+
+    # Create DB if it does not exist
+    create_database_if_not_exists(url)  # type: ignore[arg-type]
+
+    # Create engine and tables
+    engine_obj = create_engine(url)  # type: ignore[arg-type]
+    create_tables(engine_obj)
+
+    return engine_obj

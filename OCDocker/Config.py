@@ -15,12 +15,13 @@ from OCDocker.Config import get_config, OCDockerConfig
 
 # Imports
 ###############################################################################
+import configparser
 import os
 import threading
-import configparser
+
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 import OCDocker.Error as ocerror
 
@@ -41,8 +42,9 @@ to formal authorization from UFRJ. See the LICENSE file for details.
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
 
-# Configuration Dataclasses
+# Classes
 ###############################################################################
+# Configuration Dataclasses
 
 
 @dataclass
@@ -495,12 +497,15 @@ class OCDockerConfig:
         return config
 
 
-# Singleton Pattern
+# Functions
 ###############################################################################
+## Private ##
 
+# Singleton Pattern
 _config_lock = threading.Lock()
 _config_instance: Optional[OCDockerConfig] = None
 
+## Public ##
 
 def get_config() -> OCDockerConfig:
     '''Get the global configuration instance (singleton pattern).
@@ -523,7 +528,15 @@ def get_config() -> OCDockerConfig:
                 # Return default config if not initialized
                 # This allows the Config module to be imported before bootstrap
                 _config_instance = OCDockerConfig()
-    return _config_instance
+def reset_config() -> None:
+    '''Reset the global configuration to None.
+    
+    Useful for testing to ensure clean state.
+    '''
+    
+    global _config_instance
+    with _config_lock:
+        _config_instance = None
 
 
 def set_config(config: OCDockerConfig) -> None:
@@ -543,14 +556,3 @@ def set_config(config: OCDockerConfig) -> None:
     global _config_instance
     with _config_lock:
         _config_instance = config
-
-
-def reset_config() -> None:
-    '''Reset the global configuration to None.
-    
-    Useful for testing to ensure clean state.
-    '''
-    
-    global _config_instance
-    with _config_lock:
-        _config_instance = None

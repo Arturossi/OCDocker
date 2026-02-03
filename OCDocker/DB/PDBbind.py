@@ -17,12 +17,12 @@ import os
 from glob import glob
 from typing import Dict, Union, Optional
 
-from OCDocker.Config import get_config
+import OCDocker.DB.baseDB as ocbdb
 import OCDocker.Error as ocerror
 
+from OCDocker.Config import get_config
 from OCDocker.Toolbox.Constants import order
 
-import OCDocker.DB.baseDB as ocbdb
 
 # License
 ###############################################################################
@@ -49,6 +49,23 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ## Private ##
 
 ## Public ##
+
+def prepare(overwrite: bool = False) -> None:
+    '''Prepares the PDBbind database.
+
+    Parameters
+    ----------
+    overwrite : bool, optional
+        If True, it will overwrite the results. If False, it will not run the preparation if the results already exist, by default False.
+
+    Returns
+    -------
+    None
+    '''
+
+    return ocbdb.prepare("pdbbind", overwrite = overwrite)
+
+
 def read_index() -> Optional[Dict[str, Dict[str, Union[str, float]]]]:
     '''Read the index file from pdbbind database and returns a list of dictionaries with the data.
 
@@ -152,13 +169,13 @@ def run_gnina(overwrite: bool = False) -> int:
     return ocbdb.run_docking("pdbbind", "gnina", overwrite = overwrite)
 
 
-def run_vina(overwrite: bool = False) -> int:
-    '''Runs vina in the whole database.
+def run_plants(overwrite: bool = False) -> int:
+    '''Runs PLANTS in the whole database.
 
     Parameters
     ----------
     overwrite : bool, optional
-        If True, it will overwrite the results. If False, it will not run the vina if the results already exist, by default False.
+        If True, it will overwrite the results. If False, it will not run the PLANTS if the results already exist, by default False.
 
     Returns
     -------
@@ -166,7 +183,7 @@ def run_vina(overwrite: bool = False) -> int:
         The exit code of the command (based on the Error.py code table).
     '''
 
-    return ocbdb.run_docking("pdbbind", "vina", overwrite = overwrite)
+    return ocbdb.run_docking("pdbbind", "plants", overwrite = overwrite)
 
 
 def run_smina(overwrite: bool = False) -> int:
@@ -186,13 +203,13 @@ def run_smina(overwrite: bool = False) -> int:
     return ocbdb.run_docking("pdbbind", "smina", overwrite = overwrite)
 
 
-def run_plants(overwrite: bool = False) -> int:
-    '''Runs PLANTS in the whole database.
+def run_vina(overwrite: bool = False) -> int:
+    '''Runs vina in the whole database.
 
     Parameters
     ----------
     overwrite : bool, optional
-        If True, it will overwrite the results. If False, it will not run the PLANTS if the results already exist, by default False.
+        If True, it will overwrite the results. If False, it will not run the vina if the results already exist, by default False.
 
     Returns
     -------
@@ -200,20 +217,4 @@ def run_plants(overwrite: bool = False) -> int:
         The exit code of the command (based on the Error.py code table).
     '''
 
-    return ocbdb.run_docking("pdbbind", "plants", overwrite = overwrite)
-
-
-def prepare(overwrite: bool = False) -> None:
-    '''Prepares the PDBbind database.
-
-    Parameters
-    ----------
-    overwrite : bool, optional
-        If True, it will overwrite the results. If False, it will not run the preparation if the results already exist, by default False.
-
-    Returns
-    -------
-    None
-    '''
-
-    return ocbdb.prepare("pdbbind", overwrite = overwrite)
+    return ocbdb.run_docking("pdbbind", "vina", overwrite = overwrite)

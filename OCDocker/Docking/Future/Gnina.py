@@ -19,11 +19,9 @@ import os
 import numpy as np
 import pandas as pd
 
-from typing import Dict, List, Tuple, Union, Optional
+from typing import Dict, List, Optional, Tuple, Union
 
-from OCDocker.Config import get_config
 import OCDocker.Error as ocerror
-
 import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
 
@@ -32,6 +30,8 @@ import OCDocker.Toolbox.IO as ocio
 import OCDocker.Toolbox.Printing as ocprint
 import OCDocker.Toolbox.Running as ocrun
 import OCDocker.Toolbox.Validation as ocvalidation
+
+from OCDocker.Config import get_config
 from OCDocker.Toolbox.Preparation import OpenBabelPreparationStrategy
 
 # License
@@ -124,65 +124,6 @@ class Gnina:
             gen_gnina_conf(self.box_file, self.config, self.prepared_receptor)
 
     ## Private ##
-    def __parse_receptor_path(self, receptor: Union[str, ocr.Receptor]) -> str:
-        '''Parse the receptor path, handling its type.
-
-        Parameters
-        ----------
-        receptor : ocr.Receptor | str
-            The path for the receptor or its receptor object.
-
-        Returns
-        -------
-        str
-            The receptor path.
-        '''
-
-        # Check the type of receptor variable
-        if type(receptor) == ocr.Receptor:
-            return receptor.path  # type: ignore
-        elif type(receptor) == str:
-            # Since is a string, check if the file exists
-            if os.path.isfile(receptor): # type: ignore
-                # Exists! Return it!
-                return receptor # type: ignore
-            else:
-                _ = ocerror.Error.file_not_exist(message=f"The receptor '{receptor}' has not a valid path.", level = ocerror.ReportLevel.ERROR)
-                return ""
-
-        _ = ocerror.Error.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'string' or 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR)
-
-        return ""
-
-    def __parse_ligand_path(self, ligand: Union[str, ocl.Ligand]) -> str:
-        '''Parse the ligand path, handling its type.
-        
-        Parameters
-        ----------
-        ligand : str | ocl.Ligand
-            The path for the ligand or its ocl.Ligand object.
-
-        Returns
-        -------
-            The ligand path. If fails, return an empty string.
-        '''
-
-        # Check the type of ligand variable
-        if type(ligand) == ocl.Ligand:
-            return ligand.path # type: ignore
-        elif type(ligand) == str:
-            # Since is a string, check if the file exists
-            if os.path.isfile(ligand): # type: ignore
-                # Exists! Process it then!
-                return self.__process_ligand(ligand) # type: ignore
-            else:
-                _ = ocerror.Error.file_not_exist(message=f"The ligand '{ligand}' has not a valid path.", level = ocerror.ReportLevel.ERROR)
-                return ""
-
-        _ = ocerror.Error.wrong_type(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.", level = ocerror.ReportLevel.ERROR)
-
-        return ""
-
     def __gnina_cmd(self) -> List[str]:
         '''Generate the gnina command.
 
@@ -226,7 +167,87 @@ class Gnina:
 
         return cmd
 
+    def __parse_ligand_path(self, ligand: Union[str, ocl.Ligand]) -> str:
+        '''Parse the ligand path, handling its type.
+        
+        Parameters
+        ----------
+        ligand : str | ocl.Ligand
+            The path for the ligand or its ocl.Ligand object.
+
+        Returns
+        -------
+            The ligand path. If fails, return an empty string.
+        '''
+
+        # Check the type of ligand variable
+        if type(ligand) == ocl.Ligand:
+            return ligand.path # type: ignore
+        elif type(ligand) == str:
+            # Since is a string, check if the file exists
+            if os.path.isfile(ligand): # type: ignore
+                # Exists! Process it then!
+                return self.__process_ligand(ligand) # type: ignore
+            else:
+                _ = ocerror.Error.file_not_exist(message=f"The ligand '{ligand}' has not a valid path.", level = ocerror.ReportLevel.ERROR)
+                return ""
+
+        _ = ocerror.Error.wrong_type(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.", level = ocerror.ReportLevel.ERROR)
+
+        return ""
+
+    def __parse_receptor_path(self, receptor: Union[str, ocr.Receptor]) -> str:
+        '''Parse the receptor path, handling its type.
+
+        Parameters
+        ----------
+        receptor : ocr.Receptor | str
+            The path for the receptor or its receptor object.
+
+        Returns
+        -------
+        str
+            The receptor path.
+        '''
+
+        # Check the type of receptor variable
+        if type(receptor) == ocr.Receptor:
+            return receptor.path  # type: ignore
+        elif type(receptor) == str:
+            # Since is a string, check if the file exists
+            if os.path.isfile(receptor): # type: ignore
+                # Exists! Return it!
+                return receptor # type: ignore
+            else:
+                _ = ocerror.Error.file_not_exist(message=f"The receptor '{receptor}' has not a valid path.", level = ocerror.ReportLevel.ERROR)
+                return ""
+
+        _ = ocerror.Error.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'string' or 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR)
+
+        return ""
+
     ## Public ##
+    def print_attributes(self) -> None:
+        '''Print the class attributes.'''
+
+        print(f"Name:                        '{self.name if self.name else '-' }'")
+        print(f"Config path:                 '{self.config if self.config else '-' }'")
+        print(f"Input receptor:              '{self.input_receptor if self.input_receptor else '-' }'")
+        print(f"Input receptor path:         '{self.input_receptor_path if self.input_receptor_path else '-' }'")
+        print(f"Prepared receptor path:      '{self.prepared_receptor if self.prepared_receptor else '-' }'")
+        prep_receptor_cmd = self.preparation_strategy.get_receptor_command(self.input_receptor_path, self.prepared_receptor)
+        print(f"Prepared receptor command:   '{' '.join(prep_receptor_cmd) if prep_receptor_cmd else '-' }'")
+        print(f"Input ligand:                '{self.input_ligand if self.input_ligand else '-' }'")
+        print(f"Input ligand path:           '{self.input_ligand_path if self.input_ligand_path else '-' }'")
+        print(f"Prepared ligand path:        '{self.prepared_ligand if self.prepared_ligand else '-' }'")
+        prep_ligand_cmd = self.preparation_strategy.get_ligand_command(self.input_ligand_path, self.prepared_ligand)
+        print(f"Prepared ligand command:     '{' '.join(prep_ligand_cmd) if prep_ligand_cmd else '-' }'")
+        print(f"Gnina execution log path:    '{self.gnina_log if self.gnina_log else '-' }'")
+        print(f"Gnina output path:           '{self.output_gnina if self.output_gnina else '-' }'")
+        print(f"Gnina command:               '{' '.join(self.gnina_cmd) if self.gnina_cmd else '-' }'")
+        
+        return
+
     def read_log(self) -> Union[pd.DataFrame, int]:
         '''Read the gnina log path, returning a pd.dataframe with data from complexes.
 
@@ -254,6 +275,17 @@ class Gnina:
 
         return ocrun.run(self.gnina_cmd, logFile=logFile)
 
+    def run_prepare_ligand(self, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
+        '''Run the convert ligand command to pdbqt.
+
+        Returns
+        -------
+        int | Tuple[int, str]
+            The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
+        '''
+
+        return run_prepare_ligand(self.input_ligand_path, self.prepared_ligand, overwrite=overwrite)
+
     def run_prepare_ligand_from_cmd(self, logFile: str = "") -> Union[int, Tuple[int, str]]:
         '''Run obabel convert ligand to pdbqt using the 'self.inputLigandPath' attribute. [DEPRECATED]
 
@@ -275,8 +307,8 @@ class Gnina:
             logFile
         )
 
-    def run_prepare_ligand(self, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
-        '''Run the convert ligand command to pdbqt.
+    def run_prepare_receptor(self, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
+        '''Run obabel convert receptor to pdbqt using the openbabel python library.
 
         Returns
         -------
@@ -284,7 +316,12 @@ class Gnina:
             The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
         '''
 
-        return run_prepare_ligand(self.input_ligand_path, self.prepared_ligand, overwrite=overwrite)
+        return self.preparation_strategy.prepare_receptor(
+            self.input_receptor_path,
+            self.prepared_receptor,
+            "",
+            overwrite=overwrite
+        )
 
     def run_prepare_receptor_from_cmd(self, logFile: str = "", overwrite: bool = False) -> Union[int, Tuple[int, str]]:
         '''Run obabel convert receptor to pdbqt script using the 'self.prepareReceptorCmd' attribute. [DEPRECATED]
@@ -305,43 +342,6 @@ class Gnina:
         config = get_config()
         cmd = [config.tools.pythonsh, config.tools.prepare_receptor, "-r", self.input_receptor_path, "-o", self.prepared_receptor, "-A", "hydrogens", "-U", "nphs_lps_waters"]
         return ocrun.run(cmd, logFile=logFile)
-
-    def run_prepare_receptor(self, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
-        '''Run obabel convert receptor to pdbqt using the openbabel python library.
-
-        Returns
-        -------
-        int | Tuple[int, str]
-            The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
-        '''
-
-        return self.preparation_strategy.prepare_receptor(
-            self.input_receptor_path,
-            self.prepared_receptor,
-            "",
-            overwrite=overwrite
-        )
-
-    def print_attributes(self) -> None:
-        '''Print the class attributes.'''
-
-        print(f"Name:                        '{self.name if self.name else '-' }'")
-        print(f"Config path:                 '{self.config if self.config else '-' }'")
-        print(f"Input receptor:              '{self.input_receptor if self.input_receptor else '-' }'")
-        print(f"Input receptor path:         '{self.input_receptor_path if self.input_receptor_path else '-' }'")
-        print(f"Prepared receptor path:      '{self.prepared_receptor if self.prepared_receptor else '-' }'")
-        prep_receptor_cmd = self.preparation_strategy.get_receptor_command(self.input_receptor_path, self.prepared_receptor)
-        print(f"Prepared receptor command:   '{' '.join(prep_receptor_cmd) if prep_receptor_cmd else '-' }'")
-        print(f"Input ligand:                '{self.input_ligand if self.input_ligand else '-' }'")
-        print(f"Input ligand path:           '{self.input_ligand_path if self.input_ligand_path else '-' }'")
-        print(f"Prepared ligand path:        '{self.prepared_ligand if self.prepared_ligand else '-' }'")
-        prep_ligand_cmd = self.preparation_strategy.get_ligand_command(self.input_ligand_path, self.prepared_ligand)
-        print(f"Prepared ligand command:     '{' '.join(prep_ligand_cmd) if prep_ligand_cmd else '-' }'")
-        print(f"Gnina execution log path:    '{self.gnina_log if self.gnina_log else '-' }'")
-        print(f"Gnina output path:           '{self.output_gnina if self.output_gnina else '-' }'")
-        print(f"Gnina command:               '{' '.join(self.gnina_cmd) if self.gnina_cmd else '-' }'")
-        
-        return
 
 
 # Functions
@@ -447,213 +447,6 @@ def gen_gnina_conf(box_file: str, conf_file: str, receptor: str) -> int:
     return ocerror.Error.ok()
 
 
-def run_prepare_ligand_from_cmd(inputLigandPath: str, preparedLigand: str, logFile: str = "") -> Union[int, Tuple[int, str]]:
-    '''Converts the ligand to .pdbqt using obabel. [DEPRECATED]
-
-    Parameters
-    ----------
-    inputLigandPath : str
-        The path for the input ligand.
-    preparedLigand : str
-        The path for the prepared ligand.
-    logFile : str
-        The path for the log file.
-
-    Returns
-    -------
-    int | Tuple[int, str]
-        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
-
-    '''
-
-    # Create the command list
-    config = get_config()
-    cmd = [config.tools.obabel, inputLigandPath, "-O", preparedLigand]
-
-    # Run the command
-    return ocrun.run(cmd, logFile=logFile)
-
-
-def run_prepare_ligand(inputLigandPath: str, preparedLigand: str, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
-    '''Run obabel convert ligand to pdbqt using the openbabel python library.
-
-    Parameters
-    ----------
-    inputLigandPath : str
-        The path for the input ligand.
-    preparedLigand : str
-        The path for the prepared ligand.
-
-    Returns
-    -------
-    int | Tuple[int, str]
-        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
-    '''
-    strategy = OpenBabelPreparationStrategy()
-    return strategy.prepare_ligand(inputLigandPath, preparedLigand, "", overwrite=overwrite)
-
-
-def run_prepare_receptor_from_cmd(inputReceptorPath: str, outputReceptor: str, logFile: str = "") -> Union[int, Tuple[int, str]]:
-    '''Converts the receptor to .pdbqt using obabel. [DEPRECATED]
-
-    Parameters
-    ----------
-    inputReceptorPath : str
-        The path for the input receptor.
-    outputReceptor : str
-        The path for the output receptor.
-    logFile : str
-        The path for the log file.
-
-    Returns
-    -------
-    int | Tuple[int, str]
-        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
-    '''
-
-    # Create the command list
-    config = get_config()
-    cmd = [config.tools.obabel, inputReceptorPath, "-xr", "-O", outputReceptor]
-    # Run the command
-    return ocrun.run(cmd, logFile=logFile)
-
-
-def run_prepare_receptor(inputReceptorPath: str, preparedReceptor: str, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
-    '''Run obabel convert receptor to pdbqt using the openbabel python library.
-
-    Parameters
-    ----------
-    inputReceptorPath : str
-        The path for the input receptor.
-    preparedReceptor : str
-        The path for the prepared receptor.
-
-    Returns
-    -------
-    int | Tuple[int, str]
-        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
-    '''
-
-    strategy = OpenBabelPreparationStrategy()
-    return strategy.prepare_receptor(inputReceptorPath, preparedReceptor, "", overwrite=overwrite)
-
-
-def run_gnina(config: str, preparedLigand: str, outputGnina: str, gninaLog: str, logPath: str) -> Union[int, Tuple[int, str]]:
-    '''Convert a box (DUDE like format) to vina input.
-
-    Parameters
-    ----------
-    config : str
-        The path for the config file.
-    preparedLigand : str
-        The path for the prepared ligand.
-    outputGnina : str
-        The path for the output gnina file.
-    gninaLog : str
-        The path for the gnina log file.
-    logPath : str
-        The path for the log file.
-
-    Returns
-    -------
-    int | Tuple[int, str]
-        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
-
-    '''
-
-    # Create the command list
-    cfg = get_config()
-    cmd = [cfg.gnina.executable, "--config", config, "--ligand", preparedLigand, "--autobox_ligand", preparedLigand]
-
-    if cfg.gnina.local_only.lower() in ["y", "ye", "yes"]:
-        cmd.append("--score_only")
-    if cfg.gnina.minimize.lower() in ["y", "ye", "yes"]:
-        cmd.append("--minimize")
-    if cfg.gnina.randomize_only.lower() in ["y", "ye", "yes"]:
-        cmd.append("--randomize_only")
-    if cfg.gnina.accurate_line.lower() in ["y", "ye", "yes"]:
-        cmd.append("--accurate_line")
-    if cfg.gnina.minimize_early_term.lower() in ["y", "ye", "yes"]:
-        cmd.append("--minimize_early_term")
-
-    cmd.extend(["--out", outputGnina, "--log", gninaLog, "--cpu", "1"])
-    
-    # Run the command
-    return ocrun.run(cmd, logFile = logPath)
-
-
-def read_log(path: str) -> Dict[str, List[Union[str, float]]]:
-    '''Read the gnina log path, returning the data from complexes.
-
-    Parameters
-    ----------
-    path : str
-        The path to the gnina log file.
-
-    Returns
-    -------
-    str, List[str | float]
-        A dictionary with the data from the gnina log file.
-
-    '''
-
-    # Check if file exists
-    if os.path.isfile(path):
-        # Catch any error that might occur
-        try:
-            # Check if file is empty
-            if os.stat(path).st_size == 0:
-                # Print the error
-                _ = ocerror.Error.empty_file(f"The gnina log file '{path}' is empty.", level = ocerror.ReportLevel.ERROR)
-                # Return the dictionary with invalid default data
-                return {"gnina_pose": [np.nan], "gnina_affinity": [np.nan]}
-
-            # Create a dictionary to store the info
-            data = {"gnina_pose": [], "gnina_affinity": []}
-
-            # Initiate the last read line as empty
-            lastReadLine = ""
-
-            # Try except to avoid broken pipe ocerror.Error
-            try:
-                # Read the file reversely
-                for line in ocio.lazyread_reverse_order_mmap(path):
-                    # If a stop line is found, means that the last read line is the one that is wanted
-                    if line.startswith("-----+"):
-                        # Split the last line
-                        lastLine = lastReadLine.split()
-                        data["gnina_pose"].append(lastLine[0])
-                        data["gnina_affinity"].append(lastLine[1])
-                        break
-
-                    # Assign the last read line as the current line
-                    lastReadLine = line
-            except IOError as e:
-                if e.errno == errno.EPIPE:
-                    ocprint.print_error(f"Problems while reading file '{path}'. Error: {e}")
-                    config = get_config()
-                    ocprint.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{config.logdir}/gnina_read_log_ERROR.log")
-            
-            # Check if the len of the data["gnina_affinity"] is 0
-            if len(data["gnina_pose"]) == 0:
-                data["gnina_pose"].append(np.nan)
-                data["gnina_affinity"].append(np.nan)
-
-            # Return the df reversing the order and reseting the index
-            return data
-
-        except Exception as e:
-            _ = ocerror.Error.read_docking_log_error(f"Problems while reading the gnina log file '{path}'. Error: {e}", level = ocerror.ReportLevel.ERROR)
-            # Return the dictionary with invalid default data
-            return {"gnina_pose": [np.nan], "gnina_affinity": [np.nan]}
-
-    # Throw an error
-    _ = ocerror.Error.file_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
-
-    # Return a dict with a NaN value
-    return {"gnina_pose": [np.nan], "gnina_affinity": [np.nan]}
-
-
 def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, digestFormat : str = "json", box_id: Optional[str] = None) -> int:
     '''Generate the docking digest.
     
@@ -732,6 +525,212 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
         return ocerror.Error.unsupported_extension(f"The provided extension '{digestFormat}' is not supported.", level = ocerror.ReportLevel.ERROR)
     
     return ocerror.Error.file_exists(f"The file '{digestPath}' already exists. If you want to overwrite it yse the overwrite flag.", level = ocerror.ReportLevel.WARNING)
+
+def read_log(path: str) -> Dict[str, List[Union[str, float]]]:
+    '''Read the gnina log path, returning the data from complexes.
+
+    Parameters
+    ----------
+    path : str
+        The path to the gnina log file.
+
+    Returns
+    -------
+    str, List[str | float]
+        A dictionary with the data from the gnina log file.
+
+    '''
+
+    # Check if file exists
+    if os.path.isfile(path):
+        # Catch any error that might occur
+        try:
+            # Check if file is empty
+            if os.stat(path).st_size == 0:
+                # Print the error
+                _ = ocerror.Error.empty_file(f"The gnina log file '{path}' is empty.", level = ocerror.ReportLevel.ERROR)
+                # Return the dictionary with invalid default data
+                return {"gnina_pose": [np.nan], "gnina_affinity": [np.nan]}
+
+            # Create a dictionary to store the info
+            data = {"gnina_pose": [], "gnina_affinity": []}
+
+            # Initiate the last read line as empty
+            lastReadLine = ""
+
+            # Try except to avoid broken pipe ocerror.Error
+            try:
+                # Read the file reversely
+                for line in ocio.lazyread_reverse_order_mmap(path):
+                    # If a stop line is found, means that the last read line is the one that is wanted
+                    if line.startswith("-----+"):
+                        # Split the last line
+                        lastLine = lastReadLine.split()
+                        data["gnina_pose"].append(lastLine[0])
+                        data["gnina_affinity"].append(lastLine[1])
+                        break
+
+                    # Assign the last read line as the current line
+                    lastReadLine = line
+            except IOError as e:
+                if e.errno == errno.EPIPE:
+                    ocprint.print_error(f"Problems while reading file '{path}'. Error: {e}")
+                    config = get_config()
+                    ocprint.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{config.logdir}/gnina_read_log_ERROR.log")
+            
+            # Check if the len of the data["gnina_affinity"] is 0
+            if len(data["gnina_pose"]) == 0:
+                data["gnina_pose"].append(np.nan)
+                data["gnina_affinity"].append(np.nan)
+
+            # Return the df reversing the order and reseting the index
+            return data
+
+        except Exception as e:
+            _ = ocerror.Error.read_docking_log_error(f"Problems while reading the gnina log file '{path}'. Error: {e}", level = ocerror.ReportLevel.ERROR)
+            # Return the dictionary with invalid default data
+            return {"gnina_pose": [np.nan], "gnina_affinity": [np.nan]}
+
+    # Throw an error
+    _ = ocerror.Error.file_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
+
+    # Return a dict with a NaN value
+    return {"gnina_pose": [np.nan], "gnina_affinity": [np.nan]}
+
+
+def run_gnina(config: str, preparedLigand: str, outputGnina: str, gninaLog: str, logPath: str) -> Union[int, Tuple[int, str]]:
+    '''Convert a box (DUDE like format) to vina input.
+
+    Parameters
+    ----------
+    config : str
+        The path for the config file.
+    preparedLigand : str
+        The path for the prepared ligand.
+    outputGnina : str
+        The path for the output gnina file.
+    gninaLog : str
+        The path for the gnina log file.
+    logPath : str
+        The path for the log file.
+
+    Returns
+    -------
+    int | Tuple[int, str]
+        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
+
+    '''
+
+    # Create the command list
+    cfg = get_config()
+    cmd = [cfg.gnina.executable, "--config", config, "--ligand", preparedLigand, "--autobox_ligand", preparedLigand]
+
+    if cfg.gnina.local_only.lower() in ["y", "ye", "yes"]:
+        cmd.append("--score_only")
+    if cfg.gnina.minimize.lower() in ["y", "ye", "yes"]:
+        cmd.append("--minimize")
+    if cfg.gnina.randomize_only.lower() in ["y", "ye", "yes"]:
+        cmd.append("--randomize_only")
+    if cfg.gnina.accurate_line.lower() in ["y", "ye", "yes"]:
+        cmd.append("--accurate_line")
+    if cfg.gnina.minimize_early_term.lower() in ["y", "ye", "yes"]:
+        cmd.append("--minimize_early_term")
+
+    cmd.extend(["--out", outputGnina, "--log", gninaLog, "--cpu", "1"])
+    
+    # Run the command
+    return ocrun.run(cmd, logFile = logPath)
+
+
+def run_prepare_ligand(inputLigandPath: str, preparedLigand: str, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
+    '''Run obabel convert ligand to pdbqt using the openbabel python library.
+
+    Parameters
+    ----------
+    inputLigandPath : str
+        The path for the input ligand.
+    preparedLigand : str
+        The path for the prepared ligand.
+
+    Returns
+    -------
+    int | Tuple[int, str]
+        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
+    '''
+    strategy = OpenBabelPreparationStrategy()
+    return strategy.prepare_ligand(inputLigandPath, preparedLigand, "", overwrite=overwrite)
+
+
+def run_prepare_ligand_from_cmd(inputLigandPath: str, preparedLigand: str, logFile: str = "") -> Union[int, Tuple[int, str]]:
+    '''Converts the ligand to .pdbqt using obabel. [DEPRECATED]
+
+    Parameters
+    ----------
+    inputLigandPath : str
+        The path for the input ligand.
+    preparedLigand : str
+        The path for the prepared ligand.
+    logFile : str
+        The path for the log file.
+
+    Returns
+    -------
+    int | Tuple[int, str]
+        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
+
+    '''
+
+    # Create the command list
+    config = get_config()
+    cmd = [config.tools.obabel, inputLigandPath, "-O", preparedLigand]
+
+    # Run the command
+    return ocrun.run(cmd, logFile=logFile)
+
+
+def run_prepare_receptor(inputReceptorPath: str, preparedReceptor: str, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
+    '''Run obabel convert receptor to pdbqt using the openbabel python library.
+
+    Parameters
+    ----------
+    inputReceptorPath : str
+        The path for the input receptor.
+    preparedReceptor : str
+        The path for the prepared receptor.
+
+    Returns
+    -------
+    int | Tuple[int, str]
+        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
+    '''
+
+    strategy = OpenBabelPreparationStrategy()
+    return strategy.prepare_receptor(inputReceptorPath, preparedReceptor, "", overwrite=overwrite)
+
+
+def run_prepare_receptor_from_cmd(inputReceptorPath: str, outputReceptor: str, logFile: str = "") -> Union[int, Tuple[int, str]]:
+    '''Converts the receptor to .pdbqt using obabel. [DEPRECATED]
+
+    Parameters
+    ----------
+    inputReceptorPath : str
+        The path for the input receptor.
+    outputReceptor : str
+        The path for the output receptor.
+    logFile : str
+        The path for the log file.
+
+    Returns
+    -------
+    int | Tuple[int, str]
+        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
+    '''
+
+    # Create the command list
+    config = get_config()
+    cmd = [config.tools.obabel, inputReceptorPath, "-xr", "-O", outputReceptor]
+    # Run the command
+    return ocrun.run(cmd, logFile=logFile)
 
 # Aliases
 ###############################################################################
