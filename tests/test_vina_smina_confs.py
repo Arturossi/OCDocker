@@ -10,13 +10,13 @@ different Initialise settings (custom/user grid flags).
 # Imports
 ###############################################################################
 from __future__ import annotations
+
 import importlib
+import pytest
 import sys
 import types
 
 from pathlib import Path
-
-import pytest
 
 import OCDocker.Docking.Smina as ocsmina
 import OCDocker.Docking.Vina as ocvina

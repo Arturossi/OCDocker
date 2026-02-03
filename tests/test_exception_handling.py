@@ -50,59 +50,23 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 ## Public ##
 
-@pytest.mark.order(54)
-def test_file_operations_log_errors(tmp_path, caplog):
-    '''Test that file operations log errors appropriately.'''
+@pytest.mark.order(60)
+def test_directory_operations_exception_handling(tmp_path):
+    '''Test that directory operations handle exceptions properly.'''
 
-    # Try to read a non-existent file
-    non_existent = tmp_path / "nonexistent.pkl"
-    result = ocff.from_pickle(str(non_existent))
-    
-    # Should return None and log error
-    assert result is None
-
-
-@pytest.mark.order(55)
-def test_validation_exceptions_handled(tmp_path):
-    '''Test that validation functions handle exceptions properly.'''
-
-    # Test with invalid file
-    invalid_file = tmp_path / "invalid.mol"
-    invalid_file.write_text("not a valid molecule")
-    
-    # Should handle exception gracefully
-    result = ocvalidation.is_molecule_valid(str(invalid_file))
-
-
-@pytest.mark.order(56)
-def test_safe_remove_handles_permission_errors(tmp_path):
-    '''Test that safe_remove_file handles permission errors.'''
-
-    # Create a file
-    test_file = tmp_path / "test.txt"
-    test_file.write_text("test")
-    
-    # Remove it - should succeed
-    result = ocff.safe_remove_file(str(test_file))
-    assert result == ocerror.ErrorCode.OK
-    
-    # Try to remove again - should handle gracefully
-    result = ocff.safe_remove_file(str(test_file))
-    assert result == ocerror.ErrorCode.FILE_NOT_EXIST
-
-
-@pytest.mark.order(57)
-def test_safe_create_dir_handles_errors(tmp_path):
-    '''Test that safe_create_dir handles various error conditions.'''
-
-    # Create directory - should succeed
     test_dir = tmp_path / "test_dir"
+    
+    # Create directory
     result = ocff.safe_create_dir(str(test_dir))
     assert result == ocerror.ErrorCode.OK
     
-    # Try to create again - should handle gracefully
-    result = ocff.safe_create_dir(str(test_dir))
-    assert result == ocerror.ErrorCode.DIR_EXISTS
+    # Remove directory
+    result = ocff.safe_remove_dir(str(test_dir))
+    assert result == ocerror.ErrorCode.OK
+    
+    # Try to remove non-existent directory
+    result = ocff.safe_remove_dir(str(test_dir))
+    assert result == ocerror.ErrorCode.DIR_NOT_EXIST
 
 
 @pytest.mark.order(58)
@@ -112,6 +76,20 @@ def test_error_codes_returned_correctly():
     # Test OK code
     ok_code = ocerror.Error.ok()
     assert ok_code == ocerror.ErrorCode.OK
+
+
+@pytest.mark.order(63)
+def test_error_reporting_levels():
+    '''Test that error reporting uses appropriate levels.'''
+    
+    # Test that error methods accept level parameter
+    # This is tested through the Error class interface
+    # The actual implementation is in Error.py
+    
+    # Verify error codes are defined
+    assert hasattr(ocerror.ErrorCode, 'OK')
+    assert hasattr(ocerror.ErrorCode, 'FILE_NOT_EXIST')
+    assert hasattr(ocerror.ErrorCode, 'DIR_NOT_EXIST')
 
 
 @pytest.mark.order(59)
@@ -141,23 +119,16 @@ def test_exception_specificity_in_file_operations(tmp_path):
     assert result is None
 
 
-@pytest.mark.order(60)
-def test_directory_operations_exception_handling(tmp_path):
-    '''Test that directory operations handle exceptions properly.'''
+@pytest.mark.order(54)
+def test_file_operations_log_errors(tmp_path, caplog):
+    '''Test that file operations log errors appropriately.'''
 
-    test_dir = tmp_path / "test_dir"
+    # Try to read a non-existent file
+    non_existent = tmp_path / "nonexistent.pkl"
+    result = ocff.from_pickle(str(non_existent))
     
-    # Create directory
-    result = ocff.safe_create_dir(str(test_dir))
-    assert result == ocerror.ErrorCode.OK
-    
-    # Remove directory
-    result = ocff.safe_remove_dir(str(test_dir))
-    assert result == ocerror.ErrorCode.OK
-    
-    # Try to remove non-existent directory
-    result = ocff.safe_remove_dir(str(test_dir))
-    assert result == ocerror.ErrorCode.DIR_NOT_EXIST
+    # Should return None and log error
+    assert result is None
 
 
 @pytest.mark.order(61)
@@ -183,6 +154,37 @@ def test_hdf5_operations_exception_handling(tmp_path):
     assert result is None or result == {}
 
 
+@pytest.mark.order(57)
+def test_safe_create_dir_handles_errors(tmp_path):
+    '''Test that safe_create_dir handles various error conditions.'''
+
+    # Create directory - should succeed
+    test_dir = tmp_path / "test_dir"
+    result = ocff.safe_create_dir(str(test_dir))
+    assert result == ocerror.ErrorCode.OK
+    
+    # Try to create again - should handle gracefully
+    result = ocff.safe_create_dir(str(test_dir))
+    assert result == ocerror.ErrorCode.DIR_EXISTS
+
+
+@pytest.mark.order(56)
+def test_safe_remove_handles_permission_errors(tmp_path):
+    '''Test that safe_remove_file handles permission errors.'''
+
+    # Create a file
+    test_file = tmp_path / "test.txt"
+    test_file.write_text("test")
+    
+    # Remove it - should succeed
+    result = ocff.safe_remove_file(str(test_file))
+    assert result == ocerror.ErrorCode.OK
+    
+    # Try to remove again - should handle gracefully
+    result = ocff.safe_remove_file(str(test_file))
+    assert result == ocerror.ErrorCode.FILE_NOT_EXIST
+
+
 @pytest.mark.order(62)
 def test_untar_exception_handling(tmp_path):
     '''Test that untar handles exceptions properly.'''
@@ -201,15 +203,13 @@ def test_untar_exception_handling(tmp_path):
     assert result != ocerror.ErrorCode.OK
 
 
-@pytest.mark.order(63)
-def test_error_reporting_levels():
-    '''Test that error reporting uses appropriate levels.'''
+@pytest.mark.order(55)
+def test_validation_exceptions_handled(tmp_path):
+    '''Test that validation functions handle exceptions properly.'''
+
+    # Test with invalid file
+    invalid_file = tmp_path / "invalid.mol"
+    invalid_file.write_text("not a valid molecule")
     
-    # Test that error methods accept level parameter
-    # This is tested through the Error class interface
-    # The actual implementation is in Error.py
-    
-    # Verify error codes are defined
-    assert hasattr(ocerror.ErrorCode, 'OK')
-    assert hasattr(ocerror.ErrorCode, 'FILE_NOT_EXIST')
-    assert hasattr(ocerror.ErrorCode, 'DIR_NOT_EXIST')
+    # Should handle exception gracefully
+    result = ocvalidation.is_molecule_valid(str(invalid_file))

@@ -10,16 +10,93 @@ Usage:
 pytest tests/test_Vina_logs.py
 '''
 
+# Imports
+###############################################################################
+import pytest
 import sys
 import types
-import importlib.util as util
-from pathlib import Path
-import OCDocker.Error as ocerror
-import pytest
 
-'''Load ``OCDocker.Docking.Vina`` with heavy dependencies stubbed.'''
+import importlib.util as util
+
+from pathlib import Path
+
+import OCDocker.Error as ocerror
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
+###############################################################################
+
+
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##
+
+@pytest.mark.order(18)
+def test_get_pose_index(vina_mod):
+    '''Ensure pose index is parsed correctly from file name.'''
+    assert vina_mod.get_pose_index_from_file_path("lig_split_3.pdbqt") == 3
+
+
+@pytest.mark.order(16)
+def test_read_log(vina_mod, tmp_path):
+    log = tmp_path / "vina.log"
+    log.write_text(
+        "header\n"
+        "-----+------------+----------+----------\n"
+        "    1          -7.0      0.0      0.0\n"
+        "    2          -6.5      0.1      0.2\n"
+    )
+    from OCDocker.Config import get_config
+    config = get_config()
+    vina_scoring = config.vina.scoring
+    
+    data = vina_mod.read_log(str(log))
+    assert data[1][vina_scoring] == "-7.0"
+    assert data[2][vina_scoring] == "-6.5"
+    best = vina_mod.read_log(str(log), onlyBest=True)
+    assert best == {1: {vina_scoring: "-7.0"}}
+
+
+@pytest.mark.order(17)
+def test_rescore_logs(vina_mod, tmp_path):
+    r1 = tmp_path / "lig_split_1_rescoring.log"
+    r1.write_text("Estimated Free Energy of Binding    -7.1 (kcal/mol)\n")
+    r2 = tmp_path / "lig_split_2_rescoring.log"
+    r2.write_text("Estimated Free Energy of Binding    -6.0 (kcal/mol)\n")
+
+    assert vina_mod.read_rescoring_log(str(r1)) == -7.1
+
+    found = vina_mod.get_rescore_log_paths(str(tmp_path))
+    assert set(found) == {str(r1), str(r2)}
+
+    data = vina_mod.read_rescore_logs(found)
+    assert data == {"rescoring_1": -7.1, "rescoring_2": -6.0}
+
+    best = vina_mod.read_rescore_logs(found, onlyBest=True)
+    assert best == {"rescoring_1": -7.1}
+
+
 @pytest.fixture
 def vina_mod(monkeypatch, tmp_path):
+    '''Load ``OCDocker.Docking.Vina`` with heavy dependencies stubbed.'''
     root = Path(__file__).resolve().parents[1] / "OCDocker"
     # Fake Initialise module with basic config values
     fake_init = types.ModuleType("OCDocker.Initialise")
@@ -92,48 +169,3 @@ def vina_mod(monkeypatch, tmp_path):
     spec.loader.exec_module(vina) # type: ignore
     monkeypatch.setitem(sys.modules, "OCDocker.Docking.Vina", vina)
     return vina
-
-
-@pytest.mark.order(16)
-def test_read_log(vina_mod, tmp_path):
-    log = tmp_path / "vina.log"
-    log.write_text(
-        "header\n"
-        "-----+------------+----------+----------\n"
-        "    1          -7.0      0.0      0.0\n"
-        "    2          -6.5      0.1      0.2\n"
-    )
-    from OCDocker.Config import get_config
-    config = get_config()
-    vina_scoring = config.vina.scoring
-    
-    data = vina_mod.read_log(str(log))
-    assert data[1][vina_scoring] == "-7.0"
-    assert data[2][vina_scoring] == "-6.5"
-    best = vina_mod.read_log(str(log), onlyBest=True)
-    assert best == {1: {vina_scoring: "-7.0"}}
-
-
-@pytest.mark.order(17)
-def test_rescore_logs(vina_mod, tmp_path):
-    r1 = tmp_path / "lig_split_1_rescoring.log"
-    r1.write_text("Estimated Free Energy of Binding    -7.1 (kcal/mol)\n")
-    r2 = tmp_path / "lig_split_2_rescoring.log"
-    r2.write_text("Estimated Free Energy of Binding    -6.0 (kcal/mol)\n")
-
-    assert vina_mod.read_rescoring_log(str(r1)) == -7.1
-
-    found = vina_mod.get_rescore_log_paths(str(tmp_path))
-    assert set(found) == {str(r1), str(r2)}
-
-    data = vina_mod.read_rescore_logs(found)
-    assert data == {"rescoring_1": -7.1, "rescoring_2": -6.0}
-
-    best = vina_mod.read_rescore_logs(found, onlyBest=True)
-    assert best == {"rescoring_1": -7.1}
-
-
-@pytest.mark.order(18)
-def test_get_pose_index(vina_mod):
-    '''Ensure pose index is parsed correctly from file name.'''
-    assert vina_mod.get_pose_index_from_file_path("lig_split_3.pdbqt") == 3

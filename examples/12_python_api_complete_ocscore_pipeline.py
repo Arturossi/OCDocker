@@ -105,7 +105,6 @@ USE_MULTIPROCESSING = True  # Set to False to process ligands sequentially
 # END USER CONFIGURATION
 ###############################################################################
 
-# Imports
 import argparse
 import os
 import time

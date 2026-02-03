@@ -1,16 +1,53 @@
-import numpy as np
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Tests for future OCScore DNN embeddings flow.
+
+Usage:
+
+pytest tests/test_ocscore_dnn_future_embeddings.py
+'''
+
+# Imports
+###############################################################################
 import pytest
 
-try:
-    import torch  # noqa: F401
-except Exception:  # pragma: no cover
-    pytest.skip("torch not available", allow_module_level=True)
+import numpy as np
 
-from OCDocker.OCScore.Dimensionality.future.Autoencoder import Autoencoder
-from OCDocker.OCScore.DNN.future.DNNOptimizer import DNNOptimizer
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
 
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
+###############################################################################
+
+
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##
 
 def test_future_dnn_from_embeddings_minimal():
+    torch = pytest.importorskip("torch")
+    from OCDocker.OCScore.Dimensionality.future.Autoencoder import Autoencoder
+    from OCDocker.OCScore.DNN.future.DNNOptimizer import DNNOptimizer
+
     rng = np.random.default_rng(0)
 
     X = rng.normal(size=(32, 20)).astype(np.float32)

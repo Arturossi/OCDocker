@@ -10,23 +10,40 @@ Usage:
 pytest tests/test_conversion.py
 '''
 
+# Imports
+###############################################################################
 import math
 import pytest
 
-import OCDocker.Toolbox.Conversion as occonversion
 import OCDocker.Toolbox.Constants as occ
+import OCDocker.Toolbox.Conversion as occonversion
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
+###############################################################################
 
 
-@pytest.mark.order(1)
-@pytest.mark.parametrize("kikd, order, factor", [
-    (1.0, "nM", 1e9),
-    (2.0, "uM", 1e6),
-])
-def test_kikd_to_deltag_various_orders(kikd, order, factor):
-    expected = -occ.RJ * occ.ZERO_C_IN_K * math.log(kikd * factor)
-    result = occonversion.kikd_to_deltag(kikd, T = occ.ZERO_C_IN_K, kikd_order = order)
-    assert math.isclose(result, expected, rel_tol = 1e-5)
+# Functions
+###############################################################################
+## Private ##
 
+## Public ##
 
 @pytest.mark.order(2)
 def test_convert_from_string_and_file(tmp_path):
@@ -45,3 +62,13 @@ def test_convert_from_string_and_file(tmp_path):
     res_file = occonversion.convert_mols(str(smi_path), str(out_from_file))
     assert res_file == 0 or res_file is True
     assert out_from_file.exists()
+
+@pytest.mark.order(1)
+@pytest.mark.parametrize("kikd, order, factor", [
+    (1.0, "nM", 1e9),
+    (2.0, "uM", 1e6),
+])
+def test_kikd_to_deltag_various_orders(kikd, order, factor):
+    expected = -occ.RJ * occ.ZERO_C_IN_K * math.log(kikd * factor)
+    result = occonversion.kikd_to_deltag(kikd, T = occ.ZERO_C_IN_K, kikd_order = order)
+    assert math.isclose(result, expected, rel_tol = 1e-5)

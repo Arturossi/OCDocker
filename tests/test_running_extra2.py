@@ -9,9 +9,8 @@ Extra tests for Toolbox.Running helpers.
 # Imports
 ###############################################################################
 import os
-import sys
-
 import pytest
+import sys
 
 import OCDocker.Toolbox.Running as ocrun
 

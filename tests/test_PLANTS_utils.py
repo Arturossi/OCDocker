@@ -10,18 +10,66 @@ Usage:
 pytest tests/test_PLANTS_utils.py
 '''
 
+# Imports
+###############################################################################
+import csv
 import importlib
+import json
+import os
+import pytest
 import sys
 import types
-import os
-import json
-import csv
+
 from pathlib import Path
-import pytest
 
 import OCDocker.Error as ocerror
 
-# Helpers ---------------------------------------------------------------------
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
+###############################################################################
+class FakeSeries(list):
+    def __getitem__(self, item):
+        if isinstance(item, slice):
+            return FakeSeries(super().__getitem__(item))
+        return list.__getitem__(self, item)
+
+    @property
+    def values(self):
+        return list(self)
+
+
+class FakeDF:
+    def __getattr__(self, name):
+        return FakeSeries([r[name] for r in self.rows])
+
+    def __init__(self, rows):
+        self.rows = rows
+        self.shape = (len(rows), len(rows[0]) if rows else 0)
+
+    def iterrows(self):
+        for i, r in enumerate(self.rows):
+            yield i, r
+
+
+# Functions
+###############################################################################
+## Private ##
 
 
 def _load_plants(monkeypatch, tmp_path):
@@ -57,18 +105,16 @@ def _load_plants(monkeypatch, tmp_path):
             self.path = path
             self.name = name
 
-
     lig_mod.Ligand = Ligand # type: ignore
     monkeypatch.setitem(sys.modules, "OCDocker.Ligand", lig_mod)
 
     rec_mod = types.ModuleType('OCDocker.Receptor')
-    
+
     class Receptor:
         def __init__(self, path='', name=''):
             self.path = path
             self.name = name
             self.mol2Path = ''
-
 
     rec_mod.Receptor = Receptor # type: ignore
     monkeypatch.setitem(sys.modules, "OCDocker.Receptor", rec_mod)
@@ -105,36 +151,7 @@ def _load_plants(monkeypatch, tmp_path):
     return ocplants
 
 
-@pytest.fixture()
-def ocplants(monkeypatch, tmp_path):
-    return _load_plants(monkeypatch, tmp_path)
-
-
-class FakeSeries(list):
-    @property
-    def values(self):
-        return list(self)
-
-
-    def __getitem__(self, item):
-        if isinstance(item, slice):
-            return FakeSeries(super().__getitem__(item))
-        return list.__getitem__(self, item)
-
-
-class FakeDF:
-    def __init__(self, rows):
-        self.rows = rows
-        self.shape = (len(rows), len(rows[0]) if rows else 0)
-
-
-    def iterrows(self):
-        for i, r in enumerate(self.rows):
-            yield i, r
-
-
-    def __getattr__(self, name):
-        return FakeSeries([r[name] for r in self.rows])
+## Public ##
 
 
 def fake_read_csv(path):
@@ -142,32 +159,35 @@ def fake_read_csv(path):
         reader = csv.DictReader(f)
         rows = [dict(row) for row in reader]
         for r in rows:
-            for k,v in r.items():
+            for k, v in r.items():
                 if k != 'LIGAND_ENTRY':
                     r[k] = float(v)
     return FakeDF(rows)
 
 
-@pytest.mark.order(2)
-def test_write_config_files(ocplants, tmp_path):
-    conf = tmp_path/'conf.txt'
-    outdir = str(tmp_path / 'outdir')  # Use tmp_path, not relative path
-    res = ocplants.write_config_file(str(conf), 'rec.mol2', 'lig.mol2', outdir, 1.0,2.0,3.0,4.0)
-    assert res == 0
-    txt = conf.read_text()
-    assert 'protein_file rec.mol2' in txt
-    assert 'ligand_file lig.mol2' in txt
-    resc = tmp_path/'resc.txt'
-    res2 = ocplants.write_rescoring_config_file(str(resc), 'rec.mol2', 'poses.lst', outdir, 1,2,3,4)
-    assert res2 == 0
-    lines = resc.read_text()
-    assert 'ligand_list poses.lst' in lines
-    assert 'rescore_mode simplex' in lines
+@pytest.fixture()
+def ocplants(monkeypatch, tmp_path):
+    return _load_plants(monkeypatch, tmp_path)
+
+
+@pytest.mark.order(4)
+def test_generate_plants_files_database(monkeypatch, ocplants, tmp_path):
+    called = {}
+    def mock_box(box, conf, prot, lig, out, spacing=None, center=None, bindingSiteRadius=None):
+        called['args'] = (box, conf, prot, lig, out, spacing)
+
+    monkeypatch.setattr(ocplants, 'box_to_plants', mock_box)
+    ocplants.generate_plants_files_database(str(tmp_path), 'prot.pdb', 'lig.mol2', spacing=1.1)
+    assert called['args'][0] == f"{tmp_path}/boxes/box0.pdb"
+    assert called['args'][1] == f"{tmp_path}/plantsFiles/conf_plants.conf"
+    assert called['args'][2] == 'prot.pdb'
+    assert called['args'][3] == 'lig.mol2'
+    assert called['args'][4] == f"{tmp_path}/plantsFiles/run"
+    assert called['args'][5] == 1.1
 
 
 @pytest.mark.order(3)
 def test_get_binding_site(ocplants):
-    from pathlib import Path
     # Get absolute path to box file
     test_dir = Path(__file__).resolve().parent.parent
     box = test_dir / 'test_files/test_ptn1/compounds/ligands/ligand/boxes/box0.pdb'
@@ -180,44 +200,25 @@ def test_get_binding_site(ocplants):
     assert round(radius,3) == 27.011
 
 
-@pytest.mark.order(4)
-def test_generate_plants_files_database(monkeypatch, ocplants, tmp_path):
-    called = {}
-    def mock_box(box, conf, prot, lig, out, spacing=None, center=None, bindingSiteRadius=None):
-        called['args'] = (box, conf, prot, lig, out, spacing)
+@pytest.mark.order(8)
+def test_get_docked_poses_and_write_list(ocplants, tmp_path):
+    poses_dir = tmp_path / "run"
+    poses_dir.mkdir()
+    valid1 = poses_dir / "pose1.mol2"
+    valid1.write_text("p1")
+    (poses_dir / "pose2_protein.mol2").write_text("p2")
+    (poses_dir / "pose3_fixed.mol2").write_text("p3")
+    valid2 = poses_dir / "pose4.mol2"
+    valid2.write_text("p4")
 
+    poses = ocplants.get_docked_poses(str(poses_dir))
+    assert set(map(str, poses)) == {str(valid1), str(valid2)}
 
-    monkeypatch.setattr(ocplants, 'box_to_plants', mock_box)
-    ocplants.generate_plants_files_database(str(tmp_path), 'prot.pdb', 'lig.mol2', spacing=1.1)
-    assert called['args'][0] == f"{tmp_path}/boxes/box0.pdb"
-    assert called['args'][1] == f"{tmp_path}/plantsFiles/conf_plants.conf"
-    assert called['args'][2] == 'prot.pdb'
-    assert called['args'][3] == 'lig.mol2'
-    assert called['args'][4] == f"{tmp_path}/plantsFiles/run"
-    assert called['args'][5] == 1.1
-
-
-@pytest.mark.order(5)
-def test_read_log_and_generate_digest(monkeypatch, ocplants, tmp_path):
-    csv_file = tmp_path/'ranking.csv'
-    fieldnames = ['LIGAND_ENTRY','TOTAL_SCORE','SCORE_RB_PEN','SCORE_NORM_HEVATOMS','SCORE_NORM_CRT_HEVATOMS','SCORE_NORM_WEIGHT','SCORE_NORM_CRT_WEIGHT','SCORE_RB_PEN_NORM_CRT_HEVATOMS']
-    with open(csv_file,'w',newline='') as f:
-        writer=csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerow({'LIGAND_ENTRY':'pose_1.mol2','TOTAL_SCORE':1,'SCORE_RB_PEN':2,'SCORE_NORM_HEVATOMS':3,'SCORE_NORM_CRT_HEVATOMS':4,'SCORE_NORM_WEIGHT':5,'SCORE_NORM_CRT_WEIGHT':6,'SCORE_RB_PEN_NORM_CRT_HEVATOMS':7})
-        writer.writerow({'LIGAND_ENTRY':'pose_2.mol2','TOTAL_SCORE':8,'SCORE_RB_PEN':9,'SCORE_NORM_HEVATOMS':10,'SCORE_NORM_CRT_HEVATOMS':11,'SCORE_NORM_WEIGHT':12,'SCORE_NORM_CRT_WEIGHT':13,'SCORE_RB_PEN_NORM_CRT_HEVATOMS':14})
-    monkeypatch.setattr(ocplants.pd, 'read_csv', fake_read_csv)
-    data = ocplants.read_log(str(csv_file), onlyBest=False)
-    assert data[1]['PLANTS_TOTAL_SCORE'] == 1
-    assert data[2]['PLANTS_TOTAL_SCORE'] == 8
-    data_best = ocplants.read_log(str(csv_file), onlyBest=True)
-    assert data_best[1]['PLANTS_TOTAL_SCORE'][0] == 1
-
-    digest = tmp_path/'digest.json'
-    ocplants.generate_digest(str(digest), str(csv_file))
-    with open(digest) as f:
-        j = json.load(f)
-    assert 'PLANTS_TOTAL_SCORE' in j.get('1', {})
+    pose_list = tmp_path / "pose_list.txt"
+    out = ocplants.write_pose_list(poses, str(pose_list), overwrite=True)
+    assert out == str(pose_list)
+    contents = pose_list.read_text().splitlines()
+    assert set(contents) == {str(valid1), str(valid2)}
 
 
 @pytest.mark.order(6)
@@ -272,22 +273,41 @@ def test_read_log(monkeypatch, ocplants, tmp_path):
     assert best[1]["PLANTS_TOTAL_SCORE"] == [-10.0] # type: ignore
 
 
-@pytest.mark.order(8)
-def test_get_docked_poses_and_write_list(ocplants, tmp_path):
-    poses_dir = tmp_path / "run"
-    poses_dir.mkdir()
-    valid1 = poses_dir / "pose1.mol2"
-    valid1.write_text("p1")
-    (poses_dir / "pose2_protein.mol2").write_text("p2")
-    (poses_dir / "pose3_fixed.mol2").write_text("p3")
-    valid2 = poses_dir / "pose4.mol2"
-    valid2.write_text("p4")
+@pytest.mark.order(5)
+def test_read_log_and_generate_digest(monkeypatch, ocplants, tmp_path):
+    csv_file = tmp_path/'ranking.csv'
+    fieldnames = ['LIGAND_ENTRY','TOTAL_SCORE','SCORE_RB_PEN','SCORE_NORM_HEVATOMS','SCORE_NORM_CRT_HEVATOMS','SCORE_NORM_WEIGHT','SCORE_NORM_CRT_WEIGHT','SCORE_RB_PEN_NORM_CRT_HEVATOMS']
+    with open(csv_file,'w',newline='') as f:
+        writer=csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerow({'LIGAND_ENTRY':'pose_1.mol2','TOTAL_SCORE':1,'SCORE_RB_PEN':2,'SCORE_NORM_HEVATOMS':3,'SCORE_NORM_CRT_HEVATOMS':4,'SCORE_NORM_WEIGHT':5,'SCORE_NORM_CRT_WEIGHT':6,'SCORE_RB_PEN_NORM_CRT_HEVATOMS':7})
+        writer.writerow({'LIGAND_ENTRY':'pose_2.mol2','TOTAL_SCORE':8,'SCORE_RB_PEN':9,'SCORE_NORM_HEVATOMS':10,'SCORE_NORM_CRT_HEVATOMS':11,'SCORE_NORM_WEIGHT':12,'SCORE_NORM_CRT_WEIGHT':13,'SCORE_RB_PEN_NORM_CRT_HEVATOMS':14})
+    monkeypatch.setattr(ocplants.pd, 'read_csv', fake_read_csv)
+    data = ocplants.read_log(str(csv_file), onlyBest=False)
+    assert data[1]['PLANTS_TOTAL_SCORE'] == 1
+    assert data[2]['PLANTS_TOTAL_SCORE'] == 8
+    data_best = ocplants.read_log(str(csv_file), onlyBest=True)
+    assert data_best[1]['PLANTS_TOTAL_SCORE'][0] == 1
 
-    poses = ocplants.get_docked_poses(str(poses_dir))
-    assert set(map(str, poses)) == {str(valid1), str(valid2)}
+    digest = tmp_path/'digest.json'
+    ocplants.generate_digest(str(digest), str(csv_file))
+    with open(digest) as f:
+        j = json.load(f)
+    assert 'PLANTS_TOTAL_SCORE' in j.get('1', {})
 
-    pose_list = tmp_path / "pose_list.txt"
-    out = ocplants.write_pose_list(poses, str(pose_list), overwrite=True)
-    assert out == str(pose_list)
-    contents = pose_list.read_text().splitlines()
-    assert set(contents) == {str(valid1), str(valid2)}
+
+@pytest.mark.order(2)
+def test_write_config_files(ocplants, tmp_path):
+    conf = tmp_path/'conf.txt'
+    outdir = str(tmp_path / 'outdir')  # Use tmp_path, not relative path
+    res = ocplants.write_config_file(str(conf), 'rec.mol2', 'lig.mol2', outdir, 1.0,2.0,3.0,4.0)
+    assert res == 0
+    txt = conf.read_text()
+    assert 'protein_file rec.mol2' in txt
+    assert 'ligand_file lig.mol2' in txt
+    resc = tmp_path/'resc.txt'
+    res2 = ocplants.write_rescoring_config_file(str(resc), 'rec.mol2', 'poses.lst', outdir, 1,2,3,4)
+    assert res2 == 0
+    lines = resc.read_text()
+    assert 'ligand_list poses.lst' in lines
+    assert 'rescore_mode simplex' in lines

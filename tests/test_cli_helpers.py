@@ -50,6 +50,16 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 ## Public ##
 
+@pytest.mark.order(21)
+def test_build_parser_subcommands_and_parse():
+    parser = build_parser()
+    # A couple of subcommands should parse cleanly
+    ns = parser.parse_args(["version"])  # sets func
+    assert callable(getattr(ns, "func", None))
+    ns2 = parser.parse_args(["init-config"])  # also sets func
+    assert callable(getattr(ns2, "func", None))
+
+
 @pytest.mark.order(19)
 def test_preparse_global_args_reads_scattered_flags(tmp_path):
     cfg = tmp_path / "OCDocker.cfg"
@@ -85,13 +95,3 @@ def test_require_file_valid_and_errors(tmp_path):
     with pytest.raises(SystemExit) as ei2:
         _require_file("…/placeholder", "--file")
     assert ei2.value.code == 2
-
-
-@pytest.mark.order(21)
-def test_build_parser_subcommands_and_parse():
-    parser = build_parser()
-    # A couple of subcommands should parse cleanly
-    ns = parser.parse_args(["version"])  # sets func
-    assert callable(getattr(ns, "func", None))
-    ns2 = parser.parse_args(["init-config"])  # also sets func
-    assert callable(getattr(ns2, "func", None))
