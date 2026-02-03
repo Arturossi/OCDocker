@@ -83,8 +83,8 @@ def test_prepare_dudez(mock_config, monkeypatch, tmp_path):
     
     # Mock ocprepare.prepare
     prepare_called = []
-    def mock_prepare(paths, overwrite, archive, sanitize, spacing):
-        prepare_called.append((paths, overwrite, archive, sanitize, spacing))
+    def mock_prepare(paths, overwrite, archive, sanitize, spacing, all_boxes = False):
+        prepare_called.append((paths, overwrite, archive, sanitize, spacing, all_boxes))
         return None
     
     monkeypatch.setattr("OCDocker.DB.baseDB.ocprepare.prepare", mock_prepare)
@@ -139,8 +139,8 @@ def test_prepare_pdbbind(mock_config, monkeypatch, tmp_path):
     
     # Mock ocprepare.prepare
     prepare_called = []
-    def mock_prepare(paths, overwrite, archive, sanitize, spacing):
-        prepare_called.append((paths, overwrite, archive, sanitize, spacing))
+    def mock_prepare(paths, overwrite, archive, sanitize, spacing, all_boxes = False):
+        prepare_called.append((paths, overwrite, archive, sanitize, spacing, all_boxes))
         return None
     
     monkeypatch.setattr("OCDocker.DB.baseDB.ocprepare.prepare", mock_prepare)
@@ -177,8 +177,8 @@ def test_run_docking_dudez(mock_config, monkeypatch, tmp_path):
     
     # Mock ocdock.run_docking
     docking_called = []
-    def mock_run_docking(complexList, archive, dockingAlgorithm, overwrite, digestFormat):
-        docking_called.append((complexList, archive, dockingAlgorithm, overwrite, digestFormat))
+    def mock_run_docking(complexList, archive, dockingAlgorithm, overwrite, digestFormat, all_boxes = False):
+        docking_called.append((complexList, archive, dockingAlgorithm, overwrite, digestFormat, all_boxes))
         return ocerror.Error.ok() # type: ignore
     
     monkeypatch.setattr("OCDocker.DB.baseDB.ocdock.run_docking", mock_run_docking)
@@ -213,7 +213,7 @@ def test_run_docking_excludes_index_directory(mock_config, monkeypatch, tmp_path
     
     # Mock ocdock.run_docking
     docking_complex_list = []
-    def mock_run_docking(complexList, archive, dockingAlgorithm, overwrite, digestFormat):
+    def mock_run_docking(complexList, archive, dockingAlgorithm, overwrite, digestFormat, all_boxes = False):
         docking_complex_list.extend(complexList)
         return ocerror.Error.ok() # type: ignore
     
@@ -307,8 +307,8 @@ def test_run_docking_pdbbind(mock_config, monkeypatch, tmp_path):
     
     # Mock ocdock.run_docking
     docking_called = []
-    def mock_run_docking(complexList, archive, dockingAlgorithm, overwrite, digestFormat):
-        docking_called.append((complexList, archive, dockingAlgorithm, overwrite, digestFormat))
+    def mock_run_docking(complexList, archive, dockingAlgorithm, overwrite, digestFormat, all_boxes = False):
+        docking_called.append((complexList, archive, dockingAlgorithm, overwrite, digestFormat, all_boxes))
         return ocerror.Error.ok() # type: ignore
     
     monkeypatch.setattr("OCDocker.DB.baseDB.ocdock.run_docking", mock_run_docking)

@@ -69,7 +69,7 @@ def set_color_mapping(df: pd.DataFrame, palette_colour: str = "glasbey") -> dict
         - "deep"
         - "muted"
         - "viridis"
-    
+
     Returns
     -------
     color_mapping : dict[str, tuple[float, float, float]]
@@ -87,21 +87,21 @@ def set_color_mapping(df: pd.DataFrame, palette_colour: str = "glasbey") -> dict
         if cc is None:
             # Fallback when colorcet is not available
             print("[Colouring] colorcet not available; falling back to 'tab20'.")
-            palette_colour = sns.color_palette("tab20", n_colors = df['Methodology'].nunique())  # type: ignore
+            palette_colour = sns.color_palette("tab20", n_colors = df['Methodology'].nunique())
         else:
-            palette_colour = sns.color_palette(cc.glasbey, n_colors = df['Methodology'].nunique())  # type: ignore
+            palette_colour = sns.color_palette(cc.glasbey, n_colors = df['Methodology'].nunique())
     elif palette_colour in ["Set2", "Set3", "tab10", "tab20", "colorblind", "pastel", "bright", "dark", "deep", "muted", "viridis"]:
         # Use seaborn's built-in palettes
-        palette_colour = sns.color_palette(palette_colour, n_colors = df['Methodology'].nunique()) # type: ignore
+        palette_colour = sns.color_palette(palette_colour, n_colors = df['Methodology'].nunique())
     else:
         # User-facing error: invalid palette
-        ocerror.Error.value_error(f"Unsupported palette: '{palette_colour}'. Choose from 'glasbey', 'Set2', 'Set3', 'tab10', 'tab20', 'colorblind', 'pastel', 'bright', 'dark', 'deep', 'muted', or 'viridis'.") # type: ignore
+        ocerror.Error.value_error(f"Unsupported palette: '{palette_colour}'. Choose from 'glasbey', 'Set2', 'Set3', 'tab10', 'tab20', 'colorblind', 'pastel', 'bright', 'dark', 'deep', 'muted', or 'viridis'.")
         raise ValueError(f"Unsupported palette: {palette_colour}. Choose from 'glasbey', 'Set2', 'Set3', 'tab10', 'tab20', 'colorblind', 'pastel', 'bright', 'dark', 'deep', 'muted', or 'viridis'.")
 
     # Create a color mapping for methodologies
     color_mapping = {
         method: color for method, color in zip(
-            df['Methodology'].unique(), 
+            df['Methodology'].unique(),
             sns.color_palette(palette_colour, n_colors = df['Methodology'].nunique())
         )
     }

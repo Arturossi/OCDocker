@@ -92,13 +92,13 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
     # Check if max_distance_threshold is smaller than min_distance_threshold
     if max_distance_threshold < min_distance_threshold:
         # Return the value error
-        return ocerror.Error.value_error(f"The max_distance_threshold ({max_distance_threshold}) is smaller than the min_distance_threshold ({min_distance_threshold}).") # type: ignore
+        return ocerror.Error.value_error(f"The max_distance_threshold ({max_distance_threshold}) is smaller than the min_distance_threshold ({min_distance_threshold}).")
 
     # Check if the data is a dict
     if isinstance(data, dict):
         # Convert the dict to a DataFrame
         data = pd.DataFrame(data)
-    
+
     # If the shape[0] is 1, return it
     if data.shape[0] == 1:
         # Print the warning
@@ -155,7 +155,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                             ax.set_ylabel('Distance (Å)', fontsize=14)
                             ax.tick_params(axis='both', which='major', labelsize=12)
                             # Add warning text
-                            ax.text(0.5, 0.5, 'Clustering did not converge.\nAll poses are too different.', 
+                            ax.text(0.5, 0.5, 'Clustering did not converge.\nAll poses are too different.',
                                    transform=ax.transAxes, fontsize=14, ha='center', va='center',
                                    bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.7))
                             plt.tight_layout()
@@ -165,7 +165,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                         except Exception as e:
                             ocprint.print_warning(f"Failed to generate plot for non-converged clustering: {e}")
                     # Print the message, returning the error code
-                    return ocerror.Error.cluster_not_converged(f"The clustering algorithm did not converge. The distance threshold is {distance_threshold}.") # type: ignore
+                    return ocerror.Error.cluster_not_converged(f"The clustering algorithm did not converge. The distance threshold is {distance_threshold}.")
 
             # Find the biggest cluster (may be more than one)
             biggest_cluster = np.where(cluster_sizes == np.max(cluster_sizes))[0]
@@ -198,23 +198,23 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                 if np.any(cluster_sizes_last > 1):
                     # Find the maximum cluster size (clusters with most members)
                     max_cluster_size = np.max(cluster_sizes_last)
-                    
+
                     # Get clusters with the maximum size
                     max_size_clusters = np.where(cluster_sizes_last == max_cluster_size)[0]
-                    
+
                     # Find the cluster with the least difference among its members
                     # (minimum maximum pairwise distance within cluster)
                     # Only consider clusters with the maximum number of members
                     unique_clusters_last = np.unique(last_result)
                     min_max_distance = np.inf
                     best_cluster = -1
-                    
+
                     for cluster in unique_clusters_last:
                         # Only consider clusters with the maximum size
                         if cluster in max_size_clusters:
                             # Get members of this cluster
                             cluster_indices = np.where(last_result == cluster)[0]
-                            
+
                             # Only consider clusters with more than 1 member
                             if len(cluster_indices) > 1:
                                 # Get pairwise distances within this cluster
@@ -222,12 +222,12 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                                 cluster_distances = pairwise_distances(cluster_data, metric='euclidean')
                                 # Maximum distance within cluster (diameter)
                                 max_distance_in_cluster = np.max(cluster_distances)
-                                
+
                                 # Track cluster with smallest maximum distance
                                 if max_distance_in_cluster < min_max_distance:
                                     min_max_distance = max_distance_in_cluster
                                     best_cluster = cluster
-                    
+
                     # If we found a cluster with multiple members, use it
                     if best_cluster >= 0:
                         ocprint.print_warning(f"Clustering did not fully converge. Using cluster {best_cluster} (size: {max_cluster_size}) with smallest internal variance (max pairwise distance: {min_max_distance:.2f}).")
@@ -249,7 +249,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
             else:
                 # last_result is empty
                 pass
-            
+
             # If we still have scores == -1, clustering truly failed
             if scores == -1:
                 # If all clusters have only 1 member, fail
@@ -268,7 +268,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                         ax.set_ylabel('Distance (Å)', fontsize=14)
                         ax.tick_params(axis='both', which='major', labelsize=12)
                         # Add warning text
-                        ax.text(0.5, 0.5, 'Clustering did not converge.\nAll poses are too different.', 
+                        ax.text(0.5, 0.5, 'Clustering did not converge.\nAll poses are too different.',
                                transform=ax.transAxes, fontsize=14, ha='center', va='center',
                                bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.7))
                         plt.tight_layout()
@@ -278,38 +278,38 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                     except Exception as e:
                         ocprint.print_warning(f"Failed to generate plot for non-converged clustering: {e}")
                 # Print the message, returning the error code
-                return ocerror.Error.cluster_not_converged(f"The clustering algorithm did not converge. The distance threshold is {distance_threshold}.") # type: ignore
+                return ocerror.Error.cluster_not_converged(f"The clustering algorithm did not converge. The distance threshold is {distance_threshold}.")
 
         # If the outputPlot is not ""
         if outputPlot != "":
             try:
                 # Create a dendrogram for visualization
                 linkage_matrix = sch.linkage(npdata, method='ward')
-                
+
                 # Get cluster assignments at the distance threshold
                 clusters_at_threshold = AgglomerativeClustering(n_clusters=None, distance_threshold=distance_threshold).fit_predict(npdata)
                 unique_clusters = np.unique(clusters_at_threshold)
                 n_clusters = len(unique_clusters)
-                
+
                 # Debug: Print cluster information
                 ocprint.printv(f"Dendrogram: {len(clusters_at_threshold)} data points form {n_clusters} clusters at threshold {distance_threshold}")
                 for cluster_id in unique_clusters:
                     cluster_members = np.where(clusters_at_threshold == cluster_id)[0]
                     ocprint.printv(f"  Cluster {cluster_id}: {len(cluster_members)} members (indices: {cluster_members.tolist()})")
-                
+
                 # Get medoids (representative elements) for highlighting
-                medoids = get_medoids(data, results, onlyBiggest=True)  # type: ignore
+                medoids = get_medoids(data, results, onlyBiggest=True)
                 medoid_indices = set()
                 if isinstance(data, pd.DataFrame):
                     for medoid_path in medoids:
                         if medoid_path in data.index:
                             medoid_indices.add(data.index.get_loc(medoid_path))
-                
+
                 # Define colors for clusters using colorblind-friendly palette
                 # Use Set2 (colorblind-friendly, no blue or yellow shades) for small clusters
                 import matplotlib.cm as cm
                 cluster_colors = []
-                
+
                 def is_light_grey(color):
                     """Check if a color is light grey (too close to white/grey)."""
                     r, g, b = color[0], color[1], color[2]
@@ -319,7 +319,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                         if max(r, g, b) - min(r, g, b) < 0.15:
                             return True
                     return False
-                
+
                 # Set2 is colorblind-friendly and doesn't use blue or yellow shades
                 if n_clusters <= 8:
                     cmap = cm.get_cmap('Set2')
@@ -373,12 +373,12 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                         while len(filtered_colors) < n_clusters:
                             filtered_colors.extend(filtered_colors[:min(len(filtered_colors), n_clusters - len(filtered_colors))])
                     cluster_colors = filtered_colors[:n_clusters]
-                
+
                 cluster_color_map = {int(cluster_id): cluster_colors[i] for i, cluster_id in enumerate(unique_clusters)}
-                
+
                 # Create figure and axis with larger size to accommodate text
                 fig, ax = plt.subplots(figsize=(14, 9))
-                
+
                 # Create dendrogram - this will create collections for each cluster
                 # Ensure all leaves are shown by setting count_sort and distance_sort
                 dendro_dict = sch.dendrogram(
@@ -391,19 +391,19 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                     show_leaf_counts=True,  # Show leaf counts if needed
                     no_plot=False  # Ensure plotting happens
                 )
-                
+
                 # Get leaf order from dendrogram
                 leaf_order = dendro_dict['leaves']
                 n_leaves = len(leaf_order)
-                
+
                 # Verify we have all data points as leaves
                 if n_leaves != len(clusters_at_threshold):
                     ocprint.print_warning(f"Dendrogram shows {n_leaves} leaves but expected {len(clusters_at_threshold)} data points. Some points may be merged at distance 0.")
                     ocprint.print_warning(f"Leaf order: {leaf_order}, Expected indices: {list(range(len(clusters_at_threshold)))}")
-                
+
                 # Create a mapping from original index to cluster ID
                 original_to_cluster = {i: int(clusters_at_threshold[i]) for i in range(len(clusters_at_threshold))}
-                
+
                 # Build a mapping from each internal node to its cluster ID
                 # by checking which cluster all leaves under that node belong to
                 def get_node_cluster(node_id, n):
@@ -430,18 +430,18 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                             # Different clusters or above threshold
                             return -1
                         return -1
-                
+
                 # Map each collection to its cluster by finding the topmost node in that collection
                 # and determining its cluster
                 # IMPORTANT: Only color collections that are ENTIRELY below the threshold
                 n = len(clusters_at_threshold)
                 collection_to_cluster = {}
-                
+
                 for i, collection in enumerate(ax.collections):
                     paths = collection.get_paths()
                     if not paths:
                         continue
-                    
+
                     # Check if this collection is ENTIRELY below threshold
                     # (all y-coordinates must be <= threshold)
                     max_y = -np.inf
@@ -452,7 +452,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                             y_coords = vertices[:, 1]
                             max_y = max(max_y, np.max(y_coords))
                             min_y = min(min_y, np.min(y_coords))
-                    
+
                     # Only color if the ENTIRE collection is below the threshold
                     # (max_y must be <= threshold, and we want to ensure it doesn't cross)
                     if max_y <= distance_threshold and min_y <= distance_threshold:
@@ -469,7 +469,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                                 if y_coords[max_idx] > top_y:
                                     top_y = y_coords[max_idx]
                                     top_x = x_coords[max_idx]
-                        
+
                         # Find which internal node this corresponds to
                         # by checking linkage matrix for nodes at this distance
                         cluster_id = -1
@@ -479,7 +479,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                                 cluster_id = get_node_cluster(node_id, n)
                                 if cluster_id >= 0:
                                     break
-                        
+
                         # If we couldn't find by distance, try finding by leaf membership
                         if cluster_id < 0:
                             leaf_positions_in_collection = set()
@@ -491,19 +491,19 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                                         leaf_pos = int(round(x))
                                         if 0 <= leaf_pos < n_leaves:
                                             leaf_positions_in_collection.add(leaf_pos)
-                            
+
                             if leaf_positions_in_collection:
                                 original_indices = [leaf_order[pos] for pos in leaf_positions_in_collection]
                                 cluster_ids = [original_to_cluster.get(idx, -1) for idx in original_indices]
                                 cluster_ids = [c for c in cluster_ids if c >= 0]
                                 if cluster_ids:
                                     cluster_id = max(set(cluster_ids), key=cluster_ids.count)
-                        
+
                         collection_to_cluster[i] = cluster_id
                     else:
                         # Above threshold or crosses threshold - must be blue
                         collection_to_cluster[i] = -1
-                
+
                 # Now apply colors to collections
                 # Only collections entirely below threshold get colored, all others are blue
                 # NOTE: The number of colored branches equals the number of clusters at the threshold,
@@ -522,23 +522,23 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                         # Above threshold or crosses threshold - use gray instead of blue for colorblind-friendliness
                         collection.set_color('gray')
                         blue_count += 1
-                
+
                 # Debug output
                 ocprint.printv(f"Dendrogram: {len(clusters_at_threshold)} data points, {n_clusters} clusters at threshold {distance_threshold:.2f}")
                 ocprint.printv(f"  Colored branches (clusters): {colored_count}, Blue branches (above threshold): {blue_count}")
                 ocprint.printv(f"  Total collections: {len(ax.collections)}")
                 ocprint.printv(f"  Clusters actually colored in plot: {sorted(clusters_actually_colored)}")
-                
+
                 # Highlight representative elements (medoids) with a marker
                 # Find leaf positions for medoids in the dendrogram
                 medoid_leaf_positions = []  # Store leaf positions directly
                 if isinstance(data, pd.DataFrame):
                     # Get the actual file paths/names of medoids
-                    medoid_paths = get_medoids(data, results, onlyBiggest=True)  # type: ignore
-                    
+                    medoid_paths = get_medoids(data, results, onlyBiggest=True)
+
                     # Create a set of medoid paths for quick lookup
                     medoid_set = set(medoid_paths)
-                    
+
                     # Find their positions in the dendrogram
                     # The leaf_order is a list where leaf_order[i] gives the original index
                     # that appears at leaf position i in the dendrogram
@@ -553,7 +553,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                                 # Store the leaf position directly (this corresponds to the label index)
                                 medoid_leaf_positions.append(leaf_pos)
                                 ocprint.printv(f"Medoid found: {path_at_idx} (original_idx={original_idx}, leaf_pos={leaf_pos})")
-                
+
                 # Define engine color mapping (use provided or default)
                 if engine_colors is None:
                     engine_colors = {
@@ -561,7 +561,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                         'vina': '#9B59B6',
                         'smina': 'blue'
                     }
-                
+
                 # Color leaf labels according to engine (before drawing boxes)
                 if pose_engine_map and isinstance(data, pd.DataFrame):
                     tick_labels = ax.get_xticklabels()
@@ -581,16 +581,16 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                                         if path_at_idx in pose_path or pose_path in path_at_idx:
                                             engine = eng.lower()
                                             break
-                                
+
                                 if engine and engine in engine_colors:
                                     label.set_color(engine_colors[engine])
-                
+
                 # Render figure first to ensure labels are accessible and positioned
                 fig.canvas.draw()
-                
+
                 # Note: Representative poses are now shown as text below Distance Threshold
                 # No visual marking on the plot itself
-                
+
                 # Set title with ligand name
                 if molecule_name:
                     title = f'{molecule_name} pose consensus'
@@ -599,25 +599,25 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                 ax.set_title(title, fontsize=16)
                 ax.set_xlabel('Data Points', fontsize=14)
                 ax.set_ylabel('Distance (Å)', fontsize=14)
-                
+
                 # Increase tick label font sizes
                 ax.tick_params(axis='both', which='major', labelsize=12)
                 # Extend the y-axis limits, adding a bit of buffer at the top to allow the text to fit
                 # Always start at 0 (no space below for markers - box is in axes coordinates)
                 ax.set_ylim(0, max(linkage_matrix[:, 2]) * 1.2)
-                
+
                 # Add a red dashed line at the distance threshold
                 ax.axhline(y=distance_threshold, color='red', linestyle='--', linewidth=2, label='Distance Threshold', zorder=50)
-                
+
                 # Build legend entries
                 legend_handles = []
                 legend_labels = []
-                
+
                 # Add threshold line to legend
                 from matplotlib.lines import Line2D
                 legend_handles.append(Line2D([0], [0], color='red', linestyle='--', linewidth=2))
                 legend_labels.append('Distance Threshold')
-                
+
                 # Add cluster numbers and colors to legend (only clusters actually colored in the plot)
                 if cluster_color_map and len(clusters_actually_colored) > 1:
                     # Get unique colors and their corresponding cluster IDs for actually colored clusters only
@@ -630,11 +630,11 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                                 color_key = cluster_color
                             else:
                                 color_key = tuple(cluster_color) if hasattr(cluster_color, '__iter__') else cluster_color
-                            
+
                             if color_key not in color_to_clusters:
                                 color_to_clusters[color_key] = []
                             color_to_clusters[color_key].append(cluster_id)
-                    
+
                     # If only one unique color, show just one entry
                     if len(color_to_clusters) == 1:
                         color_key = list(color_to_clusters.keys())[0]
@@ -647,27 +647,27 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                             cluster_color = cluster_color_map[sorted(cluster_ids)[0]]  # Get color from first cluster with this color
                             legend_handles.append(Line2D([0], [0], color=cluster_color, linestyle='-', linewidth=3))
                             legend_labels.append(f'Cluster {sorted(cluster_ids)[0]}')
-                
+
                 # Add engine colors to legend if pose_engine_map is provided
                 if pose_engine_map:
                     for engine_name, color in engine_colors.items():
                         if any(eng.lower() == engine_name for eng in pose_engine_map.values()):
                             legend_handles.append(Line2D([0], [0], color=color, linestyle='-', linewidth=2, marker='o', markersize=8))
                             legend_labels.append(engine_name.capitalize())
-                
+
                 # Add legend inside the plot area
                 if legend_handles:
                     # Place legend inside the plot, in upper right corner
                     # Use a more compact position to avoid overlap
-                    legend = ax.legend(legend_handles, legend_labels, loc='upper right', fontsize=11, framealpha=0.9, 
-                                      bbox_to_anchor=(0.98, 0.98), handlelength=2, handletextpad=0.5, 
+                    legend = ax.legend(legend_handles, legend_labels, loc='upper right', fontsize=11, framealpha=0.9,
+                                      bbox_to_anchor=(0.98, 0.98), handlelength=2, handletextpad=0.5,
                                       columnspacing=1.0, borderpad=0.5)
                     # Adjust layout to ensure legend fits inside
                     plt.tight_layout(rect=[0.05, 0.05, 0.95, 0.95])
                 else:
                     # No legend, use standard layout
                     plt.tight_layout(rect=[0.05, 0.05, 0.95, 0.95])
-                
+
                 # Add the silhouette score (left, top) rounded to 2 decimals
                 # For single cluster, silhouette score is not meaningful, show N/A
                 if scores == 0 and len(np.unique(results)) == 1:
@@ -676,7 +676,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                     ax.text(0.02, 0.98, f"Silhouette Score: ~{round(scores, 2)}", transform=ax.transAxes, size=12, verticalalignment='top', horizontalalignment='left')
                 # Add a label to the distance threshold below the silhouette score
                 ax.text(0.02, 0.94, f"Distance Threshold: {round(distance_threshold, 2)} Å", transform=ax.transAxes, size=12, verticalalignment='top', horizontalalignment='left')
-                
+
                 # Add representative pose information below the distance threshold
                 if medoid_leaf_positions and isinstance(data, pd.DataFrame):
                     # Get the original indices for medoids (matching medoids_labels.txt format)
@@ -688,7 +688,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                             original_idx = leaf_order[leaf_pos]
                             # Display the original index to match medoids_labels.txt
                             medoid_labels.append(str(original_idx))
-                    
+
                     # Create representative text with data point numbers
                     if medoid_labels:
                         rep_text = f"Representative: {', '.join(medoid_labels)}"
@@ -699,7 +699,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                 # Also save an index-to-name mapping with representative flags (medoids)
                 try:
                     # Determine representative structures (medoids) using the computed clusters
-                    medoids = set(get_medoids(data, results))  # type: ignore[arg-type]
+                    medoids = set(get_medoids(data, results))
                     labels = [str(x) for x in data.index.tolist()]
                     map_path = (
                         f"{outputPlot.rsplit('.', 1)[0]}_labels.txt" if "." in outputPlot else f"{outputPlot}_labels.txt"
@@ -738,12 +738,12 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                 except Exception as e2:
                     ocprint.print_warning(f"Failed to generate fallback plot: {e2}")
                     ocprint.print_warning(f"Fallback traceback: {traceback.format_exc()}")
-        
+
         # Return the results
-        return results # type: ignore
-    
+        return results
+
     else:
-        return ocerror.Error.unsupported_clustering_algorithm(f"The clustering algorithm '{algorithm}' is not supported. Currently the supported algorithms are: 'agglomerativeClustering'.") # type: ignore
+        return ocerror.Error.unsupported_clustering_algorithm(f"The clustering algorithm '{algorithm}' is not supported. Currently the supported algorithms are: 'agglomerativeClustering'.")
 
 def get_medoids(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], clusters: np.ndarray, onlyBiggest: bool = True) -> List[str]:
     '''Get the medoids of the clusters.
@@ -770,11 +770,11 @@ def get_medoids(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], clusters
 
     if isinstance(clusters, int):
         print(clusters)
-    
+
     # Check if the clusters is an int or is not empty or invalid
     if isinstance(clusters, int) or clusters.size == 0 or np.any(clusters < 0):
         return []
-    
+
     # If onlyBiggest is True
     if onlyBiggest:
         # Get the size of each cluster
@@ -796,7 +796,7 @@ def get_medoids(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], clusters
 
         # Check if the cluster is empty
         if cluster_data.empty:
-            _ = ocerror.Error.empty_cluster(f"The cluster {cluster} is empty.") # type: ignore
+            _ = ocerror.Error.empty_cluster(f"The cluster {cluster} is empty.")
             continue
 
         # Calculate pairwise distances within the cluster
@@ -804,13 +804,13 @@ def get_medoids(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], clusters
 
         # Calculate the sum of distances for each data point
         sum_distances = np.sum(distances, axis=1)
-        
+
         # Find the index of the data point with the smallest sum of distances
         medoid_index = np.argmin(sum_distances)
 
         # Get the index name
         medoid_index_label = cluster_data.index[medoid_index]
-        
+
         # Append the medoid to the list of medoids
         medoids.append(medoid_index_label)
 

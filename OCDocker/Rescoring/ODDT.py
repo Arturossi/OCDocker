@@ -78,7 +78,7 @@ def __build_cmd(receptorPath: str, ligandPath: str, outputFile: str) -> Union[Li
 
     # Check if the output file is a csv
     if not outputFile.endswith(".csv"):
-        return ocerror.Error.unsupported_extension("The output file must be a csv file.", level = ocerror.ReportLevel.ERROR) # type: ignore
+        return ocerror.Error.unsupported_extension("The output file must be a csv file.", level = ocerror.ReportLevel.ERROR)
 
     # Extract ligand file format from extension
     ligand_ext = os.path.splitext(ligandPath)[1]
@@ -160,10 +160,10 @@ def df_to_dict(data: pd.DataFrame) -> Dict[str, Dict[str, float]]:
 
     # Check if the data is a dataframe
     if not isinstance(data, pd.DataFrame):
-        return ocerror.Error.wrong_type(f"The data must be a pandas dataframe. The type {type(data)} was given.", level = ocerror.ReportLevel.ERROR) # type: ignore
-    
+        return ocerror.Error.wrong_type(f"The data must be a pandas dataframe. The type {type(data)} was given.", level = ocerror.ReportLevel.ERROR)
+
     # Convert the dataframe to dict, one row per index
-    return data.to_dict(orient = "index") # type: ignore
+    return data.to_dict(orient = "index")
 
 def get_models(outputPath: str) -> List[str]:
     '''Get the models from the output path.
@@ -207,7 +207,7 @@ def read_log(path: str) -> Optional[pd.DataFrame]:
         return data
 
     # Throw an error
-    _ = ocerror.Error.file_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.") # type: ignore
+    _ = ocerror.Error.file_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
 
     # Return None
     return None
@@ -241,11 +241,11 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
         Number of attempts to read the prepared receptor. The default is 5.
     read_receptor_delay : float, optional
         Delay in seconds between attempts to read the prepared receptor. The default is 1.0.
-    
+
     Returns
     -------
     int
-        The exit code of the command (based on the Error.py code table).   
+        The exit code of the command (based on the Error.py code table).
     '''
 
     # Check if the output dir exists
@@ -253,8 +253,8 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
         # Try to create it (parents included)
         _ = ocff.safe_create_dir(Path(outputPath))
         if not os.path.isdir(outputPath):
-            return ocerror.Error.dir_not_exist(f"The output directory '{outputPath}' does not exist.", level = ocerror.ReportLevel.ERROR) # type: ignore
-        
+            return ocerror.Error.dir_not_exist(f"The output directory '{outputPath}' does not exist.", level = ocerror.ReportLevel.ERROR)
+
     # If the ligand path is a string
     if isinstance(preparedLigandPath, str):
         # Transform it into a list
@@ -266,20 +266,20 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
 
     # Check if are there any model
     if len(models) <= 0:
-        return ocerror.Error.missing_oddt_models("There are no models in the models folder. Please run the initialise_oddt() function (with proper arguments) to download the models.", level = ocerror.ReportLevel.ERROR) # type: ignore
-    
+        return ocerror.Error.missing_oddt_models("There are no models in the models folder. Please run the initialise_oddt() function (with proper arguments) to download the models.", level = ocerror.ReportLevel.ERROR)
+
     # Check if the receptor is a string
     if not isinstance(preparedReceptorPath, str):
-        return ocerror.Error.wrong_type(f"The receptor must be a string. The type {type(preparedReceptorPath)} was given.", level = ocerror.ReportLevel.ERROR) # type: ignore
-    
+        return ocerror.Error.wrong_type(f"The receptor must be a string. The type {type(preparedReceptorPath)} was given.", level = ocerror.ReportLevel.ERROR)
+
     # Check if the receptor exists
     if not os.path.isfile(preparedReceptorPath):
-        return ocerror.Error.file_not_exist(f"The receptor file '{preparedReceptorPath}' does not exist.", level = ocerror.ReportLevel.ERROR) # type: ignore
-    
+        return ocerror.Error.file_not_exist(f"The receptor file '{preparedReceptorPath}' does not exist.", level = ocerror.ReportLevel.ERROR)
+
     # Check if the ligand is not a string
     if not isinstance(preparedLigandPath, list):
-        return ocerror.Error.wrong_type(f"The ligand must be a string or a list. The type {type(preparedLigandPath)} was given.", level = ocerror.ReportLevel.ERROR) # type: ignore
-    
+        return ocerror.Error.wrong_type(f"The ligand must be a string or a list. The type {type(preparedLigandPath)} was given.", level = ocerror.ReportLevel.ERROR)
+
     # Set the output file name
     outputFile = f"{outputPath}/{ligandName}.csv"
 
@@ -291,10 +291,10 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
                 # Read the output file
                 return pd.read_csv(outputFile, sep = ",")
             except Exception as e:
-                return ocerror.Error.corrputed_file(f"Failed to read output file '{outputFile}'.", level=ocerror.ReportLevel.ERROR) # type: ignore
+                return ocerror.Error.corrputed_file(f"Failed to read output file '{outputFile}'.", level=ocerror.ReportLevel.ERROR)
         else:
-            return ocerror.Error.file_exists(f"The output file '{outputFile}' already exists. Please use the overwrite option if you want to overwrite it.", level = ocerror.ReportLevel.ERROR) # type: ignore
-    
+            return ocerror.Error.file_exists(f"The output file '{outputFile}' already exists. Please use the overwrite option if you want to overwrite it.", level = ocerror.ReportLevel.ERROR)
+
     # Create the vs object
     pipeline = vs(n_cpu=n_cpu, verbose=verbose, chunksize=chunksize)
 
@@ -304,7 +304,7 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
         receptor_format = receptor_ext[1:]  # Remove leading dot
     else:
         receptor_format = receptor_ext
-    
+
     receptorObj, receptor_err = __read_receptor_with_retry(
         receptor_format,
         preparedReceptorPath,
@@ -318,8 +318,8 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
         return ocerror.Error.rescoring_failed(
             f"ODDT could not read receptor file '{preparedReceptorPath}' after {max(1, read_receptor_retries)} attempts.{err_note}",
             level = ocerror.ReportLevel.ERROR
-        ) # type: ignore
-    
+        )
+
     receptorObj.protein = True
 
     # Find missing ligands
@@ -327,7 +327,7 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
 
     # Check if there are missing ligands
     if missing:
-        return ocerror.Error.file_not_exist(f"Missing ligands: {missing}", level=ocerror.ReportLevel.ERROR)  # type: ignore
+        return ocerror.Error.file_not_exist(f"Missing ligands: {missing}", level=ocerror.ReportLevel.ERROR)
 
     # Check if all the ligands exist and load them
     loaded_ligands = []
@@ -338,28 +338,28 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
             ligand_format = ligand_ext[1:]  # Remove leading dot
         else:
             ligand_format = ligand_ext
-        
+
         # Try to validate the ligand can be loaded by ODDT before adding to pipeline
         try:
             # Test if ODDT can read the ligand file
             test_mol = six.next(od.toolkit.readfile(ligand_format, ligand))
             if test_mol is None:
-                return ocerror.Error.rescoring_failed(f"ODDT could not read ligand file '{ligand}'. The file may be empty or invalid.", level = ocerror.ReportLevel.ERROR) # type: ignore
-            
+                return ocerror.Error.rescoring_failed(f"ODDT could not read ligand file '{ligand}'. The file may be empty or invalid.", level = ocerror.ReportLevel.ERROR)
+
             # Check if molecule has atoms
             if not hasattr(test_mol, 'atoms') or len(test_mol.atoms) == 0:
-                return ocerror.Error.rescoring_failed(f"Ligand file '{ligand}' contains no atoms. The file may be corrupted.", level = ocerror.ReportLevel.ERROR) # type: ignore
-            
+                return ocerror.Error.rescoring_failed(f"Ligand file '{ligand}' contains no atoms. The file may be corrupted.", level = ocerror.ReportLevel.ERROR)
+
             # Load the ligand into pipeline
             pipeline.load_ligands(ligand_format, ligand)
             loaded_ligands.append(ligand)
         except StopIteration:
-            return ocerror.Error.rescoring_failed(f"ODDT could not read ligand file '{ligand}'. The file appears to be empty.", level = ocerror.ReportLevel.ERROR) # type: ignore
+            return ocerror.Error.rescoring_failed(f"ODDT could not read ligand file '{ligand}'. The file appears to be empty.", level = ocerror.ReportLevel.ERROR)
         except Exception as e:
-            return ocerror.Error.rescoring_failed(f"Failed to load ligand file '{ligand}' into ODDT. Error: {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
-    
+            return ocerror.Error.rescoring_failed(f"Failed to load ligand file '{ligand}' into ODDT. Error: {e}", level = ocerror.ReportLevel.ERROR)
+
     if len(loaded_ligands) == 0:
-        return ocerror.Error.rescoring_failed(f"No ligands were successfully loaded for '{ligandName}'.", level = ocerror.ReportLevel.ERROR) # type: ignore
+        return ocerror.Error.rescoring_failed(f"No ligands were successfully loaded for '{ligandName}'.", level = ocerror.ReportLevel.ERROR)
 
     # Determine which scoring families should be loaded.
     requested_scores = [score.lower() for score in getattr(config.oddt, 'scoring_functions', []) if isinstance(score, str)]
@@ -378,7 +378,7 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
 
     # Process each scoring function separately to handle failures gracefully
     # This allows other scoring functions to succeed even if one fails
-    
+
     # Patch ODDT's descriptor generator to handle 0-d arrays (ODDT bug workaround for PLEC)
     # This needs to be done before any scoring functions are used
     # NOTE: universal_descriptor imports sparse_to_csr_matrix from oddt.fingerprints, not oddt.scoring.descriptors
@@ -387,11 +387,11 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
         from oddt.fingerprints import sparse_to_csr_matrix as original_sparse_to_csr_matrix
         import numpy as np
         from scipy.sparse import csr_matrix
-        
+
         def _patched_sparse_to_csr_matrix(fp, size, count_bits=True):
             """Patched version that handles 0-d arrays (ODDT bug workaround)"""
             fp_arr = np.asarray(fp, dtype=np.uint64)
-            
+
             # Fix 0-d arrays by converting to empty array
             if fp_arr.ndim == 0:
                 fp_arr = np.array([], dtype=np.uint64)
@@ -401,35 +401,35 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
                 raise ValueError("Input fingerprint must be a vector (1D)")
             elif fp_arr.ndim == 1:
                 fp_arr = fp_arr.astype(np.uint64)
-            
+
             if fp_arr.size == 0:
                 return csr_matrix((1, size), dtype=np.uint8 if count_bits else bool)
-            
+
             try:
                 return original_sparse_to_csr_matrix(fp_arr, size=size, count_bits=count_bits)
             except Exception:
                 return csr_matrix((1, size), dtype=np.uint8 if count_bits else bool)
-        
+
         # Patch oddt.fingerprints module (this is where universal_descriptor imports it from)
         import oddt.fingerprints as oddt_fp
         oddt_fp.sparse_to_csr_matrix = _patched_sparse_to_csr_matrix
-        
+
         # Patch universal_descriptor.build to normalize arrays before processing
         from oddt.scoring.descriptors import universal_descriptor
         from scipy.sparse import vstack as sparse_vstack
         from oddt.utils import is_molecule
-        
+
         _original_universal_build = universal_descriptor.build
-        
+
         def _patched_universal_build(self, ligands, protein=None):
             """Patched version that normalizes arrays before they reach sparse_to_csr_matrix"""
             from oddt.fingerprints import sparse_to_csr_matrix as patched_stcsr
-            
+
             if protein:
                 self.protein = protein
             if is_molecule(ligands):
                 ligands = [ligands]
-            
+
             out = []
             for mol in ligands:
                 try:
@@ -437,9 +437,9 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
                         result = self.func(mol)
                     else:
                         result = self.func(mol, protein=self.protein)
-                    
+
                     result_arr = np.asarray(result)
-                    
+
                     # Handle 0-d arrays (scalars from PLEC when no contacts)
                     if result_arr.ndim == 0:
                         result_arr = np.array([], dtype=np.uint64)
@@ -449,14 +449,14 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
                         result_arr = result_arr.astype(np.uint64)
                     else:
                         result_arr = result_arr.flatten().astype(np.uint64)
-                    
+
                     out.append(result_arr)
-                    
+
                 except Exception as e:
                     mol_title = getattr(mol, 'title', 'unknown')
                     ocprint.print_warning(f"Descriptor generation failed for '{mol_title}': {e}. Using empty descriptor.")
                     out.append(np.array([], dtype=np.uint64))
-            
+
             if self.sparse:
                 csr_matrices = []
                 for arr in out:
@@ -470,7 +470,7 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
                         ocprint.print_warning(f"CSR conversion failed: {e}. Using empty matrix.")
                         csr_mat = csr_matrix((1, self.shape), dtype=np.uint8)
                         csr_matrices.append(csr_mat)
-                
+
                 if csr_matrices:
                     try:
                         return sparse_vstack(csr_matrices, format='csr')
@@ -480,7 +480,7 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
                         for mat in csr_matrices:
                             if not isinstance(mat, csr_matrix):
                                 mat = csr_matrix(mat)
-                            if mat.shape[1] != self.shape: # type: ignore
+                            if mat.shape[1] != self.shape:
                                 mat = csr_matrix((1, self.shape), dtype=np.uint8)
                             fixed.append(mat)
                         return sparse_vstack(fixed, format='csr')
@@ -494,21 +494,21 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
                         normalized.append(np.zeros(shape, dtype=np.float32))
                     else:
                         normalized.append(arr)
-                
+
                 if normalized:
                     return np.vstack(normalized)
                 else:
                     shape = self.shape if self.shape else 1
                     return np.array([]).reshape(0, shape)
-        
+
         universal_descriptor.build = _patched_universal_build
         _patch_oddt_descriptors_for_plec = True
     except (ImportError, AttributeError) as patch_err:
         ocprint.print_warning(f"Could not patch ODDT descriptor functions: {patch_err}")
-    
+
     scoring_functions_loaded = []
     model_sf_map = {}  # Map model to scoring function for identification
-    
+
     for model in models:
         # Extract the model name and convert it to lower case
         model_name = os.path.basename(model).lower()
@@ -529,13 +529,13 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
                 continue
 
     if len(scoring_functions_loaded) == 0:
-        return ocerror.Error.rescoring_failed(f"No scoring functions could be loaded for ligand '{ligandName}'. Please check your ODDT models configuration.", level = ocerror.ReportLevel.ERROR) # type: ignore
-    
+        return ocerror.Error.rescoring_failed(f"No scoring functions could be loaded for ligand '{ligandName}'. Please check your ODDT models configuration.", level = ocerror.ReportLevel.ERROR)
+
     # Try processing all scoring functions together first
     # If that fails, process them individually
     all_datas = []
     failed_scoring_functions = []
-    
+
     # Check if multiprocess is enabled (via config or n_cpu > 1)
     # If so, use threading backend to avoid loky nested process issues
     use_threading_backend = False
@@ -545,7 +545,7 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
     except (ImportError, AttributeError):
         # Fallback: check n_cpu if config not available
         use_threading_backend = (n_cpu > 1)
-    
+
     # Use threading backend context manager if multiprocess is enabled
     # This prevents loky from trying to spawn new processes in nested multiprocessing contexts
     if use_threading_backend:
@@ -558,16 +558,16 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
             ocprint.print_warning("joblib not available. Cannot use threading backend for ODDT scoring.")
     else:
         parallel_ctx = None
-    
+
     # Use context manager to ensure proper cleanup
     if parallel_ctx is not None:
         parallel_ctx.__enter__()
-    
+
     try:
         # Add all scoring functions to pipeline
         for model, sf in scoring_functions_loaded:
             pipeline.score(sf, receptorObj)
-        
+
         # Try to fetch results from all at once
         for mol in pipeline.fetch():
             # Transform the results into a dict
@@ -576,18 +576,18 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
             data["ligand_name"] = ".".join(os.path.basename(mol.title).split(".")[:-1])
             # Set the blacklist keys
             blacklist_keys = ['OpenBabel Symmetry Classes', 'MOL Chiral Flag', 'PartialCharges', 'TORSDO', 'REMARK']
-            
+
             # For each key in the blacklist
             for b in blacklist_keys:
                 # Check if the key is in the data
                 if b in data:
                     # Delete it
                     del data[b]
-            
+
             # Check if there is anything in the data dict
             if len(data) > 0:
                 all_datas.append(data)
-        
+
         # If group processing failed, try processing each scoring function individually
         # Note: parallel_context is still active from above if use_threading_backend is True
         if len(all_datas) == 0 and len(scoring_functions_loaded) > 0:
@@ -605,26 +605,26 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
                         else:
                             ligand_format = ligand_ext
                         individual_pipeline.load_ligands(ligand_format, ligand)
-                    
+
                     # Add only this scoring function
                     individual_pipeline.score(sf, receptorObj)
-                    
+
                     # Fetch results
                     for mol in individual_pipeline.fetch():
                         data = mol.data.to_dict()
                         data["ligand_name"] = ".".join(os.path.basename(mol.title).split(".")[:-1])
-                        
+
                         blacklist_keys = ['OpenBabel Symmetry Classes', 'MOL Chiral Flag', 'PartialCharges', 'TORSDO', 'REMARK']
-                        
+
                         for b in blacklist_keys:
                             if b in data:
                                 del data[b]
-                        
+
                         if len(data) > 0:
                             all_datas.append(data)
                         else:
                             ocprint.print_warning(f"No data collected from '{sf_name}' for ligand '{ligandName}'")
-                            
+
                 except AttributeError as e2:
                     # Handle scikit-learn version incompatibility
                     if 'monotonic_cst' in str(e2) or 'DecisionTreeRegressor' in str(e2):
@@ -654,7 +654,7 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
                     ocprint.print_error(f"Error type: {type(e2).__name__}")
                     ocprint.print_error(f"Full traceback for '{sf_name}':\n{full_traceback}")
                     continue
-                
+
     except AttributeError as e:
         # Handle scikit-learn version incompatibility
         if 'monotonic_cst' in str(e) or 'DecisionTreeRegressor' in str(e):
@@ -684,7 +684,7 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
         ocprint.print_error(f"Group processing failed with unexpected error: {e}")
         ocprint.print_error(f"Error type: {type(e).__name__}")
         ocprint.print_error(f"Full traceback:\n{full_traceback}")
-    
+
     finally:
         # Clean up parallel context if it was opened
         if parallel_ctx is not None:
@@ -692,14 +692,14 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
                 parallel_ctx.__exit__(None, None, None)
             except Exception:
                 pass  # Ignore errors during cleanup
-    
+
     # Check if we got any results
     if len(all_datas) == 0:
         error_msg = f"All scoring functions failed for ligand '{ligandName}'."
         if failed_scoring_functions:
             error_msg += f" Failed scoring functions: {', '.join(failed_scoring_functions)}"
-        return ocerror.Error.rescoring_failed(error_msg, level = ocerror.ReportLevel.ERROR) # type: ignore
-    
+        return ocerror.Error.rescoring_failed(error_msg, level = ocerror.ReportLevel.ERROR)
+
     # Check which scoring functions succeeded and which failed
     successful_sf = set()
     for data in all_datas:
@@ -710,18 +710,18 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
                     if sf_type in key.lower():
                         successful_sf.add(sf_type)
                         break
-    
+
     # Check if all expected scoring functions are present
     expected_sf = {sf.lower() for sf in sf_set}
     missing_sf = expected_sf - successful_sf
-    
+
     # Report on failed scoring functions
     if failed_scoring_functions or missing_sf:
         failed_msg = f"Some scoring functions failed for ligand '{ligandName}': {', '.join(failed_scoring_functions) if failed_scoring_functions else 'None explicitly reported'}"
         if missing_sf:
             failed_msg += f". Missing scoring functions in results: {', '.join(missing_sf)}"
         ocprint.print_error(failed_msg)
-    
+
     # If we processed individually, we might have multiple data dicts for the same ligand
     # Merge them by ligand_name
     merged_datas = {}
@@ -732,13 +732,13 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
             merged_datas[lig_name].update(data)
         else:
             merged_datas[lig_name] = data.copy()
-    
+
     datas = list(merged_datas.values())
 
     # Check if datas is empty
     if len(datas) <= 0:
-        return ocerror.Error.rescoring_failed(f"The rescoring of the ligand '{ligandName}' failed.", level = ocerror.ReportLevel.ERROR) # type: ignore
-    
+        return ocerror.Error.rescoring_failed(f"The rescoring of the ligand '{ligandName}' failed.", level = ocerror.ReportLevel.ERROR)
+
     # Create the dataframe
     df = pd.DataFrame(datas)
 
@@ -760,14 +760,14 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
         for model in models:
             # Delete it
             ocff.safe_remove_file(model)
-    
+
     # Check if the returnData is True
     if returnData:
         # Return the dataframe
         return df
-    
+
     # Just return an ok code
-    return ocerror.Error.ok() # type: ignore
+    return ocerror.Error.ok()
 
 def run_oddt_from_cli(receptor: Union[ocr.Receptor, str], ligand: Union[ocl.Ligand, str], outputPath: str, overwrite: bool = False, logFile: str = "", cleanModels: bool = False) -> Union[int, Tuple[int, str]]:
     '''Run ODDT using the oddt_cli command. UNSTABLE FUNCTION DO NOT USE.
@@ -786,17 +786,17 @@ def run_oddt_from_cli(receptor: Union[ocr.Receptor, str], ligand: Union[ocl.Liga
         The path to the log file. The default is "" (no log file).
     cleanModels : bool, optional
         If True, the models will be deleted after the rescoring. The default is False. If set to False, this can speed up the rescoring process for multiple ligands.
-    
+
     Returns
     -------
     int | Tuple[int, str]
-        The exit code of the command (based on the Error.py code table).   
+        The exit code of the command (based on the Error.py code table).
     '''
 
     # Check if the output dir exists
     if not os.path.isdir(outputPath):
-        return ocerror.Error.dir_not_exist(f"The output directory '{outputPath}' does not exist.", level = ocerror.ReportLevel.ERROR) # type: ignore
-    
+        return ocerror.Error.dir_not_exist(f"The output directory '{outputPath}' does not exist.", level = ocerror.ReportLevel.ERROR)
+
     # Check if the receptor is an ocr.Receptor object
     if isinstance(receptor, ocr.Receptor):
         # Get the receptor path
@@ -806,8 +806,8 @@ def run_oddt_from_cli(receptor: Union[ocr.Receptor, str], ligand: Union[ocl.Liga
         # Get the receptor path
         receptorPath = receptor
     else:
-        return ocerror.Error.wrong_type(f"The receptor must be a string or an ocr.Receptor object. The type {type(receptor)} was given.", level = ocerror.ReportLevel.ERROR) # type: ignore
-    
+        return ocerror.Error.wrong_type(f"The receptor must be a string or an ocr.Receptor object. The type {type(receptor)} was given.", level = ocerror.ReportLevel.ERROR)
+
     # Check if the ligand is an ocl.Ligand object
     if isinstance(ligand, ocl.Ligand):
         # Get the ligand path
@@ -823,29 +823,29 @@ def run_oddt_from_cli(receptor: Union[ocr.Receptor, str], ligand: Union[ocl.Liga
         # Output file name
         outputFile = f"{outputPath}/{ligandName}.csv"
     else:
-        return ocerror.Error.wrong_type(f"The ligand must be a string or an ocl.Ligand object. The type {type(ligand)} was given.", level = ocerror.ReportLevel.ERROR) # type: ignore
-    
+        return ocerror.Error.wrong_type(f"The ligand must be a string or an ocl.Ligand object. The type {type(ligand)} was given.", level = ocerror.ReportLevel.ERROR)
+
     # Check if the output file exists
     if os.path.isfile(outputFile) and not overwrite:
-        return ocerror.Error.file_exists(f"The output file '{outputFile}' already exists. Please use the overwrite option if you want to overwrite it.", level = ocerror.ReportLevel.ERROR) # type: ignore
-    
+        return ocerror.Error.file_exists(f"The output file '{outputFile}' already exists. Please use the overwrite option if you want to overwrite it.", level = ocerror.ReportLevel.ERROR)
+
     # Check if the receptor exists
     if not os.path.isfile(receptorPath):
-        return ocerror.Error.file_not_exist(f"The receptor file '{receptorPath}' does not exist.", level = ocerror.ReportLevel.ERROR) # type: ignore
+        return ocerror.Error.file_not_exist(f"The receptor file '{receptorPath}' does not exist.", level = ocerror.ReportLevel.ERROR)
 
     # Check if the ligand exists
     if not os.path.isfile(ligandPath):
-        return ocerror.Error.file_not_exist(f"The ligand file '{ligandPath}' does not exist.", level = ocerror.ReportLevel.ERROR) # type: ignore
-    
+        return ocerror.Error.file_not_exist(f"The ligand file '{ligandPath}' does not exist.", level = ocerror.ReportLevel.ERROR)
+
     # Create the output file path
-    
+
     # Get the command
     cmd = __build_cmd(receptorPath, ligandPath, outputFile)
 
     # If the command is an int, it is an error code
     if isinstance(cmd, int):
         return cmd
-    
+
     # Run the command
     config = get_config()
     exitCode = ocrun.run(cmd, logFile = logFile, cwd = config.oddt_models_dir)
@@ -861,5 +861,5 @@ def run_oddt_from_cli(receptor: Union[ocr.Receptor, str], ligand: Union[ocl.Liga
         for model in models:
             # Delete it
             ocff.safe_remove_file(model)
-    
+
     return exitCode

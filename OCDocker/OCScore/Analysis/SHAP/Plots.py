@@ -60,11 +60,11 @@ def _ensure_dir(path: str) -> None:
 
 
 def _relative_importance(shap_2d: np.ndarray) -> np.ndarray:
-    mean_abs = np.abs(shap_2d).mean(axis=0)
-    denom = mean_abs.sum()
+    mean_abs = np.asarray(np.abs(shap_2d).mean(axis=0))
+    denom = float(mean_abs.sum())
     if denom <= 0:
         return np.zeros_like(mean_abs)
-    return (mean_abs / denom) * 100.0
+    return np.asarray((mean_abs / denom) * 100.0)
 
 
 ## Public ##

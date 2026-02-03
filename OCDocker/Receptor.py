@@ -164,7 +164,7 @@ class Receptor:
             Flag to denote if the pdb file will be cleaned, by default False.
         canonicalize_pdb : bool | str, optional
             Whether to canonicalize CHARMM-style PDB names. Use True, False, or "auto".
-        
+
         Returns
         -------
         None
@@ -250,9 +250,9 @@ class Receptor:
             if not data:
                 ocprint.print_error(f"Problems while parsing json file: '{from_json_descriptors}'")
                 return None
-            
+
             #region assign
-            self.name, self.sasa, self.dipoleMoment, self.isoelectricPoint, self.instabilityIndex,self.GRAVY, self.aromaticity, self.__countAA, self.countA, self.countR, self.countN, self.countD, self.countC, self.countQ, self.countE, self.countG, self.countH, self.countI, self.countL, self.countK, self.countM, self.countF, self.countP, self.countS, self.countT, self.countW, self.countY, self.countV, self.totalAALength, self.avgAALength, self.countChain = data #type: ignore
+            self.name, self.sasa, self.dipoleMoment, self.isoelectricPoint, self.instabilityIndex,self.GRAVY, self.aromaticity, self.__countAA, self.countA, self.countR, self.countN, self.countD, self.countC, self.countQ, self.countE, self.countG, self.countH, self.countI, self.countL, self.countK, self.countM, self.countF, self.countP, self.countS, self.countT, self.countW, self.countY, self.countV, self.totalAALength, self.avgAALength, self.countChain = data
 
             #endregion
         else:
@@ -290,7 +290,7 @@ class Receptor:
             # Ref: https://biopython.org/docs/1.76/api/Bio.SeqUtils.ProtParam.html
 
             self.__relative_asa_cutoff = relative_asa_cutoff
-            
+
             self.__countAA = count_surface_AA(self.structure, self.path, self.__relative_asa_cutoff)
 
             self.countA = self.__countAA["A"]
@@ -424,7 +424,7 @@ class Receptor:
         aromaticity, instability index, amino acid counts, etc.) in a
         formatted, aligned table.
         """
-        
+
         attributes = {
             "Name": self.name,
             "Structure path": self.path,
@@ -471,7 +471,7 @@ class Receptor:
         properties["Path"] = self.path if self.path is not None else "-"
         properties["mol2Path"] = self.mol2_path if self.mol2_path is not None else "-"
         properties["Structure"] = self.structure if self.structure is not None else "-"
-        
+
         # Combine both in one dict and return them
 
         return {**properties, **self.get_descriptors()}
@@ -493,18 +493,18 @@ class Receptor:
         try:
             outputJson = f"{os.path.dirname(self.path)}/{self.name}_descriptors.json"
             if not overwrite and os.path.isfile(outputJson):
-                return ocerror.Error.file_exists(f"The file {outputJson} already exists and the overwrite flag is set to False, no file will be generated or overwrited.", ocerror.ReportLevel.WARNING) # type: ignore
+                return ocerror.Error.file_exists(f"The file {outputJson} already exists and the overwrite flag is set to False, no file will be generated or overwrited.", ocerror.ReportLevel.WARNING)
             if os.path.isfile(outputJson):
-                _ = ocerror.Error.file_exists(f"The file '{outputJson}' already exists. It will be OVERWRITED!!!") # type: ignore
+                _ = ocerror.Error.file_exists(f"The file '{outputJson}' already exists. It will be OVERWRITED!!!")
             try:
                 with open(outputJson, 'w') as outfile:
                     json.dump(self.__safe_to_dict(), outfile)
-                return ocerror.Error.ok() # type: ignore
+                return ocerror.Error.ok()
             except Exception as e:
-                return ocerror.Error.write_file(f"Problems while writing the file '{outputJson}' Error: {e}.") # type: ignore
+                return ocerror.Error.write_file(f"Problems while writing the file '{outputJson}' Error: {e}.")
         except Exception as e:
 
-            return ocerror.Error.unknown(f"Unknown error while converting the receptor {self.name} to json.\nError: {e}", ocerror.ReportLevel.ERROR) # type: ignore
+            return ocerror.Error.unknown(f"Unknown error while converting the receptor {self.name} to json.\nError: {e}", ocerror.ReportLevel.ERROR)
 
 
 # Functions
@@ -516,7 +516,7 @@ _warned_sequences = set()
 
 def _clean_pdb_path(structure_path: str) -> str:
     '''Return a cleaned PDB path derived from the input path.
-    
+
     Parameters
     ----------
     structure_path : str
@@ -535,7 +535,7 @@ def _clean_pdb_path(structure_path: str) -> str:
 
 def _convert_cif_to_pdb(structure_path: str, structure: Bio.PDB.Structure.Structure, overwrite: bool = False) -> Optional[str]:
     '''Convert a mmCIF/cif file to PDB format and return the new path.
-    
+
     Parameters
     ----------
     structure_path : str
@@ -776,8 +776,8 @@ def count_AAs_and_chains(structure: Bio.PDB.Structure.Structure) -> Optional[Tup
 
     # If the model is not set
     if not structure:
-        _ = ocerror.Error.not_set(message=f"The model object is not set!", level=ocerror.ReportLevel.ERROR) # type: ignore
-        return None #type: ignore
+        _ = ocerror.Error.not_set(message=f"The model object is not set!", level=ocerror.ReportLevel.ERROR)
+        return None
     # Initialise the counter of number of residues and chains
     res_no = 0
     chains = 0
@@ -821,11 +821,11 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
 
     ocprint.printv(f"Counting how many of each of the 20 standard AAs from the structure '{structurePath}' are in the surface. Exposure cutoff is {cutoff}.")
     if not structurePath:
-        _ = ocerror.Error.not_set(f"The structure path is not set!", level = ocerror.ReportLevel.ERROR) # type: ignore
-        return None #type: ignore
+        _ = ocerror.Error.not_set(f"The structure path is not set!", level = ocerror.ReportLevel.ERROR)
+        return None
 
     aas = {
-        "A": 0, 
+        "A": 0,
         "R": 0,
         "N": 0,
         "D": 0,
@@ -863,7 +863,7 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
     # Load the clean Structure
     #cleanStructure = loadMol(cleanStructurePath)
     #cleanStructure = loadMol(structurePath)
-                        
+
     # Column header to dsspData object will be
     # (dssp index, amino acid, secondary structure, relative ASA, phi, psi,
     # NH_O_1_relidx, NH_O_1_energy, O_NH_1_relidx, O_NH_1_energy,
@@ -1000,7 +1000,7 @@ def load_mol(structure: Union[str, os.PathLike, Bio.PDB.Structure.Structure], na
 
     ocprint.printv(f"Trying to load protein '{structure}'.")
     # Check if the variable is a Bio.PDB.Structure.Structure or a path-like object
-    if isinstance(structure, Bio.PDB.Structure.Structure): #type: ignore
+    if isinstance(structure, Bio.PDB.Structure.Structure):
         # Check if SASA should be computed
         if compute_sasa:
             # Call compute_sasa from this module (defined later in file)
@@ -1021,7 +1021,7 @@ def load_mol(structure: Union[str, os.PathLike, Bio.PDB.Structure.Structure], na
             if name == "":
                 # If its true, set its name as 'Generic structure'
                 name = "Generic structure"
-            
+
             # Now we know that it is a file path, check which is its extension to use the correct function
             extension = os.path.splitext(structure_path)[1].lower()
 
@@ -1056,14 +1056,14 @@ def load_mol(structure: Union[str, os.PathLike, Bio.PDB.Structure.Structure], na
                             overwrite=overwrite,
                             in_place=True,
                         )
-                        if result != ocerror.Error.ok():  # type: ignore
+                        if result != ocerror.Error.ok():
                             ocprint.print_warning(f"Failed to canonicalize '{structure_path}'. Using original file.")
 
                 # Clean file to a sidecar path when requested
                 if clean:
                     clean_path = _clean_pdb_path(structure_path)
                     result = ocmolproc.clean_pdb_file(structure_path, clean_path, overwrite=overwrite, keep_hetatm=False)
-                    if result == ocerror.Error.ok():  # type: ignore
+                    if result == ocerror.Error.ok():
                         structure_path = clean_path
                     else:
                         ocprint.print_warning(f"Failed to clean '{structure_path}'. Using original file.")
@@ -1098,14 +1098,14 @@ def load_mol(structure: Union[str, os.PathLike, Bio.PDB.Structure.Structure], na
                                 overwrite=overwrite,
                                 in_place=True,
                             )
-                            if result != ocerror.Error.ok():  # type: ignore
+                            if result != ocerror.Error.ok():
                                 ocprint.print_warning(f"Failed to canonicalize '{structure_path}'. Using original file.")
 
                     # Clean file to a sidecar path when requested
                     if clean:
                         clean_path = _clean_pdb_path(structure_path)
                         result = ocmolproc.clean_pdb_file(structure_path, clean_path, overwrite=overwrite, keep_hetatm=False)
-                        if result == ocerror.Error.ok():  # type: ignore
+                        if result == ocerror.Error.ok():
                             structure_path = clean_path
                         else:
                             ocprint.print_warning(f"Failed to clean '{structure_path}'. Using original file.")
@@ -1135,7 +1135,7 @@ def load_mol(structure: Union[str, os.PathLike, Bio.PDB.Structure.Structure], na
             return structure_path, tmp_structure
         else:
             # File does not exist
-            _ = ocerror.Error.file_not_exist(message=f"The file '{structure_path}' does not exist!", level=ocerror.ReportLevel.ERROR) # type: ignore
+            _ = ocerror.Error.file_not_exist(message=f"The file '{structure_path}' does not exist!", level=ocerror.ReportLevel.ERROR)
             return "", None
     else:
         # The variable is not in a supported data format
@@ -1161,7 +1161,7 @@ def read_descriptors_from_json(path: str, returnData: bool = False) -> Optional[
     ------
     KeyError
     '''
-    
+
     # Try to read the file
     try:
         # Open the json file in read mode
@@ -1175,14 +1175,14 @@ def read_descriptors_from_json(path: str, returnData: bool = False) -> Optional[
         #region keys
         keys = ["Name", "SASA", "DipoleMoment", "IsoelectricPoint", "InstabilityIndex", "GRAVY", "Aromaticity", "countA", "countR", "countN", "countD", "countC", "countQ", "countE", "countG", "countH", "countI", "countL", "countK", "countM", "countF", "countP", "countS", "countT", "countW", "countY", "countV", "TotalAALength", "AvgAALength", "countChain"]
         #endregion
-        
+
         # Validate the data
         for key in keys:
             # Check if data has a 'mol2Path' key
             if "mol2Path" in data:
                 # Remove the entry
                 _ = data.pop("mol2Path")
-                
+
             # If key is lacking in data read from json (means malformed json!)
             if not key in data:
                 # Add the missing key to the missing list
@@ -1193,7 +1193,7 @@ def read_descriptors_from_json(path: str, returnData: bool = False) -> Optional[
             # Set the mkissed values
             missed = (path, ", ".join(missing))
             # User-facing error: missing required data in JSON file
-            ocerror.Error.data_not_found(f"Missing keys in JSON file '{path}': {', '.join(missing)}") # type: ignore
+            ocerror.Error.data_not_found(f"Missing keys in JSON file '{path}': {', '.join(missing)}")
             raise KeyError(f"Missing keys in JSON file '{path}': {', '.join(missing)}")
 
         # Create the countAA variable (here np.nan does have an exact meaning, 0 is a valid value)
@@ -1227,13 +1227,13 @@ def read_descriptors_from_json(path: str, returnData: bool = False) -> Optional[
 
         # Since we have all keys, read them and return their values
         #region Return data
-        return data["Name"], data["SASA"], data["DipoleMoment"], data["IsoelectricPoint"], data["InstabilityIndex"], data["GRAVY"], data["Aromaticity"], countAA, data["countA"], data["countR"], data["countN"], data["countD"], data["countC"], data["countQ"], data["countE"], data["countG"], data["countH"], data["countI"], data["countL"], data["countK"], data["countM"], data["countF"], data["countP"], data["countS"], data["countT"], data["countW"], data["countY"], data["countV"], data["TotalAALength"], data["AvgAALength"], data["countChain"] # type: ignore
+        return data["Name"], data["SASA"], data["DipoleMoment"], data["IsoelectricPoint"], data["InstabilityIndex"], data["GRAVY"], data["Aromaticity"], countAA, data["countA"], data["countR"], data["countN"], data["countD"], data["countC"], data["countQ"], data["countE"], data["countG"], data["countH"], data["countI"], data["countL"], data["countK"], data["countM"], data["countF"], data["countP"], data["countS"], data["countT"], data["countW"], data["countY"], data["countV"], data["TotalAALength"], data["AvgAALength"], data["countChain"]
 
         #endregion
     # Key error (when there is a missing key)
     except KeyError as missed:
         # KeyError raised with a string message is not subscriptable, access the message directly
-        ocprint.print_error(f"The following keys were not found in the json file: {missed}") # type: ignore
+        ocprint.print_error(f"The following keys were not found in the json file: {missed}")
     # General error (call it as problem to read file)
     except Exception as e:
         ocprint.print_error(f"Could not read the file '{path}'. Error: {e}")
@@ -1283,6 +1283,6 @@ def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str
 
         return structure
     except Exception as e:
-        _ = ocerror.Error.unknown(f"Could not reset indexes for this protein and save it on path '{outputPdb}'. Error: {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
-    
+        _ = ocerror.Error.unknown(f"Could not reset indexes for this protein and save it on path '{outputPdb}'. Error: {e}", level = ocerror.ReportLevel.ERROR)
+
     return None

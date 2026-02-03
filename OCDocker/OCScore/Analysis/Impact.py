@@ -130,6 +130,7 @@ def _proportion_delta(contingency: pd.DataFrame, presence_level: Union[int, str]
     cont = contingency.copy()
     props = cont.div(cont.sum(axis=1).replace(0, np.nan), axis=0).fillna(0)
 
+    k1: int | str
     if presence_level in cont.index:
         k1 = presence_level
     elif str(presence_level) in cont.index:
@@ -137,6 +138,7 @@ def _proportion_delta(contingency: pd.DataFrame, presence_level: Union[int, str]
     else:
         k1 = cont.index[-1]
 
+    k0: int | str
     if 0 in cont.index:
         k0 = 0
     elif "0" in cont.index:
@@ -311,20 +313,18 @@ def get_neutral_features(impact_df: pd.DataFrame, tau: float = 0.05) -> list[str
     '''
 
     if 'Direction' in impact_df.columns:
-        return (
+        series = (
             impact_df.loc[impact_df['Direction'] == 'neutral', 'Feature']
             .astype(str)
             .sort_values()
-            .tolist()
         )
-    return (
+        return [str(x) for x in series]
+    series = (
         impact_df.loc[impact_df['NBS'].abs() < tau, 'Feature']
         .astype(str)
-
-
         .sort_values()
-        .tolist()
     )
+    return [str(x) for x in series]
 
 
 def plot_impact_arrows_inline_labels(
@@ -442,7 +442,6 @@ def plot_impact_arrows_inline_labels(
 
 # Public API
 ###############################################################################
-
 
 
 

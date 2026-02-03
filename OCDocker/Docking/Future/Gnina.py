@@ -79,7 +79,7 @@ class Gnina:
             cmd.append("--accurate_line")
         if config.gnina.minimize_early_term.lower() in ["y", "ye", "yes"]:
             cmd.append("--minimize_early_term")
-        
+
         # Check if the no_gpu flag is set
         if config.gnina.no_gpu.lower() in ["y", "ye", "yes"]:
             # Set the no gpu flag
@@ -90,11 +90,11 @@ class Gnina:
                 # Set the GPU variable
                 CUDA_VISIBLE_DEVICES = os.environ.get("CUDA_VISIBLE_DEVICES")
                 # Check if it is a list
-                if "," in CUDA_VISIBLE_DEVICES: # type: ignore
+                if "," in CUDA_VISIBLE_DEVICES:
                     # It is a list, get the first element
-                    CUDA_VISIBLE_DEVICES = CUDA_VISIBLE_DEVICES.split(",")[0] # type: ignore
+                    CUDA_VISIBLE_DEVICES = CUDA_VISIBLE_DEVICES.split(",")[0]
                 # Set the GPU
-                cmd.extend(["--device", CUDA_VISIBLE_DEVICES]) # type: ignore
+                cmd.extend(["--device", CUDA_VISIBLE_DEVICES])
 
         cmd.extend(["--out", self.output_gnina, "--log", self.gnina_log, "--cpu", "1"])
 
@@ -112,7 +112,7 @@ class Gnina:
             The path for the box file.
         receptor : ocr.Receptor
             The receptor object.
-        prepared_receptor_path : str 
+        prepared_receptor_path : str
             Path to the prepared receptor.
         ligand : ocl.Ligand
             The ligand object.
@@ -131,7 +131,7 @@ class Gnina:
         self.name = str(name)
         self.config = str(config_path)
         self.box_file = str(box_file)
-        
+
         # Receptor
         if type(receptor) == ocr.Receptor:
             self.input_receptor = receptor
@@ -154,7 +154,7 @@ class Gnina:
 
         self.input_ligand_path = self.__parse_ligand_path(ligand)
         self.prepared_ligand = str(prepared_ligand_path)
-        
+
         # Initialize preparation strategy
         self.preparation_strategy = OpenBabelPreparationStrategy()
 
@@ -162,7 +162,7 @@ class Gnina:
         self.gnina_log = str(gnina_log)
         self.output_gnina = str(output_gnina)
         self.gnina_cmd = self.__gnina_cmd()
-        
+
         # Check if config file exists to avoid useless processing
         if not os.path.isfile(self.config) or overwrite_config:
             # Create the conf file
@@ -172,7 +172,7 @@ class Gnina:
 
     def __parse_ligand_path(self, ligand: Union[str, ocl.Ligand]) -> str:
         '''Parse the ligand path, handling its type.
-        
+
         Parameters
         ----------
         ligand : str | ocl.Ligand
@@ -185,12 +185,12 @@ class Gnina:
 
         # Check the type of ligand variable
         if type(ligand) == ocl.Ligand:
-            return ligand.path # type: ignore
+            return ligand.path
         elif type(ligand) == str:
             # Since is a string, check if the file exists
-            if os.path.isfile(ligand): # type: ignore
+            if os.path.isfile(ligand):
                 # Exists! Process it then!
-                return self.__process_ligand(ligand) # type: ignore
+                return self.__process_ligand(ligand)
             else:
                 _ = ocerror.Error.file_not_exist(message=f"The ligand '{ligand}' has not a valid path.", level = ocerror.ReportLevel.ERROR)
                 return ""
@@ -216,12 +216,12 @@ class Gnina:
 
         # Check the type of receptor variable
         if type(receptor) == ocr.Receptor:
-            return receptor.path  # type: ignore
+            return receptor.path
         elif type(receptor) == str:
             # Since is a string, check if the file exists
-            if os.path.isfile(receptor): # type: ignore
+            if os.path.isfile(receptor):
                 # Exists! Return it!
-                return receptor # type: ignore
+                return receptor
             else:
                 _ = ocerror.Error.file_not_exist(message=f"The receptor '{receptor}' has not a valid path.", level = ocerror.ReportLevel.ERROR)
                 return ""
@@ -250,7 +250,7 @@ class Gnina:
         print(f"Gnina execution log path:    '{self.gnina_log if self.gnina_log else '-' }'")
         print(f"Gnina output path:           '{self.output_gnina if self.output_gnina else '-' }'")
         print(f"Gnina command:               '{' '.join(self.gnina_cmd) if self.gnina_cmd else '-' }'")
-        
+
         return
 
 
@@ -263,7 +263,7 @@ class Gnina:
             The dataframe with the data from the gnina log, or the error code.
         '''
 
-        return read_log(self.gnina_log) # type: ignore
+        return read_log(self.gnina_log)
 
 
     def run_gnina(self, logFile: str = "") -> Union[int, Tuple[int, str]]:
@@ -273,11 +273,11 @@ class Gnina:
         ----------
         logFile : str
             The path for the log file.
-        
+
         Returns
         -------
         int | Tuple[int, str]
-            The exit code of the command (based on the Error.py code table).   
+            The exit code of the command (based on the Error.py code table).
         '''
 
         return ocrun.run(self.gnina_cmd, logFile=logFile)
@@ -438,7 +438,7 @@ def gen_gnina_conf(box_file: str, conf_file: str, receptor: str) -> int:
 
             if config.gnina.user_grid_lambda.lower() != "no":
                 conf_file_obj.write(f"user_grid_lambda = {config.gnina.user_grid_lambda}\n")
-            
+
             if config.gnina.num_mc_steps.lower() != "no":
                 conf_file_obj.write(f"num_mc_steps = {config.gnina.num_mc_steps}\n")
 
@@ -462,7 +462,7 @@ def gen_gnina_conf(box_file: str, conf_file: str, receptor: str) -> int:
                 conf_file_obj.write(f"factor = {config.gnina.factor}\n")
             if config.gnina.force_cap:
                 conf_file_obj.write(f"force_cap = {config.gnina.force_cap}\n")
-            
+
     except Exception as e:
         return ocerror.Error.write_file(message=f"Found a problem while opening conf file: {e}.", level = ocerror.ReportLevel.ERROR)
 
@@ -471,7 +471,7 @@ def gen_gnina_conf(box_file: str, conf_file: str, receptor: str) -> int:
 
 def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, digestFormat : str = "json", box_id: Optional[str] = None) -> int:
     '''Generate the docking digest.
-    
+
     Parameters
     ----------
     digestPath : str
@@ -493,7 +493,7 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
     if not os.path.isdir(digestPath) or overwrite:
         # Check if the digest extension is supported
         if ocvalidation.validate_digest_extension(digestPath, digestFormat):
-        
+
             # Create the digest variable
             digest = None
 
@@ -522,15 +522,15 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
             # Check if the digest variable is fine
             if not isinstance(digest, dict):
                 return ocerror.Error.wrong_type(f"The docking digest file '{digestPath}' is not valid.", level = ocerror.ReportLevel.ERROR)
-            
+
             # Merge the digest and the docking digest
             if box_id:
                 box_key = str(box_id)
                 if box_key not in digest or not isinstance(digest.get(box_key), dict):
                     digest[box_key] = {}
-                digest[box_key] = {**digest[box_key], **dockingDigest} # type: ignore
+                digest[box_key] = {**digest[box_key], **dockingDigest}
             else:
-                digest = { **digest, **dockingDigest } # type: ignore
+                digest = { **digest, **dockingDigest }
 
             # Write the digest file
             if digestFormat == "json":
@@ -545,7 +545,7 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
 
             return ocerror.Error.ok()
         return ocerror.Error.unsupported_extension(f"The provided extension '{digestFormat}' is not supported.", level = ocerror.ReportLevel.ERROR)
-    
+
     return ocerror.Error.file_exists(f"The file '{digestPath}' already exists. If you want to overwrite it yse the overwrite flag.", level = ocerror.ReportLevel.WARNING)
 
 def read_log(path: str) -> Dict[str, List[Union[str, float]]]:
@@ -599,7 +599,7 @@ def read_log(path: str) -> Dict[str, List[Union[str, float]]]:
                     ocprint.print_error(f"Problems while reading file '{path}'. Error: {e}")
                     config = get_config()
                     ocprint.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{config.logdir}/gnina_read_log_ERROR.log")
-            
+
             # Check if the len of the data["gnina_affinity"] is 0
             if len(data["gnina_pose"]) == 0:
                 data["gnina_pose"].append(np.nan)
@@ -659,7 +659,7 @@ def run_gnina(config: str, preparedLigand: str, outputGnina: str, gninaLog: str,
         cmd.append("--minimize_early_term")
 
     cmd.extend(["--out", outputGnina, "--log", gninaLog, "--cpu", "1"])
-    
+
     # Run the command
     return ocrun.run(cmd, logFile = logPath)
 

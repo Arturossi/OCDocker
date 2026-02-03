@@ -48,7 +48,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 try:  # tolerate import during isolated unit tests
     from OCDocker.Initialise import session
 except Exception:  # pragma: no cover
-    session = None  # type: ignore
+    session = None
 
 OPMAP = {
     "==":     lambda c, v: c == v,
@@ -68,14 +68,14 @@ class Base(DeclarativeBase):
 
     @classmethod
     def __repr__(cls) -> str:
-        ''' Return the representation of the object. 
-        
+        ''' Return the representation of the object.
+
         Returns
         -------
         str
             The representation of the object.
         '''
-        
+
         # Get the data of the object (without the private attributes)
         data = { k: v for k, v in cls.__dict__.items() if not k.startswith('_') }
 
@@ -116,8 +116,8 @@ class Base(DeclarativeBase):
 
     @classmethod
     def add_dynamic_columns(cls, collection: List[str]) -> None:
-        ''' Dynamically add columns based on descriptor names. 
-        
+        ''' Dynamically add columns based on descriptor names.
+
         Parameters
         ----------
         collection : List[str]
@@ -146,7 +146,7 @@ class Base(DeclarativeBase):
         ----------
         idorname : Union[int, str]
             The ID or name of the data to be deleted.
-        
+
         Returns
         -------
         bool
@@ -156,11 +156,11 @@ class Base(DeclarativeBase):
         # Check if session is defined
         if session is None:
             # The session is not defined
-            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.") # type: ignore
+            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.")
 
             # Return False
             return False
-        
+
         # Open the session
         with session() as s:
             # Perform the search
@@ -169,14 +169,14 @@ class Base(DeclarativeBase):
             # Check if the data exists
             if data is None:
                 # The data does not exist
-                _ = ocerror.Error.data_not_found("The data does not exist.") # type: ignore
+                _ = ocerror.Error.data_not_found("The data does not exist.")
                 # Return False
                 return False
-            
+
             try:
                 # Delete the data
                 s.delete(data)
-                        
+
                 # Commit the session
                 s.commit()
             except SQLAlchemyError as e:
@@ -187,13 +187,13 @@ class Base(DeclarativeBase):
 
                 # Return False
                 return False
-    
+
         return True
 
 
     @classmethod
     def determine_column_type(cls, descriptor: str) -> Union[Integer, Float]:
-        ''' Determine the type of column based on the descriptor. 
+        ''' Determine the type of column based on the descriptor.
 
         Parameters
         ----------
@@ -204,7 +204,7 @@ class Base(DeclarativeBase):
         -------
         Integer | Float
             The type of the column.
-        ''' 
+        '''
 
         # Check if the descriptor is an integer-like count; otherwise use float
         if descriptor.startswith("fr_") or \
@@ -233,16 +233,16 @@ class Base(DeclarativeBase):
         # Check if session is defined
         if session is None:
             # The session is not defined
-            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.") # type: ignore
+            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.")
 
             # Return an empty list
             return []
-        
+
         # Open the session
         with session() as s:
             # Perform the search
             data = s.query(cls).filter(cls.id == idorname).first() if isinstance(idorname, int) else s.query(cls).filter(func.lower(cls.name) == func.lower(idorname)).all()
-    
+
         return data
 
     @classmethod
@@ -258,16 +258,16 @@ class Base(DeclarativeBase):
         # Check if session is defined
         if session is None:
             # The session is not defined
-            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.") # type: ignore
+            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.")
 
             # Return an empty list
             return []
-        
+
         # Open the session
         with session() as s:
             # Perform the search
             data = s.query(cls).all()
-    
+
         return data
 
     @classmethod
@@ -283,16 +283,16 @@ class Base(DeclarativeBase):
         # Check if session is defined
         if session is None:
             # The session is not defined
-            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.") # type: ignore
+            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.")
 
             # Return an empty list
             return []
-        
+
         # Open the session
         with session() as s:
             # Perform the search
             data = s.query(cls.name).all()
-    
+
         return data
 
     @classmethod
@@ -313,22 +313,22 @@ class Base(DeclarativeBase):
         List[DeclarativeMeta]
             The data found.
         '''
-        
+
         # Check if session is defined
         if session is None:
-            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.")  # type: ignore
+            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.")
             return []
 
         # Check if the operator is valid
         if operator not in OPMAP:
-            _ = ocerror.Error.malformed_payload(f"Unsupported operator '{operator}'.")  # type: ignore
+            _ = ocerror.Error.malformed_payload(f"Unsupported operator '{operator}'.")
             return []
 
         # Get the column
         try:
             col = getattr(cls, column)
         except AttributeError:
-            _ = ocerror.Error.malformed_payload(f"Unknown column '{column}'.")  # type: ignore
+            _ = ocerror.Error.malformed_payload(f"Unknown column '{column}'.")
             return []
 
         # Open the session
@@ -353,16 +353,16 @@ class Base(DeclarativeBase):
         # Check if session is defined
         if session is None:
             # The session is not defined
-            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.") # type: ignore
+            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.")
 
             # Return an empty list
             return []
-        
+
         # Open the session
         with session() as s:
             # Perform the search
             data = s.query(cls).filter(cls.id == idorname).first() if isinstance(idorname, int) else s.query(cls).filter(func.lower(cls.name) == func.lower(idorname)).first()
-    
+
         return data
 
     @classmethod
@@ -375,7 +375,7 @@ class Base(DeclarativeBase):
             The data to be inserted.
         ignorePresence : bool
             Whether to ignore the presence of the data in the database.
-        
+
         Returns
         -------
         bool
@@ -385,19 +385,19 @@ class Base(DeclarativeBase):
         # Check if session is defined
         if session is None:
             # The session is not defined
-            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.") # type: ignore
+            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.")
 
             # Return False
             return False
-        
+
         # Check if the payload has the name key
         if "name" not in payload:
             # The payload does not have the name key
-            _ = ocerror.Error.malformed_payload("The payload does not have the name key.") # type: ignore
-            
+            _ = ocerror.Error.malformed_payload("The payload does not have the name key.")
+
             # Return False
             return False
-        
+
         # Open the session
         with session() as s:
             # Check if the data already exists
@@ -405,9 +405,9 @@ class Base(DeclarativeBase):
                 # If the ignorePresence flag is set to True, return True
                 if ignorePresence:
                     return True
-                    
+
                 # The data already exists
-                _ = ocerror.Error.data_already_exists(f"The data with name '{payload['name']}' already exists.") # type: ignore
+                _ = ocerror.Error.data_already_exists(f"The data with name '{payload['name']}' already exists.")
 
                 # Return False
                 return False
@@ -428,7 +428,7 @@ class Base(DeclarativeBase):
                 # Return False
 
                 return False
-    
+
         return True
 
     @classmethod
@@ -449,11 +449,11 @@ class Base(DeclarativeBase):
         # Check if session is defined
         if session is None:
             # The session is not defined
-            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.") # type: ignore
+            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.")
 
             # Return False
             return False
-    
+
         # Open the session
         with session() as s:
             # If the payload have an id
@@ -462,18 +462,18 @@ class Base(DeclarativeBase):
             # Use name
             else:
                 data = s.query(cls).filter(func.lower(cls.name) == func.lower(payload["name"])).first()
-                
+
             # Check if the data exists
             if data is None:
                 # The data does not exist
                 # Insert the data
                 return cls.insert(payload)
-            
+
             try:
                 # Update the data
                 for key, value in payload.items():
                     setattr(data, key, value)
-            
+
                 # Commit the session
                 s.commit()
             except SQLAlchemyError as e:
@@ -484,13 +484,13 @@ class Base(DeclarativeBase):
                 print(f"Error: {e}")
                 # Return False
                 return False
-        
+
         return True
 
     @classmethod
     def to_dict(cls) -> Dict[str, Any]:
         ''' Return the object as a dictionary.
-        
+
         Returns
         -------
         Dict[str, Any]
@@ -519,11 +519,11 @@ class Base(DeclarativeBase):
         # Check if session is defined
         if session is None:
             # The session is not defined
-            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.") # type: ignore
+            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.")
 
             # Return False
             return False
-        
+
         # Open the session
         with session() as s:
             # Perform the search
@@ -532,16 +532,16 @@ class Base(DeclarativeBase):
             # Check if the data exists
             if data is None:
                 # The data does not exist
-                _ = ocerror.Error.data_not_found("The data does not exist.") # type: ignore
+                _ = ocerror.Error.data_not_found("The data does not exist.")
 
                 # Return False
                 return False
-            
+
             try:
                 # Update the data
                 for key, value in payload.items():
                     setattr(data, key, value)
-            
+
                 # Commit the session
                 s.commit()
             except SQLAlchemyError as e:
@@ -552,7 +552,7 @@ class Base(DeclarativeBase):
                 print(f"Error: {e}")
                 # Return False
                 return False
-    
+
         return True
 
 base = Base

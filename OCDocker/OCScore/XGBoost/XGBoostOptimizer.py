@@ -2,7 +2,7 @@
 
 # Description
 ###############################################################################
-''' Module to run the Extreme Gradient Boost algorithm. 
+''' Module to run the Extreme Gradient Boost algorithm.
 
 It is imported as:
 
@@ -48,7 +48,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 class XGBoostOptimizer:
     """Class to optimize XGBoost hyperparameters using Optuna.
-    
+
     Parameters
     ----------
     X_train : np.ndarray | pd.DataFrame | pd.Series
@@ -76,8 +76,8 @@ class XGBoostOptimizer:
     verbose : bool, optional
         Whether to print the training logs. Default is False.
     """
-    
-    def __init__(self, 
+
+    def __init__(self,
             X_train : Union[np.ndarray, pd.DataFrame, pd.Series],
             y_train : Union[np.ndarray, pd.DataFrame, pd.Series],
             X_test : Union[np.ndarray, pd.DataFrame, pd.Series],
@@ -236,7 +236,7 @@ class XGBoostOptimizer:
         # If the validation dataset is provided, use it to get the AUC score
         if self.X_validation is not None:
             # Train the model and get the AUC score
-            model, metric = OCxgboost.run_xgboost(self.X_train, self.y_train, self.X_test, self.y_test, params = trial_params, verbose = self.verbose) # type: ignore
+            model, metric = OCxgboost.run_xgboost(self.X_train, self.y_train, self.X_test, self.y_test, params = trial_params, verbose = self.verbose)
 
             # Predict the validation dataset
             y_pred = model.predict(self.X_validation)
@@ -244,30 +244,30 @@ class XGBoostOptimizer:
             # If the use_gpu flag is set
             if self.use_gpu:
                 # Convert the predictions to numpy arrays
-                y_validation_np = self.y_validation.get() # type: ignore
+                y_validation_np = self.y_validation.get()
             else:
                 y_validation_np = self.y_validation
 
 
             # Get the AUC score of the validation dataset
-            fpr, tpr, _ = roc_curve(y_validation_np, y_pred) # type: ignore
+            fpr, tpr, _ = roc_curve(y_validation_np, y_pred)
 
             # Calculate the AUC score
             roc_auc = auc(fpr, tpr)
 
             # Save the AUC score as a user attribute
             trial.set_user_attr("AUC", roc_auc)
-        
+
         else:
             # Train the model and get the AUC score
-            _, metric = OCxgboost.run_xgboost(self.X_train, self.y_train, self.X_test, self.y_test, params = trial_params, verbose = self.verbose) # type: ignore
-    
+            _, metric = OCxgboost.run_xgboost(self.X_train, self.y_train, self.X_test, self.y_test, params = trial_params, verbose = self.verbose)
+
         # Return the trained AUC score
 
         return metric
 
 
-    def optimize(self, 
+    def optimize(self,
                  direction : str = "minimize",
                  n_trials : int = 1000,
                   n_jobs : int = 1,
@@ -306,15 +306,15 @@ class XGBoostOptimizer:
 
         # Create an Optuna study
         study = optuna.create_study(
-            direction = direction, 
-            study_name = study_name, 
-            storage = self.storage, 
-            load_if_exists = load_if_exists, 
+            direction = direction,
+            study_name = study_name,
+            storage = self.storage,
+            load_if_exists = load_if_exists,
             sampler = sampler
         )
 
         # Optimize the objective function
-        study.optimize(self.objective, n_trials = n_trials, n_jobs = n_jobs) # type: ignore
+        study.optimize(self.objective, n_trials = n_trials, n_jobs = n_jobs)
 
         # Get the best hyperparameters and the best score
         best_params = study.best_params

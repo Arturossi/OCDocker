@@ -70,7 +70,7 @@ def plot_correlation_similarity(df1 : pd.DataFrame, df2 : pd.DataFrame, columns 
     # If no columns are specified, use all columns except metadata
     if not columns:
         # Find common columns in both DataFrames
-        columns = df1.columns.intersection(df2.columns) # type: ignore
+        columns = df1.columns.intersection(df2.columns)
 
     # Filter both DataFrames to include only common columns
     filtered_df1 = df1[columns]
@@ -162,7 +162,7 @@ def plot_roc_curves(df : pd.DataFrame, feature_cols : list, labels : pd.Series, 
         auc_dict[feature] = roc_auc
 
     # Sort the features by their AUC in descending order
-    sorted_features = sorted(auc_dict, key=auc_dict.get, reverse=True) # type: ignore
+    sorted_features = sorted(auc_dict, key=auc_dict.get, reverse=True)
 
     # Create the plot
     plt.figure(figsize=(14, 10))

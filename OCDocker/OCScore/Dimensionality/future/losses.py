@@ -151,12 +151,15 @@ def reconstruction_loss(
     '''
 
     if loss_type == "mae":
-        return nn.L1Loss()(pred, target)
+        loss: torch.Tensor = nn.L1Loss()(pred, target)
+        return loss
     if loss_type == "huber":
         # Huber is robust to outliers while remaining differentiable.
-        return nn.SmoothL1Loss(beta=huber_delta)(pred, target)
+        loss = nn.SmoothL1Loss(beta=huber_delta)(pred, target)
+        return loss
     if loss_type == "rmse":
         # RMSE preserves original unit scale.
-        mse = nn.MSELoss()(pred, target)
+        mse: torch.Tensor = nn.MSELoss()(pred, target)
         return torch.sqrt(mse + 1e-8)
-    return nn.MSELoss()(pred, target)
+    loss = nn.MSELoss()(pred, target)
+    return loss

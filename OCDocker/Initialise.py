@@ -105,7 +105,7 @@ def __inner_initialise_models(oddt_sf: str) -> None:
 
     # Discover the scoring function (lazy import to avoid hard dependency at import time)
     if oddt_sf.lower().startswith('rfscore'):
-        from oddt.scoring.functions.RFScore import rfscore  # type: ignore
+        from oddt.scoring.functions.RFScore import rfscore
         # Create the new kwargs dict
         new_kwargs = {}
         # For each bit in the oddt_sf string
@@ -119,7 +119,7 @@ def __inner_initialise_models(oddt_sf: str) -> None:
         _ = rfscore.load(**new_kwargs)
 
     elif oddt_sf.lower().startswith('nnscore'):
-        from oddt.scoring.functions.NNScore import nnscore  # type: ignore
+        from oddt.scoring.functions.NNScore import nnscore
         # Create the new kwargs dict
         new_kwargs = {}
         # For each bit in the oddt_sf string
@@ -131,7 +131,7 @@ def __inner_initialise_models(oddt_sf: str) -> None:
         _ = nnscore.load(**new_kwargs)
 
     elif oddt_sf.lower().startswith('plec'):
-        from oddt.scoring.functions.PLECscore import PLECscore  # type: ignore
+        from oddt.scoring.functions.PLECscore import PLECscore
         # Create the new kwargs dict
         new_kwargs = {}
         # For each bit in the oddt_sf string
@@ -156,34 +156,34 @@ def __inner_initialise_models(oddt_sf: str) -> None:
 
 def _parse_config_file(config_file: str) -> Dict[str, Any]:
     '''Parse OCDocker configuration file using configparser.
-    
+
     This function replaces the manual string parsing with a more robust
     approach using Python's configparser module. It handles:
     - Type conversion (int, bool, list)
     - Default values
     - Error handling
     - Comments and empty lines
-    
+
     Parameters
     ----------
     config_file : str
         Path to the configuration file
-        
+
     Returns
     -------
     Dict[str, Any]
         Dictionary containing all configuration values
-        
+
     Raises
     ------
     SystemExit
         If the configuration file cannot be read or parsed
     '''
-    
+
     # Allow duplicate keys to maintain compatibility with legacy configs that
     # may define the same option multiple times (last one wins).
     config = configparser.ConfigParser(strict=False)
-    
+
     # Read config file - configparser can handle files without sections
     # by using the DEFAULT section
     try:
@@ -191,16 +191,16 @@ def _parse_config_file(config_file: str) -> Dict[str, Any]:
         with open(config_file, 'r') as f:
             # Prepend [DEFAULT] to make it a valid INI file
             config_content = '[DEFAULT]\n' + f.read()
-        
+
         config.read_string(config_content)
     except (OSError, IOError, configparser.Error) as e:
         print(f"{clrs['r']}ERROR{clrs['n']}: Failed to read configuration file '{config_file}': {e}")
         raise SystemExit(2)
-    
+
     # Helper function to get config values with type conversion
     def get_config(key: str, default: Any = "", value_type: type = str) -> Any:
         '''Get configuration value with type conversion.
-        
+
         Parameters
         ----------
         key : str
@@ -209,20 +209,20 @@ def _parse_config_file(config_file: str) -> Dict[str, Any]:
             Default value if key is not found
         value_type : type
             Type to convert the value to (str, int, float, bool, list)
-            
+
         Returns
         -------
         Any
             Configuration value converted to the specified type
         '''
-        
+
         try:
             value = config.get('DEFAULT', key, fallback=default)
-            
+
             # Handle empty strings
             if not value or value.strip() == "":
                 return default
-            
+
             # Type conversion
             if value_type == int:
                 return int(value.strip())
@@ -246,7 +246,7 @@ def _parse_config_file(config_file: str) -> Dict[str, Any]:
                 # output_level not set yet, skip warning
                 pass
             return default
-    
+
     # Parse all configuration values
     config_dict = {
         # Database settings
@@ -258,18 +258,18 @@ def _parse_config_file(config_file: str) -> Dict[str, Any]:
         'PORT': get_config('PORT', None, int),
         'USE_SQLITE': get_config('USE_SQLITE', ''),
         'SQLITE_PATH': get_config('SQLITE_PATH', ''),
-        
+
         # General paths
         'ocdb': get_config('ocdb', ''),
         'pca': get_config('pca', ''),
         'pdbbind_KdKi_order': get_config('pdbbind_KdKi_order', 'u'),
         'reference_column_order': get_config('reference_column_order', [], list),
-        
+
         # MGLTools
         'pythonsh': get_config('pythonsh', 'pythonsh'),
         'prepare_ligand': get_config('prepare_ligand', 'prepare_ligand4.py'),
         'prepare_receptor': get_config('prepare_receptor', 'prepare_receptor4.py'),
-        
+
         # Vina
         'vina': get_config('vina', 'vina'),
         'vina_split': get_config('vina_split', 'vina_split'),
@@ -278,7 +278,7 @@ def _parse_config_file(config_file: str) -> Dict[str, Any]:
         'vina_num_modes': get_config('vina_num_modes', '3'),
         'vina_scoring': get_config('vina_scoring', 'vina'),
         'vina_scoring_functions': get_config('vina_scoring_functions', ['vina'], list),
-        
+
         # Smina
         'smina': get_config('smina', 'smina'),
         'smina_energy_range': get_config('smina_energy_range', '10'),
@@ -299,7 +299,7 @@ def _parse_config_file(config_file: str) -> Dict[str, Any]:
         'smina_force_cap': get_config('smina_force_cap', '10'),
         'smina_user_grid': get_config('smina_user_grid', 'no'),
         'smina_user_grid_lambda': get_config('smina_user_grid_lambda', 'no'),
-        
+
         # Gnina
         'gnina': get_config('gnina', 'gnina'),
         'gnina_exhaustiveness': get_config('gnina_exhaustiveness', ''),
@@ -323,7 +323,7 @@ def _parse_config_file(config_file: str) -> Dict[str, Any]:
         'gnina_user_grid': get_config('gnina_user_grid', ''),
         'gnina_user_grid_lambda': get_config('gnina_user_grid_lambda', ''),
         'gnina_no_gpu': get_config('gnina_no_gpu', ''),
-        
+
         # PLANTS
         'plants': get_config('plants', 'plants'),
         'plants_cluster_structures': get_config('plants_cluster_structures', 3, int),
@@ -332,25 +332,25 @@ def _parse_config_file(config_file: str) -> Dict[str, Any]:
         'plants_scoring': get_config('plants_scoring', 'chemplp'),
         'plants_scoring_functions': get_config('plants_scoring_functions', ['chemplp'], list),
         'plants_rescoring_mode': get_config('plants_rescoring_mode', 'simplex'),
-        
+
         # Dock6
         'dock6': get_config('dock6', ''),
         'dock6_vdw_defn_file': get_config('dock6_vdw_defn_file', ''),
         'dock6_flex_defn_file': get_config('dock6_flex_defn_file', ''),
         'dock6_flex_drive_file': get_config('dock6_flex_drive_file', ''),
-        
+
         # LeDock
         'ledock': get_config('ledock', ''),
         'lepro': get_config('lepro', ''),
         'ledock_rmsd': get_config('ledock_rmsd', ''),
         'ledock_num_poses': get_config('ledock_num_poses', ''),
-        
+
         # ODDT
         'oddt': get_config('oddt', ''),
         'oddt_seed': get_config('oddt_seed', ''),
         'oddt_chunk_size': get_config('oddt_chunk_size', ''),
         'oddt_scoring_functions': get_config('oddt_scoring_functions', [], list),
-        
+
         # Other software
         'chimera': get_config('chimera', ''),
         'dssp': get_config('dssp', 'dssp'),
@@ -358,7 +358,7 @@ def _parse_config_file(config_file: str) -> Dict[str, Any]:
         'spores': get_config('spores', 'spores'),
         'DUDEz': get_config('DUDEz', ''),
     }
-    
+
     # Validate PORT if provided (already converted to int by get_config, but double-check)
     if config_dict['PORT'] is not None and not isinstance(config_dict['PORT'], int):
         try:
@@ -366,13 +366,13 @@ def _parse_config_file(config_file: str) -> Dict[str, Any]:
         except (ValueError, TypeError):
             print(f"{clrs['r']}ERROR{clrs['n']}: The port number must be an integer.")
             raise SystemExit(2)
-    
+
     return config_dict
 
 
 def _register_db_cleanup() -> None:
     '''Register database cleanup handlers with atexit.
-    
+
     This ensures that database sessions and engines are properly closed
     when the application exits, preventing connection leaks.
     '''
@@ -396,14 +396,14 @@ def _sync_import_consumers() -> None:
         # If parent frame is None, return
         if not parent:
             return
-    
+
         # Get the module name of the parent frame
         module_name = parent.f_globals.get("__name__")
 
         # If module name is invalid, return
         if not isinstance(module_name, str) or module_name in ("builtins", __name__):
             return
-        
+
         # Push public items to the parent frame's globals
         public_items = {
             name: value
@@ -447,7 +447,7 @@ def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
     ns : argparse.Namespace, optional
         Parsed command line arguments (if already available), by default None
     '''
-    
+
     global bootstrapped
     if bootstrapped:
         return
@@ -493,7 +493,7 @@ def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
             os.path.join(_package_root, "OCDocker.cfg"),  # Project root
             os.path.join(_module_dir, "..", "..", "OCDocker.cfg"),  # Alternative path
         ]
-        
+
         found = False
         for path in possible_paths:
             abs_path = os.path.abspath(path)
@@ -501,7 +501,7 @@ def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
                 config_file = abs_path
                 found = True
                 break
-        
+
         if not found:
             print(f"{clrs['r']}ERROR{clrs['n']}: OCDocker configuration file not found.")
             print(f"  Searched in: current directory, {_package_root}")
@@ -514,12 +514,12 @@ def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
     # Create and set Config object first
     from OCDocker.Config import OCDockerConfig, set_config
     config = OCDockerConfig.from_config_file(config_file)
-    
+
     # Update config with command-line arguments
     config.output_level = output_level
     config.multiprocess = bool(getattr(ns, 'multiprocess', True))
     config.overwrite = overwrite
-    
+
     # Determine DB backend (MySQL default; optional SQLite fallback)
     use_sqlite_env = str(os.getenv('OCDOCKER_USE_SQLITE', '')).lower() in ('1', 'true', 'yes', 'y')
     use_sqlite_cfg = str(config.database.use_sqlite).lower() in ('1', 'true', 'yes', 'y', 'on', 'sqlite') if config.database.use_sqlite else False
@@ -552,20 +552,20 @@ def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
             print(f"{clrs['r']}ERROR{clrs['n']}: The variables HOST, USER, PASSWORD, DATABASE and PORT must be set in the config file '{config_file}'")
             raise SystemExit(2)
         db_url = URL.create(
-            drivername='mysql+pymysql', 
-            host=config.database.host, 
-            username=config.database.user, 
-            password=config.database.password, 
-            database=config.database.database, 
-            port=config.database.port  # type: ignore
+            drivername='mysql+pymysql',
+            host=config.database.host,
+            username=config.database.user,
+            password=config.database.password,
+            database=config.database.database,
+            port=config.database.port
         )
         optdb_url = URL.create(
-            drivername='mysql+pymysql', 
-            host=config.database.host, 
-            username=config.database.user, 
-            password=config.database.password, 
-            database=config.database.optimizedb, 
-            port=config.database.port  # type: ignore
+            drivername='mysql+pymysql',
+            host=config.database.host,
+            username=config.database.user,
+            password=config.database.password,
+            database=config.database.optimizedb,
+            port=config.database.port
         )
 
     engine = create_engine(db_url)
@@ -633,7 +633,7 @@ def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
     config.logdir = logdir
     config.oddt_models_dir = oddt_models_dir
     config.available_cores = available_cores
-    
+
     # Set as global config
     set_config(config)
 
@@ -644,16 +644,16 @@ def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
     # Note: _sync_import_consumers() exists but is not called - no longer needed since we've eliminated star imports
     # If any legacy code still uses star imports, uncomment the line below:
     # _sync_import_consumers()
-    
+
     # Register cleanup handlers for database connections
     _register_db_cleanup()
-    
+
     bootstrapped = True
 
 
 def cleanup_database_resources() -> None:
     '''Clean up database resources (sessions and engines) on shutdown.
-    
+
     This function is automatically registered with atexit to ensure proper cleanup
     of database connections when the application exits.
     '''
@@ -1029,7 +1029,7 @@ def create_ocdocker_conf() -> None:
     except (OSError, IOError):
         # Fallback to default path if 'which' command fails
         confODDT = "/usr/bin/oddt_cli"
-    
+
     confODDT_scoring_functions = "rfscore_v1_pdbbind2016,rfscore_v2_pdbbind2016,rfscore_v3_pdbbind2016,nnscore_pdbbind2016,plecrf_pdbbind2016"
     confODDT_seed = 42
     confODDT_chunk_size = 100
@@ -1082,7 +1082,7 @@ def create_ocdocker_conf() -> None:
         cf.write(tw.dedent("""#######################################################
 ###################### OCDocker #######################
 #######################################################
-                           
+
 #################### SQL PARAMETERS ###################
 HOST = """ + str(confHOST) + """
 USER = """ + str(confUSER) + """
@@ -1092,7 +1092,7 @@ OPTIMIZEDB = """ + str(confOPTIMIZEDB) + """
 PORT = """ + str(confPORT) + """
 
 ################### OCDB PARAMETERS ###################
-                                 
+
 # Root directory for the OCDocker Database
 ocdb = """ + str(confOcdb) + """
 
@@ -1357,18 +1357,18 @@ DUDEz = """ + str(confDUDEz) + """
 
 def get_argument_parsing() -> argparse.ArgumentParser:
     '''Get data to generate vina conf file from box file.
-    
+
     Returns
     -------
     argparse.ArgumentParser
         Argument parser object.
     '''
-    
+
     # Create the parser
     parser = argparse.ArgumentParser(prog="OCDocker",
                                      formatter_class=argparse.RawDescriptionHelpFormatter,
                                      description=_description)
-    
+
     # Add the arguments
     parser.add_argument("--version",
                         action="version",
@@ -1403,7 +1403,7 @@ def get_argument_parsing() -> argparse.ArgumentParser:
                         default=1,
                         metavar="",
                         help="Define the log level:\n\t0: Silent\n\t1: Critical\n\t2: Warning (default)\n\t3: Info\n\t4: Verbose mode\n\t5: Debug")
-    
+
     parser.add_argument("--overwrite",
                         dest="overwrite",
                         action="store_true",
@@ -1451,14 +1451,14 @@ def initialise_oddt_models(oddt_models_dir: str, oddt_scoring_functions_aux: lis
             # Initialise the model
             __inner_initialise_models(oddt_scoring_function_aux)
             # Return to the previous dir
-            os.chdir(current_dir) # type: ignore
+            os.chdir(current_dir)
     # Return
     return None
 
 
 def is_doc_build() -> bool:
     '''Detects if the code is being run in a documentation (e.g., Sphinx) or test context.
-    
+
     Returns
     -------
     bool

@@ -68,7 +68,7 @@ def _generate_digest_generic(
     box_id: Optional[str] = None,
 ) -> int:
     '''Generate the docking digest.
-    
+
     Parameters
     ----------
     digestPath : str
@@ -107,37 +107,37 @@ def _generate_digest_generic(
 
                             # Check if the digest variable is fine
                             if not isinstance(digest, dict):
-                                return ocerror.Error.wrong_type( # type: ignore
+                                return ocerror.Error.wrong_type(
                                     f"The digest file '{digestPath}' is not valid.",
                                     ocerror.ReportLevel.ERROR,
                                 )
                     except (OSError, IOError, FileNotFoundError, json.JSONDecodeError):
-                        return ocerror.Error.file_not_exist( # type: ignore
+                        return ocerror.Error.file_not_exist(
                             f"Could not read the digest file '{digestPath}'.",
                             ocerror.ReportLevel.ERROR,
                         )
             else:
                 # Since it does not exists, create it
                 digest = ocff.empty_docking_digest(digestPath, overwrite)
-            
+
             # Read the docking object log to generate the docking digest
             dockingDigest = read_log_func(logPath)
 
             # Check if the digest variable is fine
             if not isinstance(digest, dict):
-                return ocerror.Error.wrong_type( # type: ignore
+                return ocerror.Error.wrong_type(
                     f"The docking digest file '{digestPath}' is not valid.",
                     ocerror.ReportLevel.ERROR,
                 )
-        
+
             # Merge the digest and the docking digest
             if box_id:
                 box_key = str(box_id)
                 if box_key not in digest or not isinstance(digest.get(box_key), dict):
                     digest[box_key] = {}
-                digest[box_key] = {**digest[box_key], **dockingDigest} # type: ignore
+                digest[box_key] = {**digest[box_key], **dockingDigest}
             else:
-                digest = {**digest, **dockingDigest} # type: ignore
+                digest = {**digest, **dockingDigest}
 
             # If the format is json, write the digest file
             if digestFormat == "json":
@@ -148,18 +148,18 @@ def _generate_digest_generic(
                         # Dump the data
                         json.dump(digest, f)
                 except (OSError, IOError, PermissionError):
-                    return ocerror.Error.write_file( # type: ignore
+                    return ocerror.Error.write_file(
                         f"Could not write the digest file '{digestPath}'.",
                         ocerror.ReportLevel.ERROR,
                     )
-            return ocerror.Error.ok()  # type: ignore
-        
-        return ocerror.Error.unsupported_extension( # type: ignore
+            return ocerror.Error.ok()
+
+        return ocerror.Error.unsupported_extension(
             f"The provided extension '{digestFormat}' is not supported.",
             ocerror.ReportLevel.ERROR,
         )
-    
-    return ocerror.Error.file_exists( # type: ignore
+
+    return ocerror.Error.file_exists(
         f"The file '{digestPath}' already exists. If you want to overwrite it yse the overwrite flag.",
         level=ocerror.ReportLevel.WARNING,
 
@@ -186,7 +186,7 @@ def _get_docked_poses_generic(posesPath: str, error_method: Callable) -> List[st
     # Check if the posesPath exists
     if os.path.isdir(posesPath):
         return [d for d in glob(f"{posesPath}/*_split_*.pdbqt") if os.path.isfile(d)]
-    
+
     # Print an error message
     error_method(
         message=f"The poses path '{posesPath}' does not exist.",
@@ -228,17 +228,17 @@ def _read_log_generic(path: str, scoring_key: str, engine: str, error_log: str, 
             # Check if file is empty
             if os.stat(path).st_size == 0:
                 # Print the error
-                _ = ocerror.Error.empty_file( # type: ignore
+                _ = ocerror.Error.empty_file(
                     f"The {engine} log file '{path}' is empty.",
                     ocerror.ReportLevel.ERROR,
                 )
 
                 # Return the dictionary with invalid default data
                 return data
-        
+
             # Try except to avoid broken pipe ocerror.Error
             try:
-                # Lazy read the file reversely 
+                # Lazy read the file reversely
                 for line in ocio.lazyread_reverse_order_mmap(path):
                     # While the line does not start with "-----+"
                     if line.startswith("-----+"):
@@ -251,12 +251,12 @@ def _read_log_generic(path: str, scoring_key: str, engine: str, error_log: str, 
                     if len(splitLine) == 4:
                         # Assign the data in the dictionary with the pose as key and the affinity as value
                         data[int(splitLine[0])] = {scoring_key: splitLine[1]}
-                
+
                 # If onlyBest is True
                 if onlyBest:
                     # Return only the best pose (-1 since the data is reversed)
                     return {list(data.keys())[-1]: list(data.values())[-1]}
-            
+
                 # Otherwise return the data
                 return data
             except IOError as e:
@@ -271,14 +271,14 @@ def _read_log_generic(path: str, scoring_key: str, engine: str, error_log: str, 
             # Return the df reversing the order and reseting the index
             return data
         except Exception as e:
-            _ = ocerror.Error.read_docking_log_error( # type: ignore
+            _ = ocerror.Error.read_docking_log_error(
                 f"Problems while reading the {engine} log file '{path}'. Error: {e}",
                 ocerror.ReportLevel.ERROR,
             )
             return data
-        
+
     # Throw an error
-    _ = ocerror.Error.file_not_exist( # type: ignore
+    _ = ocerror.Error.file_not_exist(
         f"The file '{path}' does not exists. Please ensure its existance before calling this function.",
     )
 
@@ -313,7 +313,7 @@ def _read_rescoring_log_generic(path: str, start_string: str, engine: str, error
             # Check if file is empty
             if os.stat(path).st_size == 0:
                 # Print the error
-                _ = ocerror.Error.empty_file( # type: ignore
+                _ = ocerror.Error.empty_file(
                     f"The {engine} rescoring log file '{path}' is empty.",
                     ocerror.ReportLevel.ERROR,
                 )
@@ -345,14 +345,14 @@ def _read_rescoring_log_generic(path: str, start_string: str, engine: str, error
                     )
             return np.nan
         except Exception as e:
-            _ = ocerror.Error.read_docking_log_error( # type: ignore
+            _ = ocerror.Error.read_docking_log_error(
                 f"Problems while reading the {engine} log file '{path}'. Error: {e}",
                 ocerror.ReportLevel.ERROR,
             )
             return np.nan
-    
+
     # Throw an error
-    _ = ocerror.Error.file_not_exist( # type: ignore
+    _ = ocerror.Error.file_not_exist(
         f"The file '{path}' does not exists. Please ensure its existance before calling this function.",
     )
 
@@ -375,7 +375,7 @@ def generate_smina_digest(digestPath: str, logPath: str, overwrite: bool = False
         If True, overwrites the output files if they already exist. (default is False)
     digestFormat : str, optional
         The format of the digest file. The options are: [ json (default), hdf5 (not implemented) ]
-    
+
     Returns
     -------
     int
@@ -388,7 +388,7 @@ def generate_smina_digest(digestPath: str, logPath: str, overwrite: bool = False
 
 def generate_vina_digest(digestPath: str, logPath: str, overwrite: bool = False, digestFormat: str = "json", box_id: Optional[str] = None) -> int:
     '''Wrapper for generating the Vina digest.
-    
+
     Parameters
     ----------
     digestPath : str
@@ -425,7 +425,7 @@ def get_smina_docked_poses(posesPath: str) -> List[str]:
     '''
 
     # Use the Error class to get the error method for directory not existing
-    err = getattr(ocerror.Error, "dir_does_not_exist", ocerror.Error.dir_not_exist) # type: ignore
+    err = getattr(ocerror.Error, "dir_does_not_exist", ocerror.Error.dir_not_exist)
 
     # Call the generic get docked poses function
     return _get_docked_poses_generic(posesPath, err)
@@ -433,19 +433,19 @@ def get_smina_docked_poses(posesPath: str) -> List[str]:
 
 def get_vina_docked_poses(posesPath: str) -> List[str]:
     '''Get the paths for the docked poses from Vina output directory.
-    
+
     Parameters
     ----------
     posesPath : str
         The path to the directory containing the docked poses.
-    
+
     Returns
     -------
     List[str]
         A list with the paths for the docked poses. Returns an empty list if the directory does not exist.
     '''
-    
-    return _get_docked_poses_generic(posesPath, ocerror.Error.dir_not_exist) # type: ignore
+
+    return _get_docked_poses_generic(posesPath, ocerror.Error.dir_not_exist)
 
 
 def read_smina_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
@@ -457,7 +457,7 @@ def read_smina_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, flo
         The path to the Smina log file.
     onlyBest : bool, optional
         If True, only the best pose will be returned. By default False.
-    
+
     Returns
     -------
     Dict[int, Dict[int, float]]
@@ -476,7 +476,7 @@ def read_smina_rescoring_log(path: str) -> float:
     ----------
     path : str
         The path to the Smina rescoring log file.
-    
+
     Returns
     -------
     float
@@ -488,14 +488,14 @@ def read_smina_rescoring_log(path: str) -> float:
 
 def read_vina_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
     '''Wrapper for reading the Vina log file.
-    
+
     Parameters
     ----------
     path : str
         The path to the Vina log file.
     onlyBest : bool, optional
         If True, only the best pose will be returned. By default False.
-    
+
     Returns
     -------
     Dict[int, Dict[int, float]]
@@ -514,7 +514,7 @@ def read_vina_rescoring_log(path: str) -> float:
     ----------
     path : str
         The path to the Vina rescoring log file.
-    
+
     Returns
     -------
     float

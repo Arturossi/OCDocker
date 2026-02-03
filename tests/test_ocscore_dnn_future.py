@@ -64,7 +64,7 @@ def test_future_dnn_sanity():
         "stage2": {"epochs": 1, "batch_size_per_target": None},
         "data": {"dude_validation_fraction": 0.5, "dude_split_by_target": True},
         "optimization": {"multi_objective": False, "objective_metric": "AUC"},
-        "dude_targets": targets
+        "separation_targets": targets
     }
 
     trainer = DNNOptimizer(

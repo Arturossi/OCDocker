@@ -51,7 +51,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 # Expose submodules so that Sphinx autodoc can import as `from OCDocker.DB import DB`.
 try:  # optional during docs build
-    from . import DB as DB  # type: ignore
+    from . import DB as DB
 except Exception:
     pass
 

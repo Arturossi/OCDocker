@@ -119,8 +119,8 @@ def test_box_to_vina_creates_conf(tmp_path, monkeypatch):
     assert rc == 0
     txt = conf.read_text()
     assert 'receptor = rec.pdbqt' in txt
-    assert 'center_x = 36.552' in txt
-    assert 'size_z = 102.582' in txt
+    assert 'center_x = 32.698' in txt
+    assert 'size_z = 13.851' in txt
 
 
 @pytest.mark.order(98)
@@ -164,5 +164,5 @@ def test_gen_smina_conf_with_custom_flags(tmp_path, monkeypatch):
     assert 'minimize_iters = 5' in txt
     assert 'user_grid = grid.map' in txt
     assert 'user_grid_lambda = 0.5' in txt
-    assert 'center_x = 36.552' in txt
-    assert 'size_z = 102.582' in txt
+    assert 'center_x = 32.698' in txt
+    assert 'size_z = 13.851' in txt

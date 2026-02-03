@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd
 
 from optuna.samplers import TPESampler
-from typing import Dict, Optional, Union
+from typing import Any, Dict, Optional, Union, cast
 
 import OCDocker.Toolbox.Printing as ocprint
 
@@ -192,7 +192,7 @@ class AutoencoderOptimizer:
             X_train: Union[np.ndarray, pd.DataFrame, pd.Series],
             X_test: Union[np.ndarray, pd.DataFrame, pd.Series],
             X_validation: Union[None, np.ndarray, pd.DataFrame, pd.Series] = None,
-            encoding_dims: tuple = (16, 256),
+            encoding_dims: tuple[int, int] = (16, 256),
             storage: str = "sqlite:///autoencoder.db",
             models_folder: str = "./models/Autoencoder/",
             random_seed: int = 42,
@@ -246,15 +246,22 @@ class AutoencoderOptimizer:
 
         self.set_random_seed()
 
-        self.X_train = self._to_numpy(X_train)
-        self.X_test = self._to_numpy(X_test)
-        self.X_validation = self._to_numpy(X_validation) if X_validation is not None else None
-        self.X_unlabeled = self._to_numpy(X_unlabeled) if X_unlabeled is not None else None
+        X_train_np = self._to_numpy(X_train)
+        if X_train_np is None:
+            raise ValueError("X_train cannot be None")
+        self.X_train: np.ndarray = X_train_np
 
-        self.y_train = self._to_numpy(y_train) if y_train is not None else None
-        self.y_test = self._to_numpy(y_test) if y_test is not None else None
-        self.y_validation = self._to_numpy(y_validation) if y_validation is not None else None
+        X_test_np = self._to_numpy(X_test)
+        if X_test_np is None:
+            raise ValueError("X_test cannot be None")
+        self.X_test: np.ndarray = X_test_np
 
+        self.X_validation: Optional[np.ndarray] = self._to_numpy(X_validation) if X_validation is not None else None
+        self.X_unlabeled: Optional[np.ndarray] = self._to_numpy(X_unlabeled) if X_unlabeled is not None else None
+
+        self.y_train: Optional[np.ndarray] = self._to_numpy(y_train) if y_train is not None else None
+        self.y_test: Optional[np.ndarray] = self._to_numpy(y_test) if y_test is not None else None
+        self.y_validation: Optional[np.ndarray] = self._to_numpy(y_validation) if y_validation is not None else None
 
         self.input_size = int(self.X_train.shape[1])
         self.encoding_dims = encoding_dims
@@ -310,7 +317,7 @@ class AutoencoderOptimizer:
         # Conservative latent size default based on input dimensionality.
         latent_default = min(128, max(8, self.input_size // 2))
 
-        default_config = {
+        default_config: Dict[str, Dict[str, Any]] = {
             "model": {
                 "encoder_hidden_sizes": [512, 256],
                 "latent_dim": latent_default,
@@ -393,10 +400,10 @@ class AutoencoderOptimizer:
             return default_config
 
         # One-level deep merge to keep overrides predictable.
-        merged = copy.deepcopy(default_config)
+        merged: Dict[str, Any] = copy.deepcopy(default_config)
         for key, sub in future_config.items():
-            if isinstance(sub, dict) and key in merged:
-                merged[key].update(sub)
+            if isinstance(sub, dict) and isinstance(merged.get(key), dict):
+                cast(Dict[str, Any], merged[key]).update(sub)
             else:
                 merged[key] = sub
 
@@ -474,7 +481,7 @@ class AutoencoderOptimizer:
         if data is None:
             return None
         if isinstance(data, pd.DataFrame) or isinstance(data, pd.Series):
-            return data.values.astype(np.float32)
+            return np.asarray(data.values, dtype=np.float32)
         return np.asarray(data, dtype=np.float32)
 
     def objective(self, trial: optuna.Trial) -> float:

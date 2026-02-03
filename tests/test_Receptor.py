@@ -248,7 +248,7 @@ def test_count_surface_AA_empty_path():
 def test_filter_sequence_empty():
     '''Test _filterSequence with empty string.'''
     
-    result = ocr.__filterSequence("")
+    result = ocr._filterSequence("")
     
     assert result == ""
 

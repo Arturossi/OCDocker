@@ -20,7 +20,7 @@ import sys
 import time
 
 from glob import glob
-from typing import Optional
+from typing import Any, Optional, TypedDict
 
 import OCDocker.Error as ocerror
 import OCDocker.Toolbox.FilesFolders as ocff
@@ -45,7 +45,15 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 
-_STATE = {
+class _State(TypedDict):
+    configured: bool
+    logger: logging.Logger
+    use_rich: bool
+    to_stdout: bool
+    stream_handler: Optional[logging.Handler]
+
+
+_STATE: _State = {
     "configured": False,
     "logger": logging.getLogger("ocdocker"),
     "use_rich": False,
@@ -78,14 +86,15 @@ def _build_stream_handler(to_stdout: bool, use_rich: bool) -> tuple[logging.Hand
         The handler instance and a flag indicating whether Rich is active.
     '''
 
+    handler: logging.Handler
     if use_rich:
         try:
-            from rich.console import Console  # type: ignore
-            from rich.logging import RichHandler  # type: ignore
-            from rich.theme import Theme  # type: ignore
+            from rich.console import Console
+            from rich.logging import RichHandler
+            from rich.theme import Theme
             theme = Theme({"log.time": _RICH_TIME_STYLE})
             console = Console(file=sys.stdout if to_stdout else sys.stderr, theme=theme)
-            kwargs = {
+            kwargs: dict[str, Any] = {
                 "console": console,
                 "show_time": True,
                 "show_level": True,
@@ -95,7 +104,7 @@ def _build_stream_handler(to_stdout: bool, use_rich: bool) -> tuple[logging.Hand
             }
             try:
                 sig = inspect.signature(RichHandler.__init__)
-                supported = {k: v for k, v in kwargs.items() if k in sig.parameters}
+                supported: dict[str, Any] = {k: v for k, v in kwargs.items() if k in sig.parameters}
                 handler = RichHandler(**supported)
             except (ValueError, TypeError):
                 handler = RichHandler(console=console)
@@ -110,7 +119,7 @@ def _build_stream_handler(to_stdout: bool, use_rich: bool) -> tuple[logging.Hand
 
 def _default_logdir() -> str:
     '''Get the default log directory, using config if available, otherwise fallback.
-    
+
     Returns
     -------
     str
@@ -142,13 +151,13 @@ def _ensure_configured(to_stdout: bool = True, use_rich: Optional[bool] = None) 
 
     logger = _STATE["logger"]
     if use_rich is None:
-        use_rich = _STATE.get("use_rich", False)
+        use_rich = _STATE["use_rich"]
 
     if _STATE["configured"]:
-        if _STATE.get("use_rich") == use_rich and _STATE.get("to_stdout") == to_stdout:
+        if _STATE["use_rich"] == use_rich and _STATE["to_stdout"] == to_stdout:
             return
-        old_handler = _STATE.get("stream_handler")
-        if old_handler in logger.handlers:
+        old_handler = _STATE["stream_handler"]
+        if old_handler is not None and old_handler in logger.handlers:
             logger.removeHandler(old_handler)
 
     logger.setLevel(logging.DEBUG)
@@ -220,7 +229,7 @@ def configure(
     '''
 
     if use_rich is None:
-        use_rich = _STATE.get("use_rich", False)
+        use_rich = _STATE["use_rich"]
     _ensure_configured(to_stdout=to_stdout, use_rich=use_rich)
     if level is None:
         level = ocerror.Error.get_output_level()
@@ -238,7 +247,7 @@ def configure(
 
 def get_logger(name: Optional[str] = None) -> logging.Logger:
     '''Return the configured logger (or a child).
-    
+
     Parameters
     ----------
     name : Optional[str], optional
@@ -250,7 +259,7 @@ def get_logger(name: Optional[str] = None) -> logging.Logger:
         The requested logger instance.
     '''
 
-    _ensure_configured(to_stdout=_STATE.get("to_stdout", True), use_rich=None)
+    _ensure_configured(to_stdout=_STATE["to_stdout"], use_rich=None)
 
     return _STATE["logger"] if not name else _STATE["logger"].getChild(name)
 
@@ -263,12 +272,12 @@ def is_rich_enabled() -> bool:
     bool
         True when Rich is enabled for console logging.
     '''
-    return bool(_STATE.get("use_rich"))
+    return _STATE["use_rich"]
 
 
 def set_level_from_report(level: ocerror.ReportLevel) -> None:
     '''Map ocerror.ReportLevel to logging level and set it.
-    
+
     Parameters
     ----------
     level : ocerror.ReportLevel

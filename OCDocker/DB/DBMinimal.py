@@ -54,12 +54,12 @@ def cleanup_engine(engine: Optional[Engine]) -> None:
 
     This function closes all connections in the connection pool and disposes of
     the engine. It's automatically called on application shutdown via atexit handlers.
-    
+
     Parameters
     ----------
     engine : Engine | None
         The engine to clean up.
-        
+
     Notes
     -----
     - This is safe to call multiple times (idempotent)
@@ -82,12 +82,12 @@ def cleanup_session(session: Optional[scoped_session]) -> None:
 
     This function removes all thread-local session instances from the scoped_session
     registry. It's automatically called on application shutdown via atexit handlers.
-    
+
     Parameters
     ----------
     session : scoped_session | None
         The scoped session to clean up.
-        
+
     Notes
     -----
     - This is safe to call multiple times (idempotent)
@@ -106,13 +106,13 @@ def cleanup_session(session: Optional[scoped_session]) -> None:
 
 def create_database_if_not_exists(url: Union[str, URL]) -> None:
     ''' Create the database if it does not exist.
-    
+
     Parameters
     ----------
     url : str | sqlalchemy.engine.url.URL
         The database url (string or URL object).
     '''
-    
+
     # Convert string URL to URL object if necessary
     if isinstance(url, str):
         url = make_url(url)
@@ -120,7 +120,7 @@ def create_database_if_not_exists(url: Union[str, URL]) -> None:
     # If the database does not exist, create it
     if not database_exists(url):
         create_database(url)
-    
+
     return None
 
 
@@ -147,7 +147,7 @@ def create_engine(url: Union[str, URL], echo: bool = False, pool_size: int = 5, 
     Engine : sqlalchemy.engine.base.Engine
         The engine with connection pooling configured.
     '''
-    
+
     # Convert string URL to URL object if necessary
     if isinstance(url, str):
         url = make_url(url)
@@ -170,7 +170,7 @@ def create_engine(url: Union[str, URL], echo: bool = False, pool_size: int = 5, 
         )
 
     # Return the engine (despite the lint flagging as a MockConnection, it is an Engine)
-    return engine # type: ignore
+    return engine
 
 
 def create_session(engine: Optional[Engine]) -> Optional[scoped_session]:
@@ -185,7 +185,7 @@ def create_session(engine: Optional[Engine]) -> Optional[scoped_session]:
     -------
     scoped_session : sqlalchemy.orm.scoped_session
         The scoped session factory. Use `with session() as s:` to get a session instance.
-    
+
     Notes
     -----
     Session Lifecycle:
@@ -193,11 +193,11 @@ def create_session(engine: Optional[Engine]) -> Optional[scoped_session]:
     - The context manager automatically handles commit/rollback and closing
     - The scoped_session registry is cleaned up automatically on application shutdown
     - For manual cleanup, call `cleanup_session(session)` or let atexit handlers run
-    
+
     Example
     -------
     ::
-    
+
         session = create_session(engine)
         with session() as s:
             result = s.query(Model).all()
@@ -207,7 +207,7 @@ def create_session(engine: Optional[Engine]) -> Optional[scoped_session]:
     # Check if the engine is defined
     if engine is None:
         # The engine is not defined
-        _ = ocerror.Error.engine_not_created("The engine is not defined. Please create the engine first.") # type: ignore
+        _ = ocerror.Error.engine_not_created("The engine is not defined. Please create the engine first.")
         print("The engine is not defined. Please create the engine first.")
         # Return None
         return None

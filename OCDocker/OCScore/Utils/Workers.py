@@ -65,11 +65,11 @@ def AEworker(
         storage : str,
         models_folder : str,
         random_seed : int = 42,
-        use_gpu : bool = True, 
-        verbose : bool = False, 
-        direction : str = "minimize", 
-        n_trials : int = 250, 
-        load_if_exists : bool = True, 
+        use_gpu : bool = True,
+        verbose : bool = False,
+        direction : str = "minimize",
+        n_trials : int = 250,
+        load_if_exists : bool = True,
         n_jobs : int = 1,
         study_name : str = "Autoencoder_Optimization"
     ) -> optuna.study.Study:
@@ -118,7 +118,7 @@ def AEworker(
     study : optuna.study.Study
         Study object.
     '''
-    
+
     if verbose:
         ocprint.printv(f"Process {pid} starting optimization")
 
@@ -127,26 +127,26 @@ def AEworker(
 
     # Initialize the trainer
     trainer = AutoencoderOptimizer(
-        X_train, 
-        X_test, 
-        X_val, 
+        X_train,
+        X_test,
+        X_val,
         encoding_dims,
         storage,
         models_folder,
         random_seed = random_seed,
-        use_gpu = use_gpu, 
+        use_gpu = use_gpu,
         verbose = verbose
     )
 
     study = None
-    
+
     # Run optimization
     study = trainer.optimize(
-            direction = direction, 
+            direction = direction,
             n_trials = n_trials,
-            study_name = f"{study_name}_{id}", 
-            load_if_exists = load_if_exists, 
-            sampler = TPESampler(), 
+            study_name = f"{study_name}_{id}",
+            load_if_exists = load_if_exists,
+            sampler = TPESampler(),
             n_jobs = n_jobs
     )
 
@@ -161,24 +161,24 @@ def GAWorker(
         id : int,
         X_train : np.ndarray,
         y_train : np.ndarray,
-        X_test : np.ndarray, 
-        y_test : np.ndarray, 
-        X_validation : Union[np.ndarray, None] = None, 
+        X_test : np.ndarray,
+        y_test : np.ndarray,
+        X_validation : Union[np.ndarray, None] = None,
         y_validation : Union[np.ndarray, None] = None,
         storage : str = "sqlite:///GA.db",
-        best_params : dict = {}, 
-        n_trials : int = 100, 
-        study_name : str = "GA_Feature_Selection", 
-        random_state : int = 42, 
-        use_gpu : bool = True, 
-        verbose : bool = False, 
+        best_params : dict = {},
+        n_trials : int = 100,
+        study_name : str = "GA_Feature_Selection",
+        random_state : int = 42,
+        use_gpu : bool = True,
+        verbose : bool = False,
         n_jobs : int = 1
     ) -> tuple[optuna.study.Study, dict, float]:
     ''' Feature selection worker function using Genetic Algorithms.
 
     This function is used to run the optimization of a feature selection model in
     a separate process. It is used to parallelize the optimization process.
-    
+
     Parameters
     ----------
     pid : int
@@ -229,10 +229,10 @@ def GAWorker(
 
     # Sleep pid % 3 seconds before starting
     time.sleep(pid % 3)
-    
+
     # Create the GeneticAlgorithm object
-    evo = GeneticAlgorithm(X_train, y_train, X_test, y_test, X_validation = X_validation, y_validation = y_validation, storage = storage, xgboost_params = best_params, use_gpu = use_gpu, random_state = random_state, verbose = verbose) # type: ignore
-    
+    evo = GeneticAlgorithm(X_train, y_train, X_test, y_test, X_validation = X_validation, y_validation = y_validation, storage = storage, xgboost_params = best_params, use_gpu = use_gpu, random_state = random_state, verbose = verbose)
+
     # Run the optimization
     study, best_features, best_score = evo.optimize(study_name = f"{study_name}_{id}", direction = "minimize", n_trials = n_trials, n_jobs = n_jobs)
 
@@ -261,10 +261,10 @@ def NNAblationworker(
         study_name : str = "NN_Ablation_Optimization"
     ) ->  None:
     ''' Neural network optimization worker function.
-    
+
     This function is used to run the optimization of a neural network model in a
     separate process. It is used to parallelize the optimization process.
-    
+
     Parameters
     ----------
     pid : int
@@ -312,24 +312,24 @@ def NNAblationworker(
         for m in mask:
             # Initialize the trainer
             trainer = DNNOptimizer(
-                X_train, y_train, 
-                X_test, y_test, 
-                X_val, y_val, 
+                X_train, y_train,
+                X_test, y_test,
+                X_val, y_val,
                 mask = m,
                 storage = storage,
                 encoder_params = encoder_params,
-                output_size = output_size, 
+                output_size = output_size,
                 random_seed = random_seed,
-                use_gpu = use_gpu, 
+                use_gpu = use_gpu,
                 verbose = verbose,
             )
 
             # Run optimization
             trainer.ablate(
                 network_params = network_params,
-                n_trials = 1, 
-                study_name = f"{study_name}_{id}", 
-                load_if_exists = load_if_exists, 
+                n_trials = 1,
+                study_name = f"{study_name}_{id}",
+                load_if_exists = load_if_exists,
                 n_jobs = n_jobs
             )
 
@@ -339,24 +339,24 @@ def NNAblationworker(
     elif isinstance(mask, np.ndarray):
         # Initialize the trainer
         trainer = DNNOptimizer(
-            X_train, y_train, 
-            X_test, y_test, 
-            X_val, y_val, 
+            X_train, y_train,
+            X_test, y_test,
+            X_val, y_val,
             mask = mask,
             storage = storage,
             encoder_params = encoder_params,
-            output_size = output_size, 
+            output_size = output_size,
             random_seed = random_seed,
-            use_gpu = use_gpu, 
+            use_gpu = use_gpu,
             verbose = verbose,
         )
 
         # Run optimization
         trainer.ablate(
             network_params = network_params,
-            n_trials = 1, 
-            study_name = f"{study_name}_{id}", 
-            load_if_exists = load_if_exists, 
+            n_trials = 1,
+            study_name = f"{study_name}_{id}",
+            load_if_exists = load_if_exists,
             n_jobs = n_jobs
         )
 
@@ -387,10 +387,10 @@ def NNSeedAblationworker(
         study_name : str = "NN_Seed_Ablation_Optimization"
     ) ->  None:
     ''' Neural network optimization worker function.
-    
+
     This function is used to run the optimization of a neural network model in a
     separate process. It is used to parallelize the optimization process.
-    
+
     Parameters
     ----------
     pid : int
@@ -438,24 +438,24 @@ def NNSeedAblationworker(
         for random_seed in random_seeds:
             # Initialize the trainer
             trainer = DNNOptimizer(
-                X_train, y_train, 
-                X_test, y_test, 
-                X_val, y_val, 
+                X_train, y_train,
+                X_test, y_test,
+                X_val, y_val,
                 mask = mask,
                 storage = storage,
                 encoder_params = encoder_params,
-                output_size = output_size, 
+                output_size = output_size,
                 random_seed = random_seed,
-                use_gpu = use_gpu, 
+                use_gpu = use_gpu,
                 verbose = verbose,
             )
 
             # Run optimization
             trainer.ablate(
                 network_params = network_params,
-                n_trials = 1, 
-                study_name = f"{study_name}_{id}", 
-                load_if_exists = load_if_exists, 
+                n_trials = 1,
+                study_name = f"{study_name}_{id}",
+                load_if_exists = load_if_exists,
                 n_jobs = n_jobs
             )
 
@@ -465,24 +465,24 @@ def NNSeedAblationworker(
     elif isinstance(random_seeds, int):
         # Initialize the trainer
         trainer = DNNOptimizer(
-            X_train, y_train, 
-            X_test, y_test, 
-            X_val, y_val, 
+            X_train, y_train,
+            X_test, y_test,
+            X_val, y_val,
             mask = mask,
             storage = storage,
             encoder_params = encoder_params,
-            output_size = output_size, 
+            output_size = output_size,
             random_seed = random_seeds,
-            use_gpu = use_gpu, 
+            use_gpu = use_gpu,
             verbose = verbose,
         )
 
         # Run optimization
         trainer.ablate(
             network_params = network_params,
-            n_trials = 1, 
-            study_name = f"{study_name}_{id}", 
-            load_if_exists = load_if_exists, 
+            n_trials = 1,
+            study_name = f"{study_name}_{id}",
+            load_if_exists = load_if_exists,
             n_jobs = n_jobs
         )
 
@@ -513,10 +513,10 @@ def NNworker(
         study_name : str = "NN_Optimization"
     ) ->  None:
     ''' Neural network optimization worker function.
-    
+
     This function is used to run the optimization of a neural network model in a
     separate process. It is used to parallelize the optimization process.
-    
+
     Parameters
     ----------
     pid : int
@@ -557,24 +557,24 @@ def NNworker(
 
     # Initialize the trainer
     trainer = DNNOptimizer(
-        X_train, y_train, 
-        X_test, y_test, 
-        X_val, y_val, 
+        X_train, y_train,
+        X_test, y_test,
+        X_val, y_val,
         storage = storage,
         encoder_params = encoder_params,
-        output_size = output_size, 
+        output_size = output_size,
         random_seed = random_seed,
-        use_gpu = use_gpu, 
+        use_gpu = use_gpu,
         verbose=verbose
     )
 
     # Run optimization
     trainer.optimize(
-        direction = direction, 
-        n_trials = n_trials, 
-        study_name = f"{study_name}_{id}", 
-        load_if_exists = load_if_exists, 
-        sampler = TPESampler(), 
+        direction = direction,
+        n_trials = n_trials,
+        study_name = f"{study_name}_{id}",
+        load_if_exists = load_if_exists,
+        sampler = TPESampler(),
         n_jobs = n_jobs
     )
 
@@ -653,23 +653,23 @@ def Transworker(
 
         # Initialize the trainer
         trainer = TransOptimizer(
-            X_train, y_train, 
-            X_test, y_test, 
-            X_val, y_val, 
+            X_train, y_train,
+            X_test, y_test,
+            X_val, y_val,
             storage,
-            output_size = output_size, 
+            output_size = output_size,
             random_seed = random_seed,
-            use_gpu = use_gpu, 
+            use_gpu = use_gpu,
             verbose=verbose
         )
 
         # Run optimization
         trainer.optimize(
-            direction = direction, 
-            n_trials = n_trials, 
-            study_name = f"{study_name}_{id}", 
-            load_if_exists = load_if_exists, 
-            sampler = TPESampler(), 
+            direction = direction,
+            n_trials = n_trials,
+            study_name = f"{study_name}_{id}",
+            load_if_exists = load_if_exists,
+            sampler = TPESampler(),
             n_jobs = n_jobs
         )
 
@@ -757,17 +757,17 @@ def XGBworker(
 
     # Create the XGBoostOptimizer object
     xgb = XGBoostOptimizer(
-        X_train, 
-        y_train, 
-        X_test, 
-        y_test, 
-        X_val, 
-        y_val, 
+        X_train,
+        y_train,
+        X_test,
+        y_test,
+        X_val,
+        y_val,
         storage = storage,
-        params = params, 
-        use_gpu = use_gpu, 
-        early_stopping_rounds = early_stopping_rounds, 
-        random_state = random_seed, 
+        params = params,
+        use_gpu = use_gpu,
+        early_stopping_rounds = early_stopping_rounds,
+        random_state = random_seed,
         verbose = verbose
     )
 

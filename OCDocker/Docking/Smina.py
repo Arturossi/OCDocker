@@ -74,7 +74,7 @@ class Smina:
             The path for the box file.
         receptor : ocr.Receptor
             The receptor object.
-        preparedReceptorPath : str 
+        preparedReceptorPath : str
             Path to the prepared receptor.
         ligand : ocl.Ligand
             The ligand object.
@@ -93,31 +93,31 @@ class Smina:
         self.name = str(name)
         self.config = str(config_path)
         self.box_file = str(box_file)
-        
+
         # Receptor
         if type(receptor) == ocr.Receptor:
             self.input_receptor = receptor
         else:
-            ocerror.Error.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR) # type: ignore
+            ocerror.Error.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR)
             return None
-        
+
         # Check if the folder where the config_path is located exists (remove the file name from the path)
         _ = ocff.safe_create_dir(os.path.dirname(self.config))
 
         self.input_receptor_path = self.__parse_receptor_path(receptor)
-        
+
         self.prepared_receptor = str(prepared_receptor_path)
 
         # Ligand
         if type(ligand) == ocl.Ligand:
             self.input_ligand = ligand
         else:
-            ocerror.Error.wrong_type(f"The ligand '{ligand}' has not a supported type. Expected 'ocl.Ligand' but got {type(ligand)} instead.", level = ocerror.ReportLevel.ERROR) # type: ignore
+            ocerror.Error.wrong_type(f"The ligand '{ligand}' has not a supported type. Expected 'ocl.Ligand' but got {type(ligand)} instead.", level = ocerror.ReportLevel.ERROR)
             return None
 
         self.input_ligand_path = self.__parse_ligand_path(ligand)
         self.prepared_ligand = str(prepared_ligand_path)
-        
+
         # Initialize preparation strategy
         self.preparation_strategy = MGLToolsPreparationStrategy()
 
@@ -125,7 +125,7 @@ class Smina:
         self.smina_log = str(smina_log)
         self.output_smina = str(output_smina)
         self.smina_cmd = self.__smina_cmd()
-        
+
         # Check if config file exists to avoid useless processing
         if not os.path.isfile(self.config) or overwrite_config:
             # Create the conf file
@@ -138,7 +138,7 @@ class Smina:
 
     def __parse_ligand_path(self, ligand: Union[str, ocl.Ligand]) -> str:
         '''Parse the ligand path, handling its type.
-        
+
         Parameters
         ----------
         ligand : str | ocl.Ligand
@@ -151,17 +151,17 @@ class Smina:
 
         # Check the type of ligand variable
         if isinstance(ligand, ocl.Ligand):
-            return ligand.path # type: ignore
+            return ligand.path
         elif isinstance(ligand, str):
             # Since is a string, check if the file exists
-            if os.path.isfile(ligand): # type: ignore
+            if os.path.isfile(ligand):
                 # Exists! Process it then!
-                return self.__process_ligand(ligand) # type: ignore
+                return self.__process_ligand(ligand)
             else:
-                _ = ocerror.Error.file_not_exist(message=f"The ligand '{ligand}' has not a valid path.", level = ocerror.ReportLevel.ERROR) # type: ignore
+                _ = ocerror.Error.file_not_exist(message=f"The ligand '{ligand}' has not a valid path.", level = ocerror.ReportLevel.ERROR)
                 return ""
 
-        _ = ocerror.Error.wrong_type(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.", level = ocerror.ReportLevel.ERROR) # type: ignore
+        _ = ocerror.Error.wrong_type(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.", level = ocerror.ReportLevel.ERROR)
 
         return ""
 
@@ -182,17 +182,17 @@ class Smina:
 
         # Check the type of receptor variable
         if isinstance(receptor, ocr.Receptor):
-            return receptor.path  # type: ignore
+            return receptor.path
         elif isinstance(receptor, str):
             # Since is a string, check if the file exists
-            if os.path.isfile(receptor): # type: ignore
+            if os.path.isfile(receptor):
                 # Exists! Return it!
-                return receptor # type: ignore
+                return receptor
             else:
-                _ = ocerror.Error.file_not_exist(message=f"The receptor '{receptor}' has not a valid path.", level = ocerror.ReportLevel.ERROR) # type: ignore
+                _ = ocerror.Error.file_not_exist(message=f"The receptor '{receptor}' has not a valid path.", level = ocerror.ReportLevel.ERROR)
                 return ""
 
-        _ = ocerror.Error.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'string' or 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR) # type: ignore
+        _ = ocerror.Error.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'string' or 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR)
 
         return ""
 
@@ -280,7 +280,7 @@ class Smina:
         print(f"Smina execution log path:    '{self.smina_log if self.smina_log else '-' }'")
         print(f"Smina output path:           '{self.output_smina if self.output_smina else '-' }'")
         print(f"Smina command:               '{' '.join(self.smina_cmd) if self.smina_cmd else '-' }'")
-        
+
         return
 
 
@@ -298,7 +298,7 @@ class Smina:
             A dictionary with the data from the SMINA log file. If any error occurs, it will return the exit code of the command (based on the Error.py code table).
         '''
 
-        return read_log(self.smina_log, onlyBest = onlyBest) # type: ignore
+        return read_log(self.smina_log, onlyBest = onlyBest)
 
 
     def read_rescore_logs(self, outPath: str, onlyBest: bool = False) -> Dict[str, List[Union[str, float]]]:
@@ -331,7 +331,7 @@ class Smina:
         int | Tuple[int, str]
             The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
         '''
-        
+
         return self.preparation_strategy.prepare_ligand(
             self.input_ligand_path,
             self.prepared_ligand,
@@ -442,11 +442,11 @@ class Smina:
             The path for the log file.
         overwrite : bool, optional
             If True, overwrite existing output/log files.
-        
+
         Returns
         -------
         int | Tuple[int, str]
-            The exit code of the command (based on the Error.py code table).   
+            The exit code of the command (based on the Error.py code table).
         '''
 
         # Remove existing outputs if requested
@@ -483,7 +483,7 @@ class Smina:
             except (OSError, IOError, PermissionError):
                 # Ignore errors if file can't be written
                 pass
-            return ocerror.Error.ok()  # type: ignore
+            return ocerror.Error.ok()
 
         return ocrun.run(self.smina_cmd, logFile=logFile)
 
@@ -510,7 +510,7 @@ class Smina:
             outPath = os.path.dirname(self.output_smina)
 
 
-        return ocmolproc.split_poses(self.output_smina, self.input_ligand.name, outPath, logFile = logFile, suffix = "_split_") # type: ignore
+        return ocmolproc.split_poses(self.output_smina, self.input_ligand.name, outPath, logFile = logFile, suffix = "_split_")
 
 
 
@@ -552,7 +552,7 @@ def gen_smina_conf(box_file: str, conf_file: str, receptor: str) -> int:
 
     # Test if the file box_file exists
     if not os.path.exists(box_file):
-        return ocerror.Error.file_not_exist(message=f"The box file in the path {box_file} does not exist! Please ensure that the file exists and the path is correct.", level = ocerror.ReportLevel.ERROR) # type: ignore
+        return ocerror.Error.file_not_exist(message=f"The box file in the path {box_file} does not exist! Please ensure that the file exists and the path is correct.", level = ocerror.ReportLevel.ERROR)
     # List to hold all the data
     lines = []
 
@@ -571,25 +571,25 @@ def gen_smina_conf(box_file: str, conf_file: str, receptor: str) -> int:
                         # Break the loop (optimization)
                         break
     except Exception as e:
-        return ocerror.Error.read_file(message=f"Found a problem while reading the box file: {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
+        return ocerror.Error.read_file(message=f"Found a problem while reading the box file: {e}", level = ocerror.ReportLevel.ERROR)
 
     ocprint.printv(f"Creating smina conf file in the path '{conf_file}'.")
-    
+
     # Helper to get value from Config
     # Defined outside try block so it's always available
     def _get_smina_attr(attr_name: str, default: str = "no") -> str:
         '''Get smina attribute from Config.'''
-        
+
         try:
             config = get_config()
             return str(getattr(config.smina, attr_name, default))
         except Exception:
             return default
-    
+
     try:
         # Now open the conf file to write
         config = get_config()
-        
+
         with open(conf_file, 'w') as conf_file_obj:
             conf_file_obj.write(f"receptor = {receptor}\n\n")
 
@@ -628,9 +628,9 @@ def gen_smina_conf(box_file: str, conf_file: str, receptor: str) -> int:
             conf_file_obj.write(f"exhaustiveness = {_get_smina_attr('exhaustiveness', '5')}\n")
             conf_file_obj.write(f"num_modes = {_get_smina_attr('num_modes', '3')}\n")
     except Exception as e:
-        return ocerror.Error.write_file(message=f"Found a problem while opening conf file: {e}.", level = ocerror.ReportLevel.ERROR) # type: ignore
+        return ocerror.Error.write_file(message=f"Found a problem while opening conf file: {e}.", level = ocerror.ReportLevel.ERROR)
 
-    return ocerror.Error.ok() # type: ignore
+    return ocerror.Error.ok()
 
 
 def get_pose_index_from_file_path(filePath: str) -> int:
@@ -664,7 +664,7 @@ def get_rescore_log_paths(outPath: str) -> List[str]:
     ----------
     outPath : str
         Path to the output folder where the rescoring logs are located.
-    
+
     Returns
     -------
     List[str]
@@ -702,12 +702,12 @@ def read_rescore_logs(rescoreLogPaths: Union[List[str], str], onlyBest: bool = F
     for rescoreLogPath in rescoreLogPaths:
         # Get the original filename without extension
         original_filename = os.path.splitext(os.path.basename(rescoreLogPath))[0]
-        
+
         # Extract scoring function from filename ending with _rescoring
         # Get scoring functions from config and match against filename
         config = get_config()
         scoring_functions = getattr(config.smina, 'scoring_functions', [])
-        
+
         scoring_function = None
         if original_filename.endswith("_rescoring") and scoring_functions:
             # Check if any scoring function from config appears in the filename
@@ -717,7 +717,7 @@ def read_rescore_logs(rescoreLogPaths: Union[List[str], str], onlyBest: bool = F
                 if original_filename.endswith(f"_{sf}_rescoring"):
                     scoring_function = sf
                     break
-        
+
         # Extract pose number if present (pattern: {name}_split_{number}_{scoring_function}_rescoring)
         pose_number = None
         if "_split_" in original_filename:
@@ -727,12 +727,12 @@ def read_rescore_logs(rescoreLogPaths: Union[List[str], str], onlyBest: bool = F
             parts_after_split = after_split.split("_")
             if parts_after_split and parts_after_split[0].isdigit():
                 pose_number = parts_after_split[0]
-        
+
         # Handle onlyBest filter after extracting scoring function and pose number
         if onlyBest and scoring_function and pose_number:
             if pose_number != "1":
                 continue
-        
+
         if scoring_function:
             if pose_number:
                 key = f"rescoring_{scoring_function}_{pose_number}"
@@ -742,10 +742,10 @@ def read_rescore_logs(rescoreLogPaths: Union[List[str], str], onlyBest: bool = F
             # If scoring function not found, skip this file with a warning
             _ = ocerror.Error.value_error(message=f"The scoring function could not be found in the filename '{original_filename}'. Skipping this file.", level = ocerror.ReportLevel.WARNING)
             continue
-        
+
         # Get the rescore log data
         rescoreLogData[key] = read_rescoring_log(rescoreLogPath)
-    
+
     # Return the dictionary
     return rescoreLogData
 
@@ -773,7 +773,7 @@ def run_prepare_ligand(input_ligand_path: str, prepared_ligand: str, overwrite: 
     # Check if the extension is valid
     if type(extension) != str:
         ocprint.print_error(f"Problems while reading the ligand file '{input_ligand_path}'.")
-        return extension # type: ignore
+        return extension
 
     # Discover if the output extension is pdbqt (to warn user if it is not)
     if out_extension != ".pdbqt":
@@ -789,7 +789,7 @@ def run_prepare_ligand(input_ligand_path: str, prepared_ligand: str, overwrite: 
         strategy = MGLToolsPreparationStrategy()
         return strategy.prepare_ligand(input_ligand_path, prepared_ligand, "", overwrite=overwrite)
     except Exception as e:
-        return ocerror.Error.subprocess(message=f"Error while running ligand conversion: {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
+        return ocerror.Error.subprocess(message=f"Error while running ligand conversion: {e}", level = ocerror.ReportLevel.ERROR)
 
 
 def run_prepare_ligand_from_cmd(input_ligand_path: str, prepared_ligand: str, log_file: str = "") -> Union[int, Tuple[int, str]]:
@@ -832,7 +832,7 @@ def run_prepare_receptor(input_receptor_path: str, prepared_receptor: str, overw
     int | Tuple[int, str]
         The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
     '''
-    
+
     # Smina uses OpenBabel for receptor preparation
     strategy = OpenBabelPreparationStrategy()
     return strategy.prepare_receptor(input_receptor_path, prepared_receptor, "", overwrite=overwrite)
@@ -895,23 +895,23 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
     if isinstance(ligands, str):
         # Convert to list
         ligands = [ligands]
-    
+
     # Ligand name list
     ligandNames = []
-    
+
     # For each ligand
     for ligand in ligands:
         # Only split if splitLigand is True (overwrite doesn't trigger splitting)
         if splitLigand:
             # Get the ligand name
             ligandName = os.path.splitext(os.path.basename(ligand))[0]
-            
+
             # Split the ligand (only add _split_ suffix when actually splitting)
             _ = ocmolproc.split_poses(ligand, ligandName, outPath, logFile = "", suffix = "_split_")
 
             # Add the ligand name to the list
             ligandNames.append(ligandName)
-        
+
     # If splitLigand is True, get the splited ligands (only for the provided ligand files)
     if splitLigand:
         # Reset the ligand list
@@ -956,7 +956,7 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
                             log_file_valid = True
                 except (IOError, OSError):
                     pass
-            
+
             if not log_file_valid:
                 # Print an error (only once, not duplicated)
                 ocprint.print_error(f"Problems while running smina for the ligand '{ligand_name}' using the scoring function '{scoring_function}'. Check the log file: {logFile}")
@@ -966,7 +966,7 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
         else:
             # Print verboosity
             ocprint.printv(f"The log file '{logFile}' already exists. Skipping the smina run for the ligand '{ligand_name}' using the scoring function '{scoring_function}'.")
-    
+
     # Think about how can this be done to deal with multiple runs
     return None
 
@@ -1033,7 +1033,7 @@ def run_smina(config: str, prepared_ligand: str, output_smina: str, smina_log: s
         except (OSError, IOError, PermissionError):
             # Ignore errors if file can't be written
             pass
-        return ocerror.Error.ok()  # type: ignore
+        return ocerror.Error.ok()
 
     # Run the command
     return ocrun.run(cmd, logFile=log_path)

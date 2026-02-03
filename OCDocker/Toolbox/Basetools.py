@@ -15,6 +15,8 @@ import OCDocker.Toolbox.Basetools as ocbasetools
 import contextlib
 import inspect
 
+from typing import Iterator
+
 from tqdm import tqdm
 
 # License
@@ -45,7 +47,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 
 @contextlib.contextmanager
-def redirect_to_tqdm() -> contextlib.AbstractContextManager:
+def redirect_to_tqdm() -> Iterator[None]:
     '''Redirects the stdout to tqdm.write()
 
     Returns
@@ -73,10 +75,10 @@ def redirect_to_tqdm() -> contextlib.AbstractContextManager:
         except (OSError, IOError, AttributeError, BrokenPipeError):
             # Fallback to builtin print if tqdm.write fails
             old_print(*args, ** kwargs)
-            
+
     try:
         # Globaly replace print with new_print
-        inspect.builtins.print = new_print # type: ignore
+        inspect.builtins.print = new_print
         yield
     finally:
-        inspect.builtins.print = old_print # type: ignore
+        inspect.builtins.print = old_print

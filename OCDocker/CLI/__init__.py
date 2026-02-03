@@ -79,12 +79,12 @@ def _bootstrap_ocdocker_env(ns: argparse.Namespace) -> None:
     ns : argparse.Namespace
         Parsed command-line arguments.
     '''
-    
+
     if ns.config_file:
         os.environ["OCDOCKER_CONFIG"] = ns.config_file
     init_mod = importlib.import_module("OCDocker.Initialise")
     if hasattr(init_mod, "bootstrap"):
-        init_mod.bootstrap(ns)  # type: ignore
+        init_mod.bootstrap(ns)
     else:
         raise RuntimeError("OCDocker.Initialise.bootstrap not found")
 
@@ -98,7 +98,7 @@ def _box_sort_key(path: Path) -> Tuple[int, object]:
     ----------
     path : Path
         The box file path.
-    
+
     Returns
     -------
     Tuple[int, object]
@@ -132,12 +132,12 @@ def _ensure_mol2_poses(pose_paths: List[str], dest_dir: Path, pose_engine_map: D
     Tuple[List[str], Dict[str, str]]
         A tuple containing a list of .mol2 paths and a mapping from mol2 paths to original paths.
     '''
-    
+
     dest_dir.mkdir(parents=True, exist_ok=True)
     mol2_paths: List[str] = []
     mapping: Dict[str, str] = {}
 
-    import OCDocker.Toolbox.Conversion as occonversion  # type: ignore
+    import OCDocker.Toolbox.Conversion as occonversion
     for p in pose_paths:
         src = Path(p)
         if src.suffix.lower() == ".mol2":
@@ -145,7 +145,7 @@ def _ensure_mol2_poses(pose_paths: List[str], dest_dir: Path, pose_engine_map: D
             mol2_paths.append(str(src))
             mapping[str(src)] = str(src)
             continue
-        
+
         # Create unique filename based on engine and original filename
         engine = pose_engine_map.get(str(src), "unknown") if pose_engine_map else "unknown"
         # Include engine in filename to avoid collisions
@@ -211,7 +211,7 @@ def _preparse_global_args(argv: list[str]) -> argparse.Namespace:
     argparse.Namespace
         Parsed global arguments.
     '''
-    
+
     ns = argparse.Namespace(
         version=False,
         multiprocess=True,
@@ -294,7 +294,7 @@ def _require_file(p: str, label: str) -> Path:
     SystemExit
         If the file path is invalid or not found.
     '''
-    
+
     if "…" in p:
         print(f"Error: {label} contains an ellipsis character (…). Replace it with a real path.")
         raise SystemExit(2)
@@ -774,15 +774,15 @@ def cmd_console(args: argparse.Namespace) -> int:  # pragma: no cover - interact
     int
         Exit code (0 for success, 1 for failure).
     '''
-    
+
     # Bootstrap env to ensure Initialise is safe to import
     globals_ns = _preparse_global_args(sys.argv[1:])
     _bootstrap_ocdocker_env(globals_ns)
 
     # Configure logging according to CLI flags
     try:
-        import OCDocker.Error as ocerror  # type: ignore
-        import OCDocker.Toolbox.Logging as oclogging  # type: ignore
+        import OCDocker.Error as ocerror
+        import OCDocker.Toolbox.Logging as oclogging
         oclogging.configure(
             level=ocerror.Error.get_output_level(),
             log_file=args.log_file,
@@ -796,7 +796,7 @@ def cmd_console(args: argparse.Namespace) -> int:  # pragma: no cover - interact
     # Import console module and open interactive session with its namespace
     try:
         # OCDockerConsole.py is at project root, add it to path if needed
-        import OCDockerConsole as occ  # type: ignore
+        import OCDockerConsole as occ
     except ImportError:
         # Try to find OCDockerConsole.py relative to the package
         try:
@@ -804,7 +804,7 @@ def cmd_console(args: argparse.Namespace) -> int:  # pragma: no cover - interact
             project_root = ocdocker_pkg.parent  # Project root where OCDockerConsole.py lives
             if project_root not in sys.path:
                 sys.path.insert(0, str(project_root))
-            import OCDockerConsole as occ  # type: ignore
+            import OCDockerConsole as occ
         except Exception as e:
             print(f"Failed to import OCDockerConsole: {e}")
             return 1
@@ -816,10 +816,10 @@ def cmd_console(args: argparse.Namespace) -> int:  # pragma: no cover - interact
     try:
         # Expose console namespace without dunders
         local_ns = {k: v for k, v in vars(occ).items() if not k.startswith('__')}
-        
+
         # Try to use IPython if available, otherwise fallback to standard Python console
         try:
-            from IPython import embed  # type: ignore
+            from IPython import embed
             # Determine if colors should be enabled (when called from a terminal like bash)
             colors = 'NoColor'
             if sys.stdout.isatty() and os.getenv('TERM') and 'dumb' not in os.getenv('TERM', ''):
@@ -833,11 +833,11 @@ def cmd_console(args: argparse.Namespace) -> int:  # pragma: no cover - interact
             import code
             # Setup tab-completion with the console namespace, if readline is available
             try:
-                import readline  # type: ignore
-                import rlcompleter  # type: ignore
+                import readline
+                import rlcompleter
                 completer = rlcompleter.Completer(local_ns)
-                readline.set_completer(completer.complete)  # type: ignore
-                readline.parse_and_bind('tab: complete')  # type: ignore
+                readline.set_completer(completer.complete)
+                readline.parse_and_bind('tab: complete')
                 # History file (optional)
                 hist = os.path.expanduser('~/.ocdocker_console_history')
                 try:
@@ -876,15 +876,15 @@ def cmd_doctor(args: argparse.Namespace) -> int:  # pragma: no cover - environme
     int
         Exit code (0 for success, 1 for failure).
     '''
-    
+
     # Bootstrap to load config and DB
     globals_ns = _preparse_global_args(sys.argv[1:])
     _bootstrap_ocdocker_env(globals_ns)
 
     # Configure logging according to CLI flags
     try:
-        import OCDocker.Error as ocerror  # type: ignore
-        import OCDocker.Toolbox.Logging as oclogging  # type: ignore
+        import OCDocker.Error as ocerror
+        import OCDocker.Toolbox.Logging as oclogging
         oclogging.configure(level=ocerror.Error.get_output_level(), log_file=args.log_file, to_stdout=(not args.no_stdout_log))
     except (ImportError, AttributeError, OSError):
         # Ignore logging configuration errors (non-critical for core functionality)
@@ -894,7 +894,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:  # pragma: no cover - environme
 
     # Config source
     try:
-        import OCDocker.Initialise as OCI  # type: ignore
+        import OCDocker.Initialise as OCI
         cfg = getattr(OCI, 'config_file', None)
         report['config'] = {
             'path': str(cfg) if cfg else 'unknown',
@@ -930,7 +930,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:  # pragma: no cover - environme
     # The module names are hardcoded in a whitelist ('rdkit', 'Bio', 'oddt', 'sqlalchemy')
     # and never come from user input, making this safer from injection attacks.
     pydeps = {}
-    
+
     # Whitelist of allowed module names for dependency checking
     ALLOWED_DEPENDENCY_MODULES = ('rdkit', 'Bio', 'oddt', 'sqlalchemy')
     for mod in ALLOWED_DEPENDENCY_MODULES:
@@ -978,7 +978,7 @@ def cmd_init_config(args: argparse.Namespace) -> int:
     int
         Exit code (0 for success, 1 for failure).
     '''
-    
+
     # Look for example file in current directory or parent directories
     example = Path("OCDocker.cfg.example")
     if not example.exists():
@@ -1026,8 +1026,8 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
 
     # Configure logging according to CLI flags
     try:
-        import OCDocker.Error as ocerror  # type: ignore
-        import OCDocker.Toolbox.Logging as oclogging  # type: ignore
+        import OCDocker.Error as ocerror
+        import OCDocker.Toolbox.Logging as oclogging
         oclogging.configure(
             level=ocerror.Error.get_output_level(),
             log_file=args.log_file,
@@ -1042,16 +1042,16 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
         os.environ["OCDOCKER_TIMEOUT"] = str(args.timeout)
 
     # Domain imports
-    import OCDocker.Ligand as ocl  # type: ignore
-    import OCDocker.Receptor as ocr  # type: ignore
-    import OCDocker.Docking.Vina as ocvina  # type: ignore
-    import OCDocker.Docking.Smina as ocsmina  # type: ignore
-    import OCDocker.Docking.PLANTS as ocplants  # type: ignore
-    import OCDocker.Toolbox.MoleculeProcessing as ocmolproc  # type: ignore
-    import OCDocker.Toolbox.Printing as ocprint  # type: ignore
-    import OCDocker.Processing.Preprocessing.RmsdClustering as ocrmsd  # type: ignore
-    import pandas as pd  # type: ignore
-    import numpy as np  # type: ignore
+    import OCDocker.Ligand as ocl
+    import OCDocker.Receptor as ocr
+    import OCDocker.Docking.Vina as ocvina
+    import OCDocker.Docking.Smina as ocsmina
+    import OCDocker.Docking.PLANTS as ocplants
+    import OCDocker.Toolbox.MoleculeProcessing as ocmolproc
+    import OCDocker.Toolbox.Printing as ocprint
+    import OCDocker.Processing.Preprocessing.RmsdClustering as ocrmsd
+    import pandas as pd
+    import numpy as np
     import json
 
     base_outdir = Path(args.outdir).resolve()
@@ -1072,7 +1072,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
     if not engines:
         print("No valid engine provided. Use --engines vina,smina,plants")
         return 1
-    
+
     # Get rescoring engines (default to same as docking engines if not specified)
     rescoring_engines = engines
     if args.rescoring_engines:
@@ -1126,7 +1126,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
         ctx: Dict[str, Dict[str, str]] = {}
         engine_errors: Dict[str, str] = {}
         import os as _os
-    
+
         for eng in engines:
             e_dir = outdir / f"{eng}Files"; e_dir.mkdir(parents=True, exist_ok=True)
             try:
@@ -1220,14 +1220,14 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                 engine_errors[eng] = f"Exception: {str(e)}"
                 ocprint.print_warning(f"{eng.capitalize()} failed with exception: {e}. Continuing with other engines...")
                 continue
-    
+
         # Report any engine errors
         if engine_errors:
             print("\n=== Engine Errors ===")
             for eng, error_msg in engine_errors.items():
                 print(f"{eng.capitalize()}: {error_msg}")
             print("")
-        
+
         if not all_poses:
             if engine_errors:
                 print("No poses were generated from any engine. All engines failed.")
@@ -1235,18 +1235,18 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
             else:
                 print("No poses were generated.")
                 return 2
-    
+
         # Convert to MOL2 and cluster by RMSD
         # Use unique filenames based on engine to avoid overwriting
         mol2_dir = outdir / "poses_mol2"
         mol2_list, mol2_map = _ensure_mol2_poses(all_poses, mol2_dir, pose_engine_map)
         rmsd = ocmolproc.get_rmsd_matrix(mol2_list)
         df = pd.DataFrame(rmsd).loc[mol2_list, mol2_list]
-        
+
         # Save RMSD matrix for reference
         rmsd_matrix_file = outdir / "rmsd_matrix.csv"
         df.to_csv(rmsd_matrix_file)
-        
+
         # Perform clustering with plot output
         cluster_plot = outdir / "clustering_dendrogram.png"
         clusters = ocrmsd.cluster_rmsd(
@@ -1257,7 +1257,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
             outputPlot=str(cluster_plot),
             molecule_name=name,
         )
-        
+
         # Determine representative pose and save clustering results
         clustering_info = {
             "method": "rmsd_based_clustering",
@@ -1267,7 +1267,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
             "cluster_sizes": None,
             "medoids": None,
         }
-        
+
         if isinstance(clusters, int) or getattr(clusters, "size", 0) == 0:
             ocprint.print_warning(
                 "Clustering did not converge or returned no labels; using the first pose as representative."
@@ -1283,16 +1283,16 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
             })
             cluster_assignments_file = outdir / "cluster_assignments.csv"
             cluster_assignments.to_csv(cluster_assignments_file, index=False)
-            
+
             # Calculate cluster sizes
             cluster_sizes = {}
             unique_clusters, counts = np.unique(clusters, return_counts=True)
             for cluster_id, size in zip(unique_clusters, counts):
                 cluster_sizes[int(cluster_id)] = int(size)
-            
+
             clustering_info["clusters"] = int(len(unique_clusters))
             clustering_info["cluster_sizes"] = cluster_sizes
-            
+
             meds = ocrmsd.get_medoids(df, clusters, onlyBiggest=True)
             if not meds:
                 ocprint.print_warning(
@@ -1311,19 +1311,19 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                 rep_cluster_id = int(clusters[rep_idx])
                 clustering_info["representative_cluster_id"] = rep_cluster_id
                 clustering_info["representative_cluster_size"] = cluster_sizes.get(rep_cluster_id, 0)
-    
+
         # Get the original pose path for the representative
         rep_original = mol2_map.get(rep_mol2, rep_mol2)
         rep_engine = pose_engine_map.get(rep_original, None)
-        
+
         # Convert representative to appropriate format for each engine's rescoring
         # Vina/Smina need PDBQT, PLANTS needs MOL2
         rep_pdbqt = None
         rep_mol2_final = None
-        
-        import OCDocker.Toolbox.Conversion as occonversion  # type: ignore
+
+        import OCDocker.Toolbox.Conversion as occonversion
         import shutil
-        
+
         if rep_original.endswith('.pdbqt'):
             # Already PDBQT - use for vina/smina
             rep_pdbqt = rep_original
@@ -1341,28 +1341,28 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
             rep_mol2_final = rep_mol2
             rep_pdbqt = outdir / "representative_for_vina_smina.pdbqt"
             occonversion.convert_mols(rep_mol2, str(rep_pdbqt), overwrite=True)
-        
+
         # Save representative in MOL2 format (for general use)
         rep_path = outdir / "representative.mol2"
         if rep_mol2_final and Path(rep_mol2_final).exists():
             shutil.copyfile(rep_mol2_final, rep_path)
         else:
             shutil.copyfile(rep_mol2, rep_path)
-        
+
         # Save clustering information
         clustering_info_file = outdir / "clustering_info.json"
         clustering_info_file.write_text(json.dumps(clustering_info, indent=2))
-    
+
         # Rescoring (representative only)
         # Only rescore with engines specified in --rescoring-engines (or same as docking engines if not specified)
         rescoring: Dict[str, Dict[str, float]] = {}
         # Get config for scoring functions
         from OCDocker.Config import get_config
         config = get_config()
-        
+
         # VINA
         if "vina" in ctx and "vina" in rescoring_engines:
-            from OCDocker.Docking.Vina import run_rescore as v_rescore, get_rescore_log_paths as v_logs, read_rescore_logs as v_read  # type: ignore
+            from OCDocker.Docking.Vina import run_rescore as v_rescore, get_rescore_log_paths as v_logs, read_rescore_logs as v_read
             if rep_pdbqt and Path(rep_pdbqt).exists():
                 # Get scoring functions from config
                 vina_sfs = config.vina.scoring_functions if config.vina.scoring_functions else ["vina"]
@@ -1453,7 +1453,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                     ocprint.print_warning(f"Traceback: {traceback.format_exc()}")
         # SMINA
         if "smina" in rescoring_engines:
-            from OCDocker.Docking.Smina import run_rescore as s_rescore, get_rescore_log_paths as s_logs, read_rescore_logs as s_read  # type: ignore
+            from OCDocker.Docking.Smina import run_rescore as s_rescore, get_rescore_log_paths as s_logs, read_rescore_logs as s_read
             if rep_pdbqt and Path(rep_pdbqt).exists():
                 # If smina wasn't docked, we can still use vina's prepared files (they share PDBQT format)
                 # Create smina context if it doesn't exist
@@ -1465,7 +1465,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                         smina_dir.mkdir(parents=True, exist_ok=True)
                         smina_conf = smina_dir / "conf_smina.txt"
                         # Create a Smina object just to generate the config file
-                        import OCDocker.Docking.Smina as ocsmina  # type: ignore
+                        import OCDocker.Docking.Smina as ocsmina
                         prep_r = outdir / "prepared_receptor.pdbqt"
                         prep_l = outdir / "prepared_ligand.pdbqt"
                         smina_obj = ocsmina.Smina(str(smina_conf), str(box_path), receptor, str(prep_r), ligand, str(prep_l), str(smina_dir / f"{name}.log"), str(smina_dir / f"{name}.pdbqt"), name=f"SMINA {name}", overwrite_config=True)
@@ -1543,13 +1543,13 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                         ocprint.print_warning(f"Failed to read Smina rescoring results: {e}")
         # PLANTS
         if "plants" in ctx and "plants" in rescoring_engines:
-            from OCDocker.Docking.PLANTS import write_rescoring_config_file, run_rescore as p_rescore, get_binding_site  # type: ignore
+            from OCDocker.Docking.PLANTS import write_rescoring_config_file, run_rescore as p_rescore, get_binding_site
             pose_list = outdir / "pose_list_single.txt"
             # Use MOL2 format for PLANTS rescoring
             plants_rep = str(rep_mol2_final) if rep_mol2_final and Path(rep_mol2_final).exists() else str(rep_path)
             pose_list.write_text(plants_rep + "\n")
             # Extract center/radius from the box
-            center, radius = get_binding_site(str(box_path))  # type: ignore
+            center, radius = get_binding_site(str(box_path))
             # Get scoring functions from config
             plants_sfs = config.plants.scoring_functions if config.plants.scoring_functions else ["chemplp", "plp", "plp95"]
             for sf in plants_sfs:
@@ -1563,7 +1563,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                     ocprint.print_warning(f"PLANTS rescoring with {sf} failed: {e}. Continuing with other scoring functions...")
             # Read PLANTS rescoring results
             try:
-                from OCDocker.Docking.PLANTS import read_log as plants_read_log  # type: ignore
+                from OCDocker.Docking.PLANTS import read_log as plants_read_log
                 plants_rescoring_data: Dict[str, float] = {}
                 for sf in plants_sfs:
                     # Each scoring function has its own directory: run_{scoring_function}
@@ -1595,11 +1595,11 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                     ocprint.print_warning("No PLANTS rescoring data found")
             except Exception as e:
                 ocprint.print_warning(f"Failed to read PLANTS rescoring results: {e}")
-        
+
         # ODDT (can rescore independently, doesn't require docking)
         if "oddt" in rescoring_engines:
             try:
-                from OCDocker.Rescoring.ODDT import run_oddt, df_to_dict  # type: ignore
+                from OCDocker.Rescoring.ODDT import run_oddt, df_to_dict
                 # ODDT needs the prepared receptor - use from any available engine
                 prepared_receptor = None
                 if "vina" in ctx or "smina" in ctx:
@@ -1616,13 +1616,13 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                         prepared_receptor = str(pdbqt_rec)
                     elif mol2_rec.exists():
                         prepared_receptor = str(mol2_rec)
-                
+
                 if prepared_receptor and Path(prepared_receptor).exists():
                     # ODDT needs MOL2 format for ligand
                     oddt_ligand = str(rep_mol2_final) if rep_mol2_final and Path(rep_mol2_final).exists() else str(rep_path)
                     oddt_output = outdir / "oddt_rescoring"
                     oddt_output.mkdir(parents=True, exist_ok=True)
-                    
+
                     # Run ODDT rescoring
                     try:
                         df = run_oddt(
@@ -1633,7 +1633,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                             overwrite=True,
                             returnData=True
                         )
-                        
+
                         # Check if run_oddt returned an error code (int) instead of DataFrame
                         if isinstance(df, int):
                             ocprint.print_warning(f"ODDT rescoring returned error code: {df}. Check ODDT configuration and logs.")
@@ -1683,7 +1683,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                 ocprint.print_warning(f"ODDT rescoring not available (import error): {e}")
             except Exception as e:
                 ocprint.print_warning(f"ODDT rescoring failed: {e}")
-        
+
         # Write summary
         # Track which engines were actually used for rescoring (those with results)
         rescoring_engines_used = list(rescoring.keys())
@@ -1696,19 +1696,19 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
             "rescoring": rescoring,
         }
         (outdir / "summary.json").write_text(json.dumps(summ, indent=2))
-    
+
         if args.store_db:
             try:
-                from OCDocker.DB.DB import create_tables  # type: ignore
+                from OCDocker.DB.DB import create_tables
                 create_tables()
-                from OCDocker.DB.Models.Complexes import Complexes  # type: ignore
+                from OCDocker.DB.Models.Complexes import Complexes
                 Complexes.insert_or_update({"name": name})
             except Exception as e:
                 print(f"Warning: failed to store to DB: {e}")
-    
+
         print(f"Pipeline finished. Representative pose: {rep_path}")
         return 0
-    
+
 
     boxes = _list_boxes(ligand_path.parent, box_path, args.all_boxes)
     if args.all_boxes and not boxes:
@@ -1745,15 +1745,15 @@ def cmd_script(args: argparse.Namespace) -> int:  # pragma: no cover - script ex
     int
         Exit code (0 for success, 1 for failure).
     '''
-    
+
     # Bootstrap env to ensure Initialise is safe to import
     globals_ns = _preparse_global_args(sys.argv[1:])
     _bootstrap_ocdocker_env(globals_ns)
 
     # Configure logging according to CLI flags
     try:
-        import OCDocker.Error as ocerror  # type: ignore
-        import OCDocker.Toolbox.Logging as oclogging  # type: ignore
+        import OCDocker.Error as ocerror
+        import OCDocker.Toolbox.Logging as oclogging
         oclogging.configure(level=ocerror.Error.get_output_level(), log_file=args.log_file, to_stdout=(not args.no_stdout_log))
     except (ImportError, AttributeError, OSError):
         # Ignore logging configuration errors (non-critical for core functionality)
@@ -1764,52 +1764,52 @@ def cmd_script(args: argparse.Namespace) -> int:  # pragma: no cover - script ex
     if not script_path.exists():
         print(f"Error: Script file not found: {script_path}")
         return 1
-    
+
     if not script_path.is_file():
         print(f"Error: Path is not a file: {script_path}")
         return 1
 
     # Load OCDocker libraries into namespace (similar to OCDockerConsole)
     script_namespace = {}
-    
+
     # Import all OCDocker modules
     try:
         # Import Initialise module and add all non-dunder symbols to namespace
-        import OCDocker.Initialise as ocinit  # type: ignore
+        import OCDocker.Initialise as ocinit
         for k, v in vars(ocinit).items():
             if not k.startswith('__'):
                 script_namespace[k] = v
-        
-        import OCDocker.Toolbox as octools  # type: ignore
+
+        import OCDocker.Toolbox as octools
         script_namespace['octools'] = octools
-        
-        import OCDocker.Ligand as ocl  # type: ignore
+
+        import OCDocker.Ligand as ocl
         script_namespace['ocl'] = ocl
-        
-        import OCDocker.Receptor as ocr  # type: ignore
+
+        import OCDocker.Receptor as ocr
         script_namespace['ocr'] = ocr
-        
-        import OCDocker.Docking.Vina as ocvina  # type: ignore
+
+        import OCDocker.Docking.Vina as ocvina
         script_namespace['ocvina'] = ocvina
-        
-        import OCDocker.Docking.Smina as ocsmina  # type: ignore
+
+        import OCDocker.Docking.Smina as ocsmina
         script_namespace['ocsmina'] = ocsmina
-        
-        import OCDocker.Docking.PLANTS as ocplants  # type: ignore
+
+        import OCDocker.Docking.PLANTS as ocplants
         script_namespace['ocplants'] = ocplants
-        
-        import OCDocker.Processing.Preprocessing.RmsdClustering as ocrmsdclust  # type: ignore
+
+        import OCDocker.Processing.Preprocessing.RmsdClustering as ocrmsdclust
         script_namespace['ocrmsdclust'] = ocrmsdclust
-        
-        import OCDocker.Rescoring.ODDT as ocoddt  # type: ignore
+
+        import OCDocker.Rescoring.ODDT as ocoddt
         script_namespace['ocoddt'] = ocoddt
-        
-        import OCDocker.Toolbox.Conversion as occonversion  # type: ignore
+
+        import OCDocker.Toolbox.Conversion as occonversion
         script_namespace['occonversion'] = occonversion
-        
-        import OCDocker.Toolbox.MoleculeProcessing as ocmolproc  # type: ignore
+
+        import OCDocker.Toolbox.MoleculeProcessing as ocmolproc
         script_namespace['ocmolproc'] = ocmolproc
-        
+
         # Add standard library modules that scripts commonly need
         from glob import glob
         from pprint import pprint
@@ -1818,7 +1818,7 @@ def cmd_script(args: argparse.Namespace) -> int:  # pragma: no cover - script ex
         script_namespace['Path'] = Path
         script_namespace['glob'] = glob
         script_namespace['pprint'] = pprint
-        
+
     except Exception as e:
         print(f"Error loading OCDocker libraries: {e}")
         import traceback
@@ -1830,10 +1830,10 @@ def cmd_script(args: argparse.Namespace) -> int:  # pragma: no cover - script ex
     try:
         # Set sys.argv to: [script_file, ...script_args]
         sys.argv = [str(script_path)] + (args.script_args or [])
-        
+
         # Read and execute the script
         script_content = script_path.read_text(encoding='utf-8')
-        
+
         # Compile the script for better error messages
         try:
             compiled_script = compile(script_content, str(script_path), 'exec')
@@ -1842,12 +1842,12 @@ def cmd_script(args: argparse.Namespace) -> int:  # pragma: no cover - script ex
             print(f"  Line {e.lineno}: {e.text}")
             print(f"  {e.msg}")
             return 1
-        
+
         # Execute the script with the loaded namespace
         exec(compiled_script, script_namespace)
-        
+
         return 0
-        
+
     except SystemExit as e:
         # Script called sys.exit(), respect its exit code
         return int(e.code) if e.code is not None else 0
@@ -1882,7 +1882,7 @@ def cmd_shap(args: argparse.Namespace) -> int:  # pragma: no cover - delegates t
     '''
 
     # No heavy OCDocker env needed for SHAP module, just dispatch
-    from OCDocker.OCScore.Analysis.SHAP.Cli import main as shap_main  # type: ignore
+    from OCDocker.OCScore.Analysis.SHAP.Cli import main as shap_main
     return int(shap_main([
         "--storage", args.storage,
         "--ao_study", args.ao_study,
@@ -1915,7 +1915,7 @@ def cmd_version(args: argparse.Namespace) -> int:
     int
         Exit code (0 for success, 1 for failure).
     '''
-    
+
     try:
         import OCDocker as _oc
         v = getattr(_oc, "__version__", None)
@@ -1961,8 +1961,8 @@ def cmd_vs(args: argparse.Namespace) -> int:  # pragma: no cover - heavy integra
 
     # Configure logging according to CLI flags
     try:
-        import OCDocker.Error as ocerror  # type: ignore
-        import OCDocker.Toolbox.Logging as oclogging  # type: ignore
+        import OCDocker.Error as ocerror
+        import OCDocker.Toolbox.Logging as oclogging
         oclogging.configure(
             level=ocerror.Error.get_output_level(),
             log_file=args.log_file,
@@ -1977,16 +1977,16 @@ def cmd_vs(args: argparse.Namespace) -> int:  # pragma: no cover - heavy integra
         os.environ["OCDOCKER_TIMEOUT"] = str(args.timeout)
 
     # Imports after env is ready
-    import OCDocker.Ligand as ocl  # type: ignore
-    import OCDocker.Receptor as ocr  # type: ignore
+    import OCDocker.Ligand as ocl
+    import OCDocker.Receptor as ocr
     if args.engine == "vina":
-        import OCDocker.Docking.Vina as engine_mod  # type: ignore
+        import OCDocker.Docking.Vina as engine_mod
         eng = "vina"
     elif args.engine == "smina":
-        import OCDocker.Docking.Smina as engine_mod  # type: ignore
+        import OCDocker.Docking.Smina as engine_mod
         eng = "smina"
     else:
-        import OCDocker.Docking.PLANTS as engine_mod  # type: ignore
+        import OCDocker.Docking.PLANTS as engine_mod
         eng = "plants"
 
     # Validate engine binary availability based on configuration
@@ -2177,9 +2177,9 @@ def cmd_vs(args: argparse.Namespace) -> int:  # pragma: no cover - heavy integra
     if args.store_db:
         try:
             # Ensure tables exist
-            from OCDocker.DB.DB import create_tables  # type: ignore
+            from OCDocker.DB.DB import create_tables
             create_tables()
-            from OCDocker.DB.Models.Complexes import Complexes  # type: ignore
+            from OCDocker.DB.Models.Complexes import Complexes
             Complexes.insert_or_update({"name": name})
         except Exception as e:
             print(f"Warning: failed to store to DB: {e}")
@@ -2188,7 +2188,7 @@ def cmd_vs(args: argparse.Namespace) -> int:  # pragma: no cover - heavy integra
 
 def main(argv: Optional[list[str]] = None) -> int:
     '''Main entry point for the CLI.
-    
+
     Parameters
     ----------
     argv : Optional[list[str]]
@@ -2199,11 +2199,11 @@ def main(argv: Optional[list[str]] = None) -> int:
     int
         Exit code (0 for success, 1 for failure).
     '''
-    
+
     argv = sys.argv[1:] if argv is None else argv
     parser = build_parser()
     args = parser.parse_args(argv)
-    
+
     return args.func(args)
 
 

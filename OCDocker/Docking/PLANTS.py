@@ -72,7 +72,7 @@ class PLANTS:
 
     def __init__(self, config_path: str, box_file: str, receptor: ocr.Receptor, prepared_receptor_path: str, ligand: ocl.Ligand, prepared_ligand_path: str, plants_log: str, output_plants: str, name: str = "", box_spacing: float = 2.9, overwrite_config: bool = False) -> None:
         ''' Constructor for the PLANTS object.
-        
+
         Parameters
         ----------
         config_path : str
@@ -98,7 +98,7 @@ class PLANTS:
         overwrite_config : bool, optional
             Overwrite the PLANTS config file, by default False.
         '''
-        
+
         self.name = str(name)
         self.config = str(config_path)
         self.box_file = str(box_file)
@@ -106,23 +106,23 @@ class PLANTS:
         self.__bindingSite = self.__get_binding_site()
 
         if isinstance(self.__bindingSite, int):
-            _ = ocerror.Error.binding_site_not_found(f"The binding site was not found in the box file '{self.box_file}'.", level = ocerror.ReportLevel.ERROR) # type: ignore
+            _ = ocerror.Error.binding_site_not_found(f"The binding site was not found in the box file '{self.box_file}'.", level = ocerror.ReportLevel.ERROR)
             return None
 
         # Check if the folder where the configPath is located exists (remove the file name from the path)
         _ = ocff.safe_create_dir(os.path.dirname(self.config))
 
-        self.binding_site_center, self.binding_site_radius = self.__bindingSite # type: ignore
-        
+        self.binding_site_center, self.binding_site_radius = self.__bindingSite
+
         # Receptor
         if isinstance(receptor, ocr.Receptor):
             self.input_receptor = receptor
         else:
-            ocerror.Error.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR) # type: ignore
+            ocerror.Error.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR)
             return None
         self.input_receptor_path = self.__parse_receptor_path(receptor)
         self.prepared_receptor = str(prepared_receptor_path)
-        
+
         # Ligand
         self.prepared_ligand = str(prepared_ligand_path)
         if self.prepared_ligand.lower().endswith(".pdbqt"):
@@ -137,26 +137,26 @@ class PLANTS:
         if isinstance(ligand, ocl.Ligand):
             self.input_ligand = ligand
         else:
-            ocerror.Error.wrong_type(f"The ligand '{ligand}' has not a supported type. Expected 'ocl.Ligand' but got {type(ligand)} instead.", level = ocerror.ReportLevel.ERROR) # type: ignore
+            ocerror.Error.wrong_type(f"The ligand '{ligand}' has not a supported type. Expected 'ocl.Ligand' but got {type(ligand)} instead.", level = ocerror.ReportLevel.ERROR)
             return None
 
         self.input_ligand_path = self.__parse_ligand_path(ligand)
-        
+
         # Initialize preparation strategy
         self.preparation_strategy = SPORESPreparationStrategy()
-        
+
         # Plants
         config = get_config()
         self.plants_log = str(plants_log)
         self.output_plants = str(output_plants)
         self.output_csv = f"{self.output_plants}/run"
         self.plants_cmd = [config.plants.executable, "--mode", "screen", self.config]
-        
+
         # Check if config file exists to avoid useless processing
         if not os.path.isfile(self.config) or overwrite_config:
             # Create the box
             self.write_config_file()
-        
+
         # Aliases
         ############
 
@@ -180,8 +180,8 @@ class PLANTS:
         # Check the type of ligand variable
         if type(ligand) == ocl.Ligand:
             return ligand.path
-        
-        _ = ocerror.Error.wrong_type(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.", level = ocerror.ReportLevel.ERROR) # type: ignore
+
+        _ = ocerror.Error.wrong_type(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.", level = ocerror.ReportLevel.ERROR)
 
         return ""
 
@@ -195,7 +195,7 @@ class PLANTS:
             The path for the receptor or its receptor object.
         forceMol2 : bool, optional
             Force the receptor to be converted to mol2, by default False
-            
+
         Returns
         -------
         str
@@ -233,14 +233,14 @@ class PLANTS:
                     return None
         elif isinstance(receptor, str):
             # Since is a string, check if the file exists
-            if os.path.isfile(receptor): # type: ignore
+            if os.path.isfile(receptor):
                 # Exists! Return it!
                 return receptor
             else:
-                _ = ocerror.Error.file_not_exist(message=f"The receptor '{receptor}' has not a valid path.", level = ocerror.ReportLevel.ERROR) # type: ignore
+                _ = ocerror.Error.file_not_exist(message=f"The receptor '{receptor}' has not a valid path.", level = ocerror.ReportLevel.ERROR)
                 return ""
 
-        _ = ocerror.Error.wrong_type(message=f"The receptor '{receptor}' has not a supported type. Expected 'string' or 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR) # type: ignore
+        _ = ocerror.Error.wrong_type(message=f"The receptor '{receptor}' has not a supported type. Expected 'string' or 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR)
 
         return ""
 
@@ -335,7 +335,7 @@ class PLANTS:
         else:
             prep_receptor_cmd = self.preparation_strategy.get_receptor_command(self.input_receptor_path, self.prepared_receptor)
             print(f"Prepared receptor command:   '{' '.join(prep_receptor_cmd) if prep_receptor_cmd else '-' }'")
-        
+
         print(f"Input ligand:                '{self.input_ligand if self.input_ligand else '-' }'")
         print(f"Input ligand path:           '{self.input_ligand_path if self.input_ligand_path else '-' }'")
         print(f"Prepared ligand path:        '{self.prepared_ligand if self.prepared_ligand else '-' }'")
@@ -350,7 +350,7 @@ class PLANTS:
         print(f"PLANTS output path:          '{self.output_plants if self.output_plants else '-' }'")
         print(f"PLANTS output csv path:      '{self.output_csv if self.output_csv else '-' }'")
         print(f"PLANTS command:              '{' '.join(self.plants_cmd) if self.plants_cmd else '-' }'")
-        
+
         return None
 
 
@@ -375,7 +375,7 @@ class PLANTS:
         else:
             # The ranking file will be called ranking
             rankingFile = "ranking.csv"
-            
+
 
         return read_log(f"{self.output_csv}/{rankingFile}", onlyBest = onlyBest)
 
@@ -404,7 +404,7 @@ class PLANTS:
         for rescoreLogPath in rescoreLogPaths:
             # Get the directory name from the log path (e.g., "run_chemplp")
             dir_name = os.path.basename(os.path.dirname(rescoreLogPath))
-            
+
             # Extract scoring function from directory name (remove "run_" prefix)
             # Format: run_{scoring_function} -> plants_{scoring_function}
             if dir_name.startswith("run_"):
@@ -413,10 +413,10 @@ class PLANTS:
             else:
                 # Fallback: use directory name as-is with plants_ prefix
                 key = f"plants_{dir_name}"
-            
+
             # Get the rescore log data (returns Dict[int, Dict] where int is pose number)
             log_data = read_log(rescoreLogPath, onlyBest = onlyBest)
-            
+
             # Extract the inner dictionary (remove pose number key)
             # Since rescoring typically uses onlyBest=True, there's usually one pose (key 1)
             # But we'll handle multiple poses by taking the first (best) one
@@ -435,7 +435,7 @@ class PLANTS:
             else:
                 # Empty log data
                 rescoreLogData[key] = {}
-        
+
         # Return the dictionary
 
         return rescoreLogData
@@ -468,7 +468,7 @@ class PLANTS:
         elif os.path.isdir(run_folder):
             # Check if the dir is empty or no output file has been generated (the double of the number of cluster structures, being 2 for each structure)
             config = get_config()
-            if len(os.listdir(run_folder)) == 0 or (len(glob(f"{run_folder}/{self.input_ligand.name}*.mol2")) < config.plants.cluster_structures * 2): # type: ignore
+            if len(os.listdir(run_folder)) == 0 or (len(glob(f"{run_folder}/{self.input_ligand.name}*.mol2")) < config.plants.cluster_structures * 2):
                 # Remove it
                 os.rmdir(run_folder)
 
@@ -495,7 +495,7 @@ class PLANTS:
             except (OSError, FileNotFoundError, PermissionError):
                 # Ignore if file doesn't exist or can't be removed
                 pass
-            
+
         # Check if there is a *bad*.mol2 file
         for badFile in glob(f"{run_dir}/*bad.mol2"):
             # This try is to avoid ocerror.Error when the file does not exist
@@ -550,11 +550,11 @@ class PLANTS:
         '''
 
         if not self.input_receptor_path:
-            return ocerror.Error.file_not_exist("No valid input receptor path provided.", level = ocerror.ReportLevel.ERROR) # type: ignore
-        
+            return ocerror.Error.file_not_exist("No valid input receptor path provided.", level = ocerror.ReportLevel.ERROR)
+
         if not self.prepared_receptor:
-            return ocerror.Error.file_not_exist("No valid prepared receptor path provided.", level = ocerror.ReportLevel.ERROR) # type: ignore
-        
+            return ocerror.Error.file_not_exist("No valid prepared receptor path provided.", level = ocerror.ReportLevel.ERROR)
+
         return self.preparation_strategy.prepare_receptor(
             self.input_receptor_path,
             self.prepared_receptor,
@@ -588,7 +588,7 @@ class PLANTS:
             # If is the default scoring function and skipDefaultScoring is True
             if not (scoring_function == config.plants.scoring and skipDefaultScoring):
                 # Run vina to rescore
-                _ = run_rescore(confFile, pose_list, outPath, self.prepared_receptor, scoring_function, self.binding_site_center[0], self.binding_site_center[1], self.binding_site_center[2], self.binding_site_radius, logFile = logFile, overwrite = overwrite) # type: ignore
+                _ = run_rescore(confFile, pose_list, outPath, self.prepared_receptor, scoring_function, self.binding_site_center[0], self.binding_site_center[1], self.binding_site_center[2], self.binding_site_radius, logFile = logFile, overwrite = overwrite)
 
         return None
 
@@ -688,15 +688,15 @@ def box_to_plants(box_file: str, conf_file: str, receptor: str, ligand: str, out
             return binding_site
 
         # Get the center and the binding site center
-        center, binding_site_radius = binding_site # type: ignore
+        center, binding_site_radius = binding_site
 
     # Write the file
-    return write_config_file(conf_file, receptor, ligand, output_plants, center[0], center[1], center[2], binding_site_radius) # type: ignore
+    return write_config_file(conf_file, receptor, ligand, output_plants, center[0], center[1], center[2], binding_site_radius)
 
 
 def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, digestFormat : str = "json", box_id: Optional[str] = None) -> int:
     '''Generate the docking digest.
-    
+
     Parameters
     ----------
     digestPath : str
@@ -718,7 +718,7 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
     if not os.path.isdir(digestPath) or overwrite:
         # Check if the digest extension is supported
         if ocvalidation.validate_digest_extension(digestPath, digestFormat):
-        
+
             # Create the digest variable
             digest = None
 
@@ -734,9 +734,9 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
                             digest = json.load(f)
                             # Check if the digest variable is fine
                             if not isinstance(digest, dict):
-                                return ocerror.Error.wrong_type(f"The digest file '{digestPath}' is not valid.", ocerror.ReportLevel.ERROR) # type: ignore
+                                return ocerror.Error.wrong_type(f"The digest file '{digestPath}' is not valid.", ocerror.ReportLevel.ERROR)
                     except Exception as e:
-                        return ocerror.Error.file_not_exist(f"Could not read the digest file '{digestPath}'.", ocerror.ReportLevel.ERROR) # type: ignore
+                        return ocerror.Error.file_not_exist(f"Could not read the digest file '{digestPath}'.", ocerror.ReportLevel.ERROR)
             else:
                 # Since it does not exists, create it
                 digest = ocff.empty_docking_digest(digestPath, overwrite)
@@ -746,16 +746,16 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
 
             # Check if the digest variable is fine
             if not isinstance(digest, dict):
-                return ocerror.Error.wrong_type(f"The docking digest file '{digestPath}' is not valid.", ocerror.ReportLevel.ERROR) # type: ignore
-            
+                return ocerror.Error.wrong_type(f"The docking digest file '{digestPath}' is not valid.", ocerror.ReportLevel.ERROR)
+
             # Merge the digest and the docking digest
             if box_id:
                 box_key = str(box_id)
                 if box_key not in digest or not isinstance(digest.get(box_key), dict):
                     digest[box_key] = {}
-                digest[box_key] = {**digest[box_key], **dockingDigest} # type: ignore
+                digest[box_key] = {**digest[box_key], **dockingDigest}
             else:
-                digest = { **digest, **dockingDigest } # type: ignore
+                digest = { **digest, **dockingDigest }
 
             # Write the digest file
             if digestFormat == "json":
@@ -766,12 +766,12 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
                         # Dump the data
                         json.dump(digest, f)
                 except Exception as e:
-                    return ocerror.Error.write_file(f"Could not write the digest file '{digestPath}'.", ocerror.ReportLevel.ERROR) # type: ignore
+                    return ocerror.Error.write_file(f"Could not write the digest file '{digestPath}'.", ocerror.ReportLevel.ERROR)
 
-            return ocerror.Error.ok() # type: ignore
-        return ocerror.Error.unsupported_extension(f"The provided extension '{digestFormat}' is not supported.", ocerror.ReportLevel.ERROR) # type: ignore
-    
-    return ocerror.Error.file_exists(f"The file '{digestPath}' already exists. If you want to overwrite it yse the overwrite flag.", level = ocerror.ReportLevel.WARNING) # type: ignore
+            return ocerror.Error.ok()
+        return ocerror.Error.unsupported_extension(f"The provided extension '{digestFormat}' is not supported.", ocerror.ReportLevel.ERROR)
+
+    return ocerror.Error.file_exists(f"The file '{digestPath}' already exists. If you want to overwrite it yse the overwrite flag.", level = ocerror.ReportLevel.WARNING)
 
 
 def generate_plants_files_database(path: str, protein: str, ligand: str, spacing: float = 0.33, boxPath: str = "") -> None:
@@ -798,7 +798,7 @@ def generate_plants_files_database(path: str, protein: str, ligand: str, spacing
     if boxPath == "":
       # Set is as the path + "/boxes"
       boxPath = f"{path}/boxes"
-      
+
     # Create the PLANTS folder inside protein's directory
     _ = ocff.safe_create_dir(plantsPath)
 
@@ -822,7 +822,7 @@ def get_binding_site(boxFile: str, spacing: float = 2.9) -> Union[Tuple[Tuple[fl
         The path to the box file.
     spacing : float, optional
         The spacing between the box and the binding site. Default is 2.9.
-    
+
     Returns
     -------
     Tuple[Tuple[float, float, float], float] | int
@@ -830,10 +830,10 @@ def get_binding_site(boxFile: str, spacing: float = 2.9) -> Union[Tuple[Tuple[fl
     '''
 
     ocprint.printv(f"Parsing '{boxFile}' to binding center data.")
-    
+
     # Test if the file boxFile exists
     if not os.path.exists(boxFile):
-        return ocerror.Error.file_not_exist(message=f"The box file in the path {boxFile} does not exists! Please ensure that the box file exists and the path is correct.", level = ocerror.ReportLevel.ERROR) # type: ignore
+        return ocerror.Error.file_not_exist(message=f"The box file in the path {boxFile} does not exists! Please ensure that the box file exists and the path is correct.", level = ocerror.ReportLevel.ERROR)
 
     # Dict to hold the center data
     center: Dict[str, Optional[float]] = {
@@ -851,7 +851,7 @@ def get_binding_site(boxFile: str, spacing: float = 2.9) -> Union[Tuple[Tuple[fl
         'min_y': None,
         'min_z': None
         }
-        
+
     try:
         # Open the box file
         with open(str(boxFile), 'r') as box_file:
@@ -874,30 +874,30 @@ def get_binding_site(boxFile: str, spacing: float = 2.9) -> Union[Tuple[Tuple[fl
                     positions['max_z'] = float(line[70:78])
 
     except Exception as e:
-        return ocerror.Error.read_file(message=f"Found a problem while reading the box file: {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
-        
+        return ocerror.Error.read_file(message=f"Found a problem while reading the box file: {e}", level = ocerror.ReportLevel.ERROR)
+
     # Check if center coordinates were found
     if center['x'] is None or center['y'] is None or center['z'] is None:
-        return ocerror.Error.read_file(message=f"Could not find center coordinates in box file '{boxFile}'. Expected REMARK line with coordinates at columns 30-54.", level = ocerror.ReportLevel.ERROR) # type: ignore
-    
+        return ocerror.Error.read_file(message=f"Could not find center coordinates in box file '{boxFile}'. Expected REMARK line with coordinates at columns 30-54.", level = ocerror.ReportLevel.ERROR)
+
     # Find which is the biggest value in each coordinate
     # If HEADER line was not found, positions will be None, so use a default radius
     if positions['min_x'] is None or positions['max_x'] is None:
         # Throw an error
-        return ocerror.Error.read_file(message=f"Could not find min and max x coordinates in box file '{boxFile}'. Expected HEADER line with coordinates at columns 30-78.", level = ocerror.ReportLevel.ERROR) # type: ignore
+        return ocerror.Error.read_file(message=f"Could not find min and max x coordinates in box file '{boxFile}'. Expected HEADER line with coordinates at columns 30-78.", level = ocerror.ReportLevel.ERROR)
     else:
-        xMax = max(abs(center['x'] - positions['min_x']), abs(positions['max_x'] - center['x'])) # type: ignore
-        yMax = max(abs(center['y'] - positions['min_y']), abs(positions['max_y'] - center['y'])) # type: ignore
-        zMax = max(abs(center['z'] - positions['min_z']), abs(positions['max_z'] - center['z'])) # type: ignore
+        xMax = max(abs(center['x'] - positions['min_x']), abs(positions['max_x'] - center['x']))
+        yMax = max(abs(center['y'] - positions['min_y']), abs(positions['max_y'] - center['y']))
+        zMax = max(abs(center['z'] - positions['min_z']), abs(positions['max_z'] - center['z']))
 
         # Get the biggest value among the coordinates (do not divide it, to allow more space for the protein)
-        radius = max(xMax, yMax, zMax) 
+        radius = max(xMax, yMax, zMax)
 
         # Add some extra space
-        radius += round(spacing * radius, 3) # type: ignore
+        radius += round(spacing * radius, 3)
 
     # Return the data
-    return ((center['x'], center['y'], center['z']), radius) # type: ignore
+    return ((center['x'], center['y'], center['z']), radius)
 
 
 def get_docked_poses(posesPath: str) -> List[str]:
@@ -918,10 +918,10 @@ def get_docked_poses(posesPath: str) -> List[str]:
     if os.path.isdir(posesPath):
         # Get the docked poses removing the protein and fixed files
         return [d for d in glob(f"{posesPath}/*.mol2") if os.path.isfile(d) and not d.endswith("_protein.mol2") and not d.endswith("_fixed.mol2")]
-    
+
     # Print an error message
-    _ = ocerror.Error.dir_not_exist(message=f"The poses path '{posesPath}' does not exist.", level = ocerror.ReportLevel.ERROR) # type: ignore
-    
+    _ = ocerror.Error.dir_not_exist(message=f"The poses path '{posesPath}' does not exist.", level = ocerror.ReportLevel.ERROR)
+
     # Return an empty list
     return []
 
@@ -962,13 +962,13 @@ def read_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
         The path to the PLANTS log file.
     onlyBest : bool, optional
         If True, only the best pose will be returned. By default False.
-        
+
     Returns
     -------
     Dict[int, Dict[int, float]]
         A dictionary with the data from the PLANTS log file.
     '''
-   
+
     # Check if file exists
     if os.path.isfile(path):
         try:
@@ -976,7 +976,7 @@ def read_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
             df = pd.read_csv(path)
 
             # Check if df is empty or malformed
-            if df is None or df.shape[0] == 0 or df.shape[1] == 0: # type: ignore
+            if df is None or df.shape[0] == 0 or df.shape[1] == 0:
                 # Return an empty dict
                 return {}
             else:
@@ -984,29 +984,29 @@ def read_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
                 if onlyBest:
                     # Return the built the dictionary
                     return { 1: {
-                            "PLANTS_TOTAL_SCORE": [df.TOTAL_SCORE[:1].values[0]], # type: ignore
-                            "PLANTS_SCORE_RB_PEN": [df.SCORE_RB_PEN[:1].values[0]], # type: ignore
-                            "PLANTS_SCORE_NORM_HEVATOMS": [df.SCORE_NORM_HEVATOMS[:1].values[0]], # type: ignore
-                            "PLANTS_SCORE_NORM_CRT_HEVATOMS": [df.SCORE_NORM_CRT_HEVATOMS[:1].values[0]], # type: ignore
-                            "PLANTS_SCORE_NORM_WEIGHT": [df.SCORE_NORM_WEIGHT[:1].values[0]], # type: ignore
-                            "PLANTS_SCORE_NORM_CRT_WEIGHT": [df.SCORE_NORM_CRT_WEIGHT[:1].values[0]], # type: ignore
-                            "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [df.SCORE_RB_PEN_NORM_CRT_HEVATOMS[:1].values[0]], # type: ignore
+                            "PLANTS_TOTAL_SCORE": [df.TOTAL_SCORE[:1].values[0]],
+                            "PLANTS_SCORE_RB_PEN": [df.SCORE_RB_PEN[:1].values[0]],
+                            "PLANTS_SCORE_NORM_HEVATOMS": [df.SCORE_NORM_HEVATOMS[:1].values[0]],
+                            "PLANTS_SCORE_NORM_CRT_HEVATOMS": [df.SCORE_NORM_CRT_HEVATOMS[:1].values[0]],
+                            "PLANTS_SCORE_NORM_WEIGHT": [df.SCORE_NORM_WEIGHT[:1].values[0]],
+                            "PLANTS_SCORE_NORM_CRT_WEIGHT": [df.SCORE_NORM_CRT_WEIGHT[:1].values[0]],
+                            "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [df.SCORE_RB_PEN_NORM_CRT_HEVATOMS[:1].values[0]],
                         }
                     }
                 else:
                     # Create the dict
                     data = {}
                     # For each row
-                    for _, row in df.iterrows(): # type: ignore
+                    for _, row in df.iterrows():
                         # Add the data to the dict
                         data[get_pose_index_from_file_path(str(row['LIGAND_ENTRY']))] = {
-                            "PLANTS_TOTAL_SCORE": row['TOTAL_SCORE'], # type: ignore
-                            "PLANTS_SCORE_RB_PEN": row['SCORE_RB_PEN'], # type: ignore
-                            "PLANTS_SCORE_NORM_HEVATOMS": row['SCORE_NORM_HEVATOMS'], # type: ignore
-                            "PLANTS_SCORE_NORM_CRT_HEVATOMS": row['SCORE_NORM_CRT_HEVATOMS'], # type: ignore
-                            "PLANTS_SCORE_NORM_WEIGHT": row['SCORE_NORM_WEIGHT'], # type: ignore
-                            "PLANTS_SCORE_NORM_CRT_WEIGHT": row['SCORE_NORM_CRT_WEIGHT'], # type: ignore
-                            "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": row['SCORE_RB_PEN_NORM_CRT_HEVATOMS'], # type: ignore
+                            "PLANTS_TOTAL_SCORE": row['TOTAL_SCORE'],
+                            "PLANTS_SCORE_RB_PEN": row['SCORE_RB_PEN'],
+                            "PLANTS_SCORE_NORM_HEVATOMS": row['SCORE_NORM_HEVATOMS'],
+                            "PLANTS_SCORE_NORM_CRT_HEVATOMS": row['SCORE_NORM_CRT_HEVATOMS'],
+                            "PLANTS_SCORE_NORM_WEIGHT": row['SCORE_NORM_WEIGHT'],
+                            "PLANTS_SCORE_NORM_CRT_WEIGHT": row['SCORE_NORM_CRT_WEIGHT'],
+                            "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": row['SCORE_RB_PEN_NORM_CRT_HEVATOMS'],
                         }
                     # Return the dict
                     return data
@@ -1016,7 +1016,7 @@ def read_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
             ocprint.print_error_log(f"Problems while reading file '{path}'. Error: {e}", f"{config.logdir}/PLANTS_read_log_ERROR.log")
 
     # Throw an error
-    _ = ocerror.Error.file_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.") # type: ignore
+    _ = ocerror.Error.file_not_exist(f"The file '{path}' does not exists. Please ensure its existance before calling this function.")
 
     # Return an empty dict
     return {}
@@ -1072,8 +1072,8 @@ def run_plants(confFile: str, outputPlants: str, overwrite: bool = False, logFil
             pass
         with open(logFile, 'w') as lf:
             lf.write("PLANTS stub run (binary not available)\n")
-        return ocerror.Error.ok() # type: ignore
-        
+        return ocerror.Error.ok()
+
     # Run the command
     return ocrun.run(cmd, logFile = logFile)
 
@@ -1166,7 +1166,7 @@ def run_rescore(confFile: str, pose_list_file: str, outPath: str, proteinFile: s
                 ocff.safe_remove_dir(outPath)
             else:
                 # Print verboosity
-                return ocerror.Error.dir_exists(f"The folder '{outPath}' already exists. Skipping the PLANTS run.", level = ocerror.ReportLevel.WARNING) # type: ignore
+                return ocerror.Error.dir_exists(f"The folder '{outPath}' already exists. Skipping the PLANTS run.", level = ocerror.ReportLevel.WARNING)
 
         # Create the conf file (yes... again...)
         config = get_config()
@@ -1180,10 +1180,10 @@ def run_rescore(confFile: str, pose_list_file: str, outPath: str, proteinFile: s
 
         # Print verboosity
         ocprint.printv(f"Running PLANTS using the '{confFile}' configurations and scoring function '{scoring_function}'.")
-        return ocerror.Error.ok() # type: ignore
+        return ocerror.Error.ok()
     else:
         # Print verboosity
-        return ocerror.Error.file_exists(f"The file '{confFile}' already exists. Skipping the PLANTS run.", level = ocerror.ReportLevel.WARNING) # type: ignore 
+        return ocerror.Error.file_exists(f"The file '{confFile}' already exists. Skipping the PLANTS run.", level = ocerror.ReportLevel.WARNING)
 
 
 def write_config_file(confFile: str, preparedReceptor: str, preparedLigand: str, outputPlants: str, bindingSiteCenterX: float, bindingSiteCenterY: float, bindingSiteCenterZ: float, bindingSiteRadius: float, scoringFunction: str = "chemplp") -> int:
@@ -1250,9 +1250,9 @@ def write_config_file(confFile: str, preparedReceptor: str, preparedLigand: str,
             f.write(f"cluster_structures {config.plants.cluster_structures}\n")
             f.write(f"cluster_rmsd {config.plants.cluster_rmsd}")
     except Exception as e:
-        return ocerror.Error.write_file(f"Problems while writing the file {confFile}: {e}") # type: ignore
+        return ocerror.Error.write_file(f"Problems while writing the file {confFile}: {e}")
 
-    return ocerror.Error.ok() # type: ignore
+    return ocerror.Error.ok()
 
 
 def write_pose_list(dockedPoses: Union[str, List[str]], poseListPath: str, overwrite: bool = False) -> Optional[str]:
@@ -1340,9 +1340,9 @@ def write_rescoring_config_file(confFile: str, preparedReceptor: str, ligandList
             f.write(f"# Rescoring mode parameter\n")
             f.write(f"rescore_mode {rescoringMode}\n")
     except Exception as e:
-        return ocerror.Error.write_file(f"Problems while writing the file {confFile}: {e}") # type: ignore
+        return ocerror.Error.write_file(f"Problems while writing the file {confFile}: {e}")
 
-    return ocerror.Error.ok() # type: ignore
+    return ocerror.Error.ok()
 
 
 # Aliases

@@ -13,7 +13,7 @@ import torch
 
 import torch.nn as nn
 
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, cast, overload, Literal
 
 # License
 ###############################################################################
@@ -134,7 +134,7 @@ class MLP(nn.Module):
             Output tensor.
         '''
 
-        return self.net(x)
+        return cast(torch.Tensor, self.net(x))
 
 
 class EncoderModule(nn.Module):
@@ -209,12 +209,13 @@ class EncoderModule(nn.Module):
         self.latent_dim = int(latent_dim)
         self.use_vae = bool(use_vae)
 
-        self.encoder_body = None
+        self.encoder_body: Optional[MLP] = None
         if encoder_hidden_sizes:
+            empty_params: Dict[str, Any] = {}
             self.encoder_body = MLP(
                 input_size=self.input_size,
                 layer_sizes=encoder_hidden_sizes,
-                activations=[(activation, {}) for _ in encoder_hidden_sizes],
+                activations=[(activation, empty_params) for _ in encoder_hidden_sizes],
                 dropout=dropout,
                 norm=norm,
                 output_activation=activation
@@ -248,7 +249,7 @@ class EncoderModule(nn.Module):
 
         if self.encoder_body is None:
             return x
-        return self.encoder_body(x)
+        return cast(torch.Tensor, self.encoder_body(x))
 
     def _latent_transform(self, z: torch.Tensor) -> torch.Tensor:
         '''Apply normalization/activation to latent tensor.
@@ -269,6 +270,24 @@ class EncoderModule(nn.Module):
             z = self.latent_norm(z)
         z = self.latent_activation(z)
         return z
+
+    @overload
+    def forward(
+            self,
+            x: torch.Tensor,
+            sample: bool = False,
+            return_stats: Literal[False] = False
+        ) -> torch.Tensor:
+        ...
+
+    @overload
+    def forward(
+            self,
+            x: torch.Tensor,
+            sample: bool = False,
+            return_stats: Literal[True] = True
+        ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        ...
 
     def forward(
             self,
@@ -454,10 +473,11 @@ class Autoencoder(nn.Module):
             use_vae=self.use_vae
         )
 
+        empty_params: Dict[str, Any] = {}
         self.decoder = MLP(
             input_size=self.latent_dim,
             layer_sizes=decoder_sizes,
-            activations=[(activation, {}) for _ in decoder_sizes],
+            activations=[(activation, empty_params) for _ in decoder_sizes],
             dropout=dropout,
             norm=norm,
             output_activation=decoder_output_activation
@@ -465,10 +485,10 @@ class Autoencoder(nn.Module):
 
         if energy_head_sizes is not None and len(energy_head_sizes) > 0:
             # Optional energy head for auxiliary regression supervision.
-            self.energy_head = MLP(
+            self.energy_head: Optional[MLP] = MLP(
                 input_size=self.latent_dim,
                 layer_sizes=energy_head_sizes + [1],
-                activations=[(activation, {}) for _ in energy_head_sizes] + [("Identity", {})],
+                activations=[(activation, empty_params) for _ in energy_head_sizes] + [("Identity", empty_params)],
                 dropout=dropout,
                 norm=norm,
                 output_activation="Identity"
@@ -477,6 +497,24 @@ class Autoencoder(nn.Module):
             self.energy_head = None
 
         self.to(self.device)
+
+    @overload
+    def encode(
+            self,
+            x: torch.Tensor,
+            sample: bool = False,
+            return_stats: Literal[False] = False
+        ) -> torch.Tensor:
+        ...
+
+    @overload
+    def encode(
+            self,
+            x: torch.Tensor,
+            sample: bool = False,
+            return_stats: Literal[True] = True
+        ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        ...
 
     def encode(
             self,
@@ -503,7 +541,7 @@ class Autoencoder(nn.Module):
 
         return self.encoder(x, sample=sample, return_stats=return_stats)
 
-    def forward(self, x: torch.Tensor, sample: bool = True) -> Dict[str, torch.Tensor]:
+    def forward(self, x: torch.Tensor, sample: bool = True) -> Dict[str, torch.Tensor | None]:
         '''Forward pass returning reconstruction and auxiliary outputs.
 
         Parameters
@@ -534,7 +572,7 @@ class Autoencoder(nn.Module):
 
         z_used = self.encoder.latent_dropout(z)
         # Reconstruction uses possibly dropped-out latents for robustness.
-        reconstruction = self.decoder(z_used)
+        reconstruction = cast(torch.Tensor, self.decoder(z_used))
         energy = self.energy_head(z_used) if self.energy_head is not None else None
 
         return {
@@ -620,7 +658,7 @@ class Autoencoder(nn.Module):
 
         z = self.encode(x, sample=sample)
         z = self.encoder.latent_dropout(z)
-        return self.decoder(z)
+        return cast(torch.Tensor, self.decoder(z))
 
     def sanity_check(self, batch_size: int = 4) -> Dict[str, object]:
         '''Run a lightweight sanity check on shapes and reconstruction.

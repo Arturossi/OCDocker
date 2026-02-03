@@ -66,12 +66,12 @@ class CustomDataset(Dataset):
         tuple
             The features and the target.
         '''
-        
+
         return self.features[idx], self.target[idx]
 
     def __init__(self, features: list, target: list) -> None:
         ''' Initialize the dataset.
-        
+
         Parameters
         ----------
         features : list
@@ -87,7 +87,7 @@ class CustomDataset(Dataset):
         return None
 
     def __len__(self) -> int:
-        ''' Get the length of the dataset.	
+        ''' Get the length of the dataset.
 
         Returns
         -------
@@ -146,7 +146,7 @@ class TransformerModel(nn.Module):
                  verbose : bool = False
                 ) -> None:
         ''' Constructor for the TransformerModel class.
-        
+
         Parameters
         ----------
         input_dim : int
@@ -177,7 +177,7 @@ class TransformerModel(nn.Module):
 
         # Call the parent constructor
         super(TransformerModel, self).__init__()
-        
+
         # Embedding layer
         self.embedding = nn.Linear(input_dim, d_model).to(device)
 
@@ -186,9 +186,9 @@ class TransformerModel(nn.Module):
 
         # Transformer encoder
         encoder_layer = nn.TransformerEncoderLayer(
-            d_model = d_model, 
-            nhead = nhead, 
-            dim_feedforward = dim_feedforward, 
+            d_model = d_model,
+            nhead = nhead,
+            dim_feedforward = dim_feedforward,
             dropout = dropout,
             batch_first = True
         ).to(device)
@@ -233,7 +233,7 @@ class TransformerModel(nn.Module):
         if verbose:
             # Print the model
 
-            ocprint.printv(self) # type: ignore
+            ocprint.printv(self)
 
     def forward(self, src : torch.Tensor) -> torch.Tensor:
         ''' Forward pass through the model.
@@ -266,7 +266,7 @@ class TransformerModel(nn.Module):
             init_func = self.init_functions[self.init_type]
         else:
             # User-facing error: invalid initialization function
-            ocerror.Error.value_error(f"Unknown initialization function: '{self.init_type}'") # type: ignore
+            ocerror.Error.value_error(f"Unknown initialization function: '{self.init_type}'")
             raise ValueError('Unknown initialization function')
 
         # Apply the initialization to all linear layers in the model
@@ -331,7 +331,7 @@ class Transformer(nn.Module):
         If True, print the model summary (default is False).
     '''
 
-    def __init__(self, 
+    def __init__(self,
             input_size : int,
             output_size : int,
             trans_params : dict,
@@ -356,7 +356,7 @@ class Transformer(nn.Module):
         verbose : bool, optional
             If True, print the model summary (default is False).
         '''
-        
+
         # Call the parent constructor
         super(Transformer, self).__init__()
 
@@ -392,7 +392,7 @@ class Transformer(nn.Module):
         # Set the optimizer and its parameters
         self.optimizer = self.optimizer_functions[self.optimizer_functions_str.index(trans_params['optimizer'])](
             self.trans.parameters(),
-            weight_decay = trans_params['weight_decay'], 
+            weight_decay = trans_params['weight_decay'],
             lr = trans_params['lr']
         )
 
@@ -411,7 +411,7 @@ class Transformer(nn.Module):
         # Print the model if verbose is True
         if verbose:
 
-            ocprint.printv(self.trans) # type: ignore
+            ocprint.printv(self.trans)
 
     def get_model(self) -> nn.Module:
         ''' Get the model.
@@ -440,7 +440,7 @@ class Transformer(nn.Module):
 
         # Set the seed for CPU
         torch.manual_seed(self.random_seed)
-        
+
         # This is not recommended for performance since it will disable the cudnn auto-tuner (reason why it is commented)
         #torch.backends.cudnn.enabled = False
 
@@ -459,7 +459,7 @@ class Transformer(nn.Module):
                     criterion : nn.Module = nn.MSELoss()
                     ) -> bool:
         ''' Train the model.
-        
+
         Parameters
         ----------
         X_train : Union[np.ndarray, pd.DataFrame, list]
@@ -482,7 +482,7 @@ class Transformer(nn.Module):
         bool
             True if the model was trained successfully, False otherwise.
         '''
-    
+
         self.set_random_seed()
 
         # If X_train is a list
@@ -491,10 +491,10 @@ class Transformer(nn.Module):
             X_train = [torch.tensor(np.asarray(x), dtype=torch.float32).to(self.device) for x in X_train]
         else:
             # Convert it to np.ndarray then to torch.Tensor and move it to the device
-            X_train = torch.tensor(np.asarray(X_train), dtype=torch.float32).to(self.device) # type: ignore
+            X_train = torch.tensor(np.asarray(X_train), dtype=torch.float32).to(self.device)
 
         # If y_train is a list
-        y_train = torch.tensor(np.asarray(y_train), dtype=torch.float32).to(self.device) # type: ignore
+        y_train = torch.tensor(np.asarray(y_train), dtype=torch.float32).to(self.device)
 
         # If X_test is a list
         if isinstance(X_test, list):
@@ -502,10 +502,10 @@ class Transformer(nn.Module):
             X_test = [torch.tensor(np.asarray(x), dtype=torch.float32).to(self.device) for x in X_test]
         else:
             # Convert it to np.ndarray then to torch.Tensor and move it to the device
-            X_test = torch.tensor(np.asarray(X_test), dtype=torch.float32).to(self.device) # type: ignore
+            X_test = torch.tensor(np.asarray(X_test), dtype=torch.float32).to(self.device)
 
         # Convert y_test to torch.Tensor and move it to the device
-        y_test = torch.tensor(np.asarray(y_test), dtype=torch.float32).to(self.device) # type: ignore
+        y_test = torch.tensor(np.asarray(y_test), dtype=torch.float32).to(self.device)
 
         # If X_validation is not none (y_validation is not none as well)
         if X_validation is not None:
@@ -515,22 +515,22 @@ class Transformer(nn.Module):
                 X_validation = [torch.tensor(np.asarray(x), dtype=torch.float32).to(self.device) for x in X_validation]
             else:
                 # Convert it to np.ndarray then to torch.Tensor and move it to the device
-                X_validation = torch.tensor(np.asarray(X_validation), dtype=torch.float32).to(self.device) # type: ignore
-            
+                X_validation = torch.tensor(np.asarray(X_validation), dtype=torch.float32).to(self.device)
+
             # Convert y_validation to torch.Tensor and move it to the device
-            y_validation = torch.tensor(np.asarray(y_validation), dtype=torch.float32).to(self.device) # type: ignore
+            y_validation = torch.tensor(np.asarray(y_validation), dtype=torch.float32).to(self.device)
 
         # Create the training loader
         train_loader = DataLoader(
-            dataset = CustomDataset(X_train, y_train), # type: ignore
-            batch_size = self.batch_size, 
+            dataset = CustomDataset(X_train, y_train),
+            batch_size = self.batch_size,
             shuffle = True,
             drop_last=True
         )
 
         # Create the test loader
         test_loader = DataLoader(
-            dataset = CustomDataset(X_test, y_test), # type: ignore
+            dataset = CustomDataset(X_test, y_test),
             batch_size = self.batch_size,
             drop_last=True
         )
@@ -539,8 +539,8 @@ class Transformer(nn.Module):
         if X_validation is not None:
             # Create the validation loader
             validation_loader = DataLoader(
-                dataset = CustomDataset(X_validation, y_validation), # type: ignore
-                batch_size = self.batch_size, 
+                dataset = CustomDataset(X_validation, y_validation),
+                batch_size = self.batch_size,
                 shuffle = True,
                 drop_last=True
             )
@@ -550,9 +550,9 @@ class Transformer(nn.Module):
             # Set the model to training mode
             self.trans.train()
 
-            # Set the running loss to 0            
+            # Set the running loss to 0
             running_loss = 0.0
-            
+
             for i, (inputs, labels) in enumerate(train_loader):
                 inputs = inputs.to(self.device)
                 labels = labels.to(self.device)
@@ -568,7 +568,7 @@ class Transformer(nn.Module):
 
                 # Accumulate the loss
                 running_loss = running_loss + loss.item()
-        
+
             # Set the model to evaluation mode
             self.trans.eval()
 
@@ -578,7 +578,7 @@ class Transformer(nn.Module):
             # Initialize the lists for predictions and labels
             all_predictions = []
             all_labels = []
-            
+
             # Set as no_grad to avoid tracking history
             with torch.no_grad():
                 # For each batch in the test loader
@@ -591,7 +591,7 @@ class Transformer(nn.Module):
 
                     # Accumulate the loss
                     running_loss = running_loss + loss.item()
-                    
+
                     # Append the predictions and the labels to the lists
                     all_predictions.extend(predicted.cpu().numpy())
                     all_labels.extend(labels.cpu().numpy())
@@ -612,12 +612,12 @@ class Transformer(nn.Module):
             if X_validation is not None:
                 # Set the model to evaluation mode
                 self.trans.eval()
-                
+
                 validation_predictions = self.trans(X_validation)
 
                 # Convert the predictions and the labels to numpy
                 validation_predictions_np = validation_predictions.detach().cpu().numpy()
-                y_validation_np = y_validation.cpu().numpy() # type: ignore
+                y_validation_np = y_validation.cpu().numpy()
 
                 # Set the prediction
                 self.prediction = y_validation_np
@@ -716,7 +716,7 @@ class TransOptimizer:
 
         # Set the device
         self.device = torch.device('cuda' if torch.cuda.is_available() and self.use_gpu else 'cpu')
-        
+
         # Se the X_train and y_train and move it to the device
         self.X_train = torch.tensor(np.asarray(X_train), dtype = torch.float32).to(self.device)
         self.y_train = torch.tensor(np.asarray(y_train), dtype = torch.float32).to(self.device)
@@ -761,7 +761,7 @@ class TransOptimizer:
         ----------
         trial : optuna.Trial
             The Optuna trial object.
-        
+
         Returns
         -------
         float
@@ -804,7 +804,7 @@ class TransOptimizer:
             init_params = {'a': a, 'nonlinearity': nonlinearity}
         else:
             init_params = {}
-        
+
         # Model setup
         model = TransformerModel(
             self.X_train.shape[-1],
@@ -830,14 +830,14 @@ class TransOptimizer:
 
         # Initialize the train and test loaders
         self.train_loader = DataLoader(
-                dataset = CustomDataset(self.X_train, self.y_train), # type: ignore
-                batch_size = batch_size, 
+                dataset = CustomDataset(self.X_train, self.y_train),
+                batch_size = batch_size,
                 shuffle = True,
                 drop_last=True
             )
-        
+
         self.test_loader = DataLoader(
-                dataset = CustomDataset(self.X_test, self.y_test), # type: ignore
+                dataset = CustomDataset(self.X_test, self.y_test),
                 batch_size = batch_size,
                 drop_last=True
             )
@@ -845,12 +845,12 @@ class TransOptimizer:
         # If a validation set has been provided, create the validation loader
         if self.X_validation is not None:
             self.validation_loader = DataLoader(
-                dataset = CustomDataset(self.X_validation, self.y_validation), # type: ignore
-                batch_size = batch_size, 
+                dataset = CustomDataset(self.X_validation, self.y_validation),
+                batch_size = batch_size,
                 shuffle = True,
                 drop_last=True
             )
-        
+
         # Suggestions for clipping the gradients
         clip_grad = trial.suggest_float('clip_grad', 0.1, 0.5)
 
@@ -861,20 +861,20 @@ class TransOptimizer:
         if self.validation_loader is not None:
             # Set the model to evaluation mode
             model.eval()
-            
+
             # Get the predictions for the validation set
             validation_predictions = model(self.X_validation)
 
             # Convert the predictions and the labels to numpy
             validation_predictions_np = validation_predictions.detach().cpu().numpy()
-            y_validation_np = self.y_validation.cpu().numpy() # type: ignore
+            y_validation_np = self.y_validation.cpu().numpy()
 
             # If there is a nan in the predictions, set the AUC to 0
             if np.isnan(validation_predictions_np).any():
                 validation_auc = 0
             else:
                 # Calculate the ROC
-                fpr, tpr, _ = roc_curve(y_validation_np, validation_predictions_np) # type: ignore
+                fpr, tpr, _ = roc_curve(y_validation_np, validation_predictions_np)
                 validation_auc = auc(fpr, tpr)
             # Set the optuna user attrs
             trial.set_user_attr('AUC', validation_auc)
@@ -913,7 +913,7 @@ class TransOptimizer:
         dict
             The best hyperparameters found by Optuna.
         '''
-        
+
         # If verbose, print some information
         if self.verbose:
             ocprint.printv(f'Optimizing the model for {n_trials} trials')
@@ -926,17 +926,17 @@ class TransOptimizer:
 
         # Create the study
         study = optuna.create_study(
-            direction = direction, 
-            study_name = study_name, 
-            storage = self.storage, 
-            load_if_exists = load_if_exists, 
+            direction = direction,
+            study_name = study_name,
+            storage = self.storage,
+            load_if_exists = load_if_exists,
             sampler = sampler,
             pruner = pruner
         )
 
         # Optimize the study
         study.optimize(self.objective, n_trials = n_trials, n_jobs = n_jobs)
-        
+
         # Get the best hyperparameters
         best_params = study.best_params
 
@@ -1001,17 +1001,17 @@ class TransOptimizer:
             The RMSE of the model on the test set.
         '''
 
-        # If verbose, set the autograd to detect anomalies        
+        # If verbose, set the autograd to detect anomalies
         if self.verbose:
             # Set the autograd to detect anomalies
-            torch.autograd.set_detect_anomaly(True) # type: ignore
-            
+            torch.autograd.set_detect_anomaly(True)
+
         # For each epoch
         for epoch in range(epochs):
             # Set the model to training mode
             model.train()
 
-            # Set the running loss to 0            
+            # Set the running loss to 0
             running_loss = 0.0
 
             # For each batch in the training loader
@@ -1020,7 +1020,7 @@ class TransOptimizer:
 
                 # Ensure the labels are of the correct type (float for regression)
                 labels = labels.float()
-                
+
                 # Compute the loss
                 loss = criterion(outputs, labels.view_as(outputs))
 
@@ -1059,13 +1059,13 @@ class TransOptimizer:
 
                 # Accumulate the loss
                 running_loss = running_loss + loss.item()
-                
+
                 # Append the predictions and the labels
                 all_predictions.extend(predicted.cpu().detach().numpy())
                 all_labels.extend(labels.cpu().detach().numpy())
 
         # Compute the average loss
-        average_loss = running_loss / len(test_loader) # type: ignore
+        average_loss = running_loss / len(test_loader)
 
         # Compute the RMSE
         rmse = np.sqrt(average_loss)

@@ -59,7 +59,7 @@ class Vina:
 
     def __init__(self, config_path: str, box_file: str, receptor: ocr.Receptor, prepared_receptor_path: str, ligand: ocl.Ligand, prepared_ligand_path: str, vina_log: str, output_vina: str, name: str = "", overwrite_config: bool = False) -> None:
         '''Constructor of the class Vina.
-        
+
         Parameters
         ----------
         config_path : str
@@ -92,9 +92,9 @@ class Vina:
         if isinstance(receptor, ocr.Receptor):
             self.input_receptor = receptor
         else:
-            ocerror.Error.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR) # type: ignore
+            ocerror.Error.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR)
             return None
-        
+
         # Check if the folder where the configPath is located exists (remove the file name from the path)
         _ = ocff.safe_create_dir(Path(self.config).parent)
 
@@ -103,16 +103,16 @@ class Vina:
 
         # Ligand
         self.prepared_ligand = str(prepared_ligand_path)
-        
+
         # Check the type of the ligand
-        if isinstance(ligand, ocl.Ligand):   
+        if isinstance(ligand, ocl.Ligand):
             self.input_ligand = ligand
         else:
-            ocerror.Error.wrong_type(f"The ligand '{ligand}' has not a supported type. Expected 'ocl.Ligand' but got {type(ligand)} instead.", level = ocerror.ReportLevel.ERROR) # type: ignore
+            ocerror.Error.wrong_type(f"The ligand '{ligand}' has not a supported type. Expected 'ocl.Ligand' but got {type(ligand)} instead.", level = ocerror.ReportLevel.ERROR)
             return None
 
         self.input_ligand_path = self.__parse_ligand_path(ligand)
-        
+
         # Initialize preparation strategy
         self.preparation_strategy = MGLToolsPreparationStrategy()
 
@@ -120,26 +120,26 @@ class Vina:
         config = get_config()
         self.vina_log = str(vina_log)
         self.output_vina = str(output_vina)
-        
+
         # Initialize vina_cmd to None in case of early return
         self.vina_cmd = None
-        
+
         # Validate that output_vina is a file path, not a directory
         if os.path.isdir(self.output_vina):
-            _ = ocerror.Error.wrong_type( # type: ignore
+            _ = ocerror.Error.wrong_type(
                 f"Vina output path must be a file path, not a directory. Got: '{self.output_vina}'. "
                 f"Expected something like: '{os.path.join(self.output_vina, 'output.pdbqt')}'",
                 level=ocerror.ReportLevel.ERROR
             )
             return None
-        
+
         self.vina_cmd = [config.vina.executable, "--config", self.config, "--ligand", self.prepared_ligand, "--out", self.output_vina, "--cpu", "1"]
-        
+
         # Check if the config file exists or if it should be overwritten
         if not os.path.isfile(self.config) or overwrite_config:
             # Create the box
             box_to_vina(self.box_file, self.config, self.prepared_receptor)
-        
+
         # Aliases
         ############
 
@@ -148,7 +148,7 @@ class Vina:
 
     def __parse_ligand_path(self, ligand: Union[str, ocl.Ligand]) -> str:
         '''Parse the ligand path, handling its type.
-        
+
         Parameters
         ----------
         ligand : str | ocl.Ligand
@@ -161,24 +161,24 @@ class Vina:
 
         # Check the type of ligand variable
         if isinstance(ligand, ocl.Ligand):
-            return ligand.path # type: ignore
+            return ligand.path
         elif isinstance(ligand, str):
             # Since is a string, check if the file exists
-            if os.path.isfile(ligand): # type: ignore
+            if os.path.isfile(ligand):
                 # Exists! Process it then!
-                return self.__process_ligand(ligand) # type: ignore
+                return self.__process_ligand(ligand)
             else:
-                _ = ocerror.Error.file_not_exist(message=f"The ligand '{ligand}' has not a valid path.", level = ocerror.ReportLevel.ERROR) # type: ignore
+                _ = ocerror.Error.file_not_exist(message=f"The ligand '{ligand}' has not a valid path.", level = ocerror.ReportLevel.ERROR)
                 return ""
 
-        _ = ocerror.Error.wrong_type(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.", level = ocerror.ReportLevel.ERROR) # type: ignore
+        _ = ocerror.Error.wrong_type(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.", level = ocerror.ReportLevel.ERROR)
 
         return ""
 
 
     def __parse_receptor_path(self, receptor: Union[str, ocr.Receptor]) -> str:
         '''Parse the receptor path, handling its type.
-        
+
         Parameters
         ----------
         receptor : str | ocr.Receptor
@@ -192,17 +192,17 @@ class Vina:
 
         # Check the type of receptor variable
         if isinstance(receptor, ocr.Receptor):
-            return receptor.path  # type: ignore
+            return receptor.path
         elif isinstance(receptor, str):
             # Since is a string, check if the file exists
-            if os.path.isfile(receptor): # type: ignore
+            if os.path.isfile(receptor):
                 # Exists! Return it!
-                return receptor # type: ignore
+                return receptor
             else:
-                _ = ocerror.Error.file_not_exist(message=f"The receptor '{receptor}' has not a valid path.", level = ocerror.ReportLevel.ERROR) # type: ignore
+                _ = ocerror.Error.file_not_exist(message=f"The receptor '{receptor}' has not a valid path.", level = ocerror.ReportLevel.ERROR)
                 return ""
 
-        _ = ocerror.Error.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'string' or 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR) # type: ignore
+        _ = ocerror.Error.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'string' or 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR)
 
         return ""
 
@@ -349,11 +349,11 @@ class Vina:
             If True, use openbabel instead of prepare_ligand4.
         overwrite : bool
             If True, overwrite existing output file.
-        
+
         Returns
         -------
         int | str | Tuple[int, str]
-            The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command. If fails, return the file extension. 
+            The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command. If fails, return the file extension.
         '''
 
         # If True, use openbabel
@@ -477,7 +477,7 @@ class Vina:
             # Set the outPath as the same folder as the vina output
             outPath = os.path.dirname(self.output_vina)
 
-        return ocmolproc.split_poses(self.output_vina, self.input_ligand.name, outPath, logFile = logFile, suffix = "_split_") # type: ignore
+        return ocmolproc.split_poses(self.output_vina, self.input_ligand.name, outPath, logFile = logFile, suffix = "_split_")
 
 
 
@@ -495,7 +495,7 @@ class Vina:
 
 
 
-    
+
 # Functions
 ###############################################################################
 ## Private ##
@@ -518,7 +518,7 @@ def box_to_vina(box_file: str, conf_file: str, receptor: str) -> int:
     ocprint.printv(f"Converting the box file '{box_file}' to Vina conf file as '{conf_file}' file.")
     # Test if the file box_file exists
     if not os.path.exists(box_file):
-        return ocerror.Error.file_not_exist(message=f"The box file in the path {box_file} does not exist! Please ensure that the file exists and the path is correct.", level = ocerror.ReportLevel.ERROR) # type: ignore
+        return ocerror.Error.file_not_exist(message=f"The box file in the path {box_file} does not exist! Please ensure that the file exists and the path is correct.", level = ocerror.ReportLevel.ERROR)
     # List to hold all the data
     lines = []
 
@@ -537,7 +537,7 @@ def box_to_vina(box_file: str, conf_file: str, receptor: str) -> int:
                         # Break the loop (optimization)
                         break
     except Exception as e:
-        return ocerror.Error.read_file(message=f"Found a problem while reading the box file: {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
+        return ocerror.Error.read_file(message=f"Found a problem while reading the box file: {e}", level = ocerror.ReportLevel.ERROR)
 
     try:
         # Ensure parent directory for conf file exists
@@ -561,8 +561,8 @@ def box_to_vina(box_file: str, conf_file: str, receptor: str) -> int:
             conf_file_obj.write(f"num_modes = {config.vina.num_modes}\n")
             conf_file_obj.write(f"scoring = {config.vina.scoring}\n")
     except Exception as e:
-        return ocerror.Error.write_file(message=f"Found a problem while opening conf file: {e}.", level = ocerror.ReportLevel.ERROR) # type: ignore
-    return ocerror.Error.ok() # type: ignore
+        return ocerror.Error.write_file(message=f"Found a problem while opening conf file: {e}.", level = ocerror.ReportLevel.ERROR)
+    return ocerror.Error.ok()
 
 
 def generate_vina_files_database(path: str, protein: str, boxPath: str = "") -> None:
@@ -577,7 +577,7 @@ def generate_vina_files_database(path: str, protein: str, boxPath: str = "") -> 
     boxPath : str
         The path to the box file. If empty, it will set as path + "/boxes"
     '''
-    
+
     # Parameterize the vina and box paths
     vinaPath = f"{path}/vinaFiles"
 
@@ -588,7 +588,7 @@ def generate_vina_files_database(path: str, protein: str, boxPath: str = "") -> 
 
     # Create the vina folder inside protein's directory
     _ = ocff.safe_create_dir(vinaPath)
-    
+
     # TODO: Implement multiple box support here
     box = f"{boxPath}/box0.pdb"
     confPath = f"{vinaPath}/conf_vina.conf"
@@ -666,12 +666,12 @@ def read_rescore_logs(rescoreLogPaths: Union[List[str], str], onlyBest: bool = F
     for rescoreLogPath in rescoreLogPaths:
         # Get the original filename without extension
         original_filename = os.path.splitext(os.path.basename(rescoreLogPath))[0]
-        
+
         # Extract scoring function from filename ending with _rescoring
         # Get scoring functions from config and match against filename
         config = get_config()
         scoring_functions = getattr(config.vina, 'scoring_functions', [])
-        
+
         scoring_function = None
         if original_filename.endswith("_rescoring") and scoring_functions:
             # Check if any scoring function from config appears in the filename
@@ -681,7 +681,7 @@ def read_rescore_logs(rescoreLogPaths: Union[List[str], str], onlyBest: bool = F
                 if original_filename.endswith(f"_{sf}_rescoring"):
                     scoring_function = sf
                     break
-        
+
         # Extract pose number if present (pattern: {name}_split_{number}_{scoring_function}_rescoring or {name}_split_{number}_rescoring)
         pose_number = None
         if "_split_" in original_filename:
@@ -691,12 +691,12 @@ def read_rescore_logs(rescoreLogPaths: Union[List[str], str], onlyBest: bool = F
             parts_after_split = after_split.split("_")
             if parts_after_split and parts_after_split[0].isdigit():
                 pose_number = parts_after_split[0]
-        
+
         # Handle onlyBest filter after extracting scoring function and pose number
         if onlyBest and pose_number:
             if pose_number != "1":
                 continue
-        
+
         if scoring_function:
             if pose_number:
                 key = f"rescoring_{scoring_function}_{pose_number}"
@@ -709,10 +709,10 @@ def read_rescore_logs(rescoreLogPaths: Union[List[str], str], onlyBest: bool = F
             # If scoring function not found, skip this file with a warning
             _ = ocerror.Error.value_error(message=f"The scoring function could not be found in the filename '{original_filename}'. Skipping this file.", level = ocerror.ReportLevel.WARNING)
             continue
-        
+
         # Get the rescore log data
         rescoreLogData[key] = read_rescoring_log(rescoreLogPath)
-    
+
     # Return the dictionary
     return rescoreLogData
 
@@ -788,23 +788,23 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
     if isinstance(ligands, str):
         # Convert to list
         ligands = [ligands]
-    
+
     # Ligand name list
     ligandNames = []
-    
+
     # For each ligand
     for ligand in ligands:
         # Only split if splitLigand is True (overwrite doesn't trigger splitting)
         if splitLigand:
             # Get the ligand name
             ligandName = os.path.splitext(os.path.basename(ligand))[0]
-            
+
             # Split the ligand (only add _split_ suffix when actually splitting)
             _ = ocmolproc.split_poses(ligand, ligandName, outPath, logFile = "", suffix = "_split_")
-            
+
             # Add the ligand name to the list
             ligandNames.append(ligandName)
-        
+
     # If splitLigand is True, get the splited ligands (only for the provided ligand files)
     if splitLigand:
         # Reset the ligand list
@@ -848,7 +848,7 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
         else:
             # Print verboosity
             ocprint.printv(f"The log file '{logFile}' already exists. Skipping the vina run for the ligand '{ligand_name}' using the scoring function '{scoring_function}'.")
-    
+
     # Think about how can this be done to deal with multiple runs
     return None
 
@@ -872,7 +872,7 @@ def run_vina(confFile: str, ligand: str, outPath: str, logFile: str = "") -> int
     int
         The exit code of the command (based on the Error.py code table).
     '''
-    
+
     # Create the command list
     config = get_config()
     cmd = [config.vina.executable, "--config", confFile, "--ligand", ligand, "--out", outPath, "--cpu", "1"]
@@ -902,7 +902,7 @@ def run_vina(confFile: str, ligand: str, outPath: str, logFile: str = "") -> int
         except (OSError, IOError, PermissionError):
             # Ignore errors if file can't be written
             pass
-        return ocerror.Error.ok()  # type: ignore
+        return ocerror.Error.ok()
 
     # Run the command
     return ocrun.run(cmd, logFile=logFile)

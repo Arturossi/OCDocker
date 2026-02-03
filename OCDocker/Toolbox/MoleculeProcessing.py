@@ -67,7 +67,7 @@ _CANON_COLLAPSE = {
 
 def _format_atom_name(atom: str, element: str) -> str:
     '''Format atom name into PDB columns 13-16.
-    
+
     Parameters
     ----------
     atom : str
@@ -194,7 +194,7 @@ def clean_for_dssp(structurePath: str) -> int:
 
     # Inigialise hasHeader flag
     hasHeader = False
-    
+
     # List of lines and dssp lines
     lines = []
 
@@ -207,14 +207,14 @@ def clean_for_dssp(structurePath: str) -> int:
                 if not line.startswith("HEADER") and not hasHeader:
                     # Set the hasHeader flag to True
                     hasHeader = True
-                    
+
                     # Add the line to the list
                     lines.append("HEADER    \n")
 
                 if not line.startswith("CRYST1") and hasHeader and not hasCryst1:
                     # Set the hasCryst1 flag to True
                     hasCryst1 = True
-                    
+
                     # Add the line to the list
                     lines.append("CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1\n")
 
@@ -224,20 +224,20 @@ def clean_for_dssp(structurePath: str) -> int:
                     if line[21] == " ":
                         # Assume that the protein has only one chain and call it A
                         line = f"{line[:21]}A{line[22:]}"
-                    
+
                     # Add the line to the list
                     lines.append(line)
 
         # Create a lock for multithreading
         lock = Lock()
-        
+
         # Start the lock with statement
         with lock:
             # Write the lines to the file
             with open(structurePath, 'w') as pdbFile:
                 # Write the lines list to the file
                 pdbFile.writelines(lines)
-        
+
         return ocerror.Error.ok()
     else:
         return ocerror.Error.file_not_exist(message = f"The file '{structurePath}' does not exist!", level = ocerror.ReportLevel.ERROR)
@@ -271,7 +271,7 @@ def clean_pdb_file(
         return ocerror.Error.file_not_exist(message=f"The file '{structurePath}' does not exist!", level=ocerror.ReportLevel.ERROR)
 
     if os.path.isfile(outputPath) and not overwrite:
-        return ocerror.Error.file_exists(message=f"The file '{outputPath}' already exists, aborting cleaning.", level=ocerror.ReportLevel.WARNING) # type: ignore
+        return ocerror.Error.file_exists(message=f"The file '{outputPath}' already exists, aborting cleaning.", level=ocerror.ReportLevel.WARNING)
 
     # Initialise flags
     hasCryst1 = False
@@ -301,7 +301,7 @@ def clean_pdb_file(
             with open(outputPath, 'w') as pdbFile:
                 pdbFile.writelines(lines)
     except Exception as e:
-        return ocerror.Error.write_file(message=f"Could not clean PDB file '{structurePath}'. Error: {e}", level=ocerror.ReportLevel.ERROR) # type: ignore
+        return ocerror.Error.write_file(message=f"Could not clean PDB file '{structurePath}'. Error: {e}", level=ocerror.ReportLevel.ERROR)
 
     return ocerror.Error.ok()
 
@@ -434,23 +434,23 @@ def get_rmsd(reference: str, molecule: str) -> Union[List[float], float]:
 
     # Load all molecules (if only one, a list with a single element will be generated)
     mols = io.loadallmols(molecule)
-    
+
     # For each molecule in molecules
     for mol in mols:
         # Remove its hydrogens
-        mol.strip() # type: ignore
+        mol.strip()
 
     # Get the reference and molecules coordinates
     refCoordinates = ref.coordinates
-    molCoordinates = [mol.coordinates for mol in mols] # type: ignore
+    molCoordinates = [mol.coordinates for mol in mols]
 
     # Get the reference and molecules atomicnums
     refAtmNum = ref.atomicnums
-    molAtmNum = mols[0].atomicnums # type: ignore
+    molAtmNum = mols[0].atomicnums
 
     # Get the reference and molecules adjacency_matrix
     refAdjMat = ref.adjacency_matrix
-    molAdjMat = mols[0].adjacency_matrix # type: ignore
+    molAdjMat = mols[0].adjacency_matrix
 
     # Return the symmetric rmsd (account for symmetry because it is important)
     return rmsd.symmrmsd(refCoordinates, molCoordinates, refAtmNum, molAtmNum, refAdjMat, molAdjMat)
@@ -487,10 +487,10 @@ def get_rmsd_matrix(molecules: List[str]) -> Dict[str, Dict[str, float]]:
                 # Get the rmsd between the molecule and the other molecule
                 tmpMolecule = get_rmsd(molecule, otherMolecule)
                 # Get the rmsd between the molecule and the other molecule
-                rmsdRow[otherMolecule] = tmpMolecule if isinstance(tmpMolecule, float) else tmpMolecule[0] # type: ignore
+                rmsdRow[otherMolecule] = tmpMolecule if isinstance(tmpMolecule, float) else tmpMolecule[0]
 
         # Append the row to the rmsd matrix
-        rmsdMatrix[molecule] = rmsdRow 
+        rmsdMatrix[molecule] = rmsdRow
 
     # Return the rmsd matrix
     return rmsdMatrix
@@ -510,7 +510,7 @@ def split_poses(ligand: str, ligandName: str, outPath: str, suffix: str = "", lo
         The suffix to be added to the output files, by default "".
     logFile : str, optional
         The path to the log file, by default "".
-    
+
     Returns
     -------
     int
@@ -519,7 +519,7 @@ def split_poses(ligand: str, ligandName: str, outPath: str, suffix: str = "", lo
 
     # Split the input ligand
     config = get_config()
-    
+
     # Ensure ligand input path is absolute and normalized (remove duplicate directory components)
     ligand = ocff.normalize_path(ligand)
     # Ensure outPath is normalized (removes duplicate slashes, . and .. components, and duplicate directories) and absolute

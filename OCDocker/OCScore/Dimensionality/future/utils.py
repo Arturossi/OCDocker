@@ -184,7 +184,7 @@ def ramp_weight(
 
     if ramp_type == "sigmoid":
         # Sigmoid ramp grows slowly then saturates.
-        return float(target) * (1.0 / (1.0 + np.exp(-10.0 * (progress - 0.5))))
+        return float(target) * float(1.0 / (1.0 + np.exp(-10.0 * (progress - 0.5))))
 
     return float(target) * progress
 

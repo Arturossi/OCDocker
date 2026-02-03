@@ -110,7 +110,7 @@ def run_ae_feature_importance(
         # Convert the input data to a tensor
         X_tensor = torch.tensor(X, dtype=torch.float32)
         preds = ae_model.predict(X_tensor).detach().numpy()
-        return -mean_squared_error(y_valid, preds)
+        return float(-mean_squared_error(y_valid, preds))
 
     result = permutation_importance(
         estimator=None,

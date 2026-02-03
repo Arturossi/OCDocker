@@ -82,7 +82,7 @@ def __core_generate_digest(path: str, ligandDir: str, archive: str, overwrite: b
 
     # If is the index directory, ignore
     if ptn in ['index']:
-        return ocerror.Error.unnalowed_dir() # type: ignore
+        return ocerror.Error.unnalowed_dir()
 
     ligandDescriptorPath = f"{ligandDir}/ligand_descriptors.json"
 
@@ -121,9 +121,9 @@ def __core_generate_digest(path: str, ligandDir: str, archive: str, overwrite: b
         errMsg = f"There is no ligand descriptor json file for the protein in the path '{ligandDescriptorPath}'."
         config = get_config()
         ocprint.print_error_log(errMsg, f"{config.logdir}/{archive}_docking_digest_run_report_ERROR.log")
-        return ocerror.Error.receptor_or_ligand_descriptor_does_not_exist(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
+        return ocerror.Error.receptor_or_ligand_descriptor_does_not_exist(errMsg, level = ocerror.ReportLevel.ERROR)
 
-    return ocerror.Error.ok() # type: ignore
+    return ocerror.Error.ok()
 
 def __generate_digest_no_parallel(complexList: List[Tuple[str, List[str]]], archive: str, overwrite: bool, digestFormat: str, desc: str, all_boxes: bool) -> int:
     '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_generate_digest function.
@@ -140,7 +140,7 @@ def __generate_digest_no_parallel(complexList: List[Tuple[str, List[str]]], arch
         If the docking output already exists, should it be overwritten?
     desc : str
         The description of the progress bar.
-    
+
     Returns
     -------
     int
@@ -149,7 +149,7 @@ def __generate_digest_no_parallel(complexList: List[Tuple[str, List[str]]], arch
 
     # Track error codes from all digest operations
     error_codes = []
-    
+
     # Redirect all prints to tqdm.write
     with ocbasetools.redirect_to_tqdm():
         # For each file in dirs
@@ -170,7 +170,7 @@ def __generate_digest_no_parallel(complexList: List[Tuple[str, List[str]]], arch
     if error_codes:
         # Return the first non-OK error code (errors are already logged by core functions)
         return error_codes[0]
-    return ocerror.Error.ok() # type: ignore
+    return ocerror.Error.ok()
 
 def __generate_digest_parallel(complexList: List[Tuple[str, List[str]]], archive: str, overwrite: bool, digestFormat: str, desc: str, all_boxes: bool) -> int:
     '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
@@ -206,7 +206,7 @@ def __generate_digest_parallel(complexList: List[Tuple[str, List[str]]], archive
 
     # Track error codes from all digest operations
     error_codes = []
-    
+
     try:
         # Create a Thread pool with the maximum available_cores
         config = get_config()
@@ -228,7 +228,7 @@ def __generate_digest_parallel(complexList: List[Tuple[str, List[str]]], archive
     if error_codes:
         # Return the first non-OK error code (errors are already logged by core functions)
         return error_codes[0]
-    return ocerror.Error.ok() # type: ignore
+    return ocerror.Error.ok()
 
 def __generate_digest_single(complex: Tuple[str, List[str]], archive: str, overwrite: bool, digestFormat: str, desc: str, all_boxes: bool) -> int:
     '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_generate_digest function.
@@ -245,7 +245,7 @@ def __generate_digest_single(complex: Tuple[str, List[str]], archive: str, overw
         If the docking output already exists, should it be overwritten?
     desc : str
         The description of the progress bar.
-    
+
     Returns
     -------
     int
@@ -254,7 +254,7 @@ def __generate_digest_single(complex: Tuple[str, List[str]], archive: str, overw
 
     # Track error codes from all digest operations
     error_codes = []
-    
+
     # For each file in dirs
     for ligandDir in tqdm(iterable = complex[1], total = len(complex[1]), desc=desc):
         # Call the core dock function (shared between parallel and not parallel)
@@ -270,7 +270,7 @@ def __generate_digest_single(complex: Tuple[str, List[str]], archive: str, overw
     if error_codes:
         # Return the first non-OK error code (errors are already logged by core functions)
         return error_codes[0]
-    return ocerror.Error.ok() # type: ignore
+    return ocerror.Error.ok()
 
 def __thread_generate_digest(arguments: list) -> int:
     '''Thread aid function to call __core_generate_digest.

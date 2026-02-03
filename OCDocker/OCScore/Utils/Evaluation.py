@@ -66,7 +66,7 @@ def compute_auc(
         The list of columns containing the scores.
     class_column_name : str
         The name of the column containing the class.
-    
+
     Returns
     -------
     pd.DataFrame
@@ -92,23 +92,23 @@ def compute_auc(
             "score_column": score_column,
             "AUC": roc_auc
         })
-    
+
     # Return the DataFrame with the metrics
     return pd.DataFrame(metrics)
 
 
 def compute_metrics(
-        df: pd.DataFrame, 
+        df: pd.DataFrame,
         score_columns: list[str],
-        target_column_name: str, 
-        db_column_name: str, 
-        metric_db_name: tuple[str, str], 
-        class_column_name: str, 
+        target_column_name: str,
+        db_column_name: str,
+        metric_db_name: tuple[str, str],
+        class_column_name: str,
         positive_class_names: Union[str, list[str]],
         invert_conditionally: bool = True
     ) -> pd.DataFrame:
     ''' Compute the metrics for the scores in given score_columns.
-    
+
     Parameters
     ----------
     df : pd.DataFrame
@@ -130,7 +130,7 @@ def compute_metrics(
     -------
     pd.DataFrame
         The DataFrame with the computed metrics.
-    
+
     Raises
     ------
     ValueError
@@ -140,7 +140,7 @@ def compute_metrics(
     # Check if metric_db_name has two elements
     if len(metric_db_name) != 2:
         # User-facing error: invalid metric_db_name format
-        ocerror.Error.value_error(f"metric_db_name must have two elements. Got {len(metric_db_name)} elements: {metric_db_name}") # type: ignore
+        ocerror.Error.value_error(f"metric_db_name must have two elements. Got {len(metric_db_name)} elements: {metric_db_name}")
         raise ValueError("metric_db_name must have two elements.")
 
     # Check if positive_class_names is a string
@@ -153,7 +153,7 @@ def compute_metrics(
     # Check if the metrics should be inverted
     if invert_conditionally:
         # Inverting values for DUDEz data
-        df = ocscoredata.invert_values_conditionally(df) # type: ignore
+        df = ocscoredata.invert_values_conditionally(df)
 
     # Split the dataframe into groups to compute the metrics
     df_rmse = df[df[db_column_name] == metric_db_name[0]]
@@ -181,7 +181,7 @@ def compute_metrics(
             "RMSE": rmse,
             "AUC": roc_auc
         })
-    
+
     # Return the DataFrame with the metrics
     return pd.DataFrame(metrics)
 
@@ -207,7 +207,7 @@ def compute_rmse(
     pd.DataFrame
         The DataFrame with the computed RMSE.
     '''
-    
+
     metrics = []
 
     for score_column in score_columns:
@@ -219,6 +219,6 @@ def compute_rmse(
             "score_column": score_column,
             "RMSE": rmse
         })
-    
+
     # Return the DataFrame with the metrics
     return pd.DataFrame(metrics)

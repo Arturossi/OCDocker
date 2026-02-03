@@ -87,7 +87,7 @@ def feature_report_2xk(feature: str,
     # Compute per-category Δ proportion
     df = prop_delta_2xk(contingency)
     sns.barplot(data=df, x="prop_delta", y="MetricCategory", orient="h",
-                palette=df["prop_delta"].map(lambda v: "tab:red" if v>0 else "tab:blue"), ax=axes[0,0]) # type: ignore
+                palette=df["prop_delta"].map(lambda v: "tab:red" if v>0 else "tab:blue"), ax=axes[0,0])
     axes[0,0].axvline(0, ls="--", c="k", lw=1)
     axes[0,0].set_title("Proportion delta (1 - 0)")
     axes[0,0].set_xlabel("Δ proportion")
@@ -105,8 +105,8 @@ def feature_report_2xk(feature: str,
     yv = np.arange(len(s))
     axes[0,1].hlines(yv, 0, xv, lw=2)
     axes[0,1].plot(xv, yv, "o")
-    for xi, yi, cat in zip(xv, yv, s.index.tolist()):
-        axes[0,1].text(xi + (0.1 if xi>=0 else -0.1), yi, f"{xi:.2f}",
+    for xi, y_idx, cat in zip(xv, yv, s.index.tolist()):
+        axes[0,1].text(xi + (0.1 if xi>=0 else -0.1), y_idx, f"{xi:.2f}",
                        va="center", ha="left" if xi>=0 else "right")
     # Reference thresholds at ±2 and ±3 (common standardized residual heuristics)
     for thr, ls in [(2, "--"), (3, ":")]:
@@ -119,8 +119,8 @@ def feature_report_2xk(feature: str,
 
     # (1,0) Chi-square contribution per category
     total = contingency.values.sum()
-    row_sum = contingency.sum(axis=1).values[:, None] # type: ignore
-    col_sum = contingency.sum(axis=0).values[None, :] # type: ignore
+    row_sum = contingency.sum(axis=1).values[:, None]
+    col_sum = contingency.sum(axis=0).values[None, :]
     expected = (row_sum @ col_sum) / total
     expected_df = pd.DataFrame(expected, index=contingency.index, columns=contingency.columns)
     row_key = 1 if 1 in contingency.index else ('1' if '1' in contingency.index else contingency.index[-1])
@@ -130,8 +130,8 @@ def feature_report_2xk(feature: str,
     contrib = ((obs - exp) ** 2) / exp
     share = 100 * contrib / contrib.sum()
     sns.barplot(x=share.values, y=share.index, color="steelblue", orient="h", ax=axes[1,0])
-    for yi, (cat, val) in enumerate(share.items()):
-        axes[1,0].text(val + 0.5, yi, f"{val:.1f}%", va="center")
+    for idx, (cat, val) in enumerate(share.items()):
+        axes[1,0].text(val + 0.5, idx, f"{val:.1f}%", va="center")
     axes[1,0].set_title("Per-category χ² contribution (feature=1)")
     axes[1,0].set_xlabel("Share (%)")
     axes[1,0].set_ylabel("")
@@ -176,8 +176,8 @@ def plot_chi2_contrib(contingency: pd.DataFrame,
 
     # Compute row/column totals and the expected frequencies under independence
     total = contingency.values.sum()
-    row_sum = contingency.sum(axis=1).values[:, None] # type: ignore
-    col_sum = contingency.sum(axis=0).values[None, :] # type: ignore
+    row_sum = contingency.sum(axis=1).values[:, None]
+    col_sum = contingency.sum(axis=0).values[None, :]
     expected = (row_sum @ col_sum) / total
     expected_df = pd.DataFrame(expected, index=contingency.index, columns=contingency.columns)
 
@@ -229,7 +229,7 @@ def plot_prop_delta(contingency: pd.DataFrame, title: str = 'Proportion delta (1
     # Draw lollipop plot (horizontal stem + point)
     plt.figure(figsize=(7, 4))
     sns.barplot(data=df, x="prop_delta", y="MetricCategory", orient="h",
-                palette=df["prop_delta"].map(lambda v: "tab:red" if v>0 else "tab:blue")) # type: ignore
+                palette=df["prop_delta"].map(lambda v: "tab:red" if v>0 else "tab:blue"))
     # Draw reference at zero and annotate values
     plt.axvline(0, ls="--", c="k", lw=1)
     for _, r in df.iterrows():
@@ -289,10 +289,10 @@ def plot_residuals_lollipop(residuals_df: pd.DataFrame,
     # Create the diverging bar plot
     plt.figure(figsize=(7, 4))
     y = np.arange(len(cats))
-    plt.hlines(y, 0, x, lw=2) # type: ignore
-    plt.plot(x, y, "o") # type: ignore
-    for xi, yi, cat in zip(x, y, cats):
-        plt.text(xi + (0.1 if xi>=0 else -0.1), yi, f"{xi:.2f}",
+    plt.hlines(y, 0, x, lw=2)
+    plt.plot(x, y, "o")
+    for xi, y_idx, cat in zip(x, y, cats):
+        plt.text(xi + (0.1 if xi>=0 else -0.1), float(y_idx), f"{xi:.2f}",
                  va="center", ha="left" if xi>=0 else "right")
     # Reference thresholds at ±2 and ±3 (common standardized residual heuristics)
     for thr, ls in [(2, "--"), (3, ":")]:
@@ -326,7 +326,7 @@ def plot_residuals_matrix(residuals_dict: Dict[str, pd.DataFrame],
     outpath : str, optional
         Output image path (default 'residuals_matrix.png').
     '''
-    
+
     # Build matrix and order rows by the chosen criterion
     mat = residuals_matrix_from_dict(residuals_dict, presence_level=presence_level)
     idx = mat.abs().max(axis=1).sort_values(ascending=False).index if order_by == 'maxabs' else mat.index
@@ -364,10 +364,10 @@ def prop_delta_2xk(contingency: pd.DataFrame) -> pd.DataFrame:
     # Validate shape: function expects exactly 2 rows (absence/presence)
     if contingency.shape[0] != 2:
         # User-facing error: invalid contingency table shape
-        ocerror.Error.value_error(f"Invalid contingency table shape: expected 2 rows, got {contingency.shape[0]}. Contingency must be 2xK.") # type: ignore
+        ocerror.Error.value_error(f"Invalid contingency table shape: expected 2 rows, got {contingency.shape[0]}. Contingency must be 2xK.")
         raise ValueError("contingency must be 2xK.")
     props = contingency.div(contingency.sum(axis=1).replace(0, np.nan), axis=0).fillna(0)
-    
+
     # Identify presence/absence row keys; tolerate string/int indices
     if 1 in contingency.index:
         delta = props.loc[1] - props.loc[0]
@@ -376,9 +376,9 @@ def prop_delta_2xk(contingency: pd.DataFrame) -> pd.DataFrame:
     else:
         # Fallback: use last minus first row when explicit indices are unknown
         delta = props.iloc[1] - props.iloc[0]
-    
+
     # Return table with explicit column names
-    return delta.to_frame("prop_delta").reset_index(names="MetricCategory") # type: ignore
+    return delta.to_frame("prop_delta").reset_index(names="MetricCategory")
 
 
 def residuals_matrix_from_dict(residuals_dict: Dict[str, pd.DataFrame],
@@ -411,5 +411,4 @@ def residuals_matrix_from_dict(residuals_dict: Dict[str, pd.DataFrame],
         rows[feat] = row
     # Assemble into a features x categories matrix
     return pd.DataFrame(rows).T
-
 

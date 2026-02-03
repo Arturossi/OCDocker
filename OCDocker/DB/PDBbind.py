@@ -79,13 +79,13 @@ def read_index() -> Optional[Dict[str, Dict[str, Union[str, float]]]]:
     from OCDocker.Config import get_config
     config = get_config()
     indexFiles = glob(config.pdbbind_archive + '/index/INDEX_refined_data.*')
-    
+
     # Check if any index file was found
     if not indexFiles:
         # File does not exist, raise an error and return None
-        _ = ocerror.Error.file_not_exist(f"The index file does not exist in '{config.pdbbind_archive}/index/'. Please check if the PDBbind database is correctly installed.", level=ocerror.ReportLevel.WARNING)  # type: ignore
+        _ = ocerror.Error.file_not_exist(f"The index file does not exist in '{config.pdbbind_archive}/index/'. Please check if the PDBbind database is correctly installed.", level=ocerror.ReportLevel.WARNING)
         return None
-    
+
     indexFile = indexFiles[0]
 
     # If the file exists
@@ -101,13 +101,13 @@ def read_index() -> Optional[Dict[str, Dict[str, Union[str, float]]]]:
                 # If the line starts with a #, skip it (no useful info)
                 if line.startswith("#"):
                     continue
-                
+
                 # Split the line by spaces
                 splitedLine = line.split()
 
                 # Extract Kd/Ki and type (Kd/Ki)
                 tp, kdki = splitedLine[4].split("=")
-                
+
                 # Normalize the Kd/Ki values to a consistent unit (mol/L)
                 config = get_config()
                 if "mM" in kdki:
@@ -144,7 +144,7 @@ def read_index() -> Optional[Dict[str, Dict[str, Union[str, float]]]]:
         return proteinDataDict
     else:
         # File does not exist, raise an error and return None
-        _ = ocerror.Error.file_not_exist(f"The file {indexFile} does not exist. Please check if the PDBbind database is correctly installed.", level=ocerror.ReportLevel.WARNING)  # type: ignore
+        _ = ocerror.Error.file_not_exist(f"The file {indexFile} does not exist. Please check if the PDBbind database is correctly installed.", level=ocerror.ReportLevel.WARNING)
         return None
 
 

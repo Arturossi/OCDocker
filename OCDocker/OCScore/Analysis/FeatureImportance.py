@@ -66,7 +66,7 @@ except Exception as e:  # pragma: no cover
 
 def _ensure_2d(X: Union[np.ndarray, pd.DataFrame]) -> np.ndarray:
     '''Guarantee 2D float64 array without copying unnecessarily.
-    
+
     Parameters
     ----------
     X : Union[np.ndarray, pd.DataFrame]
@@ -79,7 +79,7 @@ def _ensure_2d(X: Union[np.ndarray, pd.DataFrame]) -> np.ndarray:
     '''
 
     if isinstance(X, pd.DataFrame):
-        return X.to_numpy(dtype=float, copy=False)
+        return np.asarray(X.to_numpy(dtype=float, copy=False), dtype=float)
     X = np.asarray(X)
     if X.ndim == 1:
         X = X.reshape(-1, 1)
@@ -88,7 +88,7 @@ def _ensure_2d(X: Union[np.ndarray, pd.DataFrame]) -> np.ndarray:
 
 def _require_shap() -> None:
     '''Require shap to be installed.'''
-    
+
     if shap is None:
         raise ImportError("shap is not installed. Please install `shap` to use Test2SHAP utilities.")
 
@@ -138,8 +138,8 @@ def build_stratified_background(
             take = rng.choice(g_idx, size=per_stratum, replace=False)
             idxs.extend(take.tolist())
 
-    idxs = np.array(sorted(set(idxs)), dtype=int)
-    return X_arr[idxs]
+    idxs_arr = np.array(sorted(set(idxs)), dtype=int)
+    return X_arr[idxs_arr]
 
 
 def compute_shap_values(
@@ -280,7 +280,7 @@ def make_explainer(
         proba_idx = 1
     else:
         # User-facing error: unknown method
-        ocerror.Error.value_error(f"Unknown method: '{method}'. Must be 'tree', 'deep', or 'kernel'.") # type: ignore
+        ocerror.Error.value_error(f"Unknown method: '{method}'. Must be 'tree', 'deep', or 'kernel'.")
         raise ValueError(f"Unknown method: {method}")
 
     return explainer, proba_idx

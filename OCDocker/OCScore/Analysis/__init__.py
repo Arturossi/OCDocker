@@ -66,16 +66,16 @@ try:
     )
 except Exception:
     # Keep optional dependency failures from breaking the package
-    run_shap_analysis = None  # type: ignore
-    OutputPaths = None  # type: ignore
-    StudyHandles = None  # type: ignore
-    BestSelections = None  # type: ignore
-    select_best_from_studies = None  # type: ignore
-    DataHandles = None  # type: ignore
-    load_and_prepare_data = None  # type: ignore
-    build_neural_net = None  # type: ignore
-    compute_shap_values = None  # type: ignore
-    shap_plots = None  # type: ignore
+    run_shap_analysis = None
+    OutputPaths = None
+    StudyHandles = None
+    BestSelections = None
+    select_best_from_studies = None
+    DataHandles = None
+    load_and_prepare_data = None
+    build_neural_net = None
+    compute_shap_values = None
+    shap_plots = None
 
 try:
     from .Impact import (
@@ -84,9 +84,9 @@ try:
         get_neutral_features,
     )
 except Exception:
-    build_impact_overview = None  # type: ignore
-    plot_impact_arrows_inline_labels = None  # type: ignore
-    get_neutral_features = None  # type: ignore
+    build_impact_overview = None
+    plot_impact_arrows_inline_labels = None
+    get_neutral_features = None
 
 # Public API
 __all__ = [

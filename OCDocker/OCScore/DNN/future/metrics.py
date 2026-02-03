@@ -51,7 +51,7 @@ def compute_classification_metrics(
         y_true: np.ndarray,
         y_score: np.ndarray,
         target_ids: np.ndarray | None = None,
-        k_fractions: Tuple[float, float] = (0.01, 0.05)
+        k_fractions: Sequence[float] = (0.01, 0.05, 0.10, 0.25, 0.50, 0.75)
     ) -> Dict[str, float]:
     '''Compute classification and ranking metrics for a labeled ranking dataset.
 
@@ -63,8 +63,8 @@ def compute_classification_metrics(
         Predicted scores.
     target_ids : np.ndarray | None, optional
         Target identifiers per sample, by default None.
-    k_fractions : tuple[float, float], optional
-        Fractions for top-k metrics, by default (0.01, 0.05).
+    k_fractions : Sequence[float], optional
+        Fractions for top-k metrics, by default (0.01, 0.05, 0.10, 0.25, 0.50, 0.75).
 
     Returns
     -------
@@ -92,7 +92,7 @@ def compute_group_metrics(
         y_true: np.ndarray,
         y_score: np.ndarray,
         target_ids: np.ndarray,
-        k_fractions: Tuple[float, float] = (0.01, 0.05)
+        k_fractions: Sequence[float] = (0.01, 0.05, 0.10, 0.25, 0.50, 0.75)
     ) -> Dict[str, float]:
     '''Compute ranking metrics per target and macro-average them.
 
@@ -104,8 +104,8 @@ def compute_group_metrics(
         Predicted scores.
     target_ids : np.ndarray
         Target identifiers per sample.
-    k_fractions : tuple[float, float], optional
-        Fractions for top-k metrics, by default (0.01, 0.05).
+    k_fractions : Sequence[float], optional
+        Fractions for top-k metrics, by default (0.01, 0.05, 0.10, 0.25, 0.50, 0.75).
 
     Returns
     -------
@@ -115,10 +115,12 @@ def compute_group_metrics(
 
     # Macro-average across targets to avoid dominance by large groups.
     unique_targets = np.unique(target_ids)
-    ef_1 = []
-    ef_5 = []
-    ndcg_1 = []
-    ndcg_5 = []
+    fractions = tuple(float(f) for f in k_fractions)
+    if len(fractions) == 0:
+        return {}
+
+    ef_by_frac = {f: [] for f in fractions}
+    ndcg_by_frac = {f: [] for f in fractions}
 
     for tid in unique_targets:
         mask = target_ids == tid
@@ -128,16 +130,18 @@ def compute_group_metrics(
         if yt.size == 0:
             continue
 
-        # Compute per-target top-k cutoffs based on group size.
-        k1 = max(1, int(round(k_fractions[0] * yt.size)))
-        k2 = max(1, int(round(k_fractions[1] * yt.size)))
+        # Enrichment factor is undefined if a group has a single class.
+        if len(np.unique(yt)) < 2:
+            for frac in fractions:
+                ef_by_frac[frac].append(np.nan)
+        else:
+            # Enrichment factor uses a fraction-of-list cutoff.
+            for frac in fractions:
+                ef_by_frac[frac].append(ocrank.enrichment_factor(yt, ys, frac))
 
-        # Enrichment factor uses a fraction-of-list cutoff.
-        ef_1.append(ocrank.enrichment_factor(yt, ys, k_fractions[0]))
-        ef_5.append(ocrank.enrichment_factor(yt, ys, k_fractions[1]))
-
-        ndcg_1.append(ndcg_at_k(yt, ys, k1))
-        ndcg_5.append(ndcg_at_k(yt, ys, k2))
+        for frac in fractions:
+            k = max(1, int(round(frac * yt.size)))
+            ndcg_by_frac[frac].append(ndcg_at_k(yt, ys, k))
 
     def _safe_mean(values: List[float]) -> float:
         '''Compute mean while ignoring NaNs.
@@ -158,12 +162,18 @@ def compute_group_metrics(
             return 0.0
         return float(np.mean(vals))
 
-    return {
-        "EF@1%": _safe_mean(ef_1),
-        "EF@5%": _safe_mean(ef_5),
-        "NDCG@1%": _safe_mean(ndcg_1),
-        "NDCG@5%": _safe_mean(ndcg_5)
-    }
+    def _label(frac: float) -> str:
+        pct = frac * 100.0
+        if abs(pct - round(pct)) < 1e-6:
+            return f"{int(round(pct))}%"
+        return f"{pct:.2f}%"
+
+    metrics: Dict[str, float] = {}
+    for frac in fractions:
+        metrics[f"EF@{_label(frac)}"] = _safe_mean(ef_by_frac[frac])
+    for frac in fractions:
+        metrics[f"NDCG@{_label(frac)}"] = _safe_mean(ndcg_by_frac[frac])
+    return metrics
 
 
 def ndcg_at_k(y_true: np.ndarray, y_score: np.ndarray, k: int) -> float:

@@ -81,7 +81,7 @@ def plot_bar_with_significance(
         pcol = next((c for c in df.columns if c.startswith('pval')), None)
         if pcol is None:
             # User-facing error: missing required data in DataFrame
-            ocerror.Error.data_not_found("Games-Howell dataframe must contain a p-value column (pval, pval_corr, etc.)") # type: ignore
+            ocerror.Error.data_not_found("Games-Howell dataframe must contain a p-value column (pval, pval_corr, etc.)")
             raise ValueError('Games-Howell dataframe must contain a p-value column.')
         df['pval'] = df[pcol]
 
@@ -99,18 +99,18 @@ def plot_bar_with_significance(
     # Annotate p-values and significance stars
     def stars(p: float) -> str:
         '''Convert p-value to significance stars.
-        
+
         Parameters
         ----------
         p : float
             The p-value to convert.
-        
+
         Returns
         -------
         str
             Significance stars: '***' for p < 0.001, '**' for p < 0.01, '*' for p < 0.05, '' otherwise.
         '''
-        
+
         return '***' if p < 0.001 else ('**' if p < 0.01 else ('*' if p < 0.05 else ''))
 
     for i, r in df.reset_index(drop=True).iterrows():
@@ -331,7 +331,7 @@ def plot_heatmap(
         output_dir: str = 'plots'
     ) -> None:
     '''Heatmap of Games-Howell p-values across methodology pairs.
-    
+
     Parameters
     ----------
     gh_df : pd.DataFrame
@@ -349,7 +349,7 @@ def plot_heatmap(
     pcol = 'pval' if 'pval' in df.columns else next((c for c in df.columns if c.startswith('pval')), None)
     if pcol is None:
         # User-facing error: missing required data in DataFrame
-        ocerror.Error.data_not_found("Games-Howell dataframe must contain a p-value column (pval, pval_corr, etc.)") # type: ignore
+        ocerror.Error.data_not_found("Games-Howell dataframe must contain a p-value column (pval, pval_corr, etc.)")
         raise ValueError('Games-Howell dataframe must contain a p-value column.')
     mat = df.pivot(index='A', columns='B', values=pcol)
     # Mirror to make a symmetric matrix, leaving diagonal as NaN
@@ -538,7 +538,7 @@ def plot_scatterplot(
         Orientation of the scatter plot. Default is 'horizontal'. Options: 'horizontal', 'vertical'.
     alpha : float, optional
         Transparency for the markers. Default is 0.9.
-    
+
     Raises
     ------
     ValueError
@@ -554,12 +554,12 @@ def plot_scatterplot(
         plt.figure(figsize=(18, 8))
     else:
         # User-facing error: invalid orientation
-        ocerror.Error.value_error(f"Invalid orientation: '{orientation}'. Must be 'horizontal' or 'vertical'.") # type: ignore
+        ocerror.Error.value_error(f"Invalid orientation: '{orientation}'. Must be 'horizontal' or 'vertical'.")
         raise ValueError(f"Orientation must be 'horizontal' or 'vertical', got {orientation}.")
 
     panels = [
-        (df_rmse, 'Error vs. AUC (Smallest Error)'), 
-        (df_auc, 'Error vs. AUC (Biggest AUC)'), 
+        (df_rmse, 'Error vs. AUC (Smallest Error)'),
+        (df_auc, 'Error vs. AUC (Biggest AUC)'),
         (df_all, 'Error vs. AUC (Smallest Error - AUC)')
     ]
 
@@ -641,7 +641,7 @@ def plot_scatterplot(
     if orientation == 'vertical':
         plt.subplots_adjust(bottom=0.28)
         plt.tight_layout(rect = (0, 0.25, 1, 1))
-        
+
     plt.savefig(f'{output_dir}/scatter_rmse_auc_panels_{n_trials}.png', dpi=300)
     plt.close()
 

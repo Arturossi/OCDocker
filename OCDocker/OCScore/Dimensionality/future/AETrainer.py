@@ -16,8 +16,8 @@ import numpy as np
 import torch.nn as nn
 import torch.optim as optim
 
-from torch.utils.data import ConcatDataset, DataLoader
-from typing import Dict, List, Optional
+from torch.utils.data import ConcatDataset, DataLoader, Dataset
+from typing import Dict, List, Optional, cast
 
 import OCDocker.Toolbox.Printing as ocprint
 
@@ -168,8 +168,8 @@ class AETrainer:
             self.uncertainty = UncertaintyWeighting(["recon", "energy"]).to(self.device)
 
         self.gradnorm_alpha = float(self.config.get("optimization", {}).get("gradnorm_alpha", 0.5))
-        self.gradnorm_weights = None
-        self.gradnorm_initial = None
+        self.gradnorm_weights: Optional[torch.Tensor] = None
+        self.gradnorm_initial: Optional[torch.Tensor] = None
 
     def _build_dataset(
             self,
@@ -318,7 +318,7 @@ class AETrainer:
                 energy_vals = energy_vals.to(self.device)
                 energy_mask = energy_mask.to(self.device)
 
-                z = self.model.encode(features, sample=False)
+                z = cast(torch.Tensor, self.model.encode(features, sample=False, return_stats=False))
                 embeddings.append(z.detach().cpu().numpy())
 
                 if energy_mask.any():
@@ -473,32 +473,39 @@ class AETrainer:
             Balanced total loss.
         '''
 
-        if self.gradnorm_weights is None or len(self.gradnorm_weights) != len(losses):
+        if self.gradnorm_weights is None or self.gradnorm_weights.numel() != len(losses):
             self.gradnorm_weights = torch.ones(len(losses), device=self.device)
-        if self.gradnorm_initial is None or len(self.gradnorm_initial) != len(losses):
+        if self.gradnorm_initial is None or self.gradnorm_initial.numel() != len(losses):
             self.gradnorm_initial = torch.tensor([loss.detach().item() for loss in losses.values()], device=self.device)
+        assert self.gradnorm_weights is not None
+        assert self.gradnorm_initial is not None
+
+        weights = self.gradnorm_weights
+        initial = self.gradnorm_initial
 
         shared_params = [p for p in self.model.encoder.parameters() if p.requires_grad]
-        g_norms = []
-        for loss in losses.values():
+        g_norms_list: List[torch.Tensor] = []
+        loss_values = list(losses.values())
+        for loss in loss_values:
             # Per-task gradients computed on shared encoder parameters.
             grads = torch.autograd.grad(loss, shared_params, retain_graph=True, create_graph=False)
-            norm = torch.sqrt(sum((g ** 2).sum() for g in grads))
-            g_norms.append(norm)
+            norm = torch.sqrt(torch.stack([(g ** 2).sum() for g in grads]).sum())
+            g_norms_list.append(norm)
 
-        g_norms = torch.stack(g_norms)
-        g_avg = torch.mean(g_norms).detach()
+        g_norms = torch.stack(g_norms_list)
+        g_avg = g_norms.mean().detach()
 
-        losses_tensor = torch.stack([loss.detach() for loss in losses.values()])
-        loss_ratios = losses_tensor / (self.gradnorm_initial + 1e-8)
+        losses_tensor = torch.stack([loss.detach() for loss in loss_values])
+        loss_ratios = losses_tensor / (initial + 1e-8)
         target = g_avg * (loss_ratios ** self.gradnorm_alpha)
 
         with torch.no_grad():
-            self.gradnorm_weights = self.gradnorm_weights * (target / (g_norms + 1e-8))
-            self.gradnorm_weights = self.gradnorm_weights * (len(losses) / self.gradnorm_weights.sum())
+            weights = weights * (target / (g_norms + 1e-8))
+            weights = weights * (len(loss_values) / weights.sum())
+            self.gradnorm_weights = weights
 
-        weighted = [w * l for w, l in zip(self.gradnorm_weights, losses.values())]
-        return sum(weighted)
+        loss_vec = torch.stack(loss_values)
+        return (weights * loss_vec).sum()
 
     def _run_stage(
             self,
@@ -534,7 +541,7 @@ class AETrainer:
 
         # Mixed precision is optional and only enabled on CUDA.
         use_amp = bool(stage_cfg.get("mixed_precision", False) and self.device.type == "cuda")
-        scaler = torch.cuda.amp.GradScaler(enabled=use_amp)
+        scaler = torch.amp.GradScaler('cuda', enabled=use_amp)
 
         early_stopping = EarlyStopping(stage_cfg.get("early_stopping_patience", 20))
 
@@ -577,11 +584,14 @@ class AETrainer:
 
     def _save_checkpoints(self) -> None:
         '''Save model and encoder checkpoints.'''
-        os.makedirs(self.models_folder, exist_ok=True)
+        if not self.models_folder:
+            return
+        models_folder = self.models_folder
+        os.makedirs(models_folder, exist_ok=True)
         base = self.run_name
 
-        model_path = os.path.join(self.models_folder, f"{base}_best.pt")
-        encoder_path = os.path.join(self.models_folder, f"{base}_encoder_best.pt")
+        model_path = os.path.join(models_folder, f"{base}_best.pt")
+        encoder_path = os.path.join(models_folder, f"{base}_encoder_best.pt")
 
         torch.save(self.model.state_dict(), model_path)
         if self.config.get("checkpoint", {}).get("save_encoder", True):
@@ -621,7 +631,7 @@ class AETrainer:
             self,
             loader: DataLoader,
             optimizer: optim.Optimizer,
-            scaler: torch.cuda.amp.GradScaler,
+            scaler: torch.amp.GradScaler,
             stage_cfg: dict,
             epoch: int
         ) -> Dict[str, float]:
@@ -684,7 +694,7 @@ class AETrainer:
 
             optimizer.zero_grad(set_to_none=True)
 
-            with torch.cuda.amp.autocast(enabled=scaler.is_enabled()):
+            with torch.amp.autocast(device_type='cuda', enabled=scaler.is_enabled()):
                 outputs = self.model(noisy, sample=True)
                 recon = outputs["reconstruction"]
                 latent = outputs["latent"]
@@ -819,8 +829,8 @@ class AETrainer:
         loss is optimized (energy_mask is all False).
         '''
 
-        train_dataset = self._build_dataset(X_train, y_train, feature_mask)
-        val_dataset = self._build_dataset(X_val, y_val, feature_mask) if X_val is not None else None
+        train_dataset: Dataset = self._build_dataset(X_train, y_train, feature_mask)
+        val_dataset: Optional[Dataset] = self._build_dataset(X_val, y_val, feature_mask) if X_val is not None else None
 
         if X_unlabeled is not None:
             # Concatenate unlabeled data for reconstruction-only regularization.
@@ -841,7 +851,8 @@ class AETrainer:
 
             metrics = self._run_stage(stage_name, train_dataset, val_dataset, stage_cfg)
 
-            stage_best = float(metrics.get("best_val_loss", float("inf")))
+            stage_best_raw = metrics.get("best_val_loss", float("inf"))
+            stage_best = float(cast(float, stage_best_raw))
             if stage_best < best_val:
                 # Track best-performing state across stages.
                 best_val = stage_best

@@ -183,7 +183,7 @@ def optimize_NN(
             ocprint.print_warning("Warning: total_trials_autoencoder is not divisible by num_processes_autoencoder. The number of trials per process will be rounded down to the nearest perfect divisor integer.")
 
         n_trials_autoencoder = total_trials_autoencoder // num_processes_autoencoder
-        
+
         if multiencoder:
             # Set the classification for e
             sf = X_train.filter(regex = r"(VINA|SMINA|ODDT|PLANTS).*").columns.tolist()
@@ -219,19 +219,19 @@ def optimize_NN(
             else:
                 ligand_val_data = None
                 receptor_val_data = None
-            
+
             new_X_train = [sf_train_data, ligand_train_data, receptor_train_data]
             new_X_test = [sf_test_data, ligand_test_data, receptor_test_data]
             new_X_val = [sf_val_data, ligand_val_data, receptor_val_data]
 
             # List to store the best topology for each set
-            best_ao_params = [] # type: ignore
-            
+            best_ao_params = []
+
             if run_autoencoder_optimization:
-                
+
                 for name, AO_X_train, AO_X_test, AO_X_val in [
-                    ("SF", sf_train_data, sf_test_data, sf_val_data), 
-                    ("LIG", ligand_train_data, ligand_test_data, ligand_val_data), 
+                    ("SF", sf_train_data, sf_test_data, sf_val_data),
+                    ("LIG", ligand_train_data, ligand_test_data, ligand_val_data),
                     ("REC", receptor_train_data, receptor_test_data, receptor_val_data)
                 ]:
                     # Compute the singular values for AO_X_train
@@ -262,7 +262,7 @@ def optimize_NN(
                         Parallel(n_jobs = num_processes_autoencoder)(
                             delayed(ocscoreworkers.AEworker)(
                                 pid,
-                                storage_id, 
+                                storage_id,
                                 AO_X_train,
                                 AO_X_test,
                                 AO_X_val,
@@ -285,7 +285,7 @@ def optimize_NN(
                             # Each process will execute the 'NNworker' function with the datasets and optimizer parameters
                             pool.starmap(ocscoreworkers.AEworker, [(
                                 pid,
-                                storage_id, 
+                                storage_id,
                                 AO_X_train,
                                 AO_X_test,
                                 AO_X_val,
@@ -296,7 +296,7 @@ def optimize_NN(
                                 use_gpu,                  # use_gpu
                                 verbose,                  # verbose
                                 "minimize",               # direction
-                                n_trials_autoencoder,     # n_trials 
+                                n_trials_autoencoder,     # n_trials
                                 load_if_exists,           # load_if_exists
                                 1,                        # n_jobs
                                 f"Multi_AE_Optimization_{name}" # study_name
@@ -304,12 +304,12 @@ def optimize_NN(
                             ])
                     else:
                         # User-facing error: invalid parallel backend
-                        ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.") # type: ignore
+                        ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
                         raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
 
             for name in ["SF", "LIG", "REC"]:
                 if name == "SF":
-                    best_ao_params.append( # type: ignore
+                    best_ao_params.append(
                         {
                             "n_layers_encoder": 1,
                             "activation_function_0_encoder": "Identity",
@@ -334,7 +334,7 @@ def optimize_NN(
                 best_ao_multi_trial = ao_multi_study.trials[best_ao_multi_trial.number]
 
                 # Pick the params from the best_ao_multi_trial
-                best_ao_params.append(best_ao_multi_trial.params) # type: ignore
+                best_ao_params.append(best_ao_multi_trial.params)
 
         else:
             if run_autoencoder_optimization:
@@ -343,10 +343,10 @@ def optimize_NN(
                     Parallel(n_jobs = num_processes_autoencoder)(
                         delayed(ocscoreworkers.AEworker)(
                             pid,
-                            storage_id, 
-                            X_train, 
-                            X_test, 
-                            X_val, 
+                            storage_id,
+                            X_train,
+                            X_test,
+                            X_val,
                             encoder_dims,
                             storage,
                             models_folder,
@@ -366,10 +366,10 @@ def optimize_NN(
                         # Each process will execute the 'NNworker' function with the datasets and optimizer parameters
                         pool.starmap(ocscoreworkers.AEworker, [(
                             pid,
-                            storage_id, 
-                            X_train, 
-                            X_test, 
-                            X_val, 
+                            storage_id,
+                            X_train,
+                            X_test,
+                            X_val,
                             encoder_dims,
                             storage,
                             models_folder,
@@ -385,7 +385,7 @@ def optimize_NN(
                         ])
                 else:
                     # User-facing error: invalid parallel backend
-                    ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.") # type: ignore
+                    ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
                     raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
 
             # Load the study
@@ -397,7 +397,7 @@ def optimize_NN(
 
             # Filter the trials to only include the ones that are complete
             ao_df = ao_df[ao_df["state"] == "COMPLETE"]
-            
+
             best_ao_df = ao_df.sort_values(
                 by = ["value", "user_attrs_val_rmse"],
                 ascending = [True, True]
@@ -411,7 +411,7 @@ def optimize_NN(
 
             # Pick the params from the best_ao_trial
             best_ao_params = best_ao_trial.params
-            
+
             new_X_train = X_train
             new_X_test = X_test
             new_X_val = X_val
@@ -437,10 +437,10 @@ def optimize_NN(
             Parallel(n_jobs = num_processes_NN)(
                 delayed(ocscoreworkers.NNworker)(
                     pid,
-                    storage_id, 
-                    new_X_train, y_train, 
-                    new_X_test, y_test, 
-                    new_X_val, y_val, 
+                    storage_id,
+                    new_X_train, y_train,
+                    new_X_test, y_test,
+                    new_X_val, y_val,
                     storage,
                     best_ao_params,   # encoder
                     1,                # output_size
@@ -459,10 +459,10 @@ def optimize_NN(
                 # Each process will execute the "NNworker" function with the datasets and optimizer parameters
                 pool.starmap(ocscoreworkers.NNworker, [(
                     pid,
-                    storage_id, 
-                    new_X_train, y_train, 
-                    new_X_test, y_test, 
-                    new_X_val, y_val, 
+                    storage_id,
+                    new_X_train, y_train,
+                    new_X_test, y_test,
+                    new_X_val, y_val,
                     storage,
                     best_ao_params,   # encoder
                     1,                # output_size
@@ -483,7 +483,7 @@ def optimize_NN(
 
 def perform_ablation_study_NN(
         X_train : pd.DataFrame, y_train : pd.DataFrame,
-        X_test : pd.DataFrame, y_test : pd.DataFrame, 
+        X_test : pd.DataFrame, y_test : pd.DataFrame,
         X_val : pd.DataFrame, y_val : pd.DataFrame,
         id : int,
         num_processes : int,
@@ -544,13 +544,13 @@ def perform_ablation_study_NN(
         The parallel backend to use. The default is "joblib". Options are "joblib" and "multiprocessing". [ATTENTION] multiprocessing has shown to have some nasty bugs while testing this library. It is highly recommended to use joblib.
     n_jobs : int, optional
         The number of jobs to use. Default is 1.
-    
+
     Raises
     -------
     ValueError
         If the parallel backend is not "joblib" or "multiprocessing".
     '''
-    
+
     # If no masks are provided
     if not masks:
         # Filter the SFs
@@ -581,7 +581,7 @@ def perform_ablation_study_NN(
         except (AttributeError, KeyError, ImportError):
             # Fallback if optuna study is not available or missing attributes
             evaluated_masks = []
-        
+
         # Apply each feature mask to the full_mask
         masks = []
         for mask in feature_masks:
@@ -611,19 +611,19 @@ def perform_ablation_study_NN(
             delayed(ocscoreworkers.NNAblationworker)(
                 pid,
                 id,
-                X_train, 
-                y_train, 
-                X_test, 
-                y_test, 
-                X_val, 
+                X_train,
+                y_train,
+                X_test,
+                y_test,
+                X_val,
                 y_val,
                 mask,
                 storage,
                 best_params,
                 encoder_params,
                 output_size,
-                random_seed, 
-                use_gpu, 
+                random_seed,
+                use_gpu,
                 verbose,
                 load_if_exists,
                 1,
@@ -637,19 +637,19 @@ def perform_ablation_study_NN(
             pool.starmap(ocscoreworkers.NNAblationworker, [(
                 pid,
                 id,
-                X_train, 
-                y_train, 
-                X_test, 
-                y_test, 
-                X_val, 
+                X_train,
+                y_train,
+                X_test,
+                y_test,
+                X_val,
                 y_val,
                 mask,
                 storage,
                 best_params,
                 encoder_params,
                 output_size,
-                random_seed, 
-                use_gpu, 
+                random_seed,
+                use_gpu,
                 verbose,
                 load_if_exists,
                 n_jobs,
@@ -658,7 +658,7 @@ def perform_ablation_study_NN(
             ])
     else:
         # User-facing error: invalid parallel backend
-        ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.") # type: ignore
+        ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
         raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
 
     return None
@@ -666,7 +666,7 @@ def perform_ablation_study_NN(
 
 def perform_seed_ablation_study_NN(
         X_train : np.ndarray, y_train : np.ndarray,
-        X_test : np.ndarray, y_test : np.ndarray, 
+        X_test : np.ndarray, y_test : np.ndarray,
         X_val : np.ndarray, y_val : np.ndarray,
         id : int,
         num_processes : int,
@@ -727,7 +727,7 @@ def perform_seed_ablation_study_NN(
         The parallel backend to use. The default is "joblib". Options are "joblib" and "multiprocessing". [ATTENTION] multiprocessing has shown to have some nasty bugs while testing this library. It is highly recommended to use joblib.
     n_jobs : int, optional
         The number of jobs to use. Default is 1.
-    
+
     Raises
     -------
     ValueError
@@ -738,7 +738,7 @@ def perform_seed_ablation_study_NN(
     if not seeds:
         # Create a list of seeds from 0 to 1000
         seeds = list(range(1000))
-    
+
     # Adjust num_processes if the size of the seeds array is smaller
     if len(seeds) < num_processes:
         # If the number of seeds is smaller than the number of processes, set inner_num_processes to the number of seeds
@@ -762,19 +762,19 @@ def perform_seed_ablation_study_NN(
             delayed(ocscoreworkers.NNSeedAblationworker)(
                 pid,
                 id,
-                X_train, 
-                y_train, 
-                X_test, 
-                y_test, 
-                X_val, 
+                X_train,
+                y_train,
+                X_test,
+                y_test,
+                X_val,
                 y_val,
                 mask,
                 storage,
                 best_params,
-                seed, 
+                seed,
                 encoder_params,
                 output_size,
-                use_gpu, 
+                use_gpu,
                 verbose,
                 load_if_exists,
                 1,
@@ -788,19 +788,19 @@ def perform_seed_ablation_study_NN(
             pool.starmap(ocscoreworkers.NNSeedAblationworker, [(
                 pid,
                 id,
-                X_train, 
-                y_train, 
-                X_test, 
-                y_test, 
-                X_val, 
+                X_train,
+                y_train,
+                X_test,
+                y_test,
+                X_val,
                 y_val,
                 mask,
                 storage,
                 best_params,
-                seed, 
+                seed,
                 encoder_params,
                 output_size,
-                use_gpu, 
+                use_gpu,
                 verbose,
                 load_if_exists,
                 n_jobs,
@@ -809,7 +809,7 @@ def perform_seed_ablation_study_NN(
             ])
     else:
         # User-facing error: invalid parallel backend
-        ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.") # type: ignore
+        ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
         raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
 
     return None

@@ -2,7 +2,7 @@
 
 # Description
 ###############################################################################
-''' Module to perform the feature selection using the Genetic Algorithm. 
+''' Module to perform the feature selection using the Genetic Algorithm.
 
 It is imported as:
 
@@ -49,7 +49,7 @@ class GeneticAlgorithm:
     A class to optimize the feature selection for XGBoost using a genetic algorithm.
     '''
 
-    def __init__(self, 
+    def __init__(self,
             X_train: Union[np.ndarray, pd.DataFrame, pd.Series],
             y_train: Union[np.ndarray, pd.DataFrame, pd.Series],
             X_test: Union[np.ndarray, pd.DataFrame, pd.Series],
@@ -118,7 +118,7 @@ class GeneticAlgorithm:
             self.y_train = cp.asarray(self.y_train)
             self.X_test = cp.asarray(self.X_test)
             self.y_test = cp.asarray(self.y_test)
-        
+
         if "tree_method" not in xgboost_params:
             self.xgboost_params["tree_method"] = "hist"
 
@@ -136,14 +136,14 @@ class GeneticAlgorithm:
 
         if "random_state" not in xgboost_params:
             self.xgboost_params["random_state"] = self.random_state
-        
+
 
         self.storage = storage
 
     def crossover(self, parent1: np.ndarray, parent2: np.ndarray) -> np.ndarray:
         '''
         A function to perform crossover for the genetic algorithm.
-        
+
         Parameters
         ----------
         parent1 : np.ndarray
@@ -194,7 +194,7 @@ class GeneticAlgorithm:
             X_test_filtered = cp.asarray(X_test_filtered)
 
         # Train the model and get the AUC score
-        model, metric = OCxgboost.run_xgboost(X_train_filtered, self.y_train, X_test_filtered, self.y_test, params = self.xgboost_params, verbose = self.verbose) # type: ignore
+        model, metric = OCxgboost.run_xgboost(X_train_filtered, self.y_train, X_test_filtered, self.y_test, params = self.xgboost_params, verbose = self.verbose)
 
         # Return the metric score and the model
 
@@ -259,7 +259,7 @@ class GeneticAlgorithm:
                 # If verbose, print the fitness score and the number of features
                 if self.verbose:
                     ocprint.printv(f"{f[0]} - {len(individual.nonzero()[0])} - {f[1].n_features_in_}")
-                
+
             # Convert to numpy arrays
             fitnesses = np.array(fitnesses)
             models = np.array(models)
@@ -307,7 +307,7 @@ class GeneticAlgorithm:
                 best_individual = population[best_score_index]
 
                 # Get the best model (loaded from pickle file)
-                best_model = models[best_score_index] 
+                best_model = models[best_score_index]
 
                 # If the validation dataset is provided (if X_validation is not None y_validation is not None as well)
                 if self.X_validation is not None:
@@ -316,7 +316,7 @@ class GeneticAlgorithm:
 
                     if self.use_gpu:
                         X_validation_filtered = cp.asarray(X_validation_filtered)
-                    
+
                     # Predict the validation dataset
                     y_pred = best_model.predict(X_validation_filtered)
 
@@ -325,7 +325,7 @@ class GeneticAlgorithm:
                         y_pred = cp.asnumpy(y_pred)
 
                     # Get the AUC score of the validation dataset (self.validation is not none here because of the if statement above)
-                    fpr, tpr, _ = roc_curve(self.y_validation, y_pred) # type: ignore
+                    fpr, tpr, _ = roc_curve(self.y_validation, y_pred)
 
                     # Calculate the AUC score
                     best_score2 = auc(fpr, tpr)
@@ -336,7 +336,7 @@ class GeneticAlgorithm:
                 elif self.verbose:
                     # Print the best score
                     ocprint.printv(f"Generation {generation}: Best score = {best_score}")
-            
+
             # Create a new population
             new_population = []
 
@@ -349,7 +349,7 @@ class GeneticAlgorithm:
                 # Ensure that parent2 is different from parent1
                 while parent2 is None or np.array_equal(parent2, parent1):
                     parent2 = self.tournament_selection(population, fitnesses)
-                
+
                 # Perform crossover and mutation to create 2 children
                 child1 = self.crossover(parent1, parent2)
                 child1 = self.mutation(child1, trial_params['mutation_rate'])
@@ -371,7 +371,7 @@ class GeneticAlgorithm:
 
         # Return the best individual and the best score
 
-        return best_individual, best_model, best_score, best_score2 # type: ignore
+        return best_individual, best_model, best_score, best_score2
 
     def initialize_population(self, number_of_features: int, population_size: int) -> np.ndarray:
         '''
@@ -399,7 +399,7 @@ class GeneticAlgorithm:
             # Ensure fixed features are set to True
             for index in self.fixed_features_index:
                 individual[index] = True
-            
+
             # Check if at least one feature is True, if not, randomly select one (non-fixed, if possible) to set to True
             if not individual.any():
                 # Attempt to choose a non-fixed feature if possible
@@ -450,12 +450,12 @@ class GeneticAlgorithm:
     def objective(self, trial: optuna.Trial) -> float:
         '''
         The objective function for the Optuna optimization.
-        
+
         Parameters
         ----------
         trial : optuna.Trial
             The trial object.
-            
+
         Returns
         -------
         float
@@ -542,7 +542,7 @@ class GeneticAlgorithm:
             # If the validation dataset is provided, print the best AUC
             if self.X_validation is not None:
                 ocprint.printv(f"Best AUC: {study.best_trial.user_attrs['best_AUC']}")
-        
+
         return study, best_params, best_score
 
     def tournament_selection(self, population: np.ndarray, fitnesses: np.ndarray, tournament_size: int = 3) -> np.ndarray:

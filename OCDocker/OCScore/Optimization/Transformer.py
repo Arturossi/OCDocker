@@ -71,7 +71,7 @@ def optimize_Transformer(
         verbose: bool = False
     ) -> None:
     ''' Function to optimize the Transformer model using Optuna.
-    
+
     Parameters
     ----------
     df_path : str
@@ -112,7 +112,7 @@ def optimize_Transformer(
         The parallel backend to use. The default is "joblib". Options are "joblib" and "multiprocessing". [ATTENTION] multiprocessing has shown to have some nasty bugs while testing this library. It is highly recommended to use joblib.
     verbose : bool, optional
         Whether to print verbose output. The default is False.
-    
+
     Raises
     ------
     ValueError
@@ -161,10 +161,10 @@ def optimize_Transformer(
             # Run the optimization using joblib
             Parallel(n_jobs=num_processes_Trans)(delayed(ocscoreworkers.Transworker)(
                     pid,
-                    storage_id, 
-                    X_train, y_train, 
-                    X_test, y_test, 
-                    X_val, y_val, 
+                    storage_id,
+                    X_train, y_train,
+                    X_test, y_test,
+                    X_val, y_val,
                     storage,
                     1,              # output_size
                     random_seed,
@@ -183,10 +183,10 @@ def optimize_Transformer(
                 # Each process will execute the 'Transworker' function with the datasets and optimizer parameters
                 pool.starmap(ocscoreworkers.Transworker, [(
                     pid,
-                    storage_id, 
-                    X_train, y_train, 
-                    X_test, y_test, 
-                    X_val, y_val, 
+                    storage_id,
+                    X_train, y_train,
+                    X_test, y_test,
+                    X_val, y_val,
                     storage,
                     1,              # output_size
                     random_seed,
@@ -201,7 +201,7 @@ def optimize_Transformer(
                 ])
         else:
             # User-facing error: invalid parallel backend
-            ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.") # type: ignore
+            ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
             raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
 
 # Alias the function

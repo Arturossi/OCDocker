@@ -121,19 +121,19 @@ def run_docking(archive: str, dockingAlgorithm: str, digestFormat: str = "json",
         config = get_config()
         chosenArchive = config.pdbbind_archive
     else:
-        return ocerror.Error.not_supported_archive(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}.") # type: ignore
+        return ocerror.Error.not_supported_archive(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}.")
 
     # TODO: add support to more docking algorithms
     # Check if the docking algorithm is valid
     if dockingAlgorithm not in ["gnina", "vina", "smina", "plants"]:
-        return ocerror.Error.not_supported_docking_algorithm(f"Docking software not recognized. Expected ('gnina', 'vina', 'smina', 'plants') and got '{dockingAlgorithm}'.") # type: ignore
+        return ocerror.Error.not_supported_docking_algorithm(f"Docking software not recognized. Expected ('gnina', 'vina', 'smina', 'plants') and got '{dockingAlgorithm}'.")
 
     # Get all dirs paths in the database
     ptnDirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index']]
 
     # Create the complex list
     complexList = []
-    
+
     # For each dir in dirs, let's grab all ligands
     for ptnDir in ptnDirs:
         # Parameterize paths
@@ -143,6 +143,6 @@ def run_docking(archive: str, dockingAlgorithm: str, digestFormat: str = "json",
 
         # Append to the complex list the merged ligandAlternative list with the list with ligands, decoys and candidates. This is made because each receptor must have its own list of ligands, decoys and candidates, otherwise the docking could be done with the same ligands, decoys and candidates for all receptors making everything out of control.
         complexList.append((ptnDir, glob(f"{ligands}/*") + glob(f"{decoys}/*") + glob(f"{candidates}/*")))
-    
+
     # Run docking
     return ocdock.run_docking(complexList, archive, dockingAlgorithm, overwrite, digestFormat, all_boxes = all_boxes)

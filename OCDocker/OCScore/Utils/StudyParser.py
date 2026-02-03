@@ -545,7 +545,7 @@ def analyze_studies_old(
     results_df = pd.DataFrame(results)
 
     # Return the DataFrame
-    return results_df, results_df_auc, results_df_rmse
+    return results_df
 
 
 
@@ -615,4 +615,3 @@ def parse_study_type(
         return f"{ml_method} + {dimensional}"
     else:
         return ml_method
-

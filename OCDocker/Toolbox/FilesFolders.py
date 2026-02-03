@@ -60,27 +60,27 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 def _validate_path_within_base(dest_path: str, base_path: str) -> bool:
     '''Validate that a destination path is within a base directory to prevent path traversal attacks.
-    
+
     This function ensures that the destination path cannot escape the base directory
     using path traversal sequences like '..' or absolute paths.
-    
+
     Parameters
     ----------
     dest_path : str
         The destination path to validate (can be relative or absolute).
     base_path : str
         The base directory that the destination must be within.
-        
+
     Returns
     -------
     bool
         True if the destination path is within the base path, False otherwise.
     '''
-    
+
     # Resolve both paths to absolute paths for comparison
     abs_dest = os.path.abspath(dest_path)
     abs_base = os.path.abspath(base_path)
-    
+
     # Check if destination is exactly the base or is a subdirectory of base
     # Using os.sep ensures cross-platform compatibility
     return abs_dest == abs_base or abs_dest.startswith(abs_base + os.sep)
@@ -109,11 +109,11 @@ def empty_docking_digest(digestPath: str, overwrite: bool = False, digestFormat 
     # Create the empty digest variable
     digest = {
         "smina_pose": [np.nan],
-        "smina_affinity": [np.nan], 
+        "smina_affinity": [np.nan],
         "PLANTS_TOTAL_SCORE": [np.nan],
         "PLANTS_SCORE_RB_PEN": [np.nan],
         "PLANTS_SCORE_NORM_HEVATOMS": [np.nan],
-        "PLANTS_SCORE_NORM_CRT_HEVATOMS": [np.nan], 
+        "PLANTS_SCORE_NORM_CRT_HEVATOMS": [np.nan],
         "PLANTS_SCORE_NORM_WEIGHT": [np.nan],
         "PLANTS_SCORE_NORM_CRT_WEIGHT": [np.nan],
         "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [np.nan],
@@ -136,23 +136,23 @@ def empty_docking_digest(digestPath: str, overwrite: bool = False, digestFormat 
                             # Dump the data
                             json.dump(digest, f)
                     except Exception as e:
-                        return ocerror.Error.write_file(f"Could not write the digest file '{digestPath}'.", level = ocerror.ReportLevel.ERROR) # type: ignore
+                        return ocerror.Error.write_file(f"Could not write the digest file '{digestPath}'.", level = ocerror.ReportLevel.ERROR)
     return digest
 
 def ensure_parent_dir(path: str) -> None:
     '''Ensure parent directory exists, creating if necessary.
-    
+
     Parameters
     ----------
     path : str
         Path to a file or directory. The parent directory will be created.
-        
+
     Returns
     -------
     None
         This function does not return a value. It silently handles errors.
     '''
-    
+
     try:
         os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     except (OSError, PermissionError):
@@ -184,9 +184,9 @@ def from_hdf5(filePath: str) -> Union[None, Any]:
     try:
         with h5py.File(filePath, 'r') as hf:
             # Read the hdf5 file with h5py
-            data = {key: hf[key][:] for key in hf.keys()} # type: ignore
+            data = {key: hf[key][:] for key in hf.keys()}
     except Exception as e:
-        _ = ocerror.Error.read_file(f"Problems while reading the hdf5 file '{filePath}'. Error: {e}") # type: ignore
+        _ = ocerror.Error.read_file(f"Problems while reading the hdf5 file '{filePath}'. Error: {e}")
     return data
 
 def from_pickle(filePath: str) -> Union[None, Any]:
@@ -213,12 +213,12 @@ def from_pickle(filePath: str) -> Union[None, Any]:
         with open(filePath, 'rb') as handle:
             data = pickle.load(handle)
     except Exception as e:
-        _ = ocerror.Error.read_file(f"Problems while unpickling the file '{filePath}'. Error: {e}") # type: ignore
+        _ = ocerror.Error.read_file(f"Problems while unpickling the file '{filePath}'. Error: {e}")
     return data
 
 def normalize_path(path: str) -> str:
     '''Normalize a path to an absolute path with normalized separators and components.
-    
+
     This function normalizes paths by:
     - Converting to absolute path
     - Normalizing path separators
@@ -228,7 +228,7 @@ def normalize_path(path: str) -> str:
     ----------
     path : str
         The path to normalize.
-    
+
     Returns
     -------
     str
@@ -261,30 +261,30 @@ def safe_create_dir(dirname: Union[str, Path]) -> int:
                 os.mkdir(dirname)
                 # Print verbosity
                 if ocerror.Error.output_level >= ocerror.ReportLevel.SUCCESS:
-                    return ocerror.Error.ok(f"Successfully created the directory '{dirname}'") # type: ignore
-                return ocerror.Error.ok() # type: ignore
+                    return ocerror.Error.ok(f"Successfully created the directory '{dirname}'")
+                return ocerror.Error.ok()
             else:
                 # It exists
-                return ocerror.Error.dir_exists(message=f"The dir '{dirname}' already exists!", level = ocerror.ReportLevel.WARNING) # type: ignore
+                return ocerror.Error.dir_exists(message=f"The dir '{dirname}' already exists!", level = ocerror.ReportLevel.WARNING)
         # Check if the dirname is a Path object
         elif isinstance(dirname, Path):
             # If path is an existing directory
             if dirname.is_dir():
-                return ocerror.Error.dir_exists(message=f"The dir '{dirname}' already exists!", level = ocerror.ReportLevel.WARNING) # type: ignore
+                return ocerror.Error.dir_exists(message=f"The dir '{dirname}' already exists!", level = ocerror.ReportLevel.WARNING)
             # If path exists but is not a directory
             if dirname.exists() and not dirname.is_dir():
-                return ocerror.Error.file_exists(message=f"The path '{dirname}' exists and is not a directory!", level = ocerror.ReportLevel.WARNING) # type: ignore
+                return ocerror.Error.file_exists(message=f"The path '{dirname}' exists and is not a directory!", level = ocerror.ReportLevel.WARNING)
             # Otherwise, create it (parents ok)
             dirname.mkdir(parents=True, exist_ok=True)
             if ocerror.Error.output_level >= ocerror.ReportLevel.SUCCESS:
-                return ocerror.Error.ok(f"Successfully created the directory '{dirname}'") # type: ignore
-            return ocerror.Error.ok() # type: ignore
+                return ocerror.Error.ok(f"Successfully created the directory '{dirname}'")
+            return ocerror.Error.ok()
     except Exception as e:
         # Some error has occurred
-        return ocerror.Error.create_dir(message=f"Problem found while creating the dir '{dirname}': {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
-    
+        return ocerror.Error.create_dir(message=f"Problem found while creating the dir '{dirname}': {e}", level = ocerror.ReportLevel.ERROR)
+
     # This should never appear since all the other paths ends in some kind of return
-    return ocerror.Error.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while creating a dir safetly. The dir is '{dirname}'.", level = ocerror.ReportLevel.ERROR) # type: ignore
+    return ocerror.Error.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while creating a dir safetly. The dir is '{dirname}'.", level = ocerror.ReportLevel.ERROR)
 
 def safe_remove_dir(dirname: str) -> int:
     ''' Remove a dir if exists.
@@ -308,16 +308,16 @@ def safe_remove_dir(dirname: str) -> int:
             shutil.rmtree(dirname)
             # Print verbosity
             if ocerror.Error.output_level >= ocerror.ReportLevel.SUCCESS:
-                return ocerror.Error.ok(f"Successfully removed the directory '{dirname}'") # type: ignore
-            return ocerror.Error.ok() # type: ignore
+                return ocerror.Error.ok(f"Successfully removed the directory '{dirname}'")
+            return ocerror.Error.ok()
         else:
             # It exists
-            return ocerror.Error.dir_not_exist(message=f"The dir '{dirname}' does not exist!", level = ocerror.ReportLevel.WARNING) # type: ignore
+            return ocerror.Error.dir_not_exist(message=f"The dir '{dirname}' does not exist!", level = ocerror.ReportLevel.WARNING)
     except Exception as e:
         # Some error has occurred
-        return ocerror.Error.remove_dir(message=f"Problem found while removing the dir '{dirname}': {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
+        return ocerror.Error.remove_dir(message=f"Problem found while removing the dir '{dirname}': {e}", level = ocerror.ReportLevel.ERROR)
     # This should never appear since all the other paths ends in some kind of return
-    return ocerror.Error.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while creating a dir safetly.", level = ocerror.ReportLevel.ERROR) # type: ignore
+    return ocerror.Error.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while creating a dir safetly.", level = ocerror.ReportLevel.ERROR)
 
 def safe_remove_file(filePath: str) -> int:
     '''Remove a file if exists.
@@ -341,16 +341,16 @@ def safe_remove_file(filePath: str) -> int:
             os.remove(filePath)
             # Print verbosity
             if ocerror.Error.output_level >= ocerror.ReportLevel.SUCCESS:
-                return ocerror.Error.ok(f"Successfully removed the file '{filePath}'") # type: ignore
-            return ocerror.Error.ok() # type: ignore
+                return ocerror.Error.ok(f"Successfully removed the file '{filePath}'")
+            return ocerror.Error.ok()
         except Exception as e:
             # Some error has occurred
-            return ocerror.Error.unknown(message=f"Problem found while removing the file '{filePath}': {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
+            return ocerror.Error.unknown(message=f"Problem found while removing the file '{filePath}': {e}", level = ocerror.ReportLevel.ERROR)
     else:
         # Return file not found error
-        return ocerror.Error.file_not_exist(message=f"The file '{filePath}' does not exists!", level = ocerror.ReportLevel.WARNING) # type: ignore
+        return ocerror.Error.file_not_exist(message=f"The file '{filePath}' does not exists!", level = ocerror.ReportLevel.WARNING)
     # This should never appear since all the other paths ends in some kind of return
-    return ocerror.Error.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while removing a file safetly.", level = ocerror.ReportLevel.ERROR) # type: ignore
+    return ocerror.Error.unknown(message=f"What are you expecting for? This message should NEVER appear!!!!!!! Btw problems while removing a file safetly.", level = ocerror.ReportLevel.ERROR)
 
 def to_hdf5(filePath: str, data: Any) -> int:
     '''Save a data in a hdf5 file. If the data is a dict, use its keys as hdf5 key files. If is a list or tuple, use its indexes as keys. Otherwise, use the key 'data'.
@@ -385,8 +385,8 @@ def to_hdf5(filePath: str, data: Any) -> int:
                 # Save the data
                 hf.create_dataset("data", data = data)
     except Exception as e:
-        return ocerror.Error.write_file(f"Problems while saving the hdf5 file '{filePath}'. Error: {e}") # type: ignore
-    return ocerror.Error.ok() # type: ignore
+        return ocerror.Error.write_file(f"Problems while saving the hdf5 file '{filePath}'. Error: {e}")
+    return ocerror.Error.ok()
 
 def to_pickle(filePath: str, data: Any) -> int:
     '''Pickle an object in a given path.
@@ -408,8 +408,8 @@ def to_pickle(filePath: str, data: Any) -> int:
         with open(filePath, 'wb') as handle:
             pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
     except Exception as e:
-        return ocerror.Error.write_file(f"Problems while pickling the file '{filePath}'. Error: {e}") # type: ignore
-    return ocerror.Error.ok() # type: ignore
+        return ocerror.Error.write_file(f"Problems while pickling the file '{filePath}'. Error: {e}")
+    return ocerror.Error.ok()
 
 def untar(fname: str, out_path: str = ".", delete: bool = False) -> int:
     '''Untar a file.
@@ -451,22 +451,22 @@ def untar(fname: str, out_path: str = ".", delete: bool = False) -> int:
                         dest_path = os.path.join(abs_out, member.name)
                         # Use helper function for path traversal validation
                         if not _validate_path_within_base(dest_path, abs_out):
-                            return ocerror.Error.untar_file(  # type: ignore
+                            return ocerror.Error.untar_file(
                                 message=f"Unsafe path detected in archive entry '{member.name}'. Aborting extraction to avoid path traversal.",
                                 level=ocerror.ReportLevel.ERROR,
                             )
                         # Extract member
                         tar.extract(member=member, path=out_path)
             # Report success on untarring the file
-            _ = ocerror.Error.ok(f"The file {fname} has been {clrs['g']}successfully{clrs['n']} untarred to the dir {out_path}!", level = ocerror.ReportLevel.SUCCESS) # type: ignore
+            _ = ocerror.Error.ok(f"The file {fname} has been {clrs['g']}successfully{clrs['n']} untarred to the dir {out_path}!", level = ocerror.ReportLevel.SUCCESS)
             # If delete flag is set, delete file
             if delete:
                 #shutil.rmtree(fname) # remove the files
                 os.remove(fname) # remove the files
-                return ocerror.Error.ok(f"The file {fname} has been {clrs['y']}deleted!{clrs['n']}") # Report success on deleting the file # type: ignore
-            return ocerror.Error.ok() # type: ignore
+                return ocerror.Error.ok(f"The file {fname} has been {clrs['y']}deleted!{clrs['n']}") # Report success on deleting the file
+            return ocerror.Error.ok()
         except Exception as e:
-            return ocerror.Error.untar_file(message=f"{clrs['r']}Failed{clrs['n']} to untar the file {fname}.\n\n{clrs['r']}Error{clrs['n']}: {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
+            return ocerror.Error.untar_file(message=f"{clrs['r']}Failed{clrs['n']} to untar the file {fname}.\n\n{clrs['r']}Error{clrs['n']}: {e}", level = ocerror.ReportLevel.ERROR)
     else:
         # No supported extension has been provided
-        return ocerror.Error.unsupported_extension(message=f"The file {fname} is not a tar.gz file. {clrs['y']}Aborting execution{clrs['n']}", level = ocerror.ReportLevel.ERROR) # type: ignore
+        return ocerror.Error.unsupported_extension(message=f"The file {fname} is not a tar.gz file. {clrs['y']}Aborting execution{clrs['n']}", level = ocerror.ReportLevel.ERROR)

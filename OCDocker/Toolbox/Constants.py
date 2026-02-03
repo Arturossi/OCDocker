@@ -164,7 +164,7 @@ def convert_dG_to_Ki_Kd(dG: float, T: float = STANDARD_TEMPERATURE_K) -> float:
 
     # Calculate K
     K = math.exp(-dG / (R * T))
-    
+
     return K
 
 
@@ -186,7 +186,7 @@ def convert_Ki_Kd_to_dG(K: float, T: float = STANDARD_TEMPERATURE_K) -> float:
 
     # Calculate dG
     dG = R * T * math.log(K)
-    
+
     return dG
 
 
@@ -229,7 +229,7 @@ def K_to_C(K: float) -> float:
     # Check if K is negative
     if K < 0:
         # User-facing error: invalid temperature value
-        ocerror.Error.value_error(f"Kelvin cannot be negative. Got: {K}") # type: ignore
+        ocerror.Error.value_error(f"Kelvin cannot be negative. Got: {K}")
         raise ValueError("Kelvin cannot be negative.")
 
     return K - ZERO_C_IN_K
@@ -307,10 +307,10 @@ The structure is: ``order[source_unit][target_unit] = conversion_factor``
 .. code-block:: python
 
     import OCDocker.Toolbox.Constants as occ
-    
+
     # Convert from nano (n) to micro (u)
     factor = occ.order["n"]["u"]  # Returns 1e-3
-    
+
     # Convert from micro (u) to base unit (un)
     factor = occ.order["u"]["un"]  # Returns 1e-6
 

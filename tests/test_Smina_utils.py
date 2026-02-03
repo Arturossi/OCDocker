@@ -336,8 +336,8 @@ def test_gen_smina_conf(smina, sample_paths):
     smina.gen_smina_conf(str(sample_paths['box']), str(conf), str(sample_paths['receptor']))
     text = conf.read_text()
     assert f'receptor = {sample_paths["receptor"]}' in text
-    assert 'center_x = 36.552' in text
-    assert 'size_z = 102.582' in text
+    assert 'center_x = 32.698' in text
+    assert 'size_z = 13.851' in text
 
 
 @pytest.mark.order(13)

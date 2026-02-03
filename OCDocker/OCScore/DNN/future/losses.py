@@ -14,7 +14,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from typing import Dict, Iterable, Tuple
+from typing import Dict, Iterable, Sequence, Tuple
 
 # License
 ###############################################################################
@@ -259,8 +259,8 @@ def focal_binary_loss(
 def lambda_rank_ndcg_loss(
         scores: torch.Tensor,
         labels: torch.Tensor,
-        k_fractions: Tuple[float, float] = (0.01, 0.05),
-        weights: Tuple[float, float] = (0.5, 0.5)
+        k_fractions: Sequence[float] = (0.01, 0.05, 0.10, 0.25, 0.50, 0.75),
+        weights: Sequence[float] = (1.0 / 6.0,) * 6
     ) -> torch.Tensor:
     '''LambdaRank-style loss with NDCG@k weighting (top-heavy).
 
@@ -270,9 +270,9 @@ def lambda_rank_ndcg_loss(
         Predicted scores (N,).
     labels : torch.Tensor
         Binary labels (N,).
-    k_fractions : tuple[float, float], optional
-        Fractions of the ranked list to emphasize (e.g., 0.01, 0.05).
-    weights : tuple[float, float], optional
+    k_fractions : Sequence[float], optional
+        Fractions of the ranked list to emphasize (e.g., 0.01, 0.05, 0.10, 0.25, 0.50, 0.75).
+    weights : Sequence[float], optional
         Weights for each k in k_fractions.
 
     Returns
@@ -289,6 +289,14 @@ def lambda_rank_ndcg_loss(
         return torch.tensor(0.0, device=scores.device)
 
     total_loss = torch.tensor(0.0, device=scores.device)
+
+    k_fractions = tuple(float(f) for f in k_fractions)
+    weights = tuple(float(w) for w in weights)
+    if len(weights) != len(k_fractions):
+        if len(weights) == 1:
+            weights = (weights[0],) * len(k_fractions)
+        else:
+            weights = (1.0 / len(k_fractions),) * len(k_fractions)
 
     # Aggregate multiple top-k cutoffs to emphasize early recognition.
     for frac, weight in zip(k_fractions, weights):

@@ -62,7 +62,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ###############################################################################
 ## Private ##
 
-def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spacing: float, targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None, all_boxes: bool = False) -> int: # type: ignore
+def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spacing: float, targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None, all_boxes: bool = False) -> int:
     '''Prepares a database entry to be run in multiple docking software.
 
     Parameters
@@ -89,7 +89,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
     # Check if the basename of the working directory is not in the list of ignored directories
     if os.path.basename(path) in ['index']:
         # Skip it
-        return ocerror.Error.unnalowed_dir() # type: ignore
+        return ocerror.Error.unnalowed_dir()
 
     # Set the input file name path
     fin = f"{path}/receptor.pdb"
@@ -125,7 +125,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
                 try:
                     # Set the target centroid as the centroid of the ligand from the mol2 file
                     targetCentroid = ocl.get_centroid(ref_ligand, sanitize = sanitize)
-                    
+
                     # Check if the target centroid is None
                     if not targetCentroid:
                         # Print a warning
@@ -138,10 +138,10 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
                 except Exception as e:
                     # Print the error
                     ocprint.print_error(f"Problems parsing the reference ligand file: {ref_ligand}. Error: {e}")
-        
+
         # Check if the target centroid is still None
         if targetCentroid is None:
-            return ocerror.Error.file_not_exist(f"Could not find the file '{' or '.join([os.path.join(path, f'reference_ligand.{ref_ligand_ext}') for ref_ligand_ext in ref_ligand_exts])}' for the molecule '{path}' or the provided files are not valid and a target centroid has not been provided. This molecule will not be processed.", level = ocerror.ReportLevel.ERROR) # type: ignore
+            return ocerror.Error.file_not_exist(f"Could not find the file '{' or '.join([os.path.join(path, f'reference_ligand.{ref_ligand_ext}') for ref_ligand_ext in ref_ligand_exts])}' for the molecule '{path}' or the provided files are not valid and a target centroid has not been provided. This molecule will not be processed.", level = ocerror.ReportLevel.ERROR)
 
     # Create an empty list to hold all dirs to be processed
     processDirs = []
@@ -153,7 +153,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
     else:
         # Set the ligand extension to .mol2
         ligandExt = ".mol2"
-        
+
     # Check if the ligands dir exists
     if os.path.isdir(ligands_d):
         # For each molecule in ligands dir
@@ -167,7 +167,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
         mols = glob(f"{decoys_d}/*.{ligandExt}")
         # Append the dir to the list of dirs to be processed
         processDirs += __sub_core_prepare(decoys_d, archive, overwrite, mols, sanitize, targetCentroid = targetCentroid)
-    
+
     # Check if the candidates dir exists
     if os.path.isdir(candidates_d):
         # For each molecule in dudez candidate dir
@@ -191,7 +191,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
                 ocgnina.gen_gnina_conf(f"{processDir}/boxes/box0.pdb", f"{processDir}/gninaFiles/conf_gnina.conf", preparedReceptorPdbqt)
             else:
                 ocprint.print_info(f"The protein '{processDir}' already has its gnina file generated, skipping its execution.")
-            
+
             # If overwrite mode is on or there is not the same amount of box files as folders in vinaFiles folder
             if len(glob(f"{processDir}/vinaFiles/*")) != boxCount or len(glob(f"{processDir}/vinaFiles/*")) == 0 or overwrite:
                 # Create the vina inputs from the boxes
@@ -237,9 +237,9 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
                 fligand = f"{processDir}/ligand.mol2"
                 ocplants.box_to_plants(box_file, f"{plants_dir}/conf_plants.txt", preparedReceptorMol2, fligand, f"{plants_dir}/run", spacing = spacing)
 
-    return ocerror.Error.ok() # type: ignore
+    return ocerror.Error.ok()
 
-def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str, dbName: str, sanitize: bool, molName: str = "", targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None, alternativeLigand: rdkit.Chem.rdchem.Mol = None) -> None: # type: ignore
+def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str, dbName: str, sanitize: bool, molName: str = "", targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None, alternativeLigand: rdkit.Chem.rdchem.Mol = None) -> None:
     '''Prepares a molecule, generating output to docking software.
 
     Parameters
@@ -276,7 +276,7 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
     if molName == "":
         # Set the molname as the molType
         molName = moltype
-    
+
     if overwrite or not os.path.isfile(f"{molPath}/{moltype}_descriptors.json"):
         if moltype == "ligand":
             # Safe create dockingFiles dirs
@@ -289,7 +289,7 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                 # Create the ligand object
                 m = ocl.Ligand(mol, molName, sanitize = sanitize)
                 # Test if the Radius of Gyration is None
-                if not m.RadiusOfGyration: # type: ignore
+                if not m.RadiusOfGyration:
                     # Print a warning
                     ocprint.print_warning(f"The ligand '{molName}' has a Radius of Gyration of None, trying to load its alternative ligand.")
                     # If so, try to load the alternative ligand
@@ -297,7 +297,7 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                         # Create the ligand object
                         m = ocl.Ligand(alternativeLigand, molName, sanitize = sanitize)
                         # Check the radius of gyration again
-                        if not m.RadiusOfGyration: # type: ignore
+                        if not m.RadiusOfGyration:
                             # If it is still None, print a warning and return
                             ocprint.print_warning(f"The ligand '{molName}' has a Radius of Gyration of None, even with the alternative ligand, skipping.")
                     else:
@@ -310,7 +310,7 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
             except Exception as e:
                 errMsg = f"The molecule '{mol}' could not be parsed!"
 
-                _ = ocerror.Error.parse_molecule(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
+                _ = ocerror.Error.parse_molecule(errMsg, level = ocerror.ReportLevel.ERROR)
                 config = get_config()
                 ocprint.print_error_log(errMsg, f"{config.logdir}/{dbName}_error_Parse.log")
                 return None
@@ -328,7 +328,7 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                     except Exception as e:
                         errMsg = f"The molecule '{mol[0]}' could not be parsed! Error {e}"
 
-                        _ = ocerror.Error.parse_molecule(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
+                        _ = ocerror.Error.parse_molecule(errMsg, level = ocerror.ReportLevel.ERROR)
                         config = get_config()
                         ocprint.print_error_log(errMsg, f"{config.logdir}/{dbName}_error_Parse.log")
                         return None
@@ -339,25 +339,25 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                     except Exception as e:
                         errMsg = f"The molecule '{mol}' could not be parsed! Error {e}"
 
-                        _ = ocerror.Error.parse_molecule(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
+                        _ = ocerror.Error.parse_molecule(errMsg, level = ocerror.ReportLevel.ERROR)
                         config = get_config()
                         ocprint.print_error_log(errMsg, f"{config.logdir}/{dbName}_error_Parse.log")
                         return None
         else:
-            _ = ocerror.Error.unknown("Unknown molecule type", level = ocerror.ReportLevel.ERROR) # type: ignore
+            _ = ocerror.Error.unknown("Unknown molecule type", level = ocerror.ReportLevel.ERROR)
             return None
 
         # Test if the molecule is valid
         if not m or not m.is_valid():
             errMsg = f"The molecule '{mol}' is not valid! Its descriptors are malformed. Please check it manually!"
 
-            _ = ocerror.Error.malformed_molecule(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
+            _ = ocerror.Error.malformed_molecule(errMsg, level = ocerror.ReportLevel.ERROR)
             config = get_config()
             ocprint.print_error_log(errMsg, f"{config.logdir}/{dbName}_error_Parse.log")
         else:
             # Export its descriptors
             _ = m.to_json(overwrite)
-            
+
     # Return
     return None
 
@@ -415,7 +415,7 @@ def __prepare_parallel(paths: List[str], overwrite: bool, archive: str, sanitize
         The spacing value used to enlarge the radius of the sphere used in PLANTS file. Ranges from 0 to 1.
     desc : str
         The description to be used in the tqdm progress bar.
-    
+
     Returns
     -------
     None
@@ -423,7 +423,7 @@ def __prepare_parallel(paths: List[str], overwrite: bool, archive: str, sanitize
 
     # Arguments to pass to each Thread in the Thread Pool
     arguments = []
-    
+
     # For each file in the glob
     for path in paths:
         # Append a tuple containing the file name and ovewrite flag to the arguments list
@@ -442,7 +442,7 @@ def __prepare_parallel(paths: List[str], overwrite: bool, archive: str, sanitize
         config = get_config()
         ocprint.print_error_log(errMsg, f"{config.logdir}/{archive}_prepare_report.log")
         ocprint.print_error(errMsg)
-    
+
     return None
 
 def __prepare_single(path: str, overwrite: bool, archive: str, sanitize: bool, spacing: float, all_boxes: bool) -> None:
@@ -473,7 +473,7 @@ def __prepare_single(path: str, overwrite: bool, archive: str, sanitize: bool, s
 
     return None
 
-def __sub_core_prepare(dirsToProcess: str, dbName: str, overwrite: bool, mols : List[str] = [], sanitize: bool = True,  targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> List[str]: # type: ignore
+def __sub_core_prepare(dirsToProcess: str, dbName: str, overwrite: bool, mols : List[str] = [], sanitize: bool = True,  targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> List[str]:
     '''Runs the prepare function for the dudez database subsets.
 
     Parameters
@@ -513,7 +513,7 @@ def __sub_core_prepare(dirsToProcess: str, dbName: str, overwrite: bool, mols : 
             # Create the dir
             _ = ocff.safe_create_dir(f"{mol}/{molName}")
             # Move the molecule to it
-            shutil.move(mol, f"{mol}/{molName}/ligand.{molTmp[-1]}")  # type: ignore
+            shutil.move(mol, f"{mol}/{molName}/ligand.{molTmp[-1]}")
 
     # Get the list of dirs to process
     processDirs = [dirToProcess for dirToProcess in glob(f"{dirsToProcess}/*") if os.path.isdir(dirToProcess)]
@@ -582,7 +582,7 @@ def prepare(paths: Union[List[str], str], overwrite: bool, archive: str, sanitiz
     if isinstance(paths, list):
         # Backup log
         oclogging.backup_log(f"{archive}_prepare_report")
-        
+
         # Set the description
         label = f"Preparing {archive}"
 

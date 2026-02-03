@@ -55,7 +55,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ob_log_handler = openbabel.OBMessageHandler()
 ob_log_handler.SetOutputLevel(ocerror.Error.output_level)
 if ocerror.Error.output_level == ocerror.ReportLevel.NONE:
-    RDLogger.DisableLog("rdApp.*") # type: ignore
+    RDLogger.DisableLog("rdApp.*")
 
 # Classes
 ###############################################################################
@@ -94,7 +94,7 @@ class Ligand:
             etkdg_max_attempts: int = 1000
         ) -> None:
         ''' Constructor for the Ligand class.
-        
+
         Parameters
         ----------
         molecule : str | rdkit.Chem.rdchem.Mol
@@ -122,17 +122,17 @@ class Ligand:
             sanitize,
             embed_max_attempts=embed_max_attempts,
             etkdg_max_attempts=etkdg_max_attempts
-        ) # type: ignore
+        )
         if self.molecule is None:
             message = "The molecule could not be loaded."
             raise ValueError(message)
         # Set the box_path (removing the file from the path)
         self.box_path = os.path.join(os.path.dirname(self.path), "boxes/box0.pdb")
-        
+
         # Define everything as None, except for the name
         if "_split_" in name:
             message = "The name of the ligand cannot contain the string '_split_'"
-            _ = ocerror.Error.invalid_molecule_name(message) # type: ignore
+            _ = ocerror.Error.invalid_molecule_name(message)
             raise ValueError(message)
         self.name = name
 
@@ -155,14 +155,14 @@ class Ligand:
                 message = f"Problems while parsing json file: '{from_json_descriptors}'"
                 ocprint.print_error(message)
                 raise ValueError(message)
-            
+
             #region assign
             # Handle both 'Name' and 'Ligand' keys (read_descriptors_from_json with return_data=True renames 'Name' to 'Ligand')
-            self.name = data.get("Name") or data.get("Ligand") # type: ignore
+            self.name = data.get("Name") or data.get("Ligand")
 
             # All attribute initializations
             for desc in Ligand.allDescriptors:
-                setattr(self, desc, data[desc]) # type: ignore
+                setattr(self, desc, data[desc])
             #endregion
 
         else:
@@ -245,14 +245,14 @@ class Ligand:
         else:
             # If the save_path does not exist, warn the user
             if not os.path.exists(save_path):
-                _ =  ocerror.Error.dir_not_exist(f"The save_path '{save_path}' does not exist. Creating it.", level = ocerror.ReportLevel.WARNING) # type: ignore
+                _ =  ocerror.Error.dir_not_exist(f"The save_path '{save_path}' does not exist. Creating it.", level = ocerror.ReportLevel.WARNING)
                 _ = ocff.safe_create_dir(save_path)
 
         # Check if the box file already exists
         if os.path.isfile(f"{save_path}/box0.pdb") and not overwrite:
             # If it exists and the overwrite flag is False, return an error
-            return ocerror.Error.file_exists(f"The box file '{save_path}' already exists. If you want to overwrite it, set the 'overwrite' flag to True.") # type: ignore
-            
+            return ocerror.Error.file_exists(f"The box file '{save_path}' already exists. If you want to overwrite it, set the 'overwrite' flag to True.")
+
         # If the centroid is not defined
         if centroid is None:
             try:
@@ -263,33 +263,33 @@ class Ligand:
                 return ocerror.Error.parse_molecule(
                     f"Could not compute centroid for molecule '{identifier}'. Error: {e}",
                     level = ocerror.ReportLevel.WARNING
-                ) # type: ignore
+                )
 
         # Check if the centroid is the type rdkit.Geometry.rdGeometry.Point3D
-        if isinstance(centroid, rdkit.Geometry.rdGeometry.Point3D): # type: ignore
-            centroid = (centroid.x, centroid.y, centroid.z) # type: ignore
+        if isinstance(centroid, rdkit.Geometry.rdGeometry.Point3D):
+            centroid = (centroid.x, centroid.y, centroid.z)
         try:
-            centroid = tuple(centroid) # type: ignore
+            centroid = tuple(centroid)
         except Exception:
             identifier = self.name or self.path or "unknown"
             return ocerror.Error.wrong_type(
                 f"Centroid for molecule '{identifier}' must be a 3-element sequence.",
                 level = ocerror.ReportLevel.WARNING
-            ) # type: ignore
-        if len(centroid) != 3: # type: ignore
+            )
+        if len(centroid) != 3:
             identifier = self.name or self.path or "unknown"
             return ocerror.Error.value_error(
                 f"Centroid for molecule '{identifier}' must have 3 elements.",
                 level = ocerror.ReportLevel.WARNING
-            ) # type: ignore
+            )
         try:
-            centroid = (float(centroid[0]), float(centroid[1]), float(centroid[2])) # type: ignore
+            centroid = (float(centroid[0]), float(centroid[1]), float(centroid[2]))
         except Exception:
             identifier = self.name or self.path or "unknown"
             return ocerror.Error.value_error(
                 f"Centroid for molecule '{identifier}' must contain numeric values.",
                 level = ocerror.ReportLevel.WARNING
-            ) # type: ignore
+            )
 
         # Get the partial size for each axis (to determine how much should be expanded in each direction)
         if self.RadiusOfGyration is None:
@@ -297,17 +297,17 @@ class Ligand:
             return ocerror.Error.not_set(
                 f"RadiusOfGyration from molecule '{identifier}' is not set; cannot create box.",
                 level = ocerror.ReportLevel.WARNING
-            ) # type: ignore
-        partialSize = (box_length * self.RadiusOfGyration) / 2 # type: ignore
+            )
+        partialSize = (box_length * self.RadiusOfGyration) / 2
 
         # Create the box using this Centroid
         box = {
-            "min_x": centroid[0] - partialSize, # type: ignore
-            "max_x": centroid[0] + partialSize, # type: ignore
-            "min_y": centroid[1] - partialSize, # type: ignore
-            "max_y": centroid[1] + partialSize, # type: ignore
-            "min_z": centroid[2] - partialSize, # type: ignore
-            "max_z": centroid[2] + partialSize  # type: ignore
+            "min_x": centroid[0] - partialSize,
+            "max_x": centroid[0] + partialSize,
+            "min_y": centroid[1] - partialSize,
+            "max_y": centroid[1] + partialSize,
+            "min_z": centroid[2] - partialSize,
+            "max_z": centroid[2] + partialSize
         }
 
         # Get dimensions for each axis and its center (round to 3 decimals)
@@ -361,7 +361,7 @@ class Ligand:
             f.write("CONECT    6    2    5    7\n")
             f.write("CONECT    7    3    6    8\n")
             f.write("CONECT    8    4    5    7\n")
-        
+
         return None
 
 
@@ -398,8 +398,8 @@ class Ligand:
         for desc in Ligand.allDescriptors:
             attribute = getattr(self, desc)
             descriptors[desc] = attribute if attribute is not None else 0.0
-        
-        return descriptors # type: ignore
+
+        return descriptors
 
 
     def is_same_molecule(self, molecule: Union[rdkit.Chem.rdchem.Mol, Ligand], sanitize: bool = True) -> Union[bool, int]:
@@ -419,21 +419,21 @@ class Ligand:
         '''
 
         # Get the MACCSKeys for the ligand object
-        ligandMACCSSKeys = MACCSkeys.GenMACCSKeys(self.molecule) # type: ignore
+        ligandMACCSSKeys = MACCSkeys.GenMACCSKeys(self.molecule)
 
         # Check if the type of the molecule is a Ligand
         if isinstance(molecule, Ligand):
             # If yes, get its MACCSKeys
-            targetMACCSSKeys = MACCSkeys.GenMACCSKeys(molecule.molecule) # type: ignore
+            targetMACCSSKeys = MACCSkeys.GenMACCSKeys(molecule.molecule)
         # Otherwise check if it is a Chem.rdchem.Mol object
         elif isinstance(molecule, Chem.rdchem.Mol):
             # If it is, get its smiles using the Ligand public function, get_smiles()
-            targetMACCSSKeys = MACCSkeys.GenMACCSKeys(molecule) # type: ignore
+            targetMACCSSKeys = MACCSkeys.GenMACCSKeys(molecule)
         # If is neither both types above
         else:
             # Return an error
-            return ocerror.Error.wrong_type(f"The provided variable is a '{type(molecule)}' and was expected a 'rdkit.Chem.rdchem.Mol' or 'ocl.Ligand'.") # type: ignore
-        
+            return ocerror.Error.wrong_type(f"The provided variable is a '{type(molecule)}' and was expected a 'rdkit.Chem.rdchem.Mol' or 'ocl.Ligand'.")
+
         # Check if the Fingerprints are the same using the Tanimoto similarity
         if DataStructs.FingerprintSimilarity(ligandMACCSSKeys, targetMACCSSKeys) == 1.0:
             # If they are the same, return True
@@ -464,9 +464,9 @@ class Ligand:
             if isinstance(molecule, Ligand):
                 target_molecule_smiles = molecule.to_smiles()
                 target_mol_morgan_fps = (
-                    molecule.FpDensityMorgan1, # type: ignore
-                    molecule.FpDensityMorgan2, # type: ignore
-                    molecule.FpDensityMorgan3, # type: ignore
+                    molecule.FpDensityMorgan1,
+                    molecule.FpDensityMorgan2,
+                    molecule.FpDensityMorgan3,
                 )
             # If it's an RDKit Mol, calculate the properties
             elif isinstance(molecule, Chem.rdchem.Mol):
@@ -475,16 +475,16 @@ class Ligand:
                     _ = ocerror.Error.parse_molecule(
                         "The provided RDKit molecule could not be prepared for comparison.",
                         level = ocerror.ReportLevel.WARNING
-                    ) # type: ignore
+                    )
                     return False
                 target_molecule_smiles = get_smiles(mol)
                 target_mol_morgan_fps = (
-                    findFpDensityMorgan1(mol), # type: ignore
-                    findFpDensityMorgan2(mol), # type: ignore
-                    findFpDensityMorgan3(mol), # type: ignore
+                    findFpDensityMorgan1(mol),
+                    findFpDensityMorgan2(mol),
+                    findFpDensityMorgan3(mol),
                 )
             else:
-                _ = ocerror.Error.wrong_type(f"The provided variable is of type '{type(molecule)}'; expected 'rdkit.Chem.rdchem.Mol' or 'ocl.Ligand'.") # type: ignore
+                _ = ocerror.Error.wrong_type(f"The provided variable is of type '{type(molecule)}'; expected 'rdkit.Chem.rdchem.Mol' or 'ocl.Ligand'.")
                 return False
 
             # Compare SMILES first to short-circuit if they are different
@@ -493,14 +493,14 @@ class Ligand:
 
             # Compare fingerprints
             self_mol_morgan_fps = (
-                self.FpDensityMorgan1, # type: ignore
-                self.FpDensityMorgan2, # type: ignore
-                self.FpDensityMorgan3, # type: ignore
+                self.FpDensityMorgan1,
+                self.FpDensityMorgan2,
+                self.FpDensityMorgan3,
             )
 
             return self_mol_morgan_fps == target_mol_morgan_fps
         except Exception as e:
-            _ = ocerror.Error.unknown(f"Unknown error while checking smiles: {str(e)}") # type: ignore
+            _ = ocerror.Error.unknown(f"Unknown error while checking smiles: {str(e)}")
 
         return False
 
@@ -531,7 +531,7 @@ class Ligand:
         '''
 
         #region prints
-        
+
         # Initialize descriptors in each category
         # Calculate maximum length of descriptor names for both categories
         max_length = max(
@@ -597,16 +597,16 @@ class Ligand:
                 _ = ocerror.Error.dir_not_exist(
                     "Ligand path is empty; using current working directory for JSON output.",
                     level = ocerror.ReportLevel.WARNING
-                ) # type: ignore
+                )
             outputJson = f"{base_dir}/{self.name}_descriptors.json"
             # Check if the file exists
             if os.path.isfile(outputJson):
                 # Check if the user wants to overwrite the file
                 if not overwrite:
                     # If the file exists and overwrite is False, return the file exists error
-                    return ocerror.Error.file_exists(f"The file {outputJson} already exists and the overwrite flag is set to False, no file will be generated or overwrited.", ocerror.ReportLevel.WARNING) # type: ignore
+                    return ocerror.Error.file_exists(f"The file {outputJson} already exists and the overwrite flag is set to False, no file will be generated or overwrited.", ocerror.ReportLevel.WARNING)
                 # Warns the user that the file will be overwritten
-                _ = ocerror.Error.file_exists(f"The file '{outputJson}' already exists. It will be OVERWRITED!!!") # type: ignore
+                _ = ocerror.Error.file_exists(f"The file '{outputJson}' already exists. It will be OVERWRITED!!!")
 
             try:
                 # Create a lock for multithreading
@@ -616,12 +616,12 @@ class Ligand:
                     with open(outputJson, 'w') as outfile:
                         # Write the json file
                         json.dump(self.__safe_to_dict(), outfile)
-                return ocerror.Error.ok() # type: ignore
+                return ocerror.Error.ok()
             except Exception as e:
-                return ocerror.Error.write_file(f"Problems while writing the file '{outputJson}' Error: {e}.") # type: ignore
+                return ocerror.Error.write_file(f"Problems while writing the file '{outputJson}' Error: {e}.")
         except Exception as e:
 
-            return ocerror.Error.unknown(f"Unknown error while converting the ligand {self.name} to json.\nError: {e}", ocerror.ReportLevel.WARNING) # type: ignore
+            return ocerror.Error.unknown(f"Unknown error while converting the ligand {self.name} to json.\nError: {e}", ocerror.ReportLevel.WARNING)
 
 
     def to_smiles(self) -> Union[str, int]:
@@ -657,9 +657,9 @@ class Ligand:
 
     # Declare the single descriptors names as class attributes
     single_descriptors = [
-        'BalabanJ', 'BertzCT', 'ExactMolWt', 'FractionCSP3', 'HallKierAlpha', 'HeavyAtomMolWt', 
-        'HeavyAtomCount', 'LabuteASA', 'TPSA', 'MaxAbsEStateIndex', 'MaxEStateIndex', 
-        'MinAbsEStateIndex', 'MinEStateIndex', 'MaxAbsPartialCharge', 'MaxPartialCharge', 
+        'BalabanJ', 'BertzCT', 'ExactMolWt', 'FractionCSP3', 'HallKierAlpha', 'HeavyAtomMolWt',
+        'HeavyAtomCount', 'LabuteASA', 'TPSA', 'MaxAbsEStateIndex', 'MaxEStateIndex',
+        'MinAbsEStateIndex', 'MinEStateIndex', 'MaxAbsPartialCharge', 'MaxPartialCharge',
         'MinAbsPartialCharge', 'MinPartialCharge', 'qed', 'RingCount', 'Asphericity', 'Eccentricity',
         'InertialShapeFactor', 'RadiusOfGyration', 'SpherocityIndex', 'NHOHCount', 'NOCount'
     ]
@@ -727,18 +727,18 @@ def __descriptor_function_factory(descriptor_name: str) -> Callable[[rdkit.Chem.
         Optional[float]
             The descriptor value, or None if computation fails or molecule is invalid.
         '''
-        
+
         if molecule:
-            if isinstance(molecule, rdkit.Chem.rdchem.Mol): # type: ignore
+            if isinstance(molecule, rdkit.Chem.rdchem.Mol):
                 try:
                     return descriptor_func(molecule)
                 except Exception as e:
-                    _ = ocerror.Error.unknown(f"Error while creating the function in factory: {str(e)}") # type: ignore
+                    _ = ocerror.Error.unknown(f"Error while creating the function in factory: {str(e)}")
             else:
-                _ = ocerror.Error.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'") # type: ignore
+                _ = ocerror.Error.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
         else:
             pass
-            # _ = ocerror.Error.not_set("The molecule is not set.") # type: ignore
+            # _ = ocerror.Error.not_set("The molecule is not set.")
         return None
 
     return __compute_descriptor
@@ -792,17 +792,17 @@ def __descriptor_function_factory_class(descriptor_name: str) -> Callable[[rdkit
         # Check if the molecule is set
         if molecule:
             # Check if the molecule is a rdkit.Chem.rdchem.Mol
-            if isinstance(molecule, rdkit.Chem.rdchem.Mol): # type: ignore
+            if isinstance(molecule, rdkit.Chem.rdchem.Mol):
                 try:
                     # Return the function
                     return descriptor_func(molecule)
                 except Exception as e:
-                    _ = ocerror.Error.unknown(f"Error while creating the function in factory: {str(e)}") # type: ignore
+                    _ = ocerror.Error.unknown(f"Error while creating the function in factory: {str(e)}")
             else:
-                _ = ocerror.Error.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'") # type: ignore
+                _ = ocerror.Error.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
         else:
             pass
-            #_ = ocerror.Error.not_set("The molecule is not set.") # type: ignore
+            #_ = ocerror.Error.not_set("The molecule is not set.")
         return None
 
     return __compute_descriptor_class
@@ -841,14 +841,14 @@ def _ensure_3d_conformer(
 
     if mol.GetNumConformers() > 0:
         try:
-            if mol.GetConformer().Is3D(): # type: ignore
+            if mol.GetConformer().Is3D():
                 return mol
         except Exception:
             return mol
         mol.RemoveAllConformers()
 
     if add_hs:
-        mol = Chem.AddHs(mol) # type: ignore
+        mol = Chem.AddHs(mol)
 
     if _try_embed_rdkit(
         mol,
@@ -859,13 +859,13 @@ def _ensure_3d_conformer(
 
     if not smiles_source:
         try:
-            smiles_source = Chem.MolToSmiles(mol) # type: ignore
+            smiles_source = Chem.MolToSmiles(mol)
         except Exception:
             smiles_source = ""
 
     if smiles_source:
         ob_mol = _openbabel_3d_from_smiles(smiles_source, sanitize)
-        if ob_mol and ob_mol.GetNumConformers() > 0: # type: ignore
+        if ob_mol and ob_mol.GetNumConformers() > 0:
             return ob_mol
 
     return None
@@ -886,9 +886,9 @@ def _get_etkdg_params(max_attempts: int = 1000) -> AllChem.EmbedParameters:
     '''
 
     if hasattr(AllChem, "ETKDGv3"):
-        params = AllChem.ETKDGv3() # type: ignore
+        params = AllChem.ETKDGv3()
     else:
-        params = AllChem.ETKDG() # type: ignore
+        params = AllChem.ETKDG()
     params.useRandomCoords = True
     return params
 
@@ -930,7 +930,7 @@ def _openbabel_3d_from_smiles(smiles: str, sanitize: bool) -> Optional[Chem.rdch
         ff.GetCoordinates(ob_mol)
 
     mol2_block = ob_conversion.WriteString(ob_mol)
-    return Chem.MolFromMol2Block(mol2_block, sanitize=sanitize, removeHs=False) # type: ignore
+    return Chem.MolFromMol2Block(mol2_block, sanitize=sanitize, removeHs=False)
 
 
 def _optimize_mol(mol: Chem.rdchem.Mol) -> bool:
@@ -947,18 +947,18 @@ def _optimize_mol(mol: Chem.rdchem.Mol) -> bool:
         True if optimization converged, False otherwise.
     '''
 
-    if mol.GetNumConformers() == 0: # type: ignore
+    if mol.GetNumConformers() == 0:
         return False
     try:
-        mmff_props = AllChem.MMFFGetMoleculeProperties(mol) # type: ignore
+        mmff_props = AllChem.MMFFGetMoleculeProperties(mol)
         if mmff_props is not None:
-            status = AllChem.MMFFOptimizeMolecule(mol, mmff_props) # type: ignore
+            status = AllChem.MMFFOptimizeMolecule(mol, mmff_props)
             if status == 0:
                 return True
     except Exception:
         pass
     try:
-        status = AllChem.UFFOptimizeMolecule(mol) # type: ignore
+        status = AllChem.UFFOptimizeMolecule(mol)
         return status == 0
     except Exception:
         return False
@@ -989,7 +989,7 @@ def _try_embed_rdkit(
     params = _get_etkdg_params(max_attempts=etkdg_max_attempts)
     for attempt in range(max_attempts):
         params.randomSeed = 0xC0FFEE + attempt
-        if AllChem.EmbedMolecule(mol, params) == 0 and mol.GetNumConformers() > 0: # type: ignore
+        if AllChem.EmbedMolecule(mol, params) == 0 and mol.GetNumConformers() > 0:
             return True
     return False
 
@@ -1010,7 +1010,7 @@ def get_centroid(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize: bool = T
     -------
     rdkit.Geometry.rdGeometry.Point3D
         The centroid of the molecule.
-    
+
     Raises
     ------
     ValueError
@@ -1026,28 +1026,28 @@ def get_centroid(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize: bool = T
         # Check if molecule was loaded successfully
         if molecule is None:
             # User-facing error: molecule loading failure
-            ocerror.Error.parse_molecule(f"Could not load molecule from path: {molecule_path}") # type: ignore
+            ocerror.Error.parse_molecule(f"Could not load molecule from path: {molecule_path}")
             raise ValueError(f"Could not load molecule from path: {molecule_path}")  # Still raise to maintain API contract
 
-    if isinstance(molecule, rdkit.Chem.rdchem.Mol): # type: ignore
-        mol = Chem.Mol(molecule) # type: ignore
-        needs_3d = mol.GetNumConformers() == 0 # type: ignore
+    if isinstance(molecule, rdkit.Chem.rdchem.Mol):
+        mol = Chem.Mol(molecule)
+        needs_3d = mol.GetNumConformers() == 0
         if not needs_3d:
             try:
-                needs_3d = not mol.GetConformer().Is3D() # type: ignore
+                needs_3d = not mol.GetConformer().Is3D()
             except Exception:
                 needs_3d = False
 
         if needs_3d:
             mol = _ensure_3d_conformer(mol, sanitize=sanitize)
-            if mol is None: # type: ignore
+            if mol is None:
                 message = "Could not generate a 3D conformer to compute centroid."
-                ocerror.Error.parse_molecule(message, level = ocerror.ReportLevel.WARNING) # type: ignore
+                ocerror.Error.parse_molecule(message, level = ocerror.ReportLevel.WARNING)
                 raise ValueError(message)
         molecule = mol
 
     # Get the molecule conformer
-    conf = molecule.GetConformer()  # type: ignore
+    conf = molecule.GetConformer()
 
     # Compute the centroid of the molecule and return it
     return ComputeCentroid(conf)
@@ -1068,11 +1068,11 @@ def get_smiles(molecule: rdkit.Chem.rdchem.Mol) -> Union[str, int]:
     '''
 
     if molecule:
-        if isinstance(molecule, rdkit.Chem.rdchem.Mol): # type: ignore
-            return Chem.MolToSmiles(molecule) # type: ignore
-        return ocerror.Error.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'") # type: ignore
+        if isinstance(molecule, rdkit.Chem.rdchem.Mol):
+            return Chem.MolToSmiles(molecule)
+        return ocerror.Error.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
 
-    return ocerror.Error.not_set(f"The variable is not set.") # type: ignore
+    return ocerror.Error.not_set(f"The variable is not set.")
 
 
 def load_mol(
@@ -1104,10 +1104,10 @@ def load_mol(
     if isinstance(molecule, Chem.rdchem.Mol):
         # Clone to avoid mutating the caller's molecule
         mol = Chem.Mol(molecule)
-        needs_3d = mol.GetNumConformers() == 0 # type: ignore
+        needs_3d = mol.GetNumConformers() == 0
         if not needs_3d:
             try:
-                needs_3d = not mol.GetConformer().Is3D() # type: ignore
+                needs_3d = not mol.GetConformer().Is3D()
             except Exception:
                 needs_3d = False
 
@@ -1118,17 +1118,17 @@ def load_mol(
                 max_attempts=embed_max_attempts,
                 etkdg_max_attempts=etkdg_max_attempts
             )
-            if mol is None: # type: ignore
+            if mol is None:
                 _ = ocerror.Error.parse_molecule(
                     "The provided RDKit molecule could not be embedded in 3D.",
                     level = ocerror.ReportLevel.WARNING
-                ) # type: ignore
+                )
                 return "", None
             if not _optimize_mol(mol):
                 _ = ocerror.Error.parse_molecule(
                     "The provided RDKit molecule could not be optimized in 3D.",
                     level = ocerror.ReportLevel.WARNING
-                ) # type: ignore
+                )
 
         return "", mol
 
@@ -1136,7 +1136,7 @@ def load_mol(
         # Check if file exists
         if not os.path.isfile(molecule):
             # File does not exist
-            _ = ocerror.Error.file_not_exist(message=f"The file '{molecule}' does not exist!", level = ocerror.ReportLevel.WARNING) # type: ignore
+            _ = ocerror.Error.file_not_exist(message=f"The file '{molecule}' does not exist!", level = ocerror.ReportLevel.WARNING)
             return "", None
 
         # Determine the extension and use appropriate RDKit functions
@@ -1146,15 +1146,15 @@ def load_mol(
         # The file extension is not supported, print data
         if extension not in supported_extensions:
             # This case the return code is suppressed because it is needed to return None in case of failure
-            _ = ocerror.Error.unsupported_extension(message=f"The ligand {molecule} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supported_extensions)}.", level = ocerror.ReportLevel.WARNING) # type: ignore
+            _ = ocerror.Error.unsupported_extension(message=f"The ligand {molecule} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supported_extensions)}.", level = ocerror.ReportLevel.WARNING)
             return "", None
 
         # Function map for file extension to RDKit loading function
         load_functions = {
-            ".pdb": Chem.rdmolfiles.MolFromPDBFile, # type: ignore
-            ".sdf": Chem.rdmolfiles.SDMolSupplier, # type: ignore
-            ".mol": Chem.rdmolfiles.MolFromMolFile, # type: ignore
-            ".mol2": Chem.rdmolfiles.MolFromMol2File, # type: ignore
+            ".pdb": Chem.rdmolfiles.MolFromPDBFile,
+            ".sdf": Chem.rdmolfiles.SDMolSupplier,
+            ".mol": Chem.rdmolfiles.MolFromMolFile,
+            ".mol2": Chem.rdmolfiles.MolFromMol2File,
         }
 
         # Load the molecule with appropriate loader
@@ -1172,18 +1172,18 @@ def load_mol(
                 _ = ocerror.Error.parse_molecule(
                     f"The molecule '{molecule}' could not be parsed from smiles.",
                     level = ocerror.ReportLevel.WARNING
-                ) # type: ignore
+                )
                 return "", None
             if len(smiles_lines) > 1:
                 _ = ocerror.Error.parse_molecule(
                     f"Multiple SMILES entries found in '{molecule}'. Only the first will be used. "
                     "If you want to use multiple ligands, iterate them separately.",
                     level = ocerror.ReportLevel.WARNING
-                ) # type: ignore
+                )
             smiles = smiles_lines[0].split()[0]
 
             # Load the molecule
-            mol = Chem.MolFromSmiles(smiles, sanitize = sanitize) # type: ignore
+            mol = Chem.MolFromSmiles(smiles, sanitize = sanitize)
 
             # If the molecule was loaded
             if mol:
@@ -1198,7 +1198,7 @@ def load_mol(
                 mol = remover.StripMol(mol)
 
                 # Add the hydrogens
-                mol = Chem.AddHs(mol) # type: ignore
+                mol = Chem.AddHs(mol)
 
                 mol = _ensure_3d_conformer(
                     mol,
@@ -1212,13 +1212,13 @@ def load_mol(
                     _ = ocerror.Error.parse_molecule(
                         f"The molecule '{molecule}' could not be embedded in 3D.",
                         level = ocerror.ReportLevel.WARNING
-                    ) # type: ignore
+                    )
                     return "", None
                 mol.SetProp("_Name", name)
 
                 # Ensure that the ring information is initialized
                 _ = mol.GetRingInfo()
-    
+
                 # If sanitize is True, sanitize the molecule
                 if sanitize:
                     # Sanitize the molecule
@@ -1229,28 +1229,28 @@ def load_mol(
                     _ = ocerror.Error.parse_molecule(
                         f"The molecule '{molecule}' could not be optimized in 3D.",
                         level = ocerror.ReportLevel.WARNING
-                    ) # type: ignore
+                    )
             else:
                 # The molecule could not be loaded
-                _ = ocerror.Error.parse_molecule(f"The molecule '{molecule}' could not be parsed from smiles.", level = ocerror.ReportLevel.WARNING) # type: ignore
+                _ = ocerror.Error.parse_molecule(f"The molecule '{molecule}' could not be parsed from smiles.", level = ocerror.ReportLevel.WARNING)
                 return "", None
 
         # Handling of multiple molecules in a .sdf file
-        if isinstance(mol, Chem.rdmolfiles.SDMolSupplier): # type: ignore
-            mol_list = list(mol) # type: ignore
+        if isinstance(mol, Chem.rdmolfiles.SDMolSupplier):
+            mol_list = list(mol)
             if len(mol_list) > 1:
                 print("Warning: The .sdf file contains more than one molecule. Only the first will be processed.")
             mol = mol_list[0] if mol_list else None
 
         # Check if the molecule was loaded
-        if mol is None: # type: ignore
-            _ = ocerror.Error.parse_molecule(f"The molecule '{molecule}' could not be parsed.", level = ocerror.ReportLevel.WARNING) # type: ignore
+        if mol is None:
+            _ = ocerror.Error.parse_molecule(f"The molecule '{molecule}' could not be parsed.", level = ocerror.ReportLevel.WARNING)
             return "", None
 
-        needs_3d = mol.GetNumConformers() == 0 # type: ignore
+        needs_3d = mol.GetNumConformers() == 0
         if not needs_3d:
             try:
-                needs_3d = not mol.GetConformer().Is3D() # type: ignore
+                needs_3d = not mol.GetConformer().Is3D()
             except Exception:
                 needs_3d = False
 
@@ -1261,34 +1261,34 @@ def load_mol(
                 max_attempts=embed_max_attempts,
                 etkdg_max_attempts=etkdg_max_attempts
             )
-            if mol is None: # type: ignore
+            if mol is None:
                 _ = ocerror.Error.parse_molecule(
                     f"The molecule '{molecule}' could not be embedded in 3D.",
                     level = ocerror.ReportLevel.WARNING
-                ) # type: ignore
+                )
                 return "", None
             if not _optimize_mol(mol):
                 _ = ocerror.Error.parse_molecule(
                     f"The molecule '{molecule}' could not be optimized in 3D.",
                     level = ocerror.ReportLevel.WARNING
-                ) # type: ignore
+                )
 
         # If sanitize is off
         if not sanitize:
             # Turn off the property cache
-            mol.UpdatePropertyCache(strict=False) # type: ignore
+            mol.UpdatePropertyCache(strict=False)
             # Perform a partial sanitization (THIS IS VERY IMPORTANT!!!!)
-            Chem.SanitizeMol( # type: ignore
-                mol, # type: ignore
-                Chem.SANITIZE_FINDRADICALS | # type: ignore
-                Chem.SANITIZE_KEKULIZE | # type: ignore
-                Chem.SANITIZE_SETAROMATICITY | # type: ignore
-                Chem.SANITIZE_SETCONJUGATION | # type: ignore
-                Chem.SANITIZE_SETHYBRIDIZATION | # type: ignore
-                Chem.SANITIZE_SYMMRINGS, # type: ignore
+            Chem.SanitizeMol(
+                mol,
+                Chem.SANITIZE_FINDRADICALS |
+                Chem.SANITIZE_KEKULIZE |
+                Chem.SANITIZE_SETAROMATICITY |
+                Chem.SANITIZE_SETCONJUGATION |
+                Chem.SANITIZE_SETHYBRIDIZATION |
+                Chem.SANITIZE_SYMMRINGS,
                 catchErrors=True
             )
-        
+
         # If the molecule is not in mol2 format
         if extension != ".mol2":
             # Use input directory to keep derived files alongside ligand
@@ -1297,27 +1297,27 @@ def load_mol(
                 os.makedirs(output_dir, exist_ok=True)
             except (OSError, PermissionError):
                 pass
-            
+
             # Preserve the original basename; warn if it collides
             ligand_basename = os.path.splitext(os.path.basename(molecule))[0]
             outputMoleculePath = os.path.join(output_dir, f"{ligand_basename}.mol2")
             if os.path.isfile(outputMoleculePath):
-                _ = ocerror.Error.file_exists( # type: ignore
+                _ = ocerror.Error.file_exists(
                     f"The file '{outputMoleculePath}' already exists and will be overwritten.",
                     level = ocerror.ReportLevel.WARNING,
                 )
-            
+
             # Convert using the RDKit molecule to preserve 3D geometry
-            occonversion.convert_mols_from_string("", outputMoleculePath, mol = mol) # type: ignore
-            
+            occonversion.convert_mols_from_string("", outputMoleculePath, mol = mol)
+
             # Return the molecule
-            return outputMoleculePath, mol # type: ignore
+            return outputMoleculePath, mol
 
         # Return the molecule
-        return molecule, mol # type: ignore
+        return molecule, mol
 
     # The variable is not in a supported data format
-    _ = ocerror.Error.unsupported_extension(message = f"Unsupported molecule data. Please support either a molecule path (string) or a rdkit.Chem.rdchem.Mol object.", level = ocerror.ReportLevel.WARNING) # type: ignore
+    _ = ocerror.Error.unsupported_extension(message = f"Unsupported molecule data. Please support either a molecule path (string) or a rdkit.Chem.rdchem.Mol object.", level = ocerror.ReportLevel.WARNING)
 
     return "", None
 
@@ -1356,16 +1356,16 @@ def multiple_molecules_sdf(molecule: Union[str, rdkit.Chem.rdchem.Mol]) -> List[
                     ligands.append(Ligand(molPath, name=name))
             else:
                 # This case the return code is suppressed because it is needed to return None in case of failure
-                _ = ocerror.Error.wrong_type(message=f"The molecule file MUST be the .sdf format!", level=ocerror.ReportLevel.WARNING) # type: ignore
+                _ = ocerror.Error.wrong_type(message=f"The molecule file MUST be the .sdf format!", level=ocerror.ReportLevel.WARNING)
         else:
             # File does not exist
-            _ = ocerror.Error.wrong_type(message=f"The molecule MUST be either a file path or rdkit.Chem.rdchem.Mol!", level=ocerror.ReportLevel.WARNING) # type: ignore
+            _ = ocerror.Error.wrong_type(message=f"The molecule MUST be either a file path or rdkit.Chem.rdchem.Mol!", level=ocerror.ReportLevel.WARNING)
     elif isinstance(molecule, Chem.rdchem.Mol):
         name = molecule.GetProp("_Name") if molecule.HasProp("_Name") else "ligand"
         ligands.append(Ligand(molecule, name=name))
     else:
         # This case the return code is suppressed because it is needed to return None in case of failure
-        _ = ocerror.Error.wrong_type(message=f"The molecule file path MUST be a string!", level=ocerror.ReportLevel.WARNING) # type: ignore
+        _ = ocerror.Error.wrong_type(message=f"The molecule file path MUST be a string!", level=ocerror.ReportLevel.WARNING)
 
     return ligands
 
@@ -1379,7 +1379,7 @@ def read_descriptors_from_json(path: str, return_data: bool = False) -> Optional
         The path to the JSON file.
     return_data : bool, optional
         If True, returns a dictionary with the descriptors. If False, returns a dictionary with the descriptors, by default False.
-    
+
     Returns
     -------
     Dict[str, str | float | int]] | Tuple[str | float | int]] | None
@@ -1389,7 +1389,7 @@ def read_descriptors_from_json(path: str, return_data: bool = False) -> Optional
     try:
         with open(path, 'r') as f:
             data = json.load(f)
-        
+
         # Construct the list of expected keys
         keys = ["Name"] + Ligand.allDescriptors
 
@@ -1397,7 +1397,7 @@ def read_descriptors_from_json(path: str, return_data: bool = False) -> Optional
         missing_keys = [key for key in keys if key not in data]
         if missing_keys:
             # User-facing error: missing required data in JSON file
-            ocerror.Error.data_not_found(f"Missing keys in JSON file '{path}': {', '.join(missing_keys)}") # type: ignore
+            ocerror.Error.data_not_found(f"Missing keys in JSON file '{path}': {', '.join(missing_keys)}")
             return None
 
         if return_data:
@@ -1409,14 +1409,14 @@ def read_descriptors_from_json(path: str, return_data: bool = False) -> Optional
             return data
 
         # If not returning as data, return tuple of values
-        return tuple(data[key] for key in keys) # type: ignore
+        return tuple(data[key] for key in keys)
 
     except KeyError as e:
         # This should rarely happen now since we check for missing keys above
         # But keep it as a fallback for other KeyError cases
-        ocerror.Error.value_error(f"Error: {e}") # type: ignore
+        ocerror.Error.value_error(f"Error: {e}")
     except Exception as e:
-        ocerror.Error.read_file(f"Could not read the file '{path}'. Error: {e}") # type: ignore
+        ocerror.Error.read_file(f"Could not read the file '{path}'. Error: {e}")
 
     return None
 
@@ -1476,7 +1476,7 @@ def split_molecules(molecule: str, output_dir: str = "", prefix: str = "ligand")
                 _ = ocerror.Error.write_file(
                     f"Could not write split molecule file '{out_path}'.",
                     level = ocerror.ReportLevel.WARNING
-                ) # type: ignore
+                )
             # Recreate mol object
             mol = openbabel.OBMol()
             # Read it again

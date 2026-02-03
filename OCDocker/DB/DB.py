@@ -49,9 +49,9 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 # May use session from Initialise - runtime global
 try:
-    from OCDocker.Initialise import session  # type: ignore
+    from OCDocker.Initialise import session
 except ImportError:
-    session = None  # type: ignore
+    session = None
 
 # Functions
 ###############################################################################
@@ -70,7 +70,7 @@ def create_tables(engine: Optional[Engine] = None) -> None:
     eng = engine
     if eng is None:
         try:
-            import OCDocker.Initialise as init  # type: ignore
+            import OCDocker.Initialise as init
             eng = getattr(init, 'engine', None)
             if eng is None:
                 url = getattr(init, 'db_url', None)
@@ -81,7 +81,7 @@ def create_tables(engine: Optional[Engine] = None) -> None:
         except Exception as e:  # pragma: no cover
             raise RuntimeError(f'Could not resolve database engine to create tables: {e}')
 
-    Base.metadata.create_all(eng)  # type: ignore[arg-type]
+    Base.metadata.create_all(eng)
 
 
 def export_db_to_csv(
@@ -110,7 +110,7 @@ def export_db_to_csv(
     pandas.DataFrame | str | None
         DataFrame or serialized string depending on `output_format`; None when writing to `output_file`.
     '''
-    
+
     # Query to fetch complexes with their ligands and receptors
     merged_data = session.query(Complexes.Complexes, Ligands.Ligands, Receptors.Receptors)\
         .join(Ligands.Ligands, Ligands.Ligands.id == Complexes.Complexes.ligand_id)\
@@ -146,9 +146,9 @@ def export_db_to_csv(
     # If drop_na is True, drop rows with any missing values
     if drop_na:
         result = [entry for entry in result if all(value is not None for value in entry.values())]
-    
+
     # If complex_name ends with ligand, set the db column as pdbbind, otherwise set it as dudez
-    #result['db'] = result['complex_name'].apply(lambda x: 'pdbbind' if x.endswith('ligand') else 'dudez') # type: ignore
+    #result['db'] = result['complex_name'].apply(lambda x: 'pdbbind' if x.endswith('ligand') else 'dudez')
 
     # Convert the result to a pandas DataFrame
     if output_format == 'dataframe':
@@ -172,10 +172,10 @@ def export_db_to_csv(
         if output_file:
             # Extract fieldnames (keys from the first result entry)
             fieldnames = result[0].keys() if result else []
-            
+
             with open(output_file, 'w', newline='') as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-                
+
                 writer.writeheader()
                 writer.writerows(result)
             return None
@@ -192,7 +192,7 @@ def export_db_to_csv(
 
     else:
         # User-facing error: invalid output format
-        ocerror.Error.value_error(f"Invalid output format: '{output_format}'. Please choose 'dataframe', 'json', or 'csv'.") # type: ignore
+        ocerror.Error.value_error(f"Invalid output format: '{output_format}'. Please choose 'dataframe', 'json', or 'csv'.")
         raise ValueError("Invalid output format. Please choose 'dataframe', 'json', or 'csv'.")
 
 
@@ -236,7 +236,7 @@ def setup_database() -> Engine:
 
     # Resolve the configured DB URL lazily to avoid import-time side effects
     try:
-        import OCDocker.Initialise as init  # type: ignore
+        import OCDocker.Initialise as init
         url = getattr(init, 'db_url', None)
         if url is None:
             # Try deriving from an existing engine
@@ -251,10 +251,10 @@ def setup_database() -> Engine:
         url = "sqlite:///:memory:"
 
     # Create DB if it does not exist
-    create_database_if_not_exists(url)  # type: ignore[arg-type]
+    create_database_if_not_exists(url)
 
     # Create engine and tables
-    engine_obj = create_engine(url)  # type: ignore[arg-type]
+    engine_obj = create_engine(url)
     create_tables(engine_obj)
 
     return engine_obj

@@ -176,10 +176,10 @@ class DNNOptimizer:
             Weights for ranking, classification, and contrastive losses.
         - lambda_energy, lambda_recon : float
             Optional regularizers from regression data.
-        - rank_k_fractions : tuple[float, float]
-            Top-k fractions for LambdaRank weighting.
-        - rank_weights : tuple[float, float]
-            Weights per k fraction.
+        - rank_k_fractions : Sequence[float]
+            Top-k fractions for LambdaRank weighting and ranking metrics.
+        - rank_weights : Sequence[float]
+            Weights per k fraction (same length as rank_k_fractions).
         - temperature : float
             Temperature for contrastive loss.
         - clip_grad : float
@@ -630,8 +630,8 @@ class DNNOptimizer:
                 "lambda_con": 0.2,
                 "lambda_energy": 0.1,
                 "lambda_recon": 0.0,
-                "rank_k_fractions": (0.01, 0.05),
-                "rank_weights": (0.5, 0.5),
+                "rank_k_fractions": (0.01, 0.05, 0.10, 0.25, 0.50, 0.75),
+                "rank_weights": (0.40, 0.25, 0.15, 0.10, 0.07, 0.03),
                 "temperature": 0.1,
                 "clip_grad": 1.0,
                 "use_focal": False,
@@ -711,6 +711,8 @@ class DNNOptimizer:
 
         if future_config and "ranking_targets" in future_config:
             target_ids = future_config["ranking_targets"]
+        elif future_config and "separation_targets" in future_config:
+            target_ids = future_config["separation_targets"]
 
         if target_ids is None:
             # Fallback: use a single target for all samples

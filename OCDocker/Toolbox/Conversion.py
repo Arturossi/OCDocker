@@ -23,7 +23,7 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem.rdmolfiles import MolToMolFile
 from rdkit.Chem.SaltRemover import SaltRemover
-from typing import Optional, Union
+from typing import Optional, Protocol, Union
 
 import OCDocker.Error as ocerror
 import OCDocker.Toolbox.Constants as occ
@@ -70,7 +70,12 @@ except (AttributeError, TypeError):
 
 ## Public ##
 
-def convert_mols(input_file: str, output_file: str, return_molecule: bool = False, overwrite: bool = False) -> Union[int, str, rdkit.Chem.rdchem.Mol]: # type: ignore
+class _OBMol(Protocol):
+    def SetTitle(self, title: str) -> None: ...
+    def DeleteData(self, key: str) -> None: ...
+
+
+def convert_mols(input_file: str, output_file: str, return_molecule: bool = False, overwrite: bool = False) -> Union[int, str, rdkit.Chem.rdchem.Mol, _OBMol]:
     '''Convert a molecule file between two extensions which obabel supports.
 
     Parameters
@@ -111,7 +116,7 @@ def convert_mols(input_file: str, output_file: str, return_molecule: bool = Fals
 
     # Check if the output exists, if so, no need to convert
     if not overwrite and os.path.isfile(output_file):
-        return ocerror.Error.file_exists(message=f"The file '{output_file}' already exists, aborting conversion.", level = ocerror.ReportLevel.WARNING) # type: ignore
+        return ocerror.Error.file_exists(message=f"The file '{output_file}' already exists, aborting conversion.", level = ocerror.ReportLevel.WARNING)
 
     # Check if input is a smiles file
     if inExtension == "smi":
@@ -119,7 +124,7 @@ def convert_mols(input_file: str, output_file: str, return_molecule: bool = Fals
         with open(input_file, 'r') as file:
             data = file.read().strip()
         # Convert the string to the output file
-        return convert_mols_from_string(data, output_file)
+        return convert_mols_from_string(data, output_file, overwrite=overwrite)
 
     # Ensure parent directory exists
     try:
@@ -135,7 +140,7 @@ def convert_mols(input_file: str, output_file: str, return_molecule: bool = Fals
         # Set the conversion from the extension to pdbqt
         obConversion.SetInAndOutFormats(inExtension, outExtension)
         # Create an empty OBMol object
-        mol = openbabel.OBMol()
+        mol: _OBMol = openbabel.OBMol()
         # Load the input file to the prebiusly loaded OBMol object
         obConversion.ReadFile(mol, input_file)
         # Clear the molecule title
@@ -150,7 +155,7 @@ def convert_mols(input_file: str, output_file: str, return_molecule: bool = Fals
             # Return the molecule object
             return mol
     except Exception as e:
-        return ocerror.Error.subprocess(message=f"Error while running molecule conversion from {inExtension} to {outExtension} using obabel python lib. Error: {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
+        return ocerror.Error.subprocess(message=f"Error while running molecule conversion from {inExtension} to {outExtension} using obabel python lib. Error: {e}", level = ocerror.ReportLevel.ERROR)
     try:
         if not os.path.isfile(output_file):
             with open(output_file, 'w') as f:
@@ -158,9 +163,9 @@ def convert_mols(input_file: str, output_file: str, return_molecule: bool = Fals
     except (OSError, IOError, PermissionError):
         # Ignore errors if stub file can't be written
         pass
-    return ocerror.Error.ok() # type: ignore
+    return ocerror.Error.ok()
 
-def convert_mols_from_string(input: str, output: str, mol: Optional[rdkit.Chem.rdchem.Mol] = None) -> Union[int, str]:
+def convert_mols_from_string(input: str, output: str, mol: Optional[rdkit.Chem.rdchem.Mol] = None, overwrite: bool = False) -> Union[int, str]:
     '''Currently only works with smiles. TODO: Add support to other formats.
 
     Parameters
@@ -178,7 +183,7 @@ def convert_mols_from_string(input: str, output: str, mol: Optional[rdkit.Chem.r
         The exit code of the command (based on the Error.py code table) if fails or the extension of the input file otherwise returns the extension itself.
     '''
 
-    # Get the in and out extensions 
+    # Get the in and out extensions
     inExtension = "smi" # TODO: Add support to other formats
     outExtension = ocvalidation.validate_obabel_extension(output)
 
@@ -193,31 +198,31 @@ def convert_mols_from_string(input: str, output: str, mol: Optional[rdkit.Chem.r
             # Initializ e the salt remover
             remover = SaltRemover()
             # Load the molecule
-            mol = rdkit.Chem.rdmolfiles.MolFromSmiles(input) # type: ignore
+            mol = rdkit.Chem.rdmolfiles.MolFromSmiles(input)
             # Remove the salts
             mol = remover.StripMol(mol)
             # Add the hydrogens
-            mol = Chem.AddHs(mol) # type: ignore
+            mol = Chem.AddHs(mol)
             # Embed the molecule
-            _ = AllChem.EmbedMolecule(mol, AllChem.ETKDG()) # type: ignore
+            _ = AllChem.EmbedMolecule(mol, AllChem.ETKDG())
             # Optimize the molecule
-            _ = AllChem.UFFOptimizeMolecule(mol) # type: ignore
-        
+            _ = AllChem.UFFOptimizeMolecule(mol)
+
         # Check if the output is mol
         if outExtension == "mol":
             # Write the molecule to the output file
             MolToMolFile(mol, output)
-            return ocerror.Error.ok() # type: ignore
-        
+            return ocerror.Error.ok()
+
         # Replace the extension to to mol
         tmpOutput = f"{os.path.splitext(output)[0]}_tmp.mol"
-        
+
         # Write the molecule to the output file
         MolToMolFile(mol, tmpOutput)
 
         # Convert it to the desired format (This will not cause an infinite loop since the input extension is always mol)
-        result = convert_mols(tmpOutput, output)
-        
+        result = convert_mols(tmpOutput, output, overwrite=overwrite)
+
         # Clean up temporary file
         try:
             if os.path.isfile(tmpOutput):
@@ -225,11 +230,11 @@ def convert_mols_from_string(input: str, output: str, mol: Optional[rdkit.Chem.r
         except (OSError, PermissionError):
             # Ignore errors during cleanup (file might be in use or already deleted)
             pass
-        
+
         # Return the result of conversion
-        if result != ocerror.Error.ok(): # type: ignore
+        if result != ocerror.Error.ok():
             return result
-        
+
     except Exception as e:
         # Clean up temporary file on error
         try:
@@ -238,9 +243,9 @@ def convert_mols_from_string(input: str, output: str, mol: Optional[rdkit.Chem.r
                 os.remove(tmpOutput)
         except (OSError, PermissionError):
             pass
-        return ocerror.Error.subprocess(message=f"Error while running molecule conversion from {inExtension} to {outExtension} using obabel python lib. Error: {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
+        return ocerror.Error.subprocess(message=f"Error while running molecule conversion from {inExtension} to {outExtension} using obabel python lib. Error: {e}", level = ocerror.ReportLevel.ERROR)
 
-    return ocerror.Error.ok() # type: ignore
+    return ocerror.Error.ok()
 
 def kikd_to_deltag(kikd: float, T: float = occ.STANDARD_TEMPERATURE_K, kikd_order: str = "un", R: float = occ.RJ) -> float:
     '''Converts Ki/Kd to deltaG.
@@ -334,6 +339,6 @@ def split_and_convert(path: str, out_path: str, extension: str, overwrite: bool 
         # If fails
         except Exception as e:
             # Return write file error
-            return ocerror.Error.write_file(f"Problems while writing the file '{outfile}'. Error: {e}") # type: ignore
+            return ocerror.Error.write_file(f"Problems while writing the file '{outfile}'. Error: {e}")
     # Since everything gone ok, return the ok code
-    return ocerror.Error.ok() # type: ignore
+    return ocerror.Error.ok()

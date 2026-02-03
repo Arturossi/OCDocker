@@ -309,21 +309,21 @@ def _to_binary(y: pd.Series, positive_label: Optional[Union[str, int]]) -> np.nd
     '''
 
     if y.dtype == bool:
-        return y.astype(int).to_numpy()
+        return np.asarray(y, dtype=int)
 
     if positive_label is not None:
-        return (y == positive_label).astype(int).to_numpy()
+        return np.asarray((y == positive_label), dtype=int)
 
     if pd.api.types.is_numeric_dtype(y):
         vals = pd.to_numeric(y, errors="coerce").to_numpy()
         uniques = np.unique(vals[~np.isnan(vals)])
         if set(uniques).issubset({0, 1}):
-            return vals.astype(int)
-        return (vals > 0).astype(int)
+            return np.asarray(vals, dtype=int)
+        return np.asarray(vals > 0, dtype=int)
 
     y_str = y.astype(str).str.lower()
     positives = {"1", "true", "yes", "y", "pos", "positive", "active", "ligand"}
-    return y_str.isin(positives).astype(int).to_numpy()
+    return np.asarray(y_str.isin(positives), dtype=int)
 
 
 ## Public ##
