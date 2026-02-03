@@ -12,14 +12,13 @@ from OCDocker.OCScore.Analysis.Plotting import Core as ocplotcore
 
 # Imports
 ###############################################################################
-
 from __future__ import annotations
 
-from typing import Tuple
-
 import matplotlib.pyplot as plt
+
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+from typing import Tuple
 
 # License
 ###############################################################################
@@ -41,8 +40,11 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 
-# Methods
+# Functions
 ###############################################################################
+## Private ##
+
+## Public ##
 
 
 def apply_basic_style() -> None:

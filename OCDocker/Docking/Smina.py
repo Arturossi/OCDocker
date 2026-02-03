@@ -22,7 +22,6 @@ import numpy as np
 from glob import glob
 from typing import Dict, List, Tuple, Union
 
-from OCDocker.Config import get_config
 import OCDocker.Error as ocerror
 
 import OCDocker.Ligand as ocl
@@ -34,13 +33,10 @@ import OCDocker.Toolbox.MoleculeProcessing as ocmolproc
 import OCDocker.Toolbox.Printing as ocprint
 import OCDocker.Toolbox.Running as ocrun
 import OCDocker.Toolbox.Validation as ocvalidation
+
+from OCDocker.Config import get_config
+from OCDocker.Docking.BaseVinaLike import generate_smina_digest as generate_digest, get_smina_docked_poses as get_docked_poses, read_smina_log as read_log, read_smina_rescoring_log as read_rescoring_log
 from OCDocker.Toolbox.Preparation import MGLToolsPreparationStrategy, OpenBabelPreparationStrategy
-from OCDocker.Docking.BaseVinaLike import (
-    read_smina_log as read_log,
-    read_smina_rescoring_log as read_rescoring_log,
-    generate_smina_digest as generate_digest,
-    get_smina_docked_poses as get_docked_poses,
-)
 
 
 # License
@@ -65,6 +61,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ###############################################################################
 class Smina:
     """Smina object with methods for easy run."""
+    ## Private ##
 
     def __init__(self, config_path: str, box_file: str, receptor: ocr.Receptor, prepared_receptor_path: str, ligand: ocl.Ligand, prepared_ligand_path: str, smina_log: str, output_smina: str, name: str = "", overwrite_config: bool = False) -> None:
         '''Constructor of the class Smina.
@@ -138,36 +135,6 @@ class Smina:
         ############
         self.run_docking = self.run_smina
 
-    ## Private ##
-    def __parse_receptor_path(self, receptor: Union[str, ocr.Receptor]) -> str:
-        '''Parse the receptor path, handling its type.
-
-        Parameters
-        ----------
-        receptor : ocr.Receptor | str
-            The path for the receptor or its receptor object.
-
-        Returns
-        -------
-        str
-            The receptor path.
-        '''
-
-        # Check the type of receptor variable
-        if isinstance(receptor, ocr.Receptor):
-            return receptor.path  # type: ignore
-        elif isinstance(receptor, str):
-            # Since is a string, check if the file exists
-            if os.path.isfile(receptor): # type: ignore
-                # Exists! Return it!
-                return receptor # type: ignore
-            else:
-                _ = ocerror.Error.file_not_exist(message=f"The receptor '{receptor}' has not a valid path.", level = ocerror.ReportLevel.ERROR) # type: ignore
-                return ""
-
-        _ = ocerror.Error.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'string' or 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR) # type: ignore
-
-        return ""
 
     def __parse_ligand_path(self, ligand: Union[str, ocl.Ligand]) -> str:
         '''Parse the ligand path, handling its type.
@@ -198,6 +165,38 @@ class Smina:
 
         return ""
 
+
+    def __parse_receptor_path(self, receptor: Union[str, ocr.Receptor]) -> str:
+        '''Parse the receptor path, handling its type.
+
+        Parameters
+        ----------
+        receptor : ocr.Receptor | str
+            The path for the receptor or its receptor object.
+
+        Returns
+        -------
+        str
+            The receptor path.
+        '''
+
+        # Check the type of receptor variable
+        if isinstance(receptor, ocr.Receptor):
+            return receptor.path  # type: ignore
+        elif isinstance(receptor, str):
+            # Since is a string, check if the file exists
+            if os.path.isfile(receptor): # type: ignore
+                # Exists! Return it!
+                return receptor # type: ignore
+            else:
+                _ = ocerror.Error.file_not_exist(message=f"The receptor '{receptor}' has not a valid path.", level = ocerror.ReportLevel.ERROR) # type: ignore
+                return ""
+
+        _ = ocerror.Error.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'string' or 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR) # type: ignore
+
+        return ""
+
+
     def __smina_cmd(self) -> List[str]:
         '''Generate the smina command.
 
@@ -226,6 +225,65 @@ class Smina:
         return cmd
 
     ## Public ##
+
+    def get_docked_poses(self) -> List[str]:
+        '''Get the paths for the docked poses.
+
+        Returns
+        -------
+        List[str]
+            A list with the paths for the docked poses.
+        '''
+
+        return get_docked_poses(os.path.dirname(self.output_smina))
+
+
+    def get_input_ligand_path(self) -> str:
+        ''' Get the input ligand path.
+
+        Returns
+        -------
+        str
+            The input ligand path.
+        '''
+
+        return os.path.dirname(self.input_ligand_path)
+
+
+    def get_input_receptor_path(self) -> str:
+        ''' Get the input receptor path.
+
+        Returns
+        -------
+        str
+            The input receptor path.
+        '''
+
+        return os.path.dirname(self.input_receptor_path)
+
+
+    def print_attributes(self) -> None:
+        '''Print the class attributes.'''
+
+        print(f"Name:                        '{self.name if self.name else '-' }'")
+        print(f"Config path:                 '{self.config if self.config else '-' }'")
+        print(f"Input receptor:              '{self.input_receptor if self.input_receptor else '-' }'")
+        print(f"Input receptor path:         '{self.input_receptor_path if self.input_receptor_path else '-' }'")
+        print(f"Prepared receptor path:      '{self.prepared_receptor if self.prepared_receptor else '-' }'")
+        prep_receptor_cmd = self.preparation_strategy.get_receptor_command(self.input_receptor_path, self.prepared_receptor)
+        print(f"Prepared receptor command:   '{' '.join(prep_receptor_cmd) if prep_receptor_cmd else '-' }'")
+        print(f"Input ligand:                '{self.input_ligand if self.input_ligand else '-' }'")
+        print(f"Input ligand path:           '{self.input_ligand_path if self.input_ligand_path else '-' }'")
+        print(f"Prepared ligand path:        '{self.prepared_ligand if self.prepared_ligand else '-' }'")
+        prep_ligand_cmd = self.preparation_strategy.get_ligand_command(self.input_ligand_path, self.prepared_ligand)
+        print(f"Prepared ligand command:     '{' '.join(prep_ligand_cmd) if prep_ligand_cmd else '-' }'")
+        print(f"Smina execution log path:    '{self.smina_log if self.smina_log else '-' }'")
+        print(f"Smina output path:           '{self.output_smina if self.output_smina else '-' }'")
+        print(f"Smina command:               '{' '.join(self.smina_cmd) if self.smina_cmd else '-' }'")
+        
+        return
+
+
     def read_log(self, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
         '''Read the SMINA log path, returning a dict with data from complexes.
 
@@ -241,6 +299,139 @@ class Smina:
         '''
 
         return read_log(self.smina_log, onlyBest = onlyBest) # type: ignore
+
+
+    def read_rescore_logs(self, outPath: str, onlyBest: bool = False) -> Dict[str, List[Union[str, float]]]:
+        ''' Reads the data from the rescore log files.
+
+        Parameters
+        ----------
+        outPath : str
+            Path to the output folder where the rescoring logs are located.
+        onlyBest : bool, optional
+            If True, only the best pose will be returned. By default False.
+
+        Returns
+        -------
+        Dict[str, List[Union[str, float]]]
+            A dictionary with the data from the rescore log files.
+        '''
+
+        # Get the rescore log paths
+        rescoreLogPaths = get_rescore_log_paths(outPath)
+
+        return read_rescore_logs(rescoreLogPaths, onlyBest = onlyBest)
+
+
+    def run_prepare_ligand(self, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
+        '''Run the convert ligand command to pdbqt.
+
+        Returns
+        -------
+        int | Tuple[int, str]
+            The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
+        '''
+        
+        return self.preparation_strategy.prepare_ligand(
+            self.input_ligand_path,
+            self.prepared_ligand,
+            "",
+            overwrite=overwrite
+        )
+
+
+    def run_prepare_ligand_from_cmd(self, logFile: str = "") -> Union[int, Tuple[int, str]]:
+        '''Run obabel convert ligand to pdbqt using the 'self.inputLigandPath' attribute. [DEPRECATED]
+
+        Parameters
+        ----------
+        logFile : str
+            The path for the log file.
+        '''
+
+        # DEPRECATED: Use run_prepare_ligand() instead
+        return self.preparation_strategy.prepare_ligand(
+            self.input_ligand_path,
+            self.prepared_ligand,
+            logFile
+        )
+
+
+    def run_prepare_receptor(self, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
+        '''Run obabel convert receptor to pdbqt using the openbabel python library.
+
+        Returns
+        -------
+        int | Tuple[int, str]
+            The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
+        '''
+
+        # Smina uses OpenBabel for receptor preparation
+        obabel_strategy = OpenBabelPreparationStrategy()
+        return obabel_strategy.prepare_receptor(
+            self.input_receptor_path,
+            self.prepared_receptor,
+            "",
+            overwrite=overwrite
+        )
+
+
+    def run_prepare_receptor_from_cmd(self, logFile: str = "", overwrite: bool = False) -> Union[int, Tuple[int, str]]:
+        '''Run obabel convert receptor to pdbqt script using the 'self.prepareReceptorCmd' attribute. [DEPRECATED]
+
+        Parameters
+        ----------
+        logFile : str
+            The path for the log file.
+
+        Returns
+        -------
+        int | Tuple[int, str]
+            The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
+        '''
+
+        # DEPRECATED: Use run_prepare_receptor() instead
+        obabel_strategy = OpenBabelPreparationStrategy()
+        return obabel_strategy.prepare_receptor(
+            self.input_receptor_path,
+            self.prepared_receptor,
+            logFile,
+            overwrite=overwrite
+        )
+
+
+    def run_rescore(self, outPath: str, ligand: str, logFile: str = "", skipDefaultScoring: bool = False, splitLigand: bool = False, overwrite: bool = False) -> None:
+        '''Run smina to rescore the ligand.
+
+        Parameters
+        ----------
+        outPath : str
+            Path to the output folder.
+        ligand : str
+            Path to the ligand to be rescored.
+        logFile : str, optional
+            Path to the logFile. If empty, suppress the output. By default "".
+        skipDefaultScoring : bool, optional
+            If True, skip the default scoring function. By default False.
+        splitLigand : bool, optional
+            If True, split the ligand before rescoring. By default False.
+        overwrite : bool, optional
+            If True, overwrite the logFile. By default False.
+        '''
+
+        # For each scoring function
+        config = get_config()
+        for scoring_function in config.smina.scoring_functions:
+            # If is the default scoring function and skipDefaultScoring is True
+            if not (scoring_function == config.smina.scoring and skipDefaultScoring):
+                # Run smina to rescore
+                _ = run_rescore(self.config, ligand, outPath, scoring_function, logFile = logFile, splitLigand = splitLigand, overwrite = overwrite)
+
+                # Set the splitLigand as False (to avoid running it again without need)
+                splitLigand = False
+
+        return None
+
 
     def run_smina(self, logFile: str = "", overwrite: bool = False) -> Union[int, Tuple[int, str]]:
         '''Run smina.
@@ -296,164 +487,6 @@ class Smina:
 
         return ocrun.run(self.smina_cmd, logFile=logFile)
 
-    def run_prepare_ligand_from_cmd(self, logFile: str = "") -> Union[int, Tuple[int, str]]:
-        '''Run obabel convert ligand to pdbqt using the 'self.inputLigandPath' attribute. [DEPRECATED]
-
-        Parameters
-        ----------
-        logFile : str
-            The path for the log file.
-        '''
-
-        # DEPRECATED: Use run_prepare_ligand() instead
-        return self.preparation_strategy.prepare_ligand(
-            self.input_ligand_path,
-            self.prepared_ligand,
-            logFile
-        )
-
-    def run_prepare_ligand(self, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
-        '''Run the convert ligand command to pdbqt.
-
-        Returns
-        -------
-        int | Tuple[int, str]
-            The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
-        '''
-        
-        return self.preparation_strategy.prepare_ligand(
-            self.input_ligand_path,
-            self.prepared_ligand,
-            "",
-            overwrite=overwrite
-        )
-
-    def run_prepare_receptor_from_cmd(self, logFile: str = "", overwrite: bool = False) -> Union[int, Tuple[int, str]]:
-        '''Run obabel convert receptor to pdbqt script using the 'self.prepareReceptorCmd' attribute. [DEPRECATED]
-
-        Parameters
-        ----------
-        logFile : str
-            The path for the log file.
-
-        Returns
-        -------
-        int | Tuple[int, str]
-            The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
-        '''
-
-        # DEPRECATED: Use run_prepare_receptor() instead
-        obabel_strategy = OpenBabelPreparationStrategy()
-        return obabel_strategy.prepare_receptor(
-            self.input_receptor_path,
-            self.prepared_receptor,
-            logFile,
-            overwrite=overwrite
-        )
-
-    def run_prepare_receptor(self, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
-        '''Run obabel convert receptor to pdbqt using the openbabel python library.
-
-        Returns
-        -------
-        int | Tuple[int, str]
-            The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
-        '''
-
-        # Smina uses OpenBabel for receptor preparation
-        obabel_strategy = OpenBabelPreparationStrategy()
-        return obabel_strategy.prepare_receptor(
-            self.input_receptor_path,
-            self.prepared_receptor,
-            "",
-            overwrite=overwrite
-        )
-
-    def run_rescore(self, outPath: str, ligand: str, logFile: str = "", skipDefaultScoring: bool = False, splitLigand: bool = False, overwrite: bool = False) -> None:
-        '''Run smina to rescore the ligand.
-
-        Parameters
-        ----------
-        outPath : str
-            Path to the output folder.
-        ligand : str
-            Path to the ligand to be rescored.
-        logFile : str, optional
-            Path to the logFile. If empty, suppress the output. By default "".
-        skipDefaultScoring : bool, optional
-            If True, skip the default scoring function. By default False.
-        splitLigand : bool, optional
-            If True, split the ligand before rescoring. By default False.
-        overwrite : bool, optional
-            If True, overwrite the logFile. By default False.
-        '''
-
-        # For each scoring function
-        config = get_config()
-        for scoring_function in config.smina.scoring_functions:
-            # If is the default scoring function and skipDefaultScoring is True
-            if not (scoring_function == config.smina.scoring and skipDefaultScoring):
-                # Run smina to rescore
-                _ = run_rescore(self.config, ligand, outPath, scoring_function, logFile = logFile, splitLigand = splitLigand, overwrite = overwrite)
-
-                # Set the splitLigand as False (to avoid running it again without need)
-                splitLigand = False
-
-        return None
-
-    def get_docked_poses(self) -> List[str]:
-        '''Get the paths for the docked poses.
-
-        Returns
-        -------
-        List[str]
-            A list with the paths for the docked poses.
-        '''
-
-        return get_docked_poses(os.path.dirname(self.output_smina))
-
-    def get_input_ligand_path(self) -> str:
-        ''' Get the input ligand path.
-
-        Returns
-        -------
-        str
-            The input ligand path.
-        '''
-
-        return os.path.dirname(self.input_ligand_path)
-
-    def get_input_receptor_path(self) -> str:
-        ''' Get the input receptor path.
-
-        Returns
-        -------
-        str
-            The input receptor path.
-        '''
-
-        return os.path.dirname(self.input_receptor_path)
-
-    def read_rescore_logs(self, outPath: str, onlyBest: bool = False) -> Dict[str, List[Union[str, float]]]:
-        ''' Reads the data from the rescore log files.
-
-        Parameters
-        ----------
-        outPath : str
-            Path to the output folder where the rescoring logs are located.
-        onlyBest : bool, optional
-            If True, only the best pose will be returned. By default False.
-
-        Returns
-        -------
-        Dict[str, List[Union[str, float]]]
-            A dictionary with the data from the rescore log files.
-        '''
-
-        # Get the rescore log paths
-        rescoreLogPaths = get_rescore_log_paths(outPath)
-
-        return read_rescore_logs(rescoreLogPaths, onlyBest = onlyBest)
 
     def split_poses(self, outPath: str = "", logFile: str = "") -> int:
         '''Split the ligand resulted from smina into its poses.
@@ -479,34 +512,31 @@ class Smina:
 
         return ocmolproc.split_poses(self.output_smina, self.input_ligand.name, outPath, logFile = logFile, suffix = "_split_") # type: ignore
 
-    def print_attributes(self) -> None:
-        '''Print the class attributes.'''
 
-        print(f"Name:                        '{self.name if self.name else '-' }'")
-        print(f"Config path:                 '{self.config if self.config else '-' }'")
-        print(f"Input receptor:              '{self.input_receptor if self.input_receptor else '-' }'")
-        print(f"Input receptor path:         '{self.input_receptor_path if self.input_receptor_path else '-' }'")
-        print(f"Prepared receptor path:      '{self.prepared_receptor if self.prepared_receptor else '-' }'")
-        prep_receptor_cmd = self.preparation_strategy.get_receptor_command(self.input_receptor_path, self.prepared_receptor)
-        print(f"Prepared receptor command:   '{' '.join(prep_receptor_cmd) if prep_receptor_cmd else '-' }'")
-        print(f"Input ligand:                '{self.input_ligand if self.input_ligand else '-' }'")
-        print(f"Input ligand path:           '{self.input_ligand_path if self.input_ligand_path else '-' }'")
-        print(f"Prepared ligand path:        '{self.prepared_ligand if self.prepared_ligand else '-' }'")
-        prep_ligand_cmd = self.preparation_strategy.get_ligand_command(self.input_ligand_path, self.prepared_ligand)
-        print(f"Prepared ligand command:     '{' '.join(prep_ligand_cmd) if prep_ligand_cmd else '-' }'")
-        print(f"Smina execution log path:    '{self.smina_log if self.smina_log else '-' }'")
-        print(f"Smina output path:           '{self.output_smina if self.output_smina else '-' }'")
-        print(f"Smina command:               '{' '.join(self.smina_cmd) if self.smina_cmd else '-' }'")
-        
-        return
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # Functions
 ###############################################################################
 ## Private ##
 
-
 ## Public ##
+
 def gen_smina_conf(box_file: str, conf_file: str, receptor: str) -> int:
     '''Convert a box (DUDE like format) to smina input.
 
@@ -601,295 +631,6 @@ def gen_smina_conf(box_file: str, conf_file: str, receptor: str) -> int:
         return ocerror.Error.write_file(message=f"Found a problem while opening conf file: {e}.", level = ocerror.ReportLevel.ERROR) # type: ignore
 
     return ocerror.Error.ok() # type: ignore
-
-
-def run_prepare_ligand_from_cmd(input_ligand_path: str, prepared_ligand: str, log_file: str = "") -> Union[int, Tuple[int, str]]:
-    '''Converts the ligand to .pdbqt using obabel. [DEPRECATED]
-
-    Parameters
-    ----------
-    input_ligand_path : str
-        The path for the input ligand.
-    prepared_ligand : str
-        The path for the prepared ligand.
-    log_file : str
-        The path for the log file.
-
-    Returns
-    -------
-    int | Tuple[int, str]
-        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
-    '''
-
-    # Create the command list
-    config = get_config()
-    cmd = [config.tools.obabel, input_ligand_path, "-O", prepared_ligand]
-
-    return ocrun.run(cmd, logFile=log_file)
-
-
-def run_prepare_ligand(input_ligand_path: str, prepared_ligand: str, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
-    '''Run obabel convert ligand to pdbqt using the openbabel python library.
-
-    Parameters
-    ----------
-    input_ligand_path : str
-        The path for the input ligand.
-    prepared_ligand : str
-        The path for the prepared ligand.
-
-    Returns
-    -------
-    int | Tuple[int, str]
-        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
-    '''
-
-    # Find the extension for input and output
-    extension = ocvalidation.validate_obabel_extension(input_ligand_path)
-    out_extension = os.path.splitext(prepared_ligand)[1]
-
-    # Check if the extension is valid
-    if type(extension) != str:
-        ocprint.print_error(f"Problems while reading the ligand file '{input_ligand_path}'.")
-        return extension # type: ignore
-
-    # Discover if the output extension is pdbqt (to warn user if it is not)
-    if out_extension != ".pdbqt":
-        from OCDocker.Initialise import clrs
-        ocprint.print_warning(f"The output extension is not '.pdbqt', is {out_extension}. This function converts {clrs['r']}ONLY{clrs['n']} to '.pdbqt'. Please pay attention, since this might be a problem in the future for you!")
-
-    try:
-        if extension in ["smi", "smiles"]:
-            ocprint.print_warning(f"The input ligand is a smiles file, it is supposed that there will be also a mol2 file within the same folder, so I am changing the file extension to '.mol2' to be able to read it.")
-            input_ligand_path = f"{os.path.dirname(input_ligand_path)}/ligand.mol2"
-
-        # Use MGLTools strategy (includes extension validation above)
-        strategy = MGLToolsPreparationStrategy()
-        return strategy.prepare_ligand(input_ligand_path, prepared_ligand, "", overwrite=overwrite)
-    except Exception as e:
-        return ocerror.Error.subprocess(message=f"Error while running ligand conversion: {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
-
-
-def run_prepare_receptor_from_cmd(input_receptor_path: str, output_receptor: str, log_file: str = "") -> Union[int, Tuple[int, str]]:
-    '''Converts the receptor to .pdbqt using obabel. [DEPRECATED]
-
-    Parameters
-    ----------
-    input_receptor_path : str
-        The path for the input receptor.
-    output_receptor : str
-        The path for the output receptor.
-    log_file : str
-        The path for the log file.
-
-    Returns
-    -------
-    int | Tuple[int, str]
-        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
-    '''
-
-    # Create the command list
-    config = get_config()
-    cmd = [config.tools.obabel, input_receptor_path, "-xr", "-O", output_receptor]
-
-    return ocrun.run(cmd, logFile=log_file)
-
-
-def run_prepare_receptor(input_receptor_path: str, prepared_receptor: str, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
-    '''Run obabel convert receptor to pdbqt using the openbabel python library.
-
-    Parameters
-    ----------
-    input_receptor_path : str
-        The path for the input receptor.
-    prepared_receptor : str
-        The path for the prepared receptor.
-
-    Returns
-    -------
-    int | Tuple[int, str]
-        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
-    '''
-    
-    # Smina uses OpenBabel for receptor preparation
-    strategy = OpenBabelPreparationStrategy()
-    return strategy.prepare_receptor(input_receptor_path, prepared_receptor, "", overwrite=overwrite)
-
-
-def run_smina(config: str, prepared_ligand: str, output_smina: str, smina_log: str, log_path: str) -> Union[int, Tuple[int, str]]:
-    '''Convert a box (DUDE like format) to smina input.
-
-    Parameters
-    ----------
-    config : str
-        The path for the config file.
-    prepared_ligand : str
-        The path for the prepared ligand.
-    output_smina : str
-        The path for the output smina file.
-    smina_log : str
-        The path for the smina log file.
-    log_path : str
-        The path for the log file.
-
-    Returns
-    -------
-    int | Tuple[int, str]
-        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
-    '''
-
-    # Create the command list
-    cfg = get_config()
-    cmd = [cfg.smina.executable, "--config", config, "--ligand", prepared_ligand, "--autobox_ligand", prepared_ligand]
-
-    if cfg.smina.local_only.lower() in ["y", "ye", "yes"]:
-        cmd.append("--score_only")
-    if cfg.smina.minimize.lower() in ["y", "ye", "yes"]:
-        cmd.append("--minimize")
-    if cfg.smina.randomize_only.lower() in ["y", "ye", "yes"]:
-        cmd.append("--randomize_only")
-    if cfg.smina.accurate_line.lower() in ["y", "ye", "yes"]:
-        cmd.append("--accurate_line")
-    if cfg.smina.minimize_early_term.lower() in ["y", "ye", "yes"]:
-        cmd.append("--minimize_early_term")
-
-    cmd.extend(["--out", output_smina, "--log", smina_log, "--cpu", "1"])
-
-    # Fallback: if smina is not available, write stub files and return OK
-    exe = str(cfg.smina.executable)
-    available = (os.path.isabs(exe) and os.path.isfile(exe) and os.access(exe, os.X_OK)) or (shutil.which(exe) is not None)
-    try:
-        # Ensure dirs exist
-        if output_smina:
-            os.makedirs(os.path.dirname(os.path.abspath(output_smina)), exist_ok=True)
-        if smina_log:
-            os.makedirs(os.path.dirname(os.path.abspath(smina_log)), exist_ok=True)
-    except (OSError, PermissionError):
-        # Ignore errors if directory already exists or permission denied
-        pass
-    if not available:
-        try:
-            if output_smina:
-                with open(output_smina, 'w') as f:
-                    f.write("SMINA stub output (binary not available)\n")
-            if smina_log:
-                with open(smina_log, 'w') as lf:
-                    lf.write("SMINA stub run (binary not available)\n")
-        except (OSError, IOError, PermissionError):
-            # Ignore errors if file can't be written
-            pass
-        return ocerror.Error.ok()  # type: ignore
-
-    # Run the command
-    return ocrun.run(cmd, logFile=log_path)
-
-
-def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, scoring_function: str, logFile: str = "", splitLigand: bool = True, overwrite: bool = False) -> None:
-    '''Run smina to rescore the ligand.
-
-    Parameters
-    ----------
-    confFile : str
-        The path to the smina configuration file.
-    ligands : Union[List[str], str]
-        The path to a List of ligand files or the ligand file.
-    outPath : str
-        The path to the output file.
-    scoring_function : str
-        The scoring function to use.
-    logFile : str, optional
-        The path to the log file. If empty, suppress the output. By default "".
-    splitLigand : bool, optional
-        If True, split the ligand before running smina. By default True.
-    overwrite : bool, optional
-        If True, overwrite the logFile. By default False.
-    '''
-
-    # Print verboosity
-    ocprint.printv(f"Running smina using the '{confFile}' configurations and scoring function '{scoring_function}'.")
-
-    # Normalize outPath to ensure it's absolute and doesn't have duplicate path components
-    outPath = ocff.normalize_path(outPath)
-    os.makedirs(outPath, exist_ok=True)
-
-    # Check if the ligands is a string
-    if isinstance(ligands, str):
-        # Convert to list
-        ligands = [ligands]
-    
-    # Ligand name list
-    ligandNames = []
-    
-    # For each ligand
-    for ligand in ligands:
-        # Only split if splitLigand is True (overwrite doesn't trigger splitting)
-        if splitLigand:
-            # Get the ligand name
-            ligandName = os.path.splitext(os.path.basename(ligand))[0]
-            
-            # Split the ligand (only add _split_ suffix when actually splitting)
-            _ = ocmolproc.split_poses(ligand, ligandName, outPath, logFile = "", suffix = "_split_")
-
-            # Add the ligand name to the list
-            ligandNames.append(ligandName)
-        
-    # If splitLigand is True, get the splited ligands (only for the provided ligand files)
-    if splitLigand:
-        # Reset the ligand list
-        ligands = []
-        # Only get split files that match the ligand names we just split
-        for ligandName in ligandNames:
-            # Match only split files from this specific ligand
-            ligands.extend(glob(f"{outPath}/{ligandName}_split_*.pdbqt"))
-
-    # For each ligand in the ligands list (newly splited ligands)
-    for ligand in ligands:
-        # Get the splited ligand name
-        ligand_name = os.path.splitext(os.path.basename(ligand))[0]
-
-        # Create the command list
-        cfg = get_config()
-        # Ensure ligand path is absolute and normalized (remove duplicate directory components)
-        ligand = ocff.normalize_path(ligand)
-        # Construct log file path using os.path.join for proper path construction
-        log_file_path = ocff.normalize_path(os.path.join(outPath, f"{ligand_name}_{scoring_function}_rescoring.log"))
-        cmd = [cfg.smina.executable, "--scoring", scoring_function, "--score_only", "--config", confFile, "--ligand", ligand, "--log", log_file_path, "--cpu", "1"]
-
-        # Create the log file path
-        logFile = log_file_path
-
-        # If the logFile already exists, check also if the user wants to overwrite it
-        if not os.path.isfile(logFile) or overwrite:
-            # Print verboosity
-            ocprint.printv(f"Running smina using the '{confFile}' configurations and scoring function '{scoring_function}'.")
-
-            # Run the command
-            _ = ocrun.run(cmd, logFile = logFile)
-
-            # Check if the logFile exists and has valid output (Smina outputs "Affinity:" not "Estimated Free Energy of Binding")
-            log_file_valid = False
-            if os.path.isfile(logFile):
-                try:
-                    with open(logFile, 'r') as f:
-                        log_content = f.read()
-                        # Smina outputs "Affinity:" in rescoring logs
-                        if "Affinity" in log_content:
-                            log_file_valid = True
-                except (IOError, OSError):
-                    pass
-            
-            if not log_file_valid:
-                # Print an error (only once, not duplicated)
-                ocprint.print_error(f"Problems while running smina for the ligand '{ligand_name}' using the scoring function '{scoring_function}'. Check the log file: {logFile}")
-
-                # Remove the invalid log file
-                _ = ocff.safe_remove_file(logFile)
-        else:
-            # Print verboosity
-            ocprint.printv(f"The log file '{logFile}' already exists. Skipping the smina run for the ligand '{ligand_name}' using the scoring function '{scoring_function}'.")
-    
-    # Think about how can this be done to deal with multiple runs
-    return None
 
 
 def get_pose_index_from_file_path(filePath: str) -> int:
@@ -1007,6 +748,296 @@ def read_rescore_logs(rescoreLogPaths: Union[List[str], str], onlyBest: bool = F
     
     # Return the dictionary
     return rescoreLogData
+
+
+def run_prepare_ligand(input_ligand_path: str, prepared_ligand: str, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
+    '''Run obabel convert ligand to pdbqt using the openbabel python library.
+
+    Parameters
+    ----------
+    input_ligand_path : str
+        The path for the input ligand.
+    prepared_ligand : str
+        The path for the prepared ligand.
+
+    Returns
+    -------
+    int | Tuple[int, str]
+        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
+    '''
+
+    # Find the extension for input and output
+    extension = ocvalidation.validate_obabel_extension(input_ligand_path)
+    out_extension = os.path.splitext(prepared_ligand)[1]
+
+    # Check if the extension is valid
+    if type(extension) != str:
+        ocprint.print_error(f"Problems while reading the ligand file '{input_ligand_path}'.")
+        return extension # type: ignore
+
+    # Discover if the output extension is pdbqt (to warn user if it is not)
+    if out_extension != ".pdbqt":
+        from OCDocker.Initialise import clrs
+        ocprint.print_warning(f"The output extension is not '.pdbqt', is {out_extension}. This function converts {clrs['r']}ONLY{clrs['n']} to '.pdbqt'. Please pay attention, since this might be a problem in the future for you!")
+
+    try:
+        if extension in ["smi", "smiles"]:
+            ocprint.print_warning(f"The input ligand is a smiles file, it is supposed that there will be also a mol2 file within the same folder, so I am changing the file extension to '.mol2' to be able to read it.")
+            input_ligand_path = f"{os.path.dirname(input_ligand_path)}/ligand.mol2"
+
+        # Use MGLTools strategy (includes extension validation above)
+        strategy = MGLToolsPreparationStrategy()
+        return strategy.prepare_ligand(input_ligand_path, prepared_ligand, "", overwrite=overwrite)
+    except Exception as e:
+        return ocerror.Error.subprocess(message=f"Error while running ligand conversion: {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
+
+
+def run_prepare_ligand_from_cmd(input_ligand_path: str, prepared_ligand: str, log_file: str = "") -> Union[int, Tuple[int, str]]:
+    '''Converts the ligand to .pdbqt using obabel. [DEPRECATED]
+
+    Parameters
+    ----------
+    input_ligand_path : str
+        The path for the input ligand.
+    prepared_ligand : str
+        The path for the prepared ligand.
+    log_file : str
+        The path for the log file.
+
+    Returns
+    -------
+    int | Tuple[int, str]
+        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
+    '''
+
+    # Create the command list
+    config = get_config()
+    cmd = [config.tools.obabel, input_ligand_path, "-O", prepared_ligand]
+
+    return ocrun.run(cmd, logFile=log_file)
+
+
+def run_prepare_receptor(input_receptor_path: str, prepared_receptor: str, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
+    '''Run obabel convert receptor to pdbqt using the openbabel python library.
+
+    Parameters
+    ----------
+    input_receptor_path : str
+        The path for the input receptor.
+    prepared_receptor : str
+        The path for the prepared receptor.
+
+    Returns
+    -------
+    int | Tuple[int, str]
+        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
+    '''
+    
+    # Smina uses OpenBabel for receptor preparation
+    strategy = OpenBabelPreparationStrategy()
+    return strategy.prepare_receptor(input_receptor_path, prepared_receptor, "", overwrite=overwrite)
+
+
+def run_prepare_receptor_from_cmd(input_receptor_path: str, output_receptor: str, log_file: str = "") -> Union[int, Tuple[int, str]]:
+    '''Converts the receptor to .pdbqt using obabel. [DEPRECATED]
+
+    Parameters
+    ----------
+    input_receptor_path : str
+        The path for the input receptor.
+    output_receptor : str
+        The path for the output receptor.
+    log_file : str
+        The path for the log file.
+
+    Returns
+    -------
+    int | Tuple[int, str]
+        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
+    '''
+
+    # Create the command list
+    config = get_config()
+    cmd = [config.tools.obabel, input_receptor_path, "-xr", "-O", output_receptor]
+
+    return ocrun.run(cmd, logFile=log_file)
+
+
+def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, scoring_function: str, logFile: str = "", splitLigand: bool = True, overwrite: bool = False) -> None:
+    '''Run smina to rescore the ligand.
+
+    Parameters
+    ----------
+    confFile : str
+        The path to the smina configuration file.
+    ligands : Union[List[str], str]
+        The path to a List of ligand files or the ligand file.
+    outPath : str
+        The path to the output file.
+    scoring_function : str
+        The scoring function to use.
+    logFile : str, optional
+        The path to the log file. If empty, suppress the output. By default "".
+    splitLigand : bool, optional
+        If True, split the ligand before running smina. By default True.
+    overwrite : bool, optional
+        If True, overwrite the logFile. By default False.
+    '''
+
+    # Print verboosity
+    ocprint.printv(f"Running smina using the '{confFile}' configurations and scoring function '{scoring_function}'.")
+
+    # Normalize outPath to ensure it's absolute and doesn't have duplicate path components
+    outPath = ocff.normalize_path(outPath)
+    os.makedirs(outPath, exist_ok=True)
+
+    # Check if the ligands is a string
+    if isinstance(ligands, str):
+        # Convert to list
+        ligands = [ligands]
+    
+    # Ligand name list
+    ligandNames = []
+    
+    # For each ligand
+    for ligand in ligands:
+        # Only split if splitLigand is True (overwrite doesn't trigger splitting)
+        if splitLigand:
+            # Get the ligand name
+            ligandName = os.path.splitext(os.path.basename(ligand))[0]
+            
+            # Split the ligand (only add _split_ suffix when actually splitting)
+            _ = ocmolproc.split_poses(ligand, ligandName, outPath, logFile = "", suffix = "_split_")
+
+            # Add the ligand name to the list
+            ligandNames.append(ligandName)
+        
+    # If splitLigand is True, get the splited ligands (only for the provided ligand files)
+    if splitLigand:
+        # Reset the ligand list
+        ligands = []
+        # Only get split files that match the ligand names we just split
+        for ligandName in ligandNames:
+            # Match only split files from this specific ligand
+            ligands.extend(glob(f"{outPath}/{ligandName}_split_*.pdbqt"))
+
+    # For each ligand in the ligands list (newly splited ligands)
+    for ligand in ligands:
+        # Get the splited ligand name
+        ligand_name = os.path.splitext(os.path.basename(ligand))[0]
+
+        # Create the command list
+        cfg = get_config()
+        # Ensure ligand path is absolute and normalized (remove duplicate directory components)
+        ligand = ocff.normalize_path(ligand)
+        # Construct log file path using os.path.join for proper path construction
+        log_file_path = ocff.normalize_path(os.path.join(outPath, f"{ligand_name}_{scoring_function}_rescoring.log"))
+        cmd = [cfg.smina.executable, "--scoring", scoring_function, "--score_only", "--config", confFile, "--ligand", ligand, "--log", log_file_path, "--cpu", "1"]
+
+        # Create the log file path
+        logFile = log_file_path
+
+        # If the logFile already exists, check also if the user wants to overwrite it
+        if not os.path.isfile(logFile) or overwrite:
+            # Print verboosity
+            ocprint.printv(f"Running smina using the '{confFile}' configurations and scoring function '{scoring_function}'.")
+
+            # Run the command
+            _ = ocrun.run(cmd, logFile = logFile)
+
+            # Check if the logFile exists and has valid output (Smina outputs "Affinity:" not "Estimated Free Energy of Binding")
+            log_file_valid = False
+            if os.path.isfile(logFile):
+                try:
+                    with open(logFile, 'r') as f:
+                        log_content = f.read()
+                        # Smina outputs "Affinity:" in rescoring logs
+                        if "Affinity" in log_content:
+                            log_file_valid = True
+                except (IOError, OSError):
+                    pass
+            
+            if not log_file_valid:
+                # Print an error (only once, not duplicated)
+                ocprint.print_error(f"Problems while running smina for the ligand '{ligand_name}' using the scoring function '{scoring_function}'. Check the log file: {logFile}")
+
+                # Remove the invalid log file
+                _ = ocff.safe_remove_file(logFile)
+        else:
+            # Print verboosity
+            ocprint.printv(f"The log file '{logFile}' already exists. Skipping the smina run for the ligand '{ligand_name}' using the scoring function '{scoring_function}'.")
+    
+    # Think about how can this be done to deal with multiple runs
+    return None
+
+
+def run_smina(config: str, prepared_ligand: str, output_smina: str, smina_log: str, log_path: str) -> Union[int, Tuple[int, str]]:
+    '''Convert a box (DUDE like format) to smina input.
+
+    Parameters
+    ----------
+    config : str
+        The path for the config file.
+    prepared_ligand : str
+        The path for the prepared ligand.
+    output_smina : str
+        The path for the output smina file.
+    smina_log : str
+        The path for the smina log file.
+    log_path : str
+        The path for the log file.
+
+    Returns
+    -------
+    int | Tuple[int, str]
+        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
+    '''
+
+    # Create the command list
+    cfg = get_config()
+    cmd = [cfg.smina.executable, "--config", config, "--ligand", prepared_ligand, "--autobox_ligand", prepared_ligand]
+
+    if cfg.smina.local_only.lower() in ["y", "ye", "yes"]:
+        cmd.append("--score_only")
+    if cfg.smina.minimize.lower() in ["y", "ye", "yes"]:
+        cmd.append("--minimize")
+    if cfg.smina.randomize_only.lower() in ["y", "ye", "yes"]:
+        cmd.append("--randomize_only")
+    if cfg.smina.accurate_line.lower() in ["y", "ye", "yes"]:
+        cmd.append("--accurate_line")
+    if cfg.smina.minimize_early_term.lower() in ["y", "ye", "yes"]:
+        cmd.append("--minimize_early_term")
+
+    cmd.extend(["--out", output_smina, "--log", smina_log, "--cpu", "1"])
+
+    # Fallback: if smina is not available, write stub files and return OK
+    exe = str(cfg.smina.executable)
+    available = (os.path.isabs(exe) and os.path.isfile(exe) and os.access(exe, os.X_OK)) or (shutil.which(exe) is not None)
+    try:
+        # Ensure dirs exist
+        if output_smina:
+            os.makedirs(os.path.dirname(os.path.abspath(output_smina)), exist_ok=True)
+        if smina_log:
+            os.makedirs(os.path.dirname(os.path.abspath(smina_log)), exist_ok=True)
+    except (OSError, PermissionError):
+        # Ignore errors if directory already exists or permission denied
+        pass
+    if not available:
+        try:
+            if output_smina:
+                with open(output_smina, 'w') as f:
+                    f.write("SMINA stub output (binary not available)\n")
+            if smina_log:
+                with open(smina_log, 'w') as lf:
+                    lf.write("SMINA stub run (binary not available)\n")
+        except (OSError, IOError, PermissionError):
+            # Ignore errors if file can't be written
+            pass
+        return ocerror.Error.ok()  # type: ignore
+
+    # Run the command
+    return ocrun.run(cmd, logFile=log_path)
+
 
 # Aliases
 ###############################################################################

@@ -19,7 +19,6 @@ from glob import glob
 from pathlib import Path
 from typing import Dict, List, Tuple, Union
 
-from OCDocker.Config import get_config
 import OCDocker.Error as ocerror
 
 import OCDocker.Ligand as ocl
@@ -30,13 +29,9 @@ import OCDocker.Toolbox.MoleculeProcessing as ocmolproc
 import OCDocker.Toolbox.Printing as ocprint
 import OCDocker.Toolbox.Running as ocrun
 
+from OCDocker.Config import get_config
+from OCDocker.Docking.BaseVinaLike import generate_vina_digest as generate_digest, get_vina_docked_poses as get_docked_poses, read_vina_log as read_log, read_vina_rescoring_log as read_rescoring_log
 from OCDocker.Toolbox.Preparation import MGLToolsPreparationStrategy
-from OCDocker.Docking.BaseVinaLike import (
-    read_vina_log as read_log,
-    read_vina_rescoring_log as read_rescoring_log,
-    generate_vina_digest as generate_digest,
-    get_vina_docked_poses as get_docked_poses,
-)
 
 
 # License
@@ -60,6 +55,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ###############################################################################
 class Vina:
     """Vina object with methods for easy run."""
+    ## Private ##
 
     def __init__(self, config_path: str, box_file: str, receptor: ocr.Receptor, prepared_receptor_path: str, ligand: ocl.Ligand, prepared_ligand_path: str, vina_log: str, output_vina: str, name: str = "", overwrite_config: bool = False) -> None:
         '''Constructor of the class Vina.
@@ -149,7 +145,37 @@ class Vina:
 
         self.run_docking = self.run_vina
 
-    ## Private ##
+
+    def __parse_ligand_path(self, ligand: Union[str, ocl.Ligand]) -> str:
+        '''Parse the ligand path, handling its type.
+        
+        Parameters
+        ----------
+        ligand : str | ocl.Ligand
+            The path for the ligand or its ocl.Ligand object.
+
+        Returns
+        -------
+            The ligand path. If fails, return an empty string.
+        '''
+
+        # Check the type of ligand variable
+        if isinstance(ligand, ocl.Ligand):
+            return ligand.path # type: ignore
+        elif isinstance(ligand, str):
+            # Since is a string, check if the file exists
+            if os.path.isfile(ligand): # type: ignore
+                # Exists! Process it then!
+                return self.__process_ligand(ligand) # type: ignore
+            else:
+                _ = ocerror.Error.file_not_exist(message=f"The ligand '{ligand}' has not a valid path.", level = ocerror.ReportLevel.ERROR) # type: ignore
+                return ""
+
+        _ = ocerror.Error.wrong_type(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.", level = ocerror.ReportLevel.ERROR) # type: ignore
+
+        return ""
+
+
     def __parse_receptor_path(self, receptor: Union[str, ocr.Receptor]) -> str:
         '''Parse the receptor path, handling its type.
         
@@ -180,34 +206,6 @@ class Vina:
 
         return ""
 
-    def __parse_ligand_path(self, ligand: Union[str, ocl.Ligand]) -> str:
-        '''Parse the ligand path, handling its type.
-        
-        Parameters
-        ----------
-        ligand : str | ocl.Ligand
-            The path for the ligand or its ocl.Ligand object.
-
-        Returns
-        -------
-            The ligand path. If fails, return an empty string.
-        '''
-
-        # Check the type of ligand variable
-        if isinstance(ligand, ocl.Ligand):
-            return ligand.path # type: ignore
-        elif isinstance(ligand, str):
-            # Since is a string, check if the file exists
-            if os.path.isfile(ligand): # type: ignore
-                # Exists! Process it then!
-                return self.__process_ligand(ligand) # type: ignore
-            else:
-                _ = ocerror.Error.file_not_exist(message=f"The ligand '{ligand}' has not a valid path.", level = ocerror.ReportLevel.ERROR) # type: ignore
-                return ""
-
-        _ = ocerror.Error.wrong_type(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.", level = ocerror.ReportLevel.ERROR) # type: ignore
-
-        return ""
 
     def __process_ligand(self, ligandPath: str) -> str:
         '''Process the ligand to output to mol2 if needed.
@@ -240,6 +238,66 @@ class Vina:
         return outputLigandPath
 
     ## Public ##
+
+    def get_docked_poses(self) -> List[str]:
+        '''Get the paths for the docked poses.
+
+        Returns
+        -------
+        List[str]
+            A list with the paths for the docked poses.
+        '''
+
+        return get_docked_poses(os.path.dirname(self.output_vina))
+
+
+    def get_input_ligand_path(self) -> str:
+        ''' Get the input ligand path.
+
+        Returns
+        -------
+        str
+            The input ligand path.
+        '''
+
+        return os.path.dirname(self.input_ligand_path)
+
+
+    def get_input_receptor_path(self) -> str:
+        ''' Get the input receptor path.
+
+        Returns
+        -------
+        str
+            The input receptor path.
+        '''
+
+        return os.path.dirname(self.input_receptor_path)
+
+
+    def print_attributes(self) -> None:
+        '''Print the class attributes.'''
+
+        print(f"Name:                        '{self.name if self.name else '-' }'")
+        print(f"Box path:                    '{self.box_file if self.box_file else '-' }'")
+        print(f"Config path:                 '{self.config if self.config else '-' }'")
+        print(f"Input receptor:              '{self.input_receptor if self.input_receptor else '-' }'")
+        print(f"Input receptor path:         '{self.input_receptor_path if self.input_receptor_path else '-' }'")
+        print(f"Prepared receptor path:      '{self.prepared_receptor if self.prepared_receptor else '-' }'")
+        prep_receptor_cmd = self.preparation_strategy.get_receptor_command(self.input_receptor_path, self.prepared_receptor)
+        print(f"Prepared receptor command:   '{' '.join(prep_receptor_cmd) if prep_receptor_cmd else '-' }'")
+        print(f"Input ligand:                '{self.input_ligand if self.input_ligand else '-' }'")
+        print(f"Input ligand path:           '{self.input_ligand_path if self.input_ligand_path else '-' }'")
+        print(f"Prepared ligand path:        '{self.prepared_ligand if self.prepared_ligand else '-' }'")
+        prep_ligand_cmd = self.preparation_strategy.get_ligand_command(self.input_ligand_path, self.prepared_ligand)
+        print(f"Prepared ligand command:     '{' '.join(prep_ligand_cmd) if prep_ligand_cmd else '-' }'")
+        print(f"Vina execution log path:     '{self.vina_log if self.vina_log else '-' }'")
+        print(f"Vina output path:            '{self.output_vina if self.output_vina else '-' }'")
+        print(f"Vina command:                '{' '.join(self.vina_cmd) if self.vina_cmd else '-' }'")
+
+        return None
+
+
     def read_log(self, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
         '''Read the vina log path, returning a dict with data from complexes.
 
@@ -256,30 +314,29 @@ class Vina:
 
         return read_log(self.vina_log, onlyBest = onlyBest)
 
-    def run_vina(self, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
-        '''Run vina.
+
+    def read_rescore_logs(self, outPath: str, onlyBest: bool = False) -> Dict[str, List[Union[str, float]]]:
+        ''' Reads the data from the rescore log files.
 
         Parameters
         ----------
-        overwrite : bool, optional
-            If True, overwrite existing output/log files.
+        outPath : str
+            Path to the output folder where the rescoring logs are located.
+        onlyBest : bool, optional
+            If True, only the best pose will be returned. By default False.
+
+        Returns
+        -------
+        Dict[str, List[Union[str, float]]]
+            A dictionary with the data from the rescore log files.
         '''
 
-        # Remove existing outputs if requested
-        if overwrite:
-            for path in (self.output_vina, self.vina_log):
-                if path and os.path.isfile(path):
-                    try:
-                        os.remove(path)
-                    except (OSError, PermissionError):
-                        pass
+        # Get the rescore log paths
+        rescoreLogPaths = get_rescore_log_paths(outPath)
 
-        # Print verboosity
-        ocprint.printv(f"Running vina using the '{self.config}' configurations.")
+        # Call the function
+        return read_rescore_logs(rescoreLogPaths, onlyBest = onlyBest)
 
-        # Run the command
-
-        return ocrun.run(self.vina_cmd, logFile = self.vina_log)
 
     def run_prepare_ligand(self, logFile: str = "", useOpenBabel: bool = False, overwrite: bool = False) -> Union[int, str, Tuple[int, str]]:
         '''Run 'prepare_ligand4' or openbabel to prepare the ligand.
@@ -310,6 +367,7 @@ class Vina:
             overwrite=overwrite
         )
 
+
     def run_prepare_receptor(self, logFile:str = "", useOpenBabel:bool = False, overwrite:bool = False) -> Union[int, str, Tuple[int, str]]:
         '''Run 'prepare_receptor4' or openbabel to prepare the receptor.
 
@@ -338,6 +396,7 @@ class Vina:
             logFile,
             overwrite
         )
+
 
     def run_rescore(self, outPath: str, ligand: str, logFile: str = "", skipDefaultScoring: bool = False, splitLigand: bool = False, overwrite: bool = False) -> None:
         '''Run vina to rescore the ligand.
@@ -370,60 +429,32 @@ class Vina:
                 splitLigand = False
         return None
 
-    def get_docked_poses(self) -> List[str]:
-        '''Get the paths for the docked poses.
 
-        Returns
-        -------
-        List[str]
-            A list with the paths for the docked poses.
-        '''
-
-        return get_docked_poses(os.path.dirname(self.output_vina))
-
-    def get_input_ligand_path(self) -> str:
-        ''' Get the input ligand path.
-
-        Returns
-        -------
-        str
-            The input ligand path.
-        '''
-
-        return os.path.dirname(self.input_ligand_path)
-
-    def get_input_receptor_path(self) -> str:
-        ''' Get the input receptor path.
-
-        Returns
-        -------
-        str
-            The input receptor path.
-        '''
-
-        return os.path.dirname(self.input_receptor_path)
-
-    def read_rescore_logs(self, outPath: str, onlyBest: bool = False) -> Dict[str, List[Union[str, float]]]:
-        ''' Reads the data from the rescore log files.
+    def run_vina(self, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
+        '''Run vina.
 
         Parameters
         ----------
-        outPath : str
-            Path to the output folder where the rescoring logs are located.
-        onlyBest : bool, optional
-            If True, only the best pose will be returned. By default False.
-
-        Returns
-        -------
-        Dict[str, List[Union[str, float]]]
-            A dictionary with the data from the rescore log files.
+        overwrite : bool, optional
+            If True, overwrite existing output/log files.
         '''
 
-        # Get the rescore log paths
-        rescoreLogPaths = get_rescore_log_paths(outPath)
+        # Remove existing outputs if requested
+        if overwrite:
+            for path in (self.output_vina, self.vina_log):
+                if path and os.path.isfile(path):
+                    try:
+                        os.remove(path)
+                    except (OSError, PermissionError):
+                        pass
 
-        # Call the function
-        return read_rescore_logs(rescoreLogPaths, onlyBest = onlyBest)
+        # Print verboosity
+        ocprint.printv(f"Running vina using the '{self.config}' configurations.")
+
+        # Run the command
+
+        return ocrun.run(self.vina_cmd, logFile = self.vina_log)
+
 
     def split_poses(self, outPath: str = "", logFile: str = "") -> int:
         '''Split the ligand resulted from vina into its poses.
@@ -448,27 +479,21 @@ class Vina:
 
         return ocmolproc.split_poses(self.output_vina, self.input_ligand.name, outPath, logFile = logFile, suffix = "_split_") # type: ignore
 
-    def print_attributes(self) -> None:
-        '''Print the class attributes.'''
 
-        print(f"Name:                        '{self.name if self.name else '-' }'")
-        print(f"Box path:                    '{self.box_file if self.box_file else '-' }'")
-        print(f"Config path:                 '{self.config if self.config else '-' }'")
-        print(f"Input receptor:              '{self.input_receptor if self.input_receptor else '-' }'")
-        print(f"Input receptor path:         '{self.input_receptor_path if self.input_receptor_path else '-' }'")
-        print(f"Prepared receptor path:      '{self.prepared_receptor if self.prepared_receptor else '-' }'")
-        prep_receptor_cmd = self.preparation_strategy.get_receptor_command(self.input_receptor_path, self.prepared_receptor)
-        print(f"Prepared receptor command:   '{' '.join(prep_receptor_cmd) if prep_receptor_cmd else '-' }'")
-        print(f"Input ligand:                '{self.input_ligand if self.input_ligand else '-' }'")
-        print(f"Input ligand path:           '{self.input_ligand_path if self.input_ligand_path else '-' }'")
-        print(f"Prepared ligand path:        '{self.prepared_ligand if self.prepared_ligand else '-' }'")
-        prep_ligand_cmd = self.preparation_strategy.get_ligand_command(self.input_ligand_path, self.prepared_ligand)
-        print(f"Prepared ligand command:     '{' '.join(prep_ligand_cmd) if prep_ligand_cmd else '-' }'")
-        print(f"Vina execution log path:     '{self.vina_log if self.vina_log else '-' }'")
-        print(f"Vina output path:            '{self.output_vina if self.output_vina else '-' }'")
-        print(f"Vina command:                '{' '.join(self.vina_cmd) if self.vina_cmd else '-' }'")
 
-        return None
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     
 # Functions
@@ -476,6 +501,7 @@ class Vina:
 ## Private ##
 
 ## Public ##
+
 def box_to_vina(box_file: str, conf_file: str, receptor: str) -> int:
     '''Convert a box (DUDE like format) to vina input.
 
@@ -537,197 +563,6 @@ def box_to_vina(box_file: str, conf_file: str, receptor: str) -> int:
     except Exception as e:
         return ocerror.Error.write_file(message=f"Found a problem while opening conf file: {e}.", level = ocerror.ReportLevel.ERROR) # type: ignore
     return ocerror.Error.ok() # type: ignore
-
-
-def run_prepare_ligand(inputLigandPath: str, outputLigand: str, logFile: str = "", overwrite: bool = False) -> Union[int, Tuple[int, str]]:
-    '''Prepares the ligand using 'prepare_ligand' from MGLTools suite.
-
-    Parameters
-    ----------
-    inputLigandPath : str
-        The path to the input ligand.
-    outputLigand : str
-        The path to the output ligand.
-    logFile : str
-        The path to the log file. If empty, suppress the output.
-    '''
-
-    strategy = MGLToolsPreparationStrategy()
-    return strategy.prepare_ligand(inputLigandPath, outputLigand, logFile, overwrite=overwrite)
-
-
-def run_prepare_receptor(inputReceptorPath: str, outputReceptor: str, logFile: str = "", overwrite: bool = False) -> Union[int, Tuple[int, str]]:
-    '''Convert a box (DUDE like format) to vina input.
-
-    Parameters
-    ----------
-    inputReceptorPath : str
-        The path to the input receptor file.
-    outputReceptor : str
-        The path to the output receptor file.
-    logFile : str
-        The path to the log file. If empty, suppress the output.
-
-    Returns
-    -------
-    int | Tuple[int, str]
-        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
-    '''
-
-    strategy = MGLToolsPreparationStrategy()
-    return strategy.prepare_receptor(inputReceptorPath, outputReceptor, logFile, overwrite=overwrite)
-
-
-def run_vina(confFile: str, ligand: str, outPath: str, logFile: str = "") -> int:
-    '''Run vina.
-
-    Parameters
-    ----------
-    confFile : str
-        The path to the vina configuration file.
-    ligand : str
-        The path to the ligand file.
-    outPath : str
-        The path to the output file.
-    logFile : str
-        The path to the log file. If empty, suppress the output.
-
-    Returns
-    -------
-    int
-        The exit code of the command (based on the Error.py code table).
-    '''
-    
-    # Create the command list
-    config = get_config()
-    cmd = [config.vina.executable, "--config", confFile, "--ligand", ligand, "--out", outPath, "--cpu", "1"]
-
-    # Print verbosity
-    ocprint.printv(f"Running vina using the '{confFile}' configurations.")
-
-    # Fallback: if vina is not available, write stub files and return OK
-    exe = str(config.vina.executable)
-    available = (os.path.isabs(exe) and os.path.isfile(exe) and os.access(exe, os.X_OK)) or (shutil.which(exe) is not None)
-    try:
-        if outPath:
-            os.makedirs(os.path.dirname(os.path.abspath(outPath)), exist_ok=True)
-        if logFile:
-            os.makedirs(os.path.dirname(os.path.abspath(logFile)), exist_ok=True)
-    except (OSError, PermissionError):
-        # Ignore errors if directory already exists or permission denied
-        pass
-    if not available:
-        try:
-            if outPath:
-                with open(outPath, 'w') as f:
-                    f.write("Vina stub output (binary not available)\n")
-            if logFile:
-                with open(logFile, 'w') as lf:
-                    lf.write("Vina stub run (binary not available)\n")
-        except (OSError, IOError, PermissionError):
-            # Ignore errors if file can't be written
-            pass
-        return ocerror.Error.ok()  # type: ignore
-
-    # Run the command
-    return ocrun.run(cmd, logFile=logFile)
-
-
-def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, scoring_function: str, logFile: str = "", splitLigand: bool = True, overwrite: bool = False) -> None:
-    '''Run vina to rescore the ligand.
-
-    Parameters
-    ----------
-    confFile : str
-        The path to the vina configuration file.
-    ligands : Union[List[str], str]
-        The path to a List of ligand files or the ligand file.
-    outPath : str
-        The path to the output file.
-    scoring_function : str
-        The scoring function to use.
-    logFile : str, optional
-        The path to the log file. If empty, suppress the output. By default "".
-    splitLigand : bool, optional
-        If True, split the ligand before running vina. By default True.
-    overwrite : bool, optional
-        If True, overwrite the logFile. By default False.
-    '''
-
-    # Print verboosity
-    ocprint.printv(f"Running vina using the '{confFile}' configurations and scoring function '{scoring_function}'.")
-
-    # Normalize outPath to ensure it's absolute and doesn't have duplicate path components
-    outPath = ocff.normalize_path(outPath)
-    os.makedirs(outPath, exist_ok=True)
-
-    # Check if the ligands is a string
-    if isinstance(ligands, str):
-        # Convert to list
-        ligands = [ligands]
-    
-    # Ligand name list
-    ligandNames = []
-    
-    # For each ligand
-    for ligand in ligands:
-        # Only split if splitLigand is True (overwrite doesn't trigger splitting)
-        if splitLigand:
-            # Get the ligand name
-            ligandName = os.path.splitext(os.path.basename(ligand))[0]
-            
-            # Split the ligand (only add _split_ suffix when actually splitting)
-            _ = ocmolproc.split_poses(ligand, ligandName, outPath, logFile = "", suffix = "_split_")
-            
-            # Add the ligand name to the list
-            ligandNames.append(ligandName)
-        
-    # If splitLigand is True, get the splited ligands (only for the provided ligand files)
-    if splitLigand:
-        # Reset the ligand list
-        ligands = []
-        # Only get split files that match the ligand names we just split
-        for ligandName in ligandNames:
-            # Match only split files from this specific ligand
-            ligands.extend(glob(f"{outPath}/{ligandName}_split_*.pdbqt"))
-
-    # For each ligand in the ligands list (newly splited ligands)
-    for ligand in ligands:
-        # Get the splited ligand name
-        ligand_name = os.path.splitext(os.path.basename(ligand))[0]
-
-        # Create the command list
-        config = get_config()
-        # Ensure ligand path is absolute and normalized (remove duplicate directory components)
-        ligand = ocff.normalize_path(ligand)
-        # Construct log file path using os.path.join for proper path construction
-        log_file_path = ocff.normalize_path(os.path.join(outPath, f"{ligand_name}_{scoring_function}_rescoring.log"))
-        cmd = [config.vina.executable, "--scoring", scoring_function, "--autobox", "--score_only", "--config", confFile, "--ligand", ligand, "--dir", outPath, "--cpu", "1"]
-
-        # Create the log file path
-        logFile = log_file_path
-
-        # If the logFile already exists, check also if the user wants to overwrite it
-        if not os.path.isfile(logFile) or overwrite:
-            # Print verboosity
-            ocprint.printv(f"Running vina using the '{confFile}' configurations and scoring function '{scoring_function}'.")
-
-            # Run the command
-            _ = ocrun.run(cmd, logFile = logFile)
-
-            # Check if the logFile exists and it has the string "Estimated Free Energy of Binding" inside it
-            if not os.path.isfile(logFile) or not "Estimated Free Energy of Binding" in open(logFile).read():
-                # Print an error
-                ocprint.print_error(f"Problems while running vina for the ligand '{ligand_name}' using the scoring function '{scoring_function}'.")
-
-                # Remove the file
-                _ = ocff.safe_remove_file(logFile)
-        else:
-            # Print verboosity
-            ocprint.printv(f"The log file '{logFile}' already exists. Skipping the vina run for the ligand '{ligand_name}' using the scoring function '{scoring_function}'.")
-    
-    # Think about how can this be done to deal with multiple runs
-    return None
 
 
 def generate_vina_files_database(path: str, protein: str, boxPath: str = "") -> None:
@@ -880,3 +715,195 @@ def read_rescore_logs(rescoreLogPaths: Union[List[str], str], onlyBest: bool = F
     
     # Return the dictionary
     return rescoreLogData
+
+
+def run_prepare_ligand(inputLigandPath: str, outputLigand: str, logFile: str = "", overwrite: bool = False) -> Union[int, Tuple[int, str]]:
+    '''Prepares the ligand using 'prepare_ligand' from MGLTools suite.
+
+    Parameters
+    ----------
+    inputLigandPath : str
+        The path to the input ligand.
+    outputLigand : str
+        The path to the output ligand.
+    logFile : str
+        The path to the log file. If empty, suppress the output.
+    '''
+
+    strategy = MGLToolsPreparationStrategy()
+    return strategy.prepare_ligand(inputLigandPath, outputLigand, logFile, overwrite=overwrite)
+
+
+def run_prepare_receptor(inputReceptorPath: str, outputReceptor: str, logFile: str = "", overwrite: bool = False) -> Union[int, Tuple[int, str]]:
+    '''Convert a box (DUDE like format) to vina input.
+
+    Parameters
+    ----------
+    inputReceptorPath : str
+        The path to the input receptor file.
+    outputReceptor : str
+        The path to the output receptor file.
+    logFile : str
+        The path to the log file. If empty, suppress the output.
+
+    Returns
+    -------
+    int | Tuple[int, str]
+        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
+    '''
+
+    strategy = MGLToolsPreparationStrategy()
+    return strategy.prepare_receptor(inputReceptorPath, outputReceptor, logFile, overwrite=overwrite)
+
+
+def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, scoring_function: str, logFile: str = "", splitLigand: bool = True, overwrite: bool = False) -> None:
+    '''Run vina to rescore the ligand.
+
+    Parameters
+    ----------
+    confFile : str
+        The path to the vina configuration file.
+    ligands : Union[List[str], str]
+        The path to a List of ligand files or the ligand file.
+    outPath : str
+        The path to the output file.
+    scoring_function : str
+        The scoring function to use.
+    logFile : str, optional
+        The path to the log file. If empty, suppress the output. By default "".
+    splitLigand : bool, optional
+        If True, split the ligand before running vina. By default True.
+    overwrite : bool, optional
+        If True, overwrite the logFile. By default False.
+    '''
+
+    # Print verboosity
+    ocprint.printv(f"Running vina using the '{confFile}' configurations and scoring function '{scoring_function}'.")
+
+    # Normalize outPath to ensure it's absolute and doesn't have duplicate path components
+    outPath = ocff.normalize_path(outPath)
+    os.makedirs(outPath, exist_ok=True)
+
+    # Check if the ligands is a string
+    if isinstance(ligands, str):
+        # Convert to list
+        ligands = [ligands]
+    
+    # Ligand name list
+    ligandNames = []
+    
+    # For each ligand
+    for ligand in ligands:
+        # Only split if splitLigand is True (overwrite doesn't trigger splitting)
+        if splitLigand:
+            # Get the ligand name
+            ligandName = os.path.splitext(os.path.basename(ligand))[0]
+            
+            # Split the ligand (only add _split_ suffix when actually splitting)
+            _ = ocmolproc.split_poses(ligand, ligandName, outPath, logFile = "", suffix = "_split_")
+            
+            # Add the ligand name to the list
+            ligandNames.append(ligandName)
+        
+    # If splitLigand is True, get the splited ligands (only for the provided ligand files)
+    if splitLigand:
+        # Reset the ligand list
+        ligands = []
+        # Only get split files that match the ligand names we just split
+        for ligandName in ligandNames:
+            # Match only split files from this specific ligand
+            ligands.extend(glob(f"{outPath}/{ligandName}_split_*.pdbqt"))
+
+    # For each ligand in the ligands list (newly splited ligands)
+    for ligand in ligands:
+        # Get the splited ligand name
+        ligand_name = os.path.splitext(os.path.basename(ligand))[0]
+
+        # Create the command list
+        config = get_config()
+        # Ensure ligand path is absolute and normalized (remove duplicate directory components)
+        ligand = ocff.normalize_path(ligand)
+        # Construct log file path using os.path.join for proper path construction
+        log_file_path = ocff.normalize_path(os.path.join(outPath, f"{ligand_name}_{scoring_function}_rescoring.log"))
+        cmd = [config.vina.executable, "--scoring", scoring_function, "--autobox", "--score_only", "--config", confFile, "--ligand", ligand, "--dir", outPath, "--cpu", "1"]
+
+        # Create the log file path
+        logFile = log_file_path
+
+        # If the logFile already exists, check also if the user wants to overwrite it
+        if not os.path.isfile(logFile) or overwrite:
+            # Print verboosity
+            ocprint.printv(f"Running vina using the '{confFile}' configurations and scoring function '{scoring_function}'.")
+
+            # Run the command
+            _ = ocrun.run(cmd, logFile = logFile)
+
+            # Check if the logFile exists and it has the string "Estimated Free Energy of Binding" inside it
+            if not os.path.isfile(logFile) or not "Estimated Free Energy of Binding" in open(logFile).read():
+                # Print an error
+                ocprint.print_error(f"Problems while running vina for the ligand '{ligand_name}' using the scoring function '{scoring_function}'.")
+
+                # Remove the file
+                _ = ocff.safe_remove_file(logFile)
+        else:
+            # Print verboosity
+            ocprint.printv(f"The log file '{logFile}' already exists. Skipping the vina run for the ligand '{ligand_name}' using the scoring function '{scoring_function}'.")
+    
+    # Think about how can this be done to deal with multiple runs
+    return None
+
+
+def run_vina(confFile: str, ligand: str, outPath: str, logFile: str = "") -> int:
+    '''Run vina.
+
+    Parameters
+    ----------
+    confFile : str
+        The path to the vina configuration file.
+    ligand : str
+        The path to the ligand file.
+    outPath : str
+        The path to the output file.
+    logFile : str
+        The path to the log file. If empty, suppress the output.
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+    '''
+    
+    # Create the command list
+    config = get_config()
+    cmd = [config.vina.executable, "--config", confFile, "--ligand", ligand, "--out", outPath, "--cpu", "1"]
+
+    # Print verbosity
+    ocprint.printv(f"Running vina using the '{confFile}' configurations.")
+
+    # Fallback: if vina is not available, write stub files and return OK
+    exe = str(config.vina.executable)
+    available = (os.path.isabs(exe) and os.path.isfile(exe) and os.access(exe, os.X_OK)) or (shutil.which(exe) is not None)
+    try:
+        if outPath:
+            os.makedirs(os.path.dirname(os.path.abspath(outPath)), exist_ok=True)
+        if logFile:
+            os.makedirs(os.path.dirname(os.path.abspath(logFile)), exist_ok=True)
+    except (OSError, PermissionError):
+        # Ignore errors if directory already exists or permission denied
+        pass
+    if not available:
+        try:
+            if outPath:
+                with open(outPath, 'w') as f:
+                    f.write("Vina stub output (binary not available)\n")
+            if logFile:
+                with open(logFile, 'w') as lf:
+                    lf.write("Vina stub run (binary not available)\n")
+        except (OSError, IOError, PermissionError):
+            # Ignore errors if file can't be written
+            pass
+        return ocerror.Error.ok()  # type: ignore
+
+    # Run the command
+    return ocrun.run(cmd, logFile=logFile)
+

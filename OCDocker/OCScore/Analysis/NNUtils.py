@@ -14,19 +14,43 @@ import OCDocker.OCScore.Analysis.NNUtils as ocnnutils
 
 # Imports
 ###############################################################################
-
 import os
-import pandas as pd
 import torch
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import seaborn as sns
-from typing import Any
-from sklearn.metrics import mean_squared_error
-from sklearn.inspection import permutation_importance
 
-# Methods
+from sklearn.inspection import permutation_importance
+from sklearn.metrics import mean_squared_error
+from typing import Any
+
+# License
 ###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
+###############################################################################
+
+
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##
 
 def run_ae_feature_importance(
     ae_model: Any,

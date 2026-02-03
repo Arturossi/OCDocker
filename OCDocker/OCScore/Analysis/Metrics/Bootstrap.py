@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 
 # Description
@@ -13,11 +12,12 @@ from OCDocker.OCScore.Analysis.Metrics import Bootstrap as Boot
 
 # Imports
 ###############################################################################
-
 from __future__ import annotations
-from typing import Callable, Iterable, Optional, Tuple
+
 import numpy as np
 import pandas as pd
+
+from typing import Callable, Iterable, Optional, Tuple
 
 # License
 ###############################################################################
@@ -39,8 +39,11 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 
-# Methods
+# Functions
 ###############################################################################
+## Private ##
+
+## Public ##
 
 
 def bootstrap_ci(

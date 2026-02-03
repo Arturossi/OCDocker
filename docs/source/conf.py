@@ -251,10 +251,16 @@ for parent in (
 # Sphinx configuration
 # -----------------------------------------------------------------------------
 project = "OCDocker"
-copyright = "2025, Artur Duque Rossi"
+copyright = "2026, Artur Duque Rossi"
 author = "Artur Duque Rossi"
-version = "0.11.1"
-release = "0.11.1"
+# Fetch version from OCDocker.__version__
+try:
+    from OCDocker import __version__ as ver
+    version = ver
+    release = ver
+except Exception:
+    version = "0.12.5"
+    release = "0.12.5"
 
 extensions = [
     "sphinxarg.ext",

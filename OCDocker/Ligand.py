@@ -22,10 +22,10 @@ import rdkit
 from openbabel import openbabel
 from rdkit import Chem, DataStructs, RDLogger
 from rdkit.Chem import AllChem, Descriptors, Descriptors3D, MACCSkeys
-from rdkit.Chem.SaltRemover import SaltRemover
 from rdkit.Chem.rdMolTransforms import ComputeCentroid
+from rdkit.Chem.SaltRemover import SaltRemover
 from threading import Lock
-from typing import Callable, Dict, List, Tuple, Union, Optional
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import OCDocker.Error as ocerror
 
@@ -33,12 +33,6 @@ import OCDocker.Toolbox.Conversion as occonversion
 import OCDocker.Toolbox.FilesFolders as ocff
 import OCDocker.Toolbox.Printing as ocprint
 import OCDocker.Toolbox.Validation as ocvalidation
-
-# Set output levels for openbabel
-ob_log_handler = openbabel.OBMessageHandler()
-ob_log_handler.SetOutputLevel(ocerror.Error.output_level)
-if ocerror.Error.output_level == ocerror.ReportLevel.NONE:
-    RDLogger.DisableLog("rdApp.*") # type: ignore
 
 # License
 ###############################################################################
@@ -56,6 +50,12 @@ to formal authorization from UFRJ. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
+
+# Set output levels for openbabel
+ob_log_handler = openbabel.OBMessageHandler()
+ob_log_handler.SetOutputLevel(ocerror.Error.output_level)
+if ocerror.Error.output_level == ocerror.ReportLevel.NONE:
+    RDLogger.DisableLog("rdApp.*") # type: ignore
 
 # Classes
 ###############################################################################
@@ -82,37 +82,7 @@ class Ligand:
     etkdg_max_attempts : int, optional
         RDKit ETKDG internal attempts (maxAttempts/maxIterations), by default 1000.
     """
-
-    # Declare the descriptors names as class attributes
-    descriptors_names = {
-        'AUTOCORR2D_': range(1, 193),
-        'BCUT2D_': ["CHGHI", "CHGLO", "LOGPHI", "LOGPLOW", "MRHI", "MRLOW", "MWHI", "MWLOW"],
-        'fr_': ["Al_COO", "Al_OH", "Al_OH_noTert", "ArN", "Ar_COO", "Ar_N", "Ar_NH", "Ar_OH", "COO", "COO2", "C_O", "C_O_noCOO", "C_S", "HOCCN", "Imine", "NH0", "NH1", "NH2", "N_O", "Ndealkylation1", "Ndealkylation2", "Nhpyrrole", "SH", "aldehyde", "alkyl_carbamate", "alkyl_halide", "allylic_oxid", "amide", "amidine", "aniline", "aryl_methyl", "azide", "azo", "barbitur", "benzene", "benzodiazepine", "bicyclic", "diazo", "dihydropyridine", "epoxide", "ester", "ether", "furan", "guanido", "halogen", "hdrzine", "hdrzone", "imidazole", "imide", "isocyan", "isothiocyan", "ketone", "ketone_Topliss", "lactam", "lactone", "methoxy", "morpholine", "nitrile", "nitro", "nitro_arom", "nitro_arom_nonortho", "nitroso", "oxazole", "oxime", "para_hydroxylation", "phenol", "phenol_noOrthoHbond", "phos_acid", "phos_ester", "piperdine", "piperzine", "priamide", "prisulfonamd", "pyridine", "quatN", "sulfide", "sulfonamd", "sulfone", "term_acetylene", "tetrazole", "thiazole", "thiocyan", "thiophene", "unbrch_alkane", "urea"],
-        'Chi': [str(j) + i if j < 2 else f"{j}{i}" for j in range(5) for i in ('', 'v', 'n') if not (j >= 2 and i == '')],
-        'EState_VSA': range(1, 12),
-        'FpDensityMorgan': range(1, 4),
-        'Kappa': range(1, 4),
-        'Mol': ["LogP", "MR", "Wt"],
-        'Num': ["AliphaticCarbocycles", "AliphaticHeterocycles", "AliphaticRings", "AromaticCarbocycles", "AromaticHeterocycles", "AromaticRings", "HAcceptors", "HDonors", "Heteroatoms", "RadicalElectrons", "RotatableBonds", "SaturatedCarbocycles", "SaturatedHeterocycles", "SaturatedRings", "ValenceElectrons"],
-        'NPR': range(1, 3),
-        'PMI': range(1, 4),
-        'PEOE_VSA': range(1, 15),
-        'SMR_VSA': range(1, 11),
-        'SlogP_VSA': range(1, 13),
-        'VSA_EState': range(1, 11),
-    }
-
-    # Declare the single descriptors names as class attributes
-    single_descriptors = [
-        'BalabanJ', 'BertzCT', 'ExactMolWt', 'FractionCSP3', 'HallKierAlpha', 'HeavyAtomMolWt', 
-        'HeavyAtomCount', 'LabuteASA', 'TPSA', 'MaxAbsEStateIndex', 'MaxEStateIndex', 
-        'MinAbsEStateIndex', 'MinEStateIndex', 'MaxAbsPartialCharge', 'MaxPartialCharge', 
-        'MinAbsPartialCharge', 'MinPartialCharge', 'qed', 'RingCount', 'Asphericity', 'Eccentricity',
-        'InertialShapeFactor', 'RadiusOfGyration', 'SpherocityIndex', 'NHOHCount', 'NOCount'
-    ]
-
-    # Create all the descriptors to be class attributes
-    allDescriptors = [f'{desc_prefix}{i}' for desc_prefix, desc_indices in descriptors_names.items() for i in desc_indices] + single_descriptors
+    ## Private ##
 
     def __init__(
             self,
@@ -209,7 +179,19 @@ class Ligand:
 
                 setattr(self, f"{desc}", result)
 
-    ## Private ##
+
+    def __repr__(self) -> str:
+        '''Return a string representation of the Ligand object.
+
+        Returns
+        -------
+        str
+            A string representation of the Ligand object.
+        '''
+
+        return f"Ligand(molecule={self.molecule}, name={self.name}, sanitize={self.sanitize}, from_json_descriptors={'True' if self.from_json_descriptors else 'False'})"
+
+
     def __safe_to_dict(self) -> Dict[str, Union[int, float]]:
         '''Return all the properties (except the molecule object) for the Ligand object.
 
@@ -230,279 +212,7 @@ class Ligand:
 
         return {**properties, **self.get_descriptors()}
 
-    def __repr__(self) -> str:
-        '''Return a string representation of the Ligand object.
-
-        Returns
-        -------
-        str
-            A string representation of the Ligand object.
-        '''
-
-        return f"Ligand(molecule={self.molecule}, name={self.name}, sanitize={self.sanitize}, from_json_descriptors={'True' if self.from_json_descriptors else 'False'})"
-
     ## Public ##
-    def print_attributes(self) -> None:
-        '''Print all attributes of the ligand to stdout.
-
-        Displays the ligand's name, molecule object, and all computed
-        molecular descriptors (BalabanJ, BertzCT, RadiusOfGyration, etc.)
-        in a formatted, aligned table.
-        '''
-
-        #region prints
-        
-        # Initialize descriptors in each category
-        # Calculate maximum length of descriptor names for both categories
-        max_length = max(
-            max(len(desc) for desc in Ligand.allDescriptors),
-            len("Name"),
-            len("Molecule")
-        ) + 5
-
-        print(f"{'Name'.ljust(max_length)}: '{self.name if self.name is not None else '-'}'")
-        print(f"{'Molecule'.ljust(max_length)}: '{self.molecule if self.molecule is not None else '-'}'")
-
-        # All attribute initializations
-        for desc in Ligand.allDescriptors:
-            attribute = getattr(self, desc)
-            # Pad the attribute name to align
-            print(f"{desc.ljust(max_length)}: '{attribute if attribute is not None else '-'}'")
-        #endregion
-
-        return None
-
-    def get_descriptors(self) -> Dict[str, Union[int, float]]:
-        '''Return the descriptors for the Ligand object.
-
-        Returns
-        -------
-        Dict[str, Union[int, float]]
-            A dictionary of the descriptors for the Ligand object.
-        '''
-
-        descriptors = {}
-
-        # All attribute initializations
-        for desc in Ligand.allDescriptors:
-            attribute = getattr(self, desc)
-            descriptors[desc] = attribute if attribute is not None else 0.0
-        
-        return descriptors # type: ignore
-
-    def to_dict(self) -> Dict[str, Union[int, float, str]]:
-        '''Return all the properties for the Ligand object.
-
-        Returns
-        -------
-        Dict[str, Union[int, float, str]]
-            A dictionary of all the properties for the Ligand object.
-        '''
-
-        # Create new dict
-        properties = dict()
-
-        # Set Name, Path and molecule
-        properties["Name"] = self.name if self.name is not None else "-"
-        properties["Path"] = self.path if self.path is not None else "-"
-        properties["Molecule"] = self.molecule if self.molecule is not None else "-"
-
-        # Combine both in one dict and return them
-
-        return {**properties, **self.get_descriptors()}
-
-    def to_json(self, overwrite: bool = False) -> int:
-        '''Stores the descriptors as json to avoid the necessity of evaluate them many times.
-
-        Parameters
-        ----------
-        overwrite : bool, optional
-            If True, the json file will be overwritten, by default False.
-
-        Returns
-        -------
-        int
-            The exit code of the command (based on the Error.py code table).
-        '''
-
-        try:
-            # Parameterize the path
-            base_dir = os.path.dirname(self.path)
-            if not base_dir:
-                base_dir = os.getcwd()
-                _ = ocerror.Error.dir_not_exist(
-                    "Ligand path is empty; using current working directory for JSON output.",
-                    level = ocerror.ReportLevel.WARNING
-                ) # type: ignore
-            outputJson = f"{base_dir}/{self.name}_descriptors.json"
-            # Check if the file exists
-            if os.path.isfile(outputJson):
-                # Check if the user wants to overwrite the file
-                if not overwrite:
-                    # If the file exists and overwrite is False, return the file exists error
-                    return ocerror.Error.file_exists(f"The file {outputJson} already exists and the overwrite flag is set to False, no file will be generated or overwrited.", ocerror.ReportLevel.WARNING) # type: ignore
-                # Warns the user that the file will be overwritten
-                _ = ocerror.Error.file_exists(f"The file '{outputJson}' already exists. It will be OVERWRITED!!!") # type: ignore
-
-            try:
-                # Create a lock for multithreading
-                lock = Lock()
-                with lock:
-                    # Open the file for writing
-                    with open(outputJson, 'w') as outfile:
-                        # Write the json file
-                        json.dump(self.__safe_to_dict(), outfile)
-                return ocerror.Error.ok() # type: ignore
-            except Exception as e:
-                return ocerror.Error.write_file(f"Problems while writing the file '{outputJson}' Error: {e}.") # type: ignore
-        except Exception as e:
-
-            return ocerror.Error.unknown(f"Unknown error while converting the ligand {self.name} to json.\nError: {e}", ocerror.ReportLevel.WARNING) # type: ignore
-
-    def is_valid(self) -> bool:
-        '''Check if a Ligand object is valid.
-
-        Returns
-        -------
-        bool
-            True if the Ligand object is valid, False otherwise.
-        '''
-
-        #region if any attribute is None (will check for every attribute in the ligand object)
-        if any(getattr(self, attr) is None for attr in Ligand.allDescriptors):
-            return False
-        #endregion
-
-        return True
-
-    def to_smiles(self) -> Union[str, int]:
-        '''Return the smiles of the molecule.
-
-        Returns
-        -------
-        str | int
-            The smiles of the molecule, if fails the exit code of the command (based on the Error.py code table).
-        '''
-
-        return get_smiles(self.molecule)
-
-    def is_same_molecule(self, molecule: Union[rdkit.Chem.rdchem.Mol, Ligand], sanitize: bool = True) -> Union[bool, int]:
-        '''Compare two molecules to check if they are the same using their MACCSkeys.
-
-        Parameters
-        ----------
-        molecule : rdkit.Chem.rdchem.Mol | ocl.Ligand
-            The molecule to compare with.
-        sanitize : bool, optional
-            Flag to allow, or not, molecules sanitization. (default is True)
-
-        Returns
-        -------
-        bool | int
-            If both molecules are the same, return True. If both molecules are not the same, return False. If fails, return an error code.
-        '''
-
-        # Get the MACCSKeys for the ligand object
-        ligandMACCSSKeys = MACCSkeys.GenMACCSKeys(self.molecule) # type: ignore
-
-        # Check if the type of the molecule is a Ligand
-        if isinstance(molecule, Ligand):
-            # If yes, get its MACCSKeys
-            targetMACCSSKeys = MACCSkeys.GenMACCSKeys(molecule.molecule) # type: ignore
-        # Otherwise check if it is a Chem.rdchem.Mol object
-        elif isinstance(molecule, Chem.rdchem.Mol):
-            # If it is, get its smiles using the Ligand public function, get_smiles()
-            targetMACCSSKeys = MACCSkeys.GenMACCSKeys(molecule) # type: ignore
-        # If is neither both types above
-        else:
-            # Return an error
-            return ocerror.Error.wrong_type(f"The provided variable is a '{type(molecule)}' and was expected a 'rdkit.Chem.rdchem.Mol' or 'ocl.Ligand'.") # type: ignore
-        
-        # Check if the Fingerprints are the same using the Tanimoto similarity
-        if DataStructs.FingerprintSimilarity(ligandMACCSSKeys, targetMACCSSKeys) == 1.0:
-            # If they are the same, return True
-            return True
-
-        # Otherwise (they are not the same)
-        return False
-
-    def is_same_molecule_SMILES(self, molecule: Union[rdkit.Chem.rdchem.Mol, Ligand], sanitize: bool = True) -> Union[bool, int]:
-        '''Compare two molecules to check if they are the same using their SMILES and FpDensityMorgan 1 2 and 3.
-
-        Parameters
-        ----------
-        molecule : rdkit.Chem.rdchem.Mol | ocl.Ligand
-            The molecule to compare with.
-        sanitize : bool, optional
-            Flag to allow, or not, molecules sanitization. (default is True)
-
-        Returns
-        -------
-        bool | int
-            If both molecules are the same, return True. If both molecules are not the same, return False. If fails, return an error code.
-        '''
-
-        try:
-            # Check if the molecule is a Ligand and get the properties directly
-            if isinstance(molecule, Ligand):
-                target_molecule_smiles = molecule.to_smiles()
-                target_mol_morgan_fps = (
-                    molecule.FpDensityMorgan1, # type: ignore
-                    molecule.FpDensityMorgan2, # type: ignore
-                    molecule.FpDensityMorgan3, # type: ignore
-                )
-            # If it's an RDKit Mol, calculate the properties
-            elif isinstance(molecule, Chem.rdchem.Mol):
-                _, mol = load_mol(molecule, sanitize=sanitize)
-                if mol is None:
-                    _ = ocerror.Error.parse_molecule(
-                        "The provided RDKit molecule could not be prepared for comparison.",
-                        level = ocerror.ReportLevel.WARNING
-                    ) # type: ignore
-                    return False
-                target_molecule_smiles = get_smiles(mol)
-                target_mol_morgan_fps = (
-                    findFpDensityMorgan1(mol), # type: ignore
-                    findFpDensityMorgan2(mol), # type: ignore
-                    findFpDensityMorgan3(mol), # type: ignore
-                )
-            else:
-                _ = ocerror.Error.wrong_type(f"The provided variable is of type '{type(molecule)}'; expected 'rdkit.Chem.rdchem.Mol' or 'ocl.Ligand'.") # type: ignore
-                return False
-
-            # Compare SMILES first to short-circuit if they are different
-            if self.to_smiles() != target_molecule_smiles:
-                return False
-
-            # Compare fingerprints
-            self_mol_morgan_fps = (
-                self.FpDensityMorgan1, # type: ignore
-                self.FpDensityMorgan2, # type: ignore
-                self.FpDensityMorgan3, # type: ignore
-            )
-
-            return self_mol_morgan_fps == target_mol_morgan_fps
-        except Exception as e:
-            _ = ocerror.Error.unknown(f"Unknown error while checking smiles: {str(e)}") # type: ignore
-
-        return False
-
-    def get_centroid(self, sanitize: bool = True) -> rdkit.Geometry.rdGeometry.Point3D:
-        '''Get the centroid of the molecule.
-
-        Parameters
-        ----------
-        sanitize : bool, optional
-            Flag to allow, or not, molecules sanitization. (default is True)
-
-        Returns
-        -------
-        rdkit.Geometry.rdGeometry.Point3D
-            The centroid of the molecule.
-        '''
-
-        # Compute the centroid of the molecule and return it
-        return get_centroid(self.molecule, sanitize = sanitize)
 
     def create_box(self, centroid: Optional[Tuple[float, float, float]] = None, save_path: str = "", box_length: float = 2.9, overwrite: bool = False) -> Optional[int]:
         '''Create a box file to be used by docking software.
@@ -655,100 +365,447 @@ class Ligand:
         return None
 
 
+    def get_centroid(self, sanitize: bool = True) -> rdkit.Geometry.rdGeometry.Point3D:
+        '''Get the centroid of the molecule.
+
+        Parameters
+        ----------
+        sanitize : bool, optional
+            Flag to allow, or not, molecules sanitization. (default is True)
+
+        Returns
+        -------
+        rdkit.Geometry.rdGeometry.Point3D
+            The centroid of the molecule.
+        '''
+
+        # Compute the centroid of the molecule and return it
+        return get_centroid(self.molecule, sanitize = sanitize)
+
+
+    def get_descriptors(self) -> Dict[str, Union[int, float]]:
+        '''Return the descriptors for the Ligand object.
+
+        Returns
+        -------
+        Dict[str, Union[int, float]]
+            A dictionary of the descriptors for the Ligand object.
+        '''
+
+        descriptors = {}
+
+        # All attribute initializations
+        for desc in Ligand.allDescriptors:
+            attribute = getattr(self, desc)
+            descriptors[desc] = attribute if attribute is not None else 0.0
+        
+        return descriptors # type: ignore
+
+
+    def is_same_molecule(self, molecule: Union[rdkit.Chem.rdchem.Mol, Ligand], sanitize: bool = True) -> Union[bool, int]:
+        '''Compare two molecules to check if they are the same using their MACCSkeys.
+
+        Parameters
+        ----------
+        molecule : rdkit.Chem.rdchem.Mol | ocl.Ligand
+            The molecule to compare with.
+        sanitize : bool, optional
+            Flag to allow, or not, molecules sanitization. (default is True)
+
+        Returns
+        -------
+        bool | int
+            If both molecules are the same, return True. If both molecules are not the same, return False. If fails, return an error code.
+        '''
+
+        # Get the MACCSKeys for the ligand object
+        ligandMACCSSKeys = MACCSkeys.GenMACCSKeys(self.molecule) # type: ignore
+
+        # Check if the type of the molecule is a Ligand
+        if isinstance(molecule, Ligand):
+            # If yes, get its MACCSKeys
+            targetMACCSSKeys = MACCSkeys.GenMACCSKeys(molecule.molecule) # type: ignore
+        # Otherwise check if it is a Chem.rdchem.Mol object
+        elif isinstance(molecule, Chem.rdchem.Mol):
+            # If it is, get its smiles using the Ligand public function, get_smiles()
+            targetMACCSSKeys = MACCSkeys.GenMACCSKeys(molecule) # type: ignore
+        # If is neither both types above
+        else:
+            # Return an error
+            return ocerror.Error.wrong_type(f"The provided variable is a '{type(molecule)}' and was expected a 'rdkit.Chem.rdchem.Mol' or 'ocl.Ligand'.") # type: ignore
+        
+        # Check if the Fingerprints are the same using the Tanimoto similarity
+        if DataStructs.FingerprintSimilarity(ligandMACCSSKeys, targetMACCSSKeys) == 1.0:
+            # If they are the same, return True
+            return True
+
+        # Otherwise (they are not the same)
+        return False
+
+
+    def is_same_molecule_SMILES(self, molecule: Union[rdkit.Chem.rdchem.Mol, Ligand], sanitize: bool = True) -> Union[bool, int]:
+        '''Compare two molecules to check if they are the same using their SMILES and FpDensityMorgan 1 2 and 3.
+
+        Parameters
+        ----------
+        molecule : rdkit.Chem.rdchem.Mol | ocl.Ligand
+            The molecule to compare with.
+        sanitize : bool, optional
+            Flag to allow, or not, molecules sanitization. (default is True)
+
+        Returns
+        -------
+        bool | int
+            If both molecules are the same, return True. If both molecules are not the same, return False. If fails, return an error code.
+        '''
+
+        try:
+            # Check if the molecule is a Ligand and get the properties directly
+            if isinstance(molecule, Ligand):
+                target_molecule_smiles = molecule.to_smiles()
+                target_mol_morgan_fps = (
+                    molecule.FpDensityMorgan1, # type: ignore
+                    molecule.FpDensityMorgan2, # type: ignore
+                    molecule.FpDensityMorgan3, # type: ignore
+                )
+            # If it's an RDKit Mol, calculate the properties
+            elif isinstance(molecule, Chem.rdchem.Mol):
+                _, mol = load_mol(molecule, sanitize=sanitize)
+                if mol is None:
+                    _ = ocerror.Error.parse_molecule(
+                        "The provided RDKit molecule could not be prepared for comparison.",
+                        level = ocerror.ReportLevel.WARNING
+                    ) # type: ignore
+                    return False
+                target_molecule_smiles = get_smiles(mol)
+                target_mol_morgan_fps = (
+                    findFpDensityMorgan1(mol), # type: ignore
+                    findFpDensityMorgan2(mol), # type: ignore
+                    findFpDensityMorgan3(mol), # type: ignore
+                )
+            else:
+                _ = ocerror.Error.wrong_type(f"The provided variable is of type '{type(molecule)}'; expected 'rdkit.Chem.rdchem.Mol' or 'ocl.Ligand'.") # type: ignore
+                return False
+
+            # Compare SMILES first to short-circuit if they are different
+            if self.to_smiles() != target_molecule_smiles:
+                return False
+
+            # Compare fingerprints
+            self_mol_morgan_fps = (
+                self.FpDensityMorgan1, # type: ignore
+                self.FpDensityMorgan2, # type: ignore
+                self.FpDensityMorgan3, # type: ignore
+            )
+
+            return self_mol_morgan_fps == target_mol_morgan_fps
+        except Exception as e:
+            _ = ocerror.Error.unknown(f"Unknown error while checking smiles: {str(e)}") # type: ignore
+
+        return False
+
+
+    def is_valid(self) -> bool:
+        '''Check if a Ligand object is valid.
+
+        Returns
+        -------
+        bool
+            True if the Ligand object is valid, False otherwise.
+        '''
+
+        #region if any attribute is None (will check for every attribute in the ligand object)
+        if any(getattr(self, attr) is None for attr in Ligand.allDescriptors):
+            return False
+        #endregion
+
+        return True
+
+
+    def print_attributes(self) -> None:
+        '''Print all attributes of the ligand to stdout.
+
+        Displays the ligand's name, molecule object, and all computed
+        molecular descriptors (BalabanJ, BertzCT, RadiusOfGyration, etc.)
+        in a formatted, aligned table.
+        '''
+
+        #region prints
+        
+        # Initialize descriptors in each category
+        # Calculate maximum length of descriptor names for both categories
+        max_length = max(
+            max(len(desc) for desc in Ligand.allDescriptors),
+            len("Name"),
+            len("Molecule")
+        ) + 5
+
+        print(f"{'Name'.ljust(max_length)}: '{self.name if self.name is not None else '-'}'")
+        print(f"{'Molecule'.ljust(max_length)}: '{self.molecule if self.molecule is not None else '-'}'")
+
+        # All attribute initializations
+        for desc in Ligand.allDescriptors:
+            attribute = getattr(self, desc)
+            # Pad the attribute name to align
+            print(f"{desc.ljust(max_length)}: '{attribute if attribute is not None else '-'}'")
+        #endregion
+
+        return None
+
+
+    def to_dict(self) -> Dict[str, Union[int, float, str]]:
+        '''Return all the properties for the Ligand object.
+
+        Returns
+        -------
+        Dict[str, Union[int, float, str]]
+            A dictionary of all the properties for the Ligand object.
+        '''
+
+        # Create new dict
+        properties = dict()
+
+        # Set Name, Path and molecule
+        properties["Name"] = self.name if self.name is not None else "-"
+        properties["Path"] = self.path if self.path is not None else "-"
+        properties["Molecule"] = self.molecule if self.molecule is not None else "-"
+
+        # Combine both in one dict and return them
+
+        return {**properties, **self.get_descriptors()}
+
+
+    def to_json(self, overwrite: bool = False) -> int:
+        '''Stores the descriptors as json to avoid the necessity of evaluate them many times.
+
+        Parameters
+        ----------
+        overwrite : bool, optional
+            If True, the json file will be overwritten, by default False.
+
+        Returns
+        -------
+        int
+            The exit code of the command (based on the Error.py code table).
+        '''
+
+        try:
+            # Parameterize the path
+            base_dir = os.path.dirname(self.path)
+            if not base_dir:
+                base_dir = os.getcwd()
+                _ = ocerror.Error.dir_not_exist(
+                    "Ligand path is empty; using current working directory for JSON output.",
+                    level = ocerror.ReportLevel.WARNING
+                ) # type: ignore
+            outputJson = f"{base_dir}/{self.name}_descriptors.json"
+            # Check if the file exists
+            if os.path.isfile(outputJson):
+                # Check if the user wants to overwrite the file
+                if not overwrite:
+                    # If the file exists and overwrite is False, return the file exists error
+                    return ocerror.Error.file_exists(f"The file {outputJson} already exists and the overwrite flag is set to False, no file will be generated or overwrited.", ocerror.ReportLevel.WARNING) # type: ignore
+                # Warns the user that the file will be overwritten
+                _ = ocerror.Error.file_exists(f"The file '{outputJson}' already exists. It will be OVERWRITED!!!") # type: ignore
+
+            try:
+                # Create a lock for multithreading
+                lock = Lock()
+                with lock:
+                    # Open the file for writing
+                    with open(outputJson, 'w') as outfile:
+                        # Write the json file
+                        json.dump(self.__safe_to_dict(), outfile)
+                return ocerror.Error.ok() # type: ignore
+            except Exception as e:
+                return ocerror.Error.write_file(f"Problems while writing the file '{outputJson}' Error: {e}.") # type: ignore
+        except Exception as e:
+
+            return ocerror.Error.unknown(f"Unknown error while converting the ligand {self.name} to json.\nError: {e}", ocerror.ReportLevel.WARNING) # type: ignore
+
+
+    def to_smiles(self) -> Union[str, int]:
+        '''Return the smiles of the molecule.
+
+        Returns
+        -------
+        str | int
+            The smiles of the molecule, if fails the exit code of the command (based on the Error.py code table).
+        '''
+
+        return get_smiles(self.molecule)
+
+
+    # Declare the descriptors names as class attributes
+    descriptors_names = {
+        'AUTOCORR2D_': range(1, 193),
+        'BCUT2D_': ["CHGHI", "CHGLO", "LOGPHI", "LOGPLOW", "MRHI", "MRLOW", "MWHI", "MWLOW"],
+        'fr_': ["Al_COO", "Al_OH", "Al_OH_noTert", "ArN", "Ar_COO", "Ar_N", "Ar_NH", "Ar_OH", "COO", "COO2", "C_O", "C_O_noCOO", "C_S", "HOCCN", "Imine", "NH0", "NH1", "NH2", "N_O", "Ndealkylation1", "Ndealkylation2", "Nhpyrrole", "SH", "aldehyde", "alkyl_carbamate", "alkyl_halide", "allylic_oxid", "amide", "amidine", "aniline", "aryl_methyl", "azide", "azo", "barbitur", "benzene", "benzodiazepine", "bicyclic", "diazo", "dihydropyridine", "epoxide", "ester", "ether", "furan", "guanido", "halogen", "hdrzine", "hdrzone", "imidazole", "imide", "isocyan", "isothiocyan", "ketone", "ketone_Topliss", "lactam", "lactone", "methoxy", "morpholine", "nitrile", "nitro", "nitro_arom", "nitro_arom_nonortho", "nitroso", "oxazole", "oxime", "para_hydroxylation", "phenol", "phenol_noOrthoHbond", "phos_acid", "phos_ester", "piperdine", "piperzine", "priamide", "prisulfonamd", "pyridine", "quatN", "sulfide", "sulfonamd", "sulfone", "term_acetylene", "tetrazole", "thiazole", "thiocyan", "thiophene", "unbrch_alkane", "urea"],
+        'Chi': [str(j) + i if j < 2 else f"{j}{i}" for j in range(5) for i in ('', 'v', 'n') if not (j >= 2 and i == '')],
+        'EState_VSA': range(1, 12),
+        'FpDensityMorgan': range(1, 4),
+        'Kappa': range(1, 4),
+        'Mol': ["LogP", "MR", "Wt"],
+        'Num': ["AliphaticCarbocycles", "AliphaticHeterocycles", "AliphaticRings", "AromaticCarbocycles", "AromaticHeterocycles", "AromaticRings", "HAcceptors", "HDonors", "Heteroatoms", "RadicalElectrons", "RotatableBonds", "SaturatedCarbocycles", "SaturatedHeterocycles", "SaturatedRings", "ValenceElectrons"],
+        'NPR': range(1, 3),
+        'PMI': range(1, 4),
+        'PEOE_VSA': range(1, 15),
+        'SMR_VSA': range(1, 11),
+        'SlogP_VSA': range(1, 13),
+        'VSA_EState': range(1, 11),
+    }
+
+    # Declare the single descriptors names as class attributes
+    single_descriptors = [
+        'BalabanJ', 'BertzCT', 'ExactMolWt', 'FractionCSP3', 'HallKierAlpha', 'HeavyAtomMolWt', 
+        'HeavyAtomCount', 'LabuteASA', 'TPSA', 'MaxAbsEStateIndex', 'MaxEStateIndex', 
+        'MinAbsEStateIndex', 'MinEStateIndex', 'MaxAbsPartialCharge', 'MaxPartialCharge', 
+        'MinAbsPartialCharge', 'MinPartialCharge', 'qed', 'RingCount', 'Asphericity', 'Eccentricity',
+        'InertialShapeFactor', 'RadiusOfGyration', 'SpherocityIndex', 'NHOHCount', 'NOCount'
+    ]
+
+    # Create all the descriptors to be class attributes
+    allDescriptors = [f'{desc_prefix}{i}' for desc_prefix, desc_indices in descriptors_names.items() for i in desc_indices] + single_descriptors
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Functions
 ###############################################################################
 ## Private ##
 
-def _get_etkdg_params(max_attempts: int = 1000) -> AllChem.EmbedParameters:
-    '''Get RDKit ETKDG embedding parameters with safer defaults.
+def __descriptor_function_factory(descriptor_name: str) -> Callable[[rdkit.Chem.rdchem.Mol], Optional[float]]:
+    '''Factory function to create a function that computes a descriptor by its name.
+
+    This function creates a descriptor computation function dynamically based on
+    the descriptor name. It handles both 2D and 3D descriptors from RDKit.
 
     Parameters
     ----------
-    max_attempts : int, optional
-        RDKit ETKDG internal attempts (maxAttempts/maxIterations), by default 1000.
+    descriptor_name : str
+        The name of the descriptor to compute (e.g., "BalabanJ", "BertzCT",
+        "RadiusOfGyration"). Must match a descriptor function name in either
+        rdkit.Chem.Descriptors or rdkit.Chem.Descriptors3D.
 
     Returns
     -------
-    rdkit.Chem.AllChem.EmbedParameters
-        Configured ETKDG parameters object.
+    Callable[[rdkit.Chem.rdchem.Mol], Optional[float]]
+        A function that takes a molecule and returns the descriptor value,
+        or None if computation fails.
     '''
 
-    if hasattr(AllChem, "ETKDGv3"):
-        params = AllChem.ETKDGv3() # type: ignore
+    if descriptor_name in ["Asphericity", "Eccentricity", "InertialShapeFactor", "NPR1", "NPR2", "PMI1", "PMI2", "PMI3", "RadiusOfGyration", "SpherocityIndex"]:
+        descriptor_func = getattr(Descriptors3D, descriptor_name)
     else:
-        params = AllChem.ETKDG() # type: ignore
-    params.useRandomCoords = True
-    return params
+        descriptor_func = getattr(Descriptors, descriptor_name)
+
+    # TODO: Check how to avoid this function to spam print the same error multiple times
+    def __compute_descriptor(molecule: rdkit.Chem.rdchem.Mol) -> Optional[float]:
+        '''Compute a descriptor value for a molecule.
+
+        This is a nested function created by the factory to compute a specific
+        molecular descriptor using RDKit descriptor functions.
+
+        Parameters
+        ----------
+        molecule : rdkit.Chem.rdchem.Mol
+            The molecule object to compute the descriptor for.
+
+        Returns
+        -------
+        Optional[float]
+            The descriptor value, or None if computation fails or molecule is invalid.
+        '''
+        
+        if molecule:
+            if isinstance(molecule, rdkit.Chem.rdchem.Mol): # type: ignore
+                try:
+                    return descriptor_func(molecule)
+                except Exception as e:
+                    _ = ocerror.Error.unknown(f"Error while creating the function in factory: {str(e)}") # type: ignore
+            else:
+                _ = ocerror.Error.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'") # type: ignore
+        else:
+            pass
+            # _ = ocerror.Error.not_set("The molecule is not set.") # type: ignore
+        return None
+
+    return __compute_descriptor
 
 
-def _try_embed_rdkit(
-        mol: Chem.rdchem.Mol,
-        max_attempts: int = 10,
-        etkdg_max_attempts: int = 1000
-    ) -> bool:
-    '''Try embedding a molecule with RDKit using multiple seeds.
+def __descriptor_function_factory_class(descriptor_name: str) -> Callable[[rdkit.Chem.rdchem.Mol], Optional[float]]:
+    '''Factory function to create a class method that computes a descriptor.
+
+    This function creates a descriptor computation method dynamically for the
+    Ligand class. The created method uses self.molecule as the input molecule.
 
     Parameters
     ----------
-    mol : rdkit.Chem.rdchem.Mol
-        Molecule to embed (modified in place).
-    max_attempts : int, optional
-        Maximum number of embedding attempts, by default 10.
-    etkdg_max_attempts : int, optional
-        RDKit ETKDG internal attempts (maxAttempts/maxIterations), by default 1000.
+    descriptor_name : str
+        The name of the descriptor to compute (e.g., "BalabanJ", "BertzCT",
+        "RadiusOfGyration"). Must match a descriptor function name in either
+        rdkit.Chem.Descriptors or rdkit.Chem.Descriptors3D.
 
     Returns
     -------
-    bool
-        True if embedding succeeded and a conformer exists, False otherwise.
+    Callable[[rdkit.Chem.rdchem.Mol], Optional[float]]
+        A method that can be bound to the Ligand class. When called, it computes
+        the descriptor for self.molecule and returns the value, or None if
+        computation fails.
     '''
 
-    params = _get_etkdg_params(max_attempts=etkdg_max_attempts)
-    for attempt in range(max_attempts):
-        params.randomSeed = 0xC0FFEE + attempt
-        if AllChem.EmbedMolecule(mol, params) == 0 and mol.GetNumConformers() > 0: # type: ignore
-            return True
-    return False
+    # Check if the descriptor is 3D (in this case use the Descriptors3D module)
+    if descriptor_name in ["Asphericity", "Eccentricity", "InertialShapeFactor", "NPR1", "NPR2", "PMI1", "PMI2", "PMI3", "RadiusOfGyration", "SpherocityIndex"]:
+        descriptor_func = getattr(Descriptors3D, descriptor_name)
+    else:
+        descriptor_func = getattr(Descriptors, descriptor_name)
 
+    # TODO: Check how to avoid this function to spam print the same error multiple times
 
-def _openbabel_3d_from_smiles(smiles: str, sanitize: bool) -> Optional[Chem.rdchem.Mol]:
-    '''Generate a 3D RDKit molecule from SMILES via OpenBabel.
+    # Create the nested function as a method of the Ligand class
+    def __compute_descriptor_class(self) -> Optional[float]:
+        '''Compute the descriptor for the Ligand object.
 
-    Parameters
-    ----------
-    smiles : str
-        SMILES string to build in 3D.
-    sanitize : bool
-        Whether to sanitize the RDKit molecule.
+        This is a nested function created by the factory to compute a specific
+        molecular descriptor for the Ligand instance using self.molecule.
 
-    Returns
-    -------
-    rdkit.Chem.rdchem.Mol | None
-        RDKit molecule with 3D conformer if successful, otherwise None.
-    '''
+        Returns
+        -------
+        Optional[float]
+            The descriptor value for self.molecule, or None if computation fails
+            or molecule is invalid.
+        '''
 
-    ob_conversion = openbabel.OBConversion()
-    if not ob_conversion.SetInFormat("smi"):
+        molecule = self.molecule  # Use self.molecule from the Ligand instance
+
+        # Check if the molecule is set
+        if molecule:
+            # Check if the molecule is a rdkit.Chem.rdchem.Mol
+            if isinstance(molecule, rdkit.Chem.rdchem.Mol): # type: ignore
+                try:
+                    # Return the function
+                    return descriptor_func(molecule)
+                except Exception as e:
+                    _ = ocerror.Error.unknown(f"Error while creating the function in factory: {str(e)}") # type: ignore
+            else:
+                _ = ocerror.Error.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'") # type: ignore
+        else:
+            pass
+            #_ = ocerror.Error.not_set("The molecule is not set.") # type: ignore
         return None
-    if not ob_conversion.SetOutFormat("mol2"):
-        return None
 
-    ob_mol = openbabel.OBMol()
-    if not ob_conversion.ReadString(ob_mol, smiles):
-        return None
-
-    ob_mol.AddHydrogens()
-    builder = openbabel.OBBuilder()
-    if not builder.Build(ob_mol):
-        return None
-
-    ff = openbabel.OBForceField.FindForceField("uff")
-    if ff and ff.Setup(ob_mol):
-        ff.ConjugateGradients(250)
-        ff.GetCoordinates(ob_mol)
-
-    mol2_block = ob_conversion.WriteString(ob_mol)
-    return Chem.MolFromMol2Block(mol2_block, sanitize=sanitize, removeHs=False) # type: ignore
+    return __compute_descriptor_class
 
 
 def _ensure_3d_conformer(
@@ -814,6 +871,68 @@ def _ensure_3d_conformer(
     return None
 
 
+def _get_etkdg_params(max_attempts: int = 1000) -> AllChem.EmbedParameters:
+    '''Get RDKit ETKDG embedding parameters with safer defaults.
+
+    Parameters
+    ----------
+    max_attempts : int, optional
+        RDKit ETKDG internal attempts (maxAttempts/maxIterations), by default 1000.
+
+    Returns
+    -------
+    rdkit.Chem.AllChem.EmbedParameters
+        Configured ETKDG parameters object.
+    '''
+
+    if hasattr(AllChem, "ETKDGv3"):
+        params = AllChem.ETKDGv3() # type: ignore
+    else:
+        params = AllChem.ETKDG() # type: ignore
+    params.useRandomCoords = True
+    return params
+
+
+def _openbabel_3d_from_smiles(smiles: str, sanitize: bool) -> Optional[Chem.rdchem.Mol]:
+    '''Generate a 3D RDKit molecule from SMILES via OpenBabel.
+
+    Parameters
+    ----------
+    smiles : str
+        SMILES string to build in 3D.
+    sanitize : bool
+        Whether to sanitize the RDKit molecule.
+
+    Returns
+    -------
+    rdkit.Chem.rdchem.Mol | None
+        RDKit molecule with 3D conformer if successful, otherwise None.
+    '''
+
+    ob_conversion = openbabel.OBConversion()
+    if not ob_conversion.SetInFormat("smi"):
+        return None
+    if not ob_conversion.SetOutFormat("mol2"):
+        return None
+
+    ob_mol = openbabel.OBMol()
+    if not ob_conversion.ReadString(ob_mol, smiles):
+        return None
+
+    ob_mol.AddHydrogens()
+    builder = openbabel.OBBuilder()
+    if not builder.Build(ob_mol):
+        return None
+
+    ff = openbabel.OBForceField.FindForceField("uff")
+    if ff and ff.Setup(ob_mol):
+        ff.ConjugateGradients(250)
+        ff.GetCoordinates(ob_mol)
+
+    mol2_block = ob_conversion.WriteString(ob_mol)
+    return Chem.MolFromMol2Block(mol2_block, sanitize=sanitize, removeHs=False) # type: ignore
+
+
 def _optimize_mol(mol: Chem.rdchem.Mol) -> bool:
     '''Optimize a molecule geometry using MMFF (preferred) or UFF.
 
@@ -845,122 +964,115 @@ def _optimize_mol(mol: Chem.rdchem.Mol) -> bool:
         return False
 
 
-## Public ##
-def split_molecules(molecule: str, output_dir: str = "", prefix: str = "ligand") -> List[str]:
-    ''' Given a molecule file, checks if it has more than one ligand, if positive, splits the file into multiple single molecule files. Uses openbabel python library. TODO: Make this function work better with the new database structure.
+def _try_embed_rdkit(
+        mol: Chem.rdchem.Mol,
+        max_attempts: int = 10,
+        etkdg_max_attempts: int = 1000
+    ) -> bool:
+    '''Try embedding a molecule with RDKit using multiple seeds.
 
     Parameters
     ----------
-    molecule : str
-        The path to the molecule file.
-    output_dir : str, optional
-        The path to the output directory, by default ""
-    prefix : str, optional
-        The prefix for the output files, by default "ligand"
+    mol : rdkit.Chem.rdchem.Mol
+        Molecule to embed (modified in place).
+    max_attempts : int, optional
+        Maximum number of embedding attempts, by default 10.
+    etkdg_max_attempts : int, optional
+        RDKit ETKDG internal attempts (maxAttempts/maxIterations), by default 1000.
 
     Returns
     -------
-    List[str]
-        A list of paths to the new files.
+    bool
+        True if embedding succeeded and a conformer exists, False otherwise.
     '''
 
-    # Initialise an empty list to hold all files paths
-    ligand_files = []
-    # Grab the extension and path
-    extension = ocvalidation.validate_obabel_extension(molecule)
-
-    # If the output_dir is not defined
-    if not output_dir:
-        # Set it as the same dir as the ligand
-        output_dir = f"{os.path.split(os.path.abspath(molecule))[0]}/compounds"
-
-    # Ensure output directory exists
-    if not os.path.exists(output_dir):
-        _ = ocff.safe_create_dir(output_dir)
-
-    # Check if the extension is valid
-    if type(extension) != str:
-        ocprint.print_error(f"Problems while reading the ligand file '{molecule}'.")
-    else:
-        # Create the conversion object
-        obConversion = openbabel.OBConversion()
-        # Set the input/output format
-        obConversion.SetInAndOutFormats(extension, "mol2")
-        # Create the OBMol object
-        mol = openbabel.OBMol()
-        # Read the first molecule
-        molecules = obConversion.ReadFile(mol, molecule)
-        # Counter for files
-        molNum = 1
-        # For each molecule in the file
-        while molecules:
-            out_path = f"{output_dir}/{prefix}_{molNum}.mol2"
-            # Write the mol object to the output performing the conversion
-            wrote = obConversion.WriteFile(mol, out_path)
-            if not wrote:
-                _ = ocerror.Error.write_file(
-                    f"Could not write split molecule file '{out_path}'.",
-                    level = ocerror.ReportLevel.WARNING
-                ) # type: ignore
-            # Recreate mol object
-            mol = openbabel.OBMol()
-            # Read it again
-            molecules = obConversion.Read(mol)
-            # Increase the counter
-            molNum += 1
-            # Add the path to the ligand_files list
-            if wrote:
-                ligand_files.append(out_path)
-
-    return ligand_files
+    params = _get_etkdg_params(max_attempts=etkdg_max_attempts)
+    for attempt in range(max_attempts):
+        params.randomSeed = 0xC0FFEE + attempt
+        if AllChem.EmbedMolecule(mol, params) == 0 and mol.GetNumConformers() > 0: # type: ignore
+            return True
+    return False
 
 
-def multiple_molecules_sdf(molecule: Union[str, rdkit.Chem.rdchem.Mol]) -> List[Ligand]:
-    ''' Parse a .sdf or .mol2 file with multiple molecules returning a list of ligands.
+## Public ##
+
+def get_centroid(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize: bool = True) -> rdkit.Geometry.rdGeometry.Point3D:
+    ''' Get the centroid of the molecule.
 
     Parameters
     ----------
     molecule : str | rdkit.Chem.rdchem.Mol
-        Path to a molecule file or an RDKit molecule object
+        The molecule to get the centroid or its path.
+    sanitize : bool, optional
+        If the molecule should be sanitized, by default True.
 
     Returns
     -------
-    List[Ligand]
-        A list of ligands.
+    rdkit.Geometry.rdGeometry.Point3D
+        The centroid of the molecule.
+    
+    Raises
+    ------
+    ValueError
+        If the molecule cannot be loaded from the provided path.
     '''
 
-    # List to hold multiple Ligand objects
-    ligands = []
-    # Check if the path is a string (it is assumed that the provided path is already a sdf)
+    # Check if the molecule is a string (means that it is a path)
     if isinstance(molecule, str):
-        # Check if file exists
-        if os.path.isfile(molecule):
-            # Check if the extension of the file is .sdf
-            extension = os.path.splitext(molecule)[1]
-            if extension in [".sdf", ".mol2"]:
-                # Split the mol file
-                molsPaths = split_molecules(molecule)
-                # For each molecule
-                for index, molPath in enumerate(molsPaths, start=1):
-                    # Get molecule name
-                    base_name = os.path.splitext(os.path.basename(molecule))[0]
-                    name = f"{base_name}_{index}"
-                    # Append to the list
-                    ligands.append(Ligand(molPath, name=name))
-            else:
-                # This case the return code is suppressed because it is needed to return None in case of failure
-                _ = ocerror.Error.wrong_type(message=f"The molecule file MUST be the .sdf format!", level=ocerror.ReportLevel.WARNING) # type: ignore
-        else:
-            # File does not exist
-            _ = ocerror.Error.wrong_type(message=f"The molecule MUST be either a file path or rdkit.Chem.rdchem.Mol!", level=ocerror.ReportLevel.WARNING) # type: ignore
-    elif isinstance(molecule, Chem.rdchem.Mol):
-        name = molecule.GetProp("_Name") if molecule.HasProp("_Name") else "ligand"
-        ligands.append(Ligand(molecule, name=name))
-    else:
-        # This case the return code is suppressed because it is needed to return None in case of failure
-        _ = ocerror.Error.wrong_type(message=f"The molecule file path MUST be a string!", level=ocerror.ReportLevel.WARNING) # type: ignore
+        # Store the path before loading
+        molecule_path = molecule
+        # Load it
+        _, molecule = load_mol(molecule, sanitize = sanitize)
+        # Check if molecule was loaded successfully
+        if molecule is None:
+            # User-facing error: molecule loading failure
+            ocerror.Error.parse_molecule(f"Could not load molecule from path: {molecule_path}") # type: ignore
+            raise ValueError(f"Could not load molecule from path: {molecule_path}")  # Still raise to maintain API contract
 
-    return ligands
+    if isinstance(molecule, rdkit.Chem.rdchem.Mol): # type: ignore
+        mol = Chem.Mol(molecule) # type: ignore
+        needs_3d = mol.GetNumConformers() == 0 # type: ignore
+        if not needs_3d:
+            try:
+                needs_3d = not mol.GetConformer().Is3D() # type: ignore
+            except Exception:
+                needs_3d = False
+
+        if needs_3d:
+            mol = _ensure_3d_conformer(mol, sanitize=sanitize)
+            if mol is None: # type: ignore
+                message = "Could not generate a 3D conformer to compute centroid."
+                ocerror.Error.parse_molecule(message, level = ocerror.ReportLevel.WARNING) # type: ignore
+                raise ValueError(message)
+        molecule = mol
+
+    # Get the molecule conformer
+    conf = molecule.GetConformer()  # type: ignore
+
+    # Compute the centroid of the molecule and return it
+    return ComputeCentroid(conf)
+
+
+def get_smiles(molecule: rdkit.Chem.rdchem.Mol) -> Union[str, int]:
+    ''' Return the smiles of the molecule
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.rdchem.Mol
+        The molecule to get the smiles from.
+
+    Returns
+    -------
+    str | int
+        The smiles of the molecule or the error code or the exit code of the command (based on the Error.py code table).
+    '''
+
+    if molecule:
+        if isinstance(molecule, rdkit.Chem.rdchem.Mol): # type: ignore
+            return Chem.MolToSmiles(molecule) # type: ignore
+        return ocerror.Error.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'") # type: ignore
+
+    return ocerror.Error.not_set(f"The variable is not set.") # type: ignore
 
 
 def load_mol(
@@ -1210,6 +1322,54 @@ def load_mol(
     return "", None
 
 
+def multiple_molecules_sdf(molecule: Union[str, rdkit.Chem.rdchem.Mol]) -> List[Ligand]:
+    ''' Parse a .sdf or .mol2 file with multiple molecules returning a list of ligands.
+
+    Parameters
+    ----------
+    molecule : str | rdkit.Chem.rdchem.Mol
+        Path to a molecule file or an RDKit molecule object
+
+    Returns
+    -------
+    List[Ligand]
+        A list of ligands.
+    '''
+
+    # List to hold multiple Ligand objects
+    ligands = []
+    # Check if the path is a string (it is assumed that the provided path is already a sdf)
+    if isinstance(molecule, str):
+        # Check if file exists
+        if os.path.isfile(molecule):
+            # Check if the extension of the file is .sdf
+            extension = os.path.splitext(molecule)[1]
+            if extension in [".sdf", ".mol2"]:
+                # Split the mol file
+                molsPaths = split_molecules(molecule)
+                # For each molecule
+                for index, molPath in enumerate(molsPaths, start=1):
+                    # Get molecule name
+                    base_name = os.path.splitext(os.path.basename(molecule))[0]
+                    name = f"{base_name}_{index}"
+                    # Append to the list
+                    ligands.append(Ligand(molPath, name=name))
+            else:
+                # This case the return code is suppressed because it is needed to return None in case of failure
+                _ = ocerror.Error.wrong_type(message=f"The molecule file MUST be the .sdf format!", level=ocerror.ReportLevel.WARNING) # type: ignore
+        else:
+            # File does not exist
+            _ = ocerror.Error.wrong_type(message=f"The molecule MUST be either a file path or rdkit.Chem.rdchem.Mol!", level=ocerror.ReportLevel.WARNING) # type: ignore
+    elif isinstance(molecule, Chem.rdchem.Mol):
+        name = molecule.GetProp("_Name") if molecule.HasProp("_Name") else "ligand"
+        ligands.append(Ligand(molecule, name=name))
+    else:
+        # This case the return code is suppressed because it is needed to return None in case of failure
+        _ = ocerror.Error.wrong_type(message=f"The molecule file path MUST be a string!", level=ocerror.ReportLevel.WARNING) # type: ignore
+
+    return ligands
+
+
 def read_descriptors_from_json(path: str, return_data: bool = False) -> Optional[Union[Dict[str, Union[str, float, int]], Tuple[Union[str, float, int]]]]:
     ''' Read the descriptors from a JSON file.
 
@@ -1261,209 +1421,80 @@ def read_descriptors_from_json(path: str, return_data: bool = False) -> Optional
     return None
 
 
-def get_smiles(molecule: rdkit.Chem.rdchem.Mol) -> Union[str, int]:
-    ''' Return the smiles of the molecule
+def split_molecules(molecule: str, output_dir: str = "", prefix: str = "ligand") -> List[str]:
+    ''' Given a molecule file, checks if it has more than one ligand, if positive, splits the file into multiple single molecule files. Uses openbabel python library. TODO: Make this function work better with the new database structure.
 
     Parameters
     ----------
-    molecule : rdkit.Chem.rdchem.Mol
-        The molecule to get the smiles from.
+    molecule : str
+        The path to the molecule file.
+    output_dir : str, optional
+        The path to the output directory, by default ""
+    prefix : str, optional
+        The prefix for the output files, by default "ligand"
 
     Returns
     -------
-    str | int
-        The smiles of the molecule or the error code or the exit code of the command (based on the Error.py code table).
+    List[str]
+        A list of paths to the new files.
     '''
 
-    if molecule:
-        if isinstance(molecule, rdkit.Chem.rdchem.Mol): # type: ignore
-            return Chem.MolToSmiles(molecule) # type: ignore
-        return ocerror.Error.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'") # type: ignore
+    # Initialise an empty list to hold all files paths
+    ligand_files = []
+    # Grab the extension and path
+    extension = ocvalidation.validate_obabel_extension(molecule)
 
-    return ocerror.Error.not_set(f"The variable is not set.") # type: ignore
+    # If the output_dir is not defined
+    if not output_dir:
+        # Set it as the same dir as the ligand
+        output_dir = f"{os.path.split(os.path.abspath(molecule))[0]}/compounds"
 
+    # Ensure output directory exists
+    if not os.path.exists(output_dir):
+        _ = ocff.safe_create_dir(output_dir)
 
-def get_centroid(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize: bool = True) -> rdkit.Geometry.rdGeometry.Point3D:
-    ''' Get the centroid of the molecule.
+    # Check if the extension is valid
+    if type(extension) != str:
+        ocprint.print_error(f"Problems while reading the ligand file '{molecule}'.")
+    else:
+        # Create the conversion object
+        obConversion = openbabel.OBConversion()
+        # Set the input/output format
+        obConversion.SetInAndOutFormats(extension, "mol2")
+        # Create the OBMol object
+        mol = openbabel.OBMol()
+        # Read the first molecule
+        molecules = obConversion.ReadFile(mol, molecule)
+        # Counter for files
+        molNum = 1
+        # For each molecule in the file
+        while molecules:
+            out_path = f"{output_dir}/{prefix}_{molNum}.mol2"
+            # Write the mol object to the output performing the conversion
+            wrote = obConversion.WriteFile(mol, out_path)
+            if not wrote:
+                _ = ocerror.Error.write_file(
+                    f"Could not write split molecule file '{out_path}'.",
+                    level = ocerror.ReportLevel.WARNING
+                ) # type: ignore
+            # Recreate mol object
+            mol = openbabel.OBMol()
+            # Read it again
+            molecules = obConversion.Read(mol)
+            # Increase the counter
+            molNum += 1
+            # Add the path to the ligand_files list
+            if wrote:
+                ligand_files.append(out_path)
 
-    Parameters
-    ----------
-    molecule : str | rdkit.Chem.rdchem.Mol
-        The molecule to get the centroid or its path.
-    sanitize : bool, optional
-        If the molecule should be sanitized, by default True.
-
-    Returns
-    -------
-    rdkit.Geometry.rdGeometry.Point3D
-        The centroid of the molecule.
-    
-    Raises
-    ------
-    ValueError
-        If the molecule cannot be loaded from the provided path.
-    '''
-
-    # Check if the molecule is a string (means that it is a path)
-    if isinstance(molecule, str):
-        # Store the path before loading
-        molecule_path = molecule
-        # Load it
-        _, molecule = load_mol(molecule, sanitize = sanitize)
-        # Check if molecule was loaded successfully
-        if molecule is None:
-            # User-facing error: molecule loading failure
-            ocerror.Error.parse_molecule(f"Could not load molecule from path: {molecule_path}") # type: ignore
-            raise ValueError(f"Could not load molecule from path: {molecule_path}")  # Still raise to maintain API contract
-
-    if isinstance(molecule, rdkit.Chem.rdchem.Mol): # type: ignore
-        mol = Chem.Mol(molecule) # type: ignore
-        needs_3d = mol.GetNumConformers() == 0 # type: ignore
-        if not needs_3d:
-            try:
-                needs_3d = not mol.GetConformer().Is3D() # type: ignore
-            except Exception:
-                needs_3d = False
-
-        if needs_3d:
-            mol = _ensure_3d_conformer(mol, sanitize=sanitize)
-            if mol is None: # type: ignore
-                message = "Could not generate a 3D conformer to compute centroid."
-                ocerror.Error.parse_molecule(message, level = ocerror.ReportLevel.WARNING) # type: ignore
-                raise ValueError(message)
-        molecule = mol
-
-    # Get the molecule conformer
-    conf = molecule.GetConformer()  # type: ignore
-
-    # Compute the centroid of the molecule and return it
-    return ComputeCentroid(conf)
+    return ligand_files
 
 
 # Factory functions and dynamic methods
 ##############################################################################
 
-def __descriptor_function_factory(descriptor_name: str) -> Callable[[rdkit.Chem.rdchem.Mol], Optional[float]]:
-    '''Factory function to create a function that computes a descriptor by its name.
-
-    This function creates a descriptor computation function dynamically based on
-    the descriptor name. It handles both 2D and 3D descriptors from RDKit.
-
-    Parameters
-    ----------
-    descriptor_name : str
-        The name of the descriptor to compute (e.g., "BalabanJ", "BertzCT",
-        "RadiusOfGyration"). Must match a descriptor function name in either
-        rdkit.Chem.Descriptors or rdkit.Chem.Descriptors3D.
-
-    Returns
-    -------
-    Callable[[rdkit.Chem.rdchem.Mol], Optional[float]]
-        A function that takes a molecule and returns the descriptor value,
-        or None if computation fails.
-    '''
-
-    if descriptor_name in ["Asphericity", "Eccentricity", "InertialShapeFactor", "NPR1", "NPR2", "PMI1", "PMI2", "PMI3", "RadiusOfGyration", "SpherocityIndex"]:
-        descriptor_func = getattr(Descriptors3D, descriptor_name)
-    else:
-        descriptor_func = getattr(Descriptors, descriptor_name)
-
-    # TODO: Check how to avoid this function to spam print the same error multiple times
-    def __compute_descriptor(molecule: rdkit.Chem.rdchem.Mol) -> Optional[float]:
-        '''Compute a descriptor value for a molecule.
-
-        This is a nested function created by the factory to compute a specific
-        molecular descriptor using RDKit descriptor functions.
-
-        Parameters
-        ----------
-        molecule : rdkit.Chem.rdchem.Mol
-            The molecule object to compute the descriptor for.
-
-        Returns
-        -------
-        Optional[float]
-            The descriptor value, or None if computation fails or molecule is invalid.
-        '''
-        
-        if molecule:
-            if isinstance(molecule, rdkit.Chem.rdchem.Mol): # type: ignore
-                try:
-                    return descriptor_func(molecule)
-                except Exception as e:
-                    _ = ocerror.Error.unknown(f"Error while creating the function in factory: {str(e)}") # type: ignore
-            else:
-                _ = ocerror.Error.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'") # type: ignore
-        else:
-            pass
-            # _ = ocerror.Error.not_set("The molecule is not set.") # type: ignore
-        return None
-
-    return __compute_descriptor
 
 
-def __descriptor_function_factory_class(descriptor_name: str) -> Callable[[rdkit.Chem.rdchem.Mol], Optional[float]]:
-    '''Factory function to create a class method that computes a descriptor.
-
-    This function creates a descriptor computation method dynamically for the
-    Ligand class. The created method uses self.molecule as the input molecule.
-
-    Parameters
-    ----------
-    descriptor_name : str
-        The name of the descriptor to compute (e.g., "BalabanJ", "BertzCT",
-        "RadiusOfGyration"). Must match a descriptor function name in either
-        rdkit.Chem.Descriptors or rdkit.Chem.Descriptors3D.
-
-    Returns
-    -------
-    Callable[[rdkit.Chem.rdchem.Mol], Optional[float]]
-        A method that can be bound to the Ligand class. When called, it computes
-        the descriptor for self.molecule and returns the value, or None if
-        computation fails.
-    '''
-
-    # Check if the descriptor is 3D (in this case use the Descriptors3D module)
-    if descriptor_name in ["Asphericity", "Eccentricity", "InertialShapeFactor", "NPR1", "NPR2", "PMI1", "PMI2", "PMI3", "RadiusOfGyration", "SpherocityIndex"]:
-        descriptor_func = getattr(Descriptors3D, descriptor_name)
-    else:
-        descriptor_func = getattr(Descriptors, descriptor_name)
-
-    # TODO: Check how to avoid this function to spam print the same error multiple times
-
-    # Create the nested function as a method of the Ligand class
-    def __compute_descriptor_class(self) -> Optional[float]:
-        '''Compute the descriptor for the Ligand object.
-
-        This is a nested function created by the factory to compute a specific
-        molecular descriptor for the Ligand instance using self.molecule.
-
-        Returns
-        -------
-        Optional[float]
-            The descriptor value for self.molecule, or None if computation fails
-            or molecule is invalid.
-        '''
-
-        molecule = self.molecule  # Use self.molecule from the Ligand instance
-
-        # Check if the molecule is set
-        if molecule:
-            # Check if the molecule is a rdkit.Chem.rdchem.Mol
-            if isinstance(molecule, rdkit.Chem.rdchem.Mol): # type: ignore
-                try:
-                    # Return the function
-                    return descriptor_func(molecule)
-                except Exception as e:
-                    _ = ocerror.Error.unknown(f"Error while creating the function in factory: {str(e)}") # type: ignore
-            else:
-                _ = ocerror.Error.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'") # type: ignore
-        else:
-            pass
-            #_ = ocerror.Error.not_set("The molecule is not set.") # type: ignore
-        return None
-
-    return __compute_descriptor_class
 
 
 # Using the factory function to create the descriptor functions add them to the global namespace and to the Ligand class

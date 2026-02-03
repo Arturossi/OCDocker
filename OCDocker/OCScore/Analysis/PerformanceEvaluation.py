@@ -12,10 +12,10 @@ import OCDocker.OCScore.Analysis.PerformanceEvaluation as ocperf
 
 # Imports
 ###############################################################################
-
-from typing import List, Optional
 import os
 import pandas as pd
+
+from typing import List, Optional
 
 import OCDocker.OCScore.Analysis.Correlation as occorrana
 import OCDocker.OCScore.Analysis.NNUtils as ocnnutils
@@ -47,8 +47,9 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 
-# Methods
+# Functions
 ###############################################################################
+## Private ##
 
 def _format_consensus_label(metric: str) -> str:
     '''Format a consensus metric name for display.
@@ -72,6 +73,50 @@ def _format_consensus_label(metric: str) -> str:
     else:
         label = label.capitalize()
     return f"{label} consensus"
+
+
+## Public ##
+
+def compute_combined_metrics(df_path: str, metrics: list[str] = ['mean', 'median', 'max', 'min', 'std', 'variance', 'sum', 'range', 'quantile_25', 'quantile_75', 'iqr', 'skewness', 'kurtosis']) -> pd.DataFrame:
+    '''
+    Load DUDEz and PDBbind data, compute evaluation metrics, and combine with consensus scores.
+
+    Parameters
+    ----------
+    df_path : str
+        Path to the compressed dataframe file (usually OCDocker.csv.gz).
+
+    Returns
+    -------
+    pd.DataFrame
+        Combined dataframe with AUC, RMSE, and consensus-derived metrics.
+        Consensus rows are labeled as "<Metric> consensus" in the Methodology column.
+    metrics : list[str], optional
+        List of metrics to calculate. Default is ['mean', 'median', 'max', 'min', 'std', 'variance', 'sum', 'range', 'quantile_25', 'quantile_75', 'iqr', 'skewness', 'kurtosis'].
+        If empty, all metrics will be calculated.
+    '''
+
+    dudez_data, pdbbind_data, score_columns = ocscoredata.preprocess_df(df_path)
+
+    # Compute performance metrics
+    dudez_metrics = ocseval.compute_auc(dudez_data, "ligand", score_columns, "type")
+    pdbbind_metrics = ocseval.compute_rmse(pdbbind_data, score_columns, "experimental")
+
+    docking_metrics = pd.merge(dudez_metrics, pdbbind_metrics, on="score_column")
+    docking_metrics["Methodology"] = "Raw Scoring Function"
+
+    simple_consensus = ocsimple.perform_simple_consensus(df_path, threshold=1.2, metrics=metrics, verbose=False)
+
+    simple_consensus["score_column"] = simple_consensus.index
+    simple_consensus["Methodology"] = simple_consensus["score_column"].apply(_format_consensus_label)
+    simple_consensus.reset_index(drop=True, inplace=True)
+
+    final_metrics = pd.concat([docking_metrics, simple_consensus], axis=0)
+    final_metrics["combined_metric"] = final_metrics["RMSE"] - final_metrics["AUC"]
+    final_metrics.rename(columns={"score_column": "study_name"}, inplace=True)
+    final_metrics.reset_index(drop=True, inplace=True)
+
+    return final_metrics
 
 
 def get_all_lists() -> tuple[list[str], int, int]:
@@ -286,59 +331,6 @@ def get_all_lists() -> tuple[list[str], int, int]:
     return snames, len(ao_nn_list), len(ga_xgb_list)
 
 
-def setup_dirs() -> None:
-    '''Ensure the output directories for plots and CSVs exist.'''
-    
-    # Skip directory creation during Sphinx documentation builds
-    if os.environ.get('OC_BUILD_DOCS') == '1':
-        return
-
-    os.makedirs('plots', exist_ok=True)
-    os.makedirs('csvs', exist_ok=True)
-
-
-def compute_combined_metrics(df_path: str, metrics: list[str] = ['mean', 'median', 'max', 'min', 'std', 'variance', 'sum', 'range', 'quantile_25', 'quantile_75', 'iqr', 'skewness', 'kurtosis']) -> pd.DataFrame:
-    '''
-    Load DUDEz and PDBbind data, compute evaluation metrics, and combine with consensus scores.
-
-    Parameters
-    ----------
-    df_path : str
-        Path to the compressed dataframe file (usually OCDocker.csv.gz).
-
-    Returns
-    -------
-    pd.DataFrame
-        Combined dataframe with AUC, RMSE, and consensus-derived metrics.
-        Consensus rows are labeled as "<Metric> consensus" in the Methodology column.
-    metrics : list[str], optional
-        List of metrics to calculate. Default is ['mean', 'median', 'max', 'min', 'std', 'variance', 'sum', 'range', 'quantile_25', 'quantile_75', 'iqr', 'skewness', 'kurtosis'].
-        If empty, all metrics will be calculated.
-    '''
-
-    dudez_data, pdbbind_data, score_columns = ocscoredata.preprocess_df(df_path)
-
-    # Compute performance metrics
-    dudez_metrics = ocseval.compute_auc(dudez_data, "ligand", score_columns, "type")
-    pdbbind_metrics = ocseval.compute_rmse(pdbbind_data, score_columns, "experimental")
-
-    docking_metrics = pd.merge(dudez_metrics, pdbbind_metrics, on="score_column")
-    docking_metrics["Methodology"] = "Raw Scoring Function"
-
-    simple_consensus = ocsimple.perform_simple_consensus(df_path, threshold=1.2, metrics=metrics, verbose=False)
-
-    simple_consensus["score_column"] = simple_consensus.index
-    simple_consensus["Methodology"] = simple_consensus["score_column"].apply(_format_consensus_label)
-    simple_consensus.reset_index(drop=True, inplace=True)
-
-    final_metrics = pd.concat([docking_metrics, simple_consensus], axis=0)
-    final_metrics["combined_metric"] = final_metrics["RMSE"] - final_metrics["AUC"]
-    final_metrics.rename(columns={"score_column": "study_name"}, inplace=True)
-    final_metrics.reset_index(drop=True, inplace=True)
-
-    return final_metrics
-
-
 def get_feature_matrix(df_path: str) -> pd.DataFrame:
     '''
     Load and return the feature matrix for PCA from the dataset.
@@ -480,6 +472,18 @@ def run_full_analysis(
             # Example: ocnnutils.run_ae_feature_importance(ae_model, X_valid, y_valid, features)
 
     print("Full analysis completed.")
+
+
+def setup_dirs() -> None:
+    '''Ensure the output directories for plots and CSVs exist.'''
+    
+    # Skip directory creation during Sphinx documentation builds
+    if os.environ.get('OC_BUILD_DOCS') == '1':
+        return
+
+    os.makedirs('plots', exist_ok=True)
+    os.makedirs('csvs', exist_ok=True)
+
 
 '''
 base_path: str = "/data/hd4tb/OCDocker/data/ocdb"

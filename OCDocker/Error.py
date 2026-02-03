@@ -12,8 +12,8 @@ import OCDocker.Error as ocerror
 
 # Imports
 ###############################################################################
-import inspect
 import datetime
+import inspect
 
 from enum import IntEnum
 from typing import Any, Callable, Dict, Tuple, Union
@@ -424,18 +424,6 @@ class Error(metaclass = ErrorMeta):
     >>> if result != ErrorCode.OK:
     ...     # Handle error
     """
-
-    # Class attributes
-    output_level = ReportLevel.INFO
-
-    color = {
-        ReportLevel.INFO: "\033[1;96m",
-        ReportLevel.SUCCESS: "\033[1;92m",
-        ReportLevel.WARNING: "\033[1;93m",
-        ReportLevel.ERROR: "\033[1;91m",
-        ReportLevel.DEBUG: "\033[1;95m",
-    }
-
     ## Private ##
 
     @classmethod
@@ -457,47 +445,6 @@ class Error(metaclass = ErrorMeta):
             setattr(cls, f"{code.name.lower()}", static_error_method)
 
     ## Public ##
-
-    @classmethod
-    def set_output_level(cls, level: Union[ReportLevel, int]) -> None:
-        ''' Set the output level of the error messages.
-
-        Parameters
-        ----------
-        level : ReportLevel or int
-            The level of the messages to be printed, options are:
-                - ReportLevel.DEBUG   (5)
-                - ReportLevel.SUCCESS (4)
-                - ReportLevel.INFO    (3)
-                - ReportLevel.WARNING (2)
-                - ReportLevel.ERROR   (1)
-                - ReportLevel.NONE    (0)
-        '''
-        
-        # If the level is a ReportLevel, just set it
-        if isinstance(level, ReportLevel):
-            cls.output_level = level
-            # Bridge to logging (lazy import to avoid cycles)
-            try:
-                import OCDocker.Toolbox.Logging as oclogging  # type: ignore
-                oclogging.set_level_from_report(level)  # type: ignore
-            except (ImportError, AttributeError):
-                # Ignore if logging module is not available
-                pass
-        elif isinstance(level, int):
-            # If the level is an int, check if it is valid
-            if level >= ReportLevel.NONE and level <= ReportLevel.DEBUG:
-                cls.output_level = ReportLevel(level)
-                try:
-                    import OCDocker.Toolbox.Logging as oclogging  # type: ignore
-                    oclogging.set_level_from_report(ReportLevel(level))  # type: ignore
-                except (ImportError, AttributeError):
-                    # Ignore if logging module is not available
-                    pass
-            else:
-                raise ValueError(f"Invalid output level: {level}.")
-        else:
-            raise TypeError(f"Invalid type for output level: {type(level)}.")
 
     @classmethod
     def get_output_level(cls) -> ReportLevel:
@@ -527,6 +474,7 @@ class Error(metaclass = ErrorMeta):
         
         return cls.output_level
 
+
     @staticmethod
     def get_time(level: ReportLevel = ReportLevel.NONE) -> str:
         ''' Get the current time.
@@ -554,65 +502,6 @@ class Error(metaclass = ErrorMeta):
         # Return the current time
         return f"\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m"
 
-    @staticmethod
-    def print_message(message: str, level: ReportLevel) -> None:
-        ''' Print a message with a specific level.
-
-        Parameters
-        ----------
-        message : string
-            The message to be printed.
-        level : ReportLevel
-            The level of the message to be printed, options are:
-                - ReportLevel.DEBUG
-                - ReportLevel.SUCCESS
-                - ReportLevel.INFO
-                - ReportLevel.WARNING
-                - ReportLevel.ERROR
-        '''
-
-        # If there is no message, return
-        if not message:
-            return
-
-        # Get the color for the level
-        setcolor = Error.color.get(level, '\033[1;0m')
-
-        # Get the current time
-        time_str = Error.get_time(level)
-        base_message = f"[{time_str}] {setcolor}{level.name}\033[1;0m: {message}"
-
-        if Error.output_level >= ReportLevel.DEBUG:
-            current_frame = inspect.currentframe()
-            caller_frame = current_frame.f_back.f_back.f_back # type: ignore
-            detailed_message = (f"In function '{caller_frame.f_code.co_name}' " # type: ignore
-                                f"line {caller_frame.f_lineno} " # type: ignore
-                                f"from file '{caller_frame.f_code.co_filename}'.") # type: ignore
-            print(f"{base_message} {detailed_message}")
-        else:
-            print(f"{base_message}")
-
-    @staticmethod
-    def report(code: ErrorCode, message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
-        '''Report an error based on the given code.
-
-        Parameters
-        ----------
-        code : ErrorCode
-            The error code.
-        message : string, optional
-            Message to be printed. Default is "".
-        level : ReportLevel, optional
-            Level of message to be printed. Default is ReportLevel.WARNING.
-
-        Returns
-        -------
-        int
-            The integer value of the error code.
-        '''
-
-        Error.print_message(message, level)
-        return code.value
 
     @staticmethod
     def print_attributes() -> None:
@@ -707,3 +596,134 @@ class Error(metaclass = ErrorMeta):
             print(f"\n\t~~~~~~~~~~~~~~~~ {section_name} ~~~~~~~~~~~~~~~~")
             for error_description, error_code in errors:
                 print(f"\t - {error_description}: {error_code}")
+
+
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##
+
+
+    @staticmethod
+    def print_message(message: str, level: ReportLevel) -> None:
+        ''' Print a message with a specific level.
+
+        Parameters
+        ----------
+        message : string
+            The message to be printed.
+        level : ReportLevel
+            The level of the message to be printed, options are:
+                - ReportLevel.DEBUG
+                - ReportLevel.SUCCESS
+                - ReportLevel.INFO
+                - ReportLevel.WARNING
+                - ReportLevel.ERROR
+        '''
+
+        # If there is no message, return
+        if not message:
+            return
+
+        # Get the color for the level
+        setcolor = Error.color.get(level, '\033[1;0m')
+
+        # Get the current time
+        time_str = Error.get_time(level)
+        base_message = f"[{time_str}] {setcolor}{level.name}\033[1;0m: {message}"
+
+        if Error.output_level >= ReportLevel.DEBUG:
+            current_frame = inspect.currentframe()
+            caller_frame = current_frame.f_back.f_back.f_back # type: ignore
+            detailed_message = (f"In function '{caller_frame.f_code.co_name}' " # type: ignore
+                                f"line {caller_frame.f_lineno} " # type: ignore
+                                f"from file '{caller_frame.f_code.co_filename}'.") # type: ignore
+            print(f"{base_message} {detailed_message}")
+        else:
+            print(f"{base_message}")
+
+
+    @staticmethod
+    def report(code: ErrorCode, message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
+        '''Report an error based on the given code.
+
+        Parameters
+        ----------
+        code : ErrorCode
+            The error code.
+        message : string, optional
+            Message to be printed. Default is "".
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.WARNING.
+
+        Returns
+        -------
+        int
+            The integer value of the error code.
+        '''
+
+        Error.print_message(message, level)
+        return code.value
+
+
+    @classmethod
+    def set_output_level(cls, level: Union[ReportLevel, int]) -> None:
+        ''' Set the output level of the error messages.
+
+        Parameters
+        ----------
+        level : ReportLevel or int
+            The level of the messages to be printed, options are:
+                - ReportLevel.DEBUG   (5)
+                - ReportLevel.SUCCESS (4)
+                - ReportLevel.INFO    (3)
+                - ReportLevel.WARNING (2)
+                - ReportLevel.ERROR   (1)
+                - ReportLevel.NONE    (0)
+        '''
+        
+        # If the level is a ReportLevel, just set it
+        if isinstance(level, ReportLevel):
+            cls.output_level = level
+            # Bridge to logging (lazy import to avoid cycles)
+            try:
+                import OCDocker.Toolbox.Logging as oclogging  # type: ignore
+                oclogging.set_level_from_report(level)  # type: ignore
+            except (ImportError, AttributeError):
+                # Ignore if logging module is not available
+                pass
+        elif isinstance(level, int):
+            # If the level is an int, check if it is valid
+            if level >= ReportLevel.NONE and level <= ReportLevel.DEBUG:
+                cls.output_level = ReportLevel(level)
+                try:
+                    import OCDocker.Toolbox.Logging as oclogging  # type: ignore
+                    oclogging.set_level_from_report(ReportLevel(level))  # type: ignore
+                except (ImportError, AttributeError):
+                    # Ignore if logging module is not available
+                    pass
+            else:
+                raise ValueError(f"Invalid output level: {level}.")
+        else:
+            raise TypeError(f"Invalid type for output level: {type(level)}.")
+
+
+    # Class attributes
+    output_level = ReportLevel.INFO
+
+    color = {
+        ReportLevel.INFO: "\033[1;96m",
+        ReportLevel.SUCCESS: "\033[1;92m",
+        ReportLevel.WARNING: "\033[1;93m",
+        ReportLevel.ERROR: "\033[1;91m",
+        ReportLevel.DEBUG: "\033[1;95m",
+    }
+
+
+
+
+
+
+
+

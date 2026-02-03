@@ -19,14 +19,13 @@ It exposes high-level functions:
 
 # Imports
 ###############################################################################
-
 from __future__ import annotations
 
-from typing import Iterable, Optional, Sequence, Union
-
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
+
+from typing import Iterable, Optional, Sequence, Union
 
 
 # License
@@ -46,67 +45,13 @@ to formal authorization from UFRJ. See the LICENSE file for details.
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
 
-
-# Helpers
+# Classes
 ###############################################################################
 
 
-def _strength_from_v(v: float) -> str:
-    '''
-    Map Cramér's V value to a qualitative strength label.
-
-    Parameters
-    ----------
-    v : float
-        Cramér's V statistic value.
-
-    Returns
-    -------
-    str
-        One of: 'unknown', 'none', 'weak', 'moderate', 'strong', 'very strong'.
-    '''
-
-    if pd.isna(v):
-        return "unknown"
-    if v < 0.10:
-        return "none"
-    if v < 0.20:
-        return "weak"
-    if v < 0.30:
-        return "moderate"
-    if v < 0.50:
-        return "strong"
-    return "very strong"
-
-
-def _strength_from_nbs_norm(nbs_norm: float, thresholds: Sequence[float] = (0.10, 0.20, 0.35)) -> str:
-    '''
-    Bucketize |NBS_norm| into qualitative strength classes.
-
-    Parameters
-    ----------
-    nbs_norm : float
-        Net Benefit Score normalized to [-1, 1].
-    thresholds : Sequence[float]
-        Cutoffs applied to |NBS_norm| to define 'weak', 'moderate', 'strong'.
-
-    Returns
-    -------
-    str
-        One of: 'none', 'weak', 'moderate', 'strong', 'very strong'.
-    '''
-
-    a = abs(float(nbs_norm))
-    if a == 0:
-        return "none"
-    if a < thresholds[0]:
-        return "weak"
-    if a < thresholds[1]:
-        return "moderate"
-    if a < thresholds[2]:
-        return "strong"
-    return "very strong"
-
+# Functions
+###############################################################################
+## Private ##
 
 def _beneficial_categories(metric: str, categories: Iterable[str], custom: Optional[Iterable[str]] = None) -> set[str]:
     '''
@@ -140,6 +85,29 @@ def _beneficial_categories(metric: str, categories: Iterable[str], custom: Optio
         k = len(cats)
         good = set(cats[k // 2 :])
     return good if good else set(cats[-max(1, len(cats) // 2) :])
+
+
+def _net_benefit(delta: pd.Series, beneficial: set[str]) -> float:
+    '''
+    Compute Net Benefit Score in [-1, 1] from Δp and beneficial categories.
+
+    Parameters
+    ----------
+    delta : pd.Series
+        Δp per category (output of _proportion_delta).
+    beneficial : set[str]
+        Set of categories deemed beneficial.
+
+    Returns
+    -------
+    float
+        Net Benefit Score (NBS).
+    '''
+
+    idx = delta.index.astype(str)
+    good = [c for c in idx if c in beneficial]
+    bad = [c for c in idx if c not in beneficial]
+    return float(delta[good].sum() - delta[bad].sum())
 
 
 def _proportion_delta(contingency: pd.DataFrame, presence_level: Union[int, str] = 1) -> pd.Series:
@@ -179,36 +147,64 @@ def _proportion_delta(contingency: pd.DataFrame, presence_level: Union[int, str]
     return (props.loc[k1] - props.loc[k0]).astype(float)
 
 
-def _net_benefit(delta: pd.Series, beneficial: set[str]) -> float:
+def _strength_from_nbs_norm(nbs_norm: float, thresholds: Sequence[float] = (0.10, 0.20, 0.35)) -> str:
     '''
-    Compute Net Benefit Score in [-1, 1] from Δp and beneficial categories.
+    Bucketize |NBS_norm| into qualitative strength classes.
 
     Parameters
     ----------
-    delta : pd.Series
-        Δp per category (output of _proportion_delta).
-    beneficial : set[str]
-        Set of categories deemed beneficial.
+    nbs_norm : float
+        Net Benefit Score normalized to [-1, 1].
+    thresholds : Sequence[float]
+        Cutoffs applied to |NBS_norm| to define 'weak', 'moderate', 'strong'.
 
     Returns
     -------
-    float
-        Net Benefit Score (NBS).
+    str
+        One of: 'none', 'weak', 'moderate', 'strong', 'very strong'.
     '''
 
-    idx = delta.index.astype(str)
-    good = [c for c in idx if c in beneficial]
-    bad = [c for c in idx if c not in beneficial]
-    return float(delta[good].sum() - delta[bad].sum())
+    a = abs(float(nbs_norm))
+    if a == 0:
+        return "none"
+    if a < thresholds[0]:
+        return "weak"
+    if a < thresholds[1]:
+        return "moderate"
+    if a < thresholds[2]:
+        return "strong"
+    return "very strong"
 
 
+def _strength_from_v(v: float) -> str:
+    '''
+    Map Cramér's V value to a qualitative strength label.
+
+    Parameters
+    ----------
+    v : float
+        Cramér's V statistic value.
+
+    Returns
+    -------
+    str
+        One of: 'unknown', 'none', 'weak', 'moderate', 'strong', 'very strong'.
+    '''
+
+    if pd.isna(v):
+        return "unknown"
+    if v < 0.10:
+        return "none"
+    if v < 0.20:
+        return "weak"
+    if v < 0.30:
+        return "moderate"
+    if v < 0.50:
+        return "strong"
+    return "very strong"
 
 
-
-
-# Public API
-###############################################################################
-
+## Public ##
 
 def build_impact_overview(
     chi_df: pd.DataFrame,
@@ -442,3 +438,13 @@ def plot_impact_arrows_inline_labels(
     if outpath:
         plt.savefig(outpath, dpi=300)
         plt.close()
+
+
+# Public API
+###############################################################################
+
+
+
+
+
+

@@ -12,16 +12,8 @@ import OCDocker.OCScore.Analysis.Plotting.Colouring as ocstatcolour
 
 # Imports
 ###############################################################################
-
-import seaborn as sns
 import pandas as pd
-
-
-
-try:
-    import colorcet as cc  # optional
-except Exception:  # pragma: no cover
-    cc = None
+import seaborn as sns
 
 # License
 ###############################################################################
@@ -43,8 +35,16 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 
-# Methods
+# Functions
 ###############################################################################
+## Private ##
+
+try:
+    import colorcet as cc  # optional
+except Exception:  # pragma: no cover
+    cc = None
+
+## Public ##
 
 
 def set_color_mapping(df: pd.DataFrame, palette_colour: str = "glasbey") -> dict[str, tuple[float, float, float]]:

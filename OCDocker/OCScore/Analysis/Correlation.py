@@ -13,15 +13,38 @@ import OCDocker.OCScore.Analysis.Correlation as occorrana
 
 # Imports
 ###############################################################################
-
-import pandas as pd
 import matplotlib.pyplot as plt
+import pandas as pd
 import seaborn as sns
 
 from typing import Optional
 
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
+###############################################################################
+
+
 # Functions
 ###############################################################################
+## Private ##
+
+## Public ##
 
 
 def correlation_analysis(

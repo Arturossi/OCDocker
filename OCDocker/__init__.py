@@ -29,7 +29,7 @@ Modules
 '''
 
 # Keep in sync with pyproject.toml
-__version__ = "0.11.1"
+__version__ = "0.12.5"
 
 # Public API: main package doesn't export modules directly
 # Users should import from subpackages: e.g., `import OCDocker.Ligand as ocl`

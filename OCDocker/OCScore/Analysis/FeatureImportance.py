@@ -16,37 +16,53 @@ Public API:
 - shap_importance_table
 '''
 
+# Imports
+###############################################################################
 from __future__ import annotations
-import OCDocker.Error as ocerror
-
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
+
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
+
+import OCDocker.Error as ocerror
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+__all__ = [
+    "build_stratified_background",
+    "compute_shap_values",
+    "make_explainer",
+    "shap_importance_table",
+]
+
+# Classes
+###############################################################################
+
+
+# Functions
+###############################################################################
+## Private ##
 
 try:
     import shap
 except Exception as e:  # pragma: no cover
     shap = None  # Deferred error: raised when functions are called
-
-
-__all__ = [
-    "build_stratified_background",
-    "make_explainer",
-    "compute_shap_values",
-    "shap_importance_table",
-]
-
-
-# --------------------------------------------------------------------------------------
-# Helpers
-# --------------------------------------------------------------------------------------
-def _require_shap() -> None:
-    '''Require shap to be installed.'''
-    
-    if shap is None:
-        raise ImportError("shap is not installed. Please install `shap` to use Test2SHAP utilities.")
-
 
 def _ensure_2d(X: Union[np.ndarray, pd.DataFrame]) -> np.ndarray:
     '''Guarantee 2D float64 array without copying unnecessarily.
@@ -70,9 +86,15 @@ def _ensure_2d(X: Union[np.ndarray, pd.DataFrame]) -> np.ndarray:
     return X.astype(float, copy=False)
 
 
-# --------------------------------------------------------------------------------------
-# Background selection
-# --------------------------------------------------------------------------------------
+def _require_shap() -> None:
+    '''Require shap to be installed.'''
+    
+    if shap is None:
+        raise ImportError("shap is not installed. Please install `shap` to use Test2SHAP utilities.")
+
+
+## Public ##
+
 def build_stratified_background(
     X: Union[np.ndarray, pd.DataFrame],
     meta: pd.DataFrame,
@@ -120,9 +142,73 @@ def build_stratified_background(
     return X_arr[idxs]
 
 
-# --------------------------------------------------------------------------------------
-# Explainer selection
-# --------------------------------------------------------------------------------------
+def compute_shap_values(
+    explainer: Any,
+    X_eval: Union[np.ndarray, pd.DataFrame],
+    task: str = "binary",
+    nsamples: Optional[Union[int, str]] = "auto",
+    class_index: int = 1,
+) -> Dict[str, np.ndarray]:
+    '''Compute SHAP values for the evaluation set.
+
+    Parameters
+    ----------
+    explainer : Any
+        SHAP explainer object.
+    X_eval : Union[np.ndarray, pd.DataFrame]
+        Evaluation dataset.
+    task : str, optional
+        Task type. Default is "binary".
+    nsamples : Optional[Union[int, str]], optional
+        Number of samples for KernelExplainer. Ignored by Tree/Deep explainers when not applicable.
+        Default is "auto".
+    class_index : int, optional
+        For binary classification with explainers returning per-class arrays (list),
+        select this class index. Default is 1.
+
+    Returns
+    -------
+    Dict[str, np.ndarray]
+        Dictionary with keys:
+        - "shap_values": (n_samples, n_features) array
+        - "base_values": (n_samples,) or scalar
+    '''
+
+    _require_shap()
+    X_eval_arr = _ensure_2d(X_eval)
+
+    # Some explainers expose .shap_values (callable) with optional nsamples
+    try:
+        vals = explainer.shap_values(X_eval_arr, nsamples=nsamples)  # KernelExplainer accepts nsamples
+    except TypeError:
+        vals = explainer.shap_values(X_eval_arr)  # Tree/Deep
+
+    # Align output shape
+    if isinstance(vals, list):
+        # Per-class outputs; choose the desired class (binary: index 1)
+        vals_use = np.asarray(vals[class_index], dtype=float)
+    else:
+        vals_use = np.asarray(vals, dtype=float)
+
+    base = getattr(explainer, "expected_value", 0.0)
+    if isinstance(base, (list, tuple, np.ndarray)):
+        # Per-class base values; align with class_index if present
+        if len(np.atleast_1d(base)) > class_index:
+            base_val = np.atleast_1d(base)[class_index]
+        else:
+            base_val = np.atleast_1d(base).ravel()[0]
+    else:
+        base_val = float(base)
+
+    # Some explainers return per-sample base values; broadcast if needed
+    if np.ndim(base_val) == 0:
+        base_values = np.full(X_eval_arr.shape[0], float(base_val), dtype=float)
+    else:
+        base_values = np.asarray(base_val, dtype=float)
+
+    return {"shap_values": vals_use, "base_values": base_values}
+
+
 def make_explainer(
     model: Any,
     background: np.ndarray,
@@ -200,79 +286,6 @@ def make_explainer(
     return explainer, proba_idx
 
 
-# --------------------------------------------------------------------------------------
-# SHAP computation
-# --------------------------------------------------------------------------------------
-def compute_shap_values(
-    explainer: Any,
-    X_eval: Union[np.ndarray, pd.DataFrame],
-    task: str = "binary",
-    nsamples: Optional[Union[int, str]] = "auto",
-    class_index: int = 1,
-) -> Dict[str, np.ndarray]:
-    '''Compute SHAP values for the evaluation set.
-
-    Parameters
-    ----------
-    explainer : Any
-        SHAP explainer object.
-    X_eval : Union[np.ndarray, pd.DataFrame]
-        Evaluation dataset.
-    task : str, optional
-        Task type. Default is "binary".
-    nsamples : Optional[Union[int, str]], optional
-        Number of samples for KernelExplainer. Ignored by Tree/Deep explainers when not applicable.
-        Default is "auto".
-    class_index : int, optional
-        For binary classification with explainers returning per-class arrays (list),
-        select this class index. Default is 1.
-
-    Returns
-    -------
-    Dict[str, np.ndarray]
-        Dictionary with keys:
-        - "shap_values": (n_samples, n_features) array
-        - "base_values": (n_samples,) or scalar
-    '''
-
-    _require_shap()
-    X_eval_arr = _ensure_2d(X_eval)
-
-    # Some explainers expose .shap_values (callable) with optional nsamples
-    try:
-        vals = explainer.shap_values(X_eval_arr, nsamples=nsamples)  # KernelExplainer accepts nsamples
-    except TypeError:
-        vals = explainer.shap_values(X_eval_arr)  # Tree/Deep
-
-    # Align output shape
-    if isinstance(vals, list):
-        # Per-class outputs; choose the desired class (binary: index 1)
-        vals_use = np.asarray(vals[class_index], dtype=float)
-    else:
-        vals_use = np.asarray(vals, dtype=float)
-
-    base = getattr(explainer, "expected_value", 0.0)
-    if isinstance(base, (list, tuple, np.ndarray)):
-        # Per-class base values; align with class_index if present
-        if len(np.atleast_1d(base)) > class_index:
-            base_val = np.atleast_1d(base)[class_index]
-        else:
-            base_val = np.atleast_1d(base).ravel()[0]
-    else:
-        base_val = float(base)
-
-    # Some explainers return per-sample base values; broadcast if needed
-    if np.ndim(base_val) == 0:
-        base_values = np.full(X_eval_arr.shape[0], float(base_val), dtype=float)
-    else:
-        base_values = np.asarray(base_val, dtype=float)
-
-    return {"shap_values": vals_use, "base_values": base_values}
-
-
-# --------------------------------------------------------------------------------------
-# Importance tables
-# --------------------------------------------------------------------------------------
 def shap_importance_table(
     shap_values: np.ndarray,
     feature_names: Optional[Sequence[str]] = None,
@@ -309,3 +322,12 @@ def shap_importance_table(
         df = df.reset_index(drop=True)
 
     return df
+
+
+# Explainer selection
+
+
+# SHAP computation
+
+
+# Importance tables
