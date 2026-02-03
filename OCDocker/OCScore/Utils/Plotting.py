@@ -14,9 +14,9 @@ import OCDocker.OCScore.Utils.Plotting as ocscoreplot
 # Imports
 ###############################################################################
 
+import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
-import matplotlib.pyplot as plt
 
 from scipy.cluster.hierarchy import leaves_list, linkage
 from sklearn.metrics import auc, roc_curve
@@ -42,8 +42,11 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 
-# Methods
+# Functions
 ###############################################################################
+## Private ##
+
+## Public ##
 
 def plot_correlation_similarity(df1 : pd.DataFrame, df2 : pd.DataFrame, columns : list = [], annot : bool = True, fontsize : Optional[float] = None, normalize : bool = True) -> None:
     ''' Plots the similarity of correlation matrices from two DataFrames.

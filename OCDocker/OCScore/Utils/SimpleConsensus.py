@@ -13,8 +13,8 @@ import OCDocker.OCScore.Utils.SimpleConsensus as ocsimple
 # Imports
 ###############################################################################
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from sklearn.metrics import auc, mean_squared_error, roc_curve
 
@@ -39,59 +39,11 @@ This project is licensed under Creative Commons (CC-BY-4.0).
 # Classes
 ###############################################################################
 
-# Methods
+# Functions
 ###############################################################################
+## Private ##
 
-
-def simple_consensus(
-        data : pd.DataFrame,
-        score_columns : list[str]
-    ) -> pd.DataFrame:
-    ''' Perform the consensus calculation for the given dataset. The metrics are: mean, median, max, min, std, variance, sum, range, 25th and 75th percentiles, kurtoisis, skewness.
-
-    Parameters
-    ----------
-    data : pd.DataFrame
-        The DataFrame containing the dataset.
-    score_columns : list[str]
-        The list of columns containing the scores.
-
-    Returns
-    -------
-    pd.DataFrame
-        The DataFrame containing the combined metrics.
-    '''
-
-    # Create a DataFrame to store the combined metrics
-    df = pd.DataFrame()
-
-    # For each row in the DataFrame, calculate the combined metric (mean, median, max, min, std, variance, sum, range, 25th and 75th percentiles, kurtoisis, skewness)
-    df['mean'] = data[score_columns].mean(axis = 1)
-    df['median'] = data[score_columns].median(axis = 1)
-    df['max'] = data[score_columns].max(axis = 1)
-    df['min'] = data[score_columns].min(axis = 1)
-    df['std'] = data[score_columns].std(axis = 1)
-    df['variance'] = data[score_columns].var(axis = 1)
-    df['sum'] = data[score_columns].sum(axis = 1)
-    df['range'] = data[score_columns].max(axis = 1) - data[score_columns].min(axis = 1)
-    df['quantile_25'] = data[score_columns].quantile(0.25, axis = 1)
-    df['quantile_75'] = data[score_columns].quantile(0.75, axis = 1)
-    df['iqr'] = df['quantile_75'] - df['quantile_25']
-    df['skewness'] = data[score_columns].skew(axis = 1)
-    df['kurtosis'] = data[score_columns].kurtosis(axis = 1)
-    
-    # If the experimental column is present in input dataframe
-    if 'experimental' in data.columns:
-        # Add the experimental column to the stats DataFrame
-        df['experimental'] = data['experimental']
-
-    # If the type column is present in input dataframe
-    if 'type' in data.columns:
-        # Add the type column to the stats DataFrame
-        df['type'] = data['type']
-
-    return df
-
+## Public ##
 
 def perform_simple_consensus(
         df_path : str,
@@ -159,3 +111,53 @@ def perform_simple_consensus(
         ocprint.printv(f"The rows with error smaller than the threshold of {threshold}:\n{final_df[final_df['Error'] < threshold]}")
 
     return final_df
+
+
+def simple_consensus(
+        data : pd.DataFrame,
+        score_columns : list[str]
+    ) -> pd.DataFrame:
+    ''' Perform the consensus calculation for the given dataset. The metrics are: mean, median, max, min, std, variance, sum, range, 25th and 75th percentiles, kurtoisis, skewness.
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        The DataFrame containing the dataset.
+    score_columns : list[str]
+        The list of columns containing the scores.
+
+    Returns
+    -------
+    pd.DataFrame
+        The DataFrame containing the combined metrics.
+    '''
+
+    # Create a DataFrame to store the combined metrics
+    df = pd.DataFrame()
+
+    # For each row in the DataFrame, calculate the combined metric (mean, median, max, min, std, variance, sum, range, 25th and 75th percentiles, kurtoisis, skewness)
+    df['mean'] = data[score_columns].mean(axis = 1)
+    df['median'] = data[score_columns].median(axis = 1)
+    df['max'] = data[score_columns].max(axis = 1)
+    df['min'] = data[score_columns].min(axis = 1)
+    df['std'] = data[score_columns].std(axis = 1)
+    df['variance'] = data[score_columns].var(axis = 1)
+    df['sum'] = data[score_columns].sum(axis = 1)
+    df['range'] = data[score_columns].max(axis = 1) - data[score_columns].min(axis = 1)
+    df['quantile_25'] = data[score_columns].quantile(0.25, axis = 1)
+    df['quantile_75'] = data[score_columns].quantile(0.75, axis = 1)
+    df['iqr'] = df['quantile_75'] - df['quantile_25']
+    df['skewness'] = data[score_columns].skew(axis = 1)
+    df['kurtosis'] = data[score_columns].kurtosis(axis = 1)
+    
+    # If the experimental column is present in input dataframe
+    if 'experimental' in data.columns:
+        # Add the experimental column to the stats DataFrame
+        df['experimental'] = data['experimental']
+
+    # If the type column is present in input dataframe
+    if 'type' in data.columns:
+        # Add the type column to the stats DataFrame
+        df['type'] = data['type']
+
+    return df

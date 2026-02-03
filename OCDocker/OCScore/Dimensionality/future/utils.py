@@ -9,10 +9,11 @@
 
 from __future__ import annotations
 
-from typing import Dict
+import torch
 
 import numpy as np
-import torch
+
+from typing import Dict
 
 # License
 ###############################################################################
@@ -31,8 +32,37 @@ to formal authorization from UFRJ. See the LICENSE file for details.
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
 
-# Methods
+# Classes
 ###############################################################################
+
+
+# Functions
+###############################################################################
+## Private ##
+
+def _rankdata(values: np.ndarray) -> np.ndarray:
+    '''Compute rank data for Spearman correlation.
+
+    Parameters
+    ----------
+    values : np.ndarray
+        Input array.
+
+    Returns
+    -------
+    np.ndarray
+        Rank-transformed array.
+    '''
+
+    order = np.argsort(values)
+    # Ranks are zero-based; ties are not specially handled (consistent ordering).
+    ranks = np.empty_like(order, dtype=float)
+    ranks[order] = np.arange(len(values), dtype=float)
+    return ranks
+
+
+## Public ##
+
 def apply_noise(
         inputs: torch.Tensor,
         noise_type: str = "none",
@@ -87,6 +117,41 @@ def apply_noise(
     return x
 
 
+def embedding_stats(embeddings: np.ndarray, collapse_threshold: float = 1e-6) -> Dict[str, object]:
+    '''Compute basic embedding statistics.
+
+    Parameters
+    ----------
+    embeddings : np.ndarray
+        Embedding matrix (N, D).
+    collapse_threshold : float, optional
+        Variance threshold to define collapsed dimensions, by default 1e-6.
+
+    Returns
+    -------
+    Dict[str, object]
+        Dictionary with variance, collapse rate, and mean norm.
+    '''
+
+    if embeddings.size == 0:
+        return {
+            "variance": [],
+            "collapse_rate": 0.0,
+            "mean_norm": 0.0
+        }
+
+    var = np.var(embeddings, axis=0)
+    # Collapse rate captures fraction of near-zero variance dimensions.
+    collapse_rate = float(np.mean(var < collapse_threshold))
+    mean_norm = float(np.mean(np.linalg.norm(embeddings, axis=1)))
+
+    return {
+        "variance": var.tolist(),
+        "collapse_rate": collapse_rate,
+        "mean_norm": mean_norm
+    }
+
+
 def ramp_weight(
         target: float,
         epoch: int,
@@ -124,27 +189,6 @@ def ramp_weight(
     return float(target) * progress
 
 
-def _rankdata(values: np.ndarray) -> np.ndarray:
-    '''Compute rank data for Spearman correlation.
-
-    Parameters
-    ----------
-    values : np.ndarray
-        Input array.
-
-    Returns
-    -------
-    np.ndarray
-        Rank-transformed array.
-    '''
-
-    order = np.argsort(values)
-    # Ranks are zero-based; ties are not specially handled (consistent ordering).
-    ranks = np.empty_like(order, dtype=float)
-    ranks[order] = np.arange(len(values), dtype=float)
-    return ranks
-
-
 def spearman_corr(x: np.ndarray, y: np.ndarray) -> float:
     '''Compute Spearman correlation (rank-based Pearson).
 
@@ -174,39 +218,3 @@ def spearman_corr(x: np.ndarray, y: np.ndarray) -> float:
 
     denom = np.sqrt(np.sum(rx ** 2) * np.sum(ry ** 2)) + 1e-8
     return float(np.sum(rx * ry) / denom)
-
-
-def embedding_stats(embeddings: np.ndarray, collapse_threshold: float = 1e-6) -> Dict[str, object]:
-    '''Compute basic embedding statistics.
-
-    Parameters
-    ----------
-    embeddings : np.ndarray
-        Embedding matrix (N, D).
-    collapse_threshold : float, optional
-        Variance threshold to define collapsed dimensions, by default 1e-6.
-
-    Returns
-    -------
-    Dict[str, object]
-        Dictionary with variance, collapse rate, and mean norm.
-    '''
-
-    if embeddings.size == 0:
-        return {
-            "variance": [],
-            "collapse_rate": 0.0,
-            "mean_norm": 0.0
-        }
-
-    var = np.var(embeddings, axis=0)
-    # Collapse rate captures fraction of near-zero variance dimensions.
-    collapse_rate = float(np.mean(var < collapse_threshold))
-    mean_norm = float(np.mean(np.linalg.norm(embeddings, axis=1)))
-
-    return {
-        "variance": var.tolist(),
-        "collapse_rate": collapse_rate,
-        "mean_norm": mean_norm
-    }
-

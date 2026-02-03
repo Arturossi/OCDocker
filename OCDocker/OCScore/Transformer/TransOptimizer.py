@@ -19,17 +19,14 @@ import torch
 
 import numpy as np
 import pandas as pd
-
 import torch.nn as nn
 import torch.nn.init as init
 import torch.optim as optim
 
 from optuna.samplers import TPESampler
 from sklearn.metrics import auc, roc_curve
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader, Dataset
 from typing import Union
-
-
 
 import OCDocker.Toolbox.Printing as ocprint
 
@@ -56,6 +53,22 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 class CustomDataset(Dataset):
     ''' Create a custom dataset for the PyTorch DataLoader. '''
+    def __getitem__(self, idx: int) -> tuple:
+        ''' Get the item at the index.
+
+        Parameters
+        ----------
+        idx : int
+            The index.
+
+        Returns
+        -------
+        tuple
+            The features and the target.
+        '''
+        
+        return self.features[idx], self.target[idx]
+
     def __init__(self, features: list, target: list) -> None:
         ''' Initialize the dataset.
         
@@ -84,22 +97,6 @@ class CustomDataset(Dataset):
 
 
         return len(self.features)
-
-    def __getitem__(self, idx: int) -> tuple:
-        ''' Get the item at the index.
-
-        Parameters
-        ----------
-        idx : int
-            The index.
-
-        Returns
-        -------
-        tuple
-            The features and the target.
-        '''
-        
-        return self.features[idx], self.target[idx]
 
 
 class TransformerModel(nn.Module):
@@ -238,6 +235,53 @@ class TransformerModel(nn.Module):
 
             ocprint.printv(self) # type: ignore
 
+    def forward(self, src : torch.Tensor) -> torch.Tensor:
+        ''' Forward pass through the model.
+
+        Parameters
+        ----------
+        src : torch.Tensor
+            The input tensor.
+        '''
+
+        # Embed the input
+        src = self.embedding(src) * np.sqrt(self.d_model)
+
+        # Add a normalization layer
+        src = self.norm(src)
+
+        # Pass through Transformer encoder
+        output = self.transformer_encoder(src)
+
+        # Apply final linear layer
+        output = self.fc_out(output)  # This uses the complete feature vector
+
+        return output
+
+    def initialize_weights(self) -> None:
+        ''' Initialize the weights of the model. '''
+
+        # If init_type is defined in the init_functions, use it
+        if self.init_type in self.init_functions.keys():
+            init_func = self.init_functions[self.init_type]
+        else:
+            # User-facing error: invalid initialization function
+            ocerror.Error.value_error(f"Unknown initialization function: '{self.init_type}'") # type: ignore
+            raise ValueError('Unknown initialization function')
+
+        # Apply the initialization to all linear layers in the model
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                if self.init_type in ['zeros', 'ones', 'eye']:
+                    init_func(m.weight)
+                elif self.init_type in ['constant']:
+                    init_func(m.weight, **self.init_params)
+                else:
+                    init_func(m.weight, **self.init_params, generator = self.generator)
+                if m.bias is not None:
+
+                    init.zeros_(m.bias)
+
     def set_random_seed(self) -> torch.Generator:
         ''' Set the random seed for reproducibility. '''
 
@@ -266,53 +310,6 @@ class TransformerModel(nn.Module):
         torch.backends.cudnn.deterministic = True
 
         return generator
-
-    def initialize_weights(self) -> None:
-        ''' Initialize the weights of the model. '''
-
-        # If init_type is defined in the init_functions, use it
-        if self.init_type in self.init_functions.keys():
-            init_func = self.init_functions[self.init_type]
-        else:
-            # User-facing error: invalid initialization function
-            ocerror.Error.value_error(f"Unknown initialization function: '{self.init_type}'") # type: ignore
-            raise ValueError('Unknown initialization function')
-
-        # Apply the initialization to all linear layers in the model
-        for m in self.modules():
-            if isinstance(m, nn.Linear):
-                if self.init_type in ['zeros', 'ones', 'eye']:
-                    init_func(m.weight)
-                elif self.init_type in ['constant']:
-                    init_func(m.weight, **self.init_params)
-                else:
-                    init_func(m.weight, **self.init_params, generator = self.generator)
-                if m.bias is not None:
-
-                    init.zeros_(m.bias)
-
-    def forward(self, src : torch.Tensor) -> torch.Tensor:
-        ''' Forward pass through the model.
-
-        Parameters
-        ----------
-        src : torch.Tensor
-            The input tensor.
-        '''
-
-        # Embed the input
-        src = self.embedding(src) * np.sqrt(self.d_model)
-
-        # Add a normalization layer
-        src = self.norm(src)
-
-        # Pass through Transformer encoder
-        output = self.transformer_encoder(src)
-
-        # Apply final linear layer
-        output = self.fc_out(output)  # This uses the complete feature vector
-
-        return output
 
 
 class Transformer(nn.Module):
@@ -415,6 +412,17 @@ class Transformer(nn.Module):
         if verbose:
 
             ocprint.printv(self.trans) # type: ignore
+
+    def get_model(self) -> nn.Module:
+        ''' Get the model.
+
+        Returns
+        -------
+        nn.Module
+            The model.
+        '''
+
+        return self.trans
 
     def set_random_seed(self) -> None:
         '''Set the random seed for the Autoencoder. It is used to set the random seed for the Autoencoder.'''
@@ -629,18 +637,6 @@ class Transformer(nn.Module):
 
         return True
 
-    def get_model(self) -> nn.Module:
-        ''' Get the model.
-
-        Returns
-        -------
-        nn.Module
-            The model.
-        '''
-
-        return self.trans
-
-
 class TransOptimizer:
     ''' Class to optimize the Transformer model using Optuna.
 
@@ -757,142 +753,6 @@ class TransOptimizer:
         # Set the storage for the Optuna study
 
         self.storage = storage
-
-    def set_random_seed(self) -> None:
-        ''' Set the random seed for the Autoencoder. It is used to set the random seed for the Autoencoder.'''
-
-        # Set the random seed for numpy and random
-        np.random.seed(self.random_seed)
-        random.seed(self.random_seed)
-
-        # Set the seed for CPU in torch
-        torch.manual_seed(self.random_seed)
-
-        # If using GPU, set the seed for GPU as well in torch
-        if self.use_gpu:
-
-            torch.cuda.manual_seed_all(self.random_seed)
-
-    def train_test_model(self,
-                         model : nn.Module,
-                         train_loader : DataLoader,
-                         test_loader : DataLoader,
-                         optimizer : optim.Optimizer,
-                         criterion : nn.Module,
-                         clip_grad : float,
-                         trial : optuna.Trial,
-                         batch_size : int,
-                         epochs : int = 100
-                        ) -> float:
-        ''' Train and test the model.
-
-        Parameters
-        ----------
-        model : nn.Module
-            The model to train and test.
-        train_loader : DataLoader
-            The training data loader.
-        test_loader : DataLoader
-            The test data loader.
-        optimizer : optim.Optimizer
-            The optimizer to use.
-        criterion : nn.Module
-            The loss function to use.
-        clip_grad : float
-            The gradient clipping value.
-        trial : optuna.Trial
-            The Optuna trial object.
-        batch_size : int
-            The batch size to use.
-        epochs : int, optional
-            The number of epochs to train for (default is 100).
-
-        Returns
-        -------
-        float
-            The RMSE of the model on the test set.
-        '''
-
-        # If verbose, set the autograd to detect anomalies        
-        if self.verbose:
-            # Set the autograd to detect anomalies
-            torch.autograd.set_detect_anomaly(True) # type: ignore
-            
-        # For each epoch
-        for epoch in range(epochs):
-            # Set the model to training mode
-            model.train()
-
-            # Set the running loss to 0            
-            running_loss = 0.0
-
-            # For each batch in the training loader
-            for _, (inputs, labels) in enumerate(train_loader):
-                outputs = model(inputs)
-
-                # Ensure the labels are of the correct type (float for regression)
-                labels = labels.float()
-                
-                # Compute the loss
-                loss = criterion(outputs, labels.view_as(outputs))
-
-                # Zero the gradients
-                optimizer.zero_grad()
-
-                # Backward pass
-                loss.backward()
-
-                # Clip the gradients
-                nn.utils.clip_grad_norm_(model.parameters(), clip_grad)
-
-                # Optimizer step
-                optimizer.step()
-
-                # Accumulate the loss
-                running_loss = running_loss + loss.item()
-
-            # Set the model to evaluation mode
-            model.eval()
-
-            # Set the running loss to 0.0
-            running_loss = 0.0
-
-            # Set the predictions and labels to empty lists
-            all_predictions = []
-            all_labels = []
-
-            # For each element in the test loader
-            for inputs, labels in test_loader:
-                # Get the predictions
-                predicted = model(inputs)
-
-                # Compute the loss
-                loss = criterion(predicted, labels.view_as(outputs))
-
-                # Accumulate the loss
-                running_loss = running_loss + loss.item()
-                
-                # Append the predictions and the labels
-                all_predictions.extend(predicted.cpu().detach().numpy())
-                all_labels.extend(labels.cpu().detach().numpy())
-
-        # Compute the average loss
-        average_loss = running_loss / len(test_loader) # type: ignore
-
-        # Compute the RMSE
-        rmse = np.sqrt(average_loss)
-
-        # If verbose, print some data to the user
-        if self.verbose:
-            ocprint.printv(f'Test Loss: {average_loss}')
-            ocprint.printv(f'Test RMSE: {rmse}')
-
-        # Handle pruning based on the intermediate value.
-        if trial.should_prune():
-            raise optuna.exceptions.TrialPruned()
-
-
-        return rmse
 
     def objective(self, trial : optuna.Trial) -> float:
         ''' Objective function for the Optuna study.
@@ -1085,3 +945,146 @@ class TransOptimizer:
             ocprint.printv(f"Best Hyperparameters: {best_params}")
 
         return best_params
+
+    def set_random_seed(self) -> None:
+        ''' Set the random seed for the Autoencoder. It is used to set the random seed for the Autoencoder.'''
+
+        # Set the random seed for numpy and random
+        np.random.seed(self.random_seed)
+        random.seed(self.random_seed)
+
+        # Set the seed for CPU in torch
+        torch.manual_seed(self.random_seed)
+
+        # If using GPU, set the seed for GPU as well in torch
+        if self.use_gpu:
+
+            torch.cuda.manual_seed_all(self.random_seed)
+
+    def train_test_model(self,
+                         model : nn.Module,
+                         train_loader : DataLoader,
+                         test_loader : DataLoader,
+                         optimizer : optim.Optimizer,
+                         criterion : nn.Module,
+                         clip_grad : float,
+                         trial : optuna.Trial,
+                         batch_size : int,
+                         epochs : int = 100
+                        ) -> float:
+        ''' Train and test the model.
+
+        Parameters
+        ----------
+        model : nn.Module
+            The model to train and test.
+        train_loader : DataLoader
+            The training data loader.
+        test_loader : DataLoader
+            The test data loader.
+        optimizer : optim.Optimizer
+            The optimizer to use.
+        criterion : nn.Module
+            The loss function to use.
+        clip_grad : float
+            The gradient clipping value.
+        trial : optuna.Trial
+            The Optuna trial object.
+        batch_size : int
+            The batch size to use.
+        epochs : int, optional
+            The number of epochs to train for (default is 100).
+
+        Returns
+        -------
+        float
+            The RMSE of the model on the test set.
+        '''
+
+        # If verbose, set the autograd to detect anomalies        
+        if self.verbose:
+            # Set the autograd to detect anomalies
+            torch.autograd.set_detect_anomaly(True) # type: ignore
+            
+        # For each epoch
+        for epoch in range(epochs):
+            # Set the model to training mode
+            model.train()
+
+            # Set the running loss to 0            
+            running_loss = 0.0
+
+            # For each batch in the training loader
+            for _, (inputs, labels) in enumerate(train_loader):
+                outputs = model(inputs)
+
+                # Ensure the labels are of the correct type (float for regression)
+                labels = labels.float()
+                
+                # Compute the loss
+                loss = criterion(outputs, labels.view_as(outputs))
+
+                # Zero the gradients
+                optimizer.zero_grad()
+
+                # Backward pass
+                loss.backward()
+
+                # Clip the gradients
+                nn.utils.clip_grad_norm_(model.parameters(), clip_grad)
+
+                # Optimizer step
+                optimizer.step()
+
+                # Accumulate the loss
+                running_loss = running_loss + loss.item()
+
+            # Set the model to evaluation mode
+            model.eval()
+
+            # Set the running loss to 0.0
+            running_loss = 0.0
+
+            # Set the predictions and labels to empty lists
+            all_predictions = []
+            all_labels = []
+
+            # For each element in the test loader
+            for inputs, labels in test_loader:
+                # Get the predictions
+                predicted = model(inputs)
+
+                # Compute the loss
+                loss = criterion(predicted, labels.view_as(outputs))
+
+                # Accumulate the loss
+                running_loss = running_loss + loss.item()
+                
+                # Append the predictions and the labels
+                all_predictions.extend(predicted.cpu().detach().numpy())
+                all_labels.extend(labels.cpu().detach().numpy())
+
+        # Compute the average loss
+        average_loss = running_loss / len(test_loader) # type: ignore
+
+        # Compute the RMSE
+        rmse = np.sqrt(average_loss)
+
+        # If verbose, print some data to the user
+        if self.verbose:
+            ocprint.printv(f'Test Loss: {average_loss}')
+            ocprint.printv(f'Test RMSE: {rmse}')
+
+        # Handle pruning based on the intermediate value.
+        if trial.should_prune():
+            raise optuna.exceptions.TrialPruned()
+
+
+        return rmse
+
+
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##

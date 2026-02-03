@@ -16,15 +16,14 @@ import OCDocker.OCScore.Utils.IO as ocscoreio
 
 import joblib
 import os
-import pandas as pd
 import pickle
+
 import numpy as np
+import pandas as pd
 
 from typing import Any, Optional, Union
 
 import OCDocker.Error as ocerror
-
-
 
 # License
 ###############################################################################
@@ -46,68 +45,41 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 
-# Methods
+# Functions
 ###############################################################################
+## Private ##
 
+## Public ##
 
-def load_object(file_name : str, serialization_method : str = "auto") -> Any:
-    ''' Load an object from a file using pickle, joblib, or torch.
-
-    Security
-    --------
-    Only load serialized files from trusted sources. Pickle/joblib deserialization
-    can execute arbitrary code if the file is malicious or untrusted.
-
-    Parameters
-    ----------
-    file_name : str
-        The name of the file from which to load the object.
-    serialization_method : str
-        The serialization method used to save the object. Options are:
-        - "auto": Automatically detect from file extension (.pt/.pth -> torch, .pkl -> joblib/pickle)
-        - "joblib": Use joblib to load
-        - "pickle": Use pickle to load
-        - "torch": Use torch.load to load (for PyTorch models)
-
+def get_models_dir() -> str:
+    ''' Get the path to the OCScore models directory.
+    
+    This directory is used to store models and masks that are shipped with the code.
+    The directory is located at the project root level (same level as ODDT_models),
+    separate from the code folder. The directory is created if it doesn't exist.
+    
     Returns
     -------
-    Any
-        The loaded object.
-    
-    Raises
-    ------
-    ValueError
-        If the serialization method is not recognized.
+    str
+        Path to the models directory.
     '''
-
-    # Auto-detect format from file extension if "auto" is specified
-    if serialization_method == "auto":
-        if file_name.endswith('.pt') or file_name.endswith('.pth'):
-            serialization_method = "torch"
-        elif file_name.endswith('.pkl'):
-            serialization_method = "joblib"  # Default to joblib for .pkl
-        else:
-            # Default to joblib for unknown extensions
-            serialization_method = "joblib"
-
-    # Load based on method
-    if serialization_method == "torch":
-        try:
-            import torch
-            # Explicitly set weights_only=False to suppress FutureWarning
-            # This is safe for trusted model files
-            return torch.load(file_name, map_location='cpu', weights_only=False)
-        except ImportError:
-            ocerror.Error.value_error("PyTorch is not installed. Cannot load .pt/.pth files.") # type: ignore
-            raise ValueError("PyTorch is not installed. Cannot load .pt/.pth files.")
-    elif serialization_method == "joblib":
-        return joblib.load(file_name)
-    elif serialization_method == "pickle":
-        with open(file_name, 'rb') as file:
-            return pickle.load(file)
-    else:
-        ocerror.Error.value_error(f"Invalid serialization method: '{serialization_method}'. Must be 'auto', 'joblib', 'pickle', or 'torch'.") # type: ignore
-        raise ValueError(f"Invalid serialization method: '{serialization_method}'. Must be 'auto', 'joblib', 'pickle', or 'torch'.")
+    
+    # Get the directory where this module is located
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    # Go up to OCScore directory
+    ocscore_dir = os.path.dirname(current_dir)
+    # Go up to OCDocker package directory
+    ocdocker_dir = os.path.dirname(ocscore_dir)
+    # Go up to project root (where ODDT_models is located)
+    project_root = os.path.dirname(ocdocker_dir)
+    # Create models directory path at project root
+    models_dir = os.path.join(project_root, "OCScore_models")
+    
+    # Create directory if it doesn't exist
+    if not os.path.isdir(models_dir):
+        os.makedirs(models_dir, exist_ok=True)
+    
+    return models_dir
 
 
 def load_data(file_name : str, exclude_column : str = 'experimental') -> pd.DataFrame:
@@ -148,134 +120,6 @@ def load_data(file_name : str, exclude_column : str = 'experimental') -> pd.Data
         df = df.dropna(subset=columns_to_check)
     
     return df
-
-
-def save_object(obj : Any, filename : str, serialization_method : str = "auto") -> None:
-    ''' Save an object to a file using pickle, joblib, or torch.
-
-    Parameters
-    ----------
-    obj : Any
-        The object to be saved.
-    filename : str
-        The name of the file where the object will be stored.
-    serialization_method : str
-        The serialization method to use. Options are:
-        - "auto": Automatically detect from file extension (.pt/.pth -> torch, .pkl -> joblib)
-        - "joblib": Use joblib to save (recommended for sklearn models, XGBoost)
-        - "pickle": Use pickle to save
-        - "torch": Use torch.save to save (for PyTorch models)
-    '''
-
-    # Auto-detect format from file extension if "auto" is specified
-    if serialization_method == "auto":
-        if filename.endswith('.pt') or filename.endswith('.pth'):
-            serialization_method = "torch"
-        elif filename.endswith('.pkl'):
-            serialization_method = "joblib"  # Default to joblib for .pkl
-        else:
-            # Default to joblib for unknown extensions
-            serialization_method = "joblib"
-
-    # Save based on method
-    if serialization_method == "torch":
-        try:
-            import torch
-            torch.save(obj, filename)
-        except ImportError:
-            ocerror.Error.value_error("PyTorch is not installed. Cannot save .pt/.pth files.") # type: ignore
-            raise ValueError("PyTorch is not installed. Cannot save .pt/.pth files.")
-    elif serialization_method == "joblib":
-        joblib.dump(obj, filename)
-    elif serialization_method == "pickle":
-        with open(filename, 'wb') as file:
-            pickle.dump(obj, file)
-    else:
-        ocerror.Error.value_error(f"Invalid serialization method: '{serialization_method}'. Must be 'auto', 'joblib', 'pickle', or 'torch'.") # type: ignore
-        raise ValueError(f"Invalid serialization method: '{serialization_method}'. Must be 'auto', 'joblib', 'pickle', or 'torch'.")
-
-    return None
-
-
-def get_models_dir() -> str:
-    ''' Get the path to the OCScore models directory.
-    
-    This directory is used to store models and masks that are shipped with the code.
-    The directory is located at the project root level (same level as ODDT_models),
-    separate from the code folder. The directory is created if it doesn't exist.
-    
-    Returns
-    -------
-    str
-        Path to the models directory.
-    '''
-    
-    # Get the directory where this module is located
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    # Go up to OCScore directory
-    ocscore_dir = os.path.dirname(current_dir)
-    # Go up to OCDocker package directory
-    ocdocker_dir = os.path.dirname(ocscore_dir)
-    # Go up to project root (where ODDT_models is located)
-    project_root = os.path.dirname(ocdocker_dir)
-    # Create models directory path at project root
-    models_dir = os.path.join(project_root, "OCScore_models")
-    
-    # Create directory if it doesn't exist
-    if not os.path.isdir(models_dir):
-        os.makedirs(models_dir, exist_ok=True)
-    
-    return models_dir
-
-
-def save_mask(mask: Union[list, np.ndarray], name: str, models_dir: Optional[str] = None) -> str:
-    ''' Save a mask to a file in the models directory.
-    
-    Parameters
-    ----------
-    mask : list | np.ndarray
-        The mask array of 0s and 1s to save.
-    name : str
-        Name for the mask file (without extension). The file will be saved as
-        '{name}_mask.pkl' in the models directory.
-    models_dir : str, optional
-        Custom directory to save the mask. If None, uses the default OCScore
-        models directory. Default is None.
-    
-    Returns
-    -------
-    str
-        Path to the saved mask file.
-    
-    Raises
-    ------
-    ValueError
-        If the mask is not a valid array of 0s and 1s.
-    '''
-    
-    # Convert mask to numpy array
-    mask_array = np.asarray(mask, dtype=int)
-    
-    # Validate mask contains only 0s and 1s
-    if not np.all((mask_array == 0) | (mask_array == 1)):
-        ocerror.Error.value_error("Mask must contain only 0s and 1s.") # type: ignore
-        raise ValueError("Mask must contain only 0s and 1s.")
-    
-    # Get models directory
-    if models_dir is None:
-        models_dir = get_models_dir()
-    else:
-        # Ensure the custom directory exists
-        if not os.path.isdir(models_dir):
-            os.makedirs(models_dir, exist_ok=True)
-    
-    # Create filename
-    filename = os.path.join(models_dir, f"{name}_mask.pkl")
-    
-    # Save the mask
-    save_object(mask_array, filename)
-    
-    return filename
 
 
 def load_mask(name: str, models_dir: Optional[str] = None) -> np.ndarray:
@@ -351,3 +195,160 @@ def load_mask(name: str, models_dir: Optional[str] = None) -> np.ndarray:
         raise ValueError("Loaded mask must contain only 0s and 1s.")
     
     return mask_array
+def load_object(file_name : str, serialization_method : str = "auto") -> Any:
+    ''' Load an object from a file using pickle, joblib, or torch.
+
+    Security
+    --------
+    Only load serialized files from trusted sources. Pickle/joblib deserialization
+    can execute arbitrary code if the file is malicious or untrusted.
+
+    Parameters
+    ----------
+    file_name : str
+        The name of the file from which to load the object.
+    serialization_method : str
+        The serialization method used to save the object. Options are:
+        - "auto": Automatically detect from file extension (.pt/.pth -> torch, .pkl -> joblib/pickle)
+        - "joblib": Use joblib to load
+        - "pickle": Use pickle to load
+        - "torch": Use torch.load to load (for PyTorch models)
+
+    Returns
+    -------
+    Any
+        The loaded object.
+    
+    Raises
+    ------
+    ValueError
+        If the serialization method is not recognized.
+    '''
+
+    # Auto-detect format from file extension if "auto" is specified
+    if serialization_method == "auto":
+        if file_name.endswith('.pt') or file_name.endswith('.pth'):
+            serialization_method = "torch"
+        elif file_name.endswith('.pkl'):
+            serialization_method = "joblib"  # Default to joblib for .pkl
+        else:
+            # Default to joblib for unknown extensions
+            serialization_method = "joblib"
+
+    # Load based on method
+    if serialization_method == "torch":
+        try:
+            import torch
+            # Explicitly set weights_only=False to suppress FutureWarning
+            # This is safe for trusted model files
+            return torch.load(file_name, map_location='cpu', weights_only=False)
+        except ImportError:
+            ocerror.Error.value_error("PyTorch is not installed. Cannot load .pt/.pth files.") # type: ignore
+            raise ValueError("PyTorch is not installed. Cannot load .pt/.pth files.")
+    elif serialization_method == "joblib":
+        return joblib.load(file_name)
+    elif serialization_method == "pickle":
+        with open(file_name, 'rb') as file:
+            return pickle.load(file)
+    else:
+        ocerror.Error.value_error(f"Invalid serialization method: '{serialization_method}'. Must be 'auto', 'joblib', 'pickle', or 'torch'.") # type: ignore
+        raise ValueError(f"Invalid serialization method: '{serialization_method}'. Must be 'auto', 'joblib', 'pickle', or 'torch'.")
+
+
+def save_mask(mask: Union[list, np.ndarray], name: str, models_dir: Optional[str] = None) -> str:
+    ''' Save a mask to a file in the models directory.
+    
+    Parameters
+    ----------
+    mask : list | np.ndarray
+        The mask array of 0s and 1s to save.
+    name : str
+        Name for the mask file (without extension). The file will be saved as
+        '{name}_mask.pkl' in the models directory.
+    models_dir : str, optional
+        Custom directory to save the mask. If None, uses the default OCScore
+        models directory. Default is None.
+    
+    Returns
+    -------
+    str
+        Path to the saved mask file.
+    
+    Raises
+    ------
+    ValueError
+        If the mask is not a valid array of 0s and 1s.
+    '''
+    
+    # Convert mask to numpy array
+    mask_array = np.asarray(mask, dtype=int)
+    
+    # Validate mask contains only 0s and 1s
+    if not np.all((mask_array == 0) | (mask_array == 1)):
+        ocerror.Error.value_error("Mask must contain only 0s and 1s.") # type: ignore
+        raise ValueError("Mask must contain only 0s and 1s.")
+    
+    # Get models directory
+    if models_dir is None:
+        models_dir = get_models_dir()
+    else:
+        # Ensure the custom directory exists
+        if not os.path.isdir(models_dir):
+            os.makedirs(models_dir, exist_ok=True)
+    
+    # Create filename
+    filename = os.path.join(models_dir, f"{name}_mask.pkl")
+    
+    # Save the mask
+    save_object(mask_array, filename)
+    
+    return filename
+
+
+def save_object(obj : Any, filename : str, serialization_method : str = "auto") -> None:
+    ''' Save an object to a file using pickle, joblib, or torch.
+
+    Parameters
+    ----------
+    obj : Any
+        The object to be saved.
+    filename : str
+        The name of the file where the object will be stored.
+    serialization_method : str
+        The serialization method to use. Options are:
+        - "auto": Automatically detect from file extension (.pt/.pth -> torch, .pkl -> joblib)
+        - "joblib": Use joblib to save (recommended for sklearn models, XGBoost)
+        - "pickle": Use pickle to save
+        - "torch": Use torch.save to save (for PyTorch models)
+    '''
+
+    # Auto-detect format from file extension if "auto" is specified
+    if serialization_method == "auto":
+        if filename.endswith('.pt') or filename.endswith('.pth'):
+            serialization_method = "torch"
+        elif filename.endswith('.pkl'):
+            serialization_method = "joblib"  # Default to joblib for .pkl
+        else:
+            # Default to joblib for unknown extensions
+            serialization_method = "joblib"
+
+    # Save based on method
+    if serialization_method == "torch":
+        try:
+            import torch
+            torch.save(obj, filename)
+        except ImportError:
+            ocerror.Error.value_error("PyTorch is not installed. Cannot save .pt/.pth files.") # type: ignore
+            raise ValueError("PyTorch is not installed. Cannot save .pt/.pth files.")
+    elif serialization_method == "joblib":
+        joblib.dump(obj, filename)
+    elif serialization_method == "pickle":
+        with open(filename, 'wb') as file:
+            pickle.dump(obj, file)
+    else:
+        ocerror.Error.value_error(f"Invalid serialization method: '{serialization_method}'. Must be 'auto', 'joblib', 'pickle', or 'torch'.") # type: ignore
+        raise ValueError(f"Invalid serialization method: '{serialization_method}'. Must be 'auto', 'joblib', 'pickle', or 'torch'.")
+
+    return None
+
+

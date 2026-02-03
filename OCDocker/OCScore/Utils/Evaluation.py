@@ -20,8 +20,6 @@ import pandas as pd
 from sklearn.metrics import auc, mean_squared_error, roc_curve
 from typing import Union
 
-
-
 import OCDocker.OCScore.Utils.Data as ocscoredata
 
 # License
@@ -44,8 +42,11 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 
-# Methods
+# Functions
 ###############################################################################
+## Private ##
+
+## Public ##
 
 def compute_auc(
         df : pd.DataFrame,

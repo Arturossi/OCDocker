@@ -18,18 +18,16 @@ import itertools
 import math
 import os
 
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
-from sklearn.model_selection import train_test_split
-from typing import Any, Union, Optional
-
 import numpy as np
 import pandas as pd
 
-# No config needed - OCScore modules
+from sklearn.decomposition import PCA
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from typing import Any, Optional, Union
 
-import OCDocker.OCScore.Utils.IO as ocscoreio
 import OCDocker.Error as ocerror
+import OCDocker.OCScore.Utils.IO as ocscoreio
 
 # License
 ###############################################################################
@@ -51,8 +49,12 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 
-# Methods
+# Functions
 ###############################################################################
+## Private ##
+
+## Public ##
+
 def apply_pca(df : pd.DataFrame, pca_model : Union[str, PCA], columns_to_skip_pca : list[str] = [], inplace : bool = False) -> Union[None, pd.DataFrame]:
     ''' Applies PCA to a DataFrame using a pre-trained PCA model.
 
@@ -170,6 +172,41 @@ def calculate_metrics(df : pd.DataFrame, selected_columns : list) -> tuple[pd.Da
     return df, ["mean", "median", "max", "min", "std", "variance", "sum", "range", "quantile_25", "quantile_75", "iqr", "skewness", "kurtosis"]
 
 
+def chunkenize_dataset(data : Union[list[Any], np.ndarray, pd.DataFrame], id : int, num_machines : int) -> Union[list[Any], np.ndarray, pd.DataFrame]:
+    '''
+    Split a dataset in multiple chunks.
+
+    Parameters
+    ----------
+    data : list[Any] | np.ndarray | pd.DataFrame
+        The dataset to split (can be a list, numpy array, or pandas DataFrame).
+    id : int
+        The ID of the current machine (1-based index).
+    num_machines : int
+        The total number of machines (integer).
+
+    Returns
+    -------
+    list[Any] | np.ndarray | pd.Dataframe
+        A subset of the data that corresponds to the given id.
+    '''
+    
+    # Sanity checks
+    if id < 1 or id > num_machines:
+        # User-facing error: invalid id parameter value
+        ocerror.Error.value_error(f"Invalid id: {id}. It should be between 1 and {num_machines}.") # type: ignore
+        raise ValueError(f"Invalid id. It should be between 1 and {num_machines}.")
+    
+    # Calculate the size of each chunk
+    total_data_size = len(data)
+    chunk_size = math.ceil(total_data_size / num_machines)
+    
+    # Calculate the start and end indices for the id
+    start_idx = (id - 1) * chunk_size
+    end_idx = min(start_idx + chunk_size, total_data_size)
+    
+    # Return the corresponding chunk of data removing empty elements
+    return data[start_idx:end_idx]
 def compute_zscore(df : pd.DataFrame, columns : list) -> pd.DataFrame:
     ''' Computes the z-score for the specified columns in a DataFrame.
 
@@ -198,6 +235,163 @@ def compute_zscore(df : pd.DataFrame, columns : list) -> pd.DataFrame:
     zscore_df[["z_" + s for s in columns]] = (zscore_df[columns] - zscore_df[columns].mean()) / zscore_df[columns].std()
 
     return zscore_df
+
+
+def detect_extreme_outliers_iqr_columns_positive(df : pd.DataFrame, columns : list[str], extreme_factor : float = 3.0) -> dict:
+    ''' Detects extreme outliers in specified columns of a DataFrame using the IQR method.
+
+    Parameters
+    ----------
+    df: pd.DataFrame
+        Input DataFrame.
+    columns: list[str]
+        List of columns to check for extreme outliers.
+    extreme_factor: float, optional
+        The factor to determine extreme outliers. The default is 3.0.
+       
+    Returns
+    -------
+    dict
+        Dictionary containing the extreme outliers for each specified column.
+    '''
+
+    # Initialize a dictionary to store extreme outliers for each specified column
+    extreme_outliers_dict = {}
+    
+    # Loop through the specified columns
+    for column in columns:
+        if column in df.select_dtypes(include=['float64', 'int64']).columns:
+            # Calculate Q1 (25th percentile) and Q3 (75th percentile)
+            Q1 = df[column].quantile(0.25)
+            Q3 = df[column].quantile(0.75)
+            IQR = Q3 - Q1
+
+            # Define the extreme outlier upper bound
+            upper_bound = Q3 + extreme_factor * IQR
+
+            # Filter rows where the value is an extreme outlier and is positive
+            extreme_outliers = df[(df[column] > upper_bound) & (df[column] > 0)]
+            
+            # Store extreme outliers for this column
+            extreme_outliers_dict[column] = extreme_outliers
+
+    return extreme_outliers_dict
+
+
+def generate_mask(column_names : Union[list[str], pd.Index], score_columns : list[str]) -> list[np.ndarray]:
+    '''
+    Generates masks with combinations of 0s and 1s for columns that match a regex pattern.
+    Columns that don't match the regex are filled with 1s.
+
+    Parameters
+    ----------
+    column_names : list[str] | pd.Index
+        A list of strings, pandas series or pandas index representing column names.
+    score_columns : list[str]
+        Column names that should have combinations of 0s and 1s.
+
+    Returns
+    -------
+        list[np.ndarray]
+            A list of numpy arrays, where columns matching the regex pattern 
+            have combinations of 0s and 1s, and columns that don't match are filled with 1s.
+    '''
+
+    # Identify the indices of the columns that match the list
+    matching_indices = [i for i, name in enumerate(column_names) if name in score_columns]
+    
+    # Number of total columns and the columns to apply combinations to
+    total_elements = len(column_names)
+    num_combinations_elements = len(matching_indices)
+    
+    # Generate all possible combinations of 0s and 1s for the matching columns
+    combinations = itertools.product([0, 1], repeat=num_combinations_elements)
+    
+    # Prepare the list to store results
+    results = []
+    
+    # For each combination, fill the matching columns with 0s/1s and the rest with 1s
+    for combination in combinations:
+        # Start with all 1s
+        arr = np.ones(total_elements, dtype=int)
+        
+        # Set the matching columns to the current combination of 0s/1s
+        for idx, value in zip(matching_indices, combination):
+            arr[idx] = value
+        
+        # Append this mask to the results
+        results.append(arr)
+    
+    return results
+
+
+def get_column_order(data: Optional[Union[str, pd.DataFrame]] = None) -> list[str]:
+    '''Get the column order from a data source (file path or DataFrame) or from config.
+    
+    This function extracts the column order from either a file path, an existing
+    DataFrame, or from the config file if no data source is provided. This ensures
+    consistency with the order used during model training. This is critical for
+    proper mask application and feature alignment.
+    
+    Parameters
+    ----------
+    data : str | pd.DataFrame | None, optional
+        Either:
+        - A file path (CSV or gzipped CSV) to load column order from
+        - A pandas DataFrame to extract column order from
+        - None to use the column order from config (default: None)
+    
+    Returns
+    -------
+    list[str]
+        List of column names in the exact order they appear in the data source or config.
+    
+    Raises
+    ------
+    FileNotFoundError
+        If data is a string path and the file is not found.
+    TypeError
+        If data is neither a string, DataFrame, nor None.
+    ValueError
+        If data is None and config does not have reference_column_order set.
+    '''
+    
+    # If no data provided, try to get from config
+    if data is None:
+        try:
+            from OCDocker.Config import get_config
+            config = get_config()
+            if config.paths.reference_column_order:
+                return list(config.paths.reference_column_order)
+            else:
+                ocerror.Error.value_error("No data source provided and 'reference_column_order' not set in config file.") # type: ignore
+                raise ValueError("No data source provided and 'reference_column_order' not set in config file. Please provide a data source or set 'reference_column_order' in OCDocker.cfg")
+        except (ImportError, AttributeError) as e:
+            ocerror.Error.value_error(f"Could not load config: {e}. Please provide a data source.") # type: ignore
+            raise ValueError(f"Could not load config: {e}. Please provide a data source.")
+    
+    if isinstance(data, pd.DataFrame):
+        # Extract column order directly from DataFrame
+        return list(data.columns)
+    elif isinstance(data, str):
+        # Load column order from file
+        if not os.path.isfile(data):
+            ocerror.Error.file_not_exist(f"Data file not found: {data}") # type: ignore
+            raise FileNotFoundError(f"Data file not found: {data}")
+        
+        # Load just the header to get column order
+        try:
+            df = pd.read_csv(data, compression='infer', nrows=0)
+        except Exception as e:
+            # Fallback: try loading with ocscoreio
+            df = ocscoreio.load_data(data)
+            if len(df) > 0:
+                df = df.iloc[:0]  # Keep only column structure
+        
+        return list(df.columns)
+    else:
+        ocerror.Error.value_error(f"Invalid data type: {type(data)}. Expected str (file path), pd.DataFrame, or None.") # type: ignore
+        raise TypeError(f"Invalid data type: {type(data)}. Expected str (file path), pd.DataFrame, or None.")
 
 
 def invert_values_conditionally(df : pd.DataFrame, regex_pattern : str = r"^(VINA|SMINA|PLANTS).*|^experimental$", inplace : bool = False) -> Optional[pd.DataFrame]:
@@ -482,119 +676,6 @@ def norm_data(df : pd.DataFrame, scaler : Union[str, StandardScaler, MinMaxScale
         return df_copy
 
 
-def remove_other_columns(df : pd.DataFrame, columns_to_keep : list, inplace : bool = False) -> Union[Any, pd.DataFrame]:
-    ''' Removes columns from a DataFrame that are not in the specified list.
-
-    Parameters
-    ----------
-    df: pd.DataFrame
-        Input DataFrame.
-    columns_to_keep: list
-        List of columns to keep.
-    inplace: bool
-        If True, the original DataFrame is modified. If False, a new DataFrame is returned.
-
-    Returns
-    -------
-    pd.DataFrame
-        DataFrame with only the specified columns.
-    '''
-
-    # Check if the specified columns are present in the DataFrame
-    for col in columns_to_keep:
-        if col not in df.columns:
-            # User-facing error: missing required data in DataFrame
-            ocerror.Error.data_not_found(f"Column '{col}' not found in DataFrame") # type: ignore
-            raise ValueError(f"Column {col} not found in DataFrame")
-
-    if inplace:
-        # Remove columns that are not in the specified list
-        df.drop(columns = df.columns.difference(columns_to_keep), axis = 1, inplace = True)
-        return df
-    
-    # Create a copy of the DataFrame
-    df_copy = df.copy()
-
-    # Remove columns that are not in the specified list
-    df_copy.drop(columns = df_copy.columns.difference(columns_to_keep), axis = 1, inplace = True)
-
-    return df_copy
-
-
-def detect_extreme_outliers_iqr_columns_positive(df : pd.DataFrame, columns : list[str], extreme_factor : float = 3.0) -> dict:
-    ''' Detects extreme outliers in specified columns of a DataFrame using the IQR method.
-
-    Parameters
-    ----------
-    df: pd.DataFrame
-        Input DataFrame.
-    columns: list[str]
-        List of columns to check for extreme outliers.
-    extreme_factor: float, optional
-        The factor to determine extreme outliers. The default is 3.0.
-       
-    Returns
-    -------
-    dict
-        Dictionary containing the extreme outliers for each specified column.
-    '''
-
-    # Initialize a dictionary to store extreme outliers for each specified column
-    extreme_outliers_dict = {}
-    
-    # Loop through the specified columns
-    for column in columns:
-        if column in df.select_dtypes(include=['float64', 'int64']).columns:
-            # Calculate Q1 (25th percentile) and Q3 (75th percentile)
-            Q1 = df[column].quantile(0.25)
-            Q3 = df[column].quantile(0.75)
-            IQR = Q3 - Q1
-
-            # Define the extreme outlier upper bound
-            upper_bound = Q3 + extreme_factor * IQR
-
-            # Filter rows where the value is an extreme outlier and is positive
-            extreme_outliers = df[(df[column] > upper_bound) & (df[column] > 0)]
-            
-            # Store extreme outliers for this column
-            extreme_outliers_dict[column] = extreme_outliers
-
-    return extreme_outliers_dict
-
-
-def remove_extreme_outliers_iqr_columns_positive(df : pd.DataFrame, columns : list[str], extreme_factor : float = 3.0) -> pd.DataFrame:
-    ''' Removes rows with extreme outliers in specified columns of a DataFrame using the IQR method.
-
-    Parameters
-    ----------
-    df: pd.DataFrame
-        Input DataFrame.
-    columns: list[str]
-        List of columns to check for extreme outliers.
-    extreme_factor: float, optional
-        The factor to determine extreme outliers. The default is 3.0.
-
-    Returns
-    -------
-    pd.DataFrame
-        DataFrame with rows containing extreme outliers removed.
-    '''
-
-    # Get extreme outliers for the specified columns
-    extreme_outliers_dict = detect_extreme_outliers_iqr_columns_positive(df, columns, extreme_factor)
-    
-    # Get the indices of all rows that contain extreme outliers in any of the specified columns
-    outlier_indices = set()
-
-    for column, outliers_df in extreme_outliers_dict.items():
-        outlier_indices.update(outliers_df.index)
-
-    # Remove rows with extreme outliers by filtering out those indices
-    df_cleaned = df.drop(list(outlier_indices))
-    
-    return df_cleaned
-
-
 def preprocess_df(
     file_name : str, 
     score_columns_list : list[str] = ["SMINA", "VINA", "ODDT", "PLANTS"], 
@@ -676,150 +757,76 @@ def preprocess_df(
         return dudez_data, pdbbind_data, score_columns # type: ignore
 
 
-def split_dataset(X : pd.DataFrame, y : pd.Series, test_size : float = 0.2, random_state : int = 42) -> list[Any]:
-    ''' Split the data into training and testing sets.
+def remove_extreme_outliers_iqr_columns_positive(df : pd.DataFrame, columns : list[str], extreme_factor : float = 3.0) -> pd.DataFrame:
+    ''' Removes rows with extreme outliers in specified columns of a DataFrame using the IQR method.
 
     Parameters
     ----------
-    X : pd.DataFrame
-        The input features.
-    y : pd.Series
-        The target variable.
-    test_size : float, optional
-        The proportion of the dataset to include in the test split. The default is 0.2.
-    random_state : int, optional
-        The seed used by the random number generator. The default is 42.
+    df: pd.DataFrame
+        Input DataFrame.
+    columns: list[str]
+        List of columns to check for extreme outliers.
+    extreme_factor: float, optional
+        The factor to determine extreme outliers. The default is 3.0.
 
     Returns
     -------
-    X_train : pd.DataFrame
-        The training input features.
-    X_test : pd.DataFrame
-        The testing input features.
-    y_train : pd.Series
-        The training target variable.
-    y_test : pd.Series
-        The testing target variable.
+    pd.DataFrame
+        DataFrame with rows containing extreme outliers removed.
     '''
+
+    # Get extreme outliers for the specified columns
+    extreme_outliers_dict = detect_extreme_outliers_iqr_columns_positive(df, columns, extreme_factor)
     
-    # Split the data into training and testing sets
-    return train_test_split(X, y, test_size = test_size, random_state = random_state)
+    # Get the indices of all rows that contain extreme outliers in any of the specified columns
+    outlier_indices = set()
+
+    for column, outliers_df in extreme_outliers_dict.items():
+        outlier_indices.update(outliers_df.index)
+
+    # Remove rows with extreme outliers by filtering out those indices
+    df_cleaned = df.drop(list(outlier_indices))
+    
+    return df_cleaned
 
 
-def generate_mask(column_names : Union[list[str], pd.Index], score_columns : list[str]) -> list[np.ndarray]:
-    '''
-    Generates masks with combinations of 0s and 1s for columns that match a regex pattern.
-    Columns that don't match the regex are filled with 1s.
+def remove_other_columns(df : pd.DataFrame, columns_to_keep : list, inplace : bool = False) -> Union[Any, pd.DataFrame]:
+    ''' Removes columns from a DataFrame that are not in the specified list.
 
     Parameters
     ----------
-    column_names : list[str] | pd.Index
-        A list of strings, pandas series or pandas index representing column names.
-    score_columns : list[str]
-        Column names that should have combinations of 0s and 1s.
+    df: pd.DataFrame
+        Input DataFrame.
+    columns_to_keep: list
+        List of columns to keep.
+    inplace: bool
+        If True, the original DataFrame is modified. If False, a new DataFrame is returned.
 
     Returns
     -------
-        list[np.ndarray]
-            A list of numpy arrays, where columns matching the regex pattern 
-            have combinations of 0s and 1s, and columns that don't match are filled with 1s.
+    pd.DataFrame
+        DataFrame with only the specified columns.
     '''
 
-    # Identify the indices of the columns that match the list
-    matching_indices = [i for i, name in enumerate(column_names) if name in score_columns]
-    
-    # Number of total columns and the columns to apply combinations to
-    total_elements = len(column_names)
-    num_combinations_elements = len(matching_indices)
-    
-    # Generate all possible combinations of 0s and 1s for the matching columns
-    combinations = itertools.product([0, 1], repeat=num_combinations_elements)
-    
-    # Prepare the list to store results
-    results = []
-    
-    # For each combination, fill the matching columns with 0s/1s and the rest with 1s
-    for combination in combinations:
-        # Start with all 1s
-        arr = np.ones(total_elements, dtype=int)
-        
-        # Set the matching columns to the current combination of 0s/1s
-        for idx, value in zip(matching_indices, combination):
-            arr[idx] = value
-        
-        # Append this mask to the results
-        results.append(arr)
-    
-    return results
+    # Check if the specified columns are present in the DataFrame
+    for col in columns_to_keep:
+        if col not in df.columns:
+            # User-facing error: missing required data in DataFrame
+            ocerror.Error.data_not_found(f"Column '{col}' not found in DataFrame") # type: ignore
+            raise ValueError(f"Column {col} not found in DataFrame")
 
+    if inplace:
+        # Remove columns that are not in the specified list
+        df.drop(columns = df.columns.difference(columns_to_keep), axis = 1, inplace = True)
+        return df
+    
+    # Create a copy of the DataFrame
+    df_copy = df.copy()
 
-def get_column_order(data: Optional[Union[str, pd.DataFrame]] = None) -> list[str]:
-    '''Get the column order from a data source (file path or DataFrame) or from config.
-    
-    This function extracts the column order from either a file path, an existing
-    DataFrame, or from the config file if no data source is provided. This ensures
-    consistency with the order used during model training. This is critical for
-    proper mask application and feature alignment.
-    
-    Parameters
-    ----------
-    data : str | pd.DataFrame | None, optional
-        Either:
-        - A file path (CSV or gzipped CSV) to load column order from
-        - A pandas DataFrame to extract column order from
-        - None to use the column order from config (default: None)
-    
-    Returns
-    -------
-    list[str]
-        List of column names in the exact order they appear in the data source or config.
-    
-    Raises
-    ------
-    FileNotFoundError
-        If data is a string path and the file is not found.
-    TypeError
-        If data is neither a string, DataFrame, nor None.
-    ValueError
-        If data is None and config does not have reference_column_order set.
-    '''
-    
-    # If no data provided, try to get from config
-    if data is None:
-        try:
-            from OCDocker.Config import get_config
-            config = get_config()
-            if config.paths.reference_column_order:
-                return list(config.paths.reference_column_order)
-            else:
-                ocerror.Error.value_error("No data source provided and 'reference_column_order' not set in config file.") # type: ignore
-                raise ValueError("No data source provided and 'reference_column_order' not set in config file. Please provide a data source or set 'reference_column_order' in OCDocker.cfg")
-        except (ImportError, AttributeError) as e:
-            ocerror.Error.value_error(f"Could not load config: {e}. Please provide a data source.") # type: ignore
-            raise ValueError(f"Could not load config: {e}. Please provide a data source.")
-    
-    if isinstance(data, pd.DataFrame):
-        # Extract column order directly from DataFrame
-        return list(data.columns)
-    elif isinstance(data, str):
-        # Load column order from file
-        if not os.path.isfile(data):
-            ocerror.Error.file_not_exist(f"Data file not found: {data}") # type: ignore
-            raise FileNotFoundError(f"Data file not found: {data}")
-        
-        # Load just the header to get column order
-        try:
-            df = pd.read_csv(data, compression='infer', nrows=0)
-        except Exception as e:
-            # Fallback: try loading with ocscoreio
-            df = ocscoreio.load_data(data)
-            if len(df) > 0:
-                df = df.iloc[:0]  # Keep only column structure
-        
-        return list(df.columns)
-    else:
-        ocerror.Error.value_error(f"Invalid data type: {type(data)}. Expected str (file path), pd.DataFrame, or None.") # type: ignore
-        raise TypeError(f"Invalid data type: {type(data)}. Expected str (file path), pd.DataFrame, or None.")
+    # Remove columns that are not in the specified list
+    df_copy.drop(columns = df_copy.columns.difference(columns_to_keep), axis = 1, inplace = True)
+
+    return df_copy
 
 
 def reorder_columns_to_match_data_order(
@@ -901,38 +908,32 @@ def reorder_columns_to_match_data_order(
     return df_reordered
 
 
-def chunkenize_dataset(data : Union[list[Any], np.ndarray, pd.DataFrame], id : int, num_machines : int) -> Union[list[Any], np.ndarray, pd.DataFrame]:
-    '''
-    Split a dataset in multiple chunks.
+def split_dataset(X : pd.DataFrame, y : pd.Series, test_size : float = 0.2, random_state : int = 42) -> list[Any]:
+    ''' Split the data into training and testing sets.
 
     Parameters
     ----------
-    data : list[Any] | np.ndarray | pd.DataFrame
-        The dataset to split (can be a list, numpy array, or pandas DataFrame).
-    id : int
-        The ID of the current machine (1-based index).
-    num_machines : int
-        The total number of machines (integer).
+    X : pd.DataFrame
+        The input features.
+    y : pd.Series
+        The target variable.
+    test_size : float, optional
+        The proportion of the dataset to include in the test split. The default is 0.2.
+    random_state : int, optional
+        The seed used by the random number generator. The default is 42.
 
     Returns
     -------
-    list[Any] | np.ndarray | pd.Dataframe
-        A subset of the data that corresponds to the given id.
+    X_train : pd.DataFrame
+        The training input features.
+    X_test : pd.DataFrame
+        The testing input features.
+    y_train : pd.Series
+        The training target variable.
+    y_test : pd.Series
+        The testing target variable.
     '''
     
-    # Sanity checks
-    if id < 1 or id > num_machines:
-        # User-facing error: invalid id parameter value
-        ocerror.Error.value_error(f"Invalid id: {id}. It should be between 1 and {num_machines}.") # type: ignore
-        raise ValueError(f"Invalid id. It should be between 1 and {num_machines}.")
-    
-    # Calculate the size of each chunk
-    total_data_size = len(data)
-    chunk_size = math.ceil(total_data_size / num_machines)
-    
-    # Calculate the start and end indices for the id
-    start_idx = (id - 1) * chunk_size
-    end_idx = min(start_idx + chunk_size, total_data_size)
-    
-    # Return the corresponding chunk of data removing empty elements
-    return data[start_idx:end_idx]
+    # Split the data into training and testing sets
+    return train_test_split(X, y, test_size = test_size, random_state = random_state)
+

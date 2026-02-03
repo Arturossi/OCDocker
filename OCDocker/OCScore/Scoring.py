@@ -15,15 +15,17 @@ import OCDocker.OCScore.Scoring as ocscoring
 ###############################################################################
 
 import os
-from typing import Any, Union, Optional
+
 import numpy as np
 import pandas as pd
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
-import OCDocker.OCScore.Utils.IO as ocscoreio
-import OCDocker.OCScore.Utils.Data as ocscoredata
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from typing import Any, Optional, Union
+
 import OCDocker.Error as ocerror
+import OCDocker.OCScore.Utils.Data as ocscoredata
+import OCDocker.OCScore.Utils.IO as ocscoreio
 
 # License
 ###############################################################################
@@ -45,9 +47,11 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 
-# Methods
+# Functions
 ###############################################################################
+## Private ##
 
+## Public ##
 
 def get_score(
         model_path: str,

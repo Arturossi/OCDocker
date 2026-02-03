@@ -11,25 +11,23 @@ from OCDocker.OCScore.Dimensionality.future.AutoencoderOptimizer import Autoenco
 
 # Imports
 ###############################################################################
-
 from __future__ import annotations
 
 import copy
+import optuna
 import random
-from typing import Dict, Optional, Union
+import torch
 
 import numpy as np
 import pandas as pd
 
-import torch
-
-import optuna
 from optuna.samplers import TPESampler
+from typing import Dict, Optional, Union
 
 import OCDocker.Toolbox.Printing as ocprint
 
-from OCDocker.OCScore.Dimensionality.future.Autoencoder import Autoencoder
 from OCDocker.OCScore.Dimensionality.future.AETrainer import AETrainer
+from OCDocker.OCScore.Dimensionality.future.Autoencoder import Autoencoder
 
 # License
 ###############################################################################
@@ -265,23 +263,35 @@ class AutoencoderOptimizer:
 
         self.activation_functions = ["GELU", "LeakyReLU", "Mish", "ReLU", "SELU", "Identity"]
 
+    def _build_model(self, model_cfg: dict) -> Autoencoder:
+        '''Build Autoencoder model from configuration.
 
-    def set_random_seed(self) -> None:
-        '''Set random seeds for reproducibility.'''
+        Parameters
+        ----------
+        model_cfg : dict
+            Model configuration.
 
-        np.random.seed(self.random_seed)
-        random.seed(self.random_seed)
-        torch.manual_seed(self.random_seed)
+        Returns
+        -------
+        Autoencoder
+            Initialized autoencoder model.
+        '''
 
-        if self.use_gpu and torch.cuda.is_available():
-            self.device = torch.device('cuda')
-            torch.cuda.manual_seed_all(self.random_seed)
-        else:
-            self.device = torch.device('cpu')
-
-        torch.backends.cudnn.benchmark = False
-        torch.backends.cudnn.deterministic = True
-
+        return Autoencoder(
+            input_size=self.input_size,
+            encoder_hidden_sizes=model_cfg.get("encoder_hidden_sizes", []),
+            latent_dim=int(model_cfg.get("latent_dim", 64)),
+            decoder_sizes=model_cfg.get("decoder_sizes", None),
+            activation=model_cfg.get("activation", "GELU"),
+            latent_activation=model_cfg.get("latent_activation", "Identity"),
+            decoder_output_activation=model_cfg.get("decoder_output_activation", "Identity"),
+            dropout=float(model_cfg.get("dropout", 0.0)),
+            latent_dropout=float(model_cfg.get("latent_dropout", 0.0)),
+            norm=model_cfg.get("norm", "batch"),
+            use_vae=bool(model_cfg.get("use_vae", False)),
+            energy_head_sizes=model_cfg.get("energy_head_sizes", None),
+            device=self.device
+        )
 
     def _merge_config(self, future_config: Optional[dict]) -> dict:
         '''Merge default configuration with overrides.
@@ -392,59 +402,6 @@ class AutoencoderOptimizer:
 
         return merged
 
-
-    def _to_numpy(self, data: Union[None, np.ndarray, pd.DataFrame, pd.Series]) -> Optional[np.ndarray]:
-        '''Convert input data to numpy array.
-
-        Parameters
-        ----------
-        data : np.ndarray | pd.DataFrame | pd.Series | None
-            Input data.
-
-        Returns
-        -------
-        np.ndarray | None
-            Numpy array representation or None.
-        '''
-
-        if data is None:
-            return None
-        if isinstance(data, pd.DataFrame) or isinstance(data, pd.Series):
-            return data.values.astype(np.float32)
-        return np.asarray(data, dtype=np.float32)
-
-
-    def _build_model(self, model_cfg: dict) -> Autoencoder:
-        '''Build Autoencoder model from configuration.
-
-        Parameters
-        ----------
-        model_cfg : dict
-            Model configuration.
-
-        Returns
-        -------
-        Autoencoder
-            Initialized autoencoder model.
-        '''
-
-        return Autoencoder(
-            input_size=self.input_size,
-            encoder_hidden_sizes=model_cfg.get("encoder_hidden_sizes", []),
-            latent_dim=int(model_cfg.get("latent_dim", 64)),
-            decoder_sizes=model_cfg.get("decoder_sizes", None),
-            activation=model_cfg.get("activation", "GELU"),
-            latent_activation=model_cfg.get("latent_activation", "Identity"),
-            decoder_output_activation=model_cfg.get("decoder_output_activation", "Identity"),
-            dropout=float(model_cfg.get("dropout", 0.0)),
-            latent_dropout=float(model_cfg.get("latent_dropout", 0.0)),
-            norm=model_cfg.get("norm", "batch"),
-            use_vae=bool(model_cfg.get("use_vae", False)),
-            energy_head_sizes=model_cfg.get("energy_head_sizes", None),
-            device=self.device
-        )
-
-
     def _prepare_trial_config(self, trial: optuna.Trial) -> dict:
         '''Prepare trial-specific configuration.
 
@@ -500,6 +457,25 @@ class AutoencoderOptimizer:
 
         return cfg
 
+    def _to_numpy(self, data: Union[None, np.ndarray, pd.DataFrame, pd.Series]) -> Optional[np.ndarray]:
+        '''Convert input data to numpy array.
+
+        Parameters
+        ----------
+        data : np.ndarray | pd.DataFrame | pd.Series | None
+            Input data.
+
+        Returns
+        -------
+        np.ndarray | None
+            Numpy array representation or None.
+        '''
+
+        if data is None:
+            return None
+        if isinstance(data, pd.DataFrame) or isinstance(data, pd.Series):
+            return data.values.astype(np.float32)
+        return np.asarray(data, dtype=np.float32)
 
     def objective(self, trial: optuna.Trial) -> float:
         '''Objective function for Optuna optimization.
@@ -584,7 +560,6 @@ class AutoencoderOptimizer:
 
         return float(eval_val.get("combined_loss", eval_train.get("combined_loss", float("inf"))))
 
-
     def optimize(
             self,
             direction: str = "minimize",
@@ -642,3 +617,25 @@ class AutoencoderOptimizer:
                 ocprint.printv(f"    {key}: {value}")
 
         return study
+    def set_random_seed(self) -> None:
+        '''Set random seeds for reproducibility.'''
+
+        np.random.seed(self.random_seed)
+        random.seed(self.random_seed)
+        torch.manual_seed(self.random_seed)
+
+        if self.use_gpu and torch.cuda.is_available():
+            self.device = torch.device('cuda')
+            torch.cuda.manual_seed_all(self.random_seed)
+        else:
+            self.device = torch.device('cpu')
+
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = True
+
+
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##

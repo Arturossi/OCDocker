@@ -19,8 +19,8 @@ import pandas as pd
 
 from joblib import Parallel, delayed
 from multiprocessing import Pool
-from sklearn.model_selection import GroupShuffleSplit
 from sklearn.decomposition import PCA
+from sklearn.model_selection import GroupShuffleSplit
 from typing import Union
 
 import OCDocker.OCScore.Utils.Data as ocscoredata
@@ -48,36 +48,9 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 
-# Methods
+# Functions
 ###############################################################################
-
-
-def _prepare_features(df: pd.DataFrame, drop_cols: list[str]) -> pd.DataFrame:
-    return df.drop(columns=drop_cols, errors="ignore")
-
-
-def _split_dude_by_target(X: Union[pd.DataFrame, list[pd.DataFrame]], y: np.ndarray, targets: np.ndarray, val_fraction: float, random_seed: int) -> tuple[dict, dict]:
-    splitter = GroupShuffleSplit(n_splits=1, test_size=val_fraction, random_state=random_seed)
-    idx_train, idx_val = next(splitter.split(np.arange(len(y)), y, groups=targets))
-
-    def _sel(data, idx):
-        if isinstance(data, list):
-            return [d.iloc[idx] for d in data]
-        return data.iloc[idx]
-
-    train = {
-        "X": _sel(X, idx_train),
-        "y": y[idx_train],
-        "targets": targets[idx_train]
-    }
-    val = {
-        "X": _sel(X, idx_val),
-        "y": y[idx_val],
-        "targets": targets[idx_val]
-    }
-
-    return train, val
-
+## Private ##
 
 def _future_worker(
         pid: int,
@@ -131,6 +104,35 @@ def _future_worker(
     if verbose:
         ocprint.printv(f"[FutureNN] Process {pid} finished optimization")
 
+
+def _prepare_features(df: pd.DataFrame, drop_cols: list[str]) -> pd.DataFrame:
+    return df.drop(columns=drop_cols, errors="ignore")
+
+
+def _split_dude_by_target(X: Union[pd.DataFrame, list[pd.DataFrame]], y: np.ndarray, targets: np.ndarray, val_fraction: float, random_seed: int) -> tuple[dict, dict]:
+    splitter = GroupShuffleSplit(n_splits=1, test_size=val_fraction, random_state=random_seed)
+    idx_train, idx_val = next(splitter.split(np.arange(len(y)), y, groups=targets))
+
+    def _sel(data, idx):
+        if isinstance(data, list):
+            return [d.iloc[idx] for d in data]
+        return data.iloc[idx]
+
+    train = {
+        "X": _sel(X, idx_train),
+        "y": y[idx_train],
+        "targets": targets[idx_train]
+    }
+    val = {
+        "X": _sel(X, idx_val),
+        "y": y[idx_val],
+        "targets": targets[idx_val]
+    }
+
+    return train, val
+
+
+## Public ##
 
 def optimize_NN_future(
         df_path: str,

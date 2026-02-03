@@ -9,10 +9,11 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Tuple, Union
-
 import torch
+
 import torch.nn as nn
+
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 # License
 ###############################################################################
@@ -118,7 +119,6 @@ class MLP(nn.Module):
             prev = size
 
         self.net = nn.Sequential(*layers)
-
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         '''Forward pass through the MLP.
@@ -232,7 +232,6 @@ class EncoderModule(nn.Module):
         self.latent_activation = _build_activation(latent_activation, {})
         self.latent_dropout = nn.Dropout(latent_dropout) if latent_dropout > 0.0 else nn.Identity()
 
-
     def _encode_features(self, x: torch.Tensor) -> torch.Tensor:
         '''Encode inputs through the encoder body.
 
@@ -250,7 +249,6 @@ class EncoderModule(nn.Module):
         if self.encoder_body is None:
             return x
         return self.encoder_body(x)
-
 
     def _latent_transform(self, z: torch.Tensor) -> torch.Tensor:
         '''Apply normalization/activation to latent tensor.
@@ -271,29 +269,6 @@ class EncoderModule(nn.Module):
             z = self.latent_norm(z)
         z = self.latent_activation(z)
         return z
-
-
-    def reparameterize(self, mu: torch.Tensor, logvar: torch.Tensor) -> torch.Tensor:
-        '''Reparameterization trick for VAE.
-
-        Parameters
-        ----------
-        mu : torch.Tensor
-            Latent mean tensor.
-        logvar : torch.Tensor
-            Latent log-variance tensor.
-
-        Returns
-        -------
-        torch.Tensor
-            Sampled latent tensor.
-        '''
-
-        std = torch.exp(0.5 * logvar)
-        # Random noise ensures stochastic sampling from the posterior.
-        eps = torch.randn_like(std)
-        return mu + eps * std
-
 
     def forward(
             self,
@@ -336,6 +311,27 @@ class EncoderModule(nn.Module):
             return z, mu, logvar
 
         return z
+
+    def reparameterize(self, mu: torch.Tensor, logvar: torch.Tensor) -> torch.Tensor:
+        '''Reparameterization trick for VAE.
+
+        Parameters
+        ----------
+        mu : torch.Tensor
+            Latent mean tensor.
+        logvar : torch.Tensor
+            Latent log-variance tensor.
+
+        Returns
+        -------
+        torch.Tensor
+            Sampled latent tensor.
+        '''
+
+        std = torch.exp(0.5 * logvar)
+        # Random noise ensures stochastic sampling from the posterior.
+        eps = torch.randn_like(std)
+        return mu + eps * std
 
 
 class Autoencoder(nn.Module):
@@ -482,7 +478,6 @@ class Autoencoder(nn.Module):
 
         self.to(self.device)
 
-
     def encode(
             self,
             x: torch.Tensor,
@@ -507,28 +502,6 @@ class Autoencoder(nn.Module):
         '''
 
         return self.encoder(x, sample=sample, return_stats=return_stats)
-
-
-    def reconstruct(self, x: torch.Tensor, sample: bool = False) -> torch.Tensor:
-        '''Reconstruct inputs through the autoencoder.
-
-        Parameters
-        ----------
-        x : torch.Tensor
-            Input tensor.
-        sample : bool, optional
-            If True and VAE enabled, sample from posterior, by default False.
-
-        Returns
-        -------
-        torch.Tensor
-            Reconstructed tensor.
-        '''
-
-        z = self.encode(x, sample=sample)
-        z = self.encoder.latent_dropout(z)
-        return self.decoder(z)
-
 
     def forward(self, x: torch.Tensor, sample: bool = True) -> Dict[str, torch.Tensor]:
         '''Forward pass returning reconstruction and auxiliary outputs.
@@ -572,18 +545,15 @@ class Autoencoder(nn.Module):
             "energy": energy
         }
 
-
-    def get_encoder_topology(self) -> List[str]:
-        '''Return encoder topology description.
+    def get_decoder(self) -> nn.Module:
+        '''Return the decoder module.
 
         Returns
         -------
-        list[str]
-            Encoder topology tokens.
+        nn.Module
+            Decoder module.
         '''
-
-        return ["Linear", "Norm", "Activation"]
-
+        return self.decoder
 
     def get_decoder_topology(self) -> List[str]:
         '''Return decoder topology description.
@@ -596,7 +566,6 @@ class Autoencoder(nn.Module):
 
         return ["Linear", "Norm", "Activation"]
 
-
     def get_encoder(self) -> nn.Module:
         '''Return the encoder module.
 
@@ -608,29 +577,16 @@ class Autoencoder(nn.Module):
 
         return self.encoder
 
-
-    def get_decoder(self) -> nn.Module:
-        '''Return the decoder module.
+    def get_encoder_topology(self) -> List[str]:
+        '''Return encoder topology description.
 
         Returns
         -------
-        nn.Module
-            Decoder module.
-        '''
-        return self.decoder
-
-
-    def save_encoder(self, path: str) -> None:
-        '''Save encoder weights to a file.
-
-        Parameters
-        ----------
-        path : str
-            Output path for encoder state dict.
+        list[str]
+            Encoder topology tokens.
         '''
 
-        torch.save(self.encoder.state_dict(), path)
-
+        return ["Linear", "Norm", "Activation"]
 
     def load_encoder(self, path: str, map_location: Optional[str] = None) -> None:
         '''Load encoder weights from a file.
@@ -646,6 +602,25 @@ class Autoencoder(nn.Module):
         state = torch.load(path, map_location=map_location)
         self.encoder.load_state_dict(state, strict=False)
 
+    def reconstruct(self, x: torch.Tensor, sample: bool = False) -> torch.Tensor:
+        '''Reconstruct inputs through the autoencoder.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor.
+        sample : bool, optional
+            If True and VAE enabled, sample from posterior, by default False.
+
+        Returns
+        -------
+        torch.Tensor
+            Reconstructed tensor.
+        '''
+
+        z = self.encode(x, sample=sample)
+        z = self.encoder.latent_dropout(z)
+        return self.decoder(z)
 
     def sanity_check(self, batch_size: int = 4) -> Dict[str, object]:
         '''Run a lightweight sanity check on shapes and reconstruction.
@@ -678,8 +653,21 @@ class Autoencoder(nn.Module):
             "reconstruction_rmse": float(recon_error)
         }
 
-# Methods
+    def save_encoder(self, path: str) -> None:
+        '''Save encoder weights to a file.
+
+        Parameters
+        ----------
+        path : str
+            Output path for encoder state dict.
+        '''
+
+        torch.save(self.encoder.state_dict(), path)
+
+# Functions
 ###############################################################################
+## Private ##
+
 def _build_activation(name: str, params: Dict[str, Any]) -> nn.Module:
     '''Build activation module from name/params.
 
@@ -739,3 +727,5 @@ def _build_norm(norm: str, num_features: int) -> Optional[nn.Module]:
     if norm == "layer":
         return nn.LayerNorm(num_features)
     return None
+
+## Public ##

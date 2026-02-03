@@ -9,11 +9,12 @@
 
 from __future__ import annotations
 
-from typing import Optional, Tuple
+import torch
 
 import numpy as np
-import torch
+
 from torch.utils.data import Dataset
+from typing import Optional, Tuple
 
 # License
 ###############################################################################
@@ -69,6 +70,22 @@ class AutoencoderDataset(Dataset):
     >>> print(sample_mask)            # tensor(True) or tensor(False)
     """
 
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        '''Return a dataset sample.
+
+        Parameters
+        ----------
+        idx : int
+            Sample index.
+
+        Returns
+        -------
+        tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+            Features, energies, and energy mask tensors.
+        '''
+
+        return self.features[idx], self.energies[idx], self.energy_mask[idx]
+
     def __init__(
             self,
             features: np.ndarray,
@@ -106,7 +123,6 @@ class AutoencoderDataset(Dataset):
             # Mask marks samples with valid energy labels.
             self.energy_mask = torch.tensor(mask.reshape(-1), dtype=torch.bool)
 
-
     def __len__(self) -> int:
         '''Return dataset length.
 
@@ -119,18 +135,8 @@ class AutoencoderDataset(Dataset):
         return self.features.shape[0]
 
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        '''Return a dataset sample.
+# Functions
+###############################################################################
+## Private ##
 
-        Parameters
-        ----------
-        idx : int
-            Sample index.
-
-        Returns
-        -------
-        tuple[torch.Tensor, torch.Tensor, torch.Tensor]
-            Features, energies, and energy mask tensors.
-        '''
-
-        return self.features[idx], self.energies[idx], self.energy_mask[idx]
+## Public ##

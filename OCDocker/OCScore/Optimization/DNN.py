@@ -25,8 +25,6 @@ from multiprocessing import Pool
 from sklearn.decomposition import PCA
 from typing import Union
 
-
-
 import OCDocker.OCScore.Utils.Data as ocscoredata
 import OCDocker.OCScore.Utils.Workers as ocscoreworkers
 import OCDocker.Toolbox.Printing as ocprint
@@ -51,343 +49,11 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 
-# Methods
+# Functions
 ###############################################################################
+## Private ##
 
-
-def perform_seed_ablation_study_NN(
-        X_train : np.ndarray, y_train : np.ndarray,
-        X_test : np.ndarray, y_test : np.ndarray, 
-        X_val : np.ndarray, y_val : np.ndarray,
-        id : int,
-        num_processes : int,
-        encoder_params : dict,
-        best_params : dict,
-        use_gpu : bool,
-        verbose : bool,
-        load_if_exists : bool,
-        study_name : str,
-        storage : str,
-        mask : np.ndarray,
-        seeds : list = [],
-        output_size : int = 1,
-        parallel_backend : str = "joblib",
-        n_jobs : int = 1
-    ) -> None:
-    ''' Perform the ablation study for the Neural Network.
-
-    Parameters
-    ----------
-    X_train : np.ndarray
-        The training data.
-    y_train : np.ndarray
-        The training labels.
-    X_test : np.ndarray
-        The testing data.
-    y_test : np.ndarray
-        The testing labels.
-    X_val : np.ndarray
-        The validation data.
-    y_val : np.ndarray
-        The validation labels.
-    id : int
-        The ID of the study.
-    num_processes : int
-        The number of processes to use.
-    encoder_params : dict
-        The encoder parameters.
-    best_params : dict
-        The best parameters.
-    use_gpu : bool
-        If True, use the GPU.
-    verbose : bool
-        If True, print the output.
-    load_if_exists : bool
-        If True, load the model if it exists.
-    study_name : str
-        The study name.
-    storage : str
-        The storage to use.
-    mask : np.ndarray
-        The mask to be applied.
-    seeds : list
-        List of seeds to be applied. If empty, all seeds for scoring functions will be generated and used. This option is useful for splitting ablation in multiple computers. If empty, all seeds from 0 to 1000 will be used. The default is [].
-    output_size : int, optional
-        The output size. Default is 1.
-    parallel_backend : str, optional
-        The parallel backend to use. The default is "joblib". Options are "joblib" and "multiprocessing". [ATTENTION] multiprocessing has shown to have some nasty bugs while testing this library. It is highly recommended to use joblib.
-    n_jobs : int, optional
-        The number of jobs to use. Default is 1.
-    
-    Raises
-    -------
-    ValueError
-        If the parallel backend is not "joblib" or "multiprocessing".
-    '''
-
-    # Check if seeds is empty
-    if not seeds:
-        # Create a list of seeds from 0 to 1000
-        seeds = list(range(1000))
-    
-    # Adjust num_processes if the size of the seeds array is smaller
-    if len(seeds) < num_processes:
-        # If the number of seeds is smaller than the number of processes, set inner_num_processes to the number of seeds
-        inner_num_processes = len(seeds)
-    else:
-        # Otherwise, set inner_num_processes to the number of processes
-        inner_num_processes = num_processes
-
-    # Split seeds into roughly equal parts for each process using Round Robin distribution
-    split_seeds = [[] for _ in range(inner_num_processes)]
-
-    # Distribute the seeds to the processes
-    for i, seed in enumerate(seeds):
-        # Append the seed to the corresponding process
-        split_seeds[i % inner_num_processes].append(seed)
-
-    # Check the parallel backend
-    if parallel_backend == "joblib":
-        # Create a pool of worker processes
-        Parallel(n_jobs = inner_num_processes)(
-            delayed(ocscoreworkers.NNSeedAblationworker)(
-                pid,
-                id,
-                X_train, 
-                y_train, 
-                X_test, 
-                y_test, 
-                X_val, 
-                y_val,
-                mask,
-                storage,
-                best_params,
-                seed, 
-                encoder_params,
-                output_size,
-                use_gpu, 
-                verbose,
-                load_if_exists,
-                1,
-                study_name
-            ) for pid, seed in enumerate(split_seeds)
-        )
-    elif parallel_backend == "multiprocessing":
-        # Create a pool of worker processes
-        with Pool(inner_num_processes) as pool:
-            # Each process will execute the 'NNAblationworker' function with the datasets and optimizer parameters
-            pool.starmap(ocscoreworkers.NNSeedAblationworker, [(
-                pid,
-                id,
-                X_train, 
-                y_train, 
-                X_test, 
-                y_test, 
-                X_val, 
-                y_val,
-                mask,
-                storage,
-                best_params,
-                seed, 
-                encoder_params,
-                output_size,
-                use_gpu, 
-                verbose,
-                load_if_exists,
-                n_jobs,
-                study_name
-                ) for pid, seed in enumerate(split_seeds)
-            ])
-    else:
-        # User-facing error: invalid parallel backend
-        ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.") # type: ignore
-        raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
-
-    return None
-
-
-def perform_ablation_study_NN(
-        X_train : pd.DataFrame, y_train : pd.DataFrame,
-        X_test : pd.DataFrame, y_test : pd.DataFrame, 
-        X_val : pd.DataFrame, y_val : pd.DataFrame,
-        id : int,
-        num_processes : int,
-        encoder_params : dict,
-        best_params : dict,
-        random_seed : int,
-        use_gpu : bool,
-        verbose : bool,
-        load_if_exists : bool,
-        study_name : str,
-        storage : str,
-        masks : list = [],
-        output_size : int = 1,
-        parallel_backend : str = "joblib",
-        n_jobs : int = 1
-    ) -> None:
-    ''' Perform the ablation study for the Neural Network.
-
-    Parameters
-    ----------
-    X_train : pd.DataFrame
-        The training data.
-    y_train : pd.Series
-        The training labels.
-    X_test : pd.DataFrame
-        The testing data.
-    y_test : pd.Series
-        The testing labels.
-    X_val : pd.DataFrame
-        The validation data.
-    y_val : pd.Series
-        The validation labels.
-    id : int
-        The ID of the study.
-    num_processes : int
-        The number of processes to use.
-    encoder_params : dict
-        The encoder parameters.
-    best_params : dict
-        The best parameters.
-    random_seed : int
-        The random seed.
-    use_gpu : bool
-        If True, use the GPU.
-    verbose : bool
-        If True, print the output.
-    load_if_exists : bool
-        If True, load the model if it exists.
-    study_name : str
-        The study name.
-    storage : str
-        The storage to use.
-    masks : list[], optional
-        List of masks to be applied. If empty, all masks for scoring functions will be generated and used. This option is useful for splitting ablation in multiple computers. The default is [].
-    output_size : int, optional
-        The output size. Default is 1.
-    parallel_backend : str, optional
-        The parallel backend to use. The default is "joblib". Options are "joblib" and "multiprocessing". [ATTENTION] multiprocessing has shown to have some nasty bugs while testing this library. It is highly recommended to use joblib.
-    n_jobs : int, optional
-        The number of jobs to use. Default is 1.
-    
-    Raises
-    -------
-    ValueError
-        If the parallel backend is not "joblib" or "multiprocessing".
-    '''
-    
-    # If no masks are provided
-    if not masks:
-        # Filter the SFs
-        sf = X_train.filter(regex = r"(VINA|SMINA|ODDT|PLANTS).*").columns.tolist()
-
-        # Create the mask of zeros and ones for the ablation study (Brute force approach)
-        feature_masks = list(itertools.product([0, 1], repeat=len(sf)))
-
-        # Create a mask of ones for the full model
-        full_mask = np.ones(X_train.shape[1], dtype=int)
-
-        # Get the indexes for each sf
-        sf_indexes = [X_train.columns.get_loc(col) for col in sf]
-
-        # Set the evaluated masks to an empty list
-        evaluated_masks = []
-
-        try:
-            # Try to load the study to check which masks have already been evaluated
-            study = optuna.load_study(study_name = f"{study_name}_{id}", storage = storage)
-
-            # Filter the trials to only include the ones that are complete
-            trials = study.trials_dataframe()
-            trials = trials[trials['state'] == 'COMPLETE']
-
-            # Get the masks that have already been evaluated
-            evaluated_masks = trials['user_attrs_Feature_Mask'].tolist()
-        except (AttributeError, KeyError, ImportError):
-            # Fallback if optuna study is not available or missing attributes
-            evaluated_masks = []
-        
-        # Apply each feature mask to the full_mask
-        masks = []
-        for mask in feature_masks:
-            # Start with a fresh copy of the full mask template
-            modified_mask = full_mask.copy()
-            # Set the specific feature indices according to the current mask
-            for index, value in zip(sf_indexes, mask):
-                modified_mask[index] = value
-            if not evaluated_masks or "".join(map(str, modified_mask)) not in evaluated_masks:
-                masks.append(modified_mask)
-
-    # Adjust num_processes if the size of the masks array is smaller
-    if len(masks) < num_processes:
-        inner_num_processes = len(masks)
-    else:
-        inner_num_processes = num_processes
-
-    # Split masks into roughly equal parts for each process using Round Robin distribution
-    split_masks = [[] for _ in range(inner_num_processes)]
-    for i, mask in enumerate(masks):
-        split_masks[i % inner_num_processes].append(mask)
-
-    # Check the parallel backend
-    if parallel_backend == "joblib":
-        # Create a pool of worker processes
-        Parallel(n_jobs = inner_num_processes)(
-            delayed(ocscoreworkers.NNAblationworker)(
-                pid,
-                id,
-                X_train, 
-                y_train, 
-                X_test, 
-                y_test, 
-                X_val, 
-                y_val,
-                mask,
-                storage,
-                best_params,
-                encoder_params,
-                output_size,
-                random_seed, 
-                use_gpu, 
-                verbose,
-                load_if_exists,
-                1,
-                study_name
-            ) for pid, mask in enumerate(split_masks)
-        )
-    elif parallel_backend == "multiprocessing":
-        # Create a pool of worker processes
-        with Pool(inner_num_processes) as pool:
-            # Each process will execute the 'NNAblationworker' function with the datasets and optimizer parameters
-            pool.starmap(ocscoreworkers.NNAblationworker, [(
-                pid,
-                id,
-                X_train, 
-                y_train, 
-                X_test, 
-                y_test, 
-                X_val, 
-                y_val,
-                mask,
-                storage,
-                best_params,
-                encoder_params,
-                output_size,
-                random_seed, 
-                use_gpu, 
-                verbose,
-                load_if_exists,
-                n_jobs,
-                study_name,
-                ) for pid, mask in enumerate(split_masks)
-            ])
-    else:
-        # User-facing error: invalid parallel backend
-        ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.") # type: ignore
-        raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
-
-    return None
-
+## Public ##
 
 def optimize_NN(
         df_path: str,
@@ -814,6 +480,340 @@ def optimize_NN(
             raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
 
     return None
+
+def perform_ablation_study_NN(
+        X_train : pd.DataFrame, y_train : pd.DataFrame,
+        X_test : pd.DataFrame, y_test : pd.DataFrame, 
+        X_val : pd.DataFrame, y_val : pd.DataFrame,
+        id : int,
+        num_processes : int,
+        encoder_params : dict,
+        best_params : dict,
+        random_seed : int,
+        use_gpu : bool,
+        verbose : bool,
+        load_if_exists : bool,
+        study_name : str,
+        storage : str,
+        masks : list = [],
+        output_size : int = 1,
+        parallel_backend : str = "joblib",
+        n_jobs : int = 1
+    ) -> None:
+    ''' Perform the ablation study for the Neural Network.
+
+    Parameters
+    ----------
+    X_train : pd.DataFrame
+        The training data.
+    y_train : pd.Series
+        The training labels.
+    X_test : pd.DataFrame
+        The testing data.
+    y_test : pd.Series
+        The testing labels.
+    X_val : pd.DataFrame
+        The validation data.
+    y_val : pd.Series
+        The validation labels.
+    id : int
+        The ID of the study.
+    num_processes : int
+        The number of processes to use.
+    encoder_params : dict
+        The encoder parameters.
+    best_params : dict
+        The best parameters.
+    random_seed : int
+        The random seed.
+    use_gpu : bool
+        If True, use the GPU.
+    verbose : bool
+        If True, print the output.
+    load_if_exists : bool
+        If True, load the model if it exists.
+    study_name : str
+        The study name.
+    storage : str
+        The storage to use.
+    masks : list[], optional
+        List of masks to be applied. If empty, all masks for scoring functions will be generated and used. This option is useful for splitting ablation in multiple computers. The default is [].
+    output_size : int, optional
+        The output size. Default is 1.
+    parallel_backend : str, optional
+        The parallel backend to use. The default is "joblib". Options are "joblib" and "multiprocessing". [ATTENTION] multiprocessing has shown to have some nasty bugs while testing this library. It is highly recommended to use joblib.
+    n_jobs : int, optional
+        The number of jobs to use. Default is 1.
+    
+    Raises
+    -------
+    ValueError
+        If the parallel backend is not "joblib" or "multiprocessing".
+    '''
+    
+    # If no masks are provided
+    if not masks:
+        # Filter the SFs
+        sf = X_train.filter(regex = r"(VINA|SMINA|ODDT|PLANTS).*").columns.tolist()
+
+        # Create the mask of zeros and ones for the ablation study (Brute force approach)
+        feature_masks = list(itertools.product([0, 1], repeat=len(sf)))
+
+        # Create a mask of ones for the full model
+        full_mask = np.ones(X_train.shape[1], dtype=int)
+
+        # Get the indexes for each sf
+        sf_indexes = [X_train.columns.get_loc(col) for col in sf]
+
+        # Set the evaluated masks to an empty list
+        evaluated_masks = []
+
+        try:
+            # Try to load the study to check which masks have already been evaluated
+            study = optuna.load_study(study_name = f"{study_name}_{id}", storage = storage)
+
+            # Filter the trials to only include the ones that are complete
+            trials = study.trials_dataframe()
+            trials = trials[trials['state'] == 'COMPLETE']
+
+            # Get the masks that have already been evaluated
+            evaluated_masks = trials['user_attrs_Feature_Mask'].tolist()
+        except (AttributeError, KeyError, ImportError):
+            # Fallback if optuna study is not available or missing attributes
+            evaluated_masks = []
+        
+        # Apply each feature mask to the full_mask
+        masks = []
+        for mask in feature_masks:
+            # Start with a fresh copy of the full mask template
+            modified_mask = full_mask.copy()
+            # Set the specific feature indices according to the current mask
+            for index, value in zip(sf_indexes, mask):
+                modified_mask[index] = value
+            if not evaluated_masks or "".join(map(str, modified_mask)) not in evaluated_masks:
+                masks.append(modified_mask)
+
+    # Adjust num_processes if the size of the masks array is smaller
+    if len(masks) < num_processes:
+        inner_num_processes = len(masks)
+    else:
+        inner_num_processes = num_processes
+
+    # Split masks into roughly equal parts for each process using Round Robin distribution
+    split_masks = [[] for _ in range(inner_num_processes)]
+    for i, mask in enumerate(masks):
+        split_masks[i % inner_num_processes].append(mask)
+
+    # Check the parallel backend
+    if parallel_backend == "joblib":
+        # Create a pool of worker processes
+        Parallel(n_jobs = inner_num_processes)(
+            delayed(ocscoreworkers.NNAblationworker)(
+                pid,
+                id,
+                X_train, 
+                y_train, 
+                X_test, 
+                y_test, 
+                X_val, 
+                y_val,
+                mask,
+                storage,
+                best_params,
+                encoder_params,
+                output_size,
+                random_seed, 
+                use_gpu, 
+                verbose,
+                load_if_exists,
+                1,
+                study_name
+            ) for pid, mask in enumerate(split_masks)
+        )
+    elif parallel_backend == "multiprocessing":
+        # Create a pool of worker processes
+        with Pool(inner_num_processes) as pool:
+            # Each process will execute the 'NNAblationworker' function with the datasets and optimizer parameters
+            pool.starmap(ocscoreworkers.NNAblationworker, [(
+                pid,
+                id,
+                X_train, 
+                y_train, 
+                X_test, 
+                y_test, 
+                X_val, 
+                y_val,
+                mask,
+                storage,
+                best_params,
+                encoder_params,
+                output_size,
+                random_seed, 
+                use_gpu, 
+                verbose,
+                load_if_exists,
+                n_jobs,
+                study_name,
+                ) for pid, mask in enumerate(split_masks)
+            ])
+    else:
+        # User-facing error: invalid parallel backend
+        ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.") # type: ignore
+        raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
+
+    return None
+
+
+def perform_seed_ablation_study_NN(
+        X_train : np.ndarray, y_train : np.ndarray,
+        X_test : np.ndarray, y_test : np.ndarray, 
+        X_val : np.ndarray, y_val : np.ndarray,
+        id : int,
+        num_processes : int,
+        encoder_params : dict,
+        best_params : dict,
+        use_gpu : bool,
+        verbose : bool,
+        load_if_exists : bool,
+        study_name : str,
+        storage : str,
+        mask : np.ndarray,
+        seeds : list = [],
+        output_size : int = 1,
+        parallel_backend : str = "joblib",
+        n_jobs : int = 1
+    ) -> None:
+    ''' Perform the ablation study for the Neural Network.
+
+    Parameters
+    ----------
+    X_train : np.ndarray
+        The training data.
+    y_train : np.ndarray
+        The training labels.
+    X_test : np.ndarray
+        The testing data.
+    y_test : np.ndarray
+        The testing labels.
+    X_val : np.ndarray
+        The validation data.
+    y_val : np.ndarray
+        The validation labels.
+    id : int
+        The ID of the study.
+    num_processes : int
+        The number of processes to use.
+    encoder_params : dict
+        The encoder parameters.
+    best_params : dict
+        The best parameters.
+    use_gpu : bool
+        If True, use the GPU.
+    verbose : bool
+        If True, print the output.
+    load_if_exists : bool
+        If True, load the model if it exists.
+    study_name : str
+        The study name.
+    storage : str
+        The storage to use.
+    mask : np.ndarray
+        The mask to be applied.
+    seeds : list
+        List of seeds to be applied. If empty, all seeds for scoring functions will be generated and used. This option is useful for splitting ablation in multiple computers. If empty, all seeds from 0 to 1000 will be used. The default is [].
+    output_size : int, optional
+        The output size. Default is 1.
+    parallel_backend : str, optional
+        The parallel backend to use. The default is "joblib". Options are "joblib" and "multiprocessing". [ATTENTION] multiprocessing has shown to have some nasty bugs while testing this library. It is highly recommended to use joblib.
+    n_jobs : int, optional
+        The number of jobs to use. Default is 1.
+    
+    Raises
+    -------
+    ValueError
+        If the parallel backend is not "joblib" or "multiprocessing".
+    '''
+
+    # Check if seeds is empty
+    if not seeds:
+        # Create a list of seeds from 0 to 1000
+        seeds = list(range(1000))
+    
+    # Adjust num_processes if the size of the seeds array is smaller
+    if len(seeds) < num_processes:
+        # If the number of seeds is smaller than the number of processes, set inner_num_processes to the number of seeds
+        inner_num_processes = len(seeds)
+    else:
+        # Otherwise, set inner_num_processes to the number of processes
+        inner_num_processes = num_processes
+
+    # Split seeds into roughly equal parts for each process using Round Robin distribution
+    split_seeds = [[] for _ in range(inner_num_processes)]
+
+    # Distribute the seeds to the processes
+    for i, seed in enumerate(seeds):
+        # Append the seed to the corresponding process
+        split_seeds[i % inner_num_processes].append(seed)
+
+    # Check the parallel backend
+    if parallel_backend == "joblib":
+        # Create a pool of worker processes
+        Parallel(n_jobs = inner_num_processes)(
+            delayed(ocscoreworkers.NNSeedAblationworker)(
+                pid,
+                id,
+                X_train, 
+                y_train, 
+                X_test, 
+                y_test, 
+                X_val, 
+                y_val,
+                mask,
+                storage,
+                best_params,
+                seed, 
+                encoder_params,
+                output_size,
+                use_gpu, 
+                verbose,
+                load_if_exists,
+                1,
+                study_name
+            ) for pid, seed in enumerate(split_seeds)
+        )
+    elif parallel_backend == "multiprocessing":
+        # Create a pool of worker processes
+        with Pool(inner_num_processes) as pool:
+            # Each process will execute the 'NNAblationworker' function with the datasets and optimizer parameters
+            pool.starmap(ocscoreworkers.NNSeedAblationworker, [(
+                pid,
+                id,
+                X_train, 
+                y_train, 
+                X_test, 
+                y_test, 
+                X_val, 
+                y_val,
+                mask,
+                storage,
+                best_params,
+                seed, 
+                encoder_params,
+                output_size,
+                use_gpu, 
+                verbose,
+                load_if_exists,
+                n_jobs,
+                study_name
+                ) for pid, seed in enumerate(split_seeds)
+            ])
+    else:
+        # User-facing error: invalid parallel backend
+        ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.") # type: ignore
+        raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
+
+    return None
+
 
 # Alias the function
 optimize = optimize_NN

@@ -20,8 +20,6 @@ from multiprocessing import Pool
 from sklearn.decomposition import PCA
 from typing import Union
 
-
-
 import OCDocker.OCScore.Utils.Data as ocscoredata
 import OCDocker.OCScore.Utils.Workers as ocscoreworkers
 import OCDocker.Toolbox.Printing as ocprint
@@ -46,9 +44,11 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 
-# Methods
+# Functions
 ###############################################################################
+## Private ##
 
+## Public ##
 
 def optimize_XGB(
         df_path: str,
