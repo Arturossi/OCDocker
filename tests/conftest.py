@@ -109,15 +109,14 @@ def cleanup_test_files():
             return True
         # Check other exclusion patterns
         for exclude_pattern in exclude_patterns:
-            # Convert glob pattern to check
-            if "**" in exclude_pattern:
-                pattern = exclude_pattern.replace("**", "")
-                if pattern.startswith("/"):
-                    pattern = pattern[1:]
-                if pattern in path_str or path_str.endswith(pattern):
+            # Use Path.match to respect glob semantics and avoid substring matches
+            try:
+                if path.match(exclude_pattern) or path.name == exclude_pattern:
                     return True
-            elif path_str.endswith(exclude_pattern) or path.name == exclude_pattern:
-                return True
+            except (TypeError, ValueError):
+                # If pattern is malformed, fall back to name match only
+                if path.name == exclude_pattern:
+                    return True
         return False
     
     # Clean up files matching patterns BEFORE tests
