@@ -201,8 +201,21 @@ def _exe_available(path: Optional[str]) -> bool:
 def _missing_external_tools() -> Set[str]:
     # Try to resolve tool paths from config, fallback to common names
     try:
-        from OCDocker.Config import get_config
+        from OCDocker.Config import get_config, OCDockerConfig
         cfg = get_config()
+        # Prefer explicit config file if present (tests may run before bootstrap)
+        config_file = os.getenv("OCDOCKER_CONFIG", "")
+        if not config_file:
+            project_root = Path(__file__).resolve().parent.parent
+            candidate = project_root / "OCDocker.cfg"
+            if candidate.is_file():
+                config_file = str(candidate)
+        if config_file and os.path.isfile(config_file):
+            try:
+                cfg = OCDockerConfig.from_config_file(config_file)
+            except Exception:
+                # Keep existing cfg if loading fails
+                pass
         tools = {
             "vina": (getattr(cfg.vina, "executable", "") or "vina"),
             "smina": (getattr(cfg.smina, "executable", "") or "smina"),
@@ -229,8 +242,19 @@ def _missing_external_tools() -> Set[str]:
 
     # DSSP (used for surface AA counts in Receptor)
     try:
-        from OCDocker.Config import get_config
+        from OCDocker.Config import get_config, OCDockerConfig
         cfg = get_config()
+        config_file = os.getenv("OCDOCKER_CONFIG", "")
+        if not config_file:
+            project_root = Path(__file__).resolve().parent.parent
+            candidate = project_root / "OCDocker.cfg"
+            if candidate.is_file():
+                config_file = str(candidate)
+        if config_file and os.path.isfile(config_file):
+            try:
+                cfg = OCDockerConfig.from_config_file(config_file)
+            except Exception:
+                pass
         dssp_candidate = getattr(cfg.tools, "dssp", "dssp")
     except Exception:
         dssp_candidate = "dssp"
