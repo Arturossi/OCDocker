@@ -1,4 +1,9 @@
-[![codecov](https://codecov.io/gh/Arturossi/OCDocker/graph/badge.svg?branch=dev)](https://codecov.io/gh/Arturossi/OCDocker?branch=dev)
+[![codecov](https://codecov.io/gh/Arturossi/OCDocker/graph/badge.svg)](https://codecov.io/gh/Arturossi/OCDocker)
+![CI](https://img.shields.io/github/actions/workflow/status/Arturossi/OCDocker/type-check.yml)
+![Python](https://img.shields.io/pypi/pyversions/ocdocker)
+![PyPI](https://img.shields.io/pypi/v/ocdocker)
+![Issues](https://img.shields.io/github/issues/Arturossi/OCDocker)
+![Last commit](https://img.shields.io/github/last-commit/Arturossi/OCDocker)
 
 ![OCDocker](./OCDocker.png "OCDocker")
 
