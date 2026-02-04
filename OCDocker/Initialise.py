@@ -198,8 +198,30 @@ def _parse_config_file(config_file: str) -> Dict[str, Any]:
     try:
         # Read the file as a single section (DEFAULT)
         with open(config_file, 'r') as f:
-            # Prepend [DEFAULT] to make it a valid INI file
-            config_content = '[DEFAULT]\n' + f.read()
+            raw_lines = f.readlines()
+
+        # Strip inline comments starting with '#' (Python-style), even when
+        # the '#' is not preceded by whitespace (e.g., "vina#,vinardo").
+        # Respect simple quoted strings to avoid stripping in quoted values.
+        cleaned_lines = []
+        for line in raw_lines:
+            in_single = False
+            in_double = False
+            cut_idx = None
+            for idx, ch in enumerate(line):
+                if ch == "'" and not in_double:
+                    in_single = not in_single
+                elif ch == '"' and not in_single:
+                    in_double = not in_double
+                elif ch == "#" and not in_single and not in_double:
+                    cut_idx = idx
+                    break
+            if cut_idx is not None:
+                line = line[:cut_idx]
+            cleaned_lines.append(line.rstrip())
+
+        # Prepend [DEFAULT] to make it a valid INI file
+        config_content = '[DEFAULT]\n' + "\n".join(cleaned_lines)
 
         config.read_string(config_content)
     except (OSError, IOError, configparser.Error) as e:
