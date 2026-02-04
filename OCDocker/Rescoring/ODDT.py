@@ -263,9 +263,65 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
         # Transform it into a list
         preparedLigandPath = [preparedLigandPath]
 
-    # Get the models (only files)
+    # Get configuration and requested scoring functions
     config = get_config()
+    # Determine which scoring families should be loaded.
+    # If specific model names are requested (e.g., rfscore_v2_pdbbind2016),
+    # load only those exact models. Family-only requests (e.g., rfscore) load all.
+    requested_scores = [
+        score.lower().strip()
+        for score in getattr(config.oddt, 'scoring_functions', [])
+        if isinstance(score, str) and score.strip()
+    ]
+    family_only: set[str] = set()
+    exact_requested: set[str] = set()
+    sf_set: set[str] = set()
+    if requested_scores:
+        for score in requested_scores:
+            if score.startswith('rfscore'):
+                sf_set.add('rfscore')
+                if score == 'rfscore':
+                    family_only.add('rfscore')
+                else:
+                    exact_requested.add(score)
+            elif score.startswith('nnscore'):
+                sf_set.add('nnscore')
+                if score == 'nnscore':
+                    family_only.add('nnscore')
+                else:
+                    exact_requested.add(score)
+            elif score.startswith('plec') or score.startswith('plecrf'):
+                sf_set.add('plec')
+                if score in ('plec', 'plecrf'):
+                    family_only.add('plec')
+                else:
+                    exact_requested.add(score)
+    else:
+        # Fall back to all supported scoring families if nothing was configured.
+        sf_set = {'nnscore', 'rfscore', 'plec'}
+
+    # Get the models (only files)
     models = [model for model in glob(f"{config.oddt_models_dir}/*.pickle") if os.path.isfile(model)]
+
+    # Attempt to generate missing exact models if requested
+    if exact_requested:
+        existing_stems = {os.path.splitext(os.path.basename(m))[0].lower() for m in models}
+        missing_exact = sorted([name for name in exact_requested if name not in existing_stems])
+        if missing_exact:
+            if config.oddt_models_dir and os.path.isdir(config.oddt_models_dir):
+                try:
+                    from OCDocker.Initialise import initialise_oddt_models
+                    ocprint.print_warning(
+                        "Missing ODDT models: " + ", ".join(missing_exact) + ". Attempting to generate them."
+                    )
+                    initialise_oddt_models(config.oddt_models_dir, missing_exact)
+                    models = [model for model in glob(f"{config.oddt_models_dir}/*.pickle") if os.path.isfile(model)]
+                except Exception as e:
+                    ocprint.print_warning(
+                        "Failed to initialize missing ODDT models (" + ", ".join(missing_exact) + f"): {e}"
+                    )
+            else:
+                ocprint.print_warning("ODDT models directory is not set or does not exist; cannot initialize missing models.")
 
     # Check if are there any model
     if len(models) <= 0:
@@ -363,21 +419,6 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
 
     if len(loaded_ligands) == 0:
         return ocerror.Error.rescoring_failed(f"No ligands were successfully loaded for '{ligandName}'.", level = ocerror.ReportLevel.ERROR)
-
-    # Determine which scoring families should be loaded.
-    requested_scores = [score.lower() for score in getattr(config.oddt, 'scoring_functions', []) if isinstance(score, str)]
-    if requested_scores:
-        sf_set: set[str] = set()
-        for score in requested_scores:
-            if 'nnscore' in score:
-                sf_set.add('nnscore')
-            if 'rfscore' in score:
-                sf_set.add('rfscore')
-            if 'plec' in score:
-                sf_set.add('plec')
-    else:
-        # Fall back to all supported scoring families if nothing was configured.
-        sf_set = {'nnscore', 'rfscore', 'plec'}
 
     # Process each scoring function separately to handle failures gracefully
     # This allows other scoring functions to succeed even if one fails
@@ -515,18 +556,36 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
     for model in models:
         # Extract the model name and convert it to lower case
         model_name = os.path.basename(model).lower()
+        model_stem = os.path.splitext(model_name)[0]
+        model_family = None
+        if 'rfscore' in model_stem:
+            model_family = 'rfscore'
+        elif 'nnscore' in model_stem:
+            model_family = 'nnscore'
+        elif 'plec' in model_stem:
+            model_family = 'plec'
 
-        # Check if the model name is in the set of scoring functions
-        if any(sf in model_name for sf in sf_set):
+        # Decide if this model should be loaded
+        if requested_scores:
+            if model_family not in sf_set:
+                continue
+            if model_family in family_only:
+                match = True
+            else:
+                match = model_stem in exact_requested
+        else:
+            match = any(sf in model_name for sf in sf_set)
+
+        if match:
             try:
                 # Load the model
                 sf = scorer.load(model)
                 scoring_functions_loaded.append((model, sf))
                 # Store mapping for error reporting
-                for sf_name in sf_set:
-                    if sf_name in model_name:
-                        model_sf_map[model] = sf_name
-                        break
+                if requested_scores and model_family and model_family not in family_only:
+                    model_sf_map[model] = model_stem
+                else:
+                    model_sf_map[model] = model_family or os.path.basename(model)
             except Exception as e:
                 ocprint.print_warning(f"Failed to load scoring function model '{model}': {e}")
                 continue
