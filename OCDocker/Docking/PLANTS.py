@@ -656,7 +656,16 @@ class PLANTS:
 
 ## Public ##
 
-def box_to_plants(box_file: str, conf_file: str, receptor: str, ligand: str, output_plants: str, center: Optional[float] = None, binding_site_radius: Optional[float] = None, spacing: float = 2.9) -> int:
+def box_to_plants(
+    box_file: str,
+    conf_file: str,
+    receptor: str,
+    ligand: str,
+    output_plants: str,
+    center: Optional[tuple[float, float, float]] = None,
+    binding_site_radius: Optional[float] = None,
+    spacing: float = 2.9,
+) -> int:
     '''Convert a box (DUDE like format) to PLANTS input.
 
     Parameters

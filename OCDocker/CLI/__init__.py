@@ -1093,6 +1093,9 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
             return 2
 
     # Validate required binaries are available
+    _vina_bin: Optional[str] = None
+    _smina_bin: Optional[str] = None
+    _plants_bin: Optional[str] = None
     try:
         from OCDocker.Config import get_config
         config = get_config()
@@ -1101,7 +1104,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
         _plants_bin = config.plants.executable
     except (ImportError, AttributeError):
         # Fallback if binaries are not configured
-        _vina_bin = _smina_bin = _plants_bin = None
+        pass
 
     def _exists_exe(p: Optional[str]) -> bool:
         if not p:
@@ -1131,6 +1134,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
         import os as _os
 
         for eng in engines:
+            r: Any
             e_dir = outdir / f"{eng}Files"; e_dir.mkdir(parents=True, exist_ok=True)
             try:
                 if eng == "vina":
@@ -1508,6 +1512,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                                     if isinstance(v, (int, float)):
                                         # Normalize key: extract scoring function and create clean key
                                         # Keys can be: "smina_vinardo_rescoring", "rescoring_vina_1", "rescoring_dkoes_scoring_1", etc.
+                                        sf_name: Optional[str] = None
                                         if k.startswith("smina_") and k.endswith("_rescoring"):
                                             # Format: "smina_{scoring_function}_rescoring"
                                             sf_name = k.replace("smina_", "").replace("_rescoring", "")
@@ -1552,10 +1557,12 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
             plants_rep = str(rep_mol2_final) if rep_mol2_final and Path(rep_mol2_final).exists() else str(rep_path)
             pose_list.write_text(plants_rep + "\n")
             # Extract center/radius from the box
-            binding_site = get_binding_site(str(box_path))
-            if isinstance(binding_site, int):
+            binding_site_result = get_binding_site(str(box_path))
+            binding_site: Optional[tuple[tuple[float, float, float], float]] = None
+            if isinstance(binding_site_result, int):
                 ocprint.print_warning(f"Failed to read binding site from {box_path}. Skipping PLANTS rescoring.")
-                binding_site = None
+            else:
+                binding_site = binding_site_result
             if binding_site is None:
                 ocprint.print_warning(f"Skipping PLANTS rescoring for '{box_path}' due to missing binding site.")
             else:
@@ -1650,7 +1657,9 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                                 oddt_dict = df_to_dict(df)
                                 # Extract values from ODDT results
                                 oddt_vals: Dict[str, float] = {}
-                                if oddt_dict:
+                                if isinstance(oddt_dict, int):
+                                    ocprint.print_warning(f"ODDT results conversion returned error code: {oddt_dict}")
+                                elif oddt_dict:
                                     # Get the first (and typically only) entry (ligand name is the key)
                                     first_key = list(oddt_dict.keys())[0]
                                     for score_name, score_value in oddt_dict[first_key].items():
@@ -1674,7 +1683,10 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                                 if oddt_vals:
                                     rescoring["oddt"] = oddt_vals
                                 else:
-                                    ocprint.print_warning(f"ODDT rescoring completed but no valid scores extracted. Dict keys: {list(oddt_dict.keys()) if oddt_dict else 'None'}")
+                                    ocprint.print_warning(
+                                        f"ODDT rescoring completed but no valid scores extracted. Dict keys: "
+                                        f"{list(oddt_dict.keys()) if isinstance(oddt_dict, dict) else 'None'}"
+                                    )
                             except Exception as e:
                                 ocprint.print_warning(f"Failed to convert ODDT results to dictionary: {e}")
                                 import traceback
@@ -2000,6 +2012,9 @@ def cmd_vs(args: argparse.Namespace) -> int:  # pragma: no cover - heavy integra
         eng = "plants"
 
     # Validate engine binary availability based on configuration
+    _vina_bin: Optional[str] = None
+    _smina_bin: Optional[str] = None
+    _plants_bin: Optional[str] = None
     try:
         from OCDocker.Config import get_config
         config = get_config()
@@ -2008,7 +2023,7 @@ def cmd_vs(args: argparse.Namespace) -> int:  # pragma: no cover - heavy integra
         _plants_bin = config.plants.executable
     except (ImportError, AttributeError):
         # Fallback if binaries are not configured
-        _vina_bin = _smina_bin = _plants_bin = None
+        pass
 
     def _exists_exe(p: Optional[str]) -> bool:
         if not p:

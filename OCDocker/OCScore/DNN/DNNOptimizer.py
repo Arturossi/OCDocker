@@ -1026,7 +1026,7 @@ class MultiBranchDynamicNN(nn.Module):
             x = layer(x.to(self.device))
 
         # Return the tensor
-        return x
+        return cast(torch.Tensor, x)
 
 
 class CustomDataset(Dataset):

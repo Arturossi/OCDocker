@@ -127,7 +127,8 @@ def read_index() -> Optional[Dict[str, Dict[str, Union[str, float]]]]:
                     kdki = float(kdki_str.replace("M", "")) * order[config.paths.pdbbind_kdki_order]["M"]
 
                 # Create a dictionary for this protein and its data
-                protein_entry = {
+                dG = float(occ.convert_Ki_Kd_to_dG(kdki))
+                protein_entry: Dict[str, str | float] = {
                     "Protein": splitedLine[0],
                     "resolution": splitedLine[1],
                     "release_year": splitedLine[2],
@@ -135,7 +136,7 @@ def read_index() -> Optional[Dict[str, Dict[str, Union[str, float]]]]:
                     "Ki/Kd": tp,
                     "Ki/Kd_value": kdki,
                     "Ki/Kd_order": proteinDataOrder,
-                    "dG": occ.convert_Ki_Kd_to_dG(kdki)
+                    "dG": dG
                 }
 
                 # Add the dictionary to the dict setting the protein name as the key
