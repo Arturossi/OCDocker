@@ -1,3 +1,5 @@
+[![codecov](https://codecov.io/gh/Arturossi/OCDocker/graph/badge.svg?branch=dev)](https://codecov.io/gh/Arturossi/OCDocker?branch=dev)
+
 ![OCDocker](./OCDocker.png "OCDocker")
 
 OCDocker
@@ -20,6 +22,14 @@ Key capabilities:
 - Database integration: MySQL (default) or SQLite fallback for dev/tests
 - CLI and Python API: doctor diagnostics, timeouts, binary checks, reproducible configs
 - Packaging: conda/pip, Dockerfiles for engines, docs and examples
+
+Community
+---------
+
+- Code of Conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Security: [SECURITY.md](SECURITY.md)
+- Collaborators: [COLLABORATORS.md](COLLABORATORS.md)
 
 Documentation
 -------------

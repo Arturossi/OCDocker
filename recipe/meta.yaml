@@ -1,5 +1,5 @@
 {% set name = "ocdocker" %}
-{% set version = "0.9.1" %}
+{% set version = load_file_regex("../OCDocker/_version.py", '__version__\\s*=\\s*\"([^\"]+)\"', 1) %}
 
 package:
   name: {{ name }}

@@ -54,7 +54,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 # Splash, version & clear tmp
 ###############################################################################
-ocVersion = "0.12.5"
+from OCDocker._version import __version__ as ocVersion
 
 _description = tw.dedent("""\033[1;93m
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+

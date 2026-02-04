@@ -58,8 +58,8 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 ## Public ##
 
-# Keep in sync with pyproject.toml
-__version__ = "0.12.5"
+# Single source of truth for version (pyproject.toml reads this dynamically)
+from ._version import __version__
 
 # Public API: main package doesn't export modules directly
 # Users should import from subpackages: e.g., `import OCDocker.Ligand as ocl`

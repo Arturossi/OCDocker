@@ -281,14 +281,14 @@ for parent in (
 project = "OCDocker"
 copyright = "2026, Artur Duque Rossi"
 author = "Artur Duque Rossi"
-# Fetch version from OCDocker.__version__
+# Fetch version from OCDocker (single source of truth)
 try:
-    from OCDocker import __version__ as ver
+    from OCDocker._version import __version__ as ver
     version = ver
     release = ver
 except Exception:
-    version = "0.12.5"
-    release = "0.12.5"
+    version = "0+unknown"
+    release = version
 
 extensions = [
     "sphinxarg.ext",
