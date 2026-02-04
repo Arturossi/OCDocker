@@ -181,6 +181,8 @@ def ensure_clean_test_state(tmp_path):
 def _exe_available(path: Optional[str]) -> bool:
     if not path:
         return False
+    # Expand user (~) and env vars for configured paths
+    path = os.path.expandvars(os.path.expanduser(str(path)))
     if os.path.isabs(path):
         return os.path.isfile(path) and os.access(path, os.X_OK)
     return shutil.which(path) is not None
@@ -195,20 +197,19 @@ def _missing_external_tools() -> Set[str]:
             "vina": getattr(cfg.vina, "executable", "vina"),
             "smina": getattr(cfg.smina, "executable", "smina"),
             "plants": getattr(cfg.plants, "executable", "plants"),
+            "prepare_ligand4": getattr(cfg.tools, "prepare_ligand", "prepare_ligand4.py"),
+            "prepare_receptor4": getattr(cfg.tools, "prepare_receptor", "prepare_receptor4.py"),
+            "obabel": getattr(cfg.tools, "obabel", "obabel"),
         }
     except Exception:
         tools = {
             "vina": "vina",
             "smina": "smina",
             "plants": "plants",
+            "prepare_ligand4": "prepare_ligand4.py",
+            "prepare_receptor4": "prepare_receptor4.py",
+            "obabel": "obabel",
         }
-
-    # Common external helpers
-    tools.update({
-        "obabel": "obabel",
-        "prepare_ligand4": "prepare_ligand4.py",
-        "prepare_receptor4": "prepare_receptor4.py",
-    })
 
     missing = {name for name, exe in tools.items() if not _exe_available(exe)}
 

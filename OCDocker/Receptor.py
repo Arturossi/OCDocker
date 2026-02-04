@@ -979,6 +979,7 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
     config = get_config()
     dssp_exe = str(getattr(config.tools, "dssp", "") or "")
     candidates = [dssp_exe] if dssp_exe else []
+    
     # Common fallback names used by DSSP installations
     for candidate in ("mkdssp", "dssp"):
         if candidate not in candidates:
