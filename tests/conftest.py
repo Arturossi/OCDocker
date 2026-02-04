@@ -182,7 +182,17 @@ def _exe_available(path: Optional[str]) -> bool:
     if not path:
         return False
     # Expand user (~) and env vars for configured paths
-    path = os.path.expandvars(os.path.expanduser(str(path)))
+    path = os.path.expandvars(os.path.expanduser(str(path))).strip()
+    if not path:
+        return False
+    # Allow command strings with args by checking the first token
+    try:
+        import shlex
+        parts = shlex.split(path)
+        path = parts[0] if parts else path
+    except ValueError:
+        # Fallback to raw string if parsing fails
+        pass
     if os.path.isabs(path):
         return os.path.isfile(path) and os.access(path, os.X_OK)
     return shutil.which(path) is not None
@@ -194,12 +204,12 @@ def _missing_external_tools() -> Set[str]:
         from OCDocker.Config import get_config
         cfg = get_config()
         tools = {
-            "vina": getattr(cfg.vina, "executable", "vina"),
-            "smina": getattr(cfg.smina, "executable", "smina"),
-            "plants": getattr(cfg.plants, "executable", "plants"),
-            "prepare_ligand4": getattr(cfg.tools, "prepare_ligand", "prepare_ligand4.py"),
-            "prepare_receptor4": getattr(cfg.tools, "prepare_receptor", "prepare_receptor4.py"),
-            "obabel": getattr(cfg.tools, "obabel", "obabel"),
+            "vina": (getattr(cfg.vina, "executable", "") or "vina"),
+            "smina": (getattr(cfg.smina, "executable", "") or "smina"),
+            "plants": (getattr(cfg.plants, "executable", "") or "plants"),
+            "prepare_ligand4": (getattr(cfg.tools, "prepare_ligand", "") or "prepare_ligand4.py"),
+            "prepare_receptor4": (getattr(cfg.tools, "prepare_receptor", "") or "prepare_receptor4.py"),
+            "obabel": (getattr(cfg.tools, "obabel", "") or "obabel"),
         }
     except Exception:
         tools = {
@@ -212,6 +222,10 @@ def _missing_external_tools() -> Set[str]:
         }
 
     missing = {name for name, exe in tools.items() if not _exe_available(exe)}
+    if os.getenv("OCDOCKER_DEBUG_EXTERNAL", "").lower() in ("1", "true", "yes"):
+        for name, exe in tools.items():
+            status = "OK" if name not in missing else "MISSING"
+            print(f"[external-check] {name}: {exe} => {status}")
 
     # DSSP (used for surface AA counts in Receptor)
     try:
