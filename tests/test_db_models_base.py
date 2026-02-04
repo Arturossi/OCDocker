@@ -7,15 +7,43 @@ Exercise CRUD helpers in DB.Models.Base using an in-memory SQLite session and
 the concrete Ligands model.
 '''
 
-from sqlalchemy.orm import sessionmaker, scoped_session
-
+# Imports
+###############################################################################
 import pytest
 
+from sqlalchemy.orm import scoped_session, sessionmaker
+
 import OCDocker.DB.Models.Base as base_mod
+from OCDocker.DB.DBMinimal import create_engine
 from OCDocker.DB.Models.Base import Base
 from OCDocker.DB.Models.Ligands import Ligands
-from OCDocker.DB.DBMinimal import create_engine
 
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
+###############################################################################
+
+
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##
 
 @pytest.mark.order(49)
 def test_base_crud_on_ligands_sqlite_memory():

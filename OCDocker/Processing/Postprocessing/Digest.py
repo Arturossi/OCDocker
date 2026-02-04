@@ -14,6 +14,7 @@ import OCDocker.Processing.Postprocessing.Digest as ocdigest
 ###############################################################################
 import gc
 import os
+from glob import glob
 
 from multiprocessing import Pool
 from tqdm import tqdm
@@ -23,18 +24,18 @@ import OCDocker.Docking.Future.Gnina as ocgnina
 import OCDocker.Docking.PLANTS as ocplants
 import OCDocker.Docking.Smina as ocsmina
 import OCDocker.Docking.Vina as ocvina
+import OCDocker.Error as ocerror
 import OCDocker.Toolbox.Basetools as ocbasetools
 import OCDocker.Toolbox.Logging as oclogging
 import OCDocker.Toolbox.Printing as ocprint
 
 from OCDocker.Config import get_config
-import OCDocker.Error as ocerror
 
 # License
 ###############################################################################
 '''
 OCDocker
-Authors: Rossi, A.D.; Torres, P.H.M.
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
@@ -54,8 +55,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ###############################################################################
 ## Private ##
 
-
-def __core_generate_digest(path: str, ligandDir: str, archive: str, overwrite: bool, digestFormat: str = "json") -> int:
+def __core_generate_digest(path: str, ligandDir: str, archive: str, overwrite: bool, digestFormat: str = "json", all_boxes: bool = False) -> int:
     '''Generate the digest file for a given protein and ligand.
 
     Parameters
@@ -82,40 +82,64 @@ def __core_generate_digest(path: str, ligandDir: str, archive: str, overwrite: b
 
     # If is the index directory, ignore
     if ptn in ['index']:
-        return ocerror.Error.unnalowed_dir() # type: ignore
+        return ocerror.Error.unallowed_dir()
 
     ligandDescriptorPath = f"{ligandDir}/ligand_descriptors.json"
 
     # If the complex has descriptor files for ligand
     if os.path.isfile(ligandDescriptorPath):
-        # Run for gnina
-        logPath = f"{ligandDir}/gninaFiles/gnina_0.log" # TODO: add support to multiple boxes/runs
-        _ = ocgnina.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat)
-        # Run for vina
-        logPath = f"{ligandDir}/vinaFiles/vina_0.log" # TODO: add support to multiple boxes/runs
-        _ = ocvina.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat)
-        # Run for smina
-        logPath = f"{ligandDir}/sminaFiles/smina_0.log" # TODO: add support to multiple boxes/runs
-        _ = ocsmina.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat)
-        # Run for PLANTS
-        logPath = f"{ligandDir}/plantsFiles/run/bestranking.csv" # TODO: add support to multiple boxes/runs
-        _ = ocplants.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat)
+        if all_boxes:
+            boxes = sorted(glob(f"{ligandDir}/boxes/box*.pdb"))
+            for box_file in boxes:
+                box_id = os.path.splitext(os.path.basename(box_file))[0]
+                # Run for gnina
+                logPath = f"{ligandDir}/gninaFiles/{box_id}/gnina_0.log"
+                _ = ocgnina.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat, box_id = box_id)
+                # Run for vina
+                logPath = f"{ligandDir}/vinaFiles/{box_id}/vina_0.log"
+                _ = ocvina.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat, box_id = box_id)
+                # Run for smina
+                logPath = _resolve_smina_log(f"{ligandDir}/sminaFiles/{box_id}")
+                _ = ocsmina.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat, box_id = box_id)
+                # Run for PLANTS
+                logPath = f"{ligandDir}/plantsFiles/{box_id}/run/bestranking.csv"
+                _ = ocplants.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat, box_id = box_id)
+        else:
+            # Run for gnina
+            logPath = f"{ligandDir}/gninaFiles/gnina_0.log" # TODO: add support to multiple boxes/runs
+            _ = ocgnina.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat)
+            # Run for vina
+            logPath = f"{ligandDir}/vinaFiles/vina_0.log" # TODO: add support to multiple boxes/runs
+            _ = ocvina.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat)
+            # Run for smina
+            logPath = _resolve_smina_log(f"{ligandDir}/sminaFiles") # TODO: add support to multiple boxes/runs
+            _ = ocsmina.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat)
+            # Run for PLANTS
+            logPath = f"{ligandDir}/plantsFiles/run/bestranking.csv" # TODO: add support to multiple boxes/runs
+            _ = ocplants.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat)
     else:
         errMsg = f"There is no ligand descriptor json file for the protein in the path '{ligandDescriptorPath}'."
         config = get_config()
         ocprint.print_error_log(errMsg, f"{config.logdir}/{archive}_docking_digest_run_report_ERROR.log")
-        return ocerror.Error.receptor_or_ligand_descriptor_does_not_exist(errMsg, level = ocerror.ReportLevel.ERROR) # type: ignore
+        return ocerror.Error.receptor_or_ligand_descriptor_not_exist(errMsg, level = ocerror.ReportLevel.ERROR)
 
-    return ocerror.Error.ok() # type: ignore
+    return ocerror.Error.ok()
 
-
-def __thread_generate_digest(arguments: list) -> int:
-    '''Thread aid function to call __core_generate_digest.
+def __generate_digest_no_parallel(complexList: List[Tuple[str, List[str]]], archive: str, overwrite: bool, digestFormat: str, desc: str, all_boxes: bool) -> int:
+    '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_generate_digest function.
 
     Parameters
     ----------
-    arguments : list
-        The arguments to be passed to __core_generate_digest.
+    complexList : List[Tuple[str, List[str]]]
+        A list of tuples with the path to the protein directory and a list of ligand directories.
+    archive : str
+        Which archive will be processed [dudez, pdbbind].
+    digestFormat : str
+        Which digest format will be used [json].
+    overwrite : bool
+        If the docking output already exists, should it be overwritten?
+    desc : str
+        The description of the progress bar.
 
     Returns
     -------
@@ -123,15 +147,32 @@ def __thread_generate_digest(arguments: list) -> int:
         The exit code of the command (based on the Error.py code table).
     '''
 
+    # Track error codes from all digest operations
+    error_codes: List[int] = []
+
     # Redirect all prints to tqdm.write
     with ocbasetools.redirect_to_tqdm():
-        # Call the core dock function passing the arguments correctly
-        returnState = __core_generate_digest(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4])
+        # For each file in dirs
+        for cl in tqdm(iterable = complexList, total = len(complexList), desc=desc):
+            for ligandDir in cl[1]:
+                # Call the core dock function (shared between parallel and not parallel)
+                return_code = __core_generate_digest(cl[0], ligandDir, archive, overwrite, digestFormat, all_boxes)
+                # Track non-zero error codes
+                if return_code != ocerror.ErrorCode.OK:
+                    error_codes.append(return_code)
 
-    return returnState
+            # Clear the memory
+            gc.collect()
+        # Clear the memory
+        gc.collect()
 
+    # Return the most severe error code, or OK if all succeeded
+    if error_codes:
+        # Return the first non-OK error code (errors are already logged by core functions)
+        return int(error_codes[0])
+    return ocerror.Error.ok()
 
-def __generate_digest_parallel(complexList: List[Tuple[str, List[str]]], archive: str, overwrite: bool, digestFormat: str, desc: str) -> int:
+def __generate_digest_parallel(complexList: List[Tuple[str, List[str]]], archive: str, overwrite: bool, digestFormat: str, desc: str, all_boxes: bool) -> int:
     '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
 
     Parameters
@@ -154,18 +195,18 @@ def __generate_digest_parallel(complexList: List[Tuple[str, List[str]]], archive
     '''
 
     # Arguments to pass to each Thread in the Thread Pool
-    arguments = []
+    arguments: List[Tuple[str, str, str, bool, str, bool]] = []
 
     # For each file in complexList
     for cl in complexList:
         # Now loop over the ligands of this protein
         for ligandDir in cl[1]:
             # Add the arguments to the list (creating one execution for each pair receptor-ligand)
-            arguments.append((cl[0], ligandDir, archive, overwrite, digestFormat))
+            arguments.append((cl[0], ligandDir, archive, overwrite, digestFormat, all_boxes))
 
     # Track error codes from all digest operations
-    error_codes = []
-    
+    error_codes: List[int] = []
+
     try:
         # Create a Thread pool with the maximum available_cores
         config = get_config()
@@ -186,59 +227,10 @@ def __generate_digest_parallel(complexList: List[Tuple[str, List[str]]], archive
     # Return the most severe error code, or OK if all succeeded
     if error_codes:
         # Return the first non-OK error code (errors are already logged by core functions)
-        return error_codes[0]
-    return ocerror.Error.ok() # type: ignore
+        return int(error_codes[0])
+    return ocerror.Error.ok()
 
-
-def __generate_digest_no_parallel(complexList: List[Tuple[str, List[str]]], archive: str, overwrite: bool, digestFormat: str, desc: str) -> int:
-    '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_generate_digest function.
-
-    Parameters
-    ----------
-    complexList : List[Tuple[str, List[str]]]
-        A list of tuples with the path to the protein directory and a list of ligand directories.
-    archive : str
-        Which archive will be processed [dudez, pdbbind].
-    digestFormat : str
-        Which digest format will be used [json].
-    overwrite : bool
-        If the docking output already exists, should it be overwritten?
-    desc : str
-        The description of the progress bar.
-    
-    Returns
-    -------
-    int
-        The exit code of the command (based on the Error.py code table).
-    '''
-
-    # Track error codes from all digest operations
-    error_codes = []
-    
-    # Redirect all prints to tqdm.write
-    with ocbasetools.redirect_to_tqdm():
-        # For each file in dirs
-        for cl in tqdm(iterable = complexList, total = len(complexList), desc=desc):
-            for ligandDir in cl[1]:
-                # Call the core dock function (shared between parallel and not parallel)
-                return_code = __core_generate_digest(cl[0], ligandDir, archive, overwrite, digestFormat)
-                # Track non-zero error codes
-                if return_code != ocerror.ErrorCode.OK:
-                    error_codes.append(return_code)
-
-            # Clear the memory
-            gc.collect()
-        # Clear the memory
-        gc.collect()
-
-    # Return the most severe error code, or OK if all succeeded
-    if error_codes:
-        # Return the first non-OK error code (errors are already logged by core functions)
-        return error_codes[0]
-    return ocerror.Error.ok() # type: ignore
-
-
-def __generate_digest_single(complex: Tuple[str, List[str]], archive: str, overwrite: bool, digestFormat: str, desc: str) -> int:
+def __generate_digest_single(complex: Tuple[str, List[str]], archive: str, overwrite: bool, digestFormat: str, desc: str, all_boxes: bool) -> int:
     '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_generate_digest function.
 
     Parameters
@@ -253,7 +245,7 @@ def __generate_digest_single(complex: Tuple[str, List[str]], archive: str, overw
         If the docking output already exists, should it be overwritten?
     desc : str
         The description of the progress bar.
-    
+
     Returns
     -------
     int
@@ -261,12 +253,12 @@ def __generate_digest_single(complex: Tuple[str, List[str]], archive: str, overw
     '''
 
     # Track error codes from all digest operations
-    error_codes = []
-    
+    error_codes: List[int] = []
+
     # For each file in dirs
     for ligandDir in tqdm(iterable = complex[1], total = len(complex[1]), desc=desc):
         # Call the core dock function (shared between parallel and not parallel)
-        return_code = __core_generate_digest(complex[0], ligandDir, archive, overwrite, digestFormat)
+        return_code = __core_generate_digest(complex[0], ligandDir, archive, overwrite, digestFormat, all_boxes)
         # Track non-zero error codes
         if return_code != ocerror.ErrorCode.OK:
             error_codes.append(return_code)
@@ -277,17 +269,40 @@ def __generate_digest_single(complex: Tuple[str, List[str]], archive: str, overw
     # Return the most severe error code, or OK if all succeeded
     if error_codes:
         # Return the first non-OK error code (errors are already logged by core functions)
-        return error_codes[0]
-    return ocerror.Error.ok() # type: ignore
+        return int(error_codes[0])
+    return ocerror.Error.ok()
 
+def __thread_generate_digest(arguments: Tuple[str, str, str, bool, str, bool]) -> int:
+    '''Thread aid function to call __core_generate_digest.
 
+    Parameters
+    ----------
+    arguments : Tuple[str, str, str, bool, str, bool]
+        The arguments to be passed to __core_generate_digest.
 
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+    '''
 
+    # Redirect all prints to tqdm.write
+    with ocbasetools.redirect_to_tqdm():
+        # Call the core dock function passing the arguments correctly
+        returnState = __core_generate_digest(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4], arguments[5])
 
+    return returnState
+
+def _resolve_smina_log(run_dir: str) -> str:
+    '''Resolve smina log path with backward-compatible fallback.'''
+    log_path = f"{run_dir}/smina.log"
+    if os.path.isfile(log_path):
+        return log_path
+    return f"{run_dir}/smina_0.log"
 ## Public ##
 
 
-def generate_digest(paths: Union[List[Tuple[str, List[str]]], Tuple[str, List[str]]], archive: str, overwrite: bool, digestFormat: str = "json") -> None:
+def generate_digest(paths: Union[List[Tuple[str, List[str]]], Tuple[str, List[str]]], archive: str, overwrite: bool, digestFormat: str = "json", all_boxes: bool = False) -> None:
     '''Generate the digest for the docking output.
 
     Parameters
@@ -315,9 +330,9 @@ def generate_digest(paths: Union[List[Tuple[str, List[str]]], Tuple[str, List[st
         config = get_config()
         if config.multiprocess:
             # Prepare the pdbbind
-            __generate_digest_parallel(paths, archive, overwrite, digestFormat, label)
+            __generate_digest_parallel(paths, archive, overwrite, digestFormat, label, all_boxes)
         else:
             # Prepare the database
-            __generate_digest_no_parallel(paths, archive, overwrite, digestFormat, label)
+            __generate_digest_no_parallel(paths, archive, overwrite, digestFormat, label, all_boxes)
     else:
-        __generate_digest_single(paths, archive, overwrite, digestFormat, label)
+        __generate_digest_single(paths, archive, overwrite, digestFormat, label, all_boxes)

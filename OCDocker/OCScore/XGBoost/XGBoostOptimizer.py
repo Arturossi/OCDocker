@@ -2,7 +2,7 @@
 
 # Description
 ###############################################################################
-''' Module to run the Extreme Gradient Boost algorithm. 
+''' Module to run the Extreme Gradient Boost algorithm.
 
 It is imported as:
 
@@ -17,10 +17,10 @@ import optuna
 import numpy as np
 import pandas as pd
 
-from optuna.samplers import TPESampler
 from optuna.integration import XGBoostPruningCallback
+from optuna.samplers import TPESampler
 from sklearn.metrics import auc, roc_curve
-from typing import Union
+from typing import Any, Optional, Union, cast
 
 import OCDocker.OCScore.XGBoost.OCxgboost as OCxgboost
 import OCDocker.Toolbox.Printing as ocprint
@@ -29,13 +29,13 @@ import OCDocker.Toolbox.Printing as ocprint
 ###############################################################################
 '''
 OCDocker
-Authors: Rossi, A.D.; Torres, P.H.M.
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
-developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
 All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
 to formal authorization from UFRJ. See the LICENSE file for details.
 
@@ -47,7 +47,37 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 
 class XGBoostOptimizer:
-    def __init__(self, 
+    """Class to optimize XGBoost hyperparameters using Optuna.
+
+    Parameters
+    ----------
+    X_train : np.ndarray | pd.DataFrame | pd.Series
+        The training dataset.
+    y_train : np.ndarray | pd.DataFrame | pd.Series
+        The training labels.
+    X_test : np.ndarray | pd.DataFrame | pd.Series
+        The test dataset.
+    y_test : np.ndarray | pd.DataFrame | pd.Series
+        The test labels.
+    X_validation : np.ndarray | pd.DataFrame | pd.Series, optional
+        The validation dataset and labels. Default is None.
+    y_validation : np.ndarray | pd.DataFrame | pd.Series, optional
+        The validation labels. Default is None.
+    storage : str, optional
+        The storage path/URL for the Optuna study. Default is "sqlite:///pre_xgboost.db".
+    params : dict, optional
+        The hyperparameters for the XGBoost model. Default is an empty dictionary.
+    early_stopping_rounds : int, optional
+        The number of early stopping rounds for the XGBoost model. Default is 20.
+    use_gpu : bool, optional
+        Whether to use the GPU for training the XGBoost model. Default is False.
+    random_state : int, optional
+        The random state for reproducibility. Default is 42.
+    verbose : bool, optional
+        Whether to print the training logs. Default is False.
+    """
+
+    def __init__(self,
             X_train : Union[np.ndarray, pd.DataFrame, pd.Series],
             y_train : Union[np.ndarray, pd.DataFrame, pd.Series],
             X_test : Union[np.ndarray, pd.DataFrame, pd.Series],
@@ -97,6 +127,10 @@ class XGBoostOptimizer:
         self.X_test = np.asarray(X_test)
         self.y_test = np.asarray(y_test)
 
+        # Optional validation data (np.ndarray or cupy arrays)
+        self.X_validation: Optional[Any] = None
+        self.y_validation: Optional[Any] = None
+
         # If the validation dataset is provided, convert it to numpy arrays
         if X_validation is not None and y_validation is not None:
             self.X_validation = np.asarray(X_validation)
@@ -126,13 +160,6 @@ class XGBoostOptimizer:
         # Set the storage string for the study
 
         self.storage = storage
-
-
-
-
-
-
-
 
 
     def objective(self,
@@ -211,46 +238,40 @@ class XGBoostOptimizer:
         trial_params['early_stopping_rounds'] = self.early_stopping_rounds
 
         # If the validation dataset is provided, use it to get the AUC score
-        if self.X_validation is not None:
+        if self.X_validation is not None and self.y_validation is not None:
             # Train the model and get the AUC score
-            model, metric = OCxgboost.run_xgboost(self.X_train, self.y_train, self.X_test, self.y_test, params = trial_params, verbose = self.verbose) # type: ignore
+            model, metric = OCxgboost.run_xgboost(self.X_train, self.y_train, self.X_test, self.y_test, params = trial_params, verbose = self.verbose)
 
             # Predict the validation dataset
             y_pred = model.predict(self.X_validation)
 
             # If the use_gpu flag is set
             if self.use_gpu:
-                # Convert the predictions to numpy arrays
-                y_validation_np = self.y_validation.get() # type: ignore
+                # Convert the predictions to numpy arrays (CuPy -> NumPy)
+                y_validation_np = cast(Any, self.y_validation).get()
             else:
                 y_validation_np = self.y_validation
 
 
             # Get the AUC score of the validation dataset
-            fpr, tpr, _ = roc_curve(y_validation_np, y_pred) # type: ignore
+            fpr, tpr, _ = roc_curve(y_validation_np, y_pred)
 
             # Calculate the AUC score
             roc_auc = auc(fpr, tpr)
 
             # Save the AUC score as a user attribute
             trial.set_user_attr("AUC", roc_auc)
-        
+
         else:
             # Train the model and get the AUC score
-            _, metric = OCxgboost.run_xgboost(self.X_train, self.y_train, self.X_test, self.y_test, params = trial_params, verbose = self.verbose) # type: ignore
-    
+            _, metric = OCxgboost.run_xgboost(self.X_train, self.y_train, self.X_test, self.y_test, params = trial_params, verbose = self.verbose)
+
         # Return the trained AUC score
 
         return metric
 
 
-
-
-
-
-
-
-    def optimize(self, 
+    def optimize(self,
                  direction : str = "minimize",
                  n_trials : int = 1000,
                   n_jobs : int = 1,
@@ -289,15 +310,15 @@ class XGBoostOptimizer:
 
         # Create an Optuna study
         study = optuna.create_study(
-            direction = direction, 
-            study_name = study_name, 
-            storage = self.storage, 
-            load_if_exists = load_if_exists, 
+            direction = direction,
+            study_name = study_name,
+            storage = self.storage,
+            load_if_exists = load_if_exists,
             sampler = sampler
         )
 
         # Optimize the objective function
-        study.optimize(self.objective, n_trials = n_trials, n_jobs = n_jobs) # type: ignore
+        study.optimize(self.objective, n_trials = n_trials, n_jobs = n_jobs)
 
         # Get the best hyperparameters and the best score
         best_params = study.best_params
@@ -309,5 +330,8 @@ class XGBoostOptimizer:
 
         return study
 
-# Methods
+# Functions
 ###############################################################################
+## Private ##
+
+## Public ##

@@ -16,8 +16,7 @@ import pandas as pd
 
 from sklearn.decomposition import PCA
 
-
-
+import OCDocker.Error as ocerror
 import OCDocker.OCScore.Utils.Data as ocscoredata
 import OCDocker.OCScore.Utils.IO as ocscoreio
 import OCDocker.Toolbox.Printing as ocprint
@@ -26,13 +25,13 @@ import OCDocker.Toolbox.Printing as ocprint
 ###############################################################################
 '''
 OCDocker
-Authors: Rossi, A.D.; Torres, P.H.M.
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
-developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
 All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
 to formal authorization from UFRJ. See the LICENSE file for details.
 
@@ -42,8 +41,11 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 
-# Methods
+# Functions
 ###############################################################################
+## Private ##
+
+## Public ##
 
 
 def run_pca(
@@ -53,7 +55,7 @@ def run_pca(
         verbose: bool = False
     ) -> str:
     ''' Function to run PCA on the datasets.
-    
+
     Parameters
     ----------
     df_path : str
@@ -79,7 +81,7 @@ def run_pca(
     # Check if the variance is between 0 and 1
     if variance <= 0 or variance > 1:
         # User-facing error: invalid variance value
-        ocerror.Error.value_error(f"The variance must be between 0 and 1. Got: {variance}") # type: ignore
+        ocerror.Error.value_error(f"The variance must be between 0 and 1. Got: {variance}")
         raise ValueError("The variance must be between 0 and 1.")
 
     # Convert the variance to string
@@ -97,48 +99,48 @@ def run_pca(
     # Perform PCA on the all datasets
     pdbbind_pca = pca.fit_transform(
         pdbbind_data.drop(
-            columns = ['receptor', 'ligand', 'name', 'type', 'db', 'experimental'] + score_columns, 
+            columns = ['receptor', 'ligand', 'name', 'type', 'db', 'experimental'] + score_columns,
             errors = 'ignore'
         )
     )
-    
+
     # Save the PCA object in pickle format (PDBbind only to be used later, since it is the dataset which will be used for the model)
     ocscoreio.save_object(pca, pca_file_path)
 
     if verbose:
         dudez_pca = pca.transform(
             dudez_data.drop(
-                columns = ['receptor', 'ligand', 'name', 'type', 'db'] + score_columns, 
+                columns = ['receptor', 'ligand', 'name', 'type', 'db'] + score_columns,
                 errors = 'ignore'
             )
         )
 
         # Create a DataFrame with the PCA results for each dataset then add the score columns back
         dudez_pca_df = pd.DataFrame(
-            data = dudez_pca, 
+            data = dudez_pca,
             columns = [f'PC{i+1}' for i in range(dudez_pca.shape[1])]
         )
         pdbbind_pca_df = pd.DataFrame(
-            data = pdbbind_pca, 
+            data = pdbbind_pca,
             columns = [f'PC{i+1}' for i in range(pdbbind_pca.shape[1])]
         )
 
         # Add the metadata columns back
         dudez_pca_df = pd.concat(
             [
-                dudez_data[score_columns + ['receptor', 'ligand', 'name', 'type', 'db']], 
+                dudez_data[score_columns + ['receptor', 'ligand', 'name', 'type', 'db']],
                 dudez_pca_df
-            ], 
+            ],
             axis = 1
         )
         pdbbind_pca_df = pd.concat(
             [
-                pdbbind_data[score_columns + ['receptor', 'ligand', 'name', 'type', 'db', 'experimental']], 
+                pdbbind_data[score_columns + ['receptor', 'ligand', 'name', 'type', 'db', 'experimental']],
                 pdbbind_pca_df
-            ], 
+            ],
             axis = 1
         )
-        
+
         # Check for NaNs in the PCA datasets
         ocprint.printv("==== NaNs in PCA datasets ====")
         ocprint.printv("--------------------------------")

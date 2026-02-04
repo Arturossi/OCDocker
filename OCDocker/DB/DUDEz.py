@@ -5,7 +5,7 @@
 '''
 Sets of classes and functions that are used to process the DUDE-Z dataset.
 
-They are imported as:
+Usage:
 
 import OCDocker.DB.DUDEz as ocdudez
 '''
@@ -22,13 +22,13 @@ import OCDocker.DB.baseDB as ocbdb
 ###############################################################################
 '''
 OCDocker
-Authors: Rossi, A.D.; Torres, P.H.M.
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
-developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
 All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
 to formal authorization from UFRJ. See the LICENSE file for details.
 
@@ -54,10 +54,6 @@ def prepare(overwrite: bool = False, spacing: float = 0.33, sanitize: bool = Tru
         The spacing between the grid points, by default 0.33.
     sanitize : bool, optional
         If True, sanitizes the ligands, by default True.
-
-    Returns
-    -------
-    None
 
     Raise
     -----
@@ -93,8 +89,8 @@ def run_gnina(overwrite: bool = False) -> int:
     return ocbdb.run_docking("dudez", "gnina", overwrite = overwrite)
 
 
-def run_vina(overwrite: bool = False) -> int:
-    '''Runs vina in the whole database.
+def run_plants(overwrite: bool = False) -> int:
+    '''Runs PLANTS in the whole database.
 
     Parameters
     ----------
@@ -104,14 +100,14 @@ def run_vina(overwrite: bool = False) -> int:
     Returns
     -------
     int
-        The exit code of the command (based on the Error.py code table).
+        The exit code of the command (based on the Error.py code table)
 
     Raise
     -----
     None
     '''
 
-    return ocbdb.run_docking("dudez", "vina", overwrite = overwrite)
+    return ocbdb.run_docking("dudez", "plants", overwrite = overwrite)
 
 
 def run_smina(overwrite: bool = False) -> int:
@@ -135,8 +131,8 @@ def run_smina(overwrite: bool = False) -> int:
     return ocbdb.run_docking("dudez", "smina", overwrite = overwrite)
 
 
-def run_plants(overwrite: bool = False) -> int:
-    '''Runs PLANTS in the whole database.
+def run_vina(overwrite: bool = False) -> int:
+    '''Runs vina in the whole database.
 
     Parameters
     ----------
@@ -146,11 +142,11 @@ def run_plants(overwrite: bool = False) -> int:
     Returns
     -------
     int
-        The exit code of the command (based on the Error.py code table)
+        The exit code of the command (based on the Error.py code table).
 
     Raise
     -----
     None
     '''
 
-    return ocbdb.run_docking("dudez", "plants", overwrite = overwrite)
+    return ocbdb.run_docking("dudez", "vina", overwrite = overwrite)

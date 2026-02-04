@@ -8,7 +8,7 @@ include = ["OCDocker*"]
 
 [project]
 name = "OCDocker"
-version = "0.11.1"
+dynamic = ["version"]
 description = "OCDocker is a Python package for molecular docking automation, virtual screening and AI consensus scoring."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -110,6 +110,9 @@ classifiers = [
 ]
 
 keywords = ["docking", "virtual screening", "AI", "bioinformatics", "drug discovery"]
+
+[tool.setuptools.dynamic]
+version = { attr = "OCDocker._version.__version__" }
 
 [project.urls]
 Homepage = "https://github.com/Arturossi/OCDocker"

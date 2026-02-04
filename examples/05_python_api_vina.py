@@ -5,9 +5,10 @@ This example shows how to use OCDocker programmatically with Vina
 """
 
 import os
-from OCDocker.Receptor import Receptor
-from OCDocker.Ligand import Ligand
+
 from OCDocker.Docking.Vina import Vina
+from OCDocker.Ligand import Ligand
+from OCDocker.Receptor import Receptor
 
 # Set configuration if needed
 # os.environ['OCDOCKER_CONFIG'] = 'path/to/OCDocker.cfg'
@@ -69,4 +70,3 @@ print("Rescoring results:", rescoring_results)
 # Get docked poses
 poses = vina.get_docked_poses()
 print(f"Found {len(poses)} poses")
-

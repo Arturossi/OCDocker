@@ -6,7 +6,7 @@
 Sets of classes and functions that are used as base for all databases. It
 contains functions that are common to all databases.
 
-They are imported as:
+Usage:
 
 import OCDocker.DB.baseDB as ocbdb
 '''
@@ -17,7 +17,6 @@ import os
 
 from glob import glob
 
-from OCDocker.Config import get_config
 import OCDocker.Error as ocerror
 
 import OCDocker.Processing.Dock as ocdock
@@ -25,18 +24,20 @@ import OCDocker.Processing.Preprocessing.Prepare as ocprepare
 
 import OCDocker.Toolbox.Printing as ocprint
 
+from OCDocker.Config import get_config
+
 
 # License
 ###############################################################################
 '''
 OCDocker
-Authors: Rossi, A.D.; Torres, P.H.M.
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
-developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
 All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
 to formal authorization from UFRJ. See the LICENSE file for details.
 
@@ -51,7 +52,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ## Private ##
 
 ## Public ##
-def prepare(archive: str, overwrite: bool = False, spacing: float = 0.33, sanitize: bool = True) -> None:
+def prepare(archive: str, overwrite: bool = False, spacing: float = 0.33, sanitize: bool = True, all_boxes: bool = False) -> None:
     '''Prepares the database.
 
     Parameters
@@ -64,10 +65,6 @@ def prepare(archive: str, overwrite: bool = False, spacing: float = 0.33, saniti
         The spacing to be used in the grid. The default is 0.33.
     sanitize : bool, optional
         If True sanitizes the ligands, if False does not sanitize the ligands. The default is True.
-
-    Returns
-    -------
-    None
     '''
 
     # Find which kind of archive it will be
@@ -87,12 +84,12 @@ def prepare(archive: str, overwrite: bool = False, spacing: float = 0.33, saniti
     ocprint.printv("Generating information regarding possible ligand site.")
 
     # Prepare it
-    ocprepare.prepare(paths, overwrite, archive, sanitize, spacing)
+    ocprepare.prepare(paths, overwrite, archive, sanitize, spacing, all_boxes = all_boxes)
 
     return None
 
 
-def run_docking(archive: str, dockingAlgorithm: str, digestFormat: str = "json", overwrite: bool = False) -> int:
+def run_docking(archive: str, dockingAlgorithm: str, digestFormat: str = "json", overwrite: bool = False, all_boxes: bool = False) -> int:
     '''Run docking.
 
     Parameters
@@ -124,19 +121,19 @@ def run_docking(archive: str, dockingAlgorithm: str, digestFormat: str = "json",
         config = get_config()
         chosenArchive = config.pdbbind_archive
     else:
-        return ocerror.Error.not_supported_archive(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}.") # type: ignore
+        return ocerror.Error.not_supported_archive(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}.")
 
     # TODO: add support to more docking algorithms
     # Check if the docking algorithm is valid
     if dockingAlgorithm not in ["gnina", "vina", "smina", "plants"]:
-        return ocerror.Error.not_supported_docking_algorithm(f"Docking software not recognized. Expected ('gnina', 'vina', 'smina', 'plants') and got '{dockingAlgorithm}'.") # type: ignore
+        return ocerror.Error.not_supported_docking_algorithm(f"Docking software not recognized. Expected ('gnina', 'vina', 'smina', 'plants') and got '{dockingAlgorithm}'.")
 
     # Get all dirs paths in the database
     ptnDirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index']]
 
     # Create the complex list
     complexList = []
-    
+
     # For each dir in dirs, let's grab all ligands
     for ptnDir in ptnDirs:
         # Parameterize paths
@@ -146,6 +143,6 @@ def run_docking(archive: str, dockingAlgorithm: str, digestFormat: str = "json",
 
         # Append to the complex list the merged ligandAlternative list with the list with ligands, decoys and candidates. This is made because each receptor must have its own list of ligands, decoys and candidates, otherwise the docking could be done with the same ligands, decoys and candidates for all receptors making everything out of control.
         complexList.append((ptnDir, glob(f"{ligands}/*") + glob(f"{decoys}/*") + glob(f"{candidates}/*")))
-    
+
     # Run docking
-    return ocdock.run_docking(complexList, archive, dockingAlgorithm, overwrite, digestFormat)
+    return ocdock.run_docking(complexList, archive, dockingAlgorithm, overwrite, digestFormat, all_boxes = all_boxes)

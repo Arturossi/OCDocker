@@ -5,7 +5,7 @@
 '''
 Sets of classes and functions that are used to validate data.
 
-They are imported as:
+Usage:
 
 import OCDocker.Toolbox.Validation as ocvalidation
 '''
@@ -13,24 +13,25 @@ import OCDocker.Toolbox.Validation as ocvalidation
 # Imports
 ###############################################################################
 import os
+import time
+
 from Bio.PDB import MMCIFParser, PDBParser
 from typing import Union
 
-import OCDocker.Toolbox.Printing as ocprint
-
 import OCDocker.Error as ocerror
+import OCDocker.Toolbox.Printing as ocprint
 
 # License
 ###############################################################################
 '''
 OCDocker
-Authors: Rossi, A.D.; Torres, P.H.M.
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
-developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
 All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
 to formal authorization from UFRJ. See the LICENSE file for details.
 
@@ -96,14 +97,15 @@ def is_molecule_valid(molecule: str) -> bool:
         # Check which is its extension to use the correct function
         extension = os.path.splitext(molecule)[1]
         # Test if the molecule should be loaded with biopython or rdkit
-        if molecule.endswith((".cif", ".pdb")):
+        if molecule.lower().endswith((".cif", ".mmcif", ".pdb")):
             try:
                 # Now we know that it is a file path, check which is its extension to use the correct function
-                extension = os.path.splitext(molecule)[1]
+                extension = os.path.splitext(molecule)[1].lower()
                 # Choose the parser based on extension
+                parser: PDBParser | MMCIFParser
                 if extension == ".pdb":
                     parser = PDBParser()
-                elif extension == ".cif":
+                elif extension in [".cif", ".mmcif"]:
                     parser = MMCIFParser()
                 else:
                     # Not suitable extension, so... say False!!!
@@ -118,16 +120,28 @@ def is_molecule_valid(molecule: str) -> bool:
         elif type(validate_obabel_extension(molecule)) == str:
             try:
                 # Import RDKit lazily to avoid hard dependency at import time
-                import rdkit
+                from rdkit import Chem
                 # Check if the extension is within the supported ones, if yes, parse it
                 if extension == ".mol2":
-                    _ = rdkit.Chem.rdmolfiles.MolFromMol2File(molecule, sanitize = True) # type: ignore
+                    _ = Chem.rdmolfiles.MolFromMol2File(molecule, sanitize = True)
                 elif extension == ".sdf":
-                    _ = rdkit.Chem.rdmolfiles.SDMolSupplier(molecule, sanitize = True) # type: ignore
+                    _ = Chem.rdmolfiles.SDMolSupplier(molecule, sanitize = True)
                 elif extension == ".mol":
-                    _ = rdkit.Chem.rdmolfiles.MolFromMolFile(molecule, sanitize = True) # type: ignore
+                    _ = Chem.rdmolfiles.MolFromMolFile(molecule, sanitize = True)
                 elif extension == ".pdbqt":
-                    _ = rdkit.Chem.rdmolfiles.MolFromMolFile(molecule, sanitize = True) # type: ignore
+                    # RDKit's PDB parser can misread PDBQT atom types (e.g., "A") as elements.
+                    # Use OpenBabel to validate PDBQT files instead.
+                    try:
+                        from openbabel import openbabel
+                        ob_conversion = openbabel.OBConversion()
+                        ob_conversion.SetInFormat("pdbqt")
+                        ob_mol = openbabel.OBMol()
+                        if not ob_conversion.ReadFile(ob_mol, molecule):
+                            return False
+                        if ob_mol.NumAtoms() <= 0:
+                            return False
+                    except Exception:
+                        return False
                 elif extension in [".smi", ".smiles"]:
                     # Read SMILES string from file and parse
                     try:
@@ -135,7 +149,7 @@ def is_molecule_valid(molecule: str) -> bool:
                             smi = f.read().strip().split()[0]
                     except (OSError, IOError, FileNotFoundError, IndexError):
                         return False
-                    _ = rdkit.Chem.rdmolfiles.MolFromSmiles(smi, sanitize = True) # type: ignore
+                    _ = Chem.rdmolfiles.MolFromSmiles(smi, sanitize = True)
                 else:
                     # Not suitable extension, so... say False!!!!
                     return False
@@ -145,6 +159,40 @@ def is_molecule_valid(molecule: str) -> bool:
                 # Uh oh, some problem has been found
                 return False
     # No file, so it is False
+    return False
+
+
+def is_molecule_valid_with_retry(molecule: str, retries: int = 5, delay: float = 1.0) -> bool:
+    '''Check if a molecule is valid, retrying when the file is empty or mid-write.
+
+    Parameters
+    ----------
+    molecule : str
+        The molecule to be checked.
+    retries : int, optional
+        Number of read attempts before giving up. Default is 5.
+    delay : float, optional
+        Delay in seconds between attempts. Default is 1.0.
+
+    Returns
+    -------
+    bool
+        True if the molecule is valid within the retry window, False otherwise.
+    '''
+
+    attempts = max(1, retries)
+    for attempt in range(attempts):
+        size_ok = False
+        if os.path.isfile(molecule):
+            try:
+                size_ok = os.path.getsize(molecule) > 0
+            except OSError:
+                size_ok = False
+        if size_ok:
+            if is_molecule_valid(molecule):
+                return True
+        if attempt < attempts - 1 and delay > 0:
+            time.sleep(delay)
     return False
 
 

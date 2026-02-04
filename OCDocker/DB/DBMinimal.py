@@ -5,7 +5,7 @@
 '''
 Sets of classes and functions that are used for setting up the database.
 
-They are imported as:
+Usage:
 
 import OCDocker.DB.DBMinimal as ocdbmin
 '''
@@ -26,13 +26,13 @@ import OCDocker.Error as ocerror
 ###############################################################################
 '''
 OCDocker
-Authors: Rossi, A.D.; Torres, P.H.M.
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
-developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
 All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
 to formal authorization from UFRJ. See the LICENSE file for details.
 
@@ -49,15 +49,70 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ## Public ##
 
 
+def cleanup_engine(engine: Optional[Engine]) -> None:
+    ''' Clean up an engine by disposing of all connections in the pool.
+
+    This function closes all connections in the connection pool and disposes of
+    the engine. It's automatically called on application shutdown via atexit handlers.
+
+    Parameters
+    ----------
+    engine : Engine | None
+        The engine to clean up.
+
+    Notes
+    -----
+    - This is safe to call multiple times (idempotent)
+    - Errors during cleanup are silently ignored
+    - Typically called automatically on application exit
+    - Prevents connection leaks, especially important for MySQL
+    '''
+    if engine is not None:
+        try:
+            # Dispose of all connections in the pool
+            # close=True ensures connections are properly closed, not just returned to pool
+            engine.dispose(close=True)
+        except (AttributeError, RuntimeError):
+            # Ignore errors during cleanup (engine may already be disposed)
+            pass
+
+
+def cleanup_session(session: Optional[scoped_session]) -> None:
+    ''' Clean up a scoped session by removing all sessions from the registry.
+
+    This function removes all thread-local session instances from the scoped_session
+    registry. It's automatically called on application shutdown via atexit handlers.
+
+    Parameters
+    ----------
+    session : scoped_session | None
+        The scoped session to clean up.
+
+    Notes
+    -----
+    - This is safe to call multiple times (idempotent)
+    - Errors during cleanup are silently ignored
+    - Typically called automatically on application exit
+    '''
+    if session is not None:
+        try:
+            # Remove all thread-local sessions from the registry
+            # This closes all active sessions and releases connections
+            session.remove()
+        except (AttributeError, RuntimeError):
+            # Ignore errors during cleanup (session may already be closed or removed)
+            pass
+
+
 def create_database_if_not_exists(url: Union[str, URL]) -> None:
     ''' Create the database if it does not exist.
-    
+
     Parameters
     ----------
     url : str | sqlalchemy.engine.url.URL
         The database url (string or URL object).
     '''
-    
+
     # Convert string URL to URL object if necessary
     if isinstance(url, str):
         url = make_url(url)
@@ -65,7 +120,7 @@ def create_database_if_not_exists(url: Union[str, URL]) -> None:
     # If the database does not exist, create it
     if not database_exists(url):
         create_database(url)
-    
+
     return None
 
 
@@ -92,7 +147,7 @@ def create_engine(url: Union[str, URL], echo: bool = False, pool_size: int = 5, 
     Engine : sqlalchemy.engine.base.Engine
         The engine with connection pooling configured.
     '''
-    
+
     # Convert string URL to URL object if necessary
     if isinstance(url, str):
         url = make_url(url)
@@ -115,7 +170,7 @@ def create_engine(url: Union[str, URL], echo: bool = False, pool_size: int = 5, 
         )
 
     # Return the engine (despite the lint flagging as a MockConnection, it is an Engine)
-    return engine # type: ignore
+    return engine
 
 
 def create_session(engine: Optional[Engine]) -> Optional[scoped_session]:
@@ -130,7 +185,7 @@ def create_session(engine: Optional[Engine]) -> Optional[scoped_session]:
     -------
     scoped_session : sqlalchemy.orm.scoped_session
         The scoped session factory. Use `with session() as s:` to get a session instance.
-    
+
     Notes
     -----
     Session Lifecycle:
@@ -138,11 +193,11 @@ def create_session(engine: Optional[Engine]) -> Optional[scoped_session]:
     - The context manager automatically handles commit/rollback and closing
     - The scoped_session registry is cleaned up automatically on application shutdown
     - For manual cleanup, call `cleanup_session(session)` or let atexit handlers run
-    
+
     Example
     -------
     ::
-    
+
         session = create_session(engine)
         with session() as s:
             result = s.query(Model).all()
@@ -152,7 +207,7 @@ def create_session(engine: Optional[Engine]) -> Optional[scoped_session]:
     # Check if the engine is defined
     if engine is None:
         # The engine is not defined
-        _ = ocerror.Error.engine_not_created("The engine is not defined. Please create the engine first.") # type: ignore
+        _ = ocerror.Error.engine_not_created("The engine is not defined. Please create the engine first.")
         print("The engine is not defined. Please create the engine first.")
         # Return None
         return None
@@ -164,57 +219,3 @@ def create_session(engine: Optional[Engine]) -> Optional[scoped_session]:
     # Return the session
     return session
 
-
-def cleanup_session(session: Optional[scoped_session]) -> None:
-    ''' Clean up a scoped session by removing all sessions from the registry.
-
-    This function removes all thread-local session instances from the scoped_session
-    registry. It's automatically called on application shutdown via atexit handlers.
-    
-    Parameters
-    ----------
-    session : scoped_session | None
-        The scoped session to clean up.
-        
-    Notes
-    -----
-    - This is safe to call multiple times (idempotent)
-    - Errors during cleanup are silently ignored
-    - Typically called automatically on application exit
-    '''
-    if session is not None:
-        try:
-            # Remove all thread-local sessions from the registry
-            # This closes all active sessions and releases connections
-            session.remove()
-        except (AttributeError, RuntimeError):
-            # Ignore errors during cleanup (session may already be closed or removed)
-            pass
-
-
-def cleanup_engine(engine: Optional[Engine]) -> None:
-    ''' Clean up an engine by disposing of all connections in the pool.
-
-    This function closes all connections in the connection pool and disposes of
-    the engine. It's automatically called on application shutdown via atexit handlers.
-    
-    Parameters
-    ----------
-    engine : Engine | None
-        The engine to clean up.
-        
-    Notes
-    -----
-    - This is safe to call multiple times (idempotent)
-    - Errors during cleanup are silently ignored
-    - Typically called automatically on application exit
-    - Prevents connection leaks, especially important for MySQL
-    '''
-    if engine is not None:
-        try:
-            # Dispose of all connections in the pool
-            # close=True ensures connections are properly closed, not just returned to pool
-            engine.dispose(close=True)
-        except (AttributeError, RuntimeError):
-            # Ignore errors during cleanup (engine may already be disposed)
-            pass

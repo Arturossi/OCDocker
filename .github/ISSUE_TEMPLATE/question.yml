@@ -1,0 +1,40 @@
+name: "Documentation / Question"
+description: "Ask a question or request documentation help"
+title: "[Question]: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: "Thanks for reaching out. Please fill out the details below."
+  - type: checkboxes
+    id: existing_issues
+    attributes:
+      label: "Checked existing issues"
+      description: "Please confirm you searched existing issues before filing a new one."
+      options:
+        - label: "I have searched existing issues"
+          required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: "What are you trying to do?"
+      description: "Tell us your goal or question."
+      placeholder: "Example: I want to run the pipeline on a local dataset and export results."
+    validations:
+      required: true
+  - type: textarea
+    id: tried
+    attributes:
+      label: "What have you tried?"
+      description: "Share what you've already attempted."
+      placeholder: "Commands, docs followed, or relevant configs."
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: "Additional context"
+      description: "Anything else that might help answer your question."
+      placeholder: "OS, Python version, package version/commit, or logs (if relevant)."
+    validations:
+      required: false

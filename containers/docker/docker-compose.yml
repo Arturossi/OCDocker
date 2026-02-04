@@ -1,0 +1,42 @@
+services:
+  db:
+    image: mysql:8.4
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
+      MYSQL_DATABASE: ocdocker
+      MYSQL_USER: ocdocker
+      MYSQL_PASSWORD: ${OCDOCKER_DB_PASS:-ocdocker_pass}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  ocdocker:
+    build:
+      context: ../..
+      dockerfile: containers/docker/ocdocker.dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      OCDOCKER_CONFIG: /data/hd4tb/OCDocker/OCDocker/containers/docker/OCDocker.cfg.docker
+      OCDOCKER_USE_SQLITE: "0"
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ${HOST_OCDOCKER_ROOT:-/data/hd4tb/OCDocker}:/data/hd4tb/OCDocker
+      - ocdocker_cache:/root/.cache
+    working_dir: /data/hd4tb/OCDocker/OCDocker
+    stdin_open: true
+    tty: true
+    user: root
+
+volumes:
+  mysql_data:
+  ocdocker_cache:

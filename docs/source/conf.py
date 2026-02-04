@@ -1,14 +1,42 @@
-import os
-import sys
-import logging
-from pathlib import Path
-import types
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Sphinx configuration for OCDocker documentation builds.
+'''
+
+# Imports
+###############################################################################
 import importlib
 import importlib.util
-from importlib.machinery import PathFinder
-from importlib.abc import MetaPathFinder, Loader
-from unittest.mock import MagicMock
+import logging
+import os
+import sys
+import types
+
 from enum import IntEnum
+from importlib.abc import MetaPathFinder, Loader
+from importlib.machinery import PathFinder
+from pathlib import Path
+from unittest.mock import MagicMock
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -26,13 +54,11 @@ def find_repo_root(start: Path) -> Path:
     raise RuntimeError("Could not find repo root with 'OCDocker/__init__.py' above this file.")
 
 
-
 REPO_ROOT = find_repo_root(HERE)
 sys.path.insert(0, str(REPO_ROOT))
 os.environ.setdefault("OC_BUILD_DOCS", "1")
 os.environ.setdefault("MPLBACKEND", "agg")
 logging.debug("Docs repo root: %s", REPO_ROOT)
-
 
 
 # -----------------------------------------------------------------------------
@@ -85,7 +111,6 @@ init_mod.clrs = {
 
 def _get_db_url():
     return init_mod.db_url
-
 
 
 init_mod.get_db_url = _get_db_url
@@ -145,24 +170,11 @@ class _InjectingLoader(Loader):
         self._injected = injected
 
 
-
-
-
-
-
-
-
     def create_module(self, spec):
         if hasattr(self._base, "create_module"):
             return self._base.create_module(spec)
 
         return None
-
-
-
-
-
-
 
 
     def exec_module(self, module):
@@ -179,12 +191,6 @@ class _InjectingFinder(MetaPathFinder):
         self._injected = injected
 
 
-
-
-
-
-
-
     def find_spec(self, fullname, path=None, target=None):
         if not fullname.startswith(self._pkg_prefix):
             return None
@@ -193,7 +199,6 @@ class _InjectingFinder(MetaPathFinder):
             return None
         spec.loader = _InjectingLoader(spec.loader, self._injected)
         return spec
-
 
 
 _injected_globals = {
@@ -205,7 +210,6 @@ _injected_globals = {
 
 if not any(isinstance(f, _InjectingFinder) for f in sys.meta_path):
     sys.meta_path.insert(0, _InjectingFinder("OCDocker", _injected_globals))
-
 
 
 # -----------------------------------------------------------------------------
@@ -275,10 +279,16 @@ for parent in (
 # Sphinx configuration
 # -----------------------------------------------------------------------------
 project = "OCDocker"
-copyright = "2025, Artur Duque Rossi"
+copyright = "2026, Artur Duque Rossi"
 author = "Artur Duque Rossi"
-version = "0.11.1"
-release = "0.11.1"
+# Fetch version from OCDocker (single source of truth)
+try:
+    from OCDocker._version import __version__ as ver
+    version = ver
+    release = ver
+except Exception:
+    version = "0+unknown"
+    release = version
 
 extensions = [
     "sphinxarg.ext",
@@ -343,3 +353,13 @@ rst_prolog = """
 .. |NBS_norm| replace:: Normalized Binding Score (scaled)
 .. |SHAP| replace:: SHAP
 """
+
+# Classes
+###############################################################################
+
+
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##

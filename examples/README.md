@@ -15,21 +15,25 @@ Simple examples of running docking with the CLI:
 - Basic Vina docking
 - Docking with database storage
 - Docking without rescoring
+Run: `bash examples/01_cli_basic_docking.sh`
 
 ### 2. Multi-Engine Pipeline (`02_cli_multi_engine_pipeline.sh`)
 Examples of running multi-engine docking pipelines:
 - Pipeline with Vina, Smina, and PLANTS
 - Pipeline with custom timeouts
 - Pipeline with subset of engines
+Run: `bash examples/02_cli_multi_engine_pipeline.sh`
 
 ### 3. Diagnostics (`03_cli_diagnostics.sh`)
 Examples of checking your installation:
 - Running diagnostics
 - Creating configuration files
 - Checking version
+Run: `bash examples/03_cli_diagnostics.sh`
 
 ### 4. Interactive Console (`04_cli_console.py`)
 Guide to using the interactive console for step-by-step workflows.
+Run: `ocdocker console --conf OCDocker.cfg`
 
 ### 5. Running Scripts (`13_cli_script_example.py`)
 Example of running Python scripts with OCDocker libraries pre-loaded:
@@ -37,6 +41,7 @@ Example of running Python scripts with OCDocker libraries pre-loaded:
 - Accessing pre-loaded OCDocker modules
 - Working with script arguments
 - Example workflow structure
+Run: `ocdocker script --conf OCDocker.cfg examples/13_cli_script_example.py`
 
 ## Python API Examples
 
@@ -47,28 +52,33 @@ Complete example of using Vina programmatically:
 - Running docking
 - Reading results
 - Rescoring
+Run: `python examples/05_python_api_vina.py`
 
 ### 7. Smina Docking (`06_python_api_smina.py`)
 Example of using Smina for docking and rescoring:
 - Smina docking workflow
 - Using Smina for rescoring only (after Vina docking)
+Run: `python examples/06_python_api_smina.py`
 
 ### 8. PLANTS Docking (`07_python_api_plants.py`)
 Example of using PLANTS (uses MOL2 format):
 - PLANTS-specific preparation
 - Docking with PLANTS
 - Rescoring with PLANTS
+Run: `python examples/07_python_api_plants.py`
 
 ### 9. ODDT Rescoring (`08_python_api_rescoring_oddt.py`)
 Example of using ODDT for rescoring:
 - Running ODDT rescoring on docked poses
 - Converting results to different formats
+Run: `python examples/08_python_api_rescoring_oddt.py`
 
 ### 10. RMSD Clustering (`09_python_api_clustering.py`)
 Example of clustering poses from multiple engines:
 - Combining poses from different engines
 - Calculating RMSD matrix
 - Clustering and finding medoids
+Run: `python examples/09_python_api_clustering.py`
 
 ### 11. Complete Workflow (`10_python_api_complete_workflow.py`)
 End-to-end workflow example:
@@ -76,6 +86,7 @@ End-to-end workflow example:
 - Pose clustering
 - Rescoring
 - Results analysis
+Run: `python examples/10_python_api_complete_workflow.py`
 
 ### 12. Train Model from Database (`11_python_api_train_model_from_db.py`)
 Example of training machine learning models using data from the OCDocker database:
@@ -84,6 +95,7 @@ Example of training machine learning models using data from the OCDocker databas
 - Training DNN or XGBoost models
 - Saving trained models and masks
 - Using the full preprocessing pipeline
+Run: `python examples/11_python_api_train_model_from_db.py`
 
 ### 13. Complete OCScore Pipeline (`12_python_api_complete_ocscore_pipeline.py`)
 Complete end-to-end pipeline to obtain OCScore results from scratch:
@@ -94,6 +106,12 @@ Complete end-to-end pipeline to obtain OCScore results from scratch:
 - Feature extraction (receptor and ligand descriptors)
 - Model inference using trained OCScore model
 - Automatic mapping of rescoring results to database column names
+Run: `python examples/12_python_api_complete_ocscore_pipeline.py`
+
+### 14. Future AE -> DNN Pipeline (`14_python_api_future_ae_dnn.py`)
+Example of training the future Autoencoder to generate embeddings and using them
+to train the future DNN optimizer.
+Run: `python examples/14_python_api_future_ae_dnn.py`
 
 ## Getting Started
 
@@ -187,4 +205,3 @@ See the main README.md for more details on the file structure.
 
 These examples are part of OCDocker and are subject to the same license terms.
 See the LICENSE file in the main directory for details.
-

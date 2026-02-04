@@ -8,6 +8,7 @@ Submodules
    :maxdepth: 4
 
    OCDocker.OCScore.DNN.DNNOptimizer
+   OCDocker.OCScore.DNN.future
 
 Module contents
 ---------------

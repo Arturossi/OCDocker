@@ -6,7 +6,7 @@
 Set of functions to manage evaluation operations in OCDocker in the context of
 scoring functions.
 
-They are imported as:
+Usage:
 
 import OCDocker.OCScore.Utils.Evaluation as ocseval
 '''
@@ -16,11 +16,10 @@ import OCDocker.OCScore.Utils.Evaluation as ocseval
 
 import numpy as np
 import pandas as pd
+import OCDocker.Error as ocerror
 
 from sklearn.metrics import auc, mean_squared_error, roc_curve
 from typing import Union
-
-
 
 import OCDocker.OCScore.Utils.Data as ocscoredata
 
@@ -28,13 +27,13 @@ import OCDocker.OCScore.Utils.Data as ocscoredata
 ###############################################################################
 '''
 OCDocker
-Authors: Rossi, A.D.; Torres, P.H.M.
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
-developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
 All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
 to formal authorization from UFRJ. See the LICENSE file for details.
 
@@ -44,8 +43,11 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 
-# Methods
+# Functions
 ###############################################################################
+## Private ##
+
+## Public ##
 
 def compute_auc(
         df : pd.DataFrame,
@@ -65,7 +67,7 @@ def compute_auc(
         The list of columns containing the scores.
     class_column_name : str
         The name of the column containing the class.
-    
+
     Returns
     -------
     pd.DataFrame
@@ -91,61 +93,23 @@ def compute_auc(
             "score_column": score_column,
             "AUC": roc_auc
         })
-    
-    # Return the DataFrame with the metrics
-    return pd.DataFrame(metrics)
 
-
-def compute_rmse(
-        df : pd.DataFrame,
-        score_columns : list[str],
-        target_column_name : str
-    ) -> pd.DataFrame:
-    ''' Compute the RMSE for the scores in given score_columns.
-
-    Parameters
-    ----------
-    df : pd.DataFrame
-        The DataFrame containing the scores.
-    score_columns : list[str]
-        The list of columns containing the scores.
-    target_column_name : str
-        The name of the column containing the target values.
-
-    Returns
-    -------
-    pd.DataFrame
-        The DataFrame with the computed RMSE.
-    '''
-    
-    metrics = []
-
-    for score_column in score_columns:
-        # Compute the RMSE
-        rmse = np.sqrt(mean_squared_error(df[target_column_name], df[score_column]))
-
-        # Append the metrics to the list
-        metrics.append({
-            "score_column": score_column,
-            "RMSE": rmse
-        })
-    
     # Return the DataFrame with the metrics
     return pd.DataFrame(metrics)
 
 
 def compute_metrics(
-        df: pd.DataFrame, 
+        df: pd.DataFrame,
         score_columns: list[str],
-        target_column_name: str, 
-        db_column_name: str, 
-        metric_db_name: tuple[str, str], 
-        class_column_name: str, 
+        target_column_name: str,
+        db_column_name: str,
+        metric_db_name: tuple[str, str],
+        class_column_name: str,
         positive_class_names: Union[str, list[str]],
         invert_conditionally: bool = True
     ) -> pd.DataFrame:
     ''' Compute the metrics for the scores in given score_columns.
-    
+
     Parameters
     ----------
     df : pd.DataFrame
@@ -167,7 +131,7 @@ def compute_metrics(
     -------
     pd.DataFrame
         The DataFrame with the computed metrics.
-    
+
     Raises
     ------
     ValueError
@@ -177,7 +141,7 @@ def compute_metrics(
     # Check if metric_db_name has two elements
     if len(metric_db_name) != 2:
         # User-facing error: invalid metric_db_name format
-        ocerror.Error.value_error(f"metric_db_name must have two elements. Got {len(metric_db_name)} elements: {metric_db_name}") # type: ignore
+        ocerror.Error.value_error(f"metric_db_name must have two elements. Got {len(metric_db_name)} elements: {metric_db_name}")
         raise ValueError("metric_db_name must have two elements.")
 
     # Check if positive_class_names is a string
@@ -190,7 +154,7 @@ def compute_metrics(
     # Check if the metrics should be inverted
     if invert_conditionally:
         # Inverting values for DUDEz data
-        df = ocscoredata.invert_values_conditionally(df) # type: ignore
+        df = ocscoredata.invert_values_conditionally(df)
 
     # Split the dataframe into groups to compute the metrics
     df_rmse = df[df[db_column_name] == metric_db_name[0]]
@@ -218,6 +182,44 @@ def compute_metrics(
             "RMSE": rmse,
             "AUC": roc_auc
         })
-    
+
+    # Return the DataFrame with the metrics
+    return pd.DataFrame(metrics)
+
+
+def compute_rmse(
+        df : pd.DataFrame,
+        score_columns : list[str],
+        target_column_name : str
+    ) -> pd.DataFrame:
+    ''' Compute the RMSE for the scores in given score_columns.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The DataFrame containing the scores.
+    score_columns : list[str]
+        The list of columns containing the scores.
+    target_column_name : str
+        The name of the column containing the target values.
+
+    Returns
+    -------
+    pd.DataFrame
+        The DataFrame with the computed RMSE.
+    '''
+
+    metrics = []
+
+    for score_column in score_columns:
+        # Compute the RMSE
+        rmse = np.sqrt(mean_squared_error(df[target_column_name], df[score_column]))
+
+        # Append the metrics to the list
+        metrics.append({
+            "score_column": score_column,
+            "RMSE": rmse
+        })
+
     # Return the DataFrame with the metrics
     return pd.DataFrame(metrics)

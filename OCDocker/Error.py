@@ -5,30 +5,30 @@
 '''
 Handles all standardized return codes and error reporting in OCDocker.
 
-They are imported as:
+Usage:
 
 import OCDocker.Error as ocerror
 '''
 
 # Imports
 ###############################################################################
-import inspect
 import datetime
+import inspect
 
 from enum import IntEnum
-from typing import Any, Callable, Dict, Tuple, Union
+from typing import Any, Callable, Dict, Tuple, Union, TYPE_CHECKING
 
 # License
 ###############################################################################
 '''
 OCDocker
-Authors: Rossi, A.D.; Torres, P.H.M.
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
-developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
 All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
 to formal authorization from UFRJ. See the LICENSE file for details.
 
@@ -64,11 +64,13 @@ class ErrorMeta(type):
 
         # Create the class normally
         new_class = super().__new__(cls, name, bases, attrs)
-        
+
         # Test if the class is the Error class
         if name == "Error":
-            new_class._add_error_methods() # type: ignore
-        
+            add_methods = getattr(new_class, "_add_error_methods", None)
+            if callable(add_methods):
+                add_methods()
+
         return new_class
 
 
@@ -252,7 +254,7 @@ class ReportLevel(IntEnum):
         Success messages and above (value: 4).
     DEBUG : int
         Debug messages and above (value: 5).
-    """ 
+    """
 
     DEBUG = 5
     SUCCESS = 4
@@ -294,7 +296,7 @@ class ErrorMethodFactory:
             A callable function that reports the error with the specified code.
             The function signature is: (message: str = "", level: ReportLevel = default_level) -> int
         '''
-        
+
         # Creating the method
         def error_method(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
             '''{docstring}'''
@@ -304,7 +306,7 @@ class ErrorMethodFactory:
 
         # Creating dynamic docstring
         error_method.__doc__ = f" Return this when {description}.\n\n        Parameters\n        ----------\n        message : string, optional\n            Message to be printed. Default is \"\".\n        level : ReportLevel, optional\n            Level of message to be printed. Default is ReportLevel.{default_level.name}.\n\n        Returns\n        -------\n        int\n            The code for this error ({code})."
-        
+
         return error_method
 
 
@@ -321,7 +323,7 @@ class ErrorMessages:
         Dictionary mapping ErrorCode enum values to tuples of (str, ReportLevel).
         Each tuple contains the error description and the default report level.
     """
-    
+
     messages = {
         # Common errors
         ErrorCode.OK: ("no error appears", ReportLevel.SUCCESS),
@@ -424,29 +426,119 @@ class Error(metaclass = ErrorMeta):
     >>> if result != ErrorCode.OK:
     ...     # Handle error
     """
-
-    # Class attributes
-    output_level = ReportLevel.INFO
-
-    color = {
-        ReportLevel.INFO: "\033[1;96m",
-        ReportLevel.SUCCESS: "\033[1;92m",
-        ReportLevel.WARNING: "\033[1;93m",
-        ReportLevel.ERROR: "\033[1;91m",
-        ReportLevel.DEBUG: "\033[1;95m",
-    }
-
+    if TYPE_CHECKING:
+        # Typed stubs for dynamically generated error methods.
+        @staticmethod
+        def ok(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def abort(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def skip(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def unknown(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def file_exists(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def file_not_exist(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def read_file(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def write_file(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def untar_file(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def unsupported_extension(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def broken_pipe(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def empty_file(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def corrupted_file(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def dir_exists(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def create_dir(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def remove_dir(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def dir_not_exist(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def unallowed_dir(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def empty_dir(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def wrong_type(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def not_set(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def empty(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def value_error(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def subprocess(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def parse_molecule(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def malformed_molecule(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def ligand_not_prepared(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def receptor_not_prepared(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def invalid_molecule_name(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def docking_object_not_generated(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def receptor_or_ligand_not_generated(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def receptor_or_ligand_descriptor_not_exist(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def not_supported_docking_algorithm(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def binding_site_not_found(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def docking_failed(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def read_docking_log_error(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def not_supported_archive(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def unsupported_scoring_function(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def rescoring_failed(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def missing_oddt_models(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def unsupported_clustering_algorithm(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def cluster_not_converged(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def empty_cluster(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def database_not_connected(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def database_not_created(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def engine_not_created(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def session_not_created(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def data_not_found(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def data_already_exists(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
+        @staticmethod
+        def malformed_payload(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int: ...
     ## Private ##
 
     @classmethod
     def _add_error_methods(cls) -> None:
         ''' Add error methods to the Error class.'''
-        
+
         # Iterate through the ErrorCode enumeration
         for code in ErrorCode:
             # Get the description and default level of the error code from ErrorMessages
             description, level = ErrorMessages.messages[code]
-            
+
             # Create the dynamic method for each error code
             error_method = ErrorMethodFactory.create_error_method(code, description, level)
 
@@ -457,47 +549,6 @@ class Error(metaclass = ErrorMeta):
             setattr(cls, f"{code.name.lower()}", static_error_method)
 
     ## Public ##
-
-    @classmethod
-    def set_output_level(cls, level: Union[ReportLevel, int]) -> None:
-        ''' Set the output level of the error messages.
-
-        Parameters
-        ----------
-        level : ReportLevel or int
-            The level of the messages to be printed, options are:
-                - ReportLevel.DEBUG   (5)
-                - ReportLevel.SUCCESS (4)
-                - ReportLevel.INFO    (3)
-                - ReportLevel.WARNING (2)
-                - ReportLevel.ERROR   (1)
-                - ReportLevel.NONE    (0)
-        '''
-        
-        # If the level is a ReportLevel, just set it
-        if isinstance(level, ReportLevel):
-            cls.output_level = level
-            # Bridge to logging (lazy import to avoid cycles)
-            try:
-                import OCDocker.Toolbox.Logging as oclogging  # type: ignore
-                oclogging.set_level_from_report(level)  # type: ignore
-            except (ImportError, AttributeError):
-                # Ignore if logging module is not available
-                pass
-        elif isinstance(level, int):
-            # If the level is an int, check if it is valid
-            if level >= ReportLevel.NONE and level <= ReportLevel.DEBUG:
-                cls.output_level = ReportLevel(level)
-                try:
-                    import OCDocker.Toolbox.Logging as oclogging  # type: ignore
-                    oclogging.set_level_from_report(ReportLevel(level))  # type: ignore
-                except (ImportError, AttributeError):
-                    # Ignore if logging module is not available
-                    pass
-            else:
-                raise ValueError(f"Invalid output level: {level}.")
-        else:
-            raise TypeError(f"Invalid type for output level: {type(level)}.")
 
     @classmethod
     def get_output_level(cls) -> ReportLevel:
@@ -524,8 +575,9 @@ class Error(metaclass = ErrorMeta):
         >>> print(f"Current level: {current_level}")
         Current level: ReportLevel.INFO
         '''
-        
+
         return cls.output_level
+
 
     @staticmethod
     def get_time(level: ReportLevel = ReportLevel.NONE) -> str:
@@ -554,75 +606,16 @@ class Error(metaclass = ErrorMeta):
         # Return the current time
         return f"\033[1;96m{today.strftime('%d-%m-%Y')}\033[1;0m|\033[1;96m{today.strftime('%H:%M:%S')}\033[1;0m"
 
-    @staticmethod
-    def print_message(message: str, level: ReportLevel) -> None:
-        ''' Print a message with a specific level.
-
-        Parameters
-        ----------
-        message : string
-            The message to be printed.
-        level : ReportLevel
-            The level of the message to be printed, options are:
-                - ReportLevel.DEBUG
-                - ReportLevel.SUCCESS
-                - ReportLevel.INFO
-                - ReportLevel.WARNING
-                - ReportLevel.ERROR
-        '''
-
-        # If there is no message, return
-        if not message:
-            return
-
-        # Get the color for the level
-        setcolor = Error.color.get(level, '\033[1;0m')
-
-        # Get the current time
-        time_str = Error.get_time(level)
-        base_message = f"[{time_str}] {setcolor}{level.name}\033[1;0m: {message}"
-
-        if Error.output_level >= ReportLevel.DEBUG:
-            current_frame = inspect.currentframe()
-            caller_frame = current_frame.f_back.f_back.f_back # type: ignore
-            detailed_message = (f"In function '{caller_frame.f_code.co_name}' " # type: ignore
-                                f"line {caller_frame.f_lineno} " # type: ignore
-                                f"from file '{caller_frame.f_code.co_filename}'.") # type: ignore
-            print(f"{base_message} {detailed_message}")
-        else:
-            print(f"{base_message}")
-
-    @staticmethod
-    def report(code: ErrorCode, message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
-        '''Report an error based on the given code.
-
-        Parameters
-        ----------
-        code : ErrorCode
-            The error code.
-        message : string, optional
-            Message to be printed. Default is "".
-        level : ReportLevel, optional
-            Level of message to be printed. Default is ReportLevel.WARNING.
-
-        Returns
-        -------
-        int
-            The integer value of the error code.
-        '''
-
-        Error.print_message(message, level)
-        return code.value
 
     @staticmethod
     def print_attributes() -> None:
-        """Print all error codes and their attributes to stdout.
+        '''Print all error codes and their attributes to stdout.
 
         Displays a formatted table showing all ErrorCode enum values,
         their descriptions, default report levels, and error codes,
         organized by error category (Common, File, Directory, etc.).
-        """
-        
+        '''
+
         # Mapping sections to their corresponding attributes and codes
         error_sections = {
             "GENERAL ERRORS": [
@@ -707,3 +700,141 @@ class Error(metaclass = ErrorMeta):
             print(f"\n\t~~~~~~~~~~~~~~~~ {section_name} ~~~~~~~~~~~~~~~~")
             for error_description, error_code in errors:
                 print(f"\t - {error_description}: {error_code}")
+
+
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##
+
+
+    @staticmethod
+    def print_message(message: str, level: ReportLevel) -> None:
+        ''' Print a message with a specific level.
+
+        Parameters
+        ----------
+        message : string
+            The message to be printed.
+        level : ReportLevel
+            The level of the message to be printed, options are:
+                - ReportLevel.DEBUG
+                - ReportLevel.SUCCESS
+                - ReportLevel.INFO
+                - ReportLevel.WARNING
+                - ReportLevel.ERROR
+        '''
+
+        # If there is no message, return
+        if not message:
+            return
+
+        # Get the color for the level
+        setcolor = Error.color.get(level, '\033[1;0m')
+
+        # Get the current time
+        time_str = Error.get_time(level)
+        base_message = f"[{time_str}] {setcolor}{level.name}\033[1;0m: {message}"
+
+        if Error.output_level >= ReportLevel.DEBUG:
+            current_frame = inspect.currentframe()
+            if current_frame is None:
+                print(f"{base_message}")
+                return
+
+            caller_frame = current_frame
+            for _ in range(3):
+                if caller_frame.f_back is None:
+                    print(f"{base_message}")
+                    return
+                caller_frame = caller_frame.f_back
+
+            detailed_message = (f"In function '{caller_frame.f_code.co_name}' "
+                                f"line {caller_frame.f_lineno} "
+                                f"from file '{caller_frame.f_code.co_filename}'.")
+            print(f"{base_message} {detailed_message}")
+        else:
+            print(f"{base_message}")
+
+
+    @staticmethod
+    def report(code: ErrorCode, message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
+        '''Report an error based on the given code.
+
+        Parameters
+        ----------
+        code : ErrorCode
+            The error code.
+        message : string, optional
+            Message to be printed. Default is "".
+        level : ReportLevel, optional
+            Level of message to be printed. Default is ReportLevel.WARNING.
+
+        Returns
+        -------
+        int
+            The integer value of the error code.
+        '''
+
+        Error.print_message(message, level)
+        return code.value
+
+
+    @classmethod
+    def set_output_level(cls, level: Union[ReportLevel, int]) -> None:
+        ''' Set the output level of the error messages.
+
+        Parameters
+        ----------
+        level : ReportLevel or int
+            The level of the messages to be printed, options are:
+                - ReportLevel.DEBUG   (5)
+                - ReportLevel.SUCCESS (4)
+                - ReportLevel.INFO    (3)
+                - ReportLevel.WARNING (2)
+                - ReportLevel.ERROR   (1)
+                - ReportLevel.NONE    (0)
+        '''
+
+        # If the level is a ReportLevel, just set it
+        if isinstance(level, ReportLevel):
+            cls.output_level = level
+            # Bridge to logging (lazy import to avoid cycles)
+            try:
+                import OCDocker.Toolbox.Logging as oclogging
+                oclogging.set_level_from_report(level)
+            except (ImportError, AttributeError):
+                # Ignore if logging module is not available
+                pass
+        elif isinstance(level, int):
+            # If the level is an int, check if it is valid
+            if level >= ReportLevel.NONE and level <= ReportLevel.DEBUG:
+                cls.output_level = ReportLevel(level)
+                try:
+                    import OCDocker.Toolbox.Logging as oclogging
+                    oclogging.set_level_from_report(ReportLevel(level))
+                except (ImportError, AttributeError):
+                    # Ignore if logging module is not available
+                    pass
+            else:
+                raise ValueError(f"Invalid output level: {level}.")
+        else:
+            raise TypeError(f"Invalid type for output level: {type(level)}.")
+
+
+    # Class attributes
+    output_level = ReportLevel.INFO
+
+    color = {
+        ReportLevel.INFO: "\033[1;96m",
+        ReportLevel.SUCCESS: "\033[1;92m",
+        ReportLevel.WARNING: "\033[1;93m",
+        ReportLevel.ERROR: "\033[1;91m",
+        ReportLevel.DEBUG: "\033[1;95m",
+    }
+
+
+
+
+

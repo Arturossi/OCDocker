@@ -1,21 +1,58 @@
-"""
-The OCScore package is a collection of tools for scoring and ranking docking poses.
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+OCScore package for scoring and ranking docking poses.
+
+Usage:
+
+import OCDocker.OCScore as ocscore
 
 Packages
 --------
-- Analysis: Analysis functions for scoring outcomes of the OCScore package.
-- Dimensionality: Dimensionality reduction methods.
-- NN: Neural network training functions.
-- Optimization: Optimization algorithms, it contains helpers for training functions and it is the module that probably you are looking for.
-- Transformer: Transformer training functions.
-- Utils: Utility functions.
-- XGBoost: XGBoost training functions.
+- Analysis: Analysis workflows and plotting.
+- DNN: Deep neural network utilities.
+- Dimensionality: Dimensionality reduction utilities.
+- Optimization: Model training and optimization pipelines.
+- Transformer: Transformer training utilities.
+- Utils: Shared OCScore utilities.
+- XGBoost: XGBoost utilities.
 
 Modules
 -------
-- Scoring: Functions for loading models and applying scoring pipelines to get predictions.
-- SimpleConsensus: Simple consensus scoring functions such as mean, median, max, min, std, variance, sum, range, 25th and 75th percentiles, kurtoisis, skewness.
-"""
+- Scoring: Model loading and scoring pipelines.
+'''
+
+# Imports
+###############################################################################
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
+###############################################################################
+
+
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##
 
 # Public API: Users should import OCScore modules directly
 # No classes or functions exported at package level

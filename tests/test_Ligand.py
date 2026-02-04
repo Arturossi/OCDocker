@@ -1,3 +1,17 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Tests for Ligand descriptor loading and preparation.
+
+Usage:
+
+pytest tests/test_Ligand.py
+'''
+
+# Imports
+###############################################################################
 import pytest
 
 from pathlib import Path
@@ -5,6 +19,32 @@ from rdkit import Chem
 
 import OCDocker.Ligand as ocl
 
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
+###############################################################################
+
+
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##
 
 @pytest.fixture
 def sample_ligand():
@@ -46,64 +86,6 @@ def sample_ligand():
 
     }
 
-
-@pytest.mark.order(1)
-def test_to_dict(sample_ligand):
-    '''
-    Test that Ligand.to_dict returns a dictionary containing key attributes.
-    '''
-    
-    result = sample_ligand["ligand"].to_dict()
-    
-    assert isinstance(result, dict), "Result should be a dictionary"
-    assert "Name" in result, "Name should be in the dictionary"
-
-
-@pytest.mark.order(2)
-def test_to_json(sample_ligand):
-    '''
-    Test that Ligand.to_json returns a JSON string representation of the object.
-    '''
-
-    # If there is already a json_file file, remove it
-    if sample_ligand["json_file"].exists():
-        sample_ligand["json_file"].unlink()
-
-    result = sample_ligand["ligand"].to_json(overwrite=True)
-
-    assert result is not None, "Result should not be None"
-    assert result == 0 or result is True, f"Result should be 0 or True. Error code: {result}"
-
-
-@pytest.mark.order(3)
-def test_is_valid(sample_ligand):
-    '''
-    Test that Ligand.is_valid returns a boolean and is True for valid input.
-    '''
-
-    assert isinstance(sample_ligand["ligand"].is_valid(), bool), "is_valid should return a boolean"
-    assert sample_ligand["ligand"].is_valid(), "Ligand should be valid"
-
-
-@pytest.mark.order(4)
-def test_get_descriptors(sample_ligand):
-    '''
-    Test that get_descriptors returns all expected descriptor keys
-    defined in Ligand.allDescriptors.
-    '''
-    
-    desc = sample_ligand["ligand"].get_descriptors()
-    expected_keys = ocl.Ligand.allDescriptors
-
-    assert isinstance(desc, dict), "get_descriptors should return a dictionary"
-    assert "RadiusOfGyration" in desc, "RadiusOfGyration should be in descriptors"
-    assert isinstance(desc["RadiusOfGyration"], float), "RadiusOfGyration should be an float"
-    assert desc["RadiusOfGyration"] > 0, "RadiusOfGyration should be positive"
-
-    for key in expected_keys:
-        assert key in desc, f"Missing descriptor: {key}"
-
-
 @pytest.mark.order(5)
 def test_create_box_overwrite(sample_ligand):
     box_path = sample_ligand["box_path"]
@@ -125,61 +107,32 @@ def test_create_box_overwrite(sample_ligand):
     result_over = sample_ligand["ligand"].create_box(save_path = str(boxes_dir), overwrite = True)
     assert result_over is None
 
-
-@pytest.mark.order(6)
-def test_same_molecule_checks(sample_ligand):
-    lig = sample_ligand["ligand"]
+@pytest.mark.order(4)
+def test_get_descriptors(sample_ligand):
+    '''
+    Test that get_descriptors returns all expected descriptor keys
+    defined in Ligand.allDescriptors.
+    '''
     
-    # Compare ligand with itself
-    assert lig.is_same_molecule(lig) is True
-    assert lig.is_same_molecule_SMILES(lig) is True
+    desc = sample_ligand["ligand"].get_descriptors()
+    expected_keys = ocl.Ligand.allDescriptors
 
-    # Compare with a different molecule
-    other = Chem.MolFromSmiles("CC")
-    assert lig.is_same_molecule(other) is False
-    assert lig.is_same_molecule_SMILES(other) is False
+    assert isinstance(desc, dict), "get_descriptors should return a dictionary"
+    assert "RadiusOfGyration" in desc, "RadiusOfGyration should be in descriptors"
+    assert isinstance(desc["RadiusOfGyration"], float), "RadiusOfGyration should be an float"
+    assert desc["RadiusOfGyration"] > 0, "RadiusOfGyration should be positive"
 
+    for key in expected_keys:
+        assert key in desc, f"Missing descriptor: {key}"
 
-@pytest.mark.order(7)
-def test_ligand_repr(sample_ligand):
-    '''Test __repr__ method.'''
+@pytest.mark.order(3)
+def test_is_valid(sample_ligand):
+    '''
+    Test that Ligand.is_valid returns a boolean and is True for valid input.
+    '''
 
-    result = repr(sample_ligand["ligand"])
-    assert isinstance(result, str)
-    assert "Ligand" in result
-    assert "name" in result
-
-
-@pytest.mark.order(8)
-def test_ligand_print_attributes(sample_ligand, capsys):
-    '''Test print_attributes method.'''
-
-    sample_ligand["ligand"].print_attributes()
-    captured = capsys.readouterr()
-    assert "Name" in captured.out
-    assert "Molecule" in captured.out
-
-
-@pytest.mark.order(9)
-def test_ligand_to_smiles(sample_ligand):
-    '''Test to_smiles method.'''
-
-    result = sample_ligand["ligand"].to_smiles()
-    assert isinstance(result, (str, int))
-    if isinstance(result, str):
-        assert len(result) > 0
-
-
-@pytest.mark.order(10)
-def test_ligand_get_centroid(sample_ligand):
-    '''Test get_centroid method.'''
-
-    result = sample_ligand["ligand"].get_centroid()
-    assert result is not None
-    assert hasattr(result, 'x')
-    assert hasattr(result, 'y')
-    assert hasattr(result, 'z')
-
+    assert isinstance(sample_ligand["ligand"].is_valid(), bool), "is_valid should return a boolean"
+    assert sample_ligand["ligand"].is_valid(), "Ligand should be valid"
 
 @pytest.mark.order(11)
 def test_ligand_from_json_descriptors(sample_ligand, tmp_path):
@@ -210,19 +163,41 @@ def test_ligand_from_json_descriptors(sample_ligand, tmp_path):
     assert ligand_from_json is not None
     assert ligand_from_json.name == "test_json"  # Name comes from JSON file
 
+@pytest.mark.order(10)
+def test_ligand_get_centroid(sample_ligand):
+    '''Test get_centroid method.'''
 
-@pytest.mark.order(12)
-def test_ligand_invalid_name_with_split(sample_ligand):
-    '''Test Ligand initialization with invalid name containing _split_.'''
+    result = sample_ligand["ligand"].get_centroid()
+    assert result is not None
+    assert hasattr(result, 'x')
+    assert hasattr(result, 'y')
+    assert hasattr(result, 'z')
 
-    # Python's __init__ cannot return a non-None value.
-    # When __init__ tries to return an int (error code), Python raises TypeError.
-    with pytest.raises(TypeError, match="__init__\\(\\) should return None"):
-        ocl.Ligand(
-            molecule=str(sample_ligand["mol"]),
-            name="test_split_invalid"
-        )
+@pytest.mark.order(25)
+def test_ligand_init_empty_name(sample_ligand):
+    '''Test Ligand initialization with empty name.'''
 
+    with pytest.raises(ValueError, match="should not be empty"):
+        ocl.Ligand(molecule=str(sample_ligand["mol"]), name="")
+
+@pytest.mark.order(26)
+def test_ligand_init_sanitize_false(tmp_path):
+    '''Test Ligand initialization with sanitize=False.'''
+    
+    # Write RDKit molecule to a temp file first to ensure proper path
+    mol_file = tmp_path / "test_ligand.smi"
+    mol_file.write_text("CCO\n")
+    try:
+        ligand = ocl.Ligand(molecule=str(mol_file), name="test", sanitize=False)
+        # If ligand was created, check it's valid
+        assert ligand is not None
+    except RuntimeError as e:
+        # RDKit may raise RuntimeError for pre-condition violations when sanitize=False
+        # This is expected behavior in some cases
+        if "Pre-condition" in str(e) or "violation" in str(e).lower():
+            pytest.skip(f"RDKit pre-condition violation with sanitize=False: {e}")
+        else:
+            raise
 
 @pytest.mark.order(13)
 def test_ligand_init_with_rdkit_mol(tmp_path):
@@ -235,16 +210,55 @@ def test_ligand_init_with_rdkit_mol(tmp_path):
     assert ligand is not None
     assert ligand.name == "ethanol"
 
+@pytest.mark.order(12)
+def test_ligand_invalid_name_with_split(sample_ligand):
+    '''Test Ligand initialization with invalid name containing _split_.'''
 
-@pytest.mark.order(14)
-def test_standalone_get_smiles(sample_ligand):
-    '''Test standalone get_smiles function.'''
+    with pytest.raises(ValueError, match="cannot contain the string '_split_'"):
+        ocl.Ligand(
+            molecule=str(sample_ligand["mol"]),
+            name="test_split_invalid"
+        )
 
-    result = ocl.get_smiles(sample_ligand["ligand"].molecule)
+@pytest.mark.order(8)
+def test_ligand_print_attributes(sample_ligand, capsys):
+    '''Test print_attributes method.'''
+
+    sample_ligand["ligand"].print_attributes()
+    captured = capsys.readouterr()
+    assert "Name" in captured.out
+    assert "Molecule" in captured.out
+
+@pytest.mark.order(7)
+def test_ligand_repr(sample_ligand):
+    '''Test __repr__ method.'''
+
+    result = repr(sample_ligand["ligand"])
+    assert isinstance(result, str)
+    assert "Ligand" in result
+    assert "name" in result
+
+@pytest.mark.order(9)
+def test_ligand_to_smiles(sample_ligand):
+    '''Test to_smiles method.'''
+
+    result = sample_ligand["ligand"].to_smiles()
     assert isinstance(result, (str, int))
     if isinstance(result, str):
         assert len(result) > 0
 
+@pytest.mark.order(6)
+def test_same_molecule_checks(sample_ligand):
+    lig = sample_ligand["ligand"]
+    
+    # Compare ligand with itself
+    assert lig.is_same_molecule(lig) is True
+    assert lig.is_same_molecule_SMILES(lig) is True
+
+    # Compare with a different molecule
+    other = Chem.MolFromSmiles("CC")
+    assert lig.is_same_molecule(other) is False
+    assert lig.is_same_molecule_SMILES(other) is False
 
 @pytest.mark.order(15)
 def test_standalone_get_centroid(sample_ligand):
@@ -256,7 +270,6 @@ def test_standalone_get_centroid(sample_ligand):
     assert hasattr(result, 'y')
     assert hasattr(result, 'z')
 
-
 @pytest.mark.order(16)
 def test_standalone_get_centroid_from_path(sample_ligand):
     '''Test standalone get_centroid function with file path.'''
@@ -267,6 +280,14 @@ def test_standalone_get_centroid_from_path(sample_ligand):
     assert hasattr(result, 'y')
     assert hasattr(result, 'z')
 
+@pytest.mark.order(14)
+def test_standalone_get_smiles(sample_ligand):
+    '''Test standalone get_smiles function.'''
+
+    result = ocl.get_smiles(sample_ligand["ligand"].molecule)
+    assert isinstance(result, (str, int))
+    if isinstance(result, str):
+        assert len(result) > 0
 
 @pytest.mark.order(17)
 def test_standalone_load_mol_from_path(sample_ligand):
@@ -276,7 +297,6 @@ def test_standalone_load_mol_from_path(sample_ligand):
     assert isinstance(path, str)
     assert mol is not None
     assert isinstance(mol, Chem.rdchem.Mol)
-
 
 @pytest.mark.order(18)
 def test_standalone_load_mol_from_rdkit(tmp_path):
@@ -290,6 +310,14 @@ def test_standalone_load_mol_from_rdkit(tmp_path):
     assert loaded_mol is not None
     assert isinstance(loaded_mol, Chem.rdchem.Mol)
 
+@pytest.mark.order(24)
+def test_standalone_multiple_molecules_sdf(sample_ligand, tmp_path):
+    '''Test standalone multiple_molecules_sdf function.'''
+
+    # This function expects an SDF file, but we can test with a SMILES file
+    # which should return an empty list or handle gracefully
+    result = ocl.multiple_molecules_sdf(str(sample_ligand["mol"]))
+    assert isinstance(result, list)
 
 @pytest.mark.order(19)
 def test_standalone_read_descriptors_from_json(sample_ligand, tmp_path):
@@ -314,6 +342,12 @@ def test_standalone_read_descriptors_from_json(sample_ligand, tmp_path):
     # When return_data=False (default), it returns a tuple
     assert isinstance(result, tuple)
 
+@pytest.mark.order(21)
+def test_standalone_read_descriptors_from_json_nonexistent(tmp_path):
+    '''Test standalone read_descriptors_from_json with non-existent file.'''
+
+    result = ocl.read_descriptors_from_json(str(tmp_path / "nonexistent.json"))
+    assert result is None
 
 @pytest.mark.order(20)
 def test_standalone_read_descriptors_from_json_return_data(sample_ligand, tmp_path):
@@ -338,15 +372,6 @@ def test_standalone_read_descriptors_from_json_return_data(sample_ligand, tmp_pa
     # When return_data=True, it returns a dict
     assert isinstance(result, dict)
 
-
-@pytest.mark.order(21)
-def test_standalone_read_descriptors_from_json_nonexistent(tmp_path):
-    '''Test standalone read_descriptors_from_json with non-existent file.'''
-
-    result = ocl.read_descriptors_from_json(str(tmp_path / "nonexistent.json"))
-    assert result is None
-
-
 @pytest.mark.order(22)
 def test_standalone_split_molecules(sample_ligand, tmp_path):
     '''Test standalone split_molecules function.'''
@@ -358,7 +383,6 @@ def test_standalone_split_molecules(sample_ligand, tmp_path):
     result = ocl.split_molecules(str(mol_file), output_dir=str(tmp_path / "output"))
     assert isinstance(result, list)
     assert len(result) >= 0  # May be empty if splitting fails
-
 
 @pytest.mark.order(23)
 def test_standalone_split_molecules_default_output(sample_ligand, tmp_path):
@@ -373,48 +397,28 @@ def test_standalone_split_molecules_default_output(sample_ligand, tmp_path):
     result = ocl.split_molecules(str(mol_file))
     assert isinstance(result, list)
 
-
-@pytest.mark.order(24)
-def test_standalone_multiple_molecules_sdf(sample_ligand, tmp_path):
-    '''Test standalone multiple_molecules_sdf function.'''
-
-    # This function expects an SDF file, but we can test with a SMILES file
-    # which should return an empty list or handle gracefully
-    result = ocl.multiple_molecules_sdf(str(sample_ligand["mol"]))
-    assert isinstance(result, list)
-
-
-@pytest.mark.order(25)
-def test_ligand_init_empty_name(sample_ligand):
-    '''Test Ligand initialization with empty name.'''
-
-    # Python's __init__ cannot prevent object creation - it always returns None
-    # When name is empty, __init__ returns early, but the object is still created
-    # The code sets self.name = name first (line 141), then checks if empty and returns None (line 177)
-    # So the object will have name = "" (empty string) but will be in incomplete state
-    result = ocl.Ligand(molecule=str(sample_ligand["mol"]), name="")
-    # The object is created, but with empty name and incomplete initialization
-    # Check that name is empty (the object was created but initialization failed)
-    assert result is not None  # Object is created
-    assert hasattr(result, 'name')
-    assert result.name == ""  # Name is empty string
-
-
-@pytest.mark.order(26)
-def test_ligand_init_sanitize_false(tmp_path):
-    '''Test Ligand initialization with sanitize=False.'''
+@pytest.mark.order(1)
+def test_to_dict(sample_ligand):
+    '''
+    Test that Ligand.to_dict returns a dictionary containing key attributes.
+    '''
     
-    # Write RDKit molecule to a temp file first to ensure proper path
-    mol_file = tmp_path / "test_ligand.smi"
-    mol_file.write_text("CCO\n")
-    try:
-        ligand = ocl.Ligand(molecule=str(mol_file), name="test", sanitize=False)
-        # If ligand was created, check it's valid
-        assert ligand is not None
-    except RuntimeError as e:
-        # RDKit may raise RuntimeError for pre-condition violations when sanitize=False
-        # This is expected behavior in some cases
-        if "Pre-condition" in str(e) or "violation" in str(e).lower():
-            pytest.skip(f"RDKit pre-condition violation with sanitize=False: {e}")
-        else:
-            raise
+    result = sample_ligand["ligand"].to_dict()
+    
+    assert isinstance(result, dict), "Result should be a dictionary"
+    assert "Name" in result, "Name should be in the dictionary"
+
+@pytest.mark.order(2)
+def test_to_json(sample_ligand):
+    '''
+    Test that Ligand.to_json returns a JSON string representation of the object.
+    '''
+
+    # If there is already a json_file file, remove it
+    if sample_ligand["json_file"].exists():
+        sample_ligand["json_file"].unlink()
+
+    result = sample_ligand["ligand"].to_json(overwrite=True)
+
+    assert result is not None, "Result should not be None"
+    assert result == 0 or result is True, f"Result should be 0 or True. Error code: {result}"

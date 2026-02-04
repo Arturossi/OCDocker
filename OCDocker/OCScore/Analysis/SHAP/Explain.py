@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 
 # Description
@@ -6,18 +5,24 @@
 '''
 SHAP computation helpers (background selection, explainer setup, shape wrangling)
 for Analysis workflows.
+
+Usage:
+
+from OCDocker.OCScore.Analysis.SHAP.Explain import compute_shap_values
 '''
 
 # Imports
 ###############################################################################
-
 from __future__ import annotations
-import OCDocker.Error as ocerror
-from typing import Any, List, Optional, Union
+
+import shap
+import torch
 import numpy as np
 import pandas as pd
-import torch
-import shap
+
+from typing import Any, List, Optional, Union
+
+import OCDocker.Error as ocerror
 
 
 
@@ -25,13 +30,13 @@ import shap
 ###############################################################################
 '''
 OCDocker
-Authors: Rossi, A.D.; Torres, P.H.M.
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
-developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
 All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
 to formal authorization from UFRJ. See the LICENSE file for details.
 
@@ -41,8 +46,11 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 
-# Methods
+# Functions
 ###############################################################################
+## Private ##
+
+## Public ##
 
 
 def _cuda_device() -> torch.device:
@@ -63,7 +71,7 @@ def _squeeze_shap(values: Union[np.ndarray, List[np.ndarray]]) -> np.ndarray:
     Returns
     -------
     np.ndarray
-        SHAP values as a 2D array of shape (n_samples, n_features). 
+        SHAP values as a 2D array of shape (n_samples, n_features).
     '''
 
     if isinstance(values, list):
@@ -83,7 +91,7 @@ def _squeeze_shap(values: Union[np.ndarray, List[np.ndarray]]) -> np.ndarray:
 
 def _stratified_indices(df: pd.DataFrame, n: int, by: Optional[List[str]], seed: int) -> np.ndarray:
     '''Draw up to n indices, stratified by the values of `by` columns.
-    
+
     If by is None or empty, draw n random indices from the whole DataFrame.
 
     Parameters
@@ -107,7 +115,7 @@ def _stratified_indices(df: pd.DataFrame, n: int, by: Optional[List[str]], seed:
         rng = np.random.default_rng(seed)
         n = min(n, len(df))
         return rng.choice(len(df), size=n, replace=False)
-    
+
     groups = df.groupby(by, dropna=False)
     sizes = groups.size()
     total = float(sizes.sum())
@@ -115,7 +123,7 @@ def _stratified_indices(df: pd.DataFrame, n: int, by: Optional[List[str]], seed:
     picks = []
 
     for key, idx in groups.indices.items():
-        frac = sizes[key] / total # type: ignore
+        frac = sizes[key] / total
         k = max(1, int(round(frac * n)))
         local_choices = rng.choice(idx, size=min(k, len(idx)), replace=False)
         picks.extend(local_choices.tolist())
@@ -186,29 +194,29 @@ def compute_shap_values(
     elif explainer.lower() == "kernel":
         def model_predict(x_numpy: np.ndarray) -> np.ndarray:
             '''Predict using the neural network model for SHAP KernelExplainer.
-            
+
             Parameters
             ----------
             x_numpy : np.ndarray
                 Input feature array.
-            
+
             Returns
             -------
             np.ndarray
                 Model predictions as a numpy array.
             '''
-            
+
             x_tensor = torch.tensor(x_numpy, dtype=torch.float32, device=device)
             with torch.no_grad():
                 out = neural.NN(x_tensor).detach().cpu().numpy().squeeze()
-            return out
+            return np.asarray(out)
         kernel_explainer = shap.KernelExplainer(model_predict, bkg_np)
         shap_values = kernel_explainer.shap_values(eval_np)
     else:
         # User-facing error: invalid explainer type
-        ocerror.Error.value_error(f"Invalid explainer type: '{explainer}'. Must be 'deep' or 'kernel'.") # type: ignore
+        ocerror.Error.value_error(f"Invalid explainer type: '{explainer}'. Must be 'deep' or 'kernel'.")
         raise ValueError("explainer must be 'deep' or 'kernel'")
-    
-    shap_2d = _squeeze_shap(shap_values) # type: ignore
+
+    shap_2d = _squeeze_shap(shap_values)
 
     return shap_2d

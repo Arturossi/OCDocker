@@ -2,9 +2,10 @@
 
 # Description
 ###############################################################################
-''' Module to perform the simple consensus calculation for the given dataset.
+'''
+Simple consensus calculation for score datasets.
 
-It is imported as:
+Usage:
 
 import OCDocker.OCScore.Utils.SimpleConsensus as ocsimple
 '''
@@ -12,8 +13,8 @@ import OCDocker.OCScore.Utils.SimpleConsensus as ocsimple
 # Imports
 ###############################################################################
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from sklearn.metrics import auc, mean_squared_error, roc_curve
 
@@ -24,7 +25,7 @@ import OCDocker.Toolbox.Printing as ocprint
 ###############################################################################
 '''
 OCDocker
-Authors: Rossi, A.D.; Torres, P.H.M.;
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.;
 [The Federal University of Rio de Janeiro]
 Contact info:
 Carlos Chagas Filho Institute of Biophysics
@@ -38,8 +39,78 @@ This project is licensed under Creative Commons (CC-BY-4.0).
 # Classes
 ###############################################################################
 
-# Methods
+# Functions
 ###############################################################################
+## Private ##
+
+## Public ##
+
+def perform_simple_consensus(
+        df_path : str,
+        threshold : float = 1.2,
+        metrics : list[str] = ['mean', 'median', 'max', 'min', 'std', 'variance', 'sum', 'range', 'quantile_25', 'quantile_75', 'iqr', 'skewness', 'kurtosis'],
+        verbose : bool = False
+    ) -> pd.DataFrame:
+    ''' Perform the simple consensus calculation for the given dataset.
+    
+    Parameters
+    ----------
+    df_path : str
+        The path to the DataFrame.
+    threshold : float, optional
+        The threshold to filter the results. Default is 1.2.
+    metrics : list[str], optional
+        The list of metrics to calculate. Default is ['mean', 'median', 'max', 'min', 'std', 'variance', 'sum', 'range', 'quantile_25', 'quantile_75', 'iqr', 'skewness', 'kurtosis'].
+        If empty, all metrics will be calculated.
+    verbose : bool, optional
+        Whether to print the results. Default is False.
+
+    Returns
+    -------
+    pd.DataFrame
+        The DataFrame containing the AUC and Error values
+    '''
+
+    # Parse the data from the CSV files
+    dudez_data, pdbbind_data, score_columns = ocscoredata.preprocess_df(df_path)
+
+    # Get the data for the DUDEz dataset
+    dudez_stats_df = simple_consensus(dudez_data, score_columns)
+
+    # Get the data for the pdbbind dataset
+    pdbbind_stats_df = simple_consensus(pdbbind_data, score_columns)
+
+    # Create the final df to hold Error and AUC values
+    final_df = pd.DataFrame()
+
+    # Check if the metrics list is empty
+    if not metrics:
+        # If empty, use all columns
+        metrics = ['mean', 'median', 'max', 'min', 'std', 'variance', 'sum', 'range', 'quantile_25', 'quantile_75', 'iqr', 'skewness', 'kurtosis']
+
+    available_metrics = [m for m in dudez_stats_df.columns if m not in ['experimental', 'type']]
+    unknown_metrics = [m for m in metrics if m not in available_metrics]
+    if unknown_metrics:
+        raise ValueError(
+            f"Unknown consensus metrics: {unknown_metrics}. "
+            f"Available metrics are: {available_metrics}."
+        )
+
+    # Calculate the AUC for each new metric
+    for col in metrics:
+        fpr, tpr, _ = roc_curve(dudez_stats_df['type'].map({'ligand': 1, 'decoy': 0}), dudez_stats_df[col])
+
+        # Calculate the AUC
+        final_df.loc[col, 'AUC'] = float(auc(fpr, tpr))
+
+        # Calculate the mean squared error (from pdbbind_stats_df)
+        final_df.loc[col, 'RMSE'] = np.sqrt(mean_squared_error(pdbbind_stats_df['experimental'], pdbbind_stats_df[col]))
+        
+    if verbose:
+        # Print the results only for the rows with error below the threshold (to avoid the plot to have outliers)
+        ocprint.printv(f"The rows with error smaller than the threshold of {threshold}:\n{final_df[final_df['Error'] < threshold]}")
+
+    return final_df
 
 
 def simple_consensus(
@@ -90,63 +161,3 @@ def simple_consensus(
         df['type'] = data['type']
 
     return df
-
-
-def perform_simple_consensus(
-        df_path : str,
-        threshold : float = 1.2,
-        metrics : list[str] = ['mean', 'median', 'max', 'min', 'std', 'variance', 'sum', 'range', 'quantile_25', 'quantile_75', 'iqr', 'skewness', 'kurtosis'],
-        verbose : bool = False
-    ) -> pd.DataFrame:
-    ''' Perform the simple consensus calculation for the given dataset.
-    
-    Parameters
-    ----------
-    df_path : str
-        The path to the DataFrame.
-    threshold : float, optional
-        The threshold to filter the results. Default is 1.2.
-    metrics : list[str], optional
-        The list of metrics to calculate. Default is ['mean', 'median', 'max', 'min', 'std', 'variance', 'sum', 'range', 'quantile_25', 'quantile_75', 'iqr', 'skewness', 'kurtosis'].
-        If empty, all metrics will be calculated.
-    verbose : bool, optional
-        Whether to print the results. Default is False.
-
-    Returns
-    -------
-    pd.DataFrame
-        The DataFrame containing the AUC and Error values
-    '''
-
-    # Parse the data from the CSV files
-    dudez_data, pdbbind_data, score_columns = ocscoredata.preprocess_df(df_path)
-
-    # Get the data for the DUDEz dataset
-    dudez_stats_df = simple_consensus(dudez_data, score_columns)
-
-    # Get the data for the pdbbind dataset
-    pdbbind_stats_df = simple_consensus(pdbbind_data, score_columns)
-
-    # Create the final df to hold Error and AUC values
-    final_df = pd.DataFrame()
-
-    # Check if the metrics list is empty
-    if not metrics:
-        # If empty, use all columns
-        metrics = ['mean', 'median', 'max', 'min', 'std', 'variance', 'sum', 'range', 'quantile_25', 'quantile_75', 'iqr', 'skewness', 'kurtosis']
-
-    # Calculate the AUC for each new metric
-    for col in metrics:
-        fpr, tpr, _ = roc_curve(dudez_stats_df['type'].map({'ligand': 1, 'decoy': 0}), dudez_stats_df[col])
-
-        # Calculate the AUC
-        final_df.loc[col, 'AUC'] = float(auc(fpr, tpr))
-
-        # Calculate the mean squared error (from pdbbind_stats_df)
-        final_df.loc[col, 'RMSE'] = np.sqrt(mean_squared_error(pdbbind_stats_df['experimental'], pdbbind_stats_df[col]))
-        
-    if verbose:
-        # Print the results only for the rows with error below the threshold (to avoid the plot to have outliers)
-        ocprint.printv(f"The rows with error smaller than the threshold of {threshold}:\n{final_df[final_df['Error'] < threshold]}")
-
-    return final_df

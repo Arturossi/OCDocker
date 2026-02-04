@@ -2,20 +2,20 @@
 
 # Description
 ###############################################################################
-''' This module provides functions to evaluate the performance of docking methods
-    using various metrics, statistical tests, and visualizations.
+'''
+Evaluate docking performance with metrics, statistical tests, and plotting utilities.
 
-It is imported as:
+Usage:
 
 import OCDocker.OCScore.Analysis.PerformanceEvaluation as ocperf
 '''
 
 # Imports
 ###############################################################################
-
-from typing import List
 import os
 import pandas as pd
+
+from typing import List, Optional
 
 import OCDocker.OCScore.Analysis.Correlation as occorrana
 import OCDocker.OCScore.Analysis.NNUtils as ocnnutils
@@ -31,13 +31,13 @@ import OCDocker.OCScore.Utils.StudyParser as ocstudy
 ###############################################################################
 '''
 OCDocker
-Authors: Rossi, A.D.; Torres, P.H.M.
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
-developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
 All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
 to formal authorization from UFRJ. See the LICENSE file for details.
 
@@ -47,13 +47,80 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 
-# Methods
+# Functions
 ###############################################################################
+## Private ##
+
+def _format_consensus_label(metric: str) -> str:
+    '''Format a consensus metric name for display.
+    
+    Parameters
+    ----------
+    metric : str
+        The metric name (e.g., "mean", "median", "iqr", "quantile_25").
+
+    Returns
+    -------
+    str
+        Formatted label (e.g., "Mean consensus", "IQR consensus").
+    '''
+
+    label = metric.replace("_", " ").strip()
+    if label.lower() == "iqr":
+        label = "IQR"
+    elif label.lower().startswith("quantile"):
+        label = label.title()
+    else:
+        label = label.capitalize()
+    return f"{label} consensus"
+
+
+## Public ##
+
+def compute_combined_metrics(df_path: str, metrics: list[str] = ['mean', 'median', 'max', 'min', 'std', 'variance', 'sum', 'range', 'quantile_25', 'quantile_75', 'iqr', 'skewness', 'kurtosis']) -> pd.DataFrame:
+    '''
+    Load DUDEz and PDBbind data, compute evaluation metrics, and combine with consensus scores.
+
+    Parameters
+    ----------
+    df_path : str
+        Path to the compressed dataframe file (usually OCDocker.csv.gz).
+
+    Returns
+    -------
+    pd.DataFrame
+        Combined dataframe with AUC, RMSE, and consensus-derived metrics.
+        Consensus rows are labeled as "<Metric> consensus" in the Methodology column.
+    metrics : list[str], optional
+        List of metrics to calculate. Default is ['mean', 'median', 'max', 'min', 'std', 'variance', 'sum', 'range', 'quantile_25', 'quantile_75', 'iqr', 'skewness', 'kurtosis'].
+        If empty, all metrics will be calculated.
+    '''
+
+    dudez_data, pdbbind_data, score_columns = ocscoredata.preprocess_df(df_path)
+
+    # Compute performance metrics
+    dudez_metrics = ocseval.compute_auc(dudez_data, "ligand", score_columns, "type")
+    pdbbind_metrics = ocseval.compute_rmse(pdbbind_data, score_columns, "experimental")
+
+    docking_metrics = pd.merge(dudez_metrics, pdbbind_metrics, on="score_column")
+    docking_metrics["Methodology"] = "Raw Scoring Function"
+
+    simple_consensus = ocsimple.perform_simple_consensus(df_path, threshold=1.2, metrics=metrics, verbose=False)
+
+    simple_consensus["score_column"] = simple_consensus.index
+    simple_consensus["Methodology"] = simple_consensus["score_column"].apply(_format_consensus_label)
+    simple_consensus.reset_index(drop=True, inplace=True)
+
+    final_metrics = pd.concat([docking_metrics, simple_consensus], axis=0)
+    final_metrics["combined_metric"] = final_metrics["RMSE"] - final_metrics["AUC"]
+    final_metrics.rename(columns={"score_column": "study_name"}, inplace=True)
+    final_metrics.reset_index(drop=True, inplace=True)
+
+    return final_metrics
 
 
 def get_all_lists() -> tuple[list[str], int, int]:
-    '''
-    Generate lists of study names for different optimization methods.
+    '''Generate lists of study names for different optimization methods.
 
     WARNING: This function is hardcoded for specific study names and may be removed in the future.
     TODO: Replace with a more dynamic approach to fetch study names.
@@ -264,63 +331,6 @@ def get_all_lists() -> tuple[list[str], int, int]:
     return snames, len(ao_nn_list), len(ga_xgb_list)
 
 
-def setup_dirs() -> None:
-    '''Ensure the output directories for plots and CSVs exist.'''
-    
-    # Skip directory creation during Sphinx documentation builds
-    if os.environ.get('OC_BUILD_DOCS') == '1':
-        return
-
-    os.makedirs('plots', exist_ok=True)
-    os.makedirs('csvs', exist_ok=True)
-
-
-def load_combined_metrics(df_path: str, metrics: list[str] = ['mean', 'median', 'max', 'min', 'std', 'variance', 'sum', 'range', 'quantile_25', 'quantile_75', 'iqr', 'skewness', 'kurtosis']) -> pd.DataFrame:
-    '''
-    Load DUDEz and PDBbind data, compute evaluation metrics, and combine with consensus scores.
-
-    Parameters
-    ----------
-    df_path : str
-        Path to the compressed dataframe file (usually OCDocker.csv.gz).
-
-    Returns
-    -------
-    pd.DataFrame
-        Combined dataframe with AUC, RMSE, and consensus-derived metrics.
-    metrics : list[str], optional
-        List of metrics to calculate. Default is ['mean', 'median', 'max', 'min', 'std', 'variance', 'sum', 'range', 'quantile_25', 'quantile_75', 'iqr', 'skewness', 'kurtosis']
-        If empty, all metrics will be calculated.
-    '''
-
-    dudez_data, pdbbind_data, score_columns = ocscoredata.preprocess_df(df_path)
-
-    # Compute performance metrics
-    dudez_metrics = ocseval.compute_auc(dudez_data, "ligand", score_columns, "type")
-    pdbbind_metrics = ocseval.compute_rmse(pdbbind_data, score_columns, "experimental")
-
-    docking_metrics = pd.merge(dudez_metrics, pdbbind_metrics, on="score_column")
-    docking_metrics["Methodology"] = "Raw Scoring Function"
-
-    simple_consensus = ocsimple.perform_simple_consensus(df_path, threshold=1.2, metrics=metrics, verbose=False)
-
-    # Process the label as the only one metric which is being calculated, otherwise use a generic name "Simple consensus"
-    if metrics and len(metrics) == 1:
-        simple_consensus["Methodology"] = f"{metrics[0].capitalize()} consensus"
-    else:
-        simple_consensus["Methodology"] = "Simple consensus"
-    
-    simple_consensus["score_column"] = simple_consensus.index
-    simple_consensus.reset_index(drop=True, inplace=True)
-
-    final_metrics = pd.concat([docking_metrics, simple_consensus], axis=0)
-    final_metrics["combined_metric"] = final_metrics["RMSE"] - final_metrics["AUC"]
-    final_metrics.rename(columns={"score_column": "study_name"}, inplace=True)
-    final_metrics.reset_index(drop=True, inplace=True)
-
-    return final_metrics
-
-
 def get_feature_matrix(df_path: str) -> pd.DataFrame:
     '''
     Load and return the feature matrix for PCA from the dataset.
@@ -363,6 +373,8 @@ def run_full_analysis(
         output_dir: str = "plots",
         palette_colour: str = "glasbey",
         rmse_threshold: float = 1.5,
+        consensus_metrics: Optional[List[str]] = None,
+        show_consensus: bool = False,
         feature_analysis: bool = True,
         plot_summary: bool = True
     ) -> None:
@@ -385,11 +397,18 @@ def run_full_analysis(
         If True, perform PCA and AE importance analysis.
     plot_summary : bool
         If True, generate plots summarizing performance.
+    consensus_metrics : list[str], optional
+        Consensus metrics to compare (e.g., ["mean", "median"]). Defaults to ["mean"].
+    show_consensus : bool, optional
+        If True, include consensus metrics in boxplots. Defaults to False.
     '''
 
     setup_dirs()
 
-    final_metrics = load_combined_metrics(df_path, metrics = ["mean"])
+    if consensus_metrics is None:
+        consensus_metrics = ["mean"]
+
+    final_metrics = compute_combined_metrics(df_path, metrics = consensus_metrics)
 
     for n_trials in trials_list:
         print(f"Running analysis for top {n_trials} trials")
@@ -430,7 +449,7 @@ def run_full_analysis(
             
         if plot_summary:
             ocstatplot.plot_combined_metric_scatter(filtered_df, n_trials, colour_mapping, output_dir=output_dir)
-            ocstatplot.plot_boxplots(filtered_df, n_trials, colour_mapping, output_dir=output_dir)
+            ocstatplot.plot_boxplots(filtered_df, n_trials, colour_mapping, output_dir=output_dir, show_simple_consensus=show_consensus)
             #plot_barplots2(filtered_df, n_trials, colour_mapping, output_dir=output_dir)
             ocstatplot.plot_scatterplot(filtered_df, filtered_df_rmse, filtered_df_auc, n_trials, colour_mapping, output_dir=output_dir)
 
@@ -453,6 +472,18 @@ def run_full_analysis(
             # Example: ocnnutils.run_ae_feature_importance(ae_model, X_valid, y_valid, features)
 
     print("Full analysis completed.")
+
+
+def setup_dirs() -> None:
+    '''Ensure the output directories for plots and CSVs exist.'''
+    
+    # Skip directory creation during Sphinx documentation builds
+    if os.environ.get('OC_BUILD_DOCS') == '1':
+        return
+
+    os.makedirs('plots', exist_ok=True)
+    os.makedirs('csvs', exist_ok=True)
+
 
 '''
 base_path: str = "/data/hd4tb/OCDocker/data/ocdb"

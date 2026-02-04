@@ -127,6 +127,7 @@ urllib3>=2.2.3
 charset-normalizer>=3.3.2
 idna>=3.10
 ipython>=8.28.0
+cryptography>=46.0.0
 
 # Scientific computing extensions
 sympy>=1.13.3

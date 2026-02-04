@@ -5,29 +5,52 @@
 '''
 Base class for all the tables in the database.
 
-They are imported as:
+Usage:
 
 from OCDocker.DB.Models.Base import base
 '''
 
 # Imports
 ###############################################################################
+from operator import eq, ge, gt, le, lt, ne
 
-from sqlalchemy import Column, DateTime, Float, Index, Integer, String, func
+from sqlalchemy import Column, DateTime, Float, Index, Integer, String, and_, func, or_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.declarative import DeclarativeMeta
-
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import DeclarativeBase, declared_attr
-from operator import eq, ne, lt, le, gt, ge
-from sqlalchemy import or_, and_
-from typing import Any, Dict, List, Union
+
+from typing import Any, Dict, List, Optional, Union, cast
 
 import OCDocker.Error as ocerror
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
+###############################################################################
+
+# May use session from Initialise - runtime global
+session: Any
 try:  # tolerate import during isolated unit tests
-    from OCDocker.Initialise import session
+    from OCDocker.Initialise import session as _session
+    session = _session
 except Exception:  # pragma: no cover
-    session = None  # type: ignore
+    session = None
 
 OPMAP = {
     "==":     lambda c, v: c == v,
@@ -44,7 +67,23 @@ OPMAP = {
 
 class Base(DeclarativeBase):
     """ Base class for all the tables. """
-    
+
+    @classmethod
+    def __repr__(cls) -> str:
+        ''' Return the representation of the object.
+
+        Returns
+        -------
+        str
+            The representation of the object.
+        '''
+
+        # Get the data of the object (without the private attributes)
+        data = { k: v for k, v in cls.__dict__.items() if not k.startswith('_') }
+
+        # Return the representation
+        return f"<{cls.__name__}({data})>"
+
     # Set the table name
     @declared_attr.directive
     def __tablename__(cls):
@@ -78,65 +117,9 @@ class Base(DeclarativeBase):
     ## Class Methods ##
 
     @classmethod
-    def __repr__(cls) -> str:
-        ''' Return the representation of the object. 
-        
-        Returns
-        -------
-        str
-            The representation of the object.
-        '''
-        
-        # Get the data of the object (without the private attributes)
-        data = { k: v for k, v in cls.__dict__.items() if not k.startswith('_') }
-
-        # Return the representation
-        return f"<{cls.__name__}({data})>"
-
-
-    @classmethod
-    def to_dict(cls) -> Dict[str, Any]:
-        ''' Return the object as a dictionary.
-        
-        Returns
-        -------
-        Dict[str, Any]
-            The object as a dictionary.
-        '''
-
-        return {column.key: getattr(cls, column.key) for column in inspect(cls).attrs if not column.key.startswith("_")}
-    
-
-    @classmethod
-
-    def determine_column_type(cls, descriptor: str) -> Union[Integer, Float]:
-        ''' Determine the type of column based on the descriptor. 
-
-        Parameters
-        ----------
-        descriptor : str
-            The descriptor name.
-
-        Returns
-        -------
-        Integer | Float
-            The type of the column.
-        ''' 
-
-        # Check if the descriptor is an integer-like count; otherwise use float
-        if descriptor.startswith("fr_") or \
-           descriptor.startswith("Num") or \
-           descriptor.startswith("count") or \
-           descriptor in ["HeavyAtomCount", "NHOHCount", "NOCount", "RingCount", "TotalAALength"]:
-            return Integer()
-
-        return Float()
-
-
-    @classmethod
     def add_dynamic_columns(cls, collection: List[str]) -> None:
-        ''' Dynamically add columns based on descriptor names. 
-        
+        ''' Dynamically add columns based on descriptor names.
+
         Parameters
         ----------
         collection : List[str]
@@ -158,6 +141,236 @@ class Base(DeclarativeBase):
         return None
 
     @classmethod
+    def delete(cls, idorname: Union[int, str]) -> bool:
+        ''' Delete data from the database.
+
+        Parameters
+        ----------
+        idorname : Union[int, str]
+            The ID or name of the data to be deleted.
+
+        Returns
+        -------
+        bool
+            True if the data was deleted, False otherwise.
+        '''
+
+        # Check if session is defined
+        if session is None:
+            # The session is not defined
+            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.")
+
+            # Return False
+            return False
+
+        # Open the session
+        with session() as s:
+            # Perform the search
+            data = s.query(cls).filter(cls.id == idorname).first() if isinstance(idorname, int) else s.query(cls).filter(func.lower(cls.name) == func.lower(idorname)).first()
+
+            # Check if the data exists
+            if data is None:
+                # The data does not exist
+                _ = ocerror.Error.data_not_found("The data does not exist.")
+                # Return False
+                return False
+
+            try:
+                # Delete the data
+                s.delete(data)
+
+                # Commit the session
+                s.commit()
+            except SQLAlchemyError as e:
+                # Rollback the session
+                s.rollback()
+                # Print the error
+                print(f"Error: {e}")
+
+                # Return False
+                return False
+
+        return True
+
+
+    @classmethod
+    def determine_column_type(cls, descriptor: str) -> Union[Integer, Float]:
+        ''' Determine the type of column based on the descriptor.
+
+        Parameters
+        ----------
+        descriptor : str
+            The descriptor name.
+
+        Returns
+        -------
+        Integer | Float
+            The type of the column.
+        '''
+
+        # Check if the descriptor is an integer-like count; otherwise use float
+        if descriptor.startswith("fr_") or \
+           descriptor.startswith("Num") or \
+           descriptor.startswith("count") or \
+           descriptor in ["HeavyAtomCount", "NHOHCount", "NOCount", "RingCount", "TotalAALength"]:
+            return Integer()
+
+        return Float()
+
+    @classmethod
+    def find(cls, idorname: Union[int, str]) -> List[DeclarativeMeta]:
+        ''' Search data in the database.
+
+        Parameters
+        ----------
+        idorname : Union[int, str]
+            The ID or name of the data to be searched.
+
+        Returns
+        -------
+        List[DeclarativeMeta]
+            The data found.
+        '''
+
+        # Check if session is defined
+        if session is None:
+            # The session is not defined
+            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.")
+
+            # Return an empty list
+            return []
+
+        # Open the session
+        with session() as s:
+            # Perform the search
+            if isinstance(idorname, int):
+                data = s.query(cls).filter(cls.id == idorname).all()
+            else:
+                data = s.query(cls).filter(func.lower(cls.name) == func.lower(idorname)).all()
+
+        return cast(List[DeclarativeMeta], data)
+
+    @classmethod
+    def find_all(cls) -> List[DeclarativeMeta]:
+        ''' Search all data in the database.
+
+        Returns
+        -------
+        List[DeclarativeMeta]
+            The data found.
+        '''
+
+        # Check if session is defined
+        if session is None:
+            # The session is not defined
+            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.")
+
+            # Return an empty list
+            return []
+
+        # Open the session
+        with session() as s:
+            # Perform the search
+            data = s.query(cls).all()
+
+        return cast(List[DeclarativeMeta], data)
+
+    @classmethod
+    def find_all_names(cls) -> List[str]:
+        ''' Search all names in the database.
+
+        Returns
+        -------
+        List[str]
+            The names found.
+        '''
+
+        # Check if session is defined
+        if session is None:
+            # The session is not defined
+            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.")
+
+            # Return an empty list
+            return []
+
+        # Open the session
+        with session() as s:
+            # Perform the search
+            data = s.query(cls.name).all()
+
+        return [row[0] for row in data]
+
+    @classmethod
+    def find_attribute(cls, column: str, value: Any, operator: str = "==") -> List[DeclarativeMeta]:
+        ''' Search data in the database based on an attribute.
+
+        Parameters
+        ----------
+        column : str
+            The column name.
+        value : Any
+            The value to be searched.
+        operator : str
+            The operator to be used.
+
+        Returns
+        -------
+        List[DeclarativeMeta]
+            The data found.
+        '''
+
+        # Check if session is defined
+        if session is None:
+            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.")
+            return []
+
+        # Check if the operator is valid
+        if operator not in OPMAP:
+            _ = ocerror.Error.malformed_payload(f"Unsupported operator '{operator}'.")
+            return []
+
+        # Get the column
+        try:
+            col = getattr(cls, column)
+        except AttributeError:
+            _ = ocerror.Error.malformed_payload(f"Unknown column '{column}'.")
+            return []
+
+        # Open the session
+        with session() as s:
+            return cast(List[DeclarativeMeta], s.query(cls).filter(OPMAP[operator](col, value)).all())
+
+    @classmethod
+    def find_first(cls, idorname: Union[int, str]) -> Optional[DeclarativeMeta]:
+        ''' Search data in the database.
+
+        Parameters
+        ----------
+        idorname : Union[int, str]
+            The ID or name of the data to be searched.
+
+        Returns
+        -------
+        DeclarativeMeta | None
+            The first matching row, if any.
+        '''
+
+        # Check if session is defined
+        if session is None:
+            # The session is not defined
+            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.")
+
+            # Return an empty list
+            return None
+
+        # Open the session
+        with session() as s:
+            # Perform the search
+            data = s.query(cls).filter(cls.id == idorname).first() if isinstance(idorname, int) else s.query(cls).filter(func.lower(cls.name) == func.lower(idorname)).first()
+
+        return cast(Optional[DeclarativeMeta], data)
+
+    @classmethod
     def insert(cls, payload: dict, ignorePresence: bool = False) -> bool:
         ''' Insert data into the database.
 
@@ -167,7 +380,7 @@ class Base(DeclarativeBase):
             The data to be inserted.
         ignorePresence : bool
             Whether to ignore the presence of the data in the database.
-        
+
         Returns
         -------
         bool
@@ -177,19 +390,19 @@ class Base(DeclarativeBase):
         # Check if session is defined
         if session is None:
             # The session is not defined
-            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.") # type: ignore
+            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.")
 
             # Return False
             return False
-        
+
         # Check if the payload has the name key
         if "name" not in payload:
             # The payload does not have the name key
-            _ = ocerror.Error.malformed_payload("The payload does not have the name key.") # type: ignore
-            
+            _ = ocerror.Error.malformed_payload("The payload does not have the name key.")
+
             # Return False
             return False
-        
+
         # Open the session
         with session() as s:
             # Check if the data already exists
@@ -197,9 +410,9 @@ class Base(DeclarativeBase):
                 # If the ignorePresence flag is set to True, return True
                 if ignorePresence:
                     return True
-                    
+
                 # The data already exists
-                _ = ocerror.Error.data_already_exists(f"The data with name '{payload['name']}' already exists.") # type: ignore
+                _ = ocerror.Error.data_already_exists(f"The data with name '{payload['name']}' already exists.")
 
                 # Return False
                 return False
@@ -220,60 +433,76 @@ class Base(DeclarativeBase):
                 # Return False
 
                 return False
-    
+
         return True
 
     @classmethod
-    def delete(cls, idorname: Union[int, str]) -> bool:
-        ''' Delete data from the database.
+    def insert_or_update(cls, payload: dict) -> bool:
+        ''' Insert or update data in the database.
 
         Parameters
         ----------
-        idorname : Union[int, str]
-            The ID or name of the data to be deleted.
-        
+        payload : dict
+            The data to be inserted or updated.
+
         Returns
         -------
         bool
-            True if the data was deleted, False otherwise.
+            True if the data was inserted or updated, False otherwise.
         '''
 
         # Check if session is defined
         if session is None:
             # The session is not defined
-            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.") # type: ignore
+            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.")
 
             # Return False
             return False
-        
+
         # Open the session
         with session() as s:
-            # Perform the search
-            data = s.query(cls).filter(cls.id == idorname).first() if isinstance(idorname, int) else s.query(cls).filter(func.lower(cls.name) == func.lower(idorname)).first()
+            # If the payload have an id
+            if "id" in payload:
+                data = s.query(cls).filter(cls.id == payload["id"]).first()
+            # Use name
+            else:
+                data = s.query(cls).filter(func.lower(cls.name) == func.lower(payload["name"])).first()
 
             # Check if the data exists
             if data is None:
                 # The data does not exist
-                _ = ocerror.Error.data_not_found("The data does not exist.") # type: ignore
-                # Return False
-                return False
-            
+                # Insert the data
+                return cls.insert(payload)
+
             try:
-                # Delete the data
-                s.delete(data)
-                        
+                # Update the data
+                for key, value in payload.items():
+                    setattr(data, key, value)
+
                 # Commit the session
                 s.commit()
             except SQLAlchemyError as e:
                 # Rollback the session
                 s.rollback()
+
                 # Print the error
                 print(f"Error: {e}")
-
                 # Return False
                 return False
-    
+
         return True
+
+    @classmethod
+    def to_dict(cls) -> Dict[str, Any]:
+        ''' Return the object as a dictionary.
+
+        Returns
+        -------
+        Dict[str, Any]
+            The object as a dictionary.
+        '''
+
+        return {column.key: getattr(cls, column.key) for column in inspect(cls).attrs if not column.key.startswith("_")}
 
     @classmethod
     def update(cls, idorname: Union[int, str], payload: dict) -> bool:
@@ -295,11 +524,11 @@ class Base(DeclarativeBase):
         # Check if session is defined
         if session is None:
             # The session is not defined
-            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.") # type: ignore
+            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.")
 
             # Return False
             return False
-        
+
         # Open the session
         with session() as s:
             # Perform the search
@@ -308,16 +537,16 @@ class Base(DeclarativeBase):
             # Check if the data exists
             if data is None:
                 # The data does not exist
-                _ = ocerror.Error.data_not_found("The data does not exist.") # type: ignore
+                _ = ocerror.Error.data_not_found("The data does not exist.")
 
                 # Return False
                 return False
-            
+
             try:
                 # Update the data
                 for key, value in payload.items():
                     setattr(data, key, value)
-            
+
                 # Commit the session
                 s.commit()
             except SQLAlchemyError as e:
@@ -328,214 +557,13 @@ class Base(DeclarativeBase):
                 print(f"Error: {e}")
                 # Return False
                 return False
-    
+
         return True
-
-    @classmethod
-    def insert_or_update(cls, payload: dict) -> bool:
-        ''' Insert or update data in the database.
-
-        Parameters
-        ----------
-        payload : dict
-            The data to be inserted or updated.
-
-        Returns
-        -------
-        bool
-            True if the data was inserted or updated, False otherwise.
-        '''
-
-        # Check if session is defined
-        if session is None:
-            # The session is not defined
-            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.") # type: ignore
-
-            # Return False
-            return False
-    
-        # Open the session
-        with session() as s:
-            # If the payload have an id
-            if "id" in payload:
-                data = s.query(cls).filter(cls.id == payload["id"]).first()
-            # Use name
-            else:
-                data = s.query(cls).filter(func.lower(cls.name) == func.lower(payload["name"])).first()
-                
-            # Check if the data exists
-            if data is None:
-                # The data does not exist
-                # Insert the data
-                return cls.insert(payload)
-            
-            try:
-                # Update the data
-                for key, value in payload.items():
-                    setattr(data, key, value)
-            
-                # Commit the session
-                s.commit()
-            except SQLAlchemyError as e:
-                # Rollback the session
-                s.rollback()
-
-                # Print the error
-                print(f"Error: {e}")
-                # Return False
-                return False
-        
-        return True
-
-    @classmethod
-    def find_first(cls, idorname: Union[int, str]) -> List[DeclarativeMeta]:
-        ''' Search data in the database.
-
-        Parameters
-        ----------
-        idorname : Union[int, str]
-            The ID or name of the data to be searched.
-
-        Returns
-        -------
-        List[DeclarativeMeta]
-            The data found.
-        '''
-
-        # Check if session is defined
-        if session is None:
-            # The session is not defined
-            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.") # type: ignore
-
-            # Return an empty list
-            return []
-        
-        # Open the session
-        with session() as s:
-            # Perform the search
-            data = s.query(cls).filter(cls.id == idorname).first() if isinstance(idorname, int) else s.query(cls).filter(func.lower(cls.name) == func.lower(idorname)).first()
-    
-        return data
-
-    @classmethod
-    def find(cls, idorname: Union[int, str]) -> List[DeclarativeMeta]:
-        ''' Search data in the database.
-
-        Parameters
-        ----------
-        idorname : Union[int, str]
-            The ID or name of the data to be searched.
-
-        Returns
-        -------
-        List[DeclarativeMeta]
-            The data found.
-        '''
-
-        # Check if session is defined
-        if session is None:
-            # The session is not defined
-            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.") # type: ignore
-
-            # Return an empty list
-            return []
-        
-        # Open the session
-        with session() as s:
-            # Perform the search
-            data = s.query(cls).filter(cls.id == idorname).first() if isinstance(idorname, int) else s.query(cls).filter(func.lower(cls.name) == func.lower(idorname)).all()
-    
-        return data
-
-    @classmethod
-    def find_all(cls) -> List[DeclarativeMeta]:
-        ''' Search all data in the database.
-
-        Returns
-        -------
-        List[DeclarativeMeta]
-            The data found.
-        '''
-
-        # Check if session is defined
-        if session is None:
-            # The session is not defined
-            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.") # type: ignore
-
-            # Return an empty list
-            return []
-        
-        # Open the session
-        with session() as s:
-            # Perform the search
-            data = s.query(cls).all()
-    
-        return data
-
-    @classmethod
-    def find_all_names(cls) -> List[str]:
-        ''' Search all names in the database.
-
-        Returns
-        -------
-        List[str]
-            The names found.
-        '''
-
-        # Check if session is defined
-        if session is None:
-            # The session is not defined
-            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.") # type: ignore
-
-            # Return an empty list
-            return []
-        
-        # Open the session
-        with session() as s:
-            # Perform the search
-            data = s.query(cls.name).all()
-    
-        return data
-
-
-    @classmethod
-    def find_attribute(cls, column: str, value: Any, operator: str = "==") -> List[DeclarativeMeta]:
-        ''' Search data in the database based on an attribute.
-
-        Parameters
-        ----------
-        column : str
-            The column name.
-        value : Any
-            The value to be searched.
-        operator : str
-            The operator to be used.
-
-        Returns
-        -------
-        List[DeclarativeMeta]
-            The data found.
-        '''
-        
-        # Check if session is defined
-        if session is None:
-            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.")  # type: ignore
-            return []
-
-        # Check if the operator is valid
-        if operator not in OPMAP:
-            _ = ocerror.Error.malformed_payload(f"Unsupported operator '{operator}'.")  # type: ignore
-            return []
-
-        # Get the column
-        try:
-            col = getattr(cls, column)
-        except AttributeError:
-            _ = ocerror.Error.malformed_payload(f"Unknown column '{column}'.")  # type: ignore
-            return []
-
-        # Open the session
-        with session() as s:
-            return s.query(cls).filter(OPMAP[operator](col, value)).all()
 
 base = Base
+
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##

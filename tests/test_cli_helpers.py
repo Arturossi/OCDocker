@@ -1,19 +1,59 @@
 #!/usr/bin/env python3
 
+# Description
+###############################################################################
 '''
-CLI helper coverage: exercise lightweight helpers that don’t require external
-tools or full environment bootstrap.
+CLI helper coverage for lightweight helpers.
+
+Usage:
+
+pytest tests/test_cli_helpers.py
 '''
 
+# Imports
+###############################################################################
 import argparse
-from pathlib import Path
 import pytest
 
-from OCDocker.CLI.__init__ import (
-    _preparse_global_args,
-    _require_file,
-    build_parser,
-)
+from pathlib import Path
+
+from OCDocker.CLI.__init__ import _preparse_global_args, _require_file, build_parser
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
+###############################################################################
+
+
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##
+
+@pytest.mark.order(21)
+def test_build_parser_subcommands_and_parse():
+    parser = build_parser()
+    # A couple of subcommands should parse cleanly
+    ns = parser.parse_args(["version"])  # sets func
+    assert callable(getattr(ns, "func", None))
+    ns2 = parser.parse_args(["init-config"])  # also sets func
+    assert callable(getattr(ns2, "func", None))
 
 
 @pytest.mark.order(19)
@@ -51,14 +91,3 @@ def test_require_file_valid_and_errors(tmp_path):
     with pytest.raises(SystemExit) as ei2:
         _require_file("…/placeholder", "--file")
     assert ei2.value.code == 2
-
-
-@pytest.mark.order(21)
-def test_build_parser_subcommands_and_parse():
-    parser = build_parser()
-    # A couple of subcommands should parse cleanly
-    ns = parser.parse_args(["version"])  # sets func
-    assert callable(getattr(ns, "func", None))
-    ns2 = parser.parse_args(["init-config"])  # also sets func
-    assert callable(getattr(ns2, "func", None))
-

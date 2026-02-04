@@ -1,35 +1,48 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Tests for FilesFolders utilities.
+'''
+
+# Imports
+###############################################################################
 import json
 import pytest
 import tarfile
 
 import numpy as np
 
-import OCDocker.Toolbox.FilesFolders as ocff
 import OCDocker.Error as ocerror
+import OCDocker.Toolbox.FilesFolders as ocff
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
+###############################################################################
 
 
-@pytest.mark.order(1)
-def test_untar_and_delete(tmp_path):
-    src = tmp_path / "src"
-    src.mkdir()
-    test_file = src / "test.txt"
-    test_file.write_text("hello")
+# Functions
+###############################################################################
+## Private ##
 
-    archive = tmp_path / "archive.tar.gz"
-    with tarfile.open(archive, "w:gz") as tar:
-        tar.add(test_file, arcname="test.txt")
-
-    out_dir = tmp_path / "out"
-    out_dir.mkdir()
-
-    rc = ocff.untar(str(archive), str(out_dir))
-    assert rc == ocerror.ErrorCode.OK
-    assert (out_dir / "test.txt").exists()
-
-    del_rc = ocff.safe_remove_file(str(archive))
-    assert del_rc == ocerror.ErrorCode.OK
-    assert not archive.exists()
-
+## Public ##
 
 @pytest.mark.order(2)
 def test_empty_docking_digest_json(tmp_path):
@@ -59,7 +72,6 @@ def test_empty_docking_digest_json(tmp_path):
     for v in data.values():
         assert np.isnan(v[0]) # type: ignore
 
-
 @pytest.mark.order(3)
 def test_hdf5_round_trip(tmp_path):
     data = {"a": np.array([1, 2, 3]), "b": np.array([4.0])} # type: ignore
@@ -73,7 +85,6 @@ def test_hdf5_round_trip(tmp_path):
     np.testing.assert_array_equal(loaded["a"], data["a"]) # type: ignore
     np.testing.assert_array_equal(loaded["b"], data["b"]) # type: ignore
 
-
 @pytest.mark.order(4)
 def test_pickle_round_trip(tmp_path):
     obj = {"x": [1, 2], "y": "test"}
@@ -82,7 +93,6 @@ def test_pickle_round_trip(tmp_path):
     assert code == ocerror.ErrorCode.OK
     loaded = ocff.from_pickle(str(pkl))
     assert loaded == obj
-
 
 @pytest.mark.order(5)
 def test_safe_create_and_remove_dir(tmp_path):
@@ -97,7 +107,6 @@ def test_safe_create_and_remove_dir(tmp_path):
     code_remove_again = ocff.safe_remove_dir(str(dir_path))
     assert code_remove_again == ocerror.ErrorCode.DIR_NOT_EXIST
 
-
 @pytest.mark.order(6)
 def test_safe_remove_file(tmp_path):
     file_path = tmp_path / "file.txt"
@@ -106,3 +115,25 @@ def test_safe_remove_file(tmp_path):
     assert code_remove == ocerror.ErrorCode.OK
     code_remove_again = ocff.safe_remove_file(str(file_path))
     assert code_remove_again == ocerror.ErrorCode.FILE_NOT_EXIST
+
+@pytest.mark.order(1)
+def test_untar_and_delete(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    test_file = src / "test.txt"
+    test_file.write_text("hello")
+
+    archive = tmp_path / "archive.tar.gz"
+    with tarfile.open(archive, "w:gz") as tar:
+        tar.add(test_file, arcname="test.txt")
+
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+
+    rc = ocff.untar(str(archive), str(out_dir))
+    assert rc == ocerror.ErrorCode.OK
+    assert (out_dir / "test.txt").exists()
+
+    del_rc = ocff.safe_remove_file(str(archive))
+    assert del_rc == ocerror.ErrorCode.OK
+    assert not archive.exists()

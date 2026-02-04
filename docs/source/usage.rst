@@ -23,11 +23,10 @@ Commands
        --receptor path/to/receptor.pdb \\
        --ligand path/to/ligand.smi \\
        --box path/to/box0.pdb \\
-       --outdir runs/exp1 \\
        --timeout 600 \\
        --store-db
 
-- pipeline: Multi‑engine docking + clustering + rescoring
+- pipeline: Multi-engine docking + clustering + rescoring
 
   .. code-block:: bash
 
@@ -36,6 +35,7 @@ Commands
        --ligand path/to/ligand.sdf \\
        --box path/to/box0.pdb \\
        --engines vina,smina,plants \\
+       --outdir runs/exp1 \\
        --timeout 900 \\
        --store-db
 
@@ -45,7 +45,7 @@ Commands
 
      ocdocker shap --help
 
-- console: Interactive console with tab‑completion and history
+- console: Interactive console with tab-completion and history
 
   .. code-block:: bash
 
@@ -63,6 +63,18 @@ Commands
 
      ocdocker init-config --conf OCDocker.cfg
 
+- script: Run a Python script with OCDocker pre-loaded
+
+  .. code-block:: bash
+
+     ocdocker script --conf OCDocker.cfg script.py --arg1 value
+
+- version: Print installed version
+
+  .. code-block:: bash
+
+     ocdocker version
+
 Global options
 --------------
 
@@ -70,20 +82,25 @@ All commands accept the following global options:
 
 - ``--conf``: path to ``OCDocker.cfg``
 - ``--multiprocess``: enable multiprocessing for compatible tasks
+- ``--no-multiprocess``: disable multiprocessing for compatible tasks
 - ``--update-databases``: run DB updates at startup
-- ``--output-level``: control log level (0–5)
+- ``--output-level``: control log level (0-5)
 - ``--overwrite``: allow overwriting outputs when applicable
+- ``--log-file``: write logs to a file
+- ``--no-stdout-log``: disable logging to stdout
 
 Bootstrap & environment
 -----------------------
 
-- Auto‑bootstrap happens on first import outside docs/tests.
+- Auto-bootstrap happens on first import outside docs/tests.
 - Environment variables:
 
   - ``OCDOCKER_CONFIG``: config file path
-  - ``OCDOCKER_NO_AUTO_BOOTSTRAP``: disable auto‑bootstrap on import
-  - ``OCDOCKER_USE_SQLITE``: opt‑in SQLite backend (local file), instead of MySQL
+  - ``OCDOCKER_NO_AUTO_BOOTSTRAP``: disable auto-bootstrap on import
+  - ``OCDOCKER_USE_SQLITE``: opt-in SQLite backend (local file), instead of MySQL
+  - ``OCDOCKER_SQLITE_PATH``: explicit SQLite database file path
   - ``OCDOCKER_TIMEOUT``: default timeout (seconds) for external tools
+  - ``OCDOCKER_SKIP_ODDT``: skip importing ODDT during bootstrap
 
 See :doc:`OCDocker.Initialise` for details.
 

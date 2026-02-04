@@ -18,8 +18,7 @@ from multiprocessing import Pool
 from sklearn.decomposition import PCA
 from typing import Union
 
-
-
+import OCDocker.Error as ocerror
 import OCDocker.OCScore.Utils.Data as ocscoredata
 import OCDocker.OCScore.Utils.IO as ocscoreio
 import OCDocker.OCScore.Utils.Workers as ocscoreworkers
@@ -29,13 +28,13 @@ import OCDocker.Toolbox.Printing as ocprint
 ###############################################################################
 '''
 OCDocker
-Authors: Rossi, A.D.; Torres, P.H.M.
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
-developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
 All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
 to formal authorization from UFRJ. See the LICENSE file for details.
 
@@ -45,9 +44,11 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 
-# Methods
+# Functions
 ###############################################################################
+## Private ##
 
+## Public ##
 
 def optimize_Transformer(
         df_path: str,
@@ -71,7 +72,7 @@ def optimize_Transformer(
         verbose: bool = False
     ) -> None:
     ''' Function to optimize the Transformer model using Optuna.
-    
+
     Parameters
     ----------
     df_path : str
@@ -112,7 +113,7 @@ def optimize_Transformer(
         The parallel backend to use. The default is "joblib". Options are "joblib" and "multiprocessing". [ATTENTION] multiprocessing has shown to have some nasty bugs while testing this library. It is highly recommended to use joblib.
     verbose : bool, optional
         Whether to print verbose output. The default is False.
-    
+
     Raises
     ------
     ValueError
@@ -161,10 +162,10 @@ def optimize_Transformer(
             # Run the optimization using joblib
             Parallel(n_jobs=num_processes_Trans)(delayed(ocscoreworkers.Transworker)(
                     pid,
-                    storage_id, 
-                    X_train, y_train, 
-                    X_test, y_test, 
-                    X_val, y_val, 
+                    storage_id,
+                    X_train, y_train,
+                    X_test, y_test,
+                    X_val, y_val,
                     storage,
                     1,              # output_size
                     random_seed,
@@ -183,10 +184,10 @@ def optimize_Transformer(
                 # Each process will execute the 'Transworker' function with the datasets and optimizer parameters
                 pool.starmap(ocscoreworkers.Transworker, [(
                     pid,
-                    storage_id, 
-                    X_train, y_train, 
-                    X_test, y_test, 
-                    X_val, y_val, 
+                    storage_id,
+                    X_train, y_train,
+                    X_test, y_test,
+                    X_val, y_val,
                     storage,
                     1,              # output_size
                     random_seed,
@@ -201,7 +202,7 @@ def optimize_Transformer(
                 ])
         else:
             # User-facing error: invalid parallel backend
-            ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.") # type: ignore
+            ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
             raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
 
 # Alias the function

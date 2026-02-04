@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 
 # Description
@@ -11,31 +10,99 @@ Public helpers
 - feature_importance_barh: horizontal bar chart of relative importance
 - beeswarm: wrapper around shap.summary_plot
 - shap_correlation_heatmap: correlation heatmap of SHAP values
+
+Usage:
+
+from OCDocker.OCScore.Analysis.SHAP.Plots import feature_importance_barh
 '''
 
+# Imports
+###############################################################################
 from __future__ import annotations
-from typing import List, Tuple, Optional, Union
+
+import os
+import shap
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import os
-import matplotlib.pyplot as plt
-import shap
 import seaborn as sns
+
+from typing import List, Optional, Tuple, Union
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
+###############################################################################
+
 
 # Functions
 ###############################################################################
-
+## Private ##
 
 def _ensure_dir(path: str) -> None:
     os.makedirs(path, exist_ok=True)
 
 
 def _relative_importance(shap_2d: np.ndarray) -> np.ndarray:
-    mean_abs = np.abs(shap_2d).mean(axis=0)
-    denom = mean_abs.sum()
+    mean_abs = np.asarray(np.abs(shap_2d).mean(axis=0))
+    denom = float(mean_abs.sum())
     if denom <= 0:
         return np.zeros_like(mean_abs)
-    return (mean_abs / denom) * 100.0
+    return np.asarray((mean_abs / denom) * 100.0)
+
+
+## Public ##
+
+def beeswarm(
+    shap_2d: np.ndarray,
+    X_eval: pd.DataFrame,
+    out_png: str,
+    figsize: Tuple[int, int] = (10, 6),
+) -> str:
+    '''Wrapper around shap.summary_plot to save a beeswarm plot.
+
+    Parameters
+    ----------
+    shap_2d : np.ndarray
+        SHAP values with shape (n_samples, n_features).
+    X_eval : pd.DataFrame
+        Evaluation features (columns = names).
+    out_png : str
+        Where to save the plot.
+    figsize : tuple[int, int], optional
+        Plot size (width, height). Default is (10, 6).
+
+    Returns
+    -------
+    str
+        Output path of the saved plot.
+    '''
+
+    # Ensure output directory exists
+    _ensure_dir(os.path.dirname(out_png))
+    
+    # Compute relative importance as normalized mean |SHAP|
+    shap.summary_plot(shap_2d, X_eval.to_numpy(), feature_names=X_eval.columns, show=False, plot_size=figsize)
+    plt.tight_layout()
+    plt.savefig(out_png, dpi=300, bbox_inches='tight')
+    plt.close()
+    return out_png
 
 
 def feature_importance_barh(
@@ -81,42 +148,6 @@ def feature_importance_barh(
     plt.gca().invert_yaxis()
     plt.tight_layout()
     plt.savefig(out_png, dpi=300)
-    plt.close()
-    return out_png
-
-
-def beeswarm(
-    shap_2d: np.ndarray,
-    X_eval: pd.DataFrame,
-    out_png: str,
-    figsize: Tuple[int, int] = (10, 6),
-) -> str:
-    '''Wrapper around shap.summary_plot to save a beeswarm plot.
-
-    Parameters
-    ----------
-    shap_2d : np.ndarray
-        SHAP values with shape (n_samples, n_features).
-    X_eval : pd.DataFrame
-        Evaluation features (columns = names).
-    out_png : str
-        Where to save the plot.
-    figsize : tuple[int, int], optional
-        Plot size (width, height). Default is (10, 6).
-
-    Returns
-    -------
-    str
-        Output path of the saved plot.
-    '''
-
-    # Ensure output directory exists
-    _ensure_dir(os.path.dirname(out_png))
-    
-    # Compute relative importance as normalized mean |SHAP|
-    shap.summary_plot(shap_2d, X_eval.to_numpy(), feature_names=X_eval.columns, show=False, plot_size=figsize)
-    plt.tight_layout()
-    plt.savefig(out_png, dpi=300, bbox_inches='tight')
     plt.close()
     return out_png
 

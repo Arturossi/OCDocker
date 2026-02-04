@@ -1,0 +1,65 @@
+name: "Bug report"
+description: "Report a problem or regression"
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "Thanks for taking the time to report a bug. Please fill out the details below."
+  - type: checkboxes
+    id: existing_issues
+    attributes:
+      label: "Checked existing issues"
+      description: "Please confirm you searched existing issues before filing a new one."
+      options:
+        - label: "I have searched existing issues"
+          required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: "Summary"
+      description: "A clear and concise description of the bug."
+      placeholder: "Example: CLI crashes when running `ocdocker pipeline` with an empty input folder."
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: "Steps to reproduce"
+      description: "Provide a minimal, reproducible set of steps."
+      placeholder: "1. ...\n2. ...\n3. ..."
+    validations:
+      required: true
+  - type: textarea
+    id: expected_actual
+    attributes:
+      label: "Expected vs actual behavior"
+      description: "What you expected to happen, and what actually happened."
+      placeholder: "Expected: ...\nActual: ..."
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: "Logs / Traceback"
+      description: "Paste any relevant logs or error output."
+      render: "shell"
+      placeholder: "Paste logs here."
+    validations:
+      required: false
+  - type: textarea
+    id: environment
+    attributes:
+      label: "Environment"
+      description: "Please provide your environment details."
+      placeholder: "OS: \nPython: \nPackage version/commit: "
+    validations:
+      required: true
+  - type: textarea
+    id: additional
+    attributes:
+      label: "Additional context"
+      description: "Anything else that might help us diagnose the issue."
+      placeholder: "Screenshots, config snippets, or related context."
+    validations:
+      required: false

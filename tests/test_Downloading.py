@@ -1,10 +1,105 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Tests for download helpers and progress reporting.
+
+Usage:
+
+pytest tests/test_Downloading.py
+'''
+
+# Imports
+###############################################################################
 import pytest
+import urllib.request
+
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock, call
-import urllib.request
 
 import OCDocker.Toolbox.Downloading as ocdown
 import OCDocker.Toolbox.Printing as ocprint
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
+###############################################################################
+
+
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##
+
+
+
+@pytest.mark.order(4)
+def test_download_progress_bar_inheritance():
+    '''Test that DownloadProgressBar inherits from tqdm.'''
+    
+    from OCDocker.Toolbox.Downloading import DownloadProgressBar
+    from tqdm import tqdm
+    
+    # Verify DownloadProgressBar is a subclass of tqdm
+    assert issubclass(DownloadProgressBar, tqdm)
+    
+    # Verify we can create an instance
+    progress_bar = DownloadProgressBar(total=100, desc="test")
+    assert isinstance(progress_bar, tqdm)
+
+
+
+@pytest.mark.order(2)
+def test_download_progress_bar_update_to():
+    '''Test DownloadProgressBar.update_to method.'''
+    
+    from OCDocker.Toolbox.Downloading import DownloadProgressBar
+    
+    # Create a progress bar instance
+    progress_bar = DownloadProgressBar(total=1000, desc="test")
+    
+    # Test update_to with tsize parameter
+    progress_bar.update_to(b=1, bsize=100, tsize=1000)
+    assert progress_bar.total == 1000
+    
+    # Test update_to without tsize (should not change total)
+    progress_bar.total = 2000
+    progress_bar.update_to(b=1, bsize=100, tsize=None)
+    assert progress_bar.total == 2000
+    
+    # Test update_to updates the bar
+    initial_n = progress_bar.n
+    progress_bar.update_to(b=2, bsize=100, tsize=1000)
+    # The n value should have increased
+    assert progress_bar.n >= initial_n
+
+
+# Classes
+###############################################################################
+
+
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##
 
 
 @pytest.mark.order(1)
@@ -53,77 +148,33 @@ def test_download_url(monkeypatch, tmp_path):
     assert result is None
 
 
-@pytest.mark.order(2)
-def test_download_progress_bar_update_to():
-    '''Test DownloadProgressBar.update_to method.'''
-    
-    from OCDocker.Toolbox.Downloading import DownloadProgressBar
-    
-    # Create a progress bar instance
-    progress_bar = DownloadProgressBar(total=1000, desc="test")
-    
-    # Test update_to with tsize parameter
-    progress_bar.update_to(b=1, bsize=100, tsize=1000)
-    assert progress_bar.total == 1000
-    
-    # Test update_to without tsize (should not change total)
-    progress_bar.total = 2000
-    progress_bar.update_to(b=1, bsize=100, tsize=None)
-    assert progress_bar.total == 2000
-    
-    # Test update_to updates the bar
-    initial_n = progress_bar.n
-    progress_bar.update_to(b=2, bsize=100, tsize=1000)
-    # The n value should have increased
-    assert progress_bar.n >= initial_n
 
-
-@pytest.mark.order(3)
-def test_download_url_progress_callback(monkeypatch, tmp_path):
-    '''Test that download_url uses progress bar correctly.'''
+@pytest.mark.order(6)
+def test_download_url_creates_file(monkeypatch, tmp_path):
+    '''Test that download_url creates the output file.'''
     
-    test_url = "https://example.com/large_file.bin"
-    output_file = tmp_path / "large_file.bin"
+    test_url = "https://example.com/test.txt"
+    output_file = tmp_path / "test_output.txt"
     
-    # Track reporthook calls
-    reporthook_calls = []
+    # Ensure file doesn't exist before
+    assert not output_file.exists()
     
+    # Mock urlretrieve to create file
     def mock_urlretrieve(url, filename, reporthook):
-        # Simulate download progress by calling reporthook multiple times
+        Path(filename).write_text("downloaded content")
         if reporthook:
-            # Simulate downloading in blocks
-            reporthook(1, 1024, 10240)  # 1 block, 1024 bytes, 10240 total
-            reporthook(2, 1024, 10240)  # 2 blocks
-            reporthook(5, 1024, 10240)  # 5 blocks
-            reporthook_calls.append(len([c for c in [1, 2, 5]]))
-        Path(filename).write_text("content")
+            reporthook(1, 100, 100)
     
     monkeypatch.setattr("OCDocker.Toolbox.Downloading.urllib.request.urlretrieve", mock_urlretrieve)
-    
-    # Mock ocprint.printv
     monkeypatch.setattr("OCDocker.Toolbox.Downloading.ocprint.printv", lambda x: None)
     
     # Call download_url
     ocdown.download_url(test_url, str(output_file))
     
-    # Verify reporthook was called (progress tracking happened)
-    # The exact number depends on implementation, but reporthook should be used
+    # Verify file was created
     assert output_file.exists()
+    assert output_file.read_text() == "downloaded content"
 
-
-@pytest.mark.order(4)
-def test_download_progress_bar_inheritance():
-    '''Test that DownloadProgressBar inherits from tqdm.'''
-    
-    from OCDocker.Toolbox.Downloading import DownloadProgressBar
-    from tqdm import tqdm
-    
-    # Verify DownloadProgressBar is a subclass of tqdm
-    assert issubclass(DownloadProgressBar, tqdm)
-    
-    # Verify we can create an instance
-    progress_bar = DownloadProgressBar(total=100, desc="test")
-    assert isinstance(progress_bar, tqdm)
 
 
 @pytest.mark.order(5)
@@ -162,29 +213,35 @@ def test_download_url_filename_extraction(monkeypatch, tmp_path):
     assert "file.txt" in progress_bar_desc[0] or test_url in progress_bar_desc[0]
 
 
-@pytest.mark.order(6)
-def test_download_url_creates_file(monkeypatch, tmp_path):
-    '''Test that download_url creates the output file.'''
+
+@pytest.mark.order(3)
+def test_download_url_progress_callback(monkeypatch, tmp_path):
+    '''Test that download_url uses progress bar correctly.'''
     
-    test_url = "https://example.com/test.txt"
-    output_file = tmp_path / "test_output.txt"
+    test_url = "https://example.com/large_file.bin"
+    output_file = tmp_path / "large_file.bin"
     
-    # Ensure file doesn't exist before
-    assert not output_file.exists()
+    # Track reporthook calls
+    reporthook_calls = []
     
-    # Mock urlretrieve to create file
     def mock_urlretrieve(url, filename, reporthook):
-        Path(filename).write_text("downloaded content")
+        # Simulate download progress by calling reporthook multiple times
         if reporthook:
-            reporthook(1, 100, 100)
+            # Simulate downloading in blocks
+            reporthook(1, 1024, 10240)  # 1 block, 1024 bytes, 10240 total
+            reporthook(2, 1024, 10240)  # 2 blocks
+            reporthook(5, 1024, 10240)  # 5 blocks
+            reporthook_calls.append(len([c for c in [1, 2, 5]]))
+        Path(filename).write_text("content")
     
     monkeypatch.setattr("OCDocker.Toolbox.Downloading.urllib.request.urlretrieve", mock_urlretrieve)
+    
+    # Mock ocprint.printv
     monkeypatch.setattr("OCDocker.Toolbox.Downloading.ocprint.printv", lambda x: None)
     
     # Call download_url
     ocdown.download_url(test_url, str(output_file))
     
-    # Verify file was created
+    # Verify reporthook was called (progress tracking happened)
+    # The exact number depends on implementation, but reporthook should be used
     assert output_file.exists()
-    assert output_file.read_text() == "downloaded content"
-

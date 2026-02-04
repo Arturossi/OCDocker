@@ -1,59 +1,14 @@
 #!/usr/bin/env python3
 
-"""
-Constants and utility functions for unit conversions and thermodynamic calculations.
+# Description
+###############################################################################
+'''
+Physical constants and unit-conversion helpers.
 
-This module provides fundamental physical constants and conversion functions used
-throughout the OCDocker library. It includes temperature constants, gas constants,
-conversion factors, and utility functions for converting between different units
-and calculating thermodynamic properties.
+Usage:
 
-**Usage:**
-
-.. code-block:: python
-
-    import OCDocker.Toolbox.Constants as occ
-    
-    # Use constants
-    temp_kelvin = occ.STANDARD_TEMPERATURE_K
-    gas_constant = occ.RJ
-    
-    # Use conversion functions
-    joules = occ.cal_to_J(100.0)  # Convert 100 calories to Joules
-    kelvin = occ.C_to_K(25.0)  # Convert 25°C to Kelvin
-
-**Constants:**
-
-The module defines the following fundamental constants:
-
-* **Temperature Constants:**
-  * :const:`STANDARD_TEMPERATURE_K` - Standard temperature (298.15 K = 25°C)
-  * :const:`ZERO_C_IN_K` - Absolute zero in Celsius (273.15 K = 0°C)
-
-* **Conversion Constants:**
-  * :const:`CAL_TO_J` - Calories to Joules conversion factor (4.184)
-
-* **Gas Constants:**
-  * :const:`R` - Gas constant in cal/(mol·K) (1.9872036)
-  * :const:`Rk` - Gas constant in kcal/(mol·K) (0.0019872036)
-  * :const:`RJ` - Gas constant in J/(mol·K) (8.314462618)
-  * :const:`RJK` - Gas constant in kJ/(mol·K) (0.008314462618)
-
-* **Unit Conversion:**
-  * :const:`order` - Dictionary for unit conversion between different orders of magnitude
-
-**Functions:**
-
-The module provides conversion functions for:
-* Energy units (calories ↔ Joules)
-* Temperature units (Celsius ↔ Kelvin)
-* Thermodynamic calculations (equilibrium constants ↔ Gibbs free energy)
-
-.. note::
-    All constants are defined at the module level and can be used in function
-    default parameters. They are fundamental physical constants and should not
-    be modified.
-"""
+import OCDocker.Toolbox.Constants as occ
+'''
 
 # Imports
 ###############################################################################
@@ -66,18 +21,22 @@ import OCDocker.Error as ocerror
 ###############################################################################
 '''
 OCDocker
-Authors: Rossi, A.D.; Torres, P.H.M.
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
-developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
 All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
 to formal authorization from UFRJ. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
+
+# Classes
+###############################################################################
+
 
 # Constants (defined early for use in function defaults)
 ###############################################################################
@@ -149,6 +108,25 @@ Value: 0.008314462618 kJ/(mol·K)
 
 # Functions
 ###############################################################################
+## Private ##
+
+## Public ##
+
+def C_to_K(C: float) -> float:
+    ''' Convert Celsius to Kelvin.
+
+    Parameters
+    ----------
+    C : float
+        Value in Celsius.
+
+    Returns
+    -------
+    float
+        Value in Kelvin.
+    '''
+
+    return C + ZERO_C_IN_K
 
 
 def cal_to_J(cal: float) -> float:
@@ -168,6 +146,50 @@ def cal_to_J(cal: float) -> float:
     return cal * CAL_TO_J
 
 
+def convert_dG_to_Ki_Kd(dG: float, T: float = STANDARD_TEMPERATURE_K) -> float:
+    ''' Convert Gibbs free energy to equilibrium constant.
+
+    Parameters
+    ----------
+    dG : float
+        Gibbs free energy.
+    T : float
+        Temperature in Kelvin.
+
+    Returns
+    -------
+    float
+        Equilibrium constant.
+    '''
+
+    # Calculate K
+    K = math.exp(-dG / (R * T))
+
+    return K
+
+
+def convert_Ki_Kd_to_dG(K: float, T: float = STANDARD_TEMPERATURE_K) -> float:
+    ''' Convert equilibrium constant to Gibbs free energy.
+
+    Parameters
+    ----------
+    K : float
+        Equilibrium constant.
+    T : float
+        Temperature in Kelvin.
+
+    Returns
+    -------
+    float
+        Gibbs free energy.
+    '''
+
+    # Calculate dG
+    dG = R * T * math.log(K)
+
+    return dG
+
+
 def J_to_cal(J: float) -> float:
     ''' Convert Joules to calories.
 
@@ -183,23 +205,6 @@ def J_to_cal(J: float) -> float:
     '''
 
     return J / CAL_TO_J
-
-
-def C_to_K(C: float) -> float:
-    ''' Convert Celsius to Kelvin.
-
-    Parameters
-    ----------
-    C : float
-        Value in Celsius.
-
-    Returns
-    -------
-    float
-        Value in Kelvin.
-    '''
-
-    return C + ZERO_C_IN_K
 
 
 def K_to_C(K: float) -> float:
@@ -224,55 +229,10 @@ def K_to_C(K: float) -> float:
     # Check if K is negative
     if K < 0:
         # User-facing error: invalid temperature value
-        ocerror.Error.value_error(f"Kelvin cannot be negative. Got: {K}") # type: ignore
+        ocerror.Error.value_error(f"Kelvin cannot be negative. Got: {K}")
         raise ValueError("Kelvin cannot be negative.")
 
     return K - ZERO_C_IN_K
-
-
-def convert_Ki_Kd_to_dG(K: float, T: float = STANDARD_TEMPERATURE_K) -> float:
-    ''' Convert equilibrium constant to Gibbs free energy.
-
-    Parameters
-    ----------
-    K : float
-        Equilibrium constant.
-    T : float
-        Temperature in Kelvin.
-
-    Returns
-    -------
-    float
-        Gibbs free energy.
-    '''
-
-    # Calculate dG
-    dG = R * T * math.log(K)
-    
-    return dG
-
-
-def convert_dG_to_Ki_Kd(dG: float, T: float = STANDARD_TEMPERATURE_K) -> float:
-    ''' Convert Gibbs free energy to equilibrium constant.
-
-    Parameters
-    ----------
-    dG : float
-        Gibbs free energy.
-    T : float
-        Temperature in Kelvin.
-
-    Returns
-    -------
-    float
-        Equilibrium constant.
-    '''
-
-    # Calculate K
-    K = math.exp(-dG / (R * T))
-    
-    return K
-    
 
 # Constants
 ###############################################################################
@@ -347,10 +307,10 @@ The structure is: ``order[source_unit][target_unit] = conversion_factor``
 .. code-block:: python
 
     import OCDocker.Toolbox.Constants as occ
-    
+
     # Convert from nano (n) to micro (u)
     factor = occ.order["n"]["u"]  # Returns 1e-3
-    
+
     # Convert from micro (u) to base unit (un)
     factor = occ.order["u"]["un"]  # Returns 1e-6
 

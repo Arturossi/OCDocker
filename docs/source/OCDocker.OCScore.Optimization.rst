@@ -10,6 +10,7 @@ Submodules
    OCDocker.OCScore.Optimization.DNN
    OCDocker.OCScore.Optimization.Transformer
    OCDocker.OCScore.Optimization.XGBoost
+   OCDocker.OCScore.Optimization.future
 
 Module contents
 ---------------

@@ -8,19 +8,20 @@ Configuration management for OCDocker using dataclasses and singleton pattern.
 This module provides a structured way to manage OCDocker configuration,
 replacing the global variables in Initialise.py with type-safe dataclasses.
 
-They are imported as:
+Usage:
 
 from OCDocker.Config import get_config, OCDockerConfig
 '''
 
 # Imports
 ###############################################################################
+import configparser
 import os
 import threading
-import configparser
+
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 import OCDocker.Error as ocerror
 
@@ -28,21 +29,22 @@ import OCDocker.Error as ocerror
 ###############################################################################
 '''
 OCDocker
-Authors: Rossi, A.D.; Torres, P.H.M.
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
-developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
 All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
 to formal authorization from UFRJ. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
 
-# Configuration Dataclasses
+# Classes
 ###############################################################################
+# Configuration Dataclasses
 
 
 @dataclass
@@ -224,7 +226,7 @@ class OCDockerConfig:
     
     @classmethod
     def from_config_file(cls, config_file: str) -> 'OCDockerConfig':
-        """Load configuration from config file.
+        '''Load configuration from config file.
         
         Parameters
         ----------
@@ -235,7 +237,7 @@ class OCDockerConfig:
         -------
         OCDockerConfig
             Configured instance
-        """
+        '''
         # Import here to avoid circular dependency
         import os
         from OCDocker.Initialise import _parse_config_file
@@ -266,48 +268,6 @@ class OCDockerConfig:
         if not cfg:
             raise ValueError(f"Configuration file '{config_file}' was parsed but returned an empty dictionary")
         
-        # Helper to convert string to bool
-        def str_to_bool(val: str) -> bool:
-            '''Convert a string value to a boolean.
-            
-            Parameters
-            ----------
-            val : str
-                The string value to convert. Accepts '1', 'true', 'yes', 'y', 'on' (case-insensitive).
-            
-            Returns
-            -------
-            bool
-                True if the value is a recognized truthy string, False otherwise.
-            '''
-
-            return str(val).lower() in ('1', 'true', 'yes', 'y', 'on')
-        
-        # Helper to convert exhaustiveness (can be int or str)
-        def get_exhaustiveness(key: str, default: Any) -> Any:
-            '''Get exhaustiveness value from configuration, handling both int and str types.
-            
-            Parameters
-            ----------
-            key : str
-                The configuration key to retrieve.
-            default : Any
-                The default value to return if the key is not found or conversion fails.
-            
-            Returns
-            -------
-            Any
-                The exhaustiveness value as int if convertible, otherwise as str. Returns default if key not found.
-            '''
-            
-            val = cfg.get(key, default)
-            if isinstance(val, int):
-                return val
-            try:
-                return int(val)
-            except (ValueError, TypeError):
-                return str(val)
-        
         # Build configuration
         config = cls(
             # Vina
@@ -315,7 +275,7 @@ class OCDockerConfig:
                 executable=cfg.get('vina', 'vina'),
                 split_executable=cfg.get('vina_split', 'vina_split'),
                 energy_range=cfg.get('vina_energy_range', '10'),
-                exhaustiveness=get_exhaustiveness('vina_exhaustiveness', 5),
+                exhaustiveness=_get_exhaustiveness(cfg, 'vina_exhaustiveness', 5),
                 num_modes=cfg.get('vina_num_modes', '3'),
                 scoring=cfg.get('vina_scoring', 'vina'),
                 scoring_functions=cfg.get('vina_scoring_functions', ['vina']),
@@ -437,6 +397,10 @@ class OCDockerConfig:
                 reference_column_order=cfg.get('reference_column_order', ['name','receptor','ligand','SMINA_VINA','SMINA_SCORING_DKOES','SMINA_VINARDO','SMINA_OLD_SCORING_DKOES','SMINA_FAST_DKOES','SMINA_SCORING_AD4','VINA_VINA','VINA_VINARDO','PLANTS_CHEMPLP','PLANTS_PLP','PLANTS_PLP95','ODDT_RFSCORE_V1','ODDT_RFSCORE_V2','ODDT_RFSCORE_V3','ODDT_PLECRF_P5_L1_S65536','ODDT_NNSCORE','countA','countR','countN','countD','countC','countQ','countE','countG','countH','countI','countL','countK','countM','countF','countP','countS','countT','countW','countY','countV','TotalAALength','AvgAALength','countChain','SASA','DipoleMoment','IsoelectricPoint','GRAVY','Aromaticity','InstabilityIndex','AUTOCORR2D_1','AUTOCORR2D_2','AUTOCORR2D_3','AUTOCORR2D_4','AUTOCORR2D_5','AUTOCORR2D_6','AUTOCORR2D_7','AUTOCORR2D_8','AUTOCORR2D_9','AUTOCORR2D_10','AUTOCORR2D_11','AUTOCORR2D_12','AUTOCORR2D_13','AUTOCORR2D_14','AUTOCORR2D_15','AUTOCORR2D_16','AUTOCORR2D_17','AUTOCORR2D_18','AUTOCORR2D_19','AUTOCORR2D_20','AUTOCORR2D_21','AUTOCORR2D_22','AUTOCORR2D_23','AUTOCORR2D_24','AUTOCORR2D_25','AUTOCORR2D_26','AUTOCORR2D_27','AUTOCORR2D_28','AUTOCORR2D_29','AUTOCORR2D_30','AUTOCORR2D_31','AUTOCORR2D_32','AUTOCORR2D_33','AUTOCORR2D_34','AUTOCORR2D_35','AUTOCORR2D_36','AUTOCORR2D_37','AUTOCORR2D_38','AUTOCORR2D_39','AUTOCORR2D_40','AUTOCORR2D_41','AUTOCORR2D_42','AUTOCORR2D_43','AUTOCORR2D_44','AUTOCORR2D_45','AUTOCORR2D_46','AUTOCORR2D_47','AUTOCORR2D_48','AUTOCORR2D_49','AUTOCORR2D_50','AUTOCORR2D_51','AUTOCORR2D_52','AUTOCORR2D_53','AUTOCORR2D_54','AUTOCORR2D_55','AUTOCORR2D_56','AUTOCORR2D_57','AUTOCORR2D_58','AUTOCORR2D_59','AUTOCORR2D_60','AUTOCORR2D_61','AUTOCORR2D_62','AUTOCORR2D_63','AUTOCORR2D_64','AUTOCORR2D_65','AUTOCORR2D_66','AUTOCORR2D_67','AUTOCORR2D_68','AUTOCORR2D_69','AUTOCORR2D_70','AUTOCORR2D_71','AUTOCORR2D_72','AUTOCORR2D_73','AUTOCORR2D_74','AUTOCORR2D_75','AUTOCORR2D_76','AUTOCORR2D_77','AUTOCORR2D_78','AUTOCORR2D_79','AUTOCORR2D_80','AUTOCORR2D_81','AUTOCORR2D_82','AUTOCORR2D_83','AUTOCORR2D_84','AUTOCORR2D_85','AUTOCORR2D_86','AUTOCORR2D_87','AUTOCORR2D_88','AUTOCORR2D_89','AUTOCORR2D_90','AUTOCORR2D_91','AUTOCORR2D_92','AUTOCORR2D_93','AUTOCORR2D_94','AUTOCORR2D_95','AUTOCORR2D_96','AUTOCORR2D_97','AUTOCORR2D_98','AUTOCORR2D_99','AUTOCORR2D_100','AUTOCORR2D_101','AUTOCORR2D_102','AUTOCORR2D_103','AUTOCORR2D_104','AUTOCORR2D_105','AUTOCORR2D_106','AUTOCORR2D_107','AUTOCORR2D_108','AUTOCORR2D_109','AUTOCORR2D_110','AUTOCORR2D_111','AUTOCORR2D_112','AUTOCORR2D_113','AUTOCORR2D_114','AUTOCORR2D_115','AUTOCORR2D_116','AUTOCORR2D_117','AUTOCORR2D_118','AUTOCORR2D_119','AUTOCORR2D_120','AUTOCORR2D_121','AUTOCORR2D_122','AUTOCORR2D_123','AUTOCORR2D_124','AUTOCORR2D_125','AUTOCORR2D_126','AUTOCORR2D_127','AUTOCORR2D_128','AUTOCORR2D_129','AUTOCORR2D_130','AUTOCORR2D_131','AUTOCORR2D_132','AUTOCORR2D_133','AUTOCORR2D_134','AUTOCORR2D_135','AUTOCORR2D_136','AUTOCORR2D_137','AUTOCORR2D_138','AUTOCORR2D_139','AUTOCORR2D_140','AUTOCORR2D_141','AUTOCORR2D_142','AUTOCORR2D_143','AUTOCORR2D_144','AUTOCORR2D_145','AUTOCORR2D_146','AUTOCORR2D_147','AUTOCORR2D_148','AUTOCORR2D_149','AUTOCORR2D_150','AUTOCORR2D_151','AUTOCORR2D_152','AUTOCORR2D_153','AUTOCORR2D_154','AUTOCORR2D_155','AUTOCORR2D_156','AUTOCORR2D_157','AUTOCORR2D_158','AUTOCORR2D_159','AUTOCORR2D_160','AUTOCORR2D_161','AUTOCORR2D_162','AUTOCORR2D_163','AUTOCORR2D_164','AUTOCORR2D_165','AUTOCORR2D_166','AUTOCORR2D_167','AUTOCORR2D_168','AUTOCORR2D_169','AUTOCORR2D_170','AUTOCORR2D_171','AUTOCORR2D_172','AUTOCORR2D_173','AUTOCORR2D_174','AUTOCORR2D_175','AUTOCORR2D_176','AUTOCORR2D_177','AUTOCORR2D_178','AUTOCORR2D_179','AUTOCORR2D_180','AUTOCORR2D_181','AUTOCORR2D_182','AUTOCORR2D_183','AUTOCORR2D_184','AUTOCORR2D_185','AUTOCORR2D_186','AUTOCORR2D_187','AUTOCORR2D_188','AUTOCORR2D_189','AUTOCORR2D_190','AUTOCORR2D_191','AUTOCORR2D_192','BCUT2D_CHGHI','BCUT2D_CHGLO','BCUT2D_LOGPHI','BCUT2D_LOGPLOW','BCUT2D_MRHI','BCUT2D_MRLOW','BCUT2D_MWHI','BCUT2D_MWLOW','fr_Al_COO','fr_Al_OH','fr_Al_OH_noTert','fr_ArN','fr_Ar_COO','fr_Ar_N','fr_Ar_NH','fr_Ar_OH','fr_COO','fr_COO2','fr_C_O','fr_C_O_noCOO','fr_C_S','fr_HOCCN','fr_Imine','fr_NH0','fr_NH1','fr_NH2','fr_N_O','fr_Ndealkylation1','fr_Ndealkylation2','fr_Nhpyrrole','fr_SH','fr_aldehyde','fr_alkyl_carbamate','fr_alkyl_halide','fr_allylic_oxid','fr_amide','fr_amidine','fr_aniline','fr_aryl_methyl','fr_azide','fr_azo','fr_barbitur','fr_benzene','fr_benzodiazepine','fr_bicyclic','fr_diazo','fr_dihydropyridine','fr_epoxide','fr_ester','fr_ether','fr_furan','fr_guanido','fr_halogen','fr_hdrzine','fr_hdrzone','fr_imidazole','fr_imide','fr_isocyan','fr_isothiocyan','fr_ketone','fr_ketone_Topliss','fr_lactam','fr_lactone','fr_methoxy','fr_morpholine','fr_nitrile','fr_nitro','fr_nitro_arom','fr_nitro_arom_nonortho','fr_nitroso','fr_oxazole','fr_oxime','fr_para_hydroxylation','fr_phenol','fr_phenol_noOrthoHbond','fr_phos_acid','fr_phos_ester','fr_piperdine','fr_piperzine','fr_priamide','fr_prisulfonamd','fr_pyridine','fr_quatN','fr_sulfide','fr_sulfonamd','fr_sulfone','fr_term_acetylene','fr_tetrazole','fr_thiazole','fr_thiocyan','fr_thiophene','fr_unbrch_alkane','fr_urea','Chi0','Chi0v','Chi0n','Chi1','Chi1v','Chi1n','Chi2v','Chi2n','Chi3v','Chi3n','Chi4v','Chi4n','EState_VSA1','EState_VSA2','EState_VSA3','EState_VSA4','EState_VSA5','EState_VSA6','EState_VSA7','EState_VSA8','EState_VSA9','EState_VSA10','EState_VSA11','FpDensityMorgan1','FpDensityMorgan2','FpDensityMorgan3','Kappa1','Kappa2','Kappa3','MolLogP','MolMR','MolWt','NumAliphaticCarbocycles','NumAliphaticHeterocycles','NumAliphaticRings','NumAromaticCarbocycles','NumAromaticHeterocycles','NumAromaticRings','NumHAcceptors','NumHDonors','NumHeteroatoms','NumRadicalElectrons','NumRotatableBonds','NumSaturatedCarbocycles','NumSaturatedHeterocycles','NumSaturatedRings','NumValenceElectrons','NPR1','NPR2','PMI1','PMI2','PMI3','PEOE_VSA1','PEOE_VSA2','PEOE_VSA3','PEOE_VSA4','PEOE_VSA5','PEOE_VSA6','PEOE_VSA7','PEOE_VSA8','PEOE_VSA9','PEOE_VSA10','PEOE_VSA11','PEOE_VSA12','PEOE_VSA13','PEOE_VSA14','SMR_VSA1','SMR_VSA2','SMR_VSA3','SMR_VSA4','SMR_VSA5','SMR_VSA6','SMR_VSA7','SMR_VSA8','SMR_VSA9','SMR_VSA10','SlogP_VSA1','SlogP_VSA2','SlogP_VSA3','SlogP_VSA4','SlogP_VSA5','SlogP_VSA6','SlogP_VSA7','SlogP_VSA8','SlogP_VSA9','SlogP_VSA10','SlogP_VSA11','SlogP_VSA12','VSA_EState1','VSA_EState2','VSA_EState3','VSA_EState4','VSA_EState5','VSA_EState6','VSA_EState7','VSA_EState8','VSA_EState9','VSA_EState10','BalabanJ','BertzCT','ExactMolWt','FractionCSP3','HallKierAlpha','HeavyAtomMolWt','HeavyAtomCount','LabuteASA','TPSA','MaxAbsEStateIndex','MaxEStateIndex','MinAbsEStateIndex','MinEStateIndex','MaxAbsPartialCharge','MaxPartialCharge','MinAbsPartialCharge','MinPartialCharge','qed','RingCount','Asphericity','Eccentricity','InertialShapeFactor','RadiusOfGyration','SpherocityIndex','NHOHCount','NOCount']),
             ),
         )
+
+        # Direct attributes (optional)
+        if 'oddt_models_dir' in cfg:
+            config.oddt_models_dir = cfg.get('oddt_models_dir', '')
         
         return config
     
@@ -485,17 +449,48 @@ class OCDockerConfig:
             config.overwrite = config_dict['overwrite']
         if 'tmp_dir' in config_dict:
             config.tmp_dir = config_dict['tmp_dir']
+        if 'oddt_models_dir' in config_dict:
+            config.oddt_models_dir = config_dict['oddt_models_dir']
         
         return config
 
 
-# Singleton Pattern
+# Functions
 ###############################################################################
+## Private ##
 
+def _get_exhaustiveness(cfg: Dict[str, Any], key: str, default: Any) -> Any:
+    '''Get exhaustiveness value from configuration, handling both int and str types.
+    
+    Parameters
+    ----------
+    cfg : Dict[str, Any]
+        Parsed configuration dictionary.
+    key : str
+        The configuration key to retrieve.
+    default : Any
+        The default value to return if the key is not found or conversion fails.
+    
+    Returns
+    -------
+    Any
+        The exhaustiveness value as int if convertible, otherwise as str. Returns default if key not found.
+    '''
+    
+    val = cfg.get(key, default)
+    if isinstance(val, int):
+        return val
+    try:
+        return int(val)
+    except (ValueError, TypeError):
+        return str(val)
+
+
+# Singleton Pattern
 _config_lock = threading.Lock()
 _config_instance: Optional[OCDockerConfig] = None
 
-
+## Public ##
 def get_config() -> OCDockerConfig:
     '''Get the global configuration instance (singleton pattern).
     
@@ -520,6 +515,17 @@ def get_config() -> OCDockerConfig:
     return _config_instance
 
 
+def reset_config() -> None:
+    '''Reset the global configuration to None.
+    
+    Useful for testing to ensure clean state.
+    '''
+    
+    global _config_instance
+    with _config_lock:
+        _config_instance = None
+
+
 def set_config(config: OCDockerConfig) -> None:
     '''Set the global configuration (useful for testing).
     
@@ -538,13 +544,3 @@ def set_config(config: OCDockerConfig) -> None:
     with _config_lock:
         _config_instance = config
 
-
-def reset_config() -> None:
-    '''Reset the global configuration to None.
-    
-    Useful for testing to ensure clean state.
-    '''
-    
-    global _config_instance
-    with _config_lock:
-        _config_instance = None

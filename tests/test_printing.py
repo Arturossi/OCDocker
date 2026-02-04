@@ -1,11 +1,53 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Tests for Toolbox.Printing helpers.
+'''
+
+# Imports
+###############################################################################
+import datetime
 import importlib
+import pytest
 import sys
 import types
-import datetime
-import pytest
 
 import OCDocker.Error as ocerror
 
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
+###############################################################################
+
+
+ # Functions
+###############################################################################
+## Private ##
+
+def _set_level(level):
+    prev = ocerror.Error.get_output_level()
+    ocerror.Error.set_output_level(level)
+    return prev
+
+
+## Public ##
 
 @pytest.fixture
 def ocprint(monkeypatch):
@@ -32,6 +74,7 @@ def ocprint(monkeypatch):
     import builtins
 
 
+
     def fake_open(*args, **kwargs):
         return StringIO()
 
@@ -43,21 +86,16 @@ def ocprint(monkeypatch):
     monkeypatch.delitem(sys.modules, "OCDocker.Initialise", raising=False)
 
 
-def _set_level(level):
-    prev = ocerror.Error.get_output_level()
-    ocerror.Error.set_output_level(level)
-    return prev
-
-
-@pytest.mark.order(73)
-def test_printv_outputs_message(ocprint, capsys):
-    prev = _set_level(ocerror.ReportLevel.DEBUG)
+@pytest.mark.order(77)
+def test_print_error_contains_tag(ocprint, capsys):
+    prev = _set_level(ocerror.ReportLevel.ERROR)
     try:
-        ocprint.printv("hello")
+        ocprint.print_error("fail")
     finally:
         ocerror.Error.set_output_level(prev)
     captured = capsys.readouterr()
-    assert "hello" in captured.out
+    assert "ERROR" in captured.out
+    assert "fail" in captured.out
 
 
 @pytest.mark.order(74)
@@ -70,6 +108,41 @@ def test_print_info_contains_tag(ocprint, capsys):
     captured = capsys.readouterr()
     assert "INFO" in captured.out
     assert "info message" in captured.out
+
+
+@pytest.mark.order(78)
+def test_print_section_outputs_header(ocprint, capsys, tmp_path):
+    prev = _set_level(ocerror.ReportLevel.DEBUG)
+    try:
+        ocprint.print_section(1, "Test", logName=str(tmp_path / "prog.log"))
+    finally:
+        ocerror.Error.set_output_level(prev)
+    captured = capsys.readouterr()
+    assert "S|E|C|T|I|O|N" in captured.out
+    assert "Test" in captured.out
+
+
+@pytest.mark.order(82)
+def test_print_sorry_outputs_message(ocprint, capsys):
+    prev = _set_level(ocerror.ReportLevel.DEBUG)
+    try:
+        ocprint.print_sorry()
+    finally:
+        ocerror.Error.set_output_level(prev)
+    captured = capsys.readouterr()
+    assert "sorry" in captured.out.lower()
+
+
+@pytest.mark.order(80)
+def test_print_subsection_outputs_header(ocprint, capsys, tmp_path):
+    prev = _set_level(ocerror.ReportLevel.DEBUG)
+    try:
+        ocprint.print_subsection(1, "Sub", logName=str(tmp_path / "prog.log"))
+    finally:
+        ocerror.Error.set_output_level(prev)
+    captured = capsys.readouterr()
+    assert "Subsect" in captured.out  # part of the word subsection with bars
+    assert "Sub" in captured.out
 
 
 @pytest.mark.order(75)
@@ -96,28 +169,15 @@ def test_print_warning_contains_tag(ocprint, capsys):
     assert "caution" in captured.out
 
 
-@pytest.mark.order(77)
-def test_print_error_contains_tag(ocprint, capsys):
-    prev = _set_level(ocerror.ReportLevel.ERROR)
-    try:
-        ocprint.print_error("fail")
-    finally:
-        ocerror.Error.set_output_level(prev)
-    captured = capsys.readouterr()
-    assert "ERROR" in captured.out
-    assert "fail" in captured.out
-
-
-@pytest.mark.order(78)
-def test_print_section_outputs_header(ocprint, capsys, tmp_path):
+@pytest.mark.order(73)
+def test_printv_outputs_message(ocprint, capsys):
     prev = _set_level(ocerror.ReportLevel.DEBUG)
     try:
-        ocprint.print_section(1, "Test", logName=str(tmp_path / "prog.log"))
+        ocprint.printv("hello")
     finally:
         ocerror.Error.set_output_level(prev)
     captured = capsys.readouterr()
-    assert "S|E|C|T|I|O|N" in captured.out
-    assert "Test" in captured.out
+    assert "hello" in captured.out
 
 
 @pytest.mark.order(79)
@@ -128,32 +188,9 @@ def test_section_returns_string(ocprint):
     assert "Sec" in result
 
 
-@pytest.mark.order(80)
-def test_print_subsection_outputs_header(ocprint, capsys, tmp_path):
-    prev = _set_level(ocerror.ReportLevel.DEBUG)
-    try:
-        ocprint.print_subsection(1, "Sub", logName=str(tmp_path / "prog.log"))
-    finally:
-        ocerror.Error.set_output_level(prev)
-    captured = capsys.readouterr()
-    assert "Subsect" in captured.out  # part of the word subsection with bars
-    assert "Sub" in captured.out
-
-
 @pytest.mark.order(81)
 def test_subsection_returns_string(ocprint):
     result = ocprint.subsection(3, "Sub")
     assert isinstance(result, str)
     assert "Subsect" in result
     assert "Sub" in result
-
-
-@pytest.mark.order(82)
-def test_print_sorry_outputs_message(ocprint, capsys):
-    prev = _set_level(ocerror.ReportLevel.DEBUG)
-    try:
-        ocprint.print_sorry()
-    finally:
-        ocerror.Error.set_output_level(prev)
-    captured = capsys.readouterr()
-    assert "sorry" in captured.out.lower()

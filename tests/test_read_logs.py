@@ -1,9 +1,46 @@
-import importlib
-import types
-import sys
-from pathlib import Path
-import pytest
+#!/usr/bin/env python3
 
+# Description
+###############################################################################
+'''
+Tests for docking log parsers with stubbed dependencies.
+'''
+
+# Imports
+###############################################################################
+import importlib
+import pytest
+import sys
+import types
+
+from pathlib import Path
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
+###############################################################################
+
+
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##
 
 @pytest.fixture
 def docking_modules(monkeypatch):
@@ -78,6 +115,26 @@ def docking_modules(monkeypatch):
     for mod in ['OCDocker.Docking.Vina', 'OCDocker.Docking.Smina']:
         sys.modules.pop(mod, None)
 
+@pytest.mark.order(86)
+def test_smina_log_parsing(docking_modules, tmp_path):
+    _, ocsmina = docking_modules
+    log_file = tmp_path / "smina.log"
+    log_file.write_text(
+        "header\n-----+------------+----------+----------+\n" \
+        "    1 -6.0 0.0 0.0\n"
+    )
+    from OCDocker.Config import get_config
+    config = get_config()
+    smina_scoring = config.smina.scoring
+    
+    result = ocsmina.read_log(str(log_file))
+    expected = {1: {smina_scoring: -6.0}}
+    assert result == expected
+
+    rescoring = tmp_path / "smina_res.log"
+    rescoring.write_text("Header\nAffinity: -6.5 (kcal/mol)\n")
+    affinity = ocsmina.read_rescoring_log(str(rescoring))
+    assert affinity == -6.5
 
 @pytest.mark.order(85)
 def test_vina_log_parsing(docking_modules, tmp_path):
@@ -93,8 +150,8 @@ def test_vina_log_parsing(docking_modules, tmp_path):
     
     result = ocvina.read_log(str(log_file))
     expected = {
-        1: {vina_scoring: "-8.0"},
-        2: {vina_scoring: "-7.5"},
+        1: {vina_scoring: -8.0},
+        2: {vina_scoring: -7.5},
     }
     assert result == expected
 
@@ -104,25 +161,3 @@ def test_vina_log_parsing(docking_modules, tmp_path):
     )
     affinity = ocvina.read_rescoring_log(str(rescoring))
     assert affinity == -8.3
-
-
-@pytest.mark.order(86)
-def test_smina_log_parsing(docking_modules, tmp_path):
-    _, ocsmina = docking_modules
-    log_file = tmp_path / "smina.log"
-    log_file.write_text(
-        "header\n-----+------------+----------+----------+\n" \
-        "    1 -6.0 0.0 0.0\n"
-    )
-    from OCDocker.Config import get_config
-    config = get_config()
-    smina_scoring = config.smina.scoring
-    
-    result = ocsmina.read_log(str(log_file))
-    expected = {1: {smina_scoring: "-6.0"}}
-    assert result == expected
-
-    rescoring = tmp_path / "smina_res.log"
-    rescoring.write_text("Header\nAffinity: -6.5 (kcal/mol)\n")
-    affinity = ocsmina.read_rescoring_log(str(rescoring))
-    assert affinity == -6.5

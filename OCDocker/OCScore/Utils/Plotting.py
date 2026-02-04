@@ -6,7 +6,7 @@
 Set of functions to manage plotting operations in OCDocker in the context of
 scoring functions.
 
-They are imported as:
+Usage:
 
 import OCDocker.OCScore.Utils.Plotting as ocscoreplot
 '''
@@ -14,9 +14,9 @@ import OCDocker.OCScore.Utils.Plotting as ocscoreplot
 # Imports
 ###############################################################################
 
+import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
-import matplotlib.pyplot as plt
 
 from scipy.cluster.hierarchy import leaves_list, linkage
 from sklearn.metrics import auc, roc_curve
@@ -26,13 +26,13 @@ from typing import Union, Optional
 ###############################################################################
 '''
 OCDocker
-Authors: Rossi, A.D.; Torres, P.H.M.
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
-developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
 All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
 to formal authorization from UFRJ. See the LICENSE file for details.
 
@@ -42,8 +42,11 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 
-# Methods
+# Functions
 ###############################################################################
+## Private ##
+
+## Public ##
 
 def plot_correlation_similarity(df1 : pd.DataFrame, df2 : pd.DataFrame, columns : list = [], annot : bool = True, fontsize : Optional[float] = None, normalize : bool = True) -> None:
     ''' Plots the similarity of correlation matrices from two DataFrames.
@@ -67,7 +70,7 @@ def plot_correlation_similarity(df1 : pd.DataFrame, df2 : pd.DataFrame, columns 
     # If no columns are specified, use all columns except metadata
     if not columns:
         # Find common columns in both DataFrames
-        columns = df1.columns.intersection(df2.columns) # type: ignore
+        columns = df1.columns.intersection(df2.columns)
 
     # Filter both DataFrames to include only common columns
     filtered_df1 = df1[columns]
@@ -159,7 +162,7 @@ def plot_roc_curves(df : pd.DataFrame, feature_cols : list, labels : pd.Series, 
         auc_dict[feature] = roc_auc
 
     # Sort the features by their AUC in descending order
-    sorted_features = sorted(auc_dict, key=auc_dict.get, reverse=True) # type: ignore
+    sorted_features = sorted(auc_dict, key=lambda k: auc_dict[k], reverse=True)
 
     # Create the plot
     plt.figure(figsize=(14, 10))

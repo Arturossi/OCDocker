@@ -1,0 +1,48 @@
+name: "Feature request"
+description: "Suggest an improvement or new feature"
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: "Thanks for your suggestion. Please provide the details below."
+  - type: checkboxes
+    id: existing_issues
+    attributes:
+      label: "Checked existing issues"
+      description: "Please confirm you searched existing issues before filing a new one."
+      options:
+        - label: "I have searched existing issues"
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: "Problem"
+      description: "What problem are you trying to solve?"
+      placeholder: "Example: It's difficult to batch process multiple datasets with custom configs."
+    validations:
+      required: true
+  - type: textarea
+    id: proposed_solution
+    attributes:
+      label: "Proposed solution"
+      description: "How would you like this to work?"
+      placeholder: "Example: Add a CLI flag to accept a directory of config files."
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: "Alternatives"
+      description: "Any alternative solutions or workarounds you've considered."
+      placeholder: "Example: Using a wrapper script, or a separate config generator."
+    validations:
+      required: false
+  - type: textarea
+    id: additional
+    attributes:
+      label: "Additional context"
+      description: "Anything else that helps explain the request."
+      placeholder: "Links, screenshots, or related context."
+    validations:
+      required: false

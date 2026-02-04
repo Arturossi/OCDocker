@@ -5,9 +5,10 @@ This example shows how to use OCDocker programmatically with PLANTS
 """
 
 import os
-from OCDocker.Receptor import Receptor
-from OCDocker.Ligand import Ligand
+
 from OCDocker.Docking.PLANTS import PLANTS
+from OCDocker.Ligand import Ligand
+from OCDocker.Receptor import Receptor
 
 # Create receptor and ligand objects
 receptor = Receptor("./test_files/receptor.pdb", name="MyReceptor")
@@ -56,4 +57,3 @@ plants.run_rescore(pose_list, logFile="", overwrite=False)
 # Read rescoring results
 rescoring_results = plants.read_rescore_logs(onlyBest=False)
 print("PLANTS rescoring results:", rescoring_results)
-

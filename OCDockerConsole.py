@@ -1,52 +1,5 @@
 #!/usr/bin/env python3
 
-# Imports
-###############################################################################
-import inspect
-import shutil
-import os
-
-import textwrap as tw
-from pprint import pprint
-from glob import glob
-
-# The environment variable OCDOCKER_CONFIG must be set to the OCDocker.cfg file before importing OCDocker
-cfg_path = os.environ.get('OCDOCKER_CONFIG') or 'OCDocker.cfg'
-
-from OCDocker.Initialise import *
-
-output_level = ocerror.ReportLevel.NONE
-
-import OCDocker.Toolbox as octools
-
-import OCDocker.Ligand as ocl
-import OCDocker.Receptor as ocr
-import OCDocker.Docking.Vina as ocvina
-import OCDocker.Docking.Smina as ocsmina
-import OCDocker.Docking.Future.Gnina as ocgnina
-import OCDocker.Docking.PLANTS as ocplants
-import OCDocker.Processing.Preprocessing.RmsdClustering as ocrmsdclust
-import OCDocker.Rescoring.ODDT as ocoddt
-import OCDocker.Toolbox.Conversion as occonversion
-import OCDocker.Toolbox.MoleculeProcessing as ocmolproc
-
-# License
-###############################################################################
-'''
-OCDocker
-Authors: Rossi, A.D.; Torres, P.H.M.
-Federal University of Rio de Janeiro
-Carlos Chagas Filho Institute of Biophysics
-Laboratory for Molecular Modeling and Dynamics
-
-This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
-developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
-All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
-to formal authorization from UFRJ. See the LICENSE file for details.
-
-Contact: Artur Duque Rossi - arturossi10@gmail.com
-'''
-
 # Description
 ###############################################################################
 '''
@@ -55,12 +8,94 @@ making easier to debug and possibly allowing a future OCDocker console to enable
 the user to perform the steps step by step.
 '''
 
+# Imports
+###############################################################################
+import inspect
+import os
+import shutil
+
+import textwrap as tw
+
+from glob import glob
+from pprint import pprint
+from typing import Any
+
+import OCDocker.Docking.Future.Gnina as ocgnina
+import OCDocker.Docking.PLANTS as ocplants
+import OCDocker.Docking.Smina as ocsmina
+import OCDocker.Docking.Vina as ocvina
+import OCDocker.Error as ocerror
+import OCDocker.Ligand as ocl
+import OCDocker.Processing.Preprocessing.RmsdClustering as ocrmsdclust
+import OCDocker.Receptor as ocr
+import OCDocker.Rescoring.ODDT as ocoddt
+import OCDocker.Toolbox.Conversion as occonversion
+import OCDocker.Toolbox.MoleculeProcessing as ocmolproc
+import OCDocker.Toolbox as octools
+
+from OCDocker.Initialise import *
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
 # Classes
 ###############################################################################
 
 
 # Functions
 ###############################################################################
+## Private ##
+
+## Public ##
+def clean_test_files(baseProtPath: str, baseLigPath: str, baseDecPath: str, baseCanPath: str) -> None:
+    '''Rests the test_files folder to its original state
+
+    Parameters
+    ----------
+    baseProtPath : str
+        Path to the base protein folder
+    baseLigPath : str
+        Path to the base ligand folder
+    baseDecPath : str
+        Path to the base decoy folder
+    baseCanPath : str
+        Path to the base candidates folder
+    '''
+
+    # Remove all files in the baseProtPath except the receptor.pdb
+    for f in glob(f"{baseProtPath}/*"):
+        # If the file is a file and not the receptor.pdb
+        if os.path.isfile(f) and not f.endswith(f"{baseProtPath}/receptor.pdb"):
+            os.remove(f)
+
+    # For each ligand folder
+    for ligFolder in [baseLigPath, baseDecPath, baseCanPath]:
+        # Remove all the files inside all ligand folders except for the ligand.smi or ligand.mol2
+        for f in glob(f"{ligFolder}/*/*"):
+            # If the file is a file and not the ligand.smi
+            if os.path.isfile(f) and not f.endswith("ligand.smi"):
+                os.remove(f)
+            # If the file is a folder and not the boxes folder
+            elif os.path.isdir(f) and not f.endswith("boxes"):
+                shutil.rmtree(f)
+
+    return None
+
+
 def print_args(program: str = "") -> None:
     '''Print environment variables and optionally program-specific settings.
 
@@ -100,7 +135,7 @@ def print_args(program: str = "") -> None:
             Value of the global variable
         '''
 
-        return globals().get(name, default)
+        return str(globals().get(name, default))
     
     def _c(attr_path: str, default: str = '-') -> str:
         '''Get value from config object using dot notation (e.g., 'vina.executable')
@@ -121,12 +156,12 @@ def print_args(program: str = "") -> None:
         if cfg is None:
             return default
         try:
-            obj = cfg
+            obj: Any = cfg
             for attr in attr_path.split('.'):
                 obj = getattr(obj, attr, None)
                 if obj is None:
                     return default
-            return obj if obj != "" else default
+            return str(obj) if obj != "" else default
         except (AttributeError, TypeError):
             return default
 
@@ -262,38 +297,10 @@ def print_args(program: str = "") -> None:
         print("")
     return None
 
+# The environment variable OCDOCKER_CONFIG must be set to the OCDocker.cfg file before importing OCDocker
+cfg_path = os.environ.get('OCDOCKER_CONFIG') or 'OCDocker.cfg'
 
-def clean_test_files(baseProtPath, baseLigPath, baseDecPath, baseCanPath) -> None:
-    '''Rests the test_files folder to its original state
-
-    Parameters
-    ----------
-    None
-
-    Returns
-    -------
-    None
-    '''
-
-    # Remove all files in the baseProtPath except the receptor.pdb
-    for f in glob(f"{baseProtPath}/*"):
-        # If the file is a file and not the receptor.pdb
-        if os.path.isfile(f) and not f.endswith(f"{baseProtPath}/receptor.pdb"):
-            os.remove(f)
-
-    # For each ligand folder
-    for ligFolder in [baseLigPath, baseDecPath, baseCanPath]:
-        # Remove all the files inside all ligand folders except for the ligand.smi or ligand.mol2
-        for f in glob(f"{ligFolder}/*/*"):
-            # If the file is a file and not the ligand.smi
-            if os.path.isfile(f) and not f.endswith("ligand.smi"):
-                os.remove(f)
-            # If the file is a folder and not the boxes folder
-            elif os.path.isdir(f) and not f.endswith("boxes"):
-                shutil.rmtree(f)
-            
-
-    return None
+output_level = ocerror.ReportLevel.NONE
 
 message = tw.dedent(f"""{clrs["y"]}
       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{clrs["c"]}
@@ -318,7 +325,9 @@ if __name__ == "__main__":
     # Set the variables based on args
     bootstrap(argument_parsing())
 else:
-    cpu_cores = 18
+    # CPU cores -2, and 1 if cpu has only one or two cores
+    cpu_count = os.cpu_count() or 1
+    cpu_cores = cpu_count - 2 if cpu_count > 2 else 1
     available_cores = cpu_cores - 1
     multiprocess = True
     update = False

@@ -5,11 +5,11 @@ This example demonstrates a complete virtual screening workflow
 """
 
 import os
-from OCDocker.Receptor import Receptor
-from OCDocker.Ligand import Ligand
-from OCDocker.Docking.Vina import Vina
 from OCDocker.Docking.Smina import Smina
+from OCDocker.Docking.Vina import Vina
+from OCDocker.Ligand import Ligand
 from OCDocker.Processing.Preprocessing.RmsdClustering import cluster_rmsd, get_medoids
+from OCDocker.Receptor import Receptor
 from OCDocker.Toolbox.MoleculeProcessing import get_rmsd_matrix
 
 # Step 1: Create receptor and ligand objects
@@ -117,4 +117,3 @@ print(f"Best Vina score: {min(vina_results) if vina_results else 'N/A'}")
 print(f"Best Smina score: {min(smina_results) if smina_results else 'N/A'}")
 
 print("\nWorkflow completed successfully!")
-

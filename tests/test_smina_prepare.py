@@ -1,13 +1,49 @@
 #!/usr/bin/env python3
 
+# Description
+###############################################################################
+'''
+Tests for Smina preparation helpers.
+'''
+
+# Imports
+###############################################################################
 from __future__ import annotations
-from pathlib import Path
+
 import importlib
 
 import pytest
 
+from pathlib import Path
+
 import OCDocker.Docking.Smina as smina
 
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
+###############################################################################
+
+
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##
 
 @pytest.mark.order(94)
 def test_run_prepare_ligand_copy_fallback(tmp_path, monkeypatch):

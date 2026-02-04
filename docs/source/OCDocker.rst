@@ -9,6 +9,7 @@ Subpackages
 
    OCDocker.DB
    OCDocker.Docking
+   OCDocker.CLI
    OCDocker.OCScore
    OCDocker.Processing
    OCDocker.Rescoring

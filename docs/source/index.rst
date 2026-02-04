@@ -46,6 +46,7 @@ Welcome to the official documentation for OCDocker. This documentation provides 
    OCDocker.Processing.Preprocessing
    OCDocker.Toolbox
    OCDockerConsole
+   manual
    usage
    COLLABORATORS
 

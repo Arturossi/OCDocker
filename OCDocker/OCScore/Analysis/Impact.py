@@ -2,8 +2,12 @@
 
 # Description
 ###############################################################################
-''' This module provides utilities to summarize and visualize feature impact
-using Net Benefit Score (NBS) and related statistics.
+'''
+Summarize and visualize feature impact using Net Benefit Score (NBS) and related statistics.
+
+Usage:
+
+import OCDocker.OCScore.Analysis.Impact as ocimpact
 
 It exposes high-level functions:
 
@@ -11,101 +15,43 @@ It exposes high-level functions:
 - plot_impact_arrows_inline_labels: render arrow plot with inline labels
 - get_neutral_features: list neutral features by |NBS| < tau or Direction == 'neutral'
 
-Import as:
-
-import OCDocker.OCScore.Analysis.Impact as ocimpact
 '''
 
 # Imports
 ###############################################################################
-
 from __future__ import annotations
 
-from typing import Iterable, Optional, Sequence, Union
-
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
+
+from typing import Iterable, Optional, Sequence, Union
 
 
 # License
 ###############################################################################
 '''
 OCDocker
-Authors: Rossi, A.D.; Torres, P.H.M.
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
-developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
 All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
 to formal authorization from UFRJ. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
 
-
-# Helpers
+# Classes
 ###############################################################################
 
 
-def _strength_from_v(v: float) -> str:
-    '''
-    Map Cramér's V value to a qualitative strength label.
-
-    Parameters
-    ----------
-    v : float
-        Cramér's V statistic value.
-
-    Returns
-    -------
-    str
-        One of: 'unknown', 'none', 'weak', 'moderate', 'strong', 'very strong'.
-    '''
-
-    if pd.isna(v):
-        return "unknown"
-    if v < 0.10:
-        return "none"
-    if v < 0.20:
-        return "weak"
-    if v < 0.30:
-        return "moderate"
-    if v < 0.50:
-        return "strong"
-    return "very strong"
-
-
-def _strength_from_nbs_norm(nbs_norm: float, thresholds: Sequence[float] = (0.10, 0.20, 0.35)) -> str:
-    '''
-    Bucketize |NBS_norm| into qualitative strength classes.
-
-    Parameters
-    ----------
-    nbs_norm : float
-        Net Benefit Score normalized to [-1, 1].
-    thresholds : Sequence[float]
-        Cutoffs applied to |NBS_norm| to define 'weak', 'moderate', 'strong'.
-
-    Returns
-    -------
-    str
-        One of: 'none', 'weak', 'moderate', 'strong', 'very strong'.
-    '''
-
-    a = abs(float(nbs_norm))
-    if a == 0:
-        return "none"
-    if a < thresholds[0]:
-        return "weak"
-    if a < thresholds[1]:
-        return "moderate"
-    if a < thresholds[2]:
-        return "strong"
-    return "very strong"
-
+# Functions
+###############################################################################
+## Private ##
 
 def _beneficial_categories(metric: str, categories: Iterable[str], custom: Optional[Iterable[str]] = None) -> set[str]:
     '''
@@ -141,43 +87,6 @@ def _beneficial_categories(metric: str, categories: Iterable[str], custom: Optio
     return good if good else set(cats[-max(1, len(cats) // 2) :])
 
 
-def _proportion_delta(contingency: pd.DataFrame, presence_level: Union[int, str] = 1) -> pd.Series:
-    '''
-    Compute Δp(c) = p(c | feature=1) - p(c | feature=0) for each category c.
-
-    Parameters
-    ----------
-    contingency : pd.DataFrame
-        Contingency table with rows as feature presence (0/1) and columns as categories.
-    presence_level : Union[int, str]
-        Row key representing presence (defaults to 1). Falls back if not present.
-
-    Returns
-    -------
-    pd.Series
-        Series of deltas indexed by category label.
-    '''
-
-    cont = contingency.copy()
-    props = cont.div(cont.sum(axis=1).replace(0, np.nan), axis=0).fillna(0)
-
-    if presence_level in cont.index:
-        k1 = presence_level
-    elif str(presence_level) in cont.index:
-        k1 = str(presence_level)
-    else:
-        k1 = cont.index[-1]
-
-    if 0 in cont.index:
-        k0 = 0
-    elif "0" in cont.index:
-        k0 = "0"
-    else:
-        k0 = cont.index[0]
-
-    return (props.loc[k1] - props.loc[k0]).astype(float)
-
-
 def _net_benefit(delta: pd.Series, beneficial: set[str]) -> float:
     '''
     Compute Net Benefit Score in [-1, 1] from Δp and beneficial categories.
@@ -201,13 +110,103 @@ def _net_benefit(delta: pd.Series, beneficial: set[str]) -> float:
     return float(delta[good].sum() - delta[bad].sum())
 
 
+def _proportion_delta(contingency: pd.DataFrame, presence_level: Union[int, str] = 1) -> pd.Series:
+    '''
+    Compute Δp(c) = p(c | feature=1) - p(c | feature=0) for each category c.
+
+    Parameters
+    ----------
+    contingency : pd.DataFrame
+        Contingency table with rows as feature presence (0/1) and columns as categories.
+    presence_level : Union[int, str]
+        Row key representing presence (defaults to 1). Falls back if not present.
+
+    Returns
+    -------
+    pd.Series
+        Series of deltas indexed by category label.
+    '''
+
+    cont = contingency.copy()
+    props = cont.div(cont.sum(axis=1).replace(0, np.nan), axis=0).fillna(0)
+
+    k1: int | str
+    if presence_level in cont.index:
+        k1 = presence_level
+    elif str(presence_level) in cont.index:
+        k1 = str(presence_level)
+    else:
+        k1 = cont.index[-1]
+
+    k0: int | str
+    if 0 in cont.index:
+        k0 = 0
+    elif "0" in cont.index:
+        k0 = "0"
+    else:
+        k0 = cont.index[0]
+
+    return (props.loc[k1] - props.loc[k0]).astype(float)
 
 
+def _strength_from_nbs_norm(nbs_norm: float, thresholds: Sequence[float] = (0.10, 0.20, 0.35)) -> str:
+    '''
+    Bucketize |NBS_norm| into qualitative strength classes.
+
+    Parameters
+    ----------
+    nbs_norm : float
+        Net Benefit Score normalized to [-1, 1].
+    thresholds : Sequence[float]
+        Cutoffs applied to |NBS_norm| to define 'weak', 'moderate', 'strong'.
+
+    Returns
+    -------
+    str
+        One of: 'none', 'weak', 'moderate', 'strong', 'very strong'.
+    '''
+
+    a = abs(float(nbs_norm))
+    if a == 0:
+        return "none"
+    if a < thresholds[0]:
+        return "weak"
+    if a < thresholds[1]:
+        return "moderate"
+    if a < thresholds[2]:
+        return "strong"
+    return "very strong"
 
 
-# Public API
-###############################################################################
+def _strength_from_v(v: float) -> str:
+    '''
+    Map Cramér's V value to a qualitative strength label.
 
+    Parameters
+    ----------
+    v : float
+        Cramér's V statistic value.
+
+    Returns
+    -------
+    str
+        One of: 'unknown', 'none', 'weak', 'moderate', 'strong', 'very strong'.
+    '''
+
+    if pd.isna(v):
+        return "unknown"
+    if v < 0.10:
+        return "none"
+    if v < 0.20:
+        return "weak"
+    if v < 0.30:
+        return "moderate"
+    if v < 0.50:
+        return "strong"
+    return "very strong"
+
+
+## Public ##
 
 def build_impact_overview(
     chi_df: pd.DataFrame,
@@ -314,20 +313,18 @@ def get_neutral_features(impact_df: pd.DataFrame, tau: float = 0.05) -> list[str
     '''
 
     if 'Direction' in impact_df.columns:
-        return (
+        series = (
             impact_df.loc[impact_df['Direction'] == 'neutral', 'Feature']
             .astype(str)
             .sort_values()
-            .tolist()
         )
-    return (
+        return [str(x) for x in series]
+    series = (
         impact_df.loc[impact_df['NBS'].abs() < tau, 'Feature']
         .astype(str)
-
-
         .sort_values()
-        .tolist()
     )
+    return [str(x) for x in series]
 
 
 def plot_impact_arrows_inline_labels(
@@ -441,3 +438,12 @@ def plot_impact_arrows_inline_labels(
     if outpath:
         plt.savefig(outpath, dpi=300)
         plt.close()
+
+
+# Public API
+###############################################################################
+
+
+
+
+

@@ -1,6 +1,8 @@
+{% set version = load_file_regex("../OCDocker/_version.py", '__version__\\s*=\\s*\"([^\"]+)\"', 1) %}
+
 package:
   name: ocdocker
-  version: "0.9.1"
+  version: "{{ version }}"
 
 source:
   path: ..

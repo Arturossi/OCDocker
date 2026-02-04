@@ -164,6 +164,9 @@ oddt_seed = 42
 # Chunk size for the ODDT software
 oddt_chunk_size = 100
 
+# Path to ODDT models directory (optional)
+oddt_models_dir = 
+
 # Alternative scoring function
 oddt_scoring_functions = rfscore_v1_pdbbind2016,rfscore_v2_pdbbind2016,rfscore_v3_pdbbind2016,nnscore_pdbbind2016,plecrf_pdbbind2016
 

@@ -7,7 +7,7 @@ Sets of classes and functions that are used to prepare Dock3 files and run it.
 
 TODO: Unfinished!!!
 
-They are imported as:
+Usage:
 
 import OCDocker.Docking.Dock3 as ocdock3
 '''
@@ -23,8 +23,6 @@ import numpy as np
 from glob import glob
 from typing import Dict, List, Tuple, Union
 
-# No config needed - Future docking modules
-
 import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
 import OCDocker.Toolbox.Conversion as occonversion
@@ -39,13 +37,13 @@ import OCDocker.Toolbox.Validation as ocvalidation
 ###############################################################################
 '''
 OCDocker
-Authors: Rossi, A.D.; Torres, P.H.M.
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
-developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
 All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
 to formal authorization from UFRJ. See the LICENSE file for details.
 
@@ -83,11 +81,13 @@ class Dock3:
             The name of the Dock3 object, by default "".
         spacing : float, optional
             The spacing between to expand the box, by default 2.9.
-
-        Returns
-        -------
-        None
         '''
 
         pass
-    
+
+
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##

@@ -3,8 +3,8 @@
 # Description
 ###############################################################################
 '''
-This module provides utilities to parse and structure Optuna study data
-into best-RMSE, best-AUC, and best-combined views, with consensus scores merged in.
+Parse and structure Optuna study results into best-RMSE, best-AUC, and
+best-combined views with consensus metrics.
 
 Usage:
 
@@ -18,14 +18,35 @@ import pandas as pd
 
 from typing import Union
 
-
-
+import OCDocker.Error as ocerror
 import OCDocker.OCScore.Utils.StudyParser as ocstudy
 
-# Methods
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
+to formal authorization from UFRJ. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
 ###############################################################################
 
 
+# Functions
+###############################################################################
+## Private ##
+
+## Public ##
 def get_study_data(
     snames : list[str],
     storage : str,
@@ -66,20 +87,20 @@ def get_study_data(
     tuple
         Filtered RMSE, AUC, combined metric dataframes + full results_df + ranges.
     '''
-    
-    results_df = ocstudy.analyze_studies(snames, storage=storage, n_trials=n_trials)
+
+    results_df = ocstudy.analyze_studies_old(snames, storage=storage, n_trials=n_trials)
 
     if nn_ae_start is not None and nn_ae_end is not None:
         if nn_ae_start >= nn_ae_end:
             # User-facing error: invalid index range
-            ocerror.Error.value_error(f"Invalid index range for 'NN + AE': start ({nn_ae_start}) must be less than end ({nn_ae_end})") # type: ignore
+            ocerror.Error.value_error(f"Invalid index range for 'NN + AE': start ({nn_ae_start}) must be less than end ({nn_ae_end})")
             raise ValueError("The start index for 'NN + AE' must be less than the end index.")
         results_df.loc[nn_ae_start:nn_ae_end - 1, 'study_type'] = 'NN + AE'
 
     if xgb_ga_start is not None and xgb_ga_end is not None:
         if xgb_ga_start >= xgb_ga_end:
             # User-facing error: invalid index range
-            ocerror.Error.value_error(f"Invalid index range for 'XGB + GA': start ({xgb_ga_start}) must be less than end ({xgb_ga_end})") # type: ignore
+            ocerror.Error.value_error(f"Invalid index range for 'XGB + GA': start ({xgb_ga_start}) must be less than end ({xgb_ga_end})")
             raise ValueError("The start index for 'XGB + GA' must be less than the end index.")
         results_df.loc[xgb_ga_start:xgb_ga_end - 1, 'study_type'] = 'XGB + GA'
 

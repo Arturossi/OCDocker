@@ -1,0 +1,91 @@
+# Database
+HOST = db
+USER = ocdocker
+PASSWORD = ocdocker_pass
+DATABASE = ocdocker
+OPTIMIZEDB = optimization
+PORT = 3306
+
+# SQLite options (optional)
+USE_SQLITE = no
+SQLITE_PATH =
+
+# Root directory for the OCDocker Database
+ocdb = /data/hd4tb/OCDocker/data/ocdb
+
+# Directory for the PCA models
+pca = /data/hd4tb/OCDocker/data/pca
+
+# PLANTS and SPORES path
+plants = /data/hd4tb/OCDocker/software/docking/plants/PLANTS1.2_64bit
+spores = /data/hd4tb/OCDocker/software/docking/plants/SPORES_64bit
+
+# Smina path
+smina = /data/hd4tb/OCDocker/software/docking/smina/build/smina
+
+# Vina paths
+vina = /data/hd4tb/OCDocker/software/docking/vina/bin/vina
+vina_split = /data/hd4tb/OCDocker/software/docking/vina/bin/vina_split
+
+# Gnina path
+gnina = /data/hd4tb/OCDocker/software/docking/gnina/gnina
+
+# MGLTools's pythonsh path
+pythonsh = /data/hd4tb/OCDocker/mgltools/bin/pythonsh
+
+# prepare_ligand4 path
+prepare_ligand = /data/hd4tb/OCDocker/mgltools/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_ligand4.py
+
+# prepare_receptor4 path
+prepare_receptor = /data/hd4tb/OCDocker/mgltools/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_receptor4.py
+
+# Open Babel path
+obabel = /opt/conda/envs/ocdocker/bin/obabel
+
+############# DATABASE FETCH PARAMETERS #############
+DUDEz = https://dudez.docking.org
+
+################# SMINA PARAMETERS ##################
+smina_energy_range = 10
+smina_exhaustiveness = 5
+smina_num_modes = 3
+smina_scoring = vinardo
+smina_scoring_functions = vina,vinardo,dkoes_scoring,dkoes_scoring_old,dkoes_fast,ad4_scoring
+smina_custom_scoring = no
+smina_custom_atoms = no
+smina_local_only = no
+smina_minimize = no
+smina_randomize_only = no
+smina_minimize_iters = 0
+smina_minimize_early_term = no
+smina_accurate_line = yes
+smina_approximation = spline
+smina_factor = 32
+smina_force_cap = 10
+smina_user_grid = no
+smina_user_grid_lambda = -1
+
+################## VINA PARAMETERS ##################
+vina_energy_range = 10
+vina_exhaustiveness = 5
+vina_num_modes = 3
+vina_scoring = vina
+vina_scoring_functions = vina,vinardo
+
+################# PLANTS PARAMETERS ##################
+plants_cluster_structures = 3
+plants_cluster_rmsd = 2.0
+plants_search_speed = speed1
+plants_scoring = chemplp
+plants_scoring_functions = chemplp,plp,plp95
+plants_rescoring_mode = simplex
+
+################## ODDT PARAMETERS ##################
+oddt = /opt/conda/envs/ocdocker/bin/oddt_cli
+oddt_seed = 42
+oddt_chunk_size = 100
+oddt_models_dir =
+oddt_scoring_functions = rfscore_v1_pdbbind2016,rfscore_v2_pdbbind2016,rfscore_v3_pdbbind2016,nnscore_pdbbind2016,plecrf_pdbbind2016
+
+################## OTHER SOFTWARE ###################
+dssp = /usr/bin/dssp

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from __future__ import annotations
 
 # Description
 ###############################################################################
@@ -6,7 +7,7 @@
 Sets of classes and functions that are used to process all content related to
 the ligand.
 
-They are imported as:
+Usage:
 
 import OCDocker.Receptor as ocr
 '''
@@ -17,22 +18,22 @@ import Bio
 import json
 import math
 import os
+import shutil
 
 import numpy as np
 
-from Bio.PDB.MMCIFParser import MMCIFParser
-from Bio.PDB.PDBParser import PDBParser
-from Bio.PDB.PDBIO import PDBIO
 from Bio.PDB import SASA
 from Bio.PDB.DSSP import DSSP
+from Bio.PDB.MMCIFParser import MMCIFParser
 from Bio.PDB.PDBExceptions import PDBException
+from Bio.PDB.PDBIO import PDBIO
+from Bio.PDB.PDBParser import PDBParser
 from Bio.SeqUtils import seq1
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
 from openbabel import openbabel
 from threading import Lock
-from typing import Dict, Tuple, Union, Optional, Any
+from typing import Any, Dict, Optional, Tuple, Union, cast
 
-from OCDocker.Config import get_config
 import OCDocker.Error as ocerror
 
 import OCDocker.Toolbox.Conversion as occonversion
@@ -41,17 +42,19 @@ import OCDocker.Toolbox.Printing as ocprint
 import OCDocker.Toolbox.Running as ocrun
 import OCDocker.Toolbox.Validation as ocvalidation
 
+from OCDocker.Config import get_config
+
 # License
 ###############################################################################
 '''
 OCDocker
-Authors: Rossi, A.D.; Torres, P.H.M.
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
-developed by Rossi, A.D.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
 All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
 to formal authorization from UFRJ. See the LICENSE file for details.
 
@@ -97,6 +100,10 @@ class Receptor:
         BioPython structure object.
     path : str
         Path to the structure file.
+    original_path : str
+        Original input path (e.g., .cif/.mmcif) when conversion occurs.
+    clean_source_path : str
+        Previous path before cleaning, when a cleaned file is generated.
     SASA : float
         Solvent accessible surface area.
     DipoleMoment : float
@@ -134,7 +141,7 @@ class Receptor:
     allDescriptors = [f"count{i}" for i in descriptors_names["count"]] + single_descriptors
 
 
-    def __init__(self, structure: Union[str, Bio.PDB.Structure.Structure], name: str, mol2_path: str = "", c_model: str = "gasteiger", gravy_scale: str = "KyteDoolitle", relative_asa_cutoff: float = 0.7, from_json_descriptors: str = "", overwrite: bool = False, clean: bool = False) -> None:
+    def __init__(self, structure: Union[str, Bio.PDB.Structure.Structure], name: str, mol2_path: str = "", c_model: str = "gasteiger", gravy_scale: str = "KyteDoolitle", relative_asa_cutoff: float = 0.7, from_json_descriptors: str = "", overwrite: bool = False, clean: bool = False, canonicalize_pdb: Union[bool, str] = "auto", allow_missing_surface: bool = False) -> None:
         '''Constructor of the class Receptor.
 
         Parameters
@@ -157,67 +164,91 @@ class Receptor:
             Flag to denote if files will be overwritten, by default False.
         clean : bool, optional
             Flag to denote if the pdb file will be cleaned, by default False.
-        
+        canonicalize_pdb : bool | str, optional
+            Whether to canonicalize CHARMM-style PDB names. Use True, False, or "auto".
+        allow_missing_surface : bool, optional
+            If True, allows initialization to continue when DSSP/surface AA counts
+            are unavailable, using zeroed surface counts. Default is False.
+
         Returns
         -------
         None
         '''
 
         # Name must come first
-        self.name = ""
+        self.name: str = ""
+        self.path: str = ""
+        self.structure: Optional[Bio.PDB.Structure.Structure] = None
+        self.residues: str = ""
+        # Track original input path (if any)
+        self.original_path: str = os.fspath(structure) if isinstance(structure, (str, os.PathLike)) else ""
+        # Track pre-clean path (if any)
+        self.clean_source_path: str = ""
         # The molpath not always will exist (should also come first)
-        self.mol2_path = str(mol2_path)
+        self.mol2_path: str = str(mol2_path)
+        # Descriptor-related fields
+        self.sasa: Optional[float] = None
+        self.__c_model: Optional[str] = None
+        self.dipoleMoment: Optional[float] = None
+        self.isoelectricPoint: Optional[float] = None
+        self.instabilityIndex: Optional[float] = None
+        self.__gravy_scale: Optional[str] = None
+        self.GRAVY: Optional[float] = None
+        self.aromaticity: Optional[float] = None
+        self.totalAALength: Optional[int] = None
+        self.avgAALength: Optional[float] = None
+        self.countChain: Optional[int] = None
+        self.__relative_asa_cutoff: Optional[float] = None
+        self.__countAA: Optional[Dict[str, int]] = None
+        self.__AAdata: Optional[Tuple[int, float, int]] = None
+        # Individual AA counts
+        self.countA: Optional[int] = None
+        self.countR: Optional[int] = None
+        self.countN: Optional[int] = None
+        self.countD: Optional[int] = None
+        self.countC: Optional[int] = None
+        self.countQ: Optional[int] = None
+        self.countE: Optional[int] = None
+        self.countG: Optional[int] = None
+        self.countH: Optional[int] = None
+        self.countI: Optional[int] = None
+        self.countL: Optional[int] = None
+        self.countK: Optional[int] = None
+        self.countM: Optional[int] = None
+        self.countF: Optional[int] = None
+        self.countP: Optional[int] = None
+        self.countS: Optional[int] = None
+        self.countT: Optional[int] = None
+        self.countW: Optional[int] = None
+        self.countY: Optional[int] = None
+        self.countV: Optional[int] = None
         # Set the path and structure (NEVER SHOUD BE NONE)
         # If user pass a json
         if from_json_descriptors:
             # Read the molecule telling that there is no need to fetch the SASA value
-            self.path, self.structure = load_mol(structure, name=self.name, compute_sasa=False, mol2_path=self.mol2_path, overwrite = overwrite, clean = clean)
+            self.path, self.structure = load_mol(structure, name=self.name, compute_sasa=False, mol2_path=self.mol2_path, overwrite = overwrite, clean = clean, canonicalize_pdb=canonicalize_pdb)
         else:
             # Read the molecule telling that there is the need to fetch the SASA value
-            self.path, self.structure = load_mol(structure, name=self.name, compute_sasa=True, mol2_path=self.mol2_path, overwrite = overwrite, clean = clean)
+            self.path, self.structure = load_mol(structure, name=self.name, compute_sasa=True, mol2_path=self.mol2_path, overwrite = overwrite, clean = clean, canonicalize_pdb=canonicalize_pdb)
+
+        # If no conversion happened, clear original_path
+        if not self.path or not self.original_path or os.path.abspath(self.path) == os.path.abspath(self.original_path):
+            self.original_path = ""
+        # If cleaned file was generated, store the pre-clean path
+        if self.path and self.path.endswith("_clean.pdb") and self.original_path:
+            base, ext = os.path.splitext(self.path)
+            if base.endswith("_clean"):
+                self.clean_source_path = f"{base[:-6]}{ext}"
+                # If original_path is just the pre-clean PDB, clear it to avoid duplication
+                if self.original_path and os.path.abspath(self.original_path) == os.path.abspath(self.clean_source_path):
+                    self.original_path = ""
+        # Ensure structure is valid before continuing
+        if self.structure is None:
+            ocprint.print_error(f"Could not load receptor structure: '{structure}'.")
+            return None
 
         # Set the residues (derived from structure)
         self.residues = get_res(self.structure)
-
-        # Set everything as None
-        self.sasa = None
-        self.__c_model = None
-        self.dipoleMoment = None
-        self.isoelectricPoint = None
-        self.instabilityIndex = None
-
-        self.__gravy_scale = None
-        self.GRAVY = None
-
-        self.aromaticity = None
-
-        self.totalAALength = None
-        self.avgAALength = None
-        self.countChain = None
-
-        self.__relative_asa_cutoff = None
-        self.__countAA = None
-
-        self.countA = None
-        self.countR = None
-        self.countN = None
-        self.countD = None
-        self.countC = None
-        self.countQ = None
-        self.countE = None
-        self.countG = None
-        self.countH = None
-        self.countI = None
-        self.countL = None
-        self.countK = None
-        self.countM = None
-        self.countF = None
-        self.countP = None
-        self.countS = None
-        self.countT = None
-        self.countW = None
-        self.countY = None
-        self.countV = None
 
         # If user pass a json
         if from_json_descriptors:
@@ -225,14 +256,76 @@ class Receptor:
             data = read_descriptors_from_json(from_json_descriptors)
 
             # If data is None, a problem occurred while reading the json file
-            if not data:
+            if not data or not isinstance(data, tuple):
                 ocprint.print_error(f"Problems while parsing json file: '{from_json_descriptors}'")
                 return None
-            
-            #region assign
-            self.name, self.sasa, self.dipoleMoment, self.isoelectricPoint, self.instabilityIndex,self.GRAVY, self.aromaticity, self.__countAA, self.countA, self.countR, self.countN, self.countD, self.countC, self.countQ, self.countE, self.countG, self.countH, self.countI, self.countL, self.countK, self.countM, self.countF, self.countP, self.countS, self.countT, self.countW, self.countY, self.countV, self.totalAALength, self.avgAALength, self.countChain = data #type: ignore
 
-            #endregion
+            def _to_float(val: object) -> Optional[float]:
+                if isinstance(val, (int, float)):
+                    return float(val)
+                if isinstance(val, str):
+                    try:
+                        return float(val)
+                    except ValueError:
+                        return None
+                return None
+
+            def _to_int(val: object) -> Optional[int]:
+                if isinstance(val, bool):
+                    return int(val)
+                if isinstance(val, int):
+                    return int(val)
+                if isinstance(val, float):
+                    return int(val)
+                if isinstance(val, str):
+                    try:
+                        return int(float(val))
+                    except ValueError:
+                        return None
+                return None
+
+            # Unpack values from JSON tuple
+            (
+                name_val, sasa_val, dipole_val, iso_val, instab_val, gravy_val, arom_val,
+                countAA, countA, countR, countN, countD, countC, countQ, countE, countG,
+                countH, countI, countL, countK, countM, countF, countP, countS, countT,
+                countW, countY, countV, total_len, avg_len, chain_count
+            ) = data
+
+            self.name = str(name_val)
+            self.sasa = _to_float(sasa_val)
+            self.dipoleMoment = _to_float(dipole_val)
+            self.isoelectricPoint = _to_float(iso_val)
+            self.instabilityIndex = _to_float(instab_val)
+            self.GRAVY = _to_float(gravy_val)
+            self.aromaticity = _to_float(arom_val)
+
+            # AA counts from JSON (dict plus individual counts)
+            self.__countAA = countAA if isinstance(countAA, dict) else {}
+            self.countA = _to_int(countA) or 0
+            self.countR = _to_int(countR) or 0
+            self.countN = _to_int(countN) or 0
+            self.countD = _to_int(countD) or 0
+            self.countC = _to_int(countC) or 0
+            self.countQ = _to_int(countQ) or 0
+            self.countE = _to_int(countE) or 0
+            self.countG = _to_int(countG) or 0
+            self.countH = _to_int(countH) or 0
+            self.countI = _to_int(countI) or 0
+            self.countL = _to_int(countL) or 0
+            self.countK = _to_int(countK) or 0
+            self.countM = _to_int(countM) or 0
+            self.countF = _to_int(countF) or 0
+            self.countP = _to_int(countP) or 0
+            self.countS = _to_int(countS) or 0
+            self.countT = _to_int(countT) or 0
+            self.countW = _to_int(countW) or 0
+            self.countY = _to_int(countY) or 0
+            self.countV = _to_int(countV) or 0
+
+            self.totalAALength = _to_int(total_len) or 0
+            self.avgAALength = _to_float(avg_len) or 0.0
+            self.countChain = _to_int(chain_count) or 0
         else:
             # Check if the name is empty
             if not name:
@@ -253,9 +346,9 @@ class Receptor:
                 # Fallback: call compute_sasa if it wasn't called or failed
                 # Call compute_sasa directly (it's defined in this module)
                 compute_sasa(self.structure)
-            self.sasa = self.structure.sasa
+            self.sasa = float(getattr(self.structure, "sasa", 0.0))
             self.__c_model = c_model # The options are 'mmff94', 'gasteiger' or 'eem2015bm'
-            self.dipoleMoment = compute_dipole_moment(self.path, self.__c_model)
+            self.dipoleMoment = compute_dipole_moment(self.path, self.__c_model or "gasteiger")
             self.isoelectricPoint = compute_isoelectric_point(self.residues)
             self.instabilityIndex = compute_instability_index(self.residues)
 
@@ -268,8 +361,43 @@ class Receptor:
             # Ref: https://biopython.org/docs/1.76/api/Bio.SeqUtils.ProtParam.html
 
             self.__relative_asa_cutoff = relative_asa_cutoff
-            
+
             self.__countAA = count_surface_AA(self.structure, self.path, self.__relative_asa_cutoff)
+            if not self.__countAA:
+                if allow_missing_surface:
+                    ocprint.print_warning(
+                        "Surface AA counts unavailable; using zeroed surface counts because "
+                        "allow_missing_surface=True."
+                    )
+                    self.__countAA = {
+                        "A": 0,
+                        "R": 0,
+                        "N": 0,
+                        "D": 0,
+                        "C": 0,
+                        "Q": 0,
+                        "E": 0,
+                        "G": 0,
+                        "H": 0,
+                        "I": 0,
+                        "L": 0,
+                        "K": 0,
+                        "M": 0,
+                        "F": 0,
+                        "P": 0,
+                        "S": 0,
+                        "T": 0,
+                        "W": 0,
+                        "Y": 0,
+                        "V": 0,
+                        "X": 0,
+                    }
+                else:
+                    ocprint.print_error(
+                        "Problems while counting surface amino acids. DSSP is required. "
+                        "Set allow_missing_surface=True to proceed without surface counts."
+                    )
+                    return None
 
             self.countA = self.__countAA["A"]
             self.countR = self.__countAA["R"]
@@ -290,7 +418,6 @@ class Receptor:
             self.countT = self.__countAA["T"]
             self.countW = self.__countAA["W"]
             self.countY = self.__countAA["Y"]
-
             self.countV = self.__countAA["V"]
 
 
@@ -327,6 +454,73 @@ class Receptor:
         return {**properties, **self.get_descriptors()}
 
     ## Public ##
+
+    def get_descriptors(self) -> Dict[str, Union[float, int, None]]:
+        '''Return the descriptors for the Receptor object.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        Dict[str, float | int]
+            The descriptors for the Receptor object.
+        '''
+
+        descriptors = {
+            "TotalAALength": self.totalAALength if self.totalAALength is not None else 0,
+            "AvgAALength": self.avgAALength if self.avgAALength is not None else 0,
+            "countChain": self.countChain if self.countChain is not None else 0,
+            "SASA": self.sasa if self.sasa is not None else None,
+            "DipoleMoment": self.dipoleMoment if self.dipoleMoment is not None else None,
+            "IsoelectricPoint": self.isoelectricPoint if self.isoelectricPoint is not None else None,
+            "GRAVY": self.GRAVY if self.GRAVY is not None else None,
+            "Aromaticity": self.aromaticity if self.aromaticity is not None else None,
+            "InstabilityIndex": self.instabilityIndex if self.instabilityIndex is not None else None,
+            "countA": self.countA if self.countA is not None else 0,
+            "countR": self.countR if self.countR is not None else 0,
+            "countN": self.countN if self.countN is not None else 0,
+            "countD": self.countD if self.countD is not None else 0,
+            "countC": self.countC if self.countC is not None else 0,
+            "countQ": self.countQ if self.countQ is not None else 0,
+            "countE": self.countE if self.countE is not None else 0,
+            "countG": self.countG if self.countG is not None else 0,
+            "countH": self.countH if self.countH is not None else 0,
+            "countI": self.countI if self.countI is not None else 0,
+            "countL": self.countL if self.countL is not None else 0,
+            "countK": self.countK if self.countK is not None else 0,
+            "countM": self.countM if self.countM is not None else 0,
+            "countF": self.countF if self.countF is not None else 0,
+            "countP": self.countP if self.countP is not None else 0,
+            "countS": self.countS if self.countS is not None else 0,
+            "countT": self.countT if self.countT is not None else 0,
+            "countW": self.countW if self.countW is not None else 0,
+            "countY": self.countY if self.countY is not None else 0,
+            "countV": self.countV if self.countV is not None else 0,
+        }
+
+        return descriptors
+
+    def is_valid(self) -> bool:
+        '''Check if a Receptor object is valid.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        bool
+            True if the Receptor object is valid, False otherwise.
+        '''
+
+        #region if any attribute is None
+        if self.name is None or self.path is None or self.structure is None or self.residues is None or self.sasa is None or self.dipoleMoment is None or self.isoelectricPoint is None or self.instabilityIndex is None or self.GRAVY is None or self.aromaticity is None or self.__countAA is None or self.totalAALength is None or self.avgAALength is None or self.countChain is None:
+            return False
+        #endregion
+        return True
+
     def print_attributes(self) -> None:
         """Print all attributes of the receptor to stdout.
 
@@ -335,10 +529,12 @@ class Receptor:
         aromaticity, instability index, amino acid counts, etc.) in a
         formatted, aligned table.
         """
-        
-        attributes = {
+
+        attributes: Dict[str, Any] = {
             "Name": self.name,
             "Structure path": self.path,
+            "Original path": self.original_path,
+            "Clean source path": self.clean_source_path,
             "mol2 path": self.mol2_path,
             "Structure": self.structure,
             "AA residues": self.residues,
@@ -360,54 +556,7 @@ class Receptor:
 
             print(f"{key}: {value if value else '-'}")
 
-    def get_descriptors(self)-> Dict[str, Union[float, int]]:
-        '''Return the descriptors for the Receptor object.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        Dict[str, float | int]
-            The descriptors for the Receptor object.
-        '''
-
-        descriptors = {
-          "TotalAALength": self.totalAALength if self.totalAALength else 0,
-          "AvgAALength": self.avgAALength if self.avgAALength else 0,
-          "countChain": self.countChain if self.countChain else 0,
-          "SASA": self.sasa if self.sasa else None,
-          "DipoleMoment": self.dipoleMoment if self.dipoleMoment else None,
-          "IsoelectricPoint": self.isoelectricPoint if self.isoelectricPoint else None,
-          "GRAVY": self.GRAVY if self.GRAVY else None,
-          "Aromaticity": self.aromaticity if self.aromaticity else None,
-          "InstabilityIndex": self.instabilityIndex if self.instabilityIndex else None,
-          "countA": self.countA if self.countA else 0,
-          "countR": self.countR if self.countR else 0,
-          "countN": self.countN if self.countN else 0,
-          "countD": self.countD if self.countD else 0,
-          "countC": self.countC if self.countC else 0,
-          "countQ": self.countQ if self.countQ else 0,
-          "countE": self.countE if self.countE else 0,
-          "countG": self.countG if self.countG else 0,
-          "countH": self.countH if self.countH else 0,
-          "countI": self.countI if self.countI else 0,
-          "countL": self.countL if self.countL else 0,
-          "countK": self.countK if self.countK else 0,
-          "countM": self.countM if self.countM else 0,
-          "countF": self.countF if self.countF else 0,
-          "countP": self.countP if self.countP else 0,
-          "countS": self.countS if self.countS else 0,
-          "countT": self.countT if self.countT else 0,
-          "countW": self.countW if self.countW else 0,
-          "countY": self.countY if self.countY else 0,
-          "countV": self.countV if self.countV else 0
-        }
-
-        return descriptors
-
-    def to_dict(self) -> Dict[str, Union[float, int]]:
+    def to_dict(self) -> Dict[str, Union[str, float, int, None]]:
         '''Return all the properties for the Receptor object.
 
         Parameters
@@ -426,8 +575,8 @@ class Receptor:
         properties["Name"] = self.name if self.name is not None else "-"
         properties["Path"] = self.path if self.path is not None else "-"
         properties["mol2Path"] = self.mol2_path if self.mol2_path is not None else "-"
-        properties["Structure"] = self.structure if self.structure is not None else "-"
-        
+        properties["Structure"] = str(self.structure) if self.structure is not None else "-"
+
         # Combine both in one dict and return them
 
         return {**properties, **self.get_descriptors()}
@@ -449,37 +598,18 @@ class Receptor:
         try:
             outputJson = f"{os.path.dirname(self.path)}/{self.name}_descriptors.json"
             if not overwrite and os.path.isfile(outputJson):
-                return ocerror.Error.file_exists(f"The file {outputJson} already exists and the overwrite flag is set to False, no file will be generated or overwrited.", ocerror.ReportLevel.WARNING) # type: ignore
+                return ocerror.Error.file_exists(f"The file {outputJson} already exists and the overwrite flag is set to False, no file will be generated or overwrited.", ocerror.ReportLevel.WARNING)
             if os.path.isfile(outputJson):
-                _ = ocerror.Error.file_exists(f"The file '{outputJson}' already exists. It will be OVERWRITED!!!") # type: ignore
+                _ = ocerror.Error.file_exists(f"The file '{outputJson}' already exists. It will be OVERWRITED!!!")
             try:
                 with open(outputJson, 'w') as outfile:
                     json.dump(self.__safe_to_dict(), outfile)
-                return ocerror.Error.ok() # type: ignore
+                return ocerror.Error.ok()
             except Exception as e:
-                return ocerror.Error.write_file(f"Problems while writing the file '{outputJson}' Error: {e}.") # type: ignore
+                return ocerror.Error.write_file(f"Problems while writing the file '{outputJson}' Error: {e}.")
         except Exception as e:
 
-            return ocerror.Error.unknown(f"Unknown error while converting the receptor {self.name} to json.\nError: {e}", ocerror.ReportLevel.ERROR) # type: ignore
-
-    def is_valid(self) -> bool:
-        '''Check if a Receptor object is valid.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        bool
-            True if the Receptor object is valid, False otherwise.
-        '''
-
-        #region if any attribute is None
-        if self.name is None or self.path is None or self.structure is None or self.residues is None or self.sasa is None or self.dipoleMoment is None or self.isoelectricPoint is None or self.instabilityIndex is None or self.GRAVY is None or self.aromaticity is None or self.__countAA is None or self.totalAALength is None or self.avgAALength is None or self.countChain is None:
-            return False
-        #endregion
-        return True
+            return ocerror.Error.unknown(f"Unknown error while converting the receptor {self.name} to json.\nError: {e}", ocerror.ReportLevel.ERROR)
 
 
 # Functions
@@ -488,7 +618,67 @@ class Receptor:
 # Cache to track which sequences we've already warned about
 _warned_sequences = set()
 
-def __filterSequence(residues: str) -> str:
+
+def _clean_pdb_path(structure_path: str) -> str:
+    '''Return a cleaned PDB path derived from the input path.
+
+    Parameters
+    ----------
+    structure_path : str
+        The path to the original structure file.
+
+    Returns
+    -------
+    str
+        The path to the cleaned PDB file.
+    '''
+
+    base, ext = os.path.splitext(structure_path)
+    if base.endswith("_clean"):
+        return structure_path
+    return f"{base}_clean{ext}"
+
+def _convert_cif_to_pdb(structure_path: str, structure: Bio.PDB.Structure.Structure, overwrite: bool = False) -> Optional[str]:
+    '''Convert a mmCIF/cif file to PDB format and return the new path.
+
+    Parameters
+    ----------
+    structure_path : str
+        The path to the original structure file.
+    structure : Bio.PDB.Structure.Structure
+        The structure object to be saved as PDB.
+    overwrite : bool, optional
+        Whether to overwrite existing PDB file, by default False.
+
+    Returns
+    -------
+    Optional[str]
+        The path to the converted PDB file, or None if conversion was not performed.
+    '''
+
+    extension = os.path.splitext(structure_path)[1].lower()
+    if extension not in [".cif", ".mmcif"]:
+        return None
+
+    base_dir = os.path.dirname(structure_path)
+    base_name = os.path.splitext(os.path.basename(structure_path))[0]
+    pdb_path = os.path.join(base_dir, f"{base_name}.pdb")
+
+    if os.path.isfile(pdb_path) and not overwrite:
+        ocprint.print_warning(f"Converted PDB already exists at '{pdb_path}'. Reusing it.")
+        return pdb_path
+
+    try:
+        io = PDBIO()
+        io.set_structure(structure)
+        io.save(pdb_path)
+        ocprint.print_success(f"Converted '{structure_path}' to PDB '{pdb_path}'.")
+        return pdb_path
+    except Exception as e:
+        ocprint.print_warning(f"Failed to convert '{structure_path}' to PDB. Using original file. Error: {e}")
+        return None
+
+def _filterSequence(residues: str) -> str:
     '''Filter the given sequence to avoid unsupported amino acid residues.
 
     Currently removes 'X' (unknown) amino acid residues, as these are not
@@ -518,9 +708,203 @@ def __filterSequence(residues: str) -> str:
         return residues.replace('X', '')
 
     return residues
-
-
 ## Public ##
+
+def compute_aromaticity(residues: str) -> float:
+    '''Compute the aromaticity according to Lobry, 1994.
+
+    Parameters
+    ----------
+    residues : str
+        The residues of the protein.
+
+    Returns
+    -------
+    float
+        The aromaticity of the protein.
+    '''
+
+    ocprint.printv(f"Computing the Aromaticity for protein with amino acid sequence of '{residues}'.")
+    protein = ProteinAnalysis(residues.upper())
+    return float(protein.aromaticity())
+
+def compute_dipole_moment(structure: Union[str, os.PathLike], c_model: str = "gasteiger") -> Optional[float]:
+    '''Computes the receptor's dipole moment.
+
+    Parameters
+    ----------
+    structure : Bio.PDB.Structure.Structure, str
+        The structure to be analysed or the path to the structure
+    c_model : str, optional
+        The charge model to be used, by default "gasteiger".
+
+    Returns
+    -------
+    float
+        The dipole moment of the receptor.
+    '''
+
+    structure_path = os.fspath(structure)
+    ocprint.printv(f"Computing Dipole moment for protein '{structure_path}'.")
+    # Grab the extension and path
+    extension = ocvalidation.validate_obabel_extension(structure_path)
+    # Set the moment as None
+    moment = None
+    # Check if the extension is valid
+    if type(extension) != str:
+        ocprint.print_error(f"Problems while reading the ligand file '{structure_path}'.")
+    else:
+        # Create the conversion object
+        obConversion = openbabel.OBConversion()
+        # Set the input format
+        obConversion.SetInFormat(extension)
+        # Create the OBMol object
+        mol = openbabel.OBMol()
+        # Load the input file to the previously loaded OBMol object
+        obConversion.ReadFile(mol, structure_path)
+        # Create the charge model object
+        charge_model = openbabel.OBChargeModel.FindType(c_model)
+        # Compute the mol object charges using the charge model
+        charge_model.ComputeCharges(mol)
+        # Get the dipile moment from the molecule
+        dipole = charge_model.GetDipoleMoment(mol)
+        # Calcule the dipole moment from the vector with the root of the sum of squares of the coordinates
+        moment = float(math.sqrt(dipole.GetX()**2+dipole.GetY()**2+dipole.GetZ()**2))
+
+    return moment
+
+def compute_gravy(residues: str, scale: str = "KyteDoolitle") -> float:
+    '''Computes the GRAVY (Grand Average of Hydropathy) according to Kyte and Doolitle, 1982.
+
+    Utilizes the given Hydrophobicity scale, by default uses the original
+    proposed by Kyte and Doolittle (KyteDoolitle). Other options are:
+    Aboderin, AbrahamLeo, Argos, BlackMould, BullBreese, Casari, Cid,
+    Cowan3.4, Cowan7.5, Eisenberg, Engelman, Fasman, Fauchere, GoldSack,
+    Guy, Jones, Juretic, Kidera, Miyazawa, Parker,Ponnuswamy, Rose,
+    Roseman, Sweet, Tanford, Wilson and Zimmerman.
+
+    Parameters
+    ----------
+    residues : str
+        The residues of the protein.
+    scale : str, optional
+        The hydrophobicity scale to be used, by default "KyteDoolitle".
+
+    Returns
+    -------
+    float
+        The GRAVY of the protein.
+    '''
+
+    ocprint.printv(f"Computing the GRAVY (Grand Average of Hydropathy) for protein with amino acid sequence of '{residues}'.")
+    protein = ProteinAnalysis(_filterSequence(residues))
+    return float(protein.gravy(scale = scale))
+
+def compute_instability_index(residues: str) -> float:
+    '''Calculate the instability index according to Guruprasad et al 1990.
+
+    Implementation of the method of Guruprasad et al. 1990 to test a
+    protein for stability. Any value above 40 means the protein is unstable
+    (has a short half life).
+    See: Guruprasad K., Reddy B.V.B., Pandit M.W.
+    Protein Engineering 4:155-161(1990).
+
+    Parameters
+    ----------
+    residues : str
+        The residues of the protein.
+
+    Returns
+    -------
+    float
+        The instability index of the protein.
+    '''
+
+    ocprint.printv(f"Computing the Instability Index for protein with amino acid sequence of '{residues}'.")
+    protein = ProteinAnalysis(_filterSequence(residues))
+    return float(protein.instability_index())
+
+def compute_isoelectric_point(residues: str) -> float:
+    '''Computes protein's isoelectric point.
+
+    Parameters
+    ----------
+    residues : str
+        The residues of the protein.
+
+    Returns
+    -------
+    float
+        The isoelectric point of the protein.
+    '''
+
+    ocprint.printv(f"Computing the isoelectric point for protein with amino acid sequence of '{residues}'.")
+    protein = ProteinAnalysis(residues)
+    return float(protein.isoelectric_point())
+
+def compute_sasa(model: Bio.PDB.Structure.Structure, n_points: int = 1000) -> None:
+    '''Computes the Solvent Accessible Surface Area of the molecule. NOTE: The sasa value is added to the structure and can be called using the command "model.sasa" (without quotes).
+
+    Parameters
+    ----------
+    model : Bio.PDB.Structure.Structure
+        The model to be analysed.
+    n_points : int, optional
+        The number of points to be used in the calculation, by default 1000.
+    '''
+
+    ocprint.printv(f"Computing SASA for protein '{model.id}'.")
+    try:
+        sr = SASA.ShrakeRupley(n_points = n_points)
+        sr.compute(model, level="S")
+        # Ensure sasa attribute exists even if computation didn't add it
+        if not hasattr(model, "sasa"):
+            setattr(model, "sasa", 0.0)
+    except (AttributeError, TypeError, Exception):
+        # Fallback: if SASA computation fails, set a default value
+        # This can happen in test environments or when BioPython isn't configured
+        setattr(model, "sasa", 0.0)
+    return None
+
+def count_AAs_and_chains(structure: Bio.PDB.Structure.Structure) -> Optional[Tuple[int, float, int]]:
+    '''Counts the total length (sum of all AAs), the average length (the total AAs divided by the number of chains) and the number of chains the protein has.
+
+    Parameters
+    ----------
+    structure : Bio.PDB.Structure.Structure
+        The structure to be analysed.
+
+    Returns
+    -------
+    Tuple[int, float, int] | None
+        The total length, the average length and the number of chains. If the structure is not valid, returns None.
+    '''
+
+    # If the model is not set
+    if not structure:
+        _ = ocerror.Error.not_set(message=f"The model object is not set!", level=ocerror.ReportLevel.ERROR)
+        return None
+    # Initialise the counter of number of residues and chains
+    res_no = 0
+    chains = 0
+    # For each model in the structure
+    for model in structure:
+        # For each chain in the model
+        for chain in model:
+            # Add one more chain
+            chains += 1
+            # For each residue in the chain
+            for r in chain.get_residues():
+                # If the first position of the residue id is empty, then it is an AA (this may be more robust than the PDB.is_aa() method)
+                if r.id[0] == ' ':
+                    res_no += 1
+    # Check if the number of chains is not 0
+    if chains == 0:
+        ocprint.print_error("The number of chains for the provided model is 0. This is not acceptable!")
+        return None
+
+    return res_no, res_no/chains, chains
+
 def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str, cutoff: float = 0.7) -> Optional[Dict[str, int]]:
     '''Counts how many of each of the 20 standard AAs has a relative ASA value above a given cutoff.
 
@@ -543,11 +927,11 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
 
     ocprint.printv(f"Counting how many of each of the 20 standard AAs from the structure '{structurePath}' are in the surface. Exposure cutoff is {cutoff}.")
     if not structurePath:
-        _ = ocerror.Error.not_set(f"The structure path is not set!", level = ocerror.ReportLevel.ERROR) # type: ignore
-        return None #type: ignore
+        _ = ocerror.Error.not_set(f"The structure path is not set!", level = ocerror.ReportLevel.ERROR)
+        return None
 
     aas = {
-        "A": 0, 
+        "A": 0,
         "R": 0,
         "N": 0,
         "D": 0,
@@ -580,12 +964,12 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
 
     # Check if file is a PDB file
     if structurePath.endswith(".pdb"):
-        _ = ocmolproc.make_only_ATOM_and_CRYST_pdb(structurePath)
+        _ = ocmolproc.clean_for_dssp(structurePath)
 
     # Load the clean Structure
     #cleanStructure = loadMol(cleanStructurePath)
     #cleanStructure = loadMol(structurePath)
-                        
+
     # Column header to dsspData object will be
     # (dssp index, amino acid, secondary structure, relative ASA, phi, psi,
     # NH_O_1_relidx, NH_O_1_energy, O_NH_1_relidx, O_NH_1_energy,
@@ -593,9 +977,48 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
 
     # Run the DSSP
     config = get_config()
+    dssp_exe = str(getattr(config.tools, "dssp", "") or "")
+    candidates = [dssp_exe] if dssp_exe else []
+    
+    # Common fallback names used by DSSP installations
+    for candidate in ("mkdssp", "dssp"):
+        if candidate not in candidates:
+            candidates.append(candidate)
+    resolved: Optional[str] = None
+    for candidate in candidates:
+        if not candidate:
+            continue
+        if os.path.isabs(candidate):
+            if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+                resolved = candidate
+                break
+        else:
+            if shutil.which(candidate) is not None:
+                resolved = candidate
+                break
+    if not resolved:
+        ocprint.print_warning(
+            "DSSP executable not available; surface AA counts cannot be computed."
+        )
+        return None
+    dssp_exe = resolved
+    
     try:
-        dsspData = DSSP(structure[0], structurePath, dssp = config.tools.dssp)
-    except PDBException as e:
+        # Get the extension of the structure path
+        extension = os.path.splitext(structurePath)[1].lower()
+
+        # Check if the file is a mmCIF or PDB file
+        if extension in [".cif", ".mmcif"]:
+            extension = "MMCIF"
+        elif extension in [".pdb", ".ent", ".pdbqt"]:
+            extension = "PDB"
+        else:
+            # Print a warning telling that the file may not load properly and force to be pdb
+            ocprint.print_warning(f"The structure file '{structurePath}' does not have a .cif or .mmcif extension. Assuming it is a PDB file for DSSP processing.")
+            extension = "PDB"
+
+        dsspData = DSSP(structure[0], structurePath, dssp = dssp_exe, file_type=extension)
+    except (PDBException, FileNotFoundError, OSError) as e:
         # DSSP failed due to structure/DSSP mismatch or other PDB-related issues
         ocprint.print_error(f"DSSP failed for structure '{structurePath}': {e}")
         return None
@@ -611,12 +1034,20 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
 
         # Create the dssp command
         config = get_config()
-        dssp_command = [config.tools.dssp, "-i", structurePath, "-o", f"{structureDirName}/{structureName}.dssp"]
+        dssp_command = [dssp_exe, "-i", structurePath, "-o", f"{structureDirName}/{structureName}.dssp"]
         # Run the command
-        _ = ocrun.run(dssp_command)
+        run_result = ocrun.run(dssp_command)
+        if isinstance(run_result, tuple):
+            exit_code, _stderr = run_result
+        else:
+            exit_code = run_result
+        dssp_path = f"{structureDirName}/{structureName}.dssp"
+        if exit_code != 0 or not os.path.isfile(dssp_path):
+            ocprint.print_error(f"DSSP command failed for structure '{structurePath}'.")
+            return None
         # Load the dssp file into dsspData variable
         try:
-            dsspData = DSSP(structure[0], f"{structureDirName}/{structureName}.dssp", file_type="DSSP")
+            dsspData = DSSP(structure[0], dssp_path, file_type="DSSP")
         except PDBException as e:
             # DSSP file loading also failed
             ocprint.print_error(f"DSSP file loading failed for structure '{structurePath}': {e}")
@@ -650,72 +1081,6 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
 
     return aas
 
-
-def count_AAs_and_chains(structure: Bio.PDB.Structure.Structure) -> Optional[Tuple[int, float, int]]:
-    '''Counts the total length (sum of all AAs), the average length (the total AAs divided by the number of chains) and the number of chains the protein has.
-
-    Parameters
-    ----------
-    structure : Bio.PDB.Structure.Structure
-        The structure to be analysed.
-
-    Returns
-    -------
-    Tuple[int, float, int] | None
-        The total length, the average length and the number of chains. If the structure is not valid, returns None.
-    '''
-
-    # If the model is not set
-    if not structure:
-        _ = ocerror.Error.not_set(message=f"The model object is not set!", level=ocerror.ReportLevel.ERROR) # type: ignore
-        return None #type: ignore
-    # Initialise the counter of number of residues and chains
-    res_no = 0
-    chains = 0
-    # For each model in the structure
-    for model in structure:
-        # For each chain in the model
-        for chain in model:
-            # Add one more chain
-            chains += 1
-            # For each residue in the chain
-            for r in chain.get_residues():
-                # If the first position of the residue id is empty, then it is an AA (this may be more robust than the PDB.is_aa() method)
-                if r.id[0] == ' ':
-                    res_no += 1
-    # Check if the number of chains is not 0
-    if chains == 0:
-        ocprint.print_error("The number of chains for the provided model is 0. This is not acceptable!")
-        return None
-
-    return res_no, res_no/chains, chains
-
-
-def compute_sasa(model: Bio.PDB.Structure.Structure, n_points: int = 1000) -> None:
-    '''Computes the Solvent Accessible Surface Area of the molecule. NOTE: The sasa value is added to the structure and can be called using the command "model.sasa" (without quotes).
-
-    Parameters
-    ----------
-    model : Bio.PDB.Structure.Structure
-        The model to be analysed.
-    n_points : int, optional
-        The number of points to be used in the calculation, by default 1000.
-    '''
-
-    ocprint.printv(f"Computing SASA for protein '{model.id}'.")
-    try:
-        sr = SASA.ShrakeRupley(n_points = n_points)
-        sr.compute(model, level="S")
-        # Ensure sasa attribute exists even if computation didn't add it
-        if not hasattr(model, 'sasa'):
-            model.sasa = 0.0
-    except (AttributeError, TypeError, Exception):
-        # Fallback: if SASA computation fails, set a default value
-        # This can happen in test environments or when BioPython isn't configured
-        model.sasa = 0.0
-    return None
-
-
 def get_res(model: Bio.PDB.Structure.Structure) -> str:
     '''Get the amino acid one letter sequence for the receptor (Ignore chains).
 
@@ -739,9 +1104,8 @@ def get_res(model: Bio.PDB.Structure.Structure) -> str:
         residues.append(seq1(residue.get_resname()))
     return "".join(residues)
 
-
-def load_mol(structure: Union[str, os.PathLike, Bio.PDB.Structure.Structure], name: str = "", compute_sasa: bool = True, mol2_path: str = "", overwrite: bool = False, clean: bool = True) -> Tuple[str, Optional[Bio.PDB.Structure.Structure]]:
-    '''Load a structure pdb/cif if a path is provided or just assign the Bio.PDB.Structure.Structure object to the structure. Also returns the path as a tuple (path, structure).
+def load_mol(structure: Union[str, os.PathLike, Bio.PDB.Structure.Structure], name: str = "", compute_sasa: bool = True, mol2_path: str = "", overwrite: bool = False, clean: bool = True, canonicalize_pdb: Union[bool, str] = "auto") -> Tuple[str, Optional[Bio.PDB.Structure.Structure]]:
+    '''Load a structure pdb/cif/mmcif if a path is provided or just assign the Bio.PDB.Structure.Structure object to the structure. Also returns the path as a tuple (path, structure).
 
     Parameters
     ----------
@@ -757,6 +1121,8 @@ def load_mol(structure: Union[str, os.PathLike, Bio.PDB.Structure.Structure], na
         Whether to overwrite the mol2 file or not, by default False.
     clean : bool, optional
         Whether to clean the protein file or not, by default True.
+    canonicalize_pdb : bool | str, optional
+        Whether to canonicalize CHARMM-style PDB names. Use True, False, or "auto".
 
     Returns
     -------
@@ -766,7 +1132,7 @@ def load_mol(structure: Union[str, os.PathLike, Bio.PDB.Structure.Structure], na
 
     ocprint.printv(f"Trying to load protein '{structure}'.")
     # Check if the variable is a Bio.PDB.Structure.Structure or a path-like object
-    if isinstance(structure, Bio.PDB.Structure.Structure): #type: ignore
+    if isinstance(structure, Bio.PDB.Structure.Structure):
         # Check if SASA should be computed
         if compute_sasa:
             # Call compute_sasa from this module (defined later in file)
@@ -777,7 +1143,9 @@ def load_mol(structure: Union[str, os.PathLike, Bio.PDB.Structure.Structure], na
         # Check if the pdb file should be cleaned
         if clean:
             # Clean the pdb file
-            structure = renumber_pdb_residues(structure)
+            cleaned = renumber_pdb_residues(structure)
+            if cleaned is not None:
+                structure = cleaned
         # Since it is already a structure, return it with empty path
         return "", structure
     elif isinstance(structure, (str, os.PathLike)):
@@ -787,30 +1155,103 @@ def load_mol(structure: Union[str, os.PathLike, Bio.PDB.Structure.Structure], na
             if name == "":
                 # If its true, set its name as 'Generic structure'
                 name = "Generic structure"
-            
+
             # Now we know that it is a file path, check which is its extension to use the correct function
-            extension = os.path.splitext(structure_path)[1]
+            extension = os.path.splitext(structure_path)[1].lower()
+
+            # Normalize canonicalization mode
+            canonicalize_mode: Union[bool, str]
+            if isinstance(canonicalize_pdb, str):
+                canonicalize_mode = canonicalize_pdb.lower()
+                if canonicalize_mode not in ["auto", "true", "false"]:
+                    ocprint.print_warning(f"Invalid canonicalize_pdb value '{canonicalize_pdb}'. Using 'auto'.")
+                    canonicalize_mode = "auto"
+                if canonicalize_mode == "true":
+                    canonicalize_mode = True
+                elif canonicalize_mode == "false":
+                    canonicalize_mode = False
+            elif isinstance(canonicalize_pdb, bool):
+                canonicalize_mode = canonicalize_pdb
+            else:
+                ocprint.print_warning(f"Invalid canonicalize_pdb type '{type(canonicalize_pdb)}'. Using 'auto'.")
+                canonicalize_mode = "auto"
 
             # Choose the parser based on extension
             if extension == ".pdb":
-                parser = PDBParser()
-            elif extension == ".cif":
-                parser = MMCIFParser()
+                if canonicalize_mode is True or canonicalize_mode == "auto":
+                    needs_fix = True
+                    if canonicalize_mode == "auto":
+                        needs_fix = ocmolproc.needs_canonical_pdb_fix(structure_path, collapse_resnames=True)
+                    if needs_fix:
+                        result = ocmolproc.convert_pdb_charmm_to_canonical(
+                            structure_path,
+                            structure_path,
+                            collapse_resnames=True,
+                            overwrite=overwrite,
+                            in_place=True,
+                        )
+                        if result != ocerror.Error.ok():
+                            ocprint.print_warning(f"Failed to canonicalize '{structure_path}'. Using original file.")
+
+                # Clean file to a sidecar path when requested
+                if clean:
+                    clean_path = _clean_pdb_path(structure_path)
+                    result = ocmolproc.clean_pdb_file(structure_path, clean_path, overwrite=overwrite, keep_hetatm=False)
+                    if result == ocerror.Error.ok():
+                        structure_path = clean_path
+                    else:
+                        ocprint.print_warning(f"Failed to clean '{structure_path}'. Using original file.")
+
+                tmp_structure = PDBParser().get_structure(name, structure_path)
+
+            elif extension in [".cif", ".mmcif"]:
+                tmp_structure = MMCIFParser().get_structure(name, structure_path)
             else:
                 # The file extension is not supported, print data
-                supported_extensions = [".pdb", ".cif"]
+                supported_extensions = [".pdb", ".cif", ".mmcif"]
                 ocprint.print_error(
                     f"The receptor {structure_path} has a unsupported extension.\nCurrently the supported extensions are {', '.join(supported_extensions)}."
                 )
                 return "", None
 
-            # Compute the SASA value of the structure
-            tmp_structure = parser.get_structure(name, structure_path)
+            # Convert mmCIF/cif to PDB for downstream compatibility
+            if extension in [".cif", ".mmcif"]:
+                converted_path = _convert_cif_to_pdb(structure_path, tmp_structure, overwrite=overwrite)
+                if converted_path:
+                    structure_path = converted_path
+                    # Apply CHARMM -> canonical renaming if requested
+                    if canonicalize_mode is True or canonicalize_mode == "auto":
+                        needs_fix = True
+                        if canonicalize_mode == "auto":
+                            needs_fix = ocmolproc.needs_canonical_pdb_fix(structure_path, collapse_resnames=True)
+                        if needs_fix:
+                            result = ocmolproc.convert_pdb_charmm_to_canonical(
+                                structure_path,
+                                structure_path,
+                                collapse_resnames=True,
+                                overwrite=overwrite,
+                                in_place=True,
+                            )
+                            if result != ocerror.Error.ok():
+                                ocprint.print_warning(f"Failed to canonicalize '{structure_path}'. Using original file.")
 
-            # Check if the pdb file should be cleaned
+                    # Clean file to a sidecar path when requested
+                    if clean:
+                        clean_path = _clean_pdb_path(structure_path)
+                        result = ocmolproc.clean_pdb_file(structure_path, clean_path, overwrite=overwrite, keep_hetatm=False)
+                        if result == ocerror.Error.ok():
+                            structure_path = clean_path
+                        else:
+                            ocprint.print_warning(f"Failed to clean '{structure_path}'. Using original file.")
+
+                    # Re-parse from the (possibly cleaned) PDB to keep structure aligned
+                    tmp_structure = PDBParser().get_structure(name, structure_path)
+
+            # Check if the pdb file should be cleaned (renumber residues)
             if clean:
-                # Clean the pdb file (renumber residues)
-                tmp_structure = renumber_pdb_residues(tmp_structure)
+                cleaned = renumber_pdb_residues(tmp_structure)
+                if cleaned is not None:
+                    tmp_structure = cleaned
 
             # If there is a mol2 path and the file does not exist
             if mol2_path and (not os.path.isfile(mol2_path) or overwrite):
@@ -830,13 +1271,117 @@ def load_mol(structure: Union[str, os.PathLike, Bio.PDB.Structure.Structure], na
             return structure_path, tmp_structure
         else:
             # File does not exist
-            _ = ocerror.Error.file_not_exist(message=f"The file '{structure_path}' does not exist!", level=ocerror.ReportLevel.ERROR) # type: ignore
+            _ = ocerror.Error.file_not_exist(message=f"The file '{structure_path}' does not exist!", level=ocerror.ReportLevel.ERROR)
             return "", None
     else:
         # The variable is not in a supported data format
         ocprint.print_error("Unsupported molecule data. Please support either a molecule path (string) or an 'rdkit.Chem.rdchem.Mol' object.")
         return "", None
 
+def read_descriptors_from_json(path: str, returnData: bool = False) -> Optional[Union[Dict[str, Union[str, float, int]], Tuple[Union[str, float, int, Dict[str, int]], ...]]]:
+    '''Read the descriptors from a json file.
+
+    Parameters
+    ----------
+    path : str
+        The path to the json file.
+    returnData : bool, optional
+        If True, returns a dictionary with the descriptors. By default False.
+
+    Returns
+    -------
+    Dict[str, str | float | int] | Tuple[float | str | int | dict[str, int], ...] | None
+        The descriptors dictionary or None if any error occurs.
+
+    Raises
+    ------
+    KeyError
+    '''
+
+    # Try to read the file
+    try:
+        # Open the json file in read mode
+        with open(path, 'r') as f:
+            # Load the data
+            data = json.load(f)
+
+        # Missing keys list
+        missing = []
+        # Expected keys to have in the json file
+        #region keys
+        keys = ["Name", "SASA", "DipoleMoment", "IsoelectricPoint", "InstabilityIndex", "GRAVY", "Aromaticity", "countA", "countR", "countN", "countD", "countC", "countQ", "countE", "countG", "countH", "countI", "countL", "countK", "countM", "countF", "countP", "countS", "countT", "countW", "countY", "countV", "TotalAALength", "AvgAALength", "countChain"]
+        #endregion
+
+        # Validate the data
+        for key in keys:
+            # Check if data has a 'mol2Path' key
+            if "mol2Path" in data:
+                # Remove the entry
+                _ = data.pop("mol2Path")
+
+            # If key is lacking in data read from json (means malformed json!)
+            if not key in data:
+                # Add the missing key to the missing list
+                missing.append(key)
+
+        # If missing list is not empty
+        if missing:
+            # Set the mkissed values
+            missed = (path, ", ".join(missing))
+            # User-facing error: missing required data in JSON file
+            ocerror.Error.data_not_found(f"Missing keys in JSON file '{path}': {', '.join(missing)}")
+            raise KeyError(f"Missing keys in JSON file '{path}': {', '.join(missing)}")
+
+        # Create the countAA variable (here np.nan does have an exact meaning, 0 is a valid value)
+        countAA = {
+            "A": data["countA"] if not np.isnan(data["countA"]) else 0,
+            "R": data["countR"] if not np.isnan(data["countR"]) else 0,
+            "N": data["countN"] if not np.isnan(data["countN"]) else 0,
+            "D": data["countD"] if not np.isnan(data["countD"]) else 0,
+            "C": data["countC"] if not np.isnan(data["countC"]) else 0,
+            "Q": data["countQ"] if not np.isnan(data["countQ"]) else 0,
+            "E": data["countE"] if not np.isnan(data["countE"]) else 0,
+            "G": data["countG"] if not np.isnan(data["countG"]) else 0,
+            "H": data["countH"] if not np.isnan(data["countH"]) else 0,
+            "I": data["countI"] if not np.isnan(data["countI"]) else 0,
+            "L": data["countL"] if not np.isnan(data["countL"]) else 0,
+            "K": data["countK"] if not np.isnan(data["countK"]) else 0,
+            "M": data["countM"] if not np.isnan(data["countM"]) else 0,
+            "F": data["countF"] if not np.isnan(data["countF"]) else 0,
+            "P": data["countP"] if not np.isnan(data["countP"]) else 0,
+            "S": data["countS"] if not np.isnan(data["countS"]) else 0,
+            "T": data["countT"] if not np.isnan(data["countT"]) else 0,
+            "W": data["countW"] if not np.isnan(data["countW"]) else 0,
+            "Y": data["countY"] if not np.isnan(data["countY"]) else 0,
+            "V": data["countV"] if not np.isnan(data["countV"]) else 0
+        }
+
+        # If the returnData flag is on
+        if returnData:
+            # Return the entire dict
+            return cast(Dict[str, Union[str, float, int]], data)
+
+        # Since we have all keys, read them and return their values
+        #region Return data
+        return cast(
+            Tuple[Union[str, float, int, Dict[str, int]], ...],
+            (
+                data["Name"], data["SASA"], data["DipoleMoment"], data["IsoelectricPoint"], data["InstabilityIndex"], data["GRAVY"], data["Aromaticity"], countAA,
+                data["countA"], data["countR"], data["countN"], data["countD"], data["countC"], data["countQ"], data["countE"], data["countG"], data["countH"], data["countI"],
+                data["countL"], data["countK"], data["countM"], data["countF"], data["countP"], data["countS"], data["countT"], data["countW"], data["countY"], data["countV"],
+                data["TotalAALength"], data["AvgAALength"], data["countChain"]
+            ),
+        )
+
+        #endregion
+    # Key error (when there is a missing key)
+    except KeyError as missed:
+        # KeyError raised with a string message is not subscriptable, access the message directly
+        ocprint.print_error(f"The following keys were not found in the json file: {missed}")
+    # General error (call it as problem to read file)
+    except Exception as e:
+        ocprint.print_error(f"Could not read the file '{path}'. Error: {e}")
+    return None
 
 def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str = "") -> Optional[Bio.PDB.Structure.Structure]:
     '''Renumber the pdb residues using biopython.
@@ -882,240 +1427,6 @@ def renumber_pdb_residues(structure: Bio.PDB.Structure.Structure, outputPdb: str
 
         return structure
     except Exception as e:
-        _ = ocerror.Error.unknown(f"Could not reset indexes for this protein and save it on path '{outputPdb}'. Error: {e}", level = ocerror.ReportLevel.ERROR) # type: ignore
-    
-    return None
+        _ = ocerror.Error.unknown(f"Could not reset indexes for this protein and save it on path '{outputPdb}'. Error: {e}", level = ocerror.ReportLevel.ERROR)
 
-
-def compute_dipole_moment(structure: Union[Bio.PDB.Structure.Structure, str], c_model: str = "gasteiger") -> Optional[float]:
-    '''Computes the receptor's dipole moment.
-
-    Parameters
-    ----------
-    structure : Bio.PDB.Structure.Structure, str
-        The structure to be analysed or the path to the structure
-    c_model : str, optional
-        The charge model to be used, by default "gasteiger".
-
-    Returns
-    -------
-    float
-        The dipole moment of the receptor.
-    '''
-
-    ocprint.printv(f"Computing Dipole moment for protein '{structure}'.")
-    # Grab the extension and path
-    extension = ocvalidation.validate_obabel_extension(structure)
-    # Set the moment as None
-    moment = None
-    # Check if the extension is valid
-    if type(extension) != str:
-        ocprint.print_error(f"Problems while reading the ligand file '{structure}'.")
-    else:
-        # Create the conversion object
-        obConversion = openbabel.OBConversion()
-        # Set the input format
-        obConversion.SetInFormat(extension)
-        # Create the OBMol object
-        mol = openbabel.OBMol()
-        # Load the input file to the previously loaded OBMol object
-        obConversion.ReadFile(mol, structure)
-        # Create the charge model object
-        charge_model = openbabel.OBChargeModel.FindType(c_model)
-        # Compute the mol object charges using the charge model
-        charge_model.ComputeCharges(mol)
-        # Get the dipile moment from the molecule
-        dipole = charge_model.GetDipoleMoment(mol)
-        # Calcule the dipole moment from the vector with the root of the sum of squares of the coordinates
-        moment = math.sqrt(dipole.GetX()**2+dipole.GetY()**2+dipole.GetZ()**2)
-
-    return moment
-
-
-def compute_isoelectric_point(residues: str) -> float:
-    '''Computes protein's isoelectric point.
-
-    Parameters
-    ----------
-    residues : str
-        The residues of the protein.
-
-    Returns
-    -------
-    float
-        The isoelectric point of the protein.
-    '''
-
-    ocprint.printv(f"Computing the isoelectric point for protein with amino acid sequence of '{residues}'.")
-    protein = ProteinAnalysis(residues)
-    return protein.isoelectric_point()
-
-
-def compute_gravy(residues: str, scale: str = "KyteDoolitle") -> float:
-    '''Computes the GRAVY (Grand Average of Hydropathy) according to Kyte and Doolitle, 1982.
-
-    Utilizes the given Hydrophobicity scale, by default uses the original
-    proposed by Kyte and Doolittle (KyteDoolitle). Other options are:
-    Aboderin, AbrahamLeo, Argos, BlackMould, BullBreese, Casari, Cid,
-    Cowan3.4, Cowan7.5, Eisenberg, Engelman, Fasman, Fauchere, GoldSack,
-    Guy, Jones, Juretic, Kidera, Miyazawa, Parker,Ponnuswamy, Rose,
-    Roseman, Sweet, Tanford, Wilson and Zimmerman.
-
-    Parameters
-    ----------
-    residues : str
-        The residues of the protein.
-    scale : str, optional
-        The hydrophobicity scale to be used, by default "KyteDoolitle".
-
-    Returns
-    -------
-    float
-        The GRAVY of the protein.
-    '''
-
-    ocprint.printv(f"Computing the GRAVY (Grand Average of Hydropathy) for protein with amino acid sequence of '{residues}'.")
-    protein = ProteinAnalysis(__filterSequence(residues))
-    return protein.gravy(scale = scale)
-
-
-def compute_aromaticity(residues: str) -> float:
-    '''Compute the aromaticity according to Lobry, 1994.
-
-    Parameters
-    ----------
-    residues : str
-        The residues of the protein.
-
-    Returns
-    -------
-    float
-        The aromaticity of the protein.
-    '''
-
-    ocprint.printv(f"Computing the Aromaticity for protein with amino acid sequence of '{residues}'.")
-    protein = ProteinAnalysis(residues.upper())
-    return protein.aromaticity()
-
-
-def compute_instability_index(residues: str) -> float:
-    '''Calculate the instability index according to Guruprasad et al 1990.
-
-    Implementation of the method of Guruprasad et al. 1990 to test a
-    protein for stability. Any value above 40 means the protein is unstable
-    (has a short half life).
-    See: Guruprasad K., Reddy B.V.B., Pandit M.W.
-    Protein Engineering 4:155-161(1990).
-
-    Parameters
-    ----------
-    residues : str
-        The residues of the protein.
-
-    Returns
-    -------
-    float
-        The instability index of the protein.
-    '''
-
-    ocprint.printv(f"Computing the Instability Index for protein with amino acid sequence of '{residues}'.")
-    protein = ProteinAnalysis(__filterSequence(residues))
-    return protein.instability_index()
-
-
-def read_descriptors_from_json(path: str, returnData: bool = False) -> Optional[Union[Dict[str, Union[str, float, int]], Tuple[Union[float, str, int]]]]:
-    '''Read the descriptors from a json file.
-
-    Parameters
-    ----------
-    path : str
-        The path to the json file.
-    returnData : bool, optional
-        If True, returns a dictionary with the descriptors. By default False.
-
-    Returns
-    -------
-    Dict[str, str | float | int] | Tuple[float | str | int]] | None
-        The descriptors dictionary or None if any error occurs.
-
-    Raises
-    ------
-    KeyError
-    '''
-    
-    # Try to read the file
-    try:
-        # Open the json file in read mode
-        with open(path, 'r') as f:
-            # Load the data
-            data = json.load(f)
-
-        # Missing keys list
-        missing = []
-        # Expected keys to have in the json file
-        #region keys
-        keys = ["Name", "SASA", "DipoleMoment", "IsoelectricPoint", "InstabilityIndex", "GRAVY", "Aromaticity", "countA", "countR", "countN", "countD", "countC", "countQ", "countE", "countG", "countH", "countI", "countL", "countK", "countM", "countF", "countP", "countS", "countT", "countW", "countY", "countV", "TotalAALength", "AvgAALength", "countChain"]
-        #endregion
-        
-        # Validate the data
-        for key in keys:
-            # Check if data has a 'mol2Path' key
-            if "mol2Path" in data:
-                # Remove the entry
-                _ = data.pop("mol2Path")
-                
-            # If key is lacking in data read from json (means malformed json!)
-            if not key in data:
-                # Add the missing key to the missing list
-                missing.append(key)
-
-        # If missing list is not empty
-        if missing:
-            # Set the mkissed values
-            missed = (path, ", ".join(missing))
-            # User-facing error: missing required data in JSON file
-            ocerror.Error.data_not_found(f"Missing keys in JSON file '{path}': {', '.join(missing)}") # type: ignore
-            raise KeyError(f"Missing keys in JSON file '{path}': {', '.join(missing)}")
-
-        # Create the countAA variable (here np.nan does have an exact meaning, 0 is a valid value)
-        countAA = {
-            "A": data["countA"] if not np.isnan(data["countA"]) else 0,
-            "R": data["countR"] if not np.isnan(data["countR"]) else 0,
-            "N": data["countN"] if not np.isnan(data["countN"]) else 0,
-            "D": data["countD"] if not np.isnan(data["countD"]) else 0,
-            "C": data["countC"] if not np.isnan(data["countC"]) else 0,
-            "Q": data["countQ"] if not np.isnan(data["countQ"]) else 0,
-            "E": data["countE"] if not np.isnan(data["countE"]) else 0,
-            "G": data["countG"] if not np.isnan(data["countG"]) else 0,
-            "H": data["countH"] if not np.isnan(data["countH"]) else 0,
-            "I": data["countI"] if not np.isnan(data["countI"]) else 0,
-            "L": data["countL"] if not np.isnan(data["countL"]) else 0,
-            "K": data["countK"] if not np.isnan(data["countK"]) else 0,
-            "M": data["countM"] if not np.isnan(data["countM"]) else 0,
-            "F": data["countF"] if not np.isnan(data["countF"]) else 0,
-            "P": data["countP"] if not np.isnan(data["countP"]) else 0,
-            "S": data["countS"] if not np.isnan(data["countS"]) else 0,
-            "T": data["countT"] if not np.isnan(data["countT"]) else 0,
-            "W": data["countW"] if not np.isnan(data["countW"]) else 0,
-            "Y": data["countY"] if not np.isnan(data["countY"]) else 0,
-            "V": data["countV"] if not np.isnan(data["countV"]) else 0
-        }
-
-        # If the returnData flag is on
-        if returnData:
-            # Return the entire dict
-            return data
-
-        # Since we have all keys, read them and return their values
-        #region Return data
-        return data["Name"], data["SASA"], data["DipoleMoment"], data["IsoelectricPoint"], data["InstabilityIndex"], data["GRAVY"], data["Aromaticity"], countAA, data["countA"], data["countR"], data["countN"], data["countD"], data["countC"], data["countQ"], data["countE"], data["countG"], data["countH"], data["countI"], data["countL"], data["countK"], data["countM"], data["countF"], data["countP"], data["countS"], data["countT"], data["countW"], data["countY"], data["countV"], data["TotalAALength"], data["AvgAALength"], data["countChain"] # type: ignore
-
-        #endregion
-    # Key error (when there is a missing key)
-    except KeyError as missed:
-        # KeyError raised with a string message is not subscriptable, access the message directly
-        ocprint.print_error(f"The following keys were not found in the json file: {missed}") # type: ignore
-    # General error (call it as problem to read file)
-    except Exception as e:
-        ocprint.print_error(f"Could not read the file '{path}'. Error: {e}")
     return None
