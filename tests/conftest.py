@@ -17,6 +17,7 @@ import pytest
 import shutil
 
 from pathlib import Path
+from typing import Optional, Set
 
 # License
 ###############################################################################
@@ -175,6 +176,81 @@ def ensure_clean_test_state(tmp_path):
                 pass
     
     yield tmp_path
+
+
+def _exe_available(path: Optional[str]) -> bool:
+    if not path:
+        return False
+    if os.path.isabs(path):
+        return os.path.isfile(path) and os.access(path, os.X_OK)
+    return shutil.which(path) is not None
+
+
+def _missing_external_tools() -> Set[str]:
+    # Try to resolve tool paths from config, fallback to common names
+    try:
+        from OCDocker.Config import get_config
+        cfg = get_config()
+        tools = {
+            "vina": getattr(cfg.vina, "executable", "vina"),
+            "smina": getattr(cfg.smina, "executable", "smina"),
+            "plants": getattr(cfg.plants, "executable", "plants"),
+        }
+    except Exception:
+        tools = {
+            "vina": "vina",
+            "smina": "smina",
+            "plants": "plants",
+        }
+
+    # Common external helpers
+    tools.update({
+        "obabel": "obabel",
+        "prepare_ligand4": "prepare_ligand4.py",
+        "prepare_receptor4": "prepare_receptor4.py",
+    })
+
+    missing = {name for name, exe in tools.items() if not _exe_available(exe)}
+
+    # Python OpenBabel bindings (used by Receptor/Conversion)
+    try:
+        import openbabel  # type: ignore
+        _ = openbabel
+    except Exception:
+        missing.add("openbabel-py")
+
+    return missing
+
+
+def pytest_collection_modifyitems(config, items):
+    # Allow forcing external tests on (e.g., local dev with binaries installed)
+    if os.getenv("OCDOCKER_FORCE_EXTERNAL_TESTS", "").lower() in ("1", "true", "yes"):
+        return
+
+    missing = _missing_external_tools()
+    if not missing:
+        return
+
+    skip_external = pytest.mark.skip(
+        reason=f"Missing external tools/binaries: {', '.join(sorted(missing))}"
+    )
+
+    # Map test modules to required tools
+    required_by_file = {
+        "test_Vina.py": {"vina", "prepare_ligand4", "prepare_receptor4", "openbabel-py"},
+        "test_vina_prepare.py": {"prepare_ligand4", "prepare_receptor4"},
+        "test_Smina.py": {"smina", "prepare_ligand4", "prepare_receptor4", "openbabel-py"},
+        "test_PLANTS.py": {"plants", "obabel", "openbabel-py"},
+        "test_plants_prepare.py": {"plants", "obabel"},
+        "test_Receptor.py": {"openbabel-py"},
+    }
+
+    for item in items:
+        fpath = str(item.fspath)
+        for filename, required in required_by_file.items():
+            if fpath.endswith(filename) and (missing & required):
+                item.add_marker(skip_external)
+                break
 
 
 def pytest_configure(config):
